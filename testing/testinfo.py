@@ -4,21 +4,21 @@
 
 import datetime
 import errno
+import functools
 import json
 import os
 import posixpath
 import re
 import subprocess
 from collections import defaultdict
-from typing import Dict
 
 import mozpack.path as mozpath
 import requests
 import six.moves.urllib_parse as urlparse
+import yaml
 from mozbuild.base import MachCommandConditions as conditions
 from mozbuild.base import MozbuildObject
 from mozfile import which
-from mozinfo.platforminfo import PlatformInfo
 from moztest.resolve import TestManifestLoader, TestResolver
 from redo import retriable
 
@@ -988,6 +988,69 @@ class TestInfoReport(TestInfo):
     ###  Below is code for creating a os/version/processor/config/variant matrix
     ###
 
+    # store this so we don't have to query frequently
+    variant_data = {}
+
+    # TODO: be smarter so we don't have to update this all the time
+    #       potentially a centralized mapping for skipfails, mozinfo, taskgraph, etc.
+    # this maps values from the taskgraph to `skip-if` friendly syntax
+    osmap = {
+        "macosx": "mac",
+        "windows": "win",
+    }
+
+    buildmap = {
+        "debug-isolated-process": "isolated-process",
+    }
+
+    # NOTE: android 7.0/13.0 is the android_version, i.e. android sdk version
+    osversionmap = {
+        "1015": "10.15",
+        "1400": "14.70",
+        "1100": "11.20",
+        "1804": "18.04",
+        "2204": "22.04",
+        "2404": "24.04",
+        "7.0": "24",
+        "13.0": "33",
+    }
+
+    processormap = {
+        "64": "x86_64",
+        "32": "x86",
+    }
+
+    @functools.cache
+    def get_variant_data(self):
+        # if running locally via `./mach ...`, assuming running from root of repo
+        filename = (
+            os.environ.get("GECKO_PATH", ".") + "/taskcluster/kinds/test/variants.yml"
+        )
+        try:
+            with open(filename, "r") as f:
+                variant_data = yaml.safe_load(f.read())
+        except:
+            raise
+
+        return variant_data
+
+    def get_variant_condition(self, variant):
+        if not variant:
+            return ""
+
+        variants = self.get_variant_data()
+        if variant not in variants.keys():
+            return ""
+
+        mozinfo = variants[variant].get("mozinfo", "")
+
+        # This is a hack as we have no-fission and fission variants
+        # sharing a common mozinfo variable.
+        # TODO: what other hacks like this exist?
+        if variant in ["no-fission"]:
+            mozinfo = "!" + mozinfo
+        return mozinfo
+
     def build_matrix_cache(self):
         # this is an attempt to cache the .json for the duration of the task
         filename = "task-graph.json"
@@ -1005,7 +1068,7 @@ class TestInfoReport(TestInfo):
                 json.dump(data, f)
 
         for task in data.values():
-            task_label: str = task["label"]
+            task_label = task["label"]
 
             # we only want test tasks
             if not task_label.startswith("test-"):
@@ -1033,12 +1096,64 @@ class TestInfoReport(TestInfo):
                     self.matrix_map[manifest].append(task_label)
 
             extra = task.get("task", {}).get("extra", {}).get("test-setting", {})
-            platform_info = PlatformInfo(extra)
+            osname = self.osmap.get(
+                extra["platform"]["os"]["name"], extra["platform"]["os"]["name"]
+            )
 
-            self.task_tuples[task_label] = platform_info
+            os_version = extra["platform"]["os"]["version"]
+            if extra["platform"]["os"].get("build", ""):
+                os_version += "." + extra["platform"]["os"].get("build", "")
+            os_version = self.osversionmap.get(os_version, os_version)
+
+            processor = self.processormap.get(
+                extra["platform"]["arch"], extra["platform"]["arch"]
+            )
+
+            build_type = extra["build"]["type"]
+            if len(extra["build"].keys()) > 1:
+                if list(extra["build"].keys()) != ["shippable", "type"]:
+                    build_type = [
+                        x
+                        for x in extra["build"].keys()
+                        if x not in ["type", "shippable"]
+                    ][0]
+            build_type = self.buildmap.get(build_type, build_type)
+
+            # TODO: this is a hack, but these don't apply:
+            if build_type in ["devedition", "mingwclang"]:  # only on beta, no mozinfo
+                build_type = "opt"
+            if osname == "mac" and build_type == "ccov":  # not scheduled
+                build_type = "opt"
+            if (
+                osname == "android" and build_type == "lite"
+            ):  # no specific way to skip this, treat as normal android
+                build_type = "opt"
+
+            # TODO: consider adding display here
+
+            test_variants = "+".join(
+                [
+                    v
+                    for v in [
+                        self.get_variant_condition(x)
+                        for x in list(extra.get("runtime", {}).keys())
+                    ]
+                    if v
+                ]
+            )
+            if not extra.get("runtime", {}) or not test_variants:
+                test_variants = "no_variant"
+
+            self.task_tuples[task_label] = (
+                osname,
+                os_version,
+                processor,
+                build_type,
+                test_variants,
+            )
 
     matrix_map = defaultdict(list)
-    task_tuples: Dict[str, PlatformInfo] = {}
+    task_tuples = defaultdict(tuple)
 
     # find manifest in matrix_map and for all tasks that run this
     # pull the tuples out and create a definitive list
@@ -1050,17 +1165,16 @@ class TestInfoReport(TestInfo):
 
         for task_label in self.matrix_map.get(target_manifest, []):
             # get OS, OS_VERSION, PROCESSOR, DISPLAY, BUILD_TYPE, TEST_VARIANT
-            platform_info = self.task_tuples[task_label]
-            if platform_info.os not in results:
-                results[platform_info.os] = {}
-            os = results[platform_info.os]
-            if platform_info.os_version not in os:
-                os[platform_info.os_version] = {}
-            os_version = os[platform_info.os_version]
-            if platform_info.arch not in os_version:
-                os_version[platform_info.arch] = {}
-            arch = os_version[platform_info.arch]
-            if platform_info.build_type not in arch:
-                arch[platform_info.build_type] = set()
-            arch[platform_info.build_type].add(platform_info.test_variant)
+            osname, os_version, processor, build_type, test_variants = self.task_tuples[
+                task_label
+            ]
+            if osname not in results:
+                results[osname] = {}
+            if os_version not in results[osname]:
+                results[osname][os_version] = {}
+            if processor not in results[osname][os_version]:
+                results[osname][os_version][processor] = {}
+            if build_type not in results[osname][os_version][processor]:
+                results[osname][os_version][processor][build_type] = set()
+            results[osname][os_version][processor][build_type].add(test_variants)
         return results

@@ -5,13 +5,13 @@
     "extra": {
       "arch": "32",
       "bits": "32",
-      "build_type": "opt",
+      "build_types": ["opt", "shippable"],
       "debug": false,
       "display": null,
       "opt": true,
       "os": "linux",
       "os_version": "18.04",
-      "runtime": "no_variant"
+      "runtimes": []
     },
     "failure_types": {
       "/css/mediaqueries": [
@@ -49,13 +49,13 @@
     "extra": {
       "arch": "32",
       "bits": "32",
-      "build_type": "opt",
+      "build_types": ["opt", "shippable"],
       "debug": false,
       "display": null,
       "opt": true,
       "os": "linux",
       "os_version": "18.04",
-      "runtime": "no_variant"
+      "runtimes": []
     },
     "failure_types": {},
     "id": "AKYqxtoWStigj_5yHVqAeg",
@@ -86,13 +86,13 @@
     "extra": {
       "arch": "32",
       "bits": "32",
-      "build_type": "opt",
+      "build_types": ["opt", "shippable"],
       "debug": false,
       "display": null,
       "opt": true,
       "os": "linux",
       "os_version": "18.04",
-      "runtime": "no_variant"
+      "runtimes": []
     },
     "failure_types": {
       "/css/mediaqueries": [
@@ -130,13 +130,13 @@
     "extra": {
       "arch": "32",
       "bits": "32",
-      "build_type": "opt",
+      "build_types": ["opt", "shippable"],
       "debug": false,
       "display": null,
       "opt": true,
       "os": "linux",
       "os_version": "18.04",
-      "runtime": "no_variant"
+      "runtimes": []
     },
     "failure_types": {},
     "id": "fyZfG_PJSse7jeiDteDJpQ",

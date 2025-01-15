@@ -2,5 +2,3 @@
 subsuite = "mozbase"
 
 ["test.py"]
-
-["test_platforminfo.py"]

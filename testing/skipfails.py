@@ -20,7 +20,6 @@ from typing import Any, Dict, Literal
 from xmlrpc.client import Fault
 
 from failedplatform import FailedPlatform
-from mozinfo.platforminfo import PlatformInfo
 from yaml import load
 
 try:
@@ -198,7 +197,7 @@ class Skipfails(object):
         self.jobs_url = "https://treeherder.mozilla.org/api/jobs/"
         self.push_ids = {}
         self.job_ids = {}
-        self.extras: Dict[str, PlatformInfo] = {}
+        self.extras = {}
         self.bugs = []  # preloaded bugs, currently not an updated cache
         self.error_summary = {}
         self._subtest_rx = None
@@ -944,6 +943,8 @@ class Skipfails(object):
             else:
                 raise Exception(f'More than one bug found for summary: "{bug_summary}"')
         bug_reference = f"Bug {bugid}" + bug_reference
+        extra = self.get_extra(task_id)
+        json.dumps(extra)
         if kind == Kind.LIST:
             comment += (
                 f"\nfuzzy-if condition on line {lineno}: {skip_if} # {bug_reference}"
@@ -1149,26 +1150,99 @@ class Skipfails(object):
             self.tasks[task_id] = task
         return task
 
+    def get_pretty_os_name(self, os: str):
+        pretty = os
+        if pretty == "windows":
+            pretty = "win"
+        elif pretty == "macosx":
+            pretty = "mac"
+        return pretty
+
+    def get_pretty_os_version(self, os_version: str):
+        # Ubuntu/macos version numbers
+        if len(os_version) == 4:
+            return os_version[0:2] + "." + os_version[2:4]
+        return os_version
+
+    def get_pretty_arch(self, arch: str):
+        if arch == "x86" or arch.find("32") >= 0:
+            bits = "32"
+            arch = "x86"
+        else:
+            bits = "64"
+            if arch not in ("aarch64", "ppc", "arm7"):
+                arch = "x86_64"
+        return (arch, bits)
+
     def get_extra(self, task_id):
         """Calculate extra for task task_id"""
 
         if task_id in self.extras:  # if cached
-            platform_info = self.extras[task_id]
+            extra = self.extras[task_id]
         else:
             self.get_variants()
             task = self.get_task_details(task_id) or {}
+            arch = None
+            bits = None
+            build = None
+            build_types = []
+            display = None
+            os = None
+            os_version = None
+            runtimes = []
             test_setting = task.get("extra", {}).get("test-setting", {})
             platform = test_setting.get("platform", {})
             platform_os = platform.get("os", {})
-            if self.new_version:
-                platform_os["version"] = self.new_version
-            platform_info = PlatformInfo(test_setting)
-        self.extras[task_id] = platform_info
-        return platform_info
+            opt = False
+            debug = False
+            if "name" in platform_os:
+                os = self.get_pretty_os_name(platform_os["name"])
+            if "version" in platform_os:
+                os_version = self.get_pretty_os_version(
+                    self.new_version or platform_os["version"]
+                )
+            if "build" in platform_os:
+                build = platform_os["build"]
+            if "arch" in platform:
+                arch, bits = self.get_pretty_arch(platform["arch"])
+            if "display" in platform:
+                display = platform["display"]
+            if "runtime" in test_setting:
+                for k in test_setting["runtime"]:
+                    if k == "no-fission" and test_setting["runtime"][k]:
+                        runtimes.append("no-fission")
+                    elif k in self.variants:  # draw-snapshot -> snapshot
+                        runtimes.append(self.variants[k])  # adds mozinfo
+            if "build" in test_setting:
+                tbuild = test_setting["build"]
+                for k in tbuild:
+                    if k == "type":
+                        if tbuild[k] == "opt":
+                            opt = True
+                        elif tbuild[k] == "debug":
+                            debug = True
+                        build_types.append(tbuild[k])
+                    else:
+                        build_types.append(k)
+            unknown = None
+            extra = {
+                "arch": arch or unknown,
+                "bits": bits or unknown,
+                "build": build or unknown,
+                "build_types": build_types,
+                "debug": debug,
+                "display": display or unknown,
+                "opt": opt,
+                "os": os or unknown,
+                "os_version": os_version or unknown,
+                "runtimes": runtimes,
+            }
+        self.extras[task_id] = extra
+        return extra
 
     def get_opt_for_task(self, task_id):
         extra = self.get_extra(task_id)
-        return extra.opt
+        return extra["opt"]
 
     def _fetch_platform_permutations(self):
         self.info("Fetching platform permutations...")
@@ -1208,13 +1282,13 @@ class Skipfails(object):
         else:
             self.info("Failed fetching platform permutations...")
 
-    def _get_list_skip_if(self, platform_info: PlatformInfo):
+    def _get_list_skip_if(self, extra):
         aa = "&&"
         nn = "!"
 
-        os = platform_info.os
-        build_type = platform_info.build_type
-        runtimes = platform_info.test_variant
+        os = extra.get("os")
+        build_types = extra.get("build_types", [])
+        runtimes = extra.get("runtimes", [])
 
         skip_if = None
         if os == "linux":
@@ -1227,17 +1301,17 @@ class Skipfails(object):
             skip_if = "Android"
         else:
             self.error(f"cannot calculate skip-if for unknown OS: '{os}'")
+        os = extra.get("os")
         if skip_if is not None:
-            ccov = "ccov" in build_type
-            asan = "asan" in build_type
-            tsan = "tsan" in build_type
-            optimized = (
-                (not platform_info.debug) and (not ccov) and (not asan) and (not tsan)
-            )
+            debug = "debug" in build_types
+            ccov = "ccov" in build_types
+            asan = "asan" in build_types
+            tsan = "tsan" in build_types
+            optimized = (not debug) and (not ccov) and (not asan) and (not tsan)
             skip_if += aa
             if optimized:
                 skip_if += "optimized"
-            elif platform_info.debug:
+            elif debug:
                 skip_if += "isDebugBuild"
             elif ccov:
                 skip_if += "isCoverageBuild"
@@ -1254,8 +1328,8 @@ class Skipfails(object):
                 skip_if += aa + "fission"
             elif not fission:  # implicit default: fission
                 skip_if += aa + nn + "fission"
-            if platform_info.bits is not None:
-                if platform_info.bits == "32":
+            if extra.get("bits") is not None:
+                if extra["bits"] == "32":
                     skip_if += aa + nn + "is64Bit"  # override implicit is64Bit
                 elif not self.implicit_vars and os == "winWidget":
                     skip_if += aa + "is64Bit"
@@ -1284,18 +1358,25 @@ class Skipfails(object):
         eq = " == "
         extra = self.get_extra(task_id)
         skip_if = None
-        os = extra.os
-        os_version = extra.os_version
+        os = extra.get("os")
+        os_version = extra.get("os_version")
         if os is not None:
             if kind == Kind.LIST:
                 skip_if = self._get_list_skip_if(extra)
-            elif os_version == "11.2009":
+            elif (
+                os_version is not None
+                and extra.get("build") is not None
+                and os == "win"
+                and os_version == "11"
+                and extra["build"] == "2009"
+            ):
                 skip_if = "win11_2009"  # mozinfo.py:137
+                os_version = "11.2009"
             elif os_version is not None:
                 skip_if = "os" + eq + qq + os + qq
                 skip_if += aa + "os_version" + eq + qq + os_version + qq
 
-        processor = extra.arch
+        processor = extra.get("arch")
         if skip_if is not None and kind != Kind.LIST:
             if processor is not None:
                 skip_if += aa + "processor" + eq + qq + processor + qq
@@ -1316,11 +1397,12 @@ class Skipfails(object):
                         self.platform_permutations[manifest][os][os_version][processor]
                     )
 
-            build_types = extra.build_type
+            build_types = extra.get("build_types", [])
             failed_platform = self.failed_platforms.get(failure_key, None)
             if failed_platform is not None:
+                test_variants = extra.get("runtimes", [])
                 skip_if += failed_platform.get_skip_string(
-                    aa, build_types, extra.test_variant
+                    aa, build_types, test_variants
                 )
         return skip_if
 
@@ -1463,10 +1545,7 @@ class Skipfails(object):
         tasks = [Mock(task, MOCK_TASK_DEFAULTS, MOCK_TASK_INITS) for task in tasks]
         for task in tasks:
             if len(task.extra) > 0:  # pre-warm cache for extra information
-                platform_info = PlatformInfo()
-                extra: Any = task.extra
-                platform_info.from_dict(extra)
-                self.extras[task.id] = platform_info
+                self.extras[task.id] = task.extra
         return tasks
 
     def read_failures(self, filename):
@@ -1506,7 +1585,7 @@ class Skipfails(object):
             jtask["duration"] = task.duration
             jtask["result"] = task.result
             jtask["state"] = task.state
-            jtask["extra"] = self.get_extra(task.id).to_dict()
+            jtask["extra"] = self.get_extra(task.id)
             jtags = {}
             for k, v in task.tags.items():
                 if k == "createdForUser":
