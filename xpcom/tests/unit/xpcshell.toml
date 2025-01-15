@@ -114,3 +114,8 @@ run-if = ["os == 'win'"]
 
 ["test_windows_registry.js"]
 run-if = ["os == 'win'"]
+
+["test_error_iserror.js"]
+prefs = [
+  "javascript.options.experimental.error_iserror=true",
+]
