@@ -36,7 +36,8 @@
 #if defined(__ANDROID__)
 #define ABSL_INTERNAL_USE_ANDROID_GETAUXVAL
 #define ABSL_INTERNAL_USE_GETAUXVAL
-#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL)
+#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL) && \
+    !defined(ABSL_ARCH_AARCH64)
 #define ABSL_INTERNAL_USE_LINUX_GETAUXVAL
 #define ABSL_INTERNAL_USE_GETAUXVAL
 #endif
