@@ -2733,6 +2733,72 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
       glean::javascript_gc::parallel_mark_interruptions.AccumulateSingleSample(
           sample);
       break;
+    case JSMetric::GC_IS_COMPARTMENTAL:
+      if (sample) {
+        glean::javascript_gc::is_zone_gc
+            .EnumGet(glean::javascript_gc::IsZoneGcLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::is_zone_gc
+            .EnumGet(glean::javascript_gc::IsZoneGcLabel::eFalse)
+            .Add(1);
+      }
+      break;
+    case JSMetric::GC_BUDGET_WAS_INCREASED:
+      if (sample) {
+        glean::javascript_gc::budget_was_increased
+            .EnumGet(glean::javascript_gc::BudgetWasIncreasedLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::budget_was_increased
+            .EnumGet(glean::javascript_gc::BudgetWasIncreasedLabel::eFalse)
+            .Add(1);
+      }
+      break;
+    case JSMetric::GC_SLICE_WAS_LONG:
+      if (sample) {
+        glean::javascript_gc::slice_was_long
+            .EnumGet(glean::javascript_gc::SliceWasLongLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::slice_was_long
+            .EnumGet(glean::javascript_gc::SliceWasLongLabel::eFalse)
+            .Add(1);
+      }
+      break;
+    case JSMetric::GC_RESET:
+      if (sample) {
+        glean::javascript_gc::reset
+            .EnumGet(glean::javascript_gc::ResetLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::reset
+            .EnumGet(glean::javascript_gc::ResetLabel::eFalse)
+            .Add(1);
+      }
+      break;
+    case JSMetric::GC_NON_INCREMENTAL:
+      if (sample) {
+        glean::javascript_gc::non_incremental
+            .EnumGet(glean::javascript_gc::NonIncrementalLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::non_incremental
+            .EnumGet(glean::javascript_gc::NonIncrementalLabel::eFalse)
+            .Add(1);
+      }
+      break;
+    case JSMetric::GC_PARALLEL_MARK:
+      if (sample) {
+        glean::javascript_gc::parallel_mark_used
+            .EnumGet(glean::javascript_gc::ParallelMarkUsedLabel::eTrue)
+            .Add(1);
+      } else {
+        glean::javascript_gc::parallel_mark_used
+            .EnumGet(glean::javascript_gc::ParallelMarkUsedLabel::eFalse)
+            .Add(1);
+      }
+      break;
 
     default:
       // The rest aren't relayed to Glean.

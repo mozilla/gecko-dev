@@ -551,6 +551,102 @@ javascript.gc:
       - jcoppeard@mozilla.com
     expires: never
 
+  is_zone_gc:
+    type: labeled_counter
+    description: >
+      Is it a zone GC?
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
+  budget_was_increased:
+    type: labeled_counter
+    description: >
+      Whether the budget was increased due to taking too long or approaching the incremental limit
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
+  slice_was_long:
+    type: labeled_counter
+    description: >
+      Whether a GC slice took 1.5 times or 5ms more than its budget
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
+  reset:
+    type: labeled_counter
+    description: >
+      Was an incremental GC canceled?
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
+  non_incremental:
+    type: labeled_counter
+    description: >
+      Was the GC non-incremental?
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
+  parallel_mark_used:
+    type: labeled_counter
+    description: >
+      Whether parallel marking was used for this collection
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels:
+      - "false"
+      - "true"
+
 slow_script_warning:
   shown_browser:
     type: event
