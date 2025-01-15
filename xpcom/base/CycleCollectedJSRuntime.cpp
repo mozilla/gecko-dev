@@ -667,6 +667,18 @@ static bool InitializeShadowRealm(JSContext* aCx,
   return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 
+static bool InstanceClassIsError(const JSClass* clasp) {
+  if (clasp->isDOMClass()) {
+    const DOMJSClass* domClass = DOMJSClass::FromJSClass(clasp);
+    if (domClass->mInterfaceChain[0] == prototypes::id::DOMException ||
+        domClass->mInterfaceChain[0] == prototypes::id::Exception) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
     : mContext(nullptr),
       mGCThingCycleCollectorGlobal(sGCThingCycleCollectorGlobal),
@@ -711,7 +723,8 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
       CrashReporter::AnnotateOOMAllocationSize);
 
-  static js::DOMCallbacks DOMcallbacks = {InstanceClassHasProtoAtDepth};
+  static js::DOMCallbacks DOMcallbacks = {InstanceClassHasProtoAtDepth,
+                                          InstanceClassIsError};
   SetDOMCallbacks(aCx, &DOMcallbacks);
   js::SetScriptEnvironmentPreparer(aCx, &mEnvironmentPreparer);
 
