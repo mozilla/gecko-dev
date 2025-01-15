@@ -1,0 +1,41 @@
+# This test exercises wrench's multi-frame reftest feature by capturing an
+# out-of-view stacking context snapshot in the first frame and displaying it
+# as an image in the second frame.
+# It also exercises webrender's ability to render a frame without compositing
+# it into the window.
+---
+frames:
+  # First frame
+  - root:
+    # Don't present this frame into the window.
+    present: false
+    items:
+      - type: stacking-context
+        bounds: [0, 0, 100, 100]
+        items:
+        - type: rect
+          bounds: [ 0, 0, 320, 250 ]
+          color: [100, 50, 10]
+        - type: stacking-context
+          # The snapshotted stacking context is far out of the view
+          bounds: [100000, 0, 200, 200]
+          snapshot:
+            name: "snap0"
+            area: [0, 0, 100, 200]
+          items:
+            - type: rect
+              bounds: [ 0, 0, 90, 100 ]
+              color: [0, 150, 0]
+            - type: rect
+              bounds: [ 10, 100, 90, 100 ]
+              color: [150, 0, 0]
+      # This red rectangle that covers the view should not be shown because
+      # it is not part of a snapshot and the frame is not presented.
+      - type: rect
+        bounds: [0, 0, 1000, 1000]
+        color: red
+  # Second frame
+  - root:
+    items:
+      - image: snapshot(snap0)
+        bounds: [0, 0, 100, 200]
