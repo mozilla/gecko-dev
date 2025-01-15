@@ -56,6 +56,7 @@ component("absl") {
 }
 
 group("absl_component_deps") {
+  if (false) {
   public_deps = [
     "//third_party/abseil-cpp/absl/algorithm",
     "//third_party/abseil-cpp/absl/algorithm:container",
@@ -121,6 +122,23 @@ group("absl_component_deps") {
     # alternative to inject abort hook. See notes in `base/logging.cc`.
     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
   ]
+  } else {
+  public_deps = [
+    "//abseil-cpp/absl/algorithm:container",
+    "//abseil-cpp/absl/base:nullability",
+    "//abseil-cpp/absl/cleanup",
+    "//abseil-cpp/absl/container:inlined_vector",
+    "//abseil-cpp/absl/functional:any_invocable",
+    "//abseil-cpp/absl/functional:bind_front",
+    "//abseil-cpp/absl/strings",
+    "//abseil-cpp/absl/strings:str_format",
+    "//abseil-cpp/absl/strings:string_view",
+    "//abseil-cpp/absl/types:optional",
+    "//abseil-cpp/absl/types:span",
+    "//abseil-cpp/absl/types:variant",
+    "//abseil-cpp/absl/utility",
+  ]
+  }
 
   if (is_component_build) {
     public_deps += [ ":absl_full_deps" ]
@@ -134,19 +152,6 @@ group("absl_component_deps") {
   }
 
   visibility = [ ":absl" ]
-
-  if (moz_webrtc_build) {
-    # rewrite deps for our new abseil-cpp location
-    if (defined(public_deps)) {
-      modified_deps = []
-      foreach (dep, public_deps) {
-        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-        modified_deps += [ newdep ]
-      }
-      public_deps = []
-      public_deps = modified_deps
-    }
-  }
 }
 
 # Some third-party libraries use additional parts of absl that are banned in

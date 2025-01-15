@@ -15,6 +15,9 @@ absl_source_set("string_view") {
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/base:throw_delegate",
   ]
+  if (moz_webrtc_build) {
+    deps -= [ "//third_party/abseil-cpp/absl/base" ]
+  }
 }
 
 absl_source_set("strings") {
@@ -81,6 +84,20 @@ absl_source_set("strings") {
     "//third_party/abseil-cpp/absl/numeric:bits",
     "//third_party/abseil-cpp/absl/numeric:int128",
   ]
+  if (moz_webrtc_build) {
+    # Removed for unreachable sources.  See Bug 1820869.
+    sources -= [
+      "escaping.cc",
+      "str_replace.cc",
+      "substitute.cc",
+    ]
+    deps -= [
+      ":charset",
+      ":internal", # Removed for unreachable sources.  See Bug 1820869.
+      "//third_party/abseil-cpp/absl/base",
+      "//third_party/abseil-cpp/absl/base:endian",
+    ]
+  }
 }
 
 absl_source_set("internal") {

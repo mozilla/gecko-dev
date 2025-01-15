@@ -739,14 +739,12 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
 // ABSL_HAVE_THREAD_SANITIZER
 //
 // ThreadSanitizer (TSan) is a fast data race detector.
-#if 0 // mozilla - builds fail missing tsan symbols like __tsan_mutex_destroy
 #ifdef ABSL_HAVE_THREAD_SANITIZER
 #error "ABSL_HAVE_THREAD_SANITIZER cannot be directly set."
 #elif defined(__SANITIZE_THREAD__)
 #define ABSL_HAVE_THREAD_SANITIZER 1
 #elif ABSL_HAVE_FEATURE(thread_sanitizer)
 #define ABSL_HAVE_THREAD_SANITIZER 1
-#endif
 #endif
 
 // ABSL_HAVE_ADDRESS_SANITIZER

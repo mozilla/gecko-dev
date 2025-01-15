@@ -94,7 +94,7 @@ inline void* DirectMmap(void* start, size_t length, int prot, int flags, int fd,
     errno = EINVAL;
     return MAP_FAILED;
   }
-#if defined(__BIONIC__) && (!defined(__ANDROID_API__) || __ANDROID_API__ < 17)
+#ifdef __BIONIC__
   // SYS_mmap2 has problems on Android API level <= 16.
   // Workaround by invoking __mmap2() instead.
   return __mmap2(start, length, prot, flags, fd,
