@@ -78,7 +78,7 @@ def generate_specifications_of_artifacts_to_sign(
                     "artifacts": [
                         get_artifact_path(job, f"{{locale}}/target.{extension}")
                     ],
-                    "formats": ["macapp", "autograph_widevine", "autograph_omnija"],
+                    "formats": ["macapp", "autograph_widevine"],
                 }
             ]
             langpack_formats = ["autograph_langpack"]
@@ -107,7 +107,6 @@ def generate_specifications_of_artifacts_to_sign(
                 "formats": [
                     "autograph_authenticode_202404",
                     "autograph_widevine",
-                    "autograph_omnija",
                 ],
             },
         ]
@@ -120,7 +119,7 @@ def generate_specifications_of_artifacts_to_sign(
         artifacts_specifications = [
             {
                 "artifacts": [get_artifact_path(job, "{locale}/target.tar.xz")],
-                "formats": ["autograph_gpg", "autograph_widevine", "autograph_omnija"],
+                "formats": ["autograph_gpg", "autograph_widevine"],
             }
         ]
         if build_platform in LANGPACK_SIGN_PLATFORMS:
@@ -163,8 +162,6 @@ def _strip_widevine_for_partners(artifacts_specifications):
     for spec in artifacts_specifications:
         if "autograph_widevine" in spec["formats"]:
             spec["formats"].remove("autograph_widevine")
-        if "autograph_omnija" in spec["formats"]:
-            spec["formats"].remove("autograph_omnija")
 
     return artifacts_specifications
 
