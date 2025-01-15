@@ -322,31 +322,6 @@ void CodeGenerator::visitWasmSelect(LWasmSelect* ins) {
   masm.bind(&done);
 }
 
-void CodeGenerator::visitReinterpretCast(LReinterpretCast* lir) {
-  MReinterpretCast* ins = lir->mir();
-
-  MIRType to = ins->type();
-#ifdef DEBUG
-  MIRType from = ins->input()->type();
-#endif
-
-  switch (to) {
-    case MIRType::Int32:
-      MOZ_ASSERT(from == MIRType::Float32);
-      masm.vmovd(ToFloatRegister(lir->input()), ToRegister(lir->output()));
-      break;
-    case MIRType::Float32:
-      MOZ_ASSERT(from == MIRType::Int32);
-      masm.vmovd(ToRegister(lir->input()), ToFloatRegister(lir->output()));
-      break;
-    case MIRType::Double:
-    case MIRType::Int64:
-      MOZ_CRASH("not handled by this LIR opcode");
-    default:
-      MOZ_CRASH("unexpected ReinterpretCast");
-  }
-}
-
 void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
   const MAsmJSLoadHeap* mir = ins->mir();
   MOZ_ASSERT(mir->access().offset64() == 0);

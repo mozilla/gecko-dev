@@ -21162,6 +21162,31 @@ void CodeGenerator::visitRotate(LRotate* ins) {
   }
 }
 
+void CodeGenerator::visitReinterpretCast(LReinterpretCast* lir) {
+  MReinterpretCast* ins = lir->mir();
+
+  MIRType to = ins->type();
+  mozilla::DebugOnly<MIRType> from = ins->input()->type();
+
+  switch (to) {
+    case MIRType::Int32:
+      MOZ_ASSERT(from == MIRType::Float32);
+      masm.moveFloat32ToGPR(ToFloatRegister(lir->input()),
+                            ToRegister(lir->output()));
+      break;
+    case MIRType::Float32:
+      MOZ_ASSERT(from == MIRType::Int32);
+      masm.moveGPRToFloat32(ToRegister(lir->input()),
+                            ToFloatRegister(lir->output()));
+      break;
+    case MIRType::Double:
+    case MIRType::Int64:
+      MOZ_CRASH("not handled by this LIR opcode");
+    default:
+      MOZ_CRASH("unexpected ReinterpretCast");
+  }
+}
+
 class OutOfLineNaNToZero : public OutOfLineCodeBase<CodeGenerator> {
   LNaNToZero* lir_;
 

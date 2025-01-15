@@ -2079,29 +2079,6 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
                    trueExprAndDest);
 }
 
-void CodeGenerator::visitReinterpretCast(LReinterpretCast* lir) {
-  MReinterpretCast* ins = lir->mir();
-
-  MIRType to = ins->type();
-  mozilla::DebugOnly<MIRType> from = ins->input()->type();
-
-  switch (to) {
-    case MIRType::Int32:
-      MOZ_ASSERT(from == MIRType::Float32);
-      masm.fmv_x_w(ToRegister(lir->output()), ToFloatRegister(lir->input()));
-      break;
-    case MIRType::Float32:
-      MOZ_ASSERT(from == MIRType::Int32);
-      masm.fmv_w_x(ToFloatRegister(lir->output()), ToRegister(lir->input()));
-      break;
-    case MIRType::Double:
-    case MIRType::Int64:
-      MOZ_CRASH("not handled by this LIR opcode");
-    default:
-      MOZ_CRASH("unexpected ReinterpretCast");
-  }
-}
-
 void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
