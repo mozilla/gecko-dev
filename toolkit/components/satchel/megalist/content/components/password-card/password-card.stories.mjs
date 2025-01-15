@@ -4,7 +4,7 @@
 
 // eslint-disable-next-line import/no-unresolved
 import { html } from "lit.all.mjs";
-import "./PasswordCard.mjs";
+import "./password-card.mjs";
 
 export default {
   title: "Domain-specific UI Widgets/Credential Management/Password Card",

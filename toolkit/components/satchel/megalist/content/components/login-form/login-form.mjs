@@ -107,7 +107,7 @@ export class LoginForm extends MozLitElement {
   #renderDeleteCard() {
     return html` <link
         rel="stylesheet"
-        href="chrome://global/content/megalist/LoginFormComponent/login-form.css"
+        href="chrome://global/content/megalist/components/login-form/login-form.css"
       />
       <moz-card class="remove-login-card">
         <div class="remove-card-back">
@@ -149,7 +149,7 @@ export class LoginForm extends MozLitElement {
 
     return html`<link
         rel="stylesheet"
-        href="chrome://global/content/megalist/LoginFormComponent/login-form.css"
+        href="chrome://global/content/megalist/components/login-form/login-form.css"
       />
       <moz-card>
         ${when(

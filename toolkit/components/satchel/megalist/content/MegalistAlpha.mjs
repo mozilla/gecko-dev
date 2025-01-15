@@ -12,12 +12,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/megalist/PasswordCard.mjs";
+import "chrome://global/content/megalist/components/password-card/password-card.mjs";
 // eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/megalist/LoginFormComponent/login-form.mjs";
+import "chrome://global/content/megalist/components/login-form/login-form.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/megalist/NotificationMessageBar.mjs";
+import "chrome://global/content/megalist/components/notification-message-bar/notification-message-bar.mjs";
 
 const DISPLAY_MODES = {
   ALERTS: "SortByAlerts",

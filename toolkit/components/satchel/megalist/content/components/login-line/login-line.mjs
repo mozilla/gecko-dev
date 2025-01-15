@@ -83,7 +83,7 @@ class LoginLine extends MozLitElement {
     return html`
       <link
         rel="stylesheet"
-        href="chrome://global/content/megalist/LoginLine.css"
+        href="chrome://global/content/megalist/components/login-line/login-line.css"
       />
       <div class="line-container">
         <div class="input-container">
@@ -194,7 +194,7 @@ class ConcealedLoginLine extends MozLitElement {
   render() {
     return html` <link
         rel="stylesheet"
-        href="chrome://global/content/megalist/LoginLine.css"
+        href="chrome://global/content/megalist/components/login-line/login-line.css"
       />
       <login-line
         role="option"
