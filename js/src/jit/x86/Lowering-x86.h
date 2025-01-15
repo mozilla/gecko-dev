@@ -52,6 +52,7 @@ class LIRGeneratorX86 : public LIRGeneratorX86Shared {
 
   void lowerTruncateFToInt32(MTruncateToInt32* ins);
   void lowerBuiltinInt64ToFloatingPoint(MBuiltinInt64ToFloatingPoint* ins);
+  void lowerWasmBuiltinTruncateToInt32(MWasmBuiltinTruncateToInt32* ins);
   void lowerWasmBuiltinTruncateToInt64(MWasmBuiltinTruncateToInt64* ins);
   void lowerDivI64(MDiv* div);
   void lowerWasmBuiltinDivI64(MWasmBuiltinDivI64* div);

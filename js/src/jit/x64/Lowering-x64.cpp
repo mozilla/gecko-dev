@@ -552,6 +552,27 @@ void LIRGenerator::visitInt64ToFloatingPoint(MInt64ToFloatingPoint* ins) {
          ins);
 }
 
+void LIRGeneratorX64::lowerWasmBuiltinTruncateToInt32(
+    MWasmBuiltinTruncateToInt32* ins) {
+  MDefinition* opd = ins->input();
+  MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);
+
+  if (opd->type() == MIRType::Double) {
+    LDefinition maybeTemp =
+        Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempDouble();
+    define(new (alloc()) LWasmBuiltinTruncateDToInt32(
+               useRegister(opd), useFixed(ins->instance(), InstanceReg),
+               maybeTemp),
+           ins);
+    return;
+  }
+
+  LDefinition maybeTemp = LDefinition::BogusTemp();
+  define(new (alloc()) LWasmBuiltinTruncateFToInt32(useRegister(opd),
+                                                    LAllocation(), maybeTemp),
+         ins);
+}
+
 void LIRGeneratorX64::lowerBuiltinInt64ToFloatingPoint(
     MBuiltinInt64ToFloatingPoint* ins) {
   MOZ_CRASH("We don't use it for this architecture");

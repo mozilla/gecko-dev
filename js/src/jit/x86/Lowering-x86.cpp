@@ -771,6 +771,27 @@ void LIRGenerator::visitSubstr(MSubstr* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorX86::lowerWasmBuiltinTruncateToInt32(
+    MWasmBuiltinTruncateToInt32* ins) {
+  MDefinition* opd = ins->input();
+  MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);
+
+  LDefinition maybeTemp =
+      Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempDouble();
+  if (opd->type() == MIRType::Double) {
+    define(new (alloc()) LWasmBuiltinTruncateDToInt32(
+               useRegister(opd), useFixed(ins->instance(), InstanceReg),
+               maybeTemp),
+           ins);
+    return;
+  }
+
+  define(
+      new (alloc()) LWasmBuiltinTruncateFToInt32(
+          useRegister(opd), useFixed(ins->instance(), InstanceReg), maybeTemp),
+      ins);
+}
+
 void LIRGenerator::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);

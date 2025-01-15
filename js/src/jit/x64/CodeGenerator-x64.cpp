@@ -710,10 +710,11 @@ void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->getOperand(0));
-  Register output = ToRegister(lir->getDef(0));
+  FloatRegister input = ToFloatRegister(lir->in());
+  Register output = ToRegister(lir->output());
+  MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for x64");
 
-  emitTruncateFloat32(input, output, lir->mir());
+  masm.truncateFloat32ModUint32(input, output);
 }
 
 void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
