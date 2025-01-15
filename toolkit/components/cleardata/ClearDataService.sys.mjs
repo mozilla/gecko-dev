@@ -896,12 +896,14 @@ const QuotaCleaner = {
     );
 
     // Clear sessionStorage
-    // TODO: aOriginAttributesPattern
-    Services.obs.notifyObservers(
-      null,
-      "browser:purge-sessionStorage",
-      aSchemelessSite
+    let entry = Cc["@mozilla.org/clear-by-site-entry;1"].createInstance(
+      Ci.nsIClearBySiteEntry
     );
+    entry.schemelessSite = aSchemelessSite;
+    // Convert the pattern to a JSON string.
+    entry.patternJSON = JSON.stringify(aOriginAttributesPattern);
+
+    Services.obs.notifyObservers(entry, "browser:purge-sessionStorage");
 
     // Clear third-party storage partitioned under aSchemelessSite.
     // This notification is forwarded via the StorageObserver and consumed only

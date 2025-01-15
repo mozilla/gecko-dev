@@ -1,0 +1,25 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/**
+* This interface represents an entry to be cleared by site and
+* OriginAttributesPattern.
+*/
+
+[scriptable, uuid(E50161B0-3A69-4EC0-ADD9-6480850B8A98)]
+interface nsIClearBySiteEntry : nsISupports
+{
+  /**
+   * The site to clear data for.
+   */
+  attribute ACString schemelessSite;
+
+  /**
+   * The OriginAttributesPattern to match.
+   */
+  attribute AString patternJSON;
+};

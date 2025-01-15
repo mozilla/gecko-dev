@@ -30,6 +30,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIClearBySiteEntry.h"
 
 namespace mozilla::dom {
 
@@ -360,7 +361,30 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   if (!strcmp(aTopic, "browser:purge-sessionStorage")) {
-    if (aData) {
+    // The caller passed an nsIClearBySiteEntry object which consists of both
+    // site and pattern.
+    // If both are passed, aSubject takes precedence over aData.
+    if (aSubject) {
+      nsCOMPtr<nsIClearBySiteEntry> entry = do_QueryInterface(aSubject);
+
+      NS_ENSURE_TRUE(entry, NS_ERROR_FAILURE);
+
+      nsAutoCString schemelessSite;
+      rv = entry->GetSchemelessSite(schemelessSite);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsAutoString patternJSON;
+      rv = entry->GetPatternJSON(patternJSON);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCString originScope;
+      rv = GetOriginScope(NS_ConvertUTF8toUTF16(schemelessSite).get(),
+                          originScope);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      Notify(aTopic, patternJSON, originScope);
+    } else if (aData) {
+      // The caller passed only a schemeless site, origin or host.
       nsCString originScope;
       rv = GetOriginScope(aData, originScope);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -369,6 +393,7 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
       Notify(aTopic, u""_ns, originScope);
     } else {
+      // The caller passed nothing, clear everything.
       Notify(aTopic, u""_ns, ""_ns);
     }
 

@@ -9,12 +9,14 @@ TESTING_JS_MODULES += [
 ]
 
 XPIDL_SOURCES += [
+    "nsIClearBySiteEntry.idl",
     "nsIClearDataService.idl",
 ]
 
 XPIDL_MODULE = "toolkit_cleardata"
 
 EXTRA_JS_MODULES += [
+    "ClearBySiteEntry.sys.mjs",
     "ClearDataService.sys.mjs",
     "PrincipalsCollector.sys.mjs",
     "ServiceWorkerCleanUp.sys.mjs",
