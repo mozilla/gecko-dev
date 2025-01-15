@@ -211,7 +211,7 @@ pub fn main_wrapper<E: Example>(
         builder.end(),
     );
     txn.set_root_pipeline(pipeline_id);
-    txn.generate_frame(0, RenderReasons::empty());
+    txn.generate_frame(0, true, RenderReasons::empty());
     api.send_transaction(document_id, txn);
 
     println!("Entering event loop");
@@ -307,7 +307,7 @@ pub fn main_wrapper<E: Example>(
                 epoch,
                 builder.end(),
             );
-            txn.generate_frame(0, RenderReasons::empty());
+            txn.generate_frame(0, true, RenderReasons::empty());
         }
         api.send_transaction(document_id, txn);
 

@@ -243,7 +243,7 @@ impl Example for App {
                             generation: APZScrollGeneration::default(),
                         }],
                     );
-                    txn.generate_frame(0, RenderReasons::empty());
+                    txn.generate_frame(0, true, RenderReasons::empty());
                 }
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
@@ -267,7 +267,7 @@ impl Example for App {
                     }],
                 );
 
-                txn.generate_frame(0, RenderReasons::empty());
+                txn.generate_frame(0, true, RenderReasons::empty());
             }
             winit::event::WindowEvent::MouseInput { .. } => {
                 let results = api.hit_test(

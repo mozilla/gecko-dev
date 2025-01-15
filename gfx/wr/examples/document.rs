@@ -122,7 +122,7 @@ impl Example for App {
                 Epoch(0),
                 builder.end(),
             );
-            txn.generate_frame(0, RenderReasons::empty());
+            txn.generate_frame(0, true, RenderReasons::empty());
             api.send_transaction(doc.id, txn);
         }
     }

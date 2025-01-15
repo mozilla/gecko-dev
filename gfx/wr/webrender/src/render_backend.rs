@@ -515,6 +515,7 @@ impl Document {
         debug_flags: DebugFlags,
         tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
         frame_stats: Option<FullFrameStats>,
+        present: bool,
         render_reasons: RenderReasons,
         frame_memory: FrameMemory,
     ) -> RenderedDocument {
@@ -529,6 +530,7 @@ impl Document {
         let frame = {
             let frame = self.frame_builder.build(
                 &mut self.scene,
+                present,
                 resource_cache,
                 gpu_cache,
                 &mut self.rg_builder,
@@ -959,6 +961,7 @@ impl RenderBackend {
                 txn.frame_ops.take(),
                 txn.notifications.take(),
                 txn.render_frame,
+                txn.present,
                 RenderReasons::SCENE,
                 None,
                 txn.invalidate_rendered_frame,
@@ -1309,6 +1312,7 @@ impl RenderBackend {
                 txn.frame_ops.take(),
                 txn.notifications.take(),
                 txn.generate_frame.as_bool(),
+                txn.generate_frame.present(),
                 txn.render_reasons,
                 txn.generate_frame.id(),
                 txn.invalidate_rendered_frame,
@@ -1348,6 +1352,7 @@ impl RenderBackend {
                     Vec::default(),
                     Vec::default(),
                     false,
+                    false,
                     RenderReasons::empty(),
                     None,
                     false,
@@ -1370,6 +1375,7 @@ impl RenderBackend {
         mut frame_ops: Vec<FrameMsg>,
         mut notifications: Vec<NotificationRequest>,
         mut render_frame: bool,
+        present: bool,
         render_reasons: RenderReasons,
         generated_frame_id: Option<u64>,
         invalidate_rendered_frame: bool,
@@ -1469,6 +1475,7 @@ impl RenderBackend {
                     self.debug_flags,
                     &mut self.tile_caches,
                     frame_stats,
+                    present,
                     render_reasons,
                     frame_memory,
                 );
@@ -1675,6 +1682,7 @@ impl RenderBackend {
                     self.debug_flags,
                     &mut self.tile_caches,
                     None,
+                    true,
                     RenderReasons::empty(),
                     frame_memory,
                 );
