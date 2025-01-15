@@ -3875,17 +3875,14 @@ static Subgrid* SubgridComputeMarginBorderPadding(
   }
 
   bool scroller = false;
-  nsIFrame* outerFrame = [&]() -> nsIFrame* {
-    if (ScrollContainerFrame* scrollContainerFrame =
-            aGridItem.mFrame->GetScrollTargetFrame()) {
-      scroller = true;
-      return scrollContainerFrame;
-    }
-    if (nsHTMLButtonControlFrame* f = do_QueryFrame(aGridItem.mFrame)) {
-      return f;
-    }
-    return nullptr;
-  }();
+  nsIFrame* outerFrame = nullptr;
+  if (ScrollContainerFrame* scrollContainerFrame =
+          aGridItem.mFrame->GetScrollTargetFrame()) {
+    scroller = true;
+    outerFrame = scrollContainerFrame;
+  } else if (nsHTMLButtonControlFrame* f = do_QueryFrame(aGridItem.mFrame)) {
+    outerFrame = f;
+  }
 
   if (outerFrame) {
     MOZ_ASSERT(sz.ComputedLogicalMargin(cbWM) == LogicalMargin(cbWM) &&
