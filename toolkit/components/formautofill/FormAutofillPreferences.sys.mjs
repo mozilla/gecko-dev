@@ -335,13 +335,8 @@ FormAutofillPreferences.prototype = {
             "autofill-creditcard-os-auth-dialog-caption"
           );
           let win = target.ownerGlobal.docShell.chromeEventHandler.ownerGlobal;
-
           // Calling OSKeyStore.ensureLoggedIn() instead of FormAutofillUtils.verifyOSAuth()
-          // since we want to authenticate user each time this setting is changed.
-
-          // Note on Glean collection: because OSKeyStore.ensureLoggedIn() is not wrapped in
-          // verifyOSAuth(), it will be documenting "success" for unsupported platforms
-          // and won't record "fail_error", only "fail_user_canceled"
+          // since we want to authenticate user each time this stting is changed.
           let isAuthorized = (
             await lazy.OSKeyStore.ensureLoggedIn(
               messageText,
@@ -352,10 +347,6 @@ FormAutofillPreferences.prototype = {
           ).authenticated;
           if (!isAuthorized) {
             target.checked = !target.checked;
-            Glean.autofill.promptShownOsReauth.record({
-              trigger: "toggle_pref_os_auth",
-              result: isAuthorized ? "success" : "fail_user_canceled",
-            });
             break;
           }
 
@@ -364,9 +355,6 @@ FormAutofillPreferences.prototype = {
             AUTOFILL_CREDITCARDS_REAUTH_PREF,
             target.checked
           );
-          Glean.formautofill.requireOsReauthToggle.record({
-            toggle_state: target.checked,
-          });
         } else if (target == this.refs.savedAddressesBtn) {
           target.ownerGlobal.gSubDialog.open(MANAGE_ADDRESSES_URL);
         } else if (target == this.refs.savedCreditCardsBtn) {

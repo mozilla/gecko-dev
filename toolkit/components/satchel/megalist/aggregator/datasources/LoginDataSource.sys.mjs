@@ -519,14 +519,12 @@ export class LoginDataSource extends DataSourceBase {
       LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF
     );
 
-    const reason = "export_cpm";
     let { isAuthorized, telemetryEvent } = await LoginHelper.requestReauth(
       browsingContext,
       isOSAuthEnabled,
       null, // Prompt regardless of a recent prompt
       this.#exportPasswordsStrings.OSReauthMessage,
-      this.#exportPasswordsStrings.OSAuthDialogCaption,
-      reason
+      this.#exportPasswordsStrings.OSAuthDialogCaption
     );
 
     let { name, extra = {}, value = null } = telemetryEvent;

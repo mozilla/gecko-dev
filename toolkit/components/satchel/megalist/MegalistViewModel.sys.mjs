@@ -197,21 +197,12 @@ export class MegalistViewModel {
   }
 
   async #promptForReauth(command) {
-    // used for recording telemetry
-    const reasonMap = {
-      Copy: "copy_cpm",
-      Reveal: "reveal_cpm",
-      Edit: "edit_cpm",
-    };
-    const reason = reasonMap[command.id];
-
     const { isAuthorized } = await lazy.LoginHelper.requestReauth(
       lazy.BrowserWindowTracker.getTopWindow().gBrowser,
       this.getOSAuthEnabled(),
       this.#authExpirationTime,
       command.OSAuthPromptMessage,
-      command.OSAuthCaptionMessage,
-      reason
+      command.OSAuthCaptionMessage
     );
 
     if (isAuthorized) {

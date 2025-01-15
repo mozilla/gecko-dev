@@ -422,11 +422,9 @@ export default class LoginItem extends HTMLElement {
     }
 
     // We prompt for the primary password when entering edit mode already.
-    const reason = "reveal_logins";
     if (this._revealCheckbox.checked && !this.dataset.editing) {
       let primaryPasswordAuth = await promptForPrimaryPassword(
-        "about-logins-reveal-password-os-auth-dialog-message",
-        reason
+        "about-logins-reveal-password-os-auth-dialog-message"
       );
       if (!primaryPasswordAuth) {
         this._revealCheckbox.checked = false;
@@ -470,10 +468,8 @@ export default class LoginItem extends HTMLElement {
   }
 
   async handleCopyPasswordClick({ currentTarget }) {
-    let reason = "copy_logins";
     let primaryPasswordAuth = await promptForPrimaryPassword(
-      "about-logins-copy-password-os-auth-dialog-message",
-      reason
+      "about-logins-copy-password-os-auth-dialog-message"
     );
     if (!primaryPasswordAuth) {
       return;
@@ -551,10 +547,8 @@ export default class LoginItem extends HTMLElement {
   }
 
   async handleEditEvent() {
-    let reason = "edit_logins";
     let primaryPasswordAuth = await promptForPrimaryPassword(
-      "about-logins-edit-login-os-auth-dialog-message2",
-      reason
+      "about-logins-edit-login-os-auth-dialog-message2"
     );
     if (!primaryPasswordAuth) {
       return;

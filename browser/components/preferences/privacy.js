@@ -2984,22 +2984,15 @@ var gPrivacyPane = {
         },
       ]);
       let win = Services.wm.getMostRecentBrowserWindow();
-
-      // Note on Glean collection: because OSKeyStore.ensureLoggedIn() is not wrapped in
-      // verifyOSAuth(), it will be documenting "success" for unsupported platforms
-      // and won't record "fail_error", only "fail_user_canceled"
       let loggedIn = await OSKeyStore.ensureLoggedIn(
         messageText.value,
         captionText.value,
         win,
         false
       );
-
-      const result = loggedIn.authenticated ? "success" : "fail_user_canceled";
-      Glean.pwmgr.promptShownOsReauth.record({
-        trigger: "toggle_pref_primary_password",
-        result,
-      });
+      if (!loggedIn.authenticated) {
+        return;
+      }
     }
 
     gSubDialog.open("chrome://mozapps/content/preferences/changemp.xhtml", {
@@ -3098,30 +3091,20 @@ var gPrivacyPane = {
       osReauthCheckbox.ownerGlobal.docShell.chromeEventHandler.ownerGlobal;
 
     // Calling OSKeyStore.ensureLoggedIn() instead of LoginHelper.verifyOSAuth()
-    // since we want to authenticate user each time this setting is changed.
-
-    // Note on Glean collection: because OSKeyStore.ensureLoggedIn() is not wrapped in
-    // verifyOSAuth(), it will be documenting "success" for unsupported platforms
-    // and won't record "fail_error", only "fail_user_canceled"
+    // since we want to authenticate user each time this stting is changed.
     let isAuthorized = (
       await OSKeyStore.ensureLoggedIn(messageText, captionText, win, false)
     ).authenticated;
     if (!isAuthorized) {
       osReauthCheckbox.checked = !osReauthCheckbox.checked;
-      Glean.pwmgr.promptShownOsReauth.record({
-        trigger: "toggle_pref_os_auth",
-        result: isAuthorized ? "success" : "fail_user_canceled",
-      });
+      return;
     }
+
     // If osReauthCheckbox is checked enable osauth.
     LoginHelper.setOSAuthEnabled(
       LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
       osReauthCheckbox.checked
     );
-
-    Glean.pwmgr.requireOsReauthToggle.record({
-      toggle_state: osReauthCheckbox.checked,
-    });
   },
 
   _initOSAuthentication() {

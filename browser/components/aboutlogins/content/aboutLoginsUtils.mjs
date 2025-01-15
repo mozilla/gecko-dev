@@ -51,13 +51,9 @@ export function setKeyboardAccessForNonDialogElements(enableKeyboardAccess) {
   });
 }
 
-export function promptForPrimaryPassword(messageId, reason) {
+export function promptForPrimaryPassword(messageId) {
   return new Promise(resolve => {
-    window.AboutLoginsUtils.promptForPrimaryPassword(
-      resolve,
-      messageId,
-      reason
-    );
+    window.AboutLoginsUtils.promptForPrimaryPassword(resolve, messageId);
   });
 }
 

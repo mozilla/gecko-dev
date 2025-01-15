@@ -342,69 +342,6 @@ formautofill:
     expires: never
     telemetry_mirror: FORMAUTOFILL_AVAILABILITY
 
-  prompt_shown_os_reauth:
-    type: event
-    description: >
-      Captures the method of user interaction initiating the prompt and the result of the prompt.
-      Possible triggers include:
-        "autofill" when a user attempts to autofill a payment method.
-        "edit" when a user edits a login in about:preferences
-        "toggle_pref_os_auth" when a user toggles "Autofill / Require device sign in" in about:preferences
-      Possible results include:
-        "success" should be used when the user is shown the OS Auth prompt and successfully authenticates.
-        "fail_user_canceled" should be used when the user cancels the authentication prompt. The user may or may not have provided an incorrect password before cancelling.
-        "fail_error" should be used when an unexpected exception is encountered.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - passwords-dev@mozilla.org
-    expires: never
-    extra_keys:
-      trigger:
-        description: >
-          Which user interaction triggered the event.
-        type: string
-      result:
-        description: >
-          The result of the OS Authentication.
-        type: string
-
-  require_os_reauth_toggle:
-    type: event
-    description: >
-      Toggle states include:
-        True means the OS Auth preference is enabled.
-        False means it is disabled.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - passwords-dev@mozilla.org
-    expires: never
-    extra_keys:
-      toggle_state:
-        description: >
-          The toggle state after the event.
-        type: boolean
-
-  os_auth_enabled:
-      type: boolean
-      description: >
-          Check at startup whether OS Authentication has been enabled for credit cards.
-      bugs:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-      data_reviews:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1915672
-      notification_emails:
-        - autofill@lists.mozilla.org
-        - passwords-dev@mozilla.org
-      expires: never
-
 address:
   show_capture_doorhanger:
     type: event
