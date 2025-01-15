@@ -519,6 +519,20 @@ void LIRGeneratorX64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
   defineFixed(lir, ins, LAllocation(AnyRegister(rdx)));
 }
 
+void LIRGeneratorX64::lowerTruncateDToInt32(MTruncateToInt32* ins) {
+  MDefinition* opd = ins->input();
+  MOZ_ASSERT(opd->type() == MIRType::Double);
+
+  // Without BMI2, x64 can only shift by rcx.
+  LDefinition tmp;
+  if (Assembler::HasBMI2()) {
+    tmp = temp();
+  } else {
+    tmp = tempFixed(rcx);
+  }
+  define(new (alloc()) LTruncateDToInt32(useRegister(opd), tmp), ins);
+}
+
 void LIRGeneratorX64::lowerTruncateFToInt32(MTruncateToInt32* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Float32);

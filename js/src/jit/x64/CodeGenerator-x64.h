@@ -12,6 +12,8 @@
 namespace js {
 namespace jit {
 
+class OutOfLineTruncate;
+
 class CodeGeneratorX64 : public CodeGeneratorX86Shared {
  protected:
   CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
@@ -31,6 +33,9 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared {
   void emitWasmLoad(T* ins);
   template <typename T>
   void emitWasmStore(T* ins);
+
+ public:
+  void visitOutOfLineTruncate(OutOfLineTruncate* ool);
 };
 
 using CodeGeneratorSpecific = CodeGeneratorX64;

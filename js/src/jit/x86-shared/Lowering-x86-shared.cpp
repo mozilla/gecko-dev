@@ -514,15 +514,6 @@ void LIRGeneratorX86Shared::lowerBigIntPtrRsh(MBigIntPtrRsh* ins) {
   define(lir, ins);
 }
 
-void LIRGeneratorX86Shared::lowerTruncateDToInt32(MTruncateToInt32* ins) {
-  MDefinition* opd = ins->input();
-  MOZ_ASSERT(opd->type() == MIRType::Double);
-
-  LDefinition maybeTemp =
-      Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempDouble();
-  define(new (alloc()) LTruncateDToInt32(useRegister(opd), maybeTemp), ins);
-}
-
 void LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(
     MCompareExchangeTypedArrayElement* ins, bool useI386ByteRegisters) {
   MOZ_ASSERT(!Scalar::isFloatingType(ins->arrayType()));

@@ -750,6 +750,15 @@ void LIRGeneratorX86::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
   defineFixed(lir, ins, LAllocation(AnyRegister(edx)));
 }
 
+void LIRGeneratorX86::lowerTruncateDToInt32(MTruncateToInt32* ins) {
+  MDefinition* opd = ins->input();
+  MOZ_ASSERT(opd->type() == MIRType::Double);
+
+  LDefinition maybeTemp =
+      Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempDouble();
+  define(new (alloc()) LTruncateDToInt32(useRegister(opd), maybeTemp), ins);
+}
+
 void LIRGeneratorX86::lowerTruncateFToInt32(MTruncateToInt32* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Float32);

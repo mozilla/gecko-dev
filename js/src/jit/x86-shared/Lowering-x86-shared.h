@@ -50,7 +50,6 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   void lowerWasmSelectI64(MWasmSelect* select);
   void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
   void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
-  void lowerTruncateDToInt32(MTruncateToInt32* ins);
   void lowerCompareExchangeTypedArrayElement(
       MCompareExchangeTypedArrayElement* ins, bool useI386ByteRegisters);
   void lowerAtomicExchangeTypedArrayElement(
