@@ -62,6 +62,13 @@ class PlatformInfo:
             pretty = "win"
         elif pretty == "macosx":
             pretty = "mac"
+
+        supported_os = ("win", "mac", "linux", "android")
+        if pretty not in supported_os:
+            raise ValueError(
+                f"Unknown os name {pretty}. Supported os are {supported_os}"
+            )
+
         return pretty
 
     def _clean_os_version(self) -> str:
