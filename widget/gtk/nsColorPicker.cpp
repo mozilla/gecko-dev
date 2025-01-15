@@ -68,16 +68,22 @@ GtkColorSelection* nsColorPicker::WidgetGetColorSelection(GtkWidget* widget) {
 }
 #endif
 
-NS_IMETHODIMP nsColorPicker::InitNative(
-    const nsTArray<nsString>& aDefaultColors) {
+NS_IMETHODIMP nsColorPicker::Init(
+    mozilla::dom::BrowsingContext* aBrowsingContext, const nsAString& title,
+    const nsAString& initialColor, const nsTArray<nsString>& aDefaultColors) {
+  MOZ_ASSERT(aBrowsingContext, "Null browsingContext passed to color picker!");
+
   mParentWidget =
-      mBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
+      aBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
+  mTitle = title;
+  mInitialColor = initialColor;
   mDefaultColors.Assign(aDefaultColors);
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsColorPicker::OpenNative() {
+NS_IMETHODIMP nsColorPicker::Open(
+    nsIColorPickerShownCallback* aColorPickerShownCallback) {
   // Don't attempt to open a real color-picker in headless mode.
   if (gfxPlatform::IsHeadless()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -88,6 +94,13 @@ NS_IMETHODIMP nsColorPicker::OpenNative() {
     return NS_ERROR_FAILURE;
   }
   nscolor color = maybeColor.value();
+
+  if (mCallback) {
+    // It means Open has already been called: this is not allowed
+    NS_WARNING("mCallback is already set. Open called twice?");
+    return NS_ERROR_FAILURE;
+  }
+  mCallback = aColorPickerShownCallback;
 
   NS_ConvertUTF16toUTF8 title(mTitle);
   GtkWindow* parent_window =

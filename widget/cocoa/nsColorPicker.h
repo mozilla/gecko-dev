@@ -7,7 +7,7 @@
 #ifndef nsColorPicker_h_
 #define nsColorPicker_h_
 
-#include "nsBaseColorPicker.h"
+#include "nsIColorPicker.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 
@@ -16,9 +16,10 @@ class mozIDOMWindowProxy;
 @class NSColorPanelWrapper;
 @class NSColor;
 
-class nsColorPicker final : public nsBaseColorPicker {
+class nsColorPicker final : public nsIColorPicker {
  public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSICOLORPICKER
 
   // For NSColorPanelWrapper.
   void Update(NSColor* aColor);
@@ -27,14 +28,14 @@ class nsColorPicker final : public nsBaseColorPicker {
  private:
   ~nsColorPicker();
 
-  // nsBaseColorPicker
-  nsresult InitNative(const nsTArray<nsString>& aDefaultColors) override;
-  nsresult OpenNative() override;
-
   static NSColor* GetNSColorFromHexString(const nsAString& aColor);
   static void GetHexStringFromNSColor(NSColor* aColor, nsAString& aResult);
 
   NSColorPanelWrapper* mColorPanelWrapper;
+
+  nsString mTitle;
+  nsString mColor;
+  nsCOMPtr<nsIColorPickerShownCallback> mCallback;
 };
 
 #endif  // nsColorPicker_h_
