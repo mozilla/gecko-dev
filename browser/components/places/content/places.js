@@ -223,6 +223,13 @@ var PlacesOrganizer = {
       for (let i = 0; i < elements.length; i++) {
         document.getElementById(elements[i]).setAttribute("disabled", "true");
       }
+
+      // 3. MacOS uses a <toolbarbutton> instead of a <menu>
+      document
+        .getElementById("organizeButton")
+        .addEventListener("popupshowing", () => {
+          document.getElementById("placeContent").focus();
+        });
     }
 
     // remove the "Edit" and "Edit Bookmark" context-menu item, we're in our own details pane
@@ -239,6 +246,13 @@ var PlacesOrganizer = {
       ViewMenu.showHideColumn(event.target);
       event.stopPropagation();
     });
+    columnsContextPopup.addEventListener("popupshowing", event =>
+      ViewMenu.fillWithColumns(event, null, null, "checkbox", false)
+    );
+
+    document
+      .getElementById("fileRestorePopup")
+      .addEventListener("popupshowing", () => this.populateRestoreMenu());
 
     if (!Services.policies.isAllowed("profileImport")) {
       document
@@ -1120,6 +1134,9 @@ var ViewMenu = {
       event.stopPropagation();
       this.showHideColumn(event.target);
     });
+    columnsPopup.addEventListener("popupshowing", event =>
+      this.fillWithColumns(event, null, null, "checkbox", false)
+    );
 
     let sortPopup = document.querySelector("#viewSort > menupopup");
     sortPopup.addEventListener("command", event => {
@@ -1140,6 +1157,9 @@ var ViewMenu = {
           break;
       }
     });
+    sortPopup.addEventListener("popupshowing", event =>
+      this.populateSortMenu(event)
+    );
   },
 
   /**

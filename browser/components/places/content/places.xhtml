@@ -154,8 +154,7 @@
 
   <popupset id="placesPopupset">
 #include placesContextMenu.inc.xhtml
-    <menupopup id="placesColumnsContext"
-               onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"/>
+    <menupopup id="placesColumnsContext"/>
 #include ../../downloads/content/downloadsContextMenu.inc.xhtml
   </popupset>
 
@@ -173,7 +172,6 @@
 
 #ifdef XP_MACOSX
         <toolbarbutton type="menu" class="tabbable" wantdropmarker="true"
-              onpopupshowing="document.getElementById('placeContent').focus()"
               data-l10n-id="places-organize-button-mac"
 #else
       <menubar id="placesMenu">
@@ -260,11 +258,11 @@
 
             <menu id="viewColumns"
                   data-l10n-id="places-view-menu-columns">
-              <menupopup onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"/>
+              <menupopup/>
             </menu>
 
             <menu id="viewSort" data-l10n-id="places-view-menu-sort">
-              <menupopup onpopupshowing="ViewMenu.populateSortMenu(event);">
+              <menupopup>
                 <menuitem id="viewUnsorted" type="radio" name="columns"
                           data-l10n-id="places-view-sort-unsorted"/>
                 <menuseparator id="directionSeparator"/>
@@ -289,7 +287,7 @@
                       command="OrganizerCommand_backup"
                       data-l10n-id="places-cmd-backup"/>
             <menu id="fileRestoreMenu" data-l10n-id="places-cmd-restore">
-              <menupopup id="fileRestorePopup" onpopupshowing="PlacesOrganizer.populateRestoreMenu();">
+              <menupopup id="fileRestorePopup">
                 <menuitem id="restoreFromFile"
                           command="OrganizerCommand_restoreFromFile"
                           data-l10n-id="places-cmd-restore-from-file"/>
