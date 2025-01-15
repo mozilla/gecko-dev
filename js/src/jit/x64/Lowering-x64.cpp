@@ -523,14 +523,7 @@ void LIRGeneratorX64::lowerTruncateDToInt32(MTruncateToInt32* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Double);
 
-  // Without BMI2, x64 can only shift by rcx.
-  LDefinition tmp;
-  if (Assembler::HasBMI2()) {
-    tmp = temp();
-  } else {
-    tmp = tempFixed(rcx);
-  }
-  define(new (alloc()) LTruncateDToInt32(useRegister(opd), tmp), ins);
+  define(new (alloc()) LTruncateDToInt32(useRegister(opd), tempShift()), ins);
 }
 
 void LIRGeneratorX64::lowerTruncateFToInt32(MTruncateToInt32* ins) {
@@ -572,15 +565,8 @@ void LIRGeneratorX64::lowerWasmBuiltinTruncateToInt32(
   MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);
 
   if (opd->type() == MIRType::Double) {
-    // Without BMI2, x64 can only shift by rcx.
-    LDefinition tmp;
-    if (Assembler::HasBMI2()) {
-      tmp = temp();
-    } else {
-      tmp = tempFixed(rcx);
-    }
-    define(new (alloc()) LWasmBuiltinTruncateDToInt32(useRegister(opd),
-                                                      LAllocation(), tmp),
+    define(new (alloc()) LWasmBuiltinTruncateDToInt32(
+               useRegister(opd), LAllocation(), tempShift()),
            ins);
     return;
   }

@@ -17,6 +17,10 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   LIRGeneratorX86Shared(MIRGenerator* gen, MIRGraph& graph, LIRGraph& lirGraph)
       : LIRGeneratorShared(gen, graph, lirGraph) {}
 
+  LUse useShiftRegister(MDefinition* mir);
+  LUse useShiftRegisterAtStart(MDefinition* mir);
+  LDefinition tempShift();
+
   LTableSwitch* newLTableSwitch(const LAllocation& in,
                                 const LDefinition& inputCopy,
                                 MTableSwitch* ins);
