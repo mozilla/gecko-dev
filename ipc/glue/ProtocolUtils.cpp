@@ -914,8 +914,9 @@ void IPDLAsyncReturnsCallbacks::AddCallback(int32_t aSeqno, msgid_t aType,
   mMap.InsertElementSorted(std::move(entry));
 }
 
-auto IPDLAsyncReturnsCallbacks::GotReply(
-    IProtocol* aActor, const IPC::Message& aMessage) -> Result {
+auto IPDLAsyncReturnsCallbacks::GotReply(IProtocol* aActor,
+                                         const IPC::Message& aMessage)
+    -> Result {
   // Check if we have an entry for the given seqno and message type.
   EntryKey key{aMessage.seqno(), aMessage.type()};
   size_t index = mMap.BinaryIndexOf(key);

@@ -14,7 +14,6 @@
 #include "nsExceptionHandler.h"
 #include "nsISupportsImpl.h"
 #include "nsThreadUtils.h"
-#include <windows.h>
 #include <rpc.h>
 #include <ws2spi.h>
 

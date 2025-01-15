@@ -17,6 +17,7 @@
 #include "nsIOutputStream.h"
 #include "nsIRandomAccessStream.h"
 #include "nsNetUtil.h"
+#include "prio.h"
 
 namespace mozilla::dom::quota {
 
