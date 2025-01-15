@@ -1770,8 +1770,8 @@ IPCResult WindowGlobalParent::RecvRecordUserActivationForBTP() {
     return IPC_OK();
   }
 
-  DebugOnly<nsresult> rv =
-      BounceTrackingProtection::RecordUserActivation(principal, Some(PR_Now()));
+  DebugOnly<nsresult> rv = BounceTrackingProtection::RecordUserActivation(
+      principal, Some(PR_Now()), top->BrowsingContext());
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "Failed to record BTP user activation.");
 

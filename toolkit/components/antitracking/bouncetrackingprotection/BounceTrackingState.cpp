@@ -832,4 +832,18 @@ nsresult BounceTrackingState::OnStorageAccess(nsIPrincipal* aPrincipal) {
   return NS_OK;
 }
 
+nsresult BounceTrackingState::OnUserActivation(const nsACString& aSiteHost) {
+  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+          ("%s: aSiteHost: %s, mBounceTrackingRecord: %s", __FUNCTION__,
+           PromiseFlatCString(aSiteHost).get(),
+           mBounceTrackingRecord ? mBounceTrackingRecord->Describe().get()
+                                 : "null"));
+
+  if (mBounceTrackingRecord) {
+    mBounceTrackingRecord->AddUserActivationHost(aSiteHost);
+  }
+
+  return NS_OK;
+}
+
 }  // namespace mozilla

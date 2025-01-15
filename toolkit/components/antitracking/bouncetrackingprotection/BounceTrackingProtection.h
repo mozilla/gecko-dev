@@ -28,8 +28,10 @@ class ClearDataCallback;
 class OriginAttributes;
 
 namespace dom {
+class CanonicalBrowsingContext;
 class WindowContext;
-}
+class WindowGlobalParent;
+}  // namespace dom
 
 using ClearDataMozPromise =
     MozPromise<RefPtr<BounceTrackingPurgeEntry>, uint32_t, true>;
@@ -59,10 +61,13 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
 
   // Stores a user activation flag with a timestamp for the given principal. The
   // timestamp defaults to the current time, but can be overridden via
-  // aActivationTime.
+  // aActivationTime. If aWindowContext is provided, this will add the
+  // given principal's activation to the extended navigation's
+  // BounceTrackingRecord as well.
   // Parent process only. Prefer the WindowContext variant if possible.
   [[nodiscard]] static nsresult RecordUserActivation(
-      nsIPrincipal* aPrincipal, Maybe<PRTime> aActivationTime = Nothing());
+      nsIPrincipal* aPrincipal, Maybe<PRTime> aActivationTime = Nothing(),
+      dom::CanonicalBrowsingContext* aTopBrowsingContext = nullptr);
 
   // Same as above but can be called from any process given a WindowContext.
   // Gecko callers should prefer this method because it takes care of IPC and
