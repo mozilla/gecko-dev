@@ -117,7 +117,7 @@ jsreftest:
         by-test-platform:
             android-hw.*\/debug: 12
             android-hw.*/(opt|pgo)?: 6
-            windows.*-asan-qr/opt: 3
+            windows.*-asan-qr/opt: 6
             windows.*-ccov-qr/opt: 5
             windows.*\/opt: 2
             linux.*64-ccov.*/.*: 5
