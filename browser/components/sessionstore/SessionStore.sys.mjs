@@ -6905,7 +6905,7 @@ var SessionStoreInternal = {
 
         // Open groups do not have a tabs list, but closed ones do — we need to
         // add one here.
-        window.groups.forEach(group => {
+        window.groups?.forEach(group => {
           group = Cu.cloneInto(group, {});
           group.tabs = [];
           newWindowState.closedGroups.push(group);
