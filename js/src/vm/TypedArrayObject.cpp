@@ -2805,6 +2805,197 @@ static bool TypedArray_includes(JSContext* cx, unsigned argc, Value* vp) {
                                                                        args);
 }
 
+template <typename Ops, typename NativeType>
+static void TypedArrayFill(TypedArrayObject* tarray, NativeType value,
+                           size_t startIndex, size_t endIndex) {
+  MOZ_RELEASE_ASSERT(startIndex <= endIndex);
+  MOZ_RELEASE_ASSERT(endIndex <= tarray->length().valueOr(0));
+
+  SharedMem<NativeType*> data =
+      Ops::extract(tarray).template cast<NativeType*>();
+  for (size_t i = startIndex; i < endIndex; i++) {
+    Ops::store(data + i, value);
+  }
+}
+
+template <typename NativeType>
+static void TypedArrayFillStdMemset(TypedArrayObject* tarray, uint8_t value,
+                                    size_t startIndex, size_t endIndex) {
+  MOZ_RELEASE_ASSERT(startIndex <= endIndex);
+  MOZ_RELEASE_ASSERT(endIndex <= tarray->length().valueOr(0));
+
+  SharedMem<uint8_t*> data = UnsharedOps::extract(tarray).cast<uint8_t*>();
+  std::memset(data.unwrapUnshared() + startIndex * sizeof(NativeType), value,
+              (endIndex - startIndex) * sizeof(NativeType));
+}
+
+template <typename NativeType>
+static void TypedArrayFillAtomicMemset(TypedArrayObject* tarray, uint8_t value,
+                                       size_t startIndex, size_t endIndex) {
+  MOZ_RELEASE_ASSERT(startIndex <= endIndex);
+  MOZ_RELEASE_ASSERT(endIndex <= tarray->length().valueOr(0));
+
+  SharedMem<uint8_t*> data = SharedOps::extract(tarray).cast<uint8_t*>();
+  jit::AtomicOperations::memsetSafeWhenRacy(
+      data + startIndex * sizeof(NativeType), value,
+      (endIndex - startIndex) * sizeof(NativeType));
+}
+
+template <typename NativeType>
+static NativeType ConvertToNativeType(const Value& value) {
+  if constexpr (!std::numeric_limits<NativeType>::is_integer) {
+    double d = value.toNumber();
+
+    if (js::SupportDifferentialTesting()) {
+      // See the comment in ElementSpecific::doubleToNative.
+      d = JS::CanonicalizeNaN(d);
+    }
+
+    return ConvertNumber<NativeType>(d);
+  } else if constexpr (std::is_same_v<NativeType, int64_t>) {
+    return BigInt::toInt64(value.toBigInt());
+  } else if constexpr (std::is_same_v<NativeType, uint64_t>) {
+    return BigInt::toUint64(value.toBigInt());
+  } else {
+    return ConvertNumber<NativeType>(value.toNumber());
+  }
+}
+
+template <typename NativeType>
+static void TypedArrayFill(TypedArrayObject* tarray, const Value& value,
+                           size_t startIndex, size_t endIndex) {
+  NativeType val = ConvertToNativeType<NativeType>(value);
+
+  using UnsignedT =
+      typename mozilla::UnsignedStdintTypeForSize<sizeof(NativeType)>::Type;
+  UnsignedT bits = mozilla::BitwiseCast<UnsignedT>(val);
+
+  // Duplicate the LSB to check if we can call memset.
+  UnsignedT pattern;
+  std::memset(&pattern, uint8_t(bits), sizeof(UnsignedT));
+
+  if (tarray->isSharedMemory()) {
+    // To prevent teared writes, only use memset on shared memory when copying
+    // single bytes.
+    if (bits == pattern && sizeof(NativeType) == 1) {
+      TypedArrayFillAtomicMemset<NativeType>(tarray, uint8_t(bits), startIndex,
+                                             endIndex);
+    } else {
+      TypedArrayFill<SharedOps>(tarray, val, startIndex, endIndex);
+    }
+  } else {
+    if (bits == pattern) {
+      TypedArrayFillStdMemset<NativeType>(tarray, uint8_t(bits), startIndex,
+                                          endIndex);
+    } else {
+      TypedArrayFill<UnsharedOps>(tarray, val, startIndex, endIndex);
+    }
+  }
+}
+
+/**
+ * %TypedArray%.prototype.fill ( value [ , start [ , end ] ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_fill(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Steps 4-5.
+  Rooted<Value> value(cx);
+  if (!tarray->convertValue(cx, args.get(0), &value)) {
+    return false;
+  }
+
+  // Steps 6-9
+  size_t startIndex = 0;
+  if (args.hasDefined(1)) {
+    // Step 6.
+    double relativeStart;
+    if (!ToInteger(cx, args[1], &relativeStart)) {
+      return false;
+    }
+
+    // Steps 7-9.
+    if (relativeStart < 0) {
+      startIndex = size_t(std::max(double(len) + relativeStart, 0.0));
+    } else {
+      startIndex = size_t(std::min(relativeStart, double(len)));
+    }
+  }
+
+  // Steps 10-13.
+  size_t endIndex = len;
+  if (args.hasDefined(2)) {
+    // Step 10.
+    double relativeEnd;
+    if (!ToInteger(cx, args[2], &relativeEnd)) {
+      return false;
+    }
+
+    // Steps 11-13.
+    if (relativeEnd < 0) {
+      endIndex = size_t(std::max(double(len) + relativeEnd, 0.0));
+    } else {
+      endIndex = size_t(std::min(relativeEnd, double(len)));
+    }
+  }
+
+  // Steps 14-16.
+  //
+  // Reacquire the length because side-effects may have detached or resized
+  // the array buffer.
+  arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  len = *arrayLength;
+
+  // Step 17.
+  endIndex = std::min(endIndex, len);
+
+  // Steps 18-19.
+  if (startIndex < endIndex) {
+    switch (tarray->type()) {
+#define TYPED_ARRAY_FILL(_, NativeType, Name)                              \
+  case Scalar::Name:                                                       \
+    TypedArrayFill<NativeType>(tarray, value.get(), startIndex, endIndex); \
+    break;
+      JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_FILL)
+#undef TYPED_ARRAY_FILL
+      default:
+        MOZ_CRASH("Unsupported TypedArray type");
+    }
+  }
+
+  // Step 20.
+  args.rval().setObject(*tarray);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.fill ( value [ , start [ , end ] ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_fill(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype", "fill");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_fill>(cx, args);
+}
+
 // Byte vector with large enough inline storage to allow constructing small
 // typed arrays without extra heap allocations.
 using ByteVector =
@@ -3897,7 +4088,7 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_FN("set", TypedArrayObject::set, 1, 0),
     JS_FN("copyWithin", TypedArrayObject::copyWithin, 2, 0),
     JS_SELF_HOSTED_FN("every", "TypedArrayEvery", 1, 0),
-    JS_SELF_HOSTED_FN("fill", "TypedArrayFill", 3, 0),
+    JS_FN("fill", TypedArray_fill, 1, 0),
     JS_SELF_HOSTED_FN("filter", "TypedArrayFilter", 1, 0),
     JS_SELF_HOSTED_FN("find", "TypedArrayFind", 1, 0),
     JS_SELF_HOSTED_FN("findIndex", "TypedArrayFindIndex", 1, 0),
