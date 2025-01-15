@@ -24,13 +24,16 @@
 
 #include "jit/InlinableNatives.h"
 #include "js/Class.h"
+#include "js/ForOfIterator.h"
 #include "js/Prefs.h"
 #include "js/PropertySpec.h"
 #include "util/DifferentialTesting.h"
 #include "vm/Float16.h"
+#include "vm/Interpreter.h"
 #include "vm/JSContext.h"
 #include "vm/Realm.h"
 #include "vm/Time.h"
+#include "xsum/xsum.h"
 
 #include "vm/JSObject-inl.h"
 
@@ -942,13 +945,160 @@ static bool math_toSource(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 #ifdef NIGHTLY_BUILD
+
+enum class SumPreciseState : uint8_t {
+  MinusZero,
+  Finite,
+  PlusInfinity,
+  MinusInfinity,
+  NotANumber,
+};
+
 /**
  * Math.sumPrecise ( items )
  *
  * https://tc39.es/proposal-math-sum/#sec-math.sumprecise
  */
 static bool math_sumPrecise(JSContext* cx, unsigned argc, Value* vp) {
-  return false;
+  constexpr int64_t MaxCount = int64_t(1) << 53;
+
+  // Step 1. Perform ? RequireObjectCoercible(items).
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (!args.requireAtLeast(cx, "Math.sumPrecise", 1)) {
+    return false;
+  }
+
+  // Step 2. Let iteratorRecord be ? GetIterator(items, sync).
+  JS::ForOfIterator iterator(cx);
+  if (!iterator.init(args[0], JS::ForOfIterator::ThrowOnNonIterable)) {
+    return false;
+  }
+
+  // Step 3. Let state be minus-zero.
+  SumPreciseState state = SumPreciseState::MinusZero;
+
+  // Step 4. Let sum be 0.
+  xsum_small_accumulator sum;
+  xsum_small_init(&sum);
+
+  // Step 5. Let count be 0.
+  int64_t count = 0;
+
+  // Step 6. Let next be not-started.
+  // (implicit)
+
+  JS::Rooted<JS::Value> value(cx);
+
+  // Step 7. Repeat, while next is not done,
+  while (true) {
+    // Step 7.a. Set next to ? IteratorStepValue(iteratorRecord).
+    bool done;
+    if (!iterator.next(&value, &done)) {
+      return false;
+    }
+
+    // Step 7.b. If next is not done, then
+    if (done) {
+      break;
+    }
+
+    // Step 7.b.i. Set count to count + 1.
+    count += 1;
+
+    // Step 7.b.ii. If count ≥ 2**53, then
+    if (count >= MaxCount) {
+      // Step 7.b.ii.1. Let error be ThrowCompletion(a newly created RangeError
+      // object).
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SUMPRECISE_TOO_MANY_VALUES);
+
+      // Step 7.b.ii.2. Return ? IteratorClose(iteratorRecord, error).
+      iterator.closeThrow();
+      return false;
+    }
+
+    // Step 7.b.iv. If next is not a Number, then
+    if (!value.isNumber()) {
+      // Step 7.b.iv.1. Let error be ThrowCompletion(a newly created TypeError
+      // object).
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SUMPRECISE_EXPECTED_NUMBER);
+
+      // Step 7.b.iv.2. Return ? IteratorClose(iteratorRecord, error).
+      iterator.closeThrow();
+      return false;
+    }
+
+    // Step 7.b.v. Let n be next.
+    double n = value.toNumber();
+
+    // Step 7.b.vi. If state is not not-a-number, then
+    if (state == SumPreciseState::NotANumber) {
+      continue;
+    }
+
+    // Step 7.b.vi.1. If n is NaN, then
+    if (std::isnan(n)) {
+      // Step 7.b.vi.1.a. Set state to not-a-number.
+      state = SumPreciseState::NotANumber;
+    } else if (n == PositiveInfinity<double>()) {
+      // Step 7.b.vi.2. Else if n is +∞𝔽, then
+      if (state == SumPreciseState::MinusInfinity) {
+        // Step 7.b.vi.2.a. If state is minus-infinity, set state to
+        //                  not-a-number.
+        state = SumPreciseState::NotANumber;
+      } else {
+        // Step 7.b.vi.2.b. Else, set state to plus-infinity.
+        state = SumPreciseState::PlusInfinity;
+      }
+    } else if (n == NegativeInfinity<double>()) {
+      // Step 7.b.vi.3. Else if n is -∞𝔽, then
+      if (state == SumPreciseState::PlusInfinity) {
+        // Step 7.b.vi.3.a. If state is plus-infinity, set state to
+        //                  not-a-number.
+        state = SumPreciseState::NotANumber;
+      } else {
+        // Step 7.b.vi.3.b. Else, set state to minus-infinity.
+        state = SumPreciseState::MinusInfinity;
+      }
+    } else if (!IsNegativeZero(n) && (state == SumPreciseState::MinusZero ||
+                                      state == SumPreciseState::Finite)) {
+      // Step 7.b.vi.4. Else if n is not -0𝔽 and state is either minus-zero or
+      //                finite, then
+      // Step 7.b.vi.4.a. Set state to finite.
+      state = SumPreciseState::Finite;
+
+      // Step 7.b.vi.4.b. Set sum to sum + ℝ(n).
+      xsum_small_add1(&sum, n);
+    }
+  }
+
+  double rval;
+  switch (state) {
+    case SumPreciseState::NotANumber:
+      // Step 8. If state is not-a-number, return NaN.
+      rval = GenericNaN();
+      break;
+    case SumPreciseState::PlusInfinity:
+      // Step 9. If state is plus-infinity, return +∞𝔽.
+      rval = PositiveInfinity<double>();
+      break;
+    case SumPreciseState::MinusInfinity:
+      // Step 10. If state is minus-infinity, return -∞𝔽.
+      rval = NegativeInfinity<double>();
+      break;
+    case SumPreciseState::MinusZero:
+      // Step 11. If state is minus-zero, return -0𝔽.
+      rval = -0.0;
+      break;
+    case SumPreciseState::Finite:
+      // Step 12. Return 𝔽(sum).
+      rval = xsum_small_round(&sum);
+      break;
+  }
+
+  args.rval().setNumber(rval);
+  return true;
 }
 #endif
 
