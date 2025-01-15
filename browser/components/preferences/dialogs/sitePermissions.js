@@ -159,6 +159,17 @@ var gSitePermissionsManager = {
     document.addEventListener("dialogaccept", this);
     window.addEventListener("unload", this);
 
+    document
+      .getElementById("siteCol")
+      .addEventListener("click", event =>
+        this.buildPermissionsList(event.target)
+      );
+    document
+      .getElementById("statusCol")
+      .addEventListener("click", event =>
+        this.buildPermissionsList(event.target)
+      );
+
     this._type = params.permissionType;
     this._list = document.getElementById("permissionsBox");
     this._removeButton = document.getElementById("removePermission");
@@ -172,6 +183,11 @@ var gSitePermissionsManager = {
       "permissionsDisableDescription"
     );
     this._setAutoplayPref = document.getElementById("setAutoplayPref");
+
+    this._list.addEventListener("keypress", event =>
+      this.onPermissionKeyPress(event)
+    );
+    this._list.addEventListener("select", () => this.onPermissionSelect());
 
     let permissionsText = document.getElementById("permissionsText");
 

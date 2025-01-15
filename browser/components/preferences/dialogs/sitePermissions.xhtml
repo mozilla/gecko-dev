@@ -11,6 +11,7 @@
   data-l10n-id="permissions-window2"
   data-l10n-attrs="title, style"
   persist="width height"
+  csp="default-src chrome:; style-src 'unsafe-inline';"
 >
   <dialog
     buttons="accept,cancel"
@@ -65,24 +66,14 @@
       </hbox>
       <separator class="thin" />
       <listheader>
-        <treecol
-          id="siteCol"
-          data-l10n-id="permissions-site-name"
-          onclick="gSitePermissionsManager.buildPermissionsList(event.target)"
-        />
+        <treecol id="siteCol" data-l10n-id="permissions-site-name" />
         <treecol
           id="statusCol"
           data-l10n-id="permissions-status"
           data-isCurrentSortCol="true"
-          onclick="gSitePermissionsManager.buildPermissionsList(event.target);"
         />
       </listheader>
-      <richlistbox
-        id="permissionsBox"
-        selected="false"
-        onkeypress="gSitePermissionsManager.onPermissionKeyPress(event);"
-        onselect="gSitePermissionsManager.onPermissionSelect();"
-      />
+      <richlistbox id="permissionsBox" selected="false" />
     </vbox>
 
     <hbox class="actionButtons">
