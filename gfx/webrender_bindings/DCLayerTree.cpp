@@ -523,6 +523,20 @@ void DCLayerTree::MaybeCommit() {
 }
 
 void DCLayerTree::WaitForCommitCompletion() {
+  // To ensure that swapchain layers have presented to the screen
+  // for capture, call present twice. This is less than ideal, but
+  // I'm not sure if there is a better way to ensure this syncs
+  // correctly that works on both Win10/11. Even though this can
+  // be slower than necessary, it's only used by the reftest
+  // screenshotting code, so isn't particularly perf sensitive.
+  for (auto it = mDCSurfaces.begin(); it != mDCSurfaces.end(); it++) {
+    auto* surface = it->second->AsDCSwapChain();
+    if (surface) {
+      surface->Present();
+      surface->Present();
+    }
+  }
+
   mCompositionDevice->WaitForCommitCompletion();
 }
 
