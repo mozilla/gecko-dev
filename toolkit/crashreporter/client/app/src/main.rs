@@ -77,8 +77,9 @@ mod test;
 
 fn main() {
     // Determine the mode in which to run. This is very simplistic, but need not be more permissive
-    // nor flexible since we control how the program is invoked.
-    if std::env::args_os()
+    // nor flexible since we control how the program is invoked. We don't use the mocked version
+    // because we want the actual args.
+    if ::std::env::args_os()
         .nth(1)
         .map(|s| s == "--analyze")
         .unwrap_or(false)
@@ -94,8 +95,8 @@ fn report_main() {
     let log_target = logging::init();
 
     let mut config = Config::new();
-    config.read_from_environment();
     config.log_target = Some(log_target);
+    config.read_from_environment();
 
     let mut config = Arc::new(config);
 
@@ -108,7 +109,7 @@ fn report_main() {
         }
         Err(message) => {
             // TODO maybe errors should also delete files?
-            log::error!("exiting with error: {message}");
+            log::error!("exiting with error: {message:#}");
             if !config.auto_submit {
                 // Only show a dialog if auto_submit is disabled.
                 ui::error_dialog(&config, message);

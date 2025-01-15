@@ -89,6 +89,8 @@ impl Config {
         self.ping_dir = env_path(ekey!("PING_DIRECTORY"));
         self.app_file = std::env::var_os(ekey!("RESTART_XUL_APP_FILE"));
 
+        self.update_log_file();
+
         // Only support `MOZ_APP_LAUNCHER` on linux and macos.
         if cfg!(not(target_os = "windows")) {
             self.restart_command = std::env::var_os("MOZ_APP_LAUNCHER");
@@ -177,6 +179,7 @@ impl Config {
             let vendor = extra[VENDOR_KEY].as_str().unwrap_or(DEFAULT_VENDOR);
             let product = extra[PRODUCT_KEY].as_str().unwrap_or(DEFAULT_PRODUCT);
             self.data_dir = Some(self.get_data_dir(vendor, product)?);
+            self.update_log_file();
         }
 
         // Clear the restart command if WER handled the crash. This prevents restarting the
@@ -409,6 +412,13 @@ impl Config {
             p.push(exe_extension);
         }
         installation_path().join(p)
+    }
+
+    /// Update the log file based on the current configured data_dir.
+    fn update_log_file(&self) {
+        if let (Some(log_target), Some(data_dir)) = (&self.log_target, &self.data_dir) {
+            log_target.set_file(&data_dir.join("submit.log"));
+        }
     }
 
     cfg_if::cfg_if! {

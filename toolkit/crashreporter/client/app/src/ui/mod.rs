@@ -70,7 +70,7 @@ cfg_if::cfg_if! {
 
 /// Display an error dialog with the given message.
 #[cfg_attr(mock, allow(unused))]
-pub fn error_dialog<M: std::fmt::Display>(config: &Config, message: M) {
+pub fn error_dialog<M: std::fmt::Debug>(config: &Config, message: M) {
     let close = data::Event::default();
     // Config may not have localized strings
     let string_or = |name, fallback: &str| {
@@ -79,15 +79,6 @@ pub fn error_dialog<M: std::fmt::Display>(config: &Config, message: M) {
         } else {
             config.string(name)
         }
-    };
-
-    let details = if config.strings.is_none() {
-        format!("Details: {}", message)
-    } else {
-        config
-            .build_string("crashreporter-error-details")
-            .arg("details", message.to_string())
-            .get()
     };
 
     let window = ui! {
@@ -99,7 +90,10 @@ pub fn error_dialog<M: std::fmt::Display>(config: &Config, message: M) {
                         "The application had a problem and crashed. \
                         Unfortunately, the crash reporter is unable to submit a report for the crash."
                 )),
-                Label text(details),
+                Label text(string_or("crashreporter-error-details-header", "Details:")),
+                Scroll halign(Alignment::Fill) valign(Alignment::Fill) {
+                    TextBox content(format!("{message:?}")) halign(Alignment::Fill) valign(Alignment::Fill)
+                },
                 Button["close"] halign(Alignment::End) on_click(move || close.fire(&())) {
                     Label text(string_or("crashreporter-button-close", "Close"))
                 }
