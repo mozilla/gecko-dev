@@ -236,6 +236,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
         }
 
         if (!imports->funcs.append(&importFieldValue.toObject())) {
+          ReportOutOfMemory(cx);
           return false;
         }
 
@@ -257,6 +258,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
         }
 
         if (!imports->tables.append(obj)) {
+          ReportOutOfMemory(cx);
           return false;
         }
         break;
@@ -269,6 +271,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
 
         if (!imports->memories.append(
                 &importFieldValue.toObject().as<WasmMemoryObject>())) {
+          ReportOutOfMemory(cx);
           return false;
         }
         break;
@@ -359,6 +362,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
         }
 
         if (!imports->globalValues.append(val)) {
+          ReportOutOfMemory(cx);
           return false;
         }
 
