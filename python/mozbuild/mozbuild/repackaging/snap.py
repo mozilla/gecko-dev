@@ -33,6 +33,7 @@ def repackage_snap(
     appname,
     reponame="canonical/firefox-snap",
     branchname="nightly",
+    wmclass=None,
     arch="amd64",
     dry_run=False,
 ):
@@ -63,7 +64,9 @@ def repackage_snap(
     )
     with open(os.path.join(snapdir, "firefox.desktop"), "w") as desktop_file:
         desktop_file.write(
-            SnapDesktopFile(log, appname=appname, branchname=branchname).repack()
+            SnapDesktopFile(
+                log, appname=appname, branchname=branchname, wmclass=wmclass
+            ).repack()
         )
 
     source_yaml = os.path.join(snapdir, "original.snapcraft.yaml")

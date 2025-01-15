@@ -144,12 +144,15 @@ class SnapcraftTransform:
 
 
 class SnapDesktopFile:
-    def __init__(self, log, appname, branchname):
+    def __init__(self, log, appname, branchname, wmclass=None):
+        if wmclass is None:
+            wmclass = "{}-{}".format(appname, branchname)
+
         build_variables = {
             "DEB_PKG_NAME": appname,
             "DBusActivatable": "false",
             "Icon": "/default256.png",
-            "StartupWMClass": "{}-{}".format(appname, branchname),
+            "StartupWMClass": wmclass,
         }
 
         from fluent.runtime.fallback import FluentLocalization, FluentResourceLoader
