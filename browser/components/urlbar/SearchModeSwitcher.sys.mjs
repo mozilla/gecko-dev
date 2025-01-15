@@ -164,7 +164,7 @@ export class SearchModeSwitcher {
    */
   onSearchModeChanged() {
     if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
-      this.#updateSearchIcon();
+      this.updateSearchIcon();
     }
   }
 
@@ -219,7 +219,7 @@ export class SearchModeSwitcher {
     switch (topic) {
       case "browser-search-engine-modified": {
         if (data === "engine-default") {
-          this.#updateSearchIcon();
+          this.updateSearchIcon();
         }
         break;
       }
@@ -248,14 +248,16 @@ export class SearchModeSwitcher {
       }
       case "keyword.enabled": {
         if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
-          this.#updateSearchIcon();
+          this.updateSearchIcon();
         }
         break;
       }
     }
   }
 
-  async #updateSearchIcon() {
+  async updateSearchIcon() {
+    let searchMode = this.#input.searchMode;
+
     if (!this.#input.window || this.#input.window.closed) {
       return;
     }
@@ -269,6 +271,10 @@ export class SearchModeSwitcher {
     let { label, icon } = await this.#getDisplayedEngineDetails(
       this.#input.searchMode
     );
+
+    if (searchMode?.source != this.#input.searchMode?.source) {
+      return;
+    }
 
     const inSearchMode = this.#input.searchMode;
     if (!lazy.UrlbarPrefs.get("unifiedSearchButton.always")) {
@@ -486,7 +492,7 @@ export class SearchModeSwitcher {
 
     this.#input.window.addEventListener(
       "MozAfterPaint",
-      () => this.#updateSearchIcon(),
+      () => this.updateSearchIcon(),
       { once: true }
     );
   }
