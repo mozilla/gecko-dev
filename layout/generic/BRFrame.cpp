@@ -8,18 +8,22 @@
 
 #include "mozilla/CaretAssociationHint.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/TextControlElement.h"
 #include "mozilla/dom/HTMLBRElement.h"
 #include "gfxContext.h"
+#include "nsBlockFrame.h"
 #include "nsCOMPtr.h"
+#include "nsComputedDOMStyle.h"
 #include "nsContainerFrame.h"
 #include "nsFontMetrics.h"
+#include "nsGkAtoms.h"
 #include "nsHTMLParts.h"
 #include "nsIFrame.h"
-#include "nsPresContext.h"
-#include "nsLineLayout.h"
-#include "nsStyleConsts.h"
-#include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
+#include "nsLineLayout.h"
+#include "nsPresContext.h"
+#include "nsStyleConsts.h"
+#include "nsTextFrame.h"
 
 // FOR SELECTION
 #include "nsIContent.h"
@@ -237,13 +241,64 @@ nsIFrame::FrameSearchResult BRFrame::PeekOffsetWord(
 #ifdef ACCESSIBILITY
 a11y::AccType BRFrame::AccessibleType() {
   dom::HTMLBRElement* brElement = dom::HTMLBRElement::FromNode(mContent);
-  if (brElement->IsPaddingForEmptyEditor() ||
-      brElement->IsPaddingForEmptyLastLine()) {
-    // This <br> is a "padding <br> element" used when there is no text or an
-    // empty last line in an editor.
-    return a11y::eNoType;
+
+  if (!brElement->IsPaddingForEmptyLastLine()) {
+    // Even if this <br> is a "padding <br> element" used when there is no text
+    // in an editor, it may be surrounded by before/after pseudo element
+    // content. Therefore, we need to treat it as a normal <br>.
+    return a11y::eHTMLBRType;
   }
 
+  // If it's a padding <br> element used in the anonymous subtree of <textarea>,
+  // we don't need to expose it as a line break because of in an replaced
+  // content.
+  if (brElement->IsInNativeAnonymousSubtree()) {
+    const auto* textControlElement = TextControlElement::FromNodeOrNull(
+        brElement->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+    if (textControlElement &&
+        textControlElement->IsSingleLineTextControlOrTextArea()) {
+      return a11y::eNoType;
+    }
+  }
+
+  // If this <br> is a "padding <br> element" used when there is an empty last
+  // line before a block boundary in an HTML editor, this is required only for
+  // the empty last line visible in the CSS layout world.  Therefore, this is
+  // meaningless so that this should not appear in the flattened text.  On the
+  // other hand, if this is a padding <br> element used when there is no
+  // visible things in the parent block in an editor, this is required to give
+  // one-line height to the block.  So, basically, this is meaningless, but
+  // this may be surrounded by before/after pseudo content.  Then, they appear
+  // in different lines because of this line break.  So, this is not meaningless
+  // in such case.  For now, we should treat this is meaningless only in the
+  // former case.  We can assume that if this is a padding <br>, it directly
+  // follows a block boundary because our editor does not keep empty nodes at
+  // least intentionally.
+  // XXX This does not treat complicated layout cases.  However, our editor
+  // must not work well with such layout.  So, this should be okay for the
+  // web apps in the wild.
+  nsIFrame* const parentFrame = GetParent();
+  if (!parentFrame) {
+    return a11y::eHTMLBRType;
+  }
+  nsIFrame* const currentBlock =
+      nsBlockFrame::GetNearestAncestorBlock(parentFrame);
+  nsIContent* const currentBlockContent =
+      currentBlock ? currentBlock->GetContent() : nullptr;
+  for (nsIContent* previousContent =
+           brElement->GetPrevNode(currentBlockContent);
+       previousContent;
+       previousContent = previousContent->GetPrevNode(currentBlockContent)) {
+    nsIFrame* const precedingContentFrame = previousContent->GetPrimaryFrame();
+    if (!precedingContentFrame || precedingContentFrame->IsEmpty()) {
+      continue;
+    }
+    if (precedingContentFrame->IsBlockFrameOrSubclass()) {
+      break;  // Reached a child block.
+    }
+    return a11y::eHTMLBRType;
+  }
   return a11y::eHTMLBRType;
 }
+
 #endif

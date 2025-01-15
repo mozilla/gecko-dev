@@ -105,6 +105,19 @@ addAccessibleTask(
 );
 
 addAccessibleTask(
+  `<div id="input" contenteditable="true" role="textbox"></div>`,
+  async function (browser, docAcc) {
+    await testEditable(
+      browser,
+      findAccessibleChildByID(docAcc, "input"),
+      "",
+      ""
+    );
+  },
+  { chrome: true, topLevel: false /* bug 1834129 */ }
+);
+
+addAccessibleTask(
   `<style>
   #input::after {
     content: "pseudo element";
@@ -159,6 +172,36 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: false /* bug 1834129 */ }
 );
+
+if (
+  Services.prefs.getBoolPref(
+    "dom.element.contenteditable.plaintext-only.enabled"
+  )
+) {
+  addAccessibleTask(
+    `<style>
+  #input {
+    white-space: pre;
+  }
+  #input::before {
+    content: "before";
+  }
+  #input::after {
+    content: "after";
+  }
+</style>
+<div id="input" contenteditable="plaintext-only" role="textbox"></div>`,
+    async function (browser, docAcc) {
+      await testEditable(
+        browser,
+        findAccessibleChildByID(docAcc, "input"),
+        "before",
+        "after"
+      );
+    },
+    { chrome: true, topLevel: false /* bug 1834129 */ }
+  );
+}
 
 addAccessibleTask(
   ``,
