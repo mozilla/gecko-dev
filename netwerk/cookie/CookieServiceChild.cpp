@@ -477,74 +477,62 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
   nsAutoCString dateHeader;
   CookieCommons::GetServerDateHeader(aChannel, dateHeader);
 
-  nsTArray<CookieStruct> cookiesToSend, partitionedCookiesToSend;
-  do {
-    CookieParser parser(crc, aHostURI);
-    parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
-                 dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
-                 storagePrincipalOriginAttributes.IsPrivateBrowsing(),
-                 loadInfo->GetIsOn3PCBExceptionList());
-    if (!parser.ContainsCookie()) {
-      continue;
-    }
+  CookieParser parser(crc, aHostURI);
+  parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
+               dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
+               storagePrincipalOriginAttributes.IsPrivateBrowsing(),
+               loadInfo->GetIsOn3PCBExceptionList());
+  if (!parser.ContainsCookie()) {
+    return NS_OK;
+  }
 
-    // check permissions from site permission list.
-    if (!CookieCommons::CheckCookiePermission(aChannel, parser.CookieData())) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                        "cookie rejected by permission manager");
-      parser.RejectCookie(CookieParser::RejectedByPermissionManager);
-      CookieCommons::NotifyRejected(
-          aHostURI, aChannel,
-          nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION,
-          OPERATION_WRITE);
-      continue;
-    }
+  // check permissions from site permission list.
+  if (!CookieCommons::CheckCookiePermission(aChannel, parser.CookieData())) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
+                      "cookie rejected by permission manager");
+    parser.RejectCookie(CookieParser::RejectedByPermissionManager);
+    CookieCommons::NotifyRejected(
+        aHostURI, aChannel,
+        nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION,
+        OPERATION_WRITE);
+    return NS_OK;
+  }
 
-    // CHIPS - If the partitioned attribute is set, store cookie in partitioned
-    // cookie jar independent of context. If the cookies are stored in the
-    // partitioned cookie jar anyway no special treatment of CHIPS cookies
-    // necessary.
-    bool needPartitioned = isCHIPS && parser.CookieData().isPartitioned() &&
-                           !isPartitionedPrincipal;
-    nsTArray<CookieStruct>& cookiesToSendRef =
-        needPartitioned ? partitionedCookiesToSend : cookiesToSend;
-    OriginAttributes& cookieOriginAttributes =
-        needPartitioned ? partitionedPrincipalOriginAttributes
-                        : storagePrincipalOriginAttributes;
-    // Assert that partitionedPrincipalOriginAttributes are initialized if used.
-    MOZ_ASSERT_IF(
-        needPartitioned,
-        !partitionedPrincipalOriginAttributes.mPartitionKey.IsEmpty());
+  // CHIPS - If the partitioned attribute is set, store cookie in partitioned
+  // cookie jar independent of context. If the cookies are stored in the
+  // partitioned cookie jar anyway no special treatment of CHIPS cookies
+  // necessary.
+  bool needPartitioned =
+      isCHIPS && parser.CookieData().isPartitioned() && !isPartitionedPrincipal;
+  OriginAttributes& cookieOriginAttributes =
+      needPartitioned ? partitionedPrincipalOriginAttributes
+                      : storagePrincipalOriginAttributes;
+  // Assert that partitionedPrincipalOriginAttributes are initialized if used.
+  MOZ_ASSERT_IF(needPartitioned,
+                !partitionedPrincipalOriginAttributes.mPartitionKey.IsEmpty());
 
-    RefPtr<Cookie> cookie =
-        Cookie::Create(parser.CookieData(), cookieOriginAttributes);
-    MOZ_ASSERT(cookie);
+  RefPtr<Cookie> cookie =
+      Cookie::Create(parser.CookieData(), cookieOriginAttributes);
+  MOZ_ASSERT(cookie);
 
-    cookie->SetLastAccessed(currentTimeInUsec);
-    cookie->SetCreationTime(
-        Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
+  cookie->SetLastAccessed(currentTimeInUsec);
+  cookie->SetCreationTime(
+      Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
 
-    CookieNotificationAction action =
-        RecordDocumentCookie(cookie, cookieOriginAttributes);
-    NotifyObservers(cookie, cookieOriginAttributes, action);
-
-    cookiesToSendRef.AppendElement(parser.CookieData());
-  } while (0);
+  CookieNotificationAction action =
+      RecordDocumentCookie(cookie, cookieOriginAttributes);
+  NotifyObservers(cookie, cookieOriginAttributes, action);
 
   // Asynchronously call the parent.
   if (CanSend()) {
+    nsTArray<CookieStruct> cookies;
+    cookies.AppendElement(parser.CookieData());
+
     RefPtr<HttpChannelChild> httpChannelChild = do_QueryObject(aChannel);
     MOZ_ASSERT(httpChannelChild);
-    if (!cookiesToSend.IsEmpty()) {
-      httpChannelChild->SendSetCookies(
-          baseDomain, storagePrincipalOriginAttributes, aHostURI, true,
-          isForeignAndNotAddon, cookiesToSend);
-    }
-    if (!partitionedCookiesToSend.IsEmpty()) {
-      httpChannelChild->SendSetCookies(
-          baseDomain, partitionedPrincipalOriginAttributes, aHostURI, true,
-          isForeignAndNotAddon, partitionedCookiesToSend);
-    }
+    httpChannelChild->SendSetCookies(baseDomain, cookieOriginAttributes,
+                                     aHostURI, true, isForeignAndNotAddon,
+                                     cookies);
   }
 
   return NS_OK;
