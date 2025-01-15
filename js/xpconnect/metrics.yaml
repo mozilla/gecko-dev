@@ -324,6 +324,233 @@ javascript.gc:
       - jcoppeard@mozilla.com
     expires: never
 
+  nursery_bytes:
+    type: memory_distribution
+    memory_unit: byte
+    description: >
+      Size of the GC nursery in bytes.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  effectiveness:
+    type: custom_distribution
+    range_min: 0
+    range_max: 50000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: "MB/s"
+    description: >
+      GC effectiveness, the amount of memory freed divided by main-thread collection time (MB/s)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  zone_count:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: exponential
+    unit: "zones"
+    description: >
+      Total number of GC zones
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  zones_collected:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: exponential
+    unit: "zones"
+    description: >
+      Number of zones collected in a zone GC.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  pretenure_count:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: exponential
+    description: >
+      How many allocation sites were selected for pretenuring by a minor GC
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mark_rate:
+    type: custom_distribution
+    range_min: 1000
+    range_max: 300000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: "objects/ms"
+    description: >
+      The number of objects marked per ms during GC.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  slice_count:
+    type: custom_distribution
+    range_min: 0
+    range_max: 200
+    bucket_count: 50
+    histogram_type: exponential
+    unit: "objects/ms"
+    description: >
+      The number of slices in an incremental GC for the main runtime.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  parallel_mark_speedup:
+    type: custom_distribution
+    range_min: 50
+    range_max: 800
+    bucket_count: 50
+    histogram_type: exponential
+    description: >
+      Ratio of total helper thread time spent marking to main thread time for parallel marking, scaled by 100.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  parallel_mark_interruptions:
+    type: custom_distribution
+    range_min: 1
+    range_max: 500
+    bucket_count: 50
+    histogram_type: exponential
+    description: >
+      Number of interruptions/donations per slice during parallel marking.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  parallel_mark_utilization:
+    type: custom_distribution
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: "percentage"
+    description: >
+      Ratio of helper thread time spent marking to total helper thread time for parallel marking.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mmu_50:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: linear
+    unit: "percentage"
+    description: >
+      Minimum percentage of time spent outside GC over any 50ms window.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  nursery_promotion_rate:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: "percentage"
+    description: >
+      The percentage of nursery objects that were promoted to the tenured heap.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  tenured_survival_rate:
+    type: custom_distribution
+    range_min: 0
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: "percentage"
+    description: >
+      The percentage of tenured GC things that survived a collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
 slow_script_warning:
   shown_browser:
     type: event

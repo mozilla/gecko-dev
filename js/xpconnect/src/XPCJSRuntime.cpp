@@ -2689,6 +2689,51 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
       glean::javascript_gc::task_start_delay.AccumulateRawDuration(
           TimeDuration::FromMicroseconds(sample));
       break;
+    case JSMetric::GC_MMU_50:
+      glean::javascript_gc::mmu_50.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_NURSERY_PROMOTION_RATE:
+      glean::javascript_gc::nursery_promotion_rate.AccumulateSingleSample(
+          sample);
+      break;
+    case JSMetric::GC_TENURED_SURVIVAL_RATE:
+      glean::javascript_gc::tenured_survival_rate.AccumulateSingleSample(
+          sample);
+      break;
+    case JSMetric::GC_PARALLEL_MARK_UTILIZATION:
+      glean::javascript_gc::parallel_mark_utilization.AccumulateSingleSample(
+          sample);
+      break;
+    case JSMetric::GC_NURSERY_BYTES_2:
+      glean::javascript_gc::nursery_bytes.Accumulate(sample);
+      break;
+    case JSMetric::GC_EFFECTIVENESS:
+      glean::javascript_gc::effectiveness.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_ZONE_COUNT:
+      glean::javascript_gc::zone_count.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_ZONES_COLLECTED:
+      glean::javascript_gc::zones_collected.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_PRETENURE_COUNT_2:
+      glean::javascript_gc::pretenure_count.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_MARK_RATE_2:
+      glean::javascript_gc::mark_rate.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_SLICE_COUNT:
+      glean::javascript_gc::slice_count.AccumulateSingleSample(sample);
+      break;
+    case JSMetric::GC_PARALLEL_MARK_SPEEDUP:
+      glean::javascript_gc::parallel_mark_speedup.AccumulateSingleSample(
+          sample);
+      break;
+    case JSMetric::GC_PARALLEL_MARK_INTERRUPTIONS:
+      glean::javascript_gc::parallel_mark_interruptions.AccumulateSingleSample(
+          sample);
+      break;
+
     default:
       // The rest aren't relayed to Glean.
       break;
