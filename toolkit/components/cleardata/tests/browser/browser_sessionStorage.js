@@ -27,10 +27,27 @@ function getTestEntryName(origin, partitioned) {
   return `${origin}${partitioned ? "_partitioned" : ""}`;
 }
 
-async function testHasEntry(originFirstParty, isSet, originThirdParty) {
+async function testHasEntry(
+  originFirstParty,
+  isSet,
+  originThirdParty,
+  originAttributes = { userContextId: 0 }
+) {
+  // Get all matching tabs for this origin
   let tabs = originToTabs[originFirstParty];
+  if (!tabs) {
+    return;
+  }
 
-  for (let tab of tabs) {
+  // Filter tabs by userContextId if specified
+  let relevantTabs = tabs;
+  if (originAttributes.userContextId !== undefined) {
+    relevantTabs = tabs.filter(
+      tab => tab.userContextId === originAttributes.userContextId
+    );
+  }
+
+  for (let tab of relevantTabs) {
     // For the partition test we inspect the sessionStorage of the iframe.
     let browsingContext = originThirdParty
       ? tab.linkedBrowser.browsingContext.children[0]
@@ -52,6 +69,9 @@ async function testHasEntry(originFirstParty, isSet, originThirdParty) {
     if (originThirdParty) {
       msg = "Partitioned under " + msg;
     }
+    if (tab.userContextId) {
+      msg += ` (userContextId: ${tab.userContextId})`;
+    }
 
     is(actualSet, isSet, msg);
   }
@@ -71,12 +91,15 @@ function addTestTabs() {
     [ORIGIN_B, ORIGIN_A],
     [ORIGIN_B_SUB, ORIGIN_A_SUB],
     [ORIGIN_B_HTTP, ORIGIN_A_HTTP],
-  ].map(async ([firstParty, thirdParty]) => {
-    info("Creating new tab for " + firstParty);
-    let tab = BrowserTestUtils.addTab(gBrowser, firstParty);
+    [ORIGIN_A, ORIGIN_B, 1],
+  ].map(async ([firstParty, thirdParty, userContextId]) => {
+    info(
+      `Creating new tab for ${firstParty}, userContextId: ${userContextId ?? 0}`
+    );
+    let tab = BrowserTestUtils.addTab(gBrowser, firstParty, { userContextId });
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
-    info("Creating iframe for " + thirdParty);
+    info(`Creating iframe for ${thirdParty}`);
     await SpecialPowers.spawn(
       tab.linkedBrowser,
       [getTestEntryName(firstParty, false), thirdParty],
@@ -126,7 +149,7 @@ add_setup(async function () {
   cleanup();
 });
 
-add_task(async function test_deleteByBaseDomain() {
+add_task(async function test_deleteDataFromSite() {
   await addTestTabs();
 
   info("Clearing sessionStorage for base domain A " + BASE_DOMAIN_A);
@@ -142,6 +165,7 @@ add_task(async function test_deleteByBaseDomain() {
 
   info("All entries for A should have been cleared.");
   await testHasEntry(ORIGIN_A, false);
+  await testHasEntry(ORIGIN_A, false, null, { userContextId: 1 });
   await testHasEntry(ORIGIN_A_SUB, false);
   await testHasEntry(ORIGIN_A_HTTP, false);
 
@@ -152,13 +176,65 @@ add_task(async function test_deleteByBaseDomain() {
 
   info("All partitioned entries for B under A should have been cleared.");
   await testHasEntry(ORIGIN_A, false, ORIGIN_B);
+  await testHasEntry(ORIGIN_A, false, ORIGIN_B, { userContextId: 1 });
   await testHasEntry(ORIGIN_A_SUB, false, ORIGIN_B_SUB);
   await testHasEntry(ORIGIN_A_HTTP, false, ORIGIN_B_HTTP);
 
   info("All partitioned entries of A under B should have been cleared.");
   await testHasEntry(ORIGIN_B, false, ORIGIN_A);
+  await testHasEntry(ORIGIN_B, false, ORIGIN_A, { userContextId: 1 });
   await testHasEntry(ORIGIN_B_SUB, false, ORIGIN_A_SUB);
   await testHasEntry(ORIGIN_B_HTTP, false, ORIGIN_A_HTTP);
+
+  cleanup();
+});
+
+add_task(async function test_deleteDataFromSiteAndPattern() {
+  await addTestTabs();
+
+  let pattern = {
+    userContextId: 1,
+  };
+
+  info(
+    `Clearing sessionStorage for base domain A ${BASE_DOMAIN_A} with pattern ${JSON.stringify(pattern)}.`
+  );
+  await new Promise(resolve => {
+    Services.clearData.deleteDataFromSite(
+      BASE_DOMAIN_A,
+      pattern,
+      false,
+      Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
+      resolve
+    );
+  });
+
+  info("Only entries for A that match the pattern should have been cleared.");
+  await testHasEntry(ORIGIN_A, true);
+  await testHasEntry(ORIGIN_A, false, null, { userContextId: 1 });
+  await testHasEntry(ORIGIN_A_SUB, true);
+  await testHasEntry(ORIGIN_A_HTTP, true);
+
+  info("Entries for B should still exist.");
+  await testHasEntry(ORIGIN_B, true);
+  await testHasEntry(ORIGIN_B_SUB, true);
+  await testHasEntry(ORIGIN_B_HTTP, true);
+
+  info(
+    "All partitioned entries for B under A  which match the pattern should have been cleared."
+  );
+  await testHasEntry(ORIGIN_A, true, ORIGIN_B);
+  await testHasEntry(ORIGIN_A, false, ORIGIN_B, { userContextId: 1 });
+  await testHasEntry(ORIGIN_A_SUB, true, ORIGIN_B_SUB);
+  await testHasEntry(ORIGIN_A_HTTP, true, ORIGIN_B_HTTP);
+
+  info(
+    "All partitioned entries of A under B which match the pattern should have been cleared."
+  );
+  await testHasEntry(ORIGIN_B, true, ORIGIN_A);
+  await testHasEntry(ORIGIN_B, false, ORIGIN_A, { userContextId: 1 });
+  await testHasEntry(ORIGIN_B_SUB, true, ORIGIN_A_SUB);
+  await testHasEntry(ORIGIN_B_HTTP, true, ORIGIN_A_HTTP);
 
   cleanup();
 });
