@@ -59,8 +59,6 @@ add_task(async function run_test() {
         "TestUnicode",
         "\u{1F4A9}\n\u{0000}Escape"
       );
-      crashReporter.annotateCrashReport("TestBoolean", true);
-      crashReporter.annotateCrashReport("TestInteger", 1000);
       crashReporter.annotateCrashReport("Add-ons", "test%40mozilla.org:0.1");
       crashReporter.appendAppNotesToCrashReport("Junk");
       crashReporter.appendAppNotesToCrashReport("MoreJunk");
