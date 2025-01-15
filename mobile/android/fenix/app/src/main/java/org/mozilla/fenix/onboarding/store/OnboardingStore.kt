@@ -6,6 +6,7 @@ package org.mozilla.fenix.onboarding.store
 
 import androidx.appcompat.app.AppCompatDelegate
 import mozilla.components.lib.state.Action
+import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
@@ -82,10 +83,12 @@ enum class OnboardingAddonStatus {
  * A [Store] that holds the [OnboardingState] for the add-ons boarding page and reduces [OnboardingAction]s
  * dispatched to the store.
  */
-class OnboardingStore : Store<OnboardingState, OnboardingAction>(
-    initialState = OnboardingState(),
-    reducer = ::reducer,
-) {
+class OnboardingStore(middleware: List<Middleware<OnboardingState, OnboardingAction>> = emptyList()) :
+    Store<OnboardingState, OnboardingAction>(
+        initialState = OnboardingState(),
+        reducer = ::reducer,
+        middleware = middleware,
+    ) {
     init {
         dispatch(OnboardingAction.Init())
     }
