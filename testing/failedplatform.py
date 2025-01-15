@@ -54,27 +54,6 @@ class FailedPlatform:
             [t in failed_variants for t in self.get_possible_test_variants(build_type)]
         )
 
-    def get_cleaned_build_type(self, build_types: list[str]) -> str:
-        """
-        Converts the list of build types describing the task to a single build type
-        to be used in the skip-if condition.
-        If after cleaning there are more than 1 build type available, raise an error.
-        """
-        filtered_types = [
-            b for b in build_types if b in self.get_possible_build_types()
-        ]
-        # Some build types like "asan" are also "opt"
-        # We only want to add the "opt" skip condition if it is the only type present
-        if "opt" in filtered_types and len(filtered_types) > 1:
-            filtered_types.remove("opt")
-        if len(filtered_types) == 0:
-            raise ValueError(f"Could not get valid build type from {str(build_types)}")
-        if len(filtered_types) > 1:
-            raise ValueError(
-                f"Expected a single build type after cleaning, got {str(filtered_types)}"
-            )
-        return filtered_types[0]
-
     def get_negated_variant(self, test_variant: str):
         if not test_variant.startswith("!"):
             return "!" + test_variant
@@ -108,7 +87,7 @@ class FailedPlatform:
         all_test_variants_parts = [
             tv.split("+")
             for tv in self.get_possible_test_variants(build_type)
-            if tv != "no_variant" and tv != test_variant
+            if tv not in ["no_variant", test_variant]
         ]
         test_variant_parts = test_variant.split("+")
         # List of composite test variants more specific than the current one
@@ -140,49 +119,31 @@ class FailedPlatform:
             return "!fission"
         return test_variant
 
-    def get_cleaned_test_variant(
-        self, build_type: str, test_variants: list[str]
-    ) -> str:
-        """
-        Convert the test variants array into a string compatible with the test variants described in oop_permutations
-        """
-        if len(test_variants) == 0:
-            return "no_variant"
+    def get_skip_string(self, and_str: str, build_type: str, test_variant: str) -> str:
+        if not build_type in self.get_possible_build_types():
+            raise Exception(
+                f"Build type {build_type} does not exist in {self.get_possible_build_types()}"
+            )
+        if not test_variant in self.get_possible_test_variants(build_type):
+            raise Exception(
+                f"Test variant {test_variant} does not exist in {self.get_possible_test_variants(build_type)}"
+            )
 
-        converted_variants = [self.get_test_variant_string(t) for t in test_variants]
-        # When several variants are present, combine them with a '+'
-        reduced_variant = reduce((lambda x, y: x + "+" + y), converted_variants)
-        if reduced_variant not in self.get_possible_test_variants(build_type):
-            return "no_variant"
-        return reduced_variant
-
-    def get_skip_string(
-        self, and_str: str, build_types: list[str], test_variants: list[str]
-    ) -> str:
-        cleaned_build_type = self.get_cleaned_build_type(build_types)
-        cleaned_variant = self.get_cleaned_test_variant(
-            cleaned_build_type, test_variants
-        )
-        if self.failures.get(cleaned_build_type) is None:
-            self.failures[cleaned_build_type] = {cleaned_variant}
+        if self.failures.get(build_type) is None:
+            self.failures[build_type] = {test_variant}
         else:
-            self.failures[cleaned_build_type].add(cleaned_variant)
+            self.failures[build_type].add(test_variant)
 
         return_str = ""
         # If every test variant of every build type failed, do not add anything
         if not self.is_full_fail():
-            return_str += and_str + cleaned_build_type
-            if not self.is_full_test_variants_fail(cleaned_build_type):
-                cleaned_variant = self.get_cleaned_test_variant(
-                    cleaned_build_type, test_variants
-                )
-                if cleaned_variant == "no_variant":
-                    return_str += self.get_no_variant_conditions(
-                        and_str, cleaned_build_type
-                    )
+            return_str += and_str + build_type
+            if not self.is_full_test_variants_fail(build_type):
+                if test_variant == "no_variant":
+                    return_str += self.get_no_variant_conditions(and_str, build_type)
                 else:
                     return_str += self.get_test_variant_condition(
-                        and_str, cleaned_build_type, cleaned_variant
+                        and_str, build_type, test_variant
                     )
 
         return return_str

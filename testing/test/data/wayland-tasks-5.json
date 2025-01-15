@@ -5,13 +5,13 @@
     "extra": {
       "arch": "64",
       "bits": "64",
-      "build_types": [],
+      "build_type": "opt",
       "debug": false,
       "display": "wayland",
       "opt": true,
       "os": "linux",
       "os_version": "22.04",
-      "runtimes": ["swgl"]
+      "runtime": "swgl"
     },
     "failure_types": {
       "browser/components/places/tests/browser/browser.toml": [
@@ -50,13 +50,13 @@
     "extra": {
       "arch": "64",
       "bits": "64",
-      "build_types": [],
+      "build_type": "opt",
       "debug": false,
       "display": "wayland",
       "opt": true,
       "os": "linux",
       "os_version": "22.04",
-      "runtimes": ["swgl"]
+      "runtime": "swgl"
     },
     "failure_types": {
       "browser/components/places/tests/browser/browser.toml": [
@@ -95,13 +95,13 @@
     "extra": {
       "arch": "64",
       "bits": "64",
-      "build_types": [],
+      "build_type": "opt",
       "debug": false,
       "display": "wayland",
       "opt": true,
       "os": "linux",
       "os_version": "22.04",
-      "runtimes": ["swgl"]
+      "runtime": "swgl"
     },
     "failure_types": {
       "browser/components/places/tests/browser/browser.toml": [
