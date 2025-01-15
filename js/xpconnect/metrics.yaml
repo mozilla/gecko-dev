@@ -647,6 +647,238 @@ javascript.gc:
       - "false"
       - "true"
 
+  reason:
+    type: labeled_counter
+    description: >
+      Reason (enum value) for initiating a GC
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: &gc_reasons
+      - API
+      - EAGER_ALLOC_TRIGGER
+      - DESTROY_RUNTIME
+      - ROOTS_REMOVED
+      - LAST_DITCH
+      - TOO_MUCH_MALLOC
+      - ALLOC_TRIGGER
+      - DEBUG_GC
+      - COMPARTMENT_REVIVED
+      - RESET
+      - OUT_OF_NURSERY
+      - EVICT_NURSERY
+      - SHARED_MEMORY_LIMIT
+      - EAGER_NURSERY_COLLECTION
+      - BG_TASK_FINISHED
+      - ABORT_GC
+      - FULL_WHOLE_CELL_BUFFER
+      - FULL_GENERIC_BUFFER
+      - FULL_VALUE_BUFFER
+      - FULL_CELL_PTR_OBJ_BUFFER
+      - FULL_SLOT_BUFFER
+      - FULL_SHAPE_BUFFER
+      - TOO_MUCH_WASM_MEMORY
+      - DISABLE_GENERATIONAL_GC
+      - FINISH_GC
+      - PREPARE_FOR_TRACING
+      - FULL_WASM_ANYREF_BUFFER
+      - FULL_CELL_PTR_STR_BUFFER
+      - TOO_MUCH_JIT_CODE
+      - FULL_CELL_PTR_BIGINT_BUFFER
+      - NURSERY_TRAILERS
+      - NURSERY_MALLOC_BUFFERS
+      - DOM_WINDOW_UTILS
+      - COMPONENT_UTILS
+      - MEM_PRESSURE
+      - CC_FINISHED
+      - CC_FORCED
+      - LOAD_END
+      - UNUSED3
+      - PAGE_HIDE
+      - NSJSCONTEXT_DESTROY
+      - WORKER_SHUTDOWN
+      - SET_DOC_SHELL
+      - DOM_UTILS
+      - DOM_IPC
+      - DOM_WORKER
+      - INTER_SLICE_GC
+      - UNUSED1
+      - FULL_GC_TIMER
+      - SHUTDOWN_CC
+      - UNUSED2
+      - USER_INACTIVE
+      - XPCONNECT_SHUTDOWN
+      - DOCSHELL
+      - HTML_PARSER
+      - DOM_TESTUTILS
+      - PREPARE_FOR_PAGELOAD
+
+  slow_phase:
+    type: labeled_counter
+    description: >
+      The longest phase in any slice that goes over 2x the budget. The phase values are defined in js/src/gc/GenerateStatsPhases.py.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: &gc_phases
+      - MUTATOR
+      - GC_BEGIN
+      - MARK_CCWS
+      - MARK_STACK
+      - MARK_RUNTIME_DATA
+      - MARK_EMBEDDING
+      - MARK_ROOTS
+      - EVICT_NURSERY_FOR_MAJOR_GC
+      - WAIT_BACKGROUND_THREAD
+      - UNMARK
+      - UNMARK_WEAKMAPS
+      - MARK_DISCARD_CODE
+      - RELAZIFY_FUNCTIONS
+      - PURGE
+      - PURGE_PROP_MAP_TABLES
+      - PURGE_SOURCE_URLS
+      - JOIN_PARALLEL_TASKS
+      - PREPARE
+      - MARK_DELAYED
+      - MARK_GRAY_WEAK
+      - MARK_WEAK
+      - MARK_INCOMING_GRAY
+      - MARK_GRAY
+      - PARALLEL_MARK_MARK
+      - PARALLEL_MARK_WAIT
+      - PARALLEL_MARK_OTHER
+      - PARALLEL_MARK
+      - MARK
+      - WEAK_ZONES_CALLBACK
+      - WEAK_COMPARTMENT_CALLBACK
+      - FINALIZE_START
+      - UPDATE_ATOMS_BITMAP
+      - SWEEP_ATOMS_TABLE
+      - SWEEP_DISCARD_CODE
+      - SWEEP_INNER_VIEWS
+      - SWEEP_CC_WRAPPER
+      - SWEEP_BASE_SHAPE
+      - SWEEP_INITIAL_SHAPE
+      - SWEEP_REGEXP
+      - SWEEP_COMPRESSION
+      - SWEEP_WEAKMAPS
+      - SWEEP_UNIQUEIDS
+      - SWEEP_WEAK_POINTERS
+      - SWEEP_FINALIZATION_OBSERVERS
+      - SWEEP_JIT_DATA
+      - SWEEP_WEAK_CACHES
+      - SWEEP_MISC
+      - SWEEP_COMPARTMENTS
+      - FINALIZE_OBJECT
+      - FINALIZE_NON_OBJECT
+      - SWEEP_PROP_MAP
+      - FINALIZE_END
+      - DESTROY
+      - FIND_DEAD_COMPARTMENTS
+      - SWEEP
+      - COMPACT_MOVE
+      - COMPACT_UPDATE_CELLS
+      - COMPACT_UPDATE
+      - COMPACT
+      - DECOMMIT
+      - GC_END
+      - MINOR_GC
+      - EVICT_NURSERY
+      - TRACE_HEAP
+
+  slow_task:
+    type: labeled_counter
+    description: >
+      The longest parallel task in any slice that goes over 2x the budget. The phase values are defined in js/src/gc/GenerateStatsPhases.py.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: *gc_phases
+
+  reset_reason:
+    type: labeled_counter
+    description: >
+      Reason for cancelling an ongoing GC (see js::GCAbortReason)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: &gc_abort_reasons
+      - None
+      - NonIncrementalRequested
+      - AbortRequested
+      - Unused1
+      - IncrementalDisabled
+      - ModeChange
+      - MallocBytesTrigger
+      - GCBytesTrigger
+      - ZoneChange
+      - CompartmentRevived
+      - GrayRootBufferingFailed
+      - JitCodeBytesTrigger
+
+
+  non_incremental_reason:
+    type: labeled_counter
+    description: >
+      Reason for performing a non-incremental GC (see js::GCAbortReason)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: *gc_abort_reasons
+
+  minor_reason:
+    type: labeled_counter
+    description: >
+      Reason (enum value) for initiating a minor GC
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: *gc_reasons
+
+  minor_reason_long:
+    type: labeled_counter
+    description: >
+      Reason (enum value) that caused a long (>1ms) minor GC
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932686
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+    labels: *gc_reasons
+
 slow_script_warning:
   shown_browser:
     type: event

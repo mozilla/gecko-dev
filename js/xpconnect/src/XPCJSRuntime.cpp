@@ -2799,6 +2799,84 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
             .Add(1);
       }
       break;
+    case JSMetric::GC_REASON_2: {
+      // Assert that every reason has an associated glean label.
+      static_assert(static_cast<uint8_t>(JS::GCReason::LAST_FIREFOX_REASON) ==
+                        static_cast<uint8_t>(
+                            glean::javascript_gc::ReasonLabel::e__Other__),
+                    "GC reason enum and glean::javascript_gc::reason labels do "
+                    "not match.");
+      MOZ_ASSERT(static_cast<JS::GCReason>(sample) <=
+                     JS::GCReason::LAST_FIREFOX_REASON,
+                 "Invalid GC Reason.");
+
+      nsAutoCString reason(
+          JS::ExplainGCReason(static_cast<JS::GCReason>(sample)));
+      glean::javascript_gc::reason.Get(reason).Add(1);
+    } break;
+    case JSMetric::GC_GLEAN_SLOW_PHASE: {
+      MOZ_ASSERT(sample < static_cast<uint32_t>(
+                              glean::javascript_gc::SlowPhaseLabel::e__Other__),
+                 "Phase does not exist in the slow_phase labels list.");
+      nsAutoCString phase(JS::GetGCPhaseName(sample));
+      glean::javascript_gc::slow_phase.Get(phase).Add(1);
+    } break;
+    case JSMetric::GC_GLEAN_SLOW_TASK: {
+      MOZ_ASSERT(sample < static_cast<uint32_t>(
+                              glean::javascript_gc::SlowTaskLabel::e__Other__),
+                 "Phase does not exist in the slow_task labels list.");
+      nsAutoCString phase(JS::GetGCPhaseName(sample));
+      glean::javascript_gc::slow_task.Get(phase).Add(1);
+    } break;
+    case JSMetric::GC_RESET_REASON: {
+      MOZ_ASSERT(
+          sample < static_cast<uint32_t>(
+                       glean::javascript_gc::ResetReasonLabel::e__Other__),
+          "Reason does not exist in the reset_reason labels list.");
+      nsAutoCString reason(JS::ExplainGCAbortReason(sample));
+      glean::javascript_gc::reset_reason.Get(reason).Add(1);
+    } break;
+    case JSMetric::GC_NON_INCREMENTAL_REASON: {
+      MOZ_ASSERT(
+          sample <
+              static_cast<uint32_t>(
+                  glean::javascript_gc::NonIncrementalReasonLabel::e__Other__),
+          "Reason does not exist in the non_incremental_reason labels list.");
+      nsAutoCString reason(JS::ExplainGCAbortReason(sample));
+      glean::javascript_gc::non_incremental_reason.Get(reason).Add(1);
+    } break;
+    case JSMetric::GC_MINOR_REASON: {
+      // Assert that every reason has an associated glean label.
+      static_assert(
+          static_cast<uint8_t>(JS::GCReason::LAST_FIREFOX_REASON) ==
+              static_cast<uint8_t>(
+                  glean::javascript_gc::MinorReasonLabel::e__Other__),
+          "GC reason enum and glean::javascript_gc::reason labels do not "
+          "match.");
+      MOZ_ASSERT(static_cast<JS::GCReason>(sample) <=
+                     JS::GCReason::LAST_FIREFOX_REASON,
+                 "Invalid GC Reason.");
+
+      nsAutoCString reason(
+          JS::ExplainGCReason(static_cast<JS::GCReason>(sample)));
+      glean::javascript_gc::minor_reason.Get(reason).Add(1);
+    } break;
+    case JSMetric::GC_MINOR_REASON_LONG: {
+      // Assert that every reason has an associated glean label.
+      static_assert(
+          static_cast<uint8_t>(JS::GCReason::LAST_FIREFOX_REASON) ==
+              static_cast<uint8_t>(
+                  glean::javascript_gc::MinorReasonLongLabel::e__Other__),
+          "GC reason enum and glean::javascript_gc::reason labels do not "
+          "match.");
+      MOZ_ASSERT(static_cast<JS::GCReason>(sample) <=
+                     JS::GCReason::LAST_FIREFOX_REASON,
+                 "Invalid GC Reason.");
+
+      nsAutoCString reason(
+          JS::ExplainGCReason(static_cast<JS::GCReason>(sample)));
+      glean::javascript_gc::minor_reason_long.Get(reason).Add(1);
+    } break;
 
     default:
       // The rest aren't relayed to Glean.
