@@ -230,7 +230,9 @@ const clickOnInspectIcon = async function (animationInspector, panel, index) {
     ".animation-target .objectBox .highlight-node"
   );
   iconEl.scrollIntoView(false);
-  EventUtils.synthesizeMouseAtCenter(iconEl, {}, iconEl.ownerGlobal);
+  // Use click instead of EventUtils.synthesizeMouseAtCenter because the latter
+  // seems to trigger additional events (e.g. mouseover) that might interfere with tests
+  iconEl.click();
 };
 
 /**
