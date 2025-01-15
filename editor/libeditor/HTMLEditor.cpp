@@ -7760,85 +7760,101 @@ nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
   // could destroy the editor
   nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
-  // If user typed a white-space at end of a text node recently, we should try
-  // to make it keep visible even after mutations caused by the web apps because
-  // only we use U+0020 as trailing visible white-space with <br>.  Therefore,
-  // web apps may not take care of the white-space visibility.
-  // FIXME: Once we do this, the transaction should be merged to the last
-  // transaction for making an undoing deletes the inserted text too.
-  if (mLastCollapsibleWhiteSpaceAppendedTextNode &&
-      MOZ_LIKELY(
-          mLastCollapsibleWhiteSpaceAppendedTextNode->IsInComposedDoc() &&
-          mLastCollapsibleWhiteSpaceAppendedTextNode->IsEditable() &&
-          mLastCollapsibleWhiteSpaceAppendedTextNode->TextDataLength())) {
-    const auto atLastChar = EditorRawDOMPointInText::AtEndOf(
-        *mLastCollapsibleWhiteSpaceAppendedTextNode);
-    if (MOZ_LIKELY(atLastChar.IsPreviousCharCollapsibleASCIISpace())) {
-      if (const RefPtr<Element> editingHost = ComputeEditingHostInternal(
-              mLastCollapsibleWhiteSpaceAppendedTextNode,
-              LimitInBodyElement::No)) {
-        Result<CreateLineBreakResult, nsresult> insertPaddingBRResultOrError =
-            InsertPaddingBRElementIfNeeded(atLastChar.To<EditorDOMPoint>(),
-                                           eNoStrip, *editingHost);
-        if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {
-          if (insertPaddingBRResultOrError.inspectErr() ==
-              NS_ERROR_EDITOR_DESTROYED) {
+  {
+    // When this is called, there is no toplevel edit sub-action. Then,
+    // InsertNodeWithTransaction() or ReplaceTextWithTransaction() will set it.
+    // Then, OnEndHandlingTopLevelEditSubActionInternal() will call
+    // WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt() and may reset
+    // the hack here.  Therefore, we need to make it sure that
+    // OnEndHandlingTopLevelEditSubActionInternal() does nothing later.
+    IgnoredErrorResult error;
+    AutoEditSubActionNotifier topLevelEditSubAction(
+        *this, EditSubAction::eMaintainWhiteSpaceVisibility, eNone, error);
+    NS_WARNING_ASSERTION(!error.Failed(),
+                         "Failed to set the toplevel edit sub-action to "
+                         "maintain white-space visibility, but ignored");
+
+    // If user typed a white-space at end of a text node recently, we should try
+    // to make it keep visible even after mutations caused by the web apps
+    // because only we use U+0020 as trailing visible white-space with <br>.
+    // Therefore, web apps may not take care of the white-space visibility.
+    // FIXME: Once we do this, the transaction should be merged to the last
+    // transaction for making an undoing deletes the inserted text too.
+    if (mLastCollapsibleWhiteSpaceAppendedTextNode &&
+        MOZ_LIKELY(
+            mLastCollapsibleWhiteSpaceAppendedTextNode->IsInComposedDoc() &&
+            mLastCollapsibleWhiteSpaceAppendedTextNode->IsEditable() &&
+            mLastCollapsibleWhiteSpaceAppendedTextNode->TextDataLength())) {
+      const auto atLastChar = EditorRawDOMPointInText::AtEndOf(
+          *mLastCollapsibleWhiteSpaceAppendedTextNode);
+      if (MOZ_LIKELY(atLastChar.IsPreviousCharCollapsibleASCIISpace())) {
+        if (const RefPtr<Element> editingHost = ComputeEditingHostInternal(
+                mLastCollapsibleWhiteSpaceAppendedTextNode,
+                LimitInBodyElement::No)) {
+          Result<CreateLineBreakResult, nsresult> insertPaddingBRResultOrError =
+              InsertPaddingBRElementIfNeeded(atLastChar.To<EditorDOMPoint>(),
+                                             eNoStrip, *editingHost);
+          if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {
+            if (insertPaddingBRResultOrError.inspectErr() ==
+                NS_ERROR_EDITOR_DESTROYED) {
+              NS_WARNING(
+                  "HTMLEditor::InsertPaddingBRElementIfNeeded(nsIEditor::"
+                  "eNoStrip) destroyed the editor");
+              return insertPaddingBRResultOrError.unwrapErr();
+            }
             NS_WARNING(
                 "HTMLEditor::InsertPaddingBRElementIfNeeded(nsIEditor::"
-                "eNoStrip) destroyed the editor");
-            return insertPaddingBRResultOrError.unwrapErr();
+                "eNoStrip) failed, but ignored");
+          } else {
+            // We should not update selection for the mutation to maintain the
+            // white-space visibility.
+            insertPaddingBRResultOrError.unwrap().IgnoreCaretPointSuggestion();
           }
-          NS_WARNING(
-              "HTMLEditor::InsertPaddingBRElementIfNeeded(nsIEditor::eNoStrip) "
-              "failed, but ignored");
-        } else {
-          // We should not update selection for the mutation to maintain the
-          // white-space visibility.
-          insertPaddingBRResultOrError.unwrap().IgnoreCaretPointSuggestion();
         }
       }
     }
-  }
 
-  // If padding <br> element which made preceding collapsible ASCII white-space
-  // visible was removed by web app, we need to replace the white-space with
-  // an NBSP to make it keep visible until bug 503838 is fixed.
-  if (!aRunner.NewInvisibleWhiteSpacesRef().IsEmpty()) {
-    AutoSelectionRestorer restoreSelection(this);
-    bool doRestoreSelection = false;
-    for (const EditorDOMPointInText& atCollapsibleWhiteSpace :
-         aRunner.NewInvisibleWhiteSpacesRef()) {
-      if (!atCollapsibleWhiteSpace.IsInComposedDoc() ||
-          !atCollapsibleWhiteSpace.IsAtLastContent() ||
-          !HTMLEditUtils::IsSimplyEditableNode(
-              *atCollapsibleWhiteSpace.ContainerAs<Text>()) ||
-          !atCollapsibleWhiteSpace.IsCharCollapsibleASCIISpace()) {
-        continue;
+    // If padding <br> element which made preceding collapsible ASCII
+    // white-space visible was removed by web app, we need to replace the
+    // white-space with an NBSP to make it keep visible until bug 503838 is
+    // fixed.
+    if (!aRunner.NewInvisibleWhiteSpacesRef().IsEmpty()) {
+      AutoSelectionRestorer restoreSelection(this);
+      bool doRestoreSelection = false;
+      for (const EditorDOMPointInText& atCollapsibleWhiteSpace :
+           aRunner.NewInvisibleWhiteSpacesRef()) {
+        if (!atCollapsibleWhiteSpace.IsInComposedDoc() ||
+            !atCollapsibleWhiteSpace.IsAtLastContent() ||
+            !HTMLEditUtils::IsSimplyEditableNode(
+                *atCollapsibleWhiteSpace.ContainerAs<Text>()) ||
+            !atCollapsibleWhiteSpace.IsCharCollapsibleASCIISpace()) {
+          continue;
+        }
+        const Element* const editingHost =
+            atCollapsibleWhiteSpace.ContainerAs<Text>()->GetEditingHost();
+        MOZ_ASSERT(editingHost);
+        const WSScanResult nextThing =
+            WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+                editingHost,
+                atCollapsibleWhiteSpace.AfterContainer<EditorRawDOMPoint>(),
+                BlockInlineCheck::UseComputedDisplayStyle);
+        if (!nextThing.ReachedBlockBoundary()) {
+          continue;
+        }
+        Result<InsertTextResult, nsresult> replaceToNBSPResultOrError =
+            ReplaceTextWithTransaction(
+                MOZ_KnownLive(*atCollapsibleWhiteSpace.ContainerAs<Text>()),
+                atCollapsibleWhiteSpace.Offset(), 1u, u"\xA0"_ns);
+        if (MOZ_UNLIKELY(replaceToNBSPResultOrError.isErr())) {
+          NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
+          continue;
+        }
+        doRestoreSelection = true;
+        replaceToNBSPResultOrError.unwrap().IgnoreCaretPointSuggestion();
       }
-      const Element* const editingHost =
-          atCollapsibleWhiteSpace.ContainerAs<Text>()->GetEditingHost();
-      MOZ_ASSERT(editingHost);
-      const WSScanResult nextThing =
-          WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-              editingHost,
-              atCollapsibleWhiteSpace.AfterContainer<EditorRawDOMPoint>(),
-              BlockInlineCheck::UseComputedDisplayStyle);
-      if (!nextThing.ReachedBlockBoundary()) {
-        continue;
+      if (!doRestoreSelection) {
+        restoreSelection.Abort();
       }
-      Result<InsertTextResult, nsresult> replaceToNBSPResultOrError =
-          ReplaceTextWithTransaction(
-              MOZ_KnownLive(*atCollapsibleWhiteSpace.ContainerAs<Text>()),
-              atCollapsibleWhiteSpace.Offset(), 1u, u"\xA0"_ns);
-      if (MOZ_UNLIKELY(replaceToNBSPResultOrError.isErr())) {
-        NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
-        continue;
-      }
-      doRestoreSelection = true;
-      replaceToNBSPResultOrError.unwrap().IgnoreCaretPointSuggestion();
-    }
-    if (!doRestoreSelection) {
-      restoreSelection.Abort();
     }
   }
 

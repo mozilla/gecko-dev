@@ -851,8 +851,16 @@ nsresult EditorBase::GetSelection(SelectionType aSelectionType,
 
 nsresult EditorBase::DoTransactionInternal(nsITransaction* aTransaction) {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(!ShouldAlreadyHaveHandledBeforeInputEventDispatching(),
-             "beforeinput event hasn't been dispatched yet");
+  MOZ_ASSERT_IF(
+      // If the DOM is modified by a clipboard event handler,
+      // HTMLEditor::OnModifyDocument() may need to do some transactions before
+      // dispatching `beforeinput`.
+      // FIXME: It shouldn't happen, and I think that it should be done once
+      // before dispatching `input` event to hide the our editor hack from
+      // the event listeners.
+      GetEditAction() != EditAction::ePaste &&
+          GetEditAction() != EditAction::eCut,
+      !ShouldAlreadyHaveHandledBeforeInputEventDispatching());
 
   if (mPlaceholderBatch && !mPlaceholderTransaction) {
     MOZ_DIAGNOSTIC_ASSERT(mPlaceholderName);
