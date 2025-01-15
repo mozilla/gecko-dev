@@ -23,6 +23,10 @@ NS_IMETHODIMP
 nsBaseColorPicker::Open(nsIColorPickerShownCallback* aCallback) {
   MOZ_ASSERT(aCallback);
 
+  if (MaybeBlockColorPicker(aCallback)) {
+    return NS_OK;
+  }
+
   if (mCallback) {
     // It means Open has already been called: this is not allowed
     NS_WARNING("mCallback is already set. Open called twice?");
@@ -31,4 +35,20 @@ nsBaseColorPicker::Open(nsIColorPickerShownCallback* aCallback) {
   mCallback = aCallback;
 
   return OpenNative();
+}
+
+bool nsBaseColorPicker::MaybeBlockColorPicker(
+    nsIColorPickerShownCallback* aCallback) {
+  MOZ_ASSERT(mBrowsingContext);
+
+  if (!mBrowsingContext->Canonical()->CanOpenModalPicker()) {
+    if (aCallback) {
+      // Color pickers are disabled, so we answer the callback with
+      // returnCancel.
+      aCallback->Done(EmptyString());
+    }
+    return true;
+  }
+
+  return false;
 }
