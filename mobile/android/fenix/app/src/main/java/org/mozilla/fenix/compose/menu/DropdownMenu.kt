@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +26,7 @@ import androidx.compose.material.MenuDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,16 +35,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.compose.menu.MenuItem.FixedItem.Level
 import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.compose.text.value
@@ -50,6 +55,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 import androidx.compose.material.DropdownMenu as MaterialDropdownMenu
 import androidx.compose.material.DropdownMenuItem as MaterialDropdownMenuItem
 
+private val MenuItemHeight = 48.dp
 private val ItemHorizontalSpaceBetween = 16.dp
 private val defaultMenuShape = RoundedCornerShape(8.dp)
 
@@ -86,6 +92,19 @@ fun DropdownMenu(
                 menuItems = menuItems,
                 onDismissRequest = onDismissRequest,
             )
+
+            val density = LocalDensity.current
+
+            LaunchedEffect(Unit) {
+                if (expanded) {
+                    menuItems.indexOfFirst {
+                        it is MenuItem.CheckableItem && it.isChecked
+                    }.takeIf { it != -1 }?.let { index ->
+                        val scrollPosition = with(density) { MenuItemHeight.toPx() * index }.toInt()
+                        scrollState.scrollTo(scrollPosition)
+                    }
+                }
+            }
         }
     }
 }
@@ -134,7 +153,10 @@ private fun DropdownMenuContent(
                                         it.onClick()
                                     },
                                 )
-                                .testTag(it.testTag),
+                                .testTag(it.testTag)
+                                .thenConditional(
+                                    modifier = Modifier.semantics { traversalIndex = -1f },
+                                ) { it.isChecked },
                             onClick = {
                                 onDismissRequest()
                                 it.onClick()
@@ -207,7 +229,9 @@ private fun FlexibleDropdownMenuItem(
 ) {
     MaterialDropdownMenuItem(
         onClick = onClick,
-        modifier = modifier.semantics(mergeDescendants = true) {},
+        modifier = modifier
+            .height(MenuItemHeight)
+            .semantics(mergeDescendants = true) {},
         enabled = enabled,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
