@@ -119,6 +119,7 @@ usage:
     expires: never
     send_in_pings:
       - usage-reporting
+      - usage-deletion-request
 
 browser.engagement:
   session_time_including_suspend:
