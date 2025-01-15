@@ -20,6 +20,10 @@ struct NavigationUpdateCurrentEntryOptions;
 struct NavigationReloadOptions;
 struct NavigationResult;
 
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1903552.
+// https://html.spec.whatwg.org/multipage/browsing-the-web.html#user-navigation-involvement
+enum class UserNavigationInvolvement : uint8_t { BrowserUI, Activation, None };
+
 class Navigation final : public DOMEventTargetHelper {
  public:
   NS_DECL_ISUPPORTS_INHERITED
