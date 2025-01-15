@@ -11254,16 +11254,20 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
       return Err(rv);
     }
   }
-  // TODO: Insert padding <br> for the last empty line if the point is
-  // immediately after a block boundary.  However, we should not use the flag
-  // anymore because we should use linefeed in preformatted text.
+
+  // Padding <br> elements may appear and disappear a lot even during IME has a
+  // composition.  Therefore, IME may be confused with the mutation if we use
+  // normal <br> element since it does not match with expectation of IME.  For
+  // hiding the mutations from IME, we need to set the new <br> element flag to
+  // NS_PADDING_FOR_EMPTY_LAST_LINE.
   Result<CreateElementResult, nsresult> insertPaddingBRResultOrError =
-      InsertBRElement(WithTransaction::Yes, BRElementType::Normal,
+      InsertBRElement(WithTransaction::Yes,
+                      BRElementType::PaddingForEmptyLastLine,
                       pointToInsertPaddingBR);
   if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {
     NS_WARNING(
         "EditorBase::InsertBRElement(WithTransaction::Yes, "
-        "BRElementType::Normal) failed");
+        "BRElementType::PaddingForEmptyLastLine) failed");
     return insertPaddingBRResultOrError.propagateErr();
   }
   return CreateLineBreakResult(insertPaddingBRResultOrError.unwrap());

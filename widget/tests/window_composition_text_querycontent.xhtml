@@ -10128,7 +10128,7 @@ async function runIMEContentObserverTest()
     synthesizeKey("KEY_Delete", {}, win, callback);
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
-    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 1, addedLength: kLFLen });
+    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 1, addedLength: 0 });
     checkPositionChangeNotification(notifications[1], description);
     dumpUnexpectedNotifications(description, 2);
 
@@ -10160,7 +10160,7 @@ async function runIMEContentObserverTest()
     synthesizeKey("KEY_Backspace", {}, win, callback);
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
-    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 2, addedLength: kLFLen });
+    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 2, addedLength: 0 });
     checkSelectionChangeNotification(notifications[1], description, { offset: 0 + offsetAtContainer, text: "" });
     checkPositionChangeNotification(notifications[2], description);
     dumpUnexpectedNotifications(description, 3);
