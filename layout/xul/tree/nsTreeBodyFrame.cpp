@@ -201,16 +201,27 @@ static void CropStringForWidth(nsAString& aText, gfxContext& aRenderingContext,
   }
 }
 
+nsTreeImageCacheEntry::nsTreeImageCacheEntry() = default;
+nsTreeImageCacheEntry::nsTreeImageCacheEntry(imgIRequest* aRequest,
+                                             nsTreeImageListener* aListener)
+    : request(aRequest), listener(aListener) {}
+nsTreeImageCacheEntry::~nsTreeImageCacheEntry() = default;
+
+static void DoCancelImageCacheEntry(const nsTreeImageCacheEntry& aEntry,
+                                    nsPresContext* aPc) {
+  // If our imgIRequest object was registered with the refresh driver
+  // then we need to deregister it.
+  aEntry.listener->ClearFrame();
+  nsLayoutUtils::DeregisterImageRequest(aPc, aEntry.request, nullptr);
+  aEntry.request->UnlockImage();
+  aEntry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
+}
+
 // Function that cancels all the image requests in our cache.
 void nsTreeBodyFrame::CancelImageRequests() {
-  for (nsTreeImageCacheEntry entry : mImageCache.Values()) {
-    // If our imgIRequest object was registered with the refresh driver
-    // then we need to deregister it.
-    static_cast<nsTreeImageListener*>(entry.listener.get())->ClearFrame();
-    nsLayoutUtils::DeregisterImageRequest(PresContext(), entry.request,
-                                          nullptr);
-    entry.request->UnlockImage();
-    entry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
+  auto* pc = PresContext();
+  for (const nsTreeImageCacheEntry& entry : mImageCache.Values()) {
+    DoCancelImageCacheEntry(entry, pc);
   }
 }
 
@@ -253,10 +264,7 @@ nsTreeBodyFrame::nsTreeBodyFrame(ComputedStyle* aStyle,
 }
 
 // Destructor
-nsTreeBodyFrame::~nsTreeBodyFrame() {
-  CancelImageRequests();
-  DetachImageListeners();
-}
+nsTreeBodyFrame::~nsTreeBodyFrame() { CancelImageRequests(); }
 
 static void GetBorderPadding(ComputedStyle* aStyle, nsMargin& aMargin) {
   aMargin.SizeTo(0, 0, 0, 0);
@@ -1853,9 +1861,11 @@ nsresult nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol,
                                    imgIContainer** aResult) {
   *aResult = nullptr;
 
+  Document* doc = PresContext()->Document();
   nsAutoString imageSrc;
   mView->GetImageSrc(aRowIndex, aCol, imageSrc);
   RefPtr<imgRequestProxy> styleRequest;
+  nsCOMPtr<nsIURI> uri;
   if (aUseContext || imageSrc.IsEmpty()) {
     // Obtain the URL from the ComputedStyle.
     styleRequest =
@@ -1863,78 +1873,58 @@ nsresult nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol,
     if (!styleRequest) {
       return NS_OK;
     }
-    nsCOMPtr<nsIURI> uri;
     styleRequest->GetURI(getter_AddRefs(uri));
-    nsAutoCString spec;
-    nsresult rv = uri->GetSpec(spec);
-    NS_ENSURE_SUCCESS(rv, rv);
-    CopyUTF8toUTF16(spec, imageSrc);
+  } else {
+    nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri), imageSrc,
+                                              doc, mContent->GetBaseURI());
   }
-
+  if (!uri) {
+    return NS_OK;
+  }
   // Look the image up in our cache.
   nsTreeImageCacheEntry entry;
-  if (mImageCache.Get(imageSrc, &entry)) {
-    static_cast<nsTreeImageListener*>(entry.listener.get())
-        ->AddCell(aRowIndex, aCol);
+  if (mImageCache.Get(uri, &entry)) {
+    // Find out if the image has loaded.
+    imgIRequest* imgReq = entry.request;
+    imgReq->GetImage(aResult);  // We hand back the image here.  The GetImage
+                                // call addrefs *aResult.
+    entry.listener->AddCell(aRowIndex, aCol);
     return NS_OK;
   }
 
-  if (!*aResult) {
-    // Create a new nsTreeImageListener object and pass it our row and column
-    // information.
-    nsTreeImageListener* listener = new nsTreeImageListener(this);
-    mCreatedListeners.Insert(listener);
+  // Create a new nsTreeImageListener object and pass it our row and column
+  // information.
+  auto listener = MakeRefPtr<nsTreeImageListener>(this);
+  listener->AddCell(aRowIndex, aCol);
 
-    listener->AddCell(aRowIndex, aCol);
-    nsCOMPtr<imgINotificationObserver> imgNotificationObserver = listener;
-
-    Document* doc = mContent->GetComposedDoc();
-    if (!doc) {
-      // The page is currently being torn down.  Why bother.
-      return NS_ERROR_FAILURE;
-    }
-
-    RefPtr<imgRequestProxy> imageRequest;
-    if (styleRequest) {
-      styleRequest->SyncClone(imgNotificationObserver, doc,
-                              getter_AddRefs(imageRequest));
-    } else {
-      nsCOMPtr<nsIURI> srcURI;
-      nsContentUtils::NewURIWithDocumentCharset(
-          getter_AddRefs(srcURI), imageSrc, doc, mContent->GetBaseURI());
-      if (!srcURI) {
-        return NS_ERROR_FAILURE;
-      }
-
-      auto referrerInfo = MakeRefPtr<mozilla::dom::ReferrerInfo>(*doc);
-
-      // XXXbz what's the origin principal for this stuff that comes from our
-      // view?  I guess we should assume that it's the node's principal...
-      nsresult rv = nsContentUtils::LoadImage(
-          srcURI, mContent, doc, mContent->NodePrincipal(), 0, referrerInfo,
-          imgNotificationObserver, nsIRequest::LOAD_NORMAL, u""_ns,
-          getter_AddRefs(imageRequest));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      // NOTE(heycam): If it's an SVG image, and we need to want the image to
-      // able to respond to media query changes, it needs to be added to the
-      // document's ImageTracker.  For now, assume we don't need this.
-    }
-    listener->UnsuppressInvalidation();
-
-    if (!imageRequest) {
-      return NS_ERROR_FAILURE;
-    }
-
-    // We don't want discarding/decode-on-draw for xul images
-    imageRequest->StartDecoding(imgIContainer::FLAG_ASYNC_NOTIFY);
-    imageRequest->LockImage();
-
-    // In a case it was already cached.
-    imageRequest->GetImage(aResult);
-    nsTreeImageCacheEntry cacheEntry(imageRequest, imgNotificationObserver);
-    mImageCache.InsertOrUpdate(imageSrc, cacheEntry);
+  RefPtr<imgRequestProxy> imageRequest;
+  if (styleRequest) {
+    styleRequest->SyncClone(listener, doc, getter_AddRefs(imageRequest));
+  } else {
+    auto referrerInfo = MakeRefPtr<ReferrerInfo>(*doc);
+    // XXXbz what's the origin principal for this stuff that comes from our
+    // view?  I guess we should assume that it's the node's principal...
+    MOZ_TRY(nsContentUtils::LoadImage(
+        uri, mContent, doc, mContent->NodePrincipal(), 0, referrerInfo,
+        listener, nsIRequest::LOAD_NORMAL, u""_ns,
+        getter_AddRefs(imageRequest)));
+    // NOTE(heycam): If it's an SVG image, and we need to want the image to
+    // able to respond to media query changes, it needs to be added to the
+    // document's ImageTracker.  For now, assume we don't need this.
   }
+  listener->UnsuppressInvalidation();
+  if (!imageRequest) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // We don't want discarding/decode-on-draw for xul images
+  imageRequest->StartDecoding(imgIContainer::FLAG_ASYNC_NOTIFY);
+  imageRequest->LockImage();
+
+  // In a case it was already cached.
+  imageRequest->GetImage(aResult);
+  mImageCache.InsertOrUpdate(uri,
+                             nsTreeImageCacheEntry(imageRequest, listener));
   return NS_OK;
 }
 
@@ -3775,15 +3765,19 @@ void nsTreeBodyFrame::RemoveImageCacheEntry(int32_t aRowIndex,
   if (!view || NS_FAILED(view->GetImageSrc(aRowIndex, aCol, imageSrc))) {
     return;
   }
-  nsTreeImageCacheEntry entry;
-  if (!mImageCache.Get(imageSrc, &entry)) {
+  nsCOMPtr<nsIURI> uri;
+  auto* pc = PresContext();
+  nsContentUtils::NewURIWithDocumentCharset(
+      getter_AddRefs(uri), imageSrc, pc->Document(), mContent->GetBaseURI());
+  if (!uri) {
     return;
   }
-  static_cast<nsTreeImageListener*>(entry.listener.get())->ClearFrame();
-  nsLayoutUtils::DeregisterImageRequest(PresContext(), entry.request, nullptr);
-  entry.request->UnlockImage();
-  entry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
-  mImageCache.Remove(imageSrc);
+  auto lookup = mImageCache.Lookup(uri);
+  if (!lookup) {
+    return;
+  }
+  DoCancelImageCacheEntry(*lookup, pc);
+  lookup.Remove();
 }
 
 /* virtual */
@@ -4024,14 +4018,6 @@ void nsTreeBodyFrame::ScrollbarActivityStarted() const {
 void nsTreeBodyFrame::ScrollbarActivityStopped() const {
   if (mScrollbarActivity) {
     mScrollbarActivity->ActivityStopped();
-  }
-}
-
-void nsTreeBodyFrame::DetachImageListeners() { mCreatedListeners.Clear(); }
-
-void nsTreeBodyFrame::RemoveTreeImageListener(nsTreeImageListener* aListener) {
-  if (aListener) {
-    mCreatedListeners.Remove(aListener);
   }
 }
 
