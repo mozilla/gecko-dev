@@ -326,8 +326,7 @@ class ChromeUtils {
 
   static bool ShouldResistFingerprinting(
       GlobalObject& aGlobal, JSRFPTarget aTarget,
-      const Nullable<uint64_t>& aOverriddenFingerprintingSettings,
-      const Optional<bool>& aIsPBM);
+      const Nullable<uint64_t>& aOverriddenFingerprintingSettings);
 
   static void SanitizeTelemetryFileURL(GlobalObject& aGlobal,
                                        const nsACString& aURL,

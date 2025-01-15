@@ -789,8 +789,7 @@ partial namespace ChromeUtils {
   sequence<UTF8String> getAllPossibleUtilityActorNames();
 
   boolean shouldResistFingerprinting(JSRFPTarget target,
-                                     unsigned long long? overriddenFingerprintingSettings,
-                                     optional boolean isPBM);
+                                     unsigned long long? overriddenFingerprintingSettings);
 
   FileNameTypeDetails sanitizeTelemetryFileURL(UTF8String url);
 };

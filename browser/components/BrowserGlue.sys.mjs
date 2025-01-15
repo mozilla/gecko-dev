@@ -1722,7 +1722,7 @@ BrowserGlue.prototype = {
   _earlyBlankFirstPaint(cmdLine) {
     let startTime = Cu.now();
 
-    let shouldCreateWindow = isPrivateWindow => {
+    let shouldCreateWindow = () => {
       if (cmdLine.findFlag("wait-for-jsdebugger", false) != -1) {
         return true;
       }
@@ -1747,21 +1747,6 @@ BrowserGlue.prototype = {
         return false;
       }
 
-      // Bug 1448423: Skip the blank window if the user is resisting fingerprinting
-      if (
-        Services.prefs.getBoolPref(
-          "privacy.resistFingerprinting.skipEarlyBlankFirstPaint",
-          true
-        ) &&
-        ChromeUtils.shouldResistFingerprinting(
-          "RoundWindowSize",
-          null,
-          isPrivateWindow || lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
-        )
-      ) {
-        return false;
-      }
-
       let width = getValue("width");
       let height = getValue("height");
 
@@ -1773,10 +1758,7 @@ BrowserGlue.prototype = {
       return true;
     };
 
-    let makeWindowPrivate =
-      cmdLine.findFlag("private-window", false) != -1 &&
-      isPrivateBrowsingAllowedInRegistry();
-    if (!shouldCreateWindow(makeWindowPrivate)) {
+    if (!shouldCreateWindow()) {
       return;
     }
 
@@ -1787,8 +1769,10 @@ BrowserGlue.prototype = {
     // is set correctly on Windows. Without it, initial launches with `-private-window`
     // will show up under the regular Firefox taskbar icon first, and then switch
     // to the Private Browsing icon shortly thereafter.
-    if (makeWindowPrivate) {
-      browserWindowFeatures += ",private";
+    if (cmdLine.findFlag("private-window", false) != -1) {
+      if (isPrivateBrowsingAllowedInRegistry()) {
+        browserWindowFeatures += ",private";
+      }
     }
     let win = Services.ww.openWindow(
       null,
