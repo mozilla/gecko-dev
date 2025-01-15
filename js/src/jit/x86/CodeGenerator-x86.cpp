@@ -1062,17 +1062,6 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
   }
 }
 
-void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
-  MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
-  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-
-  masm.Push(input.high);
-  masm.Push(input.low);
-  masm.vmovq(Operand(esp, 0), ToFloatRegister(lir->output()));
-  masm.freeStack(sizeof(uint64_t));
-}
-
 void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);

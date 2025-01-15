@@ -2514,14 +2514,6 @@ void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   masm.moveDoubleToGPR64(ToFloatRegister(lir->input()), ToOutRegister64(lir));
 }
 
-void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
-  MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
-  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
-  masm.moveGPR64ToDouble(
-      ToRegister64(lir->getInt64Operand(LReinterpretCastFromI64::Input)),
-      ToFloatRegister(lir->output()));
-}
-
 void CodeGenerator::visitAtomicTypedArrayElementBinop(
     LAtomicTypedArrayElementBinop* lir) {
   MOZ_ASSERT(!lir->mir()->isForEffect());

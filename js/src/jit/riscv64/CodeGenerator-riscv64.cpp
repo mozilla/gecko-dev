@@ -548,12 +548,6 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   }
 }
 
-void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
-  MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
-  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
-  masm.fmv_d_x(ToFloatRegister(lir->output()), ToRegister(lir->input()));
-}
-
 void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);

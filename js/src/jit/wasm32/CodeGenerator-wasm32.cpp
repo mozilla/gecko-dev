@@ -10,9 +10,6 @@
 
 using namespace js::jit;
 
-void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
-  MOZ_CRASH();
-}
 void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_CRASH();
 }
