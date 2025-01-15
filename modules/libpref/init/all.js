@@ -3773,6 +3773,7 @@ pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
     // Health Report is enabled by default on all channels.
     // Do note that the toggle on Fenix and Focus does NOT reflect to this pref.
     pref("datareporting.healthreport.uploadEnabled", true);
+    pref("datareporting.usage.uploadEnabled", true);
   #endif
 #endif
 

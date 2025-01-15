@@ -971,6 +971,19 @@
     </hbox>
 #endif
 
+    <vbox>
+      <hbox align="center" class="checkbox-row">
+      <checkbox id="submitUsagePingBox"
+                class="tail-with-learn-more"
+                data-l10n-id="collection-usage-ping"
+                preference="datareporting.usage.uploadEnabled"/>
+        <html:a is="moz-support-link"
+                class="learnMore"
+                support-page="usage-ping-settings"/>
+      </hbox>
+      <description class="indent tip-caption" data-l10n-id="collection-usage-ping-description"/>
+    </vbox>
+
 #ifdef MOZ_CRASHREPORTER
     <hbox align="center" class="checkbox-row">
       <html:input type="checkbox"

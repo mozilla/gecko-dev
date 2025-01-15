@@ -1437,6 +1437,11 @@ collection-privacy-notice = Privacy Notice
 collection-health-report-telemetry-disabled = You’re no longer allowing { -vendor-short-name } to capture technical and interaction data. All past data will be deleted within 30 days.
 collection-health-report-telemetry-disabled-link = Learn more
 
+collection-usage-ping =
+    .label = Send daily usage ping to { -vendor-short-name }
+    .accesskey = u
+collection-usage-ping-description = This helps { -vendor-short-name } to estimate active users.
+
 collection-health-report =
     .label = Allow { -brand-short-name } to send technical and interaction data to { -vendor-short-name }
     .accesskey = r
