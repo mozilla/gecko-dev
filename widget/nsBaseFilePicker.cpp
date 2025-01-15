@@ -345,15 +345,15 @@ NS_IMETHODIMP nsBaseFilePicker::SetDisplaySpecialDirectory(
 
 bool nsBaseFilePicker::MaybeBlockFilePicker(
     nsIFilePickerShownCallback* aCallback) {
-  if (!mozilla::StaticPrefs::widget_disable_file_pickers()) {
-    return false;
-  }
+  MOZ_ASSERT(mBrowsingContext);
+  MOZ_ASSERT(XRE_IsParentProcess());
 
-  if (aCallback) {
-    // File pickers are disabled, so we answer the callback with returnCancel.
-    aCallback->Done(nsIFilePicker::returnCancel);
-  }
-  if (mBrowsingContext) {
+  if (mozilla::StaticPrefs::widget_disable_file_pickers()) {
+    if (aCallback) {
+      // File pickers are disabled, so we answer the callback with returnCancel.
+      aCallback->Done(nsIFilePicker::returnCancel);
+    }
+
     RefPtr<Element> topFrameElement = mBrowsingContext->GetTopFrameElement();
     if (topFrameElement) {
       // Dispatch an event that the frontend may use.
@@ -361,6 +361,18 @@ bool nsBaseFilePicker::MaybeBlockFilePicker(
           topFrameElement->OwnerDoc(), topFrameElement, u"FilePickerBlocked"_ns,
           mozilla::CanBubble::eYes, mozilla::Cancelable::eNo);
     }
+
+    return true;
+  }
+
+  if (mBrowsingContext->Canonical()->CanOpenModalPicker()) {
+    return false;
+  }
+
+  if (aCallback) {
+    // File pickers are not allowed to open, so we respond to the callback with
+    // returnCancel.
+    aCallback->Done(nsIFilePicker::returnCancel);
   }
 
   return true;
