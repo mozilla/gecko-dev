@@ -19,8 +19,7 @@ namespace mozilla {
 
 // static
 void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
-    dom::CanonicalBrowsingContext* aBrowsingContext,
-    nsIChannel* aChannel) {
+    dom::CanonicalBrowsingContext* aBrowsingContext, nsIChannel* aChannel) {
   // Make sure we only fire the heuristic when it is enabled.
   if (!StaticPrefs::privacy_antitracking_enableWebcompat() ||
       !StaticPrefs::privacy_restrict3rdpartystorage_heuristic_navigation()) {

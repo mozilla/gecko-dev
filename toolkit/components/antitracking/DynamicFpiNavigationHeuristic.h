@@ -31,8 +31,7 @@ class DynamicFpiNavigationHeuristic {
   // that looks for something that is a lot like a redirect auth flow where you
   // interact with the intervening page.
   static void MaybeGrantStorageAccess(
-      dom::CanonicalBrowsingContext* aBrowsingContext,
-      nsIChannel* aChannel);
+      dom::CanonicalBrowsingContext* aBrowsingContext, nsIChannel* aChannel);
 };
 
 }  // namespace mozilla
