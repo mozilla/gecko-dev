@@ -574,9 +574,14 @@ class MainMenuTestCompose : TestSetup() {
             expandMainMenu()
             openToolsMenu()
             verifyReaderViewButtonIsEnabled(isEnabled = true)
-        }.clickTheReaderViewModeButton() {
+        }.clickTheReaderViewModeButton {
+            waitForPageToLoad()
             verifyPageContent(estimatedReadingTime)
-            composeTestRule.waitForIdle()
+        }
+        navigationToolbar {
+            verifyReaderViewNavigationToolbarButton(isReaderViewEnabled = true)
+        }
+        browserScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()

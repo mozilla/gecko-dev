@@ -216,6 +216,14 @@ class NavigationToolbarRobot {
         }
     }
 
+    fun verifyReaderViewNavigationToolbarButton(isReaderViewEnabled: Boolean) {
+        if (isReaderViewEnabled) {
+            assertUIObjectExists(itemWithDescription(getStringResource(R.string.browser_menu_read_close)))
+        } else {
+            assertUIObjectExists(itemWithDescription(getStringResource(R.string.browser_menu_read)))
+        }
+    }
+
     class Transition {
         private lateinit var sessionLoadedIdlingResource: SessionLoadedIdlingResource
 
