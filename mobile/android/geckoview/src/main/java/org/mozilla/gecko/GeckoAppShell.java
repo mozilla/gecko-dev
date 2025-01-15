@@ -51,6 +51,8 @@ import android.view.ContextThemeWrapper;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.InputMethodSubtype;
 import android.webkit.MimeTypeMap;
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
@@ -1144,6 +1146,25 @@ public class GeckoAppShell {
     }
 
     return result;
+  }
+
+  @WrapForJNI(calledFrom = "gecko")
+  private static String getKeyboardLayout() {
+    final InputMethodManager imm =
+        (InputMethodManager) getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+    final InputMethodSubtype ims = imm.getCurrentInputMethodSubtype();
+    if (ims == null) {
+      return null;
+    }
+
+    // TODO(m_kato):
+    // Android 16 will have `layout related APIs such as setLayoutLabelNonLocalized
+    // to get keyboard layout label.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      return ims.getLanguageTag();
+    } else {
+      return ims.getLocale();
+    }
   }
 
   @WrapForJNI(calledFrom = "gecko")

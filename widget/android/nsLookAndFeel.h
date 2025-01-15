@@ -41,6 +41,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   bool GetEchoPasswordImpl() override;
   uint32_t GetPasswordMaskDelayImpl() override;
   char16_t GetPasswordCharacterImpl() override;
+  nsresult GetKeyboardLayoutImpl(nsACString& aLayout) override;
 
  protected:
   bool mInitializedSystemColors = false;

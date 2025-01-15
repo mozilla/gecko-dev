@@ -60,6 +60,20 @@ nsresult nsLookAndFeel::GetSystemColors() {
   return NS_OK;
 }
 
+nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
+  if (!jni::IsAvailable()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  auto layoutStr = java::GeckoAppShell::GetKeyboardLayout();
+  if (!layoutStr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aLayout.Assign(layoutStr->ToCString());
+  return NS_OK;
+}
+
 void nsLookAndFeel::NativeInit() {
   EnsureInitSystemColors();
   EnsureInitShowPassword();
