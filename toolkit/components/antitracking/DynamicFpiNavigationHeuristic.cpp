@@ -12,6 +12,7 @@
 #include "mozilla/BounceTrackingRecord.h"
 #include "mozilla/BounceTrackingState.h"
 #include "mozilla/Components.h"
+#include "mozilla/Telemetry.h"
 #include "nsISHistory.h"
 
 namespace mozilla {
@@ -116,6 +117,11 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
           embedeePrincipal, resultPrincipal,
           StorageAccessAPIHelper::StorageAccessPromptChoices::eAllow, false,
           StaticPrefs::privacy_restrict3rdpartystorage_expiration_visited());
+
+      Telemetry::AccumulateCategorical(
+          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::StorageGranted);
+      Telemetry::AccumulateCategorical(
+          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::Navigation);
     }
   }
 }

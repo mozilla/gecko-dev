@@ -11287,16 +11287,13 @@
       "StorageAccessAPI",
       "OpenerAfterUI",
       "Opener",
-      "Redirect"
+      "Redirect",
+      "RedirectTracker",
+      "Navigation"
     ],
-    "description": "A count of the granted storage access. ('StorageGranted' = There was a storage access granted, 'StorageAccessAPI' = the storage access was granted by the storage access API, 'OpenerAfterUserInteraction' = the storage access was granted due to the heuristic 'OpenerAfterUserInteraction', 'Opener' = the storage access was granted due to the heuristic 'Opener', 'Redirect' = the storage access was granted due to the heuristic 'Redirect'.) Note, StorageGranted is used as a baseline measurement.",
-    "alert_emails": [
-      "tihuang@mozilla.com",
-      "aedelstein@mozilla.com",
-      "senglehardt@mozilla.com",
-      "seceng-telemetry@mozilla.com"
-    ],
-    "bug_numbers": [1668199]
+    "description": "A count of the granted storage access. ('StorageGranted' = There was a storage access granted, 'StorageAccessAPI' = the storage access was granted by the storage access API, 'OpenerAfterUserInteraction' = the storage access was granted due to the heuristic 'OpenerAfterUserInteraction', 'Opener' = the storage access was granted due to the heuristic 'Opener', 'Redirect' = the storage access was granted due to the heuristic 'Redirect', 'RedirectTracker' = the storage access was granted due to the heuristic 'RedirectTracker'.) Note, StorageGranted is used as a baseline measurement, which should be the sum of all other measurements.",
+    "alert_emails": ["tihuang@mozilla.com", "seceng-telemetry@mozilla.com"],
+    "bug_numbers": [1668199, 1918127]
   },
   "STORAGE_ACCESS_REMAINING_DAYS": {
     "record_in_processes": ["main"],

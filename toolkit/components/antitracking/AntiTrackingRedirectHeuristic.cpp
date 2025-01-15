@@ -390,7 +390,7 @@ void FinishAntiTrackingRedirectHeuristic(nsIChannel* aNewChannel,
   Telemetry::AccumulateCategorical(
       Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::StorageGranted);
   Telemetry::AccumulateCategorical(
-      Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::Redirect);
+      Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::RedirectTracker);
 
   // We don't care about this promise because the operation is actually sync.
   RefPtr<StorageAccessAPIHelper::ParentAccessGrantPromise> promise =
