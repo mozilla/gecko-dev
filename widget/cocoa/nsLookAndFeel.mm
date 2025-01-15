@@ -583,7 +583,7 @@ nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
   nsAutoString layout;
 
   CFStringRef layoutName = static_cast<CFStringRef>(
-      ::TISGetInputSourceProperty(source, kTISPropertyLocalizedName));
+      ::TISGetInputSourceProperty(source, kTISPropertyInputSourceID));
   CopyNSStringToXPCOMString((const NSString*)layoutName, layout);
   aLayout.Assign(NS_ConvertUTF16toUTF8(layout));
 
