@@ -2124,6 +2124,56 @@ onboarding:
     metadata:
       tags:
         - Onboarding
+  marketing_data_continue_clicked:
+    type: event
+    description:
+      The user clicked continue on the marketing data opt out screen
+    extra_keys:
+      opt_in:
+        type: boolean
+        description: |
+          Whether the user chose to opt in to marketing data collection.  True if the user opts in.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1930758
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D228921
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Onboarding
+  marketing_data_card_viewed:
+    type: event
+    description:
+      The user viewed the marketing data opt in card.
+    extra_keys:
+      element_type:
+        type: string
+        description: |
+          Type of element that was viewed.
+      action:
+        type: string
+        description: |
+          Type of action taken by the user.
+      sequence_position:
+        type: string
+        description: |
+          Position of the onboarding card in the onboarding flow.
+      sequence_id:
+        type: string
+        description: |
+          Identifier for the sequence.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1930758
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D228921
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Onboarding
 
 search_shortcuts:
   selected:

@@ -143,6 +143,12 @@ objects:
         description: >
           An optional terms of service data for the onboarding card.
         default: null
+      marketing-data:
+        type: Option<MarketingData>
+        description: >
+          An optional marketing data for the onboarding card.
+        default: null
+
   AddOnData:
       description: An object to describe an add-on to be installed from the onboarding card.
       fields:
@@ -264,6 +270,30 @@ objects:
         # This should never be defaulted.
         default: ""
 
+  MarketingData:
+    description: An object to describe the marketing data onboarding card.
+    fields:
+      bodyLineOneText:
+        type: Text
+        description: The text for line one of the body.
+        default: ""
+      bodyLineOneLinkText:
+        type: Text
+        description: The link text from line one of the body.
+        default: ""
+      linkUrl:
+        type: String
+        description: The url for the link text
+        default: ""
+      bodyLineTwoText:
+        type: Text
+        description: The text for line two of the body.
+        default: ""
+      bodyLineThreeText:
+        type: Text
+        description: The text for line three of the body.
+        default: ""
+
 enums:
 
   OnboardingCardType:
@@ -285,6 +315,8 @@ enums:
         description: Allows user to choose between dark and light themes.
       terms-of-service:
         description: Page to display the terms of services.
+      marketing-data:
+        description: Allows user to opt out of marketing data collection.
 
   ToolbarType:
     description: An enum to describe a toolbar placement option.

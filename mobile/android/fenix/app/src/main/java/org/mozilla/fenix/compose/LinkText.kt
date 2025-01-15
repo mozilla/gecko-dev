@@ -63,6 +63,7 @@ data class LinkTextState(
  * @param style [TextStyle] applied to the text.
  * @param linkTextColor [Color] applied to the clickable part of the text.
  * @param linkTextDecoration [TextDecoration] applied to the clickable part of the text.
+ * @param textAlign The alignment of the text within the lines of the paragraph. See [TextStyle.textAlign].
  */
 @Composable
 fun LinkText(
@@ -74,6 +75,7 @@ fun LinkText(
     ),
     linkTextColor: Color = FirefoxTheme.colors.textAccent,
     linkTextDecoration: TextDecoration = TextDecoration.None,
+    textAlign: TextAlign? = null,
 ) {
     val annotatedString = buildUrlAnnotatedString(
         text,
@@ -106,6 +108,7 @@ fun LinkText(
             }
             contentDescription = "$annotatedString $linksAvailable"
         },
+        textAlign = textAlign,
     )
 }
 
