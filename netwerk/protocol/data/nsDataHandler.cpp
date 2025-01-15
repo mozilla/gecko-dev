@@ -202,10 +202,6 @@ nsresult nsDataHandler::ParsePathWithoutRef(const nsACString& aPath,
     if (aContentCharset) {
       parsed->GetParameterValue(kCharset, *aContentCharset);
     }
-    if (parsed->IsBase64() &&
-        !StaticPrefs::network_url_strict_data_url_base64_placement()) {
-      aIsBase64 = true;
-    }
     if (aMimeType) {
       *aMimeType = std::move(parsed);
     }

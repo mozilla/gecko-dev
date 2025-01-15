@@ -14119,12 +14119,6 @@
   value: 32 * 1024 * 1024
   mirror: always
 
-  # If true, will be more strict with status code parsing
-- name: network.url.strict_data_url_base64_placement
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # When true, if all the cyrillic characters in a label
 # are latin confusables and on a non-cyrillic domain
 # the label will be displayed as punycode.
