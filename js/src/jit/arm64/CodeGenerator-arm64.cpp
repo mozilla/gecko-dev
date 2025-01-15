@@ -1129,14 +1129,15 @@ void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
 }
 
 void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
-  emitTruncateFloat32(ToFloatRegister(ins->input()), ToRegister(ins->output()),
-                      ins->mir());
+  masm.truncateFloat32ModUint32(ToFloatRegister(ins->input()),
+                                ToRegister(ins->output()));
 }
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
-  emitTruncateFloat32(ToFloatRegister(lir->getOperand(0)),
-                      ToRegister(lir->getDef(0)), lir->mir());
+  MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for arm64");
+  masm.truncateFloat32ModUint32(ToFloatRegister(lir->in()),
+                                ToRegister(lir->output()));
 }
 
 ValueOperand CodeGeneratorARM64::ToValue(LInstruction* ins, size_t pos) {

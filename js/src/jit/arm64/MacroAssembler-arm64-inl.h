@@ -1426,26 +1426,8 @@ void MacroAssembler::branchFloat(DoubleCondition cond, FloatRegister lhs,
 void MacroAssembler::branchTruncateFloat32MaybeModUint32(FloatRegister src,
                                                          Register dest,
                                                          Label* fail) {
-  vixl::UseScratchRegisterScope temps(this);
-  const ARMRegister scratch64 = temps.AcquireX();
-
-  ARMFPRegister src32(src, 32);
-  ARMRegister dest64(dest, 64);
-
-  MOZ_ASSERT(!scratch64.Is(dest64));
-
-  // Convert scalar to signed 64-bit fixed-point, rounding toward zero.
-  // In the case of overflow, the output is saturated.
-  // In the case of NaN and -0, the output is zero.
-  Fcvtzs(dest64, src32);
-
-  // Fail if the result is saturated, i.e. it's either INT64_MIN or INT64_MAX.
-  Add(scratch64, dest64, Operand(0x7fff'ffff'ffff'ffff));
-  Cmn(scratch64, 3);
-  B(fail, Assembler::Above);
-
-  // Clear upper 32 bits.
-  Uxtw(dest64, dest64);
+  // Infallible operation on ARM64.
+  truncateFloat32ModUint32(src, dest);
 }
 
 void MacroAssembler::branchTruncateFloat32ToInt32(FloatRegister src,
