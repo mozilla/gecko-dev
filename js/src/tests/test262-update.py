@@ -24,7 +24,6 @@ UNSUPPORTED_FEATURES = set(
         "legacy-regexp",  # Bug 1306461
         "source-phase-imports",
         "source-phase-imports-module-source",
-        "Math.sumPrecise",
         "import-defer",
     ]
 )
@@ -48,6 +47,7 @@ FEATURE_CHECK_NEEDED = {
     "Atomics.pause": "!this.hasOwnProperty('Atomics')||!Atomics.pause",
     "Error.isError": "!Error.isError",
     "iterator-sequencing": "!Iterator.concat",
+    "Math.sumPrecise": "!Math.sumPrecise",  # Bug 1918708
 }
 RELEASE_OR_BETA = set(
     [
@@ -73,6 +73,7 @@ SHELL_OPTIONS = {
     "Temporal": "--enable-temporal",
     "Error.isError": "--enable-error-iserror",
     "iterator-sequencing": "--enable-iterator-sequencing",
+    "Math.sumPrecise": "--enable-math-sumprecise",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
