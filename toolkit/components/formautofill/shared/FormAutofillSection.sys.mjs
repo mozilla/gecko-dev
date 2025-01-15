@@ -606,16 +606,27 @@ export class FormAutofillCreditCardSection extends FormAutofillSection {
         "autofill-use-payment-method-os-prompt-windows",
         "autofill-use-payment-method-os-prompt-other"
       );
-      const decrypted = await this.getDecryptedString(
-        profile["cc-number-encrypted"],
-        promptMessage
-      );
-
+      let decrypted;
+      let result;
+      try {
+        decrypted = await this.getDecryptedString(
+          profile["cc-number-encrypted"],
+          promptMessage
+        );
+        result = decrypted ? "success" : "fail_user_canceled";
+      } catch (ex) {
+        result = "fail_error";
+        throw ex;
+      } finally {
+        Glean.formautofill.promptShownOsReauth.record({
+          trigger: "autofill",
+          result,
+        });
+      }
       if (!decrypted) {
         // Early return if the decrypted is empty or undefined
         return false;
       }
-
       profile["cc-number"] = decrypted;
     }
     return true;
