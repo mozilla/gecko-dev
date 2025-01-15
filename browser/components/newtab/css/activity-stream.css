@@ -4674,6 +4674,12 @@ main section {
   align-items: center;
   column-gap: var(--space-small);
 }
+.lightWallpaper .ds-section-wrapper .section-context-wrapper {
+  color-scheme: light;
+}
+.darkWallpaper .ds-section-wrapper .section-context-wrapper {
+  color-scheme: dark;
+}
 .ds-section-wrapper .section-follow .section-button-following-text {
   display: none;
 }
