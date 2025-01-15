@@ -402,6 +402,12 @@ class Event : public nsISupports, public nsWrapperCache {
                                const WidgetEvent& aEvent);
 
   mozilla::WidgetEvent* mEvent;
+  // When the private data of this event is duplicated, mPresContext is
+  // cleared by Event::DuplicatePrivateData().  However, only
+  // MouseEvent::DuplicatePrivateData() restores mPresContext after calling
+  // Event::DuplicatePrivateData() to compute the offset point later.
+  // Therefore, only `MouseEvent` and its subclasses may keep storing
+  // mPresContext until destroyed.
   RefPtr<nsPresContext> mPresContext;
   nsCOMPtr<EventTarget> mExplicitOriginalTarget;
   nsCOMPtr<nsIGlobalObject> mOwner;

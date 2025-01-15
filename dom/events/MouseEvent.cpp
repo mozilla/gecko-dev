@@ -201,7 +201,13 @@ void MouseEvent::DuplicatePrivateData() {
   if (mUseFractionalCoords) {
     maybeScreenPoint.emplace(ScreenPoint(CallerType::System));
   }
-  UIEvent::DuplicatePrivateData();
+  {
+    // mPresContext will be cleared by Event::DuplicatePrivateData(), but we
+    // need it after a call of it.  So, we need to grab it.
+    RefPtr<nsPresContext> presContext = mPresContext;
+    UIEvent::DuplicatePrivateData();
+    mPresContext = std::move(presContext);
+  }
   if (maybeScreenPoint.isSome()) {
     CSSToLayoutDeviceScale scale = mPresContext
                                        ? mPresContext->CSSToDevPixelScale()
