@@ -119,10 +119,11 @@ static int r_assoc_fetch_bucket(r_assoc *assoc,
   char *key,int len,r_assoc_el **bucketp);
 static int copy_assoc_chain(r_assoc_el **knewp, r_assoc_el *old);
 
-int r_assoc_create(assocp,hash_func,bits)
-  r_assoc **assocp;
-  int (*hash_func)(char *key,int len,int size);
-  int bits;
+int r_assoc_create(
+  r_assoc **assocp,
+  int (*hash_func)(char *key, int len, int size),
+  int bits
+  )
   {
     r_assoc *assoc=0;
     int _status;
@@ -147,8 +148,7 @@ int r_assoc_create(assocp,hash_func,bits)
     return(_status);
   }
 
-int r_assoc_destroy(assocp)
-  r_assoc **assocp;
+int r_assoc_destroy(r_assoc **assocp)
   {
     r_assoc *assoc = 0;
     int i;
@@ -166,8 +166,7 @@ int r_assoc_destroy(assocp)
     return(0);
   }
 
-static int destroy_assoc_chain(chain)
-  r_assoc_el *chain;
+static int destroy_assoc_chain(r_assoc_el *chain)
   {
     r_assoc_el *nxt = 0;
 
@@ -186,9 +185,7 @@ static int destroy_assoc_chain(chain)
     return(0);
   }
 
-static int copy_assoc_chain(knewp,old)
-  r_assoc_el **knewp;
-  r_assoc_el *old;
+static int copy_assoc_chain(r_assoc_el **knewp, r_assoc_el *old)
   {
     r_assoc_el *knew = 0, *ptr = 0, *tmp = 0;
     int r,_status;
@@ -238,11 +235,12 @@ static int copy_assoc_chain(knewp,old)
     return(_status);
   }
 
-static int r_assoc_fetch_bucket(assoc,key,len,bucketp)
-  r_assoc *assoc;
-  char *key;
-  int len;
-  r_assoc_el **bucketp;
+static int r_assoc_fetch_bucket(
+  r_assoc *assoc,
+  char *key,
+  int len,
+  r_assoc_el **bucketp
+  )
   {
     UINT4 hash_value;
     r_assoc_el *bucket = 0;
@@ -259,11 +257,7 @@ static int r_assoc_fetch_bucket(assoc,key,len,bucketp)
     return(R_NOT_FOUND);
   }
 
-int r_assoc_fetch(assoc,key,len,datap)
-  r_assoc *assoc;
-  char *key;
-  int len;
-  void **datap;
+int r_assoc_fetch(r_assoc *assoc, char *key, int len, void **datap)
   {
     r_assoc_el *bucket = 0;
     int r;
@@ -278,14 +272,15 @@ int r_assoc_fetch(assoc,key,len,datap)
     return(0);
   }
 
-int r_assoc_insert(assoc,key,len,data,copy,destroy,how)
-  r_assoc *assoc;
-  char *key;
-  int len;
-  void *data;
-  int (*copy)(void **knew,void *old);
-  int (*destroy)(void *ptr);
-  int how;
+int r_assoc_insert(
+  r_assoc *assoc,
+  char *key,
+  int len,
+  void *data,
+  int (*copy)(void **knew, void *old),
+  int (*destroy)(void *ptr),
+  int how
+  )
   {
     r_assoc_el *bucket = 0, *new_bucket = 0;
     int r,_status;
@@ -334,10 +329,7 @@ int r_assoc_insert(assoc,key,len,data,copy,destroy,how)
     return(_status);
   }
 
-int r_assoc_delete(assoc,key,len)
-  r_assoc *assoc;
-  char *key;
-  int len;
+int r_assoc_delete(r_assoc *assoc, char *key, int len)
   {
     int r;
     r_assoc_el *bucket = 0;
@@ -372,9 +364,7 @@ int r_assoc_delete(assoc,key,len)
     return(0);
   }
 
-int r_assoc_copy(knewp,old)
-  r_assoc **knewp;
-  r_assoc *old;
+int r_assoc_copy(r_assoc **knewp, r_assoc *old)
   {
     int r,_status,i;
     r_assoc *knew = 0;
@@ -410,9 +400,7 @@ int r_assoc_num_elements(r_assoc *assoc,int *sizep)
     return(0);
   }
 
-int r_assoc_init_iter(assoc,iter)
-  r_assoc *assoc;
-  r_assoc_iterator *iter;
+int r_assoc_init_iter(r_assoc *assoc, r_assoc_iterator *iter)
   {
     int i;
 
@@ -434,11 +422,7 @@ int r_assoc_init_iter(assoc,iter)
     return(0);
   }
 
-int r_assoc_iter(iter,key,keyl,val)
-  r_assoc_iterator *iter;
-  void **key;
-  int *keyl;
-  void **val;
+int r_assoc_iter(r_assoc_iterator *iter, void **key, int *keyl, void **val)
   {
     int i;
     r_assoc_el *ret = 0;
@@ -476,8 +460,7 @@ int r_assoc_iter(iter,key,keyl,val)
   }
 
 /* Delete the last returned value*/
-int r_assoc_iter_delete(iter)
-  r_assoc_iterator *iter;
+int r_assoc_iter_delete(r_assoc_iterator *iter)
   {
     /* First unhook it from the list*/
     if(!iter->prev->prev){
@@ -504,10 +487,7 @@ int r_assoc_iter_delete(iter)
 
 /*This is a hack from AMS. Supposedly, it's pretty good for strings, even
  though it doesn't take into account all the data*/
-int r_assoc_simple_hash_compute(key,len,bits)
-  char *key;
-  int len;
-  int bits;
+int r_assoc_simple_hash_compute(char *key, int len, int bits)
   {
     UINT4 h=0;
 
@@ -521,10 +501,7 @@ int r_assoc_simple_hash_compute(key,len,bits)
 
 int r_crc32(char *data,int len,UINT4 *crcval);
 
-int r_assoc_crc32_hash_compute(data,len,bits)
-  char *data;
-  int len;
-  int bits;
+int r_assoc_crc32_hash_compute(char *data, int len, int bits)
   {
     UINT4 res;
     UINT4 mask;
