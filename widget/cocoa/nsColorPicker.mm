@@ -95,14 +95,9 @@ nsColorPicker::~nsColorPicker() {
 }
 
 // TODO(bug 1805397): Implement default colors
-NS_IMETHODIMP
-nsColorPicker::Init(dom::BrowsingContext* aBrowsingContext,
-                    const nsAString& aTitle, const nsAString& aInitialColor,
-                    const nsTArray<nsString>& aDefaultColors) {
+nsresult nsColorPicker::InitNative(const nsTArray<nsString>& aDefaultColors) {
   MOZ_ASSERT(NS_IsMainThread(),
              "Color pickers can only be opened from main thread currently");
-  mTitle = aTitle;
-  mColor = aInitialColor;
   mColorPanelWrapper = [[NSColorPanelWrapper alloc] initWithPicker:this];
   return NS_OK;
 }
@@ -138,12 +133,8 @@ nsColorPicker::Init(dom::BrowsingContext* aBrowsingContext,
       aResult);
 }
 
-NS_IMETHODIMP
-nsColorPicker::Open(nsIColorPickerShownCallback* aCallback) {
-  MOZ_ASSERT(aCallback);
-  mCallback = aCallback;
-
-  [mColorPanelWrapper open:GetNSColorFromHexString(mColor)
+nsresult nsColorPicker::OpenNative() {
+  [mColorPanelWrapper open:GetNSColorFromHexString(mInitialColor)
                      title:nsCocoaUtils::ToNSString(mTitle)];
 
   NS_ADDREF_THIS();
@@ -152,8 +143,8 @@ nsColorPicker::Open(nsIColorPickerShownCallback* aCallback) {
 }
 
 void nsColorPicker::Update(NSColor* aColor) {
-  GetHexStringFromNSColor(aColor, mColor);
-  mCallback->Update(mColor);
+  GetHexStringFromNSColor(aColor, mInitialColor);
+  mCallback->Update(mInitialColor);
 }
 
 void nsColorPicker::Done() {
