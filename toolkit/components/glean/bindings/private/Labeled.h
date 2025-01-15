@@ -128,6 +128,9 @@ class Labeled<CounterMetric, E> {
     auto mirrorId = ScalarIdForMetric(mId);
     if (mirrorId) {
       UpdateLabeledMirror(mirrorId.extract(), submetricId, aLabel);
+    } else if (auto mirrorHgramId = HistogramIdForMetric(mId)) {
+      UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
+                                      aLabel);
     }
     return CounterMetric(submetricId);
   }
@@ -142,6 +145,11 @@ class Labeled<CounterMetric, E> {
       nsCString label;
       fog_labeled_enum_to_str(mId, static_cast<uint16_t>(aLabel), &label);
       UpdateLabeledMirror(mirrorId.extract(), submetricId, label);
+    } else if (auto mirrorHgramId = HistogramIdForMetric(mId)) {
+      nsCString label;
+      fog_labeled_enum_to_str(mId, static_cast<uint16_t>(aLabel), &label);
+      UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
+                                      label);
     }
     return CounterMetric(submetricId);
   }
@@ -344,6 +352,9 @@ class Labeled<CounterMetric, DynamicLabel> {
     auto mirrorId = ScalarIdForMetric(mId);
     if (mirrorId) {
       UpdateLabeledMirror(mirrorId.extract(), submetricId, aLabel);
+    } else if (auto mirrorHgramId = HistogramIdForMetric(mId)) {
+      UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
+                                      aLabel);
     }
     return CounterMetric(submetricId);
   }
