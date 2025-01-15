@@ -750,6 +750,15 @@ void LIRGeneratorX86::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
   defineFixed(lir, ins, LAllocation(AnyRegister(edx)));
 }
 
+void LIRGeneratorX86::lowerTruncateFToInt32(MTruncateToInt32* ins) {
+  MDefinition* opd = ins->input();
+  MOZ_ASSERT(opd->type() == MIRType::Float32);
+
+  LDefinition maybeTemp =
+      Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempFloat32();
+  define(new (alloc()) LTruncateFToInt32(useRegister(opd), maybeTemp), ins);
+}
+
 void LIRGenerator::visitSubstr(MSubstr* ins) {
   // Due to lack of registers on x86, we reuse the string register as
   // temporary. As a result we only need two temporary registers and take a

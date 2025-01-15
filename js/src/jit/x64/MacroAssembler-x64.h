@@ -1216,6 +1216,19 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     vcvtsq2ss(src, dest, dest);
   }
 
+  void truncateFloat32ModUint32(FloatRegister src, Register dest) {
+    // vcvttss2sq returns 0x8000000000000000 on failure. It fails if
+    // 1. The input is non-finite (NaN or ±Infinity).
+    // 2. The input's exponent is at least 63.
+    //
+    // In both cases the input is too large for an int32 and the truncated
+    // result is zero. So unconditionally zeroing the upper 32-bits gives the
+    // correct result for all inputs.
+
+    vcvttss2sq(src, dest);
+    movl(dest, dest);  // Zero upper 32-bits.
+  }
+
   inline void incrementInt32Value(const Address& addr);
 
  public:

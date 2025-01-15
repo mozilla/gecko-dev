@@ -779,8 +779,8 @@ void MacroAssembler::branchTruncateFloat32ToPtr(FloatRegister src,
 void MacroAssembler::branchTruncateFloat32MaybeModUint32(FloatRegister src,
                                                          Register dest,
                                                          Label* fail) {
-  branchTruncateFloat32ToPtr(src, dest, fail);
-  movl(dest, dest);  // Zero upper 32-bits.
+  // Infallible operation on x64.
+  truncateFloat32ModUint32(src, dest);
 }
 
 void MacroAssembler::branchTruncateFloat32ToInt32(FloatRegister src,

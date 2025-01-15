@@ -720,10 +720,7 @@ void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
   FloatRegister input = ToFloatRegister(ins->input());
   Register output = ToRegister(ins->output());
 
-  // On x64, branchTruncateFloat32 uses vcvttss2sq. Unlike the x86
-  // implementation, this should handle most floats and we can just
-  // call a stub if it fails.
-  emitTruncateFloat32(input, output, ins->mir());
+  masm.truncateFloat32ModUint32(input, output);
 }
 
 void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {

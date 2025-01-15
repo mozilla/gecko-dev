@@ -46,6 +46,7 @@ class LIRGeneratorX64 : public LIRGeneratorX86Shared {
 
   bool needTempForPostBarrier() { return true; }
 
+  void lowerTruncateFToInt32(MTruncateToInt32* ins);
   void lowerBuiltinInt64ToFloatingPoint(MBuiltinInt64ToFloatingPoint* ins);
   void lowerWasmBuiltinTruncateToInt64(MWasmBuiltinTruncateToInt64* ins);
   void lowerDivI64(MDiv* div);
