@@ -15,7 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InsecurePasswordUtils: "resource://gre/modules/InsecurePasswordUtils.sys.mjs",
   FieldDetail: "resource://gre/modules/shared/FieldScanner.sys.mjs",
   FormAutofill: "resource://autofill/FormAutofill.sys.mjs",
-  FormAutofillContent: "resource://autofill/FormAutofillContent.sys.mjs",
   FormAutofillHandler:
     "resource://gre/modules/shared/FormAutofillHandler.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
@@ -32,6 +31,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "toolkit.autocomplete.delegate",
   false
 );
+
+const gFormFillController = Cc[
+  "@mozilla.org/satchel/form-fill-controller;1"
+].getService(Ci.nsIFormFillController);
 
 /**
  * Handles content's interactions for the frame.
@@ -115,7 +118,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     [...addressFields, ...creditcardFields].forEach(fieldDetail => {
       this.#markAsAutofillField(fieldDetail);
 
-      if (fieldDetail.element == lazy.FormAutofillContent.focusedInput) {
+      if (fieldDetail.element == gFormFillController.focusedInput) {
         this.showPopupIfEmpty(fieldDetail.element, fieldDetail.fieldName);
       }
     });
@@ -269,7 +272,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     if (fieldName.startsWith("cc-") || AppConstants.platform === "android") {
-      lazy.FormAutofillContent.showPopup();
+      gFormFillController.showPopup();
     }
   }
 
@@ -407,19 +410,14 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasDOMContentLoadedHandler = true;
         doc.addEventListener(
           "DOMContentLoaded",
-          () => this.onFocusIn(lazy.FormAutofillContent.focusedInput),
+          () => this.onFocusIn(gFormFillController.focusedInput),
           { once: true }
         );
       }
       return;
     }
 
-    if (
-      lazy.DELEGATE_AUTOCOMPLETE ||
-      !lazy.FormAutofillContent.savedFieldNames
-    ) {
-      this.debug("onFocusIn: savedFieldNames are not known yet");
-
+    if (lazy.DELEGATE_AUTOCOMPLETE) {
       // Init can be asynchronous because we don't need anything from the parent
       // at this point.
       this.sendAsyncMessage("FormAutofill:InitStorage");
@@ -579,7 +577,7 @@ export class FormAutofillChild extends JSWindowActorChild {
         lazy.FormAutofillUtils.isCreditCardField(fieldDetail.fieldName) &&
         element.value === ""
       ) {
-        lazy.FormAutofillContent.showPopup();
+        gFormFillController.showPopup();
       }
     }
 
@@ -723,11 +721,6 @@ export class FormAutofillChild extends JSWindowActorChild {
       : lazy.FormAutofill.isAutofillCreditCardsEnabled;
     // If the specified autofill feature is pref off, do not search
     if (!searchPermitted) {
-      return false;
-    }
-
-    // No profile can fill the currently-focused input.
-    if (!lazy.FormAutofillContent.savedFieldNames.has(fieldName)) {
       return false;
     }
 

@@ -59,9 +59,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () =>
   FormAutofill.defineLogGetter(lazy, "FormAutofillParent")
 );
 
-const { ENABLED_AUTOFILL_ADDRESSES_PREF, ENABLED_AUTOFILL_CREDITCARDS_PREF } =
-  FormAutofill;
-
 const { ADDRESSES_COLLECTION_NAME, CREDITCARDS_COLLECTION_NAME } =
   FormAutofillUtils;
 
@@ -84,16 +81,12 @@ export let FormAutofillStatus = {
     }
     this._initialized = true;
 
+    this.savedFieldNames = null;
+
     Services.obs.addObserver(this, "privacy-pane-loaded");
 
-    // Observing the pref and storage changes
-    Services.prefs.addObserver(ENABLED_AUTOFILL_ADDRESSES_PREF, this);
+    // Observing the storage changes
     Services.obs.addObserver(this, "formautofill-storage-changed");
-
-    // Only listen to credit card related preference if it is available
-    if (FormAutofill.isAutofillCreditCardsAvailable) {
-      Services.prefs.addObserver(ENABLED_AUTOFILL_CREDITCARDS_PREF, this);
-    }
   },
 
   /**
@@ -111,65 +104,20 @@ export let FormAutofillStatus = {
 
     this._active = null;
 
-    Services.obs.removeObserver(this, "privacy-pane-loaded");
-    Services.prefs.removeObserver(ENABLED_AUTOFILL_ADDRESSES_PREF, this);
-    Services.wm.removeListener(this);
+    // A Set of field names present in the user's saved Address or Credit Card profiles.
+    this.savedFieldNames = null;
 
-    if (FormAutofill.isAutofillCreditCardsAvailable) {
-      Services.prefs.removeObserver(ENABLED_AUTOFILL_CREDITCARDS_PREF, this);
-    }
+    Services.obs.removeObserver(this, "privacy-pane-loaded");
+    Services.wm.removeListener(this);
   },
 
   get formAutofillStorage() {
     return lazy.gFormAutofillStorage;
   },
 
-  /**
-   * Broadcast the status to frames when the form autofill status changes.
-   */
-  onStatusChanged() {
-    lazy.log.debug("onStatusChanged: Status changed to", this._active);
-    Services.ppmm.sharedData.set("FormAutofill:enabled", this._active);
-    // Sync autofill enabled to make sure the value is up-to-date
-    // no matter when the new content process is initialized.
-    Services.ppmm.sharedData.flush();
-  },
-
-  /**
-   * Query preference and storage status to determine the overall status of the
-   * form autofill feature.
-   *
-   * @returns {boolean} whether form autofill is active (enabled and has data)
-   */
-  computeStatus() {
-    const savedFieldNames = Services.ppmm.sharedData.get(
-      "FormAutofill:savedFieldNames"
-    );
-
-    return (
-      (Services.prefs.getBoolPref(ENABLED_AUTOFILL_ADDRESSES_PREF) ||
-        Services.prefs.getBoolPref(ENABLED_AUTOFILL_CREDITCARDS_PREF)) &&
-      savedFieldNames &&
-      savedFieldNames.size > 0
-    );
-  },
-
-  /**
-   * Update the status and trigger onStatusChanged, if necessary.
-   */
-  updateStatus() {
-    lazy.log.debug("updateStatus");
-    let wasActive = this._active;
-    this._active = this.computeStatus();
-    if (this._active !== wasActive) {
-      this.onStatusChanged();
-    }
-  },
-
   async updateSavedFieldNames() {
     lazy.log.debug("updateSavedFieldNames");
 
-    let savedFieldNames;
     const addressNames =
       await lazy.gFormAutofillStorage.addresses.getSavedFieldNames();
 
@@ -177,18 +125,10 @@ export let FormAutofillStatus = {
     if (FormAutofill.isAutofillCreditCardsAvailable) {
       const creditCardNames =
         await lazy.gFormAutofillStorage.creditCards.getSavedFieldNames();
-      savedFieldNames = new Set([...addressNames, ...creditCardNames]);
+      this.savedFieldNames = new Set([...addressNames, ...creditCardNames]);
     } else {
-      savedFieldNames = addressNames;
+      this.savedFieldNames = addressNames;
     }
-
-    Services.ppmm.sharedData.set(
-      "FormAutofill:savedFieldNames",
-      savedFieldNames
-    );
-    Services.ppmm.sharedData.flush();
-
-    this.updateStatus();
   },
 
   async observe(subject, topic, data) {
@@ -210,12 +150,6 @@ export let FormAutofillStatus = {
           "formAutofillGroupBox"
         );
         formAutofillGroupBox.appendChild(prefFragment);
-        break;
-      }
-
-      case "nsPref:changed": {
-        // Observe pref changes and update _active cache if status is changed.
-        this.updateStatus();
         break;
       }
 
@@ -308,6 +242,8 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     switch (name) {
       case "FormAutofill:InitStorage": {
+        // This is only used for mobile to ensure `FormAutofillStorage`
+        // is initialized when geckoview calls its API.
         await lazy.gFormAutofillStorage.initialize();
         await FormAutofillStatus.updateSavedFieldNames();
         break;
@@ -937,6 +873,11 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     const section = this.getSectionByElementId(elementId);
     if (!section.isValidSection() || !section.isEnabled()) {
+      return null;
+    }
+
+    // No profile can fill the currently-focused input.
+    if (!FormAutofillStatus.savedFieldNames?.has(fieldName)) {
       return null;
     }
 
