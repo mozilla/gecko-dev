@@ -21194,6 +21194,12 @@ void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
                          ToFloatRegister(lir->output()));
 }
 
+void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
+  MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
+  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
+  masm.moveDoubleToGPR64(ToFloatRegister(lir->input()), ToOutRegister64(lir));
+}
+
 class OutOfLineNaNToZero : public OutOfLineCodeBase<CodeGenerator> {
   LNaNToZero* lir_;
 

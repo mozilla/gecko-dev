@@ -2508,12 +2508,6 @@ void CodeGeneratorARM64::visitOutOfLineWasmTruncateCheck(
   }
 }
 
-void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
-  MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
-  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
-  masm.moveDoubleToGPR64(ToFloatRegister(lir->input()), ToOutRegister64(lir));
-}
-
 void CodeGenerator::visitAtomicTypedArrayElementBinop(
     LAtomicTypedArrayElementBinop* lir) {
   MOZ_ASSERT(!lir->mir()->isForEffect());

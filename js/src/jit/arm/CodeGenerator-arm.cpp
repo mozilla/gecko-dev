@@ -2639,15 +2639,6 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   }
 }
 
-void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
-  MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
-  MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
-  FloatRegister input = ToFloatRegister(lir->getOperand(0));
-  Register64 output = ToOutRegister64(lir);
-
-  masm.ma_vxfer(input, output.low, output.high);
-}
-
 void CodeGenerator::visitBitNotI64(LBitNotI64* lir) {
   Register64 input = ToRegister64(lir->getInt64Operand(0));
   MOZ_ASSERT(input == ToOutRegister64(lir));
