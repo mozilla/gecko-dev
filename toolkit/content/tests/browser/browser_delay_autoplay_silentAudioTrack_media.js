@@ -2,7 +2,13 @@ const PAGE =
   "https://example.com/browser/toolkit/content/tests/browser/file_silentAudioTrack.html";
 
 async function click_unblock_icon(tab) {
-  let icon = tab.overlayIcon;
+  let isPinned = tab.pinned;
+  let isVerticalAndCollapsed =
+    Services.prefs.getBoolPref("sidebar.revamp", false) &&
+    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
+    !window.SidebarController._state.launcherExpanded;
+  let icon =
+    isPinned || isVerticalAndCollapsed ? tab.overlayIcon : tab.audioButton;
 
   await hover_icon(icon, document.getElementById("tabbrowser-tab-tooltip"));
   EventUtils.synthesizeMouseAtCenter(icon, { button: 0 });

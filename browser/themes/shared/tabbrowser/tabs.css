@@ -30,8 +30,6 @@
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
-  --tab-icon-overlay-fill: light-dark(white, black);
-  --tab-icon-overlay-stroke: light-dark(black, white);
   --tab-label-line-height: 1.7;
   --tab-loading-fill: #0A84FF;
   --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
@@ -231,6 +229,14 @@
 
   &[multiselected-move-together][multiselected]:not([selected]) {
     z-index: 2;
+  }
+
+  &:is([muted], [soundplaying], [activemedia-blocked]) {
+    --tab-icon-end-margin: 2px;
+
+    #tabbrowser-tabs[orient=horizontal] &:not([pinned]) {
+      --tab-min-width: 100px;
+    }
   }
 }
 
@@ -471,11 +477,6 @@
   display: none;
 }
 
-.tab-sharing-icon-overlay[sharing]:not([selected]),
-.tab-icon-overlay:is([soundplaying], [muted], [activemedia-blocked], [crashed]) {
-  display: revert;
-}
-
 .tab-sharing-icon-overlay {
   position: relative;
   -moz-context-properties: fill;
@@ -493,11 +494,18 @@
   &[sharing="screen"] {
     list-style-image: url("chrome://browser/skin/notification-icons/screen.svg");
   }
+
+  &[sharing]:not([selected]) {
+    display: revert;
+  }
 }
 
 .tab-icon-overlay {
   position: relative;
   padding: 2px;
+  top: -7px;
+  inset-inline-end: -7px;
+  z-index: 1; /* Overlay tab title */
 
   #tabbrowser-tabs[orient=vertical] & {
     top: 7px;
@@ -507,68 +515,99 @@
     list-style-image: url("chrome://browser/skin/tabbrowser/crashed.svg");
   }
 
-  &:not([crashed]) {
+  #tabbrowser-tabs[orient="vertical"]:not([expanded]) &:not([crashed]),
+  &[pinned]:not([crashed]) {
     &[soundplaying] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
     }
 
     &[muted] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
     }
 
     &[activemedia-blocked] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
     }
 
     &:is([soundplaying], [muted], [activemedia-blocked]) {
-      background-color: var(--tab-icon-overlay-stroke);
-      background-position: center;
-      background-repeat: no-repeat;
-      border-radius: 10px;
+      /* We want to make this look like the selected tab, but fully opaque. For that,
+       * we build a stack of `--lwt-accent-color` (guaranteed opaque), then
+       * `--toolbox-bgcolor`, then `--tab-selected-bgcolor`.
+       *
+       * We rely on at least one of `--toolbox-bgcolor` / `--tab-selected-bgcolor`
+       * being opaque on the system themes, so even though `--lwt-accent-color` is
+       * not set there, it ends up working out because we never see it through.
+       *
+       * We also apply one extra color on top (--audio-overlay-extra-background)
+       * for hover / active feedback.
+       */
+       --audio-overlay-extra-background: transparent;
+      background-color: var(--lwt-accent-color);
+      background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                        linear-gradient(var(--toolbox-bgcolor));
       -moz-context-properties: fill;
-      fill: var(--tab-icon-overlay-fill);
-    }
-  }
+      fill: var(--tab-selected-textcolor);
+      color-scheme: var(--tab-selected-color-scheme);
+      border-radius: var(--border-radius-circle);
 
-  &:not([indicator-replaces-favicon]) {
-    top: -5.5px;
-    inset-inline-end: -6px;
-    z-index: 1; /* Overlay tab title */
+      .browser-toolbox-background:-moz-window-inactive &:not([selected]) {
+        background-image: linear-gradient(var(--audio-overlay-extra-background)),]
+                          linear-gradient(var(--toolbox-bgcolor-inactive));
+      }
 
-    &:is([soundplaying], [muted], [activemedia-blocked]) {
-      top: -8px;
-      inset-inline-end: -6px;
-    }
-  }
+      &:hover {
+        --audio-overlay-extra-background: var(--button-background-color-ghost-hover);
+      }
 
-  &[indicator-replaces-favicon] {
-    border-radius: 2px;
-    fill-opacity: 0.75;
-
-    &:hover {
-      background-color: color-mix(in srgb, currentColor 15%, transparent);
-      fill-opacity: 0.95;
-    }
-
-    &:hover:active {
-      background-color: color-mix(in srgb, currentColor 30%, transparent);
-    }
-
-    &:is([soundplaying], [muted], [activemedia-blocked]) {
-      &:hover,
       &:hover:active {
-        background-color: color-mix(in srgb, currentColor 50%, transparent);
+        --audio-overlay-extra-background: var(--button-background-color-ghost-active);
+      }
+
+      &[selected] {
+        background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                          linear-gradient(var(--tab-selected-bgcolor)),
+                          linear-gradient(var(--toolbox-bgcolor));
+      }
+
+      .browser-toolbox-background:-moz-window-inactive &[selected] {
+        background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                        linear-gradient(var(--tab-selected-bgcolor)),
+                        linear-gradient(var(--toolbox-bgcolor-inactive));
       }
     }
   }
 
-  :is(
-    :root[uidensity=compact],
-    #tabbrowser-tabs[secondarytext-unsupported],
-    :root:not([uidensity=compact]) #tabbrowser-tabs:not([secondarytext-unsupported]) .tabbrowser-tab:hover
-  ) .tab-icon-stack[indicator-replaces-favicon] > :not(&),
-  :root:not([uidensity=compact]) #tabbrowser-tabs:not([secondarytext-unsupported]) .tabbrowser-tab:not(:hover) &[indicator-replaces-favicon] {
-    opacity: 0;
+  #tabbrowser-tabs[orient="vertical"]:not([expanded]) &:is([soundplaying], [muted], [activemedia-blocked]),
+  &[pinned]:is([soundplaying], [muted], [activemedia-blocked]),
+  &[crashed] {
+    display: revert;
+  }
+}
+
+.tab-audio-button {
+  display: none;
+  margin-inline-end: var(--tab-icon-end-margin);
+  --icon-size-default: 12px;
+  --button-size-icon-small: 24px;
+  --button-min-height-small: 24px;
+  --button-border-radius: var(--border-radius-small);
+
+  #tabbrowser-tabs:is([orient="vertical"][expanded], [orient="horizontal"]) &:not([pinned]):not([crashed]) {
+    &:is([soundplaying], [muted], [activemedia-blocked]) {
+      display: block;
+    }
+
+    &[soundplaying]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+    }
+
+    &[muted]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+    }
+
+    &[activemedia-blocked]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
+    }
   }
 }
 
@@ -622,7 +661,7 @@
 
 /* The following rulesets allow showing more of the tab title by shrinking the
  * width of the close button. We don't do this in forced-colors mode since
- * the button has a visible outline shown. */
+ * the button has a visible outline shown */
 @media not (forced-colors) {
   #tabbrowser-tabs[orient="horizontal"] {
     .tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
@@ -644,23 +683,8 @@
 
   #tabbrowser-tabs:is([secondarytext-unsupported], [orient="vertical"]) &,
   :root[uidensity=compact] &,
-  &:not([soundplaying], [muted], [activemedia-blocked], [pictureinpicture]),
-  &:not([activemedia-blocked]) > .tab-icon-sound-blocked-label,
-  &[muted][activemedia-blocked] > .tab-icon-sound-blocked-label,
-  &[activemedia-blocked] > .tab-icon-sound-playing-label,
-  &[muted] > .tab-icon-sound-playing-label,
-  &[pictureinpicture] > .tab-icon-sound-playing-label,
-  &[pictureinpicture] > .tab-icon-sound-muted-label,
-  &:not([pictureinpicture]) > .tab-icon-sound-pip-label,
-  &:not([muted]) > .tab-icon-sound-muted-label,
-  &:not([showtooltip]) > .tab-icon-sound-tooltip-label,
-  &[showtooltip] > .tab-icon-sound-label:not(.tab-icon-sound-tooltip-label) {
+  &:not([pictureinpicture]) {
     display: none;
-  }
-
-  &[soundplaying-scheduledremoval]:not([muted]):not(:hover) {
-    transition: opacity .3s linear var(--soundplaying-removal-delay);
-    opacity: 0;
   }
 }
 
