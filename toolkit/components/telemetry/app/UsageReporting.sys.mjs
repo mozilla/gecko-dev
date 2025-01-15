@@ -114,6 +114,25 @@ export var UsageReporting = {
   },
 
   /**
+   * Set the usage reporting upload preference to the general data reporting
+   * preference.
+   */
+  adoptDataReportingPreference() {
+    const generalEnabled = Services.prefs.getBoolPref(
+      "datareporting.healthreport.uploadEnabled",
+      false
+    );
+    this._log.info(
+      `adoptDataReportingPreference: setting usage reporting preference to ${generalEnabled}`
+    );
+
+    Services.prefs.setBoolPref(
+      "datareporting.usage.uploadEnabled",
+      generalEnabled
+    );
+  },
+
+  /**
    * A helper for getting access to telemetry logger.
    */
   get _log() {

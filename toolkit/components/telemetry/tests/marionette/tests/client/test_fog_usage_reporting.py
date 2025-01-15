@@ -206,3 +206,57 @@ class TestUsageReporting(FOGTestCase):
             self.assertIs(
                 FOG_USAGE_REPORTING(ping), False, "Expected no 'usage-reporting' pings"
             )
+
+    def test_existing_profile_inherits_general_preference(self):
+        # Existing profiles should inherit the general preference, true or
+        # false.  New profiles should not inherit the general preference, and
+        # instead should default to true.
+
+        def healthreportEnabled():
+            return self.marionette.get_pref("datareporting.healthreport.uploadEnabled")
+
+        def usageEnabled():
+            return self.marionette.get_pref("datareporting.usage.uploadEnabled")
+
+        # Ordering matters here: we want to be sure that we really did restart the browser.
+        last_pid = self.marionette.process_id
+
+        # New profiles should not inherit the general preference.
+        self.marionette.enforce_gecko_prefs(
+            {"datareporting.healthreport.uploadEnabled": False}
+        )
+        self.assertIs(healthreportEnabled(), False)
+        self.assertIs(usageEnabled(), True)
+        self.assertNotEqual(last_pid, self.marionette.process_id)
+        last_pid = self.marionette.process_id
+
+        self.marionette.enforce_gecko_prefs(
+            {"datareporting.healthreport.uploadEnabled": True}
+        )
+        self.assertIs(healthreportEnabled(), True)
+        self.assertIs(usageEnabled(), True)
+        self.assertNotEqual(last_pid, self.marionette.process_id)
+        last_pid = self.marionette.process_id
+
+        # Existing profiles have a migration version.
+        self.marionette.enforce_gecko_prefs(
+            prefs={
+                "datareporting.healthreport.uploadEnabled": False,
+                "browser.migration.version": 150,
+            }
+        )
+        self.assertIs(healthreportEnabled(), False)
+        self.assertIs(usageEnabled(), False)
+        self.assertNotEqual(last_pid, self.marionette.process_id)
+        last_pid = self.marionette.process_id
+
+        self.marionette.enforce_gecko_prefs(
+            prefs={
+                "datareporting.healthreport.uploadEnabled": True,
+                "browser.migration.version": 150,
+            }
+        )
+        self.assertIs(healthreportEnabled(), True)
+        self.assertIs(usageEnabled(), True)
+        self.assertNotEqual(last_pid, self.marionette.process_id)
+        last_pid = self.marionette.process_id
