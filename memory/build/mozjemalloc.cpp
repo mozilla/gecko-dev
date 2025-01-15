@@ -705,7 +705,7 @@ struct arena_stats_t {
   size_t allocated_large;
 
   // The number of "memory operations" aka mallocs/frees.
-  size_t operations;
+  uint64_t operations;
 };
 
 // ***************************************************************************
@@ -1170,7 +1170,7 @@ struct arena_t {
   }
 
   // We can read the operations field from mStats without a lock:
-  size_t Operations() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
+  uint64_t Operations() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
     return mStats.operations;
   }
 
@@ -1572,7 +1572,7 @@ class ArenaCollection {
 
   // This requires the lock to get a consistent count across all the active
   // + disposed arenas.
-  size_t OperationsDisposedArenas() MOZ_REQUIRES(mLock) {
+  uint64_t OperationsDisposedArenas() MOZ_REQUIRES(mLock) {
     return mNumOperationsDisposedArenas;
   }
 
@@ -1604,7 +1604,7 @@ class ArenaCollection {
 
   // The number of operations that happened in arenas that have since been
   // destroyed.
-  size_t mNumOperationsDisposedArenas = 0;
+  uint64_t mNumOperationsDisposedArenas = 0;
 };
 
 MOZ_RUNINIT static ArenaCollection gArenas;
@@ -1635,7 +1635,7 @@ static RedBlackTree<extent_node_t, ExtentTreeTrait> huge
 // Huge allocation statistics.
 static size_t huge_allocated MOZ_GUARDED_BY(huge_mtx);
 static size_t huge_mapped MOZ_GUARDED_BY(huge_mtx);
-static size_t huge_operations MOZ_GUARDED_BY(huge_mtx);
+static uint64_t huge_operations MOZ_GUARDED_BY(huge_mtx);
 
 // **************************
 // base (internal allocation).

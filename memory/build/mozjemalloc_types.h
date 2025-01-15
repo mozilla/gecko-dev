@@ -150,7 +150,7 @@ typedef struct {
   // The number of malloc()+free() calls.  realloc calls count as 0, 1 or 2
   // operations depending on whether they do nothing, resize in-place, or move
   // the memory.
-  size_t num_operations;
+  uint64_t num_operations;
 } jemalloc_stats_lite_t;
 
 enum PtrInfoTag {
