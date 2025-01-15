@@ -13,6 +13,7 @@ support-files = [
   "fake-frontend.html",
   "webchannel.html",
   "webchannel-favicons.html",
+  "webchannel-open-script-in-debugger_assets/*",
 ]
 
 ["browser_aboutprofiling-entries.js"]
@@ -69,5 +70,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webchannel-enable-menu-button-preset.js"]
 
 ["browser_webchannel-enable-menu-button.js"]
+
+["browser_webchannel-open-script-in-debugger.js"]
 
 ["browser_webchannel-page-favicon-data.js"]

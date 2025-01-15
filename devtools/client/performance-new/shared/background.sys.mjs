@@ -64,7 +64,7 @@ const PREF_PREFIX = "devtools.performance.recording.";
 // capabilities of the WebChannel. The front-end can handle old WebChannel
 // versions and has a full list of versions and capabilities here:
 // https://github.com/firefox-devtools/profiler/blob/main/src/app-logic/web-channel.js
-const CURRENT_WEBCHANNEL_VERSION = 4;
+const CURRENT_WEBCHANNEL_VERSION = 5;
 
 const lazyRequire = {};
 // eslint-disable-next-line mozilla/lazy-getter-object-name
@@ -878,6 +878,13 @@ async function getResponseForMessage(request, browser) {
       const { pageUrls } = request;
       return getPageFavicons(pageUrls);
     }
+    case "OPEN_SCRIPT_IN_DEBUGGER": {
+      // This webchannel message type is added with version 5.
+      const { tabId, scriptUrl, line, column } = request;
+      const { openScriptInDebugger } = lazy.BrowserModule();
+      return openScriptInDebugger(tabId, scriptUrl, line, column);
+    }
+
     default: {
       console.error(
         "An unknown message type was received by the profiler's WebChannel handler.",

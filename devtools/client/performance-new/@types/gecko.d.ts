@@ -69,6 +69,7 @@ declare namespace MockedExports {
     selectedBrowser?: ChromeBrowser;
     messageManager: MessageManager;
     ownerDocument?: ChromeDocument;
+    tabs: BrowserTab[];
   }
 
   // This is a tab in a browser, defined in
@@ -86,6 +87,7 @@ declare namespace MockedExports {
   // This is linked to BrowserTab.
   interface ChromeBrowser {
     browsingContext?: BrowsingContext;
+    browserId: number;
   }
 
   interface BrowsingContext {

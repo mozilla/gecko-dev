@@ -21,6 +21,10 @@
  * @typedef {import("../@types/perf").ProfilerPanel} ProfilerPanel
  */
 
+const {
+  gDevTools,
+} = require("resource://devtools/client/framework/devtools.js");
+
 /** @type {PerformancePref["UIBaseUrl"]} */
 const UI_BASE_URL_PREF = "devtools.performance.recording.ui-base-url";
 /** @type {PerformancePref["UIBaseUrlPathPref"]} */
@@ -176,9 +180,54 @@ function openFilePickerForObjdir(window, objdirs, changeObjdirs) {
   });
 }
 
+/**
+ * Try to open the given script with line and column in the tab.
+ *
+ * If the profiled tab is not alive anymore, returns without doing anything.
+ *
+ * @param {number} tabId
+ * @param {string} scriptUrl
+ * @param {number} line
+ * @param {number} columnOneBased
+ */
+async function openScriptInDebugger(tabId, scriptUrl, line, columnOneBased) {
+  const win = Services.wm.getMostRecentWindow("navigator:browser");
+
+  // Iterate through all tabs in the current window and find the tab that we want.
+  const foundTab = win.gBrowser.tabs.find(
+    tab => tab.linkedBrowser.browserId === tabId
+  );
+
+  if (!foundTab) {
+    console.log(`No tab found with the tab id: ${tabId}`);
+    return;
+  }
+
+  // If a matching tab was found, switch to it.
+  win.gBrowser.selectedTab = foundTab;
+
+  // And open the devtools debugger with script.
+  const toolbox = await gDevTools.showToolboxForTab(foundTab, {
+    toolId: "jsdebugger",
+  });
+
+  toolbox.win.focus();
+
+  // In case profiler backend can't retrieve the column number, it can return zero.
+  const columnZeroBased = columnOneBased > 0 ? columnOneBased - 1 : 0;
+  await toolbox.viewSourceInDebugger(
+    scriptUrl,
+    line,
+    columnZeroBased,
+    /* sourceId = */ null,
+    "ProfilerOpenScript"
+  );
+}
+
 module.exports = {
   openProfilerTab,
   sharedLibrariesFromProfile,
   restartBrowserWithEnvironmentVariable,
   openFilePickerForObjdir,
+  openScriptInDebugger,
 };

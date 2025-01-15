@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title></title>
+  </head>
+  <body>
+    <script>
+      "use strict";
+      // This file is used to test opening the given script in devtools debugger
+      // from a front-end.
+
+      // The following are the titles used to communicate the page's state to the tests.
+      // Keep these in sync with any tests that read them.
+      const initialTitle = "Waiting to send the webchannel request";
+      const successTitle = "Request sent";
+      const errorTitle = "Error"
+
+      document.title = initialTitle;
+
+      // A function which requests the favicons from the browser using the
+      // OPEN_SCRIPT_IN_DEBUGGER WebChannel message.
+      function sendWebchannelRequest(requestBody) {
+        return new Promise((resolve, reject) => {
+          const requestId = 0;
+
+          function listener(event) {
+            window.removeEventListener(
+              "WebChannelMessageToContent",
+              listener,
+              true
+            );
+
+            const { id, message } = event.detail;
+
+            if (id !== "profiler.firefox.com" ||
+              !message ||
+              typeof message !== "object"
+            ) {
+              console.error(message);
+              reject(new Error("A malformed WebChannel event was received."));
+              return;
+            }
+
+            if (!message.type) {
+              console.error(message);
+              reject(new Error("The WebChannel event indicates an error."));
+              return;
+            }
+
+            if (message.requestId === requestId) {
+              if (message.type === "SUCCESS_RESPONSE") {
+                resolve(message.response);
+              } else {
+                reject(new Error(message.error));
+              }
+            }
+          }
+
+          window.addEventListener("WebChannelMessageToContent", listener, true);
+
+          window.dispatchEvent(
+            new CustomEvent("WebChannelMessageToChrome", {
+              detail: JSON.stringify({
+                id: "profiler.firefox.com",
+                message: { type: "OPEN_SCRIPT_IN_DEBUGGER", requestId, ...requestBody},
+              }),
+            })
+          );
+        })
+      }
+
+      async function runTest() {
+        try {
+          // We get the request body from the mochitest itself by reading the
+          // url search params.
+          const params = new URLSearchParams(document.location.search);
+          const requestBody = JSON.parse(params.get("request"));
+
+          await sendWebchannelRequest(requestBody);
+          document.title = successTitle;
+        } catch (error) {
+          // Catch any error and notify the test.
+          document.title = errorTitle;
+          dump('An error was caught in webchannel.html\n');
+          dump(`${error}\n`);
+          console.error(
+            "An error was caught in webchannel.html",
+            error
+          );
+        }
+      }
+
+      runTest();
+    </script>
+  </body>
+</html>
