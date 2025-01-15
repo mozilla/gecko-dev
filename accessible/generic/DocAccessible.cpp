@@ -1096,7 +1096,8 @@ void DocAccessible::ContentInserted(nsIContent* aChild) {
   MaybeHandleChangeToHiddenNameOrDescription(aChild);
 }
 
-void DocAccessible::ContentWillBeRemoved(nsIContent* aChildNode) {
+void DocAccessible::ContentWillBeRemoved(nsIContent* aChildNode,
+                                         const BatchRemovalState*) {
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eTree)) {
     logging::MsgBegin("TREE", "DOM content removed; doc: %p", this);

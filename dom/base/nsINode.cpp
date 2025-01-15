@@ -2312,7 +2312,8 @@ void nsINode::ReplaceChildren(nsINode* aNode, ErrorResult& aRv) {
   }
 }
 
-void nsINode::RemoveChildNode(nsIContent* aKid, bool aNotify) {
+void nsINode::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                              const BatchRemovalState* aState) {
   // NOTE: This function must not trigger any calls to
   // Document::GetRootElement() calls until *after* it has removed aKid from
   // aChildArray. Any calls before then could potentially restore a stale
@@ -2325,7 +2326,7 @@ void nsINode::RemoveChildNode(nsIContent* aKid, bool aNotify) {
   mozAutoDocUpdate updateBatch(GetComposedDoc(), aNotify);
 
   if (aNotify) {
-    MutationObservers::NotifyContentWillBeRemoved(this, aKid);
+    MutationObservers::NotifyContentWillBeRemoved(this, aKid, aState);
   }
 
   // Since aKid is use also after DisconnectChild, ensure it stays alive.
@@ -2757,7 +2758,7 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     fragChildren->SetCapacity(count);
     for (nsIContent* child = newContent->GetFirstChild(); child;
          child = child->GetNextSibling()) {
-      NS_ASSERTION(child->GetUncomposedDoc() == nullptr,
+      NS_ASSERTION(!child->GetUncomposedDoc(),
                    "How did we get a child with a current doc?");
       fragChildren->AppendElement(child);
     }

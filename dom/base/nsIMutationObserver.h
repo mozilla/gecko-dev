@@ -16,17 +16,14 @@ class nsAttrValue;
 class nsAtom;
 class nsIContent;
 class nsINode;
+struct BatchRemovalState;
 
 namespace mozilla::dom {
 class Element;
 }  // namespace mozilla::dom
 
-#define NS_IMUTATION_OBSERVER_IID                    \
-  {                                                  \
-    0x6d674c17, 0x0fbc, 0x4633, {                    \
-      0x8f, 0x46, 0x73, 0x4e, 0x87, 0xeb, 0xf0, 0xc7 \
-    }                                                \
-  }
+#define NS_IMUTATION_OBSERVER_IID \
+  {0x6d674c17, 0x0fbc, 0x4633, {0x8f, 0x46, 0x73, 0x4e, 0x87, 0xeb, 0xf0, 0xc7}}
 
 /**
  * Information details about a characterdata change.  Basically, we
@@ -247,6 +244,7 @@ class nsIMutationObserver
    * of another node in the tree.
    *
    * @param aChild     The child that will be removed.
+   * @param aState     The state of our batch removal of all children, or null.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -254,7 +252,8 @@ class nsIMutationObserver
    *       assume that this call will happen when there are script blockers on
    *       the stack.
    */
-  virtual void ContentWillBeRemoved(nsIContent* aChild) = 0;
+  virtual void ContentWillBeRemoved(nsIContent* aChild,
+                                    const BatchRemovalState*) = 0;
 
   /**
    * The node is in the process of being destroyed. Calling QI on the node is
@@ -367,8 +366,9 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED \
   virtual void ContentInserted(nsIContent* aChild) override;
 
-#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED \
-  virtual void ContentWillBeRemoved(nsIContent* aChild) override;
+#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED      \
+  virtual void ContentWillBeRemoved(nsIContent* aChild, \
+                                    const BatchRemovalState*) override;
 
 #define NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED \
   virtual void NodeWillBeDestroyed(nsINode* aNode) override;
@@ -415,7 +415,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
       nsAtom* aAttribute, int32_t aModType, const nsAttrValue* aOldValue) {}   \
   void _class::ContentAppended(nsIContent* aFirstNewContent) {}                \
   void _class::ContentInserted(nsIContent* aChild) {}                          \
-  void _class::ContentWillBeRemoved(nsIContent* aChild) {}                     \
+  void _class::ContentWillBeRemoved(nsIContent* aChild,                        \
+                                    const BatchRemovalState*) {}               \
   void _class::ParentChainChanged(nsIContent* aContent) {}                     \
   void _class::ARIAAttributeDefaultWillChange(                                 \
       mozilla::dom::Element* aElement, nsAtom* aAttribute, int32_t aModType) { \

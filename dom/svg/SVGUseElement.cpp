@@ -239,7 +239,8 @@ void SVGUseElement::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void SVGUseElement::ContentWillBeRemoved(nsIContent* aChild) {
+void SVGUseElement::ContentWillBeRemoved(nsIContent* aChild,
+                                         const BatchRemovalState*) {
   if (nsContentUtils::IsInSameAnonymousTree(mReferencedElementTracker.get(),
                                             aChild)) {
     TriggerReclone();
@@ -294,8 +295,9 @@ auto SVGUseElement::ScanAncestors(const Element& aTarget) const -> ScanResult {
   return ScanAncestorsInternal(aTarget, count);
 }
 
-auto SVGUseElement::ScanAncestorsInternal(
-    const Element& aTarget, uint32_t& aCount) const -> ScanResult {
+auto SVGUseElement::ScanAncestorsInternal(const Element& aTarget,
+                                          uint32_t& aCount) const
+    -> ScanResult {
   if (&aTarget == this) {
     return ScanResult::CyclicReference;
   }

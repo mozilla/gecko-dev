@@ -1230,7 +1230,7 @@ void nsTextControlFrame::nsAnonDivObserver::ContentInserted(
 }
 
 void nsTextControlFrame::nsAnonDivObserver::ContentWillBeRemoved(
-    nsIContent* aChild) {
+    nsIContent* aChild, const BatchRemovalState*) {
   mFrame.ClearCachedValue();
 }
 

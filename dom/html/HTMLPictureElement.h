@@ -22,16 +22,16 @@ class HTMLPictureElement final : public nsGenericHTMLElement {
   // nsISupports
   NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLPictureElement, nsGenericHTMLElement)
 
-  virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
-  virtual void RemoveChildNode(nsIContent* aKid, bool aNotify) override;
-  virtual void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
-                                 bool aNotify, ErrorResult& aRv) override;
+  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+  void RemoveChildNode(nsIContent* aKid, bool aNotify,
+                       const BatchRemovalState*) override;
+  void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
+                         bool aNotify, ErrorResult& aRv) override;
 
  protected:
   virtual ~HTMLPictureElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 };
 
 }  // namespace dom

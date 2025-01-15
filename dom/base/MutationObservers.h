@@ -14,6 +14,7 @@
 
 class nsAtom;
 class nsAttrValue;
+struct BatchRemovalState;
 
 namespace mozilla::dom {
 class Animation;
@@ -97,10 +98,13 @@ class MutationObservers {
    * Send ContentWillBeRemoved notifications to nsIMutationObservers
    * @param aContainer        Node from which child was removed
    * @param aChild            Removed child
+   * @param aBatchRemoving    Whether we'll be removing all children of this
+   *                          container. This is useful to avoid wasteful work.
    * @see nsIMutationObserver::ContentWillBeRemoved
    */
   static void NotifyContentWillBeRemoved(nsINode* aContainer,
-                                         nsIContent* aChild);
+                                         nsIContent* aChild,
+                                         const BatchRemovalState*);
 
   /**
    * Send ParentChainChanged notifications to nsIMutationObservers

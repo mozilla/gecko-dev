@@ -92,7 +92,8 @@ void nsMenuGroupOwnerX::AttributeChanged(dom::Element* aElement,
   }
 }
 
-void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild) {
+void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild,
+                                             const BatchRemovalState*) {
   nsIContent* container = aChild->GetParent();
   if (!container) {
     return;

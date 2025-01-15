@@ -5024,7 +5024,7 @@ void HTMLEditor::DoContentInserted(nsIContent* aChild,
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentWillBeRemoved(
-    nsIContent* aChild) {
+    nsIContent* aChild, const BatchRemovalState*) {
   if (mLastCollapsibleWhiteSpaceAppendedTextNode == aChild) {
     mLastCollapsibleWhiteSpaceAppendedTextNode = nullptr;
   }

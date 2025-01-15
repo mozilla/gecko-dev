@@ -43,7 +43,8 @@ class HTMLFieldSetElement final : public nsGenericHTMLFormControlElement,
 
   void InsertChildBefore(nsIContent* aChild, nsIContent* aBeforeThis,
                          bool aNotify, ErrorResult& aRv) override;
-  void RemoveChildNode(nsIContent* aKid, bool aNotify) override;
+  void RemoveChildNode(nsIContent* aKid, bool aNotify,
+                       const BatchRemovalState*) override;
 
   // nsGenericHTMLElement
   bool IsDisabledForEvents(WidgetEvent* aEvent) override;

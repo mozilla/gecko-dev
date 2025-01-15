@@ -2893,7 +2893,11 @@ void SVGTextFrame::MutationObserver::ContentInserted(nsIContent* aChild) {
   mFrame->NotifyGlyphMetricsChange(true);
 }
 
-void SVGTextFrame::MutationObserver::ContentWillBeRemoved(nsIContent* aChild) {
+void SVGTextFrame::MutationObserver::ContentWillBeRemoved(
+    nsIContent* aChild, const BatchRemovalState* aState) {
+  if (aState && !aState->mIsFirst) {
+    return;
+  }
   mFrame->NotifyGlyphMetricsChange(true);
 }
 

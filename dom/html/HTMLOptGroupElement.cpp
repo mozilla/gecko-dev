@@ -66,7 +66,8 @@ void HTMLOptGroupElement::InsertChildBefore(nsIContent* aKid,
   }
 }
 
-void HTMLOptGroupElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
+void HTMLOptGroupElement::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                                          const BatchRemovalState*) {
   SafeOptionListMutation safeMutation(GetSelect(), this, nullptr,
                                       *ComputeIndexOf(aKid), aNotify);
   nsGenericHTMLElement::RemoveChildNode(aKid, aNotify);

@@ -791,8 +791,9 @@ void HTMLTextAreaElement::ContentInserted(nsIContent* aChild) {
   ContentChanged(aChild);
 }
 
-void HTMLTextAreaElement::ContentWillBeRemoved(nsIContent* aChild) {
-  if (mValueChanged || !mDoneAddingChildren ||
+void HTMLTextAreaElement::ContentWillBeRemoved(
+    nsIContent* aChild, const BatchRemovalState* aState) {
+  if (mValueChanged || !mDoneAddingChildren || (aState && !aState->mIsFirst) ||
       !nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
     return;
   }

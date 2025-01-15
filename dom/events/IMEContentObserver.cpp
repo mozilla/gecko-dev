@@ -1154,7 +1154,8 @@ void IMEContentObserver::ContentInserted(nsIContent* aChild) {
   ContentAdded(aChild->GetParentNode(), aChild, aChild);
 }
 
-void IMEContentObserver::ContentWillBeRemoved(nsIContent* aChild) {
+void IMEContentObserver::ContentWillBeRemoved(nsIContent* aChild,
+                                              const BatchRemovalState*) {
   if (!NeedsTextChangeNotification() ||
       !nsContentUtils::IsInSameAnonymousTree(mRootElement, aChild)) {
     return;

@@ -202,7 +202,8 @@ class HTMLSelectElement final : public nsGenericHTMLFormControlElementWithState,
                        int32_t* aTabIndex) override;
   void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
                          bool aNotify, ErrorResult& aRv) override;
-  void RemoveChildNode(nsIContent* aKid, bool aNotify) override;
+  void RemoveChildNode(nsIContent* aKid, bool aNotify,
+                       const BatchRemovalState*) override;
 
   // nsGenericHTMLElement
   bool IsDisabledForEvents(WidgetEvent* aEvent) override;

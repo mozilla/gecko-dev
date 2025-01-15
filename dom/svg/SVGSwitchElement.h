@@ -42,9 +42,10 @@ class SVGSwitchElement final : public SVGSwitchElementBase {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGSwitchElement,
                                            SVGSwitchElementBase)
   // nsINode
-  virtual void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
-                                 bool aNotify, ErrorResult& aRv) override;
-  void RemoveChildNode(nsIContent* aKid, bool aNotify) override;
+  void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
+                         bool aNotify, ErrorResult& aRv) override;
+  void RemoveChildNode(nsIContent* aKid, bool aNotify,
+                       const BatchRemovalState*) override;
 
   // nsIContent
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;

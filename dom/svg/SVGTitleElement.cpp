@@ -48,7 +48,8 @@ void SVGTitleElement::ContentInserted(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
-void SVGTitleElement::ContentWillBeRemoved(nsIContent* aChild) {
+void SVGTitleElement::ContentWillBeRemoved(nsIContent* aChild,
+                                           const BatchRemovalState*) {
   SendTitleChangeEvent(false);
 }
 

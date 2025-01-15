@@ -254,7 +254,8 @@ void nsMutationReceiver::ContentInserted(nsIContent* aChild) {
   m->mNextSibling = aChild->GetNextSibling();
 }
 
-void nsMutationReceiver::ContentWillBeRemoved(nsIContent* aChild) {
+void nsMutationReceiver::ContentWillBeRemoved(nsIContent* aChild,
+                                              const BatchRemovalState*) {
   if (!IsObservable(aChild)) {
     return;
   }

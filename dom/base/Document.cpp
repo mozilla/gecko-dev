@@ -2962,7 +2962,7 @@ void Document::DisconnectNodeTree() {
 
     while (nsCOMPtr<nsIContent> content = GetLastChild()) {
       nsMutationGuard::DidMutate();
-      MutationObservers::NotifyContentWillBeRemoved(this, content);
+      MutationObservers::NotifyContentWillBeRemoved(this, content, nullptr);
       DisconnectChild(content);
       if (content == mCachedRootElement) {
         // Immediately clear mCachedRootElement, now that it's been removed
@@ -7632,7 +7632,8 @@ void Document::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
   nsINode::InsertChildBefore(aKid, aBeforeThis, aNotify, aRv);
 }
 
-void Document::RemoveChildNode(nsIContent* aKid, bool aNotify) {
+void Document::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                               const BatchRemovalState* aState) {
   Maybe<mozAutoDocUpdate> updateBatch;
   const bool removingRoot = aKid->IsElement();
   if (removingRoot) {
@@ -7643,7 +7644,7 @@ void Document::RemoveChildNode(nsIContent* aKid, bool aNotify) {
     // Notify early so that we can clear the cached element after notifying,
     // without having to slow down nsINode::RemoveChildNode.
     if (aNotify) {
-      MutationObservers::NotifyContentWillBeRemoved(this, aKid);
+      MutationObservers::NotifyContentWillBeRemoved(this, aKid, aState);
       aNotify = false;
     }
 

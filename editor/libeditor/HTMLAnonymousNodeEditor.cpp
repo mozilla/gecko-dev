@@ -250,7 +250,7 @@ void HTMLEditor::DeleteRefToAnonymousNode(ManualNACPtr aContent,
 
     // FIXME(emilio): This is the only caller to PresShell::ContentRemoved that
     // passes NAC into it. This is not great!
-    aPresShell->ContentWillBeRemoved(aContent);
+    aPresShell->ContentWillBeRemoved(aContent, nullptr);
   }
 
   // The ManualNACPtr destructor will invoke UnbindFromTree.

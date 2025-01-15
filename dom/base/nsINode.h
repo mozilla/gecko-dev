@@ -245,6 +245,10 @@ enum class BatchRemovalOrder {
   BackToFront,
 };
 
+struct BatchRemovalState {
+  bool mIsFirst = true;
+};
+
 // Make sure we have space for our bits
 #define ASSERT_NODE_FLAGS_SPACE(n)                         \
   static_assert(WRAPPER_CACHE_FLAGS_BITS_USED + (n) <=     \
@@ -1000,11 +1004,13 @@ class nsINode : public mozilla::dom::EventTarget {
     if (!HasChildren()) {
       return;
     }
+    BatchRemovalState state{};
     do {
       nsIContent* nodeToRemove = aOrder == BatchRemovalOrder::FrontToBack
                                      ? GetFirstChild()
                                      : GetLastChild();
-      RemoveChildNode(nodeToRemove, aNotify);
+      RemoveChildNode(nodeToRemove, aNotify, &state);
+      state.mIsFirst = false;
     } while (HasChildren());
   }
 
@@ -1015,8 +1021,10 @@ class nsINode : public mozilla::dom::EventTarget {
    * @param aKid the content to remove
    * @param aNotify whether to notify the document (current document for
    *        nsIContent, and |this| for Document) that the remove has occurred
+   * @param BatchRemovalState The current state of our batch removal.
    */
-  virtual void RemoveChildNode(nsIContent* aKid, bool aNotify);
+  virtual void RemoveChildNode(nsIContent* aKid, bool aNotify,
+                               const BatchRemovalState* = nullptr);
 
   /**
    * Get a property associated with this node.

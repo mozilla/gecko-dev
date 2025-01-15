@@ -938,7 +938,8 @@ void nsTreeContentView::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsTreeContentView::ContentWillBeRemoved(nsIContent* aChild) {
+void nsTreeContentView::ContentWillBeRemoved(nsIContent* aChild,
+                                             const BatchRemovalState*) {
   NS_ASSERTION(aChild, "null ptr");
 
   nsIContent* container = aChild->GetParent();

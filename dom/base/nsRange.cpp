@@ -687,7 +687,8 @@ void nsRange::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsRange::ContentWillBeRemoved(nsIContent* aChild) {
+void nsRange::ContentWillBeRemoved(nsIContent* aChild,
+                                   const BatchRemovalState*) {
   MOZ_ASSERT(mIsPositioned);
 
   nsINode* container = aChild->GetParentNode();

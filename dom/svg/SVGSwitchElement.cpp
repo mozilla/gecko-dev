@@ -79,8 +79,9 @@ void SVGSwitchElement::InsertChildBefore(nsIContent* aKid,
   MaybeInvalidate();
 }
 
-void SVGSwitchElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
-  SVGSwitchElementBase::RemoveChildNode(aKid, aNotify);
+void SVGSwitchElement::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                                       const BatchRemovalState* aState) {
+  SVGSwitchElementBase::RemoveChildNode(aKid, aNotify, aState);
   MaybeInvalidate();
 }
 

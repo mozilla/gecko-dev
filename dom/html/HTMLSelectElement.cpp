@@ -253,10 +253,12 @@ void HTMLSelectElement::InsertChildBefore(nsIContent* aKid,
   }
 }
 
-void HTMLSelectElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
+void HTMLSelectElement::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                                        const BatchRemovalState* aState) {
   SafeOptionListMutation safeMutation(this, this, nullptr,
                                       *ComputeIndexOf(aKid), aNotify);
-  nsGenericHTMLFormControlElementWithState::RemoveChildNode(aKid, aNotify);
+  nsGenericHTMLFormControlElementWithState::RemoveChildNode(aKid, aNotify,
+                                                            aState);
 }
 
 void HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,

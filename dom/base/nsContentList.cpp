@@ -814,7 +814,8 @@ void nsContentList::ContentInserted(nsIContent* aChild) {
   ASSERT_IN_SYNC;
 }
 
-void nsContentList::ContentWillBeRemoved(nsIContent* aChild) {
+void nsContentList::ContentWillBeRemoved(nsIContent* aChild,
+                                         const BatchRemovalState*) {
   if (mState != State::Dirty &&
       MayContainRelevantNodes(aChild->GetParentNode()) &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild) &&
@@ -1137,7 +1138,8 @@ void nsLabelsNodeList::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsLabelsNodeList::ContentWillBeRemoved(nsIContent* aChild) {
+void nsLabelsNodeList::ContentWillBeRemoved(nsIContent* aChild,
+                                            const BatchRemovalState* aState) {
   // If a labelable element is removed, we're gonna have to clean
   // the content list.
   if (mState != State::Dirty &&

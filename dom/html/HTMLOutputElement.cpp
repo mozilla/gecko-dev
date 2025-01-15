@@ -124,7 +124,11 @@ void HTMLOutputElement::ContentInserted(nsIContent* aChild) {
   DescendantsChanged();
 }
 
-void HTMLOutputElement::ContentWillBeRemoved(nsIContent* aChild) {
+void HTMLOutputElement::ContentWillBeRemoved(nsIContent* aChild,
+                                             const BatchRemovalState* aState) {
+  if (aState && !aState->mIsFirst) {
+    return;
+  }
   // Make sure to run this once the removal has taken place.
   nsContentUtils::AddScriptRunner(
       NewRunnableMethod("HTMLOutputElement::DescendantsChanged", this,

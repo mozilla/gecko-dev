@@ -321,7 +321,11 @@ void SVGRenderingObserver::ContentInserted(nsIContent* aChild) {
   OnRenderingChange();
 }
 
-void SVGRenderingObserver::ContentWillBeRemoved(nsIContent* aChild) {
+void SVGRenderingObserver::ContentWillBeRemoved(
+    nsIContent* aChild, const BatchRemovalState* aState) {
+  if (aState && !aState->mIsFirst) {
+    return;
+  }
   OnRenderingChange();
 }
 

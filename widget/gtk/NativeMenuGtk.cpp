@@ -236,7 +236,8 @@ class MenuModelGMenu final : public MenuModel {
 
 NS_IMPL_ISUPPORTS(MenuModel, nsIMutationObserver)
 
-void MenuModel::ContentWillBeRemoved(nsIContent* aChild) {
+void MenuModel::ContentWillBeRemoved(nsIContent* aChild,
+                                     const BatchRemovalState* aState) {
   if (NodeIsRelevant(*aChild)) {
     nsContentUtils::AddScriptRunner(NewRunnableMethod(
         "MenuModel::ContentWillBeRemoved", this, &MenuModel::DirtyModel));

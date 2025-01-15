@@ -142,7 +142,8 @@ void HTMLFieldSetElement::InsertChildBefore(nsIContent* aChild,
   }
 }
 
-void HTMLFieldSetElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
+void HTMLFieldSetElement::RemoveChildNode(nsIContent* aKid, bool aNotify,
+                                          const BatchRemovalState* aState) {
   bool firstLegendHasChanged = false;
 
   if (mFirstLegend && aKid == mFirstLegend) {
@@ -159,7 +160,7 @@ void HTMLFieldSetElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
     }
   }
 
-  nsGenericHTMLFormControlElement::RemoveChildNode(aKid, aNotify);
+  nsGenericHTMLFormControlElement::RemoveChildNode(aKid, aNotify, aState);
 
   if (firstLegendHasChanged) {
     NotifyElementsForFirstLegendChange(aNotify);

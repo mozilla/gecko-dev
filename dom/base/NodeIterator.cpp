@@ -201,7 +201,8 @@ void NodeIterator::Detach() {
  * nsIMutationObserver interface
  */
 
-void NodeIterator::ContentWillBeRemoved(nsIContent* aChild) {
+void NodeIterator::ContentWillBeRemoved(nsIContent* aChild,
+                                        const BatchRemovalState*) {
   nsINode* container = aChild->GetParentNode();
   mPointer.AdjustForRemoval(mRoot, container, aChild);
   mWorkingPointer.AdjustForRemoval(mRoot, container, aChild);

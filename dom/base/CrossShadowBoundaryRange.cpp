@@ -138,7 +138,8 @@ void CrossShadowBoundaryRange::DoSetRange(
     }
   }
 }
-void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild) {
+void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
+                                                    const BatchRemovalState*) {
   // It's unclear from the spec about what should the selection be after
   // DOM mutation. See https://github.com/w3c/selection-api/issues/168
   //
