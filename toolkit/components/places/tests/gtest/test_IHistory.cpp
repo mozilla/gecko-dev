@@ -10,6 +10,7 @@
 #include "nsString.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/StackWalk.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "nsNetUtil.h"
 
@@ -512,8 +513,70 @@ Test gTests[] = {
     PTEST(test_visituri_hidden),
     PTEST(test_visituri_transition_typed),
     PTEST(test_visituri_transition_embed),
-
 };
 
-#define TEST_NAME "IHistory"
-#include "places_test_harness_tail.h"
+int gTestsIndex = 0;
+
+class RunNextTest : public mozilla::Runnable {
+ public:
+  RunNextTest() : mozilla::Runnable("RunNextTest") {}
+  NS_IMETHOD Run() override {
+    MOZ_RELEASE_ASSERT(NS_IsMainThread(), "Not running on the main thread?");
+    if (gTestsIndex < int(std::size(gTests))) {
+      do_test_pending();
+      Test& test = gTests[gTestsIndex++];
+      (void)fprintf(stderr, TEST_INFO_STR "Running %s.\n", test.name);
+      test.func();
+    }
+
+    do_test_finished();
+    return NS_OK;
+  }
+};
+
+static const bool kDebugRunNextTest = false;
+
+void run_next_test() {
+  if (kDebugRunNextTest) {
+    printf_stderr("run_next_test()\n");
+    MozWalkTheStack(stderr);
+  }
+  nsCOMPtr<nsIRunnable> event = new RunNextTest();
+  do_check_success(NS_DispatchToCurrentThread(event));
+}
+
+int gPendingTests = 0;
+
+void do_test_pending() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread(), "Not running on the main thread?");
+  if (kDebugRunNextTest) {
+    printf_stderr("do_test_pending()\n");
+    MozWalkTheStack(stderr);
+  }
+  gPendingTests++;
+}
+
+void do_test_finished() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread(), "Not running on the main thread?");
+  MOZ_RELEASE_ASSERT(gPendingTests > 0, "Invalid pending test count!");
+  gPendingTests--;
+}
+
+TEST(IHistory, Test)
+{
+  RefPtr<WaitForConnectionClosed> spinClose = new WaitForConnectionClosed();
+
+  // Tinderboxes are constantly on idle.  Since idle tasks can interact with
+  // tests, causing random failures, disable the idle service.
+  disable_idle_service();
+
+  do_test_pending();
+  run_next_test();
+
+  // Spin the event loop until we've run out of tests to run.
+  mozilla::SpinEventLoopUntil("places:TEST(IHistory, Test)"_ns,
+                              [&]() { return !gPendingTests; });
+
+  // And let any other events finish before we quit.
+  (void)NS_ProcessPendingEvents(nullptr);
+}
