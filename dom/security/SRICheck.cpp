@@ -344,19 +344,26 @@ nsresult SRICheckDataVerifier::Verify(const SRIMetadata& aMetadata,
 
   nsAutoCString alg;
   aMetadata.GetAlgorithm(&alg);
-  NS_ConvertUTF8toUTF16 algUTF16(alg);
+
+  nsCOMPtr<nsIURI> originalURI;
+  rv = aChannel->GetOriginalURI(getter_AddRefs(originalURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsAutoCString requestSpec;
+  rv = originalURI->GetSpec(requestSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsAutoCString encodedHash;
   rv = Base64Encode(mComputedHash, encodedHash);
   NS_ENSURE_SUCCESS(rv, rv);
-  NS_ConvertUTF8toUTF16 encodedHashUTF16(encodedHash);
 
   nsTArray<nsString> params;
-  params.AppendElement(algUTF16);
-  params.AppendElement(encodedHashUTF16);
+  params.AppendElement(NS_ConvertUTF8toUTF16(alg));
+  params.AppendElement(NS_ConvertUTF8toUTF16(requestSpec));
+  params.AppendElement(NS_ConvertUTF8toUTF16(encodedHash));
   aReporter->AddConsoleReport(
       nsIScriptError::errorFlag, "Sub-resource Integrity"_ns,
       nsContentUtils::eSECURITY_PROPERTIES, aSourceFileURI, 0, 0,
-      "IntegrityMismatch2"_ns, const_cast<const nsTArray<nsString>&>(params));
+      "IntegrityMismatch3"_ns, const_cast<const nsTArray<nsString>&>(params));
 
   return NS_ERROR_SRI_CORRUPT;
 }
