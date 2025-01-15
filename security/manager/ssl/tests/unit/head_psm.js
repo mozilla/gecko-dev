@@ -1108,7 +1108,7 @@ function writeLinesAndClose(lines, outputStream) {
  *        A unique substring of name of the dynamic library file of the module
  *        that should not be loaded.
  */
-function checkPKCS11ModuleNotPresent(moduleName, libraryName) {
+function checkPKCS11ModuleNotPresent(moduleName, libraryName = "undefined") {
   let moduleDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].getService(
     Ci.nsIPKCS11ModuleDB
   );
@@ -1123,10 +1123,12 @@ function checkPKCS11ModuleNotPresent(moduleName, libraryName) {
       moduleName,
       `Non-test module name shouldn't equal '${moduleName}'`
     );
-    ok(
-      !(module.libName && module.libName.includes(libraryName)),
-      `Non-test module lib name should not include '${libraryName}'`
-    );
+    if (libraryName != "undefined") {
+      ok(
+        !(module.libName && module.libName.includes(libraryName)),
+        `Non-test module lib name should not include '${libraryName}'`
+      );
+    }
   }
 }
 
@@ -1142,7 +1144,7 @@ function checkPKCS11ModuleNotPresent(moduleName, libraryName) {
  * @returns {nsIPKCS11Module}
  *          The test module.
  */
-function checkPKCS11ModuleExists(moduleName, libraryName) {
+function checkPKCS11ModuleExists(moduleName, libraryName = "undefined") {
   let moduleDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].getService(
     Ci.nsIPKCS11ModuleDB
   );
@@ -1159,11 +1161,17 @@ function checkPKCS11ModuleExists(moduleName, libraryName) {
     }
   }
   notEqual(testModule, null, "Test module should have been found");
-  notEqual(testModule.libName, null, "Test module lib name should not be null");
-  ok(
-    testModule.libName.includes(ctypes.libraryName(libraryName)),
-    `Test module lib name should include lib name of '${libraryName}'`
-  );
+  if (libraryName != "undefined") {
+    notEqual(
+      testModule.libName,
+      null,
+      "Test module lib name should not be null"
+    );
+    ok(
+      testModule.libName.includes(ctypes.libraryName(libraryName)),
+      `Test module lib name should include lib name of '${libraryName}'`
+    );
+  }
 
   return testModule;
 }

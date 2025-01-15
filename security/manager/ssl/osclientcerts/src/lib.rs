@@ -21,23 +21,22 @@ extern crate pkcs11_bindings;
 #[macro_use]
 extern crate rsclientcerts;
 extern crate sha2;
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
 extern crate winapi;
 
 use pkcs11_bindings::*;
 use rsclientcerts::manager::{ManagerProxy, SlotType};
-use std::ffi::CStr;
 use std::sync::Mutex;
 use std::thread;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod backend_macos;
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
 mod backend_windows;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::backend_macos::Backend;
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
 use crate::backend_windows::Backend;
 
 struct ModuleState {
@@ -108,24 +107,12 @@ macro_rules! log_with_thread_id {
 
 /// This gets called to initialize the module. For this implementation, this consists of
 /// instantiating the `ManagerProxy`.
-extern "C" fn C_Initialize(pInitArgs: CK_VOID_PTR) -> CK_RV {
+extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
     // This will fail if this has already been called, but this isn't a problem because either way,
     // logging has been initialized.
     let _ = env_logger::try_init();
 
-    if pInitArgs.is_null() {
-        return CKR_DEVICE_ERROR;
-    }
-    let init_args_ptr = unsafe { (*(pInitArgs as CK_C_INITIALIZE_ARGS_PTR)).pReserved };
-    if init_args_ptr.is_null() {
-        return CKR_DEVICE_ERROR;
-    }
-    let init_args_cstr = unsafe { CStr::from_ptr(init_args_ptr as *mut std::os::raw::c_char) };
-    let init_args = match init_args_cstr.to_str() {
-        Ok(init_args) => init_args,
-        Err(_) => return CKR_DEVICE_ERROR,
-    };
-    let mechanisms = if init_args == "RSA-PSS" {
+    let mechanisms = if static_prefs::pref!("security.osclientcerts.assume_rsa_pss_support") {
         vec![CKM_ECDSA, CKM_RSA_PKCS, CKM_RSA_PKCS_PSS]
     } else {
         vec![CKM_ECDSA, CKM_RSA_PKCS]
@@ -143,17 +130,10 @@ extern "C" fn C_Initialize(pInitArgs: CK_VOID_PTR) -> CK_RV {
         mechanisms,
     }) {
         Some(_unexpected_previous_module_state) => {
-            #[cfg(any(target_os = "macos", target_os = "ios"))]
-            {
-                log_with_thread_id!(info, "C_Initialize: module state previously set (this is expected on macOS - replacing it)");
-            }
-            #[cfg(target_os = "windows")]
-            {
-                log_with_thread_id!(
-                    warn,
-                    "C_Initialize: module state unexpectedly previously set (replacing it)"
-                );
-            }
+            log_with_thread_id!(
+        warn,
+        "C_Initialize: replacing previously set module state (this is expected on macOS but not on Windows)"
+    );
         }
         None => {}
     }
@@ -1247,7 +1227,9 @@ static FUNCTION_LIST: CK_FUNCTION_LIST = CK_FUNCTION_LIST {
 /// comprising this module.
 /// ppFunctionList must be a valid pointer.
 #[no_mangle]
-pub unsafe extern "C" fn C_GetFunctionList(ppFunctionList: CK_FUNCTION_LIST_PTR_PTR) -> CK_RV {
+pub unsafe extern "C" fn OSClientCerts_C_GetFunctionList(
+    ppFunctionList: CK_FUNCTION_LIST_PTR_PTR,
+) -> CK_RV {
     if ppFunctionList.is_null() {
         return CKR_ARGUMENTS_BAD;
     }

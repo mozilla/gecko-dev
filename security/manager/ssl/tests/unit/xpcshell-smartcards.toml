@@ -6,7 +6,7 @@ skip-if = ["os == 'android'"]
 ["test_osclientcerts_module.js"]
 skip-if = [
   "os == 'linux'",
-  "os == 'android'",
+  "os == 'android'"
 ]
 
 ["test_pkcs11_module.js"]

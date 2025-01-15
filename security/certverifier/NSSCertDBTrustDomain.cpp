@@ -1789,6 +1789,27 @@ bool LoadUserModuleAt(const char* moduleName, const char* libraryName,
   return true;
 }
 
+bool LoadUserModuleFromXul(const char* moduleName,
+                           CK_C_GetFunctionList fentry) {
+  // If a module exists with the same name, make a best effort attempt to delete
+  // it. Note that it isn't possible to delete the internal module, so checking
+  // the return value would be detrimental in that case.
+  int unusedModType;
+  Unused << SECMOD_DeleteModule(moduleName, &unusedModType);
+
+  UniqueSECMODModule userModule(
+      SECMOD_LoadUserModuleWithFunction(moduleName, fentry));
+  if (!userModule) {
+    return false;
+  }
+
+  if (!userModule->loaded) {
+    return false;
+  }
+
+  return true;
+}
+
 bool LoadIPCClientCertsModule(const nsCString& dir) {
   // The IPC client certs module needs to be able to call back into gecko to be
   // able to communicate with the parent process over IPC. This is achieved by
@@ -1812,13 +1833,24 @@ bool LoadIPCClientCertsModule(const nsCString& dir) {
   return true;
 }
 
-bool LoadOSClientCertsModule(const nsCString& dir) {
-  nsLiteralCString params =
-      StaticPrefs::security_osclientcerts_assume_rsa_pss_support()
-          ? "RSA-PSS"_ns
-          : ""_ns;
-  return LoadUserModuleAt(kOSClientCertsModuleName.get(), "osclientcerts", dir,
-                          params.get());
+extern "C" {
+// Extern function to call osclientcerts module C_GetFunctionList.
+// NSS calls it to obtain the list of functions comprising this module.
+// ppFunctionList must be a valid pointer.
+CK_RV OSClientCerts_C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList);
+}  // extern "C"
+
+bool LoadOSClientCertsModule() {
+// Corresponds to Rust cfg(any(
+//  target_os = "macos",
+//  target_os = "ios",
+//  all(target_os = "windows", not(target_arch = "aarch64"))))]
+#if defined(__APPLE__) || (defined WIN32 && !defined(__aarch64__))
+  return LoadUserModuleFromXul(kOSClientCertsModuleName.get(),
+                               OSClientCerts_C_GetFunctionList);
+#else
+  return false;
+#endif
 }
 
 bool LoadLoadableRoots(const nsCString& dir) {

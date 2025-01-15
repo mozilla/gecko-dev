@@ -582,6 +582,7 @@ SECMOD_GetReadLock
 SECMOD_InternaltoPubMechFlags
 SECMOD_LoadModule
 SECMOD_LoadUserModule
+SECMOD_LoadUserModuleWithFunction
 SECMOD_LockedModuleHasRemovableSlots
 SECMOD_OpenUserDB
 SECMOD_PubCipherFlagstoInternal

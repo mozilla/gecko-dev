@@ -4,14 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# osclientcerts is currently only implemented for Windows
-# osclientcerts transitively depends on winapi 0.2.8, which doesn't work with
-# AArch64
-if (CONFIG["OS_ARCH"] == "WINNT" and CONFIG["TARGET_CPU"] != "aarch64") or CONFIG[
-    "OS_ARCH"
-] == "Darwin":
-    DIRS += ["osclientcerts"]
-
 DIRS += ["ipcclientcerts"]
 DIRS += ["builtins"]
 
@@ -177,14 +169,9 @@ if CONFIG["TARGET_KERNEL"] == "Darwin":
         "OSReauthenticatorDarwin.mm",
     ]
     OS_LIBS += [
+        "-framework CoreFoundation",
         "-framework LocalAuthentication",
         "-framework Security",
-    ]
-
-if CONFIG["OS_ARCH"] == "WINNT":
-    OS_LIBS += ["credui"]
-    UNIFIED_SOURCES += [
-        "CredentialManagerSecret.cpp",
     ]
 
 IPDL_SOURCES += [
@@ -193,6 +180,31 @@ IPDL_SOURCES += [
     "PSMIPCTypes.ipdlh",
     "PVerifySSLServerCert.ipdl",
 ]
+
+# Required by OSClientCerts and CredentialManagerSecret.
+if CONFIG["OS_ARCH"] == "WINNT":
+    OS_LIBS += [
+        "advapi32",
+        "credui",
+        "crypt32",
+        "kernel32",
+        "ncrypt",
+        "userenv",
+        "ws2_32",
+        "ntdll",
+    ]
+
+    UNIFIED_SOURCES += [
+        "CredentialManagerSecret.cpp",
+    ]
+    # Version string comparison is generally wrong, but by the time it would
+    # actually matter, either bug 1489995 would be fixed, or the build would
+    # require version >= 1.78.
+    if CONFIG["RUSTC_VERSION"] and CONFIG["RUSTC_VERSION"] >= "1.78.0":
+        OS_LIBS += [
+            "synchronization",
+        ]
+
 
 FINAL_LIBRARY = "xul"
 

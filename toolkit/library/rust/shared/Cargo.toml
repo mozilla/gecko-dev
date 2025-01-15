@@ -109,6 +109,9 @@ fallible_collections = { version = "0.4", features = ["rust_1_57"] }
 
 libz-rs-sys = { git = "https://github.com/memorysafety/zlib-rs", rev = "4aa430ccb77537d0d60dab8db993ca51bb1194c5", features = ["custom-prefix"], optional = true }
 
+[target.'cfg(any(target_os = "macos",target_os = "ios", all(target_os = "windows", not(target_arch = "aarch64"))))'.dependencies]
+osclientcerts = { path = "../../../../security/manager/ssl/osclientcerts" }
+
 [target.'cfg(not(target_os = "android"))'.dependencies]
 gkrust-uniffi-components = { path = "../../../components/uniffi-bindgen-gecko-js/components/", features = ["xpcom"] }
 gkrust-uniffi-fixtures = { path = "../../../components/uniffi-bindgen-gecko-js/fixtures/", features = ["xpcom"], optional = true }

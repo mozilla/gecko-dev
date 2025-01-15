@@ -482,14 +482,12 @@ class LoadLoadableCertsTask final : public Runnable {
  public:
   LoadLoadableCertsTask(nsNSSComponent* nssComponent,
                         bool importEnterpriseRoots,
-                        Vector<nsCString>&& possibleLoadableRootsLocations,
-                        Maybe<nsCString>&& osClientCertsModuleLocation)
+                        Vector<nsCString>&& possibleLoadableRootsLocations)
       : Runnable("LoadLoadableCertsTask"),
         mNSSComponent(nssComponent),
         mImportEnterpriseRoots(importEnterpriseRoots),
         mPossibleLoadableRootsLocations(
-            std::move(possibleLoadableRootsLocations)),
-        mOSClientCertsModuleLocation(std::move(osClientCertsModuleLocation)) {
+            std::move(possibleLoadableRootsLocations)) {
     MOZ_ASSERT(nssComponent);
   }
 
@@ -503,7 +501,6 @@ class LoadLoadableCertsTask final : public Runnable {
   RefPtr<nsNSSComponent> mNSSComponent;
   bool mImportEnterpriseRoots;
   Vector<nsCString> mPossibleLoadableRootsLocations;  // encoded in UTF-8
-  Maybe<nsCString> mOSClientCertsModuleLocation;      // encoded in UTF-8
 };
 
 nsresult LoadLoadableCertsTask::Dispatch() {
@@ -545,12 +542,14 @@ LoadLoadableCertsTask::Run() {
     mNSSComponent->ImportEnterpriseRoots();
     mNSSComponent->UpdateCertVerifierWithEnterpriseRoots();
   }
-  if (mOSClientCertsModuleLocation.isSome()) {
-    bool success = LoadOSClientCertsModule(*mOSClientCertsModuleLocation);
+
+  if (StaticPrefs::security_osclientcerts_autoload()) {
+    bool success = LoadOSClientCertsModule();
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("loading OS client certs module %s",
              success ? "succeeded" : "failed"));
   }
+
   {
     MonitorAutoLock rootsLoadedLock(mNSSComponent->mLoadableCertsLoadedMonitor);
     mNSSComponent->mLoadableCertsLoaded = true;
@@ -590,12 +589,11 @@ static nsresult GetDirectoryPath(const char* directoryKey, nsCString& result) {
 
 class BackgroundLoadOSClientCertsModuleTask final : public CryptoTask {
  public:
-  explicit BackgroundLoadOSClientCertsModuleTask(const nsCString&& libraryDir)
-      : mLibraryDir(std::move(libraryDir)) {}
+  explicit BackgroundLoadOSClientCertsModuleTask() {}
 
  private:
   virtual nsresult CalculateResult() override {
-    bool success = LoadOSClientCertsModule(mLibraryDir);
+    bool success = LoadOSClientCertsModule();
     return success ? NS_OK : NS_ERROR_FAILURE;
   }
 
@@ -610,19 +608,12 @@ class BackgroundLoadOSClientCertsModuleTask final : public CryptoTask {
           nullptr, "psm:load-os-client-certs-module-task-ran", nullptr);
     }
   }
-
-  nsCString mLibraryDir;
 };
 
 void AsyncLoadOrUnloadOSClientCertsModule(bool load) {
   if (load) {
-    nsCString libraryDir;
-    nsresult rv = GetDirectoryPath(NS_GRE_BIN_DIR, libraryDir);
-    if (NS_FAILED(rv)) {
-      return;
-    }
     RefPtr<BackgroundLoadOSClientCertsModuleTask> task =
-        new BackgroundLoadOSClientCertsModuleTask(std::move(libraryDir));
+        new BackgroundLoadOSClientCertsModuleTask();
     Unused << task->Dispatch();
   } else {
     UniqueSECMODModule osClientCertsModule(
@@ -1660,19 +1651,9 @@ nsresult nsNSSComponent::InitializeNSS() {
       return rv;
     }
 
-    bool loadOSClientCertsModule =
-        StaticPrefs::security_osclientcerts_autoload();
-    Maybe<nsCString> maybeOSClientCertsModuleLocation;
-    if (loadOSClientCertsModule) {
-      nsAutoCString libraryDir;
-      if (NS_SUCCEEDED(GetDirectoryPath(NS_GRE_BIN_DIR, libraryDir))) {
-        maybeOSClientCertsModuleLocation.emplace(libraryDir);
-      }
-    }
     RefPtr<LoadLoadableCertsTask> loadLoadableCertsTask(
         new LoadLoadableCertsTask(this, importEnterpriseRoots,
-                                  std::move(possibleLoadableRootsLocations),
-                                  std::move(maybeOSClientCertsModuleLocation)));
+                                  std::move(possibleLoadableRootsLocations)));
     rv = loadLoadableCertsTask->Dispatch();
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     if (NS_FAILED(rv)) {

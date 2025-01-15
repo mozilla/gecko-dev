@@ -80,12 +80,9 @@ bool LoadLoadableRoots(const nsCString& dir);
 /**
  * Loads the OS client certs module.
  *
- * @param dir
- *        The path to the directory containing the module. This should be the
- *        same as where all of the other gecko libraries live.
  * @return true if the module was successfully loaded, false otherwise.
  */
-bool LoadOSClientCertsModule(const nsCString& dir);
+bool LoadOSClientCertsModule();
 
 /**
  * Loads the IPC client certs module.
