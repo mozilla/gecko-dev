@@ -138,6 +138,7 @@ let gSiteDataSettings = {
     setEventListener("removeSelected", "command", this.removeSelected);
 
     document.addEventListener("dialogaccept", e => this.saveChanges(e));
+    window.addEventListener("keypress", e => this.onKeyPress(e));
   },
 
   _updateButtonsState() {
@@ -329,3 +330,5 @@ let gSiteDataSettings = {
     this._updateButtonsState();
   },
 };
+
+window.addEventListener("load", () => gSiteDataSettings.init());
