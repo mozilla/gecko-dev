@@ -554,7 +554,17 @@ if CONFIG["MOZ_VTUNE"]:
         if int(CONFIG["CC_VERSION"].split(".")[0]) >= 8:
             SOURCES["vtune/ittnotify_static.c"].flags += ["-Wno-stringop-truncation"]
 
-DIRS += ["build", "debugger", "frontend", "gc", "irregexp", "jit", "util", "wasm"]
+DIRS += [
+    "build",
+    "debugger",
+    "frontend",
+    "gc",
+    "irregexp",
+    "jit",
+    "util",
+    "wasm",
+    "xsum",
+]
 
 if CONFIG["JS_HAS_TEMPORAL_API"]:
     DIRS += ["builtin/temporal"]

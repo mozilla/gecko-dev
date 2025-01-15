@@ -50,6 +50,7 @@ ignored_js_src_dirs = [
     "js/src/gdb/",  # auxiliary stuff
     "js/src/vtune/",  # imported code
     "js/src/zydis/",  # imported code
+    "js/src/xsum/",  # imported code
 ]
 
 # We ignore #includes of these files, because they don't follow the usual rules.
@@ -113,6 +114,7 @@ included_inclnames_to_ignore = set(
         "vtune/VTuneWrapper.h",  # VTune
         "wasm/WasmBuiltinModuleGenerated.h",  # generated in $OBJDIR"
         "zydis/ZydisAPI.h",  # Zydis
+        "xsum/xsum.h",  # xsum
     ]
 )
 
