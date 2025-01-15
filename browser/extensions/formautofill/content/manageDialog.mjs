@@ -378,15 +378,28 @@ export class ManageCreditCards extends ManageRecords {
         "autofill-edit-payment-method-os-prompt-windows",
         "autofill-edit-payment-method-os-prompt-other"
       );
-
-      const verified = await lazy.FormAutofillUtils.verifyUserOSAuth(
-        FormAutofill.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-        promptMessage
-      );
+      let verified;
+      let result;
+      try {
+        verified = await lazy.FormAutofillUtils.verifyUserOSAuth(
+          FormAutofill.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+          promptMessage
+        );
+        result = verified ? "success" : "fail_user_canceled";
+      } catch (ex) {
+        result = "fail_error";
+        throw ex;
+      } finally {
+        Glean.formautofill.promptShownOsReauth.record({
+          trigger: "edit",
+          result,
+        });
+      }
       if (!verified) {
         return;
       }
     }
+
     let decryptedCCNumObj = {};
     if (creditCard && creditCard["cc-number-encrypted"]) {
       try {

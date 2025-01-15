@@ -80,7 +80,7 @@ Object.defineProperty(window, "AboutLoginsUtils", {
     setFocus(element) {
       return element.focus();
     },
-    async promptForPrimaryPassword(resolve, _messageId) {
+    async promptForPrimaryPassword(resolve, _messageId, _reason) {
       resolve(true);
     },
     doLoginsMatch(login1, login2) {

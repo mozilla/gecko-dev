@@ -131,7 +131,10 @@ export class AboutLoginsParent extends JSWindowActorParent {
         break;
       }
       case "AboutLogins:PrimaryPasswordRequest": {
-        await this.#primaryPasswordRequest(message.data);
+        await this.#primaryPasswordRequest(
+          message.data.messageId,
+          message.data.reason
+        );
         break;
       }
       case "AboutLogins:Subscribe": {
@@ -245,7 +248,7 @@ export class AboutLoginsParent extends JSWindowActorParent {
     this.#ownerGlobal.openPreferences("privacy-logins");
   }
 
-  async #primaryPasswordRequest(messageId) {
+  async #primaryPasswordRequest(messageId, reason) {
     if (!messageId) {
       throw new Error("AboutLogins:PrimaryPasswordRequest: no messageId.");
     }
@@ -277,7 +280,8 @@ export class AboutLoginsParent extends JSWindowActorParent {
       isOSAuthEnabled,
       AboutLogins._authExpirationTime,
       messageText.value,
-      captionText.value
+      captionText.value,
+      reason
     );
     this.sendAsyncMessage("AboutLogins:PrimaryPasswordResponse", {
       result: isAuthorized,
@@ -394,12 +398,14 @@ export class AboutLoginsParent extends JSWindowActorParent {
       ]);
     }
 
+    let reason = "export_logins";
     let { isAuthorized, telemetryEvent } = await lazy.LoginHelper.requestReauth(
       this.browsingContext.embedderElement,
       true,
       null, // Prompt regardless of a recent prompt
       messageText.value,
-      captionText.value
+      captionText.value,
+      reason
     );
 
     let { name, extra = {}, value = null } = telemetryEvent;
