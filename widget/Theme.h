@@ -109,8 +109,7 @@ class Theme : protected nsNativeTheme, public nsITheme {
                                OutlineCoversBorder);
 
   std::pair<sRGBColor, sRGBColor> ComputeButtonColors(const ElementState&,
-                                                      const Colors&,
-                                                      nsIFrame* = nullptr);
+                                                      const Colors&);
   std::pair<sRGBColor, sRGBColor> ComputeTextfieldColors(const ElementState&,
                                                          const Colors&,
                                                          OutlineCoversBorder);
@@ -124,12 +123,16 @@ class Theme : protected nsNativeTheme, public nsITheme {
   std::pair<sRGBColor, sRGBColor> ComputeProgressTrackColors(const Colors&);
   std::pair<sRGBColor, sRGBColor> ComputeMeterchunkColors(
       const ElementState& aMeterState, const Colors&);
-  std::array<sRGBColor, 3> ComputeFocusRectColors(const Colors&);
 
+  enum class InvertColors : bool { No = false, Yes };
   template <typename PaintBackendData>
-  void PaintRoundedFocusRect(PaintBackendData&, const LayoutDeviceRect&,
-                             const Colors&, DPIRatio, CSSCoord aRadius,
-                             CSSCoord aOffset);
+  void PaintAutoStyleOutline(PaintBackendData&, const LayoutDeviceRect&,
+                             const Colors&, const RectCornerRadii& aInnerRadii,
+                             LayoutDeviceCoord aOffset, InvertColors, DPIRatio);
+  template <typename PaintBackendData>
+  void PaintAutoStyleOutline(PaintBackendData&, const LayoutDeviceRect&,
+                             const Colors&, CSSCoord aRadius, CSSCoord aOffset,
+                             InvertColors, DPIRatio);
   template <typename PaintBackendData>
   void PaintAutoStyleOutline(nsIFrame*, PaintBackendData&,
                              const LayoutDeviceRect&, const Colors&, DPIRatio);
@@ -182,9 +185,8 @@ class Theme : protected nsNativeTheme, public nsITheme {
                      const ElementState&, const Colors&, DPIRatio,
                      bool aIsMeter);
   template <typename PaintBackendData>
-  void PaintButton(nsIFrame*, PaintBackendData&, const LayoutDeviceRect&,
-                   StyleAppearance, const ElementState&, const Colors&,
-                   DPIRatio);
+  void PaintButton(PaintBackendData&, const LayoutDeviceRect&, StyleAppearance,
+                   const ElementState&, const Colors&, DPIRatio);
 
   static void PrefChangedCallback(const char*, void*) {
     LookAndFeel::NotifyChangedAllWindows(ThemeChangeKind::Layout);

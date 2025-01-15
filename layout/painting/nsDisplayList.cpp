@@ -4003,7 +4003,6 @@ void nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
   nsRect rect = GetInnerRect() + ToReferenceFrame();
   nsPresContext* pc = mFrame->PresContext();
   if (IsThemedOutline()) {
-    rect.Inflate(mFrame->StyleOutline()->EffectiveOffsetFor(rect));
     pc->Theme()->DrawWidgetBackground(aCtx, mFrame,
                                       StyleAppearance::FocusOutline, rect,
                                       GetPaintRect(aBuilder, aCtx));
@@ -4032,7 +4031,6 @@ bool nsDisplayOutline::CreateWebRenderCommands(
   nsPresContext* pc = mFrame->PresContext();
   nsRect rect = GetInnerRect() + ToReferenceFrame();
   if (IsThemedOutline()) {
-    rect.Inflate(mFrame->StyleOutline()->EffectiveOffsetFor(rect));
     return pc->Theme()->CreateWebRenderCommandsForWidget(
         aBuilder, aResources, aSc, aManager, mFrame,
         StyleAppearance::FocusOutline, rect);
@@ -6367,8 +6365,8 @@ static bool ShouldUsePartialPrerender(const nsIFrame* aFrame) {
 
 /* static */
 auto nsDisplayTransform::ShouldPrerenderTransformedContent(
-    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-    nsRect* aDirtyRect) -> PrerenderInfo {
+    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsRect* aDirtyRect)
+    -> PrerenderInfo {
   PrerenderInfo result;
 
   // Prerendering only makes sense if we are painting to the window so that the
