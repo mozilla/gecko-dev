@@ -2269,6 +2269,9 @@ pref("privacy.trackingprotection.fingerprinting.enabled", true);
 // Enable cryptomining blocking by default for all channels, only on desktop.
 pref("privacy.trackingprotection.cryptomining.enabled", true);
 
+// Skip earlyBlankFirstPaint by default if resistFingerprinting is enabled.
+pref("privacy.resistFingerprinting.skipEarlyBlankFirstPaint", true);
+
 pref("browser.contentblocking.database.enabled", true);
 
 // Enable Strip on Share by default on desktop
