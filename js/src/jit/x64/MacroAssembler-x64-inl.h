@@ -789,7 +789,7 @@ void MacroAssembler::branchTruncateFloat32ToInt32(FloatRegister src,
 
   // Check that the result is in the int32_t range.
   ScratchRegisterScope scratch(*this);
-  move32To64SignExtend(dest, Register64(scratch));
+  move32SignExtendToPtr(dest, scratch);
   cmpPtr(dest, scratch);
   j(Assembler::NotEqual, fail);
 
@@ -820,7 +820,7 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
 
   // Check that the result is in the int32_t range.
   ScratchRegisterScope scratch(*this);
-  move32To64SignExtend(dest, Register64(scratch));
+  move32SignExtendToPtr(dest, scratch);
   cmpPtr(dest, scratch);
   j(Assembler::NotEqual, fail);
 
