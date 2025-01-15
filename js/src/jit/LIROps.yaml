@@ -367,13 +367,22 @@
   num_temps: 2
 
 - name: ReinterpretCast
-  gen_boilerplate: false
+  operands:
+    input: WordSized
+  result_type: WordSized
+  mir_op: ReinterpretCast
 
 - name: ReinterpretCastFromI64
-  gen_boilerplate: false
+  operands:
+    input: Int64
+  result_type: WordSized
+  mir_op: ReinterpretCast
 
 - name: ReinterpretCastToI64
-  gen_boilerplate: false
+  operands:
+    input: WordSized
+  result_type: Int64
+  mir_op: ReinterpretCast
 
 - name: Rotate
   gen_boilerplate: false

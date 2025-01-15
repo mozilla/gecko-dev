@@ -265,47 +265,6 @@ class LNewObject : public LInstructionHelper<1, 0, 1> {
   MNewObject* mir() const { return mir_->toNewObject(); }
 };
 
-template <size_t Defs, size_t Ops>
-class LReinterpretCastBase : public LInstructionHelper<Defs, Ops, 0> {
-  using Base = LInstructionHelper<Defs, Ops, 0>;
-
- protected:
-  explicit LReinterpretCastBase(LNode::Opcode opcode) : Base(opcode) {}
-
- public:
-  const LAllocation* input() { return Base::getOperand(0); }
-  MReinterpretCast* mir() const { return Base::mir_->toReinterpretCast(); }
-};
-
-class LReinterpretCast : public LReinterpretCastBase<1, 1> {
- public:
-  LIR_HEADER(ReinterpretCast);
-  explicit LReinterpretCast(const LAllocation& input)
-      : LReinterpretCastBase(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
-class LReinterpretCastFromI64 : public LReinterpretCastBase<1, INT64_PIECES> {
- public:
-  static const size_t Input = 0;
-
-  LIR_HEADER(ReinterpretCastFromI64);
-  explicit LReinterpretCastFromI64(const LInt64Allocation& input)
-      : LReinterpretCastBase(classOpcode) {
-    setInt64Operand(Input, input);
-  }
-};
-
-class LReinterpretCastToI64 : public LReinterpretCastBase<INT64_PIECES, 1> {
- public:
-  LIR_HEADER(ReinterpretCastToI64);
-  explicit LReinterpretCastToI64(const LAllocation& input)
-      : LReinterpretCastBase(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
 namespace details {
 template <size_t Defs, size_t Ops, size_t Temps>
 class RotateBase : public LInstructionHelper<Defs, Ops, Temps> {
