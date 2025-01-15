@@ -542,13 +542,13 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   }
 }
 
-void CodeGenerator::visitWasmReinterpretFromI64(LWasmReinterpretFromI64* lir) {
+void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
   masm.as_movgr2fr_d(ToFloatRegister(lir->output()), ToRegister(lir->input()));
 }
 
-void CodeGenerator::visitWasmReinterpretToI64(LWasmReinterpretToI64* lir) {
+void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
   masm.as_movfr2gr_d(ToRegister(lir->output()), ToFloatRegister(lir->input()));
@@ -2061,9 +2061,8 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
                    trueExprAndDest);
 }
 
-void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) {
-  MOZ_ASSERT(gen->compilingWasm());
-  MWasmReinterpret* ins = lir->mir();
+void CodeGenerator::visitReinterpretCast(LReinterpretCast* lir) {
+  MReinterpretCast* ins = lir->mir();
 
   MIRType to = ins->type();
   mozilla::DebugOnly<MIRType> from = ins->input()->type();
@@ -2083,7 +2082,7 @@ void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) {
     case MIRType::Int64:
       MOZ_CRASH("not handled by this LIR opcode");
     default:
-      MOZ_CRASH("unexpected WasmReinterpret");
+      MOZ_CRASH("unexpected ReinterpretCast");
   }
 }
 

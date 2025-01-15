@@ -5772,7 +5772,7 @@ MDefinition* MSameValueDouble::foldsTo(TempAllocator& alloc) {
 
   // Use bitwise comparison for +/-0.
   if (dbl == 0.0) {
-    auto* reinterp = MWasmReinterpret::New(alloc, input, MIRType::Int64);
+    auto* reinterp = MReinterpretCast::New(alloc, input, MIRType::Int64);
     block()->insertBefore(this, reinterp);
 
     auto* zeroBitsCst =

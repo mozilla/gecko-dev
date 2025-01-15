@@ -6837,7 +6837,7 @@ bool FunctionCompiler::emitReinterpret(ValType resultType, ValType operandType,
     return false;
   }
 
-  iter().setResult(unary<MWasmReinterpret>(input, mirType));
+  iter().setResult(unary<MReinterpretCast>(input, mirType));
   return true;
 }
 

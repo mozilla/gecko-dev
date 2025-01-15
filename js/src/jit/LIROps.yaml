@@ -366,13 +366,13 @@
   result_type: WordSized
   num_temps: 2
 
-- name: WasmReinterpret
+- name: ReinterpretCast
   gen_boilerplate: false
 
-- name: WasmReinterpretFromI64
+- name: ReinterpretCastFromI64
   gen_boilerplate: false
 
-- name: WasmReinterpretToI64
+- name: ReinterpretCastToI64
   gen_boilerplate: false
 
 - name: Rotate

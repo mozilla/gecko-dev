@@ -1714,9 +1714,8 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
                    trueExprAndDest);
 }
 
-void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) {
-  MOZ_ASSERT(gen->compilingWasm());
-  MWasmReinterpret* ins = lir->mir();
+void CodeGenerator::visitReinterpretCast(LReinterpretCast* lir) {
+  MReinterpretCast* ins = lir->mir();
 
   MIRType to = ins->type();
   DebugOnly<MIRType> from = ins->input()->type();
@@ -1734,7 +1733,7 @@ void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) {
     case MIRType::Int64:
       MOZ_CRASH("not handled by this LIR opcode");
     default:
-      MOZ_CRASH("unexpected WasmReinterpret");
+      MOZ_CRASH("unexpected ReinterpretCast");
   }
 }
 

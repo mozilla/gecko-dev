@@ -1062,7 +1062,7 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
   }
 }
 
-void CodeGenerator::visitWasmReinterpretFromI64(LWasmReinterpretFromI64* lir) {
+void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
   Register64 input = ToRegister64(lir->getInt64Operand(0));
@@ -1073,7 +1073,7 @@ void CodeGenerator::visitWasmReinterpretFromI64(LWasmReinterpretFromI64* lir) {
   masm.freeStack(sizeof(uint64_t));
 }
 
-void CodeGenerator::visitWasmReinterpretToI64(LWasmReinterpretToI64* lir) {
+void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
   Register64 output = ToOutRegister64(lir);

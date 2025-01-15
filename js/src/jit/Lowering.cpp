@@ -4123,17 +4123,17 @@ void LIRGenerator::visitWasmTrapIfNull(MWasmTrapIfNull* ins) {
   add(lir, ins);
 }
 
-void LIRGenerator::visitWasmReinterpret(MWasmReinterpret* ins) {
+void LIRGenerator::visitReinterpretCast(MReinterpretCast* ins) {
   if (ins->type() == MIRType::Int64) {
     defineInt64(new (alloc())
-                    LWasmReinterpretToI64(useRegisterAtStart(ins->input())),
+                    LReinterpretCastToI64(useRegisterAtStart(ins->input())),
                 ins);
   } else if (ins->input()->type() == MIRType::Int64) {
     define(new (alloc())
-               LWasmReinterpretFromI64(useInt64RegisterAtStart(ins->input())),
+               LReinterpretCastFromI64(useInt64RegisterAtStart(ins->input())),
            ins);
   } else {
-    define(new (alloc()) LWasmReinterpret(useRegisterAtStart(ins->input())),
+    define(new (alloc()) LReinterpretCast(useRegisterAtStart(ins->input())),
            ins);
   }
 }

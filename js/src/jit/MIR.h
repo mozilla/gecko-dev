@@ -9442,6 +9442,43 @@ class MRotate : public MBinaryInstruction, public NoTypePolicy::Data {
   ALLOW_CLONE(MRotate)
 };
 
+class MReinterpretCast : public MUnaryInstruction, public NoTypePolicy::Data {
+  MReinterpretCast(MDefinition* val, MIRType toType)
+      : MUnaryInstruction(classOpcode, val) {
+    switch (val->type()) {
+      case MIRType::Int32:
+        MOZ_ASSERT(toType == MIRType::Float32);
+        break;
+      case MIRType::Float32:
+        MOZ_ASSERT(toType == MIRType::Int32);
+        break;
+      case MIRType::Double:
+        MOZ_ASSERT(toType == MIRType::Int64);
+        break;
+      case MIRType::Int64:
+        MOZ_ASSERT(toType == MIRType::Double);
+        break;
+      default:
+        MOZ_CRASH("unexpected reinterpret conversion");
+    }
+    setMovable();
+    setResultType(toType);
+  }
+
+ public:
+  INSTRUCTION_HEADER(ReinterpretCast)
+  TRIVIAL_NEW_WRAPPERS
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+  bool congruentTo(const MDefinition* ins) const override {
+    // No need to check type() here, because congruentIfOperandsEqual will
+    // check it.
+    return congruentIfOperandsEqual(ins);
+  }
+
+  ALLOW_CLONE(MReinterpretCast)
+};
+
 // Used by MIR building to represent the bytecode result of an operation for
 // which an MBail was generated, to balance the basic block's MDefinition stack.
 class MUnreachableResult : public MNullaryInstruction {

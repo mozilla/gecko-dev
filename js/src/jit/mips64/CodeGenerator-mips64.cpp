@@ -294,13 +294,13 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   }
 }
 
-void CodeGenerator::visitWasmReinterpretFromI64(LWasmReinterpretFromI64* lir) {
+void CodeGenerator::visitReinterpretCastFromI64(LReinterpretCastFromI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Double);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Int64);
   masm.as_dmtc1(ToRegister(lir->input()), ToFloatRegister(lir->output()));
 }
 
-void CodeGenerator::visitWasmReinterpretToI64(LWasmReinterpretToI64* lir) {
+void CodeGenerator::visitReinterpretCastToI64(LReinterpretCastToI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   MOZ_ASSERT(lir->mir()->input()->type() == MIRType::Double);
   masm.as_dmfc1(ToRegister(lir->output()), ToFloatRegister(lir->input()));

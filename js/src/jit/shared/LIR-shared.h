@@ -266,42 +266,42 @@ class LNewObject : public LInstructionHelper<1, 0, 1> {
 };
 
 template <size_t Defs, size_t Ops>
-class LWasmReinterpretBase : public LInstructionHelper<Defs, Ops, 0> {
+class LReinterpretCastBase : public LInstructionHelper<Defs, Ops, 0> {
   using Base = LInstructionHelper<Defs, Ops, 0>;
 
  protected:
-  explicit LWasmReinterpretBase(LNode::Opcode opcode) : Base(opcode) {}
+  explicit LReinterpretCastBase(LNode::Opcode opcode) : Base(opcode) {}
 
  public:
   const LAllocation* input() { return Base::getOperand(0); }
-  MWasmReinterpret* mir() const { return Base::mir_->toWasmReinterpret(); }
+  MReinterpretCast* mir() const { return Base::mir_->toReinterpretCast(); }
 };
 
-class LWasmReinterpret : public LWasmReinterpretBase<1, 1> {
+class LReinterpretCast : public LReinterpretCastBase<1, 1> {
  public:
-  LIR_HEADER(WasmReinterpret);
-  explicit LWasmReinterpret(const LAllocation& input)
-      : LWasmReinterpretBase(classOpcode) {
+  LIR_HEADER(ReinterpretCast);
+  explicit LReinterpretCast(const LAllocation& input)
+      : LReinterpretCastBase(classOpcode) {
     setOperand(0, input);
   }
 };
 
-class LWasmReinterpretFromI64 : public LWasmReinterpretBase<1, INT64_PIECES> {
+class LReinterpretCastFromI64 : public LReinterpretCastBase<1, INT64_PIECES> {
  public:
   static const size_t Input = 0;
 
-  LIR_HEADER(WasmReinterpretFromI64);
-  explicit LWasmReinterpretFromI64(const LInt64Allocation& input)
-      : LWasmReinterpretBase(classOpcode) {
+  LIR_HEADER(ReinterpretCastFromI64);
+  explicit LReinterpretCastFromI64(const LInt64Allocation& input)
+      : LReinterpretCastBase(classOpcode) {
     setInt64Operand(Input, input);
   }
 };
 
-class LWasmReinterpretToI64 : public LWasmReinterpretBase<INT64_PIECES, 1> {
+class LReinterpretCastToI64 : public LReinterpretCastBase<INT64_PIECES, 1> {
  public:
-  LIR_HEADER(WasmReinterpretToI64);
-  explicit LWasmReinterpretToI64(const LAllocation& input)
-      : LWasmReinterpretBase(classOpcode) {
+  LIR_HEADER(ReinterpretCastToI64);
+  explicit LReinterpretCastToI64(const LAllocation& input)
+      : LReinterpretCastBase(classOpcode) {
     setOperand(0, input);
   }
 };

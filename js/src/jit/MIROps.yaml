@@ -3604,7 +3604,7 @@
 - name: WasmSelect
   gen_boilerplate: false
 
-- name: WasmReinterpret
+- name: ReinterpretCast
   gen_boilerplate: false
 
 - name: Rotate
