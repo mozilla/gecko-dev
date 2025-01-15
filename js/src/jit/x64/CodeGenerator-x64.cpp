@@ -799,10 +799,16 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->getOperand(0));
-  Register output = ToRegister(lir->getDef(0));
+  FloatRegister input = ToFloatRegister(lir->in());
+  Register output = ToRegister(lir->output());
+  Register temp = ToRegister(lir->temp0());
+  MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for x64");
 
-  emitTruncateDouble(input, output, lir->mir());
+  auto* ool = new (alloc()) OutOfLineTruncate(input, output, temp);
+  addOutOfLineCode(ool, lir->mir());
+
+  masm.branchTruncateDoubleMaybeModUint32(input, output, ool->entry());
+  masm.bind(ool->rejoin());
 }
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(

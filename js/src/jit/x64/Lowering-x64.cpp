@@ -572,11 +572,15 @@ void LIRGeneratorX64::lowerWasmBuiltinTruncateToInt32(
   MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);
 
   if (opd->type() == MIRType::Double) {
-    LDefinition maybeTemp =
-        Assembler::HasSSE3() ? LDefinition::BogusTemp() : tempDouble();
-    define(new (alloc()) LWasmBuiltinTruncateDToInt32(
-               useRegister(opd), useFixed(ins->instance(), InstanceReg),
-               maybeTemp),
+    // Without BMI2, x64 can only shift by rcx.
+    LDefinition tmp;
+    if (Assembler::HasBMI2()) {
+      tmp = temp();
+    } else {
+      tmp = tempFixed(rcx);
+    }
+    define(new (alloc()) LWasmBuiltinTruncateDToInt32(useRegister(opd),
+                                                      LAllocation(), tmp),
            ins);
     return;
   }
