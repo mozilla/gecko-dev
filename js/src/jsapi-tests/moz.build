@@ -100,6 +100,7 @@ UNIFIED_SOURCES += [
     "testNumberToString.cpp",
     "testObjectEmulatingUndefined.cpp",
     "testObjectSwap.cpp",
+    "testObjectWithStashedPointer.cpp",
     "testOOM.cpp",
     "testParseJSON.cpp",
     "testParserAtom.cpp",
