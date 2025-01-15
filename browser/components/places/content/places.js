@@ -244,25 +244,31 @@ var PlacesOrganizer = {
 
   QueryInterface: ChromeUtils.generateQI([]),
 
-  handleEvent: function PO_handleEvent(aEvent) {
-    if (aEvent.type != "AppCommand") {
-      return;
-    }
-
-    aEvent.stopPropagation();
-    switch (aEvent.command) {
-      case "Back":
-        if (this._backHistory.length) {
-          this.back();
-        }
+  handleEvent: function PO_handleEvent(event) {
+    switch (event.type) {
+      case "load":
+        this.init();
         break;
-      case "Forward":
-        if (this._forwardHistory.length) {
-          this.forward();
-        }
+      case "unload":
+        this.destroy();
         break;
-      case "Search":
-        PlacesSearchBox.findAll();
+      case "AppCommand":
+        event.stopPropagation();
+        switch (event.command) {
+          case "Back":
+            if (this._backHistory.length) {
+              this.back();
+            }
+            break;
+          case "Forward":
+            if (this._forwardHistory.length) {
+              this.forward();
+            }
+            break;
+          case "Search":
+            PlacesSearchBox.findAll();
+            break;
+        }
         break;
     }
   },
@@ -804,6 +810,9 @@ var PlacesOrganizer = {
     itemsCountBox.hidden = !infoBox.hidden;
   },
 };
+
+window.addEventListener("load", PlacesOrganizer);
+window.addEventListener("unload", PlacesOrganizer);
 
 /**
  * A set of utilities relating to search within Bookmarks and History.
