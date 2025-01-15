@@ -15,8 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 import "chrome://global/content/megalist/PasswordCard.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/LoginFormComponent/login-form.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/megalist/Dialog.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/NotificationMessageBar.mjs";
