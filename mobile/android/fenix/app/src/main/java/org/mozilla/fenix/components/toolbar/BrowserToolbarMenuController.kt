@@ -31,6 +31,8 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.utils.ManufacturerCodes
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.Events
@@ -55,6 +57,7 @@ import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
 
 /**
  * An interface that handles events from the BrowserToolbar menu, triggered by the Interactor
@@ -395,6 +398,24 @@ class DefaultBrowserToolbarMenuController(
                     appStore.dispatch(ShortcutAction.ShortcutRemoved)
                 }
             }
+            is ToolbarMenu.Item.ReportBrokenSite -> {
+                currentSession?.content?.url?.let { tabUrl ->
+                    if (FeatureFlags.webCompatReporter && settings.isTelemetryEnabled) {
+                        navController.navigate(
+                            directions = BrowserFragmentDirections
+                                .actionBrowserFragmentToWebCompatReporterFragment(
+                                    tabUrl = tabUrl,
+                                ),
+                        )
+                    } else {
+                        activity.openToBrowserAndLoad(
+                            searchTermOrURL = "$WEB_COMPAT_REPORTER_URL$tabUrl",
+                            newTab = true,
+                            from = BrowserDirection.FromGlobal,
+                        )
+                    }
+                }
+            }
 
             ToolbarMenu.Item.Translate -> {
                 Translations.action.record(Translations.ActionExtra("main_flow_browser"))
@@ -520,6 +541,12 @@ class DefaultBrowserToolbarMenuController(
                 Events.browserMenuAction.record(Events.BrowserMenuActionExtra("set_default_browser"))
             is ToolbarMenu.Item.RemoveFromTopSites ->
                 Events.browserMenuAction.record(Events.BrowserMenuActionExtra("remove_from_top_sites"))
+            is ToolbarMenu.Item.ReportBrokenSite ->
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "report_broken_site",
+                    ),
+                )
 
             ToolbarMenu.Item.Translate -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(

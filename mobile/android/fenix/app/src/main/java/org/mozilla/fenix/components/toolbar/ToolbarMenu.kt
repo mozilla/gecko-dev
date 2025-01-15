@@ -63,6 +63,11 @@ interface ToolbarMenu {
         object History : Item()
 
         /**
+         * Opens the Web Compat Reporter feature.
+         */
+        object ReportBrokenSite : Item()
+
+        /**
          * The Passwords menu item
          */
         object Passwords : Item()

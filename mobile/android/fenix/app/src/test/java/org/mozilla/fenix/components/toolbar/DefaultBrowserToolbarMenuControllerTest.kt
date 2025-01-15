@@ -60,6 +60,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.ReaderMode
@@ -83,6 +84,7 @@ import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
 
 @RunWith(FenixRobolectricTestRunner::class)
 class DefaultBrowserToolbarMenuControllerTest {
@@ -890,6 +892,45 @@ class DefaultBrowserToolbarMenuControllerTest {
 
             val telemetry = Translations.action.testGetValue()?.firstOrNull()
             assertEquals("main_flow_browser", telemetry?.extra?.get("item"))
+        }
+
+    @Test
+    fun `GIVEN telemetry is enabled WHEN the Report broken site menu item is pressed THEN navigate to the web compat reporter AND post telemetry`() =
+        runTest {
+            val item = ToolbarMenu.Item.ReportBrokenSite
+            every { settings.isTelemetryEnabled } returns true
+
+            createController(scope = this, store = browserStore).handleToolbarItemInteraction(item)
+
+            verify {
+                navController.navigate(
+                    directions =
+                    BrowserFragmentDirections.actionBrowserFragmentToWebCompatReporterFragment(
+                        tabUrl = selectedTab.content.url,
+                    ),
+                )
+            }
+
+            val telemetry = Events.browserMenuAction.testGetValue()?.firstOrNull()
+            assertEquals("report_broken_site", telemetry?.extra?.get("item"))
+        }
+
+    @Test
+    fun `GIVEN telemetry is disabled WHEN the Report broken site menu item is pressed THEN navigate to the web compat reporter web page`() =
+        runTest {
+            val item = ToolbarMenu.Item.ReportBrokenSite
+            every { settings.isTelemetryEnabled } returns false
+            val controller = createController(scope = this, store = browserStore)
+
+            controller.handleToolbarItemInteraction(item)
+
+            verify {
+                activity.openToBrowserAndLoad(
+                    searchTermOrURL = "$WEB_COMPAT_REPORTER_URL${selectedTab.content.url}",
+                    newTab = true,
+                    from = BrowserDirection.FromGlobal,
+                )
+            }
         }
 
     private fun createController(
