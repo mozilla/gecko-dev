@@ -652,14 +652,11 @@ void Theme::PaintRadioControl(PaintBackendData& aPaintData,
   }
 
   if (aState.HasState(ElementState::CHECKED)) {
-    const CSSCoord kInnerBorderWidth = 2.0f;
     LayoutDeviceRect rect(aRect);
-    auto width = LayoutDeviceCoord(
-        ThemeDrawing::SnapBorderWidth(kInnerBorderWidth, aDpiRatio));
-    rect.Deflate(width);
-
-    PaintStrokedCircle(aPaintData, rect, backgroundColor, checkColor,
-                       kInnerBorderWidth, aDpiRatio);
+    // Make the inner white dot take half of the checkbox.
+    rect.Deflate(rect.width * 0.25);
+    PaintStrokedCircle(aPaintData, rect, checkColor, sTransparent, 0,
+                       aDpiRatio);
   }
 
   if (aState.HasState(ElementState::FOCUSRING)) {
