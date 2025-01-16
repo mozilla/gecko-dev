@@ -646,7 +646,7 @@
     <string name="onboarding_customize_theme_content_description">%1$sn teeman kuva</string>
 
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_not_now_button">Ei nyt</string>
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ei nyt</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

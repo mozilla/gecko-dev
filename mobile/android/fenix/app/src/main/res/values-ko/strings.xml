@@ -657,7 +657,7 @@
     <string name="onboarding_customize_theme_content_description">%1$s 테마 이미지</string>
 
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_not_now_button">나중에</string>
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">나중에</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

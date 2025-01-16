@@ -538,7 +538,7 @@
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">Automatski od sustava</string>
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_not_now_button">Ne sada</string>
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ne sada</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

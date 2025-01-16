@@ -649,7 +649,7 @@
     <string name="onboarding_customize_theme_content_description">Slika teme %1$s</string>
 
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_not_now_button">Ne zdaj</string>
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ne zdaj</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

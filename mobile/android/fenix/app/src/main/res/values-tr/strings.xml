@@ -646,7 +646,7 @@
     <string name="onboarding_customize_theme_content_description">%1$s temanın görüntüsü</string>
 
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_not_now_button">Şimdi değil</string>
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Şimdi değil</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
