@@ -471,7 +471,7 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   if (aDocument->CookieJarSettings()->GetLimitForeignContexts() &&
       !service->HasExistingCookies(baseDomain,
                                    cookiePrincipal->OriginAttributesRef()) &&
-      !ShouldAllowAccessFor(innerWindow, aCookieParser.HostURI(),
+      !ShouldAllowAccessFor(innerWindow, aCookieParser.HostURI(), true,
                             &dummyRejectedReason)) {
     return nullptr;
   }

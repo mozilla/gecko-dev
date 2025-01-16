@@ -103,6 +103,9 @@ bool StoragePartitioningEnabled(uint32_t aRejectedReason,
 
 // This method returns true if the URI has first party storage access when
 // loaded inside the passed 3rd party context tracking resource window.
+// If aCookies is true, this considers the permission granted by
+// document.requestStorageAccess. Cookies should be the only website state
+// that changes its accessability based upon that permission.
 // If the window is first party context, please use
 // ApproximateAllowAccessForWithoutChannel();
 //
@@ -118,7 +121,8 @@ bool StoragePartitioningEnabled(uint32_t aRejectedReason,
 // updating the other overloaded functions
 // (and ApproximateAllowAccessForWithoutChannel).
 bool ShouldAllowAccessFor(nsPIDOMWindowInner* a3rdPartyTrackingWindow,
-                          nsIURI* aURI, uint32_t* aRejectedReason);
+                          nsIURI* aURI, bool aCookies,
+                          uint32_t* aRejectedReason);
 
 // Note: you should use ShouldAllowAccessFor() passing the nsIChannel! Use
 // this method _only_ if the channel is not available.  For first party

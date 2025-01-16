@@ -24,7 +24,7 @@ add_task(async function testSendButton() {
   ensureReasonOptional();
 
   const win = await BrowserTestUtils.openNewBrowserWindow({ private: true });
-  const blockedPromise = waitForContentBlockingEvent(4, win);
+  const blockedPromise = waitForContentBlockingEvent(3, win);
   const tab = await openTab(REPORTABLE_PAGE_URL3, win);
   await blockedPromise;
 
@@ -54,7 +54,7 @@ add_task(async function testSendingMoreInfo() {
   ensureSendMoreInfoEnabled();
 
   const win = await BrowserTestUtils.openNewBrowserWindow({ private: true });
-  const blockedPromise = waitForContentBlockingEvent(4, win);
+  const blockedPromise = waitForContentBlockingEvent(3, win);
   const tab = await openTab(REPORTABLE_PAGE_URL3, win);
   await blockedPromise;
 

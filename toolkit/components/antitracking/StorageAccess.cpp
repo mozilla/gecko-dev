@@ -161,8 +161,8 @@ static StorageAccess InternalStorageAllowedCheck(
   bool disabled = true;
   if (aWindow) {
     nsIURI* documentURI = aURI ? aURI : aWindow->GetDocumentURI();
-    disabled = !documentURI ||
-               !ShouldAllowAccessFor(aWindow, documentURI, &aRejectedReason);
+    disabled = !documentURI || !ShouldAllowAccessFor(aWindow, documentURI, true,
+                                                     &aRejectedReason);
 
     // If the window is a third-party tracker, we should set the rejected reason
     // to partitioned tracker.
@@ -481,7 +481,7 @@ int32_t CookiesBehavior(nsIPrincipal* aPrincipal,
 }
 
 bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
-                          uint32_t* aRejectedReason) {
+                          bool aCookies, uint32_t* aRejectedReason) {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(aURI);
 
@@ -622,10 +622,13 @@ bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
     return false;
   }
 
+  // "Storage access granted" only affects cookie access for third party
+  // documents. So if we are looking if we should allow access for cookies,
+  // then test if that permission is enabled on this document.
   // Document::UsingStorageAccess first checks if storage access granted is
   // cached in the inner window, if no, it then checks the storage permission
   // flag in the channel's loadinfo
-  bool allowed = document->UsingStorageAccess();
+  bool allowed = aCookies && document->UsingStorageAccess();
 
   if (!allowed) {
     *aRejectedReason = blockedReason;

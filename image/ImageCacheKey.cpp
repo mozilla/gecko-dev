@@ -150,7 +150,7 @@ nsCString ImageCacheKey::GetIsolationKey(Document* aDocument, nsIURI* aURI) {
                                             nullptr)) {
     uint32_t rejectedReason = 0;
     Unused << rejectedReason;
-    return ShouldAllowAccessFor(aDocument->GetInnerWindow(), aURI,
+    return ShouldAllowAccessFor(aDocument->GetInnerWindow(), aURI, true,
                                 &rejectedReason)
                ? ""_ns
                : aDocument->GetBaseDomain();

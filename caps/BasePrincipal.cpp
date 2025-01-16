@@ -856,7 +856,7 @@ BasePrincipal::HasFirstpartyStorageAccess(mozIDOMWindow* aCheckWindow,
     return NS_ERROR_UNEXPECTED;
   }
 
-  *aOutAllowed = ShouldAllowAccessFor(win, uri, aRejectedReason);
+  *aOutAllowed = ShouldAllowAccessFor(win, uri, true, aRejectedReason);
   return NS_OK;
 }
 
