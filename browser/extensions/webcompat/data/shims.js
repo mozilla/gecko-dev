@@ -909,6 +909,7 @@ const AVAILABLE_SHIMS = [
     unblocksOnOptIn: [
       "*://www.instagram.com/*",
       "*://platform.instagram.com/*",
+      "*://*.fbcdn.net/*",
     ],
   },
   {
