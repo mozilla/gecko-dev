@@ -43,10 +43,7 @@ let nonPrivateLoadContext = Cu.createLoadContext();
 let privateLoadContext = Cu.createPrivateLoadContext();
 
 var observer = {
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   observe(aSubject, aTopic) {
     switch (aTopic) {
@@ -75,8 +72,8 @@ var observer = {
   },
 };
 
-Services.obs.addObserver(observer, "last-pb-context-exited", true);
-Services.obs.addObserver(observer, "browser:purge-session-history", true);
+Services.obs.addObserver(observer, "last-pb-context-exited");
+Services.obs.addObserver(observer, "browser:purge-session-history");
 
 function readLastDirPref() {
   try {
