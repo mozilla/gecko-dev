@@ -16,3 +16,4 @@ delegated to modules like ``CustomizableWidgets`` and ``CustomizeMode``.
    overflowable-toolbar
    panelmultiview
    search-widget-tracker
+   toolbar-context-menu
