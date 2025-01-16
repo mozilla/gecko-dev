@@ -13,8 +13,8 @@
 == indeterminate-selector.html indeterminate-selector-ref.html
 == checkbox-baseline.html checkbox-baseline-ref.html
 == checkbox-radio-color.html checkbox-radio-color-ref.html
-fuzzy(0-1,0-3) == checkbox-clamp-01.html checkbox-clamp-01-ref.html # Rounded corner anti-aliasing
-fuzzy(0-1,0-3) == checkbox-clamp-02.html checkbox-clamp-02-ref.html
+== checkbox-clamp-01.html checkbox-clamp-01-ref.html
+== checkbox-clamp-02.html checkbox-clamp-02-ref.html
 != checkbox-minimum-size.html checkbox-minimum-size-notref.html
 
 pref(ui.accentcolor,"#3daee9") pref("ui.accentcolortext","white") == accent-color-accentcolor.html accent-color-accentcolor-ref.html

@@ -87,7 +87,7 @@ static const CSSCoord kRangeHeight = 6.0f;
 static const CSSCoord kProgressbarHeight = 6.0f;
 static const CSSCoord kMeterHeight = 12.0f;
 
-static constexpr CSSCoord kCheckboxRadioBorderWidth = 1.0f;
+static constexpr CSSCoord kCheckboxRadioBorderWidth = 2.0f;
 static constexpr CSSCoord kCheckboxRadioSize = 14.0f;
 
 static constexpr sRGBColor sTransparent = sRGBColor::White(0.0);
@@ -653,10 +653,12 @@ void Theme::PaintRadioControl(PaintBackendData& aPaintData,
 
   if (aState.HasState(ElementState::CHECKED)) {
     LayoutDeviceRect rect(aRect);
-    // Make the inner white dot take half of the checkbox.
-    rect.Deflate(rect.width * 0.25);
-    PaintStrokedCircle(aPaintData, rect, checkColor, sTransparent, 0,
-                       aDpiRatio);
+    auto width = LayoutDeviceCoord(
+        ThemeDrawing::SnapBorderWidth(kCheckboxRadioBorderWidth, aDpiRatio));
+    rect.Deflate(width);
+
+    PaintStrokedCircle(aPaintData, rect, backgroundColor, checkColor,
+                       kCheckboxRadioBorderWidth, aDpiRatio);
   }
 
   if (aState.HasState(ElementState::FOCUSRING)) {

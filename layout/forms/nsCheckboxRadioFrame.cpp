@@ -93,8 +93,7 @@ Maybe<nscoord> nsCheckboxRadioFrame::GetNaturalBaselineBOffset(
   // For "inverted" lines (typically in writing-mode:vertical-lr), use the
   // block-start end instead.
   // See kCheckboxRadioBorderWidth in Theme.cpp
-  CSSCoord border = PresContext()->Theme()->GetCheckboxRadioBorderWidth();
-  auto bp = CSSPixel::ToAppUnits(Style()->EffectiveZoom().Zoom(border));
+  auto bp = CSSPixel::ToAppUnits(Style()->EffectiveZoom().Zoom(2.0f));
   return Some(aWM.IsLineInverted() ? std::min(bp, BSize(aWM))
                                    : std::max(0, BSize(aWM) - bp));
 }

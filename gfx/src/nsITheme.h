@@ -43,8 +43,12 @@ class IpcResourceUpdateQueue;
 
 // IID for the nsITheme interface
 // {7329f760-08cb-450f-8225-dae729096dec}
-#define NS_ITHEME_IID \
-  {0x7329f760, 0x08cb, 0x450f, {0x82, 0x25, 0xda, 0xe7, 0x29, 0x09, 0x6d, 0xec}}
+#define NS_ITHEME_IID                                \
+  {                                                  \
+    0x7329f760, 0x08cb, 0x450f, {                    \
+      0x82, 0x25, 0xda, 0xe7, 0x29, 0x09, 0x6d, 0xec \
+    }                                                \
+  }
 
 /**
  * nsITheme is a service that provides platform-specific native
@@ -156,11 +160,6 @@ class nsITheme : public nsISupports {
    */
   virtual mozilla::CSSCoord GetCheckboxRadioPrefSize() {
     return mozilla::CSSCoord(9.0f);
-  }
-
-  /** Get the border width of a checkbox / radio button. */
-  virtual mozilla::CSSCoord GetCheckboxRadioBorderWidth() {
-    return mozilla::CSSCoord(1.0f);
   }
 
   /**
