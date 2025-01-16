@@ -4946,12 +4946,17 @@
       if (tabs.some(tab => tab.selected)) {
         // Unloading the currently selected tab.
         // Need to select a different one before unloading.
+        // Avoid selecting any tab we're unloading now or
+        // any tab that is already unloaded.
         unloadSelectedTab = true;
-        let newTab = this._findTabToBlurTo(this.selectedTab, tabs);
+        const tabsToExclude = tabs.concat(
+          this.tabContainer.allTabs.filter(tab => !tab.linkedPanel)
+        );
+        let newTab = this._findTabToBlurTo(this.selectedTab, tabsToExclude);
         if (newTab) {
           this.selectedTab = newTab;
-        } else if (FirefoxViewHandler.tab) {
-          // probably unloading all tabs - show Firefox View
+        } else {
+          // all tabs are unloaded - show Firefox View
           FirefoxViewHandler.openTab("opentabs");
           allTabsUnloaded = true;
         }

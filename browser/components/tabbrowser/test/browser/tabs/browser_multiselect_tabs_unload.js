@@ -164,6 +164,105 @@ add_task(async function test_unload_selected_tab() {
   await BrowserTestUtils.removeTab(tab1);
 });
 
+add_task(async function test_unload_selected_tab_switches_to_loaded_tab() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.unloadTabInContextMenu", true]],
+  });
+
+  let [tab1, tab2, tab3] = await addBrowserTabs(3);
+
+  let menuItemUnload = document.getElementById("context_unloadTab");
+
+  await BrowserTestUtils.switchTab(gBrowser, tab1);
+  updateTabContextMenu(tab2);
+  ok(!menuItemUnload.hidden, "Unload Tab is visible");
+  {
+    let menu = await openTabMenuFor(tab2);
+    let menuHiddenPromise = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+    menu.activateItem(menuItemUnload);
+    await menuHiddenPromise;
+  }
+  await TestUtils.waitForCondition(
+    () => !tab2.linkedPanel,
+    "Wait for Tab2 to be unloaded"
+  );
+
+  updateTabContextMenu(tab1);
+  ok(!menuItemUnload.hidden, "Unload Tab is visible");
+  {
+    let menu = await openTabMenuFor(tab1);
+    let menuHiddenPromise = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+    menu.activateItem(menuItemUnload);
+    await menuHiddenPromise;
+  }
+  await TestUtils.waitForCondition(
+    () => !tab1.linkedPanel,
+    "Wait for Tab1 to be unloaded"
+  );
+
+  is(gBrowser.selectedTab, tab3, "Should select another loaded tab");
+
+  await BrowserTestUtils.removeTab(tab3);
+  await BrowserTestUtils.removeTab(tab2);
+  await BrowserTestUtils.removeTab(tab1);
+});
+
+add_task(
+  async function test_unload_selected_tab_with_no_others_loaded_switches_to_firefoxview() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.tabs.unloadTabInContextMenu", true]],
+    });
+
+    let originalTab = gBrowser.selectedTab;
+    let [tab1] = await addBrowserTabs(1);
+
+    let menuItemUnload = document.getElementById("context_unloadTab");
+
+    await BrowserTestUtils.switchTab(gBrowser, tab1);
+    updateTabContextMenu(originalTab);
+    ok(!menuItemUnload.hidden, "Unload Tab is visible");
+    {
+      let menu = await openTabMenuFor(originalTab);
+      let menuHiddenPromise = BrowserTestUtils.waitForPopupEvent(
+        menu,
+        "hidden"
+      );
+      menu.activateItem(menuItemUnload);
+      await menuHiddenPromise;
+    }
+    await TestUtils.waitForCondition(
+      () => !originalTab.linkedPanel,
+      "Wait for original tab to be unloaded"
+    );
+
+    updateTabContextMenu(tab1);
+    ok(!menuItemUnload.hidden, "Unload Tab is visible");
+    {
+      let menu = await openTabMenuFor(tab1);
+      let menuHiddenPromise = BrowserTestUtils.waitForPopupEvent(
+        menu,
+        "hidden"
+      );
+      menu.activateItem(menuItemUnload);
+      await menuHiddenPromise;
+    }
+    await TestUtils.waitForCondition(
+      () => !tab1.linkedPanel,
+      "Wait for Tab1 to be unloaded"
+    );
+
+    is(
+      gBrowser.selectedTab,
+      FirefoxViewHandler.tab,
+      "Should select Firefox View"
+    );
+
+    await BrowserTestUtils.removeTab(tab1);
+    // Switch back to the original tab so as not to mess up subsequent tests
+    await BrowserTestUtils.switchTab(gBrowser, originalTab);
+  }
+);
+
 add_task(async function test_unload_all_tabs() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.tabs.unloadTabInContextMenu", true]],
