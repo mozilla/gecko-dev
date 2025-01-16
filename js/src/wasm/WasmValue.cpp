@@ -124,7 +124,7 @@ bool CheckFuncRefValue(JSContext* cx, HandleValue v, MutableHandleAnyRef vp) {
     JSObject& obj = v.toObject();
     if (obj.is<JSFunction>()) {
       JSFunction* f = &obj.as<JSFunction>();
-      if (IsWasmExportedFunction(f)) {
+      if (f->isWasm()) {
         vp.set(AnyRef::fromJSObject(*f));
         return true;
       }

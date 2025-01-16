@@ -173,10 +173,7 @@ bool Table::getFuncRef(JSContext* cx, uint32_t address,
 
   Instance& instance = *elem.instance;
   const CodeRange& codeRange = *instance.code().lookupFuncRange(elem.code);
-
-  Rooted<WasmInstanceObject*> instanceObj(cx, instance.object());
-  return instanceObj->getExportedFunction(cx, instanceObj,
-                                          codeRange.funcIndex(), fun);
+  return instance.getExportedFunction(cx, codeRange.funcIndex(), fun);
 }
 
 void Table::setFuncRef(uint32_t address, JSFunction* fun) {
@@ -188,13 +185,7 @@ void Table::setFuncRef(uint32_t address, JSFunction* fun) {
   // must set the element to the function's underlying
   // CodeRange.funcCheckedCallEntry and Instance so that Table.get()s always
   // produce the same function object as was imported.
-  WasmInstanceObject* instanceObj = ExportedFunctionToInstanceObject(fun);
-  Instance& instance = instanceObj->instance();
-  uint8_t* codeRangeBase;
-  const CodeRange* codeRange;
-  instanceObj->getExportedFunctionCodeRange(fun, &codeRange, &codeRangeBase);
-  void* code = codeRangeBase + codeRange->funcCheckedCallEntry();
-  setFuncRef(address, code, &instance);
+  setFuncRef(address, fun->wasmCheckedCallEntry(), &fun->wasmInstance());
 }
 
 void Table::setFuncRef(uint32_t address, void* code, Instance* instance) {
@@ -228,23 +219,8 @@ void Table::fillFuncRef(uint32_t address, uint32_t fillCount, FuncRef ref,
   }
 
   RootedFunction fun(cx, ref.asJSFunction());
-  MOZ_RELEASE_ASSERT(IsWasmExportedFunction(fun));
-
-  Rooted<WasmInstanceObject*> instanceObj(
-      cx, ExportedFunctionToInstanceObject(fun));
-  uint32_t funcIndex = ExportedFunctionToFuncIndex(fun);
-
-#ifdef DEBUG
-  RootedFunction f(cx);
-  MOZ_ASSERT(instanceObj->getExportedFunction(cx, instanceObj, funcIndex, &f));
-  MOZ_ASSERT(fun == f);
-#endif
-
-  Instance& instance = instanceObj->instance();
-  const CodeBlock& codeBlock = instance.code().funcCodeBlock(funcIndex);
-  const CodeRange& codeRange =
-      codeBlock.codeRange(codeBlock.lookupFuncExport(funcIndex));
-  void* code = codeBlock.segment->base() + codeRange.funcCheckedCallEntry();
+  void* code = fun->wasmCheckedCallEntry();
+  Instance& instance = fun->wasmInstance();
   for (uint32_t i = address, end = address + fillCount; i != end; i++) {
     setFuncRef(i, code, &instance);
   }

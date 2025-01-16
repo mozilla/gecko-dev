@@ -7237,7 +7237,7 @@ bool js::IsAsmJSStrictModeModuleOrFunction(JSFunction* fun) {
   }
 
   if (IsAsmJSFunction(fun)) {
-    return ExportedFunctionToInstance(fun).codeMetaForAsmJS()->asAsmJS().strict;
+    return fun->wasmInstance().codeMetaForAsmJS()->asAsmJS().strict;
   }
 
   return false;
@@ -7342,9 +7342,9 @@ JSString* js::AsmJSFunctionToString(JSContext* cx, HandleFunction fun) {
   MOZ_ASSERT(IsAsmJSFunction(fun));
 
   const CodeMetadataForAsmJSImpl& codeMetaForAsmJS =
-      ExportedFunctionToInstance(fun).codeMetaForAsmJS()->asAsmJS();
+      fun->wasmInstance().codeMetaForAsmJS()->asAsmJS();
   const AsmJSExport& f =
-      codeMetaForAsmJS.lookupAsmJSExport(ExportedFunctionToFuncIndex(fun));
+      codeMetaForAsmJS.lookupAsmJSExport(fun->wasmFuncIndex());
 
   uint32_t begin = codeMetaForAsmJS.srcStart + f.startOffsetInModule();
   uint32_t end = codeMetaForAsmJS.srcStart + f.endOffsetInModule();

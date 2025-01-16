@@ -641,6 +641,9 @@ class CodeBlock {
     return pc >= base() && pc < (base() + length());
   }
 
+  const CodeRange& codeRange(uint32_t funcIndex) const {
+    return codeRanges[funcToCodeRange[funcIndex]];
+  }
   const CodeRange& codeRange(const FuncExport& funcExport) const {
     return codeRanges[funcToCodeRange[funcExport.funcIndex()]];
   }
@@ -908,10 +911,12 @@ class JumpTables {
     MOZ_ASSERT(jit_.get()[i]);
     return &jit_.get()[i];
   }
-  size_t funcIndexFromJitEntry(void** target) const {
+  uint32_t funcIndexFromJitEntry(void** target) const {
     MOZ_ASSERT(target >= &jit_.get()[0]);
     MOZ_ASSERT(target <= &(jit_.get()[numFuncs_ - 1]));
-    return (intptr_t*)target - (intptr_t*)&jit_.get()[0];
+    size_t index = (intptr_t*)target - (intptr_t*)&jit_.get()[0];
+    MOZ_ASSERT(index < wasm::MaxFuncs);
+    return (uint32_t)index;
   }
 
   void setTieringEntry(size_t i, void* target) const {
@@ -1090,7 +1095,9 @@ class Code : public ShareableBase<Code> {
   void** getAddressOfJitEntry(size_t i) const {
     return jumpTables_.getAddressOfJitEntry(i);
   }
-  uint32_t getFuncIndex(JSFunction* fun) const;
+  uint32_t funcIndexFromJitEntry(void** jitEntry) const {
+    return jumpTables_.funcIndexFromJitEntry(jitEntry);
+  }
 
   uint8_t* trapCode() const { return trapCode_; }
 
@@ -1148,6 +1155,12 @@ class Code : public ShareableBase<Code> {
   }
   Tier funcTier(uint32_t funcIndex) const {
     return funcCodeBlock(funcIndex).tier();
+  }
+  void funcCodeRange(uint32_t funcIndex, const wasm::CodeRange** range,
+                     uint8_t** codeBase) const {
+    const CodeBlock& codeBlock = funcCodeBlock(funcIndex);
+    *range = &codeBlock.codeRanges[codeBlock.funcToCodeRange[funcIndex]];
+    *codeBase = codeBlock.segment->base();
   }
 
   const LinkData* codeBlockLinkData(const CodeBlock& block) const;

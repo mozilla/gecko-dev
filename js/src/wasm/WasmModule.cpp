@@ -400,15 +400,11 @@ bool Module::instantiateFunctions(JSContext* cx,
     }
 
     JSFunction* f = &funcImports[i]->as<JSFunction>();
-    if (!IsWasmExportedFunction(f)) {
+    if (!f->isWasm()) {
       continue;
     }
 
-    uint32_t funcIndex = ExportedFunctionToFuncIndex(f);
-    Instance& instance = ExportedFunctionToInstance(f);
-
-    const TypeDef& exportFuncType =
-        instance.code().codeMeta().getFuncTypeDef(funcIndex);
+    const TypeDef& exportFuncType = *f->wasmTypeDef();
     const TypeDef& importFuncType = code().codeMeta().getFuncTypeDef(i);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
@@ -770,7 +766,7 @@ static bool GetFunctionExport(JSContext* cx,
   if (funcIndex < funcImports.length() &&
       funcImports[funcIndex]->is<JSFunction>()) {
     JSFunction* f = &funcImports[funcIndex]->as<JSFunction>();
-    if (IsWasmExportedFunction(f)) {
+    if (f->isWasm()) {
       func.set(f);
       return true;
     }

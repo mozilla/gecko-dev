@@ -1271,14 +1271,6 @@ bool Code::initialize(FuncImportVector&& funcImports,
   return true;
 }
 
-uint32_t Code::getFuncIndex(JSFunction* fun) const {
-  MOZ_ASSERT(fun->isWasm() || fun->isAsmJSNative());
-  if (!fun->isWasmWithJitEntry()) {
-    return fun->wasmFuncIndex();
-  }
-  return jumpTables_.funcIndexFromJitEntry(fun->wasmJitEntry());
-}
-
 Tiers Code::completeTiers() const {
   if (hasCompleteTier2_) {
     return Tiers(completeTier1_->tier(), completeTier2_->tier());

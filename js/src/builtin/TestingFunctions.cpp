@@ -1635,7 +1635,7 @@ static bool WasmLosslessInvoke(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   RootedFunction func(cx, &args[0].toObject().as<JSFunction>());
-  if (!func || !wasm::IsWasmExportedFunction(func)) {
+  if (!func || !func->isWasm()) {
     JS_ReportErrorASCII(cx, "argument is not an exported wasm function");
     return false;
   }
@@ -1644,8 +1644,8 @@ static bool WasmLosslessInvoke(JSContext* cx, unsigned argc, Value* vp) {
   AutoRealm ar(cx, func);
 
   // Get the instance and funcIndex for calling the function
-  wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
-  uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
+  wasm::Instance& instance = func->wasmInstance();
+  uint32_t funcIndex = func->wasmFuncIndex();
 
   // Set up a modified call frame following the standard JS
   // [callee, this, arguments...] convention.
@@ -1795,8 +1795,7 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     sprinter.printf("; backend=wasm\n");
 
     js::wasm::Instance& inst = fun->wasmInstance();
-    const js::wasm::Code& code = inst.code();
-    const uint32_t funcIndex = code.getFuncIndex(&*fun);
+    const uint32_t funcIndex = fun->wasmFuncIndex();
     const js::wasm::CodeBlock& codeBlock = inst.code().funcCodeBlock(funcIndex);
     const js::wasm::CodeSegment& segment = *codeBlock.segment;
     const js::wasm::FuncExport& func = codeBlock.lookupFuncExport(funcIndex);
@@ -1990,8 +1989,8 @@ static bool DisassembleIt(JSContext* cx, bool asString, MutableHandleValue rval,
 static bool WasmDisassembleFunction(JSContext* cx, const HandleFunction& func,
                                     HandleValue tierSelection, bool asString,
                                     MutableHandleValue rval) {
-  wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
-  uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
+  wasm::Instance& instance = func->wasmInstance();
+  uint32_t funcIndex = func->wasmFuncIndex();
   wasm::Tier tier;
 
   if (!ComputeTier(cx, instance.code(), tierSelection, &tier)) {
@@ -2102,7 +2101,7 @@ static bool WasmDisassemble(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   RootedFunction func(cx, args[0].toObject().maybeUnwrapIf<JSFunction>());
-  if (func && wasm::IsWasmExportedFunction(func)) {
+  if (func && func->isWasm()) {
     return WasmDisassembleFunction(cx, func, tierSelection, asString,
                                    args.rval());
   }
@@ -2137,9 +2136,9 @@ static bool WasmFunctionTier(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   RootedFunction func(cx, args[0].toObject().maybeUnwrapIf<JSFunction>());
-  if (func && wasm::IsWasmExportedFunction(func)) {
-    uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
-    wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
+  if (func && func->isWasm()) {
+    uint32_t funcIndex = func->wasmFuncIndex();
+    wasm::Instance& instance = func->wasmInstance();
     if (funcIndex < instance.code().funcImports().length()) {
       JS_ReportErrorASCII(cx, "argument is an imported function");
       return false;
