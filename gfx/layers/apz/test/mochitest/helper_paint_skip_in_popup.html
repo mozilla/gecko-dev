@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src='/tests/SimpleTest/paint_listener.js'></script>
+<script src='apz_test_utils.js'></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropdown with 1000 Random Items</title>
+</head>
+<body>
+    <h1>Dropdown with 1000 Random Elements</h1>
+    <select id="randomDropdown">
+    </select>
+
+    <script>
+        // Generate 100 random items and populate the dropdown
+        const dropdown = document.getElementById('randomDropdown');
+
+        for (let i = 1; i <= 100; i++) {
+            const option = document.createElement('option');
+            option.value = `Item${i}`;
+            option.textContent = `Random Item ${i}: ${Math.random().toFixed(5)}`;
+            dropdown.appendChild(option);
+        }
+    </script>
+</body>
+<script>
+  // Silence SimpleTest warning about missing assertions by having it wait
+  // indefinitely.
+  SimpleTest.waitForExplicitFinish();
+</script>
+</html>

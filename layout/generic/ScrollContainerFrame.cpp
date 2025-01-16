@@ -3160,7 +3160,7 @@ void ScrollContainerFrame::ScrollToImpl(
           schedulePaint = false;
           PAINT_SKIP_LOG("Skipping due to APZ scroll\n");
         } else if (mScrollableByAPZ) {
-          nsIWidget* widget = presContext->GetNearestWidget();
+          nsIWidget* widget = GetNearestWidget();
           WindowRenderer* renderer =
               widget ? widget->GetWindowRenderer() : nullptr;
           if (renderer) {
