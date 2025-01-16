@@ -28,6 +28,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "shortcutsPref",
   "browser.ml.chat.shortcuts"
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "sidebarRevampPref",
+  "sidebar.revamp"
+);
 
 ChromeUtils.defineLazyGetter(
   lazy,
@@ -251,6 +256,7 @@ var browserPromise = new Promise((resolve, reject) => {
       opened: true,
       provider: lazy.GenAI.getProviderId(),
       reason: "load",
+      version: lazy.sidebarRevampPref ? "new" : "old",
     });
   });
 });
@@ -261,6 +267,7 @@ addEventListener("unload", () => {
     opened: false,
     provider: lazy.GenAI.getProviderId(),
     reason: "unload",
+    version: lazy.sidebarRevampPref ? "new" : "old",
   });
 });
 

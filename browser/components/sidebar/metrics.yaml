@@ -285,6 +285,9 @@ history:
       opened:
         type: boolean
         description: Whether the panel was opened.
+      version:
+        type: string
+        description: The active version of sidebar (either "old" or "new").
 synced_tabs:
   sidebar_toggle:
     type: event
@@ -308,6 +311,9 @@ synced_tabs:
       synced_tabs_loaded:
         type: boolean
         description: Whether synced tabs are showing.
+      version:
+        type: string
+        description: The active version of sidebar (either "old" or "new").
 bookmarks:
   sidebar_toggle:
     type: event
@@ -328,6 +334,9 @@ bookmarks:
       opened:
         type: boolean
         description: Whether the panel was opened.
+      version:
+        type: string
+        description: The active version of sidebar (either "old" or "new").
 extension:
   sidebar_toggle:
     type: event
@@ -354,6 +363,9 @@ extension:
       addon_name:
         type: string
         description: The localized name of the extension.
+      version:
+        type: string
+        description: The active version of sidebar (either "old" or "new").
 sidebar.customize:
   panel_toggle:
     type: event

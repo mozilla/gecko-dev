@@ -636,3 +636,6 @@ genai.chatbot:
       reason:
         type: string
         description: Why panel is toggling.
+      version:
+        type: string
+        description: The active version of sidebar (either "old" or "new").

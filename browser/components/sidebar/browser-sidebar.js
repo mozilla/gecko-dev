@@ -100,6 +100,7 @@ var SidebarController = {
             : undefined,
           gleanEvent: Glean.history.sidebarToggle,
           gleanClickEvent: Glean.sidebar.historyIconClick,
+          recordSidebarVersion: true,
         }),
       ],
       [
@@ -133,6 +134,7 @@ var SidebarController = {
           disabled: true,
           gleanEvent: Glean.bookmarks.sidebarToggle,
           gleanClickEvent: Glean.sidebar.bookmarksIconClick,
+          recordSidebarVersion: true,
         }),
       ],
     ]);
@@ -1611,14 +1613,18 @@ var SidebarController = {
   _recordPanelToggle(commandID, opened) {
     const sidebar = this.sidebars.get(commandID);
     const isExtension = sidebar && Object.hasOwn(sidebar, "extensionId");
+    const version = this.sidebarRevampEnabled ? "new" : "old";
     if (isExtension) {
       const addonId = sidebar.extensionId;
       const addonName = WebExtensionPolicy.getByID(addonId)?.name;
       Glean.extension.sidebarToggle.record({
         opened,
+        version,
         addon_id: AMTelemetry.getTrimmedString(addonId),
         addon_name: addonName && AMTelemetry.getTrimmedString(addonName),
       });
+    } else if (sidebar.gleanEvent && sidebar.recordSidebarVersion) {
+      sidebar.gleanEvent.record({ opened, version });
     } else if (sidebar.gleanEvent) {
       sidebar.gleanEvent.record({ opened });
     }
