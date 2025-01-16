@@ -30,24 +30,24 @@ prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 ["browser_quicksuggest_onboardingDialog.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl"] # Bug 1773830
 
+["browser_quicksuggest_ping_amp.js"]
+tags = "search-telemetry"
+
+["browser_quicksuggest_ping_merinoAndNullValues.js"]
+tags = "search-telemetry"
+
+["browser_quicksuggest_ping_wikipedia.js"]
+tags = "search-telemetry"
+
 ["browser_quicksuggest_pocket.js"]
 tags = "search-telemetry"
 
 ["browser_quicksuggest_yelp.js"]
 
-["browser_telemetry_gleanEmptyStrings.js"]
-tags = "search-telemetry"
-
 ["browser_telemetry_ingestTime.js"]
 tags = "search-telemetry"
 
-["browser_telemetry_nonsponsored.js"]
-tags = "search-telemetry"
-
 ["browser_telemetry_other.js"]
-tags = "search-telemetry"
-
-["browser_telemetry_sponsored.js"]
 tags = "search-telemetry"
 
 ["browser_telemetry_suggestMetrics.js"]

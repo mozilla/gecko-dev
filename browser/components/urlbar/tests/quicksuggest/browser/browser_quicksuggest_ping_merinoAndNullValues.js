@@ -33,7 +33,7 @@ const position = index + 1;
 requestLongerTimeout(3);
 
 add_setup(async function () {
-  await setUpTelemetryTest({
+  await initQuickSuggestPingTest({
     merinoSuggestions: [MERINO_RESULT],
   });
 });
@@ -42,12 +42,26 @@ add_task(async function () {
   let matchType = "firefox-suggest";
   let source = "merino";
 
-  await doTelemetryTest({
+  await doQuickSuggestPingTest({
     index,
     suggestion: MERINO_RESULT,
-    // impression-only
     impressionOnly: {
-      ping: {
+      pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+      matchType,
+      advertiser: MERINO_RESULT.advertiser,
+      blockId: MERINO_RESULT.block_id.toString(),
+      improveSuggestExperience: true,
+      position,
+      suggestedIndex: "-1",
+      suggestedIndexRelativeToGroup: true,
+      requestId: MerinoTestUtils.server.response.body.request_id,
+      source,
+      contextId: "",
+      isClicked: false,
+      reportingUrl: MERINO_RESULT.impression_url,
+    },
+    click: [
+      {
         pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
         matchType,
         advertiser: MERINO_RESULT.advertiser,
@@ -59,46 +73,25 @@ add_task(async function () {
         requestId: MerinoTestUtils.server.response.body.request_id,
         source,
         contextId: "",
-        isClicked: false,
+        isClicked: true,
         reportingUrl: MERINO_RESULT.impression_url,
       },
-    },
-    // click
-    click: {
-      pings: [
-        {
-          pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-          matchType,
-          advertiser: MERINO_RESULT.advertiser,
-          blockId: MERINO_RESULT.block_id.toString(),
-          improveSuggestExperience: true,
-          position,
-          suggestedIndex: "-1",
-          suggestedIndexRelativeToGroup: true,
-          requestId: MerinoTestUtils.server.response.body.request_id,
-          source,
-          contextId: "",
-          isClicked: true,
-          reportingUrl: MERINO_RESULT.impression_url,
-        },
-        {
-          pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
-          matchType,
-          advertiser: MERINO_RESULT.advertiser,
-          blockId: MERINO_RESULT.block_id.toString(),
-          improveSuggestExperience: true,
-          position,
-          suggestedIndex: "-1",
-          suggestedIndexRelativeToGroup: true,
-          requestId: MerinoTestUtils.server.response.body.request_id,
-          source,
-          contextId: "",
-          reportingUrl: MERINO_RESULT.click_url,
-        },
-      ],
-    },
+      {
+        pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
+        matchType,
+        advertiser: MERINO_RESULT.advertiser,
+        blockId: MERINO_RESULT.block_id.toString(),
+        improveSuggestExperience: true,
+        position,
+        suggestedIndex: "-1",
+        suggestedIndexRelativeToGroup: true,
+        requestId: MerinoTestUtils.server.response.body.request_id,
+        source,
+        contextId: "",
+        reportingUrl: MERINO_RESULT.click_url,
+      },
+    ],
     commands: [
-      // dismiss
       {
         command: "dismiss",
         pings: [
@@ -133,7 +126,6 @@ add_task(async function () {
           },
         ],
       },
-      // manage
       {
         command: "manage",
         pings: [
