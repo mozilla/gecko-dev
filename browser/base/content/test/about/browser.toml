@@ -15,6 +15,18 @@ support-files = [
 
 ["browser_aboutCertError_clockSkew.js"]
 
+["browser_aboutCertError_corp.js"]
+support-files = [
+  "sandbox_corp_iframe.sjs",
+  "sandbox_corp_popup.html",
+]
+skip-if = [
+  # Intermittent on Debug and TSAN
+  "verify && debug && os == 'linux'",
+  "verify && tsan && os == 'linux'",
+  "verify && debug && os == 'win'",
+]
+
 ["browser_aboutCertError_exception.js"]
 
 ["browser_aboutCertError_mitm.js"]
