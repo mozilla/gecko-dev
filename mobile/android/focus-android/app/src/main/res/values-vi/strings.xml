@@ -515,10 +515,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Đóng</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Chào mừng đến với %1$s</string>
 
@@ -838,7 +835,7 @@
     <string name="studies_learn_more">Tìm hiểu thêm</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Ứng dụng sẽ thoát để áp dụng các thay đổi</string>
+    <string name="studies_restart_app" moz:removedIn="135">Ứng dụng sẽ thoát để áp dụng các thay đổi</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Xóa</string>
@@ -1118,11 +1115,6 @@
     <string name="promote_search_widget_snackbar_message">Đã thêm widget vào màn hình chính</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Kéo từ trên xuống &amp; sử dụng cử chỉ quay lại để thoát</string>

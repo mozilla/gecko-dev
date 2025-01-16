@@ -172,11 +172,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Интернетпен байланыс жоқ</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Интернет байланысыңызда мәселе бар сияқты</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Желілік байланысты тексеріңіз немесе біраздан кейін бетті қайта жүктеп көріңіз.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Басқа құрылғыда байланысып көріңіз. Модемді немесе маршрутизаторды тексеріңіз. Wi-Fi желісіне байланысты ажыратып, оған қайта қосылыңыз.</string>
 

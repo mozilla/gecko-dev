@@ -198,11 +198,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Alcuna cunnessione internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Pare ch’ella ci sia un prublema cù a vostra cunnessione internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Verificate a vostra cunnessione internet o pruvate di ricaricà a pagina da quì à pocu.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Pruvate di cunnettevi nant’à un altru apparechju. Verificate u vostru modem o « router ». Discunnittitevi è ricunnittitevi à u Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

@@ -48,10 +48,6 @@
     <string name="browser_menu_refresh">Agiorna</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Ferma</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Conponenti azonti</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Nisciun conponente azonto</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Agiutto</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -64,8 +60,6 @@
     <string name="browser_menu_desktop_site">Scito desktop</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Azonzi a-a Pagina Prinçipâ</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Installa</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">Treuva in pagina</string>
     <!-- Browser menu button that saves the current tab to a collection -->
@@ -96,9 +90,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Çerca lengoa</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Scanscionn-a</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Inpostaçioin motô de riçerca</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -142,8 +133,6 @@
     <string name="preferences_category_advanced">Avansæ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privacy e seguessa</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Permisso do scito</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Navegaçion privâ</string>
     <!-- Preference for opening links in a private tab-->
@@ -160,8 +149,6 @@
     <string name="preferences_override_sync_tokenserver">Server personalizou pe Sync</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Conto</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Bara di atressi</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Tema</string>
     <!-- Preference for settings related to visual options -->
@@ -193,10 +180,6 @@
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Arvi colegamenti inte app</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Conponenti azonti</string>
-
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">Scincronizza oua</string>
     <!-- Preference category for sync -->
@@ -205,8 +188,6 @@
     <string name="preferences_sync_history">Stöia</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Segnalibbri</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Acessi</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Feuggi averti</string>
     <!-- Preference for signing out -->
@@ -234,7 +215,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Feuggi reçevui</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Notifiche pe-i feuggi reçevue da atri dispoxitivi Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Notifiche pe-i feuggi reçevue da atri dispoxitivi Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Feuggio reçevuo</string>
     <!-- %s is the device name -->
@@ -251,7 +232,7 @@
     <string name="exceptions_empty_message_learn_more_link">Atre informaçioin</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Dæti tecnichi e statistiche d\'uzo</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dæti tecnichi e statistiche d\'uzo</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Condividdi con Mozilla informaçioin in sce prestaçioin, uzo, hardware e personalizaçioin do navegatô pe contribuî a-o megioamento de %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -306,9 +287,9 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Feuggi averti</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Feuggi averti</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Feuggi privæ</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Feuggi privæ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Azonzi feuggio</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -337,7 +318,7 @@
     <!-- Text for the button to open tabs of the selected collection -->
     <string name="collection_open_tabs">Arvi Feuggi</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">Scancella</string>
+    <string name="remove_top_site">Scancella</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
     <string name="pwa_site_controls_title_private">%1$s (mòddo navegaçion privâ)</string>
 
@@ -377,8 +358,6 @@
     <string name="bookmark_delete_folder_confirmation_dialog">T\'ê seguo de voei scancelâ sta cartella?</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Azonzi cartella</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Segnalibbro sarvou!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">CANGIA</string>
     <!-- Bookmark overflow menu edit button -->
@@ -543,7 +522,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Conetti atro dispoxitivo</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Pe mandâ un feuggio, intra into conto Firefox almeno inte \'n atro dispoxitivo.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Pe mandâ un feuggio, intra into conto Firefox almeno inte \'n atro dispoxitivo.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Ò capio!</string>
     <!-- Share error message -->
@@ -590,8 +569,6 @@
     <string name="tab_collection_dialog_message">T\'ê seguo de voei scancelâ %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Scancella</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Intra into mòddo a tutto schermo</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Indirisso copiou</string>
     <!-- Sample text for accessibility font size -->
@@ -646,9 +623,11 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">Scancella dæti navegaçion…</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">Sincronizaçion ativa</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">Feuggi mandæ!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -660,7 +639,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Scançionn-a o còdice</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Arvi Firefox in sciô computer e vanni chi <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Arvi Firefox in sciô computer e vanni chi <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Pronto pe-a scançion</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -717,8 +696,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Solo in feuggi privæ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Cryptominer</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Fingerprinter</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">Blocæ</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -735,10 +712,6 @@
     <string name="etp_cryptominers_title">Cryptominer</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Inpedisce a di script mascarsoin de acede a-o dispoxitivo pe fâ da moneta digitale.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Fingerprinter</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Blòcca l\'acugeita dæti identificativi univochi in sciô dispoxitivo e che peuan ese deuviæ pe traciate.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Contegnui che tracian</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -798,31 +771,13 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">Nomme scorsaieu</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">Acessi e poule segrete</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">Sarva acessi e poule segrete</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Domanda primma de sarvâ</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">No sarvâ mai</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">Scincronizza i acessi</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">Acessi sarvæ</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">I acessi che ti sarvi ò ti scincronizzi in %s saian mostræ chi.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">Ciù informaçioin in sce Sync.</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Eceçioin</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">I acessi e poule segrete che no en sarvæ saian mostræ chi.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">I acessi e poule segrete no saian sarvæ pe sti sciti.</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">Çerca inti acessi</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Scito</string>
     <!-- The header for the username for a login -->
@@ -842,12 +797,6 @@
     <string name="saved_login_reveal_password">Mostra poula segreta</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Ascondi poula segreta</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">Sblocca pe vedde i acessi sarvæ</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">Protezzi i acessi e poule segrete</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">Inpòsta \'na sequensa de blòcco, PIN ò poula segreta pe protezze i teu acessi e poule segrte sarvæ da ese arobæ da quarchedun ch\'o te piggia o dispoxitivo.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Dòppo</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -862,9 +811,6 @@
     <string name="saved_logins_sort_strategy_alphabetically">Nomme (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Urtimo deuviou</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">Òrdina menû di acessi</string>
 
     <!-- Title of the Add search engine screen -->
     <string name="search_engine_add_custom_search_engine_title">Azonzi motô de riçerca</string>
@@ -922,24 +868,8 @@
     <string name="login_menu_delete_button">Scancella</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Cangia</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">T\'ê seguo de voei scancelâ st\'acesso?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Scancella</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">Inpostaçioin acessi</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">O canpo de testo cangiabile pe l\'indirisso de acesso.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">O canpo de testo cangiabile pe-o nomme utente de acesso.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">O canpo de testo cangiabile pe-a poula segreta de acesso.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">Sarva i cangiamenti a-i acessi</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">Cangia</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">Me serve a paròlla segreta</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">Çerca co-a voxe</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -953,7 +883,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Pe piaxei ativa a scincroniaçion di feuggi.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">No ti gh\'æ feuggi averti in Firefox inti atri dispoxitivi.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">No ti gh\'æ feuggi averti in Firefox inti atri dispoxitivi.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Amia \'na lista de tutti i feuggi da-i atri dispoxitivi.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->

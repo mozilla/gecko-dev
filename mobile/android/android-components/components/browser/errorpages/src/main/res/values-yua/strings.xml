@@ -200,11 +200,7 @@
 	]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Mina\'an mix jump\'éel conexión ti\' internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Bey yaan jump\'éel talamil yéetel le conexión internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Béet wilik a conexión páawo\'ob wa k\'aax u k\'a\' kuuch le linki abas kaambal ti\' jump\'éel pocos súutuko\'ob.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">K\'aax u conectar ti\' jump\'éel nu\'ukulil jela\'an. Ilawil a módem wa a router. Desconecte yéetel k\'a\' conectar ti\' Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

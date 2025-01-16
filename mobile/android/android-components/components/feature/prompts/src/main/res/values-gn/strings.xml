@@ -103,8 +103,6 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">¿Eiporu ñe’ẽñemi oikóva?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Emo’ã ne mba’etekuéra eiporúvo ñe’ẽñemi hekorosãva oñemoheñóiva ijerére. Oñeñongatúta ne mba’etépe eiporu hag̃ua uperire.</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Emo’ã ne mba’etekuéra eiporúvo ñe’ẽñemi hekorosãva oñemoheñóiva ijerére. Oñeñongatúta ne mba’etépe eiporu hag̃ua uperire.</string>
 
     <!-- Pressing this will use the suggested strong password -->

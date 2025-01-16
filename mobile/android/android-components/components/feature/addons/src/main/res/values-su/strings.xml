@@ -186,9 +186,9 @@
     <string name="mozac_feature_addons_failed_to_translate">Tarjamahan teu kapanggih, pikeun daérah %1$s pon kitu ogé basa bawaan %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">Laksana masang %1$s</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Gagal masang %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Gagal masang ieu éksténsi.</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Ieu émboh teu bisa diundeur alatan gagal nyambung.</string>
@@ -198,8 +198,6 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Ieu émboh teu bisa dipasang alatan acan dipéripikasi.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s teu bisa dipasang alatan teu kompatibel jeung %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s teu bisa dipasang alatan gedé résikona ngabalukarkeun masalah kastabilan jeung kaamanan.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s teu bisa dipasang sabab ngan bisa dipasang ku organisasi maké kawijakan pausahaan, nu teu dirojong dina platform ieu.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -246,8 +244,6 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">HEUG</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Lenyepan</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s geus ditumpurkeun alatan masalah kaamanan atawa stabilitas.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s teu bisa dipéripikasi aman tur geus ditumpurkeun.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

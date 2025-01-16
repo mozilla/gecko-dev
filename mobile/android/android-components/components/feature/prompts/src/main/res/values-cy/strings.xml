@@ -106,9 +106,6 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">Defnyddio cyfrinair cryf?</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Gwarchodwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Diogelwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
 
     <!-- Pressing this will use the suggested strong password -->

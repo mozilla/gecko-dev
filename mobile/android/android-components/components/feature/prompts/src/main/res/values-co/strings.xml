@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Impiegà una parolla d’intesa forte ?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Prutigite u vostru contu impieghendu una parolla d’intesa forte è ingenerata à l’azardu. Serà arregistrata in u vostru contu per un aghjovu futuru.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Prutigite u vostru contu impieghendu una parolla d’intesa forte è ingenerata à l’azardu. Serà arregistrata in u vostru contu per un aghjovu futuru.</string>

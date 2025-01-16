@@ -84,7 +84,6 @@
     <string name="share_dialog_title">透過下列程式分享</string>
 
     <string name="notification_erase_title_android_14">要清除瀏覽紀錄嗎？</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">點擊或滑掉這則通知，即可安全地清除您的瀏覽紀錄。</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -516,10 +515,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">關閉</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">歡迎使用 %1$s</string>
 
@@ -840,7 +836,7 @@
     <string name="studies_learn_more">了解更多</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">應用程式將結束以套用變更</string>
+    <string name="studies_restart_app" moz:removedIn="135">應用程式將結束以套用變更</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">移除</string>
@@ -935,9 +931,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">切換</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">進入全螢幕模式</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">開啟鏈結後，立即切換到該分頁</string>
@@ -1123,11 +1116,6 @@
     <string name="promote_search_widget_snackbar_message">已將小工具新增至裝置主畫面</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">要離開全螢幕模式，從畫面頂端拖曳，並使用「返回」的手勢</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">要離開全螢幕模式，從畫面頂端拖曳，然後點擊「返回」</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">從畫面頂端向下拖曳，並使用回到上一頁的手勢離開</string>

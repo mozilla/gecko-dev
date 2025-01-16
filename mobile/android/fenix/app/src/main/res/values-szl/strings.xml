@@ -45,15 +45,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Spamiyntej ôbrane karty we kolekcyji</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Ôbrane</string>
-
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title">Ôstatnio spamiyntane</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2">Pokoż wszyske zokłodki</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove">Skasuj</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Ôbrane</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s produkuje Mozilla.</string>
@@ -83,12 +75,6 @@
     <string name="open_in_app_cfr_positive_button_text">Idź do sztalōnkōw</string>
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Ôdkoż</string>
-
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Nasza nojsiylniyjszo funkcyjo ôchrōny prywatności izoluje elymynty, co śledzōm miyndzy strōnami.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Przewiydz sie wiyncyj ô totalnyj ôchrōnie przed cookies</string>
 
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
@@ -128,9 +114,6 @@
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">Nowo prywatno karta</string>
 
-    <!-- Shortcut action to open Passwords screens -->
-    <string name="home_screen_shortcut_open_password_screen">Skrōt do haseł</string>
-
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
     <string name="recent_tabs_header">Idź nazod</string>
@@ -167,12 +150,8 @@
     <string name="browser_menu_refresh">Ôdświyż</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Sztopnij</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Rozszyrzynia</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Infōrmacyje ô kōncie</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Niy ma sam żodnych rozszyrzyń</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Pōmoc</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -187,8 +166,6 @@
     <string name="browser_menu_desktop_site">Wersyjo na kōmputry</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Przidej do dōmowego ekranu</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Instaluj</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Synchrōnizuj zaś</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -235,9 +212,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Szukej godki</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Skanuj</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Sztalōnki wyszukowarki</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -260,12 +234,8 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Tyn roz poszukej we:</string>
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Wyszukowarka %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Poznej swoja spersōnalizowano dōmowo strōna. Niydowne karty, zokłodki i wyniki wyszukowanio bydōm sie sam pokazować.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Witej we prywatniyjszym internecie</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -286,21 +256,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Zawrzij</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title">Powiadōmiynia pōmogajōm ci lepij używać aplikacyjo %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description">Synchrōnizuj karty miyndzy maszinami, regyruj pobraniami, zbiyrej dorady ô nojlepszym używaniu ôchrōny prywatności z aplikacyjōm %s, i jeszcze wiyncyj.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button">Dalij</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button">Niy teroz</string>
-
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" tools:ignore="UnusedResources">ô prywatności</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Nastow za bazowo przeglōndarka</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -355,8 +310,6 @@
     <string name="preferences_category_privacy_security">Prywatność i bezpieczyństwo</string>
 
 
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Dozwolyństwa strōn</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Prywatne przeglōndanie</string>
     <!-- Preference for opening links in a private tab-->
@@ -415,8 +368,6 @@
 
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Kōnto</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Posek z noczyniami</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Motyw</string>
     <!-- Preference for customizing the home screen -->
@@ -477,8 +428,6 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">Zawiyranie aplikacyje, coby przidać zmiany…</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Rozszyrzynia</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Powiadōmiynia</string>
 
@@ -487,9 +436,6 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">Niyprzizwolōne</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection">Włosno kolekcyjo rozszyrzyń</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">OK</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -500,14 +446,9 @@
     <string name="customize_addon_collection_user_hint">Posiedziciel kolekcyje (ID ôd używocza)</string>
 
 
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done">Kolekcyjo rozszyrzyń je zmiyniōno. Wyłōnczynie aplikacyji, coby przidać zmiany…</string>
-
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Idź nazod</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks">Niydowne zokłodki</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Niydowno nawiedzōne</string>
@@ -559,8 +500,6 @@
     <string name="preferences_sync_history">Historyjo</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Zokłodki</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Dane logowanio</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Ôtwarte karty</string>
     <!-- Preference for signing out -->
@@ -583,8 +522,6 @@
         The first parameter is the application name, the second is the device manufacturer name
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s na %2$s %3$s</string>
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">Kredytowe karty</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Adresy</string>
 
@@ -592,7 +529,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Przijynte karty</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Powiadōmiynia ô kartach przijyntych z inkszych maszin z aplikacyjōm Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Powiadōmiynia ô kartach przijyntych z inkszych maszin z aplikacyjōm Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Karta je przijynto</string>
     <!-- %s is the device name -->
@@ -610,7 +547,7 @@
 
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Dane techniczne i ô używaniu</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dane techniczne i ô używaniu</string>
 
 
     <!-- Preference description for usage and technical data collection -->
@@ -618,7 +555,8 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketingowe dane</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Udostympnio bazowe dane ô używaniu firmie Leanplum (naszymu dostowcy mobilnego marketingu)</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Udostympnio bazowe dane ô używaniu firmie Leanplum (naszymu dostowcy mobilnego marketingu)</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Badania</string>
     <!-- Summary for studies preferences -->
@@ -656,8 +594,6 @@
 
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Skryj posek z noczyniami przi przesuwaniu</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Przeciōng posek z noczyniami, coby przełōnczyć karty</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Przeciōng posek z noczyniami, coby ôdewrzić karty</string>
 
@@ -779,21 +715,21 @@
     <string name="studies_learn_more">Przewiydz sie wiyncyj</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikacyjo sie zawrzi, coby przidać zmiany</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikacyjo sie zawrzi, coby przidać zmiany</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Pociep</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Pociep</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Zawiyranie aplikacyje, coby przidać zmiany…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Zawiyranie aplikacyje, coby przidać zmiany…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Ôtwarte karty</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ôtwarte karty</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Prywatne karty</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Prywatne karty</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Synchrōnizowane karty</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synchrōnizowane karty</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Przidej karta</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -846,10 +782,8 @@
     <string name="collection_open_tabs">Ôdewrzij karty</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Miano kolekcyje</string>
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">Przemianuj</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">Skasuj</string>
+    <string name="remove_top_site">Skasuj</string>
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">Skasuj z historyje</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
@@ -916,8 +850,6 @@
     <string name="bookmark_delete_negative">Pociep</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Przidej katalog</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Zokłodka je spamiyntano</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDYTUJ</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1116,7 +1048,7 @@
     <string name="share_button_content_description">Udostympnij</string>
     <!-- Text for the Save to PDF feature in the share menu -->
     <string name="share_save_to_pdf">Spamiyntej za PDF</string>
-    <!-- Text for error message when generating a PDF file Text for error message when generating a PDF file. -->
+    <!-- Text for error message when generating a PDF file Text. -->
     <string name="unable_to_save_to_pdf_error">Niy szło wygynerować PDFa</string>
     <!-- Text for the print feature in the share and browser menu -->
     <string name="menu_print">Durkuj</string>
@@ -1143,7 +1075,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Połōncz inkszo maszina</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Coby posłać karta, zaloguj sie do Firefoxa aby na jednyj inkszyj maszinie.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Coby posłać karta, zaloguj sie do Firefoxa aby na jednyj inkszyj maszinie.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Rozumia</string>
 
@@ -1167,11 +1099,11 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox je gibki i prywatny</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox je gibki i prywatny</string>
 
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Nastow Firefox za bazowo przeglōndarka</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Nastow Firefox za bazowo przeglōndarka</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Sprōbuj prywatnego przeglōndanio</string>
 
@@ -1184,8 +1116,6 @@
     <string name="snackbar_tab_closed">Karta je zawarto</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Karty sōm zawarte</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Zokłodki sōm spamiyntane!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Przidane do skrōtōw!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1209,14 +1139,8 @@
     <string name="qr_scanner_dialog_invalid_ok">OK</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Na zicher chcesz skasować %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Jak skasujesz ta karta, to skasuje sie cołko kolekcyjo. Zawdy możesz stworzić nowe kolekcyje.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Skasować %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Skasuj</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Sztart trybu połnego ekranu</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Adresa je skopiowano</string>
     <!-- Sample text for accessibility font size -->
@@ -1262,8 +1186,6 @@
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Czas do skasowanio</string>
     <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Kasuje historyjo (społym z historyjōm synchrōnizowanōm na inkszych maszinach), cookies i inksze dane przeglōndanio.</string>
-    <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Kasuje historyjo (społym z historyjōm synchrōnizowanōm na inkszych maszinach)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
     <string name="delete_history_prompt_button_last_hour">Ôstatnio godzina</string>
@@ -1293,9 +1215,11 @@
     <!-- Text for the snackbar confirmation that the history group was deleted -->
     <string name="delete_history_group_snackbar">Grupa skasowano</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">Synchrōnizacyjo je załōnczōno</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">Karty sōm posłane!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -1307,7 +1231,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Skanuj kod</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Ôdewrzij Firefoxa na kōmputrze i idź na strōna <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Ôdewrzij Firefoxa na kōmputrze i idź na strōna <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Fertich, coby skanować</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1315,7 +1239,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Użyj lepij emaila</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Niy mosz kōnta? <u>Zrychtuj je</u>, coby synchrōnizować Firefoxa miyndzy maszinami.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Niy mosz kōnta? <u>Zrychtuj je</u>, coby synchrōnizować Firefoxa miyndzy maszinami.]]></string>
 
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s skōńczy sie synchrōnizować ze twojim kōntym, ale niy skasuje żodnych danych przeglōndanio na tyj maszinie.</string>
@@ -1376,8 +1300,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Ino we prywatnych kartach</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Elymynty, co fedrujōm kryptopiniōndze</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Elymynty, co rychtujōm ôdcisk ôd przeglōndarki</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detajle</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1402,10 +1324,6 @@
 
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Niy dowo ôszydnym skryptōm fedrować cyfrowych piniyndzy na twojij maszinie. </string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Elymynty, co rychtujōm ôdcisk ôd przeglōndarki</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Niy dowo zbiyrać danych ô twojij maszinie, z kerymi idzie jōm zidyntyfikować i użyć do śledzynio. </string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Śledzōnco zawartość</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
@@ -1453,10 +1371,6 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">Idzie leko przidać ta strōna na dōmowy ekran swojij masziny, coby mieć snadny dostymp i gibcyj przeglōndać internet choby bez aplikacyjo.</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">Dane logowanio i hasła</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">Spamiyntane dane logowanio i hasła</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Pytej sie przed spamiyntaniym</string>
     <!-- Preference option for never saving passwords in Fenix -->

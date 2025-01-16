@@ -175,11 +175,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Չկա կապակցում համացանցին</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Կարծես թե ձեր ինտերնետ կապի հետ կապված խնդիր կա</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Ստուգեք ձեր ցանցային կապակցումը կամ փորձեք կրկին բեռնել էջը մի քանի վայրկյանից:</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Փորձեք միանալ մեկ այլ սարքում: Ստուգեք ձեր մոդեմը կամ երթուղիչը: Կապախզեք և նորից միացեք Wi-Fi-ին:</string>
     <!-- The document title and heading of an error page. -->

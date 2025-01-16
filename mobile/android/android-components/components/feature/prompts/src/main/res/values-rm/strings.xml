@@ -102,8 +102,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utilisar in ferm pled-clav?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protegia tes contos cun utilisar in ferm pled-clav generà casualmain. El vegn memorisà en tes conto per al duvrar en l’avegnir.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protegia tes conto cun utilisar in ferm pled-clav generà casualmain. El vegn memorisà en tes conto per al duvrar en l’avegnir.</string>

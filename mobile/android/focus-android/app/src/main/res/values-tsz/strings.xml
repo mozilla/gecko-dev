@@ -53,6 +53,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Jurhikutakuaecharhu kentita </string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Pérakurhikwaecha</string>
     <string name="menu_about">Áamkuri</string>
     <string name="menu_help">Jahroap\'erakwa</string>
@@ -83,10 +84,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Ixusï kwankurhini</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Jirinhantskwa ampe mirikurhini</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -120,19 +117,19 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Focusiorhu jirinhantsi</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focusiorhu jirinhantsi</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Klariorhu jirinhantsi</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klariorhu jirinhantsi</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Focus Betarhu jirinhantsi</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Betarhu jirinhantsi</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Focus Nightlyrhu jirinhantsi </string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightlyrhu jirinhantsi </string>
 
     <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Kwatakwa &amp; Jískakwa</string>
@@ -497,10 +494,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Mikani</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Maruata je %1$s</string>
 
@@ -591,7 +585,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox jatsïrakurhini</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox jatsïrakurhini</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -603,23 +597,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s úakari pitsikurhini jimpoka <a href="%2$s"> úkata jarasti </a>Mozillaeri jinkoni ka máterueri úratarakuaecha.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s úakari pitsikurhini jimpoka <a href="%2$s"> úkata jarasti </a>Mozillaeri jinkoni ka máterueri úratarakuaecha.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Áamkuri tsïrimerakata jaki Mozilla jimpo eska na jinteka Mozilla, Firefox o %1$s jakankurhikwaecha o mitintskwaecha, Sánteru ampe <a href="%2$s">ixu exentakari</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Áamkuri tsïrimerakata jaki Mozilla jimpo eska na jinteka Mozilla, Firefox o %1$s jakankurhikwaecha o mitintskwaecha, Sánteru ampe <a href="%2$s">ixu exentakari</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Sánteru ampe marhuatakuaeri %1$s exentakari máteru úricha<a href="%2$s">jinkoni </a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Sánteru ampe marhuatakuaeri %1$s exentakari máteru úricha<a href="%2$s">jinkoni </a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s kwarhukperatiechani maruatasïnti énka Disconnect, Inc. táchani únka ixu <a href="%2$s">GNU mítikata jaka 3</a>, ka úakari exeni <a href="%3$s">ixu</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s kwarhukperatiechani maruatasïnti énka Disconnect, Inc. táchani únka ixu <a href="%2$s">GNU mítikata jaka 3</a>, ka úakari exeni <a href="%3$s">ixu</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Jakankurhikwa</string>
@@ -789,13 +783,13 @@
     <string name="preference_studies">Jurenkurikua</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Menhechani firefox jatsïraati jurenkuarikua ampe.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Menhechani firefox jatsïraati jurenkuarikua ampe.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Sánteru mítini</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Uratarakua mikurintaati jimpoka jimpankikurintaati</string>
+    <string name="studies_restart_app" moz:removedIn="135">Uratarakua mikurintaati jimpoka jimpankikurintaati</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Kéntitani</string>

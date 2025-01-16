@@ -85,7 +85,6 @@
     <string name="share_dialog_title">Kua´a jii</string>
 
     <string name="notification_erase_title_android_14">Xiná daa nnánukunu?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Kuaxin a xíín xina notificación sa naa a nnánukunu.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -124,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Nánuku ji Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Nánuku ji Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Nánuku ji Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Nánuku ji Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Nánuku ji Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Nánuku ji Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Nánuku ji Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Nánuku ji Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s taji kajinu.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s taji kajinu.</p>
 <p>Ni´ima kua iin nuu nánuku yu´u:
   <ul>
     <li>Nánuku jee kaka nuu ka̱a̱ ya´a</li>
@@ -517,10 +516,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Nakasɨ</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Kusɨɨ inidáni nkantanu nu %1$s</string>
 
@@ -609,7 +605,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Xinuun Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Xinuun Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -621,23 +617,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s kuvi ni´inuma jiee <a href="%2$s"> tutu xitu Mozilla </a> jíí da inka tutu código nune.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s kuvi ni´inuma jiee <a href="%2$s"> tutu xitu Mozilla </a> jíí da inka tutu código nune.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Ntu taji tutu xitu a xíín daa inka tutu xitu Mozilla a xíín inka vetiñu nuu noo\'o, vani kuviji logos a xiin sivɨ Mozilla, Firefox a xiin %1$s. Kuvi nani\'inu kue\'eka jiee  <a href="%2$s">ya\'a</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Ntu taji tutu xitu a xíín daa inka tutu xitu Mozilla a xíín inka vetiñu nuu noo\'o, vani kuviji logos a xiin sivɨ Mozilla, Firefox a xiin %1$s. Kuvi nani\'inu kue\'eka jiee  <a href="%2$s">ya\'a</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Código da fuente adicional %1$s íyo jíí <a href="%2$s"> licencias </a> nune jee kuvi sama código.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Código da fuente adicional %1$s íyo jíí <a href="%2$s"> licencias </a> nune jee kuvi sama código.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s ni´i lista ntɨ tuvi a taji Disconnect, Inc. jiee <a href="%2$s"> tutu xitu ntaka GNU v3 </a> jee kuvi nani´inuma <a href="%3$s"> ya´a </a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ni´i lista ntɨ tuvi a taji Disconnect, Inc. jiee <a href="%2$s"> tutu xitu ntaka GNU v3 </a> jee kuvi nani´inuma <a href="%3$s"> ya´a </a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Sivɨ</string>
@@ -829,13 +825,13 @@
     <string name="preference_studies">Estudios</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox kuvi chu´un je sá´á estudios ntaka ichi.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kuvi chu´un je sá´á estudios ntaka ichi.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Kuni kue´eka</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Aplicación nejika nakasɨ sa kuvi tuvi a jíía</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplicación nejika nakasɨ sa kuvi tuvi a jíía</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Xita</string>
@@ -923,9 +919,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Sama</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Kivunɨ nu pantalla ka´nu</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Sama kuvi chunta´a pestaña jíía ñama</string>
@@ -1033,7 +1026,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s Ni\'i iin conexión HTTPS ntaka kuvinu koo kue\'e a kumiji noo\'o
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s Ni\'i iin conexión HTTPS ntaka kuvinu koo kue\'e a kumiji noo\'o
      <a href="%2$s">Kuni kue\'eka jiee</a> <br/><br/>
      Sama configuración nuu ajustes > Privacidad &amp; Seguridad > Seguridad.]]></string>
 
@@ -1103,9 +1096,4 @@
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget nte nu pantalla xinañu´u</string>
 
-    <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Saa kuvi kenenu pantalla ka\'nu, staka nee íchi sikɨ jee kuaxín tecla xinoo</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Saa kuvi kenenu pantalla ka\'nu, staka nee íchi sikɨ jee kuaxín tecla xinoo</string>
-</resources>
+    </resources>

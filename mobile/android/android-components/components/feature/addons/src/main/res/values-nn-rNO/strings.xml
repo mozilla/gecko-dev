@@ -204,14 +204,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Klarte ikkje å installere denne utvidinga fordi ho ikkje har blitt stadfesta.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Klarte ikkje å installere %1$s fordi den ikkje er kompatibel med %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Klarte ikkje å installere %1$s fordi det er stor risiko for at det kan lage stabilitets og sikkerheitsproblem.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s bryt Mozillas retningslinjer og kan ikkje installerast på %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s kunne ikkje installerast fordi det berre kan installeres av ein organisasjon som brukar verksemd-policyar, som ikkje er støtta på denne plattforma.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s bryt Mozillas retningslinjer og kan ikkje installerast.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s bryt Mozillas retningslinjer og kan ikkje installerast på %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -261,11 +257,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Sjå detaljar</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s er slått av på grunn av sikkerheits- eller stabilitetsproblem.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Denne utvidinga er blokkert for brot på Mozillas retningslinjer og har blitt deaktivert.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Denne utvidinga bryt Mozillas retningslinjer og har vorte deaktivert. Du kan aktivere det, men dette kan vere risikabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
     <string name="mozac_feature_addons_status_softblocked_re_enabled">Denne utvidinga bryt Mozillas retningslinjer. Å bruke det kan vere risikabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->

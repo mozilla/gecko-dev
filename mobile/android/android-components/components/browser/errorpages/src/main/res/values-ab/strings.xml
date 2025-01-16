@@ -195,12 +195,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Аинтернет аимадара ыҟам</string>
-
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Уинтернет аимадараҿы ауадаҩра ыҟоушәоуп ишыҟоу</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Уҳа аимадара гәаҭа ма ԥыҭрак ашьҭахь адаҟьа ҿыц аҭагалара уҽазышәа.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Даҽа ҳәагак ала аҽамадара шәҽазышәшәа. Умодем ма уроутер гәаҭа. Wi-Fi аҿыхны даҽазнык аҿакра.</string>
     <!-- The document title and heading of an error page. -->

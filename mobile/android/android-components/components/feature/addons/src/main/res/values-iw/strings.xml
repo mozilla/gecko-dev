@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">לא ניתן היה להתקין הרחבה זו מכיוון שהיא לא אומתה.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">לא ניתן היה להתקין את %1$s מכיוון שאינה תואמת ל־%2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">לא ניתן היה להתקין את %1$s מכיוון שבתוספת זו סיכון גבוה לגרימת בעיות יציבות או אבטחה.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">התוספת %1$s מפרה את המדיניות של Mozilla ולכן לא ניתן להתקין אותה ב־%2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">לא ניתן היה להתקין את %1$s מכיוון שהיא ניתנת להתקנה רק על־ידי ארגון המשתמש במדיניות ארגונית, שאינה נתמכת בפלטפורמה זו.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">ההרחבה %1$s מפרה את המדיניות של Mozilla ולכן לא ניתן להתקין אותה.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">התוספת %1$s מפרה את המדיניות של Mozilla ולכן לא ניתן להתקין אותה ב־%2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">צפייה בפרטים</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">התוספת %1$s נחסמה עקב בעיות אבטחה או יציבות.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">הרחבה זו חסומה עקב הפרת המדיניות של Mozilla, ולכן הושבתה.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">הרחבה זו מפרה את המדיניות של Mozilla ולכן הושבתה. באפשרותך להפעיל אותה, אבל ייתכן שזה יהיה כרוך בסיכון.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">הרחבה זו מוגבלת עקב הפרת המדיניות של Mozilla, ולכן הושבתה. באפשרותך להפעיל אותה, אבל ייתכן שזה יהיה כרוך בסיכון.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

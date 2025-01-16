@@ -516,10 +516,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Chatz‘apij</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Utz apetem pa %1$s</string>
 
@@ -839,7 +836,7 @@
     <string name="studies_learn_more">Chaweta\'maj nik\'aj chik</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Ktz\'api\' le kojkemchak are chi kkoj taq k\'exelo\'nem</string>
+    <string name="studies_restart_app" moz:removedIn="135">Ktz\'api\' le kojkemchak are chi kkoj taq k\'exelo\'nem</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Relesaxik</string>

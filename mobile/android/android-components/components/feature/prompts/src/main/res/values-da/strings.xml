@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Brug stærk adgangskode?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Beskyt dine konti ved at bruge en stærk, tilfældigt genereret adgangskode. Den vil blive gemt på din konto til senere brug.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Beskyt din konto ved at bruge en stærk, tilfældigt genereret adgangskode. Den vil blive gemt på din konto til senere brug.</string>

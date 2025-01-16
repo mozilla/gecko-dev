@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Doprâ une password complesse?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protêç i tiei account doprant une password complesse gjenerade in mût casuâl. E vignarà salvade tal to account par un doman.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protêç i tiei account doprant une password complesse gjenerade in mût casuâl. E vignarà salvade tal to account par un doman.</string>

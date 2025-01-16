@@ -197,11 +197,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Interneterako konexiorik ez</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Badirudi zure Interneterako konexioak arazoren bat duela</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Egiaztatu zure sareko konexioa edo saiatu orria berritzen geroago.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Saiatu beste gailu batekin konektatzen. Egiaztatu zure modem edo routerra. Deskonektatu eta konektatu berriro Wi-Fi sarera.</string>
     <!-- The document title and heading of an error page. -->

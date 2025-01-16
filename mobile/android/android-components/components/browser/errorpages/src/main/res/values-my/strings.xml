@@ -158,10 +158,6 @@
         <li>စာမျက်နှာတစ်ခုမျှဖွင့်မရပါက ဝိုင်ဖိုင်ချိတ်ဆက်မှုကိုစစ်ပါ။</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">အင်တာနက်ချိတ်ဆက်မှု မရှိပါ</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">သင်၏ကွန်ယက်ချိတ်ဆက်မှုကိုစစ်ဆေးပါ (သို့) အချိန်တိုအတွင်းစာမျက်နှာကိုပြန်ဖွင့်ရန်ကြိုးစားပါ။</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">ပြန်တင်ပါ</string>
 

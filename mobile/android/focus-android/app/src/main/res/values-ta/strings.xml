@@ -83,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">தோன்றும் செயலிகளின் வழி பகிர்க</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">உலாவல் வரலாற்றை அழி</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,23 +115,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">ஃபோகசில் தேடு</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">ஃபோகசில் தேடு</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">கிளாரில் தேடு</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">கிளாரில் தேடு</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">ஃபோகசு பீட்டாவில் தேடு</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">ஃபோகசு பீட்டாவில் தேடு</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">ஃபோகசு நைட்லியில் தேடு</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">ஃபோகசு நைட்லியில் தேடு</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s கட்டுப்பாட்டை உங்களிடம் வழங்குகிறது.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s கட்டுப்பாட்டை உங்களிடம் வழங்குகிறது.</p>
 <p>அதை ஒரு தனிப்பட்ட உலாவியாக பயன்படுத்துங்கள்:
 <ul>
 <li>செயலியினுள் தேடுங்கள் உலாவுங்கள்</li>
@@ -488,7 +484,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">பயர்பாக்சைப் பதிவிறக்கு</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">பயர்பாக்சைப் பதிவிறக்கு</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->

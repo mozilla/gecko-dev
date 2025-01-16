@@ -85,8 +85,6 @@
 
     <string name="notification_erase_title_android_14">أأمسح سجل التصفح؟</string>
 
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">انقر أو امسح هذا الإشعار لمسح سجل تصفحك بأمان.</string>
-
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
     <string name="notification_erase_text_android_14_1">انقر أو مرّر هذا الإشعار لمسح سجل تصفحك بأمان.</string>
@@ -515,10 +513,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">أغلق</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">مرحبًا بك في %1$s</string>
 
@@ -835,7 +830,7 @@
     <string name="studies_learn_more">اعرف المزيد</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">سيُغلق التطبيق لتطبيق التغييرات</string>
+    <string name="studies_restart_app" moz:removedIn="135">سيُغلق التطبيق لتطبيق التغييرات</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">أزِل</string>
@@ -923,9 +918,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">انتقل</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">الدخول في وضع ملء الشاشة</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">انتقل إلى الرابط في اللسان حالا</string>
@@ -1091,11 +1083,6 @@
     <string name="promote_search_widget_dialog_subtitle">سنتركك لتصفحك الخاص ، ولكن ابدأ بشكل أسرع في المرة القادمة باستخدام ودجت %1$s على شاشتك الرئيسية.</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">للخروج من وضع ملء الشاشة، اسحب من الأعلى واستخدم إيماء الرجوع</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">للخروج من وضع ملء الشاشة، اسحب من الأعلى واضغط زر الحذف</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">اسحب من الأعلى واستخدم إيماء الرجوع للخروج</string>

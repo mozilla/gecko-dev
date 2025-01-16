@@ -200,11 +200,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">No hi ha connexió a Internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Sembla que hi ha un problema amb la connexió a Internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Comproveu la vostra connexió a la xarxa o proveu de tornar a carregar la pàgina d’aquí a uns moments.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Proveu de connectar-vos en un altre dispositiu. Reviseu el mòdem o l’encaminador. Desconnecteu-vos de la Wi-Fi i torneu-vos-hi a connectar.</string>
     <!-- The document title and heading of an error page. -->

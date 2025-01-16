@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Hapuskan dari Pintasan</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Pengaturan</string>
     <string name="menu_about">Tentang</string>
     <string name="menu_help">Bantuan</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Bagikan via</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Hapus riwayat penjelajahan</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,23 +116,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Cari di Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Cari di Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Cari di Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Cari di Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Cari di Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Cari di Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Cari di Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Cari di Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s menempatkan Anda dalam kendali.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s menempatkan Anda dalam kendali.</p>
 <p>Gunakan sebagai peramban privat:
   <ul>
     <li>Cari dan jelajah langsung di dalam aplikasi</li>
@@ -512,10 +509,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Tutup</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Selamat datang di %1$s</string>
 
@@ -607,7 +601,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Unduh Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Unduh Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -619,23 +613,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s tersedia untuk Anda di bawah persyaratan <a href="%2$s">Lisensi Publik Mozilla</a> dan lisensi sumber terbuka lainnya.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s tersedia untuk Anda di bawah persyaratan <a href="%2$s">Lisensi Publik Mozilla</a> dan lisensi sumber terbuka lainnya.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Anda tidak diberi izin atau lisensi apa pun atas merek dagang Mozilla Foundation atau pihak mana pun, termasuk nama atau logo Mozilla, Firefox, atau %1$s. Informasi lebih lanjut bisa ditemukan <a href="%2$s">di sini</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Anda tidak diberi izin atau lisensi apa pun atas merek dagang Mozilla Foundation atau pihak mana pun, termasuk nama atau logo Mozilla, Firefox, atau %1$s. Informasi lebih lanjut bisa ditemukan <a href="%2$s">di sini</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Kode sumber tambahan untuk %1$s tersedia dengan berbagai <a href="%2$s">lisensi</a> bebas dan sumber terbuka lainnya.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kode sumber tambahan untuk %1$s tersedia dengan berbagai <a href="%2$s">lisensi</a> bebas dan sumber terbuka lainnya.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s juga menggunakan daftar blokir yang disediakan oleh Disconnect, Inc. sebagai pekerjaan terpisah dan independen di bawah <a href="%2$s">GNU General Public License v3</a>, dan tersedia <a href="%3$s">di sini</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s juga menggunakan daftar blokir yang disediakan oleh Disconnect, Inc. sebagai pekerjaan terpisah dan independen di bawah <a href="%2$s">GNU General Public License v3</a>, dan tersedia <a href="%3$s">di sini</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Nama pengguna</string>
@@ -826,13 +820,13 @@
     <string name="preference_studies">Kajian</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox dapat memasang dan menjalankan kajian dari waktu ke waktu.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox dapat memasang dan menjalankan kajian dari waktu ke waktu.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Pelajari lebih lanjut</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Aplikasi akan berhenti untuk menerapkan perubahan</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikasi akan berhenti untuk menerapkan perubahan</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Hapus</string>
@@ -920,9 +914,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Tukar</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Memasuki mode layar penuh</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Alihkan tautan langsung ke tab baru</string>
@@ -1028,7 +1019,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s mencoba menggunakan koneksi HTTPS jika memungkinkan untuk keandalan keamanan.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s mencoba menggunakan koneksi HTTPS jika memungkinkan untuk keandalan keamanan.
      <a href="%2$s">Pelajari lebih lanjut</a> <br/><br/>
      Ubah setelan ini di Setelan > Privasi &amp; Keamanan > Keamanan.]]></string>
 
@@ -1105,4 +1096,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget ditambahkan ke layar beranda</string>
-</resources>
+
+    </resources>

@@ -41,7 +41,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Sarva is ischedas seletzionadas a sa colletzione</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Seletzionadu</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Seletzionadu</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -370,8 +370,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Iscansiona</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Iscansiona unu còdighe QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Cunfiguratzione de su motore de chirca</string>
@@ -393,9 +391,6 @@
     <string name="search_settings_menu_item">Cunfiguratzione de chirca</string>
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Custa borta, chirca cun:</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Motore de chirca %s</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -474,10 +469,6 @@
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Personaliza Firefox cun estensiones</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Agiunghe estensiones de àtere pro megiorare sa seguresa, sa produtividade e meda àteru.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Esplora àteras estensiones.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Cumintza a navigare.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Esplora àteras estensiones</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -563,8 +554,6 @@
     <string name="preferences_category_advanced">Avantzadas</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Riservadesa e seguresa</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Permissos de is sitos</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Navigatzione privada</string>
     <!-- Preference for opening links in a private tab-->
@@ -883,6 +872,7 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Impreu e datos tècnicos</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Istùdios</string>
 
@@ -1047,22 +1037,22 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Àteras informatziones</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">S’aplicatzione s’at a serrare pro aplicare is modìficas</string>
+    <string name="studies_restart_app" moz:removedIn="135">S’aplicatzione s’at a serrare pro aplicare is modìficas</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">AB</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">AB</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Annulla</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Annulla</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Serrende s’aplicatzione pro aplicare is modìficas…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Serrende s’aplicatzione pro aplicare is modìficas…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Ischedas abertas</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ischedas abertas</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Ischedas privadas</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ischedas privadas</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Ischedas sincronizadas</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ischedas sincronizadas</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Agiunghe un’ischeda</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

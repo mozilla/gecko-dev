@@ -107,9 +107,6 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Chráňte svoje účty pomocou silného, náhodne generovaného hesla. Uloží sa do vášho účtu, takže ho môžete kedykoľvek použiť.</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Chráňte svoj účet pomocou silného, náhodne generovaného hesla. Uloží sa do vášho účtu, takže ho môžete kedykoľvek použiť.</string>
 
     <!-- Pressing this will use the suggested strong password -->

@@ -8,8 +8,6 @@
     <string name="mozac_browser_menu_extensions">Разширения</string>
     <!-- Label for extensions sub menu item for extensions manager -->
     <string name="mozac_browser_menu_extensions_manager">Управление на разширения</string>
-    <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description">Придвижване нагоре</string>
     <!-- Content description for the action bar "up" button of the extensions sub menu item -->
     <string name="mozac_browser_menu_extensions_content_description">Разширения, придвижване нагоре</string>
 </resources>

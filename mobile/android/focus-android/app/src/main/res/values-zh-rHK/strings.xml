@@ -85,10 +85,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">分享去</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">刪除瀏覽紀錄</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -122,19 +118,19 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">喺 Focus 度搜尋</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">喺 Focus 度搜尋</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">喺 Klar 度搜尋</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">喺 Klar 度搜尋</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">喺 Focus Beta 度搜尋</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">喺 Focus Beta 度搜尋</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">喺 Focus Nightly 度搜尋</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">喺 Focus Nightly 度搜尋</string>
 
     <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">私隱同安全</string>
@@ -443,9 +439,6 @@
 
     <string name="error_hostLookup_title">搵唔到伺服器</string>
 
-    <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">關閉</string>
-
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">歡迎使用 %1$s</string>
@@ -525,7 +518,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">下載 Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">下載 Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -692,13 +685,13 @@
     <string name="preference_studies">使用者研究</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox 可能周不時會安裝同展開研究。</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox 可能周不時會安裝同展開研究。</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">想知多啲</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">程式將會結束以便套用更改</string>
+    <string name="studies_restart_app" moz:removedIn="135">程式將會結束以便套用更改</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">移除</string>
@@ -930,4 +923,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">已經將小工具添加至主介面</string>
-</resources>
+
+    </resources>

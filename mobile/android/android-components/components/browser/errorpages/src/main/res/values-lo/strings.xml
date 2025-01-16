@@ -208,11 +208,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">ບໍ່ມີການເຊື່ອມຕໍ່ກັບອິນເຕີເນັດ</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">ເບິ່ງຄືວ່າມີບັນຫາກັບການເຊື່ອມຕໍ່ອິນເຕີເນັດຂອງທ່ານ</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ກວດເບິງເນັດເວີກຂອງທ່ານຄືນ ຫລື ລອງໂຫລດຫນ້າເວັບຄືນໃຫມ່ໃນອີກ 2-3 ນາທີ.</string>
 
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">ລອງເຊື່ອມຕໍ່ໃນອຸປະກອນອື່ນ. ກວດເບິ່ງໂມເດັມ ຫຼື ເຣົາເຕີຂອງທ່ານ. ຕັດການເຊື່ອມຕໍ່ ແລະ ເຊື່ອມຕໍ່ Wi-Fi ຄືນໃໝ່.</string>

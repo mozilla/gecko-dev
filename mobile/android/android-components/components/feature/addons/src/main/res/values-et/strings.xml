@@ -162,10 +162,8 @@
     <string name="mozac_feature_addons_failed_to_translate">Tõlget ei leitud, ei keelele %1$s ega ka vaikekeelele %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">Lisa %1$s paigaldamine õnnestus</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Lisa %1$s paigaldamine ebaõnnestus</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">Lisa %1$s polnud võimalik paigaldada, kuna see võib põhjustada tõsiseid stabiilsuse või turvalisuse probleeme.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Lisa %1$s lubamine õnnestus</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

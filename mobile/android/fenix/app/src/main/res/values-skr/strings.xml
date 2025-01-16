@@ -47,7 +47,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">چُݨی ہوئیاں ٹیباں مجموعے وچ محفوظ کرو</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">چُݨا ہویا</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">چُݨا ہویا</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -377,9 +377,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">زبان ڳولو</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">سکین کرو</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">انڄݨ ترتیباں وچ ڳولو</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -401,9 +398,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">ایں ویلے ایندے وچ ڳول:</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s ڳولݨ انجݨ</string>
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
@@ -479,8 +473,6 @@
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ہݨ کائناں</string>
 
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">براؤزنگ شروع کرو.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">ٻیاں ایکسٹنشناں پھلورو</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -496,10 +488,8 @@
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">رازداری نوٹس</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">بندوبست کرو</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">محفوظ کرو تے جاری رکھو</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">چھوڑو</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">چھوڑو</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">چوٹی</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -556,8 +546,6 @@
     <string name="preferences_category_advanced">ودھایا</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">رازداری تے سلامتی</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">سائٹ اجازتاں</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">سائٹ ترتیباں</string>
     <!-- Preference for private browsing options -->
@@ -912,10 +900,11 @@
 
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ساݙے موبائل مارکیٹنگ وینڈر ایڈجسٹمنٹ نال بݨیادی ورتاوے دا ڈیٹا شیئر کریندے</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">کریش رپورٹاں خودکار جمع کرواؤ</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">کریش تھیوݨ دے بعد موزلا دے نال سٹارٹ اپ تے کریش ڈیٹا خود بخود شیئر کریندا ہے</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">کریش رپورٹاں خودکار جمع کرواؤ</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">کریش تھیوݨ دے بعد موزلا دے نال سٹارٹ اپ تے کریش ڈیٹا خود بخود شیئر کریندا ہے</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">مطالعہ</string>
 
@@ -1089,22 +1078,22 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ٻیا سِکھو</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">تبدیلیاں لاگو کرݨ کیتے ایپ چھوڑ ݙتی ویسی</string>
+    <string name="studies_restart_app" moz:removedIn="135">تبدیلیاں لاگو کرݨ کیتے ایپ چھوڑ ݙتی ویسی</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">ٹھیک ہے</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">ٹھیک ہے</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">منسوخ</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">منسوخ</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">تبدیلیاں لاگو کرݨ کیتے ایپ چھوڑیندے پئے ہو۔۔۔</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">تبدیلیاں لاگو کرݨ کیتے ایپ چھوڑیندے پئے ہو۔۔۔</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">ٹیباں کھولو</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ٹیباں کھولو</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">نجی ٹیباں</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">نجی ٹیباں</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">ہم وقت تھیاں ٹیباں</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ہم وقت تھیاں ٹیباں</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ٹیب شامل کرو</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

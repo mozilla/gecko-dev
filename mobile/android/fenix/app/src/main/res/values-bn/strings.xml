@@ -13,7 +13,7 @@
     <string name="content_description_private_browsing_button">ব্যক্তিগত ব্রাউজিং সক্রিয় করুন</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">ব্যক্তিগত ব্রাউজিং নিস্ক্রিয় করুন।</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">অনুসন্ধান করুন বা ঠিকানা লিখুন</string>
     <!-- No Open Tabs Message Description -->
     <string name="no_open_tabs_description">আপনার খোলা ট্যাবগুলি এখানে দেখানো হবে।</string>
@@ -32,7 +32,7 @@
     <string name="tab_tray_close_multiselect_content_description">মাল্টিলেক্ট মোড থেকে প্রস্থান করুন</string>
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">নির্বাচিত</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">নির্বাচিত</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s হচ্ছে Mozilla দ্বারা তৈরি।</string>
@@ -41,7 +41,7 @@
        ব্যাক্তিগত ব্রাউজিং সম্পর্কে কিছু ভুল ধারণা
     </string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">না ধন্যবাদ</string>
 
     <!-- Text for the positive action button -->
@@ -76,10 +76,6 @@
     <string name="browser_menu_refresh">রিফ্রেশ</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">থামুন</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">অ্যাড-অনগুলো</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">এখানে কোনো অ্যাড-অন নেই</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">সাহায্য</string>
 
@@ -93,8 +89,6 @@
     <string name="browser_menu_desktop_site">ডেস্কটপ সাইট</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">হোম স্ক্রিনে যুক্ত করুন</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">ইনস্টল</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">পাতায় অনুসন্ধান করুন</string>
     <!-- Browser menu button that saves the current tab to a collection -->
@@ -132,9 +126,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">ভাষা অনুসন্ধান করুন</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">স্ক্যান</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">সার্চ ইঞ্জিন সেটিংস</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -179,8 +170,6 @@
     <string name="preferences_category_advanced">উচ্চপর্যায়</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">গোপনীয়তা এবং সুরক্ষা</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">সাইটের অনুমতি</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">ব্যক্তিগত ব্রাউজিং</string>
     <!-- Preference for opening links in a private tab-->
@@ -196,8 +185,6 @@
     <string name="preferences_override_sync_tokenserver">কাস্টম Sync সার্ভার</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">অ্যাকাউন্ট</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">টুলবার</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">থিম</string>
     <!-- Preference for settings related to visual options -->
@@ -228,9 +215,6 @@
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">অ্যাপ্সে লিংকগুলি খুলুন</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">অ্যাড-অনগুলো</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">নোটিফিকেশন</string>
 
@@ -241,7 +225,6 @@
     <!-- Hint displayed on input field for custom collection name -->
     <string name="customize_addon_collection_hint">সংগ্রহের নাম</string>
 
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">এখনি Sync করুন</string>
     <!-- Preference category for sync -->
@@ -250,8 +233,6 @@
     <string name="preferences_sync_history">ইতিহাস</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">বুকমার্কসমূহ</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">লগইন</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">ট্যাব খুলুন</string>
     <!-- Preference for signing out -->
@@ -281,7 +262,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">প্রাপ্ত ট্যাবগুলো</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">অন্যান্য Firefox ডিভাইস থেকে প্রাপ্ত ট্যাবগুলির জন্য নোটিফিকেশন।</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">অন্যান্য Firefox ডিভাইস থেকে প্রাপ্ত ট্যাবগুলির জন্য নোটিফিকেশন।</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">ট্যাব এসেছে</string>
     <!-- %s is the device name -->
@@ -297,7 +278,7 @@
     <string name="exceptions_empty_message_learn_more_link">আরও জানুন</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">ব্যবহার এবং প্রযুক্তিগত তথ্য</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ব্যবহার এবং প্রযুক্তিগত তথ্য</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">আমাদের %1$s আরও উন্নত করতে সহায়তা করতে Mozilla -র সাথে আপনার ব্রাউজার সম্পর্কিত কর্মক্ষমতা, ব্যবহার, হার্ডওয়্যার এবং কাস্টমাইজেশন তথ্য শেয়ার করুন</string>
     <!-- Preference switch for marketing data collection -->
@@ -380,9 +361,9 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">ট্যাব খুলুন</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ট্যাব খুলুন</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">ব্যক্তিগত ট্যাব</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ব্যক্তিগত ট্যাব</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ট্যাব যোগ করুন</string>
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
@@ -411,10 +392,8 @@
     <string name="collection_open_tabs">ট্যাব খুলুন</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">সংগ্রহের নাম</string>
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">পুনঃনামকরণ</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">অপসারণ</string>
+    <string name="remove_top_site">অপসারণ</string>
 
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">ইতিহাস থেকে মুছে ফেলুন</string>
@@ -466,8 +445,6 @@
     <string name="bookmark_delete_folder_confirmation_dialog">আপনি কি নিশ্চিত যে আপনি এই ফোল্ডারটি মুছতে চান?</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">ফোল্ডার যোগ করুন</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">বুকমার্ক সংরক্ষণ করা হয়েছে!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDIT</string>
     <!-- Bookmark overflow menu edit button -->
@@ -631,7 +608,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">অন্য ডিভাইস সংযুক্ত করুন</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">একটি ট্যাব পাঠাতে, কমপক্ষে অন্য একটি ডিভাইসে Firefox সাইন ইন করুন।</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">একটি ট্যাব পাঠাতে, কমপক্ষে অন্য একটি ডিভাইসে Firefox সাইন ইন করুন।</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">বুঝেছি</string>
     <!-- Share error message -->
@@ -675,12 +652,8 @@
     <string name="qr_scanner_dialog_negative">DENY</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">আপনি কি নিশ্চিত আপনি %1$s  মুছতে চান?</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">%1$s মুছে ফেলবেন?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">মুছে ফেলুন</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">ফুল স্ক্রিন মোডে প্রবেশ করছে</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL কপি হয়েছে</string>
     <!-- Sample text for accessibility font size -->
@@ -727,6 +700,7 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">ব্রাউজিং ডেটা মুছে ফেলা হচ্ছে …</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">Sync চালু আছে</string>
 
@@ -739,7 +713,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">কোডটি স্ক্যান করুন</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[আপনার কম্পিউটারে Firefox খুলুন এবং <b>https://firefox.com/pair</b> এ যান]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[আপনার কম্পিউটারে Firefox খুলুন এবং <b>https://firefox.com/pair</b> এ যান]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">স্ক্যান করতে প্রস্তুত</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -777,8 +751,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">শুধুমাত্র ব্যক্তিগত ট্যাবগুলিতে</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ক্রিপ্টোমাইনারস</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ফিঙ্গারপ্রিন্টারস</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">ব্লক করা হয়েছে</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -789,8 +761,6 @@
     <string name="etp_cookies_title">ক্রস-সাইট ট্র্যাকিং কুকিস</string>
     <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_title">ক্রিপ্টোমাইনারস</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ফিঙ্গারপ্রিন্টারস</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ট্র্যাকিং কন্টেন্ট</string>
     <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
@@ -834,23 +804,13 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">শর্টকাটের নাম</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">লগইন এবং পাসওয়ার্ড</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">সংরক্ষণ করতে বলুন</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">সংরক্ষণ করবেন না</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">লগইনগুলো Sync করুন</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">সংরক্ষিত লগইনগুলো</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">Sync সম্পর্কে আরো জানুন।</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">ব্যতিক্রমসমূহ</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">লগইন অনুসন্ধান করুন</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">সাইট</string>
     <!-- The header for the username for a login -->
@@ -867,8 +827,6 @@
     <string name="saved_login_reveal_password">পাসওয়ার্ড দেখান</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">পাসওয়ার্ড লুকান</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">আপনার লগইন এবং পাসওয়ার্ড সুরক্ষিত করুন</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">পরে</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -892,7 +850,7 @@
     <string name="search_engine_delete">মুছে ফেলুন</string>
 
     <!-- Description text for the Search String TextField. The %s is part of the string -->
-    <string formatted="false" name="search_add_custom_engine_search_string_example">&quot;%s&quot; দিয়ে কোয়েরি প্রতিস্থাপন করুন। উদাহরণ: \nhttps://www.google.com/search?q=%s</string>
+    <string name="search_add_custom_engine_search_string_example" formatted="false">&quot;%s&quot; দিয়ে কোয়েরি প্রতিস্থাপন করুন। উদাহরণ: \nhttps://www.google.com/search?q=%s</string>
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">কাস্টম সার্চ ইঞ্জিনের খুঁটিনাটি</string>
 
@@ -922,12 +880,8 @@
     <!-- Login overflow menu delete button -->
     <string name="login_menu_delete_button">মুছুন</string>
 
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">আপনি কি নিশ্চিত যে আপনি এই লগইনটি মুছতে চান?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">মুছে ফেলুন</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">পাসওয়ার্ড প্রয়োজন</string>
 
     <!-- Translations feature-->
 

@@ -45,7 +45,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Иалху абларҭақәа аизгаҿы еиқәырхатәуп</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Иалху</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Иалху</string>
 
 
     <!-- Home - Bookmarks -->
@@ -97,12 +97,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Абжьажьра</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Иреиҳа иӷәӷәоу ҳмаӡаратә ҟазшьа асаитқәа рыбжьаратәи ашьҭаҵаҩцәа еиҟәнаҭхоит.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Еилышәкаа акукиқәа рыхьчара инагӡаны</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">Ахатә сеанс ҿыц алагаразы абра шәақәыӷәӷәа. Уҭоурых, акукиқәа, зегьы ԥыхтәуп.</string>
@@ -114,12 +108,6 @@
     <string name="navbar_cfr_message_2">Асаит аҿы, ари апанель аҵәахуеит ҵаҟа уаннеиуа аԥшааразы аҭыԥ ҟаҵаразы.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Уи аҭаӡҩыра аҭоурых аҟны адаҟьақәа рыбжьара аиҭасразы ашәақь агәыҵәҟьақәа шәақәыӷәӷәаны иаанкылатәуп.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Ҿыц: Зныктәи ақәыӷәӷәара шьҭахьҟеи ԥхьаҟеи ашәақьқәа</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Еснагь шәнапы иану ирццаку анавигациа шәалагәырӷьала.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Акамера анеира аҭахуп. Апрограмма асистематә еиқәыршәарақәа рахь шәца, иалышәх Азинқәа, нас иақәыӷәӷәа Акамера, насгьы иалышәх Азин.</string>
@@ -315,9 +303,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Иарктәуп иҷыдоу абларҭа амениу адаҟьа</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Аԥхьаратә режим, Аиҭагара, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Аԥхьаратә режим, Аиҭагара, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Аԥхьаратә режим, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Аԥхьаратә режим, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Ахьчара</string>
@@ -377,8 +365,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Аԥхьаӡара</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Асканер QR акод</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Аԥшаага архиарақәа</string>
@@ -400,16 +386,12 @@
     <string name="search_settings_menu_item">Аԥшаара архиарақәа</string>
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Уажәазы аԥшаара:</string>
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Аԥшаага %s</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Аԥшаага: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Иаԥылатәуп еиқәыршәоу ахатә даҟьа. Аҵыхәтәантәи аҭаӡҩырақәа, анҵамҭақәа, аԥшаара алҵшәақәа абра иаарԥшхоит.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Бзиала шәаабеит еиҳа ахатә интернет ахь</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -485,10 +467,6 @@
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Анарҭбаарақәа рыла Firefox рхиатәуп</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Ушәарҭадара, уусура, уҳәа убас иҵегьы реиӷьтәразы ахԥатәи аган анарҭбаарақәа ацҵа.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Еиҳаны анарҭбаарақәа ҭышәҵаа.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Аинтернет аԥшаара алагара.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Еиҳаны анарҭбаарақәа ҭышәҵаа</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -569,8 +547,6 @@
     <string name="preferences_category_advanced">Инаццҵаны</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Амаӡареи ашәарҭадареи</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Асаит азинқәа</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Асаит архиарақәа</string>
     <!-- Preference for private browsing options -->
@@ -899,17 +875,18 @@
     <string name="exceptions_empty_message_learn_more_link">Еиҳаны аилкаара</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Ахархәареи атехникатә дыррақәеи</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Ахархәареи атехникатә дыррақәеи</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Убраузер аусура, ахархәара, ахархәага, архиарақәа ирызку адыррақәа Mozilla ацхыраарала %1$s еиҳагьы еиӷьны аҟаҵараҿы иҳацхраарц азы</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Амаркетингтә дыррақәа</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Ихадоу ахархәаратә дыррақәа ҳмобильтә маркетинг аиқәыршәаҩ Аиқәыршәара еицашәыцеиҩышәша</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Аиԥҟьара аҳасабырбақәа автоматикала идәықәҵатәуп</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Автоматла еицашәыцеиҩышәшоит аихсыӷьратә дыррақәа Мозилла аус арураан</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Ихадоу ахархәаратә дыррақәа ҳмобильтә маркетинг аиқәыршәаҩ Аиқәыршәара еицашәыцеиҩышәша</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аиԥҟьара аҳасабырбақәа автоматикала идәықәҵатәуп</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Автоматла еицашәыцеиҩышәшоит аихсыӷьратә дыррақәа Мозилла аус арураан</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Аҭҵаара</string>
     <!-- Summary for studies preferences -->
@@ -1070,21 +1047,21 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Еиҳаны аилкаара</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Апрограмма аркхоит аиҭакрақәа рхархәаразы</string>
+    <string name="studies_restart_app" moz:removedIn="135">Апрограмма аркхоит аиҭакрақәа рхархәаразы</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">ИБЗИОУП</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">ИБЗИОУП</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Аԥыхра</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Аԥыхра</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Аԥсахрақәа рхархәаразы апликациа аҭыҵра……</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Аԥсахрақәа рхархәаразы апликациа аҭыҵра……</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Иаарттәуп абларҭақәа</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Иаарттәуп абларҭақәа</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Ахатә абӷьыцқәа</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ахатә абӷьыцқәа</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Аԥсҭҳәа абларҭақәа</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Аԥсҭҳәа абларҭақәа</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Агәылаҵа аарттәуп</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1208,8 +1185,6 @@
     <string name="bookmark_delete_negative">Аԥыхра</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Аҭаӡ аԥҵара</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Аҭыжьымҭа еиқәырхоуп!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Иҵәахуп ”%s” аҟны</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1275,7 +1250,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">%s аныхуп</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Ианыху ахәҭақәа: %s</string>
+    <string name="bookmark_delete_multiple_items">Ианыху ахәҭақәа: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Иҭажәгал шәыԥшааратә термин</string>
     <!-- Content description for the bookmark navigation bar back button -->
@@ -1302,7 +1277,7 @@
     <string name="bookmark_empty_list_folder_description">Аԥшаараан анҵамҭақәа ацҵа, нас бзиа иубо асаитқәа уԥшаарц азы.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Апапка ҿыц</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Апапка ҿыц</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1544,10 +1519,8 @@
     <string name="snackbar_tabs_closed">Агәылаҵақәа аркуп</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Аҭаӡҩырақәа аркуп: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Адыргақәа еиқәырхоуп!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Аҭыжьымҭақәа «%s» аҟны иҵәахуп!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Аҭыжьымҭақәа «%s» аҟны иҵәахуп!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Аҿацәқәа ирыцҵоуп!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -2417,14 +2390,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Ааи, иԥышәа</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Уажәазы акәым</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Аахәара ҟашәҵаанӡа, еилышәкаа аалыҵ азы ахҳәаақәа рыгәра шәгозар.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Иԥышәшәа Ахҳәаа агәаҭаратә мчыла</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Агәра угартә иҟоума арҭ ахҳәаақәа? Уажәы игәашәҭ ирҽеиу арейтинг шәбарц азы.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Ахҳәаа агәаҭага аарттәуп</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Иаарттәуп ахҳәаа агәаҭара</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2798,11 +2763,6 @@
     <string name="glean_debug_tools_title">Аиашамрақәа рыӡбара амыругақәа рыцқьара</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Аекран зегьы арежим аҟынтәи аҭыҵразы, аекран хыхьынтә ҵаҟа иҭганы ашьҭахьтәи анырра ахархәара</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Аекран зегьы арежим аҟынтәи аҭыҵразы, аекран хыхьынтә иҭганы шьҭахьҟа иақәыӷәӷәа</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Хыхьынтәи иҭганы адәылҵразы шьҭахьҟатәи анырра ахархәара</string>
@@ -2813,4 +2773,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">АБЕТА</string>
-</resources>
+
+    </resources>

@@ -85,7 +85,6 @@
     <string name="share_dialog_title">Compartir por</string>
 
     <string name="notification_erase_title_android_14">Quere borrar o historial de navegación?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tocar ou borrar esta notificación para borrar de forma segura o seu historial de navegación.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -515,10 +514,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Pechar</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Reciba a benvida a %1$s</string>
 
@@ -837,7 +833,7 @@
     <string name="studies_learn_more">Máis información</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">A aplicación pecharase para aplicar os cambios</string>
+    <string name="studies_restart_app" moz:removedIn="135">A aplicación pecharase para aplicar os cambios</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Retirar</string>
@@ -1097,11 +1093,6 @@
     <string name="promote_search_widget_snackbar_message">Engadiuse o widget á pantalla de inicio</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para saír da pantalla completa, arrastra desde arriba e usa o xesto de retroceso</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para saír da pantalla completa, arrastra dende arriba e preme a tecla de retroceso</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Arrastra dende a parte superior e usa o xesto cara atrás para saír</string>

@@ -8,8 +8,6 @@
     <string name="mozac_browser_menu_extensions">വിപുലീകരണങ്ങൾ</string>
     <!-- Label for extensions sub menu item for extensions manager -->
     <string name="mozac_browser_menu_extensions_manager">വിപുലീകരണ മാനേജർ</string>
-    <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="133" tools:ignore="UnusedResources">മുകളിലേക്ക്  ചെല്ലുക</string>
     <!-- Content description for the action bar "up" button of the extensions sub menu item -->
     <string name="mozac_browser_menu_extensions_content_description">വിപുലീകരണങ്ങൾ, മുകളിലേക്ക്  ചെല്ലുക</string>
 </resources>

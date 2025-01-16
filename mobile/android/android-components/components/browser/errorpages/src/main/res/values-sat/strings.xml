@@ -194,11 +194,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">ᱤᱱᱴᱟᱹᱨᱱᱮᱴ ᱡᱚᱱᱚᱲᱟᱣ ᱵᱟᱹᱱᱩᱜ-ᱟ</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">ᱧᱮᱞᱚᱜ ᱠᱟᱱᱟ ᱟᱢᱟᱜ ᱤᱱᱴᱟᱨᱱᱮᱴ ᱠᱚᱱᱮᱠᱥᱚᱱ ᱨᱮ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱢᱮᱱᱟᱜᱼᱟ</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ᱱᱮᱴᱣᱟᱨᱠ ᱡᱩᱲᱟᱹᱣ ᱧᱮᱞ ᱵᱤᱰᱟᱹᱣ ᱢᱮ ᱟᱨ ᱵᱟᱝ ᱠᱤᱪᱷᱤ ᱥᱚᱢᱚᱭ ᱛᱟᱭᱚᱢ ᱛᱮ ᱥᱟᱦᱴᱟ ᱫᱩᱦᱲᱟᱹ ᱨᱤᱞᱚᱰ ᱢᱮ ᱾</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">ᱮᱴᱟᱜ ᱰᱤᱵᱷᱟᱭᱤᱥ ᱨᱮ ᱡᱚᱯᱲᱟᱣ ᱨᱮᱭᱟᱜ ᱠᱩᱨᱩᱢᱩᱴᱩᱭ ᱢᱮ᱾ ᱟᱢᱟᱜ ᱢᱚᱰᱮᱢ ᱵᱟᱝᱠᱷᱟᱱ ᱨᱟᱣᱴᱟᱨ ᱧᱮᱞ ᱵᱤᱰᱟᱹᱣ ᱢᱮ ᱾ Wi-Fi ᱥᱟᱶ ᱰᱤᱥᱠᱚᱱᱮᱠᱴ ᱟᱨ ᱫᱚᱦᱲᱟ ᱡᱚᱯᱲᱟᱣ ᱢᱮ ᱾</string>
     <!-- The document title and heading of an error page. -->

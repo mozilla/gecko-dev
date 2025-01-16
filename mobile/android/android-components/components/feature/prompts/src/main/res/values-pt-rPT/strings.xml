@@ -48,7 +48,7 @@
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Recusar</string>
     <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
-    <string name="mozac_feature_prompts_popup_dialog_title">Permitir que este site possa ser aberto?</string>
+    <string name="mozac_feature_prompts_popup_dialog_title">Permitir a abertura deste site?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Tem a certeza?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -105,8 +105,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utilizar uma palavra-passe forte?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Proteja as suas contas utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteja a sua conta utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>

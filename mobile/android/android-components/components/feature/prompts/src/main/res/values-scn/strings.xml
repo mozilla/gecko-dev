@@ -103,8 +103,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Vo\' usari na chiavi forti?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Pruteggi i to cunti usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Pruteggi u to cuntu usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>

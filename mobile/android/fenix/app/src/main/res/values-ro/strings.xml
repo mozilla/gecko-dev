@@ -33,7 +33,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Salvează în colecție filele selectate</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Selectate</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Selectate</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s este realizat de Mozilla.</string>
@@ -174,9 +174,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Caută limbi</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Scanează</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Setări pentru motorul de căutare</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -191,33 +188,25 @@
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s va partaja tot ce tastezi în bara de adrese cu motorul de căutare implicit.</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Motor de căutare %s</string>
-
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Ne place să te protejăm</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Browserul nostru, susținut de o organizație non-profit, ajută la oprirea companiilor să te urmărească în secret pe web.\n\nAflă mai multe în notificarea noastră privind confidențialitatea.</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Păstrează-ți datele criptate când treci de pe un dispozitiv pe altul</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Când ești autentificat și sincronizat, ești mai în siguranță. Firefox criptează parolele, marcajele și multe altele.</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Notificările te ajută să fii mai în siguranță cu Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Notificările te ajută să fii mai în siguranță cu Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Trimite-ți securizat file între dispozitive și descoperă alte funcții de confidențialitate în Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Trimite-ți securizat file între dispozitive și descoperă alte funcții de confidențialitate în Firefox.</string>
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Încearcă widgetul de căutare Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Încearcă widgetul de căutare Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Cu Firefox pe ecranul de start vei avea acces facil la primul browser orientat pe confidențailitate care blochează elementele de urmărire inter-site-uri.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Cu Firefox pe ecranul de start vei avea acces facil la primul browser orientat pe confidențailitate care blochează elementele de urmărire inter-site-uri.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Adaugă widgetul Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Adaugă widgetul Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Nu acum</string>
 
@@ -263,8 +252,6 @@
     <string name="preferences_category_advanced">Avansate</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Confidențialitate și securitate</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Permisiuni pentru site-uri</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Navigare privată</string>
     <!-- Preference for opening links in a private tab-->
@@ -280,8 +267,6 @@
     <string name="preferences_override_sync_tokenserver">Server personalizat de sincronizare</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Cont</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Bară de unelte</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Temă</string>
     <!-- Preference for customizing the home screen -->
@@ -325,8 +310,6 @@
     <!-- Hint displayed on input field for custom collection name -->
     <string name="customize_addon_collection_hint">Numele colecției</string>
 
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Marcaje recente</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Vizitate recent</string>
@@ -374,7 +357,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">File primite</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Notificări pentru file primite de la alte dispozitive Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Notificări pentru file primite de la alte dispozitive Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Filă primită</string>
     <!-- %s is the device name -->
@@ -391,7 +374,7 @@
     <string name="exceptions_empty_message_learn_more_link">Află mai multe</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Date tehnice și de utilizare</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Date tehnice și de utilizare</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Partajează cu Mozilla date privind performanța, utilizarea, hardware-ul și personalizările browserului tău pentru a ne ajuta să îmbunătățim %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -489,13 +472,13 @@
     <string name="opening_screen_last_tab_summary">Deschide ultima filă</string>
 
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Deschide filele</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Deschide filele</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">File private</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">File private</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Adaugă fila</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -578,8 +561,6 @@
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s va șterge elementele selectate.</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Adaugă dosarul</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Marcaj salvat!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDITEAZĂ</string>
     <!-- Bookmark overflow menu edit button -->
@@ -754,7 +735,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Conectează alt dispozitiv</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Pentru a trimite o filă, intră în contul Firefox de pe cel puțin un alt dispozitiv.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Pentru a trimite o filă, intră în contul Firefox de pe cel puțin un alt dispozitiv.</string>
 
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Am înțeles</string>
@@ -804,8 +785,6 @@
     <string name="tab_collection_dialog_message">Sigur vrei să ștergi %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Șterge</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Se intră în modul ecran complet</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL copiat</string>
     <!-- Sample text for accessibility font size -->
@@ -874,7 +853,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Scananează codul</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Deschide Firefox pe calculator și intră pe <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Deschide Firefox pe calculator și intră pe <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Gata de scanare</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -933,8 +912,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Numai în filele private</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criptomineri</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Detectoare de amprente digitale</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">Blocate</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -953,10 +930,6 @@
     <string name="etp_cryptominers_title">Criptomineri</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Împiedică accesul scripturilor rău-intenționate pe dispozitivul tău ca să mineze monede digitale.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Detectoare de amprente digitale</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Inhibă colectarea datelor unice de identificare ale dispozitivului, care pot fi utilizate în scopuri de urmărire.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Conținut de urmărire</string>
 
@@ -1144,7 +1117,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Te rugăm să activezi sincronizarea filelor.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Nu ai nicio filă deschisă în Firefox pe celelalte dispozitive.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Nu ai nicio filă deschisă în Firefox pe celelalte dispozitive.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Afișează o listă de file de pe celelalte dispozitive.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -1160,9 +1133,6 @@
     <string name="top_sites_toggle_top_recent_sites_4">Comenzi rapide</string>
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">Nume</string>
-
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">OK</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

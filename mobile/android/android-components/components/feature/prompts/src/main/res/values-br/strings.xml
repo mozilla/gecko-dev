@@ -102,8 +102,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Implij ur ger-tremen solut?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Gwarezit ho kontoù en ur ober gant ur ger-tremen kreñv ha savet ent ankivil. Enrollet e vo en ho kont evit bezañ implijet en dazont.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Gwarezit ho kont en ur ober gant ur ger-tremen kreñv ha savet ent ankivil. Enrollet e vo en ho kont evit bezañ implijet en dazont.</string>

@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Օգտագործե՞լ ուժեղ գաղտնաբառ</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Պաշտպանեք ձեր հաշիվները՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Այն կպահվի ձեր հաշվում՝ հետագա օգտագործման համար:</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Պաշտպանեք ձեր հաշիվը՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Այն կպահվի ձեր հաշվում՝ հետագա օգտագործման համար:</string>

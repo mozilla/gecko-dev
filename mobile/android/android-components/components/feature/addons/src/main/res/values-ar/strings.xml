@@ -186,9 +186,9 @@
     <string name="mozac_feature_addons_failed_to_translate">لم تُوجد الترجمة لا للمحلية %1$s ولا للغة المبدئية %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">نجح تثبيت %1$s</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">فشل تثبيت %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">فشل في تثبيت هذا الامتداد.</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">تعذر تنزيل الامتداد بسبب فشل في الاتصال.</string>
@@ -198,8 +198,6 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">تعذر تنصيب هذا الامتداد إذ لم يُتحقق منها.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">تعذر تنصيب الإضافة %1$s لأنها غير متوافقة مع %2$s‏ %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">تعذر تنصيب %1$s بسبب وجود احتمال كبير بأن تسبب مشاكل في الأمن أو الثبات.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">لم يتم تثبيت %1$s لأنه لا يمكن تثبيته إلا بواسطة منظمة تستخدم سياسات المؤسسة، وهو أمر غير مدعوم على هذه المنصة.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -246,8 +244,6 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">حسنا</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">اطّلع على المزيد</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">عُطّل %1$s لمشاكل تتعلق بالأمن أو الثبات.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">تعذّر التحقق من أمان %1$s  ولذا عُطّل.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

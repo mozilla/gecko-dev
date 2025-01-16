@@ -33,7 +33,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">i-Save ang napiling tabs padulong sa collection</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Napili</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Napili</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s hinimo sa Mozilla.</string>
@@ -111,10 +111,6 @@
     <string name="browser_menu_stop">Hunong</string>
 
 
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Mga Add-on</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Wala’y mga add-on dinhi</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Tabang</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -127,8 +123,6 @@
     <string name="browser_menu_desktop_site">Desktop site</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Dugang sa Home screen</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">i-Install</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">i-Sync usab</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -173,9 +167,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Search language</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">i-Scan</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Mga setting sa search engine</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -217,8 +208,6 @@
     <string name="preferences_set_as_default_browser">Itakda isip default browser</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privacy ug seguridad</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Panugot sa site</string>
     <!-- Preference for opening links in a private tab-->
     <string name="preferences_open_links_in_a_private_tab">i-Open ang mga link sa pribadong tab</string>
     <!-- Preference for allowing screenshots to be taken while in a private tab-->
@@ -259,8 +248,6 @@
     <string name="customize_addon_collection_hint">Ngalan sa Collection</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Tag-iya sa Collection (User ID)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done">Ang Add-on collection nausab. Kamulong gina-quit ang application para maapply ang nausab…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
@@ -275,8 +262,6 @@
     <string name="preferences_sync_category">Pili unsay i-sync</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Mga Bookmark</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Mga Login</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Abrihi ang Tabs</string>
     <!-- Preference displays and allows changing current FxA device name -->
@@ -295,8 +280,6 @@
         The first parameter is the application name, the second is the device manufacturer name
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s sa %2$s %3$s</string>
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">Mga credit card</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Mga address</string>
 
@@ -304,7 +287,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Nadawat nga mga tab</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Mga pahibalo sa mga tab nga nadawat gikan sa ubang mga Firefox device.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Mga pahibalo sa mga tab nga nadawat gikan sa ubang mga Firefox device.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Tab nga nadawat</string>
     <!-- %s is the device name -->
@@ -322,7 +305,7 @@
     <string name="exceptions_empty_message_learn_more_link">Dugang pagtuon</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Usage ug technical data</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Usage ug technical data</string>
 
 
     <!-- Translations feature-->

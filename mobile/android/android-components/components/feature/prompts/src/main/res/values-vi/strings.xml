@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Sử dụng mật khẩu mạnh?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Bảo vệ tài khoản của bạn bằng cách sử dụng mật khẩu mạnh, được tạo ngẫu nhiên. Nó sẽ được lưu vào tài khoản của bạn để sử dụng trong tương lai.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Bảo vệ tài khoản của bạn bằng cách sử dụng mật khẩu mạnh, được tạo ngẫu nhiên. Nó sẽ được lưu vào tài khoản của bạn để sử dụng trong tương lai.</string>

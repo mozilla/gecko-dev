@@ -178,11 +178,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Cap de connexion Internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Sembla que i a un problèma amb vòstra connexion internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Verificatz vòstra connexion ret o ensajatz de recargar la pagina d’aquí un moment.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Ensajatz de vos connectar sus un autre aparelh. Verificatz vòstre modèm o rotador. Desconnectatz-vos puèi reconnectatz-vos al Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

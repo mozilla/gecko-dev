@@ -510,10 +510,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">ਬੰਦ ਕਰੋ</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">%1$s ਵਲੋਂ ਜੀ ਆਇਆਂ ਨੂੰ</string>
 
@@ -833,7 +830,7 @@
     <string name="studies_learn_more">ਹੋਰ ਜਾਣੋ</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">ਤਬਦੀਲੀਆਂ ਲਾਗੂ ਕਰਨ ਲਈ ਐਪਲੀਕੇਸ਼ਨ ਬੰਦ ਹੋਵੇਗੀ</string>
+    <string name="studies_restart_app" moz:removedIn="135">ਤਬਦੀਲੀਆਂ ਲਾਗੂ ਕਰਨ ਲਈ ਐਪਲੀਕੇਸ਼ਨ ਬੰਦ ਹੋਵੇਗੀ</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">ਹਟਾਓ</string>
@@ -1116,11 +1113,6 @@
     <string name="promote_search_widget_snackbar_message">ਵਿਜੈੱਟ ਮੁੱਖ ਸਕਰੀਨ ਉੱਤੇ ਜੋੜਿਆ ਗਿਆ</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਜਾਣ ਵਾਲੇ ਸੰਕੇਤ ਨੂੰ ਵਰਤੋਂ</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਨੂੰ ਦਬਾਓ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">ਬਾਹਰ ਜਾਣ ਲਈ ਸਿਖਰ ਤੋਂ ਖਿੱਚ ਕੇ ਪਿੱਛੇ ਜਾਣ ਵਾਲੇ ਸੰਕੇਤ ਨੂੰ ਵਰਤੋਂ</string>

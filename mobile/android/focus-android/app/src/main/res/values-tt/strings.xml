@@ -515,10 +515,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Ябу</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">%1$s кушымтасына рәхим итегез</string>
 
@@ -837,7 +834,7 @@
     <string name="studies_learn_more">Күбрәк белү</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Үзгәртүләрне гамәлгә ашыру өчен кушымта ябылачак</string>
+    <string name="studies_restart_app" moz:removedIn="135">Үзгәртүләрне гамәлгә ашыру өчен кушымта ябылачак</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Бетерү</string>
@@ -1101,11 +1098,6 @@
     <string name="promote_search_widget_snackbar_message">Виджет өй экранына өстәлде</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Тулы экраннан чыгу өчен, экранны өстән тартып, &quot;кире кайту&quot; ишарәсен кулланыгыз</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Тулы экраннан чыгу өчен, экранны өстән тартып, &quot;кире кайту&quot; төймәсенә басыгыз</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, &quot;кире кайту&quot; ишарәсен кулланыгыз</string>

@@ -171,10 +171,6 @@
         <li>Sisī na\'ue nāyi\'nïn riña gà\' si \'ngō pâjina, ni\'iāj si huā internet riña si āgà\'t li.</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Nitāj internet hua</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Nātsij ni\'iājt sisī huā internet asi ginù huin ñû nā\'nïnt riña nanâ doj sínj.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Nā\'nïn ñû</string>
 

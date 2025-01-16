@@ -46,7 +46,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">തിരഞ്ഞെടുത്ത ടാബുകൾ ശേഖരത്തിൽ കരുതിവയ്ക്കുക</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">തിരഞ്ഞെടുത്ത</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">തിരഞ്ഞെടുത്ത</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -227,7 +227,7 @@
     <!-- Browser menu button that opens the settings menu -->
     <string name="browser_menu_settings">ക്രമീകരണങ്ങള്‍</string>
     <!-- Browser menu button that opens a user's library -->
-    <string name="browser_menu_library">ലൈബ്രറി</string>
+    <string name="browser_menu_library">ഗ്രന്ഥപ്പുര</string>
     <!-- Browser menu toggle that requests a desktop site -->
     <string name="browser_menu_desktop_site">ഉപരിഫലക സൈറ്റു്</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
@@ -404,8 +404,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">സ്കാൻ ചെയ്യുക</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">കൂ.ർ സങ്കേതം പരിശോധിക്കുക</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">തിരച്ചിൽ ക്രമീകരണങ്ങൾ</string>
@@ -428,8 +426,6 @@
     <string name="search_settings_menu_item">തിരച്ചിൽ ക്രമീകരണങ്ങൾ</string>
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">ഈ വട്ടം ഇതിൽ തിരയുക:</string>
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s തിരയൽയന്ത്രം</string>
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">തിരയൽയന്ത്രം: %s</string>
@@ -500,10 +496,6 @@
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">വിപുലീകരണങ്ങൾ കൊണ്ടു് താങ്ങളുടെ ഫയർഫോക്സു് സ്വന്തമാക്കുക</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">കൂടുതൽ വിപുലീകരണങ്ങൾ കാണുക.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">തിരയുകാൻ തുടങ്ങുക.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">കൂടുതൽ വിപുലീകരണങ്ങൾ കാണുക</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -590,7 +582,7 @@
     <string name="onboarding_customize_toolbar_placement_top_content_description">മേൽക്കരുപ്പട്ടയിന്റെ ചിത്രം</string>
 
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_not_now_button">ഇപ്പോഴല്ല</string>
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ഒരു അലങ്കാരം തിരഞ്ഞെടുക്കുക</string>
@@ -665,21 +657,19 @@
     <string name="preferences_category_advanced">സങ്കീര്‍ണ്ണമായവ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">സ്വകാര്യതയും സുരക്ഷയും</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">സൈറ്റ് അനുമതികൾ</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">വെബ്സ്ഥാന ക്രമീകരണങ്ങൾ</string>
     <!-- Preference for private browsing options -->
-    <string name="preferences_private_browsing_options">സ്വകാര്യ ബ്രൗസിങ്</string>
+    <string name="preferences_private_browsing_options">സ്വകാര്യ തിരച്ചിൽ</string>
     <!-- Preference for opening links in a private tab-->
     <string name="preferences_open_links_in_a_private_tab">സ്വകാര്യ ടാബില്‍ കണ്ണികൾ തുറക്കുക</string>
     <!-- Preference for allowing screenshots to be taken while in a private tab-->
-    <string name="preferences_allow_screenshots_in_private_mode">സ്വകാര്യ ബ്രൗസിങ്ങിൽ സ്‌ക്രീൻഷോട്ടുകൾ അനുവദിക്കുക</string>
+    <string name="preferences_allow_screenshots_in_private_mode">സ്വകാര്യ തിരച്ചിലിൽ പ്രതലപ്പിളർപ്പുകളെ അനുവദിക്കുക</string>
 
     <!-- Will inform the user of the risk of activating Allow screenshots in private browsing option -->
     <string name="preferences_screenshots_in_private_mode_disclaimer">അനുവദിക്കുകയാണെങ്കിൽ, ഒന്നിലധികം അപ്ലിക്കേഷനുകൾ തുറക്കുമ്പോൾ സ്വകാര്യ ടാബുകളും ദൃശ്യമാകും</string>
     <!-- Preference for adding private browsing shortcut -->
-    <string name="preferences_add_private_browsing_shortcut">സ്വകാര്യ ബ്രൗസിംഗ് കുറുക്കുവഴി ചേർക്കുക</string>
+    <string name="preferences_add_private_browsing_shortcut">സ്വകാര്യ തിരച്ചിൽ കുറുക്കുവഴി ചേർക്കുക</string>
 
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">HTTPS-മാത്രം രീതി</string>
@@ -928,7 +918,7 @@
     <string name="default_device_name_2">%2$s %3$s ‍ൽ %1$s</string>
 
     <!-- Preference for syncing payment methods -->
-    <string name="preferences_sync_credit_cards_2">പണം കൊടുക്കൽ മുറകൾ</string>
+    <string name="preferences_sync_credit_cards_2">പണമടക്കൽ മുറകൾ</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">വിലാസങ്ങള്‍</string>
 
@@ -1158,12 +1148,12 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">തുറന്നിരുന്ന ടാബുകള്‍</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">തുറന്നിരുന്ന ടാബുകള്‍</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">സ്വകാര്യ ടാബുകൾ</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">സ്വകാര്യ ടാബുകൾ</string>
 
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">സമന്വയിപ്പിച്ച ടാബുകള്‍</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">സമന്വയിപ്പിച്ച ടാബുകള്‍</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ടാബ് ചേര്‍ക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1474,7 +1464,7 @@
     <string name="preference_exceptions">വിട്ടുവീഴ്ചകള്‍</string>
 
     <!-- Summary of tracking protection preference if tracking protection is set to off -->
-    <string name="tracking_protection_off">ഓഫ്</string>
+    <string name="tracking_protection_off">അണച്ചതു്</string>
     <!-- Summary of tracking protection preference if tracking protection is set to standard -->
     <string name="tracking_protection_standard">നിലവാരം</string>
     <!-- Summary of tracking protection preference if tracking protection is set to strict -->
@@ -1500,7 +1490,7 @@
     <!-- Summary of delete browsing data on quit preference if it is set to on -->
     <string name="delete_browsing_data_quit_on">ഓണ്‍</string>
     <!-- Summary of delete browsing data on quit preference if it is set to off -->
-    <string name="delete_browsing_data_quit_off">ഓഫ്</string>
+    <string name="delete_browsing_data_quit_off">അണച്ചതു്</string>
 
     <!-- Summary of studies preference if it is set to on -->
     <string name="studies_on">തുറന്നതു്</string>
@@ -1798,7 +1788,7 @@
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
     <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[അക്കൗണ്ടില്ലേ? <u> ഉപകരണങ്ങൾക്കിടയിൽ ഫയർഫോക്സ് സമന്വയിപ്പിക്കുന്നതിന് ഒരെണ്ണം ഉണ്ടാക്കുക </u>.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
-    <string name="sign_out_confirmation_message_2">താങ്കളുടെ അക്കൗണ്ടുമായി സമന്വയിപ്പിക്കുന്നത് %s നിർത്തും പക്ഷേ ഈ ഉപകരണത്തിലുള്ള താങ്കളുടെ ബ്രൗസിങ്ങ് ഡാറ്റയൊന്നും നീക്കം ചെയ്യില്ല.</string>
+    <string name="sign_out_confirmation_message_2">താങ്കളുടെ അക്കൗണ്ടുമായി സമന്വയിപ്പിക്കുന്നത് %s നിർത്തും പക്ഷേ ഈ ഉപകരണത്തിലുള്ള താങ്കളുടെ തിരയൽദത്തയൊന്നും മായ്ക്കത്തില്ല.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
     <string name="sign_out_disconnect">വിച്ഛേദിക്കുക</string>
     <!-- Option to cancel signing out shown in confirmation dialog to sign out of account -->
@@ -1811,7 +1801,7 @@
     <!-- Link displayed in enhanced tracking protection panel to access tracking protection settings -->
     <string name="etp_settings">പരിരക്ഷാ ക്രമീകരണങ്ങൾ</string>
     <!-- Preference title for enhanced tracking protection settings -->
-    <string name="preference_enhanced_tracking_protection">മെച്ചപ്പെട്ട ട്രാക്കിംഗ് പരിരക്ഷണം</string>
+    <string name="preference_enhanced_tracking_protection">മെച്ചപ്പെട്ട പിന്തുടർച്ച പരിരക്ഷണം</string>
     <!-- Text displayed that links to website about enhanced tracking protection -->
     <string name="preference_enhanced_tracking_protection_explanation_learn_more">കൂടുതല്‍ അറിയുക</string>
 
@@ -1820,17 +1810,17 @@
     <!-- Preference description for enhanced tracking protection for the standard protection settings -->
     <string name="preference_enhanced_tracking_protection_standard_description_5">താളുകൾ സാധാരണമായി ലഭ്യമാവും പക്ഷേ കുറച്ചേ പിന്തുടർച്ചയന്ത്രങ്ങളെ തടയും.</string>
     <!--  Accessibility text for the Standard protection information icon  -->
-    <string name="preference_enhanced_tracking_protection_standard_info_button">സ്റ്റാൻഡേർഡ് ട്രാക്കിംഗ് പരിരക്ഷണം എന്തെല്ലാം തടഞ്ഞു</string>
+    <string name="preference_enhanced_tracking_protection_standard_info_button">സ്റ്റാൻഡേർഡ് പിന്തുടർച്ച പരിരക്ഷണം എന്തെല്ലാം തടഞ്ഞു</string>
     <!-- Preference for enhanced tracking protection for the strict protection settings -->
     <string name="preference_enhanced_tracking_protection_strict">കർശനം</string>
     <!--  Accessibility text for the Strict protection information icon  -->
-    <string name="preference_enhanced_tracking_protection_strict_info_button">കർശന ട്രാക്കിംഗ് സംരക്ഷണം എന്തെല്ലാം തടയുന്നു</string>
+    <string name="preference_enhanced_tracking_protection_strict_info_button">കർശന പിന്തുടർച്ച സംരക്ഷണം എന്തെല്ലാം തടയുന്നു</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom">ഇച്ഛാനുസൃതം</string>
     <!-- Preference description for enhanced tracking protection for the strict protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_description_2">തടയേണ്ട ട്രാക്കറുകളെയും സ്ക്രിപ്റ്റുകളെയും തിരഞ്ഞെടുക്കുക.</string>
+    <string name="preference_enhanced_tracking_protection_custom_description_2">തടയേണ്ട പിന്തുടർച്ചയന്ത്രങ്ങളെയും സ്ക്രിപ്റ്റുകളെയും തിരഞ്ഞെടുക്കുക.</string>
     <!--  Accessibility text for the Strict protection information icon  -->
-    <string name="preference_enhanced_tracking_protection_custom_info_button">ഇഷ്‌ടാനുസൃത ട്രാക്കിംഗ് സരക്ഷണം എന്തെല്ലാം തടയുന്നു</string>
+    <string name="preference_enhanced_tracking_protection_custom_info_button">ഇഷ്‌ടാനുസൃത പിന്തുടർച്ച സംരക്ഷണം എന്തെല്ലാം തടയുന്നു</string>
     <!-- Header for categories that are being blocked by current Enhanced Tracking Protection settings -->
     <!-- Preference for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies">കുക്കികള്‍</string>
@@ -1846,7 +1836,7 @@
     <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
     <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">ദത്ത പങ്കിടുകയോ വിൽക്കുകയോ ചെയ്യരുതെന്ന് വെബ്‌സൈറ്റുകളോട് പറയുക</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
-    <string name="preference_enhanced_tracking_protection_custom_tracking_content">ട്രാക്ക് ചെയ്യുന്ന ഉള്ളടക്കം</string>
+    <string name="preference_enhanced_tracking_protection_custom_tracking_content">പിന്തുടരുന്ന ഉള്ളടക്കം</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_1">എല്ലാ ടാബുകളിലും</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
@@ -1860,13 +1850,13 @@
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_allowed">അനുവദിച്ചത്</string>
     <!-- Category of trackers (social media trackers) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_social_media_trackers_title">സമൂഹ മാധ്യമ ട്രാക്കറുകൾ</string>
+    <string name="etp_social_media_trackers_title">സമൂഹ മാധ്യമ പിന്തുടർച്ചയന്ത്രങ്ങൾ</string>
     <!-- Description of social media trackers that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_social_media_trackers_description">വെബിലുടനീളം താങ്കളുടെ ബ്രൗസിങ്ങ് പ്രവർത്തനം പിന്തുടരാനുള്ള സോഷ്യൽ നെറ്റ്‌വർക്കുകളുടെ കഴിവ് പരിമിതപ്പെടുത്തുന്നു.</string>
+    <string name="etp_social_media_trackers_description">വെബിലുടനീളം താങ്കളുടെ തിരയൽ പ്രവർത്തനം പിന്തുടരാനുള്ള സോഷ്യൽ നെറ്റ്‌വർക്കുകളുടെ കഴിവ് പരിമിതപ്പെടുത്തുന്നു.</string>
     <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cookies_title">ക്രോസ്-സൈറ്റ് പിന്തുടരൽ കുക്കികൾ</string>
     <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_cookies_description">താങ്കളുടെ ബ്രൗസിങ്ങ് ഡാറ്റ സമാഹരിക്കാൻ നിരവധി സൈറ്റുകളിൽ പരസ്യ ശൃംഘലകളും അനലിറ്റിക്സ് കമ്പനികളും ഉപയോഗിക്കുന്ന കൂക്കികളെ തടയുന്നു.</string>
+    <string name="etp_cookies_description">താങ്കളുടെ തിരച്ചിൽദത്ത സമാഹരിക്കാൻ നിരവധി സൈറ്റുകളിൽ പരസ്യ ശൃംഘലകളും അനലിറ്റിക്സ് കമ്പനികളും ഉപയോഗിക്കുന്ന കൂക്കികളെ തടയുന്നു.</string>
     <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_title">ക്രിപ്റ്റോമൈനേഴ്സ്</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
@@ -1911,7 +1901,7 @@
     <string name="about_other_open_source_libraries">ഞങ്ങൾ ഉപയോഗിക്കുന്ന ലൈബ്രറികൾ</string>
     <!-- Toast shown to the user when they are activating the secret dev menu
         The first parameter is number of long clicks left to enable the menu -->
-    <string name="about_debug_menu_toast_progress">ഡീബഗ് മെനു: പ്രവർത്തനക്ഷമമാക്കാൻ %1$d ക്ലിക്ക് അവശേഷിക്കുന്നു</string>
+    <string name="about_debug_menu_toast_progress">ഡീബഗ് കുറിപ്പടി: പ്രവർത്തനക്ഷമമാക്കാൻ %1$d അമർത്തൽ അവശേഷിക്കുന്നു</string>
     <string name="about_debug_menu_toast_done">ഡീബഗ് മെനു പ്രവർത്തനക്ഷമമാക്കി</string>
 
     <!-- Browser long press popup menu -->
@@ -1925,7 +1915,7 @@
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL പകർത്തൽപെട്ടിയിലോട്ടു് പകർത്തി</string>
 
     <!-- Title text for the Add To Homescreen dialog -->
-    <string name="add_to_homescreen_title">ഹോം സ്‌ക്രീനിലേക്ക് ചേർക്കുക</string>
+    <string name="add_to_homescreen_title">ആമുഖതാളിലേക്കു് ചേർക്കുക</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_cancel">റദ്ദാക്കുക</string>
     <!-- Add button text for the Add to Homescreen dialog -->
@@ -2033,11 +2023,11 @@
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">വിലാസങ്ങള്‍</string>
     <!-- Preference and title for managing the settings for payment methods -->
-    <string name="preferences_credit_cards_2">പണം കൊടുക്കൽ മുറകൾ</string>
+    <string name="preferences_credit_cards_2">പണമടക്കൽ മുറകൾ</string>
     <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_2">പണം കൊടുക്കൽ രീതികൾ കരുതിവച്ചു് പൂരിപ്പിക്കുക</string>
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">പണമടക്കൽ രീതികൾ കരുതിവച്ചു് പൂരിപ്പിക്കുക</string>
     <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s താങ്ങൾ കരുതിവയ്ക്കുന്ന എല്ലാ പണം കൊടുക്കൽ രീതികളിൽ രൂപമാറ്റം വരുത്താരുണ്ടു്</string>
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s താങ്ങൾ കരുതിവയ്ക്കുന്ന എല്ലാ പണമടക്കൽ മുറകളിൽ രൂപമാറ്റം വരുത്താരുണ്ടു്</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">ഉപകരണങ്ങളിലുടനീളം ചീട്ടുകൾ സമന്വയിപ്പിക്കുക</string>
 
@@ -2095,7 +2085,9 @@
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">കരുതിവച്ച ചീട്ടുകളെ കാണാൻ പൂട്ടുതുറക്കുക</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_title_2">താങ്ങളുടെ കരുതിവച്ച പണം കൊടുക്കൽ രീതികളെ സുരക്ഷിതമാക്കുക</string>
+    <string name="credit_cards_warning_dialog_title_2">താങ്ങളുടെ കരുതിവച്ച പണമടക്കൽ മുറകളെ സുരക്ഷിതമാക്കുക</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_message_3">താങ്ങളുടെ കരുതിവച്ച പണമടക്കൽമുറകളെ മറ്റാരും ഉപയോഗിക്കാതിരിക്കാൻ ഒരു ഉപകരണപ്പൂട്ടക്രമം, പിൻ അല്ലെങ്കിൽ രഹസ്യവാക്കു് സജ്ജമാക്കുക.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">ഇപ്പോൾ സജ്ജമാക്കുക</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2103,7 +2095,7 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">താങ്കളുടെ ഉപകരണത്തിന്റെ പൂട്ട് തുറക്കുക</string>
     <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
-    <string name="credit_cards_biometric_prompt_unlock_message_2">താങ്ങളുടെ കരുതിവച്ച പണം കൊടുക്കൽ രീതികൾ ഉപയോഗിക്കാൻ പൂട്ടുതുറക്കുക</string>
+    <string name="credit_cards_biometric_prompt_unlock_message_2">താങ്ങളുടെ കരുതിവച്ച പണമടക്കൽ മുറകൾ ഉപയോഗിക്കാൻ പൂട്ടുതുറക്കുക</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">വിലാസം ചേർക്കുക</string>
     <!-- Title of the "Edit address" screen -->

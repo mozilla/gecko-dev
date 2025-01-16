@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">برداشتن از میان‌برها</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">تنظیمات</string>
     <string name="menu_about">درباره</string>
     <string name="menu_help">راهنما</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">اشتراک‌گذاری از طریق</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">پاک کردن تاریخچهٔ مرورگر</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,20 +116,20 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">جستجو در فوکوس</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">جستجو در فوکوس</string>
 
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">جستجو در فوکوس بتا</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">جستجو در فوکوس بتا</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">جستجو در Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">جستجو در Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s شما را تحت کنترل قرار می‌دهد.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s شما را تحت کنترل قرار می‌دهد.</p>
 <p>از این به عنوان یک مرورگر خصوصی استفاده کنید:
   <ul>
     <li>مستقیما در برنامه جست‌وجو و مرور کنید</li>
@@ -496,10 +493,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">بستن</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">به %1$s خوش‌ آمدید</string>
 
@@ -578,7 +572,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">دریافت فایرفاکس</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">دریافت فایرفاکس</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -590,23 +584,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s تحت شرایط <a href="%2$s">پروانه عمومی موزیلا</a> و سایر مجوزهای متن‌ باز در اختیار شما قرار می‌گیرد.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s تحت شرایط <a href="%2$s">پروانه عمومی موزیلا</a> و سایر مجوزهای متن‌ باز در اختیار شما قرار می‌گیرد.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[شما از حقی در خصوص علائم تجاری بنیاد موزیلا و یا هر شخص ثالثی، از جمله نام یا نشان موزیلا،  فایرفاکس یا %1$s برخوردار نیستید. اطلاعات بیشتر در <a href="%2$s"> اینجا</a> قابل دسترسی است.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[شما از حقی در خصوص علائم تجاری بنیاد موزیلا و یا هر شخص ثالثی، از جمله نام یا نشان موزیلا،  فایرفاکس یا %1$s برخوردار نیستید. اطلاعات بیشتر در <a href="%2$s"> اینجا</a> قابل دسترسی است.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[کد منبع بیشتری برای %1$sتحت تعداد دیگری از <a href="%2$s">پروانه‌های</a> آزاد و متن‌باز در دسترس است.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[کد منبع بیشتری برای %1$sتحت تعداد دیگری از <a href="%2$s">پروانه‌های</a> آزاد و متن‌باز در دسترس است.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s همچنین از فهرست‌های مسدودی فراهم شده توسط Disconnect استفاده می‌کند. به عنوان کارهای جدا و مستقل تحت <a href="%2$s">نگارش 3 پروانه جامع همگانی گنو</a> و <a href="%3$s">اینجا</a> در دسترس است.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s همچنین از فهرست‌های مسدودی فراهم شده توسط Disconnect استفاده می‌کند. به عنوان کارهای جدا و مستقل تحت <a href="%2$s">نگارش 3 پروانه جامع همگانی گنو</a> و <a href="%3$s">اینجا</a> در دسترس است.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">نام کاربری</string>
@@ -668,13 +662,13 @@
     <string name="preference_studies">مطالعات</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">فایرفاکس ممکن است هر از گاهی افزونه‌ای تحقیقی نصب و اجرا کند.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">فایرفاکس ممکن است هر از گاهی افزونه‌ای تحقیقی نصب و اجرا کند.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">بیشتر بدانید</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">برنامه برای اعمال تغییرات بسته می‌شود</string>
+    <string name="studies_restart_app" moz:removedIn="135">برنامه برای اعمال تغییرات بسته می‌شود</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">حذف</string>

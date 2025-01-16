@@ -154,10 +154,6 @@
 	</ul>
 	]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">No i hai connexión a Internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Verifica la tuya connexión de ret u intenta tornar a cargar la pachina en uns momentos.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Recargar</string>
 

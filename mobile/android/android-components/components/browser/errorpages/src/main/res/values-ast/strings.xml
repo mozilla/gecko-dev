@@ -175,12 +175,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nun hai conexón a internet</string>
-
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Paez qu\'hai un problema cola conexón a internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Comprueba la conexón a la rede o tenta de recargar la páxina nun momentu.</string>
 
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Tenta de conectate a otru preséu. Comprueba\'l módem o router. Desconéctate de la Wi-Fi y volvi conectate a ella.</string>

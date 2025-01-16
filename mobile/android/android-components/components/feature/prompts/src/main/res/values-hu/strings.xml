@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Erős jelszót használ?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Védje meg fiókjait egy erős, véletlenszerűen előállított jelszóval. A fiókjába lesz mentve későbbi felhasználás céljából.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Védje meg fiókját egy erős, véletlenszerűen előállított jelszóval. A fiókjába lesz mentve későbbi felhasználás céljából.</string>

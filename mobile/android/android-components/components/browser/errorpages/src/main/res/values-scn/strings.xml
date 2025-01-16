@@ -211,11 +211,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nuḍḍa cunnissioni â riti</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Parissi ca cc\'è un prubblema câ to cunnissioni â riti</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Cuntrolla a to cunnissioni o prova a carricari arrè a pàggina ntra n\'anticchieḍḍa.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Prova a cullijàriti di n\'autru dispusitivu. Cuntrolla u modem o u router. Scullèjati e cullèjati arrè ô Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

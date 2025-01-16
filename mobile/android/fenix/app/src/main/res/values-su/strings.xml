@@ -44,7 +44,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Simpen tab pinilih kana koléksi</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Dipilih</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Dipilih</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -92,12 +92,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Tutup</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Pitur pripasi pangwedelna anu sakaligus meungpeuk palacak meuntas-loka.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Leuwih teleb ngeunaan Total Cookie Protection</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">Toél di dieu pikeun mitembeyan rintakan nyamuni. Hapus jujutan, réréméh anjeun — sagalana.</string>
@@ -107,17 +101,9 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Kotéktak leuwih gancang ku navigasi anyar</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Papan ieu bakal ngagulung nalika disorolokkeun ku anjeun pikeun nambahan widang panyungsian.</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Dina situs wéb, papan ieu ngagulung nalika anjeun nyorolokkeun ka handap pikeun nambahan widang panyungsian.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Ketok jeung tahan panah pikeun luncat antara kaca dina jujutan tab ieu.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Anyar: ketok-sakali panah mundur jeung maju</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Rasakeun navigasi anu leuwih gancang nu salawasna aya dina raramo anjeun.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Butuh aksés kaméra. Buka setélan Android, toél idin, laju toél idinan.</string>
@@ -213,8 +199,6 @@
     <string name="browser_menu_manage_extensions">Atur émbohan</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Pangémboh anu disarankeun</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">Tambahan pangémboh</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Singraykeun émbohan leuwih loba</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -309,9 +293,9 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Balik deui ka ménu utama</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Pintonan Pamaca, Tarjamah, Citak, Bagikeun, Buka aplikasia</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Pintonan Pamaca, Tarjamah, Citak, Bagikeun, Buka aplikasia</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Pintonan Pamaca, Citak, Bagikeun, Buka aplikasi</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Pintonan Pamaca, Citak, Bagikeun, Buka aplikasi</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Teundeun</string>
@@ -377,9 +361,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Paluruh basa</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Pinday</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Setélan mesin pamaluruh</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -405,12 +386,7 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Saayeunaeun paluruh di:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Mesin pamaluruh %s</string>
-
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Nepangkeun kaca tepas pribadi anjeun. Tab mutahir, markah, jeung hasil maluruh bakal némbongan di dieu.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Wilujeng sumping di internét anu leuwih pribadi</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -432,18 +408,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Tutup</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Iber mantuan anjeun barang gawé jeung %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Singkronkeun tab antarpiranti anjeun, kokolakeun undeuran, baca cara nyieun panyalindungan pripasi %s, jst.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Tuluykeun</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Moal waka</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Iber pripasi Firefox</string>
@@ -462,20 +426,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Leuwih ti 100 juta jalma ngajaga privasina ku milih browser anu dirojong ku nirlaba.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Trackers dipikawanoh? Diblokir otomatis. Ekstensi? Coba sakabéhna 700. PDFs? Pamaca anu diwangun ku urang ngajadikeun éta gampang diurus.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Browser anu dirojong kalawan nirlaba urang nulungan pikeun mahing pausahaan ngukuntit anjeun dina wéb. \n \n Diajar leuwih lengkep dina iber privasi urang.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">wawar pripasi</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Jadikeun panyungsi baku</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Moal waka</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Tetep énkripsi nalika anjeun luncat antara alat</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Sabot anjeun asup jeung nyingkronkeun, anjeun téh leuwih aman. Firefox ngaénkripsi sandi anjeun, tetengger, jeung réa-réa deui.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox ngaénkripsi sandikecap anjeun, tetengger, jeung réa-réa deui nalika anjeun nyingkronkeun.</string>
@@ -557,8 +513,6 @@
     <string name="preferences_category_advanced">Terusan</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Salindungan jeung kaamanan</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Idin loka</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Nyungsi nyamuni</string>
     <!-- Preference for opening links in a private tab-->
@@ -904,17 +858,18 @@
     <string name="exceptions_empty_message_learn_more_link">Lenyepan</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Data pamakéan jeung téknis</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Data pamakéan jeung téknis</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Bagikeun kinerja, pamakéan, data hadwér jeung kustomisasi ngeunaan pamaluruh anjeun ka Mozilla pikeun mantuan sangkan %1$s leuwih hadé</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Data pamasaran</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Bagikeun data pamakéan dasar ka Adjust, péndor pamasaran ider kami</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Kirimkeun laporan kagagalan kalawan otomatis</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Bagikeun data kagagalan kalawan otomatis nalika ngamimitian ku Mozilla sanggeus lumangsungna kagagalan</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Bagikeun data pamakéan dasar ka Adjust, péndor pamasaran ider kami</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kirimkeun laporan kagagalan kalawan otomatis</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Bagikeun data kagagalan kalawan otomatis nalika ngamimitian ku Mozilla sanggeus lumangsungna kagagalan</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studi</string>
     <!-- Summary for studies preferences -->
@@ -1083,21 +1038,21 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Lenyepan</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikasi bakal kaluar pikeun nerapkeun parobahan</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikasi bakal kaluar pikeun nerapkeun parobahan</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">HEUG</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">HEUG</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Bolay</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Bolay</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Ninggalkeun aplikasi pikeun nerapkeun parobahan…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Ninggalkeun aplikasi pikeun nerapkeun parobahan…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Buka tab</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Buka tab</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Tab nyamuni</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tab nyamuni</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Tab singkron</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tab singkron</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Tambah tab</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1146,8 +1101,6 @@
     <string name="collection_open_tabs">Buka tab</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Ngaran koléksi</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Ganti ngaran</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Piceun</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1228,8 +1181,6 @@
     <string name="bookmark_delete_negative">Bolay</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Tambah map</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Markah diteundeun!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Disimpen dina &quot;%s&quot;</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1299,8 +1250,6 @@
     <string name="bookmark_navigate_back_button_content_description">Mundur</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Tambahkeun map anyar</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Tutup tetengger</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Paluruh tetengger</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1508,17 +1457,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Tutup tab nyamuni</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Nétral</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Kacida teu sugema</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Teu sugema</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Sugema</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Puas pisan</string>
-
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Tutup tab pribadi?</string>
@@ -1571,8 +1509,6 @@
     <string name="snackbar_tabs_closed">Tab ditutup</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Tab diutup: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Markah diteundeun!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Ditambahkeun ka takulan!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1601,8 +1537,6 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Pupus</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Asup ka mode layar pinuh</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL ditiron</string>
     <!-- Sample text for accessibility font size -->
@@ -1655,8 +1589,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Rentang waktu pikeun mupus</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Mupus jujutan (kaasup jujutan anu disingkronkeun ti séjén parabot), réréméh, jeung data nyungsi lianna.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Ngahapus jujutan (kaasup jujutan anu disingkronkeun tina séjén piranti)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1778,8 +1710,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Gurandil kripto</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Sidik ramo</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Sidik ramo nu dipiwanoh</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Wincikan</string>
@@ -1805,10 +1735,6 @@
     <string name="etp_cryptominers_title">Gurandil kripto</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Nyegah skrip bahya nyokot aksés kana paranti anjeun pikeun ngagali mata uang digital.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Sidik ramo</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ngeureunan data idéntifikasi unik paranti anjeun anu bisa dipaké pikeun tujuan ngalacak.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Ngeureunan data idéntifikasi unik paranti anjeun anu bisa dipaké pikeun tujuan ngalacak.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2281,8 +2207,6 @@
     <string name="shortcut_name_hint">Ngaran takulan</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">Panarabas URL</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">Heug</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Bolay</string>
 
@@ -2349,7 +2273,7 @@
     <string name="radio_preference_info_content_description">Pencét sangkan leuwih écés</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Pindah ka luhur</string>
+    <string name="action_bar_up_description">Pindah ka luhur</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Tutup</string>
@@ -2491,8 +2415,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Leuwih teleb</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Ku milih “Enya, cobaan” anjeun satuju kana %2$s %1$s jeung %4$s %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Ku milih “Enya, cobaan” anjeun satuju kana %2$s %1$s jeung %4$s %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">wawar pripasi</string>
@@ -2502,17 +2424,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Enya, cobaan</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Moal waka</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Ilikan lamun anjeun bisa percaya kana ulasan produk ieu — saméméh anjeun meuli.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Cobaan pamariksa ténjoan</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Ari ulasan ieu dipercaya? Pariksa ayeuna pikeun ningali rating anu disaluyukeun.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Buka pamariksa ténjoan</string>
-
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Buka pamariksa ténjoan</string>
@@ -2700,8 +2611,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Bolay</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Undeur Basa-basa</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Undeur basa-basa</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2759,14 +2668,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Pupus</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Bolay</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Bolaykeun %1$s ngundeur?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Enya</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ulah</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2864,8 +2765,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Kuring teu maké panyungsi dina Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">Kuring teu maké singkronisasi</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Kumaha kasugemaan anjeun kana kaca utama Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan Firefox bisa nyitak leuwih hadé. Ngan perlu sakolépat</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2885,8 +2784,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Ikon fitur survéy</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Buka survéy</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Tutup Survéy</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
@@ -2909,11 +2806,6 @@
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Atur deui CFRs</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung maké géstur balik</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung ketok balik deui</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Séred ti luhur &amp; gunakeun géstur balik pikeun kaluar</string>
@@ -2924,4 +2816,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

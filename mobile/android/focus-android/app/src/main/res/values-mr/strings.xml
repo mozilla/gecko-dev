@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">शॉर्टकट मधून हटवा</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">सेटिंग</string>
     <string name="menu_about">याबद्दल</string>
     <string name="menu_help">मदत</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">याद्वारे शेअर करा</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">ब्राउझिंग इतिहास खोडा</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -118,7 +115,7 @@
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s आपल्याला नियंत्रण देतो.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s आपल्याला नियंत्रण देतो.</p>
 <p>खाजगी ब्राउझर म्हणून वापरा:
 <ul>
 <li>अँप मध्येच शोध व ब्राउझ करा</li>
@@ -518,7 +515,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox डाउनलोड करा</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox डाउनलोड करा</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -530,23 +527,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s आपल्याला <a href="%2$s">Mozilla Public License</a> आणि इतर खुल्या स्त्रोत परवान्यांच्या नियमांतर्गत उपलब्ध करून दिले गेले आहे.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s आपल्याला <a href="%2$s">Mozilla Public License</a> आणि इतर खुल्या स्त्रोत परवान्यांच्या नियमांतर्गत उपलब्ध करून दिले गेले आहे.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Mozilla, Firefox किंवा %1$s यांचे नाव किंवा चिन्हांसह Mozilla Foundation किंवा कोणत्याही पक्षाच्या व्यापारचिन्हाचे अधिकार किंवा परवाने आपल्याला दिले गेले नाहीत. अधिक माहिती <a href="%2$s">इथे</a> मिळू शकते.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Mozilla, Firefox किंवा %1$s यांचे नाव किंवा चिन्हांसह Mozilla Foundation किंवा कोणत्याही पक्षाच्या व्यापारचिन्हाचे अधिकार किंवा परवाने आपल्याला दिले गेले नाहीत. अधिक माहिती <a href="%2$s">इथे</a> मिळू शकते.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$s साठी अधिक स्रोत कोड इतर अनेक मुक्त आणि खुल्या स्त्रोताच्या <a href="%2$s">परवान्यांतर्गत</a> उपलब्ध आहे.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s साठी अधिक स्रोत कोड इतर अनेक मुक्त आणि खुल्या स्त्रोताच्या <a href="%2$s">परवान्यांतर्गत</a> उपलब्ध आहे.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[Disconnect, inc. यांनी पुरवलेल्या अडवणूक याद्या सुद्धा <a href="%2$s">GNU General Public License v3</a> अंतर्गत एक विभक्त आणि स्वतंत्र संसाधन म्हणून %1$s वापरते, ज्या <a href="%3$s">इथे</a> उपलब्ध आहेत.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Disconnect, inc. यांनी पुरवलेल्या अडवणूक याद्या सुद्धा <a href="%2$s">GNU General Public License v3</a> अंतर्गत एक विभक्त आणि स्वतंत्र संसाधन म्हणून %1$s वापरते, ज्या <a href="%3$s">इथे</a> उपलब्ध आहेत.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">वापरकर्त्याचे नाव</string>

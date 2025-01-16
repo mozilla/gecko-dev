@@ -199,11 +199,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">无互联网连接</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">您的网络连接似乎出了点问题</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">请检查您的网络连接，或在稍后尝试重新加载页面。</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">请尝试通过其他设备连接、检查调制解调器或路由器、断开 Wi-Fi 连接后重新连接。</string>
     <!-- The document title and heading of an error page. -->

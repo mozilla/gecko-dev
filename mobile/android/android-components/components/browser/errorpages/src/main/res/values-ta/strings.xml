@@ -173,11 +173,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">இணையத் தொடர்பு இல்லை</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">உங்கள் இணையத் தொடர்பில் தடங்கல் ஏற்பட்டுள்ளதைக் காணமுடிகிறது</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">உங்கள் இணைய இணைப்பைச் சரிபாருங்கள் அல்லது சிறிதுநேரத்திற்குப் பின் பக்கத்தை மறுஏற்ற முயற்சியுங்கள்.</string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_error_code">பிழைக் குறியீடு: NS_ERROR_OFFLINE</string>
 

@@ -92,11 +92,6 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">ঠিকানা পাওয়া যায়নি</string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">কোনো ইন্টারনেট সংযোগ নেই</string>
-
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">আপনার নেটওয়ার্কের সংযোগটি পরীক্ষা করুন বা কিছুক্ষণ পর পাতাটি আবার লোড করার চেষ্টা করুন।</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">পুনরায় লোড করুন</string>
 

@@ -180,11 +180,7 @@
   ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">اتصال اینترنت در دسترس نیست</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">به نظر می‌رسد مشکلی با اتصال اینترنت شما وجود دارد</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">اتصال شبکهٔ خود را بررسی کنید یا پس از چند لحظه، بار کردن دوبارهٔ صفحه را بیازمایید.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">سعی کنید با دستگاه دیگری متصل شوید. مودم یا روتر خود را بررسی کنید. اتصال را قطع کرده و دوباره به Wi-Fi متصل شوید.</string>
     <!-- The document title and heading of an error page. -->

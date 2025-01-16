@@ -164,11 +164,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nema internet konekcije</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Izgleda da postoji problem s vašom internet vezom</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Provjeri mrežnu vezu ili pokušaj ponovo učitati stranicu za nekoliko trenutaka.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Pokušajte se povezati na drugom uređaju. Provjerite svoj modem ili ruter. Prekinite vezu i ponovo se povežite na Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

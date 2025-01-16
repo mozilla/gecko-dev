@@ -190,8 +190,6 @@
     <string name="mozac_feature_addons_extension_failed_to_install">Бу киңәйтүне урнаштырып булмады.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s кушымчасын урнаштырып булмый, чөнки ул %2$s %3$s версиясе белән ярашмый.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s кушымчасын урнаштырып булмады, чөнки аның тотрыклылык яки хәвефсезлек проблемаларын китереп чыгару рискы зур.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s уңышлы кабызылды</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -238,6 +236,4 @@
     <string name="mozac_feature_addons_status_learn_more">Күбрәк белү</string>
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Нечкәлекләрен карау</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s хәвефсезлек яки тотрыклылык проблемалары аркасында сүндерелгән.</string>
     </resources>

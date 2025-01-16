@@ -169,11 +169,6 @@
         <li>आपण कोणतीही पृष्ठे लोड करू शकत नसल्यास आपल्या डिव्हाइसचा डेटा किंवा वायफाय कनेक्शन तपासा.</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">इंटरनेट जोडणी नाही</string>
-
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">आपली नेटवर्क जोडणी तपासा किंवा काही क्षणात पृष्ठ परत लोड करण्याचा प्रयत्न करा.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">पुन्हा लोड करा</string>
 

@@ -14,7 +14,7 @@
     <string name="content_description_private_browsing_button">Ṣe ìgbàláyè fún bíráwúsínnì ìkọ̀kọ̀</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Má ṣe ìgbàláyè fún bíráwúsìnnì ìkọ̀kọ̀</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Ṣàwárí tàbí fi àdìrẹ́sì si </string>
     <!-- Placeholder text shown in the search bar when using application search engines -->
     <string name="application_search_hint">Tẹ àwọn òfin wíwá si</string>
@@ -39,14 +39,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Ṣe ìfipamọ́ àwọn táàbù tí o yàn sí inú àkójọpọ̀</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Yàn</string>
-
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title">Tí a ṣẹ̀ṣẹ̀ fipamọ́</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2">Ṣàfihán gbogbo búkúmaàkì tí ó wà ní ìpamọ́</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove">Yọkúrò</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Yàn</string>
 
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
@@ -58,7 +51,7 @@
     <string name="private_browsing_placeholder_description_2">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
     <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀ </string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">Rárá o ṣeun</string>
 
     <!-- Open in App "contextual feature recommendation" (CFR) -->
@@ -68,12 +61,6 @@
     <string name="open_in_app_cfr_positive_button_text">Lọ sí àwọn ètò</string>
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Yọ kúrò</string>
-
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Ọ̀pọ̀ nínú àwọn àbùdá ìkọ̀kọ̀ tó lágbára síbẹ̀síbẹ̀ àwọn ìyàsọ́tọ̀ olùtọpasẹ̀ kírọ́sì-sáìtì. </string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Kọ́ nípa Ìdáábòbò Kúkì Lápapọ̀ </string>
 
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
@@ -151,10 +138,6 @@
     <string name="browser_menu_refresh">Sọ dọ̀tun</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Dúró</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Àwọn àfikún</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Kò sí àwọn àfikún níbí</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Ìràǹwọ́</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -167,8 +150,6 @@
     <string name="browser_menu_desktop_site">Sáìtì dẹ́sítọọ̀pù</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Ṣàfikún sí Síkíríìnì àkọ́ọ́kàn</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Ṣàgbékalẹ̀</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Sopọ̀ padà</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -213,9 +194,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">Wá èdè</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Àyẹ̀wò aláwòrán</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Àwọn ààtò ẹ̀rọ ìwádìí</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -230,7 +208,7 @@
     <string name="search_suggestions_onboarding_title">Gba àwọn ìmọ̀ràn ìwádìí láàyè ní àwọn àsìkò ìkọ̀kọ̀ bí?</string>
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s yóó pín gbogbo ohun to bá tẹ̀ sí ààyè ìfi-àdírẹ̀sì-sí pẹ̀lú ẹ̀rọ ìwádìí rẹ gangan.</string>
-    <!-- Search engine suggestion title text. The first parameter is the name of teh suggested engine-->
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
     <string name="search_engine_suggestions_title">Wádìí %s</string>
     <!-- Search engine suggestion description text -->
     <string name="search_engine_suggestions_description">Wá tààrà láti ààyè ìfi-àdírẹ̀sì-sí</string>
@@ -238,8 +216,6 @@
     <string name="search_settings_menu_item">Àwọn ètò ìwádìí</string>
 
 
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Ṣe alábapàdé ojú-ìwé àkọ́kọ́ rẹ tí ó jẹ́ tara ẹni. Àwọn táàbù àìpẹ́, búkúmaàkì, at́í pé àwọn èsì wíwá yóò hàn níbí.</string>
     <!-- Home onboarding dialog welcome screen description text. -->
     <string name="onboarding_home_welcome_description">Ọ̀pọ̀ àwọn àwọ̀. Ìkọ̀kọ̀ tó dára. Irúfẹ́ ìfarafún bẹ̀ẹ́ sí àwọn ènìyàn lóri àwọn èrè.</string>
     <!-- Home onboarding dialog sign into sync screen description text. -->
@@ -290,8 +266,6 @@
     <string name="preferences_category_advanced">Ìlọsíwájú</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Ìkọ̀kọ̀ àti ààbò</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Àwọn ìgbaniláàyè sáìtì</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Bíráwúsìnnì ìkọ̀kọ̀</string>
     <!-- Preference for opening links in a private tab-->
@@ -307,7 +281,7 @@
 
     <!-- Description of the preference to enable "HTTPS-Only" mode. -->
     <string name="preferences_https_only_summary">Ìgbìnyànjú ẹsẹ̀kẹsẹ̀ láti so mọ́ àwọn sáìtì tó ń lo ìlànà ìfipamọ́ HTTPS fún ààbò tó lékún.</string>
-    <!-- Summary of tracking protection preference if tracking protection is set to off -->
+    <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">Pa á</string>
     <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
     <string name="preferences_http_only_learn_more">Kọ́ si</string>
@@ -329,8 +303,6 @@
     <string name="preferences_override_sync_tokenserver">Sáfà taraẹni onísopọ̀</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Àkáǹtì</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Pẹpẹ irinṣẹ́</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Kókó</string>
     <!-- Preference for customizing the home screen -->
@@ -374,14 +346,9 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Alákòóso ìgbàsílẹ̀ ìta</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Àwọn àfikún</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Àwọn ìfitónilétí</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection">Afikún àkójọpọ̀ Taraẹni</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Ó DA</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -390,14 +357,10 @@
     <string name="customize_addon_collection_hint">Àkójọpọ̀ orúkọ</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Àkọ́jọpọ̀ ẹni (ID Aṣàmúlò)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done">Ṣàfikún títún àkójọpọ̀ ṣe. Jíjáwọ́ kúrò nínu ààpù láti ṣàmúlò àwọn àyípadà…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Wọlé padà sínu</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks">Àwọn búkúmaakì àìpẹ́</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Ìṣàbẹ̀wò láìpẹ́</string>
@@ -416,7 +379,6 @@
     <!-- Snackbar label for action to view selected wallpaper -->
     <string name="wallpaper_updated_snackbar_action">Wòó</string>
 
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">Ṣepọ̀ nísìyín</string>
     <!-- Preference category for sync -->
@@ -427,8 +389,6 @@
     <string name="preferences_sync_bookmarks">Àwọn búkúmaàkì</string>
 
 
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins"> Àwọn lọ́giìnì</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Ṣí táàbù</string>
     <!-- Preference for signing out -->
@@ -451,8 +411,6 @@
         The first parameter is the application name, the second is the device manufacturer name
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s lórí %2$s %3$s</string>
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">Àwọn káàdì kírẹ́dítì</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Àwọn àdírẹ́ẹ̀sì</string>
 
@@ -460,7 +418,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Àwọn táàbù tí a gbà</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Àwọn ìfitónilétí fún àwọn táàbù tí a gbà láti àwọn Firefox mìíràn.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Àwọn ìfitónilétí fún àwọn táàbù tí a gbà láti àwọn Firefox mìíràn.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">T́áàbù tí a gbà</string>
     <!-- %s is the device name -->
@@ -479,13 +437,14 @@
     <string name="exceptions_empty_message_learn_more_link">Kọ́ si</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Lílò àti dátà iṣẹ́ ọnà</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Lílò àti dátà iṣẹ́ ọnà</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Pípolówó dátà</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Pín ìlò dátà ìpìnlẹ̀ pẹ̀lú Adjust, òǹtajà ìtajà alágbéká wa</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Pín ìlò dátà ìpìnlẹ̀ pẹ̀lú Adjust, òǹtajà ìtajà alágbéká wa</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Àwọn àyẹ̀wò</string>
 
@@ -493,6 +452,7 @@
     <!-- Summary for studies preferences -->
     <string name="preference_experiments_summary_2">Fàyègba Mozilla láàyè láti wọlé sórí ẹ̀rọ kó sì ṣe àwọn ayẹ̀wò</string>
 
+    <!-- Turn On Sync Preferences -->
     <!-- Header of the Sync and save your data preference view -->
     <string name="preferences_sync_2">Ṣe ìṣepọ̀ kí o sì fi dátà rẹ pamọ́</string>
 
@@ -529,8 +489,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Fàá láti sọ́dọ̀tun</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Yí i lọ láti tọ́jú pẹpẹ irinṣẹ́</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Fa pẹpẹ irinṣẹ́ sí ẹ̀gbẹ́ kan láti yí àwọn táàbù </string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Fa pẹpẹ irinṣẹ́ sí òkè láti ṣí àwọn táàbù</string>
 
@@ -627,21 +585,21 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Kọ́ si</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Áàpù náà yóó dáwọ́ dúró láti ṣàmúlò àwọn àyípadà</string>
+    <string name="studies_restart_app" moz:removedIn="135">Áàpù náà yóó dáwọ́ dúró láti ṣàmúlò àwọn àyípadà</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Ó DA</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Ó DA</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Parẹ́</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Parẹ́</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Pípa áàpù náà láti ṣàmúlò àyípadà…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Pípa áàpù náà láti ṣàmúlò àyípadà…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Ṣí àwọn táàbù</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ṣí àwọn táàbù</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Àwọn táàbù ìkọ̀kọ̀</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Àwọn táàbù ìkọ̀kọ̀</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Àwọn táàbù tọ́ ti ṣepọ̀</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Àwọn táàbù tọ́ ti ṣepọ̀</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Ṣàfikún táàbù</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -694,10 +652,8 @@
     <string name="collection_open_tabs">Ṣí àwọn táàbù</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Orúkọ àkójọpọ̀</string>
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">Ṣàtúnfúnlórúkọ</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">Yọ kúrò</string>
+    <string name="remove_top_site">Yọ kúrò</string>
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">Parẹ́ kúrò nínú ìtan</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
@@ -767,8 +723,6 @@
     <string name="bookmark_delete_negative">Parẹ́</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Ṣàfikún fóhúdà</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">A ti fi búkúmaàkì pamọ́!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ṢÀTÚNSE</string>
     <!-- Bookmark overflow menu edit button -->
@@ -973,7 +927,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Ṣe ìsopọ̀ àwọn ẹ̀rọ mìíràn</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Láti fi táàbù kan ráńṣẹ́, wọlé sí Firefox lóri ó kéré jù, ẹ̀rọ míràn kan.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Láti fi táàbù kan ráńṣẹ́, wọlé sí Firefox lóri ó kéré jù, ẹ̀rọ míràn kan.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Gbà á</string>
     <!-- Share error message -->
@@ -1003,8 +957,6 @@
     <string name="snackbar_tab_closed">Táàbù di pípadé</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Àwọn táàbù di pípadé</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Àwọn búkúmaakì ti wà ní ìfipamọ́!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Ṣàfikún àwọn ọ̀nà-àbùjá!</string>
 
@@ -1029,14 +981,8 @@
     <string name="qr_scanner_dialog_invalid_ok">Ó DÁA</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Ṣé ó dá ọ lójú pé o fẹ́ paárẹ́ %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Pípa táàbù yí rẹ́ máa pa gbogbo àkójọpọ̀ náà rẹ́. O lè ṣẹ̀dá àwọn àkójọpọ̀ tuntun nígbàkúùgbà.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Parẹ́ %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Parẹ́</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Wíwọ ipò síkírìnì kíkun</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL ti di dídàkọ</string>
     <!-- Sample text for accessibility font size -->
@@ -1082,8 +1028,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Àsìkò láti parẹ́</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body">Yọ ìtàn kúrò (pẹ̀lú ìtàn tí a ṣepọ̀ láti inú àwọn ẹ̀rọ mìíràn), kúkíìsì àti àwọn dátà bíráwúsìnnì mìíràn.</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
     <string name="delete_history_prompt_button_last_hour">Wákàtí tó kọjá</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for today and yesterday. -->
@@ -1111,9 +1055,11 @@
     <!-- Text for the snackbar confirmation that the history group was deleted -->
     <string name="delete_history_group_snackbar">Ọ̀wọ́ ti di píparẹ́</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">Ìṣepọ̀ wà ní títàn </string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">Àwọn táàbù ti a fi ránṣẹ́!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -1125,7 +1071,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Síkáànì kóòdù náà</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Lóri kọ̀m̀pútà rẹ ṣí Firefox ko sì lọ sí <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Lóri kọ̀m̀pútà rẹ ṣí Firefox ko sì lọ sí <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Gbaradì láti síkáànì</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1133,7 +1079,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Lo ímeelì dípò</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Kò sí àkáǹtì? <u> Ṣẹ̀dá ọ̀kan</u>láti jẹ́ kí Firefox ṣiṣẹ́pọ̀ láàárín àwọn ẹ̀rọ.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Kò sí àkáǹtì? <u> Ṣẹ̀dá ọ̀kan</u>láti jẹ́ kí Firefox ṣiṣẹ́pọ̀ láàárín àwọn ẹ̀rọ.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s yóò dá ìṣiṣẹ́pọ̀ dúrọ́ pẹ̀lú àkáńtì rẹ, àmọ́ ò ní pa dátà bíráwúsìnnì kankan rẹ́ lóri ẹ̀rọ yìí.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1186,8 +1132,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Nínu táàbù ìkọ̀kọ̀ nìkan</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Àwọn kíríputomínà</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Awọn ẹ̀rọ ìtẹ̀ka</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Ẹ̀kúnrẹ́rẹ́ </string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1210,10 +1154,6 @@
     <string name="etp_cryptominers_title">Àwọn kíríputomínà</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Ṣe ìdènà àwọn kóòdù tó ń mú ìjàm̀bà bá àwọn ojú òpó wẹ́ẹ̀bù tí ó tí ń ní ìfàyègbà sí àwọn owó dígítà orí ẹ̀rọ rẹ.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Àwọn ẹ̀rọ ìtẹ̀ka</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Ṣe ìdádúró dátà aláìlẹ́gbẹ́ tí a dámọ̀ láti jẹ́ gbígbà nípa ẹ̀rọ rẹ tí a lè lò fún ìtọpasẹ̀.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Kóòdù ítọpasẹ̀</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1283,11 +1223,6 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">O lè fi ẃéíbusaìtì yí kún Síkíríìnì àkọ́ọ́kàn rẹ nírọ̀rùn láti ní ààyè lẹ́sẹ̀kẹsẹ̀ àti láti ṣe ìwádìí ní ìyára pẹ̀lú ìrírí tó jọ ti áàpù.</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">Àwọn lọ́giìnì àti àwọn pásíwọọ̀dù</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">Ṣe ìfipamọ́ àwọn lógiinì àti àwọn pásíwọọ̀dù</string>
-
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Bèrè láti fipamọ́</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1300,29 +1235,11 @@
     <string name="preferences_android_autofill">Àìfọwọ́yí nínú àwọn áàpù mìíràn</string>
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Fọwọ́sí àwọn orúkọ ìgbàwọlé àti ọ̀rọ̀ ìpamọ́ nínú àwọn áàpù mìíràn lóri ẹ̀rọ rẹ.</string>
-    <!-- Preference option for adding a login -->
-    <string name="preferences_logins_add_login">Ṣàfikún lọ́giìnì</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">Ìṣiṣẹ́pọ̀ lọ́giìnì</string>
-    <!-- Preference for syncing saved logins in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices">So àwọn ìwọlé pọ̀ kárí gbogbo àwọn ẹ̀rọ</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">Ṣe ìfipamọ́ lọ́giìnì</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">Àwọn lọ́giinì tí o ti fi pamọ́ tàbí tí o sopọ̀ sí %s yóò hàn níbí.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">Kọ́ si nípa ìṣiṣẹ́pọ̀.</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Àwọn ìyọkúrò</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">Àwọn lọ́giinì àti àwọn ọ̀rọ̀ ìpamọ́ tí wọn kò fipamọ́ yóò hàn níbí </string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">Àwọn lọ́giinì àti àwọn ọ̀rọ̀ ìpamọ́ kò ní wà ní ìpamọ́ fún àwọn sáìtì yìí.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Pa gbogbo àwọn ìyọkúrò rẹ́</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">Yẹ àwọn lógiìnì wò</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Sáìtì</string>
     <!-- The header for the username for a login -->
@@ -1349,12 +1266,6 @@
     <string name="saved_login_reveal_password">Ṣàfihàn pásíwọọ̀dù</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Tọ́jú pásíwọọ̀dù</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">Ṣíi láti wo àwọn lọ́giìnì tí o fipamọ́</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">Ṣe ààbò àwọn lọ́giìnì àti àwọn pásíwọọ̀dù rẹ</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">Ṣètò àwọn pátàànì fún títìpa ẹ̀rọ, PÍÌNÌ, tàbí pásíwọọ̀dù láti ṣe ìdáábòbò fún àwọn lọ́giinì àti àwọn pásíwọọ̀dù tí o fipamọ́ láti má jẹ́kí ẹlòmíràn ní àǹfàní si tí wọ́n bá wà pẹ̀lú ẹ̀rọ rẹ.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Nígbà mìíràn</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1369,38 +1280,21 @@
     <string name="saved_logins_sort_strategy_alphabetically">Orúkọ (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Ìlò ìkẹyìn</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">Yanjú àtò ìforúkọsílẹ̀ láti wọlé</string>
 
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">Fi si láìfọwọ́ yi</string>
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">Àwọn àdírẹ́ẹ̀sì</string>
-    <!-- Preference and title for managing the settings for credit cards -->
-    <string name="preferences_credit_cards">Àwọn káàdì kírẹ́díìtì</string>
-    <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards">Ìfipamọ́ àti àwọn káàdì dátààdáṣe</string>
-    <!-- Preference summary for saving and autofilling credit card data -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary">Dátà ti di ìṣọdi kóòdù</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Ìṣepọ̀ àwọn káàdì lórí àwọn ẹ̀rọ</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Ìṣepọ̀ àwọn káàdì</string>
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card">Ṣàfikún kírẹ́díìtì káàdì</string>
 
-    <!-- Preference option for managing saved credit cards -->
-    <string name="preferences_credit_cards_manage_saved_cards">Ṣàkóso àwọn káàdì tí ó wà ní ìfipamọ́</string>
     <!-- Preference option for adding an address -->
     <string name="preferences_addresses_add_address">Ṣàfikún àdìrẹ́sì</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">Ṣàkóso àwọn àdírẹ́sì</string>
-
-    <!-- Preference for saving and autofilling addresses -->
-    <string name="preferences_addresses_save_and_autofill_addresses">Fipamọ́ kí o sì fi àwọn àdìrẹ́sì si láìfọwọ́ yi</string>
-    <!-- Preference summary for saving and autofilling address data -->
-    <string name="preferences_addresses_save_and_autofill_addresses_summary">Ṣe àfikún àwọn ìròyìn bíi àwọn nọ́ḿbà, ímeelì àti àwọn àdìrẹ́sì ibi tí a fi nǹkan ránṣé sí</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Ṣàfikún káàdì</string>
@@ -1420,8 +1314,6 @@
     <string name="credit_cards_menu_delete_card">Pa káàdì rẹ̀</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">Pa káàdì rẹ̀</string>
-    <!-- The text for the confirmation message of "Delete card" dialog -->
-    <string name="credit_cards_delete_dialog_confirmation">Ṣé ó dá ọ lójú pé o fẹ́ pa kírẹ́dítì káàdì yìí rẹ́?</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">Parẹ́</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
@@ -1433,37 +1325,21 @@
     <string name="credit_cards_cancel_button">Parẹ́</string>
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Ṣe ìfipamọ́ àwọn káàdì</string>
-    <!-- Error message for credit card number validation -->
-    <string name="credit_cards_number_validation_error_message">Jọ̀wọ́ tẹ nọ́ḿbà kírẹ́dítì káàdì tó fẹsẹ̀múlẹ̀</string>
-    <!-- Error message for credit card name on card validation -->
-    <string name="credit_cards_name_on_card_validation_error_message">Jọ̀wọ́ bu ọwọ́ lu ààyè yìí</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Ṣí i láti wo àwọn káàdì rẹ tó wà ní ìpamọ́</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_title">Ṣe ààbò àwọn kírẹ́dítì káàdì rẹ</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_message">Ṣètò bátànì fún títìpa ẹ̀rọ, PÍÌNÌ, ọ̀rọ̀ ìpamọ́ láti dáábòbò àwọn káàdì kírẹ́díìtì tí ó wà ní ìpamọ́ láti má jẹ́ kí ẹlòmíràn ní àǹfàní si tí wọ́n bá wà pẹ̀lú ẹ̀rọ rẹ.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">Ṣètò rẹ̀ báyìí</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_later">Nígbà mìíràn</string>
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Ṣí ẹ̀rọ rẹ sílẹ̀</string>
-    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored credit card information -->
-    <string name="credit_cards_biometric_prompt_unlock_message">Ṣi láti lo àwọn àlàyé káàdì kírẹ́díìtì tí wọ́n fi pamọ́</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">Ṣàfikún àdìrẹ́sì</string>
     <!-- Title of the "Edit address" screen -->
     <string name="addresses_edit_address">Ṣàtúnkọ àdìrẹ́sì</string>
     <!-- Title of the "Manage addresses" screen -->
     <string name="addresses_manage_addresses">Ṣàkóso àwọn àdírẹ́sì</string>
-    <!-- The header for the first name of an address -->
-    <string name="addresses_first_name">Orúkọ àkọ́kọ́</string>
-    <!-- The header for the middle name of an address -->
-    <string name="addresses_middle_name">Orúkọ kejì</string>
 
-    <!-- The header for the last name of an address -->
-    <string name="addresses_last_name">Orúkọ ìdílé</string>
     <!-- The header for the street address of an address -->
     <string name="addresses_street_address">Orúkọ òpópónà</string>
     <!-- The header for the city of an address -->
@@ -1487,8 +1363,6 @@
     <string name="addresses_cancel_button">Parẹ́</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">Pa àdìrẹ́sì rẹ́</string>
-    <!-- The title for the "Delete address" confirmation dialog -->
-    <string name="addressess_confirm_dialog_message">Ṣé ó dá ẹ lójú pé o fẹ́ pa àdìrẹ́sì náà rẹ́?</string>
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">Parẹ́</string>
     <!-- The text for the negative button on "Delete address" dialog -->
@@ -1509,7 +1383,7 @@
     <string name="search_engine_delete">Parẹ́</string>
 
     <!-- Description text for the Search String TextField. The %s is part of the string -->
-    <string formatted="false" name="search_add_custom_engine_search_string_example">Rọ́pò ìbéérè pẹ̀lú “%s”. Àpẹẹrẹ:\nhttps://www.google.com/search?q=%s</string>
+    <string name="search_add_custom_engine_search_string_example" formatted="false">Rọ́pò ìbéérè pẹ̀lú “%s”. Àpẹẹrẹ:\nhttps://www.google.com/search?q=%s</string>
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">Àwọn àlàyé ìwádìí ẹ̀rọ taraẹni</string>
 
@@ -1567,30 +1441,10 @@
     <string name="login_menu_delete_button">Parẹ́</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Ṣàtúnkọ</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">Ṣé ó dá ẹ lójú pé o fẹ́ pa ìforúkọsílẹ̀ láti wọlé yìí rẹ́?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Parẹ́</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">Paárẹ́</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">Àwọn ẹ̀yàn ìforúkọsílẹ̀ láti wọlé</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">Ààyè ìṣàtúnkọ ọ̀rọ̀ fún àdìrẹ́sì wẹ́ẹ̀bù fún ìforúkọsílẹ̀ láti wọlé.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">Ààyè ìṣàtúnkọ ọ̀rọ̀ fún orúkọ aṣàmúlò fún orúkọ ìgbàwọlé.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">Ààyè ìṣàtúnkọ ọ̀rọ̀ fún pásíwọọ̀dù fún ìforúkọsílẹ̀ láti wọlé.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">Ṣe ìfipamọ́ àwọn àyípadà sí ìforúkọsílẹ̀ láti wọlé.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">Ṣàtúnkọ</string>
-    <!--  The page title for adding new login. -->
-    <string name="add_login">Ṣàfikún ìforúkọsílẹ̀ láti wọlé tuntun</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">Ìnílò pásíwọọ̀dù</string>
-    <!--  The error message in add login view when username field is blank. -->
-    <string name="saved_login_username_required">Ìnílò orúkọ ìgbàwọlé</string>
     <!--  The error message in add login view when hostname field is blank. -->
     <string name="saved_login_hostname_required" tools:ignore="UnusedResources">A nílò orúkọ nẹ́tíwọọ̀kì kọ̀m̀pútà</string>
     <!-- Voice search button content description  -->
@@ -1615,7 +1469,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Jọ̀wọ́ gba ìṣepọ̀ táàbù láyè.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">O ò ní àwọn táàbù tí ó wà ní ṣíṣí ní Firefox lórí àwọn ẹ̀rọ rẹ tó kù.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">O ò ní àwọn táàbù tí ó wà ní ṣíṣí ní Firefox lórí àwọn ẹ̀rọ rẹ tó kù.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Ṣe àfihàn àtòjọ àwọn táàbù láti àwọn ẹ̀rọ̀ rẹ̀ tó kù.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -1637,13 +1491,11 @@
     <!-- Label for the preference to show the shortcuts for the most visited top sites on the homepage -->
     <string name="top_sites_toggle_top_recent_sites_4">Àwọn ọ̀nà-àbùjá</string>
     <!-- Title text displayed in the rename top site dialog. -->
-	<string name="top_sites_rename_dialog_title">Orúkọ</string>
+    <string name="top_sites_rename_dialog_title">Orúkọ</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Orúkọ ọ̀nà-àbùjá</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-	<string name="top_sites_rename_dialog_ok">O DÁRA</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
-	<string name="top_sites_rename_dialog_cancel">Parẹ́</string>
+    <string name="top_sites_rename_dialog_cancel">Parẹ́</string>
     <!-- Text for the menu button to open the homepage settings. -->
     <string name="top_sites_menu_settings">Àwọn aatò</string>
     <!-- Text for the menu button to navigate to sponsors and privacy support articles. '&amp;' is replaced with the ampersand symbol: & -->
@@ -1665,17 +1517,19 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Tì-fúnra-ẹ̀ lẹ́yìn oṣù kan?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox lè ti àwọn táàbù tí oò tíì yẹ̀wò ní oṣù tó kọjá.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox lè ti àwọn táàbù tí oò tíì yẹ̀wò ní oṣù tó kọjá.</string>
 
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">TAN TÌ-FÚNRA-Ẹ̀</string>
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
     <string name="inactive_tabs_auto_close_message_snackbar">Tí-fúnra-ẹ̀ ti di ṣíṣe</string>
 
-    <string name="firefox_suggest_header">Firefox Dábàá</string>
+    <!-- Awesome bar suggestion's headers -->
+    <!-- Search suggestions title for Firefox Suggest. -->
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Dábàá</string>
 
-    <!-- Default browser experiment -->
-    <string name="default_browser_experiment_card_text">Ṣètò àwọn líǹkì láti àwọn wẹ́íbúsaìtì, íméèlì àti àwọn ìfiráńṣẹ láti ṣí fún ra wọn ní Firefox.</string>
+    <!-- Default browser card text -->
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Ṣètò àwọn líǹkì láti àwọn wẹ́íbúsaìtì, íméèlì àti àwọn ìfiráńṣẹ láti ṣí fún ra wọn ní Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Yọ kúrò</string>
@@ -1697,7 +1551,7 @@
     <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
     <string name="pocket_stories_placeholder_text">Ṣàwárí si</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Ara ìdílé Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Ara ìdílé Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Kọ́ ẹ̀kọ́ si</string>
     <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->

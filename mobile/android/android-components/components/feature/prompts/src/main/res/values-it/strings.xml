@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Usare una password complessa?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Proteggi i tuoi account utilizzando una password complessa generata in modo casuale. Verrà salvata nel tuo account per un uso futuro.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteggi il tuo account utilizzando una password complessa generata in modo casuale. Verrà salvata nel tuo account per un uso futuro.</string>

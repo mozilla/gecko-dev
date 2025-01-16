@@ -105,9 +105,6 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ᱟᱢᱟᱜ ᱮᱠᱟᱩᱱᱴ ᱠᱚ ᱢᱤᱫ ᱠᱮᱴᱮᱡ, ᱨᱮᱱᱰᱚᱢ ᱵᱮᱱᱟᱣ ᱟᱠᱟᱱ ᱯᱟᱥᱵᱚᱨᱰ ᱛᱮ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱢᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱟᱢᱟᱜ ᱠᱷᱟᱛᱟ ᱨᱮ ᱵᱷᱚᱵᱤᱥᱚᱛ ᱞᱟᱹᱜᱤᱫ ᱵᱮᱵᱷᱟᱨᱚᱜᱼᱟ ᱾</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ᱟᱢᱟᱜ ᱮᱠᱟᱩᱱᱴ ᱢᱤᱫ ᱠᱮᱴᱮᱡ, ᱨᱮᱱᱰᱚᱢ ᱵᱮᱱᱟᱣ ᱟᱠᱟᱱ ᱯᱟᱥᱵᱚᱨᱰ ᱛᱮ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱢᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱟᱢᱟᱜ ᱠᱷᱟᱛᱟ ᱨᱮ ᱵᱷᱚᱵᱤᱥᱚᱛ ᱞᱟᱹᱜᱤᱫ ᱵᱮᱵᱷᱟᱨᱚᱜᱼᱟ ᱾</string>
 
     <!-- Pressing this will use the suggested strong password -->

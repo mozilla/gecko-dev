@@ -191,10 +191,6 @@
         <li>Agar birorta ham sahifa yuklanmasa, mobil internetni yoki Wi-Fi ulanishini tekshiring.</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Internetga ulanmagan</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Tarmoqqa ulanishni tekshiring yoki bir necha daqiqadan soʻng sahifani yangilang.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Qayta yuklash</string>
 

@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Güçlü bir parola kullanılsın mı?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Rastgele oluşturulan güçlü bir parolayla hesaplarınızı koruyun. Parola, ileride kullanabilmeniz için hesabınıza kaydedilecektir.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Rastgele oluşturulan güçlü bir parolayla hesabınızı koruyun. Parola, ileride kullanabilmeniz için hesabınıza kaydedilecektir.</string>
