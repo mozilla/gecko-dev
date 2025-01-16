@@ -7,6 +7,8 @@
 #ifndef mozilla_EncoderConfig_h_
 #define mozilla_EncoderConfig_h_
 
+#include "mozilla/Variant.h"
+
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "H264.h"
 
