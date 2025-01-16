@@ -4032,7 +4032,10 @@ var SessionStoreInternal = {
       const closedTabData = [];
       for (let winData of this._closedWindows) {
         const sourceClosedId = winData.closedId;
-        const closedTabs = Cu.cloneInto(winData._closedTabs, {});
+        const closedTabs = Cu.cloneInto(
+          this._getStateForClosedTabsAndClosedGroupTabs(winData),
+          {}
+        );
         // Add a property pointing back to the closed window source
         for (let tabData of closedTabs) {
           tabData.sourceClosedId = sourceClosedId;
@@ -4067,6 +4070,11 @@ var SessionStoreInternal = {
           w => w.closedGroups
         )
       );
+    }
+    if (sourceOptions.closedTabsFromClosedWindows) {
+      for (let winData of this.getClosedWindowData()) {
+        closedTabGroups.push(...winData.closedGroups);
+      }
     }
     return closedTabGroups;
   },

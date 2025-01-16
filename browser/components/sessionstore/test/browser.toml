@@ -299,6 +299,8 @@ tags = "os_integration"
 
 ["browser_tab_groups_closed.js"]
 
+["browser_tab_groups_closed_groups_in_closed_windows.js"]
+
 ["browser_tab_groups_empty.js"]
 
 ["browser_tab_groups_restore_closed_in_closed_window.js"]
