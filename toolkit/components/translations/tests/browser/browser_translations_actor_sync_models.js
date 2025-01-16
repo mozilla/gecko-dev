@@ -40,7 +40,7 @@ add_task(async function test_translations_actor_sync_update_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate,
-    expectedUpdatedRecordsCount: 3,
+    expectedUpdatedRecordsCount: downloadedFilesPerLanguagePair(),
   });
 
   const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -140,7 +140,7 @@ add_task(async function test_translations_actor_sync_create_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate,
-    expectedCreatedRecordsCount: 3,
+    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
   });
 
   const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -203,7 +203,7 @@ add_task(
 
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate,
-      expectedCreatedRecordsCount: 3,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
     });
 
     const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -267,7 +267,7 @@ add_task(
 
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate,
-      expectedCreatedRecordsCount: 3,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
     });
 
     const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -318,7 +318,7 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate: newRecords,
-    expectedCreatedRecordsCount: 3,
+    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
   });
 
   const decoder = new TextDecoder();
@@ -336,7 +336,7 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToDelete: newRecords,
-    expectedDeletedRecordsCount: 3,
+    expectedDeletedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
   });
 
   const rolledBackModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -381,7 +381,7 @@ add_task(async function test_translations_parent_download_size() {
   // Includes model, lex, and vocab files (x3), each mocked at 123 bytes.
   is(
     directSize,
-    3 * 123,
+    downloadedFilesPerLanguagePair() * 123,
     "Returned the expected download size for a direct translation."
   );
 
@@ -392,7 +392,7 @@ add_task(async function test_translations_parent_download_size() {
   // Includes a pivot (x2), model, lex, and vocab files (x3), each mocked at 123 bytes.
   is(
     pivotSize,
-    2 * 3 * 123,
+    2 * downloadedFilesPerLanguagePair() * 123,
     "Returned the expected download size for a pivot."
   );
 

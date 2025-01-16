@@ -174,7 +174,7 @@ async function openAboutTranslations({
   const resolveDownloads = async count => {
     await remoteClients.translationsWasm.resolvePendingDownloads(1);
     await remoteClients.translationModels.resolvePendingDownloads(
-      FILES_PER_LANGUAGE_PAIR * count
+      downloadedFilesPerLanguagePair() * count
     );
   };
 
@@ -184,7 +184,7 @@ async function openAboutTranslations({
   const rejectDownloads = async count => {
     await remoteClients.translationsWasm.rejectPendingDownloads(1);
     await remoteClients.translationModels.rejectPendingDownloads(
-      FILES_PER_LANGUAGE_PAIR * count
+      downloadedFilesPerLanguagePair() * count
     );
   };
 
@@ -1097,7 +1097,7 @@ async function loadTestPage({
     async resolveDownloads(count) {
       await remoteClients.translationsWasm.resolvePendingDownloads(1);
       await remoteClients.translationModels.resolvePendingDownloads(
-        FILES_PER_LANGUAGE_PAIR * count
+        downloadedFilesPerLanguagePair() * count
       );
     },
 
@@ -1112,7 +1112,7 @@ async function loadTestPage({
     async rejectDownloads(count) {
       await remoteClients.translationsWasm.rejectPendingDownloads(1);
       await remoteClients.translationModels.rejectPendingDownloads(
-        FILES_PER_LANGUAGE_PAIR * count
+        downloadedFilesPerLanguagePair() * count
       );
     },
 
@@ -1135,7 +1135,7 @@ async function loadTestPage({
         expectedWasmDownloads
       );
       await remoteClients.translationModels.resolvePendingDownloads(
-        FILES_PER_LANGUAGE_PAIR * expectedLanguagePairDownloads
+        downloadedFilesPerLanguagePair() * expectedLanguagePairDownloads
       );
     },
 
@@ -1158,7 +1158,7 @@ async function loadTestPage({
         expectedWasmDownloads
       );
       await remoteClients.translationModels.rejectPendingDownloads(
-        FILES_PER_LANGUAGE_PAIR * expectedLanguagePairDownloads
+        downloadedFilesPerLanguagePair() * expectedLanguagePairDownloads
       );
     },
 
@@ -1361,9 +1361,16 @@ function createAttachmentMock(
 }
 
 /**
- * The amount of files that are generated per mocked language pair.
+ * The count of records per mocked language pair in Remote Settings.
  */
-const FILES_PER_LANGUAGE_PAIR = 3;
+const RECORDS_PER_LANGUAGE_PAIR = 3;
+
+/**
+ * The count of files that are downloaded for a mocked language pair in Remote Settings.
+ */
+function downloadedFilesPerLanguagePair() {
+  return RECORDS_PER_LANGUAGE_PAIR;
+}
 
 function createRecordsForLanguagePair(fromLang, toLang) {
   const records = [];
@@ -1383,7 +1390,7 @@ function createRecordsForLanguagePair(fromLang, toLang) {
     isDownloaded: false,
   };
 
-  if (models.length !== FILES_PER_LANGUAGE_PAIR) {
+  if (models.length !== RECORDS_PER_LANGUAGE_PAIR) {
     throw new Error("Files per language pair was wrong.");
   }
 
