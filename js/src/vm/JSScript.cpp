@@ -1255,9 +1255,11 @@ ScriptSource::PinnedUnits<Unit>::PinnedUnits(
     : PinnedUnitsBase(source) {
   MOZ_ASSERT(source->hasSourceType<Unit>(), "must pin units of source's type");
 
+  addReader();
+
   units_ = source->units<Unit>(cx, holder, begin, len);
-  if (units_) {
-    addReader();
+  if (!units_) {
+    removeReader<Unit>();
   }
 }
 
@@ -1270,9 +1272,11 @@ ScriptSource::PinnedUnitsIfUncompressed<Unit>::PinnedUnitsIfUncompressed(
     : PinnedUnitsBase(source) {
   MOZ_ASSERT(source->hasSourceType<Unit>(), "must pin units of source's type");
 
+  addReader();
+
   units_ = source->uncompressedUnits<Unit>(begin, len);
-  if (units_) {
-    addReader();
+  if (!units_) {
+    removeReader<Unit>();
   }
 }
 
