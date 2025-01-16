@@ -20,7 +20,6 @@ try:
 except ImportError:
     import pathlib2 as pathlib
 
-APS_PREF = "privacy.partition.always_partition_third_party_non_cookie_storage"
 CB_PBM_PREF = "network.cookie.cookieBehavior.pbmode"
 CB_PREF = "network.cookie.cookieBehavior"
 INJECTIONS_PREF = "extensions.webcompat.perform_injections"
@@ -79,9 +78,6 @@ class FirefoxWebDriver(WebDriver):
 
     def capabilities(self, test_config):
         prefs = {}
-
-        if "aps" in test_config:
-            prefs[APS_PREF] = test_config["aps"]
 
         if "use_interventions" in test_config:
             value = test_config["use_interventions"]
