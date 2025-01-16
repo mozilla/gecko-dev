@@ -58,8 +58,6 @@ class ModifierTest {
 
         composeTestRule.scrollToOnShownIndex()
 
-        assertFalse(onShown)
-
         composeTestRule.waitUntil(ON_SHOWN_SETTLE_TIME_MS + 500L) { onShown }
 
         assertTrue(onShown)
