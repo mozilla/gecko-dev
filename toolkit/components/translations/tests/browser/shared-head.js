@@ -60,6 +60,7 @@ const ALWAYS_TRANSLATE_LANGS_PREF =
   "browser.translations.alwaysTranslateLanguages";
 const NEVER_TRANSLATE_LANGS_PREF =
   "browser.translations.neverTranslateLanguages";
+const USE_LEXICAL_SHORTLIST_PREF = "browser.translations.useLexicalShortlist";
 
 /**
  * Generates a sorted list of Translation model file names for the given language pairs.
@@ -73,7 +74,9 @@ function languageModelNames(languagePairs) {
     .flatMap(({ fromLang, toLang }) => [
       `model.${fromLang}${toLang}.intgemm.alphas.bin`,
       `vocab.${fromLang}${toLang}.spm`,
-      `lex.50.50.${fromLang}${toLang}.s2t.bin`,
+      ...(Services.prefs.getBoolPref(USE_LEXICAL_SHORTLIST_PREF)
+        ? [`lex.50.50.${fromLang}${toLang}.s2t.bin`]
+        : []),
     ])
     .sort();
 }
@@ -129,6 +132,7 @@ async function openAboutTranslations({
       ["browser.translations.enable", !disabled],
       ["browser.translations.logLevel", "All"],
       ["browser.translations.mostRecentTargetLanguages", ""],
+      [USE_LEXICAL_SHORTLIST_PREF, false],
       ...(prefs ?? []),
     ],
   });
@@ -475,6 +479,7 @@ async function createTranslationsDoc(html, options) {
     set: [
       ["browser.translations.enable", true],
       ["browser.translations.logLevel", "All"],
+      [USE_LEXICAL_SHORTLIST_PREF, false],
     ],
   });
 
@@ -729,6 +734,7 @@ async function setupActorTest({
       // Enabled by default.
       ["browser.translations.enable", true],
       ["browser.translations.logLevel", "All"],
+      [USE_LEXICAL_SHORTLIST_PREF, false],
       ...(prefs ?? []),
     ],
   });
@@ -780,9 +786,7 @@ async function createAndMockRemoteSettings({
   autoDownloadFromRemoteSettings = false,
 }) {
   if (TranslationsParent.isTranslationsEngineMocked()) {
-    throw new Error(
-      "Attempt to mock the Translations Engine when it is already mocked."
-    );
+    info("Attempt to mock the Translations Engine when it is already mocked.");
   }
 
   const remoteClients = {
@@ -1027,6 +1031,7 @@ async function loadTestPage({
         ["browser.translations.alwaysTranslateLanguages", ""],
         ["browser.translations.neverTranslateLanguages", ""],
         ["browser.translations.mostRecentTargetLanguages", ""],
+        [USE_LEXICAL_SHORTLIST_PREF, false],
         // Bug 1893100 - This is needed to ensure that switching focus
         // with tab works in tests independent of macOS settings that
         // would otherwise disable keyboard navigation at the OS level.
@@ -1369,7 +1374,9 @@ const RECORDS_PER_LANGUAGE_PAIR = 3;
  * The count of files that are downloaded for a mocked language pair in Remote Settings.
  */
 function downloadedFilesPerLanguagePair() {
-  return RECORDS_PER_LANGUAGE_PAIR;
+  return Services.prefs.getBoolPref(USE_LEXICAL_SHORTLIST_PREF)
+    ? RECORDS_PER_LANGUAGE_PAIR
+    : RECORDS_PER_LANGUAGE_PAIR - 1;
 }
 
 function createRecordsForLanguagePair(fromLang, toLang) {
@@ -1377,8 +1384,8 @@ function createRecordsForLanguagePair(fromLang, toLang) {
   const lang = fromLang + toLang;
   const models = [
     { fileType: "model", name: `model.${lang}.intgemm.alphas.bin` },
-    { fileType: "lex", name: `lex.50.50.${lang}.s2t.bin` },
     { fileType: "vocab", name: `vocab.${lang}.spm` },
+    { fileType: "lex", name: `lex.50.50.${lang}.s2t.bin` },
   ];
 
   const attachment = {
@@ -1750,6 +1757,7 @@ async function setupAboutPreferences(
       // Enabled by default.
       ["browser.translations.enable", true],
       ["browser.translations.logLevel", "All"],
+      [USE_LEXICAL_SHORTLIST_PREF, false],
       ...prefs,
     ],
   });

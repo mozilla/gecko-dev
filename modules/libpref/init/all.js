@@ -3672,6 +3672,9 @@ pref("browser.translations.useHTML", false);
 pref("browser.translations.automaticallyPopup", true);
 // Simulate the behavior of using a device that does not support the translations engine.
 // Requires restart.
+// Enables or disables the usage of lexical shortlisting for the translation models.
+// Using a lexical shortlist will increase translation speed, but may reduce quality.
+pref("browser.translations.useLexicalShortlist", false);
 pref("browser.translations.simulateUnsupportedEngine", false);
 // The translations code relies on asynchronous network request. Chaos mode simulates
 // flaky and slow network connections, so that the UI may be manually tested. The
