@@ -397,17 +397,6 @@ function initPage() {
       });
       longDesc = null;
 
-      document.getElementById("openInNewWindowContainer").hidden =
-        RPMGetBoolPref("security.xfocsp.hideOpenInNewWindow");
-
-      const openInNewWindowButton = document.getElementById(
-        "openInNewWindowButton"
-      );
-      openInNewWindowButton.addEventListener("click", function () {
-        const url = document.location.href;
-        window.open(url, "_blank", "noopener,noreferrer");
-      });
-
       // Add a learn more link
       learnMore.hidden = false;
       learnMoreLink.setAttribute("href", baseURL + "xframe-neterror-page");

@@ -101,7 +101,6 @@ export let RemotePageAccessManager = {
         "security.certerror.hideAddException",
         "security.xfocsp.errorReporting.automatic",
         "security.xfocsp.errorReporting.enabled",
-        "security.xfocsp.hideOpenInNewWindow",
         "network.trr.display_fallback_warning",
         "security.certerrors.felt-privacy-v1",
       ],

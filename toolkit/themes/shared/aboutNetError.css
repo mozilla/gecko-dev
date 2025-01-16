@@ -60,10 +60,6 @@ button:disabled {
   margin-top: 2em;
 }
 
-#openInNewWindowContainer {
-  margin-bottom: 0;
-}
-
 #advancedPanelButtonContainer {
   background-color: rgba(128, 128, 147, 0.1);
   display: flex;
