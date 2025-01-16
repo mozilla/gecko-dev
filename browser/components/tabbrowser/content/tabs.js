@@ -55,6 +55,8 @@
       this.addEventListener("TabAttrModified", this);
       this.addEventListener("TabHide", this);
       this.addEventListener("TabShow", this);
+      this.addEventListener("TabPinned", this);
+      this.addEventListener("TabUnpinned", this);
       this.addEventListener("TabHoverStart", this);
       this.addEventListener("TabHoverEnd", this);
       this.addEventListener("TabGroupExpand", this);
@@ -225,6 +227,17 @@
       this.#updateTabMinWidth();
       this.#updateTabMinHeight();
 
+      let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
+        return (
+          tab.hasAttribute("soundplaying") ||
+          tab.hasAttribute("muted") ||
+          tab.hasAttribute("activemedia-blocked")
+        );
+      });
+      for (const indicatorTab of indicatorTabs) {
+        this.updateTabIndicatorAttr(indicatorTab);
+      }
+
       super.attributeChangedCallback(name, oldValue, newValue);
     }
 
@@ -238,17 +251,18 @@
 
     on_TabAttrModified(event) {
       if (
+        ["soundplaying", "muted", "activemedia-blocked", "sharing"].some(attr =>
+          event.detail.changed.includes(attr)
+        )
+      ) {
+        this.updateTabIndicatorAttr(event.target);
+      }
+
+      if (
         event.detail.changed.includes("soundplaying") &&
         !event.target.visible
       ) {
         this._hiddenSoundPlayingStatusChanged(event.target);
-      }
-      if (
-        event.detail.changed.includes("soundplaying") ||
-        event.detail.changed.includes("muted") ||
-        event.detail.changed.includes("activemedia-blocked")
-      ) {
-        this.updateTabSoundLabel(event.target);
       }
     }
 
@@ -262,6 +276,14 @@
       if (event.target.soundPlaying) {
         this._hiddenSoundPlayingStatusChanged(event.target);
       }
+    }
+
+    on_TabPinned(event) {
+      this.updateTabIndicatorAttr(event.target);
+    }
+
+    on_TabUnpinned(event) {
+      this.updateTabIndicatorAttr(event.target);
     }
 
     on_TabHoverStart(event) {
@@ -3104,28 +3126,22 @@
       CustomizableUI.removeListener(this);
     }
 
-    updateTabSoundLabel(tab) {
-      // Add aria-label for inline audio button
-      const [unmute, mute, unblock] =
-        gBrowser.tabLocalization.formatMessagesSync([
-          "tabbrowser-unmute-tab-audio-aria-label",
-          "tabbrowser-mute-tab-audio-aria-label",
-          "tabbrowser-unblock-tab-audio-aria-label",
-        ]);
-      if (tab.audioButton) {
-        if (tab.hasAttribute("muted") || tab.hasAttribute("soundplaying")) {
-          let ariaLabel;
-          tab.linkedBrowser.audioMuted
-            ? (ariaLabel = unmute.attributes[0].value)
-            : (ariaLabel = mute.attributes[0].value);
-          tab.audioButton.setAttribute("aria-label", ariaLabel);
-        } else if (tab.hasAttribute("activemedia-blocked")) {
-          tab.audioButton.setAttribute(
-            "aria-label",
-            unblock.attributes[0].value
-          );
-        }
+    updateTabIndicatorAttr(tab) {
+      const theseAttributes = ["soundplaying", "muted", "activemedia-blocked"];
+      const notTheseAttributes = ["pinned", "sharing", "crashed"];
+
+      if (
+        this.verticalMode ||
+        notTheseAttributes.some(attr => tab.hasAttribute(attr))
+      ) {
+        tab.removeAttribute("indicator-replaces-favicon");
+        return;
       }
+
+      tab.toggleAttribute(
+        "indicator-replaces-favicon",
+        theseAttributes.some(attr => tab.hasAttribute(attr))
+      );
     }
   }
 

@@ -40,13 +40,12 @@ add_task(async () => {
 
       // Use tab to get the tab-icon-overlay element
       let tabIconOverlay = tab.getElementsByClassName("tab-icon-overlay")[0];
-      let tabAudioButton = tab.getElementsByClassName("tab-audio-button")[0];
 
       // Not in PiP yet so the tab-icon-overlay does not have "pictureinpicture" attribute
       ok(!tabIconOverlay.hasAttribute("pictureinpicture"), "Not using PiP");
 
       // Sound is playing so tab should have "soundplaying" attribute
-      ok(tabAudioButton.hasAttribute("soundplaying"), "Sound is playing");
+      ok(tabIconOverlay.hasAttribute("soundplaying"), "Sound is playing");
 
       // Start the PiP
       let pipWin = await triggerPictureInPicture(browser, videoID);
@@ -55,9 +54,9 @@ add_task(async () => {
       // Check that video is still playing
       ok(!(await isVideoPaused(browser, videoID)), "The video is not paused.");
 
-      // Video is still playing so the tab-audio-button should have "soundplaying" as an attribute
+      // Video is still playing so the tab-icon-overlay should have "soundplaying" as an attribute
       ok(
-        tabAudioButton.hasAttribute("soundplaying"),
+        tabIconOverlay.hasAttribute("soundplaying"),
         "Tab knows sound is playing"
       );
 
@@ -68,26 +67,24 @@ add_task(async () => {
       );
 
       // We know the tab has sound playing and it is using PiP so we can check the
-      // tab-audio-button image is showing
-      let style = window.getComputedStyle(
-        tabAudioButton.buttonEl.querySelector(".button-background")
-      );
+      // tab-icon-overlay image is showing
+      let style = window.getComputedStyle(tabIconOverlay);
       Assert.equal(
         style.backgroundImage,
         'url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg")',
-        "Got the tab-audio-button image"
+        "Got the tab-icon-overlay image"
       );
 
       // Check tab is not muted
-      ok(!tabAudioButton.hasAttribute("muted"), "Tab is not muted");
+      ok(!tabIconOverlay.hasAttribute("muted"), "Tab is not muted");
 
       // Click on tab icon overlay to mute tab and check it is muted
-      tabAudioButton.click();
-      ok(tabAudioButton.hasAttribute("muted"), "Tab is muted");
+      tabIconOverlay.click();
+      ok(tabIconOverlay.hasAttribute("muted"), "Tab is muted");
 
       // Click on tab icon overlay to unmute tab and check it is not muted
-      tabAudioButton.click();
-      ok(!tabAudioButton.hasAttribute("muted"), "Tab is not muted");
+      tabIconOverlay.click();
+      ok(!tabIconOverlay.hasAttribute("muted"), "Tab is not muted");
     }
   );
 });

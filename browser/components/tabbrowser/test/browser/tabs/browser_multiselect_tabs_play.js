@@ -152,7 +152,7 @@ add_task(async function testDelayPlayWhenUsingButton() {
 
   // Use the overlay icon on tab2 to play media on the selected tabs
   info("Press play tab2 icon");
-  await pressIcon(tab2.audioButton);
+  await pressIcon(tab2.overlayIcon);
 
   // tab0, tab1, and tab2 were played and multiselected
   // They will now be unblocked and playing media
