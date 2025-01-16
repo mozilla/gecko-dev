@@ -3,14 +3,12 @@
 
 "use strict";
 
-const frenchModels = [
-  "lex.50.50.enfr.s2t.bin",
-  "lex.50.50.fren.s2t.bin",
-  "model.enfr.intgemm.alphas.bin",
-  "model.fren.intgemm.alphas.bin",
-  "vocab.enfr.spm",
-  "vocab.fren.spm",
-];
+function getFrenchModels() {
+  return languageModelNames([
+    { fromLang: "fr", toLang: "en" },
+    { fromLang: "en", toLang: "fr" },
+  ]);
+}
 
 add_task(async function test_about_preferences_manage_languages() {
   const {
@@ -56,6 +54,8 @@ add_task(async function test_about_preferences_manage_languages() {
 
   click(frenchDownload, "Downloading French");
 
+  const frenchModels = getFrenchModels();
+
   Assert.deepEqual(
     await remoteClients.translationModels.resolvePendingDownloads(
       frenchModels.length
@@ -91,26 +91,7 @@ add_task(async function test_about_preferences_manage_languages() {
 
   click(downloadAll, "Downloading all languages.");
 
-  const allModels = [
-    "lex.50.50.enes.s2t.bin",
-    "lex.50.50.enfr.s2t.bin",
-    "lex.50.50.enuk.s2t.bin",
-    "lex.50.50.esen.s2t.bin",
-    "lex.50.50.fren.s2t.bin",
-    "lex.50.50.uken.s2t.bin",
-    "model.enes.intgemm.alphas.bin",
-    "model.enfr.intgemm.alphas.bin",
-    "model.enuk.intgemm.alphas.bin",
-    "model.esen.intgemm.alphas.bin",
-    "model.fren.intgemm.alphas.bin",
-    "model.uken.intgemm.alphas.bin",
-    "vocab.enes.spm",
-    "vocab.enfr.spm",
-    "vocab.enuk.spm",
-    "vocab.esen.spm",
-    "vocab.fren.spm",
-    "vocab.uken.spm",
-  ];
+  const allModels = languageModelNames(LANGUAGE_PAIRS);
   Assert.deepEqual(
     await remoteClients.translationModels.resolvePendingDownloads(
       allModels.length
@@ -160,7 +141,12 @@ add_task(async function test_about_preferences_manage_languages() {
   await ensureVisibility({
     message: "Everything is downloaded again.",
     visible: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-    hidden: { downloadAll, frenchDownload, spanishDownload, ukrainianDownload },
+    hidden: {
+      downloadAll,
+      frenchDownload,
+      spanishDownload,
+      ukrainianDownload,
+    },
   });
 
   await cleanup();
@@ -184,7 +170,9 @@ add_task(async function test_about_preferences_download_reject() {
   );
 
   const failureErrors = await captureTranslationsError(() =>
-    remoteClients.translationModels.rejectPendingDownloads(frenchModels.length)
+    remoteClients.translationModels.rejectPendingDownloads(
+      getFrenchModels().length
+    )
   );
 
   ok(
@@ -212,7 +200,9 @@ add_task(async function test_about_preferences_download_reject() {
   );
 
   const successErrors = await captureTranslationsError(() =>
-    remoteClients.translationModels.resolvePendingDownloads(frenchModels.length)
+    remoteClients.translationModels.resolvePendingDownloads(
+      getFrenchModels().length
+    )
   );
 
   is(

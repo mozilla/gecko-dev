@@ -62,6 +62,23 @@ const NEVER_TRANSLATE_LANGS_PREF =
   "browser.translations.neverTranslateLanguages";
 
 /**
+ * Generates a sorted list of Translation model file names for the given language pairs.
+ *
+ * @param {Array<{ fromLang: string, toLang: string }>} languagePairs - An array of language pair objects.
+ *
+ * @returns {string[]} A sorted array of translation model file names.
+ */
+function languageModelNames(languagePairs) {
+  return languagePairs
+    .flatMap(({ fromLang, toLang }) => [
+      `model.${fromLang}${toLang}.intgemm.alphas.bin`,
+      `vocab.${fromLang}${toLang}.spm`,
+      `lex.50.50.${fromLang}${toLang}.s2t.bin`,
+    ])
+    .sort();
+}
+
+/**
  * The mochitest runs in the parent process. This function opens up a new tab,
  * opens up about:translations, and passes the test requirements into the content process.
  *
