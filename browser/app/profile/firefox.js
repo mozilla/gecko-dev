@@ -3316,8 +3316,12 @@ pref("browser.backup.template.fallback-download.aurora", "https://www.mozilla.or
 pref("browser.backup.template.fallback-download.nightly", "https://www.mozilla.org/firefox/channel/desktop/?utm_medium=firefox-desktop&utm_source=backup&utm_campaign=firefox-backup-2024&utm_content=control#nightly");
 pref("browser.backup.template.fallback-download.esr", "https://www.mozilla.org/firefox/enterprise/?utm_medium=firefox-desktop&utm_source=backup&utm_campaign=firefox-backup-2024&utm_content=control#download");
 
-// Pref to enable the new profiles
-pref("browser.profiles.enabled", false);
+#ifdef NIGHTLY_BUILD
+  // Pref to enable the new profiles
+  pref("browser.profiles.enabled", true);
+#else
+  pref("browser.profiles.enabled", false);
+#endif
 pref("browser.profiles.profile-name.updated", false);
 // Whether to allow the user to merge profile data
 pref("browser.profiles.sync.allow-danger-merge", false);

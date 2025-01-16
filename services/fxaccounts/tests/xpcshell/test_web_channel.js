@@ -344,6 +344,10 @@ add_test(function test_can_link_account_message() {
         Assert.equal(email, "testuser@testuser.com");
         run_next_test();
       },
+      promptProfileSyncWarningIfNeeded(acctName) {
+        Assert.equal(acctName, "testuser@testuser.com");
+        run_next_test();
+      },
     },
   });
 

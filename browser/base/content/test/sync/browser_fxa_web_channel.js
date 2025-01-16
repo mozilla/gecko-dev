@@ -117,6 +117,12 @@ var gTests = [
             shouldAllowRelink(acctName) {
               return acctName === "testuser@testuser.com";
             },
+            promptProfileSyncWarningIfNeeded(acctName) {
+              if (acctName === "testuser@testuser.com") {
+                return { action: "continue" };
+              }
+              return { action: "cancel" };
+            },
           },
         });
       });
