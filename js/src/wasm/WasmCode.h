@@ -1151,9 +1151,13 @@ class Code : public ShareableBase<Code> {
     return completeTierCodeBlock(bestCompleteTier());
   }
   bool funcHasTier(uint32_t funcIndex, Tier tier) const {
+    if (funcIndex < funcImports_.length()) {
+      return false;
+    }
     return funcCodeBlock(funcIndex).tier() == tier;
   }
   Tier funcTier(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex >= funcImports_.length());
     return funcCodeBlock(funcIndex).tier();
   }
   void funcCodeRange(uint32_t funcIndex, const wasm::CodeRange** range,
