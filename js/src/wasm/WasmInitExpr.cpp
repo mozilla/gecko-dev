@@ -74,7 +74,7 @@ class MOZ_STACK_CLASS InitExprInterpreter {
   [[nodiscard]] bool pushRef(ValType type, AnyRef ref) {
     return stack.append(Val(type, ref));
   }
-  [[nodiscard]] bool pushFuncRef(RefType type, HandleFuncRef ref) {
+  [[nodiscard]] bool pushFuncRef(RefType type, FuncRef ref) {
     return stack.append(Val(type, ref));
   }
 
@@ -100,12 +100,13 @@ class MOZ_STACK_CLASS InitExprInterpreter {
   bool evalF64Const(double c) { return pushF64(c); }
   bool evalV128Const(V128 c) { return pushV128(c); }
   bool evalRefFunc(JSContext* cx, uint32_t funcIndex) {
-    RootedFuncRef func(cx, FuncRef::fromJSFunction(nullptr));
-    if (!instance().constantRefFunc(funcIndex, &func)) {
+    RootedFunction func(cx);
+    if (!instance().getExportedFunction(cx, funcIndex, &func)) {
       return false;
     }
     const TypeDef& t = instance().codeMeta().getFuncTypeDef(funcIndex);
-    return pushFuncRef(RefType::fromTypeDef(&t, false), func);
+    return pushFuncRef(RefType::fromTypeDef(&t, false),
+                       FuncRef::fromJSFunction(func.get()));
   }
   bool evalRefNull(RefType type) { return pushRef(type, AnyRef::null()); }
   bool evalI32Add() {

@@ -424,8 +424,6 @@ class alignas(16) Instance {
   // Constant expression support
 
   void constantGlobalGet(uint32_t globalIndex, MutableHandleVal result);
-  [[nodiscard]] bool constantRefFunc(uint32_t funcIndex,
-                                     MutableHandleFuncRef result);
   WasmStructObject* constantStructNewDefault(JSContext* cx, uint32_t typeIndex);
   WasmArrayObject* constantArrayNewDefault(JSContext* cx, uint32_t typeIndex,
                                            uint32_t numElements);
@@ -446,7 +444,7 @@ class alignas(16) Instance {
 
   // Called to apply a single ElemSegment at a given offset, assuming
   // that all bounds validation has already been performed.
-  [[nodiscard]] bool initElems(uint32_t tableIndex,
+  [[nodiscard]] bool initElems(JSContext* cx, uint32_t tableIndex,
                                const ModuleElemSegment& seg,
                                uint32_t dstOffset);
 
@@ -476,7 +474,8 @@ class alignas(16) Instance {
   //   (uint32_t index, AnyRef ref) -> bool
   //
   template <typename F>
-  [[nodiscard]] bool iterElemsAnyrefs(const ModuleElemSegment& seg,
+  [[nodiscard]] bool iterElemsAnyrefs(JSContext* cx,
+                                      const ModuleElemSegment& seg,
                                       const F& onAnyRef);
 
   // Debugger support:

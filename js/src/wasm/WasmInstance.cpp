@@ -957,7 +957,7 @@ bool Instance::initSegments(JSContext* cx,
         return false;
       }
 
-      if (!initElems(seg.tableIndex, seg, offset)) {
+      if (!initElems(cx, seg.tableIndex, seg, offset)) {
         return false;  // OOM
       }
     }
@@ -993,8 +993,8 @@ bool Instance::initSegments(JSContext* cx,
   return true;
 }
 
-bool Instance::initElems(uint32_t tableIndex, const ModuleElemSegment& seg,
-                         uint32_t dstOffset) {
+bool Instance::initElems(JSContext* cx, uint32_t tableIndex,
+                         const ModuleElemSegment& seg, uint32_t dstOffset) {
   Table& table = *tables_[tableIndex];
   MOZ_ASSERT(dstOffset <= table.length());
   MOZ_ASSERT(seg.numElements() <= table.length() - dstOffset);
@@ -1002,8 +1002,6 @@ bool Instance::initElems(uint32_t tableIndex, const ModuleElemSegment& seg,
   if (seg.numElements() == 0) {
     return true;
   }
-
-  Rooted<WasmInstanceObject*> instanceObj(cx(), object());
 
   if (table.isFunction() &&
       seg.encoding == ModuleElemSegment::Encoding::Indices) {
@@ -1018,7 +1016,7 @@ bool Instance::initElems(uint32_t tableIndex, const ModuleElemSegment& seg,
       return false;
     }
   } else {
-    bool ok = iterElemsAnyrefs(seg, [&](uint32_t i, AnyRef ref) -> bool {
+    bool ok = iterElemsAnyrefs(cx, seg, [&](uint32_t i, AnyRef ref) -> bool {
       table.setRef(dstOffset + i, ref);
       return true;
     });
@@ -1081,7 +1079,7 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
 }
 
 template <typename F>
-bool Instance::iterElemsAnyrefs(const ModuleElemSegment& seg,
+bool Instance::iterElemsAnyrefs(JSContext* cx, const ModuleElemSegment& seg,
                                 const F& onAnyRef) {
   if (seg.numElements() == 0) {
     return true;
@@ -1092,20 +1090,18 @@ bool Instance::iterElemsAnyrefs(const ModuleElemSegment& seg,
       // The only types of indices that exist right now are function indices, so
       // this code is specialized to functions.
 
+      RootedFunction fun(cx);
       for (uint32_t i = 0; i < seg.numElements(); i++) {
         uint32_t funcIndex = seg.elemIndices[i];
-        // Note, fnref must be rooted if we do anything more than just store it.
-        void* fnref = Instance::refFunc(this, funcIndex);
-        if (fnref == AnyRef::invalid().forCompiledCode()) {
-          return false;  // OOM, which has already been reported.
-        }
-        if (!onAnyRef(i, AnyRef::fromCompiledCode(fnref))) {
+        if (!getExportedFunction(cx, funcIndex, &fun) ||
+            !onAnyRef(i, AnyRef::fromJSObject(*fun.get()))) {
           return false;
         }
       }
-    } break;
+      break;
+    }
     case ModuleElemSegment::Encoding::Expressions: {
-      Rooted<WasmInstanceObject*> instanceObj(cx(), object());
+      Rooted<WasmInstanceObject*> instanceObj(cx, object());
       const ModuleElemSegment::Expressions& exprs = seg.elemExpressions;
 
       UniqueChars error;
@@ -1113,8 +1109,8 @@ bool Instance::iterElemsAnyrefs(const ModuleElemSegment& seg,
       // validated.
       Decoder d(exprs.exprBytes.begin(), exprs.exprBytes.end(), 0, &error);
       for (uint32_t i = 0; i < seg.numElements(); i++) {
-        RootedVal result(cx());
-        if (!InitExpr::decodeAndEvaluate(cx(), instanceObj, d, seg.elemType,
+        RootedVal result(cx);
+        if (!InitExpr::decodeAndEvaluate(cx, instanceObj, d, seg.elemType,
                                          &result)) {
           MOZ_ASSERT(!error);  // The only possible failure should be OOM.
           return false;
@@ -1126,7 +1122,8 @@ bool Instance::iterElemsAnyrefs(const ModuleElemSegment& seg,
           return false;
         }
       }
-    } break;
+      break;
+    }
     default:
       MOZ_CRASH("unknown encoding type for element segment");
   }
@@ -2648,7 +2645,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
         return false;
       }
 
-      bool ok = iterElemsAnyrefs(seg, [&](uint32_t _, AnyRef ref) -> bool {
+      bool ok = iterElemsAnyrefs(cx, seg, [&](uint32_t _, AnyRef ref) -> bool {
         instanceSeg.infallibleAppend(ref);
         return true;
       });
@@ -3849,16 +3846,6 @@ void Instance::constantGlobalGet(uint32_t globalIndex,
   // Otherwise, we need to load the initialized value from its cell.
   const void* cell = addressOfGlobalCell(global);
   result.address()->initFromHeapLocation(global.type(), cell);
-}
-
-bool Instance::constantRefFunc(uint32_t funcIndex,
-                               MutableHandleFuncRef result) {
-  void* fnref = Instance::refFunc(this, funcIndex);
-  if (fnref == AnyRef::invalid().forCompiledCode()) {
-    return false;  // OOM, which has already been reported.
-  }
-  result.set(FuncRef::fromCompiledCode(fnref));
-  return true;
 }
 
 WasmStructObject* Instance::constantStructNewDefault(JSContext* cx,
