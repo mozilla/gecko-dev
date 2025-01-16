@@ -20,10 +20,19 @@
 const PIVOT_LANGUAGE = "en";
 
 const TRANSLATIONS_PERMISSION = "translations";
+
+const ACCEPT_LANGUAGES_PREF = "intl.accept_languages";
 const ALWAYS_TRANSLATE_LANGS_PREF =
   "browser.translations.alwaysTranslateLanguages";
 const NEVER_TRANSLATE_LANGS_PREF =
   "browser.translations.neverTranslateLanguages";
+const MOST_RECENT_TARGET_LANGS_PREF =
+  "browser.translations.mostRecentTargetLanguages";
+const TOPIC_NS_PREF_CHANGED = "nsPref:changed";
+const TOPIC_TRANSLATIONS_PREF_CHANGED = "translations:pref-changed";
+const TOPIC_MAYBE_UPDATE_USER_LANG_TAG =
+  "translations:maybe-update-user-lang-tag";
+const TOPIC_APP_LOCALES_CHANGED = "intl:app-locales-changed";
 
 const lazy = {};
 
@@ -96,12 +105,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "mostRecentTargetLanguages",
-  "browser.translations.mostRecentTargetLanguages",
+  MOST_RECENT_TARGET_LANGS_PREF,
   /* aDefaultValue */ "",
   /* aOnUpdate */ () => {
     Services.obs.notifyObservers(
       null,
-      "translations:most-recent-target-language-changed"
+      TOPIC_TRANSLATIONS_PREF_CHANGED,
+      MOST_RECENT_TARGET_LANGS_PREF
     );
   },
   /* aTransform */ rawLangTags =>
@@ -137,7 +147,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
   /* onUpdate */ () =>
     Services.obs.notifyObservers(
       null,
-      "translations:always-translate-languages-changed"
+      TOPIC_TRANSLATIONS_PREF_CHANGED,
+      ALWAYS_TRANSLATE_LANGS_PREF
     ),
   /* aTransform */ rawLangTags =>
     rawLangTags ? new Set(rawLangTags.split(",")) : new Set()
@@ -154,7 +165,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
   /* onUpdate */ () =>
     Services.obs.notifyObservers(
       null,
-      "translations:never-translate-languages-changed"
+      TOPIC_TRANSLATIONS_PREF_CHANGED,
+      NEVER_TRANSLATE_LANGS_PREF
     ),
   /* aTransform */ rawLangTags =>
     rawLangTags ? new Set(rawLangTags.split(",")) : new Set()
@@ -438,16 +450,10 @@ export class TranslationsParent extends JSWindowActorParent {
     );
     windowState.previousDetectedLanguages = null;
 
-    // Attach a closure to this so that we can remove the observer when didDestroy() is called.
-    this.maybeUpdateUserLangTag = () => {
-      const langTag = TranslationsParent.getPreferredLanguages({
-        excludeLangTags: [this.languageState.detectedLanguages?.docLangTag],
-      })[0];
-      this.languageState.maybeUpdateUserLangTag(langTag);
-    };
+    this.#boundObserve = this.#observe.bind(this);
     Services.obs.addObserver(
-      this.maybeUpdateUserLangTag,
-      "translations:maybe-update-user-lang-tag"
+      this.#boundObserve,
+      TOPIC_MAYBE_UPDATE_USER_LANG_TAG
     );
 
     if (windowState.translateOnPageReload) {
@@ -541,7 +547,19 @@ export class TranslationsParent extends JSWindowActorParent {
    */
   static #webContentLanguages = null;
 
-  static #observingLanguages = false;
+  /**
+   * A guard to ensure that we initialize static pref observers only once.
+   */
+  static #observingPrefs = false;
+
+  /**
+   * A dedicated handle to this.observe.bind(this), which we need to register non-static
+   * per-instance observers when the actor is created as well as remove when it is destroyed.
+   *
+   * @see {TranslationsParent.actorCreated}
+   * @see {TranslationsParent.didDestroy}
+   */
+  #boundObserve = null;
 
   // On a fast connection, 10 concurrent downloads were measured to be the fastest when
   // downloading all of the language files.
@@ -836,6 +854,7 @@ export class TranslationsParent extends JSWindowActorParent {
   static #invalidateMostRecentTargetLanguages() {
     TranslationsParent.#mostRecentTargetLanguages = null;
     TranslationsParent.#preferredLanguages = null;
+    Services.obs.notifyObservers(null, TOPIC_MAYBE_UPDATE_USER_LANG_TAG);
   }
 
   /**
@@ -874,7 +893,7 @@ export class TranslationsParent extends JSWindowActorParent {
   static getWebContentLanguages() {
     if (!TranslationsParent.#webContentLanguages) {
       const values = Services.prefs
-        .getComplexValue("intl.accept_languages", Ci.nsIPrefLocalizedString)
+        .getComplexValue(ACCEPT_LANGUAGES_PREF, Ci.nsIPrefLocalizedString)
         .data.split(/\s*,\s*/g);
 
       TranslationsParent.#webContentLanguages = new Set();
@@ -891,7 +910,7 @@ export class TranslationsParent extends JSWindowActorParent {
       }
 
       if (
-        !Services.prefs.prefHasUserValue("intl.accept_languages") &&
+        !Services.prefs.prefHasUserValue(ACCEPT_LANGUAGES_PREF) &&
         Services.locale.appLocaleAsBCP47 !== "en" &&
         !Services.locale.appLocaleAsBCP47.startsWith("en-")
       ) {
@@ -988,6 +1007,135 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Initializes static pref observers exactly once the first time this is called.
+   * Does nothing on subsequent calls.
+   */
+  static #maybeStartObservingPrefs() {
+    if (TranslationsParent.#observingPrefs) {
+      // We have already initialized the observers.
+      return;
+    }
+
+    /**
+     * This one pref is special and requires its own observer.
+     * through Services.prefs.
+     *
+     * We cannot make a lazy pref getter for this pref, because
+     * it needs to be retrieved using Ci.nsIPrefLocalizedString
+     * which defineLazyPreferenceGetter does not currently support.
+     *
+     * Retrieving the pref with Ci.nsIPrefLocalizedString allows
+     * its default value to be pulled from a properties file.
+     *
+     * @see {TranslationsParent.getWebContentLanguages}
+     */
+    Services.prefs.addObserver(
+      ACCEPT_LANGUAGES_PREF,
+      TranslationsParent.#observeStatic
+    );
+
+    /**
+     * An observer for all other Translations-relevant pref changes.
+     */
+    Services.obs.addObserver(
+      TranslationsParent.#observeStatic,
+      TOPIC_TRANSLATIONS_PREF_CHANGED
+    );
+
+    /**
+     * An observer for if the application locales change.
+     */
+    Services.obs.addObserver(
+      TranslationsParent.#observeStatic,
+      TOPIC_APP_LOCALES_CHANGED
+    );
+
+    TranslationsParent.#observingPrefs = true;
+  }
+
+  /**
+   * Observes notifications from a given subject, handling them according to the topic.
+   *
+   * @param {nsISupports} subject
+   * @param {string} topic
+   * @param {string} data
+   *
+   * @see {nsIObserver}
+   */
+  #observe(subject, topic, data) {
+    lazy.console.debug(this.#observe.name, { subject, topic, data });
+
+    switch (topic) {
+      case TOPIC_MAYBE_UPDATE_USER_LANG_TAG: {
+        this.#maybeUpdateUserLangTag();
+        break;
+      }
+      default: {
+        lazy.console.error(
+          `Unexpected topic observed by TranslationsParent actor: '${topic}'`
+        );
+      }
+    }
+  }
+
+  /**
+   * A static observer method that listens for changes to preferences and other
+   * Translations-relevant settings, invalidating caches or reacting to changes
+   * as needed.
+   *
+   * @param {nsISupports} subject
+   * @param {string} topic
+   * @param {string} data
+   *
+   * @see {nsIObserver}
+   */
+  static #observeStatic(subject, topic, data) {
+    lazy.console.debug(TranslationsParent.#observeStatic.name, {
+      subject,
+      topic,
+      data,
+    });
+    switch (topic) {
+      case TOPIC_APP_LOCALES_CHANGED: {
+        TranslationsParent.#invalidateUserSettingsLanguages();
+        break;
+      }
+      case TOPIC_NS_PREF_CHANGED: {
+        switch (data) {
+          case ACCEPT_LANGUAGES_PREF: {
+            TranslationsParent.#invalidateUserSettingsLanguages();
+            break;
+          }
+        }
+        break;
+      }
+      case TOPIC_TRANSLATIONS_PREF_CHANGED: {
+        switch (data) {
+          case MOST_RECENT_TARGET_LANGS_PREF: {
+            TranslationsParent.#invalidateMostRecentTargetLanguages();
+          }
+        }
+        break;
+      }
+      default: {
+        lazy.console.error(
+          `Unexpected topic observed by TranslationsParent: '${topic}'`
+        );
+      }
+    }
+  }
+
+  /**
+   * Updates the user's language tag if it has changed from the current.
+   */
+  #maybeUpdateUserLangTag() {
+    const langTag = TranslationsParent.getPreferredLanguages({
+      excludeLangTags: [this.languageState.detectedLanguages?.docLangTag],
+    })[0];
+    this.languageState.maybeUpdateUserLangTag(langTag);
+  }
+
+  /**
    * An ordered list of preferred languages based on:
    *
    *   1. Most recent target languages
@@ -1010,25 +1158,7 @@ export class TranslationsParent extends JSWindowActorParent {
       );
     }
 
-    if (!TranslationsParent.#observingLanguages) {
-      Services.obs.addObserver(
-        TranslationsParent.#invalidateUserSettingsLanguages,
-        "intl:app-locales-changed"
-      );
-      Services.obs.addObserver(() => {
-        TranslationsParent.#invalidateMostRecentTargetLanguages();
-        Services.obs.notifyObservers(
-          null,
-          "translations:maybe-update-user-lang-tag"
-        );
-      }, "translations:most-recent-target-language-changed");
-      Services.prefs.addObserver(
-        "intl.accept_languages",
-        TranslationsParent.#invalidateUserSettingsLanguages
-      );
-
-      TranslationsParent.#observingLanguages = true;
-    }
+    TranslationsParent.#maybeStartObservingPrefs();
 
     const preferredLanguages = new Set([
       ...TranslationsParent.#getMostRecentTargetLanguages(),
@@ -1795,56 +1925,58 @@ export class TranslationsParent extends JSWindowActorParent {
    * @returns {Promise<Map<string, TranslationModelRecord>>}
    */
   static async #getTranslationModelRecords() {
-    if (!TranslationsParent.#translationModelRecords) {
-      // Place the records into a promise to prevent any races.
-      TranslationsParent.#translationModelRecords = (async () => {
-        const records = new Map();
-        const now = Date.now();
-        const client = TranslationsParent.#getTranslationModelsRemoteClient();
-
-        // Load the models. If no data is present, then there will be an initial sync.
-        // Rely on Remote Settings for the syncing strategy for receiving updates.
-        lazy.console.log(`Getting remote language models.`);
-
-        /** @type {TranslationModelRecord[]} */
-        const translationModelRecords =
-          await TranslationsParent.getMaxSupportedVersionRecords(client, {
-            minSupportedMajorVersion:
-              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MIN,
-            maxSupportedMajorVersion:
-              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
-            // Names in this collection are not unique, so we are appending the languagePairKey
-            // to guarantee uniqueness.
-            lookupKey: record =>
-              `${record.name}${TranslationsParent.languagePairKey(
-                record.fromLang,
-                record.toLang
-              )}`,
-          });
-
-        if (translationModelRecords.length === 0) {
-          throw new Error("Unable to retrieve the translation models.");
-        }
-
-        for (const record of TranslationsParent.#ensureLanguagePairsHavePivots(
-          translationModelRecords
-        )) {
-          records.set(record.id, record);
-        }
-
-        const duration = (Date.now() - now) / 1000;
-        lazy.console.log(
-          `Remote language models loaded in ${duration} seconds.`,
-          records
-        );
-
-        return records;
-      })();
-
-      TranslationsParent.#translationModelRecords.catch(() => {
-        TranslationsParent.#invalidateTranslationModelRecords();
-      });
+    if (TranslationsParent.#translationModelRecords) {
+      return TranslationsParent.#translationModelRecords;
     }
+
+    TranslationsParent.#maybeStartObservingPrefs();
+
+    const { promise, resolve } = Promise.withResolvers();
+    const records = new Map();
+    const now = Date.now();
+    const client = TranslationsParent.#getTranslationModelsRemoteClient();
+
+    // Load the models. If no data is present, then there will be an initial sync.
+    // Rely on Remote Settings for the syncing strategy for receiving updates.
+    lazy.console.log(`Getting remote language models.`);
+
+    /** @type {TranslationModelRecord[]} */
+    const translationModelRecords =
+      await TranslationsParent.getMaxSupportedVersionRecords(client, {
+        minSupportedMajorVersion:
+          TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MIN,
+        maxSupportedMajorVersion:
+          TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
+        // Names in this collection are not unique, so we are appending the languagePairKey
+        // to guarantee uniqueness.
+        lookupKey: record =>
+          `${record.name}${TranslationsParent.languagePairKey(
+            record.fromLang,
+            record.toLang
+          )}`,
+      });
+
+    if (translationModelRecords.length === 0) {
+      throw new Error("Unable to retrieve the translation models.");
+    }
+
+    for (const record of TranslationsParent.#ensureLanguagePairsHavePivots(
+      translationModelRecords
+    )) {
+      records.set(record.id, record);
+    }
+
+    const duration = (Date.now() - now) / 1000;
+    lazy.console.log(
+      `Remote language models loaded in ${duration} seconds.`,
+      records
+    );
+
+    resolve(records);
+
+    TranslationsParent.#translationModelRecords = promise.catch(() => {
+      TranslationsParent.#invalidateTranslationModelRecords();
+    });
 
     return TranslationsParent.#translationModelRecords;
   }
@@ -3492,10 +3624,13 @@ export class TranslationsParent extends JSWindowActorParent {
       );
     }
 
-    Services.obs.removeObserver(
-      this.maybeUpdateUserLangTag,
-      "translations:maybe-update-user-lang-tag"
-    );
+    if (this.#boundObserve) {
+      Services.obs.removeObserver(
+        this.#boundObserve,
+        TOPIC_MAYBE_UPDATE_USER_LANG_TAG
+      );
+      this.#boundObserve = null;
+    }
 
     this.#ensureTranslationsDiscarded();
 
