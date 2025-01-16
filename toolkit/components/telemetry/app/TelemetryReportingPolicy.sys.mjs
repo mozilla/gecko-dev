@@ -12,7 +12,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   TelemetrySend: "resource://gre/modules/TelemetrySend.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 const LOGGER_NAME = "Toolkit.Telemetry";
@@ -163,7 +162,7 @@ export var TelemetryReportingPolicy = {
   },
 };
 
-export var TelemetryReportingPolicyImpl = {
+var TelemetryReportingPolicyImpl = {
   _logger: null,
   // Keep track of the notification status if user wasn't notified already.
   _notificationInProgress: false,
@@ -481,7 +480,7 @@ export var TelemetryReportingPolicyImpl = {
   /**
    * Try to open the privacy policy in a background tab instead of showing the infobar.
    */
-  async _openFirstRunPage() {
+  _openFirstRunPage() {
     if (!this._shouldNotify()) {
       return false;
     }
@@ -548,31 +547,14 @@ export var TelemetryReportingPolicyImpl = {
     win.addEventListener("unload", removeListeners);
     win.gBrowser.addTabsProgressListener(progressListener);
 
-    let res = await lazy.NimbusFeatures.preonboarding.getAllVariables();
-    if (!res.disableFirstRunPolicyTab) {
-      tab = win.gBrowser.addTab(firstRunPolicyURL, {
-        inBackground: true,
-        triggeringPrincipal:
-          Services.scriptSecurityManager.getSystemPrincipal(),
-      });
-      return true;
-    }
-    return false;
+    tab = win.gBrowser.addTab(firstRunPolicyURL, {
+      inBackground: true,
+      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    });
+    return true;
   },
 
-  async observe(aSubject, aTopic) {
-    const showInfobar = () => {
-      const delay = this.isFirstRun()
-        ? NOTIFICATION_DELAY_FIRST_RUN_MSEC
-        : NOTIFICATION_DELAY_NEXT_RUNS_MSEC;
-
-      this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
-        // Calling |canUpload| eventually shows the infobar, if needed.
-        () => this._showInfobar(),
-        delay
-      );
-    };
-
+  observe(aSubject, aTopic) {
     if (aTopic != "sessionstore-windows-restored") {
       return;
     }
@@ -580,14 +562,25 @@ export var TelemetryReportingPolicyImpl = {
     if (this.isFirstRun()) {
       // We're performing the first run, flip firstRun preference for subsequent runs.
       Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
+
       try {
-        if (await this._openFirstRunPage()) {
+        if (this._openFirstRunPage()) {
           return;
         }
       } catch (e) {
         this._log.error("Failed to open privacy policy tab: " + e);
       }
-      showInfobar();
     }
+
+    // Show the info bar.
+    const delay = this.isFirstRun()
+      ? NOTIFICATION_DELAY_FIRST_RUN_MSEC
+      : NOTIFICATION_DELAY_NEXT_RUNS_MSEC;
+
+    this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
+      // Calling |canUpload| eventually shows the infobar, if needed.
+      () => this._showInfobar(),
+      delay
+    );
   },
 };
