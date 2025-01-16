@@ -1125,5 +1125,9 @@ nsresult PuppetWidget::GetSystemFont(nsCString& aFontName) {
   return NS_OK;
 }
 
+LayersId PuppetWidget::GetLayersId() const {
+  return mBrowserChild ? mBrowserChild->GetLayersId() : LayersId{0};
+}
+
 }  // namespace widget
 }  // namespace mozilla

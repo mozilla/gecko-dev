@@ -196,6 +196,7 @@ class PuppetWidget final : public nsBaseWidget,
   void PaintNowIfNeeded();
 
   BrowserChild* GetOwningBrowserChild() override { return mBrowserChild; }
+  LayersId GetLayersId() const override;
 
   void UpdateBackingScaleCache(float aDpi, int32_t aRounding, double aScale) {
     mDPI = aDpi;

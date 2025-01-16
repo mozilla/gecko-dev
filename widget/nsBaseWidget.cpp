@@ -2494,6 +2494,11 @@ bool nsBaseWidget::MayStartSwipeForNonAPZ(const PanGestureInput& aPanInput) {
   return true;
 }
 
+LayersId nsBaseWidget::GetLayersId() const {
+  return mCompositorSession ? mCompositorSession->RootLayerTreeId()
+                            : LayersId{0};
+}
+
 const IMENotificationRequests& nsIWidget::IMENotificationRequestsRef() {
   TextEventDispatcher* dispatcher = GetTextEventDispatcher();
   return dispatcher->IMENotificationRequestsRef();
