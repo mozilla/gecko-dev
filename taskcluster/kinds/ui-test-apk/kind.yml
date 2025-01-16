@@ -238,6 +238,7 @@ tasks:
             signed-apk-android-test: signing-apk-fenix-android-test-debug
         optimization:
             skip-unless-backstop: null
+        run-on-projects: [trunk]
         run:
             secrets:
                 - name: project/gecko/level-any/firefox-android/fenix/firebase
