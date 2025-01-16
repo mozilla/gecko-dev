@@ -254,7 +254,7 @@ this.browserAction = class extends ExtensionAPIPersistent {
           "unified-extensions-item-open-menu"
         );
         // Allow the users to quickly move between extension items using
-        // the arrow keys, see: `PanelMultiView._isNavigableWithTabOnly()`.
+        // the arrow keys, see: `PanelMultiView.#isNavigableWithTabOnly()`.
         menuButton.setAttribute("data-navigable-with-tab-only", true);
 
         menuButton.setAttribute("data-extensionid", extension.id);
