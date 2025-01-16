@@ -2015,39 +2015,6 @@ onboarding:
     metadata:
       tags:
         - Onboarding
-  skip_toolbar_placement:
-    type: event
-    description: |
-      User tapped on skip button for picking a toolbar placement in onboarding.
-    extra_keys:
-      element_type:
-        type: string
-        description: |
-          Type of element that was viewed.
-      action:
-        type: string
-        description: |
-          Type of action taken by the user.
-      sequence_position:
-        type: string
-        description: |
-          Position of the onboarding card in the onboarding flow.
-      sequence_id:
-        type: string
-        description: |
-          Identifier for the sequence.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926956
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D230299
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    metadata:
-      tags:
-        - Onboarding
   select_theme:
     type: event
     description: |
