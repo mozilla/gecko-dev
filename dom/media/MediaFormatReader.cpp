@@ -1558,6 +1558,11 @@ void MediaFormatReader::OnDemuxFailed(TrackType aTrack,
             aError);
       if (!decoder.mWaitingForDataStartTime) {
         decoder.RequestDrain();
+      } else {
+        // mWaitingForDataStartTime was already set.  The decoder is being
+        // primed after an internal seek.  A drain has already been performed.
+        MOZ_ASSERT(decoder.mTimeThreshold.isSome() ||
+                   decoder.mNumSamplesInput == decoder.mNumSamplesOutput);
       }
       NotifyWaitingForData(aTrack);
       break;
@@ -1879,8 +1884,14 @@ void MediaFormatReader::NotifyWaitingForData(TrackType aTrack) {
   MOZ_ASSERT(OnTaskQueue());
   LOGV("%s", TrackTypeToStr(aTrack));
   auto& decoder = GetDecoderData(aTrack);
+  // mWaitingForDataStartTime may have already been set before draining the
+  // decoder.
   decoder.mWaitingForDataStartTime = Some(TimeStamp::Now());
   if (decoder.mTimeThreshold) {
+    // An InternalSeek() is in progress, which might be performed while
+    // mWaitingForDataStartTime is set, such as when priming the decoder after
+    // a drain.  Set mWaiting to indicate that the internal seek cannot make
+    // progress.
     decoder.mTimeThreshold.ref().mWaiting = true;
   }
   ScheduleUpdate(aTrack);
@@ -1972,6 +1983,8 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
     LOGV("decoder.HasPendingDrain()");
     // We do not want to clear mWaitingForDataStartTime or mDemuxEOS while
     // a drain is in progress in order to properly complete the operation.
+    // The drain may provide more frames that should be returned before
+    // rejection of a MediaData promise.
     return false;
   }
 
@@ -2486,7 +2499,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
         if (decoder.mDrainState == DrainState::DrainCompleted &&
             decoder.mLastDecodedSampleTime && !decoder.mNextStreamSourceID) {
           // We have completed draining the decoder following WaitingForData.
-          // Set up the internal seek machinery to be able to resume from the
+          // Prime the decoder so that it is ready to resume from the
           // last sample decoded.
           LOG("Seeking to last sample time: %" PRId64,
               decoder.mLastDecodedSampleTime.ref().mStart.ToMicroseconds());
@@ -2665,6 +2678,9 @@ void MediaFormatReader::Update(TrackType aTrack) {
   }
 
   if ((decoder.IsWaitingForData() &&
+       // If mTimeThreshold is set then more samples might need to be demuxed
+       // to advance from the random access point to the target, but if its
+       // mWaiting is set then demuxing would continue to fail.
        (!decoder.mTimeThreshold || decoder.mTimeThreshold.ref().mWaiting)) ||
       (decoder.IsWaitingForKey())) {
     // Nothing more we can do at present.
@@ -2688,6 +2704,10 @@ void MediaFormatReader::Update(TrackType aTrack) {
   RequestDemuxSamples(aTrack);
 
   HandleDemuxedSamples(aTrack, a);
+  // At least one of RequestDemuxSamples() or HandleDemuxedSamples() was a
+  // no-op, so only one operation is in progress at one time.
+  MOZ_ASSERT(!decoder.mDemuxRequest.Exists() ||
+             !decoder.mDecodeRequest.Exists());
 }
 
 void MediaFormatReader::ReturnOutput(MediaData* aData, TrackType aTrack) {

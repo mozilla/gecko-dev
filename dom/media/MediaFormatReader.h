@@ -299,7 +299,11 @@ class MediaFormatReader final
 
     media::TimeInterval mTime;
     bool mDropTarget;
+    // Whether known waiting for more raw packets, either for the random
+    // access point or dependent frames.
     bool mWaiting;
+    // Whether `MediaTrackDemuxer::Seek()` has found the preceding random
+    // access point.
     bool mHasSeeked;
   };
 
@@ -610,6 +614,8 @@ class MediaFormatReader final
       }
     }
 
+    // Return whether an InternalSeek() has been requested but has not yet
+    // seeked to the random access point preceding that target.
     bool HasInternalSeekPending() const {
       return mTimeThreshold && !mTimeThreshold.ref().mHasSeeked;
     }
