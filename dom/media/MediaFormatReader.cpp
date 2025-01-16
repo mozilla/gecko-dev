@@ -1639,7 +1639,8 @@ void MediaFormatReader::OnVideoDemuxCompleted(
   DDLOG(DDLogCategory::Log, "video_demuxed_samples",
         uint64_t(aSamples->GetSamples().Length()));
   mVideo.mDemuxRequest.Complete();
-  mVideo.mQueuedSamples.AppendElements(aSamples->GetSamples());
+  MOZ_ASSERT(mVideo.mQueuedSamples.IsEmpty());
+  mVideo.mQueuedSamples = aSamples->GetMovableSamples();
   ScheduleUpdate(TrackInfo::kVideoTrack);
 }
 
@@ -1732,7 +1733,8 @@ void MediaFormatReader::OnAudioDemuxCompleted(
   DDLOG(DDLogCategory::Log, "audio_demuxed_samples",
         uint64_t(aSamples->GetSamples().Length()));
   mAudio.mDemuxRequest.Complete();
-  mAudio.mQueuedSamples.AppendElements(aSamples->GetSamples());
+  MOZ_ASSERT(mAudio.mQueuedSamples.IsEmpty());
+  mAudio.mQueuedSamples = aSamples->GetMovableSamples();
   ScheduleUpdate(TrackInfo::kAudioTrack);
 }
 

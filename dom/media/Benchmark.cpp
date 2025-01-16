@@ -216,7 +216,7 @@ void BenchmarkPlayback::DemuxNextSample() {
   promise->Then(
       Thread(), __func__,
       [this, ref](RefPtr<MediaTrackDemuxer::SamplesHolder> aHolder) {
-        mSamples.AppendElements(std::move(aHolder->GetMovableSamples()));
+        mSamples.AppendElements(aHolder->GetMovableSamples());
         if (ref->mParameters.mStopAtFrame &&
             mSamples.Length() == ref->mParameters.mStopAtFrame.ref()) {
           InitDecoder(mTrackDemuxer->GetInfo());

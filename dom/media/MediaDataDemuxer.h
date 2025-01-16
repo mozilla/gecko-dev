@@ -112,7 +112,9 @@ class MediaTrackDemuxer : public DecoderDoctorLifeLogger<MediaTrackDemuxer> {
     // This method is only used to do the move semantic for mSamples, do not
     // append any element to the samples we returns. We should always append new
     // sample to mSamples via `AppendSample()`.
-    nsTArray<RefPtr<MediaRawData>>& GetMovableSamples() { return mSamples; }
+    nsTArray<RefPtr<MediaRawData>>&& GetMovableSamples() {
+      return std::move(mSamples);
+    }
 
    private:
     ~SamplesHolder() = default;

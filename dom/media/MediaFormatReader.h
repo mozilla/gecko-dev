@@ -443,7 +443,7 @@ class MediaFormatReader final
     // Pending seek.
     MozPromiseRequestHolder<MediaTrackDemuxer::SeekPromise> mSeekRequest;
 
-    // Queued demux samples waiting to be decoded.
+    // Queued demuxed samples waiting to be decoded.
     nsTArray<RefPtr<MediaRawData>> mQueuedSamples;
     MozPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
     // A WaitingPromise is pending if the demuxer is waiting for data or
