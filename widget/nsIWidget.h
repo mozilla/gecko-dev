@@ -1887,6 +1887,11 @@ class nsIWidget : public nsISupports {
    */
   virtual BrowserChild* GetOwningBrowserChild() { return nullptr; }
 
+  /*
+   * Returns the layersId for this widget.
+   */
+  virtual LayersId GetLayersId() const = 0;
+
   /**
    * If this isn't directly compositing to its window surface,
    * return the compositor which is doing that on our behalf.

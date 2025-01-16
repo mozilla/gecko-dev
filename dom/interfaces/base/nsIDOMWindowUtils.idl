@@ -2309,7 +2309,9 @@ interface nsIDOMWindowUtils : nsISupports {
 
   void syncFlushCompositor();
 
-  unsigned long long getLayersId();
+  // |aElement| is an optional argument for popup window where APZ is enabled.
+  // |aElement| would be a popup element for popup.
+  unsigned long long getLayersId([optional] in Element aElement);
 
   // Returns true if we are effectively throttling frame requests.
   readonly attribute boolean effectivelyThrottlesFrameRequests;
