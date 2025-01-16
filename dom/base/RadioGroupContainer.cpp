@@ -81,6 +81,16 @@ nsresult RadioGroupContainer::WalkRadioGroup(const nsAString& aName,
   return NS_OK;
 }
 
+void RadioGroupContainer::WalkRadioGroup(const nsAString& aName,
+                                         const VisitCallback& aCallback) {
+  nsRadioGroupStruct* radioGroup = GetOrCreateRadioGroup(aName);
+  for (HTMLInputElement* button : radioGroup->mRadioButtons.AsList()) {
+    if (!aCallback(button)) {
+      return;
+    }
+  }
+}
+
 void RadioGroupContainer::SetCurrentRadioButton(const nsAString& aName,
                                                 HTMLInputElement* aRadio) {
   nsRadioGroupStruct* radioGroup = GetOrCreateRadioGroup(aName);

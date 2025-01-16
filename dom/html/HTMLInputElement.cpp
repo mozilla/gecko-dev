@@ -1177,7 +1177,8 @@ nsresult HTMLInputElement::Clone(dom::NodeInfo* aNodeInfo,
   if (mCheckedChanged) {
     // We no longer have our original checked state.  Set our
     // checked state on the clone.
-    it->DoSetChecked(mChecked, false, true);
+    it->DoSetChecked(mChecked, /* aNotify */ false,
+                     /* aSetValueChanged */ true);
     // Then tell DoneCreatingElement() not to overwrite:
     it->mShouldInitChecked = false;
   }
@@ -1278,7 +1279,7 @@ void HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         if (!mDoneCreating) {
           mShouldInitChecked = true;
         } else {
-          DoSetChecked(!!aValue, aNotify, false);
+          DoSetChecked(!!aValue, aNotify, /* aSetValueChanged */ false);
         }
       }
       needValidityUpdate = true;
@@ -2867,11 +2868,12 @@ void HTMLInputElement::SetCheckedChangedInternal(bool aCheckedChanged) {
 }
 
 void HTMLInputElement::SetChecked(bool aChecked) {
-  DoSetChecked(aChecked, true, true);
+  DoSetChecked(aChecked, /* aNotify */ true, /* aSetValueChanged */ true);
 }
 
 void HTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
-                                    bool aSetValueChanged) {
+                                    bool aSetValueChanged,
+                                    bool aUpdateOtherElement) {
   // If the user or JS attempts to set checked, whether it actually changes the
   // value or not, we say the value was changed so that defaultValue don't
   // affect it no more.
@@ -2894,7 +2896,7 @@ void HTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
 
   // For radio button, we need to do some extra fun stuff
   if (aChecked) {
-    RadioSetChecked(aNotify);
+    RadioSetChecked(aNotify, aUpdateOtherElement);
     return;
   }
 
@@ -2909,15 +2911,16 @@ void HTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
   SetCheckedInternal(false, aNotify);
 }
 
-void HTMLInputElement::RadioSetChecked(bool aNotify) {
-  // Find the selected radio button so we can deselect it
-  HTMLInputElement* currentlySelected = GetSelectedRadioButton();
-
-  // Deselect the currently selected radio button
-  if (currentlySelected) {
-    // Pass true for the aNotify parameter since the currently selected
-    // button is already in the document.
-    currentlySelected->SetCheckedInternal(false, true);
+void HTMLInputElement::RadioSetChecked(bool aNotify, bool aUpdateOtherElement) {
+  if (aUpdateOtherElement) {
+    // It’s possible for multiple radio input to have their checkedness set to
+    // true, so we need to deselect all of them.
+    VisitGroup([self = RefPtr{this}](HTMLInputElement* aRadio) {
+      if (aRadio != self) {
+        aRadio->SetCheckedInternal(false, true);
+      }
+      return true;
+    });
   }
 
   // Let the group know that we are now the One True Radio Button
@@ -3325,7 +3328,8 @@ void HTMLInputElement::LegacyPreActivationBehavior(
     }
 
     originalCheckedValue = Checked();
-    DoSetChecked(!originalCheckedValue, true, true);
+    DoSetChecked(!originalCheckedValue, /* aNotify */ true,
+                 /* aSetValueChanged */ true);
     mCheckedIsToggled = true;
 
     if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault) {
@@ -3337,7 +3341,8 @@ void HTMLInputElement::LegacyPreActivationBehavior(
 
     originalCheckedValue = Checked();
     if (!originalCheckedValue) {
-      DoSetChecked(true, true, true);
+      DoSetChecked(/* aValue */ true, /* aNotify */ true,
+                   /* aSetValueChanged */ true);
       mCheckedIsToggled = true;
     }
 
@@ -4229,13 +4234,15 @@ void HTMLInputElement::LegacyCanceledActivationBehavior(
       // radio button we must reset it back to false to cancel the action.
       // See how the web of hack grows?
       if (!selectedRadioButton || mType != FormControlType::InputRadio) {
-        DoSetChecked(false, true, true);
+        DoSetChecked(/* aValue */ false, /* aNotify */ true,
+                     /* aSetValueChanged */ true);
       }
     } else if (oldType == FormControlType::InputCheckbox) {
       bool originalIndeterminateValue =
           !!(aVisitor.mItemFlags & NS_ORIGINAL_INDETERMINATE_VALUE);
       SetIndeterminateInternal(originalIndeterminateValue, false);
-      DoSetChecked(originalCheckedValue, true, true);
+      DoSetChecked(originalCheckedValue, /* aNotify */ true,
+                   /* aSetValueChanged */ true);
     }
   }
 
@@ -6007,7 +6014,8 @@ HTMLInputElement::Reset() {
       return result;
     }
     case VALUE_MODE_DEFAULT_ON:
-      DoSetChecked(DefaultChecked(), true, false);
+      DoSetChecked(DefaultChecked(), /* aNotify */ true,
+                   /* aSetValueChanged */ false);
       return NS_OK;
     case VALUE_MODE_FILENAME:
       ClearFiles(false);
@@ -6254,7 +6262,8 @@ void HTMLInputElement::DoneCreatingElement() {
   // property.
   //
   if (!restoredCheckedState && mShouldInitChecked) {
-    DoSetChecked(DefaultChecked(), false, false);
+    DoSetChecked(DefaultChecked(), /* aNotify */ false,
+                 /* aSetValueChanged */ false, mForm || IsInComposedDoc());
   }
 
   // Sanitize the value and potentially set mFocusedValue.
@@ -6348,7 +6357,7 @@ bool HTMLInputElement::RestoreState(PresState* aState) {
       if (inputState.type() == PresContentData::TCheckedContentData) {
         restoredCheckedState = true;
         bool checked = inputState.get_CheckedContentData().checked();
-        DoSetChecked(checked, true, true);
+        DoSetChecked(checked, /* aNotify */ true, /* aSetValueChanged */ true);
       }
       break;
     case VALUE_MODE_FILENAME:
@@ -6427,7 +6436,7 @@ void HTMLInputElement::AddToRadioGroup() {
     // that.
     // Make sure not to notify if we're still being created.
     //
-    RadioSetChecked(mDoneCreating);
+    RadioSetChecked(mDoneCreating, mForm || IsInComposedDoc());
   } else {
     bool indeterminate = !container->GetCurrentRadioButton(name);
     SetStates(ElementState::INDETERMINATE, indeterminate, mDoneCreating);
@@ -6564,6 +6573,18 @@ nsresult HTMLInputElement::VisitGroup(nsIRadioVisitor* aVisitor) {
 
   aVisitor->Visit(this);
   return NS_OK;
+}
+
+void HTMLInputElement::VisitGroup(
+    const RadioGroupContainer::VisitCallback& aCallback) {
+  if (auto* container = GetCurrentRadioGroupContainer()) {
+    nsAutoString name;
+    GetAttr(nsGkAtoms::name, name);
+    container->WalkRadioGroup(name, aCallback);
+    return;
+  }
+
+  aCallback(this);
 }
 
 HTMLInputElement::ValueModeType HTMLInputElement::GetValueMode() const {
