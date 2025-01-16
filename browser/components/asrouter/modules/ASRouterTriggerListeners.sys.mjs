@@ -866,6 +866,104 @@ export const ASRouterTriggerListeners = new Map([
     },
   ],
   [
+    "tabGroupCreated",
+    {
+      id: "tabGroupCreated",
+      _initialized: false,
+      _triggerHandler: null,
+      // Number of tab groups the user created this session
+      _tabGroupsCreated: 0,
+
+      init(triggerHandler) {
+        this._triggerHandler = triggerHandler;
+        if (!this._initialized) {
+          lazy.EveryWindow.registerCallback(
+            this.id,
+            win => {
+              win.addEventListener("TabGroupCreateDone", this);
+            },
+            win => {
+              win.removeEventListener("TabGroupCreateDone", this);
+            }
+          );
+          this._initialized = true;
+        }
+      },
+      handleEvent(event) {
+        if (this._initialized) {
+          if (!event.target.ownerGlobal.gBrowser) {
+            return;
+          }
+          const { gBrowser } = event.target.ownerGlobal;
+          this._tabGroupsCreated++;
+          this._triggerHandler(gBrowser.selectedBrowser, {
+            id: this.id,
+            context: {
+              tabGroupsCreatedCount: this._tabGroupsCreated,
+            },
+          });
+        }
+      },
+      uninit() {
+        if (this._initialized) {
+          lazy.EveryWindow.unregisterCallback(this.id);
+          this._initialized = false;
+          this._triggerHandler = null;
+          this._tabGroupsCreated = 0;
+        }
+      },
+    },
+  ],
+  [
+    "tabGroupClosed",
+    {
+      id: "tabGroupClosed",
+      _initialized: false,
+      _triggerHandler: null,
+      // Number of tab groups the user closed this session
+      _tabGroupsClosed: 0,
+
+      init(triggerHandler) {
+        this._triggerHandler = triggerHandler;
+        if (!this._initialized) {
+          lazy.EveryWindow.registerCallback(
+            this.id,
+            win => {
+              win.addEventListener("TabGroupRemoved", this);
+            },
+            win => {
+              win.removeEventListener("TabGroupRemoved", this);
+            }
+          );
+          this._initialized = true;
+        }
+      },
+      handleEvent(event) {
+        if (this._initialized) {
+          if (!event.target.ownerGlobal.gBrowser) {
+            return;
+          }
+          const { gBrowser } = event.target.ownerGlobal;
+          this._tabGroupsClosed++;
+          this._triggerHandler(gBrowser.selectedBrowser, {
+            id: this.id,
+            context: {
+              tabGroupsClosedCount: this._tabGroupsClosed,
+            },
+          });
+        }
+      },
+      uninit() {
+        if (this._initialized) {
+          lazy.EveryWindow.unregisterCallback(this.id);
+          this._initialized = false;
+          this._triggerHandler = null;
+          this._tabGroupsClosed = 0;
+        }
+      },
+    },
+  ],
+  [
     "activityAfterIdle",
     {
       id: "activityAfterIdle",
