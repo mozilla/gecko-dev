@@ -779,7 +779,7 @@ class MediaFormatReader final
   // delta there.
   uint64_t mLastReportedNumDecodedFrames;
 
-  // Timestamp of the previous decoded keyframe, in microseconds.
+  // Timestamp of the previous decoded video keyframe, in microseconds.
   int64_t mPreviousDecodedKeyframeTime_us;
   // Default mLastDecodedKeyframeTime_us value, must be bigger than anything.
   static const int64_t sNoPreviousDecodedKeyframe = INT64_MAX;
