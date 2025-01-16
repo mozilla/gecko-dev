@@ -391,8 +391,7 @@ export const GeckoViewTranslationsSettings = {
                     aCallback.onError(
                       `An issue occurred while aggregating information: ${recordError}`
                     );
-                  },
-                  language
+                  }
                 );
               results.push(recordsResult);
             });

@@ -65,7 +65,7 @@ module.exports = {
     "plugin:json/recommended-with-comments-legacy",
     "prettier",
   ],
-  plugins: ["mozilla", "html", "import", "json"],
+  plugins: ["mozilla", "html", "import", "json", "promise"],
   overrides: [
     {
       files: ["*.*"],

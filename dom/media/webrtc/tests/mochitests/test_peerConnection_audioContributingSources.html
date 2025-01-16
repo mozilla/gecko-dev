@@ -24,6 +24,7 @@
     is(localReceiver.getContributingSources().length, 0,
        "local contributing sources is empty");
     // Wait for the next JS event loop iteration, to clear the cache
+    // eslint-disable-next-line promise/valid-params
     await Promise.resolve().then();
     // Insert new entries as if there were an MCU
     const csrc0 = 124756;

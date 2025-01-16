@@ -59,8 +59,7 @@ export class _Card extends React.PureComponent {
         gImageLoading.set(imageUrl, loaderPromise);
         loaderPromise
           .catch(ex => ex)
-          .then(() => gImageLoading.delete(imageUrl))
-          .catch();
+          .then(() => gImageLoading.delete(imageUrl));
       }
 
       // Wait for the image whether just started loading or reused promise

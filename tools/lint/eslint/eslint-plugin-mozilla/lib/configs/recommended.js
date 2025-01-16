@@ -232,6 +232,9 @@ const coreRules = {
 
     // This may conflict with prettier, so turn it off.
     "prefer-arrow-callback": "off",
+
+    // Not passing anything to .catch/.then doesn't work, error:
+    "promise/valid-params": "error",
   },
 };
 

@@ -155,6 +155,7 @@ function cloneFlatSection(section) {
     mozilla: plugin,
     "no-unsanitized": require("eslint-plugin-no-unsanitized"),
     "@microsoft/sdl": require("@microsoft/eslint-plugin-sdl"),
+    promise: require("eslint-plugin-promise"),
   };
   if (!config.languageOptions) {
     config.languageOptions = {};

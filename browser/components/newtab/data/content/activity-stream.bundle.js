@@ -5840,7 +5840,7 @@ class _Card extends (external_React_default()).PureComponent {
 
         // Save and remove the promise only while it's pending
         gImageLoading.set(imageUrl, loaderPromise);
-        loaderPromise.catch(ex => ex).then(() => gImageLoading.delete(imageUrl)).catch();
+        loaderPromise.catch(ex => ex).then(() => gImageLoading.delete(imageUrl));
       }
 
       // Wait for the image whether just started loading or reused promise

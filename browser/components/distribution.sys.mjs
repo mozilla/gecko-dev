@@ -115,12 +115,13 @@ DistributionCustomizer.prototype = {
   async _removeDistributionBookmarks() {
     await lazy.PlacesUtils.bookmarks.fetch(
       { guidPrefix: this.BOOKMARK_GUID_PREFIX },
-      bookmark => lazy.PlacesUtils.bookmarks.remove(bookmark).catch()
+      bookmark =>
+        lazy.PlacesUtils.bookmarks.remove(bookmark).catch(console.error)
     );
     await lazy.PlacesUtils.bookmarks.fetch(
       { guidPrefix: this.FOLDER_GUID_PREFIX },
       folder => {
-        lazy.PlacesUtils.bookmarks.remove(folder).catch();
+        lazy.PlacesUtils.bookmarks.remove(folder).catch(console.error);
       }
     );
   },
