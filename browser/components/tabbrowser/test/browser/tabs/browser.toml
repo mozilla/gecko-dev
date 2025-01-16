@@ -509,6 +509,10 @@ tags = "vertical-tabs"
 
 ["browser_tab_manager_keyboard_access.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking && opt", # Bug 1903733
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && vertical_tab && opt", # Bug 1903733
+  ]
 
 ["browser_tab_manger_synced_tabs.js"]
 tags = "vertical-tabs"
