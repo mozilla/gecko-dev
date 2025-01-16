@@ -441,6 +441,11 @@ interface CanonicalBrowsingContext : BrowsingContext {
    * visibility, or no frame.
    */
   readonly attribute boolean isUnderHiddenEmbedderElement;
+
+  /**
+   * Indicates whether opening a modal picker is permitted.
+   */
+  readonly attribute boolean canOpenModalPicker;
 };
 
 [Exposed=Window, ChromeOnly]
