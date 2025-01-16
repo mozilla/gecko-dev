@@ -719,7 +719,7 @@ export var remoteSettingsBroadcastHandler = {
     );
 
     return RemoteSettings.pollChanges({
-      expectedTimestamp: version,
+      expectedTimestamp: version.replace('"', ""),
       trigger: isStartup ? "startup" : "broadcast",
     });
   },
