@@ -15,8 +15,10 @@ const { SiteDataTestUtils } = ChromeUtils.importESModule(
 const PREFIX = "https://sub1.test1.example";
 const ORIGIN = `${PREFIX}.org`;
 const ORIGIN_THIRD_PARTY = `${PREFIX}.com`;
-const ORIGIN_PARTITIONED = `${ORIGIN_THIRD_PARTY}^partitionKey=%28https%2Cexample.org%29`;
-const TEST_URL = `${ORIGIN}/${PATH}storage-dfpi.html`;
+const ORIGIN_PARTITIONED = `${PREFIX}.com^partitionKey=%28https%2Cexample.org%29`;
+const TEST_URL = `${ORIGIN}/document-builder.sjs?html=
+    <iframe src="${PREFIX}.com/browser/devtools/client/storage/test/storage-blank.html"></iframe>
+`;
 
 function listOrigins() {
   return new Promise(resolve => {
@@ -32,12 +34,9 @@ add_task(async function () {
     Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
   );
 
-  await pushPref(
-    "privacy.partition.always_partition_third_party_non_cookie_storage",
-    false
-  );
-
   registerCleanupFunction(SiteDataTestUtils.clear);
+
+  const expectedOrigins = [ORIGIN, ORIGIN_PARTITIONED];
 
   // `Services.qms.listOrigins()` may or contain results created by other tests.
   // And it's unsafe to clear existing origins by `Services.qms.clear()`.
@@ -45,36 +44,22 @@ add_task(async function () {
   // and after `openTabAndSetupStorage` is called.
   // To ensure more accurate results, try choosing a uncommon origin for PREFIX.
   const EXISTING_ORIGINS = await listOrigins();
-  ok(!EXISTING_ORIGINS.includes(ORIGIN), `${ORIGIN} doesn't exist`);
-  ok(
-    !EXISTING_ORIGINS.includes(ORIGIN_PARTITIONED),
-    `${ORIGIN_PARTITIONED} doesn't exist`
-  );
+  expectedOrigins.forEach(expected => {
+    ok(!EXISTING_ORIGINS.includes(expected), `${expected} doesn't exist`);
+  });
 
   await openTabAndSetupStorage(TEST_URL);
 
   const origins = await listOrigins();
   for (const origin of origins) {
     ok(
-      EXISTING_ORIGINS.includes(origin) ||
-        origin === ORIGIN ||
-        origin == ORIGIN_PARTITIONED,
+      EXISTING_ORIGINS.includes(origin) || expectedOrigins.includes(origin),
       `check origin: ${origin}`
     );
   }
-  ok(origins.includes(ORIGIN), `${ORIGIN} is added`);
-  if (
-    Services.prefs.getBoolPref(
-      "dom.storage.enable_migration_from_unsupported_legacy_implementation"
-    )
-  ) {
-    ok(origins.includes(ORIGIN_PARTITIONED), `${ORIGIN_PARTITIONED} is added`);
-  } else {
-    ok(
-      !origins.includes(ORIGIN_PARTITIONED),
-      `${ORIGIN_PARTITIONED} is not added`
-    );
-  }
+  expectedOrigins.forEach(expected => {
+    ok(origins.includes(expected), `${expected} is added`);
+  });
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });

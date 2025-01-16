@@ -106,8 +106,6 @@ tags = "usercontextid"
 
 ["browser_storage_dfpi.js"]
 
-["browser_storage_dfpi_always_partition_storage.js"]
-
 ["browser_storage_dynamic_updates_cookies.js"]
 
 ["browser_storage_dynamic_updates_localStorage.js"]

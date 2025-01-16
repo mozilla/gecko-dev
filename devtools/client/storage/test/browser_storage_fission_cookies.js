@@ -7,18 +7,13 @@
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
     // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
-    set: [
-      ["network.cookie.sameSite.laxByDefault", false],
-      [
-        "privacy.partition.always_partition_third_party_non_cookie_storage",
-        false,
-      ],
-    ],
+    set: [["network.cookie.sameSite.laxByDefault", false]],
   });
 
   const URL_IFRAME = buildURLWithContent(
     "example.net",
-    `<h1>iframe</h1>` + `<script>document.cookie = "lorem=ipsum";</script>`
+    `<h1>iframe</h1>` +
+      `<script>document.cookie = "lorem=ipsum; Secure; Partitioned";</script>`
   );
 
   const URL_MAIN = buildURLWithContent(
@@ -48,7 +43,7 @@ add_task(async function () {
 
     const iframe = content.document.querySelector("iframe");
     return SpecialPowers.spawn(iframe, [], () => {
-      content.document.cookie = "lorem2=ipsum2";
+      content.document.cookie = "lorem2=ipsum2; Secure; Partitioned";
     });
   });
   await onUpdated;
