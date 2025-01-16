@@ -379,6 +379,14 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubAction() {
 nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
 
+  // If we just maintained the DOM tree for consistent behavior even after
+  // web apps modified the DOM, we should not touch the DOM in this
+  // post-processor.
+  if (GetTopLevelEditSubAction() ==
+      EditSubAction::eMaintainWhiteSpaceVisibility) {
+    return NS_OK;
+  }
+
   nsresult rv = EnsureSelectionInBodyOrDocumentElement();
   if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
     return NS_ERROR_EDITOR_DESTROYED;

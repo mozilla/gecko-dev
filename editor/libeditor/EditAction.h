@@ -503,6 +503,11 @@ enum class EditSubAction : int32_t {
   // eCreatePaddingBRElementForEmptyEditor indicates to create a padding <br>
   // element for empty editor.
   eCreatePaddingBRElementForEmptyEditor,
+
+  // eMaintainWhiteSpaceVisibility indicates that editor updates `Text` nodes
+  // to make visible white-spaces keep visible even if web apps deletes padding
+  // <br>s for the preceding white-space.
+  eMaintainWhiteSpaceVisibility,
 };
 
 // You can use this macro as:
