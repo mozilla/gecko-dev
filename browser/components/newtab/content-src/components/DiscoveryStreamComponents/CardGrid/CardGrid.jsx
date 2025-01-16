@@ -492,7 +492,7 @@ export class _CardGrid extends React.PureComponent {
           ({ format }) => format === "billboard" && billboardEnabled
         );
 
-      if (spocToRender) {
+      if (spocToRender && !spocs.blocked.includes(spocToRender.url)) {
         const row =
           spocToRender.format === "leaderboard"
             ? prefs[PREF_LEADERBOARD_POSITION]

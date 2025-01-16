@@ -63,7 +63,7 @@ export const AdBanner = ({
     );
   };
 
-  const onLinkCLick = () => {
+  const onLinkClick = () => {
     dispatch(
       ac.DiscoveryStreamUserEvent({
         event: "CLICK",
@@ -100,7 +100,7 @@ export const AdBanner = ({
           className="ad-banner-link"
           url={spoc.url}
           title={spoc.title}
-          onLinkClick={onLinkCLick}
+          onLinkClick={onLinkClick}
           dispatch={dispatch}
         >
           <ImpressionStats
