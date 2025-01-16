@@ -10188,7 +10188,7 @@ function CardSection({
     className: following ? "section-follow following" : "section-follow"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     onClick: following ? onUnfollowClick : onFollowClick,
-    type: following ? "destructive" : "default",
+    type: "default",
     index: sectionPosition,
     section: sectionKey
   }, /*#__PURE__*/external_React_default().createElement("span", {
