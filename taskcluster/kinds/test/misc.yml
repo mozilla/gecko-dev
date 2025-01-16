@@ -142,6 +142,10 @@ test-verify:
             - ort.wasm
             - ort-training.wasm
             - ort.jsep.wasm
+            - translations.inference
+            - translations.esen.lex
+            - translations.esen.model
+            - translations.esen.vocab
 
     worker-type:
         by-test-platform:
