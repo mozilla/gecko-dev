@@ -1754,7 +1754,7 @@ class Preferences {
    */
   isPersistedSearchTermsEnabled() {
     return (
-      this.get("showSearchTermsFeatureGate") &&
+      this.getScotchBonnetPref("showSearchTerms.featureGate") &&
       this.get("showSearchTerms.enabled") &&
       !lazy.CustomizableUI.getPlacementOfWidget("search-container")
     );

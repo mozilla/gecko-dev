@@ -3179,8 +3179,7 @@ export class UrlbarInput {
       } catch {}
 
       this.value =
-        lazy.UrlbarPrefs.get("showSearchTermsFeatureGate") &&
-        lazy.UrlbarPrefs.get("showSearchTerms.enabled") &&
+        lazy.UrlbarPrefs.isPersistedSearchTermsEnabled() &&
         resultDetails?.searchTerm
           ? resultDetails.searchTerm
           : formattedURL;

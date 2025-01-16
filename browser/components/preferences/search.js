@@ -169,7 +169,7 @@ var gSearchPane = {
     let checkbox = document.getElementById("searchShowSearchTermCheckbox");
     let updateCheckboxHidden = () => {
       checkbox.hidden =
-        !UrlbarPrefs.get("showSearchTermsFeatureGate") ||
+        !UrlbarPrefs.getScotchBonnetPref("showSearchTerms.featureGate") ||
         !!lazy.CustomizableUI.getPlacementOfWidget("search-container");
     };
 
@@ -183,13 +183,11 @@ var gSearchPane = {
       },
     };
     lazy.CustomizableUI.addListener(customizableUIListener);
-    NimbusFeatures.urlbar.onUpdate(updateCheckboxHidden);
 
     // Fire once to initialize.
     updateCheckboxHidden();
 
     window.addEventListener("unload", () => {
-      NimbusFeatures.urlbar.offUpdate(updateCheckboxHidden);
       lazy.CustomizableUI.removeListener(customizableUIListener);
     });
   },
