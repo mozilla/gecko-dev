@@ -21,7 +21,7 @@ add_task(async function test_translations_settings_download_languages_all() {
     "vocab.fren.spm",
   ];
 
-  const spainishModels = [
+  const spanishModels = [
     "lex.50.50.enes.s2t.bin",
     "lex.50.50.esen.s2t.bin",
     "model.enes.intgemm.alphas.bin",
@@ -97,9 +97,9 @@ add_task(async function test_translations_settings_download_languages_all() {
 
   Assert.deepEqual(
     await remoteClients.translationModels.resolvePendingDownloads(
-      spainishModels.length
+      spanishModels.length
     ),
-    spainishModels,
+    spanishModels,
     "Spanish models were downloaded."
   );
 
@@ -164,7 +164,7 @@ add_task(async function test_translations_settings_download_languages_all() {
     langAll
       .querySelector("moz-button")
       .classList.contains("translations-settings-download-icon"),
-    "Download icon is visible for all languages i.e. all languages are not downloaded since one language, Spainish was removed."
+    "Download icon is visible for all languages i.e. all languages are not downloaded since one language, Spanish was removed."
   );
 
   await cleanup();
