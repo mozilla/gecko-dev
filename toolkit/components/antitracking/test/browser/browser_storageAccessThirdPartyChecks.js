@@ -1,6 +1,3 @@
-const APS_PREF =
-  "privacy.partition.always_partition_third_party_non_cookie_storage";
-
 AntiTracking._createTask({
   name: "Test that after a storage access grant we have full first-party access",
   cookieBehavior: BEHAVIOR_REJECT_TRACKER,
@@ -17,10 +14,11 @@ AntiTracking._createTask({
     async function runChecks(name) {
       let iframe = document.createElement("iframe");
       iframe.src = TRACKING_PAGE;
-      document.body.appendChild(iframe);
-      await new Promise(resolve => {
+      let loadPromise = new Promise(resolve => {
         iframe.onload = resolve;
       });
+      document.body.appendChild(iframe);
+      await loadPromise;
 
       await SpecialPowers.spawn(iframe, [name], name => {
         content.postMessage(name, "*");
@@ -37,7 +35,6 @@ AntiTracking._createTask({
 
     await runChecks("image");
   },
-  extraPrefs: [[APS_PREF, false]],
   expectedBlockingNotifications:
     Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_TRACKER,
   runInPrivateWindow: false,
@@ -70,7 +67,6 @@ AntiTracking._createTask({
 
     await callRequestStorageAccess(null, true);
   },
-  extraPrefs: [[APS_PREF, false]],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
   iframeSandbox: null,
@@ -101,17 +97,13 @@ AntiTracking._createTask({
 
     await callRequestStorageAccess(null, true);
   },
-  extraPrefs: [[APS_PREF, false]],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
   iframeSandbox: null,
   accessRemoval: null,
   callbackAfterRemoval: null,
   thirdPartyPage: TEST_3RD_PARTY_PAGE,
-  errorMessageDomains: [
-    "https://tracking.example.org",
-    "https://tracking.example.org",
-  ],
+  errorMessageDomains: ["https://tracking.example.org"],
 });
 
 add_task(async _ => {

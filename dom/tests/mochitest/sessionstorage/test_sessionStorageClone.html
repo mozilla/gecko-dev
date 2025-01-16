@@ -11,32 +11,15 @@
 var currentTest = 1;
 var currentStep = 1;
 
-/*
-window.addEventListener("storage", onStorageEvent, false);
-
-function onStorageEvent(event)
-{
-}
-*/
-
 async function doNextTest()
 {
-  // Bug 1746646: Make mochitests work with TCP enabled (cookieBehavior = 5)
-  // Acquire storage access permission here so that the sessionStorage object is
-  // shared between this window and the slave in xorigin tests. Without this,
-  // our storage would be isolated as a xorigin iframe.
-  if (isXOrigin) {
-    SpecialPowers.wrap(document).notifyUserGestureActivation();
-    await SpecialPowers.addPermission(
-      "storageAccessAPI",
-      true,
-      window.location.href
-     );
-    await SpecialPowers.wrap(document).requestStorageAccess();
-  }
-
+  // Make sure we do not unpartition storage inappropriately
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.partition.always_partition_third_party_non_cookie_storage", false]],
+    set: [
+      ["privacy.partition.always_partition_third_party_non_cookie_storage", true],
+      ["privacy.partition.always_partition_third_party_non_cookie_storage.exempt_sessionstorage", false],
+      ["privacy.restrict3rdpartystorage.heuristic.window_open", false],
+    ],
   });
 
   // We must perform the first step of the test
@@ -50,7 +33,11 @@ async function doNextTest()
       // Open a window from the same origin and check data
       // are copied but not further modified on our side
       slaveOrigin = "http://mochi.test:8888";
-      slave = window.open(slaveOrigin + slavePath + "frameEqual.html");
+      if (isXOrigin) {
+        slave = window.open(slaveOrigin + slavePath + "frameNotEqual.html");
+      } else {
+        slave = window.open(slaveOrigin + slavePath + "frameEqual.html");
+      }
       break;
 
     case 2:

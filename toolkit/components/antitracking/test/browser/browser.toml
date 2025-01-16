@@ -71,9 +71,6 @@ support-files = [
 
 ["browser_allowListNotifications.js"]
 
-["browser_allowListNotifications_alwaysPartition.js"]
-support-files = ["subResources.sjs"]
-
 ["browser_allowListSeparationInPrivateAndNormalWindows.js"]
 skip-if = ["os == 'mac' && !debug"] # Bug 1503778, 1577362
 
@@ -96,8 +93,6 @@ skip-if = ["os == 'mac' && !debug"] # Bug 1503778, 1577362
 ["browser_firstPartyCookieRejectionHonoursAllowList.js"]
 
 ["browser_hasStorageAccess.js"]
-
-["browser_hasStorageAccess_alwaysPartition.js"]
 
 ["browser_iframe_document_open.js"]
 
@@ -168,11 +163,7 @@ support-files = [
 
 ["browser_permissionInNormalWindows.js"]
 
-["browser_permissionInNormalWindows_alwaysPartition.js"]
-
 ["browser_permissionInPrivateWindows.js"]
-
-["browser_permissionInPrivateWindows_alwaysPartition.js"]
 
 ["browser_permissionPropagation.js"]
 skip-if = [
@@ -258,23 +249,15 @@ support-files = ["file_ws_handshake_delay_wsh.py"]
 
 ["browser_storageAccessPromiseRejectHandlerUserInteraction.js"]
 
-["browser_storageAccessPromiseRejectHandlerUserInteraction_alwaysPartition.js"]
-
 ["browser_storageAccessPromiseResolveHandlerUserInteraction.js"]
 
 ["browser_storageAccessRejectsInsecureContexts.js"]
 
 ["browser_storageAccessRemovalNavigateSubframe.js"]
 
-["browser_storageAccessRemovalNavigateSubframe_alwaysPartition.js"]
-
 ["browser_storageAccessRemovalNavigateTopframe.js"]
 
-["browser_storageAccessRemovalNavigateTopframe_alwaysPartition.js"]
-
 ["browser_storageAccessSandboxed.js"]
-
-["browser_storageAccessSandboxed_alwaysPartition.js"]
 
 ["browser_storageAccessScopeDifferentSite.js"]
 
@@ -285,8 +268,6 @@ support-files = ["file_ws_handshake_delay_wsh.py"]
 ["browser_storageAccessScopeSameSiteWrite.js"]
 
 ["browser_storageAccessThirdPartyChecks.js"]
-
-["browser_storageAccessThirdPartyChecks_alwaysPartition.js"]
 support-files = [
   "trackingPage.html",
   "trackingAPI.js",
@@ -327,9 +308,6 @@ support-files = ["subResources.sjs"]
 ["browser_subResourcesPartitioned.js"]
 support-files = ["subResources.sjs"]
 
-["browser_subResourcesPartitioned_alwaysPartition.js"]
-support-files = ["subResources.sjs"]
-
 ["browser_thirdPartyChecks_sandboxed_context.js"]
 support-files = [
   "sandboxedWithImg.html",
@@ -341,9 +319,6 @@ support-files = [
 ["browser_thirdPartyStorageRejectionForCORS.js"]
 
 ["browser_urlDecorationStripping.js"]
-
-["browser_urlDecorationStripping_alwaysPartition.js"]
-tags = "remote-settings"
 
 ["browser_urlQueryStringStripping.js"]
 skip-if = ["os == 'linux' && asan"]  # Bug 1713909 - new Fission platform triage

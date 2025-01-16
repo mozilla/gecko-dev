@@ -48,14 +48,6 @@ support-files = [
 skip-if = ["socketprocess_networking"]
 
 ["browser_blockingDOMCache.js"]
-
-["browser_blockingDOMCacheAlwaysPartition.js"]
-skip-if = ["socketprocess_networking"]
-
-["browser_blockingDOMCacheAlwaysPartitionSAA.js"]
-skip-if = ["socketprocess_networking"]
-
-["browser_blockingDOMCacheSAA.js"]
 skip-if = ["socketprocess_networking"]
 
 ["browser_blockingIndexedDb.js"]

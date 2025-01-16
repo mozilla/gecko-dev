@@ -12,9 +12,6 @@ const { Preferences } = ChromeUtils.importESModule(
   "resource://gre/modules/Preferences.sys.mjs"
 );
 
-const APS_PREF =
-  "privacy.partition.always_partition_third_party_non_cookie_storage";
-
 const COLLECTION_NAME = "anti-tracking-url-decoration";
 const PREF_NAME = "privacy.restrict3rdpartystorage.url_decorations";
 const TOKEN_1 = "fooBar";
@@ -143,7 +140,6 @@ AntiTracking._createTask({
   extraPrefs: [
     ["network.http.referer.defaultPolicy", 3], // Ensure we don't downgrade because of the default policy.
     ["network.http.referer.defaultPolicy.trackers", 3],
-    [APS_PREF, false],
   ],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
@@ -171,10 +167,7 @@ AntiTracking._createTask({
       ok(false, "No query parameters should be found");
     }
   },
-  extraPrefs: [
-    ["network.http.referer.defaultPolicy.trackers", 2],
-    [APS_PREF, false],
-  ],
+  extraPrefs: [["network.http.referer.defaultPolicy.trackers", 2]],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
   iframeSandbox: null,
@@ -204,7 +197,6 @@ AntiTracking._createTask({
   extraPrefs: [
     ["network.http.referer.defaultPolicy", 3], // Ensure we don't downgrade because of the default policy.
     ["network.http.referer.defaultPolicy.trackers", 3],
-    [APS_PREF, false],
   ],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
@@ -232,10 +224,7 @@ AntiTracking._createTask({
       ok(false, "No query parameters should be found");
     }
   },
-  extraPrefs: [
-    ["network.http.referer.defaultPolicy.trackers", 2],
-    [APS_PREF, false],
-  ],
+  extraPrefs: [["network.http.referer.defaultPolicy.trackers", 2]],
   expectedBlockingNotifications: 0,
   runInPrivateWindow: false,
   iframeSandbox: null,

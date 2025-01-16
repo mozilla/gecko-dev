@@ -19,18 +19,6 @@ skip-if = [
   "http2",
 ]
 
-["test_sessionStorageClone_alwaysPartitioned.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
-
-["test_sessionStorageClone_alwaysPartitioned_exempted.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
-
 ["test_sessionStorageHttpHttps.html"]
 skip-if = [
   "http3",
