@@ -1,0 +1,184 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+# Note that metrics that are only reported in background tasks should be put in
+# `background_task_metrics.yaml` instead of this file. This file is for metrics
+# that are reported in both background tasks and in desktop processes.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Toolkit :: Application Update"
+
+update:
+  bitshresult:
+    type: labeled_counter
+    description: >
+      If a BITS download fails on the Windows side (that is to say, BITS
+      ecounters an error rather than Firefox failing to interact with
+      BITS), it will likely give an hresult error indicating what
+      happened. This probe reports those error codes to allow us to see if
+      BITS is commonly failing on some systems. This probe is keyed on the
+      type of update download, either "PARTIAL" or "COMPLETE".
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.bitshresult.
+    bugs:
+      - https://bugzil.la/1343669
+      - https://bugzil.la/1540193
+      - https://bugzil.la/1520321
+    data_reviews:
+      - https://bugzil.la/1343669
+      - https://bugzil.la/1540193
+      - https://bugzil.la/1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_BITSHRESULT
+    send_in_pings:
+      - background-update
+      - metrics
+
+  move_result:
+    type: labeled_counter
+    description: >
+      Firefox keeps downloading updates in a different place from updates
+      that are ready to install. Once the download completes, the
+      resulting file has to be moved from the downloading update directory
+      to the ready update directory. This probe counts the results that we
+      get when attempting to perform this file move. Valid values for the
+      keys for this probe are stored in the MOVE_RESULT_* values in
+      UpdateTelemetry.sys.mjs.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.move_result.
+    bugs:
+      - https://bugzil.la/353804
+    data_reviews:
+      - https://bugzil.la/353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_MOVE_RESULT
+    send_in_pings:
+      - background-update
+      - metrics
+
+  no_window_auto_restarts:
+    type: counter
+    description: >
+      On macOS, all browser windows can be closed without exiting Firefox.
+      If there is an update pending in that case, and we can install it
+      silently, we restart automatically in order to do so. This probe
+      counts the number of times the browser restarts to silently install
+      a pending update.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.no_window_auto_restarts.
+    bugs:
+      - https://bugzil.la/1720742
+    data_reviews:
+      - https://bugzil.la/1720742
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_NO_WINDOW_AUTO_RESTARTS
+    send_in_pings:
+      - background-update
+      - metrics
+
+  skip_startup_update_reason:
+    type: labeled_counter
+    description: >
+      We usually install pending updates at startup, but there are a couple of
+      reasons we might not. This value will be set to "none" if there was no
+      reason not to install updates. If the value is "DevToolsLaunching", that
+      means that we skipped applying updates because the application startup was
+      actually a startup of the Browser Toolbox, not the browser itself. If
+      the value is "NotAnUpdatingTask", that means that the browser launch is a
+      background task other than the background update task, (which have update
+      capabilities disabled). If the value is "OtherInstanceRunning", that means
+      that the background update task was launched, but it didn't install an
+      update in order to avoid interfering with other application instances. If
+      the value is "FirstStartup", we didn't install any updates because the
+      browser was launched by the installer. If the value is
+      "MultiSessionInstallLockout", there are other browser instances running
+      and the Multi Session Install Lockout timeout has not expired yet. Note
+      that, for updates to be installed, the browser launches, sees the update,
+      runs the updater, and exits. The updater then relaunches the browser when
+      it completes. Naturally, the first launch is what decides if the update
+      should be installed. But, if we are installing an update, the browser
+      exits too early to send telemetry so it isn't sent until the second
+      launch. It may be technically possible (though very unlikely) for the
+      value sent on the second launch to not be "none".
+    bugs:
+      - https://bugzil.la/1907128
+    data_reviews:
+      - https://bugzil.la/1907128
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    labels:
+      - none
+      - DevToolsLaunching
+      - NotAnUpdatingTask
+      - OtherInstanceRunning
+      - FirstStartup
+      - MultiSessionInstallLockout
+    send_in_pings:
+      - background-update
+      - metrics
+
+  suppress_prompts:
+    type: boolean
+    description: >
+      When an update is available and app.update.auto is disabled, a popup
+      is opened prompting the user to download and install the update. The
+      pref app.update.suppressPrompts causes Firefox Nightly to wait up to
+      7 days before showing the prompt, instead showing a badge and banner
+      in the meantime. It also prevents Nightly from showing update
+      restart prompts, instead showing a badge and banner immediately.
+      This value is set for the users who set this pref to true.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.suppress_prompts.
+    bugs:
+      - https://bugzil.la/1749155
+    data_reviews:
+      - https://bugzil.la/1749155
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_SUPPRESS_PROMPTS
+    send_in_pings:
+      - background-update
+      - metrics
+
+  version_pin:
+    type: string
+    description: >
+      The AppUpdatePin Enterprise Policy controls the maximum version that
+      the browser can update to. If the policy is set, this probe will
+      report the policy's value. The possible policy values are "X." and
+      "X.Y.", where X is the pinned major version and Y is the pinned
+      minor version.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.version_pin.
+    bugs:
+      - https://bugzil.la/1762957
+    data_reviews:
+      - https://bugzil.la/1762957
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+      - telemetry-client-dev@thunderbird.net
+    expires: never
+    telemetry_mirror: UPDATE_VERSION_PIN
+    send_in_pings:
+      - background-update
+      - metrics

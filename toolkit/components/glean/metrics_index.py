@@ -79,6 +79,7 @@ gecko_metrics = [
     "toolkit/mozapps/extensions/metrics.yaml",
     "toolkit/mozapps/extensions/metrics_legacy.yaml",
     "toolkit/mozapps/handling/metrics.yaml",
+    "toolkit/mozapps/update/shared_metrics.yaml",
     "toolkit/profile/metrics.yaml",
     "toolkit/xre/metrics.yaml",
     "widget/metrics.yaml",
@@ -134,7 +135,8 @@ firefox_desktop_metrics = [
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 background_update_metrics = [
     "toolkit/components/crashes/metrics.yaml",
-    "toolkit/mozapps/update/metrics.yaml",
+    "toolkit/mozapps/update/background_task_metrics.yaml",
+    "toolkit/mozapps/update/shared_metrics.yaml",
 ]
 
 # Metrics that are sent by the Firefox Desktop Background Tasks

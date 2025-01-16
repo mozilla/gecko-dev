@@ -1,0 +1,443 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+# IMPORTANT NOTE: This file should ONLY be used for metrics that ONLY need to
+#                 be reported from the background update task.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Toolkit :: Application Update"
+
+background_update:
+  automatic_restart_attempted:
+    type: boolean
+    description: >
+      True if the background update task successfully attempted an automatic restart.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847099#c3
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  automatic_restart_success:
+    type: boolean
+    description: >
+      True if the background update task successfully restarted after
+      an automatic restart.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847099#c3
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  client_id:
+    type: uuid
+    description: >
+      The legacy Telemetry client ID of this installation's default profile.
+
+      The default profile is as determined by the Profile Service, namely
+      `nsIToolkitProfileService.defaultProfile`.  The majority of users have
+      only one Firefox installation and only one profile, so the default profile
+      is their regular browsing profile.
+
+      It is possible for a Firefox installation to not have a default profile,
+      but in such cases the background update task will abort before sending any
+      telemetry; therefore, the legacy Telemetry client ID should always be
+      present.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1794053
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1794053
+    data_sensitivity:
+      - highly_sensitive
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    no_lint:
+      - BASELINE_PING
+    send_in_pings:
+      - background-update
+      - metrics
+      - events
+      - baseline
+
+  exit_code_exception:
+    type: boolean
+    description: >
+      True if the exit code/status of the background update task is 3, which
+      means an exception was thrown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  exit_code_success:
+    type: boolean
+    description: >
+      True if the exit code/status of the background update task is 0, which
+      means success.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  final_state:
+    type: string
+    description: >
+      String description of the final state the update state machine reached.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  reasons:
+    type: string_list
+    description: >
+      List of reasons that the background update task did not run.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  states:
+    type: string_list
+    description: >
+      Ordered list of string descriptions of the states that the update state
+      machine reached.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_env_current_date:
+    type: datetime
+    time_unit: day
+    description: >
+      The `environment.currentDate` of the default profile's serialized
+      targeting snapshot.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_env_firefox_version:
+    type: quantity
+    unit: version number
+    description: >
+      The `environment.firefoxVersion` of the default profile's serialized
+      targeting snapshot.  At the time of writing, this version is an integer
+      representing the Firefox major version, e.g., `109`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_env_profile_age:
+    type: datetime
+    time_unit: day
+    description: >
+      The `environment.profileAgeCreated` of the default profile's serialized
+      targeting snapshot.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_exception:
+    type: boolean
+    description: >
+      True if the default profile had a targeting snapshot serialized to disk,
+      but an exception was thrown reading it.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_exists:
+    type: boolean
+    description: >
+      True if the default profile had a targeting snapshot serialized to disk,
+      and there was no exception thrown reading it.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  targeting_version:
+    type: quantity
+    unit: version number
+    description: >
+      If the default profile had a targeting snapshot serialized to disk, the
+      `version` of the snapshot.
+
+      This version number does not have a physical unit: it's only useful to
+      compare between versions.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795467
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+update:
+  auto_download:
+    type: boolean
+    description: >
+      Per-installation preference "app.update.auto": whether to fetch and
+      install updates without user intervention.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  background_update:
+    type: boolean
+    description: >
+      Per-installation preference "app.update.background.enabled": whether to
+      fetch and install updates in the background when Firefox is not running.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  can_usually_apply_updates:
+    type: boolean
+    description: >
+      Whether or not the Update Service can usually download and install
+      updates.
+      See `canUsuallyApplyUpdates` in
+      https://searchfox.org/mozilla-central/source/toolkit/mozapps/update/nsIUpdateService.idl.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  can_usually_check_for_updates:
+    type: boolean
+    description: >
+      Whether or not the Update Service can usually check for updates.
+      See `canUsuallyCheckForUpdates` in
+      https://searchfox.org/mozilla-central/source/toolkit/mozapps/update/nsIUpdateService.idl.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  can_usually_stage_updates:
+    type: boolean
+    description: >
+      Whether the Update Service is usually able to stage updates.
+      See `canUsuallyStageUpdates` in
+      https://searchfox.org/mozilla-central/source/toolkit/mozapps/update/nsIUpdateService.idl.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  can_usually_use_bits:
+    type: boolean
+    description: >
+      On Windows, whether the Update Service can usually use BITS.
+      See `canUsuallyUseBits` in
+      https://searchfox.org/mozilla-central/source/toolkit/mozapps/update/nsIUpdateService.idl.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  channel:
+    type: string
+    description: >
+      The update channel.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  enabled:
+    type: boolean
+    description: >
+      True when policies are disabled or when the "DisableAppUpdate" is not in
+      effect.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
+
+  service_enabled:
+    type: boolean
+    description: >
+      Preference "app.update.service.enabled": whether the Mozilla Maintenance
+      Service is enabled.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703318#c17
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - background-update
