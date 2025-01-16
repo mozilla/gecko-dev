@@ -4662,18 +4662,18 @@ BrowserGlue.prototype = {
     gBrowser.selectedTab = tab;
   },
 
-  async _showAboutWelcomeModal() {
+  async _showPreOnboardingModal() {
     const { gBrowser } = lazy.BrowserWindowTracker.getTopWindow();
-    const data = await lazy.NimbusFeatures.aboutwelcome.getAllVariables();
+    const data = await lazy.NimbusFeatures.preonboarding.getAllVariables();
 
     const config = {
       type: "SHOW_SPOTLIGHT",
       data: {
         content: {
           template: "multistage",
-          id: data?.id || "ABOUT_WELCOME_MODAL",
+          id: data?.id || "PRE_ONBOARDING_MODAL",
           backdrop: data?.backdrop,
-          screens: data?.modalScreens || data?.screens,
+          screens: data?.screens,
           UTMTerm: data?.UTMTerm,
           disableEscClose: data?.requireAction,
           // displayed as a window modal by default
@@ -4698,14 +4698,14 @@ BrowserGlue.prototype = {
   },
 
   async _maybeShowDefaultBrowserPrompt() {
-    // Highest priority is about:welcome window modal experiment
+    // Highest priority is the preonboarding modal
     // Second highest priority is the upgrade dialog, which can include a "primary
     // browser" request and is limited in various ways, e.g., major upgrades.
     if (
       lazy.BrowserHandler.firstRunProfile &&
-      lazy.NimbusFeatures.aboutwelcome.getVariable("showModal")
+      lazy.NimbusFeatures.preonboarding.getVariable("enabled")
     ) {
-      this._showAboutWelcomeModal();
+      this._showPreOnboardingModal();
       return;
     }
     const dialogVersion = 106;
