@@ -237,7 +237,7 @@ class DownloadItem {
     return (
       (this.download.stopped || this.download.canceled) &&
       this.download.hasPartialData &&
-      !this.download.error
+      (!this.download.error || this.download.error.becauseSourceFailed)
     );
   }
 

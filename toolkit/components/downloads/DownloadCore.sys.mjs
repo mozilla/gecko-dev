@@ -1191,11 +1191,15 @@ Download.prototype = {
    *        Number of bytes transferred until now.
    * @param aTotalBytes
    *        Total number of bytes to be transferred, or -1 if unknown.
-   * @param aHasPartialData
+   * @param [aHasPartialData]
    *        Indicates whether the partially downloaded data can be used when
    *        restarting the download if it fails or is canceled.
    */
-  _setBytes: function D_setBytes(aCurrentBytes, aTotalBytes, aHasPartialData) {
+  _setBytes: function D_setBytes(
+    aCurrentBytes,
+    aTotalBytes,
+    aHasPartialData = false
+  ) {
     let changeMade = this.hasPartialData != aHasPartialData;
     this.hasPartialData = aHasPartialData;
 
