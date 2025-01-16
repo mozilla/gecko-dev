@@ -1234,6 +1234,12 @@ bool GetThenValue(JSContext* cx, JS::Handle<JSObject*> obj,
   // Fortunately, since this is purely for the purposes of telemetry, let's just
   // use Pure.
   RootedId thenId(cx, NameToId(cx->names().then));
+
+  // If we're doing the lookup on the original promise prototype we want to only
+  // report telemetry if the value is not the original Promise.prototype.then
+  //
+  // We then need to defer until after the lookup to decide this.
+  bool maybeOnPromiseProto = false;
   do {
     if (LookupPropertyPure(cx, obj, thenId, &holder, &prop)) {
       if (prop.isNotFound()) {
@@ -1245,13 +1251,25 @@ bool GetThenValue(JSContext* cx, JS::Handle<JSObject*> obj,
 
         auto key = JS::IdentifyStandardPrototype(holder);
         if (key != JSProto_Null) {
-          *isOnStandardProto = true;
+          if (key == JSProto_Promise) {
+            maybeOnPromiseProto = true;
+          } else {
+            *isOnStandardProto = true;
+          }
         }
       }
     }
   } while (false);
 
-  return GetProperty(cx, obj, reciever, cx->names().then, thenVal);
+  if (!GetProperty(cx, obj, reciever, cx->names().then, thenVal)) {
+    return false;
+  }
+
+  if (maybeOnPromiseProto) {
+    *isOnStandardProto = !IsNativeFunction(thenVal, Promise_then);
+  }
+
+  return true;
 }
 
 void ReportThenable(JSContext* cx, bool isOnProto, bool isOnStandardProto) {
@@ -1260,11 +1278,13 @@ void ReportThenable(JSContext* cx, bool isOnProto, bool isOnStandardProto) {
   if (isOnProto) {
     cx->runtime()->setUseCounter(cx->global(),
                                  JSUseCounter::THENABLE_USE_PROTO);
+    JS_LOG(thenable, mozilla::LogLevel::Debug, "Thenable on proto");
   }
 
   if (isOnStandardProto) {
     cx->runtime()->setUseCounter(cx->global(),
                                  JSUseCounter::THENABLE_USE_STANDARD_PROTO);
+    JS_LOG(thenable, mozilla::LogLevel::Info, "Thenable on standard proto");
   }
 }
 

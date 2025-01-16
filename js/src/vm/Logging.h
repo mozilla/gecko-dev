@@ -85,6 +85,7 @@ class LogModule {
   _(debug)                /* A predefined log module for casual debugging */ \
   _(wasmPerf)             /* Wasm performance statistics */                  \
   _(fuseInvalidation)     /* Invalidation triggered by a fuse  */            \
+  _(thenable)             /* Thenable on standard proto*/                    \
   JITSPEW_CHANNEL_LIST(_) /* A module for each JitSpew channel. */
 
 // Declare Log modules
