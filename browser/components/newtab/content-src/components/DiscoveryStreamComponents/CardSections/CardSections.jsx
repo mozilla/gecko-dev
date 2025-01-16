@@ -180,7 +180,7 @@ function CardSection({
       >
         <moz-button
           onClick={following ? onUnfollowClick : onFollowClick}
-          type={following ? "destructive" : "default"}
+          type="default"
           index={sectionPosition}
           section={sectionKey}
         >

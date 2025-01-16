@@ -416,14 +416,6 @@
       }
     }
 
-    &.following:not(:hover) {
-      moz-button {
-        --button-background-color-destructive: var(--button-background-color);
-        --button-text-color-destructive: var(--button-text-color);
-        --button-border-color-destructive: var(--button-border-color);
-      }
-    }
-
     &.following:hover {
       .section-button-following-text  {
         display: none;
