@@ -31,9 +31,22 @@ import { memoizeableAction } from "../../utils/memoizableAction";
 
 import DevToolsUtils from "devtools/shared/DevToolsUtils";
 
+/**
+ * Replace all line breaks with standard \n line breaks for easier parsing.
+ */
 const LINE_BREAK_REGEX = /\r\n?|\n|\u2028|\u2029/g;
+function sanitizeLineBreaks(str) {
+  return str.replace(LINE_BREAK_REGEX, "\n");
+}
+
+/**
+ * Retrieve all line breaks in the provided string.
+ * Note: this assumes the line breaks were previously sanitized with
+ * `sanitizeLineBreaks` defined above.
+ */
+const SIMPLE_LINE_BREAK_REGEX = /\n/g;
 function matchAllLineBreaks(str) {
-  return Array.from(str.matchAll(LINE_BREAK_REGEX));
+  return Array.from(str.matchAll(SIMPLE_LINE_BREAK_REGEX));
 }
 
 function getPrettyOriginalSourceURL(generatedSource) {
@@ -117,7 +130,11 @@ async function prettyPrintHtmlFile({
 }) {
   const url = getPrettyOriginalSourceURL(generatedSource);
   const contentValue = content.value;
-  const htmlFileText = contentValue.value;
+
+  // Original source may contain unix-style & windows-style breaks.
+  // SpiderMonkey works a sanitized version of the source using only \n (unix).
+  // Sanitize before parsing the source to align with SpiderMonkey.
+  const htmlFileText = sanitizeLineBreaks(contentValue.value);
   const prettyPrintWorkerResult = { code: htmlFileText };
 
   const allLineBreaks = matchAllLineBreaks(htmlFileText);
