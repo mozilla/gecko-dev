@@ -15,16 +15,18 @@ namespace mozilla {
 
 namespace webgpu {
 
+class VkImageHandle;
+
 class ExternalTextureDMABuf final : public ExternalTexture {
  public:
   static UniquePtr<ExternalTextureDMABuf> Create(
-      const ffi::WGPUGlobal* aContext, const ffi::WGPUDeviceId aDeviceId,
+      WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
 
   ExternalTextureDMABuf(
-      UniquePtr<ffi::WGPUVkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
+      UniquePtr<VkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
       const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
       const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor);
@@ -42,10 +44,10 @@ class ExternalTextureDMABuf final : public ExternalTexture {
 
   UniqueFileHandle CloneDmaBufFd();
 
-  ffi::WGPUVkImageHandle* GetHandle() { return mVkImageHandle.get(); }
+  const ffi::WGPUVkImageHandle* GetHandle();
 
  protected:
-  UniquePtr<ffi::WGPUVkImageHandle> mVkImageHandle;
+  UniquePtr<VkImageHandle> mVkImageHandle;
   RefPtr<DMABufSurface> mSurface;
   const layers::SurfaceDescriptorDMABuf mSurfaceDescriptor;
 };

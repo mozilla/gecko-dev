@@ -230,6 +230,27 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   std::unordered_map<RawId, RefPtr<gfx::FileHandleWrapper>> mDeviceFenceHandles;
 };
 
+#if !defined(XP_MACOSX)
+class VkImageHandle {
+ public:
+  explicit VkImageHandle(WebGPUParent* aParent,
+                         const ffi::WGPUDeviceId aDeviceId,
+                         const ffi::WGPUVkImageHandle* aVkImageHandle)
+      : mParent(aParent),
+        mDeviceId(aDeviceId),
+        mVkImageHandle(aVkImageHandle) {}
+
+  const ffi::WGPUVkImageHandle* Get() { return mVkImageHandle; }
+
+  ~VkImageHandle();
+
+ protected:
+  const WeakPtr<WebGPUParent> mParent;
+  const RawId mDeviceId;
+  const ffi::WGPUVkImageHandle* mVkImageHandle;
+};
+#endif
+
 }  // namespace webgpu
 }  // namespace mozilla
 

@@ -33,8 +33,7 @@ UniquePtr<ExternalTexture> ExternalTexture::Create(
 #ifdef XP_WIN
   texture = ExternalTextureD3D11::Create(aWidth, aHeight, aFormat, aUsage);
 #elif defined(MOZ_WIDGET_GTK)
-  auto* context = aParent->GetContext();
-  texture = ExternalTextureDMABuf::Create(context, aDeviceId, aWidth, aHeight,
+  texture = ExternalTextureDMABuf::Create(aParent, aDeviceId, aWidth, aHeight,
                                           aFormat, aUsage);
 #elif defined(XP_MACOSX)
   texture = ExternalTextureMacIOSurface::Create(aParent, aDeviceId, aWidth,

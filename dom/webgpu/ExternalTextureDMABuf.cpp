@@ -7,6 +7,7 @@
 
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/ImageDataSerializer.h"
+#include "mozilla/webgpu/WebGPUParent.h"
 #include "mozilla/widget/DMABufSurface.h"
 #include "mozilla/widget/DMABufLibWrapper.h"
 #include "mozilla/widget/gbm.h"
@@ -15,7 +16,7 @@ namespace mozilla::webgpu {
 
 // static
 UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
-    const ffi::WGPUGlobal* aContext, const ffi::WGPUDeviceId aDeviceId,
+    WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage) {
@@ -24,15 +25,18 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
     return nullptr;
   }
 
+  auto* context = aParent->GetContext();
   uint64_t memorySize = 0;
-  UniquePtr<ffi::WGPUVkImageHandle> vkImage(wgpu_vkimage_create_with_dma_buf(
-      aContext, aDeviceId, aWidth, aHeight, &memorySize));
+  const ffi::WGPUVkImageHandle* vkImage = wgpu_vkimage_create_with_dma_buf(
+      context, aDeviceId, aWidth, aHeight, &memorySize);
   if (!vkImage) {
     gfxCriticalNoteOnce << "Failed to create VkImage";
     return nullptr;
   }
+  UniquePtr<VkImageHandle> handle =
+      MakeUnique<VkImageHandle>(aParent, aDeviceId, vkImage);
 
-  const auto dmaBufInfo = wgpu_vkimage_get_dma_buf_info(vkImage.get());
+  const auto dmaBufInfo = wgpu_vkimage_get_dma_buf_info(vkImage);
   if (!dmaBufInfo.is_valid) {
     gfxCriticalNoteOnce << "Invalid DMABufInfo";
     return nullptr;
@@ -45,8 +49,7 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
     return nullptr;
   }
 
-  auto rawFd =
-      wgpu_vkimage_get_file_descriptor(aContext, aDeviceId, vkImage.get());
+  auto rawFd = wgpu_vkimage_get_file_descriptor(context, aDeviceId, vkImage);
   if (rawFd < 0) {
     gfxCriticalNoteOnce << "Failed to get fd fom VkDeviceMemory";
     return nullptr;
@@ -74,13 +77,13 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
     return nullptr;
   }
 
-  return MakeUnique<ExternalTextureDMABuf>(std::move(vkImage), aWidth, aHeight,
+  return MakeUnique<ExternalTextureDMABuf>(std::move(handle), aWidth, aHeight,
                                            aFormat, aUsage, std::move(surface),
                                            desc.get_SurfaceDescriptorDMABuf());
 }
 
 ExternalTextureDMABuf::ExternalTextureDMABuf(
-    UniquePtr<ffi::WGPUVkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
+    UniquePtr<VkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
     const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
     const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor)
@@ -146,6 +149,10 @@ void ExternalTextureDMABuf::GetSnapshot(const ipc::Shmem& aDestShmem,
 
 UniqueFileHandle ExternalTextureDMABuf::CloneDmaBufFd() {
   return mSurfaceDescriptor.fds()[0]->ClonePlatformHandle();
+}
+
+const ffi::WGPUVkImageHandle* ExternalTextureDMABuf::GetHandle() {
+  return mVkImageHandle->Get();
 }
 
 }  // namespace mozilla::webgpu
