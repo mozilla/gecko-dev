@@ -13,7 +13,7 @@ add_setup(async () => {
 });
 
 add_task(async function test_profileSavedFieldNames_init() {
-  await FormAutofillStatus.init();
+  FormAutofillStatus.init();
   sinon.stub(FormAutofillStatus, "updateSavedFieldNames");
 
   await FormAutofillStatus.formAutofillStorage.initialize();
@@ -57,7 +57,10 @@ add_task(async function test_profileSavedFieldNames_update() {
 
   // The set is empty if there's no profile in the store.
   await FormAutofillStatus.updateSavedFieldNames();
-  Assert.equal(FormAutofillStatus.savedFieldNames.size, 0);
+  Assert.equal(
+    Services.ppmm.sharedData.get("FormAutofill:savedFieldNames").size,
+    0
+  );
 
   // 2 profiles with 4 valid fields.
   FormAutofillStatus.formAutofillStorage.addresses._data = [
@@ -87,7 +90,9 @@ add_task(async function test_profileSavedFieldNames_update() {
 
   await FormAutofillStatus.updateSavedFieldNames();
 
-  const autofillSavedFieldNames = FormAutofillStatus.savedFieldNames;
+  let autofillSavedFieldNames = Services.ppmm.sharedData.get(
+    "FormAutofill:savedFieldNames"
+  );
   Assert.equal(autofillSavedFieldNames.size, 4);
   Assert.equal(autofillSavedFieldNames.has("organization"), true);
   Assert.equal(autofillSavedFieldNames.has("street-address"), true);
