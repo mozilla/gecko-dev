@@ -1874,6 +1874,7 @@ nsresult nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol,
   // Look the image up in our cache.
   nsTreeImageCacheEntry entry;
   if (mImageCache.Get(imageSrc, &entry)) {
+    entry.request->GetImage(aResult);
     static_cast<nsTreeImageListener*>(entry.listener.get())
         ->AddCell(aRowIndex, aCol);
     return NS_OK;
