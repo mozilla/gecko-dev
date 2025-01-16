@@ -400,7 +400,7 @@ bool Module::instantiateFunctions(JSContext* cx,
     }
 
     JSFunction* f = &funcImports[i]->as<JSFunction>();
-    if (!f->isWasm()) {
+    if (!f->isWasm() || codeMeta().funcImportsAreJS) {
       continue;
     }
 

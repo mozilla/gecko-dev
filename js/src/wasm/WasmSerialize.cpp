@@ -1207,6 +1207,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
       coder, &item->compileArgs)));
 
   MOZ_TRY(CodePod(coder, &item->numFuncImports));
+  MOZ_TRY(CodePod(coder, &item->funcImportsAreJS));
   MOZ_TRY(CodePod(coder, &item->numGlobalImports));
 
   // We must deserialize types first so that they're available for

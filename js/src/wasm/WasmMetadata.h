@@ -58,6 +58,9 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // This may be empty for internally constructed modules which don't care
   // about this information.
   BuiltinModuleFuncIdVector knownFuncImports;
+  // Treat imported wasm functions as if they were JS functions. This is used
+  // when compiling the module for new WebAssembly.Function.
+  bool funcImportsAreJS;
   // The number of imported globals in the module.
   uint32_t numGlobalImports;
 
@@ -232,6 +235,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
       : kind(kind),
         compileArgs(compileArgs),
         numFuncImports(0),
+        funcImportsAreJS(false),
         numGlobalImports(0),
         callRefHints(nullptr),
         debugEnabled(false),

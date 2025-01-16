@@ -31,3 +31,10 @@ assertErrorMessage(() => testWasmFunc("", 1, 6), TypeError, /must be a function/
 let global2 = newGlobal({newCompartment: true});
 global2.evaluate("function f() {}");
 assertErrorMessage(() => testWasmFunc(global2.f, 1, 6), TypeError, /must be a function/);
+
+// Wasm functions.
+let wasmSameSig = new WebAssembly.Function({parameters: ["i32"], results: ["i32"]}, f);
+testWasmFunc(wasmSameSig, 1, 6);
+
+let wasmDifferentSig = new WebAssembly.Function({parameters: ["i32", "i32"], results: ["i32"]}, f);
+testWasmFunc(wasmDifferentSig, 1, 6);

@@ -1052,7 +1052,7 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
 
       if (import.callable->is<JSFunction>()) {
         JSFunction* fun = &import.callable->as<JSFunction>();
-        if (fun->isWasm()) {
+        if (!codeMeta().funcImportsAreJS && fun->isWasm()) {
           // This element is a wasm function imported from another
           // instance. To preserve the === function identity required by
           // the JS embedding spec, we must get the imported function's
@@ -2428,7 +2428,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
     import.callable = f;
     if (f->is<JSFunction>()) {
       JSFunction* fun = &f->as<JSFunction>();
-      if (!isAsmJS() && fun->isWasm()) {
+      if (!isAsmJS() && !codeMeta().funcImportsAreJS && fun->isWasm()) {
         import.instance = &fun->wasmInstance();
         import.realm = fun->realm();
         import.code = fun->wasmUncheckedCallEntry();
@@ -3603,7 +3603,7 @@ bool Instance::getExportedFunction(JSContext* cx, uint32_t funcIndex,
     FuncImportInstanceData& import = funcImportInstanceData(funcIndex);
     if (import.callable->is<JSFunction>()) {
       JSFunction* fun = &import.callable->as<JSFunction>();
-      if (fun->isWasm()) {
+      if (!codeMeta().funcImportsAreJS && fun->isWasm()) {
         instanceData.func = fun;
         result.set(fun);
         return true;
