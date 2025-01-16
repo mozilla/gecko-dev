@@ -655,6 +655,10 @@ bool ResultsToJSValue(JSContext* cx, ResultType type, void* registerResultLoc,
 // by wasm exception handlers.
 void ReportTrapError(JSContext* cx, unsigned errorNumber);
 
+// Mark an already reported error as a 'trap' so that it cannot be caught by
+// wasm exception handlers.
+void MarkPendingExceptionAsTrap(JSContext* cx);
+
 // Instance is not a GC thing itself but contains GC thing pointers. Ensure they
 // are traced appropriately.
 void TraceInstanceEdge(JSTracer* trc, Instance* instance, const char* name);
