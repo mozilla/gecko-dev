@@ -201,6 +201,7 @@ class PermissionsDialogFragmentTest {
         val denyButton = dialog.findViewById<Button>(R.id.deny_button)
         val permissionsList = fragment.buildPermissionsList()
         val optionalOrRequiredText = fragment.buildOptionalOrRequiredText(hasPermissions = permissionsList.isNotEmpty())
+        val privateBrowsingCheckbox = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
         assertEquals(
             titleTextView.text,
@@ -231,6 +232,7 @@ class PermissionsDialogFragmentTest {
             ),
         )
 
+        assertFalse(privateBrowsingCheckbox.isVisible)
         assertEquals(allowButton.text, testContext.getString(R.string.mozac_feature_addons_permissions_dialog_allow))
         assertEquals(denyButton.text, testContext.getString(R.string.mozac_feature_addons_permissions_dialog_deny))
     }
