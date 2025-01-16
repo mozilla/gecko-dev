@@ -1888,7 +1888,9 @@ void MediaFormatReader::NotifyWaitingForData(TrackType aTrack) {
   auto& decoder = GetDecoderData(aTrack);
   // mWaitingForDataStartTime may have already been set before draining the
   // decoder.
-  decoder.mWaitingForDataStartTime = Some(TimeStamp::Now());
+  if (!decoder.mWaitingForDataStartTime) {
+    decoder.mWaitingForDataStartTime.emplace(TimeStamp::Now());
+  }
   if (decoder.mTimeThreshold) {
     // An InternalSeek() is in progress, which might be performed while
     // mWaitingForDataStartTime is set, such as when priming the decoder after
