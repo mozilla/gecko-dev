@@ -14,6 +14,11 @@
 #include "mozilla/dom/DecoderDoctorNotificationBinding.h"
 #include "nsString.h"
 
+namespace IPC {
+template <typename T>
+struct ParamTraits;
+}  // namespace IPC
+
 namespace mozilla {
 
 namespace dom {
