@@ -24,10 +24,10 @@
 #include "js/GCPolicyAPI.h"
 #include "js/GCTypeMacros.h"  // JS_FOR_EACH_PUBLIC_{,TAGGED_}GC_POINTER_TYPE
 #include "js/HashTable.h"
-#include "js/HeapAPI.h"  // StackKindCount
+#include "js/HeapAPI.h"            // StackKindCount
+#include "js/NativeStackLimits.h"  // JS::NativeStackLimit
 #include "js/ProfilingStack.h"
 #include "js/Realm.h"
-#include "js/Stack.h"  // JS::NativeStackLimit
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 
