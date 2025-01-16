@@ -221,10 +221,6 @@ struct SuppressErrorsGuard {
   ~SuppressErrorsGuard() { JS::SetWarningReporter(cx, prevReporter); }
 };
 
-// Cut off the stack if it gets too deep (most commonly for infinite recursion
-// errors).
-static const size_t MAX_REPORTED_STACK_DEPTH = 1u << 7;
-
 bool js::CaptureStack(JSContext* cx, MutableHandleObject stack) {
   return CaptureCurrentStack(
       cx, stack, JS::StackCapture(JS::MaxFrames(MAX_REPORTED_STACK_DEPTH)));

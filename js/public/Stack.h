@@ -19,7 +19,7 @@
 
 #include "js/NativeStackLimits.h"
 #include "js/Principals.h"  // JSPrincipals, JS_HoldPrincipals, JS_DropPrincipals
-#include "js/TypeDecls.h"   // JSContext, Handle*, MutableHandle*
+#include "js/RootingAPI.h"
 
 /**
  * Set the size of the native stack that should not be exceed. To disable
@@ -142,7 +142,8 @@ using StackCapture = mozilla::Variant<AllFrames, MaxFrames, FirstSubsumedFrame>;
  */
 extern JS_PUBLIC_API bool CaptureCurrentStack(
     JSContext* cx, MutableHandleObject stackp,
-    StackCapture&& capture = StackCapture(AllFrames()));
+    StackCapture&& capture = StackCapture(AllFrames()),
+    HandleObject startAfter = nullptr);
 
 /**
  * Returns true if capturing stack trace data to associate with an asynchronous

@@ -2345,6 +2345,12 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   }
 #endif
 
+  if (key == JSProto_Function &&
+      !JS::Prefs::experimental_error_capture_stack_trace() &&
+      id == NameToId(cx->names().captureStackTrace)) {
+    return true;
+  }
+
   if (key == JSProto_JSON &&
       !JS::Prefs::experimental_json_parse_with_source() &&
       (id == NameToId(cx->names().isRawJSON) ||

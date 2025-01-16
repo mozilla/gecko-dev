@@ -55,6 +55,7 @@
 #include "vm/JSContext-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
+#include "vm/Realm-inl.h"
 #include "vm/SavedStacks-inl.h"
 #include "vm/Shape-inl.h"
 
@@ -96,11 +97,13 @@ static const JSFunctionSpec error_methods[] = {
 
 #ifdef NIGHTLY_BUILD
 static bool exn_isError(JSContext* cx, unsigned argc, Value* vp);
+static bool exn_captureStackTrace(JSContext* cx, unsigned argc, Value* vp);
 #endif
 
 static const JSFunctionSpec error_static_methods[] = {
 #ifdef NIGHTLY_BUILD
     JS_FN("isError", exn_isError, 1, 0),
+    JS_FN("captureStackTrace", exn_captureStackTrace, 2, 0),
 #endif
     JS_FS_END,
 };
@@ -969,4 +972,85 @@ static bool exn_isError(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+// The below is the "documentation" from https://v8.dev/docs/stack-trace-api
+//
+//  ## Stack trace collection for custom exceptions
+//
+//  The stack trace mechanism used for built-in errors is implemented using a
+//  general stack trace collection API that is also available to user scripts.
+//  The function
+//
+//   Error.captureStackTrace(error, constructorOpt)
+//
+//  adds a stack property to the given error object that yields the stack trace
+//  at the time captureStackTrace was called. Stack traces collected through
+//  Error.captureStackTrace are immediately collected, formatted, and attached
+//  to the given error object.
+//
+//  The optional constructorOpt parameter allows you to pass in a function
+//  value. When collecting the stack trace all frames above the topmost call to
+//  this function, including that call, are left out of the stack trace. This
+//  can be useful to hide implementation details that won’t be useful to the
+//  user. The usual way of defining a custom error that captures a stack trace
+//  would be:
+//
+//   function MyError() {
+//     Error.captureStackTrace(this, MyError);
+//     // Any other initialization goes here.
+//   }
+//
+//  Passing in MyError as a second argument means that the constructor call to
+//  MyError won’t show up in the stack trace.
+
+static bool exn_captureStackTrace(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  const char* callerName = "Error.captureStackTrace";
+
+  if (!args.requireAtLeast(cx, callerName, 1)) {
+    return false;
+  }
+
+  Rooted<JSObject*> obj(cx,
+                        RequireObjectArg(cx, "`target`", callerName, args[0]));
+  if (!obj) {
+    return false;
+  }
+
+  Rooted<JSObject*> caller(cx, nullptr);
+  if (args.length() > 1 && args[1].isObject() &&
+      args[1].toObject().isCallable()) {
+    caller = CheckedUnwrapStatic(&args[1].toObject());
+    if (!caller) {
+      ReportAccessDenied(cx);
+      return false;
+    }
+  }
+
+  RootedObject stack(cx);
+  if (!CaptureCurrentStack(
+          cx, &stack, JS::StackCapture(JS::MaxFrames(MAX_REPORTED_STACK_DEPTH)),
+          caller)) {
+    return false;
+  }
+
+  RootedString stackString(cx);
+
+  // Do frame filtering based on the current realm, to filter out any
+  // chrome frames which could exist on the stack.
+  JSPrincipals* principals = cx->realm()->principals();
+  if (!BuildStackString(cx, principals, stack, &stackString)) {
+    return false;
+  }
+
+  // V8 installs a non-enumerable, configurable getter-setter on the object.
+  // JSC installs a non-enumerable, configurable, writable value on the
+  // object. We are following JSC here, not V8.
+  RootedValue string(cx, StringValue(stackString));
+  if (!DefineDataProperty(cx, obj, cx->names().stack, string, 0)) {
+    return false;
+  }
+
+  args.rval().setUndefined();
+  return true;
+}
 #endif

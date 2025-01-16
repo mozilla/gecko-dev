@@ -36,6 +36,10 @@ UniquePtr<JSErrorNotes::Note> CopyErrorNote(JSContext* cx,
 
 UniquePtr<JSErrorReport> CopyErrorReport(JSContext* cx, JSErrorReport* report);
 
+// Cut off the stack if it gets too deep (most commonly for infinite recursion
+// errors).
+static const size_t MAX_REPORTED_STACK_DEPTH = 1u << 7;
+
 bool CaptureStack(JSContext* cx, MutableHandleObject stack);
 
 JSString* ComputeStackString(JSContext* cx);

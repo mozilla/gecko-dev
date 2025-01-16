@@ -4931,14 +4931,16 @@ JS::FirstSubsumedFrame::FirstSubsumedFrame(
 
 JS_PUBLIC_API bool JS::CaptureCurrentStack(
     JSContext* cx, JS::MutableHandleObject stackp,
-    JS::StackCapture&& capture /* = JS::StackCapture(JS::AllFrames()) */) {
+    JS::StackCapture&& capture /* = JS::StackCapture(JS::AllFrames()) */,
+    JS::HandleObject startAt /* = nullptr*/) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   MOZ_RELEASE_ASSERT(cx->realm());
 
   Realm* realm = cx->realm();
   Rooted<SavedFrame*> frame(cx);
-  if (!realm->savedStacks().saveCurrentStack(cx, &frame, std::move(capture))) {
+  if (!realm->savedStacks().saveCurrentStack(cx, &frame, std::move(capture),
+                                             startAt)) {
     return false;
   }
   stackp.set(frame.get());
