@@ -209,7 +209,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   }
 
   if (this->table.x_height < 0) {
-    Warning("Bad sxHeight settig it to 0: %d", this->table.x_height);
+    Warning("Bad sxHeight setting it to 0: %d", this->table.x_height);
     this->table.x_height = 0;
   }
   if (this->table.cap_height < 0) {
