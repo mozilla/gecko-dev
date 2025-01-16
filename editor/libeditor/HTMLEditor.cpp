@@ -7398,6 +7398,8 @@ Element* HTMLEditor::ComputeEditingHostInternal(
   }();
   if ((content && content->IsInDesignMode()) ||
       (!content && document->IsInDesignMode())) {
+    // FIXME: There may be no <body>.  In such case and aLimitInBodyElement is
+    // "No", we should use root element instead.
     return document->GetBodyElement();
   }
 
@@ -7835,7 +7837,9 @@ nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
         }
         const Element* const editingHost =
             atCollapsibleWhiteSpace.ContainerAs<Text>()->GetEditingHost();
-        MOZ_ASSERT(editingHost);
+        if (MOZ_UNLIKELY(!editingHost)) {
+          continue;
+        }
         const WSScanResult nextThing =
             WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
                 editingHost,
@@ -7902,7 +7906,9 @@ void HTMLEditor::DocumentModifiedEvent::MaybeAppendNewInvisibleWhiteSpace(
   }
   const Element* const editingHost =
       const_cast<nsIContent*>(aContentWillBeRemoved)->GetEditingHost();
-  MOZ_ASSERT(editingHost);
+  if (MOZ_UNLIKELY(!editingHost)) {
+    return;
+  }
   const WSScanResult nextThing =
       WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
           editingHost, EditorRawDOMPoint::After(*aContentWillBeRemoved),

@@ -238,6 +238,8 @@ dom::Element* nsIContent::GetEditingHost() {
 
   // If this is in designMode, we should return <body>
   if (IsInDesignMode() && !IsInShadowTree()) {
+    // FIXME: There may be no <body>.  In such case and aLimitInBodyElement is
+    // "No", we should use root element instead.
     return doc->GetBodyElement();
   }
 
