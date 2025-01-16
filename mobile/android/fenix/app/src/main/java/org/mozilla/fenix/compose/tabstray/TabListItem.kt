@@ -45,10 +45,13 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.DismissibleItemBackground
 import org.mozilla.fenix.compose.SwipeToDismissBox
+import org.mozilla.fenix.compose.SwipeToDismissBox2
 import org.mozilla.fenix.compose.SwipeToDismissState
+import org.mozilla.fenix.compose.SwipeToDismissState2
 import org.mozilla.fenix.compose.TabThumbnail
 import org.mozilla.fenix.ext.toShortUrl
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -75,7 +78,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-@Suppress("MagicNumber", "LongMethod")
 fun TabListItem(
     tab: TabSessionState,
     thumbnailSize: Int,
@@ -84,6 +86,95 @@ fun TabListItem(
     multiSelectionSelected: Boolean = false,
     shouldClickListen: Boolean = true,
     swipingEnabled: Boolean = true,
+    onCloseClick: (tab: TabSessionState) -> Unit,
+    onMediaClick: (tab: TabSessionState) -> Unit,
+    onClick: (tab: TabSessionState) -> Unit,
+    onLongClick: ((tab: TabSessionState) -> Unit)? = null,
+) {
+    val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
+    val density = LocalDensity.current
+
+    if (FeatureFlags.swipeToDismiss2) {
+        val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
+            SwipeToDismissState2(
+                density = density,
+                enabled = !multiSelectionEnabled && swipingEnabled,
+                decayAnimationSpec = decayAnimationSpec,
+            )
+        }
+
+        SwipeToDismissBox2(
+            state = swipeState,
+            onItemDismiss = {
+                onCloseClick(tab)
+            },
+            backgroundContent = {
+                DismissibleItemBackground(
+                    isSwipeActive = swipeState.swipingActive,
+                    isSwipingToStart = swipeState.isSwipingToStart,
+                )
+            },
+        ) {
+            TabContent(
+                tab = tab,
+                thumbnailSize = thumbnailSize,
+                isSelected = isSelected,
+                multiSelectionEnabled = multiSelectionEnabled,
+                multiSelectionSelected = multiSelectionSelected,
+                shouldClickListen = shouldClickListen,
+                onCloseClick = onCloseClick,
+                onMediaClick = onMediaClick,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+        }
+    } else {
+        val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
+            SwipeToDismissState(
+                density = density,
+                enabled = !multiSelectionEnabled && swipingEnabled,
+                decayAnimationSpec = decayAnimationSpec,
+            )
+        }
+
+        SwipeToDismissBox(
+            state = swipeState,
+            onItemDismiss = {
+                onCloseClick(tab)
+            },
+            backgroundContent = {
+                DismissibleItemBackground(
+                    isSwipeActive = swipeState.swipingActive,
+                    isSwipingToStart = swipeState.isSwipingToStart,
+                )
+            },
+        ) {
+            TabContent(
+                tab = tab,
+                thumbnailSize = thumbnailSize,
+                isSelected = isSelected,
+                multiSelectionEnabled = multiSelectionEnabled,
+                multiSelectionSelected = multiSelectionSelected,
+                shouldClickListen = shouldClickListen,
+                onCloseClick = onCloseClick,
+                onMediaClick = onMediaClick,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Suppress("LongMethod", "LongParameterList")
+@Composable
+private fun TabContent(
+    tab: TabSessionState,
+    thumbnailSize: Int,
+    isSelected: Boolean,
+    multiSelectionEnabled: Boolean,
+    multiSelectionSelected: Boolean,
+    shouldClickListen: Boolean,
     onCloseClick: (tab: TabSessionState) -> Unit,
     onMediaClick: (tab: TabSessionState) -> Unit,
     onClick: (tab: TabSessionState) -> Unit,
@@ -119,92 +210,68 @@ fun TabListItem(
         )
     }
 
-    val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
-
-    val density = LocalDensity.current
-    val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
-        SwipeToDismissState(
-            density = density,
-            enabled = !multiSelectionEnabled && swipingEnabled,
-            decayAnimationSpec = decayAnimationSpec,
-        )
-    }
-
-    SwipeToDismissBox(
-        state = swipeState,
-        onItemDismiss = {
-            onCloseClick(tab)
-        },
-        backgroundContent = {
-            DismissibleItemBackground(
-                isSwipeActive = swipeState.swipingActive,
-                isSwipingToStart = swipeState.isSwipingToStart,
-            )
-        },
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FirefoxTheme.colors.layer3)
+            .background(contentBackgroundColor)
+            .then(clickableModifier)
+            .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+            .testTag(TabsTrayTestTag.tabItemRoot)
+            .semantics {
+                selected = isSelected
+            },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        Thumbnail(
+            tab = tab,
+            size = thumbnailSize,
+            multiSelectionEnabled = multiSelectionEnabled,
+            isSelected = multiSelectionSelected,
+            onMediaIconClicked = { onMediaClick(it) },
+            interactionSource = interactionSource,
+        )
+
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(FirefoxTheme.colors.layer3)
-                .background(contentBackgroundColor)
-                .then(clickableModifier)
-                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                .testTag(TabsTrayTestTag.tabItemRoot)
-                .semantics {
-                    selected = isSelected
-                },
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(start = 12.dp)
+                .weight(weight = 1f),
         ) {
-            Thumbnail(
-                tab = tab,
-                size = thumbnailSize,
-                multiSelectionEnabled = multiSelectionEnabled,
-                isSelected = multiSelectionSelected,
-                onMediaIconClicked = { onMediaClick(it) },
-                interactionSource = interactionSource,
+            Text(
+                text = tab.toDisplayTitle().take(MAX_URI_LENGTH),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.body1,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
             )
 
-            Column(
+            Text(
+                text = tab.content.url.toShortUrl(),
+                color = FirefoxTheme.colors.textSecondary,
+                style = FirefoxTheme.typography.body2,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+            )
+        }
+
+        if (!multiSelectionEnabled) {
+            IconButton(
+                onClick = { onCloseClick(tab) },
                 modifier = Modifier
-                    .padding(start = 12.dp)
-                    .weight(weight = 1f),
+                    .size(size = 48.dp)
+                    .testTag(TabsTrayTestTag.tabItemClose),
             ) {
-                Text(
-                    text = tab.toDisplayTitle().take(MAX_URI_LENGTH),
-                    color = FirefoxTheme.colors.textPrimary,
-                    style = FirefoxTheme.typography.body1,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 2,
-                )
-
-                Text(
-                    text = tab.content.url.toShortUrl(),
-                    color = FirefoxTheme.colors.textSecondary,
-                    style = FirefoxTheme.typography.body2,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
+                Icon(
+                    painter = painterResource(id = R.drawable.mozac_ic_cross_24),
+                    contentDescription = stringResource(
+                        id = R.string.close_tab_title,
+                        tab.toDisplayTitle(),
+                    ),
+                    tint = FirefoxTheme.colors.iconPrimary,
                 )
             }
-
-            if (!multiSelectionEnabled) {
-                IconButton(
-                    onClick = { onCloseClick(tab) },
-                    modifier = Modifier
-                        .size(size = 48.dp)
-                        .testTag(TabsTrayTestTag.tabItemClose),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.mozac_ic_cross_24),
-                        contentDescription = stringResource(
-                            id = R.string.close_tab_title,
-                            tab.toDisplayTitle(),
-                        ),
-                        tint = FirefoxTheme.colors.iconPrimary,
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.size(48.dp))
-            }
+        } else {
+            Spacer(modifier = Modifier.size(48.dp))
         }
     }
 }

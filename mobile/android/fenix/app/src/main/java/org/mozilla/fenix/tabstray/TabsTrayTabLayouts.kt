@@ -40,6 +40,7 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwipeToDismissState
+import org.mozilla.fenix.compose.SwipeToDismissState2
 import org.mozilla.fenix.compose.tabstray.TabGridItem
 import org.mozilla.fenix.compose.tabstray.TabListItem
 import org.mozilla.fenix.tabstray.browser.compose.DragItemContainer
@@ -213,9 +214,16 @@ private fun TabGrid(
                     decayAnimationSpec = decayAnimationSpec,
                 )
             }
-            val swipingActive by remember(swipeState.swipingActive) {
+            val swipeState2 = remember(isInMultiSelectMode, !state.isScrollInProgress) {
+                SwipeToDismissState2(
+                    density = density,
+                    enabled = !isInMultiSelectMode && !state.isScrollInProgress,
+                    decayAnimationSpec = decayAnimationSpec,
+                )
+            }
+            val swipingActive by remember(swipeState.swipingActive, swipeState2.swipingActive) {
                 derivedStateOf {
-                    swipeState.swipingActive
+                    swipeState.swipingActive || swipeState2.swipingActive
                 }
             }
 
@@ -233,6 +241,7 @@ private fun TabGrid(
                     multiSelectionSelected = selectionMode.selectedTabs.contains(tab),
                     shouldClickListen = reorderState.draggingItemKey != tab.id,
                     swipeState = swipeState,
+                    swipeState2 = swipeState2,
                     onCloseClick = onTabClose,
                     onMediaClick = onTabMediaClick,
                     onClick = onTabClick,
