@@ -742,6 +742,10 @@ window.addEventListener("AboutTranslationsChromeToContent", ({ detail }) => {
       document.body.style.visibility = "visible";
       break;
     }
+    case "rebuild-translator": {
+      window.translationsState.maybeCreateNewTranslator();
+      break;
+    }
     default:
       throw new Error("Unknown AboutTranslationsChromeToContent event.");
   }

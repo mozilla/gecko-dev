@@ -27,6 +27,8 @@ skip-if = ["os == 'linux'"]  # Bug 1821461
 
 ["browser_about_translations_enabling.js"]
 
+["browser_about_translations_flip_lexical_shortlist.js"]
+
 ["browser_about_translations_language_swap.js"]
 
 ["browser_about_translations_telemetry_open.js"]
