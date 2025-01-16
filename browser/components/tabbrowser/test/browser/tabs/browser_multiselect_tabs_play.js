@@ -151,8 +151,15 @@ add_task(async function testDelayPlayWhenUsingButton() {
   let tab2BlockPromise = wait_for_tab_media_blocked_event(tab2, false);
 
   // Use the overlay icon on tab2 to play media on the selected tabs
+  let isPinned = tab2.pinned;
+  let isVerticalAndCollapsed =
+    Services.prefs.getBoolPref("sidebar.revamp", false) &&
+    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
+    !window.SidebarController._state.launcherExpanded;
+  let icon =
+    isPinned || isVerticalAndCollapsed ? tab2.overlayIcon : tab2.audioButton;
   info("Press play tab2 icon");
-  await pressIcon(tab2.overlayIcon);
+  await pressIcon(icon);
 
   // tab0, tab1, and tab2 were played and multiselected
   // They will now be unblocked and playing media
