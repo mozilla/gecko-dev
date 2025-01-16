@@ -25,12 +25,14 @@ import org.mozilla.fenix.settings.registerOnSharedPreferenceChangeListener
 interface OnboardingPreferencesRepository {
 
     /**
-     * Enum for theme preference keys.
+     * Enum for the onboarding preference keys.
      */
     enum class OnboardingPreference(@StringRes val preferenceKey: Int) {
         DeviceTheme(preferenceKey = R.string.pref_key_follow_device_theme),
         LightTheme(preferenceKey = R.string.pref_key_light_theme),
         DarkTheme(preferenceKey = R.string.pref_key_dark_theme),
+        TopToolbar(preferenceKey = R.string.pref_key_toolbar_top),
+        BottomToolbar(preferenceKey = R.string.pref_key_toolbar_bottom),
     }
 
     /**
@@ -91,6 +93,12 @@ class DefaultOnboardingPreferencesRepository(
 
                 OnboardingPreferencesRepository.OnboardingPreference.DarkTheme ->
                     settings.shouldUseDarkTheme
+
+                OnboardingPreferencesRepository.OnboardingPreference.TopToolbar ->
+                    !settings.shouldUseBottomToolbar
+
+                OnboardingPreferencesRepository.OnboardingPreference.BottomToolbar ->
+                    settings.shouldUseBottomToolbar
             }
 
             emitPreferenceUpdate(
@@ -144,6 +152,12 @@ class DefaultOnboardingPreferencesRepository(
 
             OnboardingPreferencesRepository.OnboardingPreference.DarkTheme ->
                 updateSettingsToDarkTheme()
+
+            OnboardingPreferencesRepository.OnboardingPreference.TopToolbar ->
+                settings.shouldUseBottomToolbar = false
+
+            OnboardingPreferencesRepository.OnboardingPreference.BottomToolbar ->
+                settings.shouldUseBottomToolbar = true
         }
     }
 

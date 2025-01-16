@@ -11,6 +11,7 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.onboarding.store.OnboardingPreferencesRepository.OnboardingPreference
 import org.mozilla.fenix.onboarding.view.ThemeOptionType
+import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 
 /**
  * [Middleware] that reacts to various [OnboardingAction]s and updates any corresponding preferences.
@@ -52,10 +53,15 @@ class OnboardingPreferencesMiddleware(
                 )
             }
 
+            is OnboardingAction.OnboardingToolbarAction.UpdateSelected -> {
+                repository.updateOnboardingPreference(
+                    OnboardingPreferencesRepository
+                        .OnboardingPreferenceUpdate(action.selected.toOnboardingPreference()),
+                )
+            }
+
             // no-ops
-            is OnboardingAction.OnboardingAddOnsAction.UpdateStatus,
-            is OnboardingAction.OnboardingToolbarAction.UpdateSelected,
-            -> {}
+            is OnboardingAction.OnboardingAddOnsAction.UpdateStatus -> {}
         }
     }
 
@@ -63,6 +69,11 @@ class OnboardingPreferencesMiddleware(
         ThemeOptionType.THEME_SYSTEM -> OnboardingPreference.DeviceTheme
         ThemeOptionType.THEME_LIGHT -> OnboardingPreference.LightTheme
         ThemeOptionType.THEME_DARK -> OnboardingPreference.DarkTheme
+    }
+
+    private fun ToolbarOptionType.toOnboardingPreference() = when (this) {
+        ToolbarOptionType.TOOLBAR_TOP -> OnboardingPreference.TopToolbar
+        ToolbarOptionType.TOOLBAR_BOTTOM -> OnboardingPreference.BottomToolbar
     }
 
     private fun mapOnboardingPreferenceUpdateToStoreAction(
@@ -77,6 +88,12 @@ class OnboardingPreferencesMiddleware(
 
             OnboardingPreference.DarkTheme ->
                 OnboardingAction.OnboardingThemeAction.UpdateSelected(ThemeOptionType.THEME_DARK)
+
+            OnboardingPreference.TopToolbar ->
+                OnboardingAction.OnboardingToolbarAction.UpdateSelected(ToolbarOptionType.TOOLBAR_TOP)
+
+            OnboardingPreference.BottomToolbar ->
+                OnboardingAction.OnboardingToolbarAction.UpdateSelected(ToolbarOptionType.TOOLBAR_BOTTOM)
         }
     }
 }

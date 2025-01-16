@@ -52,7 +52,6 @@ import org.mozilla.fenix.onboarding.view.ManagePrivacyPreferencesDialogFragment
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
 import org.mozilla.fenix.onboarding.view.OnboardingScreen
-import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 import org.mozilla.fenix.onboarding.view.sequencePosition
 import org.mozilla.fenix.onboarding.view.telemetrySequenceId
 import org.mozilla.fenix.onboarding.view.toPageUiData
@@ -238,9 +237,6 @@ class OnboardingFragment : Fragment() {
             onInstallAddOnButtonClick = { installUrl -> installAddon(installUrl) },
             termsOfServiceEventHandler = termsOfServiceEventHandler,
             onCustomizeToolbarClick = {
-                requireContext().settings().shouldUseBottomToolbar =
-                    onboardingStore.state.toolbarOptionSelected == ToolbarOptionType.TOOLBAR_BOTTOM
-
                 telemetryRecorder.onSelectToolbarPlacementClick(
                     pagesToDisplay.telemetrySequenceId(),
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
