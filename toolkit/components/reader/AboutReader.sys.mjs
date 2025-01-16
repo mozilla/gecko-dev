@@ -1152,6 +1152,10 @@ AboutReader.prototype = {
 
       const prefToUpdate = `reader.custom_colors.${prop}`;
       lazy.AsyncPrefs.set(prefToUpdate, e.detail);
+
+      if (e.detail != DEFAULT_COLORS[prop].toLowerCase()) {
+        this._toggleColorsResetButton(true);
+      }
     });
 
     return input;
@@ -1160,13 +1164,25 @@ AboutReader.prototype = {
   _setupCustomColors(options, id) {
     let doc = this._doc;
     const list = doc.getElementsByClassName(id)[0];
+    let isCustom = false;
 
     for (let option of options) {
       let listItem = doc.createElement("li");
       let colorInput = this._setupColorInput(option);
       listItem.appendChild(colorInput);
       list.appendChild(listItem);
+
+      // Verify that user preferences exist and use custom colors.
+      let pref = `reader.custom_colors.${option}`;
+      let customColor = Services.prefs.getStringPref(pref, "");
+      if (
+        customColor &&
+        customColor.toLowerCase() !== DEFAULT_COLORS[option].toLowerCase()
+      ) {
+        isCustom = true;
+      }
     }
+    this._toggleColorsResetButton(isCustom);
   },
 
   _resetCustomColors() {
@@ -1184,6 +1200,12 @@ AboutReader.prototype = {
       let defaultColor = DEFAULT_COLORS[property];
       input.setAttribute("color", defaultColor);
     });
+    this._toggleColorsResetButton(false);
+  },
+
+  _toggleColorsResetButton(visible) {
+    let button = this._doc.querySelector(".custom-colors-reset-button");
+    button.hidden = !visible;
   },
 
   _handleThemeFocus() {
@@ -1578,7 +1600,6 @@ AboutReader.prototype = {
 
   _setupButton(id, callback) {
     let button = this._doc.querySelector("." + id);
-    button.removeAttribute("hidden");
     button.addEventListener(
       "click",
       function (aEvent) {

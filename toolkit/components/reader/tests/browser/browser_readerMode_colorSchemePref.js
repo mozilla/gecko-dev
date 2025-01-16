@@ -124,12 +124,31 @@ async function testColorsFocus() {
       readerButton.click();
       await pageShownPromise;
 
-      await SpecialPowers.spawn(browser, [], () => {
+      await SpecialPowers.spawn(browser, [], async () => {
         let doc = content.document;
+        const Event = content.Event;
         doc.querySelector(".colors-button").click();
 
         let customTab = doc.querySelector("#tabs-deck-button-customtheme");
         let resetButton = doc.querySelector(".custom-colors-reset-button");
+
+        ok(
+          ContentTaskUtils.isHidden(resetButton),
+          "Reset button should be hidden to start with"
+        );
+
+        // Simulate changing a color to make the reset button visible.
+        let colorInput = doc.querySelector("color-input");
+        let shadowRoot = colorInput.shadowRoot;
+        let input = shadowRoot.querySelector("input");
+        input.value = "#123456";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+
+        // Wait for the reset button to become visible.
+        await ContentTaskUtils.waitForCondition(() => {
+          return resetButton.hidden === false;
+        }, "Reset Defaults button should be visible after a color change.");
+
         resetButton.focus();
 
         EventUtils.synthesizeKey("KEY_Tab", {}, content);
