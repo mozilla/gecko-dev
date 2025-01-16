@@ -21,6 +21,11 @@ const ALWAYS_TRANSLATE_LANGS_PREF =
 const NEVER_TRANSLATE_LANGS_PREF =
   "browser.translations.neverTranslateLanguages";
 
+/**
+ * The topic fired to observers when a pref related to Translations changes.
+ */
+const TOPIC_TRANSLATIONS_PREF_CHANGED = "translations:pref-changed";
+
 let gTranslationsPane = {
   /**
    * List of languages set in the Always Translate Preferences
@@ -117,14 +122,7 @@ let gTranslationsPane = {
 
     // Deploy observers
     Services.obs.addObserver(this, "perm-changed");
-    Services.obs.addObserver(
-      this,
-      "translations:always-translate-languages-changed"
-    );
-    Services.obs.addObserver(
-      this,
-      "translations:never-translate-languages-changed"
-    );
+    Services.obs.addObserver(this, TOPIC_TRANSLATIONS_PREF_CHANGED);
     window.addEventListener("unload", () => this.removeObservers());
 
     // Build the HTML elements
@@ -668,10 +666,14 @@ let gTranslationsPane = {
           this.removeSite(perm.principal.origin);
         }
       }
-    } else if (topic === "translations:never-translate-languages-changed") {
-      this.populateLanguageList(NEVER_TRANSLATE_LANGS_PREF);
-    } else if (topic === "translations:always-translate-languages-changed") {
-      this.populateLanguageList(ALWAYS_TRANSLATE_LANGS_PREF);
+    } else if (topic === TOPIC_TRANSLATIONS_PREF_CHANGED) {
+      switch (data) {
+        case ALWAYS_TRANSLATE_LANGS_PREF:
+        case NEVER_TRANSLATE_LANGS_PREF: {
+          this.populateLanguageList(data);
+          break;
+        }
+      }
     }
   },
 
@@ -680,14 +682,7 @@ let gTranslationsPane = {
    */
   removeObservers() {
     Services.obs.removeObserver(this, "perm-changed");
-    Services.obs.removeObserver(
-      this,
-      "translations:always-translate-languages-changed"
-    );
-    Services.obs.removeObserver(
-      this,
-      "translations:never-translate-languages-changed"
-    );
+    Services.obs.removeObserver(this, TOPIC_TRANSLATIONS_PREF_CHANGED);
   },
 
   /**
