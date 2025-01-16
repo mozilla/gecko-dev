@@ -76,6 +76,14 @@ using AbsPosReflowFlags = nsAbsoluteContainingBlock::AbsPosReflowFlags;
 using ClearFloatsResult = BlockReflowState::ClearFloatsResult;
 using ShapeType = nsFloatManager::ShapeType;
 
+static void MarkAllInlineLinesDirty(nsBlockFrame* aBlock) {
+  for (auto& line : aBlock->Lines()) {
+    if (line.IsInline()) {
+      line.MarkDirty();
+    }
+  }
+}
+
 static void MarkAllDescendantLinesDirty(nsBlockFrame* aBlock) {
   for (auto& line : aBlock->Lines()) {
     if (line.IsBlock()) {
@@ -1501,13 +1509,13 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
 
   // Helpers for text-wrap: balance implementation:
 
-  // Count the number of lines in the mLines list, but return -1 (to suppress
-  // balancing) instead if the count is going to exceed aLimit, or if we
-  // encounter a block.
+  // Count the number of inline lines in the mLines list, but return -1 (to
+  // suppress balancing) instead if the count is going to exceed aLimit.
   auto countLinesUpTo = [&](int32_t aLimit) -> int32_t {
     int32_t n = 0;
     for (auto iter = mLines.begin(); iter != mLines.end(); ++iter) {
-      if (++n > aLimit || iter->IsBlock()) {
+      // Block lines are ignored as they do not participate in balancing.
+      if (iter->IsInline() && ++n > aLimit) {
         return -1;
       }
     }
@@ -1913,10 +1921,10 @@ nsReflowStatus nsBlockFrame::TrialReflow(nsPresContext* aPresContext,
     mLines.front()->MarkDirty();
   }
 
-  // For text-wrap:balance trials, we need to reflow all the lines even if
-  // they're not all "dirty".
+  // For text-wrap:balance trials, we need to reflow all the inline lines even
+  // if they're not all "dirty", but we don't need to reflow any block lines.
   if (aTrialState.mBalancing) {
-    MarkAllDescendantLinesDirty(this);
+    MarkAllInlineLinesDirty(this);
   } else {
     LazyMarkLinesDirty();
   }
