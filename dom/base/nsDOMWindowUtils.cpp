@@ -4176,8 +4176,9 @@ nsDOMWindowUtils::GetContentAPZTestData(
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetCompositorAPZTestData(
-    JSContext* aContext, JS::MutableHandle<JS::Value> aOutCompositorTestData) {
-  if (nsIWidget* widget = GetWidget()) {
+    Element* aElement, JSContext* aContext,
+    JS::MutableHandle<JS::Value> aOutCompositorTestData) {
+  if (nsIWidget* widget = GetWidgetForElement(aElement)) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
       return NS_OK;
