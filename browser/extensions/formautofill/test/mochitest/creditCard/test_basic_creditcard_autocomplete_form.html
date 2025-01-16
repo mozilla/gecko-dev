@@ -76,10 +76,9 @@ add_task(async function history_only_menu_checking() {
   await sleep(2000);
   await setupFormHistory();
 
-  const promise = expectPopup();
   await setInput("#cc-exp-year", "");
   synthesizeKey("KEY_ArrowDown");
-  await promise;
+  await expectPopup();
   checkMenuEntries(["2023"], false);
 });
 
@@ -87,10 +86,8 @@ add_task(async function history_only_menu_checking() {
 add_task(async function all_saved_fields_less_than_threshold() {
   await addCreditCard(reducedMockRecord.cc);
 
-  const promise = expectPopup();
   await setInput("#cc-name", "");
-  await promise;
-
+  await expectPopup();
   synthesizeKey("KEY_ArrowDown");
   checkMenuEntriesComment([reducedMockRecord].map(patchRecordCCNumber).map(({ cc, expected }) => JSON.stringify({
     primary: cc["cc-name"],
