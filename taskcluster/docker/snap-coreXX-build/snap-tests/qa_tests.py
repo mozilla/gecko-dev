@@ -192,7 +192,11 @@ class QATests(SnapTestsBase):
         C95233
         """
 
-        if self.version_major() == "134" and self.is_debug_build():
+        if (
+            self.update_channel() in ("release", "beta")
+            and self.version_major() >= "134"
+            and self.is_debug_build()
+        ):
             self._logger.info(
                 "Skip test due to https://bugzilla.mozilla.org/show_bug.cgi?id=1934358"
             )
