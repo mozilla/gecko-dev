@@ -20,61 +20,6 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
-    id: "CLOSE_TAB_GROUP_TEST_CALLOUT",
-    template: "feature_callout",
-    groups: ["cfr"],
-    content: {
-      id: "CLOSE_TAB_GROUP_TEST_CALLOUT",
-      template: "multistage",
-      backdrop: "transparent",
-      transitions: false,
-      screens: [
-        {
-          id: "CLOSE_TAB_GROUP_TEST_CALLOUT",
-          anchors: [
-            {
-              selector: "#alltabs-button",
-              panel_position: {
-                anchor_attachment: "bottomcenter",
-                callout_attachment: "topright",
-              },
-            },
-          ],
-          content: {
-            position: "callout",
-            padding: 16,
-            width: "412px",
-            title_logo: {
-              imageURL:
-                "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
-              width: "24px",
-              height: "24px",
-              marginInline: "0 16px",
-            },
-            title: {
-              raw: "If you close a tab group, you can reopen it here anytime.",
-            },
-            primary_button: {
-              label: {
-                raw: "Got it",
-              },
-              action: {
-                dismiss: true,
-              },
-            },
-          },
-        },
-      ],
-    },
-    targeting: "tabGroupsClosedCount == 1",
-    trigger: {
-      id: "tabGroupClosed",
-    },
-    frequency: {
-      lifetime: 1,
-    },
-  },
-  {
     id: "CONTENT_TILES_TEST",
     targeting: 'providerCohorts.panel_local_testing == "SHOW_TEST"',
     template: "spotlight",
