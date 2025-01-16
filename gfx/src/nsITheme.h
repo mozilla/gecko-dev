@@ -158,11 +158,6 @@ class nsITheme : public nsISupports {
     return mozilla::CSSCoord(9.0f);
   }
 
-  /** Get the border width of a checkbox / radio button. */
-  virtual mozilla::CSSCoord GetCheckboxRadioBorderWidth() {
-    return mozilla::CSSCoord(1.0f);
-  }
-
   /**
    * Get the minimum border-box size of a widget, in device pixels.
    */
