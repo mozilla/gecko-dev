@@ -5,7 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
+  actions: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   Addon: "chrome://remote/content/marionette/addon.sys.mjs",
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
@@ -244,7 +244,7 @@ class ActionsHelper {
     let inputState = this.#driver._inputStates.get(browsingContext);
 
     if (inputState === undefined) {
-      inputState = new lazy.action.State();
+      inputState = new lazy.actions.State();
       this.#driver._inputStates.set(browsingContext, inputState);
     }
 
@@ -1690,7 +1690,7 @@ GeckoDriver.prototype.performActions = async function (cmd) {
     context: browsingContext,
   };
 
-  const actionChain = await lazy.action.Chain.fromJSON(
+  const actionChain = await lazy.actions.Chain.fromJSON(
     inputState,
     actions,
     actionsOptions

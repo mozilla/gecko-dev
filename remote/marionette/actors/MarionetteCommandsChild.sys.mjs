@@ -9,7 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   accessibility:
     "chrome://remote/content/shared/webdriver/Accessibility.sys.mjs",
-  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
+  actions: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   assertTargetInViewPort:
     "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
@@ -624,10 +624,10 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     const { actions } = options;
 
     if (this.#actionState === null) {
-      this.#actionState = new lazy.action.State();
+      this.#actionState = new lazy.actions.State();
     }
 
-    const actionChain = await lazy.action.Chain.fromJSON(
+    const actionChain = await lazy.actions.Chain.fromJSON(
       this.#actionState,
       actions,
       this.#actionsOptions

@@ -33,13 +33,13 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
  * virtualized device input to the web browser.
  *
  * Typical usage is to construct an action chain and then dispatch it:
- * const state = new action.State();
- * const chain = await action.Chain.fromJSON(state, protocolData);
+ * const state = new actions.State();
+ * const chain = await actions.Chain.fromJSON(state, protocolData);
  * await chain.dispatch(state, window);
  *
  * @namespace
  */
-export const action = {};
+export const actions = {};
 
 // Max interval between two clicks that should result in a dblclick or a tripleclick (in ms)
 export const CLICK_INTERVAL = 640;
@@ -78,7 +78,7 @@ const MODIFIER_NAME_LOOKUP = {
  * Typically each top-level navigable in a WebDriver session should have a
  * single State object.
  */
-action.State = class {
+actions.State = class {
   #actionsQueue;
 
   /**
@@ -1995,15 +1995,15 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
     }
 
     // Only include pointers that are not already depressed
-    const actions = Array.from(this.actions.values()).filter(
+    const filteredActions = Array.from(this.actions.values()).filter(
       ([actionInputSource, action]) =>
         !actionInputSource.isPressed(action.button)
     );
 
-    if (actions.length) {
+    if (filteredActions.length) {
       const eventData = new MultiTouchEventData("touchstart");
 
-      for (const [actionInputSource, action] of actions) {
+      for (const [actionInputSource, action] of filteredActions) {
         eventData.addPointerEventData(actionInputSource, action);
         actionInputSource.press(action.button);
         eventData.update(state, actionInputSource);
@@ -2025,7 +2025,7 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
 
       await dispatchEvent("synthesizeMultiTouch", context, { eventData });
 
-      for (const [, action] of actions) {
+      for (const [, action] of filteredActions) {
         // Append a copy of |action| with pointerUp subtype if event dispatched
         state.inputsToCancel.push(new PointerUpAction(action.id, action));
       }
@@ -2071,14 +2071,14 @@ class PointerUpTouchActionGroup extends TouchActionGroup {
     }
 
     // Only include pointers that are not already depressed
-    const actions = Array.from(this.actions.values()).filter(
+    const filteredActions = Array.from(this.actions.values()).filter(
       ([actionInputSource, action]) =>
         actionInputSource.isPressed(action.button)
     );
 
-    if (actions.length) {
+    if (filteredActions.length) {
       const eventData = new MultiTouchEventData("touchend");
-      for (const [actionInputSource, action] of actions) {
+      for (const [actionInputSource, action] of filteredActions) {
         eventData.addPointerEventData(actionInputSource, action);
         actionInputSource.release(action.button);
         eventData.update(state, actionInputSource);
@@ -2572,7 +2572,7 @@ for (const cls of [MousePointer, TouchPointer, PenPointer]) {
  * Represents a series of ticks, specifying which actions to perform at
  * each tick.
  */
-action.Chain = class extends Array {
+actions.Chain = class extends Array {
   toString() {
     return `[chain ${super.toString()}]`;
   }
@@ -2605,7 +2605,9 @@ action.Chain = class extends Array {
     return chainEvents;
   }
 
+  /* eslint-disable no-shadow */ // Shadowing is intentional for `actions`.
   /**
+   *
    * Unmarshals a JSON Object to a {@link Chain}.
    *
    * @see https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence
@@ -2655,6 +2657,7 @@ action.Chain = class extends Array {
 
     return actionsByTick;
   }
+  /* eslint-enable no-shadow */
 };
 
 /**
@@ -2727,7 +2730,7 @@ class TickActions extends Array {
    */
   groupTickActions(state) {
     const touchActions = new Map();
-    const actions = [];
+    const groupedActions = [];
 
     for (const action of this) {
       const inputSource = state.getInputSource(action.id);
@@ -2739,15 +2742,15 @@ class TickActions extends Array {
         if (group === undefined) {
           group = TouchActionGroup.forType(action.subtype);
           touchActions.set(action.subtype, group);
-          actions.push([null, group]);
+          groupedActions.push([null, group]);
         }
         group.addPointer(inputSource, action);
       } else {
-        actions.push([inputSource, action]);
+        groupedActions.push([inputSource, action]);
       }
     }
 
-    return actions;
+    return groupedActions;
   }
 }
 
@@ -2784,11 +2787,11 @@ class Sequence extends Array {
    */
   static async fromJSON(actionState, actionSequence, options) {
     // used here to validate 'type' in addition to InputSource type below
-    const { actions, id, type } = actionSequence;
+    const { actions: actionsFromSequence, id, type } = actionSequence;
 
     // type and id get validated in InputSource.fromJSON
     lazy.assert.array(
-      actions,
+      actionsFromSequence,
       'Expected "actionSequence.actions" to be an array, ' +
         lazy.pprint`got ${actionSequence.actions}`
     );
@@ -2797,7 +2800,7 @@ class Sequence extends Array {
     InputSource.fromJSON(actionState, actionSequence);
 
     const sequence = new this();
-    for (const actionItem of actions) {
+    for (const actionItem of actionsFromSequence) {
       sequence.push(await Action.fromJSON(type, id, actionItem, options));
     }
 

@@ -7,7 +7,7 @@ import { RootBiDiModule } from "chrome://remote/content/webdriver-bidi/modules/R
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
+  actions: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
@@ -147,7 +147,7 @@ class InputModule extends RootBiDiModule {
     let inputState = this.#inputStates.get(context);
 
     if (inputState === undefined) {
-      inputState = new lazy.action.State();
+      inputState = new lazy.actions.State();
       this.#inputStates.set(context, inputState);
     }
 
@@ -228,7 +228,7 @@ class InputModule extends RootBiDiModule {
     const inputState = this.#getInputState(context);
     const actionsOptions = { ...this.#actionsOptions, context };
 
-    const actionChain = await lazy.action.Chain.fromJSON(
+    const actionChain = await lazy.actions.Chain.fromJSON(
       inputState,
       actions,
       actionsOptions
