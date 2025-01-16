@@ -190,7 +190,9 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             negativeButton.text = requireContext().getString(R.string.mozac_feature_addons_permissions_dialog_deny)
         }
 
-        if (addon.incognito == Addon.Incognito.NOT_ALLOWED) {
+        if (addon.incognito == Addon.Incognito.NOT_ALLOWED ||
+            forOptionalPermissions
+        ) {
             allowedInPrivateBrowsing.isVisible = false
         }
 
