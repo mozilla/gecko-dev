@@ -178,6 +178,10 @@ certerror-what-should-i-do-bad-sts-cert-explanation = <b>{ $hostname }</b> has a
 
 cert-error-trust-certificate-transparency-what-can-you-do-about-it = Probably nothing, since it’s likely there’s a problem with the site itself.
 
+certerror-blocked-by-corp-headers-description = Sometimes websites set up protections for themselves and people like you from unwanted interactions with other sites.
+certerror-coop-learn-more = Learn more about Cross Origin Opener Policies (COOP)
+certerror-coep-learn-more = Learn more about Cross Origin Embedder Policies (COEP)
+
 # Variables:
 #   $responsestatus (string) - HTTP response status code (e.g., 500).
 #   $responsestatustext (string) - HTTP response status text (e.g., "Internal Server Error").
