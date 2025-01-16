@@ -200,7 +200,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsresult MakeFullScreen(bool aFullScreen) override;
   void InfallibleMakeFullScreen(bool aFullScreen);
 
-  LayersId GetLayersId() const override;
   WindowRenderer* GetWindowRenderer() override;
   bool HasWindowRenderer() const final { return !!mWindowRenderer; }
 
