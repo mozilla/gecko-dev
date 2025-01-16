@@ -69,6 +69,10 @@ export class GroupsPanel {
       .filter(group => {
         return group.ownerGlobal !== this.win;
       });
+    otherWindowGroups.sort(
+      (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
+    );
+
     let savedGroups = this.win.SessionStore.savedGroups;
 
     if (savedGroups.length || otherWindowGroups.length) {

@@ -177,6 +177,10 @@
       this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
     }
 
+    get lastSeenActive() {
+      return Math.max(...this.tabs.map(t => t.lastSeenActive));
+    }
+
     #updateLabelAriaAttributes() {
       const ariaLabel = this.#label || "unnamed";
       const ariaDescription = `${ariaLabel} tab group`;
