@@ -102,3 +102,17 @@ function thisProperties() {
   });
 }
 
+function valueOfExpression() {
+  function a(value) {
+    b(value).catch(console.error);
+    debugger;
+  };
+
+  function b() {
+    return new Promise(() => {});
+  }
+
+  a("foo")
+}
+
+
