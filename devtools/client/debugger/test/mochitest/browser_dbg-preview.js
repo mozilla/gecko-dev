@@ -104,6 +104,10 @@ add_task(async function () {
     },
   ]);
 
+  await testPreviews(dbg, "valueOfExpression", [
+    { line: 107, column: 6, expression: "value", result: "foo" },
+  ]);
+
   // javascript.options.experimental.explicit_resource_management is set to true, but it's
   // only supported on Nightly at the moment, so only check for SuppressedError if
   // they're supported.

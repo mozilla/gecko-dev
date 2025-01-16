@@ -2188,16 +2188,30 @@ class Editor extends EventEmitter {
       from: line.from,
       to: line.to,
     });
+
     // There might be multiple expressions which are within the locations.
     // We want to match expressions based on dots before the desired token.
-    // Examples :
-    // - With expression `a.b.c.d`, if the desired token is `c` we should match `a.b.c` not `a.b.c.d`
-    // - With expression `this.x`, if the desired token is `this` we should match `this` not `this.x`
-    // - With expression `a.b.c`, if the desired token is `c` we should match `a.b.c` not `c`
+    //
+    // ========================== EXAMPLE 1 ================================
+    // Full Expression: `this.myProperty.x`
+    // Hovered Token: `myProperty`
+    // Found Expressions:
+    // { name: "MemberExpression", expression: "this.myProperty.x", from: 1715, to: 1732 }
+    // { name: "MemberExpression", expression: "this.myProperty" from: 1715, to: 1730 } *
+    // { name: "PropertyName", expression: "myProperty" from: 1720, to: 1730 }
+    //
+    // ========================== EXAMPLE 2 ==================================
+    // Full Expression: `a(b).catch`
+    // Hovered Token: `b`
+    // Found Expressions:
+    // { name: "MemberExpression", expression: "a(b).catch", from: 1921  to: 1931 }
+    // { name: "VariableName", expression: "b", from: 1923  to: 1924 } *
+    //
+    // We sort based on the `to` make sure we return the correct property
     return expressions.sort((a, b) => {
-      if (a.from < b.from || a.to < b.to) {
+      if (a.to < b.to) {
         return -1;
-      } else if (a.from > b.from || a.to > b.to) {
+      } else if (a.to > b.to) {
         return 1;
       }
       return 0;
