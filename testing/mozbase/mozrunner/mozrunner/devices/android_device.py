@@ -315,11 +315,11 @@ def metadata_for_app(app, aab=False):
         )
     elif "fenix" in app:
         package_name = "org.mozilla.fenix.debug"
-        activity_name = "org.mozilla.fenix.debug.App"
+        activity_name = "org.mozilla.fenix.IntentReceiverActivity"
         subcommand = "install-fenix"
     elif "focus" in app:
         package_name = "org.mozilla.focus.debug"
-        activity_name = "org.mozilla.focus.activity.MainActivity"
+        activity_name = "org.mozilla.focus.activity.IntentReceiverActivity"
         subcommand = "install-focus"
     return metadata(activity_name, package_name, subcommand)
 

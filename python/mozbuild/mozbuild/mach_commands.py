@@ -1255,6 +1255,7 @@ def install(command_context, **kwargs):
 def _get_android_run_parser():
     parser = argparse.ArgumentParser()
     group = parser.add_argument_group("The compiled program")
+    group.add_argument("url", nargs="?", default=None, help="URL to open")
     group.add_argument(
         "--app",
         default="org.mozilla.geckoview_example",
@@ -1280,7 +1281,6 @@ def _get_android_run_parser():
         help="Path to Gecko profile, like /path/to/host/profile "
         "or /path/to/target/profile",
     )
-    group.add_argument("--url", default=None, help="URL to open")
     group.add_argument(
         "--aab",
         action="store_true",
