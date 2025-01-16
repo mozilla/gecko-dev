@@ -10348,7 +10348,7 @@
 # Whether <details> is forced to be a block, see bug 1856374
 - name: layout.details.force-block-layout
   type: bool
-  value: true
+  value: false
   mirror: always
 
 # Whether table cells can generate scroll boxes.
