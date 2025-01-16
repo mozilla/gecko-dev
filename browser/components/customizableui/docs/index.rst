@@ -15,3 +15,4 @@ delegated to modules like ``CustomizableWidgets`` and ``CustomizeMode``.
    customizableui
    overflowable-toolbar
    panelmultiview
+   search-widget-tracker
