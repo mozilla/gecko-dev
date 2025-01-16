@@ -42,8 +42,10 @@ import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.onboarding.store.DefaultOnboardingPreferencesRepository
 import org.mozilla.fenix.onboarding.store.OnboardingAction.OnboardingAddOnsAction
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
+import org.mozilla.fenix.onboarding.store.OnboardingPreferencesMiddleware
 import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.onboarding.view.Caption
 import org.mozilla.fenix.onboarding.view.ManagePrivacyPreferencesDialogFragment
@@ -82,7 +84,20 @@ class OnboardingFragment : Fragment() {
         )
     }
     private val telemetryRecorder by lazy { OnboardingTelemetryRecorder() }
-    private val onboardingStore by lazyStore { OnboardingStore() }
+
+    private val onboardingStore by lazyStore {
+        OnboardingStore(
+            middleware = listOf(
+                OnboardingPreferencesMiddleware(
+                    repository = DefaultOnboardingPreferencesRepository(
+                        context = requireContext(),
+                        lifecycleOwner = viewLifecycleOwner,
+                    ),
+                ),
+            ),
+        )
+    }
+
     private val pinAppWidgetReceiver = WidgetPinnedReceiver()
 
     @SuppressLint("SourceLockedOrientationActivity")
