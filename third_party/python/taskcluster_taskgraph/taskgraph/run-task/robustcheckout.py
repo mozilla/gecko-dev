@@ -20,9 +20,9 @@ import socket
 import ssl
 import time
 
-from mercurial.i18n import _  # type: ignore
-from mercurial.node import hex, nullid  # type: ignore
-from mercurial import (  # type: ignore
+from mercurial.i18n import _
+from mercurial.node import hex, nullid
+from mercurial import (
     commands,
     configitems,
     error,
@@ -57,7 +57,7 @@ configitem(b"robustcheckout", b"retryjittermax", default=configitems.dynamicdefa
 
 
 def getsparse():
-    from mercurial import sparse  # type: ignore
+    from mercurial import sparse
 
     return sparse
 
@@ -79,7 +79,7 @@ def peerlookup(remote, v):
             b"",
             b"networkattempts",
             3,
-            b"Maximum number of attempts for network " b"operations",
+            b"Maximum number of attempts for network operations",
         ),
         (b"", b"sparseprofile", b"", b"Sparse checkout profile to use (path in repo)"),
         (
@@ -150,7 +150,7 @@ def robustcheckout(
             or not re.match(b"^[a-f0-9]+$", revision)
         ):
             raise error.Abort(
-                b"--revision must be a SHA-1 fragment 12-40 " b"characters long"
+                b"--revision must be a SHA-1 fragment 12-40 characters long"
             )
 
     sharebase = sharebase or ui.config(b"share", b"pool")
@@ -171,7 +171,7 @@ def robustcheckout(
             extensions.find(b"sparse")
         except KeyError:
             raise error.Abort(
-                b"sparse extension must be enabled to use " b"--sparseprofile"
+                b"sparse extension must be enabled to use --sparseprofile"
             )
 
     ui.warn(b"(using Mercurial %s)\n" % util.version())
@@ -337,7 +337,6 @@ def _docheckout(
     @contextlib.contextmanager
     def timeit(op, behavior):
         behaviors.add(behavior)
-        start = 0
         errored = False
         try:
             start = time.time()
@@ -381,14 +380,14 @@ def _docheckout(
     # enabled sparse, we would lock them out.
     if destvfs.exists() and sparse_profile and not destvfs.exists(b".hg/sparse"):
         raise error.Abort(
-            b"cannot enable sparse profile on existing " b"non-sparse checkout",
+            b"cannot enable sparse profile on existing non-sparse checkout",
             hint=b"use a separate working directory to use sparse",
         )
 
     # And the other direction for symmetry.
     if not sparse_profile and destvfs.exists(b".hg/sparse"):
         raise error.Abort(
-            b"cannot use non-sparse checkout on existing sparse " b"checkout",
+            b"cannot use non-sparse checkout on existing sparse checkout",
             hint=b"use a separate working directory to use sparse",
         )
 
@@ -408,7 +407,7 @@ def _docheckout(
             ui.warn(b"(shared store does not exist; deleting destination)\n")
             with timeit("removed_missing_shared_store", "remove-wdir"):
                 destvfs.rmtree(forcibly=True)
-        elif not re.search(rb"[a-f0-9]{40}/\.hg$", storepath.replace(b"\\", b"/")):
+        elif not re.search(b"[a-f0-9]{40}/\\.hg$", storepath.replace(b"\\", b"/")):
             ui.warn(
                 b"(shared store does not belong to pooled storage; "
                 b"deleting destination to improve efficiency)\n"
@@ -430,7 +429,7 @@ def _docheckout(
             ui.warn(b"(abandoned transaction found; trying to recover)\n")
             repo = hg.repository(ui, dest)
             if not repo.recover():
-                ui.warn(b"(could not recover repo state; " b"deleting shared store)\n")
+                ui.warn(b"(could not recover repo state; deleting shared store)\n")
                 with timeit("remove_unrecovered_shared_store", "remove-store"):
                     deletesharedstore()
 
@@ -445,7 +444,7 @@ def _docheckout(
     def handlenetworkfailure():
         if networkattempts[0] >= networkattemptlimit:
             raise error.Abort(
-                b"reached maximum number of network attempts; " b"giving up\n"
+                b"reached maximum number of network attempts; giving up\n"
             )
 
         ui.warn(
@@ -539,7 +538,7 @@ def _docheckout(
         clonepeer = hg.peer(ui, {}, cloneurl)
         rootnode = peerlookup(clonepeer, b"0")
     except error.RepoLookupError:
-        raise error.Abort(b"unable to resolve root revision from clone " b"source")
+        raise error.Abort(b"unable to resolve root revision from clone source")
     except (
         error.Abort,
         ssl.SSLError,
@@ -673,7 +672,6 @@ def _docheckout(
     # We only pull if we are using symbolic names or the requested revision
     # doesn't exist.
     havewantedrev = False
-    checkoutrevision = None
 
     if revision:
         try:
@@ -685,7 +683,7 @@ def _docheckout(
             if not ctx.hex().startswith(revision):
                 raise error.Abort(
                     b"--revision argument is ambiguous",
-                    hint=b"must be the first 12+ characters of a " b"SHA-1 fragment",
+                    hint=b"must be the first 12+ characters of a SHA-1 fragment",
                 )
 
             checkoutrevision = ctx.hex()
@@ -750,7 +748,6 @@ def _docheckout(
         # Mercurial 4.3 doesn't purge files outside the sparse checkout.
         # See https://bz.mercurial-scm.org/show_bug.cgi?id=5626. Force
         # purging by monkeypatching the sparse matcher.
-        old_sparse_fn = None
         try:
             old_sparse_fn = getattr(repo.dirstate, "_sparsematchfn", None)
             if old_sparse_fn is not None:
@@ -764,7 +761,7 @@ def _docheckout(
                     abort_on_err=True,
                     # The function expects all arguments to be
                     # defined.
-                    **{"print": None, "print0": None, "dirs": None, "files": None},
+                    **{"print": None, "print0": None, "dirs": None, "files": None}
                 ):
                     raise error.Abort(b"error purging")
         finally:

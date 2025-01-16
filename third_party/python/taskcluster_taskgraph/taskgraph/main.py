@@ -228,30 +228,32 @@ def generate_taskgraph(options, parameters, overrides, logdir):
 
 @command(
     "tasks",
-    help="Show all tasks in the taskgraph.",
+    help="Show the full task set in the task graph. The full task set includes all tasks defined by any kind, without edges (dependencies) between them.",
     defaults={"graph_attr": "full_task_set"},
 )
 @command(
-    "full", help="Show the full taskgraph.", defaults={"graph_attr": "full_task_graph"}
+    "full",
+    help="Show the full task graph. The full task graph consists of the full task set, with edges (dependencies) between tasks.",
+    defaults={"graph_attr": "full_task_graph"},
 )
 @command(
     "target",
-    help="Show the set of target tasks.",
+    help="Show the target task set in the task graph. The target task set includes the tasks which have indicated they should be run, without edges (dependencies) between them.",
     defaults={"graph_attr": "target_task_set"},
 )
 @command(
     "target-graph",
-    help="Show the target graph.",
+    help="Show the target task graph. The target task graph consists of the target task set, with edges (dependencies) between tasks.",
     defaults={"graph_attr": "target_task_graph"},
 )
 @command(
     "optimized",
-    help="Show the optimized graph.",
+    help="Show the optimized task graph, which is the target task set with tasks optimized out (filtered, omitted, or replaced) and edges representing dependencies.",
     defaults={"graph_attr": "optimized_task_graph"},
 )
 @command(
     "morphed",
-    help="Show the morphed graph.",
+    help="Show the morphed graph, which is the optimized task graph with additional morphs applied. It retains the same meaning as the optimized task graph but in a form more palatable to TaskCluster.",
     defaults={"graph_attr": "morphed_task_graph"},
 )
 @argument("--root", "-r", help="root of the taskgraph definition relative to topsrcdir")

@@ -18,6 +18,7 @@ import os
 import pathlib
 import random
 import re
+import ssl
 import stat
 import subprocess
 import sys
@@ -190,9 +191,11 @@ def stream_download(url, sha256=None, size=None, headers=None):
         req_headers[key.strip()] = val.strip()
 
     req = urllib.request.Request(url, None, req_headers)
-    with urllib.request.urlopen(
-        req, timeout=60, cafile=certifi.where()
-    ) if certifi else urllib.request.urlopen(req, timeout=60) as fh:
+    kwargs = {}
+    if certifi:
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        kwargs["context"] = context = ssl_context
+    with urllib.request.urlopen(req, timeout=60, **kwargs) as fh:
         if not url.endswith(".gz") and fh.info().get("Content-Encoding") == "gzip":
             fh = gzip.GzipFile(fileobj=fh)
         else:
@@ -480,12 +483,34 @@ def should_repack_archive(
     return True
 
 
+EXECUTABLE_SIGNATURES = set([
+    b"\xFE\xED\xFA\xCE",  # mach-o 32-bits big endian
+    b"\xCE\xFA\xED\xFE",  # mach-o 32-bits little endian
+    b"\xFE\xED\xFA\xCF",  # mach-o 64-bits big endian
+    b"\xCF\xFA\xED\xFE",  # mach-o 64-bits little endian
+    b"\xCA\xFE\xBA\xBE",  # mach-o FAT binary
+    b"\x7F\x45\x4C\x46",  # Elf binary
+])
+
+
 def repack_archive(
-    orig: pathlib.Path, dest: pathlib.Path, strip_components=0, prefix=""
+    orig: pathlib.Path,
+    dest: pathlib.Path,
+    strip_components=0,
+    prefix="",
+    force_archive=False,
 ):
     assert orig != dest
     log(f"Repacking {orig} as {dest}")
-    orig_typ, ifh = open_stream(orig)
+    try:
+        orig_typ, ifh = open_stream(orig)
+    except ArchiveTypeNotSupported:
+        if force_archive:
+            ifh = io.BufferedReader(orig.open(mode="rb"))
+            signature = ifh.peek(4)[:4]
+            orig_typ = "exec" if signature in EXECUTABLE_SIGNATURES else None
+        else:
+            raise
     typ = archive_type(dest)
     if not typ:
         raise Exception("Archive type not supported for %s" % dest.name)
@@ -510,7 +535,20 @@ def repack_archive(
 
     with rename_after_close(dest, "wb") as fh:
         ctx = ZstdCompressor()
-        if orig_typ == "zip":
+        if orig_typ in ("exec", None):
+            with ctx.stream_writer(fh) as compressor, tarfile.open(
+                fileobj=compressor,
+                mode="w:",
+            ) as tar:
+                tarinfo = tarfile.TarInfo()
+                tarinfo.name = filter(orig.name) if filter else orig.name
+                st = orig.stat()
+                tarinfo.size = st.st_size
+                tarinfo.mtime = st.st_mtime
+                tarinfo.mode = 0o0755 if orig_typ == "exec" else 0o0644
+                tar.addfile(tarinfo, ifh)
+
+        elif orig_typ == "zip":
             assert typ == "tar"
             zip = zipfile.ZipFile(ifh)
             # Convert the zip stream to a tar on the fly.
@@ -824,8 +862,12 @@ def command_static_url(args):
         if gpg_sig_url:
             gpg_verify_path(dl_dest, gpg_key, gpg_signature)
 
-        if should_repack_archive(dl_dest, dest, args.strip_components, args.add_prefix):
-            repack_archive(dl_dest, dest, args.strip_components, args.add_prefix)
+        if args.force_archive or should_repack_archive(
+            dl_dest, dest, args.strip_components, args.add_prefix
+        ):
+            repack_archive(
+                dl_dest, dest, args.strip_components, args.add_prefix, args.force_archive
+            )
         elif dl_dest != dest:
             log(f"Renaming {dl_dest} to {dest}")
             dl_dest.rename(dest)
@@ -959,6 +1001,11 @@ def main():
         action="append",
         dest="headers",
         help="Header to send as part of the request, can be passed " "multiple times",
+    )
+    url.add_argument(
+        "--force-archive",
+        action="store_true",
+        help="Create an archive even when the downloaded file is not an archive",
     )
     url.add_argument("url", help="URL to fetch")
     url.add_argument("dest", help="Destination path")

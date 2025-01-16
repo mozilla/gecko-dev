@@ -42,7 +42,7 @@ def build_image(name, tag, args=None):
     tag = tag or docker_image(name, by_tag=True)
 
     buf = BytesIO()
-    stream_context_tar(GECKO, image_dir, buf, name, args)
+    stream_context_tar(GECKO, image_dir, buf, args)
     docker.post_to_docker(buf.getvalue(), "/build", nocache=1, t=tag)
 
     print(f"Successfully built {name} and tagged with {tag}")

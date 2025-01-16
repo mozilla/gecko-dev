@@ -7,6 +7,7 @@ import gzip
 import os
 import stat
 import tarfile
+from contextlib import contextmanager
 
 # 2016-01-01T00:00:00+0000
 DEFAULT_MTIME = 1451606400
@@ -104,14 +105,14 @@ def create_tar_from_files(fp, files):
             tf.addfile(ti, f)
 
 
-def create_tar_gz_from_files(fp, files, filename=None, compresslevel=9):
-    """Create a tar.gz file deterministically from files.
+@contextmanager
+def gzip_compressor(fp, filename=None, compresslevel=9):
+    """Create a deterministic GzipFile writer.
 
-    This is a glorified wrapper around ``create_tar_from_files`` that
-    adds gzip compression.
+    This is a glorified wrapper around ``GzipFile`` that adds some
+    determinism.
 
     The passed file handle should be opened for writing in binary mode.
-    When the function returns, all data has been written to the handle.
     """
     # Offset 3-7 in the gzip header contains an mtime. Pin it to a known
     # value so output is deterministic.
@@ -123,4 +124,17 @@ def create_tar_gz_from_files(fp, files, filename=None, compresslevel=9):
         mtime=DEFAULT_MTIME,
     )
     with gf:
+        yield gf
+
+
+def create_tar_gz_from_files(fp, files, filename=None, compresslevel=9):
+    """Create a tar.gz file deterministically from files.
+
+    This is a glorified wrapper around ``create_tar_from_files`` that
+    adds gzip compression.
+
+    The passed file handle should be opened for writing in binary mode.
+    When the function returns, all data has been written to the handle.
+    """
+    with gzip_compressor(fp, filename, compresslevel) as gf:
         create_tar_from_files(gf, files)

@@ -231,11 +231,11 @@ def create_fetch_url_task(config, name, fetch):
         "--sha256",
         fetch["sha256"],
         "--size",
-        "%d" % fetch["size"],
+        f"{fetch['size']}",
     ]
 
     if fetch.get("strip-components"):
-        args.extend(["--strip-components", "%d" % fetch["strip-components"]])
+        args.extend(["--strip-components", f'{fetch["strip-components"]}'])
 
     if fetch.get("add-prefix"):
         args.extend(["--add-prefix", fetch["add-prefix"]])

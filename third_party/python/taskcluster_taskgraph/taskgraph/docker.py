@@ -122,7 +122,7 @@ def build_image(name, tag, args=None):
     tag = tag or docker.docker_image(name, by_tag=True)
 
     buf = BytesIO()
-    docker.stream_context_tar(".", image_dir, buf, "", args)
+    docker.stream_context_tar(".", image_dir, buf, args)
     cmdargs = ["docker", "image", "build", "--no-cache", "-"]
     if tag:
         cmdargs.insert(-1, f"-t={tag}")

@@ -110,7 +110,7 @@ def _get_defaults(repo_root=None):
         "do_not_optimize": [],
         "enable_always_target": True,
         "existing_tasks": {},
-        "files_changed": repo.get_changed_files("AM"),
+        "files_changed": lambda: repo.get_changed_files("AM"),
         "filters": ["target_tasks_method"],
         "head_ref": repo.branch or repo.head_rev,
         "head_repository": repo_url,
@@ -210,7 +210,7 @@ class Parameters(ReadOnlyDict):
 
         for name, default in defaults.items():
             if name not in kwargs:
-                kwargs[name] = default
+                kwargs[name] = default() if callable(default) else default
         return kwargs
 
     def check(self):

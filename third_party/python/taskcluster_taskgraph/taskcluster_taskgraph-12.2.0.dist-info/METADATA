@@ -1,10 +1,11 @@
-Metadata-Version: 2.3
+Metadata-Version: 2.4
 Name: taskcluster-taskgraph
-Version: 12.1.0
+Version: 12.2.0
 Summary: Build taskcluster taskgraphs
 Project-URL: Repository, https://github.com/taskcluster/taskgraph
 Project-URL: Issues, https://github.com/taskcluster/taskgraph/issues
 Author-email: Mozilla Release Engineering <release+taskgraph@mozilla.com>
+License-File: LICENSE
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
 Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)

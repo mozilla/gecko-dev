@@ -10,7 +10,7 @@ import os
 import re
 from typing import Optional
 
-from taskgraph.util.archive import create_tar_gz_from_files
+from taskgraph.util.archive import create_tar_from_files, gzip_compressor
 
 IMAGE_DIR = os.path.join(".", "taskcluster", "docker")
 
@@ -76,10 +76,15 @@ class HashingWriter:
     def __init__(self, writer):
         self._hash = hashlib.sha256()
         self._writer = writer
+        self._written = 0
 
     def write(self, buf):
         self._hash.update(buf)
         self._writer.write(buf)
+        self._written += len(buf)
+
+    def tell(self):
+        return self._written
 
     def hexdigest(self):
         return self._hash.hexdigest()
@@ -108,13 +113,8 @@ def create_context_tar(topsrcdir, context_dir, out_path, args=None):
     Returns the SHA-256 hex digest of the created archive.
     """
     with open(out_path, "wb") as fh:
-        return stream_context_tar(
-            topsrcdir,
-            context_dir,
-            fh,
-            image_name=os.path.basename(out_path),
-            args=args,
-        )
+        with gzip_compressor(fh, filename=os.path.basename(out_path)) as gf:
+            return stream_context_tar(topsrcdir, context_dir, gf, args=args)
 
 
 RUN_TASK_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "run-task")
@@ -135,7 +135,7 @@ RUN_TASK_SNIPPET = [
 ]
 
 
-def stream_context_tar(topsrcdir, context_dir, out_file, image_name=None, args=None):
+def stream_context_tar(topsrcdir, context_dir, out_file, args=None):
     """Like create_context_tar, but streams the tar file to the `out_file` file
     object."""
     archive_files = {}
@@ -201,7 +201,7 @@ def stream_context_tar(topsrcdir, context_dir, out_file, image_name=None, args=N
     archive_files["Dockerfile"] = io.BytesIO("".join(content).encode("utf-8"))
 
     writer = HashingWriter(out_file)
-    create_tar_gz_from_files(writer, archive_files, image_name)
+    create_tar_from_files(writer, archive_files)
     return writer.hexdigest()
 
 

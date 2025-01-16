@@ -48,6 +48,7 @@ FROM_DEPS_SCHEMA = Schema(
                 ),
             ): Any(
                 None,
+                False,
                 *SET_NAME_MAP,
                 {Any(*SET_NAME_MAP): object},
             ),
