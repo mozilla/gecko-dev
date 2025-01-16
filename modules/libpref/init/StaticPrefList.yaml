@@ -8380,11 +8380,11 @@
     set_spidermonkey_pref: always
 #endif  // ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 
--   name: javascript.options.experimental.json_parse_with_source
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: always
+- name: javascript.options.experimental.json_parse_with_source
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: always
 
 - name: javascript.options.wasm_caching
   type: bool
