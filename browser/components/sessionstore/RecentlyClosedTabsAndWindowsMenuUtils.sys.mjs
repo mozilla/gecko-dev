@@ -29,11 +29,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 /**
+ * @param {Window} win
  * @returns {Map<string, TabGroupStateData>}
  *   Map of closed tab groups keyed by tab group ID
  */
-function getClosedTabGroupsById() {
-  const closedTabGroups = lazy.SessionStore.getClosedTabGroups();
+function getClosedTabGroupsById(win) {
+  const closedTabGroups = lazy.SessionStore.getClosedTabGroups({
+    sourceWindow: win,
+    closedTabsFromClosedWindows: false,
+  });
   const closedTabGroupsById = new Map();
   closedTabGroups.forEach(tabGroup =>
     closedTabGroupsById.set(tabGroup.id, tabGroup)
@@ -59,67 +63,74 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
     if (
       lazy.SessionStore.getClosedTabCount({
         sourceWindow: aWindow,
+        closedTabsFromClosedWindows: false,
       })
     ) {
       isEmpty = false;
-
       const browserWindows = lazy.closedTabsFromAllWindowsEnabled
         ? lazy.SessionStore.getWindows(aWindow)
         : [aWindow];
-      const closedTabs = [];
-      for (const win of browserWindows) {
-        closedTabs.push(...lazy.SessionStore.getClosedTabDataForWindow(win));
-      }
 
-      if (
-        !isPrivate &&
-        lazy.closedTabsFromClosedWindowsEnabled &&
-        lazy.SessionStore.getClosedTabCountFromClosedWindows()
-      ) {
-        closedTabs.push(
-          ...lazy.SessionStore.getClosedTabDataFromClosedWindows()
+      for (const win of browserWindows) {
+        const closedTabs = lazy.SessionStore.getClosedTabDataForWindow(win);
+        const closedTabGroupsById = getClosedTabGroupsById(win);
+
+        let currentGroupId = null;
+
+        closedTabs.forEach((tab, index) => {
+          let { groupId } = tab.state;
+          if (groupId && closedTabGroupsById.has(groupId)) {
+            if (groupId != currentGroupId) {
+              // This is the first tab in a new group. Push all the tabs into the menu
+              if (aTagName == "menuitem") {
+                createTabGroupSubmenu(
+                  closedTabGroupsById.get(groupId),
+                  index,
+                  win,
+                  doc,
+                  fragment
+                );
+              } else {
+                createTabGroupSubpanel(
+                  closedTabGroupsById.get(groupId),
+                  index,
+                  win,
+                  doc,
+                  fragment
+                );
+              }
+
+              currentGroupId = groupId;
+            } else {
+              // We have already seen this group. Ignore.
+            }
+          } else {
+            createEntry(aTagName, false, index, tab, doc, tab.title, fragment);
+            currentGroupId = null;
+          }
+        });
+      }
+    }
+
+    // TODO Bug 1932941: Session support for closed tab groups in closed windows
+    if (
+      !isPrivate &&
+      lazy.closedTabsFromClosedWindowsEnabled &&
+      lazy.SessionStore.getClosedTabCountFromClosedWindows()
+    ) {
+      isEmpty = false;
+      const closedTabs = lazy.SessionStore.getClosedTabDataFromClosedWindows();
+      for (let i = 0; i < closedTabs.length; i++) {
+        createEntry(
+          aTagName,
+          false,
+          i,
+          closedTabs[i],
+          doc,
+          closedTabs[i].title,
+          fragment
         );
       }
-
-      const closedTabGroupsById = getClosedTabGroupsById();
-
-      let currentGroupId = null;
-
-      closedTabs.forEach((tab, index) => {
-        let { groupId } = tab.state;
-        if (groupId && closedTabGroupsById.has(groupId)) {
-          if (groupId != currentGroupId) {
-            // This is the first tab in a new group. Push all the tabs into the menu.
-            // Note that the calls to the createTabGroup methods below use the
-            // tab itself as a closed data source, since it will always contain
-            // one of either sourceClosedId or sourceWindowId.
-            if (aTagName == "menuitem") {
-              createTabGroupSubmenu(
-                closedTabGroupsById.get(groupId),
-                index,
-                tab,
-                doc,
-                fragment
-              );
-            } else {
-              createTabGroupSubpanel(
-                closedTabGroupsById.get(groupId),
-                index,
-                tab,
-                doc,
-                fragment
-              );
-            }
-
-            currentGroupId = groupId;
-          } else {
-            // We have already seen this group. Ignore.
-          }
-        } else {
-          createEntry(aTagName, false, index, tab, doc, tab.title, fragment);
-          currentGroupId = null;
-        }
-      });
     }
 
     if (!isEmpty) {
@@ -272,8 +283,8 @@ function setTabGroupColorProperties(element, tabGroup) {
  *        Session store state for the closed tab group.
  * @param {number} aIndex
  *        The index of the first tab in the tab group, relative to the tab strip.
- * @param {{sourceClosedId: number}|{sourceWindowId: string}} aSource
- *        An object that can be resolved to a closed data source.
+ * @param {Window} aSourceWindow
+ *        The source window of the closed tab group.
  * @param {Document} aDocument
  *        A document object that can be used to create the entry.
  * @param {DocumentFragment} aFragment
@@ -282,7 +293,7 @@ function setTabGroupColorProperties(element, tabGroup) {
 function createTabGroupSubmenu(
   aTabGroup,
   aIndex,
-  aSource,
+  aSourceWindow,
   aDocument,
   aFragment
 ) {
@@ -319,7 +330,7 @@ function createTabGroupSubmenu(
     "tab-context-reopen-tab-group"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.undoCloseTabGroup(aSource, aTabGroup.id);
+    lazy.SessionStore.undoCloseTabGroup(aSourceWindow, aTabGroup.id);
   });
   menuPopup.appendChild(reopenTabGroupItem);
 
@@ -335,8 +346,8 @@ function createTabGroupSubmenu(
  *        Session store state for the closed tab group.
  * @param {number} aIndex
  *        The index of the first tab in the tab group, relative to the tab strip.
- * @param {{sourceClosedId: number}|{sourceWindowId: string}} aSource
- *        An object that can be resolved to a closed data source.
+ * @param {Window} aSourceWindow
+ *        The source window of the closed tab group.
  * @param {Document} aDocument
  *        A document object that can be used to create the entry.
  * @param {DocumentFragment} aFragment
@@ -345,7 +356,7 @@ function createTabGroupSubmenu(
 function createTabGroupSubpanel(
   aTabGroup,
   aIndex,
-  aSource,
+  aSourceWindow,
   aDocument,
   aFragment
 ) {
@@ -406,7 +417,7 @@ function createTabGroupSubpanel(
     "panel-subview-footer-button"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.undoCloseTabGroup(aSource, aTabGroup.id);
+    lazy.SessionStore.undoCloseTabGroup(aSourceWindow, aTabGroup.id);
   });
 
   panelview.appendChild(reopenTabGroupItem);
