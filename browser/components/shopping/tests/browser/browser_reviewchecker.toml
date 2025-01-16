@@ -31,11 +31,15 @@ prefs = [
 
 ["browser_reviewchecker_manager.js"]
 
+["browser_reviewchecker_messages.js"]
+
 ["browser_reviewchecker_onboarding.js"]
 
 ["browser_reviewchecker_private_mode.js"]
 
 ["browser_reviewchecker_sidebar.js"]
+
+["browser_reviewchecker_telemetry.js"]
 
 ["browser_shopping_adjusted_rating.js"]
 

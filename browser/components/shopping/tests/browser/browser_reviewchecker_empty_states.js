@@ -165,10 +165,6 @@ add_task(async function test_integrated_sidebar_no_empty_state_opted_in_pdp() {
           () => typeof shoppingContainer.isProductPage !== "undefined",
           "isProductPage is set."
         );
-        await ContentTaskUtils.waitForCondition(
-          () => typeof shoppingContainer.isSupportedSite !== "undefined",
-          "isSupportedSite is set."
-        );
 
         Assert.ok(
           !shoppingContainer.emptyStateImgEl,

@@ -276,10 +276,6 @@ add_task(async function test_integrated_sidebar_empty_states() {
         () => typeof shoppingContainer.isProductPage !== "undefined",
         "isProductPage is set."
       );
-      await ContentTaskUtils.waitForCondition(
-        () => typeof shoppingContainer.isSupportedSite !== "undefined",
-        "isSupportedSite is set."
-      );
       Assert.ok(
         shoppingContainer.isProductPage,
         "Current page is a product page"
@@ -319,4 +315,132 @@ add_task(async function test_integrated_sidebar_empty_states() {
       );
     });
   });
+});
+
+add_task(async function test_sidebar_navigation() {
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async browser => {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    info("Waiting for sidebar to update.");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
+    info("Verifying product info for initial product.");
+    await verifyReviewCheckerSidebarProductInfo({
+      productURL: PRODUCT_TEST_URL,
+      adjustedRating: "4.1",
+      letterGrade: "B",
+    });
+
+    // Navigate the browser from the parent:
+    let loadedPromise = Promise.all([
+      BrowserTestUtils.browserLoaded(browser, false, OTHER_PRODUCT_TEST_URL),
+      reviewCheckerSidebarUpdated(OTHER_PRODUCT_TEST_URL),
+    ]);
+    BrowserTestUtils.startLoadingURIString(browser, OTHER_PRODUCT_TEST_URL);
+    info("Loading another product.");
+    await loadedPromise;
+    info("Verifying another product.");
+    await verifyReviewCheckerSidebarProductInfo({
+      productURL: OTHER_PRODUCT_TEST_URL,
+      adjustedRating: "1",
+      letterGrade: "F",
+    });
+
+    // Navigate to a non-product URL:
+    loadedPromise = BrowserTestUtils.browserLoaded(
+      browser,
+      false,
+      "https://example.com/1"
+    );
+    BrowserTestUtils.startLoadingURIString(browser, "https://example.com/1");
+    info("Go to a non-product.");
+    await loadedPromise;
+    await reviewCheckerSidebarUpdated("https://example.com/1");
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      Assert.ok(shoppingContainer, "Review Checker is loaded");
+
+      await shoppingContainer.updateComplete;
+      Assert.ok(
+        !shoppingContainer.isProductPage,
+        "Current page is not a product page"
+      );
+      Assert.ok(
+        shoppingContainer.isSupportedSite,
+        "Current page is a supported site"
+      );
+    });
+
+    // Navigate using pushState:
+    loadedPromise = BrowserTestUtils.waitForLocationChange(
+      gBrowser,
+      PRODUCT_TEST_URL
+    );
+    info("Navigate to the first product using pushState.");
+    await SpecialPowers.spawn(browser, [PRODUCT_TEST_URL], urlToUse => {
+      content.history.pushState({}, null, urlToUse);
+    });
+    info("Waiting to load first product again.");
+    await loadedPromise;
+    info("Waiting for the sidebar to have updated.");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
+
+    info("Waiting to verify the first product a second time.");
+    await verifyReviewCheckerSidebarProductInfo({
+      productURL: PRODUCT_TEST_URL,
+      adjustedRating: "4.1",
+      letterGrade: "B",
+    });
+
+    // Navigate to a product URL with query params:
+    loadedPromise = BrowserTestUtils.browserLoaded(
+      browser,
+      false,
+      PRODUCT_TEST_URL + "?th=1"
+    );
+    // Navigate to the same product, but with a th=1 added.
+    BrowserTestUtils.startLoadingURIString(browser, PRODUCT_TEST_URL + "?th=1");
+    // When just comparing URLs product info would be cleared out,
+    // but when comparing the parsed product ids, we do nothing as the product
+    // has not changed.
+    info("Verifying product has not changed before load.");
+    await verifyReviewCheckerSidebarProductInfo({
+      productURL: PRODUCT_TEST_URL,
+      adjustedRating: "4.1",
+      letterGrade: "B",
+    });
+    // Wait for the page to load, but don't wait for the sidebar to update so
+    // we can be sure we still have the previous product info.
+    await loadedPromise;
+    info("Verifying product has not changed after load.");
+    await verifyReviewCheckerSidebarProductInfo({
+      productURL: PRODUCT_TEST_URL,
+      adjustedRating: "4.1",
+      letterGrade: "B",
+    });
+  });
+});
+
+add_task(async function test_no_reliability_available() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+  await BrowserTestUtils.withNewTab(NEEDS_ANALYSIS_TEST_URL, async () => {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    info("Waiting for sidebar to update.");
+    await reviewCheckerSidebarUpdated(NEEDS_ANALYSIS_TEST_URL);
+  });
+
+  await Services.fog.testFlushAllChildren();
+  var sawPageEvents =
+    Glean.shopping.surfaceNoReviewReliabilityAvailable.testGetValue();
+
+  Assert.equal(sawPageEvents.length, 1);
+  Assert.equal(sawPageEvents[0].category, "shopping");
+  Assert.equal(
+    sawPageEvents[0].name,
+    "surface_no_review_reliability_available"
+  );
 });

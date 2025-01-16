@@ -4,7 +4,6 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  isSupportedSiteURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
@@ -40,15 +39,14 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     this.topBrowserWindow = undefined;
   }
 
-  updateCurrentURL(uri, flags, isSupportedSite) {
+  updateCurrentURL(uri, flags) {
     // about:shoppingsidebar is only used for testing with fake data.
     if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
       return;
     }
-    this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
+    this.sendAsyncMessage("ReviewChecker:UpdateCurrentURL", {
       url: uri.spec,
       isReload: !!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD),
-      isSupportedSite,
     });
   }
 
@@ -67,7 +65,7 @@ export class ReviewCheckerParent extends JSWindowActorParent {
       throw new Error("We should never be invoked in PBM.");
     }
     switch (message.name) {
-      case "GetProductURL":
+      case "GetCurrentURL":
         return this.getCurrentURL();
       case "DisableShopping":
         Services.prefs.setIntPref(
@@ -100,11 +98,7 @@ export class ReviewCheckerParent extends JSWindowActorParent {
       return;
     }
 
-    this.updateCurrentURL(
-      aLocationURI,
-      aFlags,
-      lazy.isSupportedSiteURL(aLocationURI)
-    );
+    this.updateCurrentURL(aLocationURI, aFlags);
   }
 
   closeSidebarPanel() {

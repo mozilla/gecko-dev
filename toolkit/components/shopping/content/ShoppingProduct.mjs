@@ -52,6 +52,23 @@ const API_POLL_WAIT = 1000;
  */
 
 /**
+ * Status returned from an analysis.
+ *
+ * @enum {string}
+ */
+const AnalysisStatus = {
+  NOT_FOUND: "not_found",
+  COMPLETED: "completed",
+  PENDING: "pending",
+  IN_PROGRESS: "in_progress",
+  NOT_ANALYZABLE: "not_analyzable",
+  UNPROCESSABLE: "unprocessable",
+  PAGE_NOT_SUPPORTED: "page_not_supported",
+  NOT_ENOUGH_REVIEWS: "not_enough_reviews",
+  STALE: "stale",
+};
+
+/**
  * Class for working with the products shopping API,
  * with helpers for parsing the product from a url
  * and querying the shopping API for information on it.
@@ -219,6 +236,68 @@ export class ShoppingProduct extends EventEmitter {
       product.host &&
       product.sitename &&
       product.tld
+    );
+  }
+
+  /**
+   * Check if an analysis is still in progress.
+   *
+   * @param {AnalysisStatus} analysisStatus
+   * @returns {boolean}
+   */
+  static isAnalysisInProgress(analysisStatus) {
+    if (!analysisStatus) {
+      return false;
+    }
+    return (
+      analysisStatus == AnalysisStatus.PENDING ||
+      analysisStatus == AnalysisStatus.IN_PROGRESS
+    );
+  }
+
+  /**
+   * Check if an analysis has finished.
+   *
+   * @param {AnalysisStatus} analysisStatus
+   * @returns {boolean}
+   */
+  static hasAnalysisFinished(analysisStatus) {
+    if (!analysisStatus) {
+      return true;
+    }
+    return !ShoppingProduct.isAnalysisInProgress(analysisStatus);
+  }
+
+  /**
+   * Check if an analysis has completed successfully.
+   * Status will be "not_found" if the current analysis is up-to-date.
+   *
+   * @param {AnalysisStatus} analysisStatus
+   * @returns {boolean}
+   */
+  static hasAnalysisCompleted(analysisStatus) {
+    if (!analysisStatus) {
+      return false;
+    }
+    return (
+      analysisStatus == AnalysisStatus.COMPLETED ||
+      analysisStatus == AnalysisStatus.NOT_FOUND
+    );
+  }
+
+  /**
+   * Check if an analysis has failed.
+   *
+   * @param {AnalysisStatus} analysisStatus
+   * @returns {boolean}
+   */
+  static hasAnalysisFailed(analysisStatus) {
+    if (!analysisStatus) {
+      return true;
+    }
+    return (
+      !ShoppingProduct.isAnalysisInProgress(analysisStatus) &&
+      !ShoppingProduct.hasAnalysisCompleted(analysisStatus)
     );
   }
 
@@ -553,6 +632,15 @@ export class ShoppingProduct extends EventEmitter {
   }
 
   /**
+   * The pollForAnalysisCompleted callback, called after each
+   * time the progress for an analysis is received.
+   *
+   * @callback progressCallback
+   * @param {number} progress
+   *   The progress of the current analysis for a product.
+   */
+
+  /**
    * Poll Analysis Status API until an analysis has finished.
    *
    * After an initial wait keep checking the api for results,
@@ -581,10 +669,12 @@ export class ShoppingProduct extends EventEmitter {
    * }
    * @param {object} options
    *  Override default API url and schema.
+   * @param {progressCallback} [callback]
+   *  Callback for analysis progress.
    * @returns {object} result
    *  Parsed JSON API result or null.
    */
-  async pollForAnalysisCompleted(options) {
+  async pollForAnalysisCompleted(options, callback) {
     let pollCount = 0;
     let initialWait = options?.pollInitialWait || API_POLL_INITIAL_WAIT;
     let pollTimeout = options?.pollTimeout || API_POLL_WAIT;
@@ -605,11 +695,9 @@ export class ShoppingProduct extends EventEmitter {
         result = await this.requestAnalysisCreationStatus(undefined, options);
         if (result?.progress) {
           this.emit("analysis-progress", result.progress);
+          callback && callback(result.progress);
         }
-        isFinished =
-          result &&
-          result.status != "pending" &&
-          result.status != "in_progress";
+        isFinished = ShoppingProduct.hasAnalysisFinished(result?.status);
       } catch (error) {
         console.error(error);
         return null;
