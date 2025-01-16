@@ -30,6 +30,8 @@ class nsBaseColorPicker : public nsIColorPicker {
   virtual nsresult InitNative(const nsTArray<nsString>& aDefaultColors) = 0;
   virtual nsresult OpenNative() = 0;
 
+  bool MaybeBlockColorPicker(nsIColorPickerShownCallback* aCallback);
+
   RefPtr<mozilla::dom::BrowsingContext> mBrowsingContext;
   nsString mTitle;
   nsString mInitialColor;
