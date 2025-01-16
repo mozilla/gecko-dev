@@ -26,5 +26,7 @@ EXTRA_JS_MODULES += [
     "ToolbarContextMenu.sys.mjs",
 ]
 
+SPHINX_TREES["docs"] = "docs"
+
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Toolbars and Customization")

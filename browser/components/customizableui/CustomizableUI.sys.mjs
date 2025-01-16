@@ -3751,8 +3751,10 @@ var CustomizableUIInternal = {
   },
 
   /**
-   * @param {String|Node} aWidget - widget ID or a widget node (preferred for performance).
-   * @return {Boolean} whether the widget is removable
+   * @param {string|Node} aWidget
+   *   Widget ID or a widget node (preferred for performance).
+   * @returns {boolean}
+   *   True if the widget is removable.
    */
   isWidgetRemovable(aWidget) {
     let widgetId;
@@ -4388,6 +4390,11 @@ var CustomizableUIInternal = {
 };
 Object.freeze(CustomizableUIInternal);
 
+/**
+ * This is the publicly exposed interface CustomizableUI. It uses old-school
+ * encapsulation by forwarding most method calls to CustomizableUIInternal,
+ * which is not exported.
+ */
 export var CustomizableUI = {
   /**
    * Constant reference to the ID of the navigation toolbar.
@@ -4488,110 +4495,282 @@ export var CustomizableUI = {
   },
 
   /**
+   * Fired when a widget is added to an area.
+   *
+   * @callback CustomizableUIOnWidgetAddedCallback
+   * @param {string} aWidgetId
+   *   The ID of the widget that was added to an area.
+   * @param {string} aArea
+   *   The ID of the area that the widget was added to.
+   * @param {number} aPosition
+   *   The position of the widget in the area that it was added to.
+   */
+
+  /**
+   * Fired when a widget is moved within its area.
+   *
+   * @callback CustomizableUIOnWidgetMovedCallback
+   * @param {string} aWidgetId
+   *   The ID of the widget that was moved.
+   * @param {string} aArea
+   *   The ID of the area that the widget was moved within.
+   * @param {number} aOldPosition
+   *   The original position of the widget before being moved.
+   * @param {number} aNewPosition
+   *   The new position of the widget after being moved.
+   */
+
+  /**
+   * Fired when a widget is removed from an area.
+   *
+   * @callback CustomizableUIOnWidgetRemovedCallback
+   * @param {string} aWidgetId
+   *   The ID of the widget that was removed.
+   * @param {string} aArea
+   *   The ID of the area that the widget was removed from.
+   */
+
+  /**
+   * Fired *before* a widget's DOM node is acted upon by CustomizableUI
+   * (to add, move or remove it).
+   *
+   * @callback CustomizableUIOnWidgetBeforeDOMChange
+   * @param {Element} aNode
+   *   The DOM node being acted upon.
+   * @param {Element|null} aNextNode
+   *   The DOM node (if any) before which a widget will be inserted.
+   * @param {Element} aContainer
+   *   The *actual* DOM container for the widget (could be an overflow panel in
+   *   case of an overflowable toolbar).
+   * @param {boolean} aWasRemoval
+   *   True iff the action about to happen is the removal of the DOM node.
+   */
+
+  /**
+   * Fired *after* a widget's DOM node is acted upon by CustomizableUI
+   * (to add, move or remove it).
+   *
+   * @callback CustomizableUIOnWidgetAfterDOMChange
+   * @param {Element} aNode
+   *   The DOM node that was acted upon.
+   * @param {Element|null} aNextNode
+   *   The DOM node (if any) that the widget was inserted before.
+   * @param {Element} aContainer
+   *   The *actual* DOM container for the widget (could be an overflow panel in
+   *   case of an overflowable toolbar).
+   * @param {boolean} aWasRemoval
+   *   True iff the action that happened was the removal of the DOM node.
+   */
+
+  /**
+   * Fired after a reset to default placements moves a widget's node to a
+   * different location.
+   *
+   * @callback CustomizableUIOnWidgetReset
+   * @param {Element} aNode
+   *   The DOM node for the widget that was moved.
+   * @param {Element} aContainer
+   *   The *actual* DOM container for the widget (could be an overflow panel in
+   *   case of an overflowable toolbar) after the reset. (NB: it might already
+   *   have been there and been moved to a different position!)
+   */
+
+  /**
+   * Fired after undoing a reset to default placements moves a widget's
+   * node to a different location.
+   *
+   * @callback CustomizableUIOnWidgetUndoMove
+   * @param {Element} aNode
+   *   The DOM node for the widget that was moved after the undo.
+   * @param {Element} aContainer
+   *   The *actual* DOM container for the widget (could be an overflow panel in
+   *   case of an overflowable toolbar) after the undo-move. (NB: it might
+   *   already have been there and been moved to a different position!)
+   */
+
+  /**
+   * Fired when a widget with id aWidgetId has been created, but before it
+   * is added to any placements or any DOM nodes have been constructed.
+   * Only fired for API-based widgets.
+   *
+   * @callback CustomizableUIOnWidgetCreated
+   * @param {string} aWidgetId
+   *   The ID of the widget that was created.
+   */
+
+  /**
+   * Fired after a reset to default placements is complete on an area's
+   * DOM node. Note that this is fired for each DOM node across all windows.
+   *
+   * @callback CustomizableUIOnAreaReset
+   * @param {string} aArea
+   *   The ID for the area that was reset.
+   * @param {Element} aContainer
+   *   The DOM node for the area that was reset.
+   */
+
+  /**
+   * Fired after a widget with id aWidgetId has been created, and has been
+   * added to either its default area or the area in which it was placed
+   * previously. If the widget has no default area and/or it has never
+   * been placed anywhere, aArea may be null. Only fired for API-based
+   * widgets.
+   *
+   * @callback CustomizableUIOnWidgetAfterCreation
+   * @param {string} aWidgetId
+   *   The ID of the widget that was just created.
+   * @param {string|null} aArea
+   *   The ID of the area that the widget was placed in, or null if it is
+   *   now in the customization palette.
+   */
+
+  /**
+   * Fired when a widget is destroyed. Only fired for API-based widgets.
+   *
+   * @callback CustomizableUIOnWidgetDestroyed
+   * @param {string} aWidgetId
+   *   The ID of the widget that was destroyed.
+   */
+
+  /**
+   * Fired when a window is unloaded and a widget's instance is destroyed
+   * because of this. Only fired for API-based widgets.
+   *
+   * @callback CustomizableUIOnWidgetInstanceRemoved
+   * @param {string} aWidgetId
+   *   The ID of the widget that was just removed.
+   * @param {Document} aDocument
+   *   The Document that the widget belonged to that was just unloaded.
+   */
+
+  /**
+   * Fired when entering customize mode in aWindow.
+   *
+   * @callback CustomizableUIOnCustomizeStart
+   * @param {DOMWindow} aWindow
+   *   The window in which customize mode was entered.
+   */
+
+  /**
+   * Fired when exiting customize mode in aWindow.
+   *
+   * @callback CustomizableUIOnCustomizeEnd
+   * @param {DOMWindow} aWindow
+   *   The window in which customize mode was exited.
+   */
+
+  /**
+   * Fired when a widget's DOM node is overflowing its toolbar and will be
+   * displayed in an overflow panel.
+   *
+   * @callback CustomizableUIOnWidgetOverflow
+   * @param {Element} aNode
+   *   The DOM node for the widget that overflowed.
+   * @param {Element} aContainer
+   *   The DOM container that the widget just overflowed out of.
+   */
+
+  /**
+   * Fired when a widget that was overflowed out of its toolbar container
+   * "underflows" back.
+   *
+   * @callback CustomizableUIOnWidgetUnderflow
+   * @param {Element} aNode
+   *   The DOM node for the widget that had overflowed out.
+   * @param {Element} aContainer
+   *   The DOM container that the widget is underflowing back into.
+   */
+
+  /**
+   * Fired when a window has been opened that is managed by CustomizableUI,
+   * once all of the prerequisite setup has been done.
+   *
+   * @callback CustomizableUIOnWindowOpened
+   * @param {DOMWindow} aWindow
+   *   The window that opened.
+   */
+
+  /**
+   * Fired when a window that has been managed by CustomizableUI has been
+   * closed.
+   *
+   * @callback CustomizableUIOnWindowClosed
+   * @param {DOMWindow} aWindow
+   *   The window that closed.
+   */
+
+  /**
+   * Fired after an area node is first built when it is registered. This is
+   * often when the window has opened, but in the case of add-ons, could fire
+   * when the node has just been registered with CustomizableUI after an add-on
+   * update or disable/enable sequence.
+   *
+   * @callback CustomizableUIOnAreaNodeRegistered
+   * @param {string} aArea
+   *   The ID for the area that was just registered.
+   * @param {Element} aContainer
+   *   The DOM node for the customizable area.
+   */
+
+  /**
+   * Fired when an area node is explicitly unregistered by an API caller, or by
+   * a window closing. The aReason parameter indicates which of these is the
+   * case.
+   *
+   * @callback CustomizableUIOnAreaNodeUnregistered
+   * @param {string} aArea
+   *   The ID for the area that was just registered.
+   * @param {Element} aContainer
+   *   The DOM node for the customizable area.
+   * @param {string} aReason
+   *   One of either CustomizableUI.REASON_WINDOW_CLOSED or
+   *   CustomizableUI.REASON_AREA_UNREGISTERED.
+   */
+
+  /**
+   * @typedef {object} CustomizableUIListener
+   * @property {CustomizableUIOnWidgetAddedCallback} [onWidgetAdded]
+   * @property {CustomizableUIOnWidgetMovedCallback} [onWidgetMoved]
+   * @property {CustomizableUIOnWidgetRemovedCallback} [onWidgetRemoved]
+   * @property {CustomizableUIOnWidgetBeforeDOMChange} [onWidgetBeforeDOMChange]
+   * @property {CustomizableUIOnWidgetAfterDOMChange} [onWidgetAfterDOMChange]
+   * @property {CustomizableUIOnWidgetReset} [onWidgetReset]
+   * @property {CustomizableUIOnWidgetUndoMove} [onWidgetUndoMove]
+   * @property {CustomizableUIOnWidgetCreated} [onWidgetCreated]
+   * @property {CustomizableUIOnAreaReset} [onAreaReset]
+   * @property {CustomizableUIOnWidgetAfterCreation} [onWidgetAfterCreation]
+   * @property {CustomizableUIOnWidgetDestroyed} [onWidgetDestroyed]
+   * @property {CustomizableUIOnWidgetInstanceRemoved} [onWidgetInstanceRemoved]
+   * @property {CustomizableUIOnWidgetDrag} [onWidgetDrag]
+   * @property {CustomizableUIOnCustomizeStart} [onCustomizeStart]
+   * @property {CustomizableUIOnCustomizeEnd} [onCustomizeEnd]
+   * @property {CustomizableUIOnWidgetOverflow} [onWidgetOverflow]
+   * @property {CustomizableUIOnWindowOpened} [onWindowOpened]
+   * @property {CustomizableUIOnWindowClosed} [onWindowClosed]
+   * @property {CustomizableUIOnAreaNodeRegistered} [onAreaNodeRegistered]
+   * @property {CustomizableUIOnAreaNodeUnregistered} [onAreaNodeUnregistered]
+   */
+
+  /**
    * Add a listener object that will get fired for various events regarding
-   * customization.
+   * window, area, and window lifetimes / events, as well as customization
+   * events.
    *
-   * @param aListener the listener object to add
-   *
-   * Not all event handler methods need to be defined.
-   * CustomizableUI will catch exceptions. Events are dispatched
-   * synchronously on the UI thread, so if you can delay any/some of your
-   * processing, that is advisable. The following event handlers are supported:
-   *   - onWidgetAdded(aWidgetId, aArea, aPosition)
-   *     Fired when a widget is added to an area. aWidgetId is the widget that
-   *     was added, aArea the area it was added to, and aPosition the position
-   *     in which it was added.
-   *   - onWidgetMoved(aWidgetId, aArea, aOldPosition, aNewPosition)
-   *     Fired when a widget is moved within its area. aWidgetId is the widget
-   *     that was moved, aArea the area it was moved in, aOldPosition its old
-   *     position, and aNewPosition its new position.
-   *   - onWidgetRemoved(aWidgetId, aArea)
-   *     Fired when a widget is removed from its area. aWidgetId is the widget
-   *     that was removed, aArea the area it was removed from.
-   *
-   *   - onWidgetBeforeDOMChange(aNode, aNextNode, aContainer, aIsRemoval)
-   *     Fired *before* a widget's DOM node is acted upon by CustomizableUI
-   *     (to add, move or remove it). aNode is the DOM node changed, aNextNode
-   *     the DOM node (if any) before which a widget will be inserted,
-   *     aContainer the *actual* DOM container (could be an overflow panel in
-   *     case of an overflowable toolbar), and aWasRemoval is true iff the
-   *     action about to happen is the removal of the DOM node.
-   *   - onWidgetAfterDOMChange(aNode, aNextNode, aContainer, aWasRemoval)
-   *     Like onWidgetBeforeDOMChange, but fired after the change to the DOM
-   *     node of the widget.
-   *
-   *   - onWidgetReset(aNode, aContainer)
-   *     Fired after a reset to default placements moves a widget's node to a
-   *     different location. aNode is the widget's node, aContainer is the
-   *     area it was moved into (NB: it might already have been there and been
-   *     moved to a different position!)
-   *   - onWidgetUndoMove(aNode, aContainer)
-   *     Fired after undoing a reset to default placements moves a widget's
-   *     node to a different location. aNode is the widget's node, aContainer
-   *     is the area it was moved into (NB: it might already have been there
-   *     and been moved to a different position!)
-   *   - onAreaReset(aArea, aContainer)
-   *     Fired after a reset to default placements is complete on an area's
-   *     DOM node. Note that this is fired for each DOM node. aArea is the area
-   *     that was reset, aContainer the DOM node that was reset.
-   *
-   *   - onWidgetCreated(aWidgetId)
-   *     Fired when a widget with id aWidgetId has been created, but before it
-   *     is added to any placements or any DOM nodes have been constructed.
-   *     Only fired for API-based widgets.
-   *   - onWidgetAfterCreation(aWidgetId, aArea)
-   *     Fired after a widget with id aWidgetId has been created, and has been
-   *     added to either its default area or the area in which it was placed
-   *     previously. If the widget has no default area and/or it has never
-   *     been placed anywhere, aArea may be null. Only fired for API-based
-   *     widgets.
-   *   - onWidgetDestroyed(aWidgetId)
-   *     Fired when widgets are destroyed. aWidgetId is the widget that is
-   *     being destroyed. Only fired for API-based widgets.
-   *   - onWidgetInstanceRemoved(aWidgetId, aDocument)
-   *     Fired when a window is unloaded and a widget's instance is destroyed
-   *     because of this. Only fired for API-based widgets.
-   *
-   *   - onWidgetDrag(aWidgetId, aArea)
-   *     Fired both when and after customize mode drag handling system tries
-   *     to determine the width and height of widget aWidgetId when dragged to a
-   *     different area. aArea will be the area the item is dragged to, or
-   *     undefined after the measurements have been done and the node has been
-   *     moved back to its 'regular' area.
-   *
-   *   - onCustomizeStart(aWindow)
-   *     Fired when opening customize mode in aWindow.
-   *   - onCustomizeEnd(aWindow)
-   *     Fired when exiting customize mode in aWindow.
-   *
-   *   - onWidgetOverflow(aNode, aContainer)
-   *     Fired when a widget's DOM node is overflowing its container, a toolbar,
-   *     and will be displayed in the overflow panel.
-   *   - onWidgetUnderflow(aNode, aContainer)
-   *     Fired when a widget's DOM node is *not* overflowing its container, a
-   *     toolbar, anymore.
-   *   - onWindowOpened(aWindow)
-   *     Fired when a window has been opened that is managed by CustomizableUI,
-   *     once all of the prerequisite setup has been done.
-   *   - onWindowClosed(aWindow)
-   *     Fired when a window that has been managed by CustomizableUI has been
-   *     closed.
-   *   - onAreaNodeRegistered(aArea, aContainer)
-   *     Fired after an area node is first built when it is registered. This
-   *     is often when the window has opened, but in the case of add-ons,
-   *     could fire when the node has just been registered with CustomizableUI
-   *     after an add-on update or disable/enable sequence.
-   *   - onAreaNodeUnregistered(aArea, aContainer, aReason)
-   *     Fired when an area node is explicitly unregistered by an API caller,
-   *     or by a window closing. The aReason parameter indicates which of
-   *     these is the case.
+   * @param {CustomizableUIListener} aListener
+   *   The listener object to add. Not all event handler methods need to be
+   *   defined. CustomizableUI will catch exceptions. Events are dispatched
+   *   synchronously on the UI thread, so if you can delay any/some of your
+   *   processing, that is advisable.
    */
   addListener(aListener) {
     CustomizableUIInternal.addListener(aListener);
   },
+
   /**
-   * Remove a listener added with addListener
-   * @param aListener the listener object to remove
+   * Remove a listener that was previously added with addListener.
+   *
+   * @param {CustomizableUIListener} aListener
+   *   The listener object to remove.
    */
   removeListener(aListener) {
     CustomizableUIInternal.removeListener(aListener);
@@ -4599,23 +4778,28 @@ export var CustomizableUI = {
 
   /**
    * Register a customizable area with CustomizableUI.
-   * @param aName   the name of the area to register. Can only contain
-   *                alphanumeric characters, dashes (-) and underscores (_).
-   * @param aProps  the properties of the area. The following properties are
-   *                recognized:
-   *                - type:   the type of area. Either TYPE_TOOLBAR (default) or
-   *                          TYPE_PANEL;
-   *                - anchor: for a menu panel or overflowable toolbar, the
-   *                          anchoring node for the panel.
-   *                - overflowable: set to true if your toolbar is overflowable.
-   *                                This requires an anchor, and only has an
-   *                                effect for toolbars.
-   *                - defaultPlacements: an array of widget IDs making up the
-   *                                     default contents of the area
-   *                - defaultCollapsed: (INTERNAL ONLY) applies if the type is TYPE_TOOLBAR, specifies
-   *                                    if toolbar is collapsed by default (default to true).
-   *                                    Specify null to ensure that reset/inDefaultArea don't care
-   *                                    about a toolbar's collapsed state
+   *
+   * @param {string} aName
+   *   The name of the area to register. Can only contain alphanumeric
+   *   characters, dashes (-) and underscores (_).
+   * @param {object} aProperties
+   *   The properties of the area to register.
+   * @param {string} [aProperties.type=CustomizableUI.TYPE_TOOLBAR]
+   *   The type of area being registered. Either CustomizableUI.TYPE_TOOLBAR
+   *   (default) or CustomizableUI.TYPE_PANEL.
+   * @param {Element|undefined} [aProperties.anchor]
+   *   For a menu panel or overflowable toolbar area, the anchoring node for the
+   *   panel.
+   * @param {boolean} [aProperties.overflowable]
+   *   Set to true if your toolbar is overflowable. This requires an anchor, and
+   *   only has an effect for toolbars.
+   * @param {string[]} [aProperties.defaultPlacements]
+   *   An array of widget IDs making up the default contents of the area.
+   * @param {boolean|null} [aProperties.defaultCollapsed=true]
+   *   (INTERNAL ONLY) applies if the type is CustomizableUI.TYPE_TOOLBAR,
+   *   specifies if the toolbar is collapsed by default (defaults to true).
+   *   Specify `null` to ensure that reset/inDefaultArea don't care
+   *   about a toolbar's collapsed state
    */
   registerArea(aName, aProperties) {
     CustomizableUIInternal.registerArea(aName, aProperties);
@@ -4639,8 +4823,10 @@ export var CustomizableUI = {
    * terms of what items can be moved into it. For example, a panel cannot have a
    * spacer or a spring put into it.
    *
-   * @param aPanelContents the panel contents DOM node being registered.
-   * @param aArea the area for which to register this node.
+   * @param {Element} aNode
+   *   The panel contents DOM node being registered.
+   * @param {string} aArea
+   *   The name of the area for which to register this node.
    */
   registerPanelNode(aNode, aArea) {
     CustomizableUIInternal.registerPanelNode(aNode, aArea);
@@ -4662,9 +4848,11 @@ export var CustomizableUI = {
    * You can override this last behaviour (and destroy the placements
    * information in the saved state) by passing true for aDestroyPlacements.
    *
-   * @param aName              the name of the area to unregister
-   * @param aDestroyPlacements whether to destroy the placements information
-   *                           for the area, too.
+   * @param {string} aName
+   *   The name of the area to unregister.
+   * @param {boolean} [aDestroyPlacements]
+   *   True if the placements information for the area should be destroyed
+   *   too. Defaults to not destroying the placements information.
    */
   unregisterArea(aName, aDestroyPlacements) {
     CustomizableUIInternal.unregisterArea(aName, aDestroyPlacements);
@@ -4683,11 +4871,13 @@ export var CustomizableUI = {
    * and an onWidgetBeforeDOMChange and onWidgetAfterDOMChange notification
    * for each window CustomizableUI knows about.
    *
-   * @param aWidgetId the ID of the widget to add
-   * @param aArea     the ID of the area to add the widget to
-   * @param aPosition the position at which to add the widget. If you do not
-   *                  pass a position, the widget will be added to the end
-   *                  of the area.
+   * @param {string} aWidgetId
+   *   The ID of the widget to add to the area.
+   * @param {string} aArea
+   *   The name of the area to add the widget to.
+   * @param {number} [aPosition]
+   *   The position at which to add the widget. If you do not pass a position,
+   *   the widget will be added to the end of the area.
    */
   addWidgetToArea(aWidgetId, aArea, aPosition) {
     CustomizableUIInternal.addWidgetToArea(aWidgetId, aArea, aPosition);
@@ -4699,7 +4889,8 @@ export var CustomizableUI = {
    * onWidgetAfterDOMChange notification for each window CustomizableUI knows
    * about.
    *
-   * @param aWidgetId the ID of the widget to remove
+   * @param {string} aWidgetId
+   *   The ID of the widget to remove from its area.
    */
   removeWidgetFromArea(aWidgetId) {
     CustomizableUIInternal.removeWidgetFromArea(aWidgetId);
@@ -4713,11 +4904,12 @@ export var CustomizableUI = {
    * and an onWidgetBeforeDOMChange and onWidgetAfterDOMChange notification for
    * each window CustomizableUI knows about.
    *
-   * @param aWidgetId the ID of the widget to move
-   * @param aPosition the position to move the widget to.
-   *                  Negative values or values greater than the number of
-   *                  widgets will be interpreted to mean moving the widget to
-   *                  respectively the first or last position.
+   * @param {string} aWidgetId
+   *   The ID of the widget to move.
+   * @param {number} aPosition
+   *   The position to move the widget to. Negative values or values greater
+   *   than the number of widgets will be interpreted to mean moving the widget
+   *   to respectively the first or last position.
    */
   moveWidgetWithinArea(aWidgetId, aPosition) {
     CustomizableUIInternal.moveWidgetWithinArea(aWidgetId, aPosition);
@@ -4727,12 +4919,14 @@ export var CustomizableUI = {
    * initialized moves to its correct position.
    * Always prefer this over moving items in the DOM yourself.
    *
-   * @param aWidgetId the ID of the widget that was just created
-   * @param aWindow the window in which you want to ensure it was added.
-   *
    * NB: why is this API per-window, you wonder? Because if you need this,
    * presumably you yourself need to create the widget in all the windows
    * and need to loop through them anyway.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the widget that was just created.
+   * @param {DOMWindow} aWindow
+   *   The window in which you want to ensure it was added.
    */
   ensureWidgetPlacedInWindow(aWidgetId, aWindow) {
     return CustomizableUIInternal.ensureWidgetPlacedInWindow(
@@ -4764,126 +4958,205 @@ export var CustomizableUI = {
    * beginBatchUpdate call). If any of the endBatchUpdate calls pass
    * aForceDirty=true, we will flush to the prefs file.
    *
-   * @param aForceDirty force CustomizableUI to flush to the prefs file when
-   *                    all batch updates have finished.
+   * @param {boolean} [aForceDirty=false]
+   *   Force CustomizableUI to flush to the prefs file when all batch updates
+   *   have finished. Defaults to false.
    */
-  endBatchUpdate(aForceDirty) {
+  endBatchUpdate(aForceDirty = false) {
     CustomizableUIInternal.endBatchUpdate(aForceDirty);
   },
+
+  /**
+   * A function that will be invoked with the document in which to build a
+   * widget. Should return the DOM node that has been constructed.
+   *
+   * @callback CustomizableUICreateWidgetOnBuild
+   * @param {Document} aDoc
+   *   The document to create the widget in.
+   * @returns {Element}
+   *   The DOM node that was constructed for the widget.
+   */
+
+  /**
+   * Invoked before the widget gets a DOM node constructed for it, passing the
+   * document in which that will happen. This is useful especially for 'view'
+   * type widgets that need to construct their views on the fly (e.g. from
+   * bootstrapped add-ons). If the function returns `false`, the widget will
+   * not be created.
+   *
+   * @callback CustomizableUICreateWidgetOnBeforeCreated
+   * @param {Document} aDoc
+   *   The document that the widget might be created in.
+   * @returns {boolean}
+   *   True if the widget should be created.
+   */
+
+  /**
+   * A function that will be invoked whenever the widget has a DOM node
+   * constructed, passing the constructed node as an argument.
+   *
+   * @callback CustomizableUICreateWidgetOnCreated
+   * @param {Element} aNode
+   *   The DOM node that was constructed for the widget in a document.
+   */
+
+  /**
+   * A function that will be invoked after the widget has a DOM node destroyed,
+   * passing the document from which it was removed. This is useful especially
+   * for 'view' type widgets that need to cleanup after views that were
+   * constructed on the fly.
+   *
+   * @callback CustomizableUICreateWidgetOnDestroyed
+   * @param {Document} aDoc
+   *   The document that the widget was destroyed in.
+   */
+
+  /**
+   * A function that will be invoked when the user activates the button but
+   * before the command is evaluated. Useful if code needs to run to change the
+   * button's icon in preparation to the pending command action. Called for any
+   * type that supports the handler.  The command type, either "view" or
+   * "command", may be returned to force the action that will occur.  View will
+   * open the panel and command will result in calling onCommand.
+   *
+   * @callback CustomizableUICreateWidgetOnBeforeCommand
+   * @param {Event} aEvent
+   *   The command event that occurred on the button.
+   * @param {Element} aNode
+   *   The element upon which the command event occurred.
+   * @returns {string}
+   *   One of "action" or "view".
+   */
+
+  /**
+   * Useful for custom, button and button-and-view widgets; a function that will
+   * be invoked when the user activates the button.
+   *
+   * @callback CustomizableUICreateWidgetOnCommand
+   * @param {Event} aEvent
+   *   The command event that was fired for the node.
+   */
+
+  /**
+   * A function that will be invoked when the user clicks a widget node.
+   *
+   * @callback CustomizableUICreateWidgetOnClick
+   * @param {Event} aEvent
+   *   The click event that was fired for the widget node.
+   */
+
+  /**
+   * A function that will be invoked when a user shows your view. If any event
+   * handler calls aEvt.preventDefault(), the view will not be shown.
+   *
+   * The event's `detail` property is an object with an `addBlocker` method.
+   * Handlers which need to perform asynchronous operations before the view is
+   * shown may pass this method a Promise, which will prevent the view from
+   * showing until it resolves. Additionally, if the promise resolves to the
+   * exact value `false`, the view will not be shown.
+   *
+   * @callback CustomizableUICreateWidgetOnViewShowing
+   * @param {Event} aEvent
+   *   The ViewShowing event. See PanelMultiView.sys.mjs.
+   */
+
+  /**
+   * A function that will be invoked when a user hides your view.
+   *
+   * @callback CustomizableUICreateWidgetOnViewHiding
+   * @param {Event} aEvent
+   *   The ViewHiding event. See PanelMultiView.sys.mjs.
+   */
+
+  /**
+   * @typedef {object} CustomizableUICreateWidgetProperties
+   * @property {string} id
+   *   The ID of the widget to be created.
+   * @property {string} [type="button"]
+   *   The type of widget to create. The valid types are:
+   *     'button' - for simple button widgets (the default)
+   *     'view'   - for buttons that open a panel or subview,
+   *                depending on where they are placed.
+   *     'button-and-view' - A combination of 'button' and 'view',
+   *                which looks different depending on whether it's
+   *                located in the toolbar or in the panel: When
+   *                located in the toolbar, the widget is shown as
+   *                a combined item of a button and a dropmarker
+   *                button. The button triggers the command and the
+   *                dropmarker button opens the view. When located
+   *                in the panel, shown as one item which opens the
+   *                view, and the button command cannot be
+   *                triggered separately.
+   *     'custom' - for fine-grained control over the creation
+   *                of the widget.
+   * @property {string} [viewId]
+   *   Only useful for views and button-and-view widgets (and required in those
+   *   cases). Should be set to the id of the <panelview> that should be shown
+   *   when clicking the widget.  If used with a custom widget, the widget must
+   *   also provide a toolbaritem where the first child is the view button.
+   * @property {CustomizableUICreateWidgetOnBuild} [onBuild]
+   *   Only useful for custom widgets (and required there).
+   * @property {CustomizableUICreateWidgetOnBeforeCreated} [onBeforeCreated]
+   *   Called for all button and non-custom widgets.
+   * @property {CustomizableUICreateWidgetOnCreated} [onCreated]
+   * @property {CustomizableUICreateWidgetOnDestroyed} [onDestroyed]
+   * @property {CustomizableUICreateWidgetOnBeforeCommand} [onBeforeCommand]
+   * @property {CustomizableUICreateWidgetOnCommand} [onCommand]
+   * @property {CustomizableUICreateWidgetOnClick} [onClick]
+   * @property {CustomizableUICreateWidgetOnViewShowing} [onViewShowing]
+   *   Only useful for view and button-and-view widgets.
+   * @property {CustomizableUICreateWidgetOnViewHiding} [onViewHiding]
+   *   Only useful for view and button-and-view widgets.
+   * @property {string} [l10nId]
+   *   A Fluent string identifier to use for localizing attributes on the
+   *   widget. If present, preferred over the label/tooltiptext parameters.
+   * @property {string} [tooltiptext]
+   *   **Deprecated** - use l10nId and Fluent instead. A string to use for the
+   *   tooltip of the widget.
+   * @property {string} [label]
+   *   **Deprecated** - use l10nId and Fluent instead. A string to use for the
+   *   label of the widget.
+   * @property {string} [localized]
+   *   **Deprecated** - use l10nId and Fluent instead. If true, or undefined,
+   *   attempt to retrieve the widget's string properties from the customizable
+   *   widgets string bundle.
+   * @property {boolean} [removable=true]
+   *   Whether the widget can be removed from a customizable area.
+   *   Note: if you specify false here, you must provide a defaultArea, too.
+   * @property {boolean} [overflows=true]
+   *   Whether widget can overflow when placed within an overflowable toolbar.
+   * @property {string} [defaultArea]
+   *   The default area to add the widget to. If not supplied, this widget will
+   *   be placed in the palette by default. A valid default area is required if
+   *   the widget is not removable.
+   * @property {string} [shortcutId]
+   *   The id of an element that has a shortcut for this widget. This is only
+   *   used to display the shortcut as part of the tooltip for builtin widgets
+   *   (which have strings inside customizableWidgets.properties). If you're in
+   *   an add-on, you should not set this property. If l10nId is provided, the
+   *   resulting shortcut is passed as the "$shortcut" variable to the Fluent
+   *   message.
+   * @property {boolean} [showInPrivateBrowsing=true]
+   *   True to show the widget in private browsing mode windows.
+   * @property {boolean} [hideInNonPrivateBrowsing=false]
+   *   True to hide the widget in non-private browsing mode windows.
+   * @property {boolean} [tabSpecific]
+   *   True to close any widget view panels if the selected tab changes.
+   * @property {boolean} [locationSpecific]
+   *   True to close any widget view panels if the location changes.
+   * @property {boolean} [webExtension]
+   *   True if this widget is being created on behalf of a WebExtension.
+   */
+
   /**
    * Create a widget.
    *
    * To create a widget, you should pass an object with its desired
-   * properties. The following properties are supported:
+   * properties.
    *
-   * - id:            the ID of the widget (required).
-   * - type:          a string indicating the type of widget. Possible types
-   *                  are:
-   *                  'button' - for simple button widgets (the default)
-   *                  'view'   - for buttons that open a panel or subview,
-   *                             depending on where they are placed.
-   *                  'button-and-view' - A combination of 'button' and 'view',
-   *                             which looks different depending on whether it's
-   *                             located in the toolbar or in the panel: When
-   *                             located in the toolbar, the widget is shown as
-   *                             a combined item of a button and a dropmarker
-   *                             button. The button triggers the command and the
-   *                             dropmarker button opens the view. When located
-   *                             in the panel, shown as one item which opens the
-   *                             view, and the button command cannot be
-   *                             triggered separately.
-   *                  'custom' - for fine-grained control over the creation
-   *                             of the widget.
-   * - viewId:        Only useful for views and button-and-view widgets (and
-   *                  required there): the id of the <panelview> that should be
-   *                  shown when clicking the widget.  If used with a custom
-   *                  widget, the widget must also provide a toolbaritem where
-   *                  the first child is the view button.
-   * - onBuild(aDoc): Only useful for custom widgets (and required there); a
-   *                  function that will be invoked with the document in which
-   *                  to build a widget. Should return the DOM node that has
-   *                  been constructed.
-   * - onBeforeCreated(aDoc): Attached to all non-custom widgets; a function
-   *                  that will be invoked before the widget gets a DOM node
-   *                  constructed, passing the document in which that will happen.
-   *                  This is useful especially for 'view' type widgets that need
-   *                  to construct their views on the fly (e.g. from bootstrapped
-   *                  add-ons). If the function returns `false`, the widget will
-   *                  not be created.
-   * - onCreated(aNode): Attached to all widgets; a function that will be invoked
-   *                  whenever the widget has a DOM node constructed, passing the
-   *                  constructed node as an argument.
-   * - onDestroyed(aDoc): Attached to all non-custom widgets; a function that
-   *                  will be invoked after the widget has a DOM node destroyed,
-   *                  passing the document from which it was removed. This is
-   *                  useful especially for 'view' type widgets that need to
-   *                  cleanup after views that were constructed on the fly.
-   * - onBeforeCommand(aEvt, aNode): A function that will be invoked when the user
-   *                          activates the button but before the command
-   *                          is evaluated. Useful if code needs to run to
-   *                          change the button's icon in preparation to the
-   *                          pending command action. Called for any type that
-   *                          supports the handler.  The command type, either
-   *                          "view" or "command", may be returned to force the
-   *                          action that will occur.  View will open the panel
-   *                          and command will result in calling onCommand.
-   * - onCommand(aEvt): Useful for custom, button and button-and-view widgets; a
-   *                    function that will be invoked when the user activates
-   *                    the button. A custom widget with a view should
-   *                    return "view" or "command" to continue processing
-   *                    the command per the needs of the widget.
-   * - onClick(aEvt): Attached to all widgets; a function that will be invoked
-   *                  when the user clicks the widget.
-   * - onViewShowing(aEvt): Only useful for views and button-and-view widgets; a
-   *                  function that will be invoked when a user shows your view.
-   *                  If any event handler calls aEvt.preventDefault(), the view
-   *                  will not be shown.
-   *
-   *                  The event's `detail` property is an object with an
-   *                  `addBlocker` method. Handlers which need to
-   *                  perform asynchronous operations before the view is
-   *                  shown may pass this method a Promise, which will
-   *                  prevent the view from showing until it resolves.
-   *                  Additionally, if the promise resolves to the exact
-   *                  value `false`, the view will not be shown.
-   * - onViewHiding(aEvt): Only useful for views; a function that will be
-   *                  invoked when a user hides your view.
-   * - l10nId:        fluent string identifier to use for localizing attributes
-   *                  on the widget. If present, preferred over the
-   *                  label/tooltiptext.
-   * - tooltiptext:   string to use for the tooltip of the widget
-   * - label:         string to use for the label of the widget
-   * - localized:     If true, or undefined, attempt to retrieve the
-   *                  widget's string properties from the customizable
-   *                  widgets string bundle.
-   * - removable:     whether the widget is removable (optional, default: true)
-   *                  NB: if you specify false here, you must provide a
-   *                  defaultArea, too.
-   * - overflows:     whether widget can overflow when in an overflowable
-   *                  toolbar (optional, default: true)
-   * - defaultArea:   default area to add the widget to
-   *                  (optional, default: none; required if non-removable)
-   * - shortcutId:    id of an element that has a shortcut for this widget
-   *                  (optional, default: null). This is only used to display
-   *                  the shortcut as part of the tooltip for builtin widgets
-   *                  (which have strings inside
-   *                  customizableWidgets.properties). If you're in an add-on,
-   *                  you should not set this property.
-   *                  If l10nId is provided, the resulting shortcut is passed
-   *                  as the "$shortcut" variable to the fluent message.
-   * - showInPrivateBrowsing: whether to show the widget in private browsing
-   *                          mode (optional, default: true)
-   * - hideInNonPrivateBrowsing: whether to hide the widget in non private
-   *                             browsing mode windows (optional, default: false)
-   * - tabSpecific:      If true, closes the panel if the tab changes.
-   * - locationSpecific: If true, closes the panel if the location changes.
-   *                     This is similar to tabSpecific, but also if the location
-   *                     changes in the same tab, we may want to close the panel.
-   * - webExtension:  Set to true if this widget is being created on behalf of an
-   *                  extension.
-   *
-   * @param aProperties the specifications for the widget.
-   * @return a wrapper around the created widget (see getWidget)
+   * @param {CustomizableUICreateWidgetProperties} aProperties
+   *   The properties for the widget to be created.
+   * @returns {WidgetGroupWrapper|XULWidgetGroupWrapper}
    */
   createWidget(aProperties) {
     return CustomizableUIInternal.wrapWidget(
@@ -4899,7 +5172,8 @@ export var CustomizableUI = {
    * in at the time. You can remove it from there yourself by calling
    * CustomizableUI.removeWidgetFromArea(aWidgetId).
    *
-   * @param aWidgetId the ID of the widget to destroy
+   * @param {string} aWidgetId
+   *   The ID of the widget to destroy.
    */
   destroyWidget(aWidgetId) {
     CustomizableUIInternal.destroyWidget(aWidgetId);
@@ -4960,11 +5234,13 @@ export var CustomizableUI = {
    *                  you may prefer to use the group wrapper's getter/setter
    *                  instead.
    *
-   * @param aWidgetId the ID of the widget whose information you need
-   * @return a wrapper around the widget as described above, or null if the
-   *         widget is known not to exist (anymore). NB: non-null return
-   *         is no guarantee the widget exists because we cannot know in
-   *         advance if a XUL widget exists or not.
+   * @param {string} aWidgetId
+   *   The ID of the widget whose information you need.
+   * @returns {WidgetGroupWrapper|XULWidgetGroupWrapper|null}
+   *   A wrapper around the widget as described above, or null if the widget is
+   *   known not to exist (anymore). NB: A non-null return is no guarantee the
+   *   widget exists because we cannot know in advance if a XUL widget exists or
+   *   not.
    */
   getWidget(aWidgetId) {
     return CustomizableUIInternal.wrapWidget(aWidgetId);
@@ -4973,15 +5249,14 @@ export var CustomizableUI = {
    * Get an array of widget wrappers (see getWidget) for all the widgets
    * which are currently not in any area (so which are in the palette).
    *
-   * @param aWindowPalette the palette (and by extension, the window) in which
-   *                       CustomizableUI should look. This matters because of
-   *                       course XUL-provided widgets could be available in
-   *                       some windows but not others, and likewise
-   *                       API-provided widgets might not exist in a private
-   *                       window (because of the showInPrivateBrowsing
-   *                       property).
-   *
-   * @return an array of widget wrappers (see getWidget)
+   * @param {DOMElement} aWindowPalette
+   *   The palette element (and by extension, the window) in which
+   *   CustomizableUI should look. This matters because of course XUL-provided
+   *   widgets could be available in some windows but not others, and likewise
+   *   API-provided widgets might not exist in a private window (because of the
+   *   showInPrivateBrowsing property).
+   * @returns {WidgetGroupWrapper[]|XULWidgetGroupWrapper[]}
+   *   An array of widget wrappers (see getWidget)
    */
   getUnusedWidgets(aWindowPalette) {
     return CustomizableUIInternal.getUnusedWidgets(aWindowPalette).map(
@@ -4993,11 +5268,13 @@ export var CustomizableUI = {
    * Get an array of all the widget IDs placed in an area.
    * Modifying the array will not affect CustomizableUI.
    *
-   * @param aArea the ID of the area whose placements you want to obtain.
-   * @return an array containing the widget IDs that are in the area.
-   *
    * NB: will throw if called too early (before placements have been fetched)
    *     or if the area is not currently known to CustomizableUI.
+   *
+   * @param {string} aArea
+   *   The name of the area whose placements you want to obtain.
+   * @returns {string[]}
+   *   An array containing the widget IDs that are in the area.
    */
   getWidgetIdsInArea(aArea) {
     if (!gAreas.has(aArea)) {
@@ -5014,9 +5291,11 @@ export var CustomizableUI = {
    * Get an array of all the widget IDs in the default placements for an area.
    * Modifying the array will not affect CustomizableUI.
    *
-   * @param aArea the ID of the area whose default placements you want to obtain.
-   * @return an array containing the widget IDs that are in the default placements for that area.
-   *
+   * @param {string} aArea
+   *   The ID of the area whose default placements you want to obtain.
+   * @returns {string[]}
+   *   An array containing the widget IDs that are in the default placements for
+   *   that area.
    */
   getDefaultPlacementsForArea(aArea) {
     return [...gAreas.get(aArea).get("defaultPlacements")];
@@ -5028,9 +5307,11 @@ export var CustomizableUI = {
    * which don't have corresponding DOM nodes, there might be nulls in this array,
    * or items for which wrapper.forWindow(win) will return null.
    *
-   * @param aArea the ID of the area whose widgets you want to obtain.
-   * @return an array of widget wrappers and/or null values for the widget IDs
-   *         placed in an area.
+   * @param {string} aArea
+   *   The ID of the area whose widgets you want to obtain.
+   * @returns {Array<WidgetGroupWrapper|XULWidgetGroupWrapper|null>}
+   *   An array of widget wrappers and/or null values for the widget IDs
+   *   placed in an area.
    *
    * NB: will throw if called too early (before placements have been fetched)
    *     or if the area is not currently known to CustomizableUI.
@@ -5046,8 +5327,9 @@ export var CustomizableUI = {
    * Ensure the customizable widget that matches up with this view node
    * will get the right subview showing/shown/hiding/hidden events when
    * they fire.
-   * @param aViewNode the view node to add listeners to if they haven't
-   *                  been added already.
+   *
+   * @param {Element} aViewNode
+   *   The view node to add listeners to if they haven't been added already.
    */
   ensureSubviewListeners(aViewNode) {
     return CustomizableUIInternal.ensureSubviewListeners(aViewNode);
@@ -5066,9 +5348,11 @@ export var CustomizableUI = {
    * on its location. Note that widget wrappers have a convenience getter
    * property (areaType) for this purpose.
    *
-   * @param aArea the ID of the area whose type you want to know
-   * @return TYPE_TOOLBAR or TYPE_PANEL depending on the area, null if
-   *         the area is unknown.
+   * @param {string} aArea
+   *   The ID of the area whose type you want to know
+   * @returns {string}
+   *   Returns CustomizableUI.TYPE_TOOLBAR or CustomizableUI.TYPE_PANEL
+   *   depending on the area, null if the area is unknown.
    */
   getAreaType(aArea) {
     let area = gAreas.get(aArea);
@@ -5077,9 +5361,12 @@ export var CustomizableUI = {
   /**
    * Check if a toolbar is collapsed by default.
    *
-   * @param aArea the ID of the area whose default-collapsed state you want to know.
-   * @return `true` or `false` depending on the area, null if the area is unknown,
-   *         or its collapsed state cannot normally be controlled by the user
+   * @param {string} aArea
+   *   The ID of the area whose default-collapsed state you want to know.
+   * @returns {boolean}
+   *   Returns true if the toolbar area is collapsed by default, false if
+   *   not collapsed by default, and null if the area is unknown its collapsed
+   *   state cannot normally be controlled by the user.
    */
   isToolbarDefaultCollapsed(aArea) {
     let area = gAreas.get(aArea);
@@ -5105,9 +5392,12 @@ export var CustomizableUI = {
    * in a window if, for instance, the window is in customization mode, or if
    * this is an overflowable toolbar and the widget has been overflowed.
    *
-   * @param aArea   the ID of the area whose customize target you want to have
-   * @param aWindow the window where you want to fetch the DOM node.
-   * @return the customize target DOM node for aArea in aWindow
+   * @param {string} aArea
+   *   The ID of the area whose customize target you want to have
+   * @param {DOMWindow} aWindow
+   *   The window where you want to fetch the DOM node.
+   * @returns {Element}
+   *   The customize target DOM node for aArea in aWindow
    */
   getCustomizeTargetForArea(aArea, aWindow) {
     return CustomizableUIInternal.getCustomizeTargetForArea(aArea, aWindow);
@@ -5125,7 +5415,9 @@ export var CustomizableUI = {
 
   /**
    * Undo the previous reset, can only be called immediately after a reset.
-   * @return a promise that will be resolved when the operation is complete.
+   *
+   * @returns {Promise<undefined>}
+   *   A promise that will be resolved when the operation is complete.
    */
   undoReset() {
     CustomizableUIInternal.undoReset();
@@ -5136,7 +5428,9 @@ export var CustomizableUI = {
    * an add-on. NB: only works on the customizable toolbars generated by
    * the toolbox itself. Intended for use from CustomizeMode, not by
    * other consumers.
-   * @param aToolbarId the ID of the toolbar to remove
+   *
+   * @param {string} aToolbarId
+   *   The ID of the toolbar to remove.
    */
   removeExtraToolbar(aToolbarId) {
     CustomizableUIInternal.removeExtraToolbar(aToolbarId);
@@ -5145,8 +5439,8 @@ export var CustomizableUI = {
   /**
    * Can the last Restore Defaults operation be undone.
    *
-   * @return A boolean stating whether an undo of the
-   *         Restore Defaults can be performed.
+   * @returns {boolean}
+   *   True if the last Restore Defaults operation can be undone.
    */
   get canUndoReset() {
     return (
@@ -5159,22 +5453,24 @@ export var CustomizableUI = {
   },
 
   /**
+   * @typedef {object} CustomizableUIPlacementInfo
+   * @param {string} area
+   *   The ID of the area where the widget is placed.
+   * @param {number} position
+   *   The 0-indexed position of the widget according to the placements area
+   *   of the area that it's in.
+   */
+
+  /**
    * Get the placement of a widget. This is by far the best way to obtain
    * information about what the state of your widget is. The internals of
    * this call are cheap (no DOM necessary) and you will know where the user
    * has put your widget.
    *
-   * @param aWidgetId the ID of the widget whose placement you want to know
-   * @return
-   *   {
-   *     area: "somearea", // The ID of the area where the widget is placed
-   *     position: 42 // the index in the placements array corresponding to
-   *                  // your widget.
-   *   }
-   *
-   *   OR
-   *
-   *   null // if the widget is not placed anywhere (ie in the palette)
+   * @param {string} aWidgetId
+   *   The ID of the widget whose placement you want to know.
+   * @returns {CustomizableUIPlacementInfo|null}
+   *   Returns null if the widget is not placed anywhere (ie in the palette).
    */
   getPlacementOfWidget(aWidgetId, aOnlyRegistered = true, aDeadAreas = false) {
     return CustomizableUIInternal.getPlacementOfWidget(
@@ -5197,9 +5493,10 @@ export var CustomizableUI = {
    *     once the user reopens a window, the widget will move back to its
    *     'proper' area automagically.
    *
-   * @param aWidgetId a widget ID or DOM node to check
-   * @return true if the widget can be removed from its area,
-   *          false otherwise.
+   * @param {string} aWidgetId
+   *   A widget ID or DOM node to check.
+   * @returns {boolean}
+   *   True if the widget can be removed from its area.
    */
   isWidgetRemovable(aWidgetId) {
     return CustomizableUIInternal.isWidgetRemovable(aWidgetId);
@@ -5209,12 +5506,15 @@ export var CustomizableUI = {
    * isWidgetRemovable but better, because it'll return true if the widget
    * is already in the right area.
    *
-   * @param aWidgetId the widget ID or DOM node you want to move somewhere
-   * @param aArea     the area ID you want to move it to. This can also be
-   *                  AREA_NO_AREA to see if the widget can move to the
-   *                  customization palette, whether it's removable or not.
-   * @return true if this is possible, false if it is not. The same caveats as
-   *              for isWidgetRemovable apply, however, if no windows are open.
+   * @param {string} aWidgetId
+   *   The ID of the widget that you want to move somewhere.
+   * @param {string} aArea
+   *   The area ID you want to move the widget to. This can also be
+   *   CustomizableUI.AREA_NO_AREA to see if the widget can move to the
+   *   customization palette, whether it's removable or not.
+   * @returns {boolean}
+   *   True if this is possible. The same caveats as for isWidgetRemovable
+   *   apply, however, if no windows are open.
    */
   canWidgetMoveToArea(aWidgetId, aArea) {
     return CustomizableUIInternal.canWidgetMoveToArea(aWidgetId, aArea);
@@ -5234,8 +5534,11 @@ export var CustomizableUI = {
 
   /**
    * Set a toolbar's visibility state in all windows.
-   * @param aToolbarId    the toolbar whose visibility should be adjusted
-   * @param aIsVisible    whether the toolbar should be visible
+   *
+   * @param {string} aToolbarId
+   *   The toolbar whose visibility should be adjusted.
+   * @param {boolean} aIsVisible
+   *   Whether the toolbar should be made visible.
    */
   setToolbarVisibility(aToolbarId, aIsVisible) {
     CustomizableUIInternal.setToolbarVisibility(aToolbarId, aIsVisible);
@@ -5248,7 +5551,7 @@ export var CustomizableUI = {
    * collapsed by default.
    *
    * @param {Window} window The browser window to check for collapsed toolbars.
-   * @return {Set<string>}
+   * @returns {Set<string>}
    */
   getCollapsedToolbarIds(window) {
     return CustomizableUIInternal.getCollapsedToolbarIds(window);
@@ -5267,9 +5570,9 @@ export var CustomizableUI = {
    *       this method, because a widget's placement does not
    *       change when it overflows into the overflow menu.
    *
-   * @param aWidgetId the widget ID to check.
+   * @param {string} aWidgetId the widget ID to check.
    * @param {Window} window The browser window to check for widget visibility.
-   * @returns {Boolean} whether the given widget is likely visible or not.
+   * @returns {boolean} whether the given widget is likely visible or not.
    */
   widgetIsLikelyVisible(aWidgetId, window) {
     return CustomizableUIInternal.widgetIsLikelyVisible(aWidgetId, window);
@@ -5286,19 +5589,20 @@ export var CustomizableUI = {
    *     custom builtin widgets that build their own DOM but use the same
    *     stringbundle as the other builtin widgets.
    *
-   * @param aWidget     the object whose property we should use to fetch a
-   *                    localizable string;
-   * @param aProp       the property on the object to use for the fetching;
-   * @param aFormatArgs (optional) any extra arguments to use for a formatted
-   *                    string;
-   * @param aDef        (optional) the default to return if we don't find the
-   *                    string in the stringbundle;
-   *
-   * @return the localized string, or aDef if the string isn't in the bundle.
-   *         If no default is provided,
-   *           if aProp exists on aWidget, we'll return that,
-   *           otherwise we'll return the empty string
-   *
+   * @param {string|object} aWidget
+   *   The ID of a widget, or a widget object whose properties we should use to
+   *   fetch a localizable string.
+   * @param {string} aProp
+   *   The property on the object to use for the fetching from
+   *   customizableWidgets.properties.
+   * @param {string[]} [aFormatArgs]
+   *   Any extra arguments to use for a formatted string.
+   * @param {string} [aDef]
+   *   The default to return if we don't find the string in the stringbundle.
+   * @returns {string}
+   *   The localized string, or aDef if the string isn't in the bundle. If no
+   *   default is provided, if aProp exists on aWidget, we'll return that,
+   *   otherwise we'll return the empty string.
    */
   getLocalizedProperty(aWidget, aProp, aFormatArgs, aDef) {
     return CustomizableUIInternal.getLocalizedProperty(
@@ -5312,10 +5616,11 @@ export var CustomizableUI = {
    * Utility function to detect, find and set a keyboard shortcut for a menuitem
    * or (toolbar)button.
    *
-   * @param aShortcutNode the XUL node where the shortcut will be derived from;
-   * @param aTargetNode   (optional) the XUL node on which the `shortcut`
-   *                      attribute will be set. If NULL, the shortcut will be
-   *                      set on aShortcutNode;
+   * @param {Element} aShortcutNode
+   *   The XUL node where the shortcut will be derived from;
+   * @param {Element|null} aTargetNode
+   *   The XUL node on which the `shortcut` attribute will be set. If NULL, the
+   *   shortcut will be set on aShortcutNode.
    */
   addShortcut(aShortcutNode, aTargetNode) {
     return CustomizableUIInternal.addShortcut(aShortcutNode, aTargetNode);
@@ -5324,7 +5629,7 @@ export var CustomizableUI = {
    * Given a node, walk up to the first panel in its ancestor chain, and
    * close it.
    *
-   * @param aNode a node whose panel should be closed;
+   * @param {Element} aNode a node whose panel should be closed.
    */
   hidePanelForNode(aNode) {
     CustomizableUIInternal.hidePanelForNode(aNode);
@@ -5332,8 +5637,8 @@ export var CustomizableUI = {
   /**
    * Check if a widget is a "special" widget: a spring, spacer or separator.
    *
-   * @param aWidgetId the widget ID to check.
-   * @return true if the widget is 'special', false otherwise.
+   * @param {string} aWidgetId the widget ID to check.
+   * @returns {boolean} true if the widget is 'special', false otherwise.
    */
   isSpecialWidget(aWidgetId) {
     return CustomizableUIInternal.isSpecialWidget(aWidgetId);
@@ -5346,8 +5651,9 @@ export var CustomizableUI = {
    * destroyed, we fallback to checking the ID for the "-browser-action"
    * suffix.
    *
-   * @param aWidgetId the widget ID to check.
-   * @return true if the widget was provided by an extension, false otherwise.
+   * @param {string} aWidgetId the widget ID to check.
+   * @returns {boolean}
+   *   True if the widget was provided by an extension, false otherwise.
    */
   isWebExtensionWidget(aWidgetId) {
     if (typeof aWidgetId !== "string") {
@@ -5361,7 +5667,8 @@ export var CustomizableUI = {
    * and overflowable toolbar implementations, unlikely to be useful for
    * consumers.
    *
-   * @param aPanel the panel to which listeners should be attached.
+   * @param {Element} aPanel
+   *   The panel to which listeners should be attached.
    */
   addPanelCloseListeners(aPanel) {
     CustomizableUIInternal.addPanelCloseListeners(aPanel);
@@ -5371,7 +5678,8 @@ export var CustomizableUI = {
    * addPanelCloseListeners. For use from the menu panel and overflowable
    * toolbar implementations, unlikely to be useful for consumers.
    *
-   * @param aPanel the panel from which listeners should be removed.
+   * @param {Element} aPanel
+   *   The panel from which listeners should be removed.
    */
   removePanelCloseListeners(aPanel) {
     CustomizableUIInternal.removePanelCloseListeners(aPanel);
@@ -5380,8 +5688,10 @@ export var CustomizableUI = {
    * Notify listeners a widget is about to be dragged to an area. For use from
    * Customize Mode only, do not use otherwise.
    *
-   * @param aWidgetId the ID of the widget that is being dragged to an area.
-   * @param aArea     the ID of the area to which the widget is being dragged.
+   * @param {string} aWidgetId
+   *   The ID of the widget that is being dragged to an area.
+   * @param {string} aArea
+   *   The ID of the area to which the widget is being dragged.
    */
   onWidgetDrag(aWidgetId, aArea) {
     CustomizableUIInternal.notifyListeners("onWidgetDrag", aWidgetId, aArea);
@@ -5389,7 +5699,9 @@ export var CustomizableUI = {
   /**
    * Notify listeners that a window is entering customize mode. For use from
    * Customize Mode only, do not use otherwise.
-   * @param aWindow the window entering customize mode
+   *
+   * @param {DOMWindow} aWindow
+   *   The window entering customize mode.
    */
   notifyStartCustomizing(aWindow) {
     CustomizableUIInternal.notifyListeners("onCustomizeStart", aWindow);
@@ -5397,7 +5709,9 @@ export var CustomizableUI = {
   /**
    * Notify listeners that a window is exiting customize mode. For use from
    * Customize Mode only, do not use otherwise.
-   * @param aWindow the window exiting customize mode
+   *
+   * @param {DOMWindow} aWindow
+   *   The window exiting customize mode.
    */
   notifyEndCustomizing(aWindow) {
     CustomizableUIInternal.notifyListeners("onCustomizeEnd", aWindow);
@@ -5407,9 +5721,13 @@ export var CustomizableUI = {
    * Notify toolbox(es) of a particular event. If you don't pass aWindow,
    * all toolboxes will be notified. For use from Customize Mode only,
    * do not use otherwise.
-   * @param aEvent the name of the event to send.
-   * @param aDetails optional, the details of the event.
-   * @param aWindow optional, the window in which to send the event.
+   *
+   * @param {string} aEvent
+   *   The name of the event to send.
+   * @param {object} [aDetails={}]
+   *   The details of the event.
+   * @param {DOMWindow|null} [aWindow=null]
+   *   The window in which to send the event.
    */
   dispatchToolboxEvent(aEvent, aDetails = {}, aWindow = null) {
     CustomizableUIInternal.dispatchToolboxEvent(aEvent, aDetails, aWindow);
@@ -5418,8 +5736,10 @@ export var CustomizableUI = {
   /**
    * Check whether an area is overflowable.
    *
-   * @param aAreaId the ID of an area to check for overflowable-ness
-   * @return true if the area is overflowable, false otherwise.
+   * @param {string} aAreaId
+   *   The ID of an area to check for overflowable-ness.
+   * @returns {boolean}
+   *   True if the area is overflowable, false otherwise.
    */
   isAreaOverflowable(aAreaId) {
     let area = gAreas.get(aAreaId);
@@ -5432,10 +5752,12 @@ export var CustomizableUI = {
    * for use from customize mode; You should generally use getPlacementOfWidget
    * instead, which is cheaper because it does not use the DOM.
    *
-   * @param aElement the DOM node whose place we need to check
-   * @return "toolbar" if the node is in a toolbar, "panel" if it is in the
-   *         menu panel, "palette" if it is in the (visible!) customization
-   *         palette, undefined otherwise.
+   * @param {DOMElement} aElement
+   *   The DOM node whose place we need to check.
+   * @returns {string|undefined}
+   *   "toolbar" if the node is in a toolbar, "panel" if it is in the menu
+   *   panel, "palette" if it is in the (visible!) customization palette,
+   *   undefined otherwise.
    */
   getPlaceForItem(aElement) {
     let place;
@@ -5456,7 +5778,9 @@ export var CustomizableUI = {
 
   /**
    * Check if a toolbar is builtin or not.
-   * @param aToolbarId the ID of the toolbar you want to check
+   *
+   * @param {string} aToolbarId
+   *   The ID of the toolbar you want to check.
    */
   isBuiltinToolbar(aToolbarId) {
     return CustomizableUIInternal._builtinToolbars.has(aToolbarId);
@@ -5464,8 +5788,11 @@ export var CustomizableUI = {
 
   /**
    * Create an instance of a spring, spacer or separator.
-   * @param aId       the type of special widget (spring, spacer or separator)
-   * @param aDocument the document in which to create it.
+   *
+   * @param {string} aId
+   *   The type of special widget (spring, spacer or separator).
+   * @param {Document} aDocument
+   *   The document in which to create it.
    */
   createSpecialWidget(aId, aDocument) {
     return CustomizableUIInternal.createSpecialWidget(aId, aDocument);
@@ -5473,8 +5800,11 @@ export var CustomizableUI = {
 
   /**
    * Fills a submenu with menu items.
-   * @param aMenuItems the menu items to display.
-   * @param aSubview   the subview to fill.
+   *
+   * @param {Element[]} aMenuItems
+   *   The array of menu items to display.
+   * @param {Element} aSubview
+   *   The subview to fill with the menu items.
    */
   fillSubviewFromMenuItems(aMenuItems, aSubview) {
     let attrs = [
@@ -5581,7 +5911,9 @@ export var CustomizableUI = {
 
   /**
    * A helper function for clearing subviews.
-   * @param aSubview the subview to clear.
+   *
+   * @param {Element} aSubview
+   *   The subview to clear.
    */
   clearSubview(aSubview) {
     let parent = aSubview.parentNode;
@@ -6043,7 +6375,7 @@ class OverflowableToolbar {
    * asynchronous, and in theory, could be called multiple times before any of
    * those times have a chance to fully exit).
    *
-   * @type {Object}
+   * @type {object}
    */
   #checkOverflowHandle = null;
 
@@ -6189,8 +6521,8 @@ class OverflowableToolbar {
    * Opens the overflow #defaultListPanel if it's not already open. If the panel is in
    * the midst of hiding when this is called, the panel will be re-opened.
    *
-   * @returns {Promise}
-   * @resolves {undefined} once the panel is open.
+   * @returns {Promise<undefined>}
+   *  Resolves once the panel is open.
    */
   show(aEvent) {
     if (this.#defaultListPanel.state == "open") {
@@ -6451,19 +6783,22 @@ class OverflowableToolbar {
   }
 
   /**
+   * @typedef {object} CustomizableUIOverflowInfo
+   * @property {boolean} isOverflowing
+   *   True if at least one toolbar item has overflowed into an overflow panel.
+   * @property {number} targetContentWidth
+   *   The total width of the items within the customization target area of the
+   *   overflowable toolbar toolbar.
+   * @property {number} totalAvailWidth
+   *   The maximum width items in the overflowable toolbar may occupy before
+   *   causing an overflow.
+   */
+
+  /**
    * Returns a Promise that resolves to a an object that describes the state
    * that this OverflowableToolbar is currently in.
    *
-   * @returns {Promise}
-   * @resolves {Object}
-   *   An object with the following properties:
-   *
-   *   isOverflowing: {boolean} True if at least one toolbar item has overflowed
-   *     into an overflow panel.
-   *   targetContentWidth: {number} The total width of the items within the
-   *     customization target area of the toolbar.
-   *   totalAvailWidth: {number} The maximum width items in the toolbar may
-   *     occupy before causing an overflow.
+   * @returns {Promise<CustomizableUIOverflowInfo>}
    */
   async #getOverflowInfo() {
     function getInlineSize(aElement) {
@@ -6537,8 +6872,8 @@ class OverflowableToolbar {
    *        we can avoid flushing layout by providing it and/or caching it.
    *        Note that if `shouldMoveAllItems` is true, we never need the width
    *        anyway, and this value is ignored.
-   * @returns {Promise}
-   * @resolves {undefined} Once moving of items has completed.
+   * @returns {Promise<undefined>}
+   *   Resolves once moving of items has completed.
    */
   async #moveItemsBackToTheirOrigin(shouldMoveAllItems, totalAvailWidth) {
     lazy.log.debug(
@@ -6653,8 +6988,8 @@ class OverflowableToolbar {
    * This function is a no-op if the OverflowableToolbar is disabled or the
    * DOM fullscreen UI is currently being used.
    *
-   * @returns {Promise}
-   * @resolves {undefined} Once any movement of toolbar items has completed.
+   * @returns {Promise<undefined>}
+   *   Resolves once any movement of toolbar items has completed.
    */
   async #checkOverflow() {
     if (!this.#enabled) {
@@ -6925,7 +7260,7 @@ class OverflowableToolbar {
   }
 
   /**
-   * @returns {Boolean} whether the given node is in the overflow list.
+   * @returns {boolean} whether the given node is in the overflow list.
    */
   isInOverflowList(node) {
     return node.parentNode == this.#defaultList;
