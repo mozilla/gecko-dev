@@ -318,7 +318,6 @@ const rollouts = [
       "browser/components/aboutwelcome/**",
       "browser/components/asrouter/**",
       "browser/components/attribution/**",
-      "browser/components/customizableui/**",
       "browser/components/downloads/**",
       "browser/components/newtab/**",
       "browser/components/originattributes/test/browser/**",
