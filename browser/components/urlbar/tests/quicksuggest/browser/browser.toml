@@ -44,10 +44,10 @@ tags = "search-telemetry"
 
 ["browser_quicksuggest_yelp.js"]
 
-["browser_telemetry_ingestTime.js"]
+["browser_telemetry_environment.js"]
 tags = "search-telemetry"
 
-["browser_telemetry_other.js"]
+["browser_telemetry_ingestTime.js"]
 tags = "search-telemetry"
 
 ["browser_telemetry_suggestMetrics.js"]

@@ -1,10 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/**
- * This file tests ancillary quick suggest telemetry, i.e., telemetry that's not
- * strongly related to showing suggestions in the urlbar.
- */
+// Tests Suggest telemetry in `TelemetryEnvironment`.
 
 "use strict";
 
@@ -12,131 +9,47 @@ ChromeUtils.defineESModuleGetters(this, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
 });
 
-const REMOTE_SETTINGS_RESULTS = [
-  {
-    id: 1,
-    url: "https://example.com/sponsored",
-    title: "Sponsored suggestion",
-    keywords: ["sponsored"],
-    click_url: "https://example.com/click",
-    impression_url: "https://example.com/impression",
-    advertiser: "testadvertiser",
-  },
-];
-
 add_setup(async function () {
-  await PlacesUtils.history.clear();
-  await PlacesUtils.bookmarks.eraseEverything();
-  await UrlbarTestUtils.formHistory.clear();
-
-  Services.telemetry.clearScalars();
-
-  // Add a mock engine so we don't hit the network.
-  await SearchTestUtils.installSearchExtension({}, { setAsDefault: true });
-
-  await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    remoteSettingsRecords: [
-      {
-        type: "data",
-        attachment: REMOTE_SETTINGS_RESULTS,
-      },
-    ],
-  });
+  await QuickSuggestTestUtils.ensureQuickSuggestInit();
 });
 
-// Tests telemetry recorded when toggling the
-// `suggest.quicksuggest.nonsponsored` pref:
-// * TelemetryEnvironment
-add_task(async function enableToggled() {
-  // Toggle the suggest.quicksuggest.nonsponsored pref twice.
-  let enabled = UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
-  for (let i = 0; i < 2; i++) {
-    enabled = !enabled;
-    UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", enabled);
-    Assert.equal(
-      TelemetryEnvironment.currentEnvironment.settings.userPrefs[
-        "browser.urlbar.suggest.quicksuggest.nonsponsored"
-      ],
-      enabled,
-      "suggest.quicksuggest.nonsponsored is correct in TelemetryEnvironment"
-    );
-  }
-
-  // Set the main quicksuggest.enabled pref to false and toggle the
-  // suggest.quicksuggest.nonsponsored pref again.
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.quicksuggest.enabled", false]],
-  });
-  enabled = !enabled;
-  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", enabled);
-  await SpecialPowers.popPrefEnv();
-
-  // Set the pref back to what it was at the start of the task.
-  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", !enabled);
+// Toggles the `suggest.quicksuggest.nonsponsored` pref.
+add_task(function nonsponsoredToggled() {
+  doToggleTest("suggest.quicksuggest.nonsponsored");
 });
 
-// Tests telemetry recorded when toggling the `suggest.quicksuggest.sponsored`
-// pref:
-// * contextservices.quicksuggest enable_toggled event telemetry
-// * TelemetryEnvironment
+// Toggles the `suggest.quicksuggest.sponsored` pref.
 add_task(async function sponsoredToggled() {
-  // Toggle the suggest.quicksuggest.sponsored pref twice.
-  let enabled = UrlbarPrefs.get("suggest.quicksuggest.sponsored");
-  for (let i = 0; i < 2; i++) {
-    enabled = !enabled;
-    UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
-    Assert.equal(
-      TelemetryEnvironment.currentEnvironment.settings.userPrefs[
-        "browser.urlbar.suggest.quicksuggest.sponsored"
-      ],
-      enabled,
-      "suggest.quicksuggest.sponsored is correct in TelemetryEnvironment"
-    );
-  }
-
-  // Set the main quicksuggest.enabled pref to false and toggle the
-  // suggest.quicksuggest.sponsored pref again.
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.quicksuggest.enabled", false]],
-  });
-  enabled = !enabled;
-  UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
-  await SpecialPowers.popPrefEnv();
-
-  // Set the pref back to what it was at the start of the task.
-  UrlbarPrefs.set("suggest.quicksuggest.sponsored", !enabled);
+  doToggleTest("suggest.quicksuggest.sponsored");
 });
 
-// Tests telemetry recorded when toggling the
-// `quicksuggest.dataCollection.enabled` pref:
-// * TelemetryEnvironment
+// Toggles the `quicksuggest.dataCollection.enabled` pref.
 add_task(async function dataCollectionToggled() {
-  // Toggle the quicksuggest.dataCollection.enabled pref twice.
-  let enabled = UrlbarPrefs.get("quicksuggest.dataCollection.enabled");
+  doToggleTest("quicksuggest.dataCollection.enabled");
+});
+
+function doToggleTest(pref) {
+  let enabled = UrlbarPrefs.get(pref);
+  Assert.equal(
+    TelemetryEnvironment.currentEnvironment.settings.userPrefs[
+      "browser.urlbar." + pref
+    ],
+    enabled,
+    "Initial value of pref should be correct in TelemetryEnvironment: " + pref
+  );
+
   for (let i = 0; i < 2; i++) {
     enabled = !enabled;
-    UrlbarPrefs.set("quicksuggest.dataCollection.enabled", enabled);
+    UrlbarPrefs.set(pref, enabled);
     Assert.equal(
       TelemetryEnvironment.currentEnvironment.settings.userPrefs[
-        "browser.urlbar.quicksuggest.dataCollection.enabled"
+        "browser.urlbar." + pref
       ],
       enabled,
-      "quicksuggest.dataCollection.enabled is correct in TelemetryEnvironment"
+      "Pref should be correct in TelemetryEnvironment: " + pref
     );
   }
-
-  // Set the main quicksuggest.enabled pref to false and toggle the data
-  // collection pref again.
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.quicksuggest.enabled", false]],
-  });
-  enabled = !enabled;
-  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", enabled);
-  await SpecialPowers.popPrefEnv();
-
-  // Set the pref back to what it was at the start of the task.
-  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", !enabled);
-});
+}
 
 // Simulates the race on startup between telemetry environment initialization
 // and the initial update of the Suggest scenario. After startup is done,
