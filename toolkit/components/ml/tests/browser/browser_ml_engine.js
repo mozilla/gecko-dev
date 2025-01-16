@@ -1058,6 +1058,8 @@ add_task(async function test_ml_engine_blessed_model() {
     "The blessed model was picked."
   );
 
+  Assert.equal(res.config.dtype, "q8", "With the right quantization level");
+
   ok(
     !EngineProcess.areAllEnginesTerminated(),
     "The engine process is still active."

@@ -348,12 +348,12 @@ class EngineDispatcher {
 
     // If the merged options don't have a modelId and we have a default modelId, we set it
     if (!mergedOptions.modelId) {
-      const defaultModel = lazy.DEFAULT_MODELS[this.#taskName];
-      if (defaultModel) {
+      const defaultModelEntry = lazy.DEFAULT_MODELS[this.#taskName];
+      if (defaultModelEntry) {
         lazy.console.debug(
-          `Using default model ${defaultModel} for task ${this.#taskName}`
+          `Using default model ${defaultModelEntry.modelId} for task ${this.#taskName}`
         );
-        mergedOptions.modelId = defaultModel;
+        mergedOptions.updateOptions(defaultModelEntry);
       } else {
         throw new Error(`No default model found for task ${this.#taskName}`);
       }
