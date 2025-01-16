@@ -78,14 +78,6 @@ static bool areSmpte432ColorPrimariesBuggy() {
   return false;
 }
 
-static bool areBT709ColorPrimariesMisreported() {
-  const auto socModel = java::sdk::Build::SOC_MODEL()->ToString();
-  if (socModel.EqualsASCII("Tensor") || socModel.EqualsASCII("GS201")) {
-    return true;
-  }
-  return false;
-}
-
 class RemoteVideoDecoder final : public RemoteDataDecoder {
  public:
   // Render the output to the surface when the frame is sent
@@ -411,32 +403,15 @@ class RemoteVideoDecoder final : public RemoteDataDecoder {
     }
 
     if (ok && (size > 0 || presentationTimeUs >= 0)) {
-      bool forceBT709ColorSpace = false;
       // On certain devices SMPTE 432 color primaries are rendered incorrectly,
       // so we force BT709 to be used instead.
       // Color space 10 comes from the video in bug 1866020 and corresponds to
       // libstagefright's kColorStandardDCI_P3.
       // 65800 comes from the video in bug 1879720 and is vendor-specific.
       static bool isSmpte432Buggy = areSmpte432ColorPrimariesBuggy();
-      if (isSmpte432Buggy &&
-          (mColorSpace == Some(10) || mColorSpace == Some(65800))) {
-        forceBT709ColorSpace = true;
-      }
-
-      // On certain devices the av1 decoder intermittently misreports some BT709
-      // video frames as having BT609 color primaries. This results in a
-      // flickering effect during playback whilst alternating between frames
-      // which the GPU believes have different color spaces. To work around this
-      // we force BT709 conversion to be used for all frames which the decoder
-      // believes are BT601, as long as our demuxer has reported the color
-      // primaries as BT709. See bug 1933055.
-      static bool isBT709Misreported = areBT709ColorPrimariesMisreported();
-      if (isBT709Misreported && mMediaInfoFlag & MediaInfoFlag::VIDEO_AV1 &&
-          mConfig.mColorPrimaries == Some(gfx::ColorSpace2::BT709) &&
-          // 4 = kColorStandardBT601_525
-          mColorSpace == Some(4)) {
-        forceBT709ColorSpace = true;
-      }
+      bool forceBT709ColorSpace =
+          isSmpte432Buggy &&
+          (mColorSpace == Some(10) || mColorSpace == Some(65800));
 
       RefPtr<layers::Image> img = new layers::SurfaceTextureImage(
           mSurfaceHandle, inputInfo.mImageSize, false /* NOT continuous */,
