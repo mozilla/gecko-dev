@@ -11,12 +11,11 @@ import re
 import mozpack.path as mozpath
 import taskgraph
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.docker import create_context_tar, generate_context_hash
 from taskgraph.util.schema import Schema
 from voluptuous import Optional, Required
 
 from gecko_taskgraph.util.docker import (
-    create_context_tar,
-    generate_context_hash,
     image_path,
 )
 
@@ -98,12 +97,10 @@ def fill_template(config, tasks):
                 context_file = os.path.join(CONTEXTS_DIR, f"{image_name}.tar.gz")
                 logger.info(f"Writing {context_file} for docker image {image_name}")
                 context_hash = create_context_tar(
-                    GECKO, context_path, context_file, image_name, args
+                    GECKO, context_path, context_file, args
                 )
             else:
-                context_hash = generate_context_hash(
-                    GECKO, context_path, image_name, args
-                )
+                context_hash = generate_context_hash(GECKO, context_path, args)
         else:
             if config.write_artifacts:
                 raise Exception("Can't write artifacts if `taskgraph.fast` is set.")

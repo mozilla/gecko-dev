@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
-import hashlib
 import json
 import os
 import re
@@ -14,8 +12,6 @@ from urllib.parse import quote, urlencode, urlunparse
 import requests
 import requests_unixsocket
 from mozbuild.util import memoize
-from mozpack.archive import create_tar_gz_from_files
-from mozpack.files import GeneratedFile
 from taskgraph.util.yaml import load_yaml
 
 from .. import GECKO
@@ -123,145 +119,6 @@ def post_to_docker(tar, api_path, **kwargs):
         else:
             raise NotImplementedError(repr(data))
         sys.stderr.flush()
-
-
-def docker_image(name, by_tag=False):
-    """
-    Resolve in-tree prebuilt docker image to ``<registry>/<repository>@sha256:<digest>``,
-    or ``<registry>/<repository>:<tag>`` if `by_tag` is `True`.
-    """
-    try:
-        with open(os.path.join(IMAGE_DIR, name, "REGISTRY")) as f:
-            registry = f.read().strip()
-    except OSError:
-        with open(os.path.join(IMAGE_DIR, "REGISTRY")) as f:
-            registry = f.read().strip()
-
-    if not by_tag:
-        hashfile = os.path.join(IMAGE_DIR, name, "HASH")
-        try:
-            with open(hashfile) as f:
-                return f"{registry}/{name}@{f.read().strip()}"
-        except OSError:
-            raise Exception(f"Failed to read HASH file {hashfile}")
-
-    try:
-        with open(os.path.join(IMAGE_DIR, name, "VERSION")) as f:
-            tag = f.read().strip()
-    except OSError:
-        tag = "latest"
-    return f"{registry}/{name}:{tag}"
-
-
-class VoidWriter:
-    """A file object with write capabilities that does nothing with the written
-    data."""
-
-    def write(self, buf):
-        pass
-
-
-def generate_context_hash(topsrcdir, image_path, image_name, args):
-    """Generates a sha256 hash for context directory used to build an image."""
-
-    return stream_context_tar(
-        topsrcdir, image_path, VoidWriter(), image_name, args=args
-    )
-
-
-class HashingWriter:
-    """A file object with write capabilities that hashes the written data at
-    the same time it passes down to a real file object."""
-
-    def __init__(self, writer):
-        self._hash = hashlib.sha256()
-        self._writer = writer
-
-    def write(self, buf):
-        self._hash.update(buf)
-        self._writer.write(buf)
-
-    def hexdigest(self):
-        return self._hash.hexdigest()
-
-
-def create_context_tar(topsrcdir, context_dir, out_path, image_name, args):
-    """Create a context tarball.
-
-    A directory ``context_dir`` containing a Dockerfile will be assembled into
-    a gzipped tar file at ``out_path``.
-
-    We also scan the source Dockerfile for special syntax that influences
-    context generation.
-
-    If a line in the Dockerfile has the form ``# %include <path>``,
-    the relative path specified on that line will be matched against
-    files in the source repository and added to the context under the
-    path ``topsrcdir/``. If an entry is a directory, we add all files
-    under that directory.
-
-    Returns the SHA-256 hex digest of the created archive.
-    """
-    with open(out_path, "wb") as fh:
-        return stream_context_tar(
-            topsrcdir,
-            context_dir,
-            fh,
-            image_name=image_name,
-            args=args,
-        )
-
-
-def stream_context_tar(topsrcdir, context_dir, out_file, image_name, args):
-    """Like create_context_tar, but streams the tar file to the `out_file` file
-    object."""
-    archive_files = {}
-    content = []
-
-    context_dir = os.path.join(topsrcdir, context_dir)
-
-    for root, dirs, files in os.walk(context_dir):
-        for f in files:
-            source_path = os.path.join(root, f)
-            archive_path = source_path[len(context_dir) + 1 :]
-            archive_files[archive_path] = source_path
-
-    # Parse Dockerfile for special syntax of extra files to include.
-    with open(os.path.join(context_dir, "Dockerfile"), "r") as fh:
-        for line in fh:
-            content.append(line)
-
-            if not line.startswith("# %include"):
-                continue
-
-            p = line[len("# %include ") :].strip()
-            if os.path.isabs(p):
-                raise Exception("extra include path cannot be absolute: %s" % p)
-
-            fs_path = os.path.normpath(os.path.join(topsrcdir, p))
-            # Check for filesystem traversal exploits.
-            if not fs_path.startswith(topsrcdir):
-                raise Exception("extra include path outside topsrcdir: %s" % p)
-
-            if not os.path.exists(fs_path):
-                raise Exception("extra include path does not exist: %s" % p)
-
-            if os.path.isdir(fs_path):
-                for root, dirs, files in os.walk(fs_path):
-                    for f in files:
-                        source_path = os.path.join(root, f)
-                        rel = source_path[len(fs_path) + 1 :]
-                        archive_path = os.path.join("topsrcdir", p, rel)
-                        archive_files[archive_path] = source_path
-            else:
-                archive_path = os.path.join("topsrcdir", p)
-                archive_files[archive_path] = fs_path
-
-    archive_files["Dockerfile"] = GeneratedFile("".join(content).encode("utf-8"))
-
-    writer = HashingWriter(out_file)
-    create_tar_gz_from_files(writer, archive_files, f"{image_name}.tar")
-    return writer.hexdigest()
 
 
 class ImagePathsMap(Mapping):

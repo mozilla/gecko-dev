@@ -431,7 +431,7 @@ def build_image(args):
     "or mozilla-inbound)",
 )
 def load_image(args):
-    from gecko_taskgraph.docker import load_image_by_name, load_image_by_task_id
+    from taskgraph.docker import load_image_by_name, load_image_by_task_id
 
     if not args.get("image_name") and not args.get("task_id"):
         print("Specify either IMAGE-NAME or TASK-ID")
@@ -455,7 +455,7 @@ def load_image(args):
     "contents of the tree.",
 )
 def image_digest(args):
-    from gecko_taskgraph.docker import get_image_digest
+    from taskgraph.docker import get_image_digest
 
     try:
         digest = get_image_digest(args["image_name"])
