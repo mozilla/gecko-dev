@@ -13,6 +13,7 @@ delegated to modules like ``CustomizableWidgets`` and ``CustomizeMode``.
    :maxdepth: 3
 
    customizableui
+   drag-position-manager
    overflowable-toolbar
    panelmultiview
    search-widget-tracker
