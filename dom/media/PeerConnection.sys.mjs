@@ -57,13 +57,13 @@ export class GlobalPCList {
     this._networkdown = false; // XXX Need to query current state somehow
     this._lifecycleobservers = {};
     this._nextId = 1;
-    Services.obs.addObserver(this, "inner-window-destroyed", true);
-    Services.obs.addObserver(this, "profile-change-net-teardown", true);
-    Services.obs.addObserver(this, "network:offline-about-to-go-offline", true);
-    Services.obs.addObserver(this, "network:offline-status-changed", true);
-    Services.obs.addObserver(this, "gmp-plugin-crash", true);
-    Services.obs.addObserver(this, "PeerConnection:response:allow", true);
-    Services.obs.addObserver(this, "PeerConnection:response:deny", true);
+    Services.obs.addObserver(this, "inner-window-destroyed");
+    Services.obs.addObserver(this, "profile-change-net-teardown");
+    Services.obs.addObserver(this, "network:offline-about-to-go-offline");
+    Services.obs.addObserver(this, "network:offline-status-changed");
+    Services.obs.addObserver(this, "gmp-plugin-crash");
+    Services.obs.addObserver(this, "PeerConnection:response:allow");
+    Services.obs.addObserver(this, "PeerConnection:response:deny");
     if (Services.cpmm) {
       Services.cpmm.addMessageListener("gmp-plugin-crash", this);
     }
@@ -207,10 +207,7 @@ export class GlobalPCList {
 }
 
 setupPrototype(GlobalPCList, {
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
   classID: PC_MANAGER_CID,
 });
 
