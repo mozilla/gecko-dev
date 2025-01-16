@@ -1818,6 +1818,44 @@ async function setupAboutPreferences(
   };
 }
 
+/**
+ * Tests a callback function with the lexical shortlist preference enabled and disabled.
+ *
+ * @param {Function} callback - An async function to execute, receiving the preference settings as an argument.
+ */
+async function testWithAndWithoutLexicalShortlist(callback) {
+  for (const prefs of [
+    [[USE_LEXICAL_SHORTLIST_PREF, true]],
+    [[USE_LEXICAL_SHORTLIST_PREF, false]],
+  ]) {
+    await callback(prefs);
+  }
+}
+
+/**
+ * Waits for the "translations:pref-changed" observer event to occur.
+ *
+ * @param {Function} [callback]
+ *   - An optional function to execute before waiting for the "translations:pref-changed" observer event.
+ * @returns {Promise<void>}
+ *   - A promise that resolves when the "translations:pref-changed" event is observed.
+ */
+async function waitForTranslationsPrefChanged(callback) {
+  const { promise, resolve } = Promise.withResolvers();
+
+  function onChange() {
+    Services.obs.removeObserver(onChange, "translations:pref-changed");
+    resolve();
+  }
+  Services.obs.addObserver(onChange, "translations:pref-changed");
+
+  if (callback) {
+    await callback();
+  }
+
+  await promise;
+}
+
 function waitForAppLocaleChanged() {
   new Promise(resolve => {
     function onChange() {

@@ -11,145 +11,155 @@ function getFrenchModels() {
 }
 
 add_task(async function test_about_preferences_manage_languages() {
-  const {
-    cleanup,
-    remoteClients,
-    elements: {
-      downloadAllLabel,
-      downloadAll,
-      deleteAll,
-      frenchLabel,
-      frenchDownload,
-      frenchDelete,
-      spanishLabel,
-      spanishDownload,
-      spanishDelete,
-      ukrainianLabel,
-      ukrainianDownload,
-      ukrainianDelete,
-    },
-  } = await setupAboutPreferences(LANGUAGE_PAIRS, {
-    prefs: [["browser.translations.newSettingsUI.enable", false]],
+  await testWithAndWithoutLexicalShortlist(async lexicalShortlistPrefs => {
+    const {
+      cleanup,
+      remoteClients,
+      elements: {
+        downloadAllLabel,
+        downloadAll,
+        deleteAll,
+        frenchLabel,
+        frenchDownload,
+        frenchDelete,
+        spanishLabel,
+        spanishDownload,
+        spanishDelete,
+        ukrainianLabel,
+        ukrainianDownload,
+        ukrainianDelete,
+      },
+    } = await setupAboutPreferences(LANGUAGE_PAIRS, {
+      prefs: [
+        ["browser.translations.newSettingsUI.enable", false],
+        ...lexicalShortlistPrefs,
+      ],
+    });
+
+    is(
+      downloadAllLabel.getAttribute("data-l10n-id"),
+      "translations-manage-download-description",
+      "The first row is all of the languages."
+    );
+    is(frenchLabel.textContent, "French", "There is a French row.");
+    is(spanishLabel.textContent, "Spanish", "There is a Spanish row.");
+    is(ukrainianLabel.textContent, "Ukrainian", "There is a Ukrainian row.");
+
+    await ensureVisibility({
+      message: "Everything starts out as available to download",
+      visible: {
+        downloadAll,
+        frenchDownload,
+        spanishDownload,
+        ukrainianDownload,
+      },
+      hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
+    });
+
+    click(frenchDownload, "Downloading French");
+
+    const frenchModels = getFrenchModels();
+
+    Assert.deepEqual(
+      await remoteClients.translationModels.resolvePendingDownloads(
+        frenchModels.length
+      ),
+      frenchModels,
+      "French models were downloaded."
+    );
+
+    await ensureVisibility({
+      message: "French can now be deleted, and delete all is available.",
+      visible: {
+        downloadAll,
+        deleteAll,
+        frenchDelete,
+        spanishDownload,
+        ukrainianDownload,
+      },
+      hidden: { frenchDownload, spanishDelete, ukrainianDelete },
+    });
+
+    click(frenchDelete, "Deleting French");
+
+    await ensureVisibility({
+      message: "Everything can be downloaded.",
+      visible: {
+        downloadAll,
+        frenchDownload,
+        spanishDownload,
+        ukrainianDownload,
+      },
+      hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
+    });
+
+    click(downloadAll, "Downloading all languages.");
+
+    const allModels = languageModelNames(LANGUAGE_PAIRS);
+    Assert.deepEqual(
+      await remoteClients.translationModels.resolvePendingDownloads(
+        allModels.length
+      ),
+      allModels,
+      "All models were downloaded."
+    );
+    Assert.deepEqual(
+      await remoteClients.translationsWasm.resolvePendingDownloads(1),
+      ["bergamot-translator"],
+      "Wasm was downloaded."
+    );
+
+    await ensureVisibility({
+      message: "Everything can be deleted.",
+      visible: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
+      hidden: {
+        downloadAll,
+        frenchDownload,
+        spanishDownload,
+        ukrainianDownload,
+      },
+    });
+
+    click(deleteAll, "Deleting all languages.");
+
+    await ensureVisibility({
+      message: "Everything can be downloaded again",
+      visible: {
+        downloadAll,
+        frenchDownload,
+        spanishDownload,
+        ukrainianDownload,
+      },
+      hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
+    });
+
+    click(frenchDownload, "Downloading French.");
+    click(spanishDownload, "Downloading Spanish.");
+    click(ukrainianDownload, "Downloading Ukrainian.");
+
+    Assert.deepEqual(
+      await remoteClients.translationModels.resolvePendingDownloads(
+        allModels.length
+      ),
+      allModels,
+      "All models were downloaded again."
+    );
+
+    remoteClients.translationsWasm.assertNoNewDownloads();
+
+    await ensureVisibility({
+      message: "Everything is downloaded again.",
+      visible: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
+      hidden: {
+        downloadAll,
+        frenchDownload,
+        spanishDownload,
+        ukrainianDownload,
+      },
+    });
+
+    await cleanup();
   });
-
-  is(
-    downloadAllLabel.getAttribute("data-l10n-id"),
-    "translations-manage-download-description",
-    "The first row is all of the languages."
-  );
-  is(frenchLabel.textContent, "French", "There is a French row.");
-  is(spanishLabel.textContent, "Spanish", "There is a Spanish row.");
-  is(ukrainianLabel.textContent, "Ukrainian", "There is a Ukrainian row.");
-
-  await ensureVisibility({
-    message: "Everything starts out as available to download",
-    visible: {
-      downloadAll,
-      frenchDownload,
-      spanishDownload,
-      ukrainianDownload,
-    },
-    hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-  });
-
-  click(frenchDownload, "Downloading French");
-
-  const frenchModels = getFrenchModels();
-
-  Assert.deepEqual(
-    await remoteClients.translationModels.resolvePendingDownloads(
-      frenchModels.length
-    ),
-    frenchModels,
-    "French models were downloaded."
-  );
-
-  await ensureVisibility({
-    message: "French can now be deleted, and delete all is available.",
-    visible: {
-      downloadAll,
-      deleteAll,
-      frenchDelete,
-      spanishDownload,
-      ukrainianDownload,
-    },
-    hidden: { frenchDownload, spanishDelete, ukrainianDelete },
-  });
-
-  click(frenchDelete, "Deleting French");
-
-  await ensureVisibility({
-    message: "Everything can be downloaded.",
-    visible: {
-      downloadAll,
-      frenchDownload,
-      spanishDownload,
-      ukrainianDownload,
-    },
-    hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-  });
-
-  click(downloadAll, "Downloading all languages.");
-
-  const allModels = languageModelNames(LANGUAGE_PAIRS);
-  Assert.deepEqual(
-    await remoteClients.translationModels.resolvePendingDownloads(
-      allModels.length
-    ),
-    allModels,
-    "All models were downloaded."
-  );
-  Assert.deepEqual(
-    await remoteClients.translationsWasm.resolvePendingDownloads(1),
-    ["bergamot-translator"],
-    "Wasm was downloaded."
-  );
-
-  await ensureVisibility({
-    message: "Everything can be deleted.",
-    visible: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-    hidden: { downloadAll, frenchDownload, spanishDownload, ukrainianDownload },
-  });
-
-  click(deleteAll, "Deleting all languages.");
-
-  await ensureVisibility({
-    message: "Everything can be downloaded again",
-    visible: {
-      downloadAll,
-      frenchDownload,
-      spanishDownload,
-      ukrainianDownload,
-    },
-    hidden: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-  });
-
-  click(frenchDownload, "Downloading French.");
-  click(spanishDownload, "Downloading Spanish.");
-  click(ukrainianDownload, "Downloading Ukrainian.");
-
-  Assert.deepEqual(
-    await remoteClients.translationModels.resolvePendingDownloads(
-      allModels.length
-    ),
-    allModels,
-    "All models were downloaded again."
-  );
-
-  remoteClients.translationsWasm.assertNoNewDownloads();
-
-  await ensureVisibility({
-    message: "Everything is downloaded again.",
-    visible: { deleteAll, frenchDelete, spanishDelete, ukrainianDelete },
-    hidden: {
-      downloadAll,
-      frenchDownload,
-      spanishDownload,
-      ukrainianDownload,
-    },
-  });
-
-  await cleanup();
 });
 
 add_task(async function test_about_preferences_download_reject() {
