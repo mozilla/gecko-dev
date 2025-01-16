@@ -64,12 +64,14 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1787024
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1787024
   "win11_2009", # Bug 1787024
+  "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1787024
 ]
 
 ["browser_async_window_flushing.js"]
 https_first_disabled = true
 skip-if = [
   "os == 'win' && os_version == '11.26100' && bits == 64 && opt", # Bug 1775616
+  "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1775616
 ]
 
 ["browser_attributes.js"]

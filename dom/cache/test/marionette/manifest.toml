@@ -3,3 +3,6 @@
 ["test_cacheapi_encryption_PBM.py"]
 
 ["test_caches_delete_cleanup_after_shutdown.py"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1937657
+]

@@ -534,6 +534,8 @@ TEST_F(AvailableMemoryWatcherFixture, AlwaysActive) {
   telemetryEvent.ValidateLastEvent(cx.GetJSContext());
 }
 
+// skip-if asan, Bug 1940978
+#if !(defined(MOZ_ASAN))
 TEST_F(AvailableMemoryWatcherFixture, InactiveToActive) {
   AutoJSContextWithGlobal cx(mCleanGlobal);
   MemoryWatcherTelemetryEvent telemetryEvent(cx.GetJSContext());
@@ -569,6 +571,7 @@ TEST_F(AvailableMemoryWatcherFixture, InactiveToActive) {
 
   telemetryEvent.ValidateLastEvent(cx.GetJSContext());
 }
+#endif
 
 TEST_F(AvailableMemoryWatcherFixture, HighCommitSpace_AlwaysActive) {
   // Setting a low threshold simulates a high commit space.

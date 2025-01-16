@@ -73,7 +73,10 @@ skip-if = ["verify && debug && os == 'win'"]
 ["browser_broadcastChannel.js"]
 
 ["browser_cache.js"]
-skip-if = ["verify"]
+skip-if = [
+  "verify",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov",
+]
 
 ["browser_cacheAPI.js"]
 

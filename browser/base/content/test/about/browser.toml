@@ -73,7 +73,10 @@ support-files = [
 ]
 
 ["browser_aboutNetError_trr.js"]
-skip-if = ["socketprocess_networking"]
+skip-if = [
+  "socketprocess_networking",
+   "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1831977
+]
 
 ["browser_aboutNetError_xfo_iframe.js"]
 https_first_disabled = true

@@ -66,7 +66,10 @@ run-if = [
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1581889
 
 ["browser_osAuthDialog.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1527745
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1527745
+  "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1836545
+]
 
 ["browser_primaryPassword.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1569789

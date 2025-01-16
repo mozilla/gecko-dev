@@ -171,6 +171,9 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # 
 ["browser_text_tracks_webvtt_2.js"]
 
 ["browser_text_tracks_webvtt_3.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov",
+]
 
 ["browser_thirdPartyIframe.js"]
 

@@ -83,6 +83,7 @@ run-if = ["crashreporter"]
 skip-if = [
   "os == 'win' && os_version == '11.2009' && bits == 64", # Bug 1894797
   "os == 'win' && os_version == '11.26100' && bits == 64 && ccov", # Bug 1894797
+  "os == 'win' && os_version == '11.26100' && bits == 64 && debug", # Bug 1894797
 ]
 
 ["browser_test_prevent_events.js"]

@@ -15,5 +15,9 @@ support-files = [
 ["browser_wmfme_crash.js"]
 
 ["browser_wmfme_glean_first_frame_loaded_time.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1894541
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1894541
+]
 
 ["browser_wmfme_max_crashes.js"]

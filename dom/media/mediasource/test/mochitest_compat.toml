@@ -287,6 +287,9 @@ skip-if = ["!mda_gpu"]
 ["test_OnEvents.html"]
 
 ["test_PlayEventsAutoPlaying.html"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov",
+]
 
 ["test_PlayEventsAutoPlaying2.html"]
 

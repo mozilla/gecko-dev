@@ -90,13 +90,13 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
 
 ["browser_badCertDomainFixup.js"]
 
+["browser_bfcache_after_auxiliary.js"]
+
 ["browser_bfcache_copycommand.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1730593
   "win11_2009", # Bug 1775931
 ]
-
-["browser_bfcache_after_auxiliary.js"]
 
 ["browser_browsingContext-01.js"]
 https_first_disabled = true
@@ -159,7 +159,8 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1933429
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1933429
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1933429
-  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1933429  
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1933429
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1933429
 ]
 
 ["browser_bug441169.js"]

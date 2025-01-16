@@ -769,6 +769,8 @@ skip-if = ["true"] # bug 475110 - disabled since we don't play Wave files standa
 skip-if = [
    "os == 'android' && !is_emulator", # Bug 1860492
    "os == 'win' && os_version == '11.2009' && bits == 64 && !debug", # Bug 1889375
+   "os == 'win' && os_version == '11.26100' && bits == 64 && asan && wmfme", # Bug 1889375
+   "os == 'win' && os_version == '11.26100' && bits == 64 && opt && wmfme", # Bug 1889375
 ]
 
 ["test_constants.html"]

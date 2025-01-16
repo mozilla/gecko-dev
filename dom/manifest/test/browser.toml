@@ -15,6 +15,8 @@ support-files = [
 skip-if = [
   "win11_2009 && asan", # Bug 1904224
   "win11_2009 && ccov", # Bug 1904224
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1904224
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1904224
 ]
 
 ["browser_ManifestIcons_browserFetchIcon.js"]

@@ -27,6 +27,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1890182
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1890182
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1890182
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1890182
 ]
 
 ["browser_address_doorhanger_display.js"]

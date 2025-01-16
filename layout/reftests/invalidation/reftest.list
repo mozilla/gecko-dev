@@ -103,7 +103,7 @@ skip-if(winWidget) != fractional-transform-2.html about:blank
 == partially-scrolled-svg-group.html partially-scrolled-svg-group-ref.html
 
 == paintedlayer-recycling-8.html paintedlayer-recycling-8-ref.html
-pref(image.downscale-during-decode.enabled,true) == jetstream-scroll.html jetstream-scroll-ref.html
+skip-if(winWidget&&AddressSanitizer&&swgl) pref(image.downscale-during-decode.enabled,true) == jetstream-scroll.html jetstream-scroll-ref.html
 
 fuzzy(0-2,0-2) == svg-paint-rect-changes.html svg-paint-rect-changes-ref.html
 == border-radius-1.html border-radius-1-ref.html

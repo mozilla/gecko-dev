@@ -55,6 +55,9 @@ skip-if = [
 ["browser_LayoutUtils.js"]
 
 ["browser_Troubleshoot.js"]
+skip-if = [
+   "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1863166
+]
 
 ["browser_web_channel.js"]
 https_first_disabled = true

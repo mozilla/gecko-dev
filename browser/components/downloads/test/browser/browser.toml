@@ -32,6 +32,7 @@ skip-if = [
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1775779
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && ccov", # Bug 1775779
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && debug && socketprocess_networking", # Bug 1775779
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1775779
 ]
 support-files = ["test_spammy_page.html"]
 

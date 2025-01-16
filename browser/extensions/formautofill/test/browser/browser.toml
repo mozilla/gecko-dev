@@ -14,8 +14,6 @@ support-files = [
 ["browser_autocomplete_footer.js"]
 skip-if = ["verify"]
 
-["browser_autocomplete_region.js"]
-
 ["browser_autocomplete_marked_back_forward.js"]
 
 ["browser_autocomplete_marked_detached_tab.js"]
@@ -23,6 +21,8 @@ skip-if = [
   "verify && os == 'win'",
   "os == 'mac'",
 ]
+
+["browser_autocomplete_region.js"]
 
 ["browser_autofill_address_housenumber.js"]
 
@@ -36,7 +36,7 @@ skip-if = [
 
 ["browser_autofill_duplicate_fields.js"]
 skip-if = [
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug && socketprocess_networking", # frequent failure; Bug 1917060
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1917060
 ]
 
 ["browser_autofill_invisible_fields.js"]

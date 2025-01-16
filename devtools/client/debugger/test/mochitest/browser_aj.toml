@@ -154,6 +154,8 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && debug'", # Bug 1831904
   "os == 'linux' && os_version == '18.04' && tsan'", # Bug 1831904
   "win11_2009 && debug", # Bug 1831904
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1831904
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1831904
 ]
 
 ["browser_dbg-debug-line.js"]

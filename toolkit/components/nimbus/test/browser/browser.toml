@@ -15,6 +15,9 @@ skip-if = [
 ["browser_experimentstore_load.js"]
 
 ["browser_experimentstore_load_single_feature.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && socketprocess_networking", # bug 1781904
+]
 
 ["browser_nimbus_telemetry.js"]
 tags = "remote-settings"
