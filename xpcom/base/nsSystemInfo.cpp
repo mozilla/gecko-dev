@@ -56,7 +56,7 @@
 #  include "mozilla/WidgetUtilsGtk.h"
 #endif
 
-#if defined(XP_LINUX) && !defined(ANDROID)
+#if defined(XP_LINUX)
 #  include <unistd.h>
 #  include <fstream>
 #  include "mozilla/Tokenizer.h"
@@ -100,11 +100,14 @@ using namespace ABI::Windows::Foundation;
 #  endif  // __MINGW32__
 #endif
 
-#if defined(XP_LINUX) && !defined(ANDROID)
+#if defined(XP_LINUX)
 static void SimpleParseKeyValuePairs(
     const std::string& aFilename,
     std::map<nsCString, nsCString>& aKeyValuePairs) {
   std::ifstream input(aFilename.c_str());
+  if (!input.is_open()) {
+    return;
+  }
   for (std::string line; std::getline(input, line);) {
     nsAutoCString key, value;
 
@@ -791,7 +794,7 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
   }
   MOZ_ASSERT(sizeof(sysctlValue32) == len);
 
-#elif defined(XP_LINUX) && !defined(ANDROID)
+#elif defined(XP_LINUX)
   // Get vendor, family, model, stepping, physical cores
   // from /proc/cpuinfo file
   {
