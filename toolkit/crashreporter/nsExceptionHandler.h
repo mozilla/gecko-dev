@@ -12,32 +12,25 @@
 #ifndef nsExceptionHandler_h__
 #define nsExceptionHandler_h__
 
-#include "mozilla/Assertions.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/UniquePtrExtensions.h"
+#if !defined(XP_WIN)
+#  include "mozilla/UniquePtrExtensions.h"  // For UniqueFileHandle
+#endif                                      // XP_WIN
 
 #include "CrashAnnotations.h"
 
 #include "nsError.h"
 #include "nsString.h"
 #include "nsXULAppAPI.h"
-#include "prio.h"
 #include <stddef.h>
 #include <stdint.h>
 
 #if defined(XP_WIN)
-#  ifdef WIN32_LEAN_AND_MEAN
-#    undef WIN32_LEAN_AND_MEAN
-#  endif
-#  include <windows.h>
-#endif
-
-#if defined(XP_MACOSX)
+#  include <handleapi.h>
+#elif defined(XP_MACOSX)
 #  include <mach/mach.h>
-#endif
-
-#if defined(XP_LINUX)
+#elif defined(XP_LINUX)
 #  include <signal.h>
 #endif
 

@@ -222,6 +222,7 @@
 #include "nsICrashReporter.h"
 #include "nsIPrefService.h"
 #include "nsIMemoryInfoDumper.h"
+#include "js/String.h"
 #if defined(XP_LINUX) && !defined(ANDROID)
 #  include "mozilla/widget/LSBUtils.h"
 #endif
@@ -1780,10 +1781,37 @@ nsXULAppInfo::GetExtraFileForID(const nsAString& aId, nsIFile** aExtraFile) {
 
 NS_IMETHODIMP
 nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
-                                  const nsACString& data) {
+                                  JS::Handle<JS::Value> data, JSContext* cx) {
   auto annotation = CrashReporter::AnnotationFromString(key);
   NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
-  CrashReporter::RecordAnnotationNSCString(*annotation, data);
+  switch (data.type()) {
+    case JS::ValueType::Int32:
+      CrashReporter::RecordAnnotationU32(*annotation, data.toInt32());
+      break;
+    case JS::ValueType::Boolean:
+      CrashReporter::RecordAnnotationBool(*annotation, data.toBoolean());
+      break;
+    case JS::ValueType::String: {
+      JSString* value = data.toString();
+      size_t length = (JS_GetStringLength(value) * 3) + 1;
+      nsCString buffer;
+      auto res = JS_EncodeStringToUTF8BufferPartial(
+          cx, value, buffer.GetMutableData(length));
+
+      if (!res) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
+      size_t written;
+      std::tie(std::ignore, written) = *res;
+
+      buffer.SetLength(written);
+
+      CrashReporter::RecordAnnotationNSCString(*annotation, buffer);
+    } break;
+    default:
+      return NS_ERROR_INVALID_ARG;
+  }
   return NS_OK;
 }
 

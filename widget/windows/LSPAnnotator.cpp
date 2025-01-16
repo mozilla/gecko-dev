@@ -11,13 +11,9 @@
  * on machines with several LSPs.
  */
 
-#include "nsICrashReporter.h"
+#include "nsExceptionHandler.h"
 #include "nsISupportsImpl.h"
-#include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
-#include "nsQueryObject.h"
-#include "nsWindowsHelpers.h"
-#include <windows.h>
 #include <rpc.h>
 #include <ws2spi.h>
 
@@ -36,12 +32,8 @@ class LSPAnnotationGatherer : public Runnable {
 };
 
 void LSPAnnotationGatherer::Annotate() {
-  nsCOMPtr<nsICrashReporter> cr =
-      do_GetService("@mozilla.org/toolkit/crash-reporter;1");
-  bool enabled;
-  if (cr && NS_SUCCEEDED(cr->GetCrashReporterEnabled(&enabled)) && enabled) {
-    cr->AnnotateCrashReport("Winsock_LSP"_ns, mString);
-  }
+  Unused << CrashReporter::RecordAnnotationNSCString(
+      CrashReporter::Annotation::Winsock_LSP, mString);
 }
 
 NS_IMETHODIMP

@@ -26,6 +26,7 @@
 #include "mozilla/Unused.h"
 #include "nsPrintfCString.h"
 #include "nsReadableUtils.h"
+#include "prtime.h"
 
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #  include "mozilla/sandboxTarget.h"
