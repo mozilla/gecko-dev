@@ -91,28 +91,6 @@
       "Clicking the description should not focus the toggle button"
     );
   });
-
-  add_task(async function testMozToggleWithoutVisibleLabel() {
-    const ARIA_LABEL = "I'm not visible";
-    let ariaLabelTemplate = testHelpers.templateFn({
-      value: "default",
-      "aria-label": ARIA_LABEL,
-    });
-    let renderTarget = await testHelpers.renderInputElements(ariaLabelTemplate);
-    let mozToggle = renderTarget.querySelector("moz-toggle");
-
-    let labelText = mozToggle.shadowRoot.querySelector(".text");
-    ok(!labelText, "No visible label text is rendered.");
-    ok(
-      !mozToggle.getAttribute("aria-label"),
-      "aria-label is not set on the outer toggle element."
-    );
-    is(
-      mozToggle.buttonEl.getAttribute("aria-label"),
-      ARIA_LABEL,
-      "The aria-label is set on the button element."
-    );
-  });
 </script>
 </pre>
 </body>
