@@ -31,20 +31,11 @@ You can find an examples of `moz-message-bar` in use in the Firefox codebase in
 [unified extensions panel](https://searchfox.org/mozilla-central/source/browser/base/content/browser-addons.js) and
 [shopping components](https://searchfox.org/mozilla-central/source/browser/components/shopping/content/shopping-message-bar.mjs).
 
-`moz-message-bar` can be imported into `.html`/`.xhtml` files:
+## How to use `moz-message-bar`
 
-```html
-<script type="module" src="chrome://global/content/elements/moz-message-bar.mjs"></script>
-```
+### Importing the element
 
-And used as follows:
-
-```html
-<moz-message-bar dismissable
-                 heading="Heading of the message bar"
-                 message="Message for the user">
-</moz-message-bar>
-```
+Like other custom elements, you should usually be able to rely on `moz-message-bar` getting lazy loaded at the time of first use. See [this documentation](https://firefox-source-docs.mozilla.org/browser/components/storybook/docs/README.reusable-widgets.stories.html#using-new-design-system-components) for more information on using design system custom elements.
 
 ### Fluent usage
 
@@ -59,7 +50,7 @@ with-heading-and-message =
 ```
 
 The `data-l10n-attrs` will be set up automatically via `MozLitElement`, so you can just specify `data-l10n-id` on your message bar as you would with any other markup:
-+
-+ ```html
-+ <moz-message-bar data-l10n-id="with-heading-and-message"></moz-message-bar>
-+ ```
+
+```html
+  <moz-message-bar data-l10n-id="with-heading-and-message"></moz-message-bar>
+```
