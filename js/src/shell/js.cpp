@@ -9240,10 +9240,14 @@ static bool CompressLZ4(JSContext* cx, unsigned argc, Value* vp) {
   JS::Rooted<ArrayBufferObject*> bytes(
       cx, &args.get(0).toObject().as<ArrayBufferObject>());
   size_t byteLength = bytes->byteLength();
+#ifdef JS_64BIT
   if (byteLength > LZ4MaxSize) {
     ReportOutOfMemory(cx);
     return false;
   }
+#else
+  static_assert(LZ4MaxSize == UINT32_MAX, "don't need to check max on 32-bit");
+#endif
 
   // Create a buffer big enough for the header and the max amount of compressed
   // bytes.
