@@ -64,6 +64,7 @@ export class GroupsPanel {
 
   #populate() {
     let fragment = this.doc.createDocumentFragment();
+
     let otherWindowGroups = this.win.gBrowser
       .getAllTabGroups()
       .filter(group => {
@@ -73,7 +74,9 @@ export class GroupsPanel {
       (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
     );
 
-    let savedGroups = this.win.SessionStore.savedGroups;
+    let savedGroups = this.win.SessionStore.savedGroups.toSorted(
+      (group1, group2) => group2.closedAt - group1.closedAt
+    );
 
     if (savedGroups.length || otherWindowGroups.length) {
       let header = this.doc.createElement("h2");
