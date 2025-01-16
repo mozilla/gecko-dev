@@ -106,13 +106,17 @@ add_task(async function test_language_support_checks() {
 
     is(
       Boolean(await TranslationsParent.findCompatibleTargetLangTag(fromLang)),
-      languagePairs.some(({ toLang }) => toLang === fromLang),
+      languagePairs.some(({ toLang }) =>
+        TranslationsUtils.langTagsMatch(toLang, fromLang)
+      ),
       "A from-language should be supported as a to-language if it also exists in the to-language list."
     );
 
     is(
       Boolean(await TranslationsParent.findCompatibleSourceLangTag(toLang)),
-      languagePairs.some(({ fromLang }) => fromLang === toLang),
+      languagePairs.some(({ fromLang }) =>
+        TranslationsUtils.langTagsMatch(fromLang, toLang)
+      ),
       "A to-language should be supported as a from-language if it also exists in the from-language list."
     );
   }

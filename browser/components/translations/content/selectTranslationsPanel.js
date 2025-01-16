@@ -13,6 +13,8 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://gre/modules/translation/LanguageDetector.sys.mjs",
   TranslationsPanelShared:
     "chrome://browser/content/translations/TranslationsPanelShared.sys.mjs",
+  TranslationsUtils:
+    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
   Translator: "chrome://global/content/translations/Translator.mjs",
 });
 
@@ -1475,7 +1477,10 @@ var SelectTranslationsPanel = new (class {
   #isSelectedLangPair(fromLanguage, toLanguage) {
     const { fromLanguage: selectedFromLang, toLanguage: selectedToLang } =
       this.#getSelectedLanguagePair();
-    return fromLanguage === selectedFromLang && toLanguage === selectedToLang;
+    return (
+      TranslationsUtils.langTagsMatch(fromLanguage, selectedFromLang) &&
+      TranslationsUtils.langTagsMatch(toLanguage, selectedToLang)
+    );
   }
 
   /**
@@ -1687,8 +1692,8 @@ var SelectTranslationsPanel = new (class {
     } = this.#translationState;
 
     const langSelectionChanged = () =>
-      previousFromLanguage !== fromLanguage ||
-      previousToLanguage !== toLanguage;
+      !TranslationsUtils.langTagsMatch(previousFromLanguage, fromLanguage) ||
+      !TranslationsUtils.langTagsMatch(previousToLanguage, toLanguage);
 
     const shouldTranslateEvenIfLangSelectionHasNotChanged = () => {
       const phase = this.phase();
@@ -1933,7 +1938,7 @@ var SelectTranslationsPanel = new (class {
     translateButton.disabled = !tryAnotherSourceMenuList.value;
     translateFullPageButton.disabled =
       invalidLangPairSelected ||
-      fromLanguage === toLanguage ||
+      TranslationsUtils.langTagsMatch(fromLanguage, toLanguage) ||
       this.#shouldHideTranslateFullPageButton();
   }
 
@@ -2307,7 +2312,12 @@ var SelectTranslationsPanel = new (class {
       toLanguage: selectedToLanguage,
     } = this.#getSelectedLanguagePair();
 
-    if (selectedFromLanguage !== previousFromLanguage) {
+    if (
+      !TranslationsUtils.langTagsMatch(
+        selectedFromLanguage,
+        previousFromLanguage
+      )
+    ) {
       const { docLangTag } = this.#getLanguageInfo();
       TranslationsParent.telemetry()
         .selectTranslationsPanel()
@@ -2317,7 +2327,9 @@ var SelectTranslationsPanel = new (class {
           docLangTag,
         });
     }
-    if (selectedToLanguage !== previousToLanguage) {
+    if (
+      !TranslationsUtils.langTagsMatch(selectedToLanguage, previousToLanguage)
+    ) {
       TranslationsParent.telemetry()
         .selectTranslationsPanel()
         .onChangeToLanguage(selectedToLanguage);
