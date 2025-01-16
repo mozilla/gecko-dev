@@ -62,14 +62,14 @@ SimpleTest.waitForFocus(async () => {
 
   for (const whiteSpace of ["normal", "pre"]) {
     editingHost.style.whiteSpace = whiteSpace;
-    for (const collapseAt of [0, 1, 2, 3]) {
+    for (const insertionOffset of [0, 1, 2, 3]) {
       for (const insertingText of ["\nabc\ndef",
                                   "abc\ndef",
                                   "abc\ndef\n",
                                   "\n\nabc",
                                   "abc\n\ndef"]) {
         editingHost.textContent = "XYZ";
-        getSelection().collapse(editingHost.firstChild, collapseAt);
+        getSelection().collapse(editingHost.firstChild, insertionOffset);
         await new Promise(resolve => {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         });
@@ -78,7 +78,7 @@ SimpleTest.waitForFocus(async () => {
         await new Promise(resolve => {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         });
-        const middleOfText = collapseAt > 0 && collapseAt < "XYZ".length;
+        const middleOfText = insertionOffset > 0 && insertionOffset < "XYZ".length;
         const expectSplit = middleOfText && whiteSpace == "normal";
         const firstLineLength = insertingText.indexOf("\n");
         const rightTextLength = expectSplit
@@ -86,7 +86,7 @@ SimpleTest.waitForFocus(async () => {
           // At this time, the right half is removed from the `Text` and then,
           // added it with new `Text`.  Therefore, there is non-zero removed
           // length.
-          ? "XYZ".length - collapseAt
+          ? "XYZ".length - insertionOffset
           // However, if the linefeeds are preformatted or
           // collapsed at start or end of a `Text`, we don't split the `Text`.
           : 0;
@@ -94,41 +94,38 @@ SimpleTest.waitForFocus(async () => {
           stringifyTextChanges(textChanges),
           stringifyTextChanges([
             {
-              offset: collapseAt,
+              offset: insertionOffset,
               removedLength: rightTextLength,
               addedLength: insertingText.length + rightTextLength,
             },
           ]),
           `white-space:${whiteSpace}: inserting text is "${
             insertingText.replaceAll("\n", "\\n")
-          }" to offset ${collapseAt} in the Text`
+          }" to offset ${insertionOffset} in the Text`
         );
         textChanges = [];
         document.execCommand("undo");
         await new Promise(resolve => {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         });
-        // Finally, removing the inserted `Text` nodes and <br> elements causes joining the
-        // `Text` nodes around the inserted text.  So, if the new text is just inserted, the
-        // text change data is same as above.  On the other hand, if we did split, the offset
-        // is always 0, the removed length is the inserted text length and right text length
-        // at first split.  Then, added text length is the right text length.
-        const joinText = expectSplit &&
-          (middleOfText || (firstLineLength > 0 && collapseAt == "XYZ".length));
-        const removeDataFromText =
-          expectSplit && collapseAt == "XYZ".length && firstLineLength > 0;
+        const expectJoin = expectSplit;
         is(
           stringifyTextChanges(textChanges),
           stringifyTextChanges([
             {
-              offset: !joinText || collapseAt == "XYZ".length ? collapseAt : 0,
-              removedLength: insertingText.length + (joinText && !removeDataFromText ? "XYZ".length : 0),
-              addedLength: joinText && !removeDataFromText ? "XYZ".length : 0,
+              // At undoing, the offset is always same as the inserted offset because we keep the
+              // left node at joining nodes so that simply removing the inserted data.
+              offset: insertionOffset,
+              // Removed length should be the length of inserted text and the text length of the
+              // right node at split because its data is once removed to move into the left `Text`.
+              removedLength: insertingText.length + rightTextLength,
+              // Added length should be the moved data length from the right node at split.
+              addedLength: rightTextLength,
             },
           ]),
           `white-space:${whiteSpace}: undoing inserted text is "${
             insertingText.replaceAll("\n", "\\n")
-          }" to offset ${collapseAt} in the Text`
+          }" to offset ${insertionOffset} in the Text`
         );
       }
     }

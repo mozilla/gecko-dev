@@ -9953,7 +9953,7 @@ async function runIMEContentObserverTest()
     dumpUnexpectedNotifications(description, 1);
 
     // "a[]d"
-    description = aDescription + "removing selected '\n' with pressing Delete";
+    description = aDescription + "removing selected '\\n' with pressing Delete";
     waitNotifications = promiseReceiveNotifications();
     synthesizeKey("KEY_Delete", {shiftKey: true}, win, callback);
     await waitNotifications;
@@ -10238,18 +10238,18 @@ async function runIMEContentObserverTest()
     checkPositionChangeNotification(notifications[2], description);
     dumpUnexpectedNotifications(description, 3);
 
-    // "aB[]d"
+    // "aB[]d" or "<block>aB[]d</block>
     description = aDescription + "removing a line break after 'B' with pressing Backspace";
     waitNotifications = promiseReceiveNotifications();
     synthesizeKey("KEY_Backspace", {}, win, callback);
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
     if (isDefaultParagraphSeparatorBlock) {
-      // Joining two blocks causes removing "aB</block><block>d</block>" and inserting "aBd</block>"
+      // Joining two blocks causes removing "</block><block>d</block>" and inserting "d</block>"
       checkTextChangeNotification(notifications[0], description, {
-        offset: offsetAtContainer,
-        removedLength: getNativeText("aB\nd").length,
-        addedLength: "aBd".length,
+        offset: offsetAtContainer + getNativeText("aB".length),
+        removedLength: getNativeText("\nd").length,
+        addedLength: "d".length,
       });
       checkSelectionChangeNotification(notifications[1], description, { offset: 2 + offsetAtContainer, text: "" });
       checkPositionChangeNotification(notifications[2], description);
@@ -10307,18 +10307,18 @@ async function runIMEContentObserverTest()
     checkSelectionChangeNotification(notifications[0], description, { offset: 1 + offsetAtContainer, text: kLF, reversed: true });
     dumpUnexpectedNotifications(description, 1);
 
-    // "a[]d"
+    // "a[]d" or "<block>a[]d</block>"
     description = aDescription + "removing selected '\\n' with pressing Delete";
     waitNotifications = promiseReceiveNotifications();
     synthesizeKey("KEY_Delete", {}, win, callback);
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
     if (isDefaultParagraphSeparatorBlock) {
-      // Joining the blocks causes removing "a</block><block>d</block>" and inserting "<block>ad</block>".
+      // Joining the blocks causes removing "</block><block>d</block>" and inserting "d</block>".
       checkTextChangeNotification(notifications[0], description, {
-        offset: offsetAtContainer,
-        removedLength: getNativeText("a\nd").length,
-        addedLength: getNativeText("ad").length,
+        offset: offsetAtContainer + "a".length,
+        removedLength: getNativeText("\nd").length,
+        addedLength: getNativeText("d").length,
       });
     } else {
       checkTextChangeNotification(notifications[0], description, {
@@ -10387,8 +10387,16 @@ async function runIMEContentObserverTest()
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
     is(aElement.innerHTML, "<div>13<div>4</div>5</div>", description + " should remove '<div>2</div>'");
-    // It causes removing '1<div>2<div>3</div></div>' and inserting '13<div>'.
-    checkTextChangeNotification(notifications[0], description, { offset: kLFLen + offsetAtStart, removedLength: getNativeText("1\n2\n3").length, addedLength: getNativeText("13\n").length });
+    checkTextChangeNotification(
+      notifications[0],
+      description,
+      {
+        offset: kLFLen + offsetAtStart + "1".length,
+        // It causes removing '<div>2<div>3</div></div>' and inserting '13<div>'.
+        removedLength: getNativeText("\n2\n3").length,
+        addedLength: getNativeText("3\n").length
+      }
+    );
     checkSelectionChangeNotification(notifications[1], description, { offset: getNativeText("\n1").length + offsetAtStart, text: "" });
     checkPositionChangeNotification(notifications[2], description);
     dumpUnexpectedNotifications(description, 3);
