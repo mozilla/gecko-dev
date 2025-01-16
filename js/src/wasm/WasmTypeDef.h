@@ -1278,32 +1278,6 @@ using SharedTypeContext = RefPtr<const TypeContext>;
 using MutableTypeContext = RefPtr<TypeContext>;
 
 //=========================================================================
-// TypeHandle
-
-// An unambiguous strong reference to a type definition in a specific type
-// context.
-class TypeHandle {
- private:
-  SharedTypeContext context_;
-  uint32_t index_;
-
- public:
-  TypeHandle(SharedTypeContext context, uint32_t index)
-      : context_(context), index_(index) {
-    MOZ_ASSERT(index_ < context_->length());
-  }
-  TypeHandle(SharedTypeContext context, const TypeDef& def)
-      : context_(context), index_(context->indexOf(def)) {}
-
-  TypeHandle(const TypeHandle&) = default;
-  TypeHandle& operator=(const TypeHandle&) = default;
-
-  const SharedTypeContext& context() const { return context_; }
-  uint32_t index() const { return index_; }
-  const TypeDef& def() const { return context_->type(index_); }
-};
-
-//=========================================================================
 // misc
 
 /* static */
