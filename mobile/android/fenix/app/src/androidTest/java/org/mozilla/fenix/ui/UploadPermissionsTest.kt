@@ -5,7 +5,7 @@ import mozilla.components.support.ktx.util.PromptAbuserDetector
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.denyPermission
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
@@ -45,9 +45,9 @@ class UploadPermissionsTest : TestSetup() {
             // Grant app permission to access storage
             grantSystemPermission()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                assertAppWithPackageNameOpens("com.google.android.documentsui")
+                assertExternalAppOpens("com.google.android.documentsui")
             } else {
-                assertAppWithPackageNameOpens("com.android.documentsui")
+                assertExternalAppOpens("com.android.documentsui")
             }
         }
     }
@@ -80,7 +80,7 @@ class UploadPermissionsTest : TestSetup() {
             denyPermission()
             // Grant app access to audio files storage
             grantSystemPermission()
-            assertAppWithPackageNameOpens("com.google.android.documentsui")
+            assertExternalAppOpens("com.google.android.documentsui")
         }
     }
 }

@@ -12,10 +12,11 @@ import androidx.test.espresso.intent.rule.IntentsRule
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.deleteDownloadedFileOnStorage
 import org.mozilla.fenix.helpers.AppAndSystemHelper.setNetworkEnabled
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_APPS_PHOTOS
+import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
@@ -24,7 +25,6 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -96,7 +96,7 @@ class DownloadTest : TestSetup() {
         notificationShade {
             verifySystemNotificationExists("Download completed")
             clickNotification("Download completed")
-            assertAppWithPackageNameOpens(GOOGLE_APPS_PHOTOS)
+            assertExternalAppOpens(GOOGLE_APPS_PHOTOS)
             mDevice.pressBack()
             mDevice.openNotification()
             verifySystemNotificationExists("Download completed")
@@ -350,9 +350,7 @@ class DownloadTest : TestSetup() {
             verifyDownloadPrompt("pdfForm.pdf")
         }.clickDownload {
         }.clickOpen("application/pdf") {
-            assertAppWithPackageNameOpens(packageName)
-            verifyUrl("content://media/external_primary/downloads/")
-            verifyTabCounter("2")
+            assertExternalAppOpens(GOOGLE_DOCS)
         }
     }
 

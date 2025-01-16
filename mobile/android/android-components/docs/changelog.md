@@ -5,6 +5,8 @@ permalink: /changelog/
 ---
 
 # 136.0 (In Development)
+* **feature-downloads**
+  * `AbstractFetchDownloadService.createOpenFileIntent` will no longer create an intent to open PDF files from the caller application if it can open PDFs. The user will be prompted to choose an application. See [Bug 1941609](https://bugzilla.mozilla.org/show_bug.cgi?id=1941609).
 
 # 135.0
 * **feature-prompts**
