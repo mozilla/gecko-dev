@@ -32,7 +32,6 @@ neterror-disable-native-feedback-warning = Always continue
 ##
 
 neterror-pref-reset = It looks like your network security settings might be causing this. Do you want the default settings to be restored?
-neterror-error-reporting-automatic = Report errors like this to help { -vendor-short-name } identify and block malicious sites
 
 ## Specific error messages
 

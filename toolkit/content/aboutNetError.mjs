@@ -400,8 +400,6 @@ function initPage() {
       // Add a learn more link
       learnMore.hidden = false;
       learnMoreLink.setAttribute("href", baseURL + "xframe-neterror-page");
-
-      setupBlockingReportingUI();
       break;
     }
 
@@ -873,82 +871,6 @@ function setNetErrorMessageFromCode() {
   document.l10n.setAttributes(shortDesc, "cert-error-ssl-connection-error", {
     errorMessage: errorMessage ?? errorCode ?? "",
     hostname,
-  });
-}
-
-function setupBlockingReportingUI() {
-  let checkbox = document.getElementById("automaticallyReportBlockingInFuture");
-
-  let reportingAutomatic = RPMGetBoolPref(
-    "security.xfocsp.errorReporting.automatic"
-  );
-  checkbox.checked = !!reportingAutomatic;
-
-  checkbox.addEventListener("change", function ({ target: { checked } }) {
-    RPMSetPref("security.xfocsp.errorReporting.automatic", checked);
-
-    // If we're enabling reports, send a report for this failure.
-    if (checked) {
-      reportBlockingError();
-    }
-  });
-
-  let reportingEnabled = RPMGetBoolPref(
-    "security.xfocsp.errorReporting.enabled"
-  );
-
-  if (reportingEnabled) {
-    // Display blocking error reporting UI for XFO error and CSP error.
-    document.getElementById("blockingErrorReporting").hidden = false;
-
-    if (reportingAutomatic) {
-      reportBlockingError();
-    }
-  }
-}
-
-function reportBlockingError() {
-  // We only report if we are in a frame.
-  if (window === window.top) {
-    return;
-  }
-
-  let err = gErrorCode;
-  // Ensure we only deal with XFO and CSP here.
-  if (!["xfoBlocked", "cspBlocked"].includes(err)) {
-    return;
-  }
-
-  let xfo_header = RPMGetHttpResponseHeader("X-Frame-Options");
-  let csp_header = RPMGetHttpResponseHeader("Content-Security-Policy");
-
-  // Extract the 'CSP: frame-ancestors' from the CSP header.
-  let reg = /(?:^|\s)frame-ancestors\s([^;]*)[$]*/i;
-  let match = reg.exec(csp_header);
-  csp_header = match ? match[1] : "";
-
-  // If it's the csp error page without the CSP: frame-ancestors, this means
-  // this error page is not triggered by CSP: frame-ancestors. So, we bail out
-  // early.
-  if (err === "cspBlocked" && !csp_header) {
-    return;
-  }
-
-  let xfoAndCspInfo = {
-    error_type: err === "xfoBlocked" ? "xfo" : "csp",
-    xfo_header,
-    csp_header,
-  };
-
-  // Trimming the tail colon symbol.
-  let scheme = document.location.protocol.slice(0, -1);
-
-  RPMSendAsyncMessage("ReportBlockingError", {
-    scheme,
-    host: document.location.host,
-    port: parseInt(document.location.port) || -1,
-    path: document.location.pathname,
-    xfoAndCspInfo,
   });
 }
 

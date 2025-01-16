@@ -50,13 +50,6 @@ support-files = [
 
 ["browser_test_referrer_loadInOtherProcess.js"]
 
-["browser_test_report_blocking.js"]
-support-files = [
-  "file_framing_error_pages_xfo.html",
-  "file_framing_error_pages_csp.html",
-  "file_framing_error_pages.sjs",
-]
-
 ["browser_test_toplevel_data_navigations.js"]
 skip-if = [
   "verify && debug && os == 'mac'",

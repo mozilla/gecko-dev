@@ -42,7 +42,6 @@ const kAllowedPrefs = new Set([
   "reader.custom_colors.selection-highlight",
 
   "security.tls.version.enable-deprecated",
-  "security.xfocsp.errorReporting.automatic",
 
   "network.trr.display_fallback_warning",
 ]);

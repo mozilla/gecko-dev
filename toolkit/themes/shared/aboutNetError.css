@@ -80,13 +80,6 @@ button:disabled {
   margin-inline-start: 0;
 }
 
-#blockingErrorReporting {
-  padding-bottom: 10px;
-  /* Pull a bit closer to the top than the other .advanced-panel containers
-   * as this is just a checkbox. */
-  margin-top: 1.2em;
-}
-
 .advanced-panel-container {
   width: 100%;
   position: absolute;
