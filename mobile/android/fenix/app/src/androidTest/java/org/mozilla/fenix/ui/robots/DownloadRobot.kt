@@ -24,7 +24,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
-import androidx.test.espresso.intent.matcher.BundleMatchers
 import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
@@ -33,10 +32,9 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.hamcrest.CoreMatchers.allOf
-import org.hamcrest.Matcher
 import org.mozilla.fenix.R
 import org.mozilla.fenix.downloads.listscreen.DownloadsListTestTag
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.getPermissionAllowID
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_APPS_PHOTOS
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
@@ -130,7 +128,7 @@ class DownloadRobot {
         Log.i(TAG, "clickTryAgainButton: Clicked the \"TRY AGAIN\" in app prompt button")
     }
 
-    fun verifyPhotosAppOpens() = assertAppWithPackageNameOpens(GOOGLE_APPS_PHOTOS)
+    fun verifyPhotosAppOpens() = assertExternalAppOpens(GOOGLE_APPS_PHOTOS)
 
     fun verifyDownloadedFileName(fileName: String) =
         assertUIObjectExists(itemContainingText(fileName))
@@ -228,27 +226,15 @@ class DownloadRobot {
             openDownloadButton().click()
             Log.i(TAG, "clickOpen: Clicked the \"OPEN\" download prompt button")
 
-            Log.i(TAG, "clickOpen: Trying to verify if the intent type is application/pdf")
-            if (type == "application/pdf") {
-                Log.i(TAG, "clickOpen: Intent type is application/pdf, waiting for device to be idle")
-                mDevice.waitForIdle()
-                Log.i(TAG, "clickOpen: Waited for device to be idle")
-            } else {
-                Log.i(TAG, "clickOpen: Intent type is not application/pdf")
-            }
-
-            Log.i(TAG, "clickOpen: Verifying that the open intent matches the expected data type")
-            val matchers = mutableListOf<Matcher<Intent>>(
-                IntentMatchers.hasAction(Intent.ACTION_VIEW),
-                IntentMatchers.hasType(type),
+            Log.i(TAG, "clickOpen: Trying to verify that the open intent is matched with associated data type")
+            // verify open intent is matched with associated data type
+            Intents.intended(
+                allOf(
+                    IntentMatchers.hasAction(Intent.ACTION_VIEW),
+                    IntentMatchers.hasType(type),
+                ),
             )
-
-            if (type == "application/pdf") {
-                matchers.add(IntentMatchers.hasExtras(BundleMatchers.hasEntry("open_to_browser", true)))
-            }
-
-            Intents.intended(allOf(matchers))
-            Log.i(TAG, "clickOpen: Verified that the open intent matches the expected data type")
+            Log.i(TAG, "clickOpen: Verified that the open intent is matched with associated data type")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()

@@ -18,7 +18,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
@@ -1011,8 +1010,6 @@ abstract class AbstractFetchDownloadService : Service() {
     companion object {
         /**
          * Launches an intent to open the given file, returns whether or not the file could be opened.
-         * If the file is a PDF and the caller application can open PDFs, the file will be opened
-         * from the caller application.
          */
         fun openFile(
             applicationContext: Context,
@@ -1029,13 +1026,11 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         /**
-         * Creates an Intent which can then be used to open the file specified. If the file is a
-         * PDF and the caller application can open PDFs, the file will be opened from the caller
-         * application.
+         * Creates an Intent which can then be used to open the file specified.
+         *
          * @param context the current Android *Context*
          * @param download contains the details of the downloaded file to be opened.
          */
-        @SuppressLint("QueryPermissionsNeeded") // We expect our browsers to have the QUERY_ALL_PACKAGES permission
         fun createOpenFileIntent(
             context: Context,
             download: DownloadState,
@@ -1060,16 +1055,6 @@ abstract class AbstractFetchDownloadService : Service() {
                     setDataAndType(fileUri, getSafeContentType(context, fileUri, contentType))
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
                 }
-
-            if (download.isPdf) {
-                val canCallerOpenPdfs = context.packageManager
-                    .queryIntentActivities(newIntent, PackageManager.MATCH_DEFAULT_ONLY)
-                    .any { it.activityInfo.packageName == context.packageName }
-
-                if (canCallerOpenPdfs) {
-                    newIntent.setPackage(context.packageName)
-                }
-            }
 
             return newIntent
         }
