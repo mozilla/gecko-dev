@@ -39,6 +39,10 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
 
+    OS_LIBS += [
+        "log"
+    ]
+
 if CONFIG["OS_TARGET"] == "Darwin":
 
     DEFINES["_LIBCPP_HAS_NO_ALIGNED_ALLOCATION"] = True
@@ -93,6 +97,10 @@ if CONFIG["OS_TARGET"] == "WINNT":
     DEFINES["_WIN32_WINNT"] = "0x0A00"
     DEFINES["_WINDOWS"] = True
     DEFINES["__STD_C"] = True
+
+    OS_LIBS += [
+        "bcrypt"
+    ]
 
 if CONFIG["TARGET_CPU"] == "mips32":
 

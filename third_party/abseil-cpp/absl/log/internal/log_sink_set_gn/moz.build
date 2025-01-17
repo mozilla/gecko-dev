@@ -22,24 +22,8 @@ LOCAL_INCLUDES += [
     "/tools/profiler/public"
 ]
 
-SOURCES += [
-    "/third_party/abseil-cpp/absl/strings/numbers.cc"
-]
-
 UNIFIED_SOURCES += [
-    "/third_party/abseil-cpp/absl/strings/ascii.cc",
-    "/third_party/abseil-cpp/absl/strings/charconv.cc",
-    "/third_party/abseil-cpp/absl/strings/escaping.cc",
-    "/third_party/abseil-cpp/absl/strings/internal/charconv_bigint.cc",
-    "/third_party/abseil-cpp/absl/strings/internal/charconv_parse.cc",
-    "/third_party/abseil-cpp/absl/strings/internal/damerau_levenshtein_distance.cc",
-    "/third_party/abseil-cpp/absl/strings/internal/memutil.cc",
-    "/third_party/abseil-cpp/absl/strings/internal/stringify_sink.cc",
-    "/third_party/abseil-cpp/absl/strings/match.cc",
-    "/third_party/abseil-cpp/absl/strings/str_cat.cc",
-    "/third_party/abseil-cpp/absl/strings/str_replace.cc",
-    "/third_party/abseil-cpp/absl/strings/str_split.cc",
-    "/third_party/abseil-cpp/absl/strings/substitute.cc"
+    "/third_party/abseil-cpp/absl/log/internal/log_sink_set.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -58,6 +42,10 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["ANDROID_NDK_VERSION_ROLL"] = "r22_1"
     DEFINES["HAVE_SYS_UIO_H"] = True
     DEFINES["_GNU_SOURCE"] = True
+
+    OS_LIBS += [
+        "log"
+    ]
 
 if CONFIG["OS_TARGET"] == "Darwin":
 
@@ -180,4 +168,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("strings_gn")
+Library("log_sink_set_gn")
