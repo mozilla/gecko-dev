@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MozInputSearch Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script type="module" src="chrome://global/content/elements/moz-input-search.mjs"></script>
+  <script src="input-test-helpers.js"></script>
+  <script class="testbody" type="application/javascript">
+    let testHelpers = new InputTestHelpers();
+    let html;
+
+    add_setup(async function setup() {
+      ({ html } = await testHelpers.setupLit());
+      await testHelpers.setupInputTests({
+        templateFn: (attrs, children) =>
+          html`<moz-input-search ${attrs}>${children}</moz-input-search>`,
+      });
+    });
+
+    add_task(async function testMozInputSearchProperties() {
+      await testHelpers.testCommonInputProperties("moz-input-search");
+    });
+
+    add_task(async function testMozInputSearchEvents() {
+      await testHelpers.testTextBasedInputEvents("moz-input-search");
+    });
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<pre id="test"></pre>
+</body>
+</html>

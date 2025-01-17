@@ -103,6 +103,7 @@ toolkit.jar:
    content/global/elements/moz-fieldset.css    (widgets/moz-fieldset/moz-fieldset.css)
    content/global/elements/moz-fieldset.mjs    (widgets/moz-fieldset/moz-fieldset.mjs)
    content/global/elements/moz-input-common.css       (widgets/moz-input-common.css)
+   content/global/elements/moz-input-search.mjs    (widgets/moz-input-search/moz-input-search.mjs)
    content/global/elements/moz-input-text.css    (widgets/moz-input-text/moz-input-text.css)
    content/global/elements/moz-input-text.mjs    (widgets/moz-input-text/moz-input-text.mjs)
    content/global/elements/moz-page-nav.css    (widgets/moz-page-nav/moz-page-nav.css)

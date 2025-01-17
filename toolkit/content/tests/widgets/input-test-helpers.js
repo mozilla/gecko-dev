@@ -637,4 +637,32 @@ class InputTestHelpers {
       "Label content doesn't contain any extra whitespace."
     );
   }
+
+  async testTextBasedInputEvents(selector) {
+    let { trackEvent, verifyEvents } = this.getInputEventHelpers();
+    let target = await this.renderInputElements();
+    let input = target.querySelector(selector);
+
+    input.addEventListener("click", trackEvent);
+    input.addEventListener("change", trackEvent);
+    input.addEventListener("input", trackEvent);
+
+    const TEST_STRING = "mozilla!";
+    synthesizeMouseAtCenter(input.inputEl, {});
+    sendString(TEST_STRING);
+    input.blur();
+    await TestUtils.waitForTick();
+
+    // Verify that we emit input events for each char of the string,
+    // and that change events are fired when the input loses focus.
+    verifyEvents([
+      { type: "click", localName: selector, value: "" },
+      ...Array.from(TEST_STRING).map((char, i) => ({
+        type: "input",
+        localName: selector,
+        value: TEST_STRING.substring(0, i + 1),
+      })),
+      { type: "change", localName: selector, value: TEST_STRING },
+    ]);
+  }
 }
