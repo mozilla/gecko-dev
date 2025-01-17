@@ -1285,17 +1285,32 @@ void BufferAllocator::mergeSweptData(const AutoLock& lock) {
     majorFinishedWhileMinorSweeping = false;
 
 #ifdef DEBUG
-    if (majorState == State::NotCollecting) {
-      checkGCStateNotInUse(lock);
-    } else {
-      for (BufferChunk* chunk : mediumMixedChunks.ref()) {
-        verifyChunk(chunk, true);
-      }
-      for (BufferChunk* chunk : mediumTenuredChunks.ref()) {
-        verifyChunk(chunk, false);
-      }
+    for (BufferChunk* chunk : mediumMixedChunks.ref()) {
+      verifyChunk(chunk, true);
+    }
+    for (BufferChunk* chunk : mediumTenuredChunks.ref()) {
+      verifyChunk(chunk, false);
     }
 #endif
+  }
+}
+
+void BufferAllocator::clearMarkStateAfterBarrierVerification() {
+  MOZ_ASSERT(!zone->wasGCStarted());
+
+  maybeMergeSweptData();
+  MOZ_ASSERT(minorState == State::NotCollecting);
+  MOZ_ASSERT(majorState == State::NotCollecting);
+
+  for (auto* chunks : {&mediumMixedChunks.ref(), &mediumTenuredChunks.ref()}) {
+    for (auto* chunk : *chunks) {
+      chunk->markBits.ref().clear();
+    }
+  }
+  for (auto* allocs : {&largeNurseryAllocs.ref(), &largeTenuredAllocs.ref()}) {
+    for (auto* alloc : *allocs) {
+      alloc->clearMarked();
+    }
   }
 }
 
@@ -1357,6 +1372,7 @@ bool LargeBuffer::isPointerWithinAllocation(void* ptr) const {
 #ifdef DEBUG
 
 void BufferAllocator::checkGCStateNotInUse() {
+  maybeMergeSweptData();
   AutoLock lock(this);  // Some fields are protected by this lock.
   checkGCStateNotInUse(lock);
 }

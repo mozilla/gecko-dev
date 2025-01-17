@@ -221,6 +221,12 @@ void gc::GCRuntime::startVerifyPreBarriers() {
 
   AutoPrepareForTracing prep(cx);
 
+#  ifdef DEBUG
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    zone->bufferAllocator.checkGCStateNotInUse();
+  }
+#  endif
+
   ClearMarkBits<AllZonesIter>(this);
 
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::TRACE_HEAP);
@@ -403,6 +409,10 @@ void gc::GCRuntime::endVerifyPreBarriers() {
 
   marker().reset();
   resetDelayedMarking();
+
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    zone->bufferAllocator.clearMarkStateAfterBarrierVerification();
+  }
 
   js_delete(trc);
 }

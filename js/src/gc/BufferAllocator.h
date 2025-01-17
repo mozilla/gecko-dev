@@ -347,6 +347,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void startMajorSweeping(MaybeLock& lock);
   void sweepForMajorCollection(bool shouldDecommit);
   void finishMajorCollection(const AutoLock& lock);
+  void clearMarkStateAfterBarrierVerification();
 
   void maybeMergeSweptData();
   void maybeMergeSweptData(MaybeLock& lock);
