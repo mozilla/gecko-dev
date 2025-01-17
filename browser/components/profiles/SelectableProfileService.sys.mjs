@@ -350,6 +350,9 @@ class SelectableProfileServiceClass {
     // to come after #currentProfile has been set.
     this.initWindowTracker();
 
+    // We must also set the current profile as default during startup.
+    this.setDefaultProfileForGroup();
+
     Services.obs.addObserver(
       this.themeObserver,
       "lightweight-theme-styling-update"
