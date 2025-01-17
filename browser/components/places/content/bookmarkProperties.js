@@ -224,12 +224,9 @@ var BookmarkPropertiesPanel = {
    * dialog to initialize the state of the panel.
    */
   async onDialogLoad() {
-    document.addEventListener("dialogaccept", function () {
-      BookmarkPropertiesPanel.onDialogAccept();
-    });
-    document.addEventListener("dialogcancel", function () {
-      BookmarkPropertiesPanel.onDialogCancel();
-    });
+    document.addEventListener("dialogaccept", () => this.onDialogAccept());
+    document.addEventListener("dialogcancel", () => this.onDialogCancel());
+    window.addEventListener("unload", () => this.onDialogUnload());
 
     // Disable the buttons until we have all the information required.
     let acceptButton = document
