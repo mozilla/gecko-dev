@@ -212,8 +212,10 @@ class Skipfails(object):
                     str,  # OS Version
                     Dict[
                         str,  # Processor
-                        # Test variants for each build type
-                        Dict[str, list[str]],
+                        Dict[
+                            str,  # Variant
+                            Dict[str, int],  # pass: X, fail: Y
+                        ],
                     ],
                 ],
             ],

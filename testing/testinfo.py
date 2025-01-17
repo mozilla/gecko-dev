@@ -660,7 +660,9 @@ class TestInfoReport(TestInfo):
                 # hack for wpt manifests
                 if relpath.startswith(".."):
                     relpath = "/" + relpath.replace("../", "")
-                config_matrix[relpath] = self.create_matrix_from_task_graph(relpath)
+                config_matrix[relpath] = self.create_matrix_from_task_graph(
+                    relpath, runcount
+                )
             self.write_report(config_matrix, config_matrix_output_file)
 
         if show_manifests:
@@ -1062,6 +1064,7 @@ class TestInfoReport(TestInfo):
                 "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.taskgraph.decision/artifacts/public/"
                 + filename
             )
+
             response = requests.get(url, headers={"User-agent": "mach-test-info/1.0"})
             data = response.json()
             with open(filename, "w") as f:
@@ -1076,6 +1079,13 @@ class TestInfoReport(TestInfo):
             if task_label.endswith("-cf"):
                 continue
 
+            try:
+                parts = task_label.split("-")
+                if int(parts[-1]):
+                    task_label = "-".join(parts[:-1])
+            except ValueError:
+                pass
+
             # TODO: this only works for tasks where we schedule by manifest
             env = task.get("task", {}).get("payload", {}).get("env", {})
 
@@ -1086,9 +1096,9 @@ class TestInfoReport(TestInfo):
             # TODO: figure out a better method for dealing with TEST_TAG
             # when we have a test_tag, all skipped manifests are added to chunk 1.
             # we are skipping real manifests, but avoiding many overreported manifests.
-            if json.loads(env.get("MOZHARNESS_TEST_TAG", "{}")) and task_label.endswith(
-                "-1"
-            ):
+            #
+            # NOTE: some variants only have a single chunk, so no numbers
+            if json.loads(env.get("MOZHARNESS_TEST_TAG", "{}")):
                 continue
 
             for suite in mhtp:
@@ -1157,7 +1167,7 @@ class TestInfoReport(TestInfo):
 
     # find manifest in matrix_map and for all tasks that run this
     # pull the tuples out and create a definitive list
-    def create_matrix_from_task_graph(self, target_manifest):
+    def create_matrix_from_task_graph(self, target_manifest, runcount):
         results = {}
 
         if not self.matrix_map:
@@ -1168,6 +1178,25 @@ class TestInfoReport(TestInfo):
             osname, os_version, processor, build_type, test_variants = self.task_tuples[
                 task_label
             ]
+
+            # add in runcounts, we can find find the index of the given task_label in 'job_type_names',
+            # use that to get specific runs
+            passed = 0
+            failed = 0
+            if target_manifest in runcount:
+                # data = [[job_name, result, classification, count], ...]
+                for data in [
+                    x for x in runcount[target_manifest] if task_label == x[0]
+                ]:
+                    if data[1] == "passed":
+                        passed += data[3]
+                    else:
+                        failed += data[3]
+
+            # this helps avoid 'skipped' manifests
+            if passed == 0 and failed == 0:
+                continue
+
             if osname not in results:
                 results[osname] = {}
             if os_version not in results[osname]:
@@ -1175,6 +1204,20 @@ class TestInfoReport(TestInfo):
             if processor not in results[osname][os_version]:
                 results[osname][os_version][processor] = {}
             if build_type not in results[osname][os_version][processor]:
-                results[osname][os_version][processor][build_type] = set()
-            results[osname][os_version][processor][build_type].add(test_variants)
+                results[osname][os_version][processor][build_type] = {}
+
+            if isinstance(test_variants, str):
+                test_variants = [test_variants]
+            for variant in test_variants:
+                if variant not in results[osname][os_version][processor][build_type]:
+                    results[osname][os_version][processor][build_type][variant] = {
+                        "pass": 0,
+                        "fail": 0,
+                    }
+                results[osname][os_version][processor][build_type][variant][
+                    "pass"
+                ] += passed
+                results[osname][os_version][processor][build_type][variant][
+                    "fail"
+                ] += failed
         return results

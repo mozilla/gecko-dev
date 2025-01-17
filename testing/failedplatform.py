@@ -19,9 +19,11 @@ class FailedPlatform:
         # Keys are build types, values are test variants for this build type
         # Tests variants can be composite by using the "+" character
         # eg: a11y_checks+swgl
+        # each build_type[test_variant] has a {'pass': x, 'fail': y}
+        # x and y represent number of times this was run in the last 30 days
         # See examples in
         # https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.source.test-info-all/artifacts/public%2Ftest-info-testrun-matrix.json
-        oop_permutations: Dict[str, list[str]],
+        oop_permutations: Dict[str, Dict[str, Dict[str, int]]],
     ) -> None:
         # Contains all test variants for each build type the task failed on
         self.failures: Dict[str, Set[str]] = {}
