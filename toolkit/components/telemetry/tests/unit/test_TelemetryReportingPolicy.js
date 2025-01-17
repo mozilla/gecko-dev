@@ -9,6 +9,9 @@
 const { TelemetryReportingPolicy } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
 );
+const { TelemetryReportingPolicyImpl } = ChromeUtils.importESModule(
+  "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
+);
 const { UpdateUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/UpdateUtils.sys.mjs"
 );
@@ -99,12 +102,39 @@ add_task(
     );
     TelemetryReportingPolicy.reset();
 
+    function waitForObserver(topic) {
+      return new Promise(resolve => {
+        const originalObserve = TelemetryReportingPolicyImpl.observe;
+        TelemetryReportingPolicyImpl.observe = async function (
+          aSubject,
+          aTopic
+        ) {
+          try {
+            await originalObserve.call(this, aSubject, aTopic);
+          } finally {
+            if (aTopic === topic) {
+              TelemetryReportingPolicyImpl.observe = originalObserve;
+              resolve();
+            }
+          }
+        };
+      });
+    }
+
+    const firstRunPromise = waitForObserver("sessionstore-windows-restored");
     Services.obs.notifyObservers(null, "sessionstore-windows-restored");
+    await firstRunPromise;
+
     Assert.equal(
       startupTimeout,
       FIRST_RUN_TIMEOUT_MSEC,
       "The infobar display timeout should be 60s on the first run."
     );
+
+    TelemetryReportingPolicy.reset();
+    const secondRunPromise = waitForObserver("sessionstore-windows-restored");
+    Services.obs.notifyObservers(null, "sessionstore-windows-restored");
+    await secondRunPromise;
 
     // Run again, and check that we actually wait only 10 seconds.
     TelemetryReportingPolicy.reset();

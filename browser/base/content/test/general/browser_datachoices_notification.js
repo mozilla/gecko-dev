@@ -33,12 +33,12 @@ function fakeShowPolicyTimeout(set, clear) {
   reportingPolicy.clearShowInfobarTimeout = clear;
 }
 
-function sendSessionRestoredNotification() {
+async function sendSessionRestoredNotification() {
   let reportingPolicy = ChromeUtils.importESModule(
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
   ).Policy;
 
-  reportingPolicy.fakeSessionRestoreNotification();
+  await reportingPolicy.fakeSessionRestoreNotification();
 }
 
 /**
@@ -76,7 +76,7 @@ function promiseWaitForNotificationClose(aNotification) {
   return deferred.promise;
 }
 
-function triggerInfoBar(expectedTimeoutMs) {
+async function triggerInfoBar(expectedTimeoutMs) {
   let showInfobarCallback = null;
   let timeoutMs = null;
   fakeShowPolicyTimeout(
@@ -86,7 +86,7 @@ function triggerInfoBar(expectedTimeoutMs) {
     },
     () => {}
   );
-  sendSessionRestoredNotification();
+  await sendSessionRestoredNotification();
   Assert.ok(!!showInfobarCallback, "Must have a timer callback.");
   if (expectedTimeoutMs !== undefined) {
     Assert.equal(timeoutMs, expectedTimeoutMs, "Timeout should match");
@@ -179,7 +179,8 @@ add_task(async function test_single_window() {
   );
 
   // Wait for the infobar to be displayed.
-  triggerInfoBar(10 * 1000);
+  await triggerInfoBar(10 * 1000);
+
   await alertShownPromise;
   await promiseNextTick();
 
@@ -254,7 +255,7 @@ add_task(async function test_multiple_windows() {
   );
 
   // Wait for the infobars.
-  triggerInfoBar(10 * 1000);
+  await triggerInfoBar(10 * 1000);
   await Promise.all(showAlertPromises);
 
   // Both notification were displayed. Close one and check that both gets closed.
