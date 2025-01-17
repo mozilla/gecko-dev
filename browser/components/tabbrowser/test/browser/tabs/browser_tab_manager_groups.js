@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { TabStateFlusher } = ChromeUtils.importESModule(
+  "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+);
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.tabs.groups.enabled", true]],
@@ -140,11 +144,11 @@ add_task(async function test_tabGroupsView() {
 
   let tabs = [];
   for (let i = 1; i <= 5; i++) {
-    tabs.push(
-      await addTab(`data:text/plain,tab${i}`, {
-        skipAnimation: true,
-      })
-    );
+    let tab = await addTab(`data:text/plain,tab${i}`, {
+      skipAnimation: true,
+    });
+    await TabStateFlusher.flush(tab.linkedBrowser);
+    tabs.push(tab);
   }
   let group1 = gBrowser.addTabGroup([tabs[0], tabs[1]], {
     id: savedGroupId,

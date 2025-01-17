@@ -888,6 +888,17 @@ export var SessionStore = {
   openSavedTabGroup(tabGroupId, targetWindow) {
     return SessionStoreInternal.openSavedTabGroup(tabGroupId, targetWindow);
   },
+
+  /**
+   * Determine whether a group is saveable, based on whether any of its tabs
+   * are saveable per ssi_shouldSaveTabState.
+   * @param {MozTabbrowserTabGroup} group the tab group to check
+   * @returns {boolean} true if the group can be saved, false if it should
+   *  be discarded.
+   */
+  shouldSaveTabGroup(group) {
+    return SessionStoreInternal.shouldSaveTabGroup(group);
+  },
 };
 
 // Freeze the SessionStore object. We don't want anyone to modify it.
@@ -2534,7 +2545,9 @@ var SessionStoreInternal = {
 
     // Add saved tab group references to saved tab group state.
     for (let tabGroupToSave of newlySavedTabGroups.values()) {
-      this._recordSavedTabGroupState(tabGroupToSave);
+      if (tabGroupToSave.tabs.length) {
+        this._recordSavedTabGroupState(tabGroupToSave);
+      }
     }
   },
 
@@ -6838,6 +6851,23 @@ var SessionStoreInternal = {
   },
 
   /**
+   * Determine if a tab group should be saved based on whether any of its tabs
+   * should be saved.
+   *
+   * @param {MozTabbrowserTabGroup} group the tab group to check
+   * @returns {boolean} true if the group is saveable.
+   */
+  shouldSaveTabGroup: function ssi_shouldSaveTabGroup(group) {
+    for (let tab of group.tabs) {
+      let tabState = lazy.TabState.collect(tab);
+      if (this._shouldSaveTabState(tabState)) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  /**
    * Determine if the tab state we're passed is something we should keep to be
    * reopened at session restore. This is used when we are saving the current
    * session state to disk. This method is very similar to _shouldSaveTabState,
@@ -7754,7 +7784,9 @@ var SessionStoreInternal = {
       tabGroup.tabs,
       tabGroup.ownerGlobal
     );
-    this._recordSavedTabGroupState(tabGroupState);
+    if (tabGroupState.tabs.length) {
+      this._recordSavedTabGroupState(tabGroupState);
+    }
   },
 
   /**

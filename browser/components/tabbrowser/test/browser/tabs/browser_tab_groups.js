@@ -1822,8 +1822,32 @@ add_task(async function test_moveGroupToNewWindow() {
   await BrowserTestUtils.closeWindow(newWin, { animate: false });
 });
 
-add_task(async function test_saveAndCloseGroup() {
+/**
+ * The "save & close" button in the tabgroup menu should be disabled if the
+ * group is not saveable.
+ */
+add_task(async function test_saveDisabledForUnimportantGroup() {
   let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel();
+  let saveAndCloseGroupButton = tabgroupEditor.panel.querySelector(
+    "#tabGroupEditor_saveAndCloseGroup"
+  );
+  Assert.ok(
+    saveAndCloseGroupButton.disabled,
+    "Save button is disabled for newtab-only group"
+  );
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(
+    tabgroupEditor.panel,
+    "hidden"
+  );
+  tabgroupEditor.panel.hidePopup();
+  await panelHidden;
+  gBrowser.removeTabGroup(group);
+});
+
+add_task(async function test_saveAndCloseGroup() {
+  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel([
+    await addTab("about:mozilla"),
+  ]);
   let tabgroupPanel = tabgroupEditor.panel;
   let tab = group.tabs[0];
   let saveAndCloseGroupButton = tabgroupPanel.querySelector(

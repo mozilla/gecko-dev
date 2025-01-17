@@ -36,6 +36,7 @@ add_task(async function test_SaveTabGroups() {
   Assert.equal(state.savedGroups[1].tabs.length, 1, "group2 has 1 tab");
 
   ss.forgetSavedTabGroup(group1.id);
+  win.gBrowser.removeTabGroup(group1);
   state = ss.getCurrentState();
 
   Assert.equal(state.savedGroups.length, 1, "savedGroups has 1 group");
@@ -43,6 +44,30 @@ add_task(async function test_SaveTabGroups() {
   Assert.equal(state.savedGroups[0].tabs.length, 1, "group2 still has 1 tab");
 
   ss.forgetSavedTabGroup(group2.id);
+  win.gBrowser.removeTabGroup(group2);
+  await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
+});
+
+/**
+ * Newtabs with no history are considered unimportant and are ignored by
+ * sessionstore. Groups of unimportant tabs should also be ignored.
+ */
+add_task(async function test_ignoreUnimportantTabGroups() {
+  let win = await promiseNewWindowLoaded();
+  let state = ss.getCurrentState(win);
+  Assert.equal(state.savedGroups.length, 0, "savedGroups starts empty");
+
+  let tab1 = BrowserTestUtils.addTab(win.gBrowser, "about:newtab");
+  await BrowserTestUtils.browserLoaded(tab1.linkedBrowser);
+  await TabStateFlusher.flush(tab1.linkedBrowser);
+  let group1 = win.gBrowser.addTabGroup([tab1]);
+  ss.addSavedTabGroup(group1);
+
+  state = ss.getCurrentState();
+  Assert.equal(state.savedGroups.length, 0, "savedGroups is still empty");
+
+  win.gBrowser.removeTabGroup(group1);
   await BrowserTestUtils.closeWindow(win);
   forgetClosedWindows();
 });

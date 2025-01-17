@@ -7,6 +7,10 @@
 // This is loaded into chrome windows with the subscript loader. Wrap in
 // a block to prevent accidentally leaking globals onto `window`.
 {
+  const { TabStateFlusher } = ChromeUtils.importESModule(
+    "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+  );
+
   class MozTabbrowserTabGroupMenu extends MozXULElement {
     static COLORS = [
       "blue",
@@ -245,6 +249,18 @@
       });
       document.getElementById("tabGroupEditor_moveGroupToNewWindow").disabled =
         gBrowser.openTabs.length == this.activeGroup?.tabs.length;
+      this.#maybeDisableSaveButton();
+    }
+
+    #maybeDisableSaveButton() {
+      let flushes = [];
+      this.activeGroup.tabs.forEach(tab => {
+        flushes.push(TabStateFlusher.flush(tab.linkedBrowser));
+      });
+      Promise.allSettled(flushes).then(() => {
+        document.getElementById("tabGroupEditor_saveAndCloseGroup").disabled =
+          !SessionStore.shouldSaveTabGroup(this.activeGroup);
+      });
     }
 
     close(keepNewlyCreatedGroup = false) {

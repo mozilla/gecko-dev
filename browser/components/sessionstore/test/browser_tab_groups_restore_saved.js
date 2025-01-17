@@ -110,6 +110,11 @@ add_task(async function test_restoreSavedTabGroupToAnotherWindow() {
     }
   );
   const tabGroupToSaveId = tabGroupToSave.id;
+
+  await Promise.allSettled([
+    TabStateFlusher.flush(aboutRobotsTab.linkedBrowser),
+    TabStateFlusher.flush(aboutAboutTab.linkedBrowser),
+  ]);
   tabGroupToSave.save();
 
   await TabStateFlusher.flushWindow(win);
