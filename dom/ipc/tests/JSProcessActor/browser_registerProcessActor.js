@@ -4,13 +4,14 @@
 
 declTest("double register", {
   async test(_browser, _window, fileExt) {
-    SimpleTest.doesThrow(
+    Assert.throws(
       () =>
-        ChromeUtils.registerContentActor(
+        ChromeUtils.registerProcessActor(
           "TestProcessActor",
           processActorOptions[fileExt]
         ),
-      "Should throw if register has duplicate name."
+      /'TestProcessActor' actor is already registered./,
+      "Throw if registering a process actor with the same name twice."
     );
   },
 });
