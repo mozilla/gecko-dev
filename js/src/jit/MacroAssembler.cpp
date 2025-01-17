@@ -4113,28 +4113,11 @@ void MacroAssembler::outOfLineTruncateSlow(FloatRegister src, Register dest,
   }
   int32_t framePushedAfterInstance = framePushed();
 
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||     \
-    defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
   ScratchDoubleScope fpscratch(*this);
   if (widenFloatToDouble) {
     convertFloat32ToDouble(src, fpscratch);
     src = fpscratch;
   }
-#elif defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
-  FloatRegister srcSingle;
-  if (widenFloatToDouble) {
-    MOZ_ASSERT(src.isSingle());
-    srcSingle = src;
-    src = src.asDouble();
-    Push(srcSingle);
-    convertFloat32ToDouble(srcSingle, src);
-  }
-#else
-  // Also see below
-  MOZ_CRASH("MacroAssembler platform hook: outOfLineTruncateSlow");
-#endif
-
   MOZ_ASSERT(src.isDouble());
 
   if (compilingWasm) {
@@ -4151,18 +4134,6 @@ void MacroAssembler::outOfLineTruncateSlow(FloatRegister src, Register dest,
                                  CheckUnsafeCallWithABI::DontCheckOther);
   }
   storeCallInt32Result(dest);
-
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||     \
-    defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
-  // Nothing
-#elif defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
-  if (widenFloatToDouble) {
-    Pop(srcSingle);
-  }
-#else
-  MOZ_CRASH("MacroAssembler platform hook: outOfLineTruncateSlow");
-#endif
 
   if (compilingWasm) {
     Pop(InstanceReg);
