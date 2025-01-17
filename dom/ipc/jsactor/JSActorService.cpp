@@ -61,6 +61,13 @@ void JSActorService::RegisterWindowActor(const nsACString& aName,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(XRE_IsParentProcess());
 
+  if (mProcessActorDescriptors.Contains(aName)) {
+    aRv.ThrowNotSupportedError(
+        nsPrintfCString("'%s' actor is already registered as a process actor.",
+                        PromiseFlatCString(aName).get()));
+    return;
+  }
+
   const auto proto = mWindowActorDescriptors.WithEntryHandle(
       aName, [&](auto&& entry) -> RefPtr<JSWindowActorProtocol> {
         if (entry) {
@@ -229,6 +236,13 @@ void JSActorService::RegisterProcessActor(const nsACString& aName,
                                           ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(XRE_IsParentProcess());
+
+  if (mWindowActorDescriptors.Contains(aName)) {
+    aRv.ThrowNotSupportedError(
+        nsPrintfCString("'%s' actor is already registered as a window actor.",
+                        PromiseFlatCString(aName).get()));
+    return;
+  }
 
   const auto proto = mProcessActorDescriptors.WithEntryHandle(
       aName, [&](auto&& entry) -> RefPtr<JSProcessActorProtocol> {
