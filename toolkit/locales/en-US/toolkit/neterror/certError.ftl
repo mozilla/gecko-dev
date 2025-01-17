@@ -139,8 +139,6 @@ corruptedContentError-title = Corrupted Content Error
 sslv3Used-title = Unable to Connect Securely
 inadequateSecurityError-title = Your connection is not secure
 blockedByPolicy-title = Blocked Page
-
-blocked-by-corp-headers-title = Be careful. Something doesn’t look right.
 clockSkewError-title = Your Computer Clock is Wrong
 networkProtocolError-title = Network Protocol Error
 nssBadCert-title = Warning: Potential Security Risk Ahead
