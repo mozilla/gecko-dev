@@ -71,21 +71,28 @@ function createSpan(doc) {
  * autocompletion works as expected.
  *
  * @param {Array} testData
- *        - {String} key, the key to send
+ *        - {String|Object} key, the key to send. An object can be passed with a `key` property.
+ *                          The other properties will be the options for the event (e.g. `shiftKey`)
  *        - {String} completion, the expected value of the auto-completion
  *        - {Number} index, the index of the selected suggestion in the popup
  *        - {Number|Array} items, the number of suggestions in the popup, or, alternatively
  *                         an array of the items label
  *        - {String} postLabel, the expected post label for the selected suggestion
  *        - {Boolean} colorSwatch, if there is a swatch of color expected to be visible
+ *        - {Boolean} noSuggestion, true if the keypress doesn't trigger an "after-suggest" event
  * @param {InplaceEditor} editor
  *        The InplaceEditor instance being tested
  */
 async function testCompletion(
-  [key, completion, index, items, postLabel, colorSwatch],
+  [key, completion, index, items, postLabel, colorSwatch, noSuggestion],
   editor
 ) {
-  info("Pressing key " + key);
+  let eventOptions = {};
+  if (typeof key === "object") {
+    ({ key, ...eventOptions } = key);
+  }
+
+  info(`Pressing key <${key}> | options: ${JSON.stringify(eventOptions)}`);
   info("Expecting " + completion);
 
   let onVisibilityChange = null;
@@ -98,8 +105,8 @@ async function testCompletion(
   }
 
   let onSuggest;
-  if (/(left|right|back_space|escape)/gi.test(key)) {
-    info("Adding event listener for right|back_space|escape keys");
+  if (/(left|right|back_space|escape)/gi.test(key) || noSuggestion) {
+    info("Waiting for next keypress event");
     onSuggest = once(editor.input, "keypress");
   } else {
     info("Waiting for after-suggest event on the editor");
@@ -107,7 +114,7 @@ async function testCompletion(
   }
 
   info("Synthesizing key " + key);
-  EventUtils.synthesizeKey(key, {}, editor.input.defaultView);
+  EventUtils.synthesizeKey(key, eventOptions, editor.input.defaultView);
 
   await onSuggest;
   await onVisibilityChange;
