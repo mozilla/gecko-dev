@@ -105,6 +105,20 @@ font-list:
     - android-probes@mozilla.com
     - tom@mozilla.com
 
+onboarding-opt-out:
+  description: |
+    Indicates the user has opted out of sending technical and interaction data.
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1936070
+  data_reviews:
+    - https://phabricator.services.mozilla.com/D231582
+  notification_emails:
+    - android-probes@mozilla.com
+  metadata:
+    follows_collection_enabled: false
+    include_info_sections: false
+  include_client_id: false
+
 dau-reporting:
   description: |
     Minimal ping to measure DAU.

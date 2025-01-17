@@ -27,6 +27,7 @@ import mozilla.components.service.nimbus.messaging.use
 import mozilla.components.support.base.ext.areNotificationsEnabledSafe
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.BrowsersCache
+import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.initializeGlean
@@ -329,6 +330,9 @@ class OnboardingFragment : Fragment() {
             settings.isTelemetryEnabled,
             requireComponents.core.client,
         )
+        if (!settings.isTelemetryEnabled) {
+            Pings.onboardingOptOut.submit()
+        }
 
         startMetricsIfEnabled(
             logger = logger,
