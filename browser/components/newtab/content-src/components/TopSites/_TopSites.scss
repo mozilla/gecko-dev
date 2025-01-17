@@ -24,7 +24,6 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
 
   .layout-variant-a &,
   .layout-variant-b & {

@@ -764,7 +764,6 @@ main section {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
 }
 .layout-variant-a .top-sites-list, .layout-variant-b .top-sites-list {
   display: grid;
@@ -4491,8 +4490,6 @@ main section {
 
 .has-sections-grid .ds-outer-wrapper-breakpoint-override .ds-layout-topsites {
   position: relative;
-  width: 100vw;
-  inset-inline-start: calc(50% - 50vw);
 }
 .has-sections-grid .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
   width: 266px;
@@ -4522,37 +4519,11 @@ main section {
 .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites,
 .has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites {
   position: relative;
-  width: 100vw;
-  inset-inline-start: calc(50% - 50vw);
 }
 .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper,
 .has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
   margin-inline: auto;
-  width: 346px;
-}
-@media (min-width: 610px) {
-  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper,
-.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
-    width: 346px;
-  }
-}
-@media (min-width: 724px) {
-  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper,
-.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
-    width: 659px;
-  }
-}
-@media (min-width: 1122px) {
-  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper,
-.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
-    width: 989px;
-  }
-}
-@media (min-width: 1390px) {
-  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper,
-.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .top-sites-list-wrapper {
-    width: 1311px;
-  }
+  width: 100%;
 }
 .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow,
 .has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow {

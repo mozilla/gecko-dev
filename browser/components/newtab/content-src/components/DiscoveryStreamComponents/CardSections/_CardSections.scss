@@ -208,13 +208,9 @@
   }
 }
 
-// Bug 1930974 - Override parent wrapper width for topsites container
-// Use (almost all) default wrapper widths with the sections-grid breakpoints
 .has-sections-grid .ds-outer-wrapper-breakpoint-override {
   .ds-layout-topsites {
     position: relative;
-    width: 100vw;
-    inset-inline-start: calc(50% - 50vw);
 
     .top-sites-list-wrapper {
       width: 266px;
@@ -246,34 +242,14 @@
   }
 }
 
-// Bug 1930974 - Override parent wrapper width for topsites container
-// Use the variant a/b wrapper widths
 .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override,
 .has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override {
   .ds-layout-topsites {
     position: relative;
-    width: 100vw;
-    inset-inline-start: calc(50% - 50vw);
 
     .top-sites-list-wrapper {
       margin-inline: auto;
-      width: 346px;
-
-      @media (min-width: $break-point-medium) {
-        width: 346px;
-      }
-
-      @media (min-width: $break-point-layout-variant) {
-        width: 659px;
-      }
-
-      @media (min-width: $break-point-widest) {
-        width: 989px;
-      }
-
-      @media (min-width: $break-point-sections-variant) {
-        width: 1311px;
-      }
+      width: 100%;
     }
 
     .hide-for-narrow {
