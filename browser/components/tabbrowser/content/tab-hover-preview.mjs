@@ -61,7 +61,9 @@ export default class TabHoverPreviewPanel {
 
     this._panelOpener = new TabPreviewPanelTimedFunction(
       () => {
-        this._panel.openPopup(this._tab, this.#popupOptions);
+        if (!this._isDisabled()) {
+          this._panel.openPopup(this._tab, this.#popupOptions);
+        }
       },
       this._prefPreviewDelay,
       ZERO_DELAY_ACTIVATION_TIME,

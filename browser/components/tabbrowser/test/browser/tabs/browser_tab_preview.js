@@ -668,6 +668,89 @@ add_task(async function panelSuppressionOnPanelLazyLoadTests() {
 });
 
 /**
+ * Ensure that the panel does not open when other panels are active or are in
+ * the process of being activated.
+ */
+add_task(async function otherPanelOpenTests() {
+  // This test verifies timing behavior that can't practically be tested in
+  // chaos mode.
+  if (parseInt(Services.env.get("MOZ_CHAOSMODE"), 16)) {
+    return;
+  }
+
+  await SpecialPowers.pushPrefEnv({ set: [["ui.tooltip.delay_ms", 500]] });
+
+  // Without this, the spies would be dependent on this task coming after the
+  // above tasks. Set up the preview panel manually if necessary, to make the
+  // task fully independent.
+  let previewComponent = gBrowser.tabContainer.previewPanel;
+  if (!previewComponent) {
+    const TabHoverPreviewPanel = ChromeUtils.importESModule(
+      "chrome://browser/content/tabbrowser/tab-hover-preview.mjs"
+    ).default;
+    previewComponent = new TabHoverPreviewPanel(
+      document.getElementById("tab-preview-panel")
+    );
+    gBrowser.tabContainer.previewPanel = previewComponent;
+  }
+
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "data:text/html,<html><head><title>Tab</title></head><body></body></html>"
+  );
+
+  sinon.spy(previewComponent._panelOpener, "execute");
+  sinon.spy(previewComponent._panelOpener, "_target");
+  sinon.spy(previewComponent._panel, "openPopup");
+
+  // Start the timer...
+  EventUtils.synthesizeMouseAtCenter(tab, { type: "mouseover" });
+
+  await BrowserTestUtils.waitForCondition(
+    () => previewComponent._panelOpener.execute.calledOnce
+  );
+
+  Assert.ok(previewComponent._panelOpener._timer, "Timer is set");
+
+  // Open the popup before the timer finishes...
+  const appMenuButton = document.getElementById("PanelUI-menu-button");
+  const appMenuPopup = document.getElementById("appMenu-popup");
+  appMenuButton.click();
+
+  await BrowserTestUtils.waitForEvent(appMenuPopup, "popupshown");
+
+  // Wait for timer to finish...
+  await BrowserTestUtils.waitForCondition(
+    () => previewComponent._panelOpener._target.calledOnce
+  );
+  await TestUtils.waitForTick();
+
+  // As a popup was already open, the preview panel should not have opened.
+  Assert.ok(previewComponent._panel.state === "closed", "Panel is closed");
+  Assert.ok(
+    previewComponent._panel.openPopup.notCalled,
+    "openPopup was not invoked"
+  );
+
+  // Cleanup
+  const tabs = document.getElementById("tabbrowser-tabs");
+  EventUtils.synthesizeMouse(tabs, 0, tabs.outerHeight + 1, {
+    type: "mouseout",
+  });
+
+  const popupHidingEvent = BrowserTestUtils.waitForEvent(
+    appMenuPopup,
+    "popuphiding"
+  );
+  appMenuPopup.hidePopup();
+  await popupHidingEvent;
+
+  sinon.restore();
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
  * preview should be hidden if it is showing when the URLBar receives input
  */
 add_task(async function urlBarInputTests() {
