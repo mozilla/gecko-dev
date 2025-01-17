@@ -36,8 +36,28 @@
   &:focus-visible {
     outline: var(--focus-outline);
   }
-}
 
-:host([selected]) .avatar {
-  border: var(--focus-outline);
+  :host([selected]) & {
+    border: var(--focus-outline);
+  }
+
+  @media (forced-colors) {
+    &:hover {
+      border-color: SelectedItem;
+
+      > img {
+        stroke: SelectedItem;
+      }
+    }
+
+    :host([selected]) & {
+      border-color: SelectedItemText;
+      background-color: SelectedItem;
+
+      > img {
+        fill: SelectedItem;
+        stroke: SelectedItemText;
+      }
+    }
+  }
 }

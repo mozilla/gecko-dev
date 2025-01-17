@@ -26,6 +26,30 @@ moz-card {
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-offset);
   }
+
+  :host([selected]) & {
+    border-color: var(--focus-outline-color);
+  }
+
+  @media (forced-colors) {
+    &:hover {
+      border-color: SelectedItem;
+
+      .theme-name {
+        color: SelectedItem;
+      }
+    }
+
+    :host([selected]) & {
+      background-color: SelectedItem;
+      border-color: SelectedItemText;
+      color: SelectedItemText;
+
+      .theme-name {
+        color: SelectedItemText;
+      }
+    }
+  }
 }
 
 .theme-content {
@@ -60,8 +84,8 @@ moz-card {
   border-block-start: var(--card-border);
 
   font-size: var(--font-size-small);
-}
 
-:host([selected]) .theme-card {
-  border-color: var(--focus-outline-color);
+  @media (forced-colors) {
+    color: ButtonText;
+  }
 }
