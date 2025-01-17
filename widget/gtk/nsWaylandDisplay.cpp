@@ -5,7 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsWaylandDisplay.h"
-#include "DMABufFormats.h"
+
+#include <dlfcn.h>
 
 #include "base/message_loop.h"    // for MessageLoop
 #include "base/task.h"            // for NewRunnableMethod, etc
@@ -402,19 +403,8 @@ void nsWaylandDisplay::SetPointerGestures(
   mPointerGestures = aPointerGestures;
 }
 
-void nsWaylandDisplay::SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf, int aVersion) {
-  if (!aDmabuf) {
-    return;
-  }
+void nsWaylandDisplay::SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf) {
   mDmabuf = aDmabuf;
-  mFormats = new DMABufFormats();
-  mDmabufIsFeedback =
-      (aVersion >= ZWP_LINUX_DMABUF_V1_GET_DEFAULT_FEEDBACK_SINCE_VERSION);
-  if (mDmabufIsFeedback) {
-    mFormats->InitFeedback(mDmabuf, nullptr);
-  } else {
-    mFormats->InitV3(mDmabuf);
-  }
 }
 
 void nsWaylandDisplay::SetXdgActivation(xdg_activation_v1* aXdgActivation) {
@@ -545,12 +535,12 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* viewporter = WaylandRegistryBind<wp_viewporter>(
         registry, id, &wp_viewporter_interface, 1);
     display->SetViewporter(viewporter);
-  } else if (iface.EqualsLiteral("zwp_linux_dmabuf_v1")) {
-    int vers =
-        MIN(version, ZWP_LINUX_DMABUF_V1_GET_DEFAULT_FEEDBACK_SINCE_VERSION);
+  } else if (iface.EqualsLiteral("zwp_linux_dmabuf_v1") &&
+             version >= ZWP_LINUX_DMABUF_V1_MODIFIER_SINCE_VERSION) {
     auto* dmabuf = WaylandRegistryBind<zwp_linux_dmabuf_v1>(
-        registry, id, &zwp_linux_dmabuf_v1_interface, vers);
-    display->SetDmabuf(dmabuf, vers);
+        registry, id, &zwp_linux_dmabuf_v1_interface,
+        ZWP_LINUX_DMABUF_V1_MODIFIER_SINCE_VERSION);
+    display->SetDmabuf(dmabuf);
   } else if (iface.EqualsLiteral("xdg_activation_v1")) {
     auto* activation = WaylandRegistryBind<xdg_activation_v1>(
         registry, id, &xdg_activation_v1_interface, 1);
@@ -641,9 +631,6 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
   wl_registry_add_listener(mRegistry, &registry_listener, this);
   wl_display_roundtrip(mDisplay);
   wl_display_roundtrip(mDisplay);
-  if (mDmabuf && !mDmabufIsFeedback) {
-    mFormats->InitV3Done();
-  }
 
   for (auto& e : mSupportedTransfer) {
     e = -1;

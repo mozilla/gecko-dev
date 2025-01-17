@@ -8,7 +8,6 @@
 #include "DMABufLibWrapper.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
-#  include "DMABufFormats.h"
 #endif
 #include "base/message_loop.h"  // for MessageLoop
 #include "mozilla/StaticPrefs_widget.h"
@@ -51,7 +50,6 @@ CreateDeviceFunc GbmLib::sCreateDevice;
 DestroyDeviceFunc GbmLib::sDestroyDevice;
 CreateFunc GbmLib::sCreate;
 CreateWithModifiersFunc GbmLib::sCreateWithModifiers;
-CreateWithModifiers2Func GbmLib::sCreateWithModifiers2;
 GetModifierFunc GbmLib::sGetModifier;
 GetStrideFunc GbmLib::sGetStride;
 GetFdFunc GbmLib::sGetFd;
@@ -104,8 +102,6 @@ bool GbmLib::Load() {
   sCreate = (CreateFunc)dlsym(sGbmLibHandle, "gbm_bo_create");
   sCreateWithModifiers = (CreateWithModifiersFunc)dlsym(
       sGbmLibHandle, "gbm_bo_create_with_modifiers");
-  sCreateWithModifiers2 = (CreateWithModifiers2Func)dlsym(
-      sGbmLibHandle, "gbm_bo_create_with_modifiers2");
   sGetModifier = (GetModifierFunc)dlsym(sGbmLibHandle, "gbm_bo_get_modifier");
   sGetStride = (GetStrideFunc)dlsym(sGbmLibHandle, "gbm_bo_get_stride");
   sGetFd = (GetFdFunc)dlsym(sGbmLibHandle, "gbm_bo_get_fd");
@@ -161,7 +157,11 @@ bool DMABufDevice::IsEnabled(nsACString& aFailureId) {
   return mDRMFd != -1;
 }
 
-DMABufDevice::DMABufDevice() { Configure(); }
+DMABufDevice::DMABufDevice()
+    : mXRGBFormat({true, false, GBM_FORMAT_XRGB8888, {}}),
+      mARGBFormat({true, true, GBM_FORMAT_ARGB8888, {}}) {
+  Configure();
+}
 
 DMABufDevice::~DMABufDevice() {
   if (mGbmDevice) {
@@ -244,50 +244,97 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
 
 #ifdef MOZ_WAYLAND
 void DMABufDevice::SetModifiersToGfxVars() {
-  RefPtr<DMABufFormats> formats = WaylandDisplayGet()->GetDMABufFormats();
-  if (!formats) {
-    return;
-  }
-  if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888)) {
-    mFormatRGBX = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
-  }
-  if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_ARGB8888)) {
-    mFormatRGBA = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersARGB(*format->GetModifiers());
-  }
+  gfxVars::SetDMABufModifiersXRGB(mXRGBFormat.mModifiers);
+  gfxVars::SetDMABufModifiersARGB(mARGBFormat.mModifiers);
 }
 
 void DMABufDevice::GetModifiersFromGfxVars() {
-  mFormatRGBX =
-      new DRMFormat(GBM_FORMAT_XRGB8888, gfxVars::DMABufModifiersXRGB());
-  mFormatRGBX =
-      new DRMFormat(GBM_FORMAT_ARGB8888, gfxVars::DMABufModifiersARGB());
+  mXRGBFormat.mModifiers = gfxVars::DMABufModifiersXRGB().Clone();
+  mARGBFormat.mModifiers = gfxVars::DMABufModifiersARGB().Clone();
 }
 #endif
 
 void DMABufDevice::DisableDMABufWebGL() { sUseWebGLDmabufBackend = false; }
 
-RefPtr<DRMFormat> DMABufDevice::GetDRMFormat(int32_t aFOURCCFormat) {
-  switch (aFOURCCFormat) {
-    case GBM_FORMAT_XRGB8888:
-      return mFormatRGBX;
-    case GBM_FORMAT_ARGB8888:
-      return mFormatRGBA;
-    default:
-      gfxCriticalNoteOnce << "DMABufDevice::GetDRMFormat() unknow format: "
-                          << aFOURCCFormat;
-      return nullptr;
-  }
+GbmFormat* DMABufDevice::GetGbmFormat(bool aHasAlpha) {
+  GbmFormat* format = aHasAlpha ? &mARGBFormat : &mXRGBFormat;
+  return format->mIsSupported ? format : nullptr;
 }
 
 #ifdef MOZ_WAYLAND
+void DMABufDevice::AddFormatModifier(bool aHasAlpha, int aFormat,
+                                     uint32_t mModifierHi,
+                                     uint32_t mModifierLo) {
+  GbmFormat* format = aHasAlpha ? &mARGBFormat : &mXRGBFormat;
+  format->mIsSupported = true;
+  format->mHasAlpha = aHasAlpha;
+  format->mFormat = aFormat;
+  format->mModifiers.AppendElement(((uint64_t)mModifierHi << 32) | mModifierLo);
+}
+
+static void dmabuf_modifiers(void* data,
+                             struct zwp_linux_dmabuf_v1* zwp_linux_dmabuf,
+                             uint32_t format, uint32_t modifier_hi,
+                             uint32_t modifier_lo) {
+  // skip modifiers marked as invalid
+  if (modifier_hi == (DRM_FORMAT_MOD_INVALID >> 32) &&
+      modifier_lo == (DRM_FORMAT_MOD_INVALID & 0xffffffff)) {
+    return;
+  }
+
+  auto* device = static_cast<DMABufDevice*>(data);
+  switch (format) {
+    case GBM_FORMAT_ARGB8888:
+      device->AddFormatModifier(true, format, modifier_hi, modifier_lo);
+      break;
+    case GBM_FORMAT_XRGB8888:
+      device->AddFormatModifier(false, format, modifier_hi, modifier_lo);
+      break;
+    default:
+      break;
+  }
+}
+
+static void dmabuf_format(void* data,
+                          struct zwp_linux_dmabuf_v1* zwp_linux_dmabuf,
+                          uint32_t format) {
+  // XXX: deprecated
+}
+
+static const struct zwp_linux_dmabuf_v1_listener dmabuf_listener = {
+    dmabuf_format, dmabuf_modifiers};
+
+static void global_registry_handler(void* data, wl_registry* registry,
+                                    uint32_t id, const char* interface,
+                                    uint32_t version) {
+  if (strcmp(interface, "zwp_linux_dmabuf_v1") == 0 && version > 2) {
+    auto* dmabuf = WaylandRegistryBind<zwp_linux_dmabuf_v1>(
+        registry, id, &zwp_linux_dmabuf_v1_interface, 3);
+    LOGDMABUF(("zwp_linux_dmabuf_v1 is available."));
+    zwp_linux_dmabuf_v1_add_listener(dmabuf, &dmabuf_listener, data);
+  } else if (strcmp(interface, "wl_drm") == 0) {
+    LOGDMABUF(("wl_drm is available."));
+  }
+}
+
+static void global_registry_remover(void* data, wl_registry* registry,
+                                    uint32_t id) {}
+
+static const struct wl_registry_listener registry_listener = {
+    global_registry_handler, global_registry_remover};
+
 void DMABufDevice::LoadFormatModifiers() {
   if (!GdkIsWaylandDisplay()) {
     return;
   }
   if (XRE_IsParentProcess()) {
     MOZ_ASSERT(NS_IsMainThread());
+    wl_display* display = WaylandDisplayGetWLDisplay();
+    wl_registry* registry = wl_display_get_registry(display);
+    wl_registry_add_listener(registry, &registry_listener, this);
+    wl_display_roundtrip(display);
+    wl_display_roundtrip(display);
+    wl_registry_destroy(registry);
     SetModifiersToGfxVars();
   } else {
     GetModifiersFromGfxVars();

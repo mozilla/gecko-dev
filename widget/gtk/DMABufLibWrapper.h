@@ -10,7 +10,6 @@
 
 #include "mozilla/widget/gbm.h"
 #include "mozilla/StaticMutex.h"
-#include "mozilla/widget/DMABufFormats.h"
 #include <mutex>
 
 #ifdef MOZ_LOGGING
@@ -38,11 +37,6 @@ typedef struct gbm_bo* (*CreateWithModifiersFunc)(struct gbm_device*, uint32_t,
                                                   uint32_t, uint32_t,
                                                   const uint64_t*,
                                                   const unsigned int);
-typedef struct gbm_bo* (*CreateWithModifiers2Func)(struct gbm_device*, uint32_t,
-                                                   uint32_t, uint32_t,
-                                                   const uint64_t*,
-                                                   const unsigned int,
-                                                   const uint32_t);
 typedef uint64_t (*GetModifierFunc)(struct gbm_bo*);
 typedef uint32_t (*GetStrideFunc)(struct gbm_bo*);
 typedef int (*GetFdFunc)(struct gbm_bo*);
@@ -110,22 +104,6 @@ class GbmLib {
     StaticMutexAutoLock lockDRI(sDRILock);
     return sCreateWithModifiers(gbm, width, height, format, modifiers, count);
   }
-  static struct gbm_bo* CreateWithModifiers2(struct gbm_device* gbm,
-                                             uint32_t width, uint32_t height,
-                                             uint32_t format,
-                                             const uint64_t* modifiers,
-                                             const unsigned int count,
-                                             const uint32_t flags) {
-    StaticMutexAutoLock lockDRI(sDRILock);
-    if (!sCreateWithModifiers2) {
-      // CreateWithModifiers2 is optional and present in new GBM lib,
-      // if missing just fallback to old CreateWithModifiers as
-      // we want to anyway.
-      return sCreateWithModifiers(gbm, width, height, format, modifiers, count);
-    }
-    return sCreateWithModifiers2(gbm, width, height, format, modifiers, count,
-                                 flags);
-  }
   static uint64_t GetModifier(struct gbm_bo* bo) {
     StaticMutexAutoLock lockDRI(sDRILock);
     return sGetModifier(bo);
@@ -175,7 +153,6 @@ class GbmLib {
   static DestroyDeviceFunc sDestroyDevice;
   static CreateFunc sCreate;
   static CreateWithModifiersFunc sCreateWithModifiers;
-  static CreateWithModifiers2Func sCreateWithModifiers2;
   static GetModifierFunc sGetModifier;
   static GetStrideFunc sGetStride;
   static GetFdFunc sGetFd;
@@ -197,7 +174,12 @@ class GbmLib {
   static mozilla::StaticMutex sDRILock MOZ_UNANNOTATED;
 };
 
-class DRMFormat;
+struct GbmFormat {
+  bool mIsSupported;
+  bool mHasAlpha;
+  int mFormat;
+  nsTArray<uint64_t> mModifiers;
+};
 
 class DMABufDevice {
  public:
@@ -216,20 +198,23 @@ class DMABufDevice {
   static bool IsDMABufWebGLEnabled();
   static void DisableDMABufWebGL();
 
-  RefPtr<DRMFormat> GetDRMFormat(int32_t aFOURCCFormat);
+#ifdef MOZ_WAYLAND
+  void AddFormatModifier(bool aHasAlpha, int aFormat, uint32_t mModifierHi,
+                         uint32_t mModifierLo);
+#endif
+  GbmFormat* GetGbmFormat(bool aHasAlpha);
 
  private:
   void Configure();
-
 #ifdef MOZ_WAYLAND
   void LoadFormatModifiers();
   void SetModifiersToGfxVars();
   void GetModifiersFromGfxVars();
 #endif
 
-  // Two basic formats, always present.
-  RefPtr<DRMFormat> mFormatRGBA;
-  RefPtr<DRMFormat> mFormatRGBX;
+ private:
+  GbmFormat mXRGBFormat;
+  GbmFormat mARGBFormat;
 
   int mDRMFd = -1;
   std::once_flag mFlagGbmDevice;
