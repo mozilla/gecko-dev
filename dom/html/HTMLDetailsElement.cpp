@@ -69,6 +69,7 @@ void HTMLDetailsElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         if (isOpen) {
           CloseOtherElementsIfNeeded();
         }
+        SetStates(ElementState::OPEN, isOpen);
       }
     } else if (aName == nsGkAtoms::name) {
       CloseElementIfNeeded();
