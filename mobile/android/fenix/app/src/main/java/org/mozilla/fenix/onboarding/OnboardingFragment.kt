@@ -372,11 +372,9 @@ class OnboardingFragment : Fragment() {
                 text = getString(R.string.juno_onboarding_privacy_notice_text),
                 url = SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
                 onClick = {
-                    startActivity(
-                        SupportUtils.createSandboxCustomTabIntent(
-                            context = requireContext(),
-                            url = it,
-                        ),
+                    SupportUtils.launchSandboxCustomTab(
+                        context = requireContext(),
+                        url = it,
                     )
                     telemetryRecorder.onPrivacyPolicyClick(
                         pagesToDisplay.telemetrySequenceId(),

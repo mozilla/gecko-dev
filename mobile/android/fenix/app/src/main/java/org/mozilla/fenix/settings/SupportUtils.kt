@@ -127,10 +127,8 @@ object SupportUtils {
     /**
      * Custom tab that cannot open the content in Firefox directly.
      * This ensures the content is contained to this custom tab only.
-     *
-     * @see launchSandboxCustomTab
      */
-    fun createSandboxCustomTabIntent(context: Context, url: String): Intent =
+    private fun createSandboxCustomTabIntent(context: Context, url: String): Intent =
         createCustomTabIntent(context, url).putExtra(EXTRA_IS_SANDBOX_CUSTOM_TAB, true)
 
     /**

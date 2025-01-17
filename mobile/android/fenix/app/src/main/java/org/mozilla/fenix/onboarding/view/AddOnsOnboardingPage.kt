@@ -136,11 +136,10 @@ private fun MoreExtensionsLink() {
                 text = stringResource(R.string.onboarding_add_on_explore_more_extensions_2),
                 url = url,
                 onClick = {
-                    val intent = SupportUtils.createSandboxCustomTabIntent(
+                    SupportUtils.launchSandboxCustomTab(
                         context = context,
                         url = url,
                     )
-                    context.startActivity(intent)
                 },
             ),
         ),

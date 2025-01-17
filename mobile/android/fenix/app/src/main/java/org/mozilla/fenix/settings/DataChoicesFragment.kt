@@ -113,11 +113,9 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
     }
 
     private fun openLearnMoreUrlInSandboxedTab() {
-        startActivity(
-            SupportUtils.createSandboxCustomTabIntent(
-                context = requireContext(),
-                url = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
-            ),
+        SupportUtils.launchSandboxCustomTab(
+            context = requireContext(),
+            url = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
         )
     }
 
