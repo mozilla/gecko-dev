@@ -118,14 +118,3 @@ type = "boolean"
 bug-numbers = [1616739]
 is-public-jexl = "nightly_build"
 default-value-jexl = "nightly_build"
-
-[devtools-serviceworker-debugger-support]
-group = "experimental-features-group-developer-tools"
-title = "experimental-features-devtools-serviceworker-debugger-support"
-description = "experimental-features-devtools-serviceworker-debugger-support-description"
-restart-required = true
-preference = "devtools.debugger.features.windowless-service-workers"
-type = "boolean"
-bug-numbers = [1651607]
-is-public-jexl = "true"
-default-value-jexl = "false"
