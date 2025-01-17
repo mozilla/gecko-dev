@@ -6063,9 +6063,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   //
   // Functions for converting values to int.
   //
-  void convertDoubleToInt(FloatRegister src, Register output,
-                          FloatRegister temp, Label* truncateFail, Label* fail,
-                          IntConversionBehavior behavior);
 
   // Strings may be handled by providing labels to jump to when the behavior
   // is truncation or clamping. The subroutine, usually an OOL call, is

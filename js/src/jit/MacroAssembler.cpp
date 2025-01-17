@@ -4169,31 +4169,6 @@ void MacroAssembler::outOfLineTruncateSlow(FloatRegister src, Register dest,
   }
 }
 
-void MacroAssembler::convertDoubleToInt(FloatRegister src, Register output,
-                                        FloatRegister temp, Label* truncateFail,
-                                        Label* fail,
-                                        IntConversionBehavior behavior) {
-  switch (behavior) {
-    case IntConversionBehavior::Normal:
-    case IntConversionBehavior::NegativeZeroCheck:
-      convertDoubleToInt32(
-          src, output, fail,
-          behavior == IntConversionBehavior::NegativeZeroCheck);
-      break;
-    case IntConversionBehavior::Truncate:
-      branchTruncateDoubleMaybeModUint32(src, output,
-                                         truncateFail ? truncateFail : fail);
-      break;
-    case IntConversionBehavior::ClampToUint8:
-      // Clamping clobbers the input register, so use a temp.
-      if (src != temp) {
-        moveDouble(src, temp);
-      }
-      clampDoubleToUint8(temp, output);
-      break;
-  }
-}
-
 void MacroAssembler::convertValueToInt(
     ValueOperand value, Label* handleStringEntry, Label* handleStringRejoin,
     Label* truncateDoubleSlow, Register stringReg, FloatRegister temp,
@@ -4277,7 +4252,22 @@ void MacroAssembler::convertValueToInt(
       bind(handleStringRejoin);
     }
 
-    convertDoubleToInt(temp, output, temp, truncateDoubleSlow, fail, behavior);
+    switch (behavior) {
+      case IntConversionBehavior::Normal:
+      case IntConversionBehavior::NegativeZeroCheck:
+        convertDoubleToInt32(
+            temp, output, fail,
+            behavior == IntConversionBehavior::NegativeZeroCheck);
+        break;
+      case IntConversionBehavior::Truncate:
+        branchTruncateDoubleMaybeModUint32(
+            temp, output, truncateDoubleSlow ? truncateDoubleSlow : fail);
+        break;
+      case IntConversionBehavior::ClampToUint8:
+        clampDoubleToUint8(temp, output);
+        break;
+    }
+
     jump(&done);
   }
 
