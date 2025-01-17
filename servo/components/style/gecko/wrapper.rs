@@ -2088,6 +2088,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::Modal |
             NonTSPseudoClass::MozTopmostModal |
+            NonTSPseudoClass::Open |
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::HasSlotted |
