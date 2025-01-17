@@ -27,6 +27,8 @@ using namespace js::gc;
 
 static constexpr size_t MinAllocSize = MinCellSize;  // 16 bytes
 
+static constexpr size_t MaxSmallAllocSize =
+    1 << (BufferAllocator::MinMediumAllocShift - 1);
 static constexpr size_t MinMediumAllocSize =
     1 << BufferAllocator::MinMediumAllocShift;
 static constexpr size_t MaxMediumAllocSize =
@@ -524,16 +526,13 @@ Mutex& BufferAllocator::lock() const {
 }
 
 /* static */
-bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
-  return RoundUp(bytes + sizeof(MediumBuffer), PageSize) > MaxMediumAllocSize;
+bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
+  return bytes + sizeof(SmallBuffer) <= MaxSmallAllocSize;
 }
 
 /* static */
-bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
-  // Check for large alloc size first otherwise this may overflow.
-  MOZ_ASSERT(!IsLargeAllocSize(bytes));
-
-  return mozilla::RoundUpPow2(bytes + sizeof(SmallBuffer)) < MinMediumAllocSize;
+bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
+  return bytes + sizeof(MediumBuffer) > MaxMediumAllocSize;
 }
 
 /* static */
@@ -542,7 +541,7 @@ size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
 
   if (IsLargeAllocSize(requiredBytes)) {
     size_t headerSize = sizeof(LargeBuffer);
-    return RoundUp(requiredBytes + headerSize, PageSize) - headerSize;
+    return RoundUp(requiredBytes + headerSize, ChunkSize) - headerSize;
   }
 
   // Small and medium headers have the same size.
@@ -1546,7 +1545,7 @@ AllocKind BufferAllocator::AllocKindForSmallAlloc(size_t bytes) {
   bytes = std::max(bytes, MinAllocSize);
 
   size_t totalBytes = bytes + sizeof(SmallBuffer);
-  MOZ_ASSERT(totalBytes < MinMediumAllocSize);
+  MOZ_ASSERT(totalBytes <= MaxSmallAllocSize);
   MOZ_ASSERT(totalBytes >= bytes);
 
   size_t logBytes = mozilla::CeilingLog2(totalBytes);
@@ -2288,7 +2287,7 @@ bool BufferAllocator::IsMediumAlloc(void* alloc) {
 }
 
 void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
-  size_t totalBytes = RoundUp(bytes + sizeof(LargeBuffer), PageSize);
+  size_t totalBytes = RoundUp(bytes + sizeof(LargeBuffer), ChunkSize);
   MOZ_ASSERT(totalBytes > MaxMediumAllocSize);
   MOZ_ASSERT(totalBytes >= bytes);
 

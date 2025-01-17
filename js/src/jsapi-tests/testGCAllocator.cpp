@@ -578,8 +578,10 @@ BEGIN_TEST(testBufferAllocator_realloc) {
       holder->setBuffer(alloc);
 
       // Realloc to same size.
+      void* prev = alloc;
       alloc = ReallocBuffer(zone, alloc, requestSize, nurseryOwned);
       CHECK(alloc);
+      CHECK(alloc == prev);
       CHECK(actualSize == GetAllocSize(alloc));
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
       CHECK(CheckAllocData(alloc, actualSize));
