@@ -6,6 +6,7 @@ package org.mozilla.fenix.ext
 
 import android.app.Activity
 import android.app.role.RoleManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -154,7 +155,7 @@ fun Activity.openSetDefaultBrowserOption(
  * This method checks if the app can prompt the user to set it as the default browser
  * based on the Android version and the availability of the ROLE_BROWSER.
  */
-fun Activity.isDefaultBrowserPromptSupported(): Boolean {
+fun Context.isDefaultBrowserPromptSupported(): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         getSystemService(RoleManager::class.java).also {
             if (it.isRoleAvailable(RoleManager.ROLE_BROWSER) && !it.isRoleHeld(

@@ -51,7 +51,7 @@ class OnboardingPageUiDataTest {
     }
 }
 
-private val defaultBrowserPageUiData = OnboardingPageUiData(
+val defaultBrowserPageUiData = OnboardingPageUiData(
     type = OnboardingPageUiData.Type.DEFAULT_BROWSER,
     imageRes = R.drawable.ic_onboarding_welcome,
     title = "default browser title",
@@ -61,7 +61,7 @@ private val defaultBrowserPageUiData = OnboardingPageUiData(
     privacyCaption = null,
 )
 
-private val syncPageUiData = OnboardingPageUiData(
+val syncPageUiData = OnboardingPageUiData(
     type = OnboardingPageUiData.Type.SYNC_SIGN_IN,
     imageRes = R.drawable.ic_onboarding_sync,
     title = "sync title",
@@ -71,7 +71,7 @@ private val syncPageUiData = OnboardingPageUiData(
     privacyCaption = null,
 )
 
-private val notificationPageUiData = OnboardingPageUiData(
+val notificationPageUiData = OnboardingPageUiData(
     type = OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
     imageRes = R.drawable.ic_notification_permission,
     title = "notification title",
