@@ -595,11 +595,7 @@ function assertQuickSuggestPing(expectedPing) {
   }
 
   let expectedValueOverrides = {
-    // `contextId` should always be the value in this pref, a UUID, but without
-    // the leading and trailing braces.
-    contextId: Services.prefs
-      .getCharPref("browser.contextual-services.contextId")
-      .substring(1, 37),
+    contextId: expectedPingContextId(),
   };
 
   for (let key of expectedKeys) {
@@ -632,4 +628,12 @@ function assertQuickSuggestPing(expectedPing) {
       );
     }
   }
+}
+
+function expectedPingContextId() {
+  // `contextId` in the `quick-suggest` pings should always be the value in this
+  // pref, a UUID, but without the leading and trailing braces.
+  return Services.prefs
+    .getCharPref("browser.contextual-services.contextId")
+    .substring(1, 37);
 }

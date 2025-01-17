@@ -55,7 +55,17 @@ export class AmpSuggestions extends SuggestProvider {
   }
 
   enable(enabled) {
-    GleanPings.quickSuggest.setEnabled(enabled);
+    if (enabled) {
+      GleanPings.quickSuggest.setEnabled(true);
+      GleanPings.quickSuggestDeletionRequest.setEnabled(true);
+    } else {
+      // Submit the `deletion-request` ping. Both it and the `quick-suggest`
+      // ping must remain enabled in order for it to be successfully submitted
+      // and uploaded. That's fine: It's harmless for both pings to remain
+      // enabled until shutdown, and they won't be submitted again since AMP
+      // suggestions are now disabled. On restart they won't be enabled again.
+      this.#submitQuickSuggestDeletionRequestPing();
+    }
   }
 
   makeResult(queryContext, suggestion) {
@@ -246,5 +256,10 @@ export class AmpSuggestions extends SuggestProvider {
         result == details.result && details.selType == "quicksuggest",
       reportingUrl: result.payload.sponsoredImpressionUrl,
     });
+  }
+
+  #submitQuickSuggestDeletionRequestPing() {
+    Glean.quickSuggest.contextId.set(lazy.contextId);
+    GleanPings.quickSuggestDeletionRequest.submit();
   }
 }

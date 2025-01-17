@@ -13,7 +13,8 @@ quick-suggest:
     preferring a `context_id` instead. `follows_collection_enabled` is set to
     false because the ping is conditioned on Suggest and AMP suggestions being
     enabled. It will be enabled when Suggest and AMP suggestions are enabled and
-    it will be disabled otherwise.
+    it will be disabled otherwise. When it becomes disabled, a separate
+    `quick-suggest-deletion-request` ping will be submitted.
   include_client_id: false
   metadata:
     follows_collection_enabled: false
@@ -25,6 +26,23 @@ quick-suggest:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1854755
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1940808
+  notification_emails:
+    - fx-search-telemetry@mozilla.com
+    - disco-team@mozilla.com
+    - ads-eng@mozilla.com
+
+quick-suggest-deletion-request:
+  description: |
+    This ping is submitted when either AMP suggestions or the entire Suggest
+    feature becomes disabled. Like the `quick-suggest` ping, it will contain a
+    `context_id` metric in the `quick_suggest` category.
+  include_client_id: false
+  metadata:
+    follows_collection_enabled: false
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1941161
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1941161
   notification_emails:
     - fx-search-telemetry@mozilla.com
     - disco-team@mozilla.com

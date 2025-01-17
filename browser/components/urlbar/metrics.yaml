@@ -958,8 +958,10 @@ quick_suggest:
       An identifier to identify users for Contextual Services user interaction pings.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941161
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941161
     data_sensitivity:
       - technical
     notification_emails:
@@ -967,6 +969,7 @@ quick_suggest:
     expires: never
     send_in_pings:
       - quick-suggest
+      - quick-suggest-deletion-request
 
   iab_category:
     type: string
