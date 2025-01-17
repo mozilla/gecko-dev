@@ -366,7 +366,6 @@ search.service:
     data_sensitivity:
       - technical
     expires: never
-    telemetry_mirror: SEARCH_SERVICE_INIT2_MS
 
   initialization_status:
     type: labeled_counter
