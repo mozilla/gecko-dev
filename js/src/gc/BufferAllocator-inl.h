@@ -9,28 +9,104 @@
 
 #include "gc/BufferAllocator.h"
 
+#include "mozilla/Atomics.h"
+#include "mozilla/MathAlgorithms.h"
+
+#include "ds/SlimLinkedList.h"
+#include "gc/Cell.h"
+#include "js/HeapAPI.h"
+
 #include "gc/Allocator-inl.h"
 
-inline size_t js::gc::GetGoodAllocSize(size_t requiredBytes) {
+namespace js::gc {
+
+// todo: rename
+static constexpr size_t MinAllocSize = MinCellSize;  // 16 bytes
+
+static constexpr size_t MaxSmallAllocSize =
+    1 << (BufferAllocator::MinMediumAllocShift - 1);
+static constexpr size_t MinMediumAllocSize =
+    1 << BufferAllocator::MinMediumAllocShift;
+static constexpr size_t MaxMediumAllocSize =
+    1 << BufferAllocator::MaxMediumAllocShift;
+
+/* static */
+inline bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
+  return bytes + sizeof(SmallBuffer) <= MaxSmallAllocSize;
+}
+
+/* static */
+inline bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
+  return bytes + sizeof(MediumBuffer) > MaxMediumAllocSize;
+}
+
+/* static */
+inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
+  requiredBytes = std::max(requiredBytes, MinAllocSize);
+
+  if (IsLargeAllocSize(requiredBytes)) {
+    size_t headerSize = sizeof(LargeBuffer);
+    return RoundUp(requiredBytes + headerSize, ChunkSize) - headerSize;
+  }
+
+  // Small and medium headers have the same size.
+  size_t headerSize = sizeof(SmallBuffer);
+  static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
+
+  // TODO: Support more sizes than powers of 2
+  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
+}
+
+/* static */
+size_t BufferAllocator::GetGoodPower2AllocSize(size_t requiredBytes) {
+  requiredBytes = std::max(requiredBytes, MinAllocSize);
+
+  size_t headerSize;
+  if (IsLargeAllocSize(requiredBytes)) {
+    headerSize = sizeof(LargeBuffer);
+  } else {
+    // Small and medium headers have the same size.
+    headerSize = sizeof(SmallBuffer);
+    static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
+  }
+
+  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
+}
+
+/* static */
+size_t BufferAllocator::GetGoodElementCount(size_t requiredElements,
+                                            size_t elementSize) {
+  size_t requiredBytes = requiredElements * elementSize;
+  size_t goodSize = GetGoodAllocSize(requiredBytes);
+  return goodSize / elementSize;
+}
+
+/* static */
+size_t BufferAllocator::GetGoodPower2ElementCount(size_t requiredElements,
+                                                  size_t elementSize) {
+  size_t requiredBytes = requiredElements * elementSize;
+  size_t goodSize = GetGoodPower2AllocSize(requiredBytes);
+  return goodSize / elementSize;
+}
+
+inline size_t GetGoodAllocSize(size_t requiredBytes) {
   return BufferAllocator::GetGoodAllocSize(requiredBytes);
 }
 
-inline size_t js::gc::GetGoodElementCount(size_t requiredCount,
-                                          size_t elementSize) {
+inline size_t GetGoodElementCount(size_t requiredCount, size_t elementSize) {
   return BufferAllocator::GetGoodElementCount(requiredCount, elementSize);
 }
 
-inline size_t js::gc::GetGoodPower2AllocSize(size_t requiredBytes) {
+inline size_t GetGoodPower2AllocSize(size_t requiredBytes) {
   return BufferAllocator::GetGoodPower2AllocSize(requiredBytes);
 }
 
-inline size_t js::gc::GetGoodPower2ElementCount(size_t requiredCount,
-                                                size_t elementSize) {
+inline size_t GetGoodPower2ElementCount(size_t requiredCount,
+                                        size_t elementSize) {
   return BufferAllocator::GetGoodPower2ElementCount(requiredCount, elementSize);
 }
 
-inline void* js::gc::AllocBuffer(JS::Zone* zone, size_t bytes,
-                                 bool nurseryOwned) {
+inline void* AllocBuffer(JS::Zone* zone, size_t bytes, bool nurseryOwned) {
   if (js::oom::ShouldFailWithOOM()) {
     return nullptr;
   }
@@ -38,13 +114,12 @@ inline void* js::gc::AllocBuffer(JS::Zone* zone, size_t bytes,
   return zone->bufferAllocator.alloc(bytes, nurseryOwned);
 }
 
-inline void* js::gc::AllocBufferInGC(JS::Zone* zone, size_t bytes,
-                                     bool nurseryOwned) {
+inline void* AllocBufferInGC(JS::Zone* zone, size_t bytes, bool nurseryOwned) {
   return zone->bufferAllocator.allocInGC(bytes, nurseryOwned);
 }
 
-inline void* js::gc::ReallocBuffer(JS::Zone* zone, void* alloc, size_t bytes,
-                                   bool nurseryOwned) {
+inline void* ReallocBuffer(JS::Zone* zone, void* alloc, size_t bytes,
+                           bool nurseryOwned) {
   if (js::oom::ShouldFailWithOOM()) {
     return nullptr;
   }
@@ -52,28 +127,30 @@ inline void* js::gc::ReallocBuffer(JS::Zone* zone, void* alloc, size_t bytes,
   return zone->bufferAllocator.realloc(alloc, bytes, nurseryOwned);
 }
 
-inline void js::gc::FreeBuffer(JS::Zone* zone, void* alloc) {
+inline void FreeBuffer(JS::Zone* zone, void* alloc) {
   return zone->bufferAllocator.free(alloc);
 }
 
-inline bool js::gc::IsBufferAlloc(void* alloc) {
+inline bool IsBufferAlloc(void* alloc) {
   return BufferAllocator::IsBufferAlloc(alloc);
 }
 
-inline size_t js::gc::GetAllocSize(void* alloc) {
+inline size_t GetAllocSize(void* alloc) {
   return BufferAllocator::GetAllocSize(alloc);
 }
 
-inline JS::Zone* js::gc::GetAllocZone(void* alloc) {
+inline JS::Zone* GetAllocZone(void* alloc) {
   return BufferAllocator::GetAllocZone(alloc);
 }
 
-inline bool js::gc::IsNurseryOwned(void* alloc) {
+inline bool IsNurseryOwned(void* alloc) {
   return BufferAllocator::IsNurseryOwned(alloc);
 }
 
-inline bool js::gc::IsBufferAllocMarkedBlack(void* alloc) {
+inline bool IsBufferAllocMarkedBlack(void* alloc) {
   return BufferAllocator::IsMarkedBlack(alloc);
 }
+
+}  // namespace js::gc
 
 #endif  // gc_BufferAllocator_inl_h

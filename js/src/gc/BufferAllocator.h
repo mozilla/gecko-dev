@@ -22,6 +22,7 @@
 #include "jstypes.h"  // JS_PUBLIC_API
 
 #include "ds/SlimLinkedList.h"
+#include "js/HeapAPI.h"
 #include "threading/LockGuard.h"
 #include "threading/Mutex.h"
 #include "threading/ProtectedData.h"
@@ -318,12 +319,12 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   explicit BufferAllocator(JS::Zone* zone);
   ~BufferAllocator();
 
-  static size_t GetGoodAllocSize(size_t requiredBytes);
-  static size_t GetGoodElementCount(size_t requiredElements,
-                                    size_t elementSize);
-  static size_t GetGoodPower2AllocSize(size_t requiredBytes);
-  static size_t GetGoodPower2ElementCount(size_t requiredElements,
-                                          size_t elementSize);
+  static inline size_t GetGoodAllocSize(size_t requiredBytes);
+  static inline size_t GetGoodElementCount(size_t requiredElements,
+                                           size_t elementSize);
+  static inline size_t GetGoodPower2AllocSize(size_t requiredBytes);
+  static inline size_t GetGoodPower2ElementCount(size_t requiredElements,
+                                                 size_t elementSize);
   static bool IsBufferAlloc(void* alloc);
   static size_t GetAllocSize(void* alloc);
   static JS::Zone* GetAllocZone(void* alloc);
@@ -391,7 +392,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   // Small allocation methods:
 
-  static bool IsSmallAllocSize(size_t bytes);
+  static inline bool IsSmallAllocSize(size_t bytes);
   static bool IsSmallAlloc(void* alloc);
 
   void* allocSmall(size_t bytes, bool nurseryOwned);
@@ -445,7 +446,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   // Large allocation methods:
 
-  static bool IsLargeAllocSize(size_t bytes);
+  static inline bool IsLargeAllocSize(size_t bytes);
   static bool IsLargeAlloc(void* alloc);
   static bool IsLargeAllocMarked(void* alloc);
   static bool MarkLargeAlloc(void* alloc);
@@ -470,6 +471,52 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void verifyFreeRegion(BufferChunk* chunk, uintptr_t endOffset,
                         size_t expectedSize);
 #endif
+};
+
+// Internal data structures defined here so that users can get their size.
+
+#ifdef DEBUG
+// Magic check values used debug builds.
+static constexpr uint16_t MediumBufferCheckValue = 0xBFA1;
+static constexpr uint32_t LargeBufferCheckValue = 0xBFA110C2;
+static constexpr uint32_t FreeRegionCheckValue = 0xBFA110C3;
+#endif
+
+struct alignas(CellAlignBytes) MediumBuffer {
+  uint8_t sizeClass;
+  bool isNurseryOwned = false;
+
+#ifdef DEBUG
+  uint16_t checkValue = MediumBufferCheckValue;
+#endif
+
+  MediumBuffer(uint8_t sizeClass, bool nurseryOwned);
+  static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset);
+  void check() const;
+  size_t bytesIncludingHeader() const;
+  void* data();
+};
+
+struct alignas(CellAlignBytes) LargeBuffer
+    : protected ChunkBase,
+      public SlimLinkedListElement<LargeBuffer> {
+  JS::Zone* const zone;
+  size_t bytesIncludingHeader;
+  mozilla::Atomic<bool, mozilla::Relaxed> marked;
+  bool isNurseryOwned;
+  bool allocatedDuringCollection = false;
+
+#ifdef DEBUG
+  uint32_t checkValue = LargeBufferCheckValue;
+#endif
+
+  inline LargeBuffer(JS::Zone* zone, size_t bytes, bool nurseryOwned);
+
+  inline void check() const;
+
+  inline bool markAtomic();
+  inline void* data();
+  bool isPointerWithinAllocation(void* ptr) const;
 };
 
 }  // namespace gc

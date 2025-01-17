@@ -25,22 +25,6 @@
 using namespace js;
 using namespace js::gc;
 
-static constexpr size_t MinAllocSize = MinCellSize;  // 16 bytes
-
-static constexpr size_t MaxSmallAllocSize =
-    1 << (BufferAllocator::MinMediumAllocShift - 1);
-static constexpr size_t MinMediumAllocSize =
-    1 << BufferAllocator::MinMediumAllocShift;
-static constexpr size_t MaxMediumAllocSize =
-    1 << BufferAllocator::MaxMediumAllocShift;
-
-#ifdef DEBUG
-// Magic check values used debug builds.
-static constexpr uint16_t MediumBufferCheckValue = 0xBFA1;
-static constexpr uint32_t LargeBufferCheckValue = 0xBFA110C2;
-static constexpr uint32_t FreeRegionCheckValue = 0xBFA110C3;
-#endif
-
 namespace js::gc {
 
 bool SmallBuffer::isNurseryOwned() const {
@@ -51,71 +35,51 @@ void SmallBuffer::setNurseryOwned(bool value) {
   header_.set(value ? NURSERY_OWNED_BIT : 0);
 }
 
-struct alignas(CellAlignBytes) MediumBuffer {
-  uint8_t sizeClass;
-  bool isNurseryOwned = false;
+inline MediumBuffer::MediumBuffer(uint8_t sizeClass, bool nurseryOwned)
+    : sizeClass(sizeClass), isNurseryOwned(nurseryOwned) {}
 
-#ifdef DEBUG
-  uint16_t checkValue = MediumBufferCheckValue;
-#endif
+/* static */
+inline MediumBuffer* MediumBuffer::from(BufferChunk* chunk, uintptr_t offset) {
+  MOZ_ASSERT(offset < ChunkSize);
+  MOZ_ASSERT((offset % MinMediumAllocSize) == 0);
+  auto* buffer = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+  buffer->check();
+  return buffer;
+}
 
-  MediumBuffer(uint8_t sizeClass, bool nurseryOwned)
-      : sizeClass(sizeClass), isNurseryOwned(nurseryOwned) {}
+inline void MediumBuffer::check() const {
+  MOZ_ASSERT(checkValue == MediumBufferCheckValue);
+}
 
-  static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset) {
-    MOZ_ASSERT(offset < ChunkSize);
-    MOZ_ASSERT((offset % MinMediumAllocSize) == 0);
-    auto* buffer = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
-    buffer->check();
-    return buffer;
-  }
+inline size_t MediumBuffer::bytesIncludingHeader() const {
+  return BufferAllocator::SizeClassBytes(sizeClass);
+}
 
-  void check() const { MOZ_ASSERT(checkValue == MediumBufferCheckValue); }
+inline void* MediumBuffer::data() { return this + 1; }
 
-  size_t bytesIncludingHeader() const {
-    return BufferAllocator::SizeClassBytes(sizeClass);
-  }
+inline LargeBuffer::LargeBuffer(Zone* zone, size_t bytes, bool nurseryOwned)
+    : ChunkBase(zone->runtimeFromMainThread()),
+      zone(zone),
+      bytesIncludingHeader(bytes),
+      isNurseryOwned(nurseryOwned) {
+  kind = ChunkKind::LargeBuffer;
+  MOZ_ASSERT((bytes % PageSize) == 0);
+}
 
-  void* data() { return this + 1; }
-};
+inline void LargeBuffer::check() const {
+  MOZ_ASSERT(checkValue == LargeBufferCheckValue);
+}
 
-struct alignas(CellAlignBytes) LargeBuffer
-    : protected ChunkBase,
-      public SlimLinkedListElement<LargeBuffer> {
-  Zone* const zone;
-  size_t bytesIncludingHeader;
-  mozilla::Atomic<bool, mozilla::Relaxed> marked;
-  bool isNurseryOwned;
-  bool allocatedDuringCollection = false;
+inline bool LargeBuffer::markAtomic() {
+  do {
+    if (marked) {
+      return false;
+    }
+  } while (!marked.compareExchange(false, true));
+  return true;
+}
 
-#ifdef DEBUG
-  uint32_t checkValue = LargeBufferCheckValue;
-#endif
-
-  LargeBuffer(Zone* zone, size_t bytes, bool nurseryOwned)
-      : ChunkBase(zone->runtimeFromMainThread()),
-        zone(zone),
-        bytesIncludingHeader(bytes),
-        isNurseryOwned(nurseryOwned) {
-    kind = ChunkKind::LargeBuffer;
-    MOZ_ASSERT((bytes % PageSize) == 0);
-  }
-
-  void check() const { MOZ_ASSERT(checkValue == LargeBufferCheckValue); }
-
-  bool markAtomic() {
-    do {
-      if (marked) {
-        return false;
-      }
-    } while (!marked.compareExchange(false, true));
-    return true;
-  }
-
-  void* data() { return this + 1; }
-
-  bool isPointerWithinAllocation(void* ptr) const;
-};
+inline void* LargeBuffer::data() { return this + 1; }
 
 BufferAllocator::AutoLock::AutoLock(GCRuntime* gc)
     : LockGuard(gc->bufferAllocatorLock) {}
@@ -475,65 +439,6 @@ bool BufferAllocator::isEmpty() const {
 
 Mutex& BufferAllocator::lock() const {
   return zone->runtimeFromAnyThread()->gc.bufferAllocatorLock;
-}
-
-/* static */
-bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
-  return bytes + sizeof(SmallBuffer) <= MaxSmallAllocSize;
-}
-
-/* static */
-bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
-  return bytes + sizeof(MediumBuffer) > MaxMediumAllocSize;
-}
-
-/* static */
-size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
-  requiredBytes = std::max(requiredBytes, MinAllocSize);
-
-  if (IsLargeAllocSize(requiredBytes)) {
-    size_t headerSize = sizeof(LargeBuffer);
-    return RoundUp(requiredBytes + headerSize, ChunkSize) - headerSize;
-  }
-
-  // Small and medium headers have the same size.
-  size_t headerSize = sizeof(SmallBuffer);
-  static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
-
-  // TODO: Support more sizes than powers of 2
-  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
-}
-
-/* static */
-size_t BufferAllocator::GetGoodPower2AllocSize(size_t requiredBytes) {
-  requiredBytes = std::max(requiredBytes, MinAllocSize);
-
-  size_t headerSize;
-  if (IsLargeAllocSize(requiredBytes)) {
-    headerSize = sizeof(LargeBuffer);
-  } else {
-    // Small and medium headers have the same size.
-    headerSize = sizeof(SmallBuffer);
-    static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
-  }
-
-  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
-}
-
-/* static */
-size_t BufferAllocator::GetGoodElementCount(size_t requiredElements,
-                                            size_t elementSize) {
-  size_t requiredBytes = requiredElements * elementSize;
-  size_t goodSize = GetGoodAllocSize(requiredBytes);
-  return goodSize / elementSize;
-}
-
-/* static */
-size_t BufferAllocator::GetGoodPower2ElementCount(size_t requiredElements,
-                                                  size_t elementSize) {
-  size_t requiredBytes = requiredElements * elementSize;
-  size_t goodSize = GetGoodPower2AllocSize(requiredBytes);
-  return goodSize / elementSize;
 }
 
 void* BufferAllocator::alloc(size_t bytes, bool nurseryOwned) {
