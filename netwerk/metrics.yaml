@@ -1505,6 +1505,21 @@ networking:
       - success
       - failure
 
+  cache_purge_due_to_memory_limit:
+    type: labeled_counter
+    description: >
+      Counts how often we purge cache entries from memory due to memory limits.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941935
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941935
+    notification_emails:
+      - necko@mozilla.com
+    expires: 146
+    labels:
+      - meta_data_file_size_limit
+      - cache_memory_limit
+
   trr_request_count:
     type: labeled_counter
     description: >

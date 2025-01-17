@@ -30,6 +30,7 @@
 #include "mozilla/AtomicBitfields.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Services.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/IntegerPrintfMacros.h"
@@ -1246,8 +1247,8 @@ void CacheStorageService::OnMemoryConsumptionChange(
 
   if (!overLimit) return;
 
-    // It's likely the timer has already been set when we get here,
-    // check outside the lock to save resources.
+  // It's likely the timer has already been set when we get here,
+  // check outside the lock to save resources.
 #ifdef MOZ_TSAN
   if (mPurgeTimerActive) {
 #else
@@ -1383,6 +1384,16 @@ void CacheStorageService::MemoryPool::PurgeExpiredOrOverMemoryLimit() {
     // deliver entries.
     if (minprogress == 0 && CacheIOThread::YieldAndRerun()) {
       return;
+    }
+
+    if (mType == EType::DISK) {
+      mozilla::glean::networking::cache_purge_due_to_memory_limit
+          .Get("meta_data_file_size_limit"_ns)
+          .Add(1);
+    } else if (mType == EType::MEMORY) {
+      mozilla::glean::networking::cache_purge_due_to_memory_limit
+          .Get("cache_memory_limit"_ns)
+          .Add(1);
     }
 
     auto r = PurgeByFrecency(minprogress);
