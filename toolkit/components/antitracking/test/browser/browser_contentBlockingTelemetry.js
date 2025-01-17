@@ -142,11 +142,11 @@ add_task(async function testTelemetryForStorageAccessAPI() {
   Services.perms.removeAll();
 
   info("Creating a new tab");
-  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TOP_PAGE);
-  gBrowser.selectedTab = tab;
-
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    TEST_TOP_PAGE
+  );
   let browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
 
   info("Loading the tracking iframe and call the RequestStorageAccess.");
   await SpecialPowers.spawn(
@@ -215,11 +215,11 @@ add_task(async function testTelemetryForWindowOpenHeuristic() {
   Services.perms.removeAll();
 
   info("Creating a new tab");
-  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TOP_PAGE);
-  gBrowser.selectedTab = tab;
-
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    TEST_TOP_PAGE
+  );
   let browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
 
   info("Loading the tracking iframe and trigger the heuristic");
   await SpecialPowers.spawn(
@@ -296,11 +296,11 @@ add_task(async function testTelemetryForUserInteractionHeuristic() {
   Services.perms.removeAll();
 
   info("Creating a new tab");
-  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TOP_PAGE);
-  gBrowser.selectedTab = tab;
-
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    TEST_TOP_PAGE
+  );
   let browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
 
   info("Interact with the tracker in top-level.");
   await AntiTracking.interactWithTracker();
@@ -386,11 +386,11 @@ add_task(async function testTelemetryForRedirectHeuristic() {
   Services.perms.removeAll();
 
   info("Creating a new tab");
-  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TRACKING_PAGE);
-  gBrowser.selectedTab = tab;
-
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    TEST_TRACKING_PAGE
+  );
   let browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
 
   info("Loading the tracking page and trigger the redirect.");
   SpecialPowers.spawn(browser, [TEST_REDIRECT_PAGE], async url => {
