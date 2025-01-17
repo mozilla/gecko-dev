@@ -47,9 +47,6 @@ tags = "search-telemetry"
 ["browser_telemetry_environment.js"]
 tags = "search-telemetry"
 
-["browser_telemetry_ingestTime.js"]
-tags = "search-telemetry"
-
 ["browser_telemetry_suggestMetrics.js"]
 tags = "search-telemetry"
 

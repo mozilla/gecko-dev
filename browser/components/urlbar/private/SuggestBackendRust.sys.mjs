@@ -458,10 +458,8 @@ export class SuggestBackendRust extends SuggestBackend {
         return;
       }
 
-      let timerId;
       this.logger.debug("Starting ingest", { type });
       try {
-        timerId = Glean.urlbar.quickSuggestIngestTime.start();
         const metrics = await this.#store.ingest(
           new lazy.SuggestIngestionConstraints({
             providers: [provider],
@@ -470,7 +468,6 @@ export class SuggestBackendRust extends SuggestBackend {
               : null,
           })
         );
-        Glean.urlbar.quickSuggestIngestTime.stopAndAccumulate(timerId);
         for (let { label, value } of metrics.downloadTimes) {
           Glean.suggest.ingestDownloadTime[label].accumulateSingleSample(value);
         }
@@ -486,7 +483,6 @@ export class SuggestBackendRust extends SuggestBackend {
           error,
           reason: error.reason,
         });
-        Glean.urlbar.quickSuggestIngestTime.cancel(timerId);
       }
       this.logger.debug("Finished ingest", { type });
 

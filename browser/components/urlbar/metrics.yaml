@@ -666,22 +666,6 @@ urlbar:
     send_in_pings:
       - events
 
-  quick_suggest_ingest_time:
-    type: timing_distribution
-    time_unit: millisecond
-    description: >
-      Counts how long each successful ingest takes in the Firefox Suggest Rust
-      component. Ingests that fail for whatever reason are not included.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907227
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907227
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-    expires: never
-
   # The _count suffix is to disambiguate with the event of the same name.
   abandonment_count:
     type: counter
