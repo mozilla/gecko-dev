@@ -10,9 +10,8 @@
         orient="vertical"
         xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-        onload="HistorySidebarInit();"
-        onunload="unloadHistorySidebar();"
-        data-l10n-id="places-history">
+        data-l10n-id="places-history"
+        csp="default-src chrome:; style-src-elem chrome: 'unsafe-inline';">
 
   <script src="chrome://browser/content/places/historySidebar.js"/>
   <script src="chrome://global/content/globalOverlay.js"/>
@@ -60,31 +59,16 @@
     <search-textbox id="search-box" flex="1"
                     data-l10n-id="places-history-search"
                     data-l10n-attrs="placeholder"
-                    aria-controls="historyTree"
-                    oncommand="searchHistory(this.value);"/>
+                    aria-controls="historyTree"/>
     <button id="viewButton" style="min-width:0px !important;" type="menu"
             data-l10n-id="places-view" selectedsort="day"
             persist="selectedsort">
       <menupopup>
-        <menuitem id="bydayandsite"
-                  data-l10n-id="places-by-day-and-site" type="radio"
-                  oncommand="this.parentNode.parentNode.setAttribute('selectedsort', 'dayandsite'); GroupBy('dayandsite');"/>
-        <menuitem id="bysite"
-                  data-l10n-id="places-by-site"
-                  type="radio"
-                  oncommand="this.parentNode.parentNode.setAttribute('selectedsort', 'site'); GroupBy('site');"/>
-        <menuitem id="byday"
-                  data-l10n-id="places-by-date"
-                  type="radio"
-                  oncommand="this.parentNode.parentNode.setAttribute('selectedsort', 'day'); GroupBy('day');"/>
-        <menuitem id="byvisited"
-                  data-l10n-id="places-by-most-visited"
-                  type="radio"
-                  oncommand="this.parentNode.parentNode.setAttribute('selectedsort', 'visited'); GroupBy('visited');"/>
-        <menuitem id="bylastvisited"
-                  data-l10n-id="places-by-last-visited"
-                  type="radio"
-                  oncommand="this.parentNode.parentNode.setAttribute('selectedsort', 'lastvisited'); GroupBy('lastvisited');"/>
+        <menuitem id="bydayandsite" data-l10n-id="places-by-day-and-site" type="radio"/>
+        <menuitem id="bysite" data-l10n-id="places-by-site" type="radio"/>
+        <menuitem id="byday" data-l10n-id="places-by-date" type="radio"/>
+        <menuitem id="byvisited" data-l10n-id="places-by-most-visited" type="radio"/>
+        <menuitem id="bylastvisited" data-l10n-id="places-by-last-visited" type="radio"/>
       </menupopup>
     </button>
   </hbox>
@@ -95,11 +79,7 @@
         is="places-tree"
         hidecolumnpicker="true"
         context="placesContext"
-        singleclickopens="true"
-        onclick="PlacesUIUtils.onSidebarTreeClick(event);"
-        onkeypress="PlacesUIUtils.onSidebarTreeKeyPress(event);"
-        onmousemove="PlacesUIUtils.onSidebarTreeMouseMove(event);"
-        onmouseout="PlacesUIUtils.setMouseoverURL('', window);">
+        singleclickopens="true">
     <treecols>
       <treecol id="title" flex="1" primary="true" hideheader="true"/>
     </treecols>

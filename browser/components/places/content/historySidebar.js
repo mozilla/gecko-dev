@@ -33,18 +33,31 @@ var gHistoryGrouping = "";
 var gCumulativeSearches = 0;
 var gCumulativeFilterCount = 0;
 
-function HistorySidebarInit() {
+window.addEventListener("load", () => {
   let uidensity = window.top.document.documentElement.getAttribute("uidensity");
   if (uidensity) {
     document.documentElement.setAttribute("uidensity", uidensity);
   }
 
   gHistoryTree = document.getElementById("historyTree");
-  gSearchBox = document.getElementById("search-box");
+  gHistoryTree.addEventListener("click", event =>
+    PlacesUIUtils.onSidebarTreeClick(event)
+  );
+  gHistoryTree.addEventListener("keypress", event =>
+    PlacesUIUtils.onSidebarTreeKeyPress(event)
+  );
+  gHistoryTree.addEventListener("mousemove", event =>
+    PlacesUIUtils.onSidebarTreeMouseMove(event)
+  );
+  gHistoryTree.addEventListener("mouseout", () =>
+    PlacesUIUtils.setMouseoverURL("", window)
+  );
 
-  gHistoryGrouping = document
-    .getElementById("viewButton")
-    .getAttribute("selectedsort");
+  gSearchBox = document.getElementById("search-box");
+  gSearchBox.addEventListener("command", () => searchHistory(gSearchBox.value));
+
+  let viewButton = document.getElementById("viewButton");
+  gHistoryGrouping = viewButton.getAttribute("selectedsort");
 
   this.groupHistogram = Services.telemetry.getHistogramById(
     "PLACES_SEARCHBAR_FILTER_TYPE"
@@ -63,6 +76,14 @@ function HistorySidebarInit() {
     document.getElementById("byday").setAttribute("checked", "true");
   }
 
+  document
+    .querySelector("#viewButton > menupopup")
+    .addEventListener("command", event => {
+      let by = event.target.id.slice(2);
+      viewButton.setAttribute("selectedsort", by);
+      GroupBy(by);
+    });
+
   let bhTooltip = document.getElementById("bhTooltip");
   bhTooltip.addEventListener("popupshowing", event => {
     window.top.BookmarksEventHandler.fillInBHTooltip(bhTooltip, event);
@@ -72,7 +93,7 @@ function HistorySidebarInit() {
   );
 
   searchHistory("");
-}
+});
 
 function GroupBy(groupingType) {
   if (groupingType != gHistoryGrouping) {
@@ -167,9 +188,9 @@ function clearCumulativeCounters() {
   gCumulativeFilterCount = 0;
 }
 
-function unloadHistorySidebar() {
+window.addEventListener("unload", () => {
   clearCumulativeCounters();
   PlacesUIUtils.setMouseoverURL("", window);
-}
+});
 
 window.addEventListener("SidebarFocused", () => gSearchBox.focus());
