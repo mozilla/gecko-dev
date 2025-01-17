@@ -45,7 +45,7 @@ struct BufferChunk;
 struct Cell;
 class GCRuntime;
 struct MediumBuffer;
-class LargeBuffer;
+struct LargeBuffer;
 
 // BufferAllocator allocates dynamically sized blocks of memory which can be
 // reclaimed by the garbage collector and are associated with GC things.

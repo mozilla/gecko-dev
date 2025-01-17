@@ -81,7 +81,7 @@ namespace gc {
 class AutoGCSession;
 struct Cell;
 class GCSchedulingTunables;
-class LargeBuffer;
+struct LargeBuffer;
 class StoreBuffer;
 class TenuringTracer;
 
