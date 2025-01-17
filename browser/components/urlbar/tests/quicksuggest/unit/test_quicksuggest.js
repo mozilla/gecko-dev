@@ -182,9 +182,7 @@ add_setup(async function init() {
 
 add_task(async function telemetryType_sponsored() {
   Assert.equal(
-    QuickSuggest.getFeature("AdmWikipedia").getSuggestionTelemetryType({
-      is_sponsored: true,
-    }),
+    QuickSuggest.getFeature("AmpSuggestions").getSuggestionTelemetryType({}),
     "adm_sponsored",
     "Telemetry type should be 'adm_sponsored'"
   );
@@ -192,16 +190,11 @@ add_task(async function telemetryType_sponsored() {
 
 add_task(async function telemetryType_nonsponsored() {
   Assert.equal(
-    QuickSuggest.getFeature("AdmWikipedia").getSuggestionTelemetryType({
-      is_sponsored: false,
-    }),
+    QuickSuggest.getFeature(
+      "OfflineWikipediaSuggestions"
+    ).getSuggestionTelemetryType({}),
     "adm_nonsponsored",
     "Telemetry type should be 'adm_nonsponsored'"
-  );
-  Assert.equal(
-    QuickSuggest.getFeature("AdmWikipedia").getSuggestionTelemetryType({}),
-    "adm_nonsponsored",
-    "Telemetry type should be 'adm_nonsponsored' if `is_sponsored` not defined"
   );
 });
 

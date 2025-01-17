@@ -17,7 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const FEATURES = {
   AddonSuggestions:
     "resource:///modules/urlbar/private/AddonSuggestions.sys.mjs",
-  AdmWikipedia: "resource:///modules/urlbar/private/AdmWikipedia.sys.mjs",
+  AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
   BlockedSuggestions:
     "resource:///modules/urlbar/private/BlockedSuggestions.sys.mjs",
   ExposureSuggestions:
@@ -26,6 +26,8 @@ const FEATURES = {
     "resource:///modules/urlbar/private/FakespotSuggestions.sys.mjs",
   ImpressionCaps: "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs",
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
+  OfflineWikipediaSuggestions:
+    "resource:///modules/urlbar/private/OfflineWikipediaSuggestions.sys.mjs",
   PocketSuggestions:
     "resource:///modules/urlbar/private/PocketSuggestions.sys.mjs",
   SuggestBackendMerino:

@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests the `quick-suggest` ping for AMP (sponsored) suggestions.
+// Tests the `quick-suggest` ping, which is used for for AMP suggestions.
 
 "use strict";
 

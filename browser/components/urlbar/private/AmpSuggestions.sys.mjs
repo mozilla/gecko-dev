@@ -26,25 +26,16 @@ ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
   return _contextId;
 });
 
-const NONSPONSORED_IAB_CATEGORIES = new Set(["5 - Education"]);
-
 /**
- * A feature that manages sponsored adM and non-sponsored Wikpedia (sometimes
- * called "expanded Wikipedia") suggestions in remote settings.
+ * A feature that manages AMP suggestions.
  */
-export class AdmWikipedia extends SuggestProvider {
+export class AmpSuggestions extends SuggestProvider {
   get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored") ||
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored")
-    );
+    return lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
   }
 
   get enablingPreferences() {
-    return [
-      "suggest.quicksuggest.nonsponsored",
-      "suggest.quicksuggest.sponsored",
-    ];
+    return ["suggest.quicksuggest.sponsored"];
   }
 
   get merinoProvider() {
@@ -52,28 +43,19 @@ export class AdmWikipedia extends SuggestProvider {
   }
 
   get rustSuggestionTypes() {
-    return ["Amp", "Wikipedia"];
+    return ["Amp"];
   }
 
-  isSuggestionSponsored(suggestion) {
-    return suggestion.source == "rust"
-      ? suggestion.provider == "Amp"
-      : !NONSPONSORED_IAB_CATEGORIES.has(suggestion.iab_category);
+  isSuggestionSponsored() {
+    return true;
   }
 
-  getSuggestionTelemetryType(suggestion) {
-    return suggestion.is_sponsored ? "adm_sponsored" : "adm_nonsponsored";
+  getSuggestionTelemetryType() {
+    return "adm_sponsored";
   }
 
-  isRustSuggestionTypeEnabled(type) {
-    switch (type) {
-      case "Amp":
-        return lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
-      case "Wikipedia":
-        return lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
-    }
-    this.logger.error("Unknown Rust suggestion type", { type });
-    return false;
+  isRustSuggestionTypeEnabled() {
+    return lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
   }
 
   makeResult(queryContext, suggestion) {
@@ -81,38 +63,28 @@ export class AdmWikipedia extends SuggestProvider {
     if (suggestion.source == "rust") {
       // The Rust backend defines `rawUrl` on AMP suggestions, and its value is
       // what we on desktop call the `originalUrl`, i.e., it's a URL that may
-      // contain timestamp templates. Rust does not define `rawUrl` for
-      // Wikipedia suggestions, but we have historically included `originalUrl`
-      // for both AMP and Wikipedia even though Wikipedia URLs never contain
-      // timestamp templates. So, when setting `originalUrl`, fall back to `url`
-      // for suggestions without `rawUrl`.
-      originalUrl = suggestion.rawUrl ?? suggestion.url;
-
-      // The Rust backend uses camelCase instead of snake_case, and it excludes
-      // some properties in non-sponsored suggestions that we expect, so convert
-      // the Rust suggestion to a suggestion object we expect here on desktop.
-      let desktopSuggestion = {
-        title: suggestion.title,
-        url: suggestion.url,
-        is_sponsored: suggestion.is_sponsored,
-        full_keyword: suggestion.fullKeyword,
-      };
-      if (suggestion.is_sponsored) {
-        desktopSuggestion.impression_url = suggestion.impressionUrl;
-        desktopSuggestion.click_url = suggestion.clickUrl;
-        desktopSuggestion.block_id = suggestion.blockId;
-        desktopSuggestion.advertiser = suggestion.advertiser;
-        desktopSuggestion.iab_category = suggestion.iabCategory;
-      } else {
-        desktopSuggestion.advertiser = "Wikipedia";
-        desktopSuggestion.iab_category = "5 - Education";
-      }
-      suggestion = desktopSuggestion;
+      // contain timestamp templates.
+      originalUrl = suggestion.rawUrl;
     } else {
       // Replace the suggestion's template substrings, but first save the
       // original URL before its timestamp template is replaced.
       originalUrl = suggestion.url;
       lazy.QuickSuggest.replaceSuggestionTemplates(suggestion);
+
+      // Normalize the Merino suggestion so it has camelCased properties like
+      // Rust suggestions.
+      suggestion = {
+        title: suggestion.title,
+        url: suggestion.url,
+        is_sponsored: suggestion.is_sponsored,
+        fullKeyword: suggestion.full_keyword,
+        impressionUrl: suggestion.impression_url,
+        clickUrl: suggestion.click_url,
+        blockId: suggestion.block_id,
+        advertiser: suggestion.advertiser,
+        iabCategory: suggestion.iab_category,
+        requestId: suggestion.request_id,
+      };
     }
 
     let payload = {
@@ -120,13 +92,13 @@ export class AdmWikipedia extends SuggestProvider {
       url: suggestion.url,
       title: suggestion.title,
       isSponsored: suggestion.is_sponsored,
-      requestId: suggestion.request_id,
+      requestId: suggestion.requestId,
       urlTimestampIndex: suggestion.urlTimestampIndex,
-      sponsoredImpressionUrl: suggestion.impression_url,
-      sponsoredClickUrl: suggestion.click_url,
-      sponsoredBlockId: suggestion.block_id,
+      sponsoredImpressionUrl: suggestion.impressionUrl,
+      sponsoredClickUrl: suggestion.clickUrl,
+      sponsoredBlockId: suggestion.blockId,
       sponsoredAdvertiser: suggestion.advertiser,
-      sponsoredIabCategory: suggestion.iab_category,
+      sponsoredIabCategory: suggestion.iabCategory,
       isBlockable: true,
       blockL10n: {
         id: "urlbar-result-menu-dismiss-firefox-suggest",
@@ -134,15 +106,14 @@ export class AdmWikipedia extends SuggestProvider {
       isManageable: true,
     };
 
-    let isAmpTopPick =
-      suggestion.is_sponsored &&
+    let isTopPick =
       lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") &&
       lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") <=
         queryContext.trimmedLowerCaseSearchString.length;
 
     payload.qsSuggestion = [
-      suggestion.full_keyword,
-      isAmpTopPick
+      suggestion.fullKeyword,
+      isTopPick
         ? lazy.UrlbarUtils.HIGHLIGHT.TYPED
         : lazy.UrlbarUtils.HIGHLIGHT.SUGGESTED,
     ];
@@ -156,22 +127,20 @@ export class AdmWikipedia extends SuggestProvider {
       )
     );
 
-    if (suggestion.is_sponsored) {
-      result.isRichSuggestion = true;
-      if (isAmpTopPick) {
+    result.isRichSuggestion = true;
+    if (isTopPick) {
+      result.isBestMatch = true;
+      result.suggestedIndex = 1;
+    } else {
+      if (lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")) {
         result.isBestMatch = true;
         result.suggestedIndex = 1;
       } else {
-        if (lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")) {
-          result.isBestMatch = true;
-          result.suggestedIndex = 1;
-        } else {
-          result.richSuggestionIconSize = 16;
-        }
-        result.payload.descriptionL10n = {
-          id: "urlbar-result-action-sponsored",
-        };
+        result.richSuggestionIconSize = 16;
       }
+      result.payload.descriptionL10n = {
+        id: "urlbar-result-action-sponsored",
+      };
     }
 
     return result;

@@ -139,31 +139,6 @@ add_task(async function basic() {
   }
 });
 
-add_task(async function disable() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.addons.featureGate", false]],
-  });
-
-  // Restore AdmWikipedia suggestions.
-  MerinoTestUtils.server.reset();
-  // Add one Addon suggestion that is higher score than AdmWikipedia.
-  MerinoTestUtils.server.response.body.suggestions.push(
-    Object.assign({}, TEST_MERINO_SUGGESTIONS[0], { score: 2 })
-  );
-
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "only match the Merino suggestion",
-  });
-  Assert.equal(UrlbarTestUtils.getResultCount(window), 2);
-
-  const { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  Assert.equal(result.payload.telemetryType, "adm_sponsored");
-
-  MerinoTestUtils.server.response.body.suggestions = TEST_MERINO_SUGGESTIONS;
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function resultMenu_showLessFrequently() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.addons.showLessFrequentlyCount", 0]],

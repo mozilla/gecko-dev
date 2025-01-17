@@ -176,7 +176,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
       // Set `is_sponsored` before continuing because
       // `#getSuggestionTelemetryType()` and other things depend on it.
       let feature = this.#getFeature(suggestion);
-      suggestion.is_sponsored = !!feature?.isSuggestionSponsored(suggestion);
+      if (!suggestion.hasOwnProperty("is_sponsored")) {
+        suggestion.is_sponsored = !!feature?.isSuggestionSponsored(suggestion);
+      }
 
       // Ensure all suggestions have scores.
       //

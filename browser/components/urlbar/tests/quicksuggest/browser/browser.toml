@@ -36,9 +36,6 @@ tags = "search-telemetry"
 ["browser_quicksuggest_ping_merinoAndNullValues.js"]
 tags = "search-telemetry"
 
-["browser_quicksuggest_ping_wikipedia.js"]
-tags = "search-telemetry"
-
 ["browser_quicksuggest_pocket.js"]
 tags = "search-telemetry"
 
