@@ -3357,13 +3357,9 @@ void LIRGenerator::visitToNumberInt32(MToNumberInt32* convert) {
 
   switch (opd->type()) {
     case MIRType::Value: {
-      auto* lir = new (alloc()) LValueToInt32(useBox(opd), tempDouble(), temp(),
-                                              LValueToInt32::NORMAL);
+      auto* lir = new (alloc()) LValueToNumberInt32(useBox(opd), tempDouble());
       assignSnapshot(lir, convert->bailoutKind());
       define(lir, convert);
-      if (lir->mode() == LValueToInt32::TRUNCATE) {
-        assignSafepoint(lir, convert);
-      }
       break;
     }
 
@@ -3420,8 +3416,8 @@ void LIRGenerator::visitTruncateToInt32(MTruncateToInt32* truncate) {
 
   switch (opd->type()) {
     case MIRType::Value: {
-      LValueToInt32* lir = new (alloc()) LValueToInt32(
-          useBox(opd), tempDouble(), temp(), LValueToInt32::TRUNCATE);
+      auto* lir = new (alloc())
+          LValueTruncateToInt32(useBox(opd), tempDouble(), temp());
       assignSnapshot(lir, truncate->bailoutKind());
       define(lir, truncate);
       assignSafepoint(lir, truncate);

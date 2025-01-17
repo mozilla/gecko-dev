@@ -1869,57 +1869,6 @@ class LModPowTwoD : public LInstructionHelper<1, 1, 0> {
   MMod* mir() const { return mir_->toMod(); }
 };
 
-// Convert a value to an int32.
-//   Input: components of a Value
-//   Output: 32-bit integer
-//   Bailout: undefined, string, object, or non-int32 double
-//   Temps: one float register, one GP register
-//
-// This instruction requires a temporary float register.
-class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 2> {
- public:
-  enum Mode { NORMAL, TRUNCATE };
-
- private:
-  Mode mode_;
-
- public:
-  LIR_HEADER(ValueToInt32)
-
-  LValueToInt32(const LBoxAllocation& input, const LDefinition& temp0,
-                const LDefinition& temp1, Mode mode)
-      : LInstructionHelper(classOpcode), mode_(mode) {
-    setBoxOperand(Input, input);
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-  }
-
-  const char* extraName() const {
-    switch (mode()) {
-      case NORMAL:
-        return "Normal";
-      case TRUNCATE:
-        return "Truncate";
-    }
-    MOZ_CRASH("Invalid mode");
-  }
-
-  static const size_t Input = 0;
-
-  Mode mode() const { return mode_; }
-  const LDefinition* tempFloat() { return getTemp(0); }
-  const LDefinition* temp() { return getTemp(1); }
-  MToNumberInt32* mirNormal() const {
-    MOZ_ASSERT(mode_ == NORMAL);
-    return mir_->toToNumberInt32();
-  }
-  MTruncateToInt32* mirTruncate() const {
-    MOZ_ASSERT(mode_ == TRUNCATE);
-    return mir_->toTruncateToInt32();
-  }
-  MInstruction* mir() const { return mir_->toInstruction(); }
-};
-
 // Double raised to a half power.
 class LPowHalfD : public LInstructionHelper<1, 1, 0> {
  public:

@@ -996,34 +996,38 @@ CodeGenerator::CodeGenerator(MIRGenerator* gen, LIRGraph* graph,
 
 CodeGenerator::~CodeGenerator() { js_delete(scriptCounts_); }
 
-void CodeGenerator::visitValueToInt32(LValueToInt32* lir) {
-  ValueOperand operand = ToValue(lir, LValueToInt32::Input);
+void CodeGenerator::visitValueToNumberInt32(LValueToNumberInt32* lir) {
+  ValueOperand operand = ToValue(lir, LValueToNumberInt32::InputIndex);
   Register output = ToRegister(lir->output());
-  FloatRegister temp = ToFloatRegister(lir->tempFloat());
+  FloatRegister temp = ToFloatRegister(lir->temp0());
 
   Label fails;
-  if (lir->mode() == LValueToInt32::TRUNCATE) {
-    OutOfLineCode* oolDouble = oolTruncateDouble(temp, output, lir->mir());
+  masm.convertValueToInt32(operand, temp, output, &fails,
+                           lir->mir()->needsNegativeZeroCheck(),
+                           lir->mir()->conversion());
 
-    // We can only handle strings in truncation contexts, like bitwise
-    // operations.
-    Register stringReg = ToRegister(lir->temp());
-    using Fn = bool (*)(JSContext*, JSString*, double*);
-    auto* oolString = oolCallVM<Fn, StringToNumber>(lir, ArgList(stringReg),
-                                                    StoreFloatRegisterTo(temp));
-    Label* stringEntry = oolString->entry();
-    Label* stringRejoin = oolString->rejoin();
+  bailoutFrom(&fails, lir->snapshot());
+}
 
-    masm.truncateValueToInt32(operand, stringEntry, stringRejoin,
-                              oolDouble->entry(), stringReg, temp, output,
-                              &fails);
-    masm.bind(oolDouble->rejoin());
-  } else {
-    MOZ_ASSERT(lir->mode() == LValueToInt32::NORMAL);
-    masm.convertValueToInt32(operand, temp, output, &fails,
-                             lir->mirNormal()->needsNegativeZeroCheck(),
-                             lir->mirNormal()->conversion());
-  }
+void CodeGenerator::visitValueTruncateToInt32(LValueTruncateToInt32* lir) {
+  ValueOperand operand = ToValue(lir, LValueTruncateToInt32::InputIndex);
+  Register output = ToRegister(lir->output());
+  FloatRegister temp = ToFloatRegister(lir->temp0());
+  Register stringReg = ToRegister(lir->temp1());
+
+  auto* oolDouble = oolTruncateDouble(temp, output, lir->mir());
+
+  using Fn = bool (*)(JSContext*, JSString*, double*);
+  auto* oolString = oolCallVM<Fn, StringToNumber>(lir, ArgList(stringReg),
+                                                  StoreFloatRegisterTo(temp));
+  Label* stringEntry = oolString->entry();
+  Label* stringRejoin = oolString->rejoin();
+
+  Label fails;
+  masm.truncateValueToInt32(operand, stringEntry, stringRejoin,
+                            oolDouble->entry(), stringReg, temp, output,
+                            &fails);
+  masm.bind(oolDouble->rejoin());
 
   bailoutFrom(&fails, lir->snapshot());
 }
