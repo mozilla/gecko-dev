@@ -1967,6 +1967,7 @@ impl Global {
                     if desc.size.width > limits.max_texture_dimension_2d
                         || desc.size.height > limits.max_texture_dimension_2d
                     {
+                        self.create_texture_error(Some(id), &desc);
                         error_buf.init(ErrMsg {
                             message: "size exceeds limits.max_texture_dimension_2d",
                             r#type: ErrorBufferType::Validation,
@@ -1979,6 +1980,7 @@ impl Global {
                         && desc.usage.contains(wgt::TextureUsages::STORAGE_BINDING)
                         && !features.contains(wgt::Features::BGRA8UNORM_STORAGE)
                     {
+                        self.create_texture_error(Some(id), &desc);
                         error_buf.init(ErrMsg {
                             message: "Bgra8Unorm with GPUStorageBinding usage with BGRA8UNORM_STORAGE disabled",
                             r#type: ErrorBufferType::Validation,
