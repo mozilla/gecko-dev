@@ -9,6 +9,7 @@
 
 #include "ipc/EnumSerializer.h"
 #include "nsILoadInfo.h"
+#include "nsIContentSecurityPolicy.h"
 
 namespace IPC {
 
@@ -26,6 +27,15 @@ struct ParamTraits<nsILoadInfo::SchemelessInputType>
           nsILoadInfo::SchemelessInputType,
           nsILoadInfo::SchemelessInputType::SchemelessInputTypeUnset,
           nsILoadInfo::SchemelessInputType::SchemelessInputTypeSchemeless> {};
+
+template <>
+struct ParamTraits<
+    nsIContentSecurityPolicy::RequireTrustedTypesForDirectiveState>
+    : public ContiguousEnumSerializerInclusive<
+          nsIContentSecurityPolicy::RequireTrustedTypesForDirectiveState,
+          nsIContentSecurityPolicy::RequireTrustedTypesForDirectiveState::NONE,
+          nsIContentSecurityPolicy::RequireTrustedTypesForDirectiveState::
+              ENFORCE> {};
 
 }  // namespace IPC
 

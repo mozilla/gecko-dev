@@ -255,11 +255,15 @@ nsresult CSPToCSPInfo(nsIContentSecurityPolicy* aCSP, CSPInfo* aCSPInfo) {
   uint64_t windowID = aCSP->GetInnerWindowID();
   bool skipAllowInlineStyleCheck = aCSP->GetSkipAllowInlineStyleCheck();
 
+  RequireTrustedTypesForDirectiveState requireTrustedTypesForDirectiveState =
+      aCSP->GetRequireTrustedTypesForDirectiveState();
+
   nsTArray<ContentSecurityPolicy> policies;
   static_cast<nsCSPContext*>(aCSP)->SerializePolicies(policies);
 
   *aCSPInfo = CSPInfo(std::move(policies), requestingPrincipalInfo, selfURISpec,
-                      referrer, windowID, skipAllowInlineStyleCheck);
+                      referrer, windowID, requireTrustedTypesForDirectiveState,
+                      skipAllowInlineStyleCheck);
   return NS_OK;
 }
 
