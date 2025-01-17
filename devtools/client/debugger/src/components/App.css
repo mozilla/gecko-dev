@@ -100,6 +100,8 @@ button:hover {
       height: 16px;
       content: "";
       background-image: url("chrome://devtools/skin/images/close.svg");
+      fill: var(--theme-icon-color);
+      -moz-context-properties: fill;
     }
   }
 }
