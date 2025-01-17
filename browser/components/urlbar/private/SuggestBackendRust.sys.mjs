@@ -185,7 +185,7 @@ export class SuggestBackendRust extends SuggestBackend {
       let providerConstraints =
         lazy.QuickSuggest.getFeatureByRustSuggestionType(
           type
-        ).getRustProviderConstraints(type);
+        ).rustProviderConstraints;
       if (providerConstraints) {
         allProviderConstraints = {
           ...allProviderConstraints,
@@ -241,7 +241,7 @@ export class SuggestBackendRust extends SuggestBackend {
    *
    * @param {string} type
    *   A Rust suggestion type name as defined in `suggest.udl`, e.g., "Amp",
-   *   "Wikipedia", "Mdn", etc. See also `SuggestProvider.rustSuggestionTypes`.
+   *   "Wikipedia", "Mdn", etc. See also `SuggestProvider.rustSuggestionType`.
    * @returns {object} config
    *   The config data for the type.
    */
@@ -265,35 +265,30 @@ export class SuggestBackendRust extends SuggestBackend {
    *   ones that aren't stale.
    */
   ingestEnabledSuggestions(feature, { evenIfFresh = false } = {}) {
-    if (!feature.rustSuggestionTypes) {
+    let type = feature.rustSuggestionType;
+    if (!type) {
       return;
     }
 
-    for (let type of feature.rustSuggestionTypes) {
+    if (!this.isEnabled || !feature.isEnabled) {
+      // Mark this type as stale so we'll ingest next time this method is
+      // called.
+      this.#providerConstraintsByIngestedSuggestionType.delete(type);
+    } else {
+      let providerConstraints = feature.rustProviderConstraints;
       if (
-        !this.isEnabled ||
-        !feature.isEnabled ||
-        !feature.isRustSuggestionTypeEnabled(type)
+        evenIfFresh ||
+        !this.#providerConstraintsByIngestedSuggestionType.has(type) ||
+        !lazy.ObjectUtils.deepEqual(
+          providerConstraints,
+          this.#providerConstraintsByIngestedSuggestionType.get(type)
+        )
       ) {
-        // Mark this type as stale so we'll ingest next time this method is
-        // called.
-        this.#providerConstraintsByIngestedSuggestionType.delete(type);
-      } else {
-        let providerConstraints = feature.getRustProviderConstraints(type);
-        if (
-          evenIfFresh ||
-          !this.#providerConstraintsByIngestedSuggestionType.has(type) ||
-          !lazy.ObjectUtils.deepEqual(
-            providerConstraints,
-            this.#providerConstraintsByIngestedSuggestionType.get(type)
-          )
-        ) {
-          this.#providerConstraintsByIngestedSuggestionType.set(
-            type,
-            providerConstraints
-          );
-          this.#ingestSuggestionType({ type, providerConstraints });
-        }
+        this.#providerConstraintsByIngestedSuggestionType.set(
+          type,
+          providerConstraints
+        );
+        this.#ingestSuggestionType({ type, providerConstraints });
       }
     }
   }
@@ -359,13 +354,10 @@ export class SuggestBackendRust extends SuggestBackend {
     let items = [];
     for (let feature of lazy.QuickSuggest.rustFeatures) {
       if (feature.isEnabled) {
-        for (let type of feature.rustSuggestionTypes) {
-          if (feature.isRustSuggestionTypeEnabled(type)) {
-            let provider = this.#providerFromSuggestionType(type);
-            if (provider) {
-              items.push({ type, provider });
-            }
-          }
+        let type = feature.rustSuggestionType;
+        let provider = this.#providerFromSuggestionType(type);
+        if (provider) {
+          items.push({ type, provider });
         }
       }
     }
@@ -580,7 +572,7 @@ export class SuggestBackendRust extends SuggestBackend {
   #configsBySuggestionType = new Map();
 
   // Keeps track of suggestion types with fresh (non-stale) ingests. Maps
-  // ingested suggestion types to `feature.getRustProviderConstraints(type)`.
+  // ingested suggestion types to `feature.rustProviderConstraints`.
   #providerConstraintsByIngestedSuggestionType = new Map();
 
   #ingestQueue;

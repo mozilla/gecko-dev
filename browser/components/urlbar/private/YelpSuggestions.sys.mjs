@@ -41,8 +41,8 @@ export class YelpSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.sponsored", "suggest.yelp"];
   }
 
-  get rustSuggestionTypes() {
-    return ["Yelp"];
+  get rustSuggestionType() {
+    return "Yelp";
   }
 
   get mlIntent() {

@@ -42,8 +42,8 @@ export class AmpSuggestions extends SuggestProvider {
     return "adm";
   }
 
-  get rustSuggestionTypes() {
-    return ["Amp"];
+  get rustSuggestionType() {
+    return "Amp";
   }
 
   isSuggestionSponsored() {
@@ -52,10 +52,6 @@ export class AmpSuggestions extends SuggestProvider {
 
   getSuggestionTelemetryType() {
     return "adm_sponsored";
-  }
-
-  isRustSuggestionTypeEnabled() {
-    return lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
   }
 
   makeResult(queryContext, suggestion) {

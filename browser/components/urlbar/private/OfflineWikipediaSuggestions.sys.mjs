@@ -27,8 +27,8 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.nonsponsored"];
   }
 
-  get rustSuggestionTypes() {
-    return ["Wikipedia"];
+  get rustSuggestionType() {
+    return "Wikipedia";
   }
 
   isSuggestionSponsored() {
@@ -37,10 +37,6 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
 
   getSuggestionTelemetryType() {
     return "adm_nonsponsored";
-  }
-
-  isRustSuggestionTypeEnabled() {
-    return lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
   }
 
   makeResult(queryContext, suggestion) {

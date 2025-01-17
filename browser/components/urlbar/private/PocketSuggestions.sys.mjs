@@ -40,8 +40,8 @@ export class PocketSuggestions extends SuggestProvider {
     return "pocket";
   }
 
-  get rustSuggestionTypes() {
-    return ["Pocket"];
+  get rustSuggestionType() {
+    return "Pocket";
   }
 
   get showLessFrequentlyCount() {

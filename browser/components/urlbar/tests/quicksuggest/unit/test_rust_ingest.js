@@ -87,8 +87,9 @@ add_task(async function providerConstraintsChanged() {
     !!feature,
     "This test expects the ExposureSuggestions feature to exist"
   );
-  Assert.ok(
-    feature.rustSuggestionTypes.includes("Exposure"),
+  Assert.equal(
+    feature.rustSuggestionType,
+    "Exposure",
     "This test expects Exposure suggestions to exist"
   );
 

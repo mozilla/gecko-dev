@@ -43,8 +43,8 @@ export class MDNSuggestions extends SuggestProvider {
     return "mdn";
   }
 
-  get rustSuggestionTypes() {
-    return ["Mdn"];
+  get rustSuggestionType() {
+    return "Mdn";
   }
 
   async makeResult(queryContext, suggestion) {

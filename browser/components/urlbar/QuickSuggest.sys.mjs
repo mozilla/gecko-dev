@@ -151,7 +151,7 @@ class _QuickSuggest {
   /**
    * @returns {Set}
    *   The set of features that manage Rust suggestion types, as determined by
-   *   each feature's `rustSuggestionTypes`.
+   *   each feature's `rustSuggestionType`.
    */
   get rustFeatures() {
     return new Set(this.#featuresByRustSuggestionType.values());
@@ -190,10 +190,11 @@ class _QuickSuggest {
       if (feature.merinoProvider) {
         this.#featuresByMerinoProvider.set(feature.merinoProvider, feature);
       }
-      if (feature.rustSuggestionTypes) {
-        for (let type of feature.rustSuggestionTypes) {
-          this.#featuresByRustSuggestionType.set(type, feature);
-        }
+      if (feature.rustSuggestionType) {
+        this.#featuresByRustSuggestionType.set(
+          feature.rustSuggestionType,
+          feature
+        );
       }
       if (feature.mlIntent) {
         this.#featuresByMlIntent.set(feature.mlIntent, feature);
@@ -247,7 +248,7 @@ class _QuickSuggest {
 
   /**
    * Returns a Suggest feature by the type of Rust suggestion it manages (as
-   * defined by `feature.rustSuggestionTypes`). Not all features correspond to a
+   * defined by `feature.rustSuggestionType`). Not all features correspond to a
    * Rust suggestion type.
    *
    * @param {string} type

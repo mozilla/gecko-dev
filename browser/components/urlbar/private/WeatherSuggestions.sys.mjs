@@ -161,8 +161,8 @@ export class WeatherSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.sponsored", "suggest.weather"];
   }
 
-  get rustSuggestionTypes() {
-    return ["Weather"];
+  get rustSuggestionType() {
+    return "Weather";
   }
 
   get showLessFrequentlyCount() {
@@ -494,7 +494,7 @@ export class WeatherSuggestions extends SuggestProvider {
   get #config() {
     let { rustBackend } = lazy.QuickSuggest;
     let config = rustBackend.isEnabled
-      ? rustBackend.getConfigForSuggestionType(this.rustSuggestionTypes[0])
+      ? rustBackend.getConfigForSuggestionType(this.rustSuggestionType)
       : null;
     return config || {};
   }

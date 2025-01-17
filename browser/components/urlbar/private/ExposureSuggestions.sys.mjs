@@ -24,11 +24,11 @@ export class ExposureSuggestions extends SuggestProvider {
     return ["quicksuggest.exposureSuggestionTypes"];
   }
 
-  get rustSuggestionTypes() {
-    return ["Exposure"];
+  get rustSuggestionType() {
+    return "Exposure";
   }
 
-  getRustProviderConstraints() {
+  get rustProviderConstraints() {
     return {
       exposureSuggestionTypes: [...this.exposureSuggestionTypes],
     };

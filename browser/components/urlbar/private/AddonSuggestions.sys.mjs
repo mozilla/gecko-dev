@@ -46,8 +46,8 @@ export class AddonSuggestions extends SuggestProvider {
     return "amo";
   }
 
-  get rustSuggestionTypes() {
-    return ["Amo"];
+  get rustSuggestionType() {
+    return "Amo";
   }
 
   async makeResult(queryContext, suggestion, searchString) {

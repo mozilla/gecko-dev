@@ -96,8 +96,8 @@ export class FakespotSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.sponsored", "suggest.fakespot"];
   }
 
-  get rustSuggestionTypes() {
-    return ["Fakespot"];
+  get rustSuggestionType() {
+    return "Fakespot";
   }
 
   get showLessFrequentlyCount() {

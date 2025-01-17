@@ -112,15 +112,7 @@ export class SuggestFeature {
 }
 
 /**
- * Base class for Suggest features that manage one or more suggestion types.
- * Typically a feature should manage only one type, but it's possible to manage
- * more for any reason, usually in these cases:
- *
- * - When a single suggestion type served by a backend maps to more than one
- *   kind of `UrlbarResult`, for example when a Merino provider serves a single
- *   type that maps to many types on the client
- * - For historical reasons features can manage more than one Rust suggestion
- *   type by returning multiple values in the `rustSuggestionTypes` array
+ * Base class for Suggest features that manage a suggestion type [1].
  *
  * The same suggestion type can be served by multiple backends, and a single
  * `SuggestProvider` subclass can manage the type regardless of backend by
@@ -128,6 +120,10 @@ export class SuggestFeature {
  *
  * Subclasses should be registered with `QuickSuggest` by adding them to the
  * `FEATURES` const in `QuickSuggest.sys.mjs`.
+ *
+ * [1] Typically a feature should manage only one type. In rare cases, it might
+ * make sense to manage multiple types, for example when a single Merino
+ * provider serves more than one type of suggestion.
  */
 export class SuggestProvider extends SuggestFeature {
   // Methods designed for overriding below
@@ -143,14 +139,26 @@ export class SuggestProvider extends SuggestFeature {
   }
 
   /**
-   * @returns {Array}
+   * @returns {string}
    *   If the feature's suggestions are served by the Rust component, the
-   *   subclass should override this getter and return an array of their type
-   *   names as defined by the `Suggestion` enum in the component. e.g., "Amp",
+   *   subclass should override this getter and return their type name as
+   *   defined by the `Suggestion` enum in the component. e.g., "Amp",
    *   "Wikipedia", "Mdn", etc.
    */
-  get rustSuggestionTypes() {
-    return [];
+  get rustSuggestionType() {
+    return "";
+  }
+
+  /**
+   * @returns {object|null}
+   *   If the feature manages suggestions served by the Rust component that
+   *   require provider constraints, the subclass should override this getter
+   *   and return a plain JS object that can be passed to
+   *   `SuggestionProviderConstraints()`. This getter will only be called if the
+   *   feature is enabled.
+   */
+  get rustProviderConstraints() {
+    return null;
   }
 
   /**
@@ -189,47 +197,6 @@ export class SuggestProvider extends SuggestFeature {
    */
   getSuggestionTelemetryType(suggestion) {
     return this.merinoProvider;
-  }
-
-  /**
-   * If the feature manages one or more suggestion types served by the Suggest
-   * Rust component, this method should return true if the given suggestion type
-   * is enabled and false otherwise. Many features do nothing but manage a
-   * single Rust suggestion type, and the suggestion type should be enabled iff
-   * the feature itself is enabled. Those features can rely on the default
-   * implementation here since a feature's Rust suggestions will not be fetched
-   * if the feature is disabled. Other features either manage multiple
-   * suggestion types or have functionality beyond their Rust suggestions and
-   * need to remain enabled even when their suggestions are not. Those features
-   * should override this method.
-   *
-   * @param {string} type
-   *   A suggestion type name as defined by the `Suggestion` enum in the Rust
-   *   component, e.g., "Amp", "Wikipedia", "Mdn", etc.
-   * @returns {boolean}
-   *   Whether the suggestion type is enabled.
-   */
-  isRustSuggestionTypeEnabled(type) {
-    return true;
-  }
-
-  /**
-   * If the feature manages suggestions served by the Suggest Rust component and
-   * at least one of its suggestion providers requires constraints, the subclass
-   * should override this method and return a plain JS object that can be passed
-   * to `SuggestionProviderConstraints()`. This method will only be called if
-   * the feature and suggestion type are enabled.
-   *
-   * @param {string} type
-   *   A suggestion type name as defined by the `Suggestion` enum in the Rust
-   *   component, e.g., "Amp", "Wikipedia", "Mdn", etc.
-   * @returns {object|null}
-   *   If the given type's provider requires constraints, this should return a
-   *   plain JS object that can be passed to `SuggestionProviderConstraints()`.
-   *   Otherwise it should return null.
-   */
-  getRustProviderConstraints(type) {
-    return null;
   }
 
   /**
