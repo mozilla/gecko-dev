@@ -21,19 +21,7 @@ def hash_path(path):
 
 @memoize
 def get_file_finder(base_path):
-    from pathlib import Path
-
-    repo = get_repository_object(base_path)
-    if repo:
-        files = repo.get_tracked_files_finder(base_path)
-        if files:
-            return files
-        else:
-            return None
-    else:
-        return get_repository_object(Path(base_path)).get_tracked_files_finder(
-            base_path
-        )
+    return get_repository_object(base_path).get_tracked_files_finder(base_path)
 
 
 def hash_paths(base_path, patterns):
