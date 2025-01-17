@@ -519,6 +519,8 @@ struct alignas(CellAlignBytes) LargeBuffer
   bool isPointerWithinAllocation(void* ptr) const;
 };
 
+static constexpr size_t LargeBufferHeaderSize = sizeof(LargeBuffer);
+
 }  // namespace gc
 }  // namespace js
 

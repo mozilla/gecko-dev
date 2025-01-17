@@ -860,16 +860,24 @@ bool NativeObject::goodElementsAllocationAmount(JSContext* cx,
   static_assert(BigBuckets[std::size(BigBuckets) - 1] <=
                 MAX_DENSE_ELEMENTS_ALLOCATION);
 
+  // We will allocate these in large buffers so account for the header size
+  // required there.
+  static_assert(sizeof(Value) * Mebi >= gc::ChunkSize);
+  const size_t BufferHeaderCount = gc::LargeBufferHeaderSize / sizeof(Value);
+  reqAllocated += BufferHeaderCount;
+
   // Pick the first bucket that'll fit |reqAllocated|.
   for (uint32_t b : BigBuckets) {
     if (b >= reqAllocated) {
-      *goodAmount = gc::GetGoodElementCount(b, sizeof(Value));
+      b -= BufferHeaderCount;
+      MOZ_ASSERT(b == gc::GetGoodElementCount(b, sizeof(Value)));
+      *goodAmount = b;
       return true;
     }
   }
 
   // Otherwise, return the maximum bucket size.
-  *goodAmount = MAX_DENSE_ELEMENTS_ALLOCATION;
+  *goodAmount = MAX_DENSE_ELEMENTS_ALLOCATION - BufferHeaderCount;
   return true;
 }
 
