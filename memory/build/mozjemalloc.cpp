@@ -1222,6 +1222,9 @@ struct arena_t {
   // memory is mapped for each arena.
   size_t mNumDirty MOZ_GUARDED_BY(mLock);
 
+  // Precalculated value for faster checks.
+  size_t mMaxDirty MOZ_GUARDED_BY(mLock);
+
   // The current number of pages that are available without a system call (but
   // probably a page fault).
   size_t mNumMAdvised MOZ_GUARDED_BY(mLock);
@@ -1229,7 +1232,7 @@ struct arena_t {
 
   // Maximum value allowed for mNumDirty.
   // Needs no lock, read-only.
-  size_t mMaxDirty;
+  size_t mMaxDirtyBase;
 
   // Needs no lock, read-only.
   int32_t mMaxDirtyIncreaseOverride;
@@ -1362,17 +1365,17 @@ struct arena_t {
 
   void* Ralloc(void* aPtr, size_t aSize, size_t aOldSize) MOZ_EXCLUDES(mLock);
 
-  size_t EffectiveMaxDirty();
+  void UpdateMaxDirty() MOZ_EXCLUDES(mLock);
 
   // Check the EffectiveMaxDirty threshold to decide if we should purge.
   bool ShouldStartPurge(bool aForce = false) MOZ_REQUIRES(mLock) {
-    return (mNumDirty > ((aForce) ? 0 : EffectiveMaxDirty()));
+    return (mNumDirty > ((aForce) ? 0 : mMaxDirty));
   }
 
   // Check the EffectiveMaxDirty threshold to decide if we continue purge.
   // This threshold is lower than ShouldStartPurge to have some hysteresis.
   bool ShouldContinuePurge(bool aForce = false) MOZ_REQUIRES(mLock) {
-    return (mNumDirty > ((aForce) ? 0 : EffectiveMaxDirty() >> 1));
+    return (mNumDirty > ((aForce) ? 0 : mMaxDirty >> 1));
   }
 
 #ifdef MALLOC_DECOMMIT
@@ -1385,13 +1388,13 @@ struct arena_t {
 
   // Purge some dirty pages.
   //
-  // If this arena has more than EffectiveMaxDirty() dirty pages or aForce is
+  // If this arena has more than mMaxDirty dirty pages or aForce is
   // true, then purge one run of dirty pages.
   //
   // This must be called without the mLock held (it'll take the lock).
   //
   // To release more than a single run of pages then it's best to call Purge
-  // in a loop.  It returns true if mNumDirty > EffectiveMaxDirty() so that the
+  // in a loop.  It returns true if mNumDirty > mMaxDirty so that the
   // caller knows if the loop should continue.
   //
   bool Purge(bool aForce = false) MOZ_EXCLUDES(mLock);
@@ -1508,8 +1511,15 @@ class ArenaCollection {
   }
 
   void SetDefaultMaxDirtyPageModifier(int32_t aModifier) {
-    mDefaultMaxDirtyPageModifier = aModifier;
+    {
+      MutexAutoLock lock(mLock);
+      mDefaultMaxDirtyPageModifier = aModifier;
+      for (auto* arena : iter()) {
+        arena->UpdateMaxDirty();
+      }
+    }
   }
+
   int32_t DefaultMaxDirtyPageModifier() { return mDefaultMaxDirtyPageModifier; }
 
   using Tree = RedBlackTree<arena_t, ArenaTreeTrait>;
@@ -3162,7 +3172,8 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
   return SplitRun(run, aSize, aLarge, aZero) ? run : nullptr;
 }
 
-size_t arena_t::EffectiveMaxDirty() {
+void arena_t::UpdateMaxDirty() {
+  MaybeMutexAutoLock lock(mLock);
   int32_t modifier = gArenas.DefaultMaxDirtyPageModifier();
   if (modifier) {
     int32_t arenaOverride =
@@ -3172,7 +3183,8 @@ size_t arena_t::EffectiveMaxDirty() {
     }
   }
 
-  return modifier >= 0 ? mMaxDirty << modifier : mMaxDirty >> -modifier;
+  mMaxDirty =
+      modifier >= 0 ? mMaxDirtyBase << modifier : mMaxDirtyBase >> -modifier;
 }
 
 #ifdef MALLOC_DECOMMIT
@@ -3184,7 +3196,7 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
   }
 
   // The maximum size of the page cache
-  const size_t max_page_cache = EffectiveMaxDirty();
+  const size_t max_page_cache = mMaxDirty;
 
   // The current size of the page cache, note that we use mNumFresh +
   // mNumMAdvised here but Purge() does not.
@@ -3207,7 +3219,7 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
   // The rest is arbitrary and involves a some assumptions.  I've broken it down
   // into simple expressions to document them more clearly.
 
-  // Assumption 1: a quarter of EffectiveMaxDirty() is a sensible "minimum
+  // Assumption 1: a quarter of mMaxDirty is a sensible "minimum
   // target" for the dirty page cache.  Likewise 3 quarters is a sensible
   // "maximum target".  Note that for the maximum we avoid using the whole page
   // cache now so that a free that follows this allocation doesn't immeidatly
@@ -4674,8 +4686,9 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   mNumMAdvised = 0;
   // The default maximum amount of dirty pages allowed on arenas is a fraction
   // of opt_dirty_max.
-  mMaxDirty = (aParams && aParams->mMaxDirty) ? aParams->mMaxDirty
-                                              : (opt_dirty_max / 8);
+  mMaxDirtyBase = (aParams && aParams->mMaxDirty) ? aParams->mMaxDirty
+                                                  : (opt_dirty_max / 8);
+  UpdateMaxDirty();
 
   mRunsAvail.Init();
 
@@ -5680,7 +5693,9 @@ inline void MozJemalloc::moz_dispose_arena(arena_id_t aArenaId) {
 }
 
 inline void MozJemalloc::moz_set_max_dirty_page_modifier(int32_t aModifier) {
-  gArenas.SetDefaultMaxDirtyPageModifier(aModifier);
+  if (malloc_init()) {
+    gArenas.SetDefaultMaxDirtyPageModifier(aModifier);
+  }
 }
 
 inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
