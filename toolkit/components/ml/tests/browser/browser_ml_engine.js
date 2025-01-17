@@ -7,8 +7,11 @@
 
 requestLongerTimeout(2);
 
-const RAW_PIPELINE_OPTIONS = { taskName: "moz-echo" };
-const PIPELINE_OPTIONS = new PipelineOptions({ taskName: "moz-echo" });
+const RAW_PIPELINE_OPTIONS = { taskName: "moz-echo", timeoutMS: -1 };
+const PIPELINE_OPTIONS = new PipelineOptions({
+  taskName: "moz-echo",
+  timeoutMS: -1,
+});
 
 async function checkForRemoteType(remoteType) {
   let procinfo3 = await ChromeUtils.requestProcInfo();
@@ -613,7 +616,7 @@ add_task(async function test_ml_engine_get_status() {
   const { cleanup, remoteClients } = await setup();
 
   info("Get the engine");
-  const engineInstance = await createEngine(RAW_PIPELINE_OPTIONS);
+  const engineInstance = await createEngine({ taskName: "moz-echo" });
 
   info("Check the inference process is running");
   Assert.equal(await checkForRemoteType("inference"), true);
@@ -683,7 +686,7 @@ add_task(async function test_ml_engine_not_enough_memory() {
   info("Get the greedy engine");
   const engineInstance = await createEngine({
     modelId: "testing/greedy",
-    taskName: "summarization",
+    taskName: "moz-echo",
     dtype: "q8",
     numThreads: 1,
     device: "wasm",

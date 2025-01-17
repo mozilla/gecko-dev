@@ -39,6 +39,7 @@ const CUSTOM_INTENT_OPTIONS = {
   dtype: "q8",
   modelRevision: "main",
   numThreads: 2,
+  timeoutMS: -1,
 };
 
 const CUSTOM_NER_OPTIONS = {
@@ -50,6 +51,7 @@ const CUSTOM_NER_OPTIONS = {
   dtype: "q8",
   modelRevision: "main",
   numThreads: 2,
+  timeoutMS: -1,
 };
 const journal = {};
 const runInference2 = async () => {

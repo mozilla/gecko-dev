@@ -124,6 +124,7 @@ add_task(async function test_ml_moz_image_to_text_pipeline() {
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     dtype: "q8",
+    timeoutMS: -1,
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);
@@ -192,6 +193,7 @@ add_task(async function test_streaming_ml_moz_image_to_text_pipeline() {
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     dtype: "q8",
+    timeoutMS: -1,
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);
@@ -244,6 +246,7 @@ add_task(async function test_ml_generic_pipeline() {
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     dtype: "q8",
+    timeoutMS: -1,
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);
@@ -322,6 +325,7 @@ add_task(async function test_ml_streaming_generic_pipeline() {
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     dtype: "q8",
+    timeoutMS: -1,
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);
