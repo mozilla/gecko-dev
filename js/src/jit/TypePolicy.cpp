@@ -276,11 +276,13 @@ bool ComparePolicy::adjustInputs(TempAllocator& alloc,
     case MCompare::Compare_BigInt_String:
       return convertOperand(0, MIRType::BigInt) &&
              convertOperand(1, MIRType::String);
-    default:
-      MOZ_CRASH("Unexpected compare type");
+    case MCompare::Compare_UInt32:
+    case MCompare::Compare_Int64:
+    case MCompare::Compare_UInt64:
+    case MCompare::Compare_WasmAnyRef:
+      break;
   }
-
-  return true;
+  MOZ_CRASH("Unexpected compare type");
 }
 
 bool TestPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins) const {
