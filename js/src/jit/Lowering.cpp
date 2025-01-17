@@ -5009,10 +5009,6 @@ void LIRGenerator::visitClampToUint8(MClampToUint8* ins) {
   MDefinition* in = ins->input();
 
   switch (in->type()) {
-    case MIRType::Boolean:
-      redefine(ins, in);
-      break;
-
     case MIRType::Int32:
       defineReuseInput(new (alloc()) LClampIToUint8(useRegisterAtStart(in)),
                        ins, 0);
