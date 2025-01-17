@@ -12,13 +12,13 @@
 
 using namespace js;
 
-struct IntElement {
+struct IntSinglyLinkedElement {
   int value;
-  IntElement* next = nullptr;
+  IntSinglyLinkedElement* next = nullptr;
 
-  explicit IntElement(int v) : value(v) {}
+  explicit IntSinglyLinkedElement(int v) : value(v) {}
 };
-using TestList = SinglyLinkedList<IntElement>;
+using TestList = SinglyLinkedList<IntSinglyLinkedElement>;
 
 BEGIN_TEST(testSinglyLinkedList) {
   // Test empty lists.
@@ -46,7 +46,7 @@ BEGIN_TEST(testSinglyLinkedList) {
 
   // Test popFront.
 
-  IntElement* e = list.popFront();
+  IntSinglyLinkedElement* e = list.popFront();
   CHECK(e->value == 1);
   js_delete(e);
   CHECK(list.first()->value == 2);
@@ -89,7 +89,7 @@ BEGIN_TEST(testSinglyLinkedList) {
 
   // Test release.
 
-  IntElement* head = list.release();
+  IntSinglyLinkedElement* head = list.release();
   CHECK(list.isEmpty());
   CHECK(head->value == 1);
   CHECK(head->next->value == 2);
@@ -161,7 +161,7 @@ BEGIN_TEST(testSinglyLinkedList) {
 
   e = FindElement(list, 8);
   CHECK(e);
-  IntElement* f = FindElement(list, 2);
+  IntSinglyLinkedElement* f = FindElement(list, 2);
   CHECK(f);
   list.removeRange(e, f);
   CHECK((CheckList<7, 8, 3>(list)));
@@ -179,8 +179,8 @@ BEGIN_TEST(testSinglyLinkedList) {
   return true;
 }
 
-IntElement* MakeElement(int value) {
-  IntElement* element = js_new<IntElement>(value);
+IntSinglyLinkedElement* MakeElement(int value) {
+  IntSinglyLinkedElement* element = js_new<IntSinglyLinkedElement>(value);
   MOZ_RELEASE_ASSERT(element);
   return element;
 }
@@ -193,7 +193,7 @@ size_t CountList(const TestList& list) {
   return i;
 }
 
-IntElement* FindElement(const TestList& list, int value) {
+IntSinglyLinkedElement* FindElement(const TestList& list, int value) {
   for (auto iter = list.iter(); !iter.done(); iter.next()) {
     if (iter->value == value) {
       return iter.get();
