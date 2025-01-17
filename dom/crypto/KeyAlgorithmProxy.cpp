@@ -107,6 +107,12 @@ bool KeyAlgorithmProxy::ReadStructuredClone(JSStructuredCloneReader* aReader) {
       mEc.mName = mName;
       return true;
     }
+
+    case OKP: {
+      mType = OKP;
+      mEd.mName = mName;
+      return true;
+    }
   }
 
   return false;

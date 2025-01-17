@@ -218,6 +218,28 @@ TestArray.addTest(
 );
 
 // -----------------------------------------------------------------------------
+TestArray.addTest(
+  "Structured Cloning: Ed25519",
+  function() {
+    var that = this;
+    var data = crypto.getRandomValues(new Uint8Array(128));
+
+    var alg = {
+      name: 'Ed25519'
+    };
+
+    crypto.subtle.generateKey(alg, true, ['sign', 'verify'])
+      .then(util.cloneExportCompareKeys)
+      .then(x => {
+        return crypto.subtle.sign(alg, x.privateKey, data)
+          .then(sig => crypto.subtle.verify(alg, x.publicKey, sig, data));
+      })
+      .then(complete(that, x => x), error(that));
+  }
+);
+
+
+// -----------------------------------------------------------------------------
 /* TestArray.addTest(
   "Structured Cloning: DH",
   function() {
