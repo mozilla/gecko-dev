@@ -1705,9 +1705,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the MARS API integration is used for sponsored content.
      */
-    var marsAPIEnabled by booleanPreference(
+    var marsAPIEnabled by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_mars_api_enabled),
-        default = FeatureFlags.marsAPIEnabled,
+        default = { FxNimbus.features.mars.value().enabled },
+        featureFlag = true,
     )
 
     /**

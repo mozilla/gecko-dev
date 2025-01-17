@@ -538,6 +538,15 @@ features:
         value:
           report-site-issue: false
 
+  mars:
+    description: Mozilla Ad Routing Service (MARS) unified ads service.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable MARS endpoint to serve sponsored top sites and stories.
+        type: Boolean
+        default: false
+
   microsurveys:
     description: Feature for microsurveys.
     variables:
