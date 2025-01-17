@@ -29,6 +29,7 @@
 
   &:invalid {
     border-color: var(--outline-color-error);
+    outline-color: var(--outline-color-error);
   }
 }
 

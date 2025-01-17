@@ -239,10 +239,12 @@ export class EditProfileCard extends MozLitElement {
     this.updateNameDebouncer.disarm();
     document.l10n.setAttributes(this.errorMessage, l10nId);
     this.errorMessage.parentElement.hidden = false;
+    this.nameInput.setCustomValidity("invalid");
   }
 
   hideErrorMessage() {
     this.errorMessage.parentElement.hidden = true;
+    this.nameInput.setCustomValidity("");
   }
 
   showSavedMessage() {
