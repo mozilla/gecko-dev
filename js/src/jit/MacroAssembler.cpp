@@ -7116,34 +7116,37 @@ void MacroAssembler::branchValueConvertsToWasmAnyRefInline(
   Label checkInt32;
   Label checkDouble;
   Label fallthrough;
-  ScratchTagScope tag(*this, src);
-  splitTagForTest(src, tag);
-  branchTestObject(Assembler::Equal, tag, label);
-  branchTestString(Assembler::Equal, tag, label);
-  branchTestNull(Assembler::Equal, tag, label);
-  branchTestInt32(Assembler::Equal, tag, &checkInt32);
-  branchTestDouble(Assembler::Equal, tag, &checkDouble);
+  {
+    ScratchTagScope tag(*this, src);
+    splitTagForTest(src, tag);
+    branchTestObject(Assembler::Equal, tag, label);
+    branchTestString(Assembler::Equal, tag, label);
+    branchTestNull(Assembler::Equal, tag, label);
+    branchTestInt32(Assembler::Equal, tag, &checkInt32);
+    branchTestDouble(Assembler::Equal, tag, &checkDouble);
+  }
   jump(&fallthrough);
 
   bind(&checkInt32);
-  unboxInt32(src, scratchInt);
-  branch32(Assembler::GreaterThan, scratchInt, Imm32(wasm::AnyRef::MaxI31Value),
-           &fallthrough);
-  branch32(Assembler::LessThan, scratchInt, Imm32(wasm::AnyRef::MinI31Value),
-           &fallthrough);
-  jump(label);
+  {
+    unboxInt32(src, scratchInt);
+    branch32(Assembler::GreaterThan, scratchInt,
+             Imm32(wasm::AnyRef::MaxI31Value), &fallthrough);
+    branch32(Assembler::LessThan, scratchInt, Imm32(wasm::AnyRef::MinI31Value),
+             &fallthrough);
+    jump(label);
+  }
 
   bind(&checkDouble);
   {
-    ScratchTagScopeRelease _(&tag);
-    convertValueToInt32(src, scratchFloat, scratchInt, &fallthrough, true,
-                        IntConversionInputKind::NumbersOnly);
+    unboxDouble(src, scratchFloat);
+    convertDoubleToInt32(scratchFloat, scratchInt, &fallthrough);
+    branch32(Assembler::GreaterThan, scratchInt,
+             Imm32(wasm::AnyRef::MaxI31Value), &fallthrough);
+    branch32(Assembler::LessThan, scratchInt, Imm32(wasm::AnyRef::MinI31Value),
+             &fallthrough);
+    jump(label);
   }
-  branch32(Assembler::GreaterThan, scratchInt, Imm32(wasm::AnyRef::MaxI31Value),
-           &fallthrough);
-  branch32(Assembler::LessThan, scratchInt, Imm32(wasm::AnyRef::MinI31Value),
-           &fallthrough);
-  jump(label);
 
   bind(&fallthrough);
 }
@@ -7164,37 +7167,46 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
   }
 
   bind(&doubleValue);
-  convertValueToInt32(src, scratchFloat, dest, oolConvert, true,
-                      IntConversionInputKind::NumbersOnly);
-  branch32(Assembler::GreaterThan, dest, Imm32(wasm::AnyRef::MaxI31Value),
-           oolConvert);
-  branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
-           oolConvert);
-  lshiftPtr(Imm32(1), dest);
-  or32(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
-  jump(&done);
+  {
+    unboxDouble(src, scratchFloat);
+    convertDoubleToInt32(scratchFloat, dest, oolConvert);
+    branch32(Assembler::GreaterThan, dest, Imm32(wasm::AnyRef::MaxI31Value),
+             oolConvert);
+    branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
+             oolConvert);
+    truncate32ToWasmI31Ref(dest, dest);
+    jump(&done);
+  }
 
   bind(&int32Value);
-  unboxInt32(src, dest);
-  branch32(Assembler::GreaterThan, dest, Imm32(wasm::AnyRef::MaxI31Value),
-           oolConvert);
-  branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
-           oolConvert);
-  truncate32ToWasmI31Ref(dest, dest);
-  jump(&done);
+  {
+    unboxInt32(src, dest);
+    branch32(Assembler::GreaterThan, dest, Imm32(wasm::AnyRef::MaxI31Value),
+             oolConvert);
+    branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
+             oolConvert);
+    truncate32ToWasmI31Ref(dest, dest);
+    jump(&done);
+  }
 
   bind(&nullValue);
-  static_assert(wasm::AnyRef::NullRefValue == 0);
-  xorPtr(dest, dest);
-  jump(&done);
+  {
+    static_assert(wasm::AnyRef::NullRefValue == 0);
+    xorPtr(dest, dest);
+    jump(&done);
+  }
 
   bind(&stringValue);
-  unboxString(src, dest);
-  orPtr(Imm32((int32_t)wasm::AnyRefTag::String), dest);
-  jump(&done);
+  {
+    unboxString(src, dest);
+    orPtr(Imm32((int32_t)wasm::AnyRefTag::String), dest);
+    jump(&done);
+  }
 
   bind(&objectValue);
-  unboxObject(src, dest);
+  {
+    unboxObject(src, dest);
+  }
 
   bind(&done);
 }
