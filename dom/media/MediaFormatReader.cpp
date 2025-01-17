@@ -2526,9 +2526,24 @@ void MediaFormatReader::Update(TrackType aTrack) {
       // new data again as the result may now be different from the earlier
       // run.
       if (UpdateReceivedNewData(aTrack) || decoder.mSeekRequest.Exists()) {
-        LOGV("Nothing more to do");
+        LOGV("Completed drain: Nothing more to do");
         return;
       }
+    } else if (decoder.IsWaitingForData() && !decoder.HasPendingDrain()) {
+      // This path is triggered when an internal seek request on mTrackDemuxer
+      // returns NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA, in which case there is
+      // no drain.  No new output samples will be available until more data
+      // arrives.
+      MOZ_ASSERT(!decoder.mDemuxRequest.Exists());
+      MOZ_ASSERT(decoder.mQueuedSamples.IsEmpty());
+      // mReceivedNewData would have caused UpdateReceivedNewData() to clear
+      // mWaitingForDataStartTime.
+      MOZ_ASSERT(!decoder.mReceivedNewData);
+      LOG("Rejecting %s promise: WAITING_FOR_DATA during internal seek",
+          TrackTypeToStr(aTrack));
+      decoder.RejectPromise(NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA, __func__);
+      // Wait until more data arrives.
+      return;
     } else if (decoder.mDemuxEOS && !decoder.HasPendingDrain() &&
                decoder.mQueuedSamples.IsEmpty()) {
       // It is possible to transition from WAITING_FOR_DATA directly to EOS
