@@ -26,31 +26,7 @@
     });
 
     add_task(async function testMozInputTextEvents() {
-      let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
-      let target = await testHelpers.renderInputElements();
-      let textInput = target.querySelector("moz-input-text");
-
-      textInput.addEventListener("change", trackEvent);
-      textInput.addEventListener("input", trackEvent);
-      textInput.addEventListener("click", trackEvent);
-
-      const TEST_STRING = "mozilla!";
-      synthesizeMouseAtCenter(textInput.inputEl, {});
-      sendString(TEST_STRING);
-      textInput.blur();
-      await TestUtils.waitForTick();
-
-      // Verify that we emit input events for each char of the string,
-      // and that change events are fired when the input loses focus.
-      verifyEvents([
-        { type: "click", localName: "moz-input-text", value: "" },
-        ...Array.from(TEST_STRING).map((char, i) => ({
-          type: "input",
-          localName: "moz-input-text",
-          value: TEST_STRING.substring(0, i + 1),
-        })),
-        { type: "change", localName: "moz-input-text", value: TEST_STRING },
-      ]);
+      await testHelpers.testTextBasedInputEvents("moz-input-text");
     });
   </script>
 </head>
