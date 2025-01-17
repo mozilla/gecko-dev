@@ -248,7 +248,9 @@ class ContentBlockingLog final {
       }
 
       for (const auto& item : entry.mData->mLogs) {
-        if (item.mBlocked) {
+        if (item.mBlocked ||
+            item.mType &
+                nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT) {
           events |= item.mType;
         }
       }
