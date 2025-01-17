@@ -121,7 +121,9 @@ class nsDataObj : public IDataObject, public IDataObjectAsyncCapability {
   HRESULT GetText(const nsACString& aDF, FORMATETC& aFE, STGMEDIUM& aSTG);
 
  private:
-  HRESULT GetDib(const nsACString& inFlavor, FORMATETC&, STGMEDIUM& aSTG);
+  enum class DibType { Bmp, Png };
+  HRESULT GetDib(const nsACString& inFlavor, FORMATETC&, STGMEDIUM& aSTG,
+                 DibType aDibType);
 
   HRESULT DropImage(FORMATETC& aFE, STGMEDIUM& aSTG);
   HRESULT DropFile(FORMATETC& aFE, STGMEDIUM& aSTG);

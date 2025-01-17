@@ -272,11 +272,20 @@ nsresult nsClipboard::SetupNativeDataObject(
                flavorStr.EqualsLiteral(kJPGImageMime) ||
                flavorStr.EqualsLiteral(kGIFImageMime) ||
                flavorStr.EqualsLiteral(kNativeImageMime)) {
-      // if we're an image, register the native bitmap flavor
+      // if we're an image, register the relevant bitmap flavors
       FORMATETC imageFE;
+
+      // Add PNG, depending on prefs
+      if (mozilla::StaticPrefs::clipboard_copy_image_as_png()) {
+        static const CLIPFORMAT CF_PNG = ::RegisterClipboardFormat(TEXT("PNG"));
+        SET_FORMATETC(imageFE, CF_PNG, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL)
+        dObj->AddDataFlavor(flavorStr.get(), &imageFE);
+      }
+
       // Add DIBv5
       SET_FORMATETC(imageFE, CF_DIBV5, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL)
       dObj->AddDataFlavor(flavorStr.get(), &imageFE);
+
       // Add DIBv3
       SET_FORMATETC(imageFE, CF_DIB, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL)
       dObj->AddDataFlavor(flavorStr.get(), &imageFE);

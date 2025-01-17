@@ -29,6 +29,7 @@
 #include "nsNetUtil.h"
 #include "mozilla/Components.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/StaticPrefs_clipboard.h"
 #include "mozilla/Unused.h"
 #include "nsProxyRelease.h"
 #include "nsIObserverService.h"
@@ -721,6 +722,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM) {
   static CLIPFORMAT fileFlavor = ::RegisterClipboardFormat(CFSTR_FILECONTENTS);
   static CLIPFORMAT PreferredDropEffect =
       ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+  static CLIPFORMAT imagePNGFormat = ::RegisterClipboardFormat(TEXT("PNG"));
 
   // Arbitrary system formats are used for image feedback during drag
   // and drop. We are responsible for storing these internally during
@@ -737,11 +739,13 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM) {
   m_enumFE->Reset();
   while (NOERROR == m_enumFE->Next(1, &fe, &count) &&
          dfInx < mDataFlavors.Length()) {
-    nsCString& df = mDataFlavors.ElementAt(dfInx);
+    nsCString const& df = mDataFlavors.ElementAt(dfInx);
     if (FormatsMatch(fe, *aFormat)) {
       pSTM->pUnkForRelease =
           nullptr;  // caller is responsible for deleting this data
-      CLIPFORMAT format = aFormat->cfFormat;
+      CLIPFORMAT const format = aFormat->cfFormat;
+
+      // compile-time-constant format indicators:
       switch (format) {
         // Someone is asking for plain or unicode text
         case CF_TEXT:
@@ -756,24 +760,28 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM) {
         // Someone is asking for an image
         case CF_DIBV5:
         case CF_DIB:
-          return GetDib(df, *aFormat, *pSTM);
+          return GetDib(df, *aFormat, *pSTM, DibType::Bmp);
 
-        default:
-          if (format == fileDescriptorFlavorA)
-            return GetFileDescriptor(*aFormat, *pSTM, false);
-          if (format == fileDescriptorFlavorW)
-            return GetFileDescriptor(*aFormat, *pSTM, true);
-          if (format == uniformResourceLocatorA)
-            return GetUniformResourceLocator(*aFormat, *pSTM, false);
-          if (format == uniformResourceLocatorW)
-            return GetUniformResourceLocator(*aFormat, *pSTM, true);
-          if (format == fileFlavor) return GetFileContents(*aFormat, *pSTM);
-          if (format == PreferredDropEffect)
-            return GetPreferredDropEffect(*aFormat, *pSTM);
-          // MOZ_LOG(gWindowsLog, LogLevel::Info,
-          //       ("***** nsDataObj::GetData - Unknown format %u\n", format));
-          return GetText(df, *aFormat, *pSTM);
+        default: /* fallthrough */;
       }  // switch
+
+      // non-compile-time-constant format indicators:
+      if (format == imagePNGFormat)
+        return GetDib(df, *aFormat, *pSTM, DibType::Png);
+      if (format == fileDescriptorFlavorA)
+        return GetFileDescriptor(*aFormat, *pSTM, false);
+      if (format == fileDescriptorFlavorW)
+        return GetFileDescriptor(*aFormat, *pSTM, true);
+      if (format == uniformResourceLocatorA)
+        return GetUniformResourceLocator(*aFormat, *pSTM, false);
+      if (format == uniformResourceLocatorW)
+        return GetUniformResourceLocator(*aFormat, *pSTM, true);
+      if (format == fileFlavor) return GetFileContents(*aFormat, *pSTM);
+      if (format == PreferredDropEffect)
+        return GetPreferredDropEffect(*aFormat, *pSTM);
+      // MOZ_LOG(gWindowsLog, LogLevel::Info,
+      //       ("***** nsDataObj::GetData - Unknown format %u\n", format));
+      return GetText(df, *aFormat, *pSTM);
     }  // if
     dfInx++;
   }  // while
@@ -1005,7 +1013,7 @@ STDMETHODIMP nsDataObj::StartOperation(IBindCtx* pbcReserved) {
 //
 HRESULT
 nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
-                  STGMEDIUM& aSTG) {
+                  STGMEDIUM& aSTG, DibType aDibType) {
   nsCOMPtr<nsISupports> genericDataWrapper;
   if (NS_FAILED(
           mTransferable->GetTransferData(PromiseFlatCString(inFlavor).get(),
@@ -1021,16 +1029,22 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
   nsCOMPtr<imgITools> imgTools =
       do_CreateInstance("@mozilla.org/image/tools;1");
 
-  nsAutoString options(u"bpp=32;"_ns);
-  if (aFormat.cfFormat == CF_DIBV5) {
-    options.AppendLiteral("version=5");
-  } else {
-    options.AppendLiteral("version=3");
+  nsAutoString options(u""_ns);
+  if (aDibType == DibType::Bmp) {
+    if (aFormat.cfFormat == CF_DIBV5) {
+      options.AssignLiteral("version=5");
+    } else {
+      options.AssignLiteral("version=3");
+    }
   }
 
+  const nsLiteralCString mimeType = aDibType == DibType::Bmp
+                                        ? nsLiteralCString(IMAGE_BMP)
+                                        : nsLiteralCString(IMAGE_PNG);
   nsCOMPtr<nsIInputStream> inputStream;
-  nsresult rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_BMP),
-                                      options, getter_AddRefs(inputStream));
+  nsresult rv = imgTools->EncodeImage(image, mimeType, options,
+                                      getter_AddRefs(inputStream));
+
   if (NS_FAILED(rv) || !inputStream) {
     return E_FAIL;
   }
@@ -1052,9 +1066,11 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
     return E_FAIL;
   }
 
-  // We don't want the file header.
-  src += BFH_LENGTH;
-  size -= BFH_LENGTH;
+  if (aDibType == DibType::Bmp) {
+    // We don't want the BMP file-header for CF_DIB; it only exists in files.
+    src += BFH_LENGTH;
+    size -= BFH_LENGTH;
+  }
 
   HGLOBAL glob = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size);
   if (!glob) {
@@ -1626,7 +1642,7 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   return S_OK;
 }
 
-HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG) {
+HRESULT nsDataObj::DropImage(FORMATETC& /* aFE */, STGMEDIUM& aSTG) {
   nsresult rv;
   if (!mCachedTempFile) {
     nsCOMPtr<nsISupports> genericDataWrapper;
@@ -1641,9 +1657,25 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG) {
     nsCOMPtr<imgITools> imgTools =
         do_CreateInstance("@mozilla.org/image/tools;1");
     nsCOMPtr<nsIInputStream> inputStream;
-    rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_BMP),
-                               u"bpp=32;version=3"_ns,
-                               getter_AddRefs(inputStream));
+
+    // Select the image encoding.
+    //
+    // If we get here, the negotiation phase selected "CF_HDROP"... which
+    // unfortunately means "file", rather than something more useful like "file
+    // of type XYZ". As of 2024, though, it seems that pretty much everything in
+    // the ecosystem understands PNG, so we just default to that (with a config
+    // pref to enable fallback to BMP for older recipients).
+    nsCString extension;
+    if (StaticPrefs::clipboard_copy_image_file_as_png()) {
+      extension = ".png"_ns;
+      rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_PNG), u""_ns,
+                                 getter_AddRefs(inputStream));
+    } else {
+      extension = ".bmp"_ns;
+      rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_BMP),
+                                 u"bpp=32;version=3"_ns,
+                                 getter_AddRefs(inputStream));
+    }
     if (NS_FAILED(rv) || !inputStream) {
       return E_FAIL;
     }
@@ -1674,11 +1706,10 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG) {
 
     // Filename must be random so as not to confuse apps like
     // Photoshop which handle multiple drags into a single window.
-    char buf[13];
-    nsCString filename;
+    char buf[9];
     NS_MakeRandomString(buf, 8);
-    memcpy(buf + 8, ".bmp", 5);
-    filename.Append(nsDependentCString(buf, 12));
+    nsCString filename{buf};
+    filename.Append(extension);
     dropFile->AppendNative(filename);
     rv = dropFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0660);
     if (NS_FAILED(rv)) {
