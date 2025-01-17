@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.logins.fragment
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
@@ -14,6 +15,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -32,9 +34,11 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.databinding.FragmentAddLoginBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.ext.toEditable
+import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
 import org.mozilla.fenix.settings.logins.LoginsFragmentStore
 import org.mozilla.fenix.settings.logins.SavedLogin
 import org.mozilla.fenix.settings.logins.controller.SavedLoginsStorageController
@@ -59,6 +63,19 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
 
     private var _binding: FragmentAddLoginBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var startForResult: ActivityResultLauncher<Intent>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        startForResult = registerForActivityResult {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+                false
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                AuthenticationStatus.AUTHENTICATED
+            setSecureContentVisibility(true)
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -358,6 +375,34 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
     override fun onResume() {
         super.onResume()
         showToolbar(getString(R.string.add_login_2))
+
+        if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt) {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+                false
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
+            setSecureContentVisibility(false)
+
+            bindBiometricsCredentialsPromptOrShowWarning(
+                view = requireView(),
+                onShowPinVerification = { intent -> startForResult.launch(intent) },
+                onAuthSuccess = {
+                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                        AuthenticationStatus.AUTHENTICATED
+                    setSecureContentVisibility(true)
+                },
+                onAuthFailure = {
+                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                        AuthenticationStatus.NOT_AUTHENTICATED
+                    setSecureContentVisibility(false)
+                },
+            )
+        } else {
+            setSecureContentVisibility(
+                BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus ==
+                    AuthenticationStatus.AUTHENTICATED,
+            )
+        }
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
@@ -389,6 +434,10 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
             AuthenticationStatus.AUTHENTICATED
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             !authenticated
+    }
+
+    private fun setSecureContentVisibility(isVisible: Boolean) {
+        binding.addLoginLayout.isVisible = isVisible
     }
 
     companion object {
