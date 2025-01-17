@@ -3730,7 +3730,8 @@ nsIContentSecurityPolicy* Document::GetCsp() const { return mCSP; }
 void Document::SetCsp(nsIContentSecurityPolicy* aCSP) {
   mCSP = aCSP;
   mHasPolicyWithRequireTrustedTypesForDirective =
-      aCSP && aCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
+      aCSP && aCSP->GetRequireTrustedTypesForDirectiveState() !=
+                  RequireTrustedTypesForDirectiveState::NONE;
 }
 
 nsIContentSecurityPolicy* Document::GetPreloadCsp() const {
@@ -3861,7 +3862,8 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
     mHasPolicyWithRequireTrustedTypesForDirective = false;
   } else {
     mHasPolicyWithRequireTrustedTypesForDirective =
-        mCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
+        mCSP->GetRequireTrustedTypesForDirectiveState() !=
+        RequireTrustedTypesForDirectiveState::NONE;
   }
 
   // Always overwrite the requesting context of the CSP so that any new

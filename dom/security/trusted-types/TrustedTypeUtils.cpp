@@ -53,18 +53,7 @@ nsString GetTrustedTypeName(TrustedType aTrustedType) {
   return EmptyString();
 }
 
-#ifdef DEBUG
-// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
-static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
-                                            const nsAString& aSinkGroup) {
-  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
-  MOZ_ASSERT(aCSP);
-  return aCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
-}
-#endif
-
 namespace SinkTypeMismatch {
-enum class Value { Blocked, Allowed };
 
 static constexpr nsLiteralString kSampleSeparator = u"|"_ns;
 static constexpr nsLiteralString kFunctionAnonymousPrefix =
@@ -77,19 +66,21 @@ static constexpr nsLiteralString kAsyncFunctionStarAnonymousPrefix =
     u"async function* anonymous"_ns;
 }  // namespace SinkTypeMismatch
 
+// Implement reporting of sink type mismatch violations.
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
-static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
-    nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
-    const nsAString& aSinkGroup, const nsAString& aSource) {
-  MOZ_ASSERT(DoesSinkTypeRequireTrustedTypes(aCSP, aSinkGroup));
-  SinkTypeMismatch::Value result = SinkTypeMismatch::Value::Allowed;
+static void ReportSinkTypeMismatchViolations(nsIContentSecurityPolicy* aCSP,
+                                             const nsAString& aSink,
+                                             const nsAString& aSinkGroup,
+                                             const nsAString& aSource) {
+  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
+  MOZ_ASSERT(aCSP);
+  MOZ_ASSERT(aCSP->GetRequireTrustedTypesForDirectiveState() !=
+             RequireTrustedTypesForDirectiveState::NONE);
 
   uint32_t numPolicies = 0;
   aCSP->GetPolicyCount(&numPolicies);
 
-  // First determine the trimmed sample to be used for violation report. Note
-  // that this method is called after DoesSinkTypeRequireTrustedTypes returned
-  // true, so we will always report at least one violation below.
+  // First determine the trimmed sample to be used for violation reports.
   size_t startPos = 0;
   if (aSink.Equals(u"Function"_ns)) {
     auto sourceStartsWith = [&aSource, &startPos](const nsAString& aPrefix) {
@@ -145,13 +136,7 @@ static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
         NS_LITERAL_STRING_FROM_CSTRING(
             REQUIRE_TRUSTED_TYPES_FOR_SCRIPT_OBSERVER_TOPIC),
         cspEventListener);
-
-    if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
-      result = SinkTypeMismatch::Value::Blocked;
-    }
   }
-
-  return result;
 }
 
 constexpr size_t kNumArgumentsForDetermineTrustedTypePolicyValue = 2;
@@ -438,22 +423,32 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   MOZ_ASSERT(globalObject);
 
   // Now retrieve the CSP from the global object.
+  // Because there is only one sink group, its associated
+  // RequireTrustedTypesForDirectiveState actually provides the results of
+  // "Does sink type require trusted types?"
+  // (https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types)
+  // and "Should sink type mismatch violation be blocked by CSP?"
+  // (https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch).
   RefPtr<nsIContentSecurityPolicy> csp;
+  RequireTrustedTypesForDirectiveState requireTrustedTypesForDirectiveState =
+      RequireTrustedTypesForDirectiveState::NONE;
   if (piDOMWindowInner) {
     csp = piDOMWindowInner->GetCsp();
     if (!csp) {
       return GetAsString(aInput);
     }
+    requireTrustedTypesForDirectiveState =
+        csp->GetRequireTrustedTypesForDirectiveState();
+    // The following assert is guaranteed by above calls to
+    // HasPolicyWithRequireTrustedTypesForDirective.
+    MOZ_ASSERT(requireTrustedTypesForDirectiveState !=
+               RequireTrustedTypesForDirectiveState::NONE);
   } else {
     MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
     // TODO(1901492): For now we do the same as when dom.security.trusted_types
     // is disabled and return the string without policy check.
     return GetAsString(aInput);
   }
-
-  // Because there is only one sink group the following assert is guaranteed by
-  // above calls to HasPolicyWithRequireTrustedTypesForDirective.
-  MOZ_ASSERT(DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup));
 
   RefPtr<ExpectedType> convertedInput;
   nsCOMPtr<nsIGlobalObject> pinnedGlobalObject = globalObject;
@@ -466,9 +461,10 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   }
 
   if (!convertedInput) {
-    if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(csp, aSink, aSinkGroup,
-                                                      *GetAsString(aInput)) ==
-        SinkTypeMismatch::Value::Allowed) {
+    ReportSinkTypeMismatchViolations(csp, aSink, aSinkGroup,
+                                     *GetAsString(aInput));
+    if (requireTrustedTypesForDirectiveState ==
+        RequireTrustedTypesForDirectiveState::REPORT_ONLY) {
       return GetAsString(aInput);
     }
 

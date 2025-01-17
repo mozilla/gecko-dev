@@ -470,7 +470,13 @@ nsCSPContext::AppendPolicy(const nsAString& aPolicyString, bool aReportOnly,
     }
     if (policy->hasDirective(
             nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
-      mHasPolicyWithRequireTrustedTypesForDirective = true;
+      if (mRequireTrustedTypesForDirectiveState !=
+          RequireTrustedTypesForDirectiveState::ENFORCE) {
+        mRequireTrustedTypesForDirectiveState =
+            policy->getReportOnlyFlag()
+                ? RequireTrustedTypesForDirectiveState::REPORT_ONLY
+                : RequireTrustedTypesForDirectiveState::ENFORCE;
+      }
       if (nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext)) {
         doc->SetHasPolicyWithRequireTrustedTypesForDirective(true);
       }
@@ -483,10 +489,11 @@ nsCSPContext::AppendPolicy(const nsAString& aPolicyString, bool aReportOnly,
 }
 
 NS_IMETHODIMP
-nsCSPContext::GetHasPolicyWithRequireTrustedTypesForDirective(
-    bool* aHasPolicyWithRequireTrustedTypesForDirective) {
-  *aHasPolicyWithRequireTrustedTypesForDirective =
-      mHasPolicyWithRequireTrustedTypesForDirective;
+nsCSPContext::GetRequireTrustedTypesForDirectiveState(
+    RequireTrustedTypesForDirectiveState*
+        aRequireTrustedTypesForDirectiveState) {
+  *aRequireTrustedTypesForDirectiveState =
+      mRequireTrustedTypesForDirectiveState;
   return NS_OK;
 }
 

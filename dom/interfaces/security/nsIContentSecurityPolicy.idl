@@ -75,6 +75,12 @@ interface nsIContentSecurityPolicy : nsISerializable
     REPORT_TO_DIRECTIVE                   = 27,
   };
 
+  cenum RequireTrustedTypesForDirectiveState : 8 {
+    NONE         = 0,
+    REPORT_ONLY  = 1,
+    ENFORCE      = 2,
+  };
+
   /**
    * Accessor method for a read-only string version of the policy at a given
    * index.
@@ -131,9 +137,14 @@ interface nsIContentSecurityPolicy : nsISerializable
                     in boolean deliveredViaMetaTag);
 
   /**
-   * Whether a policy with a RequireTrustedTypes was appended
+   * Indicate the global state for the require-trusted-types-for directives
+   * - NONE: No require-trusted-types-for directives.
+   * - REPORT_ONLY: At least one require-trusted-types-for directive, but all
+   *   of them have "report" disposition.
+   * - ENFORCE: At least one require-trusted-types-for directive with "enforce"
+   *   disposition.
    */
-  [infallible] readonly attribute boolean hasPolicyWithRequireTrustedTypesForDirective;
+  [infallible] readonly attribute nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState requireTrustedTypesForDirectiveState;
 
   /*
    * Whether this policy allows inline script or style.
@@ -380,6 +391,7 @@ interface nsIContentSecurityPolicy : nsISerializable
 };
 
 typedef nsIContentSecurityPolicy_CSPDirective CSPDirective;
+typedef nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState RequireTrustedTypesForDirectiveState;
 
 /* Listener for security policy violation event */
 [function, scriptable, uuid(c3163b14-3a8f-46dd-a4af-bd04680364cd)]
