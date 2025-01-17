@@ -2791,6 +2791,17 @@ class MinimizeMemoryUsageRunnable : public Runnable {
     }
 
     if (mRemainingIters == 0) {
+#ifdef MOZ_MEMORY
+      // The nsMemoryPressureWatcher observes "memory-pressure" and dispatches
+      // a nsJemallocFreeDirtyPagesRunnable that will be run after the other
+      // observers have been called. If those observers did synchronously
+      // whatever they want to do without dispatching other runnables to the
+      // main thread, this is guaranteeing that the last thing to run before
+      // coming here was that nsJemallocFreeDirtyPagesRunnable. But for
+      // paranoia we do another purge here which ideally is a no-op.
+      jemalloc_free_dirty_pages();
+#endif
+
       os->NotifyObservers(nullptr, "after-minimize-memory-usage",
                           u"MinimizeMemoryUsageRunnable");
       if (mCallback) {
