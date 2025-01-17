@@ -2429,152 +2429,152 @@
 
     <!-- Review quality check feature-->
     <!-- Name for the review quality check feature used as title for the panel. -->
-    <string name="review_quality_check_feature_name_2">የግምገማ አረጋጋጭ</string>
+    <string name="review_quality_check_feature_name_2" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ አረጋጋጭ</string>
     <!-- Summary for grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_a_b_description">አስተማማኝ ግምገማዎች</string>
+    <string name="review_quality_check_grade_a_b_description" moz:removedIn="136" tools:ignore="UnusedResources">አስተማማኝ ግምገማዎች</string>
     <!-- Summary for grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_c_description">አስተማማኝ እና የማይታመኑ ግምገማዎች ድብልቅ</string>
+    <string name="review_quality_check_grade_c_description" moz:removedIn="136" tools:ignore="UnusedResources">አስተማማኝ እና የማይታመኑ ግምገማዎች ድብልቅ</string>
     <!-- Summary for grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_d_f_description">የማይታመኑ ግምገማዎች</string>
+    <string name="review_quality_check_grade_d_f_description" moz:removedIn="136" tools:ignore="UnusedResources">የማይታመኑ ግምገማዎች</string>
     <!-- Text for title presenting the reliability of a product's reviews. -->
-    <string name="review_quality_check_grade_title">እነዚህ ግምገማዎች ምን ያህል አስተማማኝ ናቸው?</string>
+    <string name="review_quality_check_grade_title" moz:removedIn="136" tools:ignore="UnusedResources">እነዚህ ግምገማዎች ምን ያህል አስተማማኝ ናቸው?</string>
     <!-- Title for when the rating has been updated by the review checker -->
-    <string name="review_quality_check_adjusted_rating_title">የተስተካከለ ደረጃ</string>
+    <string name="review_quality_check_adjusted_rating_title" moz:removedIn="136" tools:ignore="UnusedResources">የተስተካከለ ደረጃ</string>
     <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
-    <string name="review_quality_check_adjusted_rating_description_2">በአስተማማኝ ግምገማዎች ላይ የተመሠረተ</string>
+    <string name="review_quality_check_adjusted_rating_description_2" moz:removedIn="136" tools:ignore="UnusedResources">በአስተማማኝ ግምገማዎች ላይ የተመሠረተ</string>
     <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
-    <string name="review_quality_check_highlights_title">ከቅርብ ግዜ ግምገማዎች ዋና ዋናዎቹ</string>
+    <string name="review_quality_check_highlights_title" moz:removedIn="136" tools:ignore="UnusedResources">ከቅርብ ግዜ ግምገማዎች ዋና ዋናዎቹ</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
-    <string name="review_quality_check_explanation_title">የግምገማ ጥራትን እንዴት እንደምንወስን</string>
+    <string name="review_quality_check_explanation_title" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ ጥራትን እንዴት እንደምንወስን</string>
     <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_explanation_body_reliability">የምርት ግምገማዎችን አስተማማኝነት ለማረጋገጥ AI ቴክኖሎጂን ከ%s በMozilla እንጠቀማለን። ይህ እርስዎ የግምገማ ጥራትን ብቻ እንጂ የምርት ጥራትን እንዲገመግሙ አይረዳወትም።</string>
+    <string name="review_quality_check_explanation_body_reliability" moz:removedIn="136" tools:ignore="UnusedResources">የምርት ግምገማዎችን አስተማማኝነት ለማረጋገጥ AI ቴክኖሎጂን ከ%s በMozilla እንጠቀማለን። ይህ እርስዎ የግምገማ ጥራትን ብቻ እንጂ የምርት ጥራትን እንዲገመግሙ አይረዳወትም።</string>
     <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
-    <string name="review_quality_check_info_review_grade_header"><![CDATA[የእያንዳንዱን ምርት ግምገማዎች በ<b>ፊደል ደረጃ</b> ከሀ እስከ ረ እንመድባለን።]]></string>
+    <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[የእያንዳንዱን ምርት ግምገማዎች በ<b>ፊደል ደረጃ</b> ከሀ እስከ ረ እንመድባለን።]]></string>
     <!-- Description explaining grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_AB">አስተማማኝ ግምገማዎች። ግምገማዎቹ ሐቀኛ፣ አድልዎ የለሽ ግምገማዎችን ትተው ከወጡ እውነተኛ ደንበኞች ሊሆኑ እንደሚችሉ እናምናለን።</string>
+    <string name="review_quality_check_info_grade_info_AB" moz:removedIn="136" tools:ignore="UnusedResources">አስተማማኝ ግምገማዎች። ግምገማዎቹ ሐቀኛ፣ አድልዎ የለሽ ግምገማዎችን ትተው ከወጡ እውነተኛ ደንበኞች ሊሆኑ እንደሚችሉ እናምናለን።</string>
     <!-- Description explaining grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_C">አስተማማኝ እና የማይታመኑ ግምገማዎች ድብልቅ እንዳለ እናምናለን።</string>
+    <string name="review_quality_check_info_grade_info_C" moz:removedIn="136" tools:ignore="UnusedResources">አስተማማኝ እና የማይታመኑ ግምገማዎች ድብልቅ እንዳለ እናምናለን።</string>
     <!-- Description explaining grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_DF">የማይታመኑ ግምገማዎች። ግምገማዎቹ የሐሰት ወይም አድሏዊ ከሆኑ ገምጋሚዎች ናቸው ብለን እናምናለን።</string>
+    <string name="review_quality_check_info_grade_info_DF" moz:removedIn="136" tools:ignore="UnusedResources">የማይታመኑ ግምገማዎች። ግምገማዎቹ የሐሰት ወይም አድሏዊ ከሆኑ ገምጋሚዎች ናቸው ብለን እናምናለን።</string>
     <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[የ<b>የተስተካከለ ደረጃ</b> አስተማማኝ ናቸው ብለን ባመንባቸው ግምገማዎች ላይ ብቻ የተመሰረተ ነው።]]></string>
+    <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[የ<b>የተስተካከለ ደረጃ</b> አስተማማኝ ናቸው ብለን ባመንባቸው ግምገማዎች ላይ ብቻ የተመሰረተ ነው።]]></string>
     <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
-    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>ዋና ዋናዎቹ</b> አስተማማኝ ናቸው ብለን የምናምንባቸው ባለፉት 80 ቀናት ውስጥ ከ%s ግምገማዎች የተገኙ ናቸው።]]></string>
+    <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>ዋና ዋናዎቹ</b> አስተማማኝ ናቸው ብለን የምናምንባቸው ባለፉት 80 ቀናት ውስጥ ከ%s ግምገማዎች የተገኙ ናቸው።]]></string>
     <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
-    <string name="review_quality_check_info_learn_more">ስለ%s የበለጠ ይወቁ።</string>
+    <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ስለ%s የበለጠ ይወቁ።</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_info_learn_more_link_2">%s የግምገማ ጥራትን እንዴት እንደሚወስን</string>
+    <string name="review_quality_check_info_learn_more_link_2" moz:removedIn="136" tools:ignore="UnusedResources">%s የግምገማ ጥራትን እንዴት እንደሚወስን</string>
     <!-- Text for title of settings section. -->
-    <string name="review_quality_check_settings_title">ቅንብሮች</string>
+    <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ቅንብሮች</string>
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
-    <string name="review_quality_check_settings_recommended_products">በግምገማ አረጋጋጭ ውስጥ ማስታወቂያዎችን አሳይ</string>
+    <string name="review_quality_check_settings_recommended_products" moz:removedIn="136" tools:ignore="UnusedResources">በግምገማ አረጋጋጭ ውስጥ ማስታወቂያዎችን አሳይ</string>
     <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
-    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">ለሚመለከታቸው ምርቶች አልፎ አልፎ ማስታወቂያዎችን ያያሉ። ምርቶችን የምናስተዋውቀው በታማኝ ግምገማዎች ብቻ ነው። %s</string>
+    <string name="review_quality_check_settings_recommended_products_description_2" moz:removedIn="136" tools:ignore="UnusedResources">ለሚመለከታቸው ምርቶች አልፎ አልፎ ማስታወቂያዎችን ያያሉ። ምርቶችን የምናስተዋውቀው በታማኝ ግምገማዎች ብቻ ነው። %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
-    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">የበለጠ ለማወቅ</string>
+    <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">የበለጠ ለማወቅ</string>
     <!-- Text for turning sidebar off button from review quality check settings section. -->
-    <string name="review_quality_check_settings_turn_off">የግምገማ አረጋጋጭን ያጥፉ</string>
+    <string name="review_quality_check_settings_turn_off" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ያጥፉ</string>
     <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
-    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">ሊታሰብበት የሚገባ ተጨማሪ</string>
+    <string name="review_quality_check_ad_title" moz:removedIn="136" tools:ignore="UnusedResources">ሊታሰብበት የሚገባ ተጨማሪ</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">ማስታወቂያ በ%s</string>
+    <string name="review_quality_check_ad_caption" moz:removedIn="136" tools:ignore="UnusedResources">ማስታወቂያ በ%s</string>
     <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
-    <string name="review_quality_check_powered_by_2">የግምገማ አረጋጋጭ የተጎላበተው በ%s ነው</string>
+    <string name="review_quality_check_powered_by_2" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ አረጋጋጭ የተጎላበተው በ%s ነው</string>
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s በሞዚላ</string>
+    <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">%s በሞዚላ</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">ለመፈተሽ አዲስ መረጃ</string>
+    <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ለመፈተሽ አዲስ መረጃ</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
-    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">አሁን ያረጋግጡ</string>
+    <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">አሁን ያረጋግጡ</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_title">እስካሁን በቂ ግምገማዎች የሉም</string>
+    <string name="review_quality_check_no_reviews_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">እስካሁን በቂ ግምገማዎች የሉም</string>
     <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_body">ይህ ምርት ተጨማሪ ግምገማዎች ሲኖረው ጥራታቸውን ማረጋገጥ እንችላለን።</string>
+    <string name="review_quality_check_no_reviews_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ይህ ምርት ተጨማሪ ግምገማዎች ሲኖረው ጥራታቸውን ማረጋገጥ እንችላለን።</string>
     <!-- Title for warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_title">ምርቱ አይገኝም</string>
+    <string name="review_quality_check_product_availability_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ምርቱ አይገኝም</string>
 
     <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_body">ይህ ምርት ወደ ክምችት እንደተመለሰ ካዩ፣ ሪፖርት ያድርጉት እና ግምገማዎቹን ለማየት እንሰራለን።</string>
+    <string name="review_quality_check_product_availability_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ይህ ምርት ወደ ክምችት እንደተመለሰ ካዩ፣ ሪፖርት ያድርጉት እና ግምገማዎቹን ለማየት እንሰራለን።</string>
     <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
-    <string name="review_quality_check_product_availability_warning_action_2">ምርት በክምችት መኖሩን አመልክት</string>
+    <string name="review_quality_check_product_availability_warning_action_2" moz:removedIn="136" tools:ignore="UnusedResources">ምርት በክምችት መኖሩን አመልክት</string>
     <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
-    <string name="review_quality_check_analysis_in_progress_warning_title_2">የግምገማውን ጥራት በመፈተሽ ላይ (%s)</string>
+    <string name="review_quality_check_analysis_in_progress_warning_title_2" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማውን ጥራት በመፈተሽ ላይ (%s)</string>
     <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
-    <string name="review_quality_check_analysis_in_progress_warning_body">ይህ ወደ 60 ሰከንድ ሊወስድ ይችላል።</string>
+    <string name="review_quality_check_analysis_in_progress_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ይህ ወደ 60 ሰከንድ ሊወስድ ይችላል።</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_title">ሪፖርት ስላደረጉ እናመሰግናለን!</string>
+    <string name="review_quality_check_analysis_requested_info_title" moz:removedIn="136" tools:ignore="UnusedResources">ሪፖርት ስላደረጉ እናመሰግናለን!</string>
     <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_body">በ24 ሰዓታት ውስጥ ስለዚህ ምርት ግምገማዎች መረጃ ሊኖረን ይገባል። እባክዎን ተመልሰው ያረጋግጡ።</string>
+    <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">በ24 ሰዓታት ውስጥ ስለዚህ ምርት ግምገማዎች መረጃ ሊኖረን ይገባል። እባክዎን ተመልሰው ያረጋግጡ።</string>
     <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_title">እነዚህን ግምገማዎች ማረጋገጥ አንችልም</string>
+    <string name="review_quality_check_not_analyzable_info_title" moz:removedIn="136" tools:ignore="UnusedResources">እነዚህን ግምገማዎች ማረጋገጥ አንችልም</string>
     <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_body">እንደ አለመታደል ሆኖ ለተወሰኑ የምርት ዓይነቶች የግምገማውን ጥራት ማረጋገጥ አንችልም። ለምሳሌ፣ የስጦታ ካርዶች እና የቪዲዮ፣ ሙዚቃ እና ጨዋታዎች ሥርጭት።</string>
+    <string name="review_quality_check_not_analyzable_info_body" moz:removedIn="136" tools:ignore="UnusedResources">እንደ አለመታደል ሆኖ ለተወሰኑ የምርት ዓይነቶች የግምገማውን ጥራት ማረጋገጥ አንችልም። ለምሳሌ፣ የስጦታ ካርዶች እና የቪዲዮ፣ ሙዚቃ እና ጨዋታዎች ሥርጭት።</string>
     <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">መረጃ በቅርቡ ይመጣል</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_title" moz:removedIn="136" tools:ignore="UnusedResources">መረጃ በቅርቡ ይመጣል</string>
     <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">በ24 ሰዓታት ውስጥ ስለዚህ ምርት ግምገማዎች መረጃ ሊኖረን ይገባል። እባክዎን ተመልሰው ያረጋግጡ።</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">በ24 ሰዓታት ውስጥ ስለዚህ ምርት ግምገማዎች መረጃ ሊኖረን ይገባል። እባክዎን ተመልሰው ያረጋግጡ።</string>
     <!-- Title for info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">ትንታኔው ወቅታዊ ነው</string>
+    <string name="review_quality_check_analysis_updated_confirmation_title" moz:removedIn="136" tools:ignore="UnusedResources">ትንታኔው ወቅታዊ ነው</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">ገባኝ</string>
+    <string name="review_quality_check_analysis_updated_confirmation_action" moz:removedIn="136" tools:ignore="UnusedResources">ገባኝ</string>
     <!-- Title for error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_title">አሁን ምንም መረጃ የለም</string>
+    <string name="review_quality_check_generic_error_title" moz:removedIn="136" tools:ignore="UnusedResources">አሁን ምንም መረጃ የለም</string>
     <!-- Text for body of error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_body">ችግሩን ለመፍታት እየሰራን ነው። እባክዎ በቅርቡ ተመልሰው ያረጋግጡ።</string>
+    <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">ችግሩን ለመፍታት እየሰራን ነው። እባክዎ በቅርቡ ተመልሰው ያረጋግጡ።</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_title">ምንም የአውታረ መረብ ግንኙነት የለም</string>
+    <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">ምንም የአውታረ መረብ ግንኙነት የለም</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_body">የአውታረ መረብ ግንኙነትዎን ያረጋግጡ እና ከዚያ ገጹን እንደገና ለመጫን ይሞክሩ።</string>
+    <string name="review_quality_check_no_connection_body" moz:removedIn="136" tools:ignore="UnusedResources">የአውታረ መረብ ግንኙነትዎን ያረጋግጡ እና ከዚያ ገጹን እንደገና ለመጫን ይሞክሩ።</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_title">ስለእነዚህ ግምገማዎች እስካሁን ምንም መረጃ የለም</string>
+    <string name="review_quality_check_no_analysis_title" moz:removedIn="136" tools:ignore="UnusedResources">ስለእነዚህ ግምገማዎች እስካሁን ምንም መረጃ የለም</string>
     <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_body">የዚህ ምርት ግምገማዎች አስተማማኝ መሆናቸውን ለማወቅ የግምገማውን ጥራት ያረጋግጡ። ወደ 60 ሰከንድ ብቻ ነው የሚወስደው።</string>
+    <string name="review_quality_check_no_analysis_body" moz:removedIn="136" tools:ignore="UnusedResources">የዚህ ምርት ግምገማዎች አስተማማኝ መሆናቸውን ለማወቅ የግምገማውን ጥራት ያረጋግጡ። ወደ 60 ሰከንድ ብቻ ነው የሚወስደው።</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
-    <string name="review_quality_check_no_analysis_link">የግምገማውን ጥራት ያረጋግጡ</string>
+    <string name="review_quality_check_no_analysis_link" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማውን ጥራት ያረጋግጡ</string>
     <!-- Headline for review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_title">የእኛን የታመነ የምርት ግምገማዎች መመሪያን ይሞክሩ</string>
+    <string name="review_quality_check_contextual_onboarding_title" moz:removedIn="136" tools:ignore="UnusedResources">የእኛን የታመነ የምርት ግምገማዎች መመሪያን ይሞክሩ</string>
     <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description">ከመግዛትዎ በፊት በ%1$s ላይ የምርት ግምገማዎች ምን ያህል አስተማማኝ እንደሆኑ ይመልከቱ። የግምገማ አረጋጋጭ፣ ከ%2$s የመጣ የሙከራ ባህሪ፣ ልክ በአሳሹ ውስጥ ነው የተሰራው። በ%3$s እና %4$s ላይም ይሰራል።</string>
+    <string name="review_quality_check_contextual_onboarding_description" moz:removedIn="136" tools:ignore="UnusedResources">ከመግዛትዎ በፊት በ%1$s ላይ የምርት ግምገማዎች ምን ያህል አስተማማኝ እንደሆኑ ይመልከቱ። የግምገማ አረጋጋጭ፣ ከ%2$s የመጣ የሙከራ ባህሪ፣ ልክ በአሳሹ ውስጥ ነው የተሰራው። በ%3$s እና %4$s ላይም ይሰራል።</string>
     <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description_one_vendor">ከመግዛትዎ በፊት በ%1$s ላይ የምርት ግምገማዎች ምን ያህል አስተማማኝ እንደሆኑ ይመልከቱ። የ%2$s የሙከራ ባህሪ የግምገማ አረጋጋጭ በቀጥታ በአሳሹ ውስጥ ነው የተሰራው።</string>
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor" moz:removedIn="136" tools:ignore="UnusedResources">ከመግዛትዎ በፊት በ%1$s ላይ የምርት ግምገማዎች ምን ያህል አስተማማኝ እንደሆኑ ይመልከቱ። የ%2$s የሙከራ ባህሪ የግምገማ አረጋጋጭ በቀጥታ በአሳሹ ውስጥ ነው የተሰራው።</string>
     <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more">በሞዚላ የ%1$s ኃይልን በመጠቀም አድሎአዊ እና ትክክለኛ ያልሆኑ ግምገማዎችን እናግዝዎታለን። ሲገዙ እርስዎን ለመጠበቅ የእኛ AI ሞዴል ሁልጊዜ እየተሻሻለ ነው። %2$s</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">በሞዚላ የ%1$s ኃይልን በመጠቀም አድሎአዊ እና ትክክለኛ ያልሆኑ ግምገማዎችን እናግዝዎታለን። ሲገዙ እርስዎን ለመጠበቅ የእኛ AI ሞዴል ሁልጊዜ እየተሻሻለ ነው። %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more_link">የበለጠ ለማወቅ</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">የበለጠ ለማወቅ</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_4">&quot;አዎ ይሞክሩት&quot;ን በመምረጥ በ%1$s %2$s እና በ%3$s %4$s ተስማምተዋል።</string>
+    <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">&quot;አዎ ይሞክሩት&quot;ን በመምረጥ በ%1$s %2$s እና በ%3$s %4$s ተስማምተዋል።</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">የግላዊነት ማስታወቂያ</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">የግላዊነት ማስታወቂያ</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
-    <string name="review_quality_check_contextual_onboarding_terms_use">የአጠቃቀም መመሪያ</string>
+    <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">የአጠቃቀም መመሪያ</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_primary_button_text">አዎ፣ ይሞክሩት</string>
+    <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">አዎ፣ ይሞክሩት</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_secondary_button_text">አሁን አይሆንም</string>
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">አሁን አይሆንም</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_open_handle_content_description">የግምገማ አረጋጋጭን ይክፈቱ</string>
+    <string name="review_quality_check_open_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይክፈቱ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_close_handle_content_description">የግምገማ አረጋጋጭን ዝጋ</string>
+    <string name="review_quality_check_close_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ዝጋ</string>
     <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
-    <string name="review_quality_check_star_rating_content_description">%1$s ከ5 ኮከቦች</string>
+    <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">%1$s ከ5 ኮከቦች</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
-    <string name="review_quality_check_highlights_show_less">ያነሰ አሳይ</string>
+    <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">ያነሰ አሳይ</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
-    <string name="review_quality_check_highlights_show_more">ተጨማሪ አሳይ</string>
+    <string name="review_quality_check_highlights_show_more" moz:removedIn="136" tools:ignore="UnusedResources">ተጨማሪ አሳይ</string>
     <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
-    <string name="review_quality_check_highlights_type_quality">ጥራት</string>
+    <string name="review_quality_check_highlights_type_quality" moz:removedIn="136" tools:ignore="UnusedResources">ጥራት</string>
     <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-    <string name="review_quality_check_highlights_type_price">ዋጋ</string>
+    <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">ዋጋ</string>
     <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
-    <string name="review_quality_check_highlights_type_shipping">ማጓጓዣ</string>
+    <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">ማጓጓዣ</string>
     <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
-    <string name="review_quality_check_highlights_type_packaging_appearance">ማሸጊያ እና ገፅታ</string>
+    <string name="review_quality_check_highlights_type_packaging_appearance" moz:removedIn="136" tools:ignore="UnusedResources">ማሸጊያ እና ገፅታ</string>
     <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
-    <string name="review_quality_check_highlights_type_competitiveness">ተወዳዳሪነት</string>
+    <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">ተወዳዳሪነት</string>
 
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
-    <string name="surrounded_with_quotes">“%s”</string>
+    <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">“%s”</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->

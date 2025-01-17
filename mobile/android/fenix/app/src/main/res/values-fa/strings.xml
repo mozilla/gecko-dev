@@ -2534,151 +2534,151 @@
 
     <!-- Review quality check feature-->
     <!-- Name for the review quality check feature used as title for the panel. -->
-    <string name="review_quality_check_feature_name_2">بررسی‌کننده بازبینی</string>
+    <string name="review_quality_check_feature_name_2" moz:removedIn="136" tools:ignore="UnusedResources">بررسی‌کننده بازبینی</string>
     <!-- Summary for grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_a_b_description">بازبینی‌های قابل‌اعتماد</string>
+    <string name="review_quality_check_grade_a_b_description" moz:removedIn="136" tools:ignore="UnusedResources">بازبینی‌های قابل‌اعتماد</string>
     <!-- Summary for grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_c_description">ترکیبی از بازبینی‌های قابل‌اعتماد و غیرقابل‌اعتماد</string>
+    <string name="review_quality_check_grade_c_description" moz:removedIn="136" tools:ignore="UnusedResources">ترکیبی از بازبینی‌های قابل‌اعتماد و غیرقابل‌اعتماد</string>
     <!-- Summary for grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_d_f_description">بازبینی‌های غیرقابل‌اعتماد</string>
+    <string name="review_quality_check_grade_d_f_description" moz:removedIn="136" tools:ignore="UnusedResources">بازبینی‌های غیرقابل‌اعتماد</string>
     <!-- Text for title presenting the reliability of a product's reviews. -->
-    <string name="review_quality_check_grade_title">این بازبینی‌ها چقدر قابل اطمینان هستند؟</string>
+    <string name="review_quality_check_grade_title" moz:removedIn="136" tools:ignore="UnusedResources">این بازبینی‌ها چقدر قابل اطمینان هستند؟</string>
     <!-- Title for when the rating has been updated by the review checker -->
-    <string name="review_quality_check_adjusted_rating_title">رتبه‌بندی تعدیل‌شده</string>
+    <string name="review_quality_check_adjusted_rating_title" moz:removedIn="136" tools:ignore="UnusedResources">رتبه‌بندی تعدیل‌شده</string>
     <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
-    <string name="review_quality_check_adjusted_rating_description_2">بر اساس بازبینی‌های قابل‌اعتماد</string>
+    <string name="review_quality_check_adjusted_rating_description_2" moz:removedIn="136" tools:ignore="UnusedResources">بر اساس بازبینی‌های قابل‌اعتماد</string>
     <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
-    <string name="review_quality_check_highlights_title">نکات برجسته از بازبینی‌های اخیر</string>
+    <string name="review_quality_check_highlights_title" moz:removedIn="136" tools:ignore="UnusedResources">نکات برجسته از بازبینی‌های اخیر</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
-    <string name="review_quality_check_explanation_title">چگونه کیفیت بازبینی را تعیین می‌کنیم</string>
+    <string name="review_quality_check_explanation_title" moz:removedIn="136" tools:ignore="UnusedResources">چگونه کیفیت بازبینی را تعیین می‌کنیم</string>
     <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_explanation_body_reliability">ما از فناوری AI از %s توسط Mozilla برای بررسی قابلیت اطمینان بازبینی محصولات استفاده می‌کنیم. این فقط به شما کمک می‌کند که کیفیت بازبینی را ارزیابی کنید، نه کیفیت محصولات.</string>
+    <string name="review_quality_check_explanation_body_reliability" moz:removedIn="136" tools:ignore="UnusedResources">ما از فناوری AI از %s توسط Mozilla برای بررسی قابلیت اطمینان بازبینی محصولات استفاده می‌کنیم. این فقط به شما کمک می‌کند که کیفیت بازبینی را ارزیابی کنید، نه کیفیت محصولات.</string>
     <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
-    <string name="review_quality_check_info_review_grade_header"><![CDATA[ما به هر محصول یک <b>نمره حروفی</b> از A تا F اختصاص می‌دهیم.]]></string>
+    <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[ما به هر محصول یک <b>نمره حروفی</b> از A تا F اختصاص می‌دهیم.]]></string>
     <!-- Description explaining grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_AB">بازبینی‌های قابل اطمینان. ما معتقدیم که بازبینی‌ها احتمالاً از مشتریان واقعی هستند که بازبینی‌های صادقانه و بی‌طرفانه‌ای داده‌اند.</string>
+    <string name="review_quality_check_info_grade_info_AB" moz:removedIn="136" tools:ignore="UnusedResources">بازبینی‌های قابل اطمینان. ما معتقدیم که بازبینی‌ها احتمالاً از مشتریان واقعی هستند که بازبینی‌های صادقانه و بی‌طرفانه‌ای داده‌اند.</string>
     <!-- Description explaining grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_C">ما معتقدیم که یک ترکیب از بازبینی‌ها قابل اطمینان و غیرقابل اطمینان وجود دارد.</string>
+    <string name="review_quality_check_info_grade_info_C" moz:removedIn="136" tools:ignore="UnusedResources">ما معتقدیم که یک ترکیب از بازبینی‌ها قابل اطمینان و غیرقابل اطمینان وجود دارد.</string>
     <!-- Description explaining grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_DF">بازبینی‌های غیرقابل اطمینان. ما معتقدیم که ‌بازبینی‌ها احتمالاً جعلی یا از بازبینان بی‌طرفانه هستند.</string>
+    <string name="review_quality_check_info_grade_info_DF" moz:removedIn="136" tools:ignore="UnusedResources">بازبینی‌های غیرقابل اطمینان. ما معتقدیم که ‌بازبینی‌ها احتمالاً جعلی یا از بازبینان بی‌طرفانه هستند.</string>
     <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>رتبه‌بندی تعدیل‌شده</b> بر اساس بازبینی‌های است که ما معتقدیم قابل اطمینان هستند.]]></string>
+    <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>رتبه‌بندی تعدیل‌شده</b> بر اساس بازبینی‌های است که ما معتقدیم قابل اطمینان هستند.]]></string>
     <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
-    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>نکات برجسته</b> از %s بازبینی‌ها در ۸۰ روز گذشته که ما معتقدیم قابل اطمینان هستند.]]></string>
+    <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>نکات برجسته</b> از %s بازبینی‌ها در ۸۰ روز گذشته که ما معتقدیم قابل اطمینان هستند.]]></string>
     <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
-    <string name="review_quality_check_info_learn_more">بیشتر درباره %s بدانید.</string>
+    <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">بیشتر درباره %s بدانید.</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_info_learn_more_link_2">چگونه %s کیفیت بازبینی را تعیین می‌کند</string>
+    <string name="review_quality_check_info_learn_more_link_2" moz:removedIn="136" tools:ignore="UnusedResources">چگونه %s کیفیت بازبینی را تعیین می‌کند</string>
     <!-- Text for title of settings section. -->
-    <string name="review_quality_check_settings_title">تنظیمات</string>
+    <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">تنظیمات</string>
 
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
-    <string name="review_quality_check_settings_recommended_products">نمایش تبلیغات در بررسی‌کننده بازبینی</string>
+    <string name="review_quality_check_settings_recommended_products" moz:removedIn="136" tools:ignore="UnusedResources">نمایش تبلیغات در بررسی‌کننده بازبینی</string>
     <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
-    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">گاهی اوقات تبلیغاتی برای محصولات مرتبط مشاهده خواهید کرد. ما فقط محصولات با بازبینی‌های قابل اعتماد را تبلیغ می‌کنیم. %s</string>
+    <string name="review_quality_check_settings_recommended_products_description_2" moz:removedIn="136" tools:ignore="UnusedResources">گاهی اوقات تبلیغاتی برای محصولات مرتبط مشاهده خواهید کرد. ما فقط محصولات با بازبینی‌های قابل اعتماد را تبلیغ می‌کنیم. %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
-    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">بیشتر بدانید</string>
+    <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">بیشتر بدانید</string>
 
     <!-- Text for turning sidebar off button from review quality check settings section. -->
-    <string name="review_quality_check_settings_turn_off">خاموش کردن بررسی‌کننده بازبینی</string>
+    <string name="review_quality_check_settings_turn_off" moz:removedIn="136" tools:ignore="UnusedResources">خاموش کردن بررسی‌کننده بازبینی</string>
     <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
-    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">موارد بیشتری برای در نظر گرفتن</string>
+    <string name="review_quality_check_ad_title" moz:removedIn="136" tools:ignore="UnusedResources">موارد بیشتری برای در نظر گرفتن</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">تبلیغ توسط %s</string>
+    <string name="review_quality_check_ad_caption" moz:removedIn="136" tools:ignore="UnusedResources">تبلیغ توسط %s</string>
     <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
-    <string name="review_quality_check_powered_by_2">بررسی‌کننده بازبینی توسط %s انجام می‌شود</string>
+    <string name="review_quality_check_powered_by_2" moz:removedIn="136" tools:ignore="UnusedResources">بررسی‌کننده بازبینی توسط %s انجام می‌شود</string>
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s توسط Mozilla</string>
+    <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">%s توسط Mozilla</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">اطلاعات جدید برای بررسی</string>
+    <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">اطلاعات جدید برای بررسی</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
-    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">هم‌اکنون بررسی شود</string>
+    <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">هم‌اکنون بررسی شود</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_title">هنوز بازبینی‌های کافی وجود ندارد</string>
+    <string name="review_quality_check_no_reviews_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">هنوز بازبینی‌های کافی وجود ندارد</string>
     <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_body">هنگامی که این محصول بازبینی بیشتری داشته باشد، ما قادر به بررسی کیفیت آنها خواهیم بود.</string>
+    <string name="review_quality_check_no_reviews_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">هنگامی که این محصول بازبینی بیشتری داشته باشد، ما قادر به بررسی کیفیت آنها خواهیم بود.</string>
     <!-- Title for warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_title">محصول موجود نیست</string>
+    <string name="review_quality_check_product_availability_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">محصول موجود نیست</string>
     <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_body">اگر می‌بینید این محصول دوباره در دسترس است، گزارش دهید و ما روی بررسی بازبینی آن کار خواهیم کرد.</string>
+    <string name="review_quality_check_product_availability_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">اگر می‌بینید این محصول دوباره در دسترس است، گزارش دهید و ما روی بررسی بازبینی آن کار خواهیم کرد.</string>
     <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
-    <string name="review_quality_check_product_availability_warning_action_2">گزارش محصول موجود است</string>
+    <string name="review_quality_check_product_availability_warning_action_2" moz:removedIn="136" tools:ignore="UnusedResources">گزارش محصول موجود است</string>
     <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
-    <string name="review_quality_check_analysis_in_progress_warning_title_2">بررسی کیفیت بازبینی (%s)</string>
+    <string name="review_quality_check_analysis_in_progress_warning_title_2" moz:removedIn="136" tools:ignore="UnusedResources">بررسی کیفیت بازبینی (%s)</string>
     <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
-    <string name="review_quality_check_analysis_in_progress_warning_body">این ممکن است حدود ۶۰ ثانیه طول بکشد.</string>
+    <string name="review_quality_check_analysis_in_progress_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">این ممکن است حدود ۶۰ ثانیه طول بکشد.</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_title">تشکر از گزارش شما!</string>
+    <string name="review_quality_check_analysis_requested_info_title" moz:removedIn="136" tools:ignore="UnusedResources">تشکر از گزارش شما!</string>
     <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_body">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
+    <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
     <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_title">ما نمی‌توانیم این بازبینی‌ها را بررسی کنیم</string>
+    <string name="review_quality_check_not_analyzable_info_title" moz:removedIn="136" tools:ignore="UnusedResources">ما نمی‌توانیم این بازبینی‌ها را بررسی کنیم</string>
     <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_body">متاسفانه، ما نمی‌توانیم کیفیت بازبینی برخی از انواع محصولات را بررسی کنیم. به عنوان مثال: کارت‌های هدیه و ویدیوها، موسیقی و بازی‌ها.</string>
+    <string name="review_quality_check_not_analyzable_info_body" moz:removedIn="136" tools:ignore="UnusedResources">متاسفانه، ما نمی‌توانیم کیفیت بازبینی برخی از انواع محصولات را بررسی کنیم. به عنوان مثال: کارت‌های هدیه و ویدیوها، موسیقی و بازی‌ها.</string>
     <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">اطلاعات به زودی در دسترس خواهد بود</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_title" moz:removedIn="136" tools:ignore="UnusedResources">اطلاعات به زودی در دسترس خواهد بود</string>
     <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
     <!-- Title for info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">تحلیل به‌روز است</string>
+    <string name="review_quality_check_analysis_updated_confirmation_title" moz:removedIn="136" tools:ignore="UnusedResources">تحلیل به‌روز است</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">گرفتم</string>
+    <string name="review_quality_check_analysis_updated_confirmation_action" moz:removedIn="136" tools:ignore="UnusedResources">گرفتم</string>
     <!-- Title for error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_title">در حال حاضر هیچ اطلاعاتی در دسترس نیست</string>
+    <string name="review_quality_check_generic_error_title" moz:removedIn="136" tools:ignore="UnusedResources">در حال حاضر هیچ اطلاعاتی در دسترس نیست</string>
     <!-- Text for body of error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_body">ما در تلاش برای حل مسئله هستیم. لطفا به زودی دوباره بررسی کنید.</string>
+    <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">ما در تلاش برای حل مسئله هستیم. لطفا به زودی دوباره بررسی کنید.</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_title">بدون اتصال به شبکه</string>
+    <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">بدون اتصال به شبکه</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_body">اتصال شبکه خود را بررسی کرده و سپس صفحه را دوباره بارگذاری کنید.</string>
+    <string name="review_quality_check_no_connection_body" moz:removedIn="136" tools:ignore="UnusedResources">اتصال شبکه خود را بررسی کرده و سپس صفحه را دوباره بارگذاری کنید.</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_title">هنوز هیچ اطلاعاتی درباره این بازبینی‌ها وجود ندارد</string>
+    <string name="review_quality_check_no_analysis_title" moz:removedIn="136" tools:ignore="UnusedResources">هنوز هیچ اطلاعاتی درباره این بازبینی‌ها وجود ندارد</string>
     <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_body">برای دانستن اینکه بازبینی‌ها این محصول قابل اعتماد هستند یا نه، کیفیت بازبینی‌ها را بررسی کنید. فقط حدود ۶۰ ثانیه طول می‌کشد.</string>
+    <string name="review_quality_check_no_analysis_body" moz:removedIn="136" tools:ignore="UnusedResources">برای دانستن اینکه بازبینی‌ها این محصول قابل اعتماد هستند یا نه، کیفیت بازبینی‌ها را بررسی کنید. فقط حدود ۶۰ ثانیه طول می‌کشد.</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
-    <string name="review_quality_check_no_analysis_link">بررسی کیفیت بازبینی</string>
+    <string name="review_quality_check_no_analysis_link" moz:removedIn="136" tools:ignore="UnusedResources">بررسی کیفیت بازبینی</string>
     <!-- Headline for review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_title">راهنمای معتبر ما به بازبینی‌های محصول را امتحان کنید</string>
+    <string name="review_quality_check_contextual_onboarding_title" moz:removedIn="136" tools:ignore="UnusedResources">راهنمای معتبر ما به بازبینی‌های محصول را امتحان کنید</string>
     <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است. همچنین روی %3$s و %4$s کار می‌کند.</string>
+    <string name="review_quality_check_contextual_onboarding_description" moz:removedIn="136" tools:ignore="UnusedResources">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است. همچنین روی %3$s و %4$s کار می‌کند.</string>
     <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description_one_vendor">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است.</string>
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor" moz:removedIn="136" tools:ignore="UnusedResources">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است.</string>
     <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more">با استفاده از قدرت %1$s توسط Mozilla، ما به شما کمک می‌کنیم تا از بازبینی‌های بی‌طرفانه و جعلی دوری کنید. مدل هوش مصنوعی ما همیشه در حال بهبود است تا شما را در هنگام خرید محافظت کند. %2$s</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">با استفاده از قدرت %1$s توسط Mozilla، ما به شما کمک می‌کنیم تا از بازبینی‌های بی‌طرفانه و جعلی دوری کنید. مدل هوش مصنوعی ما همیشه در حال بهبود است تا شما را در هنگام خرید محافظت کند. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more_link">بیشتر بدانید</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">بیشتر بدانید</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_4">با انتخاب «بله، امتحان کنید» شما با %1$s’s %2$s و %3$s’s %4$s موافقت می‌کنید.</string>
+    <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">با انتخاب «بله، امتحان کنید» شما با %1$s’s %2$s و %3$s’s %4$s موافقت می‌کنید.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">نکات حفظ محرمانگی</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">نکات حفظ محرمانگی</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
-    <string name="review_quality_check_contextual_onboarding_terms_use">شرایط استفاده</string>
+    <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">شرایط استفاده</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_primary_button_text">بله، امتحان کنید</string>
+    <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">بله، امتحان کنید</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_secondary_button_text">اکنون نه</string>
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">اکنون نه</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_open_handle_content_description">باز کردن بررسی‌کننده بازبینی</string>
+    <string name="review_quality_check_open_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">باز کردن بررسی‌کننده بازبینی</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_close_handle_content_description">بستن بررسی‌کننده بازبینی</string>
+    <string name="review_quality_check_close_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">بستن بررسی‌کننده بازبینی</string>
     <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
-    <string name="review_quality_check_star_rating_content_description">%1$s از ۵ ستاره</string>
+    <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">%1$s از ۵ ستاره</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
-    <string name="review_quality_check_highlights_show_less">نمایش کمتر</string>
+    <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">نمایش کمتر</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
-    <string name="review_quality_check_highlights_show_more">نمایش بیشتر</string>
+    <string name="review_quality_check_highlights_show_more" moz:removedIn="136" tools:ignore="UnusedResources">نمایش بیشتر</string>
     <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
-    <string name="review_quality_check_highlights_type_quality">کیفیت</string>
+    <string name="review_quality_check_highlights_type_quality" moz:removedIn="136" tools:ignore="UnusedResources">کیفیت</string>
     <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-    <string name="review_quality_check_highlights_type_price">قیمت</string>
+    <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">قیمت</string>
     <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
-    <string name="review_quality_check_highlights_type_shipping">حمل و نقل</string>
+    <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">حمل و نقل</string>
     <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
-    <string name="review_quality_check_highlights_type_packaging_appearance">بسته‌بندی و ظاهر</string>
+    <string name="review_quality_check_highlights_type_packaging_appearance" moz:removedIn="136" tools:ignore="UnusedResources">بسته‌بندی و ظاهر</string>
     <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
-    <string name="review_quality_check_highlights_type_competitiveness">رقابت‌پذیری</string>
+    <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">رقابت‌پذیری</string>
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
-    <string name="surrounded_with_quotes">«%s»</string>
+    <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">«%s»</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
