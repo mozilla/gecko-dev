@@ -104,9 +104,6 @@ add_task(async function test_onAction_INIT() {
           lastUpdated: dateNowTestValue,
           locationData,
         },
-        meta: {
-          isStartup: true,
-        },
       })
     )
   );
