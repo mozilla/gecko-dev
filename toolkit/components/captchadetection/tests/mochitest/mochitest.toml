@@ -1,6 +1,7 @@
 [DEFAULT]
 prefs = [
-  "captchadetection.loglevel=Debug"
+  "captchadetection.loglevel=Debug",
+  "captchadetection.actor.enabled=true",
 ]
 scheme="https"
 support-files = [
