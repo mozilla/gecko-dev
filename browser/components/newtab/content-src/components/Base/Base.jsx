@@ -629,6 +629,14 @@ export class BaseContent extends React.PureComponent {
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
     const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
     const sectionsEnabled = prefs["discoverystream.sections.enabled"];
+    const topicLabelsEnabled = prefs["discoverystream.topicLabels.enabled"];
+    const sectionsCustomizeMenuPanelEnabled =
+      prefs["discoverystream.sections.customizeMenuPanel.enabled"];
+    // Logic to show follow/block topic mgmt panel in Customize panel
+    const mayHaveTopicSections =
+      topicLabelsEnabled &&
+      sectionsEnabled &&
+      sectionsCustomizeMenuPanelEnabled;
 
     const featureClassName = [
       weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
@@ -678,6 +686,7 @@ export class BaseContent extends React.PureComponent {
             wallpapersV2Enabled={wallpapersV2Enabled}
             activeWallpaper={activeWallpaper}
             pocketRegion={pocketRegion}
+            mayHaveTopicSections={mayHaveTopicSections}
             mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
             mayHaveSponsoredStories={mayHaveSponsoredStories}
             mayHaveWeather={mayHaveWeather}

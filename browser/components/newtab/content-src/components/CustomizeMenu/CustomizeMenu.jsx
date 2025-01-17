@@ -13,15 +13,20 @@ export class _CustomizeMenu extends React.PureComponent {
     super(props);
     this.onEntered = this.onEntered.bind(this);
     this.onExited = this.onExited.bind(this);
+    this.state = {
+      exitEventFired: false,
+    };
   }
 
   onEntered() {
+    this.setState({ exitEventFired: false });
     if (this.closeButton) {
       this.closeButton.focus();
     }
   }
 
   onExited() {
+    this.setState({ exitEventFired: true });
     if (this.openButton) {
       this.openButton.focus();
     }
@@ -77,12 +82,14 @@ export class _CustomizeMenu extends React.PureComponent {
               wallpapersV2Enabled={this.props.wallpapersV2Enabled}
               activeWallpaper={this.props.activeWallpaper}
               pocketRegion={this.props.pocketRegion}
+              mayHaveTopicSections={this.props.mayHaveTopicSections}
               mayHaveSponsoredTopSites={this.props.mayHaveSponsoredTopSites}
               mayHaveSponsoredStories={this.props.mayHaveSponsoredStories}
               mayHaveRecentSaves={this.props.DiscoveryStream.recentSavesEnabled}
               mayHaveWeather={this.props.mayHaveWeather}
               spocMessageVariant={this.props.spocMessageVariant}
               dispatch={this.props.dispatch}
+              exitEventFired={this.state.exitEventFired}
             />
           </div>
         </CSSTransition>

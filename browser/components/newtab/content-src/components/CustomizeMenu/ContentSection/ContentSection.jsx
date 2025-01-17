@@ -4,6 +4,7 @@
 
 import React from "react";
 import { actionCreators as ac } from "common/Actions.mjs";
+import { SectionsMgmtPanel } from "../SectionsMgmtPanel/SectionsMgmtPanel";
 import { SafeAnchor } from "../../DiscoveryStreamComponents/SafeAnchor/SafeAnchor";
 import { WallpapersSection } from "../../WallpapersSection/WallpapersSection";
 import { WallpaperCategories } from "../../WallpapersSection/WallpaperCategories";
@@ -103,6 +104,8 @@ export class ContentSection extends React.PureComponent {
       wallpapersV2Enabled,
       activeWallpaper,
       setPref,
+      mayHaveTopicSections,
+      exitEventFired,
     } = this.props;
     const {
       topSitesEnabled,
@@ -241,6 +244,9 @@ export class ContentSection extends React.PureComponent {
                               data-l10n-id="newtab-custom-pocket-sponsored"
                             />
                           </div>
+                        )}
+                        {mayHaveTopicSections && (
+                          <SectionsMgmtPanel exitEventFired={exitEventFired} />
                         )}
                         {mayHaveRecentSaves && (
                           <div className="check-wrapper" role="presentation">

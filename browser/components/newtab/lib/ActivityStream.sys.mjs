@@ -521,6 +521,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.customizeMenuPanel.enabled",
+    {
+      title:
+        "Boolean flag to enable the setions management panel in Customize menu",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.sections.cards.enabled",
     {
       title:

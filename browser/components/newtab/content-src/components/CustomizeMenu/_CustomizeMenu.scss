@@ -252,6 +252,18 @@
       }
     }
 
+    .more-info-pocket-wrapper {
+      .more-information {
+        // Note: This is necessary so the follow/block topics panel can
+        // be positioned absolutely across the entire Customize menu
+        position: static;
+      }
+
+      .check-wrapper {
+        margin-block-end: var(--space-small);
+      }
+    }
+
     .more-info-top-wrapper {
       .check-wrapper {
         margin-block-start: var(--space-large);
@@ -348,4 +360,158 @@
       outline: 0;
     }
   }
+}
+
+.sections-mgmt-panel {
+  /* XXXdholbert The 32px subtraction here is to account for our 16px of
+  * margin on top and bottom. Ideally this should change to use
+  * 'height: stretch' when bug 1789477 lands. */
+  height: calc(100% - var(--space-xxlarge));
+  // Width of panel minus the margins
+  inset-inline-start: var(--space-xlarge);
+  position: absolute;
+  top: 0;
+  width: 380px;
+  z-index: 2;
+  transform: translateX(100%);
+  margin-block: var(--space-large) 0;
+  padding: 0;
+  background-color: var(--newtab-background-color-secondary);
+
+  &:dir(rtl) {
+    transform: translateX(-100%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &.sections-mgmt-panel-enter,
+    &.sections-mgmt-panel-exit,
+    &.sections-mgmt-panel-enter-done,
+    &.sections-mgmt-panel-exit-done {
+      transition: transform 300ms;
+    }
+  }
+
+  &.sections-mgmt-panel-enter-done,
+  &.sections-mgmt-panel-enter-active {
+    transform: translateX(0);
+  }
+
+  // Typography
+  h3 {
+    margin-block: 0 var(--space-small);
+  }
+
+  // List
+  .topic-list {
+    @include wallpaper-contrast-fix;
+
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-small);
+    margin-block: 0 var(--space-xxlarge);
+    padding-inline: 0;
+    width: 100%;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+
+  .topic-list-empty-state {
+    display: block;
+    margin-block-end: var(--space-xxlarge);
+    color: var(--text-color-deemphasized);
+  }
+
+  // Buttons
+  .arrow-button {
+    background: url('chrome://global/skin/icons/arrow-left.svg') no-repeat left center;
+
+    &:dir(rtl) {
+      background: url('chrome://global/skin/icons/arrow-right.svg') no-repeat right center;
+    }
+
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-root);
+    margin-block-end: var(--space-xlarge);
+    padding-inline-start: var(--space-xlarge);
+    -moz-context-properties: fill;
+    fill: currentColor;
+    min-height: var(--space-large);
+
+    h1 {
+      font-size: var(--font-size-root);
+      margin-block: 0;
+      font-weight: var(--button-font-weight);
+    }
+
+  }
+
+  // Follow / Unfollow and Block / Unblock Buttons
+  .section-block,
+  .section-follow {
+    cursor: pointer;
+
+    .section-button-blocked-text,
+    .section-button-following-text {
+      display: none;
+    }
+
+    .section-button-unblock-text,
+    .section-button-unfollow-text {
+      display: none;
+    }
+
+    &.following {
+      .section-button-follow-text {
+        display: none;
+      }
+
+      .section-button-following-text {
+        display: block;
+      }
+    }
+
+    &.following:not(:hover) {
+      moz-button {
+        --button-background-color-destructive: var(--button-background-color);
+        --button-text-color-destructive: var(--button-text-color);
+        --button-border-color-destructive: var(--button-border-color);
+      }
+    }
+
+    &.following:hover {
+      .section-button-following-text {
+        display: none;
+      }
+
+      .section-button-unfollow-text {
+        display: block;
+      }
+    }
+
+    &.blocked {
+      .section-button-block-text {
+        display: none;
+      }
+
+      .section-button-blocked-text {
+        display: block;
+      }
+    }
+
+    &.blocked:hover {
+      .section-button-blocked-text {
+        display: none;
+      }
+
+      .section-button-unblock-text {
+        display: block;
+      }
+    }
+  }
+
 }

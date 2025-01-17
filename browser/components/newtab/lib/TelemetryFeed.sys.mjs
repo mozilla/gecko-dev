@@ -1195,6 +1195,8 @@ export class TelemetryFeed {
       // Intentional fall-through
       case at.FOLLOW_SECTION:
       // Intentional fall-through
+      case at.UNBLOCK_SECTION:
+      // Intentional fall-through
       case at.UNFOLLOW_SECTION: {
         this.handleCardSectionUserEvent(action);
         break;
@@ -1232,6 +1234,14 @@ export class TelemetryFeed {
       switch (action.type) {
         case "BLOCK_SECTION":
           Glean.newtab.sectionsBlockSection.record({
+            newtab_visit_id: session.session_id,
+            section,
+            section_position,
+            event_source,
+          });
+          break;
+        case "UNBLOCK_SECTION":
+          Glean.newtab.sectionsUnblockSection.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,

@@ -2209,6 +2209,12 @@ main section {
   position: relative;
   transition: margin-top 250ms cubic-bezier(0.82, 0.085, 0.395, 0.895);
 }
+.home-section .section .more-info-pocket-wrapper .more-information {
+  position: static;
+}
+.home-section .section .more-info-pocket-wrapper .check-wrapper {
+  margin-block-end: var(--space-small);
+}
 .home-section .section .more-info-top-wrapper .check-wrapper {
   margin-block-start: var(--space-large);
 }
@@ -2281,6 +2287,133 @@ main section {
 .home-section .section .sponsored-checkbox:is(:active), .home-section .section .selector:is(:active) {
   box-shadow: 0 0 0 2px var(--color-accent-primary-active);
   outline: 0;
+}
+
+.sections-mgmt-panel {
+  /* XXXdholbert The 32px subtraction here is to account for our 16px of
+  * margin on top and bottom. Ideally this should change to use
+  * 'height: stretch' when bug 1789477 lands. */
+  height: calc(100% - var(--space-xxlarge));
+  inset-inline-start: var(--space-xlarge);
+  position: absolute;
+  top: 0;
+  width: 380px;
+  z-index: 2;
+  transform: translateX(100%);
+  margin-block: var(--space-large) 0;
+  padding: 0;
+  background-color: var(--newtab-background-color-secondary);
+}
+.sections-mgmt-panel:dir(rtl) {
+  transform: translateX(-100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sections-mgmt-panel.sections-mgmt-panel-enter, .sections-mgmt-panel.sections-mgmt-panel-exit, .sections-mgmt-panel.sections-mgmt-panel-enter-done, .sections-mgmt-panel.sections-mgmt-panel-exit-done {
+    transition: transform 300ms;
+  }
+}
+.sections-mgmt-panel.sections-mgmt-panel-enter-done, .sections-mgmt-panel.sections-mgmt-panel-enter-active {
+  transform: translateX(0);
+}
+.sections-mgmt-panel h3 {
+  margin-block: 0 var(--space-small);
+}
+.sections-mgmt-panel .topic-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin-block: 0 var(--space-xxlarge);
+  padding-inline: 0;
+  width: 100%;
+}
+.lightWallpaper .sections-mgmt-panel .topic-list {
+  color-scheme: light;
+}
+.darkWallpaper .sections-mgmt-panel .topic-list {
+  color-scheme: dark;
+}
+.sections-mgmt-panel .topic-list li {
+  display: flex;
+  justify-content: space-between;
+}
+.sections-mgmt-panel .topic-list-empty-state {
+  display: block;
+  margin-block-end: var(--space-xxlarge);
+  color: var(--text-color-deemphasized);
+}
+.sections-mgmt-panel .arrow-button {
+  background: url("chrome://global/skin/icons/arrow-left.svg") no-repeat left center;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-root);
+  margin-block-end: var(--space-xlarge);
+  padding-inline-start: var(--space-xlarge);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  min-height: var(--space-large);
+}
+.sections-mgmt-panel .arrow-button:dir(rtl) {
+  background: url("chrome://global/skin/icons/arrow-right.svg") no-repeat right center;
+}
+.sections-mgmt-panel .arrow-button h1 {
+  font-size: var(--font-size-root);
+  margin-block: 0;
+  font-weight: var(--button-font-weight);
+}
+.sections-mgmt-panel .section-block,
+.sections-mgmt-panel .section-follow {
+  cursor: pointer;
+}
+.sections-mgmt-panel .section-block .section-button-blocked-text,
+.sections-mgmt-panel .section-block .section-button-following-text,
+.sections-mgmt-panel .section-follow .section-button-blocked-text,
+.sections-mgmt-panel .section-follow .section-button-following-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block .section-button-unblock-text,
+.sections-mgmt-panel .section-block .section-button-unfollow-text,
+.sections-mgmt-panel .section-follow .section-button-unblock-text,
+.sections-mgmt-panel .section-follow .section-button-unfollow-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block.following .section-button-follow-text,
+.sections-mgmt-panel .section-follow.following .section-button-follow-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block.following .section-button-following-text,
+.sections-mgmt-panel .section-follow.following .section-button-following-text {
+  display: block;
+}
+.sections-mgmt-panel .section-block.following:not(:hover) moz-button,
+.sections-mgmt-panel .section-follow.following:not(:hover) moz-button {
+  --button-background-color-destructive: var(--button-background-color);
+  --button-text-color-destructive: var(--button-text-color);
+  --button-border-color-destructive: var(--button-border-color);
+}
+.sections-mgmt-panel .section-block.following:hover .section-button-following-text,
+.sections-mgmt-panel .section-follow.following:hover .section-button-following-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block.following:hover .section-button-unfollow-text,
+.sections-mgmt-panel .section-follow.following:hover .section-button-unfollow-text {
+  display: block;
+}
+.sections-mgmt-panel .section-block.blocked .section-button-block-text,
+.sections-mgmt-panel .section-follow.blocked .section-button-block-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block.blocked .section-button-blocked-text,
+.sections-mgmt-panel .section-follow.blocked .section-button-blocked-text {
+  display: block;
+}
+.sections-mgmt-panel .section-block.blocked:hover .section-button-blocked-text,
+.sections-mgmt-panel .section-follow.blocked:hover .section-button-blocked-text {
+  display: none;
+}
+.sections-mgmt-panel .section-block.blocked:hover .section-button-unblock-text,
+.sections-mgmt-panel .section-follow.blocked:hover .section-button-unblock-text {
+  display: block;
 }
 
 .category-list {
