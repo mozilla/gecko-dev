@@ -44,7 +44,6 @@ class GenericExperimentIntegrationTest {
             clickStudiesOption()
             verifyStudiesToggle(true)
             clickStudiesToggle()
-            clickStudiesDialogOkButton()
         }
     }
 
