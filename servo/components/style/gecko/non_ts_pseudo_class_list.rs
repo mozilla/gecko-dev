@@ -11,13 +11,14 @@
  * Expected usage is as follows:
  * ```
  * macro_rules! pseudo_class_macro{
- *     ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
+ *     ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
  *         // do stuff
  *     }
  * }
  * apply_non_ts_list!(pseudo_class_macro)
  * ```
  *
+ * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
  * $state can be either "_" or an expression of type ElementState.  If present,
  *        the semantics are that the pseudo-class matches if any of the bits in
  *        $state are set on the element.
@@ -53,7 +54,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, STYLEEDITOR_TRANSITIONING, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("fullscreen", Fullscreen, FULLSCREEN, _),
                 ("modal", Modal, MODAL, _),
-                ("open", Open, OPEN, _),
                 ("-moz-topmost-modal", MozTopmostModal, TOPMOST_MODAL, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-broken", MozBroken, BROKEN, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-has-dir-attr", MozHasDirAttr, HAS_DIR_ATTR, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),

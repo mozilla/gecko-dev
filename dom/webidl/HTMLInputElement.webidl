@@ -285,9 +285,6 @@ partial interface HTMLInputElement {
   undefined closeDateTimePicker();
 
   [Func="IsChromeOrUAWidget"]
-  undefined setDateTimePickerState(boolean aIsOpen);
-
-  [Func="IsChromeOrUAWidget"]
   undefined setFocusState(boolean aIsFocused);
 
   [Func="IsChromeOrUAWidget"]

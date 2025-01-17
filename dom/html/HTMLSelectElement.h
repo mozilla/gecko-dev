@@ -323,10 +323,7 @@ class HTMLSelectElement final : public nsGenericHTMLFormControlElementWithState,
   bool IsCombobox() const { return !Multiple() && Size() <= 1; }
 
   bool OpenInParentProcess() const { return mIsOpenInParentProcess; }
-  void SetOpenInParentProcess(bool aVal) {
-    mIsOpenInParentProcess = aVal;
-    SetStates(ElementState::OPEN, aVal);
-  }
+  void SetOpenInParentProcess(bool aVal) { mIsOpenInParentProcess = aVal; }
 
   void GetPreviewValue(nsAString& aValue) { aValue = mPreviewValue; }
   void SetPreviewValue(const nsAString& aValue);
