@@ -259,7 +259,18 @@ let JSWINDOWACTORS = {
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,
-    enablePreference: "captchadetection.actor.enabled",
+    onAddActor(register, _unregister) {
+      if (
+        Services.prefs.getBoolPref(
+          "datareporting.healthreport.uploadEnabled",
+          false
+        ) ||
+        AppConstants.platform === "android" ||
+        Cu.isInAutomation
+      ) {
+        register();
+      }
+    },
   },
 
   CaptchaDetectionCommunication: {

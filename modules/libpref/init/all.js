@@ -4137,8 +4137,3 @@ pref("privacy.query_stripping.strip_on_share.canDisable", true);
 
 // Captcha Detection
 pref("captchadetection.loglevel", "Warn");
-#if defined(NIGHTLY_BUILD)
-pref("captchadetection.actor.enabled", true);
-else
-pref("captchadetection.actor.enabled", false);
-#endif
