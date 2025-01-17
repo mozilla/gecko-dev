@@ -122,7 +122,6 @@ async function run_summarizer_with_perf({
     modelRevision: "main",
     dtype,
     useExternalDataFormat: true,
-    timeoutMS: -1,
   });
 
   if (taskName === "text-generation") {

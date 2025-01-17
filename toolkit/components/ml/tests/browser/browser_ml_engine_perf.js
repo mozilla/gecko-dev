@@ -40,7 +40,6 @@ add_task(async function test_ml_generic_pipeline() {
     modelId: "Xenova/all-MiniLM-L6-v2",
     modelHubUrlTemplate: "{model}/{revision}",
     modelRevision: "main",
-    timeoutMS: -1,
   };
 
   const args = ["The quick brown fox jumps over the lazy dog."];

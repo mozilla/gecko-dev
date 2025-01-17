@@ -157,7 +157,7 @@ add_task(async function test_ml_generic_pipeline_concurrent_separate_phases() {
   const engineInstances = await Promise.all(
     Object.values(ENGINES).map(async engineConfig => {
       const { cleanup, engine } = await initializeEngine(
-        new PipelineOptions({ timeoutMS: -1, ...engineConfig })
+        new PipelineOptions(engineConfig)
       );
       return { cleanup, engine };
     })
