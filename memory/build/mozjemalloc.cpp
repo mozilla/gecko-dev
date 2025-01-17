@@ -1364,6 +1364,17 @@ struct arena_t {
 
   size_t EffectiveMaxDirty();
 
+  // Check the EffectiveMaxDirty threshold to decide if we should purge.
+  bool ShouldStartPurge(bool aForce = false) MOZ_REQUIRES(mLock) {
+    return (mNumDirty > ((aForce) ? 0 : EffectiveMaxDirty()));
+  }
+
+  // Check the EffectiveMaxDirty threshold to decide if we continue purge.
+  // This threshold is lower than ShouldStartPurge to have some hysteresis.
+  bool ShouldContinuePurge(bool aForce = false) MOZ_REQUIRES(mLock) {
+    return (mNumDirty > ((aForce) ? 0 : EffectiveMaxDirty() >> 1));
+  }
+
 #ifdef MALLOC_DECOMMIT
   // During a commit operation (for aReqPages) we have the opportunity of
   // commiting at most aRemPages additional pages.  How many should we commit to
@@ -3265,7 +3276,7 @@ bool arena_t::Purge(bool aForce) {
     MOZ_ASSERT(ndirty <= mNumDirty);
 #endif
 
-    if (mNumDirty <= (aForce ? 0 : EffectiveMaxDirty() >> 1)) {
+    if (!ShouldContinuePurge(aForce)) {
       return false;
     }
 
@@ -3315,8 +3326,7 @@ bool arena_t::Purge(bool aForce) {
       MOZ_ASSERT(chunk->mIsPurging);
 
       continue_purge_chunk = purge_info.FindDirtyPages(purged_once);
-      continue_purge_arena =
-          purge_info.mArena.mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
+      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aForce);
     }
     if (!continue_purge_chunk) {
       if (chunk->mDying) {
@@ -3350,8 +3360,7 @@ bool arena_t::Purge(bool aForce) {
       auto [cpc, ctr] = purge_info.UpdatePagesAndCounts();
       continue_purge_chunk = cpc;
       chunk_to_release = ctr;
-      continue_purge_arena =
-          purge_info.mArena.mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
+      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aForce);
 
       if (!continue_purge_chunk || !continue_purge_arena) {
         // We're going to stop purging here so update the chunk's bookkeeping.
@@ -4449,7 +4458,7 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
       chunk_dealloc_delay = arena->DallocLarge(chunk, aPtr);
     }
 
-    should_purge = arena->mNumDirty > arena->EffectiveMaxDirty();
+    should_purge = arena->ShouldStartPurge();
   }
 
   if (chunk_dealloc_delay) {
@@ -4487,7 +4496,7 @@ void arena_t::RallocShrinkLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
     mStats.allocated_large -= aOldSize - aSize;
     mStats.operations++;
 
-    should_purge = mNumDirty > EffectiveMaxDirty();
+    should_purge = ShouldStartPurge();
   }
   while (should_purge) {
     should_purge = Purge();
