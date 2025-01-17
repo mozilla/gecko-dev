@@ -1446,7 +1446,9 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                                      ComputedStyle&);
   static const FrameConstructionData* FindCanvasData(const Element&,
                                                      ComputedStyle&);
-  // <details> always creates a block per spec.
+  // <details> always creates a block per spec *if* the about:config pref
+  // 'layout.details.force-block-layout' is set to 'true'.  This is a legacy
+  // restriction (based on old spec-text) and we're planning to remove it.
   static const FrameConstructionData* FindDetailsData(const Element&,
                                                       ComputedStyle&);
 

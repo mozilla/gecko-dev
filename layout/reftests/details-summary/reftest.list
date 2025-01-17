@@ -52,7 +52,6 @@
 == float-open-details-contains-float-right.html float-open-details-contains-float-right-ref.html
 
 # Various properties on details or summary
-== details-display-inline.html details-display-inline-ref.html
 == details-percentage-height-children.html details-percentage-height-children-ref.html
 == details-absolute-children.html details-absolute-children-ref.html
 == details-three-columns.html details-three-columns-ref.html
