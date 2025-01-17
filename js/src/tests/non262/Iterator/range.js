@@ -119,5 +119,27 @@ approximatelyEqual(resultStep2, [0, 3.3, 6.6, 9.9]);
 // invalid mixed-type parameters
 assertThrowsInstanceOf(() => Iterator.range(0, 10, { step: NaN, inclusiveEnd: true }), RangeError);
 
+// bigint
+Iterator.range(0n, 10n);
+Iterator.range(0n, 10n, 2n);
+
+const bigintResult1 = Array.from(Iterator.range(0n, 5n));
+assertDeepEq(bigintResult1, [0n, 1n, 2n, 3n, 4n]);
+
+const bigintResult2 = Array.from(Iterator.range(0n, 10n, 2n));
+assertDeepEq(bigintResult2, [0n, 2n, 4n, 6n, 8n]);
+
+// inclusive end with BigInt
+const bigintResult3 = Array.from(Iterator.range(0n, 5n, { step: 2n, inclusiveEnd: true }));
+assertDeepEq(bigintResult3, [0n, 2n, 4n]);
+
+// empty BigInt range
+const bigintResult4 = Array.from(Iterator.range(0n, 0n));
+assertDeepEq(bigintResult4, []);
+
+// negative step with BigInt
+const bigintResult5 = Array.from(Iterator.range(5n, 0n, -1n));
+assertDeepEq(bigintResult5, [5n, 4n, 3n, 2n, 1n]);
+
 if (typeof reportCompare === 'function')
     reportCompare(0, 0);

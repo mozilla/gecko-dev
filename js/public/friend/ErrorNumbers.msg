@@ -1002,6 +1002,7 @@ MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NOT_NUMBER, 0, JSEXN_TYPEERR, "The 'step' argu
 MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NOT_FINITE, 0, JSEXN_RANGEERR, "The 'step' argument must be a finite number")
 MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_ZERO, 0, JSEXN_RANGEERR, "The 'step' argument must not be zero when 'start' is not equal to 'end'")
 MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_STEP, 0, JSEXN_TYPEERR, "The 'step' or options argument must be a valid number, BigInt, or an Object with valid properties")
+MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NOT_BIGINT, 0, JSEXN_TYPEERR, "The 'step' argument must be a BigInt when iterating over BigInt ranges")
 
 // Math.sumPrecise
 MSG_DEF(JSMSG_SUMPRECISE_TOO_MANY_VALUES, 0, JSEXN_RANGEERR, "too many values passed to Math.sumPrecise")
