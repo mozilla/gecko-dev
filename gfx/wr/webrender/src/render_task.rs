@@ -1649,10 +1649,8 @@ impl RenderTask {
         source_subregion: LayoutRect,
         target_subregion: LayoutRect,
         prim_subregion: LayoutRect,
-        subregion_to_device_scale_x: f32,
-        subregion_to_device_scale_y: f32,
-        subregion_to_device_offset_x: f32,
-        subregion_to_device_offset_y: f32,
+        surface_rects_clipped: LayoutRect,
+        surface_rects_clipped_local: LayoutRect,
     ) -> RenderTaskId {
         const BUFFER_LIMIT: usize = SVGFE_GRAPH_MAX;
         let mut task_by_buffer_id: [RenderTaskId; BUFFER_LIMIT] = [RenderTaskId::INVALID; BUFFER_LIMIT];
@@ -1700,6 +1698,20 @@ impl RenderTask {
                     0.0, 1.0),
             }
         }
+
+        // Determine the local space to device pixel scaling in the most robust
+        // way, this accounts for local to device transform and
+        // device_pixel_scale (if the task is shrunk in get_surface_rects).
+        //
+        // This has some precision issues because surface_rects_clipped was
+        // rounded already, so it's not exactly the same transform that
+        // get_surface_rects performed, but it is very close, since it is not
+        // quite the same we have to round the offset a certain way to avoid
+        // introducing subpixel offsets caused by the slight deviation.
+        let subregion_to_device_scale_x = surface_rects_clipped.width() / surface_rects_clipped_local.width();
+        let subregion_to_device_scale_y = surface_rects_clipped.height() / surface_rects_clipped_local.height();
+        let subregion_to_device_offset_x = surface_rects_clipped.min.x - (surface_rects_clipped_local.min.x * subregion_to_device_scale_x).floor();
+        let subregion_to_device_offset_y = surface_rects_clipped.min.y - (surface_rects_clipped_local.min.y * subregion_to_device_scale_y).floor();
 
         // Iterate the filter nodes and create tasks
         let mut made_dependency_on_source = false;
