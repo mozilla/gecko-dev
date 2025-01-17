@@ -68,7 +68,9 @@
 
 .notificationbox .notification[data-type="critical"] {
   color: white;
-  background-image: linear-gradient(rgb(212,0,0), rgb(152,0,0));
+  color: var(--theme-text-color-error);
+  background-color: var(--theme-toolbar-error-background);
+  padding: 5px 0;
 }
 
 .notificationbox .messageImage {

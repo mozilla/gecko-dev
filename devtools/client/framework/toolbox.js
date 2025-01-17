@@ -1270,10 +1270,10 @@ Toolbox.prototype = {
         ["reload2", false],
         ["forceReload", true],
         ["forceReload2", true],
-      ].forEach(([id, force]) => {
+      ].forEach(([id, bypassCache]) => {
         const key = L10N.getStr("toolbox." + id + ".key");
         this.shortcuts.on(key, event => {
-          this.commands.targetCommand.reloadTopLevelTarget(force);
+          this.reload(bypassCache);
 
           // Prevent Firefox shortcuts from reloading the page
           event.preventDefault();
@@ -1286,6 +1286,35 @@ Toolbox.prototype = {
       // When the toolbox is rendered in a tab (ie host type is PAGE), the
       // zoom should be handled by the default browser shortcuts.
       ZoomKeys.register(this.win, this.shortcuts);
+    }
+  },
+
+  /**
+   * Reload the debugged context.
+   *
+   * @param {Boolean} bypassCache
+   *        If true, bypass any cache when reloading.
+   */
+  async reload(bypassCache) {
+    const box = this.getNotificationBox();
+    const notification = box.getNotificationWithValue("reload-error");
+    if (notification) {
+      notification.close();
+    }
+    try {
+      await this.commands.targetCommand.reloadTopLevelTarget(bypassCache);
+    } catch (e) {
+      let { message } = e;
+
+      // Remove Protocol.JS exception header to focus on the likely manifest error
+      message = message.replace("Protocol error (SyntaxError):", "");
+
+      box.appendNotification(
+        L10N.getFormatStr("toolbox.errorOnReload", message),
+        "reload-error",
+        "",
+        box.PRIORITY_CRITICAL_HIGH
+      );
     }
   },
 
@@ -1831,7 +1860,7 @@ Toolbox.prototype = {
       // Render NotificationBox and assign priority levels to it.
       const box = this.doc.getElementById("toolbox-notificationbox");
       this._notificationBox = Object.assign(
-        this.ReactDOM.render(NotificationBox({}), box),
+        this.ReactDOM.render(NotificationBox({ wrapping: true }), box),
         PriorityLevels
       );
     }

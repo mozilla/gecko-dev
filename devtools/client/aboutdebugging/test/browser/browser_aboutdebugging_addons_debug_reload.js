@@ -12,6 +12,11 @@ const { PromiseTestUtils } = ChromeUtils.importESModule(
 );
 PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
 
+const { AddonTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/AddonTestUtils.sys.mjs"
+);
+AddonTestUtils.initMochitest(this);
+
 // Avoid test timeouts that can occur while waiting for the "addon-console-works" message.
 requestLongerTimeout(2);
 
@@ -28,37 +33,46 @@ add_task(async function testWebExtensionToolboxReload() {
   const { document, tab, window } = await openAboutDebugging();
   await selectThisFirefoxPage(document, window.AboutDebugging.store);
 
-  await installTemporaryExtensionFromXPI(
-    {
-      background() {
-        console.log("background script executed " + Math.random());
-      },
-      id: ADDON_ID,
-      name: ADDON_NAME,
-      extraProperties: {
-        sidebar_action: {
-          default_title: "Sidebar",
-          default_icon: {
-            64: "icon.png",
-          },
-          default_panel: "sidebar.html",
-        },
-      },
-      files: {
-        "sidebar.html": `<!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-            </head>
-            <body>
-              Sidebar 
-            </body>
-          </html>
-        `,
-      },
+  // Build and install the add-on manually (without installTemporaryExtensionFromXPI)
+  // in order to be able to make changes to the add-on files before reloads
+  const manifest = JSON.stringify({
+    manifest_version: 2,
+    version: "1.0",
+    name: ADDON_NAME,
+    background: {
+      scripts: ["background.js"],
     },
-    document
+    sidebar_action: {
+      default_title: "Sidebar",
+      default_icon: {
+        64: "icon.png",
+      },
+      default_panel: "sidebar.html",
+    },
+  });
+  const files = {
+    "manifest.json": manifest,
+    "background.js": `console.log("background script executed " + Math.random());`,
+    "sidebar.html": `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          Sidebar
+        </body>
+      </html>
+    `,
+  };
+  const tempAddonDir = AddonTestUtils.tempDir.clone();
+  const addonDir = await AddonTestUtils.promiseWriteFilesToExtension(
+    tempAddonDir.path,
+    ADDON_ID,
+    files,
+    true
   );
+
+  const addon = await AddonManager.installTemporaryAddon(addonDir);
 
   // Select the debugger right away to avoid any noise coming from the inspector.
   await pushPref("devtools.toolbox.selectedTool", "webconsole");
@@ -176,8 +190,50 @@ add_task(async function testWebExtensionToolboxReload() {
     "Wait for fallback, background and sidebar documents to visible in the iframe dropdown"
   );
 
+  info("Introduce a typo in the manifest before reloading");
+  loadedTargets = 0;
+  // Add an unexpected character at the end of the JSON
+  files["manifest.json"] += `x`;
+  await AddonTestUtils.promiseWriteFilesToExtension(
+    tempAddonDir.path,
+    ADDON_ID,
+    files,
+    true
+  );
+  clickReload(devtoolsDocument);
+
+  const notification = await waitFor(
+    () => toolbox.doc.querySelector(`.notification[data-key="reload-error"]`),
+    "Wait for the error to be shown"
+  );
+  Assert.stringContains(
+    notification.textContent,
+    "unexpected non-whitespace character after JSON data",
+    "The error message is correct"
+  );
+  is(loadedTargets, 0, "No target is loaded when the add-on fails loading");
+
+  info("Restore to the valid manifest and reload again");
+  files["manifest.json"] = manifest;
+  await AddonTestUtils.promiseWriteFilesToExtension(
+    tempAddonDir.path,
+    ADDON_ID,
+    files,
+    true
+  );
+  clickReload(devtoolsDocument);
+
+  await waitFor(
+    () => !toolbox.doc.querySelector(`.notification[data-key="reload-error"]`),
+    "Wait for the error to be hidden"
+  );
+  await waitFor(
+    () => loadedTargets == 2,
+    "Wait for background and popup targets to be reloaded"
+  );
+
   await closeWebExtAboutDevtoolsToolbox(devtoolsWindow, window);
-  await removeTemporaryExtension(ADDON_NAME, document);
+  await addon.uninstall();
   await removeTab(tab);
 });
 
