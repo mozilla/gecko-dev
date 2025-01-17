@@ -1110,12 +1110,32 @@ add_task(async function test_emptyHostWithURLType() {
     "Empty host is not allowed for URLTYPE_AUTHORITY"
   );
 
-  url = makeURL("http://foo.com/bar/", Ci.nsIStandardURL.URLTYPE_STANDARD);
+  url = makeURL("http://user@foo.com/bar/", Ci.nsIStandardURL.URLTYPE_STANDARD);
   Assert.throws(
     () => url.mutate().setHost("").finalize().spec,
-    /NS_ERROR_UNEXPECTED/,
-    "Empty host is not allowed for URLTYPE_STANDARD"
+    /NS_ERROR_MALFORMED_URI/,
+    "Setting an empty host should throw if there is a username present"
   );
+
+  url = makeURL(
+    "http://:password@foo.com/bar/",
+    Ci.nsIStandardURL.URLTYPE_STANDARD
+  );
+  Assert.throws(
+    () => url.mutate().setHost("").finalize().spec,
+    /NS_ERROR_MALFORMED_URI/,
+    "Setting an empty host should throw if there is a password present"
+  );
+
+  url = makeURL("http://foo.com:123/bar/", Ci.nsIStandardURL.URLTYPE_STANDARD);
+  Assert.throws(
+    () => url.mutate().setHost("").finalize().spec,
+    /NS_ERROR_MALFORMED_URI/,
+    "Setting an empty host should throw if there is a port present"
+  );
+
+  url = makeURL("http://foo.com/bar/", Ci.nsIStandardURL.URLTYPE_STANDARD);
+  Assert.equal(url.mutate().setHost("").finalize().spec, "http:///bar/");
 
   url = makeURL("http://foo.com/bar/", Ci.nsIStandardURL.URLTYPE_NO_AUTHORITY);
   equal(
