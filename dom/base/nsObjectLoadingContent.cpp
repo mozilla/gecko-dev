@@ -673,8 +673,12 @@ bool nsObjectLoadingContent::CheckProcessPolicy(int16_t* aContentPolicy) {
 }
 
 bool nsObjectLoadingContent::IsSyntheticImageDocument() const {
-  return mType == ObjectType::Document &&
-         imgLoader::SupportImageWithMimeType(mContentType);
+  if (mType != ObjectType::Document || !mFrameLoader) {
+    return false;
+  }
+
+  BrowsingContext* browsingContext = mFrameLoader->GetExtantBrowsingContext();
+  return browsingContext && browsingContext->GetIsSyntheticDocumentContainer();
 }
 
 nsObjectLoadingContent::ParameterUpdateFlags
