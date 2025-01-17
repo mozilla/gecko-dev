@@ -723,6 +723,11 @@ preonboarding:
       fallbackPref: browser.preonboarding.requireAction
       description: >-
         When showModal is enabled, should action be required to proceed (show as a window modal with dismiss using the ESC key disabled)?
+    interactionPref:
+      type: string
+      fallbackPref: browser.preonboarding.interactionPref
+      description: >-
+        Name of a boolean pref that indicates whether the preonboarding modal has been interacted with. If a value is provided, the modal will appear on every startup until the pref is set to true (typically via interaction with the modal's primary CTA).
 
 moreFromMozilla:
   description: "New page on about:preferences to suggest more Mozilla products"

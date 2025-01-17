@@ -34,7 +34,9 @@ async function waitForClick(selector, win) {
 async function showPreonboardingModal(
   screens = "",
   disableFirstRunPolicyTab = false,
-  requireAction = false
+  requireAction = false,
+  isFirstRun = true,
+  interactionRequiredPref = false
 ) {
   const PREFS_TO_SET = [
     ["browser.preonboarding.enabled", true],
@@ -44,6 +46,7 @@ async function showPreonboardingModal(
       disableFirstRunPolicyTab,
     ],
     ["browser.preonboarding.requireAction", requireAction],
+    ["browser.preonboarding.interactionPref", interactionRequiredPref],
     ["browser.startup.homepage_override.mstone", ""],
     ["startup.homepage_welcome_url", "about:welcome"],
   ];
@@ -51,7 +54,8 @@ async function showPreonboardingModal(
     set: PREFS_TO_SET,
   });
 
-  BrowserHandler.firstRunProfile = true;
+  BrowserHandler.firstRunProfile = isFirstRun;
+
   await BROWSER_GLUE._maybeShowDefaultBrowserPrompt();
 
   registerCleanupFunction(async () => {
@@ -62,7 +66,11 @@ async function showPreonboardingModal(
 
 add_task(async function show_preonboarding_modal() {
   let messageSpy = sinon.spy(SpecialMessageActions, "handleAction");
+  let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
   await showPreonboardingModal(JSON.stringify(TEST_SCREEN));
+
+  sinon.assert.called(showModalSpy);
+
   const [win] = await TestUtils.topicObserved("subdialog-loaded");
 
   Assert.equal(
@@ -100,7 +108,11 @@ add_task(async function show_preonboarding_modal() {
 
 add_task(async function can_disable_showing_privacy_tab_and_closing_via_esc() {
   let messageSpy = sinon.spy(SpecialMessageActions, "handleAction");
+  let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
   await showPreonboardingModal(JSON.stringify(TEST_SCREEN), true, true);
+
+  sinon.assert.called(showModalSpy);
+
   const [win] = await TestUtils.topicObserved("subdialog-loaded");
 
   // Wait for screen content to render
@@ -123,3 +135,50 @@ add_task(async function can_disable_showing_privacy_tab_and_closing_via_esc() {
   await win.close();
   sinon.restore();
 });
+
+add_task(
+  async function modal_should_show_when_not_first_run_if_interaction_pref_is_set() {
+    let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+    await showPreonboardingModal(
+      JSON.stringify(TEST_SCREEN),
+      true,
+      true,
+      false,
+      "messaging-system-action.modal-cleared"
+    );
+
+    sinon.assert.called(showModalSpy);
+
+    const [win] = await TestUtils.topicObserved("subdialog-loaded");
+
+    // Wait for screen content to render
+    await TestUtils.waitForCondition(() =>
+      win.document.querySelector(TEST_SCREEN_SELECTOR)
+    );
+
+    Assert.ok(
+      !!win.document.querySelector(TEST_SCREEN_SELECTOR),
+      "Modal renders with custom screen"
+    );
+
+    await win.close();
+    sinon.restore();
+  }
+);
+
+add_task(
+  async function modal_should_not_show_when_not_first_run_if_interaction_pref_is_not_set() {
+    let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+    await showPreonboardingModal(
+      JSON.stringify(TEST_SCREEN),
+      true,
+      true,
+      false
+    );
+
+    sinon.assert.notCalled(showModalSpy);
+    Assert.ok(true, "Preonboarding modal will not show");
+
+    sinon.restore();
+  }
+);

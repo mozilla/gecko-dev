@@ -4701,8 +4701,16 @@ BrowserGlue.prototype = {
     // Highest priority is the preonboarding modal
     // Second highest priority is the upgrade dialog, which can include a "primary
     // browser" request and is limited in various ways, e.g., major upgrades.
+    const preonboardingCompletionRequired =
+      lazy.NimbusFeatures.preonboarding.getVariable("interactionPref")
+        ? !Services.prefs.getBoolPref(
+            lazy.NimbusFeatures.preonboarding.getVariable("interactionPref"),
+            false
+          )
+        : false;
     if (
-      lazy.BrowserHandler.firstRunProfile &&
+      (lazy.BrowserHandler.firstRunProfile ||
+        preonboardingCompletionRequired) &&
       lazy.NimbusFeatures.preonboarding.getVariable("enabled")
     ) {
       this._showPreOnboardingModal();
