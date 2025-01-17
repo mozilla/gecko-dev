@@ -94,3 +94,7 @@ user_pref("network.http.http2.websockets", true);
 user_pref("app.update.disabledForTesting", true);
 // Use dummy server for geolocation
 user_pref("geo.provider.network.url", "https://web-platform.test:8444/_mozilla/geolocation-API/dummy.py");
+// If we are on a platform where we can detect that we don't have OS
+// geolocation permission, and we can open it and wait for the user to give
+// permission, then don't do that.
+user_pref("geo.prompt.open_system_prefs", false);
