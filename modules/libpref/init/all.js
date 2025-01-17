@@ -3095,6 +3095,12 @@ pref("network.tcp.keepalive.idle_time", 600); // seconds; 10 mins
   pref("network.tcp.keepalive.probe_count", 4);
 #endif
 
+// This pref controls if we send the "public-suffix-list-updated" notification
+// from PublicSuffixList.onUpdate() - Doing so would cause the PSL graph to
+// be updated while Firefox is running which may cause principals to have an
+// inconsistent state. See bug 1582647 comment 30
+pref("network.psl.onUpdate_notify", false);
+
 #ifdef MOZ_WIDGET_GTK
   pref("widget.disable-workspace-management", false);
 #endif
