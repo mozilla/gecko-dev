@@ -27,6 +27,7 @@ extern const StaticXREAppData* gAppData;
 
 static bool gHasActions = false;
 static bool gHasCaps = false;
+static bool gBodySupportsMarkup = false;
 
 void* nsAlertsIconListener::libNotifyHandle = nullptr;
 bool nsAlertsIconListener::libNotifyNotAvail = false;
@@ -307,7 +308,11 @@ nsresult nsAlertsIconListener::InitAlertAsync(nsIAlertNotification* aAlert,
       for (GList* cap = server_caps; cap != nullptr; cap = cap->next) {
         if (!strcmp((char*)cap->data, "actions")) {
           gHasActions = true;
-          break;
+          continue;
+        }
+        if (!strcmp((char*)cap->data, "body-markup")) {
+          gBodySupportsMarkup = true;
+          continue;
         }
       }
       g_list_foreach(server_caps, (GFunc)g_free, nullptr);
@@ -347,6 +352,17 @@ nsresult nsAlertsIconListener::InitAlertAsync(nsIAlertNotification* aAlert,
   rv = aAlert->GetText(text);
   NS_ENSURE_SUCCESS(rv, rv);
   CopyUTF16toUTF8(text, mAlertText);
+  if (gBodySupportsMarkup) {
+    NS_ENSURE_TRUE(
+        mAlertText.ReplaceSubstring(u8"&"_ns, u8"&amp;"_ns, mozilla::fallible),
+        NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(
+        mAlertText.ReplaceSubstring(u8"<"_ns, u8"&lt;"_ns, mozilla::fallible),
+        NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(
+        mAlertText.ReplaceSubstring(u8">"_ns, u8"&gt;"_ns, mozilla::fallible),
+        NS_ERROR_FAILURE);
+  }
 
   mAlertListener = aAlertListener;
 
