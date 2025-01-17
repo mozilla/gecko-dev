@@ -294,9 +294,10 @@ class nsTreeBodyFrame final : public mozilla::SimpleXULLeafFrame,
                      nsPresContext* aPresContext,
                      ComputedStyle* aTwistyContext);
 
-  // Fetch an image from the image cache.
-  nsresult GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContext,
-                    ComputedStyle* aComputedStyle, imgIContainer** aResult);
+  // Fetch an image from the image cache, or request it.
+  already_AddRefed<imgIContainer> GetImage(int32_t aRowIndex,
+                                           nsTreeColumn* aCol, bool aUseContext,
+                                           ComputedStyle* aComputedStyle);
 
   // Returns the size of a given image.   This size *includes* border and
   // padding.  It does not include margins.
