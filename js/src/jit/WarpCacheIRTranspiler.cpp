@@ -1354,13 +1354,10 @@ bool WarpCacheIRTranspiler::emitGuardBooleanToInt32(ValOperandId inputId,
 }
 
 bool WarpCacheIRTranspiler::emitGuardIsNumber(ValOperandId inputId) {
-  // Prefer MToDouble because it gets further optimizations downstream.
   MDefinition* def = getOperand(inputId);
-  if (def->type() == MIRType::Int32 || def->type() == MIRType::Float32) {
-    auto* ins = MToDouble::New(alloc(), def);
-    add(ins);
 
-    setOperand(inputId, ins);
+  // No guard needed when the input is already a number type.
+  if (IsNumberType(def->type())) {
     return true;
   }
 
@@ -1606,7 +1603,15 @@ bool WarpCacheIRTranspiler::emitLoadInt32Result(Int32OperandId valId) {
 
 bool WarpCacheIRTranspiler::emitLoadDoubleResult(NumberOperandId valId) {
   MDefinition* val = getOperand(valId);
-  MOZ_ASSERT(val->type() == MIRType::Double);
+  MOZ_ASSERT(IsNumberType(val->type()));
+
+  if (val->type() != MIRType::Double) {
+    auto* ins = MToDouble::New(alloc(), val);
+    add(ins);
+
+    val = ins;
+  }
+
   pushResult(val);
   return true;
 }

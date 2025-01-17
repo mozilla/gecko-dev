@@ -3370,10 +3370,6 @@ class MToDouble : public MToFPInstruction {
   bool isConsistentFloat32Use(MUse* use) const override { return true; }
 #endif
 
-  bool canProduceFloat32() const override {
-    return input()->canProduceFloat32();
-  }
-
   TruncateKind truncateKind() const { return implicitTruncate_; }
   void setTruncateKind(TruncateKind kind) {
     implicitTruncate_ = std::max(implicitTruncate_, kind);
