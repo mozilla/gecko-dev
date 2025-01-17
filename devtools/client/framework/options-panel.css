@@ -15,10 +15,6 @@
   --experimental-color: #E0EEFF;
 }
 
-#options-panel-container {
-  overflow: auto;
-}
-
 #options-panel {
   display: block;
 }
