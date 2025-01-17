@@ -7,18 +7,28 @@ $schema: moz://mozilla.org/schemas/glean/pings/2-0-0
 
 quick-suggest:
   description: |
-    A ping representing a single event happening with or to a QuickSuggest.
-    Distinguishable by its `ping_type`.
-    Does not contain a `client_id`, preferring a `context_id` instead.
+    A ping representing an impression, selection, or dismissmal of an AMP
+    suggestion. It contains metrics in the `quick_suggest` category. Its type is
+    defined in the `ping_type` metric. It does not contain a `client_id`,
+    preferring a `context_id` instead. `follows_collection_enabled` is set to
+    false because the ping is conditioned on Suggest and AMP suggestions being
+    enabled. It will be enabled when Suggest and AMP suggestions are enabled and
+    it will be disabled otherwise.
   include_client_id: false
+  metadata:
+    follows_collection_enabled: false
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1854755
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1940808
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1854755
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1940808
   notification_emails:
-    - najiang@mozilla.com
+    - fx-search-telemetry@mozilla.com
+    - disco-team@mozilla.com
+    - ads-eng@mozilla.com
 
 urlbar-keyword-exposure:
   description: |

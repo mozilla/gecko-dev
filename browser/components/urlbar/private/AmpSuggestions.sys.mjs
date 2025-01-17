@@ -54,6 +54,10 @@ export class AmpSuggestions extends SuggestProvider {
     return "adm_sponsored";
   }
 
+  enable(enabled) {
+    GleanPings.quickSuggest.setEnabled(enabled);
+  }
+
   makeResult(queryContext, suggestion) {
     let originalUrl;
     if (suggestion.source == "rust") {
