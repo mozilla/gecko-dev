@@ -20,6 +20,9 @@
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 #include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerRunnable.h"
+#include "mozilla/dom/WorkerScope.h"
 #include "nsGlobalWindowInner.h"
 #include "nsLiteralString.h"
 #include "nsTArray.h"
@@ -68,10 +71,10 @@ static constexpr nsLiteralString kAsyncFunctionStarAnonymousPrefix =
 
 // Implement reporting of sink type mismatch violations.
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
-static void ReportSinkTypeMismatchViolations(nsIContentSecurityPolicy* aCSP,
-                                             const nsAString& aSink,
-                                             const nsAString& aSinkGroup,
-                                             const nsAString& aSource) {
+static void ReportSinkTypeMismatchViolations(
+    nsIContentSecurityPolicy* aCSP, nsICSPEventListener* aCSPEventListener,
+    const nsAString& aSink, const nsAString& aSinkGroup,
+    const nsAString& aSource) {
   MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
   MOZ_ASSERT(aCSP);
   MOZ_ASSERT(aCSP->GetRequireTrustedTypesForDirectiveState() !=
@@ -127,17 +130,47 @@ static void ReportSinkTypeMismatchViolations(nsIContentSecurityPolicy* aCSP,
         /* aElement */ nullptr,
         sample};
 
-    // For Workers, a pointer to an object needs to be passed
-    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1901492).
-    nsICSPEventListener* cspEventListener = nullptr;
-
     aCSP->LogTrustedTypesViolationDetailsUnchecked(
         std::move(cspViolationData),
         NS_LITERAL_STRING_FROM_CSTRING(
             REQUIRE_TRUSTED_TYPES_FOR_SCRIPT_OBSERVER_TOPIC),
-        cspEventListener);
+        aCSPEventListener);
   }
 }
+
+class LogSinkTypeMismatchViolationsRunnable final
+    : public WorkerMainThreadRunnable {
+ public:
+  LogSinkTypeMismatchViolationsRunnable(WorkerPrivate* aWorker,
+                                        const nsAString& aSink,
+                                        const nsAString& aSinkGroup,
+                                        const nsAString& aSource)
+      : WorkerMainThreadRunnable(
+            aWorker,
+            "RuntimeService :: LogSinkTypeMismatchViolationsRunnable"_ns),
+        mSink(aSink),
+        mSinkGroup(aSinkGroup),
+        mSource(aSource) {
+    MOZ_ASSERT(aWorker);
+  }
+
+  virtual bool MainThreadRun() override {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(mWorkerRef);
+    if (nsIContentSecurityPolicy* csp = mWorkerRef->Private()->GetCsp()) {
+      ReportSinkTypeMismatchViolations(
+          csp, mWorkerRef->Private()->CSPEventListener(), mSink, mSinkGroup,
+          mSource);
+    }
+    return true;
+  }
+
+ private:
+  ~LogSinkTypeMismatchViolationsRunnable() = default;
+  const nsString mSink;
+  const nsString mSinkGroup;
+  const nsString mSource;
+};
 
 constexpr size_t kNumArgumentsForDetermineTrustedTypePolicyValue = 2;
 
@@ -149,17 +182,19 @@ void ProcessValueWithADefaultPolicy(nsIGlobalObject& aGlobalObject,
                                     ErrorResult& aError) {
   *aResult = nullptr;
 
-  nsPIDOMWindowInner* piDOMWindowInner = aGlobalObject.GetAsInnerWindow();
-  if (!piDOMWindowInner) {
-    // TODO(bug 1928929): We should also be able to get the policy factory from
-    // a worker's global scope.
-    aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
-    return;
+  TrustedTypePolicyFactory* trustedTypePolicyFactory;
+  if (nsPIDOMWindowInner* piDOMWindowInner = aGlobalObject.GetAsInnerWindow()) {
+    nsGlobalWindowInner* globalWindowInner =
+        nsGlobalWindowInner::Cast(piDOMWindowInner);
+    trustedTypePolicyFactory = globalWindowInner->TrustedTypes();
+  } else {
+    MOZ_ASSERT(IsWorkerGlobal(aGlobalObject.GetGlobalJSObject()));
+    MOZ_ASSERT(!NS_IsMainThread());
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    WorkerGlobalScope* scope = workerPrivate->GlobalScope();
+    trustedTypePolicyFactory = scope->TrustedTypes();
   }
-  nsGlobalWindowInner* globalWindowInner =
-      nsGlobalWindowInner::Cast(piDOMWindowInner);
-  const TrustedTypePolicyFactory* trustedTypePolicyFactory =
-      globalWindowInner->TrustedTypes();
+
   const RefPtr<TrustedTypePolicy> defaultPolicy =
       trustedTypePolicyFactory->GetDefaultPolicy();
   if (!defaultPolicy) {
@@ -445,9 +480,15 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                RequireTrustedTypesForDirectiveState::NONE);
   } else {
     MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
-    // TODO(1901492): For now we do the same as when dom.security.trusted_types
-    // is disabled and return the string without policy check.
-    return GetAsString(aInput);
+    MOZ_ASSERT(!NS_IsMainThread());
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
+    requireTrustedTypesForDirectiveState =
+            cspInfo.requireTrustedTypesForDirectiveState();
+    if (requireTrustedTypesForDirectiveState ==
+        RequireTrustedTypesForDirectiveState::NONE) {
+      return GetAsString(aInput);
+    }
   }
 
   RefPtr<ExpectedType> convertedInput;
@@ -461,8 +502,23 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   }
 
   if (!convertedInput) {
-    ReportSinkTypeMismatchViolations(csp, aSink, aSinkGroup,
-                                     *GetAsString(aInput));
+    if (piDOMWindowInner) {
+      ReportSinkTypeMismatchViolations(csp, nullptr /* aCSPEventListener */,
+                                       aSink, aSinkGroup,
+                                       *GetAsString(aInput));
+    } else {
+      MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
+      MOZ_ASSERT(!NS_IsMainThread());
+      WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+      RefPtr<LogSinkTypeMismatchViolationsRunnable> runnable =
+          new LogSinkTypeMismatchViolationsRunnable(
+              workerPrivate, aSink, aSinkGroup, *GetAsString(aInput));
+      ErrorResult rv;
+      runnable->Dispatch(workerPrivate, Killing, rv);
+      if (NS_WARN_IF(rv.Failed())) {
+        rv.SuppressException();
+      }
+    }
     if (requireTrustedTypesForDirectiveState ==
         RequireTrustedTypesForDirectiveState::REPORT_ONLY) {
       return GetAsString(aInput);
@@ -680,6 +736,18 @@ bool AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
     const Document* extantDoc = piDOMWindowInner->GetExtantDoc();
     if (extantDoc &&
         !extantDoc->HasPolicyWithRequireTrustedTypesForDirective()) {
+      return true;
+    }
+  } else {
+    JSObject* globalJSObject = global->GetGlobalJSObject();
+    if (!globalJSObject || !IsWorkerGlobal(globalJSObject)) {
+      return true;
+    }
+    MOZ_ASSERT(!NS_IsMainThread());
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
+    if (cspInfo.requireTrustedTypesForDirectiveState() ==
+        RequireTrustedTypesForDirectiveState::NONE) {
       return true;
     }
   }

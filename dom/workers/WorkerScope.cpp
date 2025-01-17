@@ -930,6 +930,7 @@ void WorkerGlobalScope::StorageAccessPermissionGranted() {
 }
 
 TrustedTypePolicyFactory* WorkerGlobalScope::TrustedTypes() {
+  AssertIsOnWorkerThread();
   if (!mTrustedTypePolicyFactory) {
     mTrustedTypePolicyFactory = MakeRefPtr<TrustedTypePolicyFactory>(this);
   }
