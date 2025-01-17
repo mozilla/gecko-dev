@@ -38,6 +38,7 @@ categories:
         - widget/windows
         - toolkit/components/ml
         - accessible
+        - media
         - code-quality
         - writing-rust-code
         - rust-components
