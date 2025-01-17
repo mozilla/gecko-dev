@@ -1,5 +1,8 @@
 [DEFAULT]
 
+["test_drawImage_context_properties.html"]
+support-files = ["file_drawImage_context_properties.svg"]
+
 ["test_drawWindow_widget_layers.html"]
 skip-if = [
   "os == 'android'",

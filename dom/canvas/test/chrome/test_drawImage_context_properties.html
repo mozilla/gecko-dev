@@ -1,0 +1,126 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for canvas drawImage from an SVG with context properties</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/WindowSnapshot.js"></script>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script type="application/javascript">
+
+  SimpleTest.waitForExplicitFinish();
+  window.addEventListener("load", test);
+
+  function getRGBA(imageData, x, y) {
+    let index = y * (imageData.width * 4) + x * 4;
+    return [
+      imageData.data[index++],
+      imageData.data[index++],
+      imageData.data[index++],
+      imageData.data[index++]
+    ];
+  }
+
+  function test_image(size, contextProperties, strokeStyle, fillStyle, expectedStroke, expectedFill) {
+    // Canvas should be a checker board looking like:
+    // +--------+--------+
+    // |  Fill  | Stroke |
+    // +--------|--------+
+    // | Stroke |  Fill  |
+    // +--------+--------+
+    let sourceElement = document.getElementById("img");
+    let canvas = document.getElementById("canvas");
+
+    // The canvas is always square and the size divisible by two.
+    canvas.width = size;
+    canvas.height = size;
+    let col_a_start = 0;
+    let col_a_end = (size / 2) - 1;
+    let col_b_start = size / 2;
+    let col_b_end = size - 1;
+
+    let is_color = (a, b, msg) => is(JSON.stringify(a), JSON.stringify(b), msg);
+
+    let context = canvas.getContext("2d");
+    context.strokeStyle = strokeStyle;
+    context.fillStyle = fillStyle;
+    context.contextProperties = contextProperties;
+
+    context.drawImage(sourceElement, 0, 0, size, size);
+    let imageData = context.getImageData(0, 0, size, size);
+
+    is_color(getRGBA(imageData, col_a_start, col_a_start), expectedFill, "top-left should be fill");
+    is_color(getRGBA(imageData, col_a_end, col_a_start), expectedFill, "top-left should be fill");
+    is_color(getRGBA(imageData, col_b_start, col_a_start), expectedStroke, "top-right should be stroke");
+    is_color(getRGBA(imageData, col_b_end, col_a_start), expectedStroke, "top-right should be stroke");
+
+    is_color(getRGBA(imageData, col_a_start, col_a_end), expectedFill, "top-left should be fill");
+    is_color(getRGBA(imageData, col_a_end, col_a_end), expectedFill, "top-left should be fill");
+    is_color(getRGBA(imageData, col_b_start, col_a_end), expectedStroke, "top-right should be stroke");
+    is_color(getRGBA(imageData, col_b_end, col_a_end), expectedStroke, "top-right should be stroke");
+
+    is_color(getRGBA(imageData, col_a_start, col_b_start), expectedStroke, "bottom-left should be stroke");
+    is_color(getRGBA(imageData, col_a_end, col_b_start), expectedStroke, "bottom-left should be stroke");
+    is_color(getRGBA(imageData, col_b_start, col_b_start), expectedFill, "bottom-right should be fill");
+    is_color(getRGBA(imageData, col_b_end, col_b_start), expectedFill, "bottom-right should be fill");
+
+    is_color(getRGBA(imageData, col_a_start, col_b_end), expectedStroke, "bottom-left should be stroke");
+    is_color(getRGBA(imageData, col_a_end, col_b_end), expectedStroke, "bottom-left should be stroke");
+    is_color(getRGBA(imageData, col_b_start, col_b_end), expectedFill, "bottom-right should be fill");
+    is_color(getRGBA(imageData, col_b_end, col_b_end), expectedFill, "bottom-right should be fill");
+
+    let matches = (a, b) => a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
+
+    let fillCount = 0;
+    let strokeCount = 0;
+    for (let x = 0; x < imageData.width; x++) {
+      for (let y = 0; y < imageData.height; y++) {
+        let pixel = getRGBA(imageData, x, y);
+
+        if (matches(pixel, expectedFill)) {
+          fillCount++;
+        }
+        if (matches(pixel, expectedStroke)) {
+          strokeCount++;
+        }
+      }
+    }
+
+    is(fillCount, size * size / 2, "Area with fill should be correct");
+    is(strokeCount, size * size / 2, "Area with stroke should be correct");
+  }
+
+  async function test() {
+    let img = document.getElementById("img");
+    await img.decode();
+
+    test_image(48, "both", "blue", "red", [0, 0, 255, 255], [255, 0, 0, 255]);
+
+    // Try again to a different canvas size.
+    test_image(128, "both", "rgb(0, 255, 0)", "yellow", [0, 255, 0, 255], [255, 255, 0, 255]);
+
+    // Test with no properties applied.
+    test_image(32, "none", "blue", "red", [0, 255, 255, 255], [255, 255, 0, 255]);
+
+    // Test with only stroke applied.
+    test_image(32, "stroke", "blue", "red", [0, 0, 255, 255], [255, 255, 0, 255]);
+
+    // Test with only fill applie.
+    test_image(32, "fill", "blue", "red", [0, 255, 255, 255], [255, 0, 0, 255]);
+
+    SimpleTest.finish();
+  }
+  </script>
+</head>
+<body>
+<div style="display: none">
+  <img
+    id="img"
+    src="file_drawImage_context_properties.svg"
+    style="width: 64px; height: 64px"
+  />
+</div>
+<canvas id="canvas" style="width: 48; height: 48px"></canvas>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1937109">Mozilla Bug 1937109</a>
+</body>
+</html>

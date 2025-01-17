@@ -5905,6 +5905,23 @@ void CanvasRenderingContext2D::DrawDirectlyToCanvas(
   CSSIntSize sz(scaledImageSize.width, scaledImageSize.height);
   SVGImageContext svgContext(Some(sz));
 
+  if (mContextProperties != CanvasContextProperties::None &&
+      aImage.mImgContainer->GetType() == imgIContainer::TYPE_VECTOR) {
+    SVGEmbeddingContextPaint* contextPaint =
+        svgContext.GetOrCreateContextPaint();
+    const ContextState& state = CurrentState();
+
+    if (mContextProperties != CanvasContextProperties::Fill &&
+        state.StyleIsColor(Style::STROKE)) {
+      contextPaint->SetStroke(state.colorStyles[Style::STROKE]);
+    }
+
+    if (mContextProperties != CanvasContextProperties::Stroke &&
+        state.StyleIsColor(Style::FILL)) {
+      contextPaint->SetFill(state.colorStyles[Style::FILL]);
+    }
+  }
+
   auto result = aImage.mImgContainer->Draw(
       &context, scaledImageSize,
       ImageRegion::Create(gfxRect(aSrc.x, aSrc.y, aSrc.width, aSrc.height)),

@@ -23,6 +23,8 @@ enum CanvasFontStretch { "ultra-condensed", "extra-condensed", "condensed", "sem
 enum CanvasFontVariantCaps { "normal", "small-caps", "all-small-caps", "petite-caps", "all-petite-caps", "unicase", "titling-caps" };
 enum CanvasTextRendering { "auto", "optimizeSpeed", "optimizeLegibility", "geometricPrecision" };
 
+enum CanvasContextProperties { "none", "fill", "stroke", "both" };
+
 [GenerateInit]
 dictionary CanvasRenderingContext2DSettings {
   // signal if the canvas contains an alpha channel
@@ -277,6 +279,9 @@ interface mixin CanvasText {
 };
 
 interface mixin CanvasDrawImage {
+  [ChromeOnly]
+  attribute CanvasContextProperties contextProperties;
+
   [Throws, LenientFloat]
   undefined drawImage(CanvasImageSource image, double dx, double dy);
   [Throws, LenientFloat]

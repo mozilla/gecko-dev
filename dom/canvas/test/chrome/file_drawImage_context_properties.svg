@@ -1,0 +1,10 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+  - License, v. 2.0. If a copy of the MPL was not distributed with this
+  - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<svg width="32" height="32" viewBox="0 0 32 32" stroke="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- A simple checkerboard that falls back to white/black if context properties are not provided -->
+  <rect x="0" y="0" width="16" height="16" fill="context-fill rgb(255, 255, 0)"/>
+  <rect x="16" y="0" width="16" height="16" fill="context-stroke rgb(0, 255, 255)"/>
+  <rect x="0" y="16" width="16" height="16" fill="context-stroke rgb(0, 255, 255)"/>
+  <rect x="16" y="16" width="16" height="16" fill="context-fill rgb(255, 255, 0)"/>
+</svg>

@@ -462,6 +462,14 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     }
   }
 
+  CanvasContextProperties ContextProperties() const {
+    return mContextProperties;
+  }
+
+  void SetContextProperties(const CanvasContextProperties& aValue) {
+    mContextProperties = aValue;
+  }
+
   void DrawWindow(nsGlobalWindowInner& aWindow, double aX, double aY, double aW,
                   double aH, const nsACString& aBgColor, uint32_t aFlags,
                   nsIPrincipal& aSubjectPrincipal,
@@ -870,6 +878,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   bool mIsContextLost = false;
   // Whether or not we can restore the context after restoration.
   bool mAllowContextRestore = true;
+  // Which context properties apply to an SVG when calling drawImage.
+  CanvasContextProperties mContextProperties = CanvasContextProperties::None;
 
   bool AddShutdownObserver();
   void RemoveShutdownObserver();
