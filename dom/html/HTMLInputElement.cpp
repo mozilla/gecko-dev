@@ -768,6 +768,7 @@ nsresult HTMLInputElement::InitColorPicker() {
   rv = colorPicker->Open(callback);
   if (NS_SUCCEEDED(rv)) {
     mPickerRunning = true;
+    SetStates(ElementState::OPEN, true);
   }
 
   return rv;
@@ -876,6 +877,7 @@ nsresult HTMLInputElement::InitFilePicker(FilePickerType aType) {
     rv = filePicker->Open(callback);
     if (NS_SUCCEEDED(rv)) {
       mPickerRunning = true;
+      SetStates(ElementState::OPEN, true);
     }
 
     return rv;
@@ -884,6 +886,7 @@ nsresult HTMLInputElement::InitFilePicker(FilePickerType aType) {
   HTMLInputElement::gUploadLastDir->FetchDirectoryAndDisplayPicker(
       doc, filePicker, callback);
   mPickerRunning = true;
+  SetStates(ElementState::OPEN, true);
   return NS_OK;
 }
 
@@ -2278,6 +2281,10 @@ void HTMLInputElement::CloseDateTimePicker() {
   nsContentUtils::DispatchChromeEvent(OwnerDoc(), static_cast<Element*>(this),
                                       u"MozCloseDateTimePicker"_ns,
                                       CanBubble::eYes, Cancelable::eYes);
+}
+
+void HTMLInputElement::SetDateTimePickerState(bool aIsOpen) {
+  SetStates(ElementState::OPEN, aIsOpen);
 }
 
 void HTMLInputElement::SetFocusState(bool aIsFocused) {
@@ -7416,7 +7423,10 @@ void HTMLInputElement::UpdateHasRange(bool aNotify) {
   UpdateInRange(aNotify);
 }
 
-void HTMLInputElement::PickerClosed() { mPickerRunning = false; }
+void HTMLInputElement::PickerClosed() {
+  mPickerRunning = false;
+  SetStates(ElementState::OPEN, false);
+}
 
 JSObject* HTMLInputElement::WrapNode(JSContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {

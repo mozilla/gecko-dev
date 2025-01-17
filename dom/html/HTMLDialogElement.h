@@ -43,6 +43,11 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
   MOZ_CAN_RUN_SCRIPT void Show(ErrorResult& aError);
   MOZ_CAN_RUN_SCRIPT void ShowModal(ErrorResult& aError);
 
+  void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aMaybeScriptedPrincipal,
+                    bool aNotify) override;
+
   void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
 
   bool IsInTopLayer() const;

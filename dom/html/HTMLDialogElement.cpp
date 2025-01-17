@@ -244,6 +244,19 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
   aError.SuppressException();
 }
 
+void HTMLDialogElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                     const nsAttrValue* aValue,
+                                     const nsAttrValue* aOldValue,
+                                     nsIPrincipal* aMaybeScriptedPrincipal,
+                                     bool aNotify) {
+  nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue, aOldValue,
+                                     aMaybeScriptedPrincipal, aNotify);
+  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::open) {
+    MOZ_ASSERT(Open() == !!aValue);
+    SetStates(ElementState::OPEN, !!aValue);
+  }
+}
+
 void HTMLDialogElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   if (mToggleEventDispatcher == aEvent) {
     mToggleEventDispatcher = nullptr;
