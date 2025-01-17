@@ -1598,14 +1598,13 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
     const {
       option
     } = this.props;
-    const listItemClassNames = [option.className || ""].join(" ");
-    const buttonClassNames = [option.disabled ? "disabled" : ""].join(" ");
+    const className = [option.disabled ? "disabled" : ""].join(" ");
     return /*#__PURE__*/external_React_default().createElement("li", {
       role: "presentation",
-      className: `context-menu-item ${listItemClassNames}`
+      className: "context-menu-item"
     }, /*#__PURE__*/external_React_default().createElement("button", {
       role: "menuitem",
-      className: buttonClassNames,
+      className: className,
       onClick: this.onClick,
       onKeyDown: this.onKeyDown,
       onKeyUp: this.onKeyUp,
@@ -1886,7 +1885,6 @@ const LinkMenuOptions = {
   SaveToPocket: (site, index, eventSource = "CARDGRID") => ({
     id: "newtab-menu-save-to-pocket",
     icon: "pocket-save",
-    className: "stp-context-menu",
     action: actionCreators.AlsoToMain({
       type: actionTypes.SAVE_TO_POCKET,
       data: {
@@ -2294,11 +2292,9 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
     let pocketMenuOptions = [];
     let TOP_STORIES_CONTEXT_MENU_OPTIONS = ["OpenInNewWindow", "OpenInPrivateWindow"];
     if (!this.props.isRecentSave) {
-      if (this.props.pocket_button_enabled) {
-        pocketMenuOptions = this.props.saveToPocketCard ? ["CheckDeleteFromPocket"] : ["CheckSavedToPocket"];
-      }
-      // Override pocketMenuOptions to add Save to Pocket btn link to all section cards
-      if (this.props.isSectionsCard) {
+      // Show Pocket context menu options if applicable.
+      // Additionally, show these menu options for all section cards.
+      if (this.props.pocket_button_enabled && this.props.saveToPocketCard || this.props.isSectionsCard) {
         pocketMenuOptions = ["CheckSavedToPocket"];
       }
       TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", "CheckArchiveFromPocket", ...pocketMenuOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : [])];
@@ -3220,7 +3216,6 @@ class _DSCard extends (external_React_default()).PureComponent {
     super(props);
     this.onLinkClick = this.onLinkClick.bind(this);
     this.doesLinkTopicMatchSelectedTopic = this.doesLinkTopicMatchSelectedTopic.bind(this);
-    this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
     this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
@@ -3372,74 +3367,6 @@ class _DSCard extends (external_React_default()).PureComponent {
           }]
         }));
       }
-    }
-  }
-  onSaveClick() {
-    const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
-    if (this.props.dispatch) {
-      this.props.dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.SAVE_TO_POCKET,
-        data: {
-          site: {
-            url: this.props.url,
-            title: this.props.title
-          }
-        }
-      }));
-      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
-        event: "SAVE_TO_POCKET",
-        source: "CARDGRID_HOVER",
-        action_position: this.props.pos,
-        value: {
-          card_type: this.props.flightId ? "spoc" : "organic",
-          recommendation_id: this.props.recommendation_id,
-          tile_id: this.props.id,
-          ...(this.props.shim && this.props.shim.save ? {
-            shim: this.props.shim.save
-          } : {}),
-          fetchTimestamp: this.props.fetchTimestamp,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-          corpus_item_id: this.props.corpus_item_id,
-          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
-          recommended_at: this.props.recommended_at,
-          received_rank: this.props.received_rank,
-          topic: this.props.topic,
-          matches_selected_topic: matchesSelectedTopic,
-          selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard,
-          ...(this.props.format ? {
-            format: this.props.format
-          } : {}),
-          ...(this.props.section ? {
-            section: this.props.section,
-            section_position: this.props.sectionPosition,
-            is_secton_followed: this.props.sectionFollowed
-          } : {})
-        }
-      }));
-      this.props.dispatch(actionCreators.ImpressionStats({
-        source: "CARDGRID_HOVER",
-        pocket: 0,
-        tiles: [{
-          id: this.props.id,
-          pos: this.props.pos,
-          ...(this.props.shim && this.props.shim.save ? {
-            shim: this.props.shim.save
-          } : {}),
-          recommendation_id: this.props.recommendation_id,
-          topic: this.props.topic,
-          selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard,
-          ...(this.props.format ? {
-            format: this.props.format
-          } : {}),
-          ...(this.props.section ? {
-            section: this.props.section,
-            section_position: this.props.sectionPosition,
-            is_secton_followed: this.props.sectionFollowed
-          } : {})
-        }]
-      }));
     }
   }
   onThumbsUpClick(event) {
@@ -3688,9 +3615,6 @@ class _DSCard extends (external_React_default()).PureComponent {
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
     const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
-
-    // Only update the "Saved" Pocket button UI for the Sections experiment.
-    const compactPocketSavedButtonClassName = mayHaveSectionsCards && this.props.context_type === "pocket" ? `ds-compact-pocket-saved-button` : ``;
     let sizes = [];
     if (!isMediumRectangle) {
       sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
@@ -3698,25 +3622,6 @@ class _DSCard extends (external_React_default()).PureComponent {
 
     // TODO: Add logic to assign this.largeCardImageSizes
 
-    let stpButton = () => {
-      return /*#__PURE__*/external_React_default().createElement("button", {
-        className: "card-stp-button",
-        onClick: this.onSaveClick
-      }, this.props.context_type === "pocket" ? /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
-        "data-l10n-id": "newtab-pocket-image",
-        role: "img",
-        className: "story-badge-icon icon icon-pocket"
-      }), /*#__PURE__*/external_React_default().createElement("span", {
-        "data-l10n-id": "newtab-pocket-saved",
-        className: "pocket-saved-copy"
-      })) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
-        "data-l10n-id": "newtab-pocket-image",
-        role: "img",
-        className: "story-badge-icon icon icon-pocket-save"
-      }), /*#__PURE__*/external_React_default().createElement("span", {
-        "data-l10n-id": "newtab-pocket-save"
-      })));
-    };
     return /*#__PURE__*/external_React_default().createElement("article", {
       className: `ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef,
@@ -3808,10 +3713,10 @@ class _DSCard extends (external_React_default()).PureComponent {
       format: format,
       topic: this.props.topic
     })), /*#__PURE__*/external_React_default().createElement("div", {
-      className: `card-stp-button-hover-background ${compactPocketSavedButtonClassName}`
+      className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-position-wrapper"
-    }, saveToPocketCard && !isListCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), !isFakespot && /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
+    }, !isFakespot && /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
       id: this.props.id,
       index: this.props.pos,
       dispatch: this.props.dispatch,

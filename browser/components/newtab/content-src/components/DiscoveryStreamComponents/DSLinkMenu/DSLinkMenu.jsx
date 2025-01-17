@@ -16,13 +16,12 @@ export class DSLinkMenu extends React.PureComponent {
       "OpenInPrivateWindow",
     ];
     if (!this.props.isRecentSave) {
-      if (this.props.pocket_button_enabled) {
-        pocketMenuOptions = this.props.saveToPocketCard
-          ? ["CheckDeleteFromPocket"]
-          : ["CheckSavedToPocket"];
-      }
-      // Override pocketMenuOptions to add Save to Pocket btn link to all section cards
-      if (this.props.isSectionsCard) {
+      // Show Pocket context menu options if applicable.
+      // Additionally, show these menu options for all section cards.
+      if (
+        (this.props.pocket_button_enabled && this.props.saveToPocketCard) ||
+        this.props.isSectionsCard
+      ) {
         pocketMenuOptions = ["CheckSavedToPocket"];
       }
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [

@@ -75,7 +75,6 @@ describe("<DSLinkMenu>", () => {
       assert.deepEqual(linkMenuProps.options, [
         "CheckBookmark",
         "CheckArchiveFromPocket",
-        "CheckSavedToPocket",
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
@@ -99,7 +98,6 @@ describe("<DSLinkMenu>", () => {
       assert.deepEqual(linkMenuProps.options, [
         "CheckBookmark",
         "CheckArchiveFromPocket",
-        "CheckSavedToPocket",
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
@@ -120,7 +118,7 @@ describe("<DSLinkMenu>", () => {
       assert.deepEqual(linkMenuProps.options, [
         "CheckBookmark",
         "CheckArchiveFromPocket",
-        "CheckDeleteFromPocket",
+        "CheckSavedToPocket",
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",

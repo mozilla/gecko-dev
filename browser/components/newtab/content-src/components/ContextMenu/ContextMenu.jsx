@@ -151,16 +151,12 @@ export class _ContextMenuItem extends React.PureComponent {
 
   render() {
     const { option } = this.props;
-    const listItemClassNames = [option.className || ""].join(" ");
-    const buttonClassNames = [option.disabled ? "disabled" : ""].join(" ");
+    const className = [option.disabled ? "disabled" : ""].join(" ");
     return (
-      <li
-        role="presentation"
-        className={`context-menu-item ${listItemClassNames}`}
-      >
+      <li role="presentation" className="context-menu-item">
         <button
           role="menuitem"
-          className={buttonClassNames}
+          className={className}
           onClick={this.onClick}
           onKeyDown={this.onKeyDown}
           onKeyUp={this.onKeyUp}

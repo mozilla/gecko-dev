@@ -8,10 +8,6 @@
     padding: unset;
   }
 
-  .stp-context-menu {
-    display: block;
-  }
-
   .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -79,10 +75,6 @@
 
   .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-
-    .card-stp-button {
-      display: none;
-    }
   }
 }
 
@@ -95,18 +87,8 @@
   align-items: initial;
   gap: initial;
 
-
-
-  .stp-context-menu {
-    display: none;
-  }
-
   .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-
-    .card-stp-button {
-      display: block;
-    }
   }
 
   .card-stp-thumbs-buttons-wrapper {
@@ -493,54 +475,6 @@
 
     .col-4-large {
       @include section-card-large;
-    }
-  }
-}
-
-
-.ds-card.sections-card-ui {
-  // Make the button with the Pocket shield logo always visible if the story
-  // featured in this card was saved to Pocket. This additional class
-  // overrides default styles for the hover Pocket button and context menu.
-  .ds-compact-pocket-saved-button {
-    opacity: 1;
-
-    .icon-pocket-save,
-    .icon-pocket {
-      margin-inline-end: 0;
-    }
-
-    .context-menu-position-container {
-      display: none;
-    }
-
-    .card-stp-button {
-      margin-inline-end: 0;
-    }
-
-    .pocket-saved-copy {
-      display: none;
-    }
-
-    // on hover & co, restore original styles
-    &:hover, &:focus-within, &:active {
-      .icon-pocket-save,
-      .icon-pocket {
-        margin-inline-end: 4px;
-      }
-
-      .context-menu-position-container {
-        display: revert;
-      }
-
-      .card-stp-button {
-        margin-inline-end: 7px;
-        display: revert;
-      }
-
-      .pocket-saved-copy {
-        display: revert;
-      }
     }
   }
 }

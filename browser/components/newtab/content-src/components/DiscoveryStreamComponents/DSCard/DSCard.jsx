@@ -198,7 +198,6 @@ export class _DSCard extends React.PureComponent {
     this.onLinkClick = this.onLinkClick.bind(this);
     this.doesLinkTopicMatchSelectedTopic =
       this.doesLinkTopicMatchSelectedTopic.bind(this);
-    this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
     this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
@@ -381,81 +380,6 @@ export class _DSCard extends React.PureComponent {
           })
         );
       }
-    }
-  }
-
-  onSaveClick() {
-    const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
-
-    if (this.props.dispatch) {
-      this.props.dispatch(
-        ac.AlsoToMain({
-          type: at.SAVE_TO_POCKET,
-          data: { site: { url: this.props.url, title: this.props.title } },
-        })
-      );
-
-      this.props.dispatch(
-        ac.DiscoveryStreamUserEvent({
-          event: "SAVE_TO_POCKET",
-          source: "CARDGRID_HOVER",
-          action_position: this.props.pos,
-          value: {
-            card_type: this.props.flightId ? "spoc" : "organic",
-            recommendation_id: this.props.recommendation_id,
-            tile_id: this.props.id,
-            ...(this.props.shim && this.props.shim.save
-              ? { shim: this.props.shim.save }
-              : {}),
-            fetchTimestamp: this.props.fetchTimestamp,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-            corpus_item_id: this.props.corpus_item_id,
-            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
-            recommended_at: this.props.recommended_at,
-            received_rank: this.props.received_rank,
-            topic: this.props.topic,
-            matches_selected_topic: matchesSelectedTopic,
-            selected_topics: this.props.selectedTopics,
-            is_list_card: this.props.isListCard,
-            ...(this.props.format ? { format: this.props.format } : {}),
-            ...(this.props.section
-              ? {
-                  section: this.props.section,
-                  section_position: this.props.sectionPosition,
-                  is_secton_followed: this.props.sectionFollowed,
-                }
-              : {}),
-          },
-        })
-      );
-
-      this.props.dispatch(
-        ac.ImpressionStats({
-          source: "CARDGRID_HOVER",
-          pocket: 0,
-          tiles: [
-            {
-              id: this.props.id,
-              pos: this.props.pos,
-              ...(this.props.shim && this.props.shim.save
-                ? { shim: this.props.shim.save }
-                : {}),
-              recommendation_id: this.props.recommendation_id,
-              topic: this.props.topic,
-              selected_topics: this.props.selectedTopics,
-              is_list_card: this.props.isListCard,
-              ...(this.props.format ? { format: this.props.format } : {}),
-              ...(this.props.section
-                ? {
-                    section: this.props.section,
-                    section_position: this.props.sectionPosition,
-                    is_secton_followed: this.props.sectionFollowed,
-                  }
-                : {}),
-            },
-          ],
-        })
-      );
     }
   }
 
@@ -756,47 +680,12 @@ export class _DSCard extends React.PureComponent {
     const isMediumRectangle = format === "rectangle";
     const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
 
-    // Only update the "Saved" Pocket button UI for the Sections experiment.
-    const compactPocketSavedButtonClassName =
-      mayHaveSectionsCards && this.props.context_type === "pocket"
-        ? `ds-compact-pocket-saved-button`
-        : ``;
-
     let sizes = [];
     if (!isMediumRectangle) {
       sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
     }
 
     // TODO: Add logic to assign this.largeCardImageSizes
-
-    let stpButton = () => {
-      return (
-        <button className="card-stp-button" onClick={this.onSaveClick}>
-          {this.props.context_type === "pocket" ? (
-            <>
-              <span
-                data-l10n-id="newtab-pocket-image"
-                role="img"
-                className="story-badge-icon icon icon-pocket"
-              />
-              <span
-                data-l10n-id="newtab-pocket-saved"
-                className="pocket-saved-copy"
-              />
-            </>
-          ) : (
-            <>
-              <span
-                data-l10n-id="newtab-pocket-image"
-                role="img"
-                className="story-badge-icon icon icon-pocket-save"
-              />
-              <span data-l10n-id="newtab-pocket-save" />
-            </>
-          )}
-        </button>
-      );
-    };
 
     return (
       <article
@@ -911,13 +800,8 @@ export class _DSCard extends React.PureComponent {
             />
           )}
         </SafeAnchor>
-        <div
-          className={`card-stp-button-hover-background ${compactPocketSavedButtonClassName}`}
-        >
+        <div className="card-stp-button-hover-background">
           <div className="card-stp-button-position-wrapper">
-            {saveToPocketCard && !isListCard && (
-              <>{!this.props.flightId && stpButton()}</>
-            )}
             {!isFakespot && (
               <DSLinkMenu
                 id={this.props.id}

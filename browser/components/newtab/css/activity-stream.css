@@ -4851,9 +4851,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui {
     padding: unset;
   }
-  .ds-section-grid.ds-card-grid .col-1-small .stp-context-menu {
-    display: block;
-  }
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -4908,9 +4905,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
   }
-  .ds-section-grid.ds-card-grid .col-1-small .card-stp-button-position-wrapper .card-stp-button {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-1-medium {
     grid-row: span 2;
     grid-column: span 1;
@@ -4919,14 +4913,8 @@ main section {
     align-items: initial;
     gap: initial;
   }
-  .ds-section-grid.ds-card-grid .col-1-medium .stp-context-menu {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-1-medium .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-  }
-  .ds-section-grid.ds-card-grid .col-1-medium .card-stp-button-position-wrapper .card-stp-button {
-    display: block;
   }
   .ds-section-grid.ds-card-grid .col-1-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5033,9 +5021,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui {
     padding: unset;
   }
-  .ds-section-grid.ds-card-grid .col-2-small .stp-context-menu {
-    display: block;
-  }
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -5090,9 +5075,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
   }
-  .ds-section-grid.ds-card-grid .col-2-small .card-stp-button-position-wrapper .card-stp-button {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-2-medium {
     grid-row: span 2;
     grid-column: span 1;
@@ -5101,14 +5083,8 @@ main section {
     align-items: initial;
     gap: initial;
   }
-  .ds-section-grid.ds-card-grid .col-2-medium .stp-context-menu {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-2-medium .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-  }
-  .ds-section-grid.ds-card-grid .col-2-medium .card-stp-button-position-wrapper .card-stp-button {
-    display: block;
   }
   .ds-section-grid.ds-card-grid .col-2-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5216,9 +5192,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui {
     padding: unset;
   }
-  .ds-section-grid.ds-card-grid .col-3-small .stp-context-menu {
-    display: block;
-  }
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -5273,9 +5246,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
   }
-  .ds-section-grid.ds-card-grid .col-3-small .card-stp-button-position-wrapper .card-stp-button {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-3-medium {
     grid-row: span 2;
     grid-column: span 1;
@@ -5284,14 +5254,8 @@ main section {
     align-items: initial;
     gap: initial;
   }
-  .ds-section-grid.ds-card-grid .col-3-medium .stp-context-menu {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-3-medium .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-  }
-  .ds-section-grid.ds-card-grid .col-3-medium .card-stp-button-position-wrapper .card-stp-button {
-    display: block;
   }
   .ds-section-grid.ds-card-grid .col-3-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5398,9 +5362,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui {
     padding: unset;
   }
-  .ds-section-grid.ds-card-grid .col-4-small .stp-context-menu {
-    display: block;
-  }
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -5455,9 +5416,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
   }
-  .ds-section-grid.ds-card-grid .col-4-small .card-stp-button-position-wrapper .card-stp-button {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-4-medium {
     grid-row: span 2;
     grid-column: span 1;
@@ -5466,14 +5424,8 @@ main section {
     align-items: initial;
     gap: initial;
   }
-  .ds-section-grid.ds-card-grid .col-4-medium .stp-context-menu {
-    display: none;
-  }
   .ds-section-grid.ds-card-grid .col-4-medium .card-stp-button-position-wrapper {
     inset-inline-end: 10px;
-  }
-  .ds-section-grid.ds-card-grid .col-4-medium .card-stp-button-position-wrapper .card-stp-button {
-    display: block;
   }
   .ds-section-grid.ds-card-grid .col-4-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5546,39 +5498,6 @@ main section {
   .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui .card-stp-button-hover-background {
     inset-inline-start: 0;
   }
-}
-
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button {
-  opacity: 1;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button .icon-pocket-save,
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button .icon-pocket {
-  margin-inline-end: 0;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button .context-menu-position-container {
-  display: none;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button .card-stp-button {
-  margin-inline-end: 0;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button .pocket-saved-copy {
-  display: none;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .icon-pocket-save,
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .icon-pocket, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .icon-pocket-save,
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .icon-pocket, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .icon-pocket-save,
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .icon-pocket {
-  margin-inline-end: 4px;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .context-menu-position-container, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .context-menu-position-container, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .context-menu-position-container {
-  display: revert;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .card-stp-button, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .card-stp-button, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .card-stp-button {
-  margin-inline-end: 7px;
-  display: revert;
-}
-.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .pocket-saved-copy, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .pocket-saved-copy, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .pocket-saved-copy {
-  display: revert;
 }
 
 .ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {
@@ -6091,14 +6010,6 @@ main section {
   justify-content: end;
   align-items: center;
 }
-.ds-card .card-stp-button-hover-background .icon-pocket-save,
-.ds-card .card-stp-button-hover-background .icon-pocket {
-  margin-inline-end: 4px;
-  height: 15px;
-  width: 15px;
-  background-size: 15px;
-  fill: #FFF;
-}
 .ds-card .card-stp-button-hover-background .context-menu-position-container {
   position: relative;
 }
@@ -6107,22 +6018,6 @@ main section {
   inset-inline-start: auto;
   position: absolute;
   top: 20.25px;
-}
-.ds-card .card-stp-button-hover-background .card-stp-button {
-  display: flex;
-  margin-inline-end: 7px;
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
-  background-color: #EF4056;
-  border: 0;
-  border-radius: 4px;
-  padding: 6px;
-  white-space: nowrap;
-  color: #FFF;
-}
-.ds-card .card-stp-button-hover-background .card-stp-button:focus-visible {
-  outline: 2px solid var(--newtab-button-focus-border);
 }
 .ds-card .card-stp-button-hover-background button,
 .ds-card .card-stp-button-hover-background .context-menu {

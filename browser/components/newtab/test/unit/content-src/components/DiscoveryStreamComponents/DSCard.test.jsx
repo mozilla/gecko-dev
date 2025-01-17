@@ -11,7 +11,7 @@ import {
   SponsorLabel,
 } from "content-src/components/DiscoveryStreamComponents/DSContextFooter/DSContextFooter";
 import { DSThumbsUpDownButtons } from "content-src/components/DiscoveryStreamComponents/DSThumbsUpDownButtons/DSThumbsUpDownButtons";
-import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
+import { actionCreators as ac } from "common/Actions.mjs";
 import { DSLinkMenu } from "content-src/components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu";
 import { DSImage } from "content-src/components/DiscoveryStreamComponents/DSImage/DSImage";
 import React from "react";
@@ -154,33 +154,6 @@ describe("<DSCard>", () => {
     const defaultMeta = wrapper.find(DefaultMeta);
     assert.lengthOf(defaultMeta, 1);
     assert.equal(defaultMeta.props().timeToRead, 4);
-  });
-
-  it("should not show save to pocket button for spocs", () => {
-    wrapper.setProps({
-      id: "fooidx",
-      pos: 1,
-      type: "foo",
-      flightId: 12345,
-      saveToPocketCard: true,
-    });
-
-    let stpButton = wrapper.find(".card-stp-button");
-
-    assert.lengthOf(stpButton, 0);
-  });
-
-  it("should show save to pocket button for non-spocs", () => {
-    wrapper.setProps({
-      id: "fooidx",
-      pos: 1,
-      type: "foo",
-      saveToPocketCard: true,
-    });
-
-    let stpButton = wrapper.find(".card-stp-button");
-
-    assert.lengthOf(stpButton, 1);
   });
 
   describe("doesLinkTopicMatchSelectedTopic", () => {
@@ -542,72 +515,6 @@ describe("<DSCard>", () => {
 
     it("should be set as isSeen automatically", () => {
       assert.isTrue(wrapper.instance().state.isSeen);
-    });
-  });
-
-  describe("DSCard onSaveClick", () => {
-    it("should fire telemetry for onSaveClick", () => {
-      wrapper.setProps({
-        id: "fooidx",
-        pos: 1,
-        type: "foo",
-        fetchTimestamp: undefined,
-      });
-
-      sandbox
-        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
-        .returns(undefined);
-
-      wrapper.instance().onSaveClick();
-
-      assert.calledThrice(dispatch);
-      assert.calledWith(
-        dispatch,
-        ac.AlsoToMain({
-          type: at.SAVE_TO_POCKET,
-          data: { site: { url: "about:robots", title: "title" } },
-        })
-      );
-      assert.calledWith(
-        dispatch,
-        ac.DiscoveryStreamUserEvent({
-          event: "SAVE_TO_POCKET",
-          source: "CARDGRID_HOVER",
-          action_position: 1,
-          value: {
-            card_type: "organic",
-            recommendation_id: undefined,
-            tile_id: "fooidx",
-            fetchTimestamp: undefined,
-            firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
-            scheduled_corpus_item_id: undefined,
-            corpus_item_id: undefined,
-            recommended_at: undefined,
-            received_rank: undefined,
-            topic: undefined,
-            matches_selected_topic: undefined,
-            selected_topics: undefined,
-            is_list_card: undefined,
-          },
-        })
-      );
-      assert.calledWith(
-        dispatch,
-        ac.ImpressionStats({
-          source: "CARDGRID_HOVER",
-          pocket: 0,
-          tiles: [
-            {
-              id: "fooidx",
-              pos: 1,
-              recommendation_id: undefined,
-              topic: undefined,
-              selected_topics: undefined,
-              is_list_card: undefined,
-            },
-          ],
-        })
-      );
     });
   });
 
