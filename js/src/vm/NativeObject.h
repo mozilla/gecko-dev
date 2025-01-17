@@ -1118,7 +1118,7 @@ class NativeObject : public JSObject {
                                            uint32_t nfixed);
 
   // For use from JSObject::swap.
-  [[nodiscard]] bool prepareForSwap(JSContext* cx,
+  [[nodiscard]] bool prepareForSwap(JSContext* cx, JSObject* other,
                                     MutableHandleValueVector slotValuesOut);
   [[nodiscard]] static bool fixupAfterSwap(JSContext* cx,
                                            Handle<NativeObject*> obj,

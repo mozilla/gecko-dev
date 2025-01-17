@@ -909,8 +909,10 @@ void BufferAllocator::TraceEdge(JSTracer* trc, Cell* owner, void** bufferp,
   }
 
   if (trc->isMarkingTracer()) {
-    MOZ_ASSERT(!ChunkPtrIsInsideNursery(buffer));
-    MarkTenuredAlloc(buffer);
+    if (!IsNurseryOwned(buffer)) {
+      MOZ_ASSERT(!ChunkPtrIsInsideNursery(buffer));
+      MarkTenuredAlloc(buffer);
+    }
     return;
   }
 }
@@ -1440,9 +1442,10 @@ void BufferAllocator::checkChunkGCStateNotInUse(
 
   // Check nothing's marked.
   uintptr_t chunkAddr = uintptr_t(chunk);
+  auto& markBits = chunk->markBits.ref();
   for (size_t offset = 0; offset < ChunkSize; offset += StepBytes) {
     void* alloc = reinterpret_cast<void*>(chunkAddr + offset);
-    MOZ_ASSERT(!chunk->markBits.ref().isMarkedBlack(alloc));
+    MOZ_ASSERT(!markBits.isMarkedBlack(alloc));
   }
 }
 

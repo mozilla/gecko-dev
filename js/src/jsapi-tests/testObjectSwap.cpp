@@ -21,6 +21,7 @@
 #include "vm/PlainObject.h"
 
 #include "gc/StableCellHasher-inl.h"
+#include "vm/JSContext-inl.h"
 #include "vm/JSObject-inl.h"
 
 using namespace js;
@@ -129,6 +130,9 @@ BEGIN_TEST(testObjectSwap) {
 
         CHECK(CheckUniqueIds(obj1, config1.hasUniqueId, uid1, obj2,
                              config2.hasUniqueId, uid2));
+
+        // Check we can promote swapped nursery objects.
+        cx->minorGC(JS::GCReason::API);
       }
 
       if (Verbose) {
