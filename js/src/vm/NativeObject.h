@@ -502,8 +502,8 @@ class alignas(HeapSlot) ObjectSlots {
   }
   static constexpr size_t offsetOfSlots() { return sizeof(ObjectSlots); }
 
-  constexpr explicit ObjectSlots(uint32_t capacity, uint32_t dictionarySlotSpan,
-                                 uint64_t maybeUniqueId);
+  constexpr ObjectSlots(uint32_t capacity, uint32_t dictionarySlotSpan,
+                        uint64_t maybeUniqueId);
 
   constexpr uint32_t capacity() const { return capacity_; }
 
