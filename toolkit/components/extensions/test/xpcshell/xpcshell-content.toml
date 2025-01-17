@@ -43,6 +43,7 @@ skip-if = ["os == 'linux' && socketprocess_networking && !fission && debug"] # B
 ["test_ext_contentscript_triggeringPrincipal.js"]
 skip-if = [
   "os == 'win' && processor == 'x86_64' && debug", # Bug 1438796
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1940852
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1438796
   "tsan", # Bug 1612707
   "os == 'linux' && socketprocess_networking && !fission && debug", # Bug 1759035

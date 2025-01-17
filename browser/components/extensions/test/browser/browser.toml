@@ -157,7 +157,8 @@ https_first_disabled = true
 ["browser_ext_contentscript_sender_url.js"]
 skip-if = [
   "debug", # The nature of the reduced STR test triggers an unrelated debug assertion in DOM IPC code, see bug 1736590.
-  "os == 'win' && os_version == '11.26100' && bits == 64 && opt", # Bug 1933435
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && opt", # Bug 1933435
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1933435
 ]
 tags = "bleedover"
 
