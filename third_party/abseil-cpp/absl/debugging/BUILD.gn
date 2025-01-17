@@ -184,6 +184,9 @@ absl_test("decode_rust_punycode_test") {
 }
 
 absl_source_set("demangle_rust") {
+# hazard-linux64-haz/debug builds fail when this section is
+# included in the build.
+if (!moz_webrtc_build) {
   sources = [ "internal/demangle_rust.cc" ]
   public = [ "internal/demangle_rust.h" ]
   deps = [
@@ -191,6 +194,7 @@ absl_source_set("demangle_rust") {
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
   ]
+}
 }
 
 absl_test("demangle_rust_test") {

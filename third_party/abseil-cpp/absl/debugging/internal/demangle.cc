@@ -2952,9 +2952,13 @@ static bool Overflowed(const State *state) {
 
 // The demangler entry point.
 bool Demangle(const char* mangled, char* out, size_t out_size) {
+// mozilla - hazard-linux64-haz/debug failure when demangle_rust.cc is
+// included in the build.  For now we'll avoid this code.
+#if 0
   if (mangled[0] == '_' && mangled[1] == 'R') {
     return DemangleRustSymbolEncoding(mangled, out, out_size);
   }
+#endif
 
   State state;
   InitState(&state, mangled, out, out_size);
