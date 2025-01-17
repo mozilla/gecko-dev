@@ -349,9 +349,9 @@ bool WebGPUParent::ForwardError(const Maybe<RawId> aDeviceId,
       if (aDeviceId.isSome()) {
         LoseDevice(*aDeviceId, Nothing(), error->message);
       }
-      return false;
+    } else {
+      ReportError(aDeviceId, error->type, error->message);
     }
-    ReportError(aDeviceId, error->type, error->message);
     return true;
   }
   return false;
@@ -469,10 +469,6 @@ ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
                                           ToFFI(&aByteBuf), aDeviceId, aQueueId,
                                           error.ToFFI());
   if (ForwardError(0, error)) {
-    uint8_t reasonDestroyed = 0;  // GPUDeviceLostReason::Destroyed
-    auto maybeError = error.GetError();
-    MOZ_ASSERT(maybeError.isSome());
-    LoseDevice(aDeviceId, Some(reasonDestroyed), maybeError->message);
     resolver(false);
     return IPC_OK();
   }
