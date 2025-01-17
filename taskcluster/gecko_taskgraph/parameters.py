@@ -116,7 +116,7 @@ def get_defaults(repo_root=None):
         "base_repository": "https://hg.mozilla.org/mozilla-unified",
         "build_number": 1,
         "enable_always_target": ["docker-image"],
-        "files_changed": sorted(get_locally_changed_files(repo_root)),
+        "files_changed": lambda: sorted(get_locally_changed_files(repo_root)),
         "head_repository": "https://hg.mozilla.org/mozilla-central",
         "hg_branch": "default",
         "message": "",
