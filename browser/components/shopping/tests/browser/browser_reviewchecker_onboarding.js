@@ -14,6 +14,8 @@ const { SpecialMessageActions } = ChromeUtils.importESModule(
 const PRODUCT_URI = Services.io.newURI(
   "https://example.com/product/B09TJGHL5F"
 );
+const CONTENT_PAGE_URI = Services.io.newURI("https://example.com");
+const UNSUPPORTED_NON_PDP_URI = Services.io.newURI("about:about");
 const REVIEW_CHECKER_ACTOR = "ReviewChecker";
 
 /**
@@ -160,6 +162,151 @@ add_task(async function test_showOnboarding_notOptedIn() {
     }
   }
 });
+
+/**
+ * Test to check onboarding message container is rendered
+ * when user is not opted-in for the sidebar integrated version
+ * of Review Checker, except this time after viewing a non PDP in a supported site.
+ */
+add_task(async function test_showOnboarding_notOptedIn_supported() {
+  // OptedIn pref Value is 0 when a user hasn't opted-in
+  setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
+
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
+  await BrowserTestUtils.withNewTab(
+    {
+      url: "about:shoppingsidebar",
+      gBrowser,
+    },
+    async browser => {
+      // Get the actor to update the product URL, since no content will render without one
+      let actor =
+        gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
+          REVIEW_CHECKER_ACTOR
+        );
+      actor.updateCurrentURL(CONTENT_PAGE_URI);
+
+      await SpecialPowers.spawn(browser, [], async () => {
+        let shoppingContainer = await ContentTaskUtils.waitForCondition(
+          () => content.document.querySelector("shopping-container"),
+          "shopping-container"
+        );
+        let containerElem =
+          shoppingContainer.shadowRoot.getElementById("shopping-container");
+        let messageSlot = containerElem.getElementsByTagName("slot");
+
+        // Check multi-stage-message-slot used to show opt-In message is
+        // rendered inside shopping container when user optedIn pref value is 0
+        ok(messageSlot.length, `message slot element exists`);
+        is(
+          messageSlot[0].name,
+          "multi-stage-message-slot",
+          "multi-stage-message-slot showing opt-in message rendered"
+        );
+
+        ok(
+          !content.document.getElementById("multi-stage-message-root").hidden,
+          "message is shown"
+        );
+        ok(
+          content.document.querySelector(".FS_OPT_IN_SIDEBAR_VARIANT"),
+          "Rendered correct message"
+        );
+      });
+    }
+  );
+
+  if (!AppConstants.platform != "linux") {
+    await Services.fog.testFlushAllChildren();
+    const events = Glean.shopping.surfaceOnboardingDisplayed.testGetValue();
+
+    if (events) {
+      Assert.greater(events.length, 0);
+      Assert.equal(events[0].category, "shopping");
+      Assert.equal(events[0].name, "surface_onboarding_displayed");
+    } else {
+      info("Failed to get Glean value due to unknown bug. See bug 1862389.");
+    }
+  }
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Test to check onboarding message container is rendered
+ * when user is not opted-in for the sidebar integrated version
+ * of Review Checker, except this time showing a different variant
+ * for unsupported sites.
+ */
+add_task(
+  async function test_showOnboarding_notOptedIn_integrated_sidebar_unsupported() {
+    // OptedIn pref Value is 0 when a user hasn't opted-in
+    setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
+
+    Services.fog.testResetFOG();
+    await Services.fog.testFlushAllChildren();
+
+    await BrowserTestUtils.withNewTab(
+      {
+        url: "about:shoppingsidebar",
+        gBrowser,
+      },
+      async browser => {
+        // Get the actor to update the product URL, since no content will render without one
+        let actor =
+          gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
+            REVIEW_CHECKER_ACTOR
+          );
+        actor.updateCurrentURL(UNSUPPORTED_NON_PDP_URI);
+
+        await SpecialPowers.spawn(browser, [], async () => {
+          let shoppingContainer = await ContentTaskUtils.waitForCondition(
+            () => content.document.querySelector("shopping-container"),
+            "shopping-container"
+          );
+
+          let containerElem =
+            shoppingContainer.shadowRoot.getElementById("shopping-container");
+          let messageSlot = containerElem.getElementsByTagName("slot");
+
+          // Check multi-stage-message-slot used to show opt-In message is
+          // rendered inside shopping container when user optedIn pref value is 0
+          ok(messageSlot.length, `message slot element exists`);
+          is(
+            messageSlot[0].name,
+            "multi-stage-message-slot",
+            "multi-stage-message-slot showing opt-in message rendered"
+          );
+          ok(
+            !content.document.getElementById("multi-stage-message-root").hidden,
+            "message is shown"
+          );
+          ok(
+            content.document.querySelector(
+              ".FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP"
+            ),
+            "Rendered correct message"
+          );
+        });
+      }
+    );
+
+    if (!AppConstants.platform != "linux") {
+      await Services.fog.testFlushAllChildren();
+      const events = Glean.shopping.surfaceOnboardingDisplayed.testGetValue();
+
+      if (events) {
+        Assert.greater(events.length, 0);
+        Assert.equal(events[0].category, "shopping");
+        Assert.equal(events[0].name, "surface_onboarding_displayed");
+      } else {
+        info("Failed to get Glean value due to unknown bug. See bug 1862389.");
+      }
+    }
+    await SpecialPowers.popPrefEnv();
+  }
+);
 
 /**
  * Test to check onboarding message is not shown for opted-in users

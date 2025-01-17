@@ -873,6 +873,11 @@ panel#feature-callout[arrow-position=inline-start-bottom] {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(58, 57, 68, 0.2);
   overflow-x: auto;
+  /**
+   * Overwrite other styles that are applied with widths less or more than 800px.
+   * We want the opt-in screens for the Review Checker sidebar panel to expand horizontally and stay centered,
+   * regardless of sidebar width.
+   */
 }
 @media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
   .onboardingContainer.shopping .screen[pos=split] {
@@ -882,32 +887,71 @@ panel#feature-callout[arrow-position=inline-start-bottom] {
 .onboardingContainer.shopping .screen[pos=split]::before {
   display: none;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP {
   box-shadow: none;
+  flex-direction: column;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main {
+  margin: 0;
+}
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content {
   background-color: transparent;
+  margin-block-start: 9em;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content.no-steps {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content.no-steps, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content.no-steps {
+  align-items: center;
   padding: 0;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .main-content-inner {
-  justify-content: unset;
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content picture.logo-container, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content picture.logo-container {
+  display: flex;
+  justify-content: center;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .welcome-text {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content picture.logo-container .brand-logo, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content picture.logo-container .brand-logo {
+  width: 244px;
+  height: auto;
+  /* We want to reduce image width on smaller sidebar width size. */
+}
+@media (width <= 270px) {
+  .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content picture.logo-container .brand-logo, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content picture.logo-container .brand-logo {
+    width: 157px;
+    margin-block-end: 12px;
+  }
+}
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .main-content-inner, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .main-content-inner {
+  justify-content: center;
+  align-items: center;
+  max-width: 23em;
+  min-height: unset;
+}
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .welcome-text, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .welcome-text {
   padding-inline: 16px;
-  margin-block: 20px 8px;
+  margin-block: 0 8px;
+  margin-inline: 0;
   text-align: center;
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .welcome-text h1 {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .welcome-text h1, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .welcome-text h1 {
   font-weight: var(--font-weight-bold);
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .link-paragraph {
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .link-paragraph, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .link-paragraph {
+  color: var(--text-color-deemphasized);
   padding-inline: 16px;
   margin-block: 0 20px;
   text-align: center;
+  /**
+   * Intentionally hide body text on smaller sidebar widths to prevent text from flowing downwards and causing overflow.
+   * Use -webkit-line-clamp and -webkit-box-orient to add an ellipsis to multiline text when overflow occurs.
+   */
 }
-.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .legal-paragraph {
+@media (width <= 270px) {
+  .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .link-paragraph, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .link-paragraph {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+  }
+}
+.onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT .section-main .main-content .legal-paragraph, .onboardingContainer.shopping .screen[pos=split].FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP .section-main .main-content .legal-paragraph {
   padding-inline: 16px;
   margin-block: 0 40px;
   color: var(--text-color-deemphasized);

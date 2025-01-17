@@ -539,6 +539,11 @@ export class ShoppingContainer extends MozLitElement {
   }
 
   renderContainer(sidebarContent, { showSettings = false } = {}) {
+    /* Empty state styles for users that are not yet opted-in are managed separately
+     * by AboutWelcomeChild.sys.mjs and _shopping.scss. To prevent overlap, only apply
+     * the class for these styles if a user is opted-in. */
+    const canStyleEmptyState =
+      !this.isProductPage && !this.isOffline && !this.showOnboarding;
     return html`<link
         rel="stylesheet"
         href="chrome://browser/content/shopping/shopping-container.css"
@@ -555,9 +560,7 @@ export class ShoppingContainer extends MozLitElement {
         ${this.showHeader ? this.headerTemplate() : null}
         <div
           id="content"
-          class=${!this.isProductPage && !this.isOffline
-            ? "is-empty-state"
-            : ""}
+          class=${canStyleEmptyState ? "is-empty-state" : ""}
           aria-live="polite"
           aria-busy=${!this.data}
         >

@@ -421,17 +421,93 @@ const OPTIN_SIDEBAR_VARIANT = {
         title: { string_id: "shopping-opt-in-integrated-headline" },
         logo: {
           type: "image",
-          imageURL: "chrome://browser/content/shopping/assets/optInLight.avif",
-          darkModeImageURL:
-            "chrome://browser/content/shopping/assets/optInDark.avif",
-          marginInline: "24px",
-          marginBlock: "50% 0",
+          imageURL: "chrome://browser/content/shopping/assets/emptyStateB.svg",
         },
         above_button_content: [
           {
             type: "text",
             text: {
-              string_id: "",
+              string_id: "shopping-opt-in-integrated-subtitle",
+            },
+            link_keys: ["learn_more"],
+            args: {},
+          },
+          {
+            type: "text",
+            text: {
+              string_id:
+                "shopping-opt-in-integrated-privacy-policy-and-terms-of-use",
+            },
+            link_keys: ["privacy_policy", "terms_of_use"],
+            font_styles: "legal",
+          },
+        ],
+        learn_more: {
+          action: {
+            type: "OPEN_URL",
+            data: {
+              args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/review-checker-review-quality?utm_source=review-checker&utm_campaign=learn-more&utm_medium=in-product",
+              where: "tab",
+            },
+          },
+        },
+        privacy_policy: {
+          action: {
+            type: "OPEN_URL",
+            data: {
+              args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
+              where: "tab",
+            },
+          },
+        },
+        terms_of_use: {
+          action: {
+            type: "OPEN_URL",
+            data: {
+              args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
+              where: "tab",
+            },
+          },
+        },
+        primary_button: {
+          should_focus_button: true,
+          label: { string_id: "shopping-opt-in-integrated-button" },
+          action: {
+            type: "SET_PREF",
+            data: {
+              pref: {
+                name: "browser.shopping.experience2023.optedIn",
+                value: 1,
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+};
+
+const OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP = {
+  id: "FAKESPOT_OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP",
+  template: "multistage",
+  backdrop: "transparent",
+  aria_role: "alert",
+  UTMTerm: "opt-in",
+  screens: [
+    {
+      id: "FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP",
+      content: {
+        position: "split",
+        title: { string_id: "shopping-opt-in-integrated-headline" },
+        logo: {
+          type: "image",
+          imageURL: "chrome://browser/content/shopping/assets/emptyStateC.svg",
+        },
+        above_button_content: [
+          {
+            type: "text",
+            text: {
+              string_id: "shopping-opt-in-integrated-subtitle-unsupported-site",
             },
             link_keys: ["learn_more"],
             args: {},
@@ -894,7 +970,8 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
 
   handleEvent(event) {
     // Decide when to show/hide onboarding and survey message
-    const { productUrl, showOnboarding, data } = event.detail;
+    const { productUrl, showOnboarding, data, isSupportedSite, isProductPage } =
+      event.detail;
     this.showOnboarding = showOnboarding;
 
     // Display onboarding if a user hasn't opted-in
@@ -907,7 +984,7 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
     if (optInReady) {
       // Render opt-in message
       AboutWelcomeShoppingChild.optedInSession = true;
-      this.AWSetProductURL(productUrl);
+      this.AWSetProductURL(productUrl, isProductPage, isSupportedSite);
       this.renderMessage();
       return;
     }
@@ -1001,64 +1078,26 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
     }
   }
 
-  AWSetProductURL(productUrl) {
+  AWSetProductURL(productUrl, isProductPage, isSupportedSite) {
     let productHostname;
     if (productUrl) {
       productHostname = new URL(productUrl).hostname;
     }
     let content = lazy.isIntegratedSidebar
-      ? this._AWGetOptInSidebarVariantContent(productHostname)
+      ? this._AWGetOptInSidebarVariantContent(isProductPage, isSupportedSite)
       : this._AWGetOptInDefaultContent(productHostname);
     optInDynamicContent = content;
   }
 
-  _AWGetOptInSidebarVariantContent(productUrl) {
-    let content = JSON.parse(JSON.stringify(OPTIN_SIDEBAR_VARIANT));
-    const [optInScreen] = content.screens;
+  _AWGetOptInSidebarVariantContent(isProductPage, isSupportedSite) {
+    let content;
 
-    if (productUrl) {
-      optInScreen.content.above_button_content[0].text.string_id =
-        "shopping-opt-in-integrated-subtitle-all-sites";
-
-      switch (
-        productUrl // Insert the productUrl into content
-      ) {
-        case "www.amazon.fr":
-        case "www.amazon.de":
-          optInScreen.content.above_button_content[0].text.string_id =
-            "shopping-opt-in-integrated-subtitle-single-site";
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-          };
-          break;
-        case "www.amazon.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-            secondSite: "Walmart",
-            thirdSite: "Best Buy",
-          };
-          break;
-        case "www.walmart.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Walmart",
-            secondSite: "Amazon",
-            thirdSite: "Best Buy",
-          };
-          break;
-        case "www.bestbuy.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Best Buy",
-            secondSite: "Amazon",
-            thirdSite: "Walmart",
-          };
-          break;
-        default:
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-            secondSite: "Walmart",
-            thirdSite: "Best Buy",
-          };
-      }
+    if (!isProductPage && !isSupportedSite) {
+      content = JSON.parse(
+        JSON.stringify(OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP)
+      );
+    } else {
+      content = JSON.parse(JSON.stringify(OPTIN_SIDEBAR_VARIANT));
     }
 
     return content;

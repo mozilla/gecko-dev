@@ -28,23 +28,55 @@
     display: none;
   }
 
-  &.FS_OPT_IN_SIDEBAR_VARIANT {
+  /**
+   * Overwrite other styles that are applied with widths less or more than 800px.
+   * We want the opt-in screens for the Review Checker sidebar panel to expand horizontally and stay centered,
+   * regardless of sidebar width.
+   */
+  &.FS_OPT_IN_SIDEBAR_VARIANT, &.FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP {
     box-shadow: none;
+    flex-direction: column;
+
+    .section-main {
+      margin: 0;
+    }
 
     .section-main .main-content {
       background-color: transparent;
+      margin-block-start: 9em;
 
       &.no-steps {
+        align-items: center;
         padding: 0;
       }
 
+      picture.logo-container {
+        display: flex;
+        justify-content: center;
+
+        .brand-logo {
+          width: 244px;
+          height: auto;
+
+          /* We want to reduce image width on smaller sidebar width size. */
+          @media (width <= 270px) {
+            width: 157px;
+            margin-block-end: 12px;
+          }
+        }
+      }
+
       .main-content-inner {
-        justify-content: unset;
+        justify-content: center;
+        align-items: center;
+        max-width: 23em;
+        min-height: unset;
       }
 
       .welcome-text {
         padding-inline: 16px;
-        margin-block: 20px 8px;
+        margin-block: 0 8px;
+        margin-inline: 0;
         text-align: center;
 
         h1 {
@@ -53,9 +85,22 @@
       }
 
       .link-paragraph {
+        color: var(--text-color-deemphasized);
         padding-inline: 16px;
         margin-block: 0 20px;
         text-align: center;
+
+        /**
+         * Intentionally hide body text on smaller sidebar widths to prevent text from flowing downwards and causing overflow.
+         * Use -webkit-line-clamp and -webkit-box-orient to add an ellipsis to multiline text when overflow occurs.
+         */
+        @media (width <= 270px) {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 4;
+          -webkit-box-orient: vertical;
+        }
       }
 
       .legal-paragraph {

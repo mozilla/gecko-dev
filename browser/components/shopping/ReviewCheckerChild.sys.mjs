@@ -370,9 +370,14 @@ export class ReviewCheckerChild extends RemotePageChild {
     }
 
     let isProductPage = isProductURL(uri);
+    let isSupportedSite = isSupportedSiteURL(uri);
 
     if (!this.canFetchAndShowData) {
-      this.showOnboarding({ productUrl: uri.spec });
+      this.showOnboarding({
+        productUrl: uri.spec,
+        isProductPage,
+        isSupportedSite,
+      });
       return;
     }
 
@@ -390,7 +395,6 @@ export class ReviewCheckerChild extends RemotePageChild {
         await this.updateRecommendations(product);
       }
     } else {
-      let isSupportedSite = isSupportedSiteURL(uri);
       let supportedDomains = ShoppingProduct.getSupportedDomains();
       // If the URI is not a product page, we should display an empty state.
       // That empty state could be for either a support or unsupported site.
@@ -664,13 +668,10 @@ export class ReviewCheckerChild extends RemotePageChild {
    *
    * @param {object?} options
    * @param {string} [options.productUrl] URL of the current product if this is a product page.
+   * @param {boolean} [options.isProductPage] True if a product page, else false.
+   * @param {boolean} [options.isSupportedSite] True if a supported site, else false.
    */
-  showOnboarding({ productUrl } = {}) {
-    // Don't bother continuing if the user has opted out.
-    if (lazy.optedIn == 2) {
-      return;
-    }
-
+  showOnboarding({ productUrl, isProductPage, isSupportedSite } = {}) {
     // Similar to canContinue() above, check to see if things
     // have changed while we were waiting. Bail out if the user
     // opted in, or if the actor doesn't exist.
@@ -683,6 +684,8 @@ export class ReviewCheckerChild extends RemotePageChild {
       showOnboarding: true,
       data: null,
       productUrl,
+      isProductPage,
+      isSupportedSite,
     });
   }
 

@@ -452,7 +452,7 @@ add_task(async function test_onboarding_resets_after_opt_out() {
 });
 
 add_task(
-  async function test_onboarding_resets_after_opt_out_sidebar_integrated() {
+  async function test_onboarding_resets_after_opt_out_integrated_sidebar() {
     // Verify the fix for bug 1900486.
     await SpecialPowers.pushPrefEnv({
       set: [
@@ -463,6 +463,7 @@ add_task(
         ["browser.shopping.experience2023.survey.pdpVisits", 5],
         ["browser.shopping.experience2023.survey.optedInTime", time25HrsAgo],
         ["browser.shopping.experience2023.integratedSidebar", true],
+        ["browser.shopping.experience2023.shoppingSidebar", false],
       ],
     });
     await BrowserTestUtils.withNewTab(
@@ -473,7 +474,7 @@ add_task(
       async browser => {
         await SpecialPowers.spawn(
           browser,
-          [MOCK_ANALYZED_PRODUCT_RESPONSE],
+          [MOCK_ANALYZED_PRODUCT_RESPONSE, PRODUCT_TEST_URL],
           async mockData => {
             const { TestUtils } = ChromeUtils.importESModule(
               "resource://testing-common/TestUtils.sys.mjs"
@@ -530,7 +531,14 @@ add_task(
             let optInShown = ContentTaskUtils.waitForMutationCondition(
               root,
               { childList: true },
-              () => root.querySelector(".screen.FS_OPT_IN_SIDEBAR_VARIANT")
+              /**
+               * Since we're using an older mock system, the current URL will still be read as about:shoppingsidebar,
+               * which is considered an unsupported site / non PDP for the integrated RC empty states.
+               */
+              () =>
+                root.querySelector(
+                  ".screen.FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP"
+                )
             );
             content.document.dispatchEvent(
               new content.CustomEvent("Update", {

@@ -237,7 +237,10 @@ export class AboutWelcomeTelemetry {
     // This function helps direct a shopping ping to the correct Glean event.
     if (
       message_id.startsWith("FAKESPOT_OPTIN_DEFAULT") ||
-      message_id.startsWith("FAKESPOT_OPTIN_SIDEBAR_VARIANT")
+      message_id.startsWith("FAKESPOT_OPTIN_SIDEBAR_VARIANT") ||
+      message_id.startsWith(
+        "FAKESPOT_OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP"
+      )
     ) {
       // Onboarding page message IDs are generated, but can reliably be
       // assumed to start in this manner.
