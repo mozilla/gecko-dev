@@ -63,9 +63,9 @@
  *			Spencer Garrett <srg@quick.com>
  */
 
-
 #include <sys/types.h>
 #include <r_types.h>
+#include <r_crc32.h>
 
 #ifdef WIN32
 #define u_int32_t  UINT4
@@ -147,14 +147,7 @@ static const u_int32_t crctab[256] = {
 #include <stdio.h>
 #include <sys/types.h>
 
-
-int r_crc32 (char *buf,int dlen,u_int32_t *cval);
-
-int
-r_crc32(buf, dlen, cval)
-  char *buf;
-  int dlen;
-  u_int32_t *cval;
+int r_crc32(char *buf, int dlen, u_int32_t *cval)
 {
     u_int32_t crc = ~0;
     char *p = 0;
