@@ -7,6 +7,10 @@ ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
+const { EnterprisePolicyTesting } = ChromeUtils.importESModule(
+  "resource://testing-common/EnterprisePolicyTesting.sys.mjs"
+);
+
 const test = new SearchConfigTest({
   identifier: "google",
   aliases: ["@google"],
@@ -172,4 +176,40 @@ add_task(async function test_searchConfig_google_with_nimbus() {
   }
 
   sandbox.restore();
+});
+
+add_task(async function test_searchConfig_google_enterprise() {
+  const TEST_DATA = [
+    {
+      locale: "en-US",
+      region: "US",
+    },
+    {
+      locale: "en-US",
+      region: "GB",
+    },
+  ];
+
+  Services.search.wrappedJSObject.reset();
+  await EnterprisePolicyTesting.setupPolicyEngineWithJson({
+    policies: {
+      BlockAboutSupport: true,
+    },
+  });
+  await Services.search.init();
+
+  for (const testData of TEST_DATA) {
+    info(`Checking region ${testData.region}, locale ${testData.locale}`);
+    const engines = await test._getEngines(testData.region, testData.locale);
+    Assert.ok(
+      engines[0].identifier.startsWith("google"),
+      "Should have the correct engine"
+    );
+    const submission = engines[0].getSubmission("test", URLTYPE_SEARCH_HTML);
+    info(submission.uri.query);
+    Assert.ok(
+      submission.uri.query.split("&").includes("channel=entpr"),
+      "Should be including the enterprise parameter for the engine"
+    );
+  }
 });
