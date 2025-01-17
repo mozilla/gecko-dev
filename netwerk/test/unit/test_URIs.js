@@ -1149,5 +1149,16 @@ add_task(async function test_bug1939493() {
   // Clearing the host should fail, as there are still user, port, pass in play.
   Assert.throws(() => {
     uri = uri.mutate().setHost("").finalize();
-  }, /NS_ERROR_UNEXPECTED/);
+  }, /NS_ERROR_MALFORMED_URI/);
+
+  uri = uri
+    .mutate()
+    .setUserPass("")
+    .setUsername("")
+    .setPassword("")
+    .setPort(-1)
+    .setHost("")
+    .finalize();
+
+  Assert.equal(uri.spec, "resource:///components/");
 });

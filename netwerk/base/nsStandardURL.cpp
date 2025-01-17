@@ -1903,9 +1903,9 @@ nsresult nsStandardURL::SetHost(const nsACString& input) {
     NS_WARNING("cannot set host on no-auth url");
     return NS_ERROR_UNEXPECTED;
   }
-  if (flat.IsEmpty()) {
-    // Setting an empty hostname is not allowed for
-    // URLTYPE_STANDARD and URLTYPE_AUTHORITY.
+
+  if (mURLType == URLTYPE_AUTHORITY && flat.IsEmpty()) {
+    // Setting an empty hostname is not allowed for URLTYPE_AUTHORITY.
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -1946,7 +1946,7 @@ nsresult nsStandardURL::SetHost(const nsACString& input) {
   // NormalizeIDN always copies if the call was successful
   len = hostBuf.Length();
 
-  if (!len) {
+  if (!len && (mPort != -1 || Userpass(true).Length() > 0)) {
     return NS_ERROR_MALFORMED_URI;
   }
 
