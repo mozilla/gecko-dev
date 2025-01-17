@@ -169,6 +169,10 @@ struct DummyArenaAllocator {
 
   static void moz_set_max_dirty_page_modifier(int32_t) {}
 
+  static bool moz_enable_deferred_purge(bool aEnable) { return false; }
+
+  static bool moz_may_purge_one_now(bool aPeekOnly) { return false; }
+
 #define MALLOC_DECL(name, return_type, ...)                 \
   static return_type moz_arena_##name(                      \
       arena_id_t, ARGS_HELPER(TYPED_ARGS, ##__VA_ARGS__)) { \

@@ -547,6 +547,14 @@ static void replace_moz_set_max_dirty_page_modifier(int32_t aModifier) {
   return gMallocTable.moz_set_max_dirty_page_modifier(aModifier);
 }
 
+static bool replace_moz_enable_deferred_purge(bool aEnable) {
+  return gMallocTable.moz_enable_deferred_purge(aEnable);
+}
+
+static bool replace_moz_may_purge_one_now(bool aPeekOnly) {
+  return gMallocTable.moz_may_purge_one_now(aPeekOnly);
+}
+
 // Must come after all the replace_* funcs
 void replace_init(malloc_table_t* aMallocTable, ReplaceMallocBridge** aBridge) {
   gMallocTable = *aMallocTable;
