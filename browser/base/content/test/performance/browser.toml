@@ -53,7 +53,7 @@ skip-if = [
 ]
 
 ["browser_startup.js"]
-# This test should be treated more like a test suite than like an individual test. 
+# This test should be treated more like a test suite than like an individual test.
 # If a specific failure needs to be disabled, there are exception lists inside
 # the test that can be adjusted.
 
