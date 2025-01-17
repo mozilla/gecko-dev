@@ -8,8 +8,8 @@ Jinja2 template is not. Please file bugs! #}
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_Metrics_h
-#define mozilla_Metrics_h
+#ifndef mozilla_GleanMetrics_h
+#define mozilla_GleanMetrics_h
 
 #include "mozilla/glean/bindings/MetricTypes.h"
 #include "mozilla/Maybe.h"
@@ -20,12 +20,15 @@ Jinja2 template is not. Please file bugs! #}
 
 namespace mozilla::glean {
 
+struct NoExtraKeys;
+enum class DynamicLabel: uint16_t { };
+
 {%- macro generate_extra_keys(obj) -%}
 {% for name, suffix in obj["_generate_enums"] %}
 {# we always use the `extra` suffix, because we only expose the new event API #}
 {% set suffix = "Extra" %}
 {% if obj|attr(name)|length %}
-    {{ extra_keys_with_types(obj, name, suffix)|indent }}
+  {{ extra_keys_with_types(obj, name, suffix)|indent(2) }}
 {% endif %}
 {% endfor %}
 {%- endmacro -%}
@@ -72,32 +75,34 @@ enum class {{ obj.name|Camelize }}Label: uint16_t {
 };
 {%- endmacro %}
 
-struct NoExtraKeys;
-enum class DynamicLabel: uint16_t { };
-
 {% for category_name, objs in all_objs.items() %}
+
 namespace {{ category_name|snake_case }} {
   {% for obj in objs.values() %}
   {% if obj.type != "object" %}{# TODO(bug 1881023): Add C++ support #}
   /**
    * generated from {{ category_name }}.{{ obj.name }}
+  {% if obj|attr("_generate_enums") or (obj.labeled and obj.labels and obj.labels|length) %}
    */
   {% if obj|attr("_generate_enums") %}
 {{ generate_extra_keys(obj) }}
   {%- endif %}
   {% if obj.labeled and obj.labels and obj.labels|length %}
-  {{ generate_label_enum(obj)|indent }}
+  {{ generate_label_enum(obj)|indent(2) }}
   {% endif %}
   /**
-   * {{ obj.description|wordwrap() | replace('\n', '\n     * ') }}
+  {% endif %}
+   * {{ obj.description|wordwrap() | replace('\n', '\n   * ') }}
    */
   constexpr impl::{{ obj|type_name }} {{obj.name|snake_case }}({{obj|metric_id}});
   {% endif %}
+  {% if not loop.last %}
 
+  {% endif %}
   {% endfor %}
 }
 {% endfor %}
 
 } // namespace mozilla::glean
 
-#endif // mozilla_Metrics_h
+#endif // mozilla_GleanMetrics_h
