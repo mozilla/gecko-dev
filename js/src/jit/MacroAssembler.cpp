@@ -4242,11 +4242,9 @@ void MacroAssembler::convertValueToInt(
   }
 
   // Try converting double into integer.
-  if (isDouble.used() || handleStrings) {
-    if (isDouble.used()) {
-      bind(&isDouble);
-      unboxDouble(value, temp);
-    }
+  {
+    bind(&isDouble);
+    unboxDouble(value, temp);
 
     if (handleStrings) {
       bind(handleStringRejoin);
@@ -4279,11 +4277,9 @@ void MacroAssembler::convertValueToInt(
   }
 
   // Integers can be unboxed.
-  if (isInt32.used() || handleStringIndices) {
-    if (isInt32.used()) {
-      bind(&isInt32);
-      unboxInt32(value, output);
-    }
+  {
+    bind(&isInt32);
+    unboxInt32(value, output);
 
     if (handleStringIndices) {
       bind(&handleStringIndex);
