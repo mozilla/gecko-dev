@@ -72,7 +72,6 @@
     color: currentColor;
     min-height: 2.6666em;
     position: relative;
-    padding-inline-start: 28px;
 
     &:hover,
     &[selected] {
@@ -84,9 +83,8 @@
     content: "";
     position: absolute;
     top: 0;
-    inset-inline-start: 50%;
-    transform: translateX(-50%);
-    width: 95%;
+    inset-inline-start: 4px;
+    width: calc(100% - 8px);
     border-top: 1px solid var(--panel-separator-color);
   }
 
