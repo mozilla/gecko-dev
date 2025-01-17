@@ -73,6 +73,8 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1794904
 
 ["browser_jsonview_nul.js"]
 
+["browser_jsonview_numbers.js"]
+
 ["browser_jsonview_object-type.js"]
 
 ["browser_jsonview_row_selection.js"]

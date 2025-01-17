@@ -55,6 +55,21 @@
   color: var(--number-color);
 }
 
+.objectBox-json-number .parsed-value {
+  border: 1px solid;
+  border-radius: 4px;
+  margin-inline-start: 8px;
+  padding-inline: 2px;
+  text-wrap: nowrap;
+  font-size: 10px;
+}
+
+.objectBox-json-number .parsed-value .parsed-value-prefix {
+  font-weight: bold;
+  font-variant: small-caps;
+  margin-inline-end: 2px;
+}
+
 .objectBox-textNode,
 .objectBox-string,
 .objectBox-symbol {

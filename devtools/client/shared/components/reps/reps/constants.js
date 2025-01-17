@@ -14,5 +14,6 @@ define(function (require, exports, module) {
       // Used by Debugger Preview popup
       HEADER: Symbol("HEADER"),
     },
+    JSON_NUMBER: Symbol("JSON_NUMBER"),
   };
 });

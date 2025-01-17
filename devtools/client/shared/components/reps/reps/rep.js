@@ -11,6 +11,7 @@ define(function (require, exports, module) {
   const Null = require("resource://devtools/client/shared/components/reps/reps/null.js");
   const StringRep = require("resource://devtools/client/shared/components/reps/reps/string.js");
   const Number = require("resource://devtools/client/shared/components/reps/reps/number.js");
+  const JsonNumber = require("resource://devtools/client/shared/components/reps/reps/json-number.js");
   const ArrayRep = require("resource://devtools/client/shared/components/reps/reps/array.js");
   const Obj = require("resource://devtools/client/shared/components/reps/reps/object.js");
   const SymbolRep = require("resource://devtools/client/shared/components/reps/reps/symbol.js");
@@ -79,7 +80,15 @@ define(function (require, exports, module) {
   ];
 
   // Reps for rendering of native object reference (e.g. used from the JSONViewer, Netmonitor, …)
-  const noGripReps = [StringRep, Number, ArrayRep, Undefined, Null, Obj];
+  const noGripReps = [
+    StringRep,
+    JsonNumber,
+    Number,
+    ArrayRep,
+    Undefined,
+    Null,
+    Obj,
+  ];
 
   /**
    * Generic rep that is used for rendering native JS types or an object.
