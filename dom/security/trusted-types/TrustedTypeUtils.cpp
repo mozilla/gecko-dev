@@ -484,7 +484,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
     requireTrustedTypesForDirectiveState =
-            cspInfo.requireTrustedTypesForDirectiveState();
+        cspInfo.requireTrustedTypesForDirectiveState();
     if (requireTrustedTypesForDirectiveState ==
         RequireTrustedTypesForDirectiveState::NONE) {
       return GetAsString(aInput);
@@ -504,8 +504,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   if (!convertedInput) {
     if (piDOMWindowInner) {
       ReportSinkTypeMismatchViolations(csp, nullptr /* aCSPEventListener */,
-                                       aSink, aSinkGroup,
-                                       *GetAsString(aInput));
+                                       aSink, aSinkGroup, *GetAsString(aInput));
     } else {
       MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
       MOZ_ASSERT(!NS_IsMainThread());
