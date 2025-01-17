@@ -47,22 +47,9 @@
   white-space: nowrap;
 }
 
-/* Icon for close button */
-#devtools-network-search-close::before {
-  background-image: url("chrome://devtools/skin/images/close.svg");
-}
-
 /* Case Sensitive button */
 #devtools-network-search-caseSensitive::before {
   background-image: url("chrome://devtools/skin/images/case-match.svg");
-}
-
-
-#devtools-network-search-close > button {
-  margin: 0 !important;
-  border-radius: 0 !important;
-  position: relative;
-  min-width: 26px;
 }
 
 button.case-sensitive-btn {
