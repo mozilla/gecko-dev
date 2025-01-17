@@ -253,7 +253,9 @@ void ProcessRuntime::InitInsideApartment() {
     // We are required to initialize security prior to configuring global
     // options.
     mInitResult = InitializeSecurity(mProcessCategory);
-    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(mInitResult));
+    // Downgrading from a MOZ_DIAGNOSTIC_ASSERT while investigating
+    // bug 1930846.
+    MOZ_ASSERT(SUCCEEDED(mInitResult));
 
     // Even though this isn't great, we should try to proceed even when
     // CoInitializeSecurity has previously been called: the additional settings
