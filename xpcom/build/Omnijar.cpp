@@ -37,6 +37,7 @@ void Omnijar::CleanUpOne(Type aType) {
 }
 
 nsresult Omnijar::InitOne(nsIFile* aPath, Type aType) {
+  constexpr auto kOmnijarName = nsLiteralCString{MOZ_STRINGIFY(OMNIJAR_NAME)};
   nsCOMPtr<nsIFile> file;
   if (aPath) {
     file = aPath;
@@ -44,7 +45,6 @@ nsresult Omnijar::InitOne(nsIFile* aPath, Type aType) {
     nsCOMPtr<nsIFile> dir;
     MOZ_TRY(nsDirectoryService::gService->Get(SPROP(aType), NS_GET_IID(nsIFile),
                                               getter_AddRefs(dir)));
-    constexpr auto kOmnijarName = nsLiteralCString{MOZ_STRINGIFY(OMNIJAR_NAME)};
     MOZ_TRY(dir->Clone(getter_AddRefs(file)));
     MOZ_TRY(file->AppendNative(kOmnijarName));
   }
@@ -88,8 +88,8 @@ nsresult Omnijar::InitOne(nsIFile* aPath, Type aType) {
   RefPtr<nsZipArchive> outerReader;
   RefPtr<nsZipHandle> handle;
   // If we find a wrapped OMNIJAR, unwrap it.
-  if (NS_SUCCEEDED(nsZipHandle::Init(zipReader, MOZ_STRINGIFY(OMNIJAR_NAME),
-                                     getter_AddRefs(handle)))) {
+  if (NS_SUCCEEDED(
+          nsZipHandle::Init(zipReader, kOmnijarName, getter_AddRefs(handle)))) {
     outerReader = zipReader;
     zipReader = nsZipArchive::OpenArchive(handle);
     if (!zipReader) {

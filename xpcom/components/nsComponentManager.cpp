@@ -398,7 +398,7 @@ nsresult nsComponentManagerImpl::Init() {
     RefPtr<nsZipArchive> greOmnijar =
         mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
     if (greOmnijar) {
-      cl->location.Init(greOmnijar, "chrome.manifest");
+      cl->location.Init(greOmnijar, "chrome.manifest"_ns);
     } else {
       nsCOMPtr<nsIFile> lf = CloneAndAppend(greDir, "chrome.manifest"_ns);
       cl->location.Init(lf);
@@ -409,7 +409,7 @@ nsresult nsComponentManagerImpl::Init() {
     if (appOmnijar) {
       cl = sModuleLocations->AppendElement();
       cl->type = NS_APP_LOCATION;
-      cl->location.Init(appOmnijar, "chrome.manifest");
+      cl->location.Init(appOmnijar, "chrome.manifest"_ns);
     } else {
       bool equals = false;
       appDir->Equals(greDir, &equals);
@@ -523,7 +523,7 @@ void nsComponentManagerImpl::RegisterManifest(NSLocationType aType,
 void nsComponentManagerImpl::ManifestManifest(ManifestProcessingContext& aCx,
                                               int aLineNo, char* const* aArgv) {
   char* file = aArgv[0];
-  FileLocation f(aCx.mFile, file);
+  FileLocation f(aCx.mFile, nsDependentCString(file));
   RegisterManifest(aCx.mType, f, aCx.mChromeOnly);
 }
 
@@ -1457,7 +1457,7 @@ nsComponentManagerImpl::RemoveBootstrappedManifestLocation(nsIFile* aLocation) {
   elem.type = NS_BOOTSTRAPPED_LOCATION;
 
   if (Substring(path, path.Length() - 4).EqualsLiteral(".xpi")) {
-    elem.location.Init(aLocation, "chrome.manifest");
+    elem.location.Init(aLocation, "chrome.manifest"_ns);
   } else {
     nsCOMPtr<nsIFile> lf = CloneAndAppend(aLocation, "chrome.manifest"_ns);
     elem.location.Init(lf);
@@ -1540,7 +1540,7 @@ XRE_AddJarManifestLocation(NSLocationType aType, nsIFile* aLocation) {
       nsComponentManagerImpl::sModuleLocations->AppendElement();
 
   c->type = aType;
-  c->location.Init(aLocation, "chrome.manifest");
+  c->location.Init(aLocation, "chrome.manifest"_ns);
 
   if (nsComponentManagerImpl::gComponentManager &&
       nsComponentManagerImpl::NORMAL ==
