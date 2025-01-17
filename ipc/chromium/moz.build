@@ -68,8 +68,16 @@ if CONFIG["TARGET_KERNEL"] != "WINNT":
         "src/base/thread_local_posix.cc",
         "src/base/waitable_event_posix.cc",
         "src/chrome/common/ipc_channel_posix.cc",
-        "src/chrome/common/process_watcher_posix_sigchld.cc",
     ]
+
+    if CONFIG["TARGET_OS"] in ("Android", "iOS"):
+        UNIFIED_SOURCES += [
+            "src/chrome/common/process_watcher_dummy.cc",
+        ]
+    else:
+        UNIFIED_SOURCES += [
+            "src/chrome/common/process_watcher_posix_sigchld.cc",
+        ]
 
 if CONFIG["TARGET_KERNEL"] == "Darwin":
     UNIFIED_SOURCES += [

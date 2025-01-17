@@ -30,6 +30,12 @@
 #  include "mozilla/ipc/ForkServiceChild.h"
 #endif
 
+// Just to make sure the moz.build is doing the right things with
+// TARGET_OS and/or OS_TARGET:
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+#  error Unsupported OS
+#endif
+
 #if !defined(XP_DARWIN)
 // Linux, {Free,Net,Open}BSD, and Solaris; but not macOS, yet.
 #  define HAVE_PIPE2 1
