@@ -134,6 +134,9 @@ bitflags! {
         /// https://drafts.csswg.org/css-scoping-1/#the-has-slotted-pseudo
         /// Match whether a slot element has assigned nodes
         const HAS_SLOTTED = 1u64 << 48;
+        /// https://drafts.csswg.org/selectors-4/#open-state
+        /// Match whether an openable element is currently open
+        const OPEN = 1u64 << 49;
 
         /// Some convenience unions.
         const DIR_STATES = Self::LTR.bits() | Self::RTL.bits();
