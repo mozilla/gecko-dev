@@ -6064,39 +6064,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Functions for converting values to int.
   //
 
-  // Strings may be handled by providing labels to jump to when the behavior
-  // is truncation or clamping. The subroutine, usually an OOL call, is
-  // passed the unboxed string in |stringReg| and should convert it to a
-  // double store into |temp|.
-  void convertValueToInt(
-      ValueOperand value, Label* handleStringEntry, Label* handleStringRejoin,
-      Label* truncateDoubleSlow, Register stringReg, FloatRegister temp,
-      Register output, Label* fail, IntConversionBehavior behavior,
-      IntConversionInputKind conversion = IntConversionInputKind::Any);
-
   // This carries over the MToNumberInt32 operation on the ValueOperand
   // input; see comment at the top of this class.
-  void convertValueToInt32(
-      ValueOperand value, FloatRegister temp, Register output, Label* fail,
-      bool negativeZeroCheck,
-      IntConversionInputKind conversion = IntConversionInputKind::Any) {
-    convertValueToInt(
-        value, nullptr, nullptr, nullptr, InvalidReg, temp, output, fail,
-        negativeZeroCheck ? IntConversionBehavior::NegativeZeroCheck
-                          : IntConversionBehavior::Normal,
-        conversion);
-  }
+  void convertValueToInt32(ValueOperand value, FloatRegister temp,
+                           Register output, Label* fail, bool negativeZeroCheck,
+                           IntConversionInputKind conversion);
 
   // This carries over the MTruncateToInt32 operation on the ValueOperand
   // input; see the comment at the top of this class.
+  //
+  // Strings may be handled by providing labels to jump to. The subroutine,
+  // usually an OOL call, is passed the unboxed string in |stringReg| and should
+  // convert it to a double store into |temp|.
   void truncateValueToInt32(ValueOperand value, Label* handleStringEntry,
                             Label* handleStringRejoin,
                             Label* truncateDoubleSlow, Register stringReg,
-                            FloatRegister temp, Register output, Label* fail) {
-    convertValueToInt(value, handleStringEntry, handleStringRejoin,
-                      truncateDoubleSlow, stringReg, temp, output, fail,
-                      IntConversionBehavior::Truncate);
-  }
+                            FloatRegister temp, Register output, Label* fail);
 
   void truncateValueToInt32(ValueOperand value, FloatRegister temp,
                             Register output, Label* fail) {
@@ -6105,13 +6088,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
   }
 
   // Convenience functions for clamping values to uint8.
+  //
+  // Strings are handled by providing labels to jump to. The subroutine, usually
+  // an OOL call, is passed the unboxed string in |stringReg| and should convert
+  // it to a double store into |temp|.
   void clampValueToUint8(ValueOperand value, Label* handleStringEntry,
                          Label* handleStringRejoin, Register stringReg,
-                         FloatRegister temp, Register output, Label* fail) {
-    convertValueToInt(value, handleStringEntry, handleStringRejoin, nullptr,
-                      stringReg, temp, output, fail,
-                      IntConversionBehavior::ClampToUint8);
-  }
+                         FloatRegister temp, Register output, Label* fail);
 
   [[nodiscard]] bool icBuildOOLFakeExitFrame(void* fakeReturnAddr,
                                              AutoSaveLiveRegisters& save);
