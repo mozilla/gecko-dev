@@ -4108,11 +4108,6 @@ void MacroAssembler::outOfLineTruncateSlow(FloatRegister src, Register dest,
                                            bool widenFloatToDouble,
                                            bool compilingWasm,
                                            wasm::BytecodeOffset callOffset) {
-  if (compilingWasm) {
-    Push(InstanceReg);
-  }
-  int32_t framePushedAfterInstance = framePushed();
-
   ScratchDoubleScope fpscratch(*this);
   if (widenFloatToDouble) {
     convertFloat32ToDouble(src, fpscratch);
@@ -4121,22 +4116,25 @@ void MacroAssembler::outOfLineTruncateSlow(FloatRegister src, Register dest,
   MOZ_ASSERT(src.isDouble());
 
   if (compilingWasm) {
-    int32_t instanceOffset = framePushed() - framePushedAfterInstance;
+    Push(InstanceReg);
+    int32_t framePushedAfterInstance = framePushed();
+
     setupWasmABICall();
     passABIArg(src, ABIType::Float64);
+
+    int32_t instanceOffset = framePushed() - framePushedAfterInstance;
     callWithABI(callOffset, wasm::SymbolicAddress::ToInt32,
                 mozilla::Some(instanceOffset));
+    storeCallInt32Result(dest);
+
+    Pop(InstanceReg);
   } else {
     using Fn = int32_t (*)(double);
     setupUnalignedABICall(dest);
     passABIArg(src, ABIType::Float64);
     callWithABI<Fn, JS::ToInt32>(ABIType::General,
                                  CheckUnsafeCallWithABI::DontCheckOther);
-  }
-  storeCallInt32Result(dest);
-
-  if (compilingWasm) {
-    Pop(InstanceReg);
+    storeCallInt32Result(dest);
   }
 }
 
