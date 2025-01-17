@@ -1108,12 +1108,12 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
 #endif
   nsresult rv = NS_OK;
 
+  bool usingTaskController = mIsMainThread;
   {
     // Scope for |event| to make sure that its destructor fires while
     // mNestedEventLoopDepth has been incremented, since that destructor can
     // also do work.
     nsCOMPtr<nsIRunnable> event;
-    bool usingTaskController = mIsMainThread;
     if (usingTaskController) {
       event = TaskController::Get()->GetRunnableForMTTask(reallyWait);
     } else {
@@ -1180,6 +1180,24 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   }
 
   DrainDirectTasks();
+
+#ifdef MOZ_MEMORY
+  if (usingTaskController) {
+    // Check if there are any outstanding purges we should process. The purge
+    // logic asserts to only ever be run on the main thread, which is the case
+    // when using TaskController.
+    // Translates to a No-Op if the pref memory.lazypurge.enable == false.
+    //
+    // In theory this is not perfect, as we cannot guarantee that some lonely
+    // thread running will not cause an arena to want a new cleanup while the
+    // main thread never awakes after it went idle. But in practice we assume
+    // that most if not all activity on other threads will bounce back to the
+    // main thread soon and/or other events hit the main thread regularly
+    // enough in those processes we activate lazy purge for, such that this
+    // does not matter.
+    TaskController::Get()->MayScheduleIdleMemoryCleanup();
+  }
+#endif
 
   NOTIFY_EVENT_OBSERVERS(EventQueue()->EventObservers(), AfterProcessNextEvent,
                          (this, *aResult));

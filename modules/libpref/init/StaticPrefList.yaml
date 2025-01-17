@@ -12298,6 +12298,25 @@
   value: 262144
   mirror: always
 
+# Tell mozjemalloc and the TaskController to use lazy purge.
+- name: memory.lazypurge.enable
+  type: bool
+  value: true
+  mirror: always
+
+# If lazy purge is enabled, the maximum delay we wait for idle time in MS.
+- name: memory.lazypurge.maximum_delay
+  type: uint32_t
+  value: 5000
+  mirror: always
+
+# If lazy purge is enabled, the minimum idle budget we wait for in MS.
+- name: memory.lazypurge.minimum_idle_budget
+  type: uint32_t
+  value: 5
+  mirror: always
+
+
 #---------------------------------------------------------------------------
 # Prefs starting with "middlemouse."
 #---------------------------------------------------------------------------

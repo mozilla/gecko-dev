@@ -288,7 +288,7 @@ class IdleTaskManager : public TaskManager {
 // ReprioritizeTask.
 class TaskController {
  public:
-  TaskController();
+  explicit TaskController();
 
   static TaskController* Get() {
     MOZ_ASSERT(sSingleton.get());
@@ -357,6 +357,18 @@ class TaskController {
 
   static int32_t GetPoolThreadCount();
   static size_t GetThreadStackSize();
+
+#ifdef MOZ_MEMORY
+  // To be called once during startup.
+  static void SetupIdleMemoryCleanup();
+
+  // Used internally to update prefs (can't be private, though).
+  void UpdateIdleMemoryCleanupPrefs();
+
+  // If needed, schedule a round of idle processing for moz_jemalloc's
+  // idle purge.
+  void MayScheduleIdleMemoryCleanup();
+#endif
 
  private:
   friend void ThreadFuncPoolThread(void* aIndex);
@@ -432,6 +444,11 @@ class TaskController {
   // This ensures we keep running the main thread if we processed a task there.
   bool mMayHaveMainThreadTask = true;
   bool mShuttingDown = false;
+
+#ifdef MOZ_MEMORY
+  // Flag if we should trigger deferred idle purging in mozjemalloc.
+  bool mIsLazyPurgeEnabled;
+#endif
 
   // This stores whether the last main thread task runnable did work.
   // Accessed only on MainThread
