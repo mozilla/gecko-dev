@@ -29,6 +29,7 @@
 #include "mozilla/dom/CSPDictionariesBinding.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/SRIMetadata.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/StaticPrefs_security.h"
 
 using namespace mozilla;
@@ -1061,11 +1062,6 @@ void nsCSPRequireTrustedTypesForDirectiveValue::toString(
   aOutStr.Append(mValue);
 }
 
-bool nsCSPRequireTrustedTypesForDirectiveValue::
-    isRequiresTrustedTypesForSinkGroup(const nsAString& aSinkGroup) const {
-  return mValue == aSinkGroup;
-}
-
 /* =============== nsCSPTrustedTypesDirectivePolicyName =============== */
 
 nsCSPTrustedTypesDirectivePolicyName::nsCSPTrustedTypesDirectivePolicyName(
@@ -1396,15 +1392,6 @@ bool nsCSPDirective::ShouldCreateViolationForNewTrustedTypesPolicy(
   }
 
   return false;
-}
-
-bool nsCSPDirective::AreTrustedTypesForSinkGroupRequired(
-    const nsAString& aSinkGroup) const {
-  MOZ_ASSERT(mDirective ==
-             nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE);
-
-  return mSrcs.Length() == 1 &&
-         mSrcs[0]->isRequiresTrustedTypesForSinkGroup(aSinkGroup);
 }
 
 void nsCSPDirective::toString(nsAString& outStr) const {
@@ -1857,9 +1844,6 @@ void nsCSPPolicy::toDomCSPStruct(mozilla::dom::CSP& outCSP) const {
 }
 
 bool nsCSPPolicy::hasDirective(CSPDirective aDir) const {
-  if (aDir == nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE) {
-    return mHasRequireTrustedTypesForDirective;
-  }
   for (uint32_t i = 0; i < mDirectives.Length(); i++) {
     if (mDirectives[i]->equals(aDir)) {
       return true;
@@ -1894,18 +1878,8 @@ bool nsCSPPolicy::ShouldCreateViolationForNewTrustedTypesPolicy(
 
 bool nsCSPPolicy::AreTrustedTypesForSinkGroupRequired(
     const nsAString& aSinkGroup) const {
-  if (!hasDirective(
-          nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
-    return false;
-  }
-  for (const auto* directive : mDirectives) {
-    if (directive->equals(
-            nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
-      return directive->AreTrustedTypesForSinkGroupRequired(aSinkGroup);
-    }
-  }
-
-  return false;
+  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
+  return mHasRequireTrustedTypesForDirective;
 }
 
 /*

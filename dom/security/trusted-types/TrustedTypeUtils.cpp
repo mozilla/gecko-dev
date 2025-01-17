@@ -53,24 +53,15 @@ nsString GetTrustedTypeName(TrustedType aTrustedType) {
   return EmptyString();
 }
 
+#ifdef DEBUG
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
 static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
                                             const nsAString& aSinkGroup) {
-  if (!aCSP || !aCSP->GetHasPolicyWithRequireTrustedTypesForDirective()) {
-    return false;
-  }
-  uint32_t numPolicies = 0;
-  aCSP->GetPolicyCount(&numPolicies);
-  for (uint32_t i = 0; i < numPolicies; ++i) {
-    const nsCSPPolicy* policy = aCSP->GetPolicy(i);
-
-    if (policy->AreTrustedTypesForSinkGroupRequired(aSinkGroup)) {
-      return true;
-    }
-  }
-
-  return false;
+  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
+  MOZ_ASSERT(aCSP);
+  return aCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
 }
+#endif
 
 namespace SinkTypeMismatch {
 enum class Value { Blocked, Allowed };
@@ -391,6 +382,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const TrustedTypeOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, NodeOrGlobalObject& aNodeOrGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
     // A trusted type might've been created before the pref was set to `false`,
     // so we cannot assume aInput.IsString().
@@ -449,6 +441,9 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   RefPtr<nsIContentSecurityPolicy> csp;
   if (piDOMWindowInner) {
     csp = piDOMWindowInner->GetCsp();
+    if (!csp) {
+      return GetAsString(aInput);
+    }
   } else {
     MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
     // TODO(1901492): For now we do the same as when dom.security.trusted_types
@@ -456,9 +451,9 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     return GetAsString(aInput);
   }
 
-  if (!DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup)) {
-    return GetAsString(aInput);
-  }
+  // Because there is only one sink group the following assert is guaranteed by
+  // above calls to HasPolicyWithRequireTrustedTypesForDirective.
+  MOZ_ASSERT(DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup));
 
   RefPtr<ExpectedType> convertedInput;
   nsCOMPtr<nsIGlobalObject> pinnedGlobalObject = globalObject;
