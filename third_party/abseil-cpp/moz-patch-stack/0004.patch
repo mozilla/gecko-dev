@@ -1,67 +1,26 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 20 Oct 2022 16:14:00 +0000
-Subject: Bug 1795982 - pt3 - re-enable building absl/base:throw_delegate for
- missing ThrowStdOutOfRange. r=ng
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 3 Nov 2022 07:37:00 +0000
+Subject: Bug 1833541 - Correctly check for std::launder support in abseil.
+ r=webrtc-reviewers,ng
 
-More code in the new libwebrtc/third_party update uses throw_delegate, which
-until now we've been able to carefully avoid.  However, in most cases, it
-appears that ABSL_HAVE_EXCEPTIONS is turned off.  This is good because throwing
-exceptions isn't enabled, but upstream aborts instead.  A static_assert was
-added in throw_delegate.cc to verify that no exceptions can be thrown.
+Sent upstream at https://github.com/abseil/abseil-cpp/pull/1448
 
-Differential Revision: https://phabricator.services.mozilla.com/D159740
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3e09f1c91f790a6dbd0fb0faaa18fd2dd4535c50
+Differential Revision: https://phabricator.services.mozilla.com/D178274
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d976369464663a9147b82c82436afcaab1f61aec
 ---
- abseil-cpp/absl/base/BUILD.gn                   | 2 ++
- abseil-cpp/absl/base/internal/throw_delegate.cc | 4 ++++
- abseil-cpp/absl/types/BUILD.gn                  | 2 +-
- 3 files changed, 7 insertions(+), 1 deletion(-)
+ abseil-cpp/absl/functional/internal/any_invocable.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index f41d641676f..2f98fa33236 100644
---- a/abseil-cpp/absl/base/BUILD.gn
-+++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -204,6 +204,7 @@ absl_source_set("base") {
-     "//third_party/abseil-cpp/absl/meta:type_traits",
-   ]
- }
-+}
- 
- # This should be an executable() more than a test.
- # It cannot be enabled because it defines its own main() function.
-@@ -225,6 +226,7 @@ absl_source_set("throw_delegate") {
-   visibility = [ "//third_party/abseil-cpp/absl/*" ]
- }
- 
-+if (!moz_webrtc_build) {
- absl_source_set("exception_testing") {
-   testonly = true
-   public = [ "internal/exception_testing.h" ]
-diff --git a/abseil-cpp/absl/base/internal/throw_delegate.cc b/abseil-cpp/absl/base/internal/throw_delegate.cc
-index 337e870cd68..11467e08b41 100644
---- a/abseil-cpp/absl/base/internal/throw_delegate.cc
-+++ b/abseil-cpp/absl/base/internal/throw_delegate.cc
-@@ -26,6 +26,10 @@ namespace absl {
- ABSL_NAMESPACE_BEGIN
- namespace base_internal {
- 
-+#ifdef ABSL_HAVE_EXCEPTIONS
-+static_assert(false, "Mozilla - ABSL_HAVE_EXCEPTIONS has been turned on");
-+#endif
-+
- // NOTE: The exception types, like `std::logic_error`, do not exist on all
- // platforms. (For example, the Android NDK does not have them.)
- // Therefore, their use must be guarded by `#ifdef` or equivalent.
-diff --git a/abseil-cpp/absl/types/BUILD.gn b/abseil-cpp/absl/types/BUILD.gn
-index a1abf3a5c89..07775909fd3 100644
---- a/abseil-cpp/absl/types/BUILD.gn
-+++ b/abseil-cpp/absl/types/BUILD.gn
-@@ -44,7 +44,7 @@ absl_source_set("span") {
-     "//third_party/abseil-cpp/absl/algorithm",
-     "//third_party/abseil-cpp/absl/base:core_headers",
-     "//third_party/abseil-cpp/absl/base:nullability",
--#       "//third_party/abseil-cpp/absl/base:throw_delegate",
-+    "//third_party/abseil-cpp/absl/base:throw_delegate",
-     "//third_party/abseil-cpp/absl/meta:type_traits",
-   ]
- }
+diff --git a/abseil-cpp/absl/functional/internal/any_invocable.h b/abseil-cpp/absl/functional/internal/any_invocable.h
+index c2d8cd4727a..366d94c4fe1 100644
+--- a/abseil-cpp/absl/functional/internal/any_invocable.h
++++ b/abseil-cpp/absl/functional/internal/any_invocable.h
+@@ -205,7 +205,7 @@ union TypeErasedState {
+ template <class T>
+ T& ObjectInLocalStorage(TypeErasedState* const state) {
+   // We launder here because the storage may be reused with the same type.
+-#if defined(__cpp_lib_launder) && __cpp_lib_launder >= 201606L
++#if ABSL_INTERNAL_CPLUSPLUS_LANG >= 201703L && __cpp_lib_launder >= 201606L
+   return *std::launder(reinterpret_cast<T*>(&state->storage));
+ #elif ABSL_HAVE_BUILTIN(__builtin_launder)
+   return *__builtin_launder(reinterpret_cast<T*>(&state->storage));

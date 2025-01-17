@@ -1,23 +1,53 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - add filtering for new build directory location in
- third_party/abseil-cpp/absl.gni r=ng
+Date: Thu, 16 Jan 2025 11:29:00 -0600
+Subject: Bug 1935474 - don't demangle rust symbols. r?ng!
 
-Differential Revision: https://phabricator.services.mozilla.com/D224546
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c4cbc65577ab4012dc243185d5d87c83e29b7446
+Building demangle.cc causes errors in our hazard-linux64-haz/debug build.
+For now, we'll avoid calling DemangleRustSymbolEncoding, and skip building
+demangle.cc.
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/828151aa9455ccbfe45787bbe00127813c97cc9e
 ---
- abseil-cpp/absl.gni | 1 +
- 1 file changed, 1 insertion(+)
+ abseil-cpp/absl/debugging/BUILD.gn             | 4 ++++
+ abseil-cpp/absl/debugging/internal/demangle.cc | 4 ++++
+ 2 files changed, 8 insertions(+)
 
-diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index f7b547f0fc8..f514488f4ec 100644
---- a/abseil-cpp/absl.gni
-+++ b/abseil-cpp/absl.gni
-@@ -97,6 +97,7 @@ template("absl_source_set") {
-         modified_deps = []
-         foreach (dep, deps) {
-           newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+          newdep = string_replace(newdep, "//build", "//chromium/build")
-           modified_deps += [ newdep ]
-         }
-         deps = []
+diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
+index 3eb735f7472..c54dd20c9ad 100644
+--- a/abseil-cpp/absl/debugging/BUILD.gn
++++ b/abseil-cpp/absl/debugging/BUILD.gn
+@@ -184,6 +184,9 @@ absl_test("decode_rust_punycode_test") {
+ }
+ 
+ absl_source_set("demangle_rust") {
++# hazard-linux64-haz/debug builds fail when this section is
++# included in the build.
++if (!moz_webrtc_build) {
+   sources = [ "internal/demangle_rust.cc" ]
+   public = [ "internal/demangle_rust.h" ]
+   deps = [
+@@ -192,6 +195,7 @@ absl_source_set("demangle_rust") {
+     "//third_party/abseil-cpp/absl/base:core_headers",
+   ]
+ }
++}
+ 
+ absl_test("demangle_rust_test") {
+   sources = [ "internal/demangle_rust_test.cc" ]
+diff --git a/abseil-cpp/absl/debugging/internal/demangle.cc b/abseil-cpp/absl/debugging/internal/demangle.cc
+index caac76367f0..ce827912aa2 100644
+--- a/abseil-cpp/absl/debugging/internal/demangle.cc
++++ b/abseil-cpp/absl/debugging/internal/demangle.cc
+@@ -2952,9 +2952,13 @@ static bool Overflowed(const State *state) {
+ 
+ // The demangler entry point.
+ bool Demangle(const char* mangled, char* out, size_t out_size) {
++// mozilla - hazard-linux64-haz/debug failure when demangle_rust.cc is
++// included in the build.  For now we'll avoid this code.
++#if 0
+   if (mangled[0] == '_' && mangled[1] == 'R') {
+     return DemangleRustSymbolEncoding(mangled, out, out_size);
+   }
++#endif
+ 
+   State state;
+   InitState(&state, mangled, out, out_size);

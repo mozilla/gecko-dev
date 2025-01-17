@@ -1,99 +1,30 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Wed, 4 Oct 2023 22:29:00 +0000
-Subject: Bug 1855330 - pt4 - BUILD.gn fixes for updated libwebrtc/third_party.
- r=ng,webrtc-reviewers
+Date: Thu, 9 Jan 2025 13:53:00 -0600
+Subject: Bug 1938156 - third_party/abseil-cpp ba05f98ec72 added a group we
+ don't need.
 
-Depends on D190095
-
-Differential Revision: https://phabricator.services.mozilla.com/D190096
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60c4a7790fc539ad83b3b1c5e0ae5ff5ecc5a6c3
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/928c6aa703b29d46632c4333b0c8b643fc08c60f
 ---
- abseil-cpp/absl/container/BUILD.gn | 2 +-
- abseil-cpp/absl/flags/BUILD.gn     | 2 ++
- abseil-cpp/absl/numeric/BUILD.gn   | 2 ++
- abseil-cpp/absl/strings/BUILD.gn   | 7 +++++++
- 4 files changed, 12 insertions(+), 1 deletion(-)
+ abseil-cpp/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 75fcdb27f78..fab2a7aba33 100644
---- a/abseil-cpp/absl/container/BUILD.gn
-+++ b/abseil-cpp/absl/container/BUILD.gn
-@@ -22,7 +22,6 @@ absl_source_set("fixed_array") {
-     "//third_party/abseil-cpp/absl/memory",
-   ]
- }
--}
- 
- absl_test("fixed_array_test") {
-   sources = [ "fixed_array_test.cc" ]
-@@ -36,6 +35,7 @@ absl_test("fixed_array_test") {
-     "//third_party/abseil-cpp/absl/memory",
-   ]
- }
-+}
- 
- absl_source_set("inlined_vector_internal") {
-   public = [ "internal/inlined_vector.h" ]
-diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index ef2e50934a7..20e1adbc18c 100644
---- a/abseil-cpp/absl/flags/BUILD.gn
-+++ b/abseil-cpp/absl/flags/BUILD.gn
-@@ -235,6 +235,7 @@ absl_source_set("parse") {
-   ]
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index 7404fb5e44d..509010d3a45 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -186,6 +186,7 @@ source_set("absl_full") {
  }
  
-+if (!moz_webrtc_build) {
- absl_test("flag_test") {
-   sources = [
-     "flag_test.cc",
-@@ -257,3 +258,4 @@ absl_test("flag_test") {
-     "//third_party/abseil-cpp/absl/types:optional",
+ group("absl_full_deps") {
++  if (!moz_webrtc_build) {
+   public_deps = [
+     # Banned because each flag registration generates a static initializer, and
+     # the flag registration mechanism is problematic in component builds.
+@@ -212,6 +213,7 @@ group("absl_full_deps") {
    ]
- }
-+}
-\ No newline at end of file
-diff --git a/abseil-cpp/absl/numeric/BUILD.gn b/abseil-cpp/absl/numeric/BUILD.gn
-index 19f2bb06c0f..cbf24393e00 100644
---- a/abseil-cpp/absl/numeric/BUILD.gn
-+++ b/abseil-cpp/absl/numeric/BUILD.gn
-@@ -30,6 +30,7 @@ absl_source_set("int128") {
-   ]
- }
  
-+if (!moz_webrtc_build) {
- absl_test("int128_test") {
-   sources = [
-     "int128_stream_test.cc",
-@@ -44,6 +45,7 @@ absl_test("int128_test") {
-     "//third_party/abseil-cpp/absl/types:compare",
-   ]
- }
-+}
- 
- absl_source_set("representation") {
-   public = [ "internal/representation.h" ]
-diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 3ee08c882a3..59d86ac18e3 100644
---- a/abseil-cpp/absl/strings/BUILD.gn
-+++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -15,6 +15,12 @@ absl_source_set("string_view") {
-     "//third_party/abseil-cpp/absl/base:nullability",
-     "//third_party/abseil-cpp/absl/base:throw_delegate",
-   ]
-+  if (moz_webrtc_build) {
-+    deps -= [
-+      "//third_party/abseil-cpp/absl/base",
-+      "//third_party/abseil-cpp/absl/base:throw_delegate",
-+    ]
+   public_configs = [ "//third_party/abseil-cpp/absl/flags:absl_flags_config" ]
 +  }
  }
  
- absl_source_set("strings") {
-@@ -94,6 +100,7 @@ absl_source_set("strings") {
-       "substitute.cc",
-     ]
-     deps -= [
-+      ":charset",
-       ":internal", # Removed for unreachable sources.  See Bug 1820869.
-       "//third_party/abseil-cpp/absl/base",
-       "//third_party/abseil-cpp/absl/base:endian",
+ config("absl_include_config") {

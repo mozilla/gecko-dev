@@ -1,29 +1,83 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 3 Nov 2022 07:37:00 +0000
-Subject: Bug 1797157 - Avoid std::launder under clang++ 5 even in c++17 mode.
- r=mjf
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - absl.gni - filter dep paths from
+ '//third_party/abseil-cpp/' to '//' r=ng
 
-std::launder was implemented in clang 6:
-https://github.com/llvm/llvm-project/commit/9180eb1f4ab96481413e93d35f35c3685de3084c
-
-Differential Revision: https://phabricator.services.mozilla.com/D160683
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/617e69ce77120f6eb447c1044bc1bd2ca833cc7b
+Differential Revision: https://phabricator.services.mozilla.com/D224080
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/afc78fbdb5666ffa9c87da7427cc7249220f4908
 ---
- abseil-cpp/absl/functional/internal/any_invocable.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ abseil-cpp/absl.gni | 54 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 53 insertions(+), 1 deletion(-)
 
-diff --git a/abseil-cpp/absl/functional/internal/any_invocable.h b/abseil-cpp/absl/functional/internal/any_invocable.h
-index c2d8cd4727a..a81c5d6f0d6 100644
---- a/abseil-cpp/absl/functional/internal/any_invocable.h
-+++ b/abseil-cpp/absl/functional/internal/any_invocable.h
-@@ -205,7 +205,9 @@ union TypeErasedState {
- template <class T>
- T& ObjectInLocalStorage(TypeErasedState* const state) {
-   // We launder here because the storage may be reused with the same type.
--#if defined(__cpp_lib_launder) && __cpp_lib_launder >= 201606L
-+  // Mozilla: support clang 5 with c++17 but without launder (shipped in 6)
-+#if ABSL_INTERNAL_CPLUSPLUS_LANG >= 201703L && \
-+    (!defined(__clang__) || ABSL_INTERNAL_HAVE_MIN_CLANG_VERSION(6, 0))
-   return *std::launder(reinterpret_cast<T*>(&state->storage));
- #elif ABSL_HAVE_BUILTIN(__builtin_launder)
-   return *__builtin_launder(reinterpret_cast<T*>(&state->storage));
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index 8fbdcf0a8d1..e230d0a5cc0 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -86,8 +86,45 @@ template("absl_source_set") {
+           visibility = [ "*" ]
+         }
+       }
++      visibility += [ "//abseil-cpp/*" ]
++
++      # Now that abseil-cpp lives under Mozilla's third_party instead
++      # of under libwebrtc's third_party and is built as a stand-alone
++      # library, we need to "re-root" the dependency paths.  We can
++      # modify the dependencies here to avoid modifying most, if not
++      # all, of the BUILD.gn files.
++      if (defined(deps)) {
++        modified_deps = []
++        foreach (dep, deps) {
++          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++          modified_deps += [ newdep ]
++        }
++        deps = []
++        deps = modified_deps
++      }
++
++      # Same for public_deps
++      if (defined(public_deps)) {
++        modified_deps = []
++        foreach (dep, public_deps) {
++          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++          modified_deps += [ newdep ]
++        }
++        public_deps = []
++        public_deps = modified_deps
++      }
++
++      # Same for visibility
++      if (defined(visibility)) {
++        modified_deps = []
++        foreach (dep, visibility) {
++          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++          modified_deps += [ newdep ]
++        }
++        visibility = []
++        visibility = modified_deps
++      }
+     }
+-    visibility += [ "//abseil-cpp/*" ]
+   }
+ }
+ 
+@@ -117,5 +154,20 @@ template("absl_test") {
+         "//third_party/googletest:gtest",
+       ]
+     }
++
++    # Now that abseil-cpp lives under Mozilla's third_party instead
++    # of under libwebrtc's third_party and is built as a stand-alone
++    # library, we need to "re-root" the dependency paths.  We can
++    # modify the dependencies here to avoid modifying most, if not
++    # all, of the BUILD.gn files.
++    if (defined(deps)) {
++      modified_deps = []
++      foreach (dep, deps) {
++        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        modified_deps += [ newdep ]
++      }
++      deps = []
++      deps = modified_deps
++    }
+   }
+ }

@@ -1,83 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - absl.gni - filter dep paths from
- '//third_party/abseil-cpp/' to '//' r=ng
+Date: Tue, 7 Jan 2025 15:37:00 -0600
+Subject: Bug 1935474 - only apply android api < 17 fix for SYS_mmap2 if
+ actually on < 17 api. r?ng!
 
-Differential Revision: https://phabricator.services.mozilla.com/D224080
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/afc78fbdb5666ffa9c87da7427cc7249220f4908
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7822a8be4fb906ec1570667f72565a1a91f17228
 ---
- abseil-cpp/absl.gni | 54 ++++++++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 53 insertions(+), 1 deletion(-)
+ abseil-cpp/absl/base/internal/direct_mmap.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 8fbdcf0a8d1..e230d0a5cc0 100644
---- a/abseil-cpp/absl.gni
-+++ b/abseil-cpp/absl.gni
-@@ -86,8 +86,45 @@ template("absl_source_set") {
-           visibility = [ "*" ]
-         }
-       }
-+      visibility += [ "//abseil-cpp/*" ]
-+
-+      # Now that abseil-cpp lives under Mozilla's third_party instead
-+      # of under libwebrtc's third_party and is built as a stand-alone
-+      # library, we need to "re-root" the dependency paths.  We can
-+      # modify the dependencies here to avoid modifying most, if not
-+      # all, of the BUILD.gn files.
-+      if (defined(deps)) {
-+        modified_deps = []
-+        foreach (dep, deps) {
-+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+          modified_deps += [ newdep ]
-+        }
-+        deps = []
-+        deps = modified_deps
-+      }
-+
-+      # Same for public_deps
-+      if (defined(public_deps)) {
-+        modified_deps = []
-+        foreach (dep, public_deps) {
-+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+          modified_deps += [ newdep ]
-+        }
-+        public_deps = []
-+        public_deps = modified_deps
-+      }
-+
-+      # Same for visibility
-+      if (defined(visibility)) {
-+        modified_deps = []
-+        foreach (dep, visibility) {
-+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+          modified_deps += [ newdep ]
-+        }
-+        visibility = []
-+        visibility = modified_deps
-+      }
-     }
--    visibility += [ "//abseil-cpp/*" ]
+diff --git a/abseil-cpp/absl/base/internal/direct_mmap.h b/abseil-cpp/absl/base/internal/direct_mmap.h
+index 1beb2ee4e52..986a8200ad8 100644
+--- a/abseil-cpp/absl/base/internal/direct_mmap.h
++++ b/abseil-cpp/absl/base/internal/direct_mmap.h
+@@ -94,7 +94,7 @@ inline void* DirectMmap(void* start, size_t length, int prot, int flags, int fd,
+     errno = EINVAL;
+     return MAP_FAILED;
    }
- }
- 
-@@ -117,5 +154,20 @@ template("absl_test") {
-         "//third_party/googletest:gtest",
-       ]
-     }
-+
-+    # Now that abseil-cpp lives under Mozilla's third_party instead
-+    # of under libwebrtc's third_party and is built as a stand-alone
-+    # library, we need to "re-root" the dependency paths.  We can
-+    # modify the dependencies here to avoid modifying most, if not
-+    # all, of the BUILD.gn files.
-+    if (defined(deps)) {
-+      modified_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+        modified_deps += [ newdep ]
-+      }
-+      deps = []
-+      deps = modified_deps
-+    }
-   }
- }
+-#ifdef __BIONIC__
++#if defined(__BIONIC__) && (!defined(__ANDROID_API__) || __ANDROID_API__ < 17)
+   // SYS_mmap2 has problems on Android API level <= 16.
+   // Workaround by invoking __mmap2() instead.
+   return __mmap2(start, length, prot, flags, fd,

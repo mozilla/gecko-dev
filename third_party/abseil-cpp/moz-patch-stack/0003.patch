@@ -1,60 +1,49 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Thu, 20 Oct 2022 16:14:00 +0000
-Subject: Bug 1795982 - pt2 - Tweak upstream gn files for Firefox build. r=ng
+Subject: Bug 1795982 - pt5 - turn off -Wcomma warning for
+ third_party/libwebrtc/third_party/abseil-cpp/absl/strings/string_view.h r=ng
 
-(skip-generation)
+abseil-cpp/absl/strings/string_view.h has multiple usages that follow a
+pattern similar to:
+    return ABSL_HARDENING_ASSERT(i < size()), ptr_[i];
 
-Differential Revision: https://phabricator.services.mozilla.com/D159739
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc4484a59d929629a9f0ecdeec5d592718b9a376
+This causes Mozilla builds to fail because of -Wcomma warnings.  For
+this file, we'll turn off that warning.
+
+Differential Revision: https://phabricator.services.mozilla.com/D159742
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/da4def20e294cf6b5b4ae9ef38ddeb3c8302fe3c
 ---
- abseil-cpp/absl/base/BUILD.gn       | 2 +-
- abseil-cpp/absl/flags/BUILD.gn      | 2 +-
- abseil-cpp/absl/functional/BUILD.gn | 2 ++
- 3 files changed, 4 insertions(+), 2 deletions(-)
+ abseil-cpp/absl/strings/string_view.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index 579a6a3769b..f41d641676f 100644
---- a/abseil-cpp/absl/base/BUILD.gn
-+++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -55,7 +55,7 @@ absl_source_set("raw_logging_internal") {
-     ":atomic_hook",
-     ":config",
-     ":core_headers",
--    ":errno_saver",
-+#    ":errno_saver",
-     ":log_severity",
-   ]
-   visibility = [
-diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index 40b853feb41..ef2e50934a7 100644
---- a/abseil-cpp/absl/flags/BUILD.gn
-+++ b/abseil-cpp/absl/flags/BUILD.gn
-@@ -143,7 +143,7 @@ absl_source_set("flag_internal") {
- #       "//third_party/abseil-cpp/absl/base",
-     "//third_party/abseil-cpp/absl/base:config",
-     "//third_party/abseil-cpp/absl/base:core_headers",
--    "//third_party/abseil-cpp/absl/base:dynamic_annotations",
-+#    "//third_party/abseil-cpp/absl/base:dynamic_annotations",
-     "//third_party/abseil-cpp/absl/memory",
-     "//third_party/abseil-cpp/absl/meta:type_traits",
-     "//third_party/abseil-cpp/absl/strings",
-diff --git a/abseil-cpp/absl/functional/BUILD.gn b/abseil-cpp/absl/functional/BUILD.gn
-index 4a1b5fe35a2..f68a3d716f0 100644
---- a/abseil-cpp/absl/functional/BUILD.gn
-+++ b/abseil-cpp/absl/functional/BUILD.gn
-@@ -16,6 +16,7 @@ absl_source_set("any_invocable") {
-   ]
- }
+diff --git a/abseil-cpp/absl/strings/string_view.h b/abseil-cpp/absl/strings/string_view.h
+index 2803429806a..5eb1391f6f9 100644
+--- a/abseil-cpp/absl/strings/string_view.h
++++ b/abseil-cpp/absl/strings/string_view.h
+@@ -67,6 +67,15 @@ ABSL_NAMESPACE_END
+ namespace absl {
+ ABSL_NAMESPACE_BEGIN
  
-+if (!moz_webrtc_build) {
- absl_test("any_invocable_test") {
-   sources = [
-     "any_invocable_test.cc",
-@@ -30,6 +31,7 @@ absl_test("any_invocable_test") {
-     "//third_party/abseil-cpp/absl/utility",
-   ]
- }
-+}
++// Mozilla added - quiets misused comma warnings resulting from
++// frequent use of the pattern:
++//     return ABSL_HARDENING_ASSERT(i < size()), ptr_[i];
++// TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1796623
++#if defined(__clang__)
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wcomma"
++#endif
++
+ // absl::string_view
+ //
+ // A `string_view` provides a lightweight view into the string data provided by
+@@ -740,6 +749,10 @@ ABSL_NAMESPACE_END
  
- absl_source_set("bind_front") {
-   sources = [ "internal/front_binder.h" ]
+ #undef ABSL_INTERNAL_STRING_VIEW_MEMCMP
+ 
++#if defined(__clang__)
++#pragma clang diagnostic pop
++#endif
++
+ #endif  // ABSL_USES_STD_STRING_VIEW
+ 
+ namespace absl {

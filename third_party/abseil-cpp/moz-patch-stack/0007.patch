@@ -1,58 +1,103 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Wed, 8 Mar 2023 00:26:00 +0000
-Subject: Bug 1820869 - avoid building unreachable files. r=ng,webrtc-reviewers
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - point to new build directory location in
+ third_party/abseil-cpp r=ng
 
-Differential Revision: https://phabricator.services.mozilla.com/D171922
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/88b3cc6bbece7c53d00e124713330f3d34d2789d
+Ran:
+ack -l "\"//build/config" third_party/abseil-cpp | xargs sed -i.bak -E 's/\"\/\/build\/config/\"\/\/chromium\/build\/config/'
+ack -l "\"//build/toolchain" third_party/abseil-cpp | xargs sed -i.bak -E 's/\"\/\/build\/toolchain/\"\/\/chromium\/build\/toolchain/'
+find third_party -name "*.bak" | xargs rm
+
+Differential Revision: https://phabricator.services.mozilla.com/D224544
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/566543823f7e89dc33d6d59a438aea7a1d19e3b0
 ---
- abseil-cpp/absl/strings/BUILD.gn | 30 ++++++++++++++++++------------
- 1 file changed, 18 insertions(+), 12 deletions(-)
+ abseil-cpp/.gn                     |  2 +-
+ abseil-cpp/BUILD.gn                |  8 ++++----
+ abseil-cpp/absl.gni                | 14 +++++++-------
+ abseil-cpp/absl/debugging/BUILD.gn |  2 +-
+ 4 files changed, 13 insertions(+), 13 deletions(-)
 
-diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 66679591b28..3ee08c882a3 100644
---- a/abseil-cpp/absl/strings/BUILD.gn
-+++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -65,7 +65,6 @@ absl_source_set("strings") {
-     # :string_view.
-     ":string_view",
-   ]
--  if (!moz_webrtc_build) {
-   deps = [
-     ":charset",
-     ":internal",
-@@ -82,17 +81,24 @@ absl_source_set("strings") {
-     "//third_party/abseil-cpp/absl/numeric:bits",
-     "//third_party/abseil-cpp/absl/numeric:int128",
-   ]
--  } else {
--  deps = [
--    ":internal",
--    "//third_party/abseil-cpp/absl/base:config",
--    "//third_party/abseil-cpp/absl/base:core_headers",
--    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
--    "//third_party/abseil-cpp/absl/memory",
--    "//third_party/abseil-cpp/absl/meta:type_traits",
--    "//third_party/abseil-cpp/absl/numeric:bits",
--    "//third_party/abseil-cpp/absl/numeric:int128",
--  ]
-+  if (moz_webrtc_build) {
-+    # Removed for unreachable sources.  See Bug 1820869.
-+    sources -= [
-+      "charconv.cc",
-+      "escaping.cc",
-+      "internal/charconv_bigint.cc",
-+      "internal/charconv_parse.cc",
-+      "numbers.cc",
-+      "str_cat.cc",
-+      "str_replace.cc",
-+      "substitute.cc",
-+    ]
-+    deps -= [
-+      ":internal", # Removed for unreachable sources.  See Bug 1820869.
-+      "//third_party/abseil-cpp/absl/base",
-+      "//third_party/abseil-cpp/absl/base:endian",
-+      "//third_party/abseil-cpp/absl/base:throw_delegate",
-+    ]
-   }
- }
+diff --git a/abseil-cpp/.gn b/abseil-cpp/.gn
+index 648423a128f..bd6c38b3762 100644
+--- a/abseil-cpp/.gn
++++ b/abseil-cpp/.gn
+@@ -1,5 +1,5 @@
+ # The location of the build configuration file.
+-buildconfig = "//build/config/BUILDCONFIG.gn"
++buildconfig = "//chromium/build/config/BUILDCONFIG.gn"
+ script_executable = "python3"
+ secondary_source = "//abseil-cpp/"
  
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index c90236b2668..7404fb5e44d 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -6,10 +6,10 @@
+ # opts will be linked together, and in some cases headers compiled with and
+ # without these options will be part of the same program.
+ 
+-import("//build/config/c++/c++.gni")
+-import("//build/config/nacl/config.gni")
+-import("//build/config/sanitizers/sanitizers.gni")
+-import("//build/toolchain/toolchain.gni")
++import("//chromium/build/config/c++/c++.gni")
++import("//chromium/build/config/nacl/config.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/toolchain/toolchain.gni")
+ import("//build_overrides/build.gni")
+ import("//third_party/abseil-cpp/absl.gni")
+ 
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index e230d0a5cc0..f7b547f0fc8 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -30,10 +30,10 @@ template("absl_source_set") {
+       not_needed(invoker, "*")
+     } else {
+       forward_variables_from(invoker, "*")
+-      configs -= [ "//build/config/compiler:chromium_code" ]
++      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+       configs += [
+-        "//build/config/compiler:no_chromium_code",
+-        "//build/config/compiler:prevent_unsafe_narrowing",
++        "//chromium/build/config/compiler:no_chromium_code",
++        "//chromium/build/config/compiler:prevent_unsafe_narrowing",
+         "//abseil-cpp:absl_default_cflags_cc",
+         "//abseil-cpp:absl_define_config",
+       ]
+@@ -41,8 +41,8 @@ template("absl_source_set") {
+       if (is_component_build) {
+         defines = [ "ABSL_BUILD_DLL" ]
+         if (!is_win && current_os != "aix") {
+-          configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
+-          configs += [ "//build/config/gcc:symbol_visibility_default" ]
++          configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
++          configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
+         }
+       }
+ 
+@@ -135,9 +135,9 @@ template("absl_test") {
+     } else {
+       forward_variables_from(invoker, "*")
+       testonly = true
+-      configs -= [ "//build/config/compiler:chromium_code" ]
++      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+       configs += [
+-        "//build/config/compiler:no_chromium_code",
++        "//chromium/build/config/compiler:no_chromium_code",
+         "//abseil-cpp:absl_default_cflags_cc",
+         "//abseil-cpp:absl_define_config",
+         "//abseil-cpp:absl_test_config",
+diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
+index 1d7f14442f2..3eb735f7472 100644
+--- a/abseil-cpp/absl/debugging/BUILD.gn
++++ b/abseil-cpp/absl/debugging/BUILD.gn
+@@ -2,7 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
+ import("//third_party/abseil-cpp/absl.gni")
+ 
+ absl_source_set("stacktrace") {

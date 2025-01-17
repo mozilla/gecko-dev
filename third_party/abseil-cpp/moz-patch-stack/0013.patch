@@ -1,120 +1,30 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - point to new build directory location in
- third_party/abseil-cpp r=ng
+Date: Tue, 7 Jan 2025 15:39:00 -0600
+Subject: Bug 1935474 - disable ABSL_HAVE_THREAD_SANITIZER due to missing
+ symbols (like __tsan_mutex_destroy). r?ng!
 
-Ran:
-ack -l "\"//build/config" third_party/abseil-cpp | xargs sed -i.bak -E 's/\"\/\/build\/config/\"\/\/chromium\/build\/config/'
-ack -l "\"//build/toolchain" third_party/abseil-cpp | xargs sed -i.bak -E 's/\"\/\/build\/toolchain/\"\/\/chromium\/build\/toolchain/'
-find third_party -name "*.bak" | xargs rm
-
-Differential Revision: https://phabricator.services.mozilla.com/D224544
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/566543823f7e89dc33d6d59a438aea7a1d19e3b0
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a248ecb7e0fa939cc145e3ef62f57783411ec367
 ---
- abseil-cpp/.gn                     |  2 +-
- abseil-cpp/BUILD.gn                |  8 ++++----
- abseil-cpp/absl.gni                | 14 +++++++-------
- abseil-cpp/absl/base/BUILD.gn      |  4 ++--
- abseil-cpp/absl/debugging/BUILD.gn |  2 +-
- 5 files changed, 15 insertions(+), 15 deletions(-)
+ abseil-cpp/absl/base/config.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/abseil-cpp/.gn b/abseil-cpp/.gn
-index 648423a128f..bd6c38b3762 100644
---- a/abseil-cpp/.gn
-+++ b/abseil-cpp/.gn
-@@ -1,5 +1,5 @@
- # The location of the build configuration file.
--buildconfig = "//build/config/BUILDCONFIG.gn"
-+buildconfig = "//chromium/build/config/BUILDCONFIG.gn"
- script_executable = "python3"
- secondary_source = "//abseil-cpp/"
+diff --git a/abseil-cpp/absl/base/config.h b/abseil-cpp/absl/base/config.h
+index ab1e9860a91..f57c18bb479 100644
+--- a/abseil-cpp/absl/base/config.h
++++ b/abseil-cpp/absl/base/config.h
+@@ -739,6 +739,7 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
+ // ABSL_HAVE_THREAD_SANITIZER
+ //
+ // ThreadSanitizer (TSan) is a fast data race detector.
++#if 0 // mozilla - builds fail missing tsan symbols like __tsan_mutex_destroy
+ #ifdef ABSL_HAVE_THREAD_SANITIZER
+ #error "ABSL_HAVE_THREAD_SANITIZER cannot be directly set."
+ #elif defined(__SANITIZE_THREAD__)
+@@ -746,6 +747,7 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
+ #elif ABSL_HAVE_FEATURE(thread_sanitizer)
+ #define ABSL_HAVE_THREAD_SANITIZER 1
+ #endif
++#endif
  
-diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 146dbb4c445..69353f35194 100644
---- a/abseil-cpp/BUILD.gn
-+++ b/abseil-cpp/BUILD.gn
-@@ -6,10 +6,10 @@
- # opts will be linked together, and in some cases headers compiled with and
- # without these options will be part of the same program.
- 
--import("//build/config/c++/c++.gni")
--import("//build/config/nacl/config.gni")
--import("//build/config/sanitizers/sanitizers.gni")
--import("//build/toolchain/toolchain.gni")
-+import("//chromium/build/config/c++/c++.gni")
-+import("//chromium/build/config/nacl/config.gni")
-+import("//chromium/build/config/sanitizers/sanitizers.gni")
-+import("//chromium/build/toolchain/toolchain.gni")
- import("//build_overrides/build.gni")
- import("//third_party/abseil-cpp/absl.gni")
- 
-diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index e230d0a5cc0..f7b547f0fc8 100644
---- a/abseil-cpp/absl.gni
-+++ b/abseil-cpp/absl.gni
-@@ -30,10 +30,10 @@ template("absl_source_set") {
-       not_needed(invoker, "*")
-     } else {
-       forward_variables_from(invoker, "*")
--      configs -= [ "//build/config/compiler:chromium_code" ]
-+      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-       configs += [
--        "//build/config/compiler:no_chromium_code",
--        "//build/config/compiler:prevent_unsafe_narrowing",
-+        "//chromium/build/config/compiler:no_chromium_code",
-+        "//chromium/build/config/compiler:prevent_unsafe_narrowing",
-         "//abseil-cpp:absl_default_cflags_cc",
-         "//abseil-cpp:absl_define_config",
-       ]
-@@ -41,8 +41,8 @@ template("absl_source_set") {
-       if (is_component_build) {
-         defines = [ "ABSL_BUILD_DLL" ]
-         if (!is_win && current_os != "aix") {
--          configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
--          configs += [ "//build/config/gcc:symbol_visibility_default" ]
-+          configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
-+          configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
-         }
-       }
- 
-@@ -135,9 +135,9 @@ template("absl_test") {
-     } else {
-       forward_variables_from(invoker, "*")
-       testonly = true
--      configs -= [ "//build/config/compiler:chromium_code" ]
-+      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-       configs += [
--        "//build/config/compiler:no_chromium_code",
-+        "//chromium/build/config/compiler:no_chromium_code",
-         "//abseil-cpp:absl_default_cflags_cc",
-         "//abseil-cpp:absl_define_config",
-         "//abseil-cpp:absl_test_config",
-diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index 038796e8ff1..f3db373886f 100644
---- a/abseil-cpp/absl/base/BUILD.gn
-+++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -235,9 +235,9 @@ absl_source_set("pretty_function") {
- # just remove it.
- # source_set("exception_safety_testing") {
- #   testonly = true
--#   configs -= [ "//build/config/compiler:chromium_code" ]
-+#   configs -= [ "//chromium/build/config/compiler:chromium_code" ]
- #   configs += [
--#     "//build/config/compiler:no_chromium_code",
-+#     "//chromium/build/config/compiler:no_chromium_code",
- #     "//third_party/abseil-cpp:absl_test_cflags_cc",
- #   ]
- #   public_configs = [ "//third_party/abseil-cpp:absl_include_config" ]
-diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
-index 1d7f14442f2..3eb735f7472 100644
---- a/abseil-cpp/absl/debugging/BUILD.gn
-+++ b/abseil-cpp/absl/debugging/BUILD.gn
-@@ -2,7 +2,7 @@
- # Use of this source code is governed by a BSD-style license that can be
- # found in the LICENSE file.
- 
--import("//build/config/sanitizers/sanitizers.gni")
-+import("//chromium/build/config/sanitizers/sanitizers.gni")
- import("//third_party/abseil-cpp/absl.gni")
- 
- absl_source_set("stacktrace") {
+ // ABSL_HAVE_ADDRESS_SANITIZER
+ //
