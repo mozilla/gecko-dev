@@ -2678,7 +2678,7 @@ export class nsContextMenu {
     let menuItemPrivate = document.getElementById(
       "context-searchselect-private"
     );
-    if (!Services.search.isInitialized) {
+    if (!Services.search.hasSuccessfullyInitialized) {
       menuItem.hidden = true;
       menuItemPrivate.hidden = true;
       return;
