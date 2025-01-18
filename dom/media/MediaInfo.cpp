@@ -70,6 +70,82 @@ bool VideoInfo::operator==(const VideoInfo& rhs) const {
           mAlphaPresent == rhs.mAlphaPresent);
 }
 
+nsCString VideoInfo::ToString() const {
+  std::array YUVColorSpaceStrings = {"BT601", "BT709", "BT2020", "Identity",
+                                     "Default"};
+
+  std::array ColorDepthStrings = {
+      "COLOR_8",
+      "COLOR_10",
+      "COLOR_12",
+      "COLOR_16",
+  };
+
+  std::array TransferFunctionStrings = {
+      "BT709",
+      "SRGB",
+      "PQ",
+      "HLG",
+  };
+
+  std::array ColorRangeStrings = {
+      "LIMITED",
+      "FULL",
+  };
+
+  std::array ColorPrimariesStrings = {"Display",
+                                      "UNKNOWN"
+                                      "SRGB",
+                                      "DISPLAY_P3",
+                                      "BT601_525",
+                                      "BT709",
+                                      "BT601_625"
+                                      "BT709",
+                                      "BT2020"};
+  nsAutoCString rv;
+  rv.Append(TrackInfo::ToString());
+  rv.AppendLiteral(" VideoInfo: ");
+  rv.AppendPrintf("display size: %dx%d", mDisplay.Width(), mDisplay.Height());
+  rv.AppendPrintf(", stereo mode: %d", static_cast<int>(mStereoMode));
+  rv.AppendPrintf(", image size: %dx%d", mImage.Width(), mImage.Height());
+  if (mCodecSpecificConfig) {
+    rv.AppendPrintf(", codec specific config: %zu bytes",
+                    mCodecSpecificConfig->Length());
+  }
+  if (mExtraData) {
+    rv.AppendPrintf(", extra data: %zu bytes", mExtraData->Length());
+  }
+  rv.AppendPrintf(", rotation: %d", static_cast<int>(mRotation));
+  rv.AppendPrintf(", colors: %s",
+                  ColorDepthStrings[static_cast<int>(mColorDepth)]);
+  if (mColorSpace) {
+    rv.AppendPrintf(
+        ", YUV colorspace: %s",
+        YUVColorSpaceStrings[static_cast<int>(mColorSpace.value())]);
+  }
+  if (mColorPrimaries) {
+    rv.AppendPrintf(
+        ", color primaries: %s",
+        ColorPrimariesStrings[static_cast<int>(mColorPrimaries.value())]);
+  }
+  if (mTransferFunction) {
+    rv.AppendPrintf(
+        ", transfer function %s",
+        TransferFunctionStrings[static_cast<int>(mTransferFunction.value())]);
+  }
+  rv.AppendPrintf(", color range: %s",
+                  ColorRangeStrings[static_cast<int>(mColorRange)]);
+  if (mImageRect) {
+    rv.AppendPrintf(", image rect: %dx%d", mImageRect->Width(),
+                    mImageRect->Height());
+  }
+  rv.AppendPrintf(", alpha present: %s", mAlphaPresent ? "true" : "false");
+  if (mFrameRate) {
+    rv.AppendPrintf(", frame rate: %dHz", mFrameRate.value());
+  }
+  return rv;
+}
+
 bool AudioInfo::operator==(const AudioInfo& rhs) const {
   return (TrackInfo::IsEqualTo(rhs) && mRate == rhs.mRate &&
           mChannels == rhs.mChannels && mChannelMap == rhs.mChannelMap &&
@@ -82,7 +158,7 @@ nsCString AudioInfo::ToString() const {
   nsAutoCString rv;
   rv.Append(TrackInfo::ToString());
   rv.AppendPrintf(
-      "AudioInfo: %s, %" PRIu32 "Hz, %" PRIu32 "ch (%s) %" PRIu32
+      " AudioInfo: %s, %" PRIu32 "Hz, %" PRIu32 "ch (%s) %" PRIu32
       "-bits, profile: %" PRIu8 ", extended profile: %" PRIu8 ", %s extradata",
       mMimeType.get(), mRate, mChannels,
       AudioConfig::ChannelLayout::ChannelMapToString(mChannelMap).get(),
