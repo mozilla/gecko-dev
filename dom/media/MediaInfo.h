@@ -291,7 +291,7 @@ class TrackInfo {
   bool IsText() const { return !!GetAsTextInfo(); }
   TrackType GetType() const { return mType; }
 
-  virtual nsCString ToString() const;
+  nsCString ToString() const;
 
   bool virtual IsValid() const = 0;
 
@@ -445,7 +445,82 @@ class VideoInfo : public TrackInfo {
     }
   }
 
-  nsCString ToString() const override;
+  nsString ToString() const {
+    std::array YUVColorSpaceStrings = {"BT601", "BT709", "BT2020", "Identity",
+                                       "Default"};
+
+    std::array ColorDepthStrings = {
+        "COLOR_8",
+        "COLOR_10",
+        "COLOR_12",
+        "COLOR_16",
+    };
+
+    std::array TransferFunctionStrings = {
+        "BT709",
+        "SRGB",
+        "PQ",
+        "HLG",
+    };
+
+    std::array ColorRangeStrings = {
+        "LIMITED",
+        "FULL",
+    };
+
+    std::array ColorPrimariesStrings = {"Display",
+                                        "UNKNOWN"
+                                        "SRGB",
+                                        "DISPLAY_P3",
+                                        "BT601_525",
+                                        "BT709",
+                                        "BT601_625"
+                                        "BT709",
+                                        "BT2020"};
+    nsString rv;
+    rv.AppendLiteral(u"VideoInfo: ");
+    rv.AppendPrintf("display size: %dx%d ", mDisplay.Width(),
+                    mDisplay.Height());
+    rv.AppendPrintf("stereo mode: %d", static_cast<int>(mStereoMode));
+    rv.AppendPrintf("image size: %dx%d ", mImage.Width(), mImage.Height());
+    if (mCodecSpecificConfig) {
+      rv.AppendPrintf("codec specific config: %zu bytes",
+                      mCodecSpecificConfig->Length());
+    }
+    if (mExtraData) {
+      rv.AppendPrintf("extra data: %zu bytes", mExtraData->Length());
+    }
+    rv.AppendPrintf("rotation: %d", static_cast<int>(mRotation));
+    rv.AppendPrintf("colors: %s",
+                    ColorDepthStrings[static_cast<int>(mColorDepth)]);
+    if (mColorSpace) {
+      rv.AppendPrintf(
+          "YUV colorspace: %s ",
+          YUVColorSpaceStrings[static_cast<int>(mColorSpace.value())]);
+    }
+    if (mColorPrimaries) {
+      rv.AppendPrintf(
+          "color primaries: %s ",
+          ColorPrimariesStrings[static_cast<int>(mColorPrimaries.value())]);
+    }
+    if (mTransferFunction) {
+      rv.AppendPrintf(
+          "transfer function %s ",
+          TransferFunctionStrings[static_cast<int>(mTransferFunction.value())]);
+    }
+    rv.AppendPrintf("color range: %s",
+                    ColorRangeStrings[static_cast<int>(mColorRange)]);
+    if (mImageRect) {
+      rv.AppendPrintf("image rect: %dx%d", mImageRect->Width(),
+                      mImageRect->Height());
+    }
+    rv.AppendPrintf("alpha present: %s", mAlphaPresent ? "true" : "false");
+    if (mFrameRate) {
+      rv.AppendPrintf("frame rate: %dHz", mFrameRate.value());
+    }
+
+    return rv;
+  }
 
   // Size in pixels at which the video is rendered. This is after it has
   // been scaled by its aspect ratio.
@@ -524,7 +599,7 @@ class AudioInfo : public TrackInfo {
 
   const AudioInfo* GetAsAudioInfo() const override { return this; }
 
-  nsCString ToString() const override;
+  nsCString ToString() const;
 
   UniquePtr<TrackInfo> Clone() const override {
     return MakeUnique<AudioInfo>(*this);

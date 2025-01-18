@@ -719,7 +719,8 @@ Result<UniquePtr<TrackInfo>, nsresult> VideoDecoderTraits::CreateTrackInfo(
     vi->mExtraData = new MediaByteBuffer();
   }
 
-  LOG("Created a VideoInfo for decoder - %s", vi->ToString().get());
+  LOG("Created a VideoInfo for decoder - %s",
+      NS_ConvertUTF16toUTF8(vi->ToString()).get());
 
   return track;
 }
