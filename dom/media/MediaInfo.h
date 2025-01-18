@@ -446,7 +446,7 @@ class VideoInfo : public TrackInfo {
   }
 
   nsCString ToString() const override;
-    
+
   // Size in pixels at which the video is rendered. This is after it has
   // been scaled by its aspect ratio.
   gfx::IntSize mDisplay;
