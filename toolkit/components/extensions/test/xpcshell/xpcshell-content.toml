@@ -48,6 +48,7 @@ skip-if = [
   "tsan", # Bug 1612707
   "os == 'linux' && socketprocess_networking && !fission && debug", # Bug 1759035
   "os == 'linux' && fission && debug", # Bug 1762638
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1781447
 ]
 
 ["test_ext_contentscript_xrays.js"]

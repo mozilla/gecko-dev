@@ -1,7 +1,10 @@
 [DEFAULT]
 tags = "appupdate base"
 head = "head_no_service.js"
-skip-if = ["os == 'win' && (ccov || msix)"] # Our updater is disabled in MSIX builds
+skip-if = [
+  "os == 'win' && ccov",
+  "msix", # Our updater is disabled in MSIX builds
+]
 support-files = [
   "../data/shared.js",
   "../data/sharedUpdateXML.js",
@@ -45,10 +48,19 @@ run-if = ["os == 'win'"]
 reason = "Windows only test"
 
 ["marAppApplyUpdateStageOldVersionFailure.js"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
+]
 
 ["marAppApplyUpdateStageSuccess.js"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
+]
 
 ["marAppApplyUpdateSuccess.js"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
+]
 
 ["marAppInUseBackgroundTaskFailure_win.js"]
 run-if = ["os == 'win'"]
@@ -60,6 +72,9 @@ reason = "Windows only test"
 
 ["marAppInUseStageSuccessComplete_unix.js"]
 run-if = ["os != 'win'"] # not a Windows test
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
+]
 
 ["marAppInUseSuccessComplete.js"]
 
@@ -151,8 +166,14 @@ reason = "Windows only test"
 ["marStageFailurePartial.js"]
 
 ["marStageSuccessComplete.js"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1871787
+]
 
 ["marStageSuccessPartial.js"]
+skip-if = [
+ "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1942377
+]
 
 ["marSuccessComplete.js"]
 
