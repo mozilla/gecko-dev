@@ -5377,7 +5377,7 @@ void EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   // do? At least, dispatching `mouseover` on it is odd.
   MOZ_LOG(logModule, LogLevel::Info,
           ("Dispatching %s event to %s (%p)",
-           isPointer ? "ePointerOver" : "eMoustOver",
+           isPointer ? "ePointerOver" : "eMouseOver",
            aContent ? ToString(*aContent).c_str() : "nullptr", aContent));
   nsCOMPtr<nsIWidget> targetWidget = DispatchMouseOrPointerBoundaryEvent(
       aMouseEvent, isPointer ? ePointerOver : eMouseOver, aContent,
