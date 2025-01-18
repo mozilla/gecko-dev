@@ -96,6 +96,10 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
 
  private:
+  ~SourceSurfaceSharedDataWrapper() override {
+    MOZ_RELEASE_ASSERT(!mExpirationState.IsTracked());
+  }
+
   size_t GetDataLength() const {
     return static_cast<size_t>(mStride) * mSize.height;
   }
