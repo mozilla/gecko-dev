@@ -643,6 +643,8 @@ support-files = ["slow-page.sjs"]
 
 ["browser_switchTab_inputHistory.js"]
 
+["browser_switchTab_notFoundPage.js"]
+
 ["browser_switchTab_override.js"]
 
 ["browser_switchToTabHavingURI_aOpenParams.js"]

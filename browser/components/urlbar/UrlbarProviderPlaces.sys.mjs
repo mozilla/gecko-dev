@@ -70,7 +70,10 @@ function defaultQuery(conditions = "") {
      LEFT JOIN moz_openpages_temp t
             ON t.url = h.url
             AND (t.userContextId = :userContextId OR (t.userContextId <> -1 AND :userContextId IS NULL))
-     WHERE ${PAGES_FRECENCY_FIELD} <> 0
+     WHERE (
+        (:switchTabsEnabled AND t.open_count > 0) OR
+        ${PAGES_FRECENCY_FIELD} <> 0
+       )
        AND CASE WHEN bookmarked
          THEN
            AUTOCOMPLETE_MATCH(:searchString, h.url,
@@ -1298,6 +1301,7 @@ Search.prototype = {
       // Limit the query to the the maximum number of desired results.
       // This way we can avoid doing more work than needed.
       maxResults: this._maxResults,
+      switchTabsEnabled: this.hasBehavior("openpage"),
     };
     params.userContextId = lazy.UrlbarPrefs.get(
       "switchTabs.searchAllContainers"
