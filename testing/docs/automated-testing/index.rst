@@ -102,9 +102,6 @@ Symbol
    the test. The letter in parentheses identifies the actual test suite.
 Name
    Common name used when referring to the test suite.
-File type
-   When adding a new test, you will generally create a file of this type
-   in the source tree and then declare it in a manifest or makefile.
 Platform
    Most test suites are supported only on a subset of the available
    plaforms and operating systems. Unless otherwise noted:
