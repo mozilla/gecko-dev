@@ -445,7 +445,7 @@ class VideoInfo : public TrackInfo {
     }
   }
 
-  nsString ToString() const {
+  nsCString ToString() const {
     std::array YUVColorSpaceStrings = {"BT601", "BT709", "BT2020", "Identity",
                                        "Default"};
 
@@ -477,8 +477,8 @@ class VideoInfo : public TrackInfo {
                                         "BT601_625"
                                         "BT709",
                                         "BT2020"};
-    nsString rv;
-    rv.AppendLiteral(u"VideoInfo: ");
+    nsAutoCString rv;
+    rv.AppendLiteral("VideoInfo: ");
     rv.AppendPrintf("display size: %dx%d ", mDisplay.Width(),
                     mDisplay.Height());
     rv.AppendPrintf("stereo mode: %d", static_cast<int>(mStereoMode));
