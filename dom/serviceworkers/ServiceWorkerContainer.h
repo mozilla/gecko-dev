@@ -21,6 +21,7 @@ class Promise;
 struct RegistrationOptions;
 class ServiceWorker;
 class ServiceWorkerContainerChild;
+class TrustedScriptURLOrUSVString;
 
 // Lightweight serviceWorker APIs collection.
 class ServiceWorkerContainer final : public DOMEventTargetHelper {
@@ -51,10 +52,10 @@ class ServiceWorkerContainer final : public DOMEventTargetHelper {
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<Promise> Register(const nsAString& aScriptURL,
-                                     const RegistrationOptions& aOptions,
-                                     const CallerType aCallerType,
-                                     ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Register(
+      const TrustedScriptURLOrUSVString& aScriptURL,
+      const RegistrationOptions& aOptions, const CallerType aCallerType,
+      ErrorResult& aRv);
 
   already_AddRefed<ServiceWorker> GetController();
 

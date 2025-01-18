@@ -35,6 +35,8 @@
 #include "mozilla/dom/ServiceWorkerContainerBinding.h"
 #include "mozilla/dom/ServiceWorkerContainerChild.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -166,14 +168,15 @@ JSObject* ServiceWorkerContainer::WrapObject(
 }
 
 already_AddRefed<Promise> ServiceWorkerContainer::Register(
-    const nsAString& aScriptURL, const RegistrationOptions& aOptions,
-    const CallerType aCallerType, ErrorResult& aRv) {
+    const TrustedScriptURLOrUSVString& aScriptURL,
+    const RegistrationOptions& aOptions, const CallerType aCallerType,
+    ErrorResult& aRv) {
   AUTO_PROFILER_MARKER_TEXT("SWC Register", DOM, {}, ""_ns);
 
   // Note, we can't use GetGlobalIfValid() from the start here.  If we
   // hit a storage failure we want to log a message with the final
   // scope string we put together below.
-  nsIGlobalObject* global = GetParentObject();
+  nsCOMPtr<nsIGlobalObject> global = GetParentObject();
   if (!global) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -191,9 +194,19 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
     return nullptr;
   }
 
+  constexpr nsLiteralString sink = u"ServiceWorkerContainer register"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aScriptURL, sink, kTrustedTypesOnlySinkGroup, *global,
+          compliantStringHolder, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
   // Don't use NS_ConvertUTF16toUTF8 because that doesn't let us handle OOM.
   nsAutoCString scriptURL;
-  if (!AppendUTF16toUTF8(aScriptURL, scriptURL, fallible)) {
+  if (!AppendUTF16toUTF8(*compliantString, scriptURL, fallible)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
