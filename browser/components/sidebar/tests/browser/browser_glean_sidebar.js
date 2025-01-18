@@ -10,6 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   TabsSetupFlowManager:
     "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs",
+  UIState: "resource://services-sync/UIState.sys.mjs",
 });
 
 add_setup(async () => {
@@ -22,6 +23,10 @@ registerCleanupFunction(() => {
     BrowserTestUtils.removeTab(gBrowser.tabs[0]);
   }
 });
+
+function getExpectedVersionString() {
+  return SidebarController.sidebarRevampEnabled ? "new" : "old";
+}
 
 add_task(async function test_metrics_initialized() {
   const metrics = ["displaySettings", "positionSettings", "tabsLayout"];
@@ -89,14 +94,25 @@ async function testSidebarToggle(commandID, gleanEvent, otherCommandID) {
 }
 
 add_task(async function test_history_sidebar_toggle() {
+  const gleanEvent = Glean.history.sidebarToggle;
   await testSidebarToggle(
     "viewHistorySidebar",
-    Glean.history.sidebarToggle,
+    gleanEvent,
     "viewBookmarksSidebar"
   );
+  for (const { extra } of gleanEvent.testGetValue()) {
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
+  }
 });
 
-add_task(async function test_synced_tabs_sidebar_toggle() {
+async function test_synced_tabs_sidebar_toggle(revampEnabled) {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", revampEnabled]],
+  });
   await testSidebarToggle("viewTabsSidebar", Glean.syncedTabs.sidebarToggle);
   let events = Glean.syncedTabs.sidebarToggle.testGetValue();
   for (const { extra } of events) {
@@ -105,12 +121,21 @@ add_task(async function test_synced_tabs_sidebar_toggle() {
       "false",
       "Event indicates that synced tabs aren't loaded yet."
     );
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
   }
 
   // Repeat test while simulating synced tabs loaded state.
   Services.fog.testResetFOG();
   const sandbox = sinon.createSandbox();
-  sandbox.stub(lazy.TabsSetupFlowManager, "uiStateIndex").value(4);
+  if (revampEnabled) {
+    sandbox.stub(lazy.TabsSetupFlowManager, "uiStateIndex").value(4);
+  } else {
+    sandbox.stub(lazy.UIState, "get").returns({ status: "signed_in" });
+  }
 
   await testSidebarToggle("viewTabsSidebar", Glean.syncedTabs.sidebarToggle);
   events = Glean.syncedTabs.sidebarToggle.testGetValue();
@@ -120,16 +145,36 @@ add_task(async function test_synced_tabs_sidebar_toggle() {
       "true",
       "Event indicates that synced tabs are now loaded."
     );
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
   }
 
   sandbox.restore();
+  await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
+}
+
+add_task(async function test_synced_tabs_sidebar_toggle_legacy() {
+  await test_synced_tabs_sidebar_toggle(false);
+});
+
+add_task(async function test_synced_tabs_sidebar_toggle_revamp() {
+  await test_synced_tabs_sidebar_toggle(true);
 });
 
 add_task(async function test_bookmarks_sidebar_toggle() {
-  await testSidebarToggle(
-    "viewBookmarksSidebar",
-    Glean.bookmarks.sidebarToggle
-  );
+  const gleanEvent = Glean.bookmarks.sidebarToggle;
+  await testSidebarToggle("viewBookmarksSidebar", gleanEvent);
+  for (const { extra } of gleanEvent.testGetValue()) {
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
+  }
 });
 
 add_task(async function test_extension_sidebar_toggle() {
@@ -141,11 +186,16 @@ add_task(async function test_extension_sidebar_toggle() {
   let events = Glean.extension.sidebarToggle.testGetValue();
   Assert.equal(events.length, 1, "One event was reported.");
   const {
-    extra: { opened, addon_id, addon_name },
+    extra: { opened, addon_id, addon_name, version },
   } = events[0];
   Assert.ok(opened, "Event indicates the panel was opened.");
   Assert.ok(addon_id, "Event has the extension's ID.");
   Assert.ok(addon_name, "Event has the extension's name.");
+  Assert.equal(
+    version,
+    getExpectedVersionString(),
+    "Event has the correct sidebar version."
+  );
 
   info("Unload the extension.");
   await extension.unload();

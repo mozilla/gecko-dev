@@ -40,6 +40,7 @@ class SyncedTabsInSidebar extends SidebarPage {
       Glean.syncedTabs.sidebarToggle.record({
         opened: true,
         synced_tabs_loaded: this.controller.isSyncedTabsLoaded,
+        version: "new",
       })
     );
     this.addContextMenuListeners();
@@ -52,6 +53,7 @@ class SyncedTabsInSidebar extends SidebarPage {
     Glean.syncedTabs.sidebarToggle.record({
       opened: false,
       synced_tabs_loaded: this.controller.isSyncedTabsLoaded,
+      version: "new",
     });
     this.removeContextMenuListeners();
     this.removeSidebarFocusedListeners();
