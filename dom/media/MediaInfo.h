@@ -291,7 +291,7 @@ class TrackInfo {
   bool IsText() const { return !!GetAsTextInfo(); }
   TrackType GetType() const { return mType; }
 
-  nsCString ToString() const;
+  virtual nsCString ToString() const;
 
   bool virtual IsValid() const = 0;
 
@@ -445,7 +445,7 @@ class VideoInfo : public TrackInfo {
     }
   }
 
-  nsCString ToString() const {
+  nsCString ToString() const override {
     std::array YUVColorSpaceStrings = {"BT601", "BT709", "BT2020", "Identity",
                                        "Default"};
 
@@ -478,6 +478,7 @@ class VideoInfo : public TrackInfo {
                                         "BT709",
                                         "BT2020"};
     nsAutoCString rv;
+    rv.Append(TrackInfo::ToString());
     rv.AppendLiteral("VideoInfo: ");
     rv.AppendPrintf("display size: %dx%d ", mDisplay.Width(),
                     mDisplay.Height());
@@ -599,7 +600,7 @@ class AudioInfo : public TrackInfo {
 
   const AudioInfo* GetAsAudioInfo() const override { return this; }
 
-  nsCString ToString() const;
+  nsCString ToString() const override;
 
   UniquePtr<TrackInfo> Clone() const override {
     return MakeUnique<AudioInfo>(*this);
