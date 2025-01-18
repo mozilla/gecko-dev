@@ -16,9 +16,6 @@ skip-if = [
 run-sequentially = "very high failure rate in parallel"
 
 ["test_subprocess_connectRunning.js"]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1936343
-]
 
 ["test_subprocess_getEnvironment.js"]
 
