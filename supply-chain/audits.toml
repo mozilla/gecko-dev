@@ -4528,12 +4528,6 @@ I didn't check the implementation thoroughly but there wasn't anything obviously
 which suggests no one else has found anything either.
 """
 
-[[audits.sha2-asm]]
-who = "Jeff Muizelaar <jmuizelaar@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.6.4"
-notes = "I didn't check the correctness of the assembly but there was nothing obviously nefarious"
-
 [[audits.sha3]]
 who = "Simon Friedberger <simon@mozilla.com>"
 criteria = "safe-to-deploy"
