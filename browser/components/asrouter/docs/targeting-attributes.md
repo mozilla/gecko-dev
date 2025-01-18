@@ -21,7 +21,6 @@ Please note that some targeting attributes require stricter controls on the tele
 * [canCreateSelectableProfiles](#cancreateselectableprofiles)
 * [creditCardsSaved](#creditcardssaved)
 * [currentDate](#currentdate)
-* [currentTabGroups](#currentTabGroups)
 * [defaultPDFHandler](#defaultpdfhandler)
 * [devToolsOpenedCount](#devtoolsopenedcount)
 * [distributionId](#distributionid)
@@ -68,7 +67,6 @@ Please note that some targeting attributes require stricter controls on the tele
 * [providerCohorts](#providercohorts)
 * [recentBookmarks](#recentbookmarks)
 * [region](#region)
-* [savedTabGroups](#savedtabgroups)
 * [screenImpressions](#screenimpressions)
 * [searchEngines](#searchengines)
 * [sync](#sync)
@@ -622,13 +620,6 @@ Pref used by system administrators to disallow add-ons from installed altogether
 ```ts
 declare const xpinstallEnabled: boolean;
 ```
-### `currentTabGroups`
-
-Returns the number of currently open tab groups.
-
-### `savedTabGroups`
-
-Returns the number of tab groups the user has saved.
 
 ### `hasPinnedTabs`
 
