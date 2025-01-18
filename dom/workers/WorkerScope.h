@@ -69,6 +69,7 @@ class IDBFactory;
 class OnErrorEventHandlerNonNull;
 template <typename T>
 class Optional;
+class OwningTrustedScriptURLOrString;
 class Performance;
 class Promise;
 class RequestOrUTF8String;
@@ -281,8 +282,10 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   FontFaceSet* GetFonts(ErrorResult&);
   FontFaceSet* GetFonts() final { return GetFonts(IgnoreErrors()); }
 
-  void ImportScripts(JSContext* aCx, const Sequence<nsString>& aScriptURLs,
-                     ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void ImportScripts(
+      JSContext* aCx,
+      const Sequence<OwningTrustedScriptURLOrString>& aScriptURLs,
+      ErrorResult& aRv);
 
   OnErrorEventHandlerNonNull* GetOnerror();
 

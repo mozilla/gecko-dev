@@ -573,9 +573,9 @@ void WorkerGlobalScope::SetOnerror(OnErrorEventHandlerNonNull* aHandler) {
   }
 }
 
-void WorkerGlobalScope::ImportScripts(JSContext* aCx,
-                                      const Sequence<nsString>& aScriptURLs,
-                                      ErrorResult& aRv) {
+void WorkerGlobalScope::ImportScripts(
+    JSContext* aCx, const Sequence<OwningTrustedScriptURLOrString>& aScriptURLs,
+    ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
   UniquePtr<SerializedStackHolder> stack;
@@ -584,10 +584,24 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
   }
 
   {
+    nsTArray<nsString> scriptURLs;
+    nsCOMPtr<nsIGlobalObject> pinnedGlobal = this;
+    for (const auto& scriptURL : aScriptURLs) {
+      constexpr nsLiteralString sink = u"WorkerGlobalScope importScripts"_ns;
+      Maybe<nsAutoString> compliantStringHolder;
+      const nsAString* compliantString =
+          TrustedTypeUtils::GetTrustedTypesCompliantString(
+              scriptURL, sink, kTrustedTypesOnlySinkGroup, *pinnedGlobal,
+              compliantStringHolder, aRv);
+      if (aRv.Failed()) {
+        return;
+      }
+      scriptURLs.AppendElement(*compliantString);
+    }
     AUTO_PROFILER_MARKER_TEXT(
         "ImportScripts", JS, MarkerStack::Capture(),
         profiler_thread_is_being_profiled_for_markers()
-            ? StringJoin(","_ns, aScriptURLs,
+            ? StringJoin(","_ns, scriptURLs,
                          [](nsACString& dest, const auto& scriptUrl) {
                            AppendUTF16toUTF8(
                                Substring(
@@ -596,7 +610,7 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
                                dest);
                          })
             : nsAutoCString{});
-    workerinternals::Load(mWorkerPrivate, std::move(stack), aScriptURLs,
+    workerinternals::Load(mWorkerPrivate, std::move(stack), scriptURLs,
                           WorkerScript, aRv);
   }
 }

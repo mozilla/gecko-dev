@@ -264,15 +264,14 @@ void ProcessValueWithADefaultPolicy(nsIGlobalObject& aGlobalObject,
 // the different union types.
 template <typename TrustedTypeOrStringArg>
 static inline bool IsString(const TrustedTypeOrStringArg& aInput) {
-  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg,
-                               FunctionOrTrustedScriptOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg,
-                               TrustedScriptURLOrString> ||
-                std::is_same_v<
-                    TrustedTypeOrStringArg,
-                    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
+  if constexpr (
+      std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, FunctionOrTrustedScriptOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, TrustedScriptURLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, OwningTrustedScriptURLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg,
+                     TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
     return aInput.IsString();
   }
   if constexpr (std::is_same_v<TrustedTypeOrStringArg,
@@ -296,15 +295,14 @@ static inline bool IsString(const TrustedTypeOrStringArg& aInput) {
 template <typename TrustedTypeOrStringArg>
 static inline const nsAString* GetAsString(
     const TrustedTypeOrStringArg& aInput) {
-  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg,
-                               FunctionOrTrustedScriptOrString> ||
-                std::is_same_v<TrustedTypeOrStringArg,
-                               TrustedScriptURLOrString> ||
-                std::is_same_v<
-                    TrustedTypeOrStringArg,
-                    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
+  if constexpr (
+      std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, FunctionOrTrustedScriptOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, TrustedScriptURLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg, OwningTrustedScriptURLOrString> ||
+      std::is_same_v<TrustedTypeOrStringArg,
+                     TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
     return &aInput.GetAsString();
   }
   if constexpr (std::is_same_v<TrustedTypeOrStringArg,
@@ -341,7 +339,9 @@ static inline bool IsTrustedType(const TrustedTypeOrStringArg& aInput) {
   if constexpr (std::is_same_v<TrustedTypeOrStringArg,
                                TrustedScriptURLOrString> ||
                 std::is_same_v<TrustedTypeOrStringArg,
-                               TrustedScriptURLOrUSVString>) {
+                               TrustedScriptURLOrUSVString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               OwningTrustedScriptURLOrString>) {
     return aInput.IsTrustedScriptURL();
   }
   if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
@@ -372,6 +372,10 @@ static inline const nsAString* GetAsTrustedType(
                 std::is_same_v<TrustedTypeOrStringArg,
                                TrustedScriptURLOrUSVString>) {
     return &aInput.GetAsTrustedScriptURL().mData;
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               OwningTrustedScriptURLOrString>) {
+    return &aInput.GetAsTrustedScriptURL()->mData;
   }
   if constexpr (std::is_same_v<
                     TrustedTypeOrStringArg,
@@ -556,6 +560,8 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(FunctionOrTrustedScriptOrString,
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL, const nsINode);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrUSVString,
+                                        TrustedScriptURL, nsIGlobalObject);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(OwningTrustedScriptURLOrString,
                                         TrustedScriptURL, nsIGlobalObject);
 
 MOZ_CAN_RUN_SCRIPT const nsAString*
