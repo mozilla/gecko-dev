@@ -2390,151 +2390,151 @@
 
     <!-- Review quality check feature-->
     <!-- Name for the review quality check feature used as title for the panel. -->
-    <string name="review_quality_check_feature_name_2">نظرثانی پڑتالݨ آلا</string>
+    <string name="review_quality_check_feature_name_2" moz:removedIn="136" tools:ignore="UnusedResources">نظرثانی پڑتالݨ آلا</string>
     <!-- Summary for grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_a_b_description">قابلِ اعتماد جائزے</string>
+    <string name="review_quality_check_grade_a_b_description" moz:removedIn="136" tools:ignore="UnusedResources">قابلِ اعتماد جائزے</string>
     <!-- Summary for grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_c_description">قابلِ اعتماد اَتے نا قابلِ اعتماد جائزیاں دا مرکب</string>
+    <string name="review_quality_check_grade_c_description" moz:removedIn="136" tools:ignore="UnusedResources">قابلِ اعتماد اَتے نا قابلِ اعتماد جائزیاں دا مرکب</string>
     <!-- Summary for grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_grade_d_f_description">نا قا بلِ اعتماد جائزے</string>
+    <string name="review_quality_check_grade_d_f_description" moz:removedIn="136" tools:ignore="UnusedResources">نا قا بلِ اعتماد جائزے</string>
     <!-- Text for title presenting the reliability of a product's reviews. -->
-    <string name="review_quality_check_grade_title">بَھلا اِیہ جائزے کِتّی قابلِ اعتماد ہِن؟</string>
+    <string name="review_quality_check_grade_title" moz:removedIn="136" tools:ignore="UnusedResources">بَھلا اِیہ جائزے کِتّی قابلِ اعتماد ہِن؟</string>
     <!-- Title for when the rating has been updated by the review checker -->
-    <string name="review_quality_check_adjusted_rating_title">مُرتب کِیتی ڳئی درجہ بندی</string>
+    <string name="review_quality_check_adjusted_rating_title" moz:removedIn="136" tools:ignore="UnusedResources">مُرتب کِیتی ڳئی درجہ بندی</string>
     <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
-    <string name="review_quality_check_adjusted_rating_description_2">قابلِ اعتماد جائزیاں دی بنیاد تے</string>
+    <string name="review_quality_check_adjusted_rating_description_2" moz:removedIn="136" tools:ignore="UnusedResources">قابلِ اعتماد جائزیاں دی بنیاد تے</string>
     <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
-    <string name="review_quality_check_highlights_title">حالیہ جائزیاں کنوں نمونے</string>
+    <string name="review_quality_check_highlights_title" moz:removedIn="136" tools:ignore="UnusedResources">حالیہ جائزیاں کنوں نمونے</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
-    <string name="review_quality_check_explanation_title">اَساں جائزے دے معیار دا تعیّن کیویں کرین٘دے ہِسے</string>
+    <string name="review_quality_check_explanation_title" moz:removedIn="136" tools:ignore="UnusedResources">اَساں جائزے دے معیار دا تعیّن کیویں کرین٘دے ہِسے</string>
     <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_explanation_body_reliability">اَساں پراڈکٹ دے جائزیاں دی قابلِ اعتماد ہووݨ دی صلاحیت کوں پرکھݨ کِیتے موزیلا دی طرفوں %s دی اے آئی ٹیکنالوجی استعمال کرین٘دے ہِسے۔ اِین٘دے نال تُہاکُوں صرف جائزے دے معیار دا اندازہ لاوݨ وِچ مَدَت مِلسی، پراڈکٹ دے معیار دا کائناں۔</string>
+    <string name="review_quality_check_explanation_body_reliability" moz:removedIn="136" tools:ignore="UnusedResources">اَساں پراڈکٹ دے جائزیاں دی قابلِ اعتماد ہووݨ دی صلاحیت کوں پرکھݨ کِیتے موزیلا دی طرفوں %s دی اے آئی ٹیکنالوجی استعمال کرین٘دے ہِسے۔ اِین٘دے نال تُہاکُوں صرف جائزے دے معیار دا اندازہ لاوݨ وِچ مَدَت مِلسی، پراڈکٹ دے معیار دا کائناں۔</string>
     <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
-    <string name="review_quality_check_info_review_grade_header"><![CDATA[اَساں ہر پراڈکٹ دے جائزیاں کوں اے کنوں ایف تئیں <b>اَکّھر دا درجہ</b> تفویض کرین٘دے ہِسے۔]]></string>
+    <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[اَساں ہر پراڈکٹ دے جائزیاں کوں اے کنوں ایف تئیں <b>اَکّھر دا درجہ</b> تفویض کرین٘دے ہِسے۔]]></string>
     <!-- Description explaining grades A and B for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_AB">قابلِ اعتماد جائزے۔ اَساکوں پَک ہِے جو جائزے ممکنہ طور تے حقیقی ڳاہکاں دی طرفوں ہِن جِنّھاں نے ایماندار، غیر جانبدارانہ جائزے چھوڑے ہِن۔</string>
+    <string name="review_quality_check_info_grade_info_AB" moz:removedIn="136" tools:ignore="UnusedResources">قابلِ اعتماد جائزے۔ اَساکوں پَک ہِے جو جائزے ممکنہ طور تے حقیقی ڳاہکاں دی طرفوں ہِن جِنّھاں نے ایماندار، غیر جانبدارانہ جائزے چھوڑے ہِن۔</string>
     <!-- Description explaining grade C for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_C">اَساکوں پَک ہِے جو قابلِ اعتماد اَتے غیر معتبر جائزیاں دا امتزاج ہِے۔</string>
+    <string name="review_quality_check_info_grade_info_C" moz:removedIn="136" tools:ignore="UnusedResources">اَساکوں پَک ہِے جو قابلِ اعتماد اَتے غیر معتبر جائزیاں دا امتزاج ہِے۔</string>
     <!-- Description explaining grades D and F for review quality check adjusted grading. -->
-    <string name="review_quality_check_info_grade_info_DF">نا قابلِ اعتماد جائزے۔ اَساکوں پَک ہِے جو جائزے ممکنہ طور تے کُوڑے ہِن یا متعصب جائزہ کاراں دے ہِن۔</string>
+    <string name="review_quality_check_info_grade_info_DF" moz:removedIn="136" tools:ignore="UnusedResources">نا قابلِ اعتماد جائزے۔ اَساکوں پَک ہِے جو جائزے ممکنہ طور تے کُوڑے ہِن یا متعصب جائزہ کاراں دے ہِن۔</string>
     <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>مُرتّب کِیتی ڳئی درجہ بندی</b> صرف اُنّھاں جائزیاں اُتّے مبنی ہِے جہڑے اَساں قابلِ اعتماد سمجھدے ہِسے۔]]></string>
+    <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>مُرتّب کِیتی ڳئی درجہ بندی</b> صرف اُنّھاں جائزیاں اُتّے مبنی ہِے جہڑے اَساں قابلِ اعتماد سمجھدے ہِسے۔]]></string>
     <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
-    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>نمونے</b> پِچھوکڑ 80 ݙیہاڑیاں دے %s جائزیاں وِچوں ہِن جِنّھاں دے بارے وِچ اَساکوں پَک ہِے۔]]></string>
+    <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>نمونے</b> پِچھوکڑ 80 ݙیہاڑیاں دے %s جائزیاں وِچوں ہِن جِنّھاں دے بارے وِچ اَساکوں پَک ہِے۔]]></string>
     <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
-    <string name="review_quality_check_info_learn_more">%s بارے ٻیا سِکھو۔</string>
+    <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">%s بارے ٻیا سِکھو۔</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_info_learn_more_link_2">%s جائزے دے معیار دا تعین کِیویں کرین٘دا ہِے</string>
+    <string name="review_quality_check_info_learn_more_link_2" moz:removedIn="136" tools:ignore="UnusedResources">%s جائزے دے معیار دا تعین کِیویں کرین٘دا ہِے</string>
     <!-- Text for title of settings section. -->
-    <string name="review_quality_check_settings_title">ترتیباں</string>
+    <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ترتیباں</string>
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
-    <string name="review_quality_check_settings_recommended_products">ریویو پڑتالی وِچ اشتہارات ݙِکھاؤ</string>
+    <string name="review_quality_check_settings_recommended_products" moz:removedIn="136" tools:ignore="UnusedResources">ریویو پڑتالی وِچ اشتہارات ݙِکھاؤ</string>
     <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
-    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">تُہاکوں متعلقہ مصنوعات کِیتے کݙان٘ہیں کݙان٘ہیں اشتہارات نظر آسِن۔ اَساں صرف قابلِ اعتماد جائزیاں دے نال مصنوعات دی تشہیر کرین٘دے ہِسے۔ %s</string>
+    <string name="review_quality_check_settings_recommended_products_description_2" moz:removedIn="136" tools:ignore="UnusedResources">تُہاکوں متعلقہ مصنوعات کِیتے کݙان٘ہیں کݙان٘ہیں اشتہارات نظر آسِن۔ اَساں صرف قابلِ اعتماد جائزیاں دے نال مصنوعات دی تشہیر کرین٘دے ہِسے۔ %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
-    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">ٻیا سِکھو</string>
+    <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ٻیا سِکھو</string>
     <!-- Text for turning sidebar off button from review quality check settings section. -->
-    <string name="review_quality_check_settings_turn_off">ریویو پڑتالی بند کرو</string>
+    <string name="review_quality_check_settings_turn_off" moz:removedIn="136" tools:ignore="UnusedResources">ریویو پڑتالی بند کرو</string>
     <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
-    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">غور کرݨ کِیتے ٻِیا</string>
+    <string name="review_quality_check_ad_title" moz:removedIn="136" tools:ignore="UnusedResources">غور کرݨ کِیتے ٻِیا</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
-    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s دی طرفُوں اشتہار</string>
+    <string name="review_quality_check_ad_caption" moz:removedIn="136" tools:ignore="UnusedResources">%s دی طرفُوں اشتہار</string>
     <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
-    <string name="review_quality_check_powered_by_2">جائزہ پڑتالی %s دی طرفُوں لاڳو ہِے</string>
+    <string name="review_quality_check_powered_by_2" moz:removedIn="136" tools:ignore="UnusedResources">جائزہ پڑتالی %s دی طرفُوں لاڳو ہِے</string>
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">Mozilla ولوں %s</string>
+    <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">Mozilla ولوں %s</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">پڑتال کر کیتے نویں معلومات</string>
+    <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">پڑتال کر کیتے نویں معلومات</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
-    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">ہݨ پڑتال کرو</string>
+    <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">ہݨ پڑتال کرو</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_title">ہالی تئیں پورے جائزے کائنی</string>
+    <string name="review_quality_check_no_reviews_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ہالی تئیں پورے جائزے کائنی</string>
     <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-    <string name="review_quality_check_no_reviews_warning_body">جہڑیلے اِیں پروڈکٹ دے ٻئے جائزے تِھیسِن، تاں اَساں اِنّھاں دا جائزہ چیک کر سڳسوں۔</string>
+    <string name="review_quality_check_no_reviews_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">جہڑیلے اِیں پروڈکٹ دے ٻئے جائزے تِھیسِن، تاں اَساں اِنّھاں دا جائزہ چیک کر سڳسوں۔</string>
     <!-- Title for warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_title">پروڈکٹ دستیاب کائنی</string>
+    <string name="review_quality_check_product_availability_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">پروڈکٹ دستیاب کائنی</string>
     <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
-    <string name="review_quality_check_product_availability_warning_body">ڄیکر تُساں ݙیہدے ہِیوے جو اِیہ پروڈکٹ وَلا سٹاک وِچ ہِے، تاں اِین٘دی اطلاع ݙیؤ اَتے اَساں تجزیاں کوں چیک کرݨ اُتے کَم کریسوں۔</string>
+    <string name="review_quality_check_product_availability_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ڄیکر تُساں ݙیہدے ہِیوے جو اِیہ پروڈکٹ وَلا سٹاک وِچ ہِے، تاں اِین٘دی اطلاع ݙیؤ اَتے اَساں تجزیاں کوں چیک کرݨ اُتے کَم کریسوں۔</string>
     <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
-    <string name="review_quality_check_product_availability_warning_action_2">رپورٹ پراڈکٹ سٹاک وِچ ہِے</string>
+    <string name="review_quality_check_product_availability_warning_action_2" moz:removedIn="136" tools:ignore="UnusedResources">رپورٹ پراڈکٹ سٹاک وِچ ہِے</string>
     <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
-    <string name="review_quality_check_analysis_in_progress_warning_title_2">جائزے دا معیار پَرکھیا وین٘دا پِیا ہِے (%s)</string>
+    <string name="review_quality_check_analysis_in_progress_warning_title_2" moz:removedIn="136" tools:ignore="UnusedResources">جائزے دا معیار پَرکھیا وین٘دا پِیا ہِے (%s)</string>
     <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
-    <string name="review_quality_check_analysis_in_progress_warning_body">اِین٘دے وِچ تقریباً 60 سیکنڈ لڳ سڳدے ہِن۔</string>
+    <string name="review_quality_check_analysis_in_progress_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">اِین٘دے وِچ تقریباً 60 سیکنڈ لڳ سڳدے ہِن۔</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_title">رپورٹ کرݨ دا شکریہ!</string>
+    <string name="review_quality_check_analysis_requested_info_title" moz:removedIn="136" tools:ignore="UnusedResources">رپورٹ کرݨ دا شکریہ!</string>
     <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_info_body">اَساݙے کول 24 گھنٹیاں دے اندر اِیں پراڈکٹ دے جائزیاں دے بارے وِچ معلومات ہووݨی چاہِیدی ہِے۔ تھورائیت کرین٘دے ہوئے وَلا ݙیکھو۔</string>
+    <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">اَساݙے کول 24 گھنٹیاں دے اندر اِیں پراڈکٹ دے جائزیاں دے بارے وِچ معلومات ہووݨی چاہِیدی ہِے۔ تھورائیت کرین٘دے ہوئے وَلا ݙیکھو۔</string>
     <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_title">اَساں اِنّھاں جائزیاں کوں نِھسے ݙیکھ سڳدے</string>
+    <string name="review_quality_check_not_analyzable_info_title" moz:removedIn="136" tools:ignore="UnusedResources">اَساں اِنّھاں جائزیاں کوں نِھسے ݙیکھ سڳدے</string>
     <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-    <string name="review_quality_check_not_analyzable_info_body">بد قسمتی نال، اَساں مخصوص ونکی دے پراڈکٹس کِیتے جائزے دے معیار دی پَرکھ نِھیں کر سڳدے۔ مثال دے طور تے، تحفہ کارڈز اَتے سٹریمنگ ویڈیو، موسیقی اَتے گیماں۔</string>
+    <string name="review_quality_check_not_analyzable_info_body" moz:removedIn="136" tools:ignore="UnusedResources">بد قسمتی نال، اَساں مخصوص ونکی دے پراڈکٹس کِیتے جائزے دے معیار دی پَرکھ نِھیں کر سڳدے۔ مثال دے طور تے، تحفہ کارڈز اَتے سٹریمنگ ویڈیو، موسیقی اَتے گیماں۔</string>
     <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">معلومات جلتی آن٘دی پئی ہِے</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_title" moz:removedIn="136" tools:ignore="UnusedResources">معلومات جلتی آن٘دی پئی ہِے</string>
     <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
-    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">اَساݙے کول 24 گھنٹیاں دے اندر اِیں پراڈکٹ دے جائزیاں دے بارے وِچ معلومات ہووݨی چاہِیدی ہِے۔ تھورائیت کرین٘دے ہوئے وَلا ݙیکھو۔</string>
+    <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">اَساݙے کول 24 گھنٹیاں دے اندر اِیں پراڈکٹ دے جائزیاں دے بارے وِچ معلومات ہووݨی چاہِیدی ہِے۔ تھورائیت کرین٘دے ہوئے وَلا ݙیکھو۔</string>
     <!-- Title for info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">تجزیہ تازہ ترین ہے</string>
+    <string name="review_quality_check_analysis_updated_confirmation_title" moz:removedIn="136" tools:ignore="UnusedResources">تجزیہ تازہ ترین ہے</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
-    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">سمجھ گھدے</string>
+    <string name="review_quality_check_analysis_updated_confirmation_action" moz:removedIn="136" tools:ignore="UnusedResources">سمجھ گھدے</string>
     <!-- Title for error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_title">ایں ویلے کوئی معلومات دستیاب کائنی</string>
+    <string name="review_quality_check_generic_error_title" moz:removedIn="136" tools:ignore="UnusedResources">ایں ویلے کوئی معلومات دستیاب کائنی</string>
     <!-- Text for body of error card displayed to the user when an error occurred. -->
-    <string name="review_quality_check_generic_error_body">اساں ایہ مسئلہ حل کر کیتے کوشش کریندے پئے ہیں۔ سوہݨا، ولدا جلدی پڑتال کراہے۔</string>
+    <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">اساں ایہ مسئلہ حل کر کیتے کوشش کریندے پئے ہیں۔ سوہݨا، ولدا جلدی پڑتال کراہے۔</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_title">کوئی نیٹورک کنکشن کائنی</string>
+    <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">کوئی نیٹورک کنکشن کائنی</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_body">آپݨاں نیٹ ورک کنکشن ݙیکھو اَتے وَل ورقے کوں وَلا لوڈ کرݨ دی کوشِش کرو۔</string>
+    <string name="review_quality_check_no_connection_body" moz:removedIn="136" tools:ignore="UnusedResources">آپݨاں نیٹ ورک کنکشن ݙیکھو اَتے وَل ورقے کوں وَلا لوڈ کرݨ دی کوشِش کرو۔</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_title">اِنّھاں دے جائزیاں دے بارے وِچ ہالی تئیں کُئی معلومات کائنی</string>
+    <string name="review_quality_check_no_analysis_title" moz:removedIn="136" tools:ignore="UnusedResources">اِنّھاں دے جائزیاں دے بارے وِچ ہالی تئیں کُئی معلومات کائنی</string>
     <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_body">اِیہ ڄاݨن کِیتے جو بَھلا اِیں پراڈکٹ دے جائزے قابلِ اعتماد ہِن، جائزے دا معیار ݙیکھو۔ اِین٘دے وِچ صرف 60 سیکنڈ لڳدے ہِن۔</string>
+    <string name="review_quality_check_no_analysis_body" moz:removedIn="136" tools:ignore="UnusedResources">اِیہ ڄاݨن کِیتے جو بَھلا اِیں پراڈکٹ دے جائزے قابلِ اعتماد ہِن، جائزے دا معیار ݙیکھو۔ اِین٘دے وِچ صرف 60 سیکنڈ لڳدے ہِن۔</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
-    <string name="review_quality_check_no_analysis_link">نظر ثانی معیار دی پڑتال کرو</string>
+    <string name="review_quality_check_no_analysis_link" moz:removedIn="136" tools:ignore="UnusedResources">نظر ثانی معیار دی پڑتال کرو</string>
     <!-- Headline for review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_title">مصنوعات دے جائزیاں کِیتے اَساݙی قابلِ اعتماد اڳواݨی اَزماؤ۔</string>
+    <string name="review_quality_check_contextual_onboarding_title" moz:removedIn="136" tools:ignore="UnusedResources">مصنوعات دے جائزیاں کِیتے اَساݙی قابلِ اعتماد اڳواݨی اَزماؤ۔</string>
     <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description">خریدݨ کنوں پہلاں ݙیکھو جو %1$s اُتّے پراڈکٹ دے جائزے کِتّی قابلِ اعتماد ہِن۔ نظرثانی پڑتالݨ آلا، %2$s دی ہِک تجزیاتی خاصیت، براہِ راست براؤزر وِچ بݨائی ڳئی ہِے۔ اِیہ %3$s اَتے %4$s اُتّے وی کَم کرین٘دا ہِے۔</string>
+    <string name="review_quality_check_contextual_onboarding_description" moz:removedIn="136" tools:ignore="UnusedResources">خریدݨ کنوں پہلاں ݙیکھو جو %1$s اُتّے پراڈکٹ دے جائزے کِتّی قابلِ اعتماد ہِن۔ نظرثانی پڑتالݨ آلا، %2$s دی ہِک تجزیاتی خاصیت، براہِ راست براؤزر وِچ بݨائی ڳئی ہِے۔ اِیہ %3$s اَتے %4$s اُتّے وی کَم کرین٘دا ہِے۔</string>
     <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description_one_vendor">خریدݨ کنوں پہلاں ݙیکھو جو %1$s اُتّے پراڈکٹ دے جائزے کِتّی قابلِ اعتماد ہِن۔ نظرثانی پڑتالݨ آلا، %2$s دی ہِک تجزیاتی خاصیت، براہِ راست براؤزر وِچ بݨائی ڳئی ہِے۔ </string>
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor" moz:removedIn="136" tools:ignore="UnusedResources">خریدݨ کنوں پہلاں ݙیکھو جو %1$s اُتّے پراڈکٹ دے جائزے کِتّی قابلِ اعتماد ہِن۔ نظرثانی پڑتالݨ آلا، %2$s دی ہِک تجزیاتی خاصیت، براہِ راست براؤزر وِچ بݨائی ڳئی ہِے۔ </string>
     <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more">موزیلا دی طرفُوں %1$s دی طاگت دا استعمال کرین٘دے ہوئے، اَساں تُہاکوں جانبدارانہ اَتے غیر مستند جائزیاں کنوں بچّݨ وِچ مَدَت کرین٘دے ہِسے۔ جہڑیلے تُساں خریداری کرین٘دے ہِیوے تاں اَساݙا اے آئی ماڈل تُہاݙی راکھی کِیتے ہمیشاں چَنڳا تِھین٘دا رہن٘دا ہِے۔ %2$s</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">موزیلا دی طرفُوں %1$s دی طاگت دا استعمال کرین٘دے ہوئے، اَساں تُہاکوں جانبدارانہ اَتے غیر مستند جائزیاں کنوں بچّݨ وِچ مَدَت کرین٘دے ہِسے۔ جہڑیلے تُساں خریداری کرین٘دے ہِیوے تاں اَساݙا اے آئی ماڈل تُہاݙی راکھی کِیتے ہمیشاں چَنڳا تِھین٘دا رہن٘دا ہِے۔ %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-    <string name="review_quality_check_contextual_onboarding_learn_more_link">ٻیا سِکھو</string>
+    <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ٻیا سِکھو</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_4">&quot;جیہا، اِیکوں ازماؤ&quot; کوں چُݨ کے تُساں %1$s’ایس دے %2$s اَتے %3$s’ایس %4$s نال سان٘جھ کرین٘دے ہِیوے۔</string>
+    <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">&quot;جیہا، اِیکوں ازماؤ&quot; کوں چُݨ کے تُساں %1$s’ایس دے %2$s اَتے %3$s’ایس %4$s نال سان٘جھ کرین٘دے ہِیوے۔</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">رازداری نوٹس</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">رازداری نوٹس</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
-    <string name="review_quality_check_contextual_onboarding_terms_use">ورتݨ شرطاں</string>
+    <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ورتݨ شرطاں</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_primary_button_text">جیا، ایں کوں ازماؤ</string>
+    <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">جیا، ایں کوں ازماؤ</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-    <string name="review_quality_check_contextual_onboarding_secondary_button_text">ہݨ کائناں</string>
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ہݨ کائناں</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_open_handle_content_description">ریویو پڑتالی کھولو</string>
+    <string name="review_quality_check_open_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ریویو پڑتالی کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_close_handle_content_description">ریویو پڑتالی بند کرو</string>
+    <string name="review_quality_check_close_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ریویو پڑتالی بند کرو</string>
     <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
-    <string name="review_quality_check_star_rating_content_description">5 تاریاں وچوں %1$s</string>
+    <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">5 تاریاں وچوں %1$s</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
-    <string name="review_quality_check_highlights_show_less">گھٹ ݙکھاؤ</string>
+    <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">گھٹ ݙکھاؤ</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
-    <string name="review_quality_check_highlights_show_more">ودھیک ݙکھاؤ</string>
+    <string name="review_quality_check_highlights_show_more" moz:removedIn="136" tools:ignore="UnusedResources">ودھیک ݙکھاؤ</string>
     <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
-    <string name="review_quality_check_highlights_type_quality">معیار</string>
+    <string name="review_quality_check_highlights_type_quality" moz:removedIn="136" tools:ignore="UnusedResources">معیار</string>
     <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-    <string name="review_quality_check_highlights_type_price">قیمت</string>
+    <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">قیمت</string>
 
     <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
-    <string name="review_quality_check_highlights_type_shipping">شِپنگ</string>
+    <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">شِپنگ</string>
 
     <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
-    <string name="review_quality_check_highlights_type_packaging_appearance">پیکیجنگ تے ظاہری شکل</string>
+    <string name="review_quality_check_highlights_type_packaging_appearance" moz:removedIn="136" tools:ignore="UnusedResources">پیکیجنگ تے ظاہری شکل</string>
     <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
-    <string name="review_quality_check_highlights_type_competitiveness">مقابلہ بازی</string>
+    <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">مقابلہ بازی</string>
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
-    <string name="surrounded_with_quotes">“%s”</string>
+    <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">“%s”</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
