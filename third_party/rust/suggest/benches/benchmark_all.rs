@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use criterion::{
-    criterion_group, criterion_main, measurement::Measurement, BatchSize, BenchmarkGroup, Criterion,
-};
+use criterion::{criterion_group, measurement::Measurement, BatchSize, BenchmarkGroup, Criterion};
 use std::sync::Once;
-use suggest::benchmarks::{geoname, ingest, query, BenchmarkWithInput};
+use suggest::benchmarks::{cleanup, geoname, ingest, query, BenchmarkWithInput};
 
 pub fn geoname(c: &mut Criterion) {
     setup_viaduct();
@@ -55,4 +53,11 @@ fn setup_viaduct() {
 }
 
 criterion_group!(benches, geoname, ingest, query);
-criterion_main!(benches);
+
+fn main() {
+    benches();
+    criterion::Criterion::default()
+        .configure_from_args()
+        .final_summary();
+    cleanup();
+}

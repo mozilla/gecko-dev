@@ -13,7 +13,10 @@ pub mod cache;
 pub mod client;
 pub mod config;
 pub mod error;
+pub mod schema;
 pub mod service;
+#[cfg(feature = "signatures")]
+pub(crate) mod signatures;
 pub mod storage;
 
 #[cfg(feature = "jexl")]

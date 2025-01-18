@@ -28,7 +28,7 @@ pub use config::{SuggestGlobalConfig, SuggestProviderConfig};
 pub use error::{Error, SuggestApiError};
 pub use geoname::{Geoname, GeonameMatch, GeonameType};
 pub use metrics::{LabeledTimingSample, SuggestIngestionMetrics};
-pub use provider::{SuggestionProvider, SuggestionProviderConstraints};
+pub use provider::{AmpMatchingStrategy, SuggestionProvider, SuggestionProviderConstraints};
 pub use query::{QueryWithMetricsResult, SuggestionQuery};
 pub use store::{InterruptKind, SuggestIngestionConstraints, SuggestStore, SuggestStoreBuilder};
 pub use suggestion::{raw_suggestion_url_matches, Suggestion};

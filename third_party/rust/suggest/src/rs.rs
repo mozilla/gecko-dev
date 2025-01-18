@@ -36,7 +36,10 @@ use std::fmt;
 use remote_settings::{Attachment, RemoteSettingsRecord};
 use serde::{Deserialize, Deserializer};
 
-use crate::{db::SuggestDao, error::Error, provider::SuggestionProvider, Result};
+use crate::{
+    db::SuggestDao, error::Error, provider::SuggestionProvider,
+    query::full_keywords_to_fts_content, Result,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Collection {
@@ -435,6 +438,10 @@ impl DownloadedSuggestionCommonDetails {
                 full_keyword,
             },
         )
+    }
+
+    pub fn full_keywords_fts_column(&self) -> String {
+        full_keywords_to_fts_content(self.full_keywords.iter().map(|(s, _)| s.as_str()))
     }
 }
 

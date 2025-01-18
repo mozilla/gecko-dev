@@ -14,7 +14,7 @@ use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicU32, Ordering},
-        OnceLock,
+        Mutex,
     },
 };
 use tempfile::TempDir;
@@ -64,14 +64,16 @@ fn unique_db_filename() -> String {
     format!("db{}.sqlite", COUNTER.fetch_add(1, Ordering::Relaxed))
 }
 
+// Create a "starter" store that will do an initial ingest, and then
+// initialize every returned store with a copy of its DB so that each one
+// doesn't need to reingest.
+static STARTER: Mutex<Option<(TempDir, PathBuf)>> = Mutex::new(None);
+
 /// Creates a new store that will contain all provider data currently in remote
 /// settings.
 fn new_store() -> SuggestStore {
-    // Create a "starter" store that will do an initial ingest, and then
-    // initialize every returned store with a copy of its DB so that each one
-    // doesn't need to reingest.
-    static STARTER: OnceLock<(TempDir, PathBuf)> = OnceLock::new();
-    let (starter_dir, starter_db_path) = STARTER.get_or_init(|| {
+    let mut starter = STARTER.lock().unwrap();
+    let (starter_dir, starter_db_path) = starter.get_or_insert_with(|| {
         let temp_dir = tempfile::tempdir().unwrap();
         let db_path = temp_dir.path().join(unique_db_filename());
         let store =
@@ -86,4 +88,9 @@ fn new_store() -> SuggestStore {
     let db_path = starter_dir.path().join(unique_db_filename());
     std::fs::copy(starter_db_path, &db_path).expect("Error copying starter DB file");
     SuggestStore::new(&db_path.to_string_lossy(), None).expect("Error building store")
+}
+
+/// Cleanup the temp directory created for SuggestStore instances used in the benchmarks.
+pub fn cleanup() {
+    *STARTER.lock().unwrap() = None;
 }

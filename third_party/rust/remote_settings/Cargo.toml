@@ -46,6 +46,10 @@ sha2 = "^0.10"
 thiserror = "1.0"
 url = "2"
 
+[dependencies.canonical_json]
+version = "0.5"
+optional = true
+
 [dependencies.error-support]
 path = "../support/error"
 
@@ -56,6 +60,10 @@ path = "../support/firefox-versioning"
 version = "0.3.0"
 optional = true
 
+[dependencies.rc_crypto]
+path = "../support/rc_crypto"
+optional = true
+
 [dependencies.rusqlite]
 version = "0.31.0"
 features = ["bundled"]
@@ -63,6 +71,9 @@ features = ["bundled"]
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[dependencies.sql-support]
+path = "../support/sql"
 
 [dependencies.uniffi]
 version = "0.28.2"
@@ -89,3 +100,7 @@ features = ["build"]
 [features]
 default = []
 jexl = ["dep:jexl-eval"]
+signatures = [
+    "dep:canonical_json",
+    "dep:rc_crypto",
+]

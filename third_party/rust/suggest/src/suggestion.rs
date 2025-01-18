@@ -38,6 +38,7 @@ pub enum Suggestion {
         click_url: String,
         raw_click_url: String,
         score: f64,
+        fts_match_info: Option<FtsMatchInfo>,
     },
     Pocket {
         title: String,
@@ -96,11 +97,24 @@ pub enum Suggestion {
         icon: Option<Vec<u8>>,
         icon_mimetype: Option<String>,
         score: f64,
+        // Details about the FTS match.  For performance reasons, this is only calculated for the
+        // result with the highest score.  We assume that only one that will be shown to the user
+        // and therefore the only one we'll collect metrics for.
+        match_info: Option<FtsMatchInfo>,
     },
     Exposure {
         suggestion_type: String,
         score: f64,
     },
+}
+
+/// Additional data about how an FTS match was made
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FtsMatchInfo {
+    /// Was this a prefix match (`water b` matched against `water bottle`)
+    pub prefix: bool,
+    /// Did the match require stemming? (`run shoes` matched against `running shoes`)
+    pub stemming: bool,
 }
 
 impl PartialOrd for Suggestion {
@@ -183,6 +197,13 @@ impl Suggestion {
             | Self::Fakespot { score, .. }
             | Self::Exposure { score, .. } => *score,
             Self::Wikipedia { .. } => DEFAULT_SUGGESTION_SCORE,
+        }
+    }
+
+    pub fn fts_match_info(&self) -> Option<&FtsMatchInfo> {
+        match self {
+            Self::Fakespot { match_info, .. } => match_info.as_ref(),
+            _ => None,
         }
     }
 }

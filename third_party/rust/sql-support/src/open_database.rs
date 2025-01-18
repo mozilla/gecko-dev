@@ -442,11 +442,11 @@ pub mod test_utils {
         }
     }
 
-    fn get_sql(conn: &Connection, type_: &str) -> HashMap<String, String> {
+    fn get_sql(conn: &Connection, type_: &str) -> HashMap<String, Option<String>> {
         conn.query_rows_and_then(
             "SELECT name, sql FROM sqlite_master WHERE type=?",
             (type_,),
-            |row| -> rusqlite::Result<(String, String)> { Ok((row.get(0)?, row.get(1)?)) },
+            |row| -> rusqlite::Result<(String, Option<String>)> { Ok((row.get(0)?, row.get(1)?)) },
         )
         .unwrap()
         .into_iter()
@@ -455,8 +455,8 @@ pub mod test_utils {
 
     fn compare_sql_maps(
         type_: &str,
-        old_items: HashMap<String, String>,
-        new_items: HashMap<String, String>,
+        old_items: HashMap<String, Option<String>>,
+        new_items: HashMap<String, Option<String>>,
     ) {
         let old_db_keys: HashSet<&String> = old_items.keys().collect();
         let new_db_keys: HashSet<&String> = new_items.keys().collect();

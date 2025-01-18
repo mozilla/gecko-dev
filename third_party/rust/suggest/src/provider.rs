@@ -130,4 +130,26 @@ pub struct SuggestionProviderConstraints {
     /// settings record(s).
     #[uniffi(default = None)]
     pub exposure_suggestion_types: Option<Vec<String>>,
+    /// Which strategy should we use for the AMP queries?
+    /// Use None for the default strategy.
+    #[uniffi(default = None)]
+    pub amp_alternative_matching: Option<AmpMatchingStrategy>,
+}
+
+#[derive(Clone, Debug, uniffi::Enum)]
+pub enum AmpMatchingStrategy {
+    /// Disable keywords added via keyword expansion.
+    /// This eliminates keywords that for terms related to the "real" keywords, for example
+    /// misspellings like "underarmor" instead of "under armor"'.
+    NoKeywordExpansion,
+    /// Use FTS matching against the full keywords, joined together.
+    FtsAgainstFullKeywords,
+    /// Use FTS matching against the title field
+    FtsAgainstTitle,
+}
+
+impl AmpMatchingStrategy {
+    pub fn uses_fts(&self) -> bool {
+        matches!(self, Self::FtsAgainstFullKeywords | Self::FtsAgainstTitle)
+    }
 }

@@ -50,9 +50,6 @@ features = [
 version = "0.10"
 default-features = false
 
-[build-dependencies.nss_build_common]
-path = "../rc_crypto/nss/nss_build_common"
-
 [features]
 debug-tools = ["rusqlite/column_decltype"]
 default = []

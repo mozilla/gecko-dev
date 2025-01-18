@@ -25,6 +25,8 @@ pub enum RemoteSettingsError {
 /// Internal error class, this is what we use inside this crate
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Error opening database: {0}")]
+    OpenDatabase(#[from] sql_support::open_database::Error),
     #[error("JSON Error: {0}")]
     JSONError(#[from] serde_json::Error),
     #[error("Error writing downloaded attachment: {0}")]
@@ -49,6 +51,14 @@ pub enum Error {
     DatabaseError(#[from] rusqlite::Error),
     #[error("No attachment in given record: {0}")]
     RecordAttachmentMismatchError(String),
+    #[error("Incomplete signature data: {0}")]
+    IncompleteSignatureDataError(String),
+    #[cfg(feature = "signatures")]
+    #[error("Data could not be serialized: {0}")]
+    SerializationError(#[from] canonical_json::CanonicalJSONError),
+    #[cfg(feature = "signatures")]
+    #[error("Signature could not be verified: {0}")]
+    SignatureError(#[from] rc_crypto::Error),
 }
 
 // Define how our internal errors are handled and converted to external errors

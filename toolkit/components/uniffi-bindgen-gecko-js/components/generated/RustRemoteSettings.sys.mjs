@@ -1822,6 +1822,7 @@ export class RemoteSettingsRecord {
          */
         this.lastModified = lastModified;
         /**
+         * Tombstone flag (see https://remote-settings.readthedocs.io/en/latest/client-specifications.html#local-state)
          * @type {Boolean}
          */
         this.deleted = deleted;

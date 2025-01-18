@@ -1093,6 +1093,91 @@ export class FfiConverterTypeSuggestStoreBuilder extends FfiConverter {
 }
 
 /**
+ * Additional data about how an FTS match was made
+ */
+export class FtsMatchInfo {
+    constructor({ prefix, stemming } = {}) {
+        try {
+            FfiConverterBool.checkType(prefix)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("prefix");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterBool.checkType(stemming)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("stemming");
+            }
+            throw e;
+        }
+        /**
+         * Was this a prefix match (`water b` matched against `water bottle`)
+         * @type {Boolean}
+         */
+        this.prefix = prefix;
+        /**
+         * Did the match require stemming? (`run shoes` matched against `running shoes`)
+         * @type {Boolean}
+         */
+        this.stemming = stemming;
+    }
+
+    equals(other) {
+        return (
+            this.prefix == other.prefix &&
+            this.stemming == other.stemming
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeFtsMatchInfo extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new FtsMatchInfo({
+            prefix: FfiConverterBool.read(dataStream),
+            stemming: FfiConverterBool.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterBool.write(dataStream, value.prefix);
+        FfiConverterBool.write(dataStream, value.stemming);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterBool.computeSize(value.prefix);
+        totalSize += FfiConverterBool.computeSize(value.stemming);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof FtsMatchInfo)) {
+            throw new UniFFITypeError(`Expected 'FtsMatchInfo', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterBool.checkType(value.prefix);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".prefix");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterBool.checkType(value.stemming);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".stemming");
+            }
+            throw e;
+        }
+    }
+}
+
+/**
  * A single geographic place.
  *
  * This corresponds to a single row in the main "geoname" table described in
@@ -1851,12 +1936,20 @@ export class FfiConverterTypeSuggestIngestionMetrics extends FfiConverterArrayBu
  * other operations on those providers must be constrained to a desired subtype.
  */
 export class SuggestionProviderConstraints {
-    constructor({ exposureSuggestionTypes = null } = {}) {
+    constructor({ exposureSuggestionTypes = null, ampAlternativeMatching = null } = {}) {
         try {
             FfiConverterOptionalSequencestring.checkType(exposureSuggestionTypes)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("exposureSuggestionTypes");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeAmpMatchingStrategy.checkType(ampAlternativeMatching)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("ampAlternativeMatching");
             }
             throw e;
         }
@@ -1867,11 +1960,18 @@ export class SuggestionProviderConstraints {
          * @type {?Array.<string>}
          */
         this.exposureSuggestionTypes = exposureSuggestionTypes;
+        /**
+         * Which strategy should we use for the AMP queries?
+         * Use None for the default strategy.
+         * @type {?AmpMatchingStrategy}
+         */
+        this.ampAlternativeMatching = ampAlternativeMatching;
     }
 
     equals(other) {
         return (
-            this.exposureSuggestionTypes == other.exposureSuggestionTypes
+            this.exposureSuggestionTypes == other.exposureSuggestionTypes &&
+            this.ampAlternativeMatching == other.ampAlternativeMatching
         )
     }
 }
@@ -1881,15 +1981,18 @@ export class FfiConverterTypeSuggestionProviderConstraints extends FfiConverterA
     static read(dataStream) {
         return new SuggestionProviderConstraints({
             exposureSuggestionTypes: FfiConverterOptionalSequencestring.read(dataStream),
+            ampAlternativeMatching: FfiConverterOptionalTypeAmpMatchingStrategy.read(dataStream),
         });
     }
     static write(dataStream, value) {
         FfiConverterOptionalSequencestring.write(dataStream, value.exposureSuggestionTypes);
+        FfiConverterOptionalTypeAmpMatchingStrategy.write(dataStream, value.ampAlternativeMatching);
     }
 
     static computeSize(value) {
         let totalSize = 0;
         totalSize += FfiConverterOptionalSequencestring.computeSize(value.exposureSuggestionTypes);
+        totalSize += FfiConverterOptionalTypeAmpMatchingStrategy.computeSize(value.ampAlternativeMatching);
         return totalSize
     }
 
@@ -1903,6 +2006,14 @@ export class FfiConverterTypeSuggestionProviderConstraints extends FfiConverterA
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".exposureSuggestionTypes");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeAmpMatchingStrategy.checkType(value.ampAlternativeMatching);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".ampAlternativeMatching");
             }
             throw e;
         }
@@ -2039,6 +2150,71 @@ export class FfiConverterTypeSuggestionQuery extends FfiConverterArrayBuffer {
         }
     }
 }
+
+
+/**
+ * AmpMatchingStrategy
+ */
+export const AmpMatchingStrategy = {
+    /**
+     * Disable keywords added via keyword expansion.
+     * This eliminates keywords that for terms related to the "real" keywords, for example
+     * misspellings like "underarmor" instead of "under armor"'.
+     */
+    NO_KEYWORD_EXPANSION: 1,
+    /**
+     * Use FTS matching against the full keywords, joined together.
+     */
+    FTS_AGAINST_FULL_KEYWORDS: 2,
+    /**
+     * Use FTS matching against the title field
+     */
+    FTS_AGAINST_TITLE: 3,
+};
+
+Object.freeze(AmpMatchingStrategy);
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return AmpMatchingStrategy.NO_KEYWORD_EXPANSION
+            case 2:
+                return AmpMatchingStrategy.FTS_AGAINST_FULL_KEYWORDS
+            case 3:
+                return AmpMatchingStrategy.FTS_AGAINST_TITLE
+            default:
+                throw new UniFFITypeError("Unknown AmpMatchingStrategy variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === AmpMatchingStrategy.NO_KEYWORD_EXPANSION) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === AmpMatchingStrategy.FTS_AGAINST_FULL_KEYWORDS) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === AmpMatchingStrategy.FTS_AGAINST_TITLE) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        throw new UniFFITypeError("Unknown AmpMatchingStrategy variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
+      }
+    }
+}
+
 
 
 /**
@@ -2452,7 +2628,8 @@ Suggestion.Amp = class extends Suggestion{
         impressionUrl,
         clickUrl,
         rawClickUrl,
-        score
+        score,
+        ftsMatchInfo
         ) {
             super();
             this.title = title;
@@ -2468,6 +2645,7 @@ Suggestion.Amp = class extends Suggestion{
             this.clickUrl = clickUrl;
             this.rawClickUrl = rawClickUrl;
             this.score = score;
+            this.ftsMatchInfo = ftsMatchInfo;
         }
 }
 /**
@@ -2607,7 +2785,8 @@ Suggestion.Fakespot = class extends Suggestion{
         url,
         icon,
         iconMimetype,
-        score
+        score,
+        matchInfo
         ) {
             super();
             this.fakespotGrade = fakespotGrade;
@@ -2619,6 +2798,7 @@ Suggestion.Fakespot = class extends Suggestion{
             this.icon = icon;
             this.iconMimetype = iconMimetype;
             this.score = score;
+            this.matchInfo = matchInfo;
         }
 }
 /**
@@ -2653,7 +2833,8 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
-                    FfiConverterF64.read(dataStream)
+                    FfiConverterF64.read(dataStream),
+                    FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
                     );
             case 2:
                 return new Suggestion.Pocket(
@@ -2718,7 +2899,8 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterString.read(dataStream),
                     FfiConverterOptionalbytes.read(dataStream),
                     FfiConverterOptionalstring.read(dataStream),
-                    FfiConverterF64.read(dataStream)
+                    FfiConverterF64.read(dataStream),
+                    FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
                     );
             case 9:
                 return new Suggestion.Exposure(
@@ -2746,6 +2928,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             FfiConverterString.write(dataStream, value.clickUrl);
             FfiConverterString.write(dataStream, value.rawClickUrl);
             FfiConverterF64.write(dataStream, value.score);
+            FfiConverterOptionalTypeFtsMatchInfo.write(dataStream, value.ftsMatchInfo);
             return;
         }
         if (value instanceof Suggestion.Pocket) {
@@ -2818,6 +3001,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             FfiConverterOptionalbytes.write(dataStream, value.icon);
             FfiConverterOptionalstring.write(dataStream, value.iconMimetype);
             FfiConverterF64.write(dataStream, value.score);
+            FfiConverterOptionalTypeFtsMatchInfo.write(dataStream, value.matchInfo);
             return;
         }
         if (value instanceof Suggestion.Exposure) {
@@ -2846,6 +3030,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             totalSize += FfiConverterString.computeSize(value.clickUrl);
             totalSize += FfiConverterString.computeSize(value.rawClickUrl);
             totalSize += FfiConverterF64.computeSize(value.score);
+            totalSize += FfiConverterOptionalTypeFtsMatchInfo.computeSize(value.ftsMatchInfo);
             return totalSize;
         }
         if (value instanceof Suggestion.Pocket) {
@@ -2911,6 +3096,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             totalSize += FfiConverterOptionalbytes.computeSize(value.icon);
             totalSize += FfiConverterOptionalstring.computeSize(value.iconMimetype);
             totalSize += FfiConverterF64.computeSize(value.score);
+            totalSize += FfiConverterOptionalTypeFtsMatchInfo.computeSize(value.matchInfo);
             return totalSize;
         }
         if (value instanceof Suggestion.Exposure) {
@@ -3211,6 +3397,43 @@ export class FfiConverterOptionalbytes extends FfiConverterArrayBuffer {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeFtsMatchInfo extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeFtsMatchInfo.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeFtsMatchInfo.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeFtsMatchInfo.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeFtsMatchInfo.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalTypeSuggestionProviderConstraints extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
@@ -3244,6 +3467,43 @@ export class FfiConverterOptionalTypeSuggestionProviderConstraints extends FfiCo
             return 1;
         }
         return 1 + FfiConverterTypeSuggestionProviderConstraints.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeAmpMatchingStrategy extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeAmpMatchingStrategy.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeAmpMatchingStrategy.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeAmpMatchingStrategy.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeAmpMatchingStrategy.computeSize(value)
     }
 }
 
