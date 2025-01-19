@@ -49,6 +49,7 @@ EXPORTS.mozilla += [
 EXPORTS.mozilla.widget += [
     "CompositorWidgetChild.h",
     "CompositorWidgetParent.h",
+    "DMABufFormats.h",
     "DMABufLibWrapper.h",
     "DMABufSurface.h",
     "gbm.h",
@@ -108,6 +109,7 @@ SOURCES += [
 
 if CONFIG["MOZ_WAYLAND"]:
     UNIFIED_SOURCES += [
+        "DMABufFormats.cpp",
         "MozContainerWayland.cpp",
         "nsClipboardWayland.cpp",
         "nsWaylandDisplay.cpp",
@@ -154,6 +156,8 @@ LOCAL_INCLUDES += [
     "/layout/xul",
     "/other-licenses/atk-1.0",
     "/third_party/cups/include",
+    "/third_party/drm/",
+    "/third_party/drm/drm/include/libdrm/",
     "/widget",
     "/widget/headless",
     "/widget/x11",
