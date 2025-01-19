@@ -1294,21 +1294,15 @@ class HTMLEditUtils final {
   /**
    * GetNextLeafContentOrNextBlockElement() returns next leaf content or
    * next block element of aStartContent inside aAncestorLimiter.
-   * Note that the result may be a contet outside aCurrentBlock if
-   * aStartContent equals aCurrentBlock.
    *
    * @param aStartContent       The start content to scan next content.
-   * @param aCurrentBlock       Must be ancestor of aStartContent.  Dispite
-   *                            the name, inline content is allowed if
-   *                            aStartContent is in an inline editing host.
    * @param aLeafNodeTypes      See LeafNodeType.
-   * @param aAncestorLimiter    Optional, setting this guarantees the
-   *                            result is in aAncestorLimiter unless
-   *                            aStartContent is not a descendant of this.
+   * @param aAncestorLimiter    Optional, if you set this, it must be an
+   *                            inclusive ancestor of aStartContent.
    */
   static nsIContent* GetNextLeafContentOrNextBlockElement(
-      const nsIContent& aStartContent, const nsIContent& aCurrentBlock,
-      const LeafNodeTypes& aLeafNodeTypes, BlockInlineCheck aBlockInlineCheck,
+      const nsIContent& aStartContent, const LeafNodeTypes& aLeafNodeTypes,
+      BlockInlineCheck aBlockInlineCheck,
       const Element* aAncestorLimiter = nullptr) {
     MOZ_ASSERT_IF(
         aLeafNodeTypes.contains(LeafNodeType::OnlyEditableLeafNode),
@@ -1325,11 +1319,8 @@ class HTMLEditUtils final {
         return nullptr;
       }
       for (Element* parentElement : aStartContent.AncestorsOfType<Element>()) {
-        if (parentElement == &aCurrentBlock) {
-          return nullptr;
-        }
-        if (parentElement == aAncestorLimiter) {
-          NS_WARNING("Reached editing host while climbing up the DOM tree");
+        if (parentElement == aAncestorLimiter ||
+            HTMLEditUtils::IsBlockElement(*parentElement, aBlockInlineCheck)) {
           return nullptr;
         }
         nextContent = parentElement->GetNextSibling();
@@ -1371,8 +1362,7 @@ class HTMLEditUtils final {
   template <typename PT, typename CT>
   static nsIContent* GetNextLeafContentOrNextBlockElement(
       const EditorDOMPointBase<PT, CT>& aStartPoint,
-      const nsIContent& aCurrentBlock, const LeafNodeTypes& aLeafNodeTypes,
-      BlockInlineCheck aBlockInlineCheck,
+      const LeafNodeTypes& aLeafNodeTypes, BlockInlineCheck aBlockInlineCheck,
       const Element* aAncestorLimiter = nullptr) {
     MOZ_ASSERT(aStartPoint.IsSet());
     MOZ_ASSERT_IF(
@@ -1386,28 +1376,30 @@ class HTMLEditUtils final {
     }
     if (aStartPoint.IsInTextNode()) {
       return HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-          *aStartPoint.template ContainerAs<Text>(), aCurrentBlock,
-          aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+          *aStartPoint.template ContainerAs<Text>(), aLeafNodeTypes,
+          aBlockInlineCheck, aAncestorLimiter);
     }
     if (!HTMLEditUtils::IsContainerNode(
             *aStartPoint.template ContainerAs<nsIContent>())) {
       return HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-          *aStartPoint.template ContainerAs<nsIContent>(), aCurrentBlock,
-          aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+          *aStartPoint.template ContainerAs<nsIContent>(), aLeafNodeTypes,
+          aBlockInlineCheck, aAncestorLimiter);
     }
 
     nsCOMPtr<nsIContent> nextContent = aStartPoint.GetChild();
     if (!nextContent) {
-      if (aStartPoint.GetContainer() == &aCurrentBlock) {
+      if (aStartPoint.GetContainer() == aAncestorLimiter ||
+          HTMLEditUtils::IsBlockElement(
+              *aStartPoint.template ContainerAs<nsIContent>(),
+              aBlockInlineCheck)) {
         // We are at end of the block.
         return nullptr;
       }
 
       // We are at end of non-block container
       return HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-          *aStartPoint.template ContainerAs<nsIContent>(), aCurrentBlock,
-          aLeafNodeTypes, IgnoreInsideBlockBoundary(aBlockInlineCheck),
-          aAncestorLimiter);
+          *aStartPoint.template ContainerAs<nsIContent>(), aLeafNodeTypes,
+          IgnoreInsideBlockBoundary(aBlockInlineCheck), aAncestorLimiter);
     }
 
     // We have a next node.  If it's a block, return it.
@@ -1435,21 +1427,15 @@ class HTMLEditUtils final {
    * GetPreviousLeafContentOrPreviousBlockElement() returns previous leaf
    * content or previous block element of aStartContent inside
    * aAncestorLimiter.
-   * Note that the result may be a content outside aCurrentBlock if
-   * aStartContent equals aCurrentBlock.
    *
    * @param aStartContent       The start content to scan previous content.
-   * @param aCurrentBlock       Must be ancestor of aStartContent.  Despite
-   *                            the name, inline content is allowed if
-   *                            aStartContent is in an inline editing host.
    * @param aLeafNodeTypes      See LeafNodeType.
-   * @param aAncestorLimiter    Optional, setting this guarantees the
-   *                            result is in aAncestorLimiter unless
-   *                            aStartContent is not a descendant of this.
+   * @param aAncestorLimiter    Optional, if you set this, it must be an
+   *                            inclusive ancestor of aStartContent.
    */
   static nsIContent* GetPreviousLeafContentOrPreviousBlockElement(
-      const nsIContent& aStartContent, const nsIContent& aCurrentBlock,
-      const LeafNodeTypes& aLeafNodeTypes, BlockInlineCheck aBlockInlineCheck,
+      const nsIContent& aStartContent, const LeafNodeTypes& aLeafNodeTypes,
+      BlockInlineCheck aBlockInlineCheck,
       const Element* aAncestorLimiter = nullptr) {
     MOZ_ASSERT_IF(
         aLeafNodeTypes.contains(LeafNodeType::OnlyEditableLeafNode),
@@ -1468,11 +1454,8 @@ class HTMLEditUtils final {
         return nullptr;
       }
       for (Element* parentElement : aStartContent.AncestorsOfType<Element>()) {
-        if (parentElement == &aCurrentBlock) {
-          return nullptr;
-        }
-        if (parentElement == aAncestorLimiter) {
-          NS_WARNING("Reached editing host while climbing up the DOM tree");
+        if (parentElement == aAncestorLimiter ||
+            HTMLEditUtils::IsBlockElement(*parentElement, aBlockInlineCheck)) {
           return nullptr;
         }
         previousContent = parentElement->GetPreviousSibling();
@@ -1514,8 +1497,7 @@ class HTMLEditUtils final {
   template <typename PT, typename CT>
   static nsIContent* GetPreviousLeafContentOrPreviousBlockElement(
       const EditorDOMPointBase<PT, CT>& aStartPoint,
-      const nsIContent& aCurrentBlock, const LeafNodeTypes& aLeafNodeTypes,
-      BlockInlineCheck aBlockInlineCheck,
+      const LeafNodeTypes& aLeafNodeTypes, BlockInlineCheck aBlockInlineCheck,
       const Element* aAncestorLimiter = nullptr) {
     MOZ_ASSERT(aStartPoint.IsSet());
     MOZ_ASSERT_IF(
@@ -1529,27 +1511,29 @@ class HTMLEditUtils final {
     }
     if (aStartPoint.IsInTextNode()) {
       return HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-          *aStartPoint.template ContainerAs<Text>(), aCurrentBlock,
-          aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+          *aStartPoint.template ContainerAs<Text>(), aLeafNodeTypes,
+          aBlockInlineCheck, aAncestorLimiter);
     }
     if (!HTMLEditUtils::IsContainerNode(
             *aStartPoint.template ContainerAs<nsIContent>())) {
       return HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-          *aStartPoint.template ContainerAs<nsIContent>(), aCurrentBlock,
-          aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+          *aStartPoint.template ContainerAs<nsIContent>(), aLeafNodeTypes,
+          aBlockInlineCheck, aAncestorLimiter);
     }
 
     if (aStartPoint.IsStartOfContainer()) {
-      if (aStartPoint.GetContainer() == &aCurrentBlock) {
+      if (aStartPoint.GetContainer() == aAncestorLimiter ||
+          HTMLEditUtils::IsBlockElement(
+              *aStartPoint.template ContainerAs<nsIContent>(),
+              aBlockInlineCheck)) {
         // We are at start of the block.
         return nullptr;
       }
 
       // We are at start of non-block container
       return HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-          *aStartPoint.template ContainerAs<nsIContent>(), aCurrentBlock,
-          aLeafNodeTypes, IgnoreInsideBlockBoundary(aBlockInlineCheck),
-          aAncestorLimiter);
+          *aStartPoint.template ContainerAs<nsIContent>(), aLeafNodeTypes,
+          IgnoreInsideBlockBoundary(aBlockInlineCheck), aAncestorLimiter);
     }
 
     nsCOMPtr<nsIContent> previousContent =
@@ -1620,11 +1604,23 @@ class HTMLEditUtils final {
    * aAncestorTypes.
    */
   enum class AncestorType {
+    // If there is an ancestor block, it's a limiter of the scan.
     ClosestBlockElement,
+    // If there is no ancestor block in the range, the topmost inline element is
+    // a limiter of the scan.
     MostDistantInlineElementInBlock,
-    EditableElement,
-    IgnoreHRElement,  // Ignore ancestor <hr> element since invalid structure
+    // Ignore ancestor <hr> elements to check whether a block.
+    IgnoreHRElement,
+    // If there is an ancestor <button> element, it's also a limiter of the
+    // scan.
     ButtonElement,
+    // The root element of the scan start node or the ancestor limiter may be
+    // return if there is no proper element.
+    AllowRootOrAncestorLimiterElement,
+
+    // Limit to editable elements.  If it reaches an non-editable element,
+    // return its child element.
+    EditableElement,
   };
   using AncestorTypes = EnumSet<AncestorType>;
   constexpr static AncestorTypes

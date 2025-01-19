@@ -1181,7 +1181,7 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
         // Chromium collapses selection to start of the editing host when this
         // is the last leaf content.  So, we don't need special handling here.
         leafContent = HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-            *leafElement, *editingHost,
+            *leafElement,
             {LeafNodeType::LeafNodeOrNonEditableNode,
              LeafNodeType::LeafNodeOrChildBlock},
             BlockInlineCheck::UseComputedDisplayStyle, editingHost);
@@ -1207,7 +1207,7 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
       }
       // If it's an invisible text node, keep scanning next leaf.
       leafContent = HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-          *leafContent, *editingHost,
+          *leafContent,
           {LeafNodeType::LeafNodeOrNonEditableNode,
            LeafNodeType::LeafNodeOrChildBlock},
           BlockInlineCheck::UseComputedDisplayStyle, editingHost);
@@ -1254,7 +1254,7 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
     // Otherwise, we must meet an empty block element or a data node like
     // comment node.  Let's ignore it.
     leafContent = HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-        *leafContent, *editingHost,
+        *leafContent,
         {LeafNodeType::LeafNodeOrNonEditableNode,
          LeafNodeType::LeafNodeOrChildBlock},
         BlockInlineCheck::UseComputedDisplayStyle, editingHost);

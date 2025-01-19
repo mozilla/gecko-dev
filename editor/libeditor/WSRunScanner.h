@@ -927,20 +927,13 @@ class MOZ_STACK_CLASS WSRunScanner final {
        * this returns the data at aPoint.
        *
        * @param aPoint            Scan start point.
-       * @param aEditableBlockParentOrTopmostEditableInlineElement
-       *                          Nearest editable block parent element of
-       *                          aPoint if there is.  Otherwise, inline editing
-       *                          host.
-       * @param aEditingHost      Active editing host.
        * @param aNBSPData         Optional.  If set, this recodes first and last
        *                          NBSP positions.
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceStartFrom(
-          const EditorDOMPointType& aPoint,
-          const Element& aEditableBlockParentOrTopmostEditableInlineElement,
-          const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck);
+          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+          BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter);
 
       /**
        * ScanCollapsibleWhiteSpaceEndFrom() returns end boundary data of
@@ -949,20 +942,13 @@ class MOZ_STACK_CLASS WSRunScanner final {
        * this returns the data at aPoint.
        *
        * @param aPoint            Scan start point.
-       * @param aEditableBlockParentOrTopmostEditableInlineElement
-       *                          Nearest editable block parent element of
-       *                          aPoint if there is.  Otherwise, inline editing
-       *                          host.
-       * @param aEditingHost      Active editing host.
        * @param aNBSPData         Optional.  If set, this recodes first and last
        *                          NBSP positions.
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceEndFrom(
-          const EditorDOMPointType& aPoint,
-          const Element& aEditableBlockParentOrTopmostEditableInlineElement,
-          const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck);
+          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+          BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter);
 
       BoundaryData() = default;
       template <typename EditorDOMPointType>
