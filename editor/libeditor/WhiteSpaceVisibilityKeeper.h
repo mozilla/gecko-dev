@@ -41,6 +41,7 @@ class WhiteSpaceVisibilityKeeper final {
   using EditorType = EditorBase::EditorType;
   using Element = dom::Element;
   using HTMLBRElement = dom::HTMLBRElement;
+  using IgnoreNonEditableNodes = WSRunScanner::IgnoreNonEditableNodes;
   using InsertTextTo = EditorBase::InsertTextTo;
   using LineBreakType = HTMLEditor::LineBreakType;
   using PointPosition = WSRunScanner::PointPosition;

@@ -910,16 +910,17 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
                  PointPosition::StartOfFragment ||
              pointPositionWithVisibleWhiteSpaces ==
                  PointPosition::MiddleOfFragment) {
-      auto atNextCharOfInsertionPoint =
+      const auto atNextCharOfInsertionPoint =
           textFragmentDataAtInsertionPoint
-              .GetInclusiveNextEditableCharPoint<EditorDOMPointInText>(
-                  pointToInsert);
+              .GetInclusiveNextCharPoint<EditorDOMPointInText>(
+                  pointToInsert, IgnoreNonEditableNodes::Yes);
       if (atNextCharOfInsertionPoint.IsSet() &&
           !atNextCharOfInsertionPoint.IsEndOfContainer() &&
           atNextCharOfInsertionPoint.IsCharCollapsibleASCIISpace()) {
-        const EditorDOMPointInText atPreviousCharOfNextCharOfInsertionPoint =
-            textFragmentDataAtInsertionPoint.GetPreviousEditableCharPoint(
-                atNextCharOfInsertionPoint);
+        const auto atPreviousCharOfNextCharOfInsertionPoint =
+            textFragmentDataAtInsertionPoint
+                .GetPreviousCharPoint<EditorDOMPointInText>(
+                    atNextCharOfInsertionPoint, IgnoreNonEditableNodes::Yes);
         if (!atPreviousCharOfNextCharOfInsertionPoint.IsSet() ||
             atPreviousCharOfNextCharOfInsertionPoint.IsEndOfContainer() ||
             !atPreviousCharOfNextCharOfInsertionPoint.IsCharASCIISpace()) {
@@ -1289,8 +1290,8 @@ Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
                    PointPosition::EndOfFragment) {
         const auto atPreviousChar =
             textFragmentDataAtStart
-                .GetPreviousEditableCharPoint<EditorRawDOMPointInText>(
-                    pointToInsert);
+                .GetPreviousCharPoint<EditorRawDOMPointInText>(
+                    pointToInsert, IgnoreNonEditableNodes::Yes);
         if (atPreviousChar.IsSet() && !atPreviousChar.IsEndOfContainer() &&
             atPreviousChar.IsCharASCIISpace()) {
           theString.SetCharAt(HTMLEditUtils::kNBSP, 0);
@@ -1324,8 +1325,8 @@ Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
               PointPosition::MiddleOfFragment) {
         const auto atNextChar =
             textFragmentDataAtEnd
-                .GetInclusiveNextEditableCharPoint<EditorRawDOMPointInText>(
-                    pointToInsert);
+                .GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                    pointToInsert, IgnoreNonEditableNodes::Yes);
         if (atNextChar.IsSet() && !atNextChar.IsEndOfContainer() &&
             atNextChar.IsCharASCIISpace()) {
           theString.SetCharAt(HTMLEditUtils::kNBSP, lastCharIndex);
@@ -1434,8 +1435,9 @@ WhiteSpaceVisibilityKeeper::DeletePreviousWhiteSpace(
   if (NS_WARN_IF(!textFragmentDataAtDeletion.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
-  const EditorDOMPointInText atPreviousCharOfStart =
-      textFragmentDataAtDeletion.GetPreviousEditableCharPoint(aPoint);
+  const auto atPreviousCharOfStart =
+      textFragmentDataAtDeletion.GetPreviousCharPoint<EditorDOMPointInText>(
+          aPoint, IgnoreNonEditableNodes::Yes);
   if (!atPreviousCharOfStart.IsSet() ||
       atPreviousCharOfStart.IsEndOfContainer()) {
     return CaretPoint(EditorDOMPoint());
@@ -1547,9 +1549,10 @@ WhiteSpaceVisibilityKeeper::DeleteInclusiveNextWhiteSpace(
   if (NS_WARN_IF(!textFragmentDataAtDeletion.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
-  auto atNextCharOfStart =
+  const auto atNextCharOfStart =
       textFragmentDataAtDeletion
-          .GetInclusiveNextEditableCharPoint<EditorDOMPointInText>(aPoint);
+          .GetInclusiveNextCharPoint<EditorDOMPointInText>(
+              aPoint, IgnoreNonEditableNodes::Yes);
   if (!atNextCharOfStart.IsSet() || atNextCharOfStart.IsEndOfContainer()) {
     return CaretPoint(EditorDOMPoint());
   }
@@ -1954,9 +1957,10 @@ WhiteSpaceVisibilityKeeper::MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
   EditorDOMPoint pointToSplit(aPointToSplit);
   if (pointPositionWithVisibleWhiteSpaces == PointPosition::StartOfFragment ||
       pointPositionWithVisibleWhiteSpaces == PointPosition::MiddleOfFragment) {
-    EditorDOMPointInText atNextCharOfStart =
-        textFragmentDataAtSplitPoint.GetInclusiveNextEditableCharPoint(
-            pointToSplit);
+    auto atNextCharOfStart =
+        textFragmentDataAtSplitPoint
+            .GetInclusiveNextCharPoint<EditorDOMPointInText>(
+                pointToSplit, IgnoreNonEditableNodes::Yes);
     if (atNextCharOfStart.IsSet() && !atNextCharOfStart.IsEndOfContainer() &&
         atNextCharOfStart.IsCharCollapsibleASCIISpace()) {
       // pointToSplit will be referred bellow so that we need to keep
@@ -1993,8 +1997,9 @@ WhiteSpaceVisibilityKeeper::MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
   // NBSP.
   if (pointPositionWithVisibleWhiteSpaces == PointPosition::MiddleOfFragment ||
       pointPositionWithVisibleWhiteSpaces == PointPosition::EndOfFragment) {
-    EditorDOMPointInText atPreviousCharOfStart =
-        textFragmentDataAtSplitPoint.GetPreviousEditableCharPoint(pointToSplit);
+    auto atPreviousCharOfStart =
+        textFragmentDataAtSplitPoint.GetPreviousCharPoint<EditorDOMPointInText>(
+            pointToSplit, IgnoreNonEditableNodes::Yes);
     if (atPreviousCharOfStart.IsSet() &&
         !atPreviousCharOfStart.IsEndOfContainer() &&
         atPreviousCharOfStart.IsCharCollapsibleASCIISpace()) {
@@ -2107,9 +2112,9 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
     // nbsp with space
     const EditorDOMPoint& atEndOfVisibleWhiteSpaces =
         visibleWhiteSpaces.EndRef();
-    EditorDOMPointInText atPreviousCharOfEndOfVisibleWhiteSpaces =
-        textFragmentData.GetPreviousEditableCharPoint(
-            atEndOfVisibleWhiteSpaces);
+    auto atPreviousCharOfEndOfVisibleWhiteSpaces =
+        textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+            atEndOfVisibleWhiteSpaces, IgnoreNonEditableNodes::Yes);
     if (!atPreviousCharOfEndOfVisibleWhiteSpaces.IsSet() ||
         atPreviousCharOfEndOfVisibleWhiteSpaces.IsEndOfContainer() ||
         // If the NBSP is never replaced from an ASCII white-space, we cannot
@@ -2120,9 +2125,10 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
 
     // now check that what is to the left of it is compatible with replacing
     // nbsp with space
-    EditorDOMPointInText atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces =
-        textFragmentData.GetPreviousEditableCharPoint(
-            atPreviousCharOfEndOfVisibleWhiteSpaces);
+    auto atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces =
+        textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+            atPreviousCharOfEndOfVisibleWhiteSpaces,
+            IgnoreNonEditableNodes::Yes);
     bool isPreviousCharCollapsibleASCIIWhiteSpace =
         atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces.IsSet() &&
         !atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces
@@ -2224,14 +2230,15 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
           insertBRElementResult.IgnoreCaretPointSuggestion();
 
           atPreviousCharOfEndOfVisibleWhiteSpaces =
-              textFragmentData.GetPreviousEditableCharPoint(
-                  atEndOfVisibleWhiteSpaces);
+              textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+                  atEndOfVisibleWhiteSpaces, IgnoreNonEditableNodes::Yes);
           if (NS_WARN_IF(!atPreviousCharOfEndOfVisibleWhiteSpaces.IsSet())) {
             return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
           }
           atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces =
-              textFragmentData.GetPreviousEditableCharPoint(
-                  atPreviousCharOfEndOfVisibleWhiteSpaces);
+              textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+                  atPreviousCharOfEndOfVisibleWhiteSpaces,
+                  IgnoreNonEditableNodes::Yes);
           isPreviousCharCollapsibleASCIIWhiteSpace =
               atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces.IsSet() &&
               !atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces
@@ -2369,8 +2376,9 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
   // First, check if the last character is an NBSP.  Otherwise, we don't need
   // to do nothing here.
   const EditorDOMPoint& atEndOfVisibleWhiteSpaces = visibleWhiteSpaces.EndRef();
-  const EditorDOMPointInText atPreviousCharOfEndOfVisibleWhiteSpaces =
-      textFragmentData.GetPreviousEditableCharPoint(atEndOfVisibleWhiteSpaces);
+  const auto atPreviousCharOfEndOfVisibleWhiteSpaces =
+      textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+          atEndOfVisibleWhiteSpaces, IgnoreNonEditableNodes::Yes);
   if (!atPreviousCharOfEndOfVisibleWhiteSpaces.IsSet() ||
       atPreviousCharOfEndOfVisibleWhiteSpaces.IsEndOfContainer() ||
       !atPreviousCharOfEndOfVisibleWhiteSpaces.IsCharCollapsibleNBSP() ||
@@ -2384,10 +2392,9 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
   // Next, consider the range to collapse ASCII white-spaces before there.
   EditorDOMPointInText startToDelete, endToDelete;
 
-  const EditorDOMPointInText
-      atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces =
-          textFragmentData.GetPreviousEditableCharPoint(
-              atPreviousCharOfEndOfVisibleWhiteSpaces);
+  const auto atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces =
+      textFragmentData.GetPreviousCharPoint<EditorDOMPointInText>(
+          atPreviousCharOfEndOfVisibleWhiteSpaces, IgnoreNonEditableNodes::Yes);
   // If there are some preceding ASCII white-spaces, we need to treat them
   // as one white-space.  I.e., we need to collapse them.
   if (atPreviousCharOfEndOfVisibleWhiteSpaces.IsCharNBSP() &&
