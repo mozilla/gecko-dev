@@ -102,6 +102,7 @@ class NurserySweepTask : public GCParallelTask {
   }
 
   void queueAllocatorToSweep(BufferAllocator& allocator) {
+    MOZ_ASSERT(isIdle());
     allocatorsToSweep.pushBack(&allocator);
   }
 
@@ -1402,6 +1403,12 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   previousGC.tenuredCells = 0;
   tenuredEverything = true;
 
+  // Wait for any previous buffer sweeping to finish. This happens even if the
+  // nursery is empty because we track whether this has happened by checking the
+  // minor GC number, which is incremented regardless. See the call to
+  // joinSweepTask in GCRuntime::endSweepingSweepGroup.
+  joinSweepTask();
+
   // If it isn't empty, it will call doCollection, and possibly after that
   // isEmpty() will become true, so use another variable to keep track of the
   // old empty state.
@@ -1632,7 +1639,7 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
 
   clearMapAndSetNurseryIterators();
 
-  sweepTask->join();
+  MOZ_ASSERT(sweepTask->isIdle());
   {
     BufferAllocator::MaybeLock lock;
     for (ZonesIter zone(runtime(), WithAtoms); !zone.done(); zone.next()) {
