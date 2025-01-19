@@ -454,6 +454,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Μηχανές αναζήτησης: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: επιλογή μηχανής αναζήτησης</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Καλώς ορίσατε σε ένα πιο προσωπικό διαδίκτυο</string>
@@ -618,14 +623,21 @@
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Κάτω</string>
 
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Μεγάλη εικόνα κεφαλίδας της προβολής επιλογής της γραμμής εργαλείων που εμφανίζει μια εικονογραφημένη γραμμή εργαλείων.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Εικόνα της γραμμής εργαλείων στο %1$s μέρος</string>
 
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Εικόνα της κάτω γραμμής εργαλείων</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Εικόνα της επάνω γραμμής εργαλείων</string>
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Όχι τώρα</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Επιλέξτε θέμα</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Δείτε τον ιστό με την καλύτερη φωτεινότητα.</string>
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Αποθήκευση και έναρξη περιήγησης</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -636,6 +648,8 @@
     <string name="onboarding_customize_theme_light_option">Ανοιχτόχρωμο</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">Θέμα συστήματος</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Μεγάλη εικόνα κεφαλίδας της προβολής επιλογής του θέματος που εμφανίζει εικονογραφημένα εργαλεία καλλιτεχνών και δημιουργών.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Εικόνα για το %1$s θέμα</string>
 
@@ -1054,8 +1068,12 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Μάθετε περισσότερα σχετικά με τα δεδομένα μάρκετινγκ</string>
 
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_title">Αυτόματη αποστολή αναφορών κατάρρευσης</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Αυτόματη υποβολή αναφορών κατάρρευσης</string>
 
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_description">Αυτό μας βοηθάει να διαγνώσουμε και να επιλύσουμε προβλήματα με το πρόγραμμα περιήγησης. Οι αναφορές ενδέχεται να περιέχουν προσωπικά ή ευαίσθητα δεδομένα.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Αυτόματη κοινοποίηση δεδομένων καταρρεύσεων με τη Mozilla κατά την εκκίνηση, μετά από καταρρεύσεις</string>
 
     <!-- Title for studies preferences -->
@@ -1240,8 +1258,14 @@
     <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ανοικτές καρτέλες</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ιδιωτικές καρτέλες</string>
+    <!-- Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">Ανοικτές ιδιωτικές καρτέλες: %1$s. Πατήστε για εναλλαγή καρτελών.</string>
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Συγχρονισμένες καρτέλες</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">Ανοικτές συγχρονισμένες καρτέλες: %1$s. Πατήστε για εναλλαγή καρτελών.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Προσθήκη καρτέλας</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1367,6 +1391,8 @@
     <string name="webcompat_reporter_send">Αποστολή</string>
 
 
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">Η αναφορά σας έχει σταλεί</string>
     <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
     <string name="webcompat_reporter_dismiss_success_snackbar_text">Κλείσιμο</string>
 
@@ -3080,6 +3106,9 @@
     <!-- Debug drawer addresses -->
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Διευθύνσεις</string>
+
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Γλώσσες ελέγχου σφαλμάτων προς ενεργοποίηση</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
