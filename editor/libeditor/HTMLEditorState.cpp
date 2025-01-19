@@ -15,7 +15,6 @@
 #include "EditorUtils.h"
 #include "HTMLEditHelpers.h"
 #include "HTMLEditUtils.h"
-#include "WSRunObject.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/OwningNonNull.h"
@@ -38,6 +37,8 @@
 //   https://searchfox.org/mozilla-central/rev/c409dd9235c133ab41eba635f906aa16e050c197/editor/libeditor/HTMLEditSubActionHandler.cpp
 
 namespace mozilla {
+
+using namespace dom;
 
 using EditorType = EditorUtils::EditorType;
 using WalkTreeOption = HTMLEditUtils::WalkTreeOption;

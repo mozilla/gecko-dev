@@ -7,7 +7,6 @@
 #include "HTMLEditor.h"
 #include "HTMLEditorNestedClasses.h"
 
-#include <algorithm>
 #include <utility>
 
 #include "AutoClonedRangeArray.h"
@@ -19,16 +18,12 @@
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorInlines.h"
 #include "HTMLEditUtils.h"
-#include "WSRunObject.h"
+#include "WhiteSpaceVisibilityKeeper.h"
+#include "WSRunScanner.h"
 
 #include "ErrorList.h"
-#include "js/ErrorReport.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/CheckedInt.h"
-#include "mozilla/ComputedStyle.h"  // for ComputedStyle
 #include "mozilla/ContentIterator.h"
-#include "mozilla/EditorDOMPoint.h"
-#include "mozilla/EditorForwards.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
@@ -41,8 +36,6 @@
 #include "mozilla/dom/ElementInlines.h"  // for Element::IsContentEditablePlainTextOnly
 #include "mozilla/dom/HTMLBRElement.h"
 #include "mozilla/dom/Selection.h"
-#include "mozilla/mozalloc.h"
-#include "nsAString.h"
 #include "nsAtom.h"
 #include "nsComputedDOMStyle.h"  // for nsComputedDOMStyle
 #include "nsContentUtils.h"
