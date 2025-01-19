@@ -284,7 +284,7 @@ that need it as possible. Here are some options:
 
 -  Mochitest plain tests can use
    `SpecialPowers
-   <https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Mochitest/SpecialPowers>`__
+   </testing/mochitest-plain/faq.html#what-if-i-need-to-change-a-preference-to-run-my-test>`__
    to set prefs.
 
 -  All variants of mochitest can set prefs in their manifests. For
