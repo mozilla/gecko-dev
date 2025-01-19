@@ -31,6 +31,8 @@ constexpr const int sColorTransfersNum =
 constexpr const int sColorPrimariesNum =
     XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB + 1;
 
+class DMABufFormats;
+
 // Our general connection to Wayland display server,
 // holds our display connection and runs event loop.
 // We have a global nsWaylandDisplay object for each thread.
@@ -87,7 +89,7 @@ class nsWaylandDisplay {
       zwp_relative_pointer_manager_v1* aRelativePointerManager);
   void SetPointerConstraints(zwp_pointer_constraints_v1* aPointerConstraints);
   void SetPointerGestures(zwp_pointer_gestures_v1* aPointerGestures);
-  void SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf);
+  void SetDmabuf(zwp_linux_dmabuf_v1* aDmabufFeedback, int aVersion);
   void SetXdgActivation(xdg_activation_v1* aXdgActivation);
   void SetXdgDbusAnnotationManager(
       xdg_dbus_annotation_manager_v1* aXdgDbusAnnotationManager);
@@ -104,6 +106,8 @@ class nsWaylandDisplay {
   bool IsHDREnabled() const {
     return mColorManagerSupportedFeature.mParametric;
   }
+  RefPtr<DMABufFormats> GetDMABufFormats() const { return mFormats; }
+  bool HasDMABufFeedback() const { return mDmabufIsFeedback; }
 
   ~nsWaylandDisplay();
 
@@ -124,11 +128,13 @@ class nsWaylandDisplay {
   zwp_pointer_gestures_v1* mPointerGestures = nullptr;
   zwp_pointer_gesture_hold_v1* mPointerGestureHold = nullptr;
   wp_viewporter* mViewporter = nullptr;
+  bool mDmabufIsFeedback = false;
   zwp_linux_dmabuf_v1* mDmabuf = nullptr;
   xdg_activation_v1* mXdgActivation = nullptr;
   xdg_dbus_annotation_manager_v1* mXdgDbusAnnotationManager = nullptr;
   wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
   xx_color_manager_v4* mColorManager = nullptr;
+  RefPtr<DMABufFormats> mFormats;
 
   struct ColorManagerSupportedFeature {
     bool mICC = false;
