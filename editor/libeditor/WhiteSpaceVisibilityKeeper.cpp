@@ -931,11 +931,14 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
           AutoTrackDOMRange trackLeadingWhiteSpaceRange(
               aHTMLEditor.RangeUpdaterRef(),
               &invisibleLeadingWhiteSpaceRangeOfNewLine);
-          // We are at start of non-nbsps.  Convert to a single nbsp.
-          const EditorDOMPointInText endOfCollapsibleASCIIWhiteSpaces =
+          // We are at start of non-NBSPs.  Convert to a single NBSP.
+          const auto endOfCollapsibleASCIIWhiteSpaces =
               textFragmentDataAtInsertionPoint
-                  .GetEndOfCollapsibleASCIIWhiteSpaces(
-                      atNextCharOfInsertionPoint, nsIEditor::eNone);
+                  .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointInText>(
+                      atNextCharOfInsertionPoint, nsIEditor::eNone,
+                      // XXX Shouldn't be "No"?  Skipping non-editable nodes may
+                      // have visible content.
+                      IgnoreNonEditableNodes::Yes);
           nsresult rv =
               WhiteSpaceVisibilityKeeper::ReplaceTextAndRemoveEmptyTextNodes(
                   aHTMLEditor,
@@ -1452,10 +1455,16 @@ WhiteSpaceVisibilityKeeper::DeletePreviousWhiteSpace(
     auto startToDelete =
         textFragmentDataAtDeletion
             .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPoint>(
-                atPreviousCharOfStart, nsIEditor::ePrevious);
+                atPreviousCharOfStart, nsIEditor::ePrevious,
+                // XXX Shouldn't be "No"?  Skipping non-editable nodes may have
+                // visible content.
+                IgnoreNonEditableNodes::Yes);
     auto endToDelete = textFragmentDataAtDeletion
                            .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPoint>(
-                               atPreviousCharOfStart, nsIEditor::ePrevious);
+                               atPreviousCharOfStart, nsIEditor::ePrevious,
+                               // XXX Shouldn't be "No"?  Skipping non-editable
+                               // nodes may have visible content.
+                               IgnoreNonEditableNodes::Yes);
     EditorDOMPoint pointToPutCaret;
     {
       Result<CaretPoint, nsresult> caretPointOrError =
@@ -1565,10 +1574,12 @@ WhiteSpaceVisibilityKeeper::DeleteInclusiveNextWhiteSpace(
     auto startToDelete =
         textFragmentDataAtDeletion
             .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPoint>(
-                atNextCharOfStart, nsIEditor::eNext);
+                atNextCharOfStart, nsIEditor::eNext,
+                IgnoreNonEditableNodes::Yes);
     auto endToDelete = textFragmentDataAtDeletion
                            .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPoint>(
-                               atNextCharOfStart, nsIEditor::eNext);
+                               atNextCharOfStart, nsIEditor::eNext,
+                               IgnoreNonEditableNodes::Yes);
     EditorDOMPoint pointToPutCaret;
     {
       Result<CaretPoint, nsresult> caretPointOrError =
@@ -1970,13 +1981,21 @@ WhiteSpaceVisibilityKeeper::MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
                                         &pointToSplit);
       if (atNextCharOfStart.IsStartOfContainer() ||
           atNextCharOfStart.IsPreviousCharASCIISpace()) {
-        atNextCharOfStart = textFragmentDataAtSplitPoint
-                                .GetFirstASCIIWhiteSpacePointCollapsedTo(
-                                    atNextCharOfStart, nsIEditor::eNone);
+        atNextCharOfStart =
+            textFragmentDataAtSplitPoint
+                .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+                    atNextCharOfStart, nsIEditor::eNone,
+                    // XXX Shouldn't be "No"?  Skipping non-editable nodes may
+                    // have visible content.
+                    IgnoreNonEditableNodes::Yes);
       }
-      const EditorDOMPointInText endOfCollapsibleASCIIWhiteSpaces =
-          textFragmentDataAtSplitPoint.GetEndOfCollapsibleASCIIWhiteSpaces(
-              atNextCharOfStart, nsIEditor::eNone);
+      const auto endOfCollapsibleASCIIWhiteSpaces =
+          textFragmentDataAtSplitPoint
+              .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointInText>(
+                  atNextCharOfStart, nsIEditor::eNone,
+                  // XXX Shouldn't be "No"?  Skipping non-editable nodes may
+                  // have visible content.
+                  IgnoreNonEditableNodes::Yes);
       nsresult rv =
           WhiteSpaceVisibilityKeeper::ReplaceTextAndRemoveEmptyTextNodes(
               aHTMLEditor,
@@ -2007,12 +2026,19 @@ WhiteSpaceVisibilityKeeper::MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
           atPreviousCharOfStart.IsPreviousCharASCIISpace()) {
         atPreviousCharOfStart =
             textFragmentDataAtSplitPoint
-                .GetFirstASCIIWhiteSpacePointCollapsedTo(atPreviousCharOfStart,
-                                                         nsIEditor::eNone);
+                .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+                    atPreviousCharOfStart, nsIEditor::eNone,
+                    // XXX Shouldn't be "No"?  Skipping non-editable nodes may
+                    // have visible content.
+                    IgnoreNonEditableNodes::Yes);
       }
-      const EditorDOMPointInText endOfCollapsibleASCIIWhiteSpaces =
-          textFragmentDataAtSplitPoint.GetEndOfCollapsibleASCIIWhiteSpaces(
-              atPreviousCharOfStart, nsIEditor::eNone);
+      const auto endOfCollapsibleASCIIWhiteSpaces =
+          textFragmentDataAtSplitPoint
+              .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointInText>(
+                  atPreviousCharOfStart, nsIEditor::eNone,
+                  // XXX Shouldn't be "No"?  Skipping non-editable nodes may
+                  // have visible content.
+                  IgnoreNonEditableNodes::Yes);
       nsresult rv =
           WhiteSpaceVisibilityKeeper::ReplaceTextAndRemoveEmptyTextNodes(
               aHTMLEditor,
@@ -2303,10 +2329,14 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
     // replace them with `"&nbsp; "` for avoiding collapsing white-spaces.
     MOZ_ASSERT(!atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces
                     .IsEndOfContainer());
-    const EditorDOMPointInText atFirstASCIIWhiteSpace =
-        textFragmentData.GetFirstASCIIWhiteSpacePointCollapsedTo(
-            atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces,
-            nsIEditor::eNone);
+    const auto atFirstASCIIWhiteSpace =
+        textFragmentData
+            .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+                atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces,
+                nsIEditor::eNone,
+                // XXX Shouldn't be "No"?  Skipping non-editable nodes may have
+                // visible content.
+                IgnoreNonEditableNodes::Yes);
     uint32_t numberOfASCIIWhiteSpacesInStartNode =
         atFirstASCIIWhiteSpace.ContainerAs<Text>() ==
                 atPreviousCharOfEndOfVisibleWhiteSpaces.ContainerAs<Text>()
@@ -2401,9 +2431,14 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
       atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces.IsSet() &&
       atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces
           .IsCharCollapsibleASCIISpace()) {
-    startToDelete = textFragmentData.GetFirstASCIIWhiteSpacePointCollapsedTo(
-        atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces,
-        nsIEditor::eNone);
+    startToDelete =
+        textFragmentData
+            .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+                atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces,
+                nsIEditor::eNone,
+                // XXX Shouldn't be "No"?  Skipping non-editable nodes may have
+                // visible content.
+                IgnoreNonEditableNodes::Yes);
     endToDelete = atPreviousCharOfPreviousCharOfEndOfVisibleWhiteSpaces;
   }
   // Otherwise, we don't need to remove any white-spaces, but we may need

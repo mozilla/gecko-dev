@@ -82,15 +82,21 @@ NS_INSTANTIATE_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
     IgnoreNonEditableNodes aIgnoreNonEditableNodes,
     const nsIContent* aPrecedingLimiterContent);
 
-NS_INSTANTIATE_CONST_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
+NS_INSTANTIATE_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
     WSRunScanner::TextFragmentData::GetEndOfCollapsibleASCIIWhiteSpaces,
     const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-    nsIEditor::EDirection aDirectionToDelete);
+    nsIEditor::EDirection aDirectionToDelete,
+    BlockInlineCheck aBlockInlineCheck,
+    IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+    const nsIContent* aFollowingLimiterContent);
 
-NS_INSTANTIATE_CONST_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
+NS_INSTANTIATE_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
     WSRunScanner::TextFragmentData::GetFirstASCIIWhiteSpacePointCollapsedTo,
     const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-    nsIEditor::EDirection aDirectionToDelete);
+    nsIEditor::EDirection aDirectionToDelete,
+    BlockInlineCheck aBlockInlineCheck,
+    IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+    const nsIContent* aPrecedingLimiterContent);
 
 constexpr static const AncestorTypes kScanAnyRootAncestorTypes = {
     // If the point is in a block, we need to scan only in the block
@@ -714,13 +720,17 @@ WSRunScanner::TextFragmentData::GetReplaceRangeDataAtEndOfDeletionRange(
   }
   if (nextCharOfStartOfEnd.IsStartOfContainer() ||
       nextCharOfStartOfEnd.IsPreviousCharCollapsibleASCIISpace()) {
-    nextCharOfStartOfEnd = aTextFragmentDataAtStartToDelete
-                               .GetFirstASCIIWhiteSpacePointCollapsedTo(
-                                   nextCharOfStartOfEnd, nsIEditor::eNone);
+    nextCharOfStartOfEnd =
+        aTextFragmentDataAtStartToDelete
+            .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+                nextCharOfStartOfEnd, nsIEditor::eNone,
+                IgnoreNonEditableNodes::Yes);
   }
-  const EditorDOMPointInText endOfCollapsibleASCIIWhiteSpaces =
-      aTextFragmentDataAtStartToDelete.GetEndOfCollapsibleASCIIWhiteSpaces(
-          nextCharOfStartOfEnd, nsIEditor::eNone);
+  const auto endOfCollapsibleASCIIWhiteSpaces =
+      aTextFragmentDataAtStartToDelete
+          .GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointInText>(
+              nextCharOfStartOfEnd, nsIEditor::eNone,
+              IgnoreNonEditableNodes::Yes);
   return ReplaceRangeData(nextCharOfStartOfEnd,
                           endOfCollapsibleASCIIWhiteSpaces,
                           nsDependentSubstring(&HTMLEditUtils::kNBSP, 1));
@@ -789,12 +799,14 @@ WSRunScanner::TextFragmentData::GetReplaceRangeDataAtStartOfDeletionRange(
   }
   if (atPreviousCharOfStart.IsStartOfContainer() ||
       atPreviousCharOfStart.IsPreviousCharASCIISpace()) {
-    atPreviousCharOfStart = GetFirstASCIIWhiteSpacePointCollapsedTo(
-        atPreviousCharOfStart, nsIEditor::eNone);
+    atPreviousCharOfStart =
+        GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointInText>(
+            atPreviousCharOfStart, nsIEditor::eNone,
+            IgnoreNonEditableNodes::Yes);
   }
-  const EditorDOMPointInText endOfCollapsibleASCIIWhiteSpaces =
-      GetEndOfCollapsibleASCIIWhiteSpaces(atPreviousCharOfStart,
-                                          nsIEditor::eNone);
+  const auto endOfCollapsibleASCIIWhiteSpaces =
+      GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointInText>(
+          atPreviousCharOfStart, nsIEditor::eNone, IgnoreNonEditableNodes::Yes);
   return ReplaceRangeData(atPreviousCharOfStart,
                           endOfCollapsibleASCIIWhiteSpaces,
                           nsDependentSubstring(&HTMLEditUtils::kNBSP, 1));
@@ -991,11 +1003,15 @@ EditorDOMPointType WSRunScanner::TextFragmentData::GetPreviousCharPoint(
   return EditorDOMPointType();
 }
 
+// static
 template <typename EditorDOMPointType>
 EditorDOMPointType
 WSRunScanner::TextFragmentData::GetEndOfCollapsibleASCIIWhiteSpaces(
     const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-    nsIEditor::EDirection aDirectionToDelete) const {
+    nsIEditor::EDirection aDirectionToDelete,
+    BlockInlineCheck aBlockInlineCheck,
+    IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+    const nsIContent* aFollowingLimiterContent /* = nullptr */) {
   MOZ_ASSERT(aDirectionToDelete == nsIEditor::eNone ||
              aDirectionToDelete == nsIEditor::eNext ||
              aDirectionToDelete == nsIEditor::ePrevious);
@@ -1065,8 +1081,9 @@ WSRunScanner::TextFragmentData::GetEndOfCollapsibleASCIIWhiteSpaces(
       *aPointAtASCIIWhiteSpace.ContainerAs<Text>());
   for (EditorDOMPointInText atEndOfPreviousTextNode = afterLastWhiteSpace;;) {
     const auto atStartOfNextTextNode =
-        GetInclusiveNextCharPoint<EditorDOMPointInText>(
-            atEndOfPreviousTextNode, IgnoreNonEditableNodes::Yes);
+        TextFragmentData::GetInclusiveNextCharPoint<EditorDOMPointInText>(
+            atEndOfPreviousTextNode, aBlockInlineCheck, aIgnoreNonEditableNodes,
+            aFollowingLimiterContent);
     if (!atStartOfNextTextNode.IsSet()) {
       // There is no more text nodes.  Return end of the previous text node.
       return afterLastWhiteSpace.To<EditorDOMPointType>();
@@ -1102,11 +1119,15 @@ WSRunScanner::TextFragmentData::GetEndOfCollapsibleASCIIWhiteSpaces(
   }
 }
 
+// static
 template <typename EditorDOMPointType>
 EditorDOMPointType
 WSRunScanner::TextFragmentData::GetFirstASCIIWhiteSpacePointCollapsedTo(
     const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-    nsIEditor::EDirection aDirectionToDelete) const {
+    nsIEditor::EDirection aDirectionToDelete,
+    BlockInlineCheck aBlockInlineCheck,
+    IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+    const nsIContent* aPrecedingLimiterContent) {
   MOZ_ASSERT(aDirectionToDelete == nsIEditor::eNone ||
              aDirectionToDelete == nsIEditor::eNext ||
              aDirectionToDelete == nsIEditor::ePrevious);
@@ -1178,8 +1199,9 @@ WSRunScanner::TextFragmentData::GetFirstASCIIWhiteSpacePointCollapsedTo(
       EditorDOMPointInText(aPointAtASCIIWhiteSpace.ContainerAs<Text>(), 0u);
   for (EditorDOMPointInText atStartOfPreviousTextNode = atLastWhiteSpace;;) {
     const auto atLastCharOfPreviousTextNode =
-        GetPreviousCharPoint<EditorDOMPointInText>(atStartOfPreviousTextNode,
-                                                   IgnoreNonEditableNodes::Yes);
+        TextFragmentData::GetPreviousCharPoint<EditorDOMPointInText>(
+            atStartOfPreviousTextNode, aBlockInlineCheck,
+            aIgnoreNonEditableNodes, aPrecedingLimiterContent);
     if (!atLastCharOfPreviousTextNode.IsSet()) {
       // There is no more text nodes.  Return end of last text node.
       return atLastWhiteSpace.To<EditorDOMPointType>();
