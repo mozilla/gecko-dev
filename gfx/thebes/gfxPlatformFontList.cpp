@@ -2879,7 +2879,16 @@ void gfxPlatformFontList::GetPrefsAndStartLoader() {
 }
 
 void gfxPlatformFontList::RebuildLocalFonts(bool aForgetLocalFaces) {
+  // Make a local copy of the list of font sets we need to process.
+  AutoTArray<RefPtr<gfxUserFontSet>, 16> fontSets;
+  fontSets.SetCapacity(mUserFontSetList.Count());
   for (auto* fontset : mUserFontSetList) {
+    fontSets.AppendElement(fontset);
+  }
+  // Drop our lock before calling ForgetLocalFaces and RebuildLocalRules
+  // for each set, to avoid possible deadlocks.
+  AutoUnlock unlock(mLock);
+  for (auto fontset : fontSets) {
     if (aForgetLocalFaces) {
       fontset->ForgetLocalFaces();
     }
