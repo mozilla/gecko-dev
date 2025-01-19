@@ -1250,7 +1250,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         WhiteSpaceVisibilityKeeper::ReplaceText(
             *this, aInsertionString,
             EditorDOMRange(pointToInsert, compositionEndPoint),
-            InsertTextTo::ExistingTextNodeIfAvailable, *editingHost);
+            InsertTextTo::ExistingTextNodeIfAvailable);
     if (MOZ_UNLIKELY(replaceTextResult.isErr())) {
       NS_WARNING("WhiteSpaceVisibilityKeeper::ReplaceText() failed");
       return replaceTextResult.propagateErr();
@@ -1452,15 +1452,14 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
             if (!lineText.Contains(u'\t')) {
               return WhiteSpaceVisibilityKeeper::InsertText(
                   *this, lineText, currentPoint,
-                  GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset),
-                  *editingHost);
+                  GetInsertTextTo(inclusiveNextLinefeedOffset,
+                                  lineStartOffset));
             }
             nsAutoString formattedLineText(lineText);
             formattedLineText.ReplaceSubstring(u"\t"_ns, u"    "_ns);
             return WhiteSpaceVisibilityKeeper::InsertText(
                 *this, formattedLineText, currentPoint,
-                GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset),
-                *editingHost);
+                GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset));
           }();
           if (MOZ_UNLIKELY(insertTextResult.isErr())) {
             NS_WARNING("WhiteSpaceVisibilityKeeper::InsertText() failed");
@@ -1481,8 +1480,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         }
 
         Result<CreateLineBreakResult, nsresult> insertLineBreakResultOrError =
-            WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                *lineBreakType, *this, currentPoint, *editingHost);
+            WhiteSpaceVisibilityKeeper::InsertLineBreak(*lineBreakType, *this,
+                                                        currentPoint);
         if (MOZ_UNLIKELY(insertLineBreakResultOrError.isErr())) {
           NS_WARNING(
               nsPrintfCString(
@@ -1701,8 +1700,7 @@ nsresult HTMLEditor::InsertLineBreakAsSubAction() {
       Result<CreateLineBreakResult, nsresult>
           insertPaddingBRElementResultOrError =
               WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                  LineBreakType::BRElement, *this, pointToPutCaret,
-                  *editingHost);
+                  LineBreakType::BRElement, *this, pointToPutCaret);
       if (MOZ_UNLIKELY(insertPaddingBRElementResultOrError.isErr())) {
         NS_WARNING(
             "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
@@ -2404,8 +2402,8 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
           splitLinkNodeResult.inspect().AtSplitPoint<EditorDOMPoint>();
     }
     Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-        WhiteSpaceVisibilityKeeper::InsertLineBreak(
-            LineBreakType::BRElement, *this, pointToBreak, aEditingHost);
+        WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::BRElement,
+                                                    *this, pointToBreak);
     if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
@@ -2434,7 +2432,7 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
     Result<CreateLineBreakResult, nsresult>
         insertPaddingBRElementResultOrError =
             WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                LineBreakType::BRElement, *this, afterBRElement, aEditingHost);
+                LineBreakType::BRElement, *this, afterBRElement);
     NS_WARNING_ASSERTION(insertPaddingBRElementResultOrError.isOk(),
                          "WhiteSpaceVisibilityKeeper::InsertLineBreak("
                          "LineBreakType::BRElement) failed");

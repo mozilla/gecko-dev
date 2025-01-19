@@ -45,6 +45,7 @@ class WhiteSpaceVisibilityKeeper final {
   using InsertTextTo = EditorBase::InsertTextTo;
   using LineBreakType = HTMLEditor::LineBreakType;
   using PointPosition = WSRunScanner::PointPosition;
+  using Scan = WSRunScanner::Scan;
   using TextFragmentData = WSRunScanner::TextFragmentData;
   using VisibleWhiteSpacesData = WSRunScanner::VisibleWhiteSpacesData;
 
@@ -222,8 +223,7 @@ class WhiteSpaceVisibilityKeeper final {
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CreateLineBreakResult,
                                                  nsresult>
   InsertLineBreak(LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
-                  const EditorDOMPoint& aPointToInsert,
-                  const Element& aEditingHost);
+                  const EditorDOMPoint& aPointToInsert);
 
   /**
    * Insert aStringToInsert to aPointToInsert and makes any needed adjustments
@@ -239,10 +239,10 @@ class WhiteSpaceVisibilityKeeper final {
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
   InsertText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
              const EditorDOMPointType& aPointToInsert,
-             InsertTextTo aInsertTextTo, const Element& aEditingHost) {
+             InsertTextTo aInsertTextTo) {
     return WhiteSpaceVisibilityKeeper::ReplaceText(
         aHTMLEditor, aStringToInsert, EditorDOMRange(aPointToInsert),
-        aInsertTextTo, aEditingHost);
+        aInsertTextTo);
   }
 
   /**
@@ -259,7 +259,7 @@ class WhiteSpaceVisibilityKeeper final {
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
   ReplaceText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
               const EditorDOMRange& aRangeToBeReplaced,
-              InsertTextTo aInsertTextTo, const Element& aEditingHost);
+              InsertTextTo aInsertTextTo);
 
   /**
    * Delete previous white-space of aPoint.  This automatically keeps visibility
