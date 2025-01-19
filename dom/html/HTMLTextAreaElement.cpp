@@ -524,7 +524,7 @@ nsIControllers* HTMLTextAreaElement::GetControllers(ErrorResult& aError) {
     mControllers->AppendController(commandController);
   }
 
-  return mControllers;
+  return GetControllersWithoutCreation();
 }
 
 nsresult HTMLTextAreaElement::GetControllers(nsIControllers** aResult) {

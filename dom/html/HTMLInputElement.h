@@ -752,6 +752,7 @@ class HTMLInputElement final : public TextControlElement,
   }
 
   nsIControllers* GetControllers(ErrorResult& aRv);
+  nsIControllers* GetControllersWithoutCreation() const { return mControllers; }
   // XPCOM adapter function widely used throughout code, leaving it as is.
   nsresult GetControllers(nsIControllers** aResult);
 

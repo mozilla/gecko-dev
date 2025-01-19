@@ -271,6 +271,7 @@ class HTMLTextAreaElement final : public TextControlElement,
       uint32_t aSelectionStart, uint32_t aSelectionEnd,
       const Optional<nsAString>& aDirecton, ErrorResult& aError);
   nsIControllers* GetControllers(ErrorResult& aError);
+  nsIControllers* GetControllersWithoutCreation() const { return mControllers; }
   // XPCOM adapter function widely used throughout code, leaving it as is.
   nsresult GetControllers(nsIControllers** aResult);
 

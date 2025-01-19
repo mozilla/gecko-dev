@@ -5689,7 +5689,7 @@ nsIControllers* HTMLInputElement::GetControllers(ErrorResult& aRv) {
     }
   }
 
-  return mControllers;
+  return GetControllersWithoutCreation();
 }
 
 nsresult HTMLInputElement::GetControllers(nsIControllers** aResult) {
