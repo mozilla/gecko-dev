@@ -4302,18 +4302,26 @@ static StyleAlignFlags GetAlignJustifyValue(StyleAlignFlags aAlignment,
   return aAlignment;
 }
 
-static Maybe<StyleAlignFlags> GetAlignJustifyFallbackIfAny(
-    const StyleContentDistribution& aDistribution, const WritingMode aWM,
-    const bool aIsAlign, bool* aOverflowSafe) {
-  // TODO: Eventually this should look at aDistribution's fallback alignment,
-  // see https://github.com/w3c/csswg-drafts/issues/1002.
-  if (aDistribution.primary == StyleAlignFlags::STRETCH ||
-      aDistribution.primary == StyleAlignFlags::SPACE_BETWEEN) {
+static Maybe<StyleAlignFlags> GetAlignJustifyDistributionFallback(
+    const StyleContentDistribution& aDistribution, bool* aOverflowSafe) {
+  // See "4.3. Distributed Alignment" for the default fallback alignment values:
+  // https://drafts.csswg.org/css-align-3/#distribution-values
+  //
+  // TODO: Extend this function to handle explicitly specified fallback
+  // alignment once the CSS Alignment Module introduces that syntax:
+  // https://github.com/w3c/csswg-drafts/issues/1002.
+  if (aDistribution.primary == StyleAlignFlags::SPACE_BETWEEN) {
+    *aOverflowSafe = true;
     return Some(StyleAlignFlags::START);
   }
   if (aDistribution.primary == StyleAlignFlags::SPACE_AROUND ||
       aDistribution.primary == StyleAlignFlags::SPACE_EVENLY) {
+    *aOverflowSafe = true;
     return Some(StyleAlignFlags::CENTER);
+  }
+  if (aDistribution.primary == StyleAlignFlags::STRETCH) {
+    *aOverflowSafe = false;
+    return Some(StyleAlignFlags::START);
   }
   return Nothing();
 }
@@ -7295,8 +7303,8 @@ void nsGridContainerFrame::Tracks::AlignJustifyContent(
     // Use the fallback value instead when applicable.
     if (space < 0 ||
         (alignment == StyleAlignFlags::SPACE_BETWEEN && mSizes.Length() == 1)) {
-      auto fallback = ::GetAlignJustifyFallbackIfAny(aAligmentStyleValue, aWM,
-                                                     isAlign, &overflowSafe);
+      auto fallback = GetAlignJustifyDistributionFallback(aAligmentStyleValue,
+                                                          &overflowSafe);
       if (fallback) {
         alignment = *fallback;
       }
