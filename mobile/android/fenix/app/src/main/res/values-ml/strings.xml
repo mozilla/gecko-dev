@@ -484,6 +484,9 @@
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">പ്രവേശിക്കുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
+    <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Firefox-ൽ സുരക്ഷിതമായി തുടരാൻ അറിയിപ്പുകൾ താങ്ങളെ സഹായിക്കുന്നു</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">നിങ്ങളുടെ ഉപകരണങ്ങൾക്കിടയിൽ സുരക്ഷിതമായി ടാബുകൾ അയയ്ക്കുകയും Firefox-ൽ മറ്റ് സ്വകാര്യത സവിശേഷതകൾ കണ്ടെത്തുകയും ചെയ്യുക.</string>
@@ -491,6 +494,12 @@
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">അറിയിപ്പുകൾ ഓൺ ചെയ്യുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
+    <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് തിരച്ചിൽ വിചറ്റു് പരീക്ഷിച്ചുനോക്കൂ</string>
+    <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് വിചറ്റു് ചേർക്കുക</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
@@ -711,6 +720,9 @@
     <!--Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
     <string name="cookie_banner_cfr_title">%1$s താങ്ങൾക്കായി കുക്കികൾ നിരസിച്ചു</string>
 
+    <!--Message for the cookie banner re-engagement CFR -->
+    <string name="cookie_banner_cfr_message">കുറഞ്ഞ പതൎച്ചയും കുറഞ്ഞ കുക്കിപ്പിന്തുടൎച്ചയും </string>
+
     <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">അണച്ചതു്</string>
     <!-- Summary of https only preference if https only is set to on in all tabs -->
@@ -725,8 +737,12 @@
     <string name="preferences_https_only_in_private_tabs">സ്വകാര്യ ടാബുകളിൽ മാത്രം പ്രവർത്തനക്ഷമമാക്കുക</string>
     <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
     <string name="errorpage_httpsonly_title">സുരക്ഷിതമായ വെബ്സ്ഥാനം ലഭ്യമല്ല</string>
+    <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
+    <string name="errorpage_httpsonly_message_title">മിക്കവാറും, വെബ്സ്ഥാനം HTTPS-നെ പിന്തുണയ്ക്കുന്നില്ല.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">ആക്സസ്സെബിലിറ്റി</string>
+    <!-- Preference to override the Mozilla account server -->
+    <string name="preferences_override_account_server">ഇഷ്ടനുസൃത മോസില്ല അക്കൗണ്ടു് സേവനദാതാവു്</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">ഇഷ്‌ടാനുസൃത സമന്വയ സെർവർ</string>
     <!-- Preference category for account information -->
@@ -741,6 +757,8 @@
     <string name="preferences_gestures">ആംഗ്യങ്ങൾ</string>
     <!-- Preference for settings related to visual options -->
     <string name="preferences_customize">ഇച്ഛാനുസൃതമാക്കുക</string>
+    <!-- Preference description for banner about signing in -->
+    <string name="preferences_sign_in_description_2">ടാബുകളും അടയാളക്കുറിപ്പുകളും രഹസ്യവാക്കുകളും മറ്റും സമന്വയിപ്പിക്കാൻ പ്രവേശിക്കുക.</string>
     <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
     <string name="preferences_account_default_name_2">മോസില്ല അക്കൗണ്ട്</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
@@ -773,6 +791,9 @@
     <string name="preferences_account_settings">അക്കൗണ്ട് ക്രമീകരണങ്ങൾ</string>
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">URLs തനിയേ പൂർത്തിയാക്കുക</string>
+    <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_nonsponsored_suggestions">%1$s-ൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">ആപ്പുകളിൽ കണ്ണികൾ തുറക്കുക</string>
 
@@ -2420,6 +2441,8 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">അതെ, ശ്രമിച്ചു് നോക്കൂ</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
+    <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
+    <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">5 താരചിഹ്നങ്ങളിൽ %1$s</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">കുറച്ച് കാണിക്കുക</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
@@ -2429,6 +2452,8 @@
     <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
     <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">വില</string>
 
+    <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
+    <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">വിതരണം</string>
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
     <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">&quot;%s&quot;</string>
 

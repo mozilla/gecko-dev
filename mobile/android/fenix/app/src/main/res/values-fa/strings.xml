@@ -1232,8 +1232,14 @@
     <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">زبانه‌های باز</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">زبانه‌های خصوصی</string>
+    <!-- Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">زبانه‌های خصوصی باز: %1$s. برای جابجایی زبانه‌ها ضربه بزنید.</string>
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">زبانه‌های همگام‌سازی شده</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">زبانه‌های همگام‌سازی‌شده باز: %1$s. برای جابجایی زبانه‌ها ضربه بزنید.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">افزودن زبانه</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1359,6 +1365,11 @@
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">ارسال</string>
 
+
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">گزارش شما ارسال شد</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">بستن</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
