@@ -265,9 +265,9 @@ class nsBlockFrame : public nsContainerFrame {
 
   nsRect ComputePaddingInflatedScrollableOverflow(
       const nsRect& aInFlowChildBounds) const;
-  Maybe<nsRect> GetLineFrameInFlowBounds(const nsLineBox& aLine,
-                                         const nsIFrame& aLineChildFrame,
-                                         bool aConsiderMargins = true) const;
+  Maybe<nsRect> GetLineFrameInFlowBounds(
+      const nsLineBox& aLine, const nsIFrame& aLineChildFrame,
+      bool aConsiderPositiveMargins = true) const;
 
   template <typename LineIteratorType>
   Maybe<nscoord> GetBaselineBOffset(LineIteratorType aStart,

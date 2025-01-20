@@ -262,9 +262,15 @@ static nscolor GetBackplateColor(nsIFrame* aFrame) {
   return NS_ComposeColors(backgroundColor, currentBackgroundColor);
 }
 
-static nsRect GetNormalMarginRect(nsIFrame* aFrame) {
-  auto rect = aFrame->GetMarginRectRelativeToSelf();
-  return rect + aFrame->GetNormalPosition();
+static nsRect GetNormalMarginRect(const nsIFrame& aFrame,
+                                  bool aIncludePositiveMargins = true) {
+  nsMargin m = aFrame.GetUsedMargin().ApplySkipSides(aFrame.GetSkipSides());
+  if (!aIncludePositiveMargins) {
+    m.EnsureAtMost(nsMargin());
+  }
+  auto rect = aFrame.GetRectRelativeToSelf();
+  rect.Inflate(m);
+  return rect + aFrame.GetNormalPosition();
 }
 
 #ifdef DEBUG
@@ -2592,7 +2598,7 @@ nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
 
 Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
     const nsLineBox& aLine, const nsIFrame& aLineChildFrame,
-    bool aConsiderMargins) const {
+    bool aConsiderPositiveMargins) const {
   MOZ_ASSERT(aLineChildFrame.GetParent() == this,
              "Line's frame doesn't belong to this block frame?");
   // Line participants are considered in-flow for content within the line
@@ -2604,9 +2610,7 @@ Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
     return Nothing{};
   }
   if (aLine.IsInline()) {
-    auto rect = aConsiderMargins ? aLineChildFrame.GetMarginRectRelativeToSelf()
-                                 : aLineChildFrame.GetRectRelativeToSelf();
-    return Some(rect + aLineChildFrame.GetNormalPosition());
+    return Some(GetNormalMarginRect(aLineChildFrame, aConsiderPositiveMargins));
   }
   const auto wm = GetWritingMode();
   auto rect = aLineChildFrame.GetRectRelativeToSelf();
@@ -2618,14 +2622,19 @@ Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
   const auto normalPosition = aLineChildFrame.GetLogicalSize(wm).BSize(wm) == 0
                                   ? linePoint
                                   : aLineChildFrame.GetNormalPosition();
-  if (aConsiderMargins) {
-    // Ensure we use the margin we actually carried out.
+  // Ensure we use the margin we actually carried out.
+  nsMargin margin;
+  if (aConsiderPositiveMargins) {
     auto logicalMargin = aLineChildFrame.GetLogicalUsedMargin(wm);
     logicalMargin.BEnd(wm) = aLine.GetCarriedOutBEndMargin().Get();
-    const auto margin = logicalMargin.GetPhysicalMargin(wm).ApplySkipSides(
+    margin = logicalMargin.GetPhysicalMargin(wm).ApplySkipSides(
         aLineChildFrame.GetSkipSides());
-    rect.Inflate(margin);
+  } else {
+    margin = aLineChildFrame.GetUsedMargin().ApplySkipSides(
+        aLineChildFrame.GetSkipSides());
+    margin.EnsureAtMost(nsMargin());
   }
+  rect.Inflate(margin);
   return Some(rect + normalPosition);
 }
 
@@ -2645,7 +2654,7 @@ void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
   // happen only for overflow: visible), so that we don't incorrectly account
   // for margins that otherwise collapse through, see bug 1936156. Note that
   // ::-moz-scrolled-content is always a BFC (see `AnonymousBoxIsBFC`).
-  const bool considerMarginsForInFlowChildBounds =
+  const bool considerPositiveMarginsForInFlowChildBounds =
       isScrolled && HasAnyStateBits(NS_BLOCK_BFC);
 
   // Relying on aOverflowAreas having been set to frame border rect (if
@@ -2678,7 +2687,7 @@ void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
       }
 
       if (auto lineFrameBounds = GetLineFrameInFlowBounds(
-              line, *lineFrame, considerMarginsForInFlowChildBounds)) {
+              line, *lineFrame, considerPositiveMarginsForInFlowChildBounds)) {
         inFlowChildBounds = inFlowChildBounds.UnionEdges(*lineFrameBounds);
       }
     }
@@ -2690,9 +2699,8 @@ void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
         if (inkOverflowOnly || !isScrolled) {
           continue;
         }
-        auto rect = considerMarginsForInFlowChildBounds
-                        ? GetNormalMarginRect(f)
-                        : f->GetRectRelativeToSelf() + f->GetNormalPosition();
+        auto rect = GetNormalMarginRect(
+            *f, considerPositiveMarginsForInFlowChildBounds);
         inFlowChildBounds = inFlowChildBounds.UnionEdges(rect);
       }
     }
@@ -5766,12 +5774,11 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
     lineOverflowAreas.UnionWith(aLine->GetOverflowAreas());
     aLine->SetOverflowAreas(lineOverflowAreas);
     if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
-      auto itr = aLine->Floats().begin();
+      Span<const nsIFrame* const> floats(aLine->Floats());
       // Guaranteed to have at least 1 element since `HasFloats()` is true.
-      auto floatRect = GetNormalMarginRect(*itr);
-      ++itr;
-      for (; itr != aLine->Floats().end(); ++itr) {
-        floatRect = floatRect.UnionEdges(GetNormalMarginRect(*itr));
+      auto floatRect = GetNormalMarginRect(*floats[0]);
+      for (const nsIFrame* f : floats.From(1)) {
+        floatRect = floatRect.UnionEdges(GetNormalMarginRect(*f));
       }
       auto inFlowBounds = aLine->GetInFlowChildBounds();
       aLine->SetInFlowChildBounds(
