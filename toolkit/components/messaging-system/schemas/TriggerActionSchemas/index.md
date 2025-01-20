@@ -52,6 +52,8 @@ let patterns: string[];
 - [`newtabFeatureCalloutCheck`](#newtabfeaturecalloutcheck)
 - [`nthTabClosed`](#nthtabclosed)
 - [`nthTabOpened`](#nthtabopened)
+- [`tabGroupCreated`](#tabgroupcreated)
+- [`tabGroupClosed`](#tabgroupclosed)
 - [`activityAfterIdle`](#activityafteridle)
 - [`cookieBannerDetected`](#cookiebannerdetected)
 - [`cookieBannerHandled`](#cookiebannerhandled)
@@ -251,6 +253,45 @@ Happens when the user opens n or more tabs in a session
 {
   trigger: { id: "nthTabOpened" },
   targeting: "currentTabsOpen >= 4"
+}
+```
+
+### `tabGroupCreated`
+
+Happens whenever a user creates a tab group.
+
+```js
+{
+  trigger: { id: "tabGroupCreated" }
+}
+```
+```js
+// The trigger can also track the number or tab groups created in a
+// session, by including the tabGroupsCreatedCount context variable in targeting.
+// Here, the message triggers once two or more tab groups have been created,
+// even if the tabs were closed in between.
+{
+  trigger: { id: "tabGroupCreated" },
+  targeting: { "tabGroupsCreatedCount >= 2" }
+}
+```
+
+### `tabGroupClosed`
+
+Happens whenever a user uses the "Save and Close" action on a tab group.
+
+```js
+{
+  trigger: { id: "tabGroupClosed" }
+}
+```
+```js
+// The trigger can also track the number or tab groups closed in a
+// session, by including the tabGroupsClosedCount context variable in targeting.
+// Here, the message triggers once two tab groups have been saved and closed.
+{
+  trigger: { id: "tabGroupClosed" },
+  targeting: { "tabGroupsClosedCount >= 2" }
 }
 ```
 

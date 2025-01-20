@@ -53,6 +53,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
+  SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
@@ -747,6 +748,18 @@ const TargetingGetters = {
   },
   get needsUpdate() {
     return QueryCache.queries.CheckBrowserNeedsUpdate.get();
+  },
+  get savedTabGroups() {
+    return lazy.SessionStore.getSavedTabGroups().length;
+  },
+  get currentTabGroups() {
+    let win = lazy.BrowserWindowTracker.getTopWindow();
+    // If there's no window, there can't be any current tab groups.
+    if (!win) {
+      return 0;
+    }
+    let totalTabGroups = win.gBrowser.getAllTabGroups().length;
+    return totalTabGroups;
   },
   get hasPinnedTabs() {
     for (let win of Services.wm.getEnumerator("navigator:browser")) {
