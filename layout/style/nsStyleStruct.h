@@ -837,6 +837,17 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   inline bool MinBSizeDependsOnContainer(WritingMode) const;
   inline bool MaxBSizeDependsOnContainer(WritingMode) const;
 
+  struct InsetAuto {};
+  using LengthPercentageReference = std::reference_wrapper<const mozilla::StyleLengthPercentage>;
+  using AnchorResolvedInset =
+      mozilla::Variant<InsetAuto, LengthPercentageReference,
+                       mozilla::StyleLengthPercentage>;
+  AnchorResolvedInset GetAnchorResolvedInset(
+      mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const;
+  AnchorResolvedInset GetAnchorResolvedInset(
+      mozilla::LogicalSide aSide, WritingMode aWM,
+      mozilla::StylePositionProperty aPosition) const;
+
   // TODO(dshin): The following functions are used as shims to deal
   // anchor positioning functions as if it's `auto`, before the computation
   // is implemented.
