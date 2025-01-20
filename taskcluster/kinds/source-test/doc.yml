@@ -60,7 +60,7 @@ upload:
     worker-type: b-linux-medium-gcp
     worker:
         docker-image: {in-tree: "lint"}
-        max-run-time: 1800
+        max-run-time: 2400
         env:
             LC_ALL: C
             MOZ_SOURCE_DOCS_USE_GOOGLE: "1"
