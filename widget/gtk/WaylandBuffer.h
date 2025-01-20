@@ -82,18 +82,15 @@ class WaylandBuffer {
   explicit WaylandBuffer(const LayoutDeviceIntSize& aSize);
   virtual ~WaylandBuffer() = default;
 
-  // Create and return wl_buffer for underlying memory buffer.
-  // CreateWlBuffer() can be called many times, if wl_buffer already
-  // exist, recent buffer is returned.
-  virtual wl_buffer* CreateWlBuffer() = 0;
+  // Create and return wl_buffer for underlying memory buffer if it's missing.
+  virtual bool CreateWlBuffer() = 0;
 
   // Delete wl_buffer. It only releases Wayland interface over underlying
   // memory, doesn't affect actual buffer content but only connection
   // to Wayland compositor.
-  virtual void DeleteWlBuffer() = 0;
-
-  virtual wl_buffer* GetWlBuffer() = 0;
-  bool HasWlBuffer() { return !!GetWlBuffer(); }
+  void DeleteWlBuffer();
+  wl_buffer* GetWlBuffer() { return mWLBuffer; }
+  bool HasWlBuffer() { return !!mWLBuffer; }
 
   bool IsWaitingToBufferDelete() const { return !!mBufferDeleteSyncCallback; }
 
@@ -103,6 +100,10 @@ class WaylandBuffer {
 
   // wl_buffer delete is not atomic, we need to wait until it's finished.
   wl_callback* mBufferDeleteSyncCallback = nullptr;
+
+  // wl_buffer is a wayland object that encapsulates the shared/dmabuf memory
+  // and passes it to wayland compositor by wl_surface object.
+  wl_buffer* mWLBuffer = nullptr;
 
   LayoutDeviceIntSize mSize;
   // WaylandSurface where we're attached to.
@@ -135,9 +136,7 @@ class WaylandBufferSHM final : public WaylandBuffer {
 #endif
 
  protected:
-  wl_buffer* CreateWlBuffer() override;
-  void DeleteWlBuffer() override;
-  wl_buffer* GetWlBuffer() override;
+  bool CreateWlBuffer() override;
 
  private:
   explicit WaylandBufferSHM(const LayoutDeviceIntSize& aSize);
@@ -145,10 +144,6 @@ class WaylandBufferSHM final : public WaylandBuffer {
 
   // WaylandShmPoolMB provides actual shared memory we draw into
   RefPtr<WaylandShmPool> mShmPool;
-
-  // wl_buffer is a wayland object that encapsulates the shared memory
-  // and passes it to wayland compositor by wl_surface object.
-  wl_buffer* mWLBuffer = nullptr;
 
   size_t mBufferAge = 0;
 
@@ -161,7 +156,8 @@ class WaylandBufferSHM final : public WaylandBuffer {
 class WaylandBufferDMABUF final : public WaylandBuffer {
  public:
   static already_AddRefed<WaylandBufferDMABUF> CreateRGBA(
-      const LayoutDeviceIntSize& aSize, gl::GLContext* aGL);
+      const LayoutDeviceIntSize& aSize, gl::GLContext* aGL,
+      RefPtr<DRMFormat> aFormat);
   static already_AddRefed<WaylandBufferDMABUF> CreateExternal(
       RefPtr<DMABufSurface> aSurface);
 
@@ -172,9 +168,7 @@ class WaylandBufferDMABUF final : public WaylandBuffer {
   }
 
  protected:
-  wl_buffer* CreateWlBuffer() override;
-  void DeleteWlBuffer() override;
-  wl_buffer* GetWlBuffer() override;
+  bool CreateWlBuffer() override;
 
  private:
   explicit WaylandBufferDMABUF(const LayoutDeviceIntSize& aSize);
