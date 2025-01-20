@@ -12,8 +12,12 @@
   display: flex;
   align-items: center;
   padding-inline-end: 320px;
+
+  &:dir(rtl) {
+    background-position-x: left;
+  }
 }
 
-.rights-header:dir(rtl) {
-  background-position: left center;
+#disabling-webservices-container {
+  margin-inline-start: 40px;
 }
