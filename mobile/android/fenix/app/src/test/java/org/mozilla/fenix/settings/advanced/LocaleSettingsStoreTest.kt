@@ -14,12 +14,12 @@ class LocaleSettingsStoreTest {
 
     private lateinit var localeSettingsStore: LocaleSettingsStore
     private val selectedLocale = Locale("en", "UK")
-    private val otherLocale = Locale("fr")
+    private val otherLocale = Locale.Builder().setLanguage("fr").build()
 
     @Before
     fun setup() {
         val localeList = listOf(
-            Locale("fr"), // default
+            Locale.Builder().setLanguage("fr").build(), // default
             otherLocale,
             selectedLocale,
         )
@@ -39,14 +39,14 @@ class LocaleSettingsStoreTest {
     fun `change selected list by search query`() = runTest {
         localeSettingsStore.dispatch(LocaleSettingsAction.Search("Eng")).join()
 
-        assertEquals(2, (localeSettingsStore.state.searchedLocaleList as ArrayList).size)
+        assertEquals(2, localeSettingsStore.state.searchedLocaleList.size)
         assertEquals(selectedLocale, localeSettingsStore.state.searchedLocaleList[1])
     }
 
     @Test
     fun `GIVEN search list is amended WHEN locale selected THEN reset search list`() = runTest {
         localeSettingsStore.dispatch(LocaleSettingsAction.Search("Eng")).join()
-        assertEquals(2, (localeSettingsStore.state.searchedLocaleList as ArrayList).size)
+        assertEquals(2, localeSettingsStore.state.searchedLocaleList.size)
 
         localeSettingsStore.dispatch(LocaleSettingsAction.Search("fr")).join()
         localeSettingsStore.dispatch(LocaleSettingsAction.Select(otherLocale)).join()

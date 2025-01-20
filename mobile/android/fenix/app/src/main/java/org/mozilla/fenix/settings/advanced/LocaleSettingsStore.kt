@@ -63,12 +63,12 @@ private fun localeSettingsStateReducer(
             state.copy(selectedLocale = action.selectedItem, searchedLocaleList = state.localeList)
         }
         is LocaleSettingsAction.Search -> {
+            val firstLocale = state.localeList.firstOrNull() ?: return state
             val searchedItems = state.localeList.filter {
                 it.getDisplayLanguage(it).startsWith(action.query, ignoreCase = true) ||
-                    it.displayLanguage.startsWith(action.query, ignoreCase = true) ||
-                    it === state.localeList[0]
+                    it.displayLanguage.startsWith(action.query, ignoreCase = true)
             }
-            state.copy(searchedLocaleList = searchedItems)
+            state.copy(searchedLocaleList = listOf(firstLocale) + searchedItems)
         }
     }
 }
