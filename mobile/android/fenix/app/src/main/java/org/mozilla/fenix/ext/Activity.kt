@@ -34,6 +34,7 @@ import org.mozilla.fenix.addons.AddonsManagementFragmentDirections
 import org.mozilla.fenix.components.menu.MenuDialogFragmentDirections
 import org.mozilla.fenix.customtabs.EXTRA_IS_SANDBOX_CUSTOM_TAB
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
+import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsFragmentDirections
 import org.mozilla.fenix.exceptions.trackingprotection.TrackingProtectionExceptionsFragmentDirections
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.library.bookmarks.BookmarkFragmentDirections
@@ -284,6 +285,8 @@ private fun getHomeNavDirections(
     BrowserDirection.FromBookmarks -> BookmarkFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromHistory -> HistoryFragmentDirections.actionGlobalBrowser()
+
+    BrowserDirection.FromGleanDebugToolsFragment -> GleanDebugToolsFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromHistoryMetadataGroup -> HistoryMetadataGroupFragmentDirections.actionGlobalBrowser()
 

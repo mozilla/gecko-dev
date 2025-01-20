@@ -42,4 +42,5 @@ enum class BrowserDirection(@IdRes val fragmentId: Int) {
     FromDownloadLanguagesPreferenceFragment(R.id.downloadLanguagesPreferenceFragment),
     FromMenuDialogFragment(R.id.menuDialogFragment),
     FromWebCompatReporterFragment(R.id.webCompatReporterFragment),
+    FromGleanDebugToolsFragment(R.id.gleanDebugToolsFragment),
 }

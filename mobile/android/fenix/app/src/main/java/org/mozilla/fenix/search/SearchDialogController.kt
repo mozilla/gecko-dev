@@ -93,6 +93,10 @@ class SearchDialogController(
                 navController.navigateSafe(R.id.searchDialogFragment, directions)
                 store.dispatch(AwesomeBarAction.EngagementFinished(abandoned = false))
             }
+            "about:glean" -> {
+                val directions = SearchDialogFragmentDirections.actionGleanDebugToolsFragment()
+                navController.navigate(directions)
+            }
             "moz://a" -> openSearchOrUrl(
                 SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.MANIFESTO),
             )
