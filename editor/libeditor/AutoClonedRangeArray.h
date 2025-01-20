@@ -197,7 +197,8 @@ class MOZ_STACK_CLASS AutoClonedRangeArray {
   };
   Result<bool, nsresult> ShrinkRangesIfStartFromOrEndAfterAtomicContent(
       const HTMLEditor& aHTMLEditor, nsIEditor::EDirection aDirectionAndAmount,
-      IfSelectingOnlyOneAtomicContent aIfSelectingOnlyOneAtomicContent);
+      IfSelectingOnlyOneAtomicContent aIfSelectingOnlyOneAtomicContent,
+      const dom::Element* aEditingHost);
 
   /**
    * The following methods are same as `Selection`'s methods.

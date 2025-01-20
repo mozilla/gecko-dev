@@ -8,6 +8,7 @@
 #include "HTMLEditorInlines.h"
 #include "HTMLEditorNestedClasses.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "AutoClonedRangeArray.h"
@@ -20,13 +21,13 @@
 #include "HTMLEditHelpers.h"
 #include "HTMLEditUtils.h"
 #include "PendingStyles.h"  // for SpecifiedStyle
-#include "WhiteSpaceVisibilityKeeper.h"
-#include "WSRunScanner.h"
+#include "WSRunObject.h"
 
 #include "ErrorList.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/ContentIterator.h"
 #include "mozilla/EditorForwards.h"
 #include "mozilla/IntegerRange.h"
@@ -34,7 +35,10 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/OwningNonNull.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/RangeUtils.h"
+#include "mozilla/StaticPrefs_editor.h"  // for StaticPrefs::editor_*
 #include "mozilla/TextComposition.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -45,6 +49,8 @@
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/StaticRange.h"
+#include "mozilla/mozalloc.h"
+#include "nsAString.h"
 #include "nsAtom.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
@@ -54,7 +60,9 @@
 #include "nsError.h"
 #include "nsFrameSelection.h"
 #include "nsGkAtoms.h"
+#include "nsHTMLDocument.h"
 #include "nsIContent.h"
+#include "nsID.h"
 #include "nsIFrame.h"
 #include "nsINode.h"
 #include "nsLiteralString.h"
@@ -67,6 +75,7 @@
 #include "nsTArray.h"
 #include "nsTextNode.h"
 #include "nsThreadUtils.h"
+#include "nsUnicharUtils.h"
 
 class nsISupports;
 
@@ -1250,7 +1259,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         WhiteSpaceVisibilityKeeper::ReplaceText(
             *this, aInsertionString,
             EditorDOMRange(pointToInsert, compositionEndPoint),
-            InsertTextTo::ExistingTextNodeIfAvailable);
+            InsertTextTo::ExistingTextNodeIfAvailable, *editingHost);
     if (MOZ_UNLIKELY(replaceTextResult.isErr())) {
       NS_WARNING("WhiteSpaceVisibilityKeeper::ReplaceText() failed");
       return replaceTextResult.propagateErr();
@@ -1452,14 +1461,15 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
             if (!lineText.Contains(u'\t')) {
               return WhiteSpaceVisibilityKeeper::InsertText(
                   *this, lineText, currentPoint,
-                  GetInsertTextTo(inclusiveNextLinefeedOffset,
-                                  lineStartOffset));
+                  GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset),
+                  *editingHost);
             }
             nsAutoString formattedLineText(lineText);
             formattedLineText.ReplaceSubstring(u"\t"_ns, u"    "_ns);
             return WhiteSpaceVisibilityKeeper::InsertText(
                 *this, formattedLineText, currentPoint,
-                GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset));
+                GetInsertTextTo(inclusiveNextLinefeedOffset, lineStartOffset),
+                *editingHost);
           }();
           if (MOZ_UNLIKELY(insertTextResult.isErr())) {
             NS_WARNING("WhiteSpaceVisibilityKeeper::InsertText() failed");
@@ -1480,8 +1490,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         }
 
         Result<CreateLineBreakResult, nsresult> insertLineBreakResultOrError =
-            WhiteSpaceVisibilityKeeper::InsertLineBreak(*lineBreakType, *this,
-                                                        currentPoint);
+            WhiteSpaceVisibilityKeeper::InsertLineBreak(
+                *lineBreakType, *this, currentPoint, *editingHost);
         if (MOZ_UNLIKELY(insertLineBreakResultOrError.isErr())) {
           NS_WARNING(
               nsPrintfCString(
@@ -1700,7 +1710,8 @@ nsresult HTMLEditor::InsertLineBreakAsSubAction() {
       Result<CreateLineBreakResult, nsresult>
           insertPaddingBRElementResultOrError =
               WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                  LineBreakType::BRElement, *this, pointToPutCaret);
+                  LineBreakType::BRElement, *this, pointToPutCaret,
+                  *editingHost);
       if (MOZ_UNLIKELY(insertPaddingBRElementResultOrError.isErr())) {
         NS_WARNING(
             "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
@@ -2402,8 +2413,8 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
           splitLinkNodeResult.inspect().AtSplitPoint<EditorDOMPoint>();
     }
     Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-        WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::BRElement,
-                                                    *this, pointToBreak);
+        WhiteSpaceVisibilityKeeper::InsertLineBreak(
+            LineBreakType::BRElement, *this, pointToBreak, aEditingHost);
     if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
@@ -2432,7 +2443,7 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
     Result<CreateLineBreakResult, nsresult>
         insertPaddingBRElementResultOrError =
             WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                LineBreakType::BRElement, *this, afterBRElement);
+                LineBreakType::BRElement, *this, afterBRElement, aEditingHost);
     NS_WARNING_ASSERTION(insertPaddingBRElementResultOrError.isOk(),
                          "WhiteSpaceVisibilityKeeper::InsertLineBreak("
                          "LineBreakType::BRElement) failed");
@@ -3360,12 +3371,13 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
                 *newCaretPosition.ContainerAs<nsIContent>(),
                 HTMLEditUtils::ClosestEditableBlockElementOrInlineEditingHost,
                 BlockInlineCheck::UseComputedDisplayStyle)) {
+      Element* editingHost = ComputeEditingHost();
       // Try to put caret next to immediately after previous editable leaf.
       nsIContent* previousContent =
           HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-              newCaretPosition, {LeafNodeType::LeafNodeOrNonEditableNode},
-              BlockInlineCheck::UseComputedDisplayStyle,
-              editableBlockElementOrInlineEditingHost);
+              newCaretPosition, *editableBlockElementOrInlineEditingHost,
+              {LeafNodeType::LeafNodeOrNonEditableNode},
+              BlockInlineCheck::UseComputedDisplayStyle, editingHost);
       if (previousContent &&
           !HTMLEditUtils::IsBlockElement(
               *previousContent, BlockInlineCheck::UseComputedDisplayStyle)) {
@@ -3380,9 +3392,10 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
       else if (nsIContent* nextContent =
                    HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
                        newCaretPosition,
+                       *editableBlockElementOrInlineEditingHost,
                        {LeafNodeType::LeafNodeOrNonEditableNode},
                        BlockInlineCheck::UseComputedDisplayStyle,
-                       editableBlockElementOrInlineEditingHost)) {
+                       editingHost)) {
         newCaretPosition = nextContent->IsText() ||
                                    HTMLEditUtils::IsContainerNode(*nextContent)
                                ? EditorDOMPoint(nextContent, 0)

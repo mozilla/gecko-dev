@@ -6,12 +6,15 @@
 #include "HTMLEditHelpers.h"
 
 #include "CSSEditUtils.h"
+#include "EditorDOMPoint.h"
 #include "HTMLEditor.h"
-#include "HTMLEditUtils.h"
 #include "PendingStyles.h"
+#include "WSRunObject.h"
 
 #include "mozilla/ContentIterator.h"
 #include "mozilla/OwningNonNull.h"
+#include "mozilla/dom/HTMLBRElement.h"
+#include "mozilla/dom/Text.h"
 #include "nsIContent.h"
 #include "nsINode.h"
 #include "nsRange.h"

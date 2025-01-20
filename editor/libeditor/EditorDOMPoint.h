@@ -879,20 +879,12 @@ class EditorDOMPointBase final {
     return true;
   }
 
-  [[nodiscard]] bool IsInContentNodeAndValid() const {
-    return IsInContentNode() && IsSetAndValid();
-  }
-
   [[nodiscard]] bool IsInComposedDoc() const {
     return IsSet() && mParent->IsInComposedDoc();
   }
 
   [[nodiscard]] bool IsSetAndValidInComposedDoc() const {
     return IsInComposedDoc() && IsSetAndValid();
-  }
-
-  [[nodiscard]] bool IsInContentNodeAndValidInComposedDoc() const {
-    return IsInContentNode() && IsSetAndValidInComposedDoc();
   }
 
   bool IsStartOfContainer() const {

@@ -78,9 +78,7 @@ UNIFIED_SOURCES += [
     "TextEditor.cpp",
     "TextEditorDataTransfer.cpp",
     "TextEditSubActionHandler.cpp",
-    "WhiteSpaceVisibilityKeeper.cpp",
-    "WSRunScanner.cpp",
-    "WSRunScannerNestedClasses.cpp",
+    "WSRunObject.cpp",
 ]
 
 LOCAL_INCLUDES += [

@@ -17,8 +17,7 @@
 #include "InternetCiter.h"
 #include "PendingStyles.h"
 #include "SelectionState.h"
-#include "WhiteSpaceVisibilityKeeper.h"
-#include "WSRunScanner.h"
+#include "WSRunObject.h"
 
 #include "ErrorList.h"
 #include "mozilla/dom/Comment.h"

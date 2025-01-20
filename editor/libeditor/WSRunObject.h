@@ -3,12 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WSRunScanner_h
-#define WSRunScanner_h
+#ifndef WSRunObject_h
+#define WSRunObject_h
 
+#include "EditAction.h"
 #include "EditorBase.h"
 #include "EditorForwards.h"
 #include "EditorDOMPoint.h"  // for EditorDOMPoint
+#include "EditorUtils.h"     // for CaretPoint
+#include "HTMLEditHelpers.h"
 #include "HTMLEditor.h"
 #include "HTMLEditUtils.h"
 
@@ -23,6 +26,8 @@
 
 namespace mozilla {
 
+using namespace dom;
+
 /**
  * WSScanResult is result of ScanNextVisibleNodeOrBlockBoundaryFrom(),
  * ScanPreviousVisibleNodeOrBlockBoundaryFrom(), and their static wrapper
@@ -32,10 +37,6 @@ namespace mozilla {
  */
 class MOZ_STACK_CLASS WSScanResult final {
  private:
-  using Element = dom::Element;
-  using HTMLBRElement = dom::HTMLBRElement;
-  using Text = dom::Text;
-
   enum class WSType : uint8_t {
     NotInitialized,
     // Could be the DOM tree is broken as like crash tests.
@@ -413,26 +414,8 @@ class MOZ_STACK_CLASS WSScanResult final {
 };
 
 class MOZ_STACK_CLASS WSRunScanner final {
- private:
-  using Element = dom::Element;
-  using HTMLBRElement = dom::HTMLBRElement;
-  using Text = dom::Text;
-
  public:
   using WSType = WSScanResult::WSType;
-
-  enum class IgnoreNonEditableNodes : bool { No, Yes };
-  enum class StopAtNonEditableNode : bool { No, Yes };
-  enum class Scan : bool { All, EditableNodes };
-
-  [[nodiscard]] constexpr static IgnoreNonEditableNodes
-  ShouldIgnoreNonEditableSiblingsOrDescendants(Scan aScan) {
-    return static_cast<IgnoreNonEditableNodes>(static_cast<bool>(aScan));
-  }
-  [[nodiscard]] constexpr static StopAtNonEditableNode
-  ShouldStopAtNonEditableNode(Scan aScan) {
-    return static_cast<StopAtNonEditableNode>(static_cast<bool>(aScan));
-  }
 
   template <typename EditorDOMPointType>
   WSRunScanner(const Element* aEditingHost,
@@ -440,7 +423,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
                BlockInlineCheck aBlockInlineCheck)
       : mScanStartPoint(aScanStartPoint.template To<EditorDOMPoint>()),
         mEditingHost(const_cast<Element*>(aEditingHost)),
-        mTextFragmentDataAtStart(Scan::EditableNodes, mScanStartPoint,
+        mTextFragmentDataAtStart(mScanStartPoint, mEditingHost,
                                  aBlockInlineCheck),
         mBlockInlineCheck(aBlockInlineCheck) {}
 
@@ -526,23 +509,27 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * only invisible white-spaces and there is previous or next text node.
    */
   template <typename EditorDOMPointType>
-  static EditorDOMPointType GetAfterLastVisiblePoint(Text& aTextNode);
+  static EditorDOMPointType GetAfterLastVisiblePoint(
+      Text& aTextNode, const Element* aAncestorLimiter);
   template <typename EditorDOMPointType>
-  static EditorDOMPointType GetFirstVisiblePoint(Text& aTextNode);
+  static EditorDOMPointType GetFirstVisiblePoint(
+      Text& aTextNode, const Element* aAncestorLimiter);
 
   /**
    * GetRangeInTextNodesToForwardDeleteFrom() returns the range to remove
    * text when caret is at aPoint.
    */
   static Result<EditorDOMRangeInTexts, nsresult>
-  GetRangeInTextNodesToForwardDeleteFrom(const EditorDOMPoint& aPoint);
+  GetRangeInTextNodesToForwardDeleteFrom(const EditorDOMPoint& aPoint,
+                                         const Element& aEditingHost);
 
   /**
    * GetRangeInTextNodesToBackspaceFrom() returns the range to remove text
    * when caret is at aPoint.
    */
   static Result<EditorDOMRangeInTexts, nsresult>
-  GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint);
+  GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint,
+                                     const Element& aEditingHost);
 
   /**
    * GetRangesForDeletingAtomicContent() returns the range to delete
@@ -550,7 +537,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * be included into the range.
    */
   static EditorDOMRange GetRangesForDeletingAtomicContent(
-      const nsIContent& aAtomicContent);
+      Element* aEditingHost, const nsIContent& aAtomicContent);
 
   /**
    * GetRangeForDeleteBlockElementBoundaries() returns a range starting from end
@@ -583,14 +570,15 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * is in adjacent text nodes.  Returns true if this modifies the range.
    */
   static Result<bool, nsresult> ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
-      const HTMLEditor& aHTMLEditor, nsRange& aRange);
+      const HTMLEditor& aHTMLEditor, nsRange& aRange,
+      const Element* aEditingHost);
 
   /**
    * GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries() returns
    * extended range if range boundaries of aRange are in invisible white-spaces.
    */
   static EditorDOMRange GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
-      const EditorDOMRange& aRange);
+      Element* aEditingHost, const EditorDOMRange& aRange);
 
   /**
    * GetPrecedingBRElementUnlessVisibleContentFound() scans a `<br>` element
@@ -601,7 +589,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
   template <typename EditorDOMPointType>
   MOZ_NEVER_INLINE_DEBUG static HTMLBRElement*
   GetPrecedingBRElementUnlessVisibleContentFound(
-      const Element* aEditingHost, const EditorDOMPointType& aPoint,
+      Element* aEditingHost, const EditorDOMPointType& aPoint,
       BlockInlineCheck aBlockInlineCheck) {
     MOZ_ASSERT(aPoint.IsSetAndValid());
     // XXX This method behaves differently even in similar point.
@@ -616,8 +604,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
     }
     // TODO: Scan for end boundary is redundant in this case, we should optimize
     //       it.
-    TextFragmentData textFragmentData(Scan::EditableNodes, aPoint,
-                                      aBlockInlineCheck, aEditingHost);
+    TextFragmentData textFragmentData(aPoint, aEditingHost, aBlockInlineCheck);
     return textFragmentData.StartsFromBRElement()
                ? textFragmentData.StartReasonBRElementPtr()
                : nullptr;
@@ -855,8 +842,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
   EditorDOMPointType GetInclusiveNextEditableCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
-        .GetInclusiveNextCharPoint<EditorDOMPointType>(
-            aPoint, IgnoreNonEditableNodes::Yes);
+        .GetInclusiveNextEditableCharPoint<EditorDOMPointType>(aPoint);
   }
 
   /**
@@ -871,8 +857,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
   EditorDOMPointType GetPreviousEditableCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
-        .GetPreviousCharPoint<EditorDOMPointType>(aPoint,
-                                                  IgnoreNonEditableNodes::Yes);
+        .GetPreviousEditableCharPoint<EditorDOMPointType>(aPoint);
   }
 
   /**
@@ -938,15 +923,20 @@ class MOZ_STACK_CLASS WSRunScanner final {
        * this returns the data at aPoint.
        *
        * @param aPoint            Scan start point.
+       * @param aEditableBlockParentOrTopmostEditableInlineElement
+       *                          Nearest editable block parent element of
+       *                          aPoint if there is.  Otherwise, inline editing
+       *                          host.
+       * @param aEditingHost      Active editing host.
        * @param aNBSPData         Optional.  If set, this recodes first and last
        *                          NBSP positions.
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceStartFrom(
-          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck,
-          StopAtNonEditableNode aStopAtNonEditableNode,
-          const Element& aAncestorLimiter);
+          const EditorDOMPointType& aPoint,
+          const Element& aEditableBlockParentOrTopmostEditableInlineElement,
+          const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
+          BlockInlineCheck aBlockInlineCheck);
 
       /**
        * ScanCollapsibleWhiteSpaceEndFrom() returns end boundary data of
@@ -955,15 +945,20 @@ class MOZ_STACK_CLASS WSRunScanner final {
        * this returns the data at aPoint.
        *
        * @param aPoint            Scan start point.
+       * @param aEditableBlockParentOrTopmostEditableInlineElement
+       *                          Nearest editable block parent element of
+       *                          aPoint if there is.  Otherwise, inline editing
+       *                          host.
+       * @param aEditingHost      Active editing host.
        * @param aNBSPData         Optional.  If set, this recodes first and last
        *                          NBSP positions.
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceEndFrom(
-          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck,
-          StopAtNonEditableNode aStopAtNonEditableNode,
-          const Element& aAncestorLimiter);
+          const EditorDOMPointType& aPoint,
+          const Element& aEditableBlockParentOrTopmostEditableInlineElement,
+          const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
+          BlockInlineCheck aBlockInlineCheck);
 
       BoundaryData() = default;
       template <typename EditorDOMPointType>
@@ -1070,16 +1065,15 @@ class MOZ_STACK_CLASS WSRunScanner final {
 
    public:
     TextFragmentData() = delete;
-
-    /**
-     * If aScanMode is Scan::EditableNodes and aPoint is in an editable node,
-     * this scans only in the editing host.  Therefore, it's same as that
-     * aAncestorLimiter is specified to the editing host.
-     */
     template <typename EditorDOMPointType>
-    TextFragmentData(Scan aScanMode, const EditorDOMPointType& aPoint,
-                     BlockInlineCheck aBlockInlineCheck,
-                     const Element* aAncestorLimiter = nullptr);
+    TextFragmentData(const WSRunScanner& aWSRunScanner,
+                     const EditorDOMPointType& aPoint)
+        : TextFragmentData(aPoint, aWSRunScanner.mEditingHost,
+                           aWSRunScanner.mBlockInlineCheck) {}
+    template <typename EditorDOMPointType>
+    TextFragmentData(const EditorDOMPointType& aPoint,
+                     const Element* aEditingHost,
+                     BlockInlineCheck aBlockInlineCheck);
 
     bool IsInitialized() const {
       return mStart.Initialized() && mEnd.Initialized();
@@ -1175,96 +1169,23 @@ class MOZ_STACK_CLASS WSRunScanner final {
       return mNBSPData.LastPointRef();
     }
 
-    /**
-     * Return inclusive next point in inclusive next `Text` node from aPoint.
-     * So, it may be in a collapsed white-space or invisible white-spaces.
-     */
-    template <typename EditorDOMPointType, typename PT, typename CT>
-    [[nodiscard]] static EditorDOMPointType GetInclusiveNextCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint,
-        BlockInlineCheck aBlockInlineCheck,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
-        const nsIContent* aFollowingLimiterContent = nullptr);
+    template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
+              typename CT>
+    EditorDOMPointType GetInclusiveNextEditableCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint) const;
+    template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
+              typename CT>
+    EditorDOMPointType GetPreviousEditableCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint) const;
 
-    template <typename EditorDOMPointType, typename PT, typename CT>
-    [[nodiscard]] EditorDOMPointType GetInclusiveNextCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
-      return GetInclusiveNextCharPoint<EditorDOMPointType>(
-          aPoint, mBlockInlineCheck, aIgnoreNonEditableNodes,
-          GetEndReasonContent());
-    }
-
-    /**
-     * Return previous point in inclusive previous `Text` node from aPoint.
-     * So, it may be in a collapsed white-space or invisible white-spaces.
-     */
-    template <typename EditorDOMPointType, typename PT, typename CT>
-    [[nodiscard]] static EditorDOMPointType GetPreviousCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint,
-        BlockInlineCheck aBlockInlineCheck,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
-        const nsIContent* aPrecedingLimiterContent = nullptr);
-
-    template <typename EditorDOMPointType, typename PT, typename CT>
-    [[nodiscard]] EditorDOMPointType GetPreviousCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
-      return GetPreviousCharPoint<EditorDOMPointType>(aPoint, mBlockInlineCheck,
-                                                      aIgnoreNonEditableNodes,
-                                                      GetStartReasonContent());
-    }
-
-    /**
-     * Return end of current collapsible ASCII white-spaces.
-     *
-     * @param aPointAtASCIIWhiteSpace   Must be in a sequence of collapsible
-     *                                  ASCII white-spaces.
-     * @param aDirectionToDelete        The direction to delete.
-     */
-    template <typename EditorDOMPointType>
-    [[nodiscard]] static EditorDOMPointType GetEndOfCollapsibleASCIIWhiteSpaces(
+    template <typename EditorDOMPointType = EditorDOMPointInText>
+    EditorDOMPointType GetEndOfCollapsibleASCIIWhiteSpaces(
         const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-        nsIEditor::EDirection aDirectionToDelete,
-        BlockInlineCheck aBlockInlineCheck,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
-        const nsIContent* aFollowingLimiterContent = nullptr);
-
-    template <typename EditorDOMPointType>
-    [[nodiscard]] EditorDOMPointType GetEndOfCollapsibleASCIIWhiteSpaces(
+        nsIEditor::EDirection aDirectionToDelete) const;
+    template <typename EditorDOMPointType = EditorDOMPointInText>
+    EditorDOMPointType GetFirstASCIIWhiteSpacePointCollapsedTo(
         const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-        nsIEditor::EDirection aDirectionToDelete,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
-      return GetEndOfCollapsibleASCIIWhiteSpaces<EditorDOMPointType>(
-          aPointAtASCIIWhiteSpace, aDirectionToDelete, mBlockInlineCheck,
-          aIgnoreNonEditableNodes, GetEndReasonContent());
-    }
-
-    /**
-     * Return start of current collapsible ASCII white-spaces.
-     *
-     * @param aPointAtASCIIWhiteSpace   Must be in a sequence of collapsible
-     *                                  ASCII white-spaces.
-     * @param aDirectionToDelete        The direction to delete.
-     */
-    template <typename EditorDOMPointType>
-    [[nodiscard]] static EditorDOMPointType
-    GetFirstASCIIWhiteSpacePointCollapsedTo(
-        const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-        nsIEditor::EDirection aDirectionToDelete,
-        BlockInlineCheck aBlockInlineCheck,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
-        const nsIContent* aPrecedingLimiterContent = nullptr);
-
-    template <typename EditorDOMPointType>
-    [[nodiscard]] EditorDOMPointType GetFirstASCIIWhiteSpacePointCollapsedTo(
-        const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
-        nsIEditor::EDirection aDirectionToDelete,
-        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
-      return GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointType>(
-          aPointAtASCIIWhiteSpace, aDirectionToDelete, mBlockInlineCheck,
-          aIgnoreNonEditableNodes, GetStartReasonContent());
-    }
+        nsIEditor::EDirection aDirectionToDelete) const;
 
     /**
      * GetNonCollapsedRangeInTexts() returns non-empty range in texts which
@@ -1508,11 +1429,11 @@ class MOZ_STACK_CLASS WSRunScanner final {
     BoundaryData mStart;
     BoundaryData mEnd;
     NoBreakingSpaceData mNBSPData;
+    RefPtr<const Element> mEditingHost;
     mutable Maybe<EditorDOMRange> mLeadingWhiteSpaceRange;
     mutable Maybe<EditorDOMRange> mTrailingWhiteSpaceRange;
     mutable Maybe<VisibleWhiteSpacesData> mVisibleWhiteSpacesData;
     BlockInlineCheck mBlockInlineCheck;
-    Scan mScanMode;
   };
 
   const TextFragmentData& TextFragmentDataAtStartRef() const {
@@ -1549,6 +1470,314 @@ class MOZ_STACK_CLASS WSRunScanner final {
   friend class WhiteSpaceVisibilityKeeper;
 };
 
+/**
+ * WhiteSpaceVisibilityKeeper class helps `HTMLEditor` modifying the DOM tree
+ * with keeps white-space sequence visibility automatically.  E.g., invisible
+ * leading/trailing white-spaces becomes visible, this class members delete
+ * them.  E.g., when splitting visible-white-space sequence, this class may
+ * replace ASCII white-spaces at split edges with NBSPs.
+ */
+class WhiteSpaceVisibilityKeeper final {
+ private:
+  using AutoTransactionsConserveSelection =
+      EditorBase::AutoTransactionsConserveSelection;
+  using EditorType = EditorBase::EditorType;
+  using PointPosition = WSRunScanner::PointPosition;
+  using TextFragmentData = WSRunScanner::TextFragmentData;
+  using VisibleWhiteSpacesData = WSRunScanner::VisibleWhiteSpacesData;
+
+ public:
+  using InsertTextTo = EditorBase::InsertTextTo;
+  using LineBreakType = HTMLEditor::LineBreakType;
+
+  WhiteSpaceVisibilityKeeper() = delete;
+  explicit WhiteSpaceVisibilityKeeper(
+      const WhiteSpaceVisibilityKeeper& aOther) = delete;
+  WhiteSpaceVisibilityKeeper(WhiteSpaceVisibilityKeeper&& aOther) = delete;
+
+  /**
+   * Remove invisible leading white-spaces and trailing white-spaces if there
+   * are around aPoint.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  DeleteInvisibleASCIIWhiteSpaces(HTMLEditor& aHTMLEditor,
+                                  const EditorDOMPoint& aPoint);
+
+  /**
+   * Fix up white-spaces before aStartPoint and after aEndPoint in preparation
+   * for content to keep the white-spaces visibility after the range is deleted.
+   * Note that the nodes and offsets are adjusted in response to any dom changes
+   * we make while adjusting white-spaces.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  PrepareToDeleteRangeAndTrackPoints(HTMLEditor& aHTMLEditor,
+                                     EditorDOMPoint* aStartPoint,
+                                     EditorDOMPoint* aEndPoint,
+                                     const Element& aEditingHost) {
+    MOZ_ASSERT(aStartPoint->IsSetAndValid());
+    MOZ_ASSERT(aEndPoint->IsSetAndValid());
+    AutoTrackDOMPoint trackerStart(aHTMLEditor.RangeUpdaterRef(), aStartPoint);
+    AutoTrackDOMPoint trackerEnd(aHTMLEditor.RangeUpdaterRef(), aEndPoint);
+    Result<CaretPoint, nsresult> caretPointOrError =
+        WhiteSpaceVisibilityKeeper::PrepareToDeleteRange(
+            aHTMLEditor, EditorDOMRange(*aStartPoint, *aEndPoint),
+            aEditingHost);
+    NS_WARNING_ASSERTION(
+        caretPointOrError.isOk(),
+        "WhiteSpaceVisibilityKeeper::PrepareToDeleteRange() failed");
+    return caretPointOrError;
+  }
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  PrepareToDeleteRange(HTMLEditor& aHTMLEditor,
+                       const EditorDOMPoint& aStartPoint,
+                       const EditorDOMPoint& aEndPoint,
+                       const Element& aEditingHost) {
+    MOZ_ASSERT(aStartPoint.IsSetAndValid());
+    MOZ_ASSERT(aEndPoint.IsSetAndValid());
+    Result<CaretPoint, nsresult> caretPointOrError =
+        WhiteSpaceVisibilityKeeper::PrepareToDeleteRange(
+            aHTMLEditor, EditorDOMRange(aStartPoint, aEndPoint), aEditingHost);
+    NS_WARNING_ASSERTION(
+        caretPointOrError.isOk(),
+        "WhiteSpaceVisibilityKeeper::PrepareToDeleteRange() failed");
+    return caretPointOrError;
+  }
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  PrepareToDeleteRange(HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
+                       const Element& aEditingHost) {
+    MOZ_ASSERT(aRange.IsPositionedAndValid());
+    Result<CaretPoint, nsresult> caretPointOrError =
+        WhiteSpaceVisibilityKeeper::
+            MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange(
+                aHTMLEditor, aRange, aEditingHost);
+    NS_WARNING_ASSERTION(
+        caretPointOrError.isOk(),
+        "WhiteSpaceVisibilityKeeper::"
+        "MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange() failed");
+    return caretPointOrError;
+  }
+
+  /**
+   * PrepareToSplitBlockElement() makes sure that the invisible white-spaces
+   * not to become visible and returns splittable point.
+   *
+   * @param aHTMLEditor         The HTML editor.
+   * @param aPointToSplit       The splitting point in aSplittingBlockElement.
+   * @param aSplittingBlockElement  A block element which will be split.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
+  PrepareToSplitBlockElement(HTMLEditor& aHTMLEditor,
+                             const EditorDOMPoint& aPointToSplit,
+                             const Element& aSplittingBlockElement);
+
+  /**
+   * MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement() merges
+   * first line in aRightBlockElement into end of aLeftBlockElement which
+   * is a descendant of aRightBlockElement.
+   *
+   * @param aHTMLEditor         The HTML editor.
+   * @param aLeftBlockElement   The content will be merged into end of
+   *                            this element.
+   * @param aRightBlockElement  The first line in this element will be
+   *                            moved to aLeftBlockElement.
+   * @param aAtRightBlockChild  At a child of aRightBlockElement and inclusive
+   *                            ancestor of aLeftBlockElement.
+   * @param aListElementTagName Set some if aRightBlockElement is a list
+   *                            element and it'll be merged with another
+   *                            list element.
+   * @param aEditingHost        The editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
+  MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement(
+      HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
+      Element& aRightBlockElement, const EditorDOMPoint& aAtRightBlockChild,
+      const Maybe<nsAtom*>& aListElementTagName,
+      const HTMLBRElement* aPrecedingInvisibleBRElement,
+      const Element& aEditingHost);
+
+  /**
+   * MergeFirstLineOfRightBlockElementIntoAncestorLeftBlockElement() merges
+   * first line in aRightBlockElement into end of aLeftBlockElement which
+   * is an ancestor of aRightBlockElement, then, removes aRightBlockElement
+   * if it becomes empty.
+   *
+   * @param aHTMLEditor         The HTML editor.
+   * @param aLeftBlockElement   The content will be merged into end of
+   *                            this element.
+   * @param aRightBlockElement  The first line in this element will be
+   *                            moved to aLeftBlockElement and maybe
+   *                            removed when this becomes empty.
+   * @param aAtLeftBlockChild   At a child of aLeftBlockElement and inclusive
+   *                            ancestor of aRightBlockElement.
+   * @param aLeftContentInBlock The content whose inclusive ancestor is
+   *                            aLeftBlockElement.
+   * @param aListElementTagName Set some if aRightBlockElement is a list
+   *                            element and it'll be merged with another
+   *                            list element.
+   * @param aEditingHost        The editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
+  MergeFirstLineOfRightBlockElementIntoAncestorLeftBlockElement(
+      HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
+      Element& aRightBlockElement, const EditorDOMPoint& aAtLeftBlockChild,
+      nsIContent& aLeftContentInBlock,
+      const Maybe<nsAtom*>& aListElementTagName,
+      const HTMLBRElement* aPrecedingInvisibleBRElement,
+      const Element& aEditingHost);
+
+  /**
+   * MergeFirstLineOfRightBlockElementIntoLeftBlockElement() merges first
+   * line in aRightBlockElement into end of aLeftBlockElement and removes
+   * aRightBlockElement when it has only one line.
+   *
+   * @param aHTMLEditor         The HTML editor.
+   * @param aLeftBlockElement   The content will be merged into end of
+   *                            this element.
+   * @param aRightBlockElement  The first line in this element will be
+   *                            moved to aLeftBlockElement and maybe
+   *                            removed when this becomes empty.
+   * @param aListElementTagName Set some if aRightBlockElement is a list
+   *                            element and its type needs to be changed.
+   * @param aEditingHost        The editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
+  MergeFirstLineOfRightBlockElementIntoLeftBlockElement(
+      HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
+      Element& aRightBlockElement, const Maybe<nsAtom*>& aListElementTagName,
+      const HTMLBRElement* aPrecedingInvisibleBRElement,
+      const Element& aEditingHost);
+
+  /**
+   * InsertLineBreak() inserts a line break at (before) aPointToInsert and
+   * delete unnecessary white-spaces around there and/or replaces white-spaces
+   * with non-breaking spaces.  Note that if the point is in a text node, the
+   * text node will be split and insert new <br> node between the left node
+   * and the right node.
+   *
+   * @param aPointToInsert  The point to insert new line break.  Note that
+   *                        it'll be inserted before this point.  I.e., the
+   *                        point will be the point of new line break.
+   * @return                If succeeded, returns the new line break and
+   *                        point to put caret.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CreateLineBreakResult,
+                                                 nsresult>
+  InsertLineBreak(LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
+                  const EditorDOMPoint& aPointToInsert,
+                  const Element& aEditingHost);
+
+  /**
+   * Insert aStringToInsert to aPointToInsert and makes any needed adjustments
+   * to white-spaces around the insertion point.
+   *
+   * @param aStringToInsert     The string to insert.
+   * @param aRangeToBeReplaced  The range to be replaced.
+   * @param aInsertTextTo       Whether forcibly creates a new `Text` node in
+   *                            specific condition or use existing `Text` if
+   *                            available.
+   */
+  template <typename EditorDOMPointType>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
+  InsertText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
+             const EditorDOMPointType& aPointToInsert,
+             InsertTextTo aInsertTextTo, const Element& aEditingHost) {
+    return WhiteSpaceVisibilityKeeper::ReplaceText(
+        aHTMLEditor, aStringToInsert, EditorDOMRange(aPointToInsert),
+        aInsertTextTo, aEditingHost);
+  }
+
+  /**
+   * Replace aRangeToReplace with aStringToInsert and makes any needed
+   * adjustments to white-spaces around both start of the range and end of the
+   * range.
+   *
+   * @param aStringToInsert     The string to insert.
+   * @param aRangeToBeReplaced  The range to be replaced.
+   * @param aInsertTextTo       Whether forcibly creates a new `Text` node in
+   *                            specific condition or use existing `Text` if
+   *                            available.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
+  ReplaceText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
+              const EditorDOMRange& aRangeToBeReplaced,
+              InsertTextTo aInsertTextTo, const Element& aEditingHost);
+
+  /**
+   * Delete previous white-space of aPoint.  This automatically keeps visibility
+   * of white-spaces around aPoint. E.g., may remove invisible leading
+   * white-spaces.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  DeletePreviousWhiteSpace(HTMLEditor& aHTMLEditor,
+                           const EditorDOMPoint& aPoint,
+                           const Element& aEditingHost);
+
+  /**
+   * Delete inclusive next white-space of aPoint.  This automatically keeps
+   * visiblity of white-spaces around aPoint. E.g., may remove invisible
+   * trailing white-spaces.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  DeleteInclusiveNextWhiteSpace(HTMLEditor& aHTMLEditor,
+                                const EditorDOMPoint& aPoint,
+                                const Element& aEditingHost);
+
+  /**
+   * Delete aContentToDelete and may remove/replace white-spaces around it.
+   * Then, if deleting content makes 2 text nodes around it are adjacent
+   * siblings, this joins them and put selection at the joined point.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  DeleteContentNodeAndJoinTextNodesAroundIt(HTMLEditor& aHTMLEditor,
+                                            nsIContent& aContentToDelete,
+                                            const EditorDOMPoint& aCaretPoint,
+                                            const Element& aEditingHost);
+
+  /**
+   * Try to normalize visible white-space sequence around aPoint.
+   * This may collapse `Selection` after replaced text.  Therefore, the callers
+   * of this need to restore `Selection` by themselves (this does not do it for
+   * performance reason of multiple calls).
+   */
+  template <typename EditorDOMPointType>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
+  NormalizeVisibleWhiteSpacesAt(HTMLEditor& aHTMLEditor,
+                                const EditorDOMPointType& aPoint,
+                                const Element& aEditingHost);
+
+ private:
+  /**
+   * Maybe delete invisible white-spaces for keeping make them invisible and/or
+   * may replace ASCII white-spaces with NBSPs for making visible white-spaces
+   * to keep visible.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
+  MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange(
+      HTMLEditor& aHTMLEditor, const EditorDOMRange& aRangeToDelete,
+      const Element& aEditingHost);
+
+  /**
+   * MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit() replaces ASCII white-
+   * spaces which becomes invisible after split with NBSPs.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
+  MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
+      HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit);
+
+  /**
+   * ReplaceTextAndRemoveEmptyTextNodes() replaces the range between
+   * aRangeToReplace with aReplaceString simply.  Additionally, removes
+   * empty text nodes in the range.
+   *
+   * @param aRangeToReplace     Range to replace text.
+   * @param aReplaceString      The new string.  Empty string is allowed.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
+  ReplaceTextAndRemoveEmptyTextNodes(
+      HTMLEditor& aHTMLEditor, const EditorDOMRangeInTexts& aRangeToReplace,
+      const nsAString& aReplaceString);
+};
+
 }  // namespace mozilla
 
-#endif  // #ifndef WSRunScanner_h
+#endif  // #ifndef WSRunObject_h

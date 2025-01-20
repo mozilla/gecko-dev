@@ -126,9 +126,9 @@ class SplitNodeResult;                  // HTMLEditHelpers.h
 class SplitNodeTransaction;             // SplitNodeTransaction.h
 class SplitRangeOffFromNodeResult;      // HTMLEditHelpers.h
 class SplitRangeOffResult;              // HTMLEditHelpers.h
-class WhiteSpaceVisibilityKeeper;       // WhiteSpaceVisibilityKeeper.h
-class WSRunScanner;                     // WSRunScanner.h
-class WSScanResult;                     // WSRunScanner.h
+class WhiteSpaceVisibilityKeeper;       // WSRunObject.h
+class WSRunScanner;                     // WSRunObject.h
+class WSScanResult;                     // WSRunObject.h
 
 /******************************************************************************
  * structs

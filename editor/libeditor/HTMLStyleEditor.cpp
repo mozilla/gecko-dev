@@ -17,7 +17,7 @@
 #include "HTMLEditUtils.h"
 #include "PendingStyles.h"
 #include "SelectionState.h"
-#include "WSRunScanner.h"
+#include "WSRunObject.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/ContentIterator.h"

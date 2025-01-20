@@ -13,7 +13,7 @@
 #include "EditorForwards.h"        // for CollectChildrenOptions
 #include "EditorUtils.h"           // for EditorUtils
 #include "HTMLEditHelpers.h"       // for EditorInlineStyle
-#include "WSRunScanner.h"          // for WSRunScanner
+#include "WSRunObject.h"           // for WSRunScanner
 
 #include "mozilla/ArrayUtils.h"  // for ArrayLength
 #include "mozilla/Assertions.h"  // for MOZ_ASSERT, etc.
@@ -1043,9 +1043,8 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
          content =
              aScanLineBreak == ScanLineBreak::AtEndOfBlock
                  ? HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-                       *content, leafNodeOrNonEditableNode,
-                       BlockInlineCheck::UseComputedDisplayStyle,
-                       &aBlockElement)
+                       *content, aBlockElement, leafNodeOrNonEditableNode,
+                       BlockInlineCheck::UseComputedDisplayStyle)
                  : HTMLEditUtils::GetPreviousContent(
                        *content, onlyPrecedingLine,
                        BlockInlineCheck::UseComputedDisplayStyle,
@@ -1119,12 +1118,13 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
       BlockInlineCheck::UseComputedDisplayStyle);
   for (nsIContent* content =
            HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-               *lastLineBreakContent, leafNodeOrNonEditableNodeOrChildBlock,
-               BlockInlineCheck::UseComputedDisplayStyle, blockElement);
+               *lastLineBreakContent, *blockElement,
+               leafNodeOrNonEditableNodeOrChildBlock,
+               BlockInlineCheck::UseComputedDisplayStyle);
        content;
        content = HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-           *content, leafNodeOrNonEditableNodeOrChildBlock,
-           BlockInlineCheck::UseComputedDisplayStyle, blockElement)) {
+           *content, *blockElement, leafNodeOrNonEditableNodeOrChildBlock,
+           BlockInlineCheck::UseComputedDisplayStyle)) {
     if (HTMLEditUtils::IsBlockElement(
             *content, BlockInlineCheck::UseComputedDisplayStyle) ||
         (content->IsElement() && !content->IsHTMLElement())) {
@@ -2093,7 +2093,7 @@ EditorDOMPointType HTMLEditUtils::GetPreviousEditablePoint(
     // There may be invisible trailing white-spaces which should be
     // ignored.  Let's scan its start.
     return WSRunScanner::GetAfterLastVisiblePoint<EditorDOMPointType>(
-        *textNode);
+        *textNode, aAncestorLimiter);
   }
 
   // If it's a container element, return end of it.  Otherwise, return
@@ -2204,7 +2204,8 @@ EditorDOMPointType HTMLEditUtils::GetNextEditablePoint(
     }
     // There may be invisible leading white-spaces which should be
     // ignored.  Let's scan its start.
-    return WSRunScanner::GetFirstVisiblePoint<EditorDOMPointType>(*textNode);
+    return WSRunScanner::GetFirstVisiblePoint<EditorDOMPointType>(
+        *textNode, aAncestorLimiter);
   }
 
   // If it's a container element, return start of it.  Otherwise, return
@@ -2222,8 +2223,7 @@ Element* HTMLEditUtils::GetAncestorElement(
   MOZ_ASSERT(
       aAncestorTypes.contains(AncestorType::ClosestBlockElement) ||
       aAncestorTypes.contains(AncestorType::MostDistantInlineElementInBlock) ||
-      aAncestorTypes.contains(AncestorType::ButtonElement) ||
-      aAncestorTypes.contains(AncestorType::AllowRootOrAncestorLimiterElement));
+      aAncestorTypes.contains(AncestorType::ButtonElement));
 
   if (&aContent == aAncestorLimiter) {
     return nullptr;
@@ -2242,12 +2242,7 @@ Element* HTMLEditUtils::GetAncestorElement(
       aAncestorTypes.contains(AncestorType::IgnoreHRElement);
   const bool lookingForButtonElement =
       aAncestorTypes.contains(AncestorType::ButtonElement);
-  const bool lookingForAnyElement =
-      aAncestorTypes.contains(AncestorType::AllowRootOrAncestorLimiterElement);
   auto IsSearchingElementType = [&](const nsIContent& aContent) -> bool {
-    if (lookingForAnyElement) {
-      return aContent.IsElement();
-    }
     if (!aContent.IsElement() ||
         (ignoreHRElement && aContent.IsHTMLElement(nsGkAtoms::hr))) {
       return false;
@@ -2272,9 +2267,6 @@ Element* HTMLEditUtils::GetAncestorElement(
     }
     if (ignoreHRElement && element->IsHTMLElement(nsGkAtoms::hr)) {
       if (element == aAncestorLimiter) {
-        if (lookingForAnyElement) {
-          lastAncestorElement = element;
-        }
         break;
       }
       continue;
@@ -2293,9 +2285,6 @@ Element* HTMLEditUtils::GetAncestorElement(
     }
     if (element == aAncestorLimiter || element == theBodyElement ||
         element == theDocumentElement) {
-      if (lookingForAnyElement) {
-        lastAncestorElement = element;
-      }
       break;
     }
     lastAncestorElement = element;
@@ -2313,8 +2302,7 @@ Element* HTMLEditUtils::GetInclusiveAncestorElement(
   MOZ_ASSERT(
       aAncestorTypes.contains(AncestorType::ClosestBlockElement) ||
       aAncestorTypes.contains(AncestorType::MostDistantInlineElementInBlock) ||
-      aAncestorTypes.contains(AncestorType::ButtonElement) ||
-      aAncestorTypes.contains(AncestorType::AllowRootOrAncestorLimiterElement));
+      aAncestorTypes.contains(AncestorType::ButtonElement));
 
   const Element* theBodyElement = aContent.OwnerDoc()->GetBody();
   const Element* theDocumentElement = aContent.OwnerDoc()->GetDocumentElement();
@@ -2328,12 +2316,7 @@ Element* HTMLEditUtils::GetInclusiveAncestorElement(
       aAncestorTypes.contains(AncestorType::ButtonElement);
   const bool ignoreHRElement =
       aAncestorTypes.contains(AncestorType::IgnoreHRElement);
-  const bool lookingForAnyElement =
-      aAncestorTypes.contains(AncestorType::AllowRootOrAncestorLimiterElement);
   auto IsSearchingElementType = [&](const nsIContent& aContent) -> bool {
-    if (lookingForAnyElement) {
-      return aContent.IsElement();
-    }
     if (!aContent.IsElement() ||
         (ignoreHRElement && aContent.IsHTMLElement(nsGkAtoms::hr))) {
       return false;
@@ -2391,10 +2374,7 @@ Element* HTMLEditUtils::GetInclusiveAncestorElement(
   }
 
   if (&aContent == aAncestorLimiter) {
-    return aAncestorTypes.contains(
-               AncestorType::AllowRootOrAncestorLimiterElement)
-               ? Element::FromNode(const_cast<nsIContent&>(aContent))
-               : nullptr;
+    return nullptr;
   }
 
   return HTMLEditUtils::GetAncestorElement(aContent, aAncestorTypes,
