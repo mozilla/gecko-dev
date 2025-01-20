@@ -846,7 +846,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   inline bool MaxBSizeDependsOnContainer(WritingMode) const;
 
   struct InsetAuto {};
-  using LengthPercentageReference = std::reference_wrapper<const mozilla::StyleLengthPercentage>;
+  using LengthPercentageReference =
+      std::reference_wrapper<const mozilla::StyleLengthPercentage>;
   struct AnchorResolvedInset {
     using V = mozilla::Variant<InsetAuto, LengthPercentageReference,
                                mozilla::StyleLengthPercentage>;

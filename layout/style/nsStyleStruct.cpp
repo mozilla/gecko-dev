@@ -1408,7 +1408,8 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
+        return AnchorResolvedInset{
+            AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
       return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
@@ -1421,7 +1422,8 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
+        return AnchorResolvedInset{
+            AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
       return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
@@ -1429,8 +1431,7 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
 }
 
 nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
-    LogicalSide aSide, WritingMode aWM,
-    StylePositionProperty aPosition) const {
+    LogicalSide aSide, WritingMode aWM, StylePositionProperty aPosition) const {
   return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
 }
 
@@ -1978,7 +1979,7 @@ bool nsStyleImageLayers::Layer::operator==(const Layer& aOther) const {
 template <class ComputedValueItem>
 static void FillImageLayerList(
     nsStyleAutoArray<nsStyleImageLayers::Layer>& aLayers,
-    ComputedValueItem nsStyleImageLayers::Layer::*aResultLocation,
+    ComputedValueItem nsStyleImageLayers::Layer::* aResultLocation,
     uint32_t aItemCount, uint32_t aFillCount) {
   MOZ_ASSERT(aFillCount <= aLayers.Length(), "unexpected array length");
   for (uint32_t sourceLayer = 0, destLayer = aItemCount; destLayer < aFillCount;
@@ -1991,7 +1992,7 @@ static void FillImageLayerList(
 // layer.mPosition.*aResultLocation instead of layer.*aResultLocation.
 static void FillImageLayerPositionCoordList(
     nsStyleAutoArray<nsStyleImageLayers::Layer>& aLayers,
-    LengthPercentage Position::*aResultLocation, uint32_t aItemCount,
+    LengthPercentage Position::* aResultLocation, uint32_t aItemCount,
     uint32_t aFillCount) {
   MOZ_ASSERT(aFillCount <= aLayers.Length(), "unexpected array length");
   for (uint32_t sourceLayer = 0, destLayer = aItemCount; destLayer < aFillCount;
