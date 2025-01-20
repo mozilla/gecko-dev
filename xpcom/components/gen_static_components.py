@@ -291,7 +291,6 @@ class ModuleEntry(object):
         self.legacy_constructor = data.get("legacy_constructor", None)
         self.init_method = data.get("init_method", [])
 
-        self.jsm = data.get("jsm", None)
         self.esModule = data.get("esModule", None)
 
         self.external = data.get(
@@ -316,17 +315,7 @@ class ModuleEntry(object):
                 % (str(self.cid), ", ".join(map(repr, self.contract_ids)), str_)
             )
 
-        if self.jsm:
-            if not self.constructor:
-                error("JavaScript components must specify a constructor")
-
-            for prop in ("init_method", "legacy_constructor", "headers"):
-                if getattr(self, prop):
-                    error(
-                        "JavaScript components may not specify a '%s' "
-                        "property" % prop
-                    )
-        elif self.esModule:
+        if self.esModule:
             if not self.constructor:
                 error("JavaScript components must specify a constructor")
 
@@ -428,15 +417,7 @@ class ModuleEntry(object):
             )
             return res
 
-        if self.jsm:
-            res += (
-                "      nsCOMPtr<nsISupports> inst;\n"
-                "      MOZ_TRY(ConstructJSMComponent(nsLiteralCString(%s),\n"
-                "                                    %s,\n"
-                "                                    getter_AddRefs(inst)));"
-                "\n" % (json.dumps(self.jsm), json.dumps(self.constructor))
-            )
-        elif self.esModule:
+        if self.esModule:
             res += (
                 "      nsCOMPtr<nsISupports> inst;\n"
                 "      MOZ_TRY(ConstructESModuleComponent(nsLiteralCString(%s),\n"
@@ -874,7 +855,6 @@ def gen_substs(manifests):
     js_services = {}
     protocol_handlers = {}
 
-    jsms = set()
     esModules = set()
 
     types = set()
@@ -896,9 +876,6 @@ def gen_substs(manifests):
 
         if mod.type and not mod.headers:
             types.add(mod.type)
-
-        if mod.jsm:
-            jsms.add(mod.jsm)
 
         if mod.esModule:
             esModules.add(mod.esModule)
@@ -955,12 +932,6 @@ def gen_substs(manifests):
 
     gen_includes(substs, headers)
 
-    substs["component_jsms"] = (
-        "\n".join(" %s," % strings.entry_to_cxx(jsm) for jsm in sorted(jsms)) + "\n"
-    )
-    substs["define_has_component_jsms"] = (
-        "#define HAS_COMPONENT_JSMS" if len(jsms) > 0 else ""
-    )
     substs["component_esmodules"] = (
         "\n".join(
             " %s," % strings.entry_to_cxx(esModule) for esModule in sorted(esModules)
