@@ -5,7 +5,7 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use super::{depthstencil::MTLCompareFunction, DeviceRef, NSUInteger};
+use super::{depthstencil::MTLCompareFunction, DeviceRef, MTLResourceID, NSUInteger};
 
 /// See <https://developer.apple.com/documentation/metal/mtlsamplerminmagfilter>
 #[repr(u64)]
@@ -157,5 +157,9 @@ impl SamplerStateRef {
             let label = msg_send![self, label];
             crate::nsstring_as_str(label)
         }
+    }
+
+    pub fn gpu_resource_id(&self) -> MTLResourceID {
+        unsafe { msg_send![self, gpuResourceID] }
     }
 }

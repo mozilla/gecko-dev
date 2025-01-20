@@ -9,6 +9,8 @@ path = "lib.rs"
 
 # This list is taken from web-sys 0.3.70's Cargo.toml
 [features]
+default = ["std"]
+std = []
 AbortController = []
 AbortSignal = ["EventTarget"]
 AddEventListenerOptions = []

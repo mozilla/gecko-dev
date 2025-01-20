@@ -38,11 +38,11 @@
         is(
           message,
           `
-Shader '' parsing error: expected global item ('struct', 'const', 'var', 'alias', ';', 'fn') or the end of the file, found '?'
+Shader '' parsing error: expected global item (\`struct\`, \`const\`, \`var\`, \`alias\`, \`fn\`, \`diagnostic\`, \`enable\`, \`requires\`, \`;\`) or the end of the file, found "?"
   ┌─ wgsl:1:12
   │
 1 │ /*🐈🐈🐈🐈🐈🐈🐈*/?
-  │                   ^ expected global item ('struct', 'const', 'var', 'alias', ';', 'fn') or the end of the file
+  │                   ^ expected global item (\`struct\`, \`const\`, \`var\`, \`alias\`, \`fn\`, \`diagnostic\`, \`enable\`, \`requires\`, \`;\`) or the end of the file
 
 `
         );

@@ -536,7 +536,8 @@ impl MetalLayerRef {
     }
 }
 
-mod accelerator_structure;
+mod acceleration_structure;
+mod acceleration_structure_pass;
 mod argument;
 mod blitpass;
 mod buffer;
@@ -567,7 +568,8 @@ mod vertexdescriptor;
 
 #[rustfmt::skip]
 pub use {
-    accelerator_structure::*,
+    acceleration_structure::*,
+    acceleration_structure_pass::*,
     argument::*,
     blitpass::*,
     buffer::*,

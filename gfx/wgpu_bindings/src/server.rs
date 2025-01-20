@@ -144,7 +144,7 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
 
     let global = wgc::global::Global::new(
         "wgpu",
-        wgt::InstanceDescriptor {
+        &wgt::InstanceDescriptor {
             backends,
             flags: instance_flags,
             dx12_shader_compiler,

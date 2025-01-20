@@ -3154,6 +3154,11 @@ who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.29.0 -> 0.30.0"
 
+[[audits.metal]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.30.0 -> 0.30.0@git:ef768ff9d742ae6a0f4e83ddc8031264e7d460c4"
+
 [[audits.midir]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
@@ -3418,11 +3423,11 @@ delta = "22.0.0 -> 23.0.0"
 [[audits.naga]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
+delta = "23.0.0 -> 23.0.0@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
 [[audits.net2]]
@@ -4619,6 +4624,16 @@ who = "Ben Dean-Kawamura <bdk@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.10.0 -> 0.11.1"
 
+[[audits.strum]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.25.0 -> 0.26.3"
+
+[[audits.strum_macros]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.25.3 -> 0.26.4"
+
 [[audits.subtle]]
 who = "Simon Friedberger <simon@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -5568,11 +5583,11 @@ delta = "23.0.0 -> 23.0.1"
 [[audits.wgpu-core]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.1 -> 23.0.1@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
+delta = "23.0.1 -> 23.0.1@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5651,11 +5666,11 @@ delta = "23.0.0 -> 23.0.1"
 [[audits.wgpu-hal]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.1 -> 23.0.1@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
+delta = "23.0.1 -> 23.0.1@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5729,11 +5744,11 @@ delta = "22.0.0 -> 23.0.0"
 [[audits.wgpu-types]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
+delta = "23.0.0 -> 23.0.0@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
 [[audits.whatsys]]

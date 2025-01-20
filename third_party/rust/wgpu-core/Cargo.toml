@@ -55,7 +55,7 @@ version = "0.7"
 version = "0.8"
 
 [dependencies.bitflags]
-version = "2.6"
+version = "2.7"
 
 [dependencies.bytemuck]
 version = "1.21"
@@ -103,8 +103,12 @@ version = "1"
 
 [dependencies.serde]
 version = "1"
-features = ["derive"]
+features = [
+    "default",
+    "derive",
+]
 optional = true
+default-features = false
 
 [dependencies.smallvec]
 version = "1"

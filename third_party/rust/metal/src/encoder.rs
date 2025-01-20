@@ -418,7 +418,7 @@ impl RenderCommandEncoderRef {
     pub fn set_vertex_acceleration_structure(
         &self,
         index: NSUInteger,
-        accel: Option<&accelerator_structure::AccelerationStructureRef>,
+        accel: Option<&AccelerationStructureRef>,
     ) {
         unsafe {
             msg_send![
@@ -868,7 +868,7 @@ impl RenderCommandEncoderRef {
     pub fn set_fragment_acceleration_structure(
         &self,
         index: NSUInteger,
-        accel: Option<&accelerator_structure::AccelerationStructureRef>,
+        accel: Option<&AccelerationStructureRef>,
     ) {
         unsafe {
             msg_send![
@@ -1815,7 +1815,7 @@ impl ComputeCommandEncoderRef {
     pub fn set_acceleration_structure(
         &self,
         index: NSUInteger,
-        accel: Option<&accelerator_structure::AccelerationStructureRef>,
+        accel: Option<&AccelerationStructureRef>,
     ) {
         unsafe {
             msg_send![

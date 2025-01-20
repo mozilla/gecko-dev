@@ -46,29 +46,40 @@ name = "wgpu_types"
 path = "src/lib.rs"
 
 [dependencies.bitflags]
-version = "2.6"
+version = "2.7"
 features = ["serde"]
 
 [dependencies.serde]
 version = "1"
-features = ["derive"]
+features = [
+    "alloc",
+    "derive",
+]
 optional = true
+default-features = false
 
 [dev-dependencies.serde]
 version = "1"
 features = ["derive"]
+default-features = false
 
 [dev-dependencies.serde_json]
 version = "1.0.134"
 
 [features]
 counters = []
+default = ["std"]
 fragile-send-sync-non-atomic-wasm = []
 serde = ["dep:serde"]
+std = [
+    "js-sys/std",
+    "web-sys/std",
+]
 strict_asserts = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
 version = "0.3.70"
+default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "0.3.74"
@@ -81,6 +92,12 @@ features = [
     "OffscreenCanvas",
     "VideoFrame",
 ]
+default-features = false
+
+[lints.clippy]
+alloc_instead_of_core = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

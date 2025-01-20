@@ -154,6 +154,13 @@ impl CommandBufferRef {
         unsafe { msg_send![self, accelerationStructureCommandEncoder] }
     }
 
+    pub fn acceleration_structure_command_encoder_with_descriptor(
+        &self,
+        descriptor: &AccelerationStructurePassDescriptorRef,
+    ) -> &AccelerationStructureCommandEncoderRef {
+        unsafe { msg_send![self, accelerationStructureCommandEncoderWithDescriptor: descriptor] }
+    }
+
     pub fn encode_signal_event(&self, event: &EventRef, new_value: u64) {
         unsafe {
             msg_send![self,

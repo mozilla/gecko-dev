@@ -61,7 +61,7 @@ version = "0.7"
 version = "0.8"
 
 [dependencies.bitflags]
-version = "2.6"
+version = "2.7"
 
 [dependencies.codespan-reporting]
 version = "0.11.0"
@@ -74,7 +74,7 @@ optional = true
 version = "2"
 
 [dependencies.petgraph]
-version = "0.6"
+version = "0.7"
 optional = true
 
 [dependencies.pp-rs]
@@ -86,12 +86,19 @@ version = "1"
 
 [dependencies.serde]
 version = "1.0.217"
-features = ["derive"]
+features = [
+    "default",
+    "derive",
+]
 optional = true
 
 [dependencies.spirv]
 version = "0.3"
 optional = true
+
+[dependencies.strum]
+version = "0.26.0"
+features = ["derive"]
 
 [dependencies.termcolor]
 version = "1.4.1"
@@ -123,15 +130,15 @@ rev = "b969f175d5663258b4891e44b76c1544da9661ab"
 
 [dev-dependencies.serde]
 version = "1"
-features = ["derive"]
+features = [
+    "default",
+    "derive",
+]
+default-features = false
 
 [dev-dependencies.spirv]
 version = "0.3"
 features = ["deserialize"]
-
-[dev-dependencies.strum]
-version = "0.26.0"
-features = ["derive"]
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
