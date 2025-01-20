@@ -162,8 +162,5 @@ class HistoryView(
             )
             recentlyClosedNav.isVisible = !userHasHistory
         }
-        if (!userHasHistory) {
-            binding.historyEmptyView.announceForAccessibility(context.getString(R.string.history_empty_message))
-        }
     }
 }

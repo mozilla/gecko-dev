@@ -45,6 +45,7 @@
             android:layout_marginEnd="@dimen/mozac_feature_findinpage_result_count_margin_end"
             android:layout_marginStart="@dimen/mozac_feature_findinpage_result_count_margin_start"
             android:textSize="@dimen/mozac_feature_findinpage_result_count_text_size"
+            android:accessibilityLiveRegion="polite"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/find_in_page_prev_btn"
             app:layout_constraintStart_toEndOf="@+id/find_in_page_query_text"

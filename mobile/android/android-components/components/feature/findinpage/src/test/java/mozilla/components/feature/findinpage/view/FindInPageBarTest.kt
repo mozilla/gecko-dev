@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.findinpage.view
 
+import android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
 import android.widget.EditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.core.view.inputmethod.EditorInfoCompat
@@ -102,7 +103,7 @@ class FindInPageBarTest {
 
         assertEquals(textCorrectValue, view.resultsCountTextView.text)
         assertEquals(contentDesCorrectValue, view.resultsCountTextView.contentDescription)
-        verify(view).announceForAccessibility(contentDesCorrectValue)
+        assertEquals(ACCESSIBILITY_LIVE_REGION_POLITE, view.resultsCountTextView.accessibilityLiveRegion)
     }
 
     @Test
@@ -116,7 +117,7 @@ class FindInPageBarTest {
 
         assertEquals(textCorrectValue, view.resultsCountTextView.text)
         assertEquals(contentDesCorrectValue, view.resultsCountTextView.contentDescription)
-        verify(view).announceForAccessibility(contentDesCorrectValue)
+        assertEquals(ACCESSIBILITY_LIVE_REGION_POLITE, view.resultsCountTextView.accessibilityLiveRegion)
     }
 
     @Test
