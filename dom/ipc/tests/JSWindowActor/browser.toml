@@ -31,5 +31,3 @@ support-files = [
 ["browser_sendAsyncMessage.js"]
 
 ["browser_sendQuery.js"]
-
-["browser_uri_combination.js"]
