@@ -24,6 +24,7 @@ Specific documentation on a few topics is available at:
    SavedFrame/index
    feature_checklist
    bytecode_checklist
+   use_counter
 
 
 Components of SpiderMonkey
