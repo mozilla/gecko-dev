@@ -91,7 +91,9 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 } else {
                     ValueType::units()
                 });
-                let mut node = GenericCalcNode::parse(context, input, function, allow)?;
+                let node = GenericCalcNode::parse(context, input, function, allow)?;
+                debug_assert!(!node.has_anchor_function, "Anchor function used for color?");
+                let mut node = node.node;
 
                 // TODO(tlouw): We only have to simplify the node when we have to store it, but we
                 //              only know if we have to store it much later when the whole color

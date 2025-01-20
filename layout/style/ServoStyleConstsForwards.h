@@ -112,6 +112,9 @@ enum class PseudoStyleType : uint8_t;
 enum class OriginFlags : uint8_t;
 enum class UseBoxSizing : uint8_t;
 
+template<typename L>
+union StyleGenericCalcNode;
+
 namespace css {
 class Loader;
 class LoaderReusableStyleSheets;
