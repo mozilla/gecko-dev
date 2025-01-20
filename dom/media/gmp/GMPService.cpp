@@ -370,25 +370,6 @@ void GeckoMediaPluginService::ShutdownGMPThread() {
   }
 }
 
-/* static */
-nsCOMPtr<nsIAsyncShutdownClient> GeckoMediaPluginService::GetShutdownBarrier() {
-  nsCOMPtr<nsIAsyncShutdownService> svc = services::GetAsyncShutdownService();
-  if (NS_WARN_IF(!svc)) {
-    MOZ_ASSERT_UNREACHABLE("No async shutdown service!");
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIAsyncShutdownClient> barrier;
-  nsresult rv = svc->GetXpcomWillShutdown(getter_AddRefs(barrier));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    MOZ_ASSERT_UNREACHABLE("Could not create shutdown barrier!");
-    return nullptr;
-  }
-
-  MOZ_RELEASE_ASSERT(barrier);
-  return barrier;
-}
-
 nsresult GeckoMediaPluginService::GMPDispatch(nsIRunnable* event,
                                               uint32_t flags) {
   nsCOMPtr<nsIRunnable> r(event);
