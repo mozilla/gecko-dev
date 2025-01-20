@@ -129,8 +129,6 @@ class GMPParent final
     return nsCOMPtr<nsIFile>(mDirectory).forget();
   }
 
-  void AbortAsyncShutdown();
-
   // Called when the child process has died.
   void ChildTerminated();
 
