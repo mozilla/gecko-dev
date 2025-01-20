@@ -712,7 +712,7 @@ def test_task_to_skip_if_reftest3():
     sf.tasks[task_id] = task_details
     # function under test
     skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
-    assert skip_if == "winWidget&&isDebugBuild&&fission&&!is64Bit&&!swgl"
+    assert skip_if == "winWidget&&isDebugBuild&&fission&&!is64Bit&&!swgl&&!nogpu"
 
 
 def test_task_to_skip_if_reftest4():
@@ -735,7 +735,7 @@ def test_task_to_skip_if_reftest4():
     sf.tasks[task_id] = task_details
     # function under test
     skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
-    assert skip_if == "gtkWidget&&ThreadSanitizer&&fission&&!swgl"
+    assert skip_if == "gtkWidget&&ThreadSanitizer&&fission&&!swgl&&!nogpu"
 
 
 def test_wpt_add_skip_if():

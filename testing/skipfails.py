@@ -677,8 +677,11 @@ class Skipfails(object):
                 task_label = failures[manifest][LL][label]
                 opt = task_label[OPT]
                 durations = []  # summarize durations
-                first_task_id: str = next(iter(task_label[DURATIONS]))
-                for task_id in task_label[DURATIONS]:
+                try:
+                    first_task_id: str = next(iter(task_label.get(DURATIONS, {})))
+                except StopIteration:
+                    continue
+                for task_id in task_label.get(DURATIONS, {}):
                     duration = task_label[DURATIONS][task_id]
                     durations.append(duration)
                 if len(durations) > 0:
@@ -962,7 +965,15 @@ class Skipfails(object):
         elif kind == Kind.WPT:
             filename = os.path.basename(path)
         elif kind == Kind.LIST:
-            filename = path
+            filename = [
+                am
+                for am in self.error_summary.get(manifest, "")
+                if self.error_summary[manifest][am]["test"].endswith(path)
+            ]
+            if filename:
+                filename = filename[0]
+            else:
+                filename = path
         return filename
 
     def resolve_failure_manifest(self, path: str, kind: str, manifest: str) -> str:
@@ -1326,6 +1337,7 @@ class Skipfails(object):
             fission = "no-fission" not in runtimes
             snapshot = "snapshot" in runtimes
             swgl = "swgl" in runtimes
+            nogpu = "nogpu" in runtimes
             if not self.implicit_vars and fission:
                 skip_if += aa + "fission"
             elif not fission:  # implicit default: fission
@@ -1339,6 +1351,12 @@ class Skipfails(object):
                 skip_if += aa + nn + "swgl"
             elif swgl:  # implicit default: !swgl
                 skip_if += aa + "swgl"
+
+            if not self.implicit_vars and not nogpu:
+                skip_if += aa + nn + "nogpu"
+            elif nogpu:  # implicit default: !swgl
+                skip_if += aa + "nogpu"
+
             if os == "gtkWidget":
                 if not self.implicit_vars and not snapshot:
                     skip_if += aa + nn + "useDrawSnapshot"
@@ -1871,9 +1889,11 @@ class Skipfails(object):
         - status (PASS or FAIL)
         as cached from reftest_errorsummary.log for a task
         """
-
         manifest_obj = self.error_summary.get(manifest, {})
-        allmods_obj = manifest_obj.get(allmods, {})
+        # allmods_obj: manifest_test_name: {test: allmods, error: ...}
+        allmods_obj = manifest_obj[
+            [am for am in manifest_obj if manifest_obj[am]["test"].endswith(allmods)][0]
+        ]
         lineno = allmods_obj.get(LINENO, 0)
         runs_obj = allmods_obj.get(RUNS, {})
         task_obj = runs_obj.get(task_id, {})
