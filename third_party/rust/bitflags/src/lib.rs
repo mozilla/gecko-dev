@@ -17,7 +17,7 @@ Add `bitflags` to your `Cargo.toml`:
 
 ```toml
 [dependencies.bitflags]
-version = "2.6.0"
+version = "2.7.0"
 ```
 
 ## Generating flags types
@@ -71,10 +71,10 @@ You can derive some traits on generated flags types if you enable Cargo features
 libraries are currently supported:
 
 - `serde`: Support `#[derive(Serialize, Deserialize)]`, using text for human-readable formats,
-and a raw number for binary formats.
+  and a raw number for binary formats.
 - `arbitrary`: Support `#[derive(Arbitrary)]`, only generating flags values with known bits.
 - `bytemuck`: Support `#[derive(Pod, Zeroable)]`, for casting between flags values and their
-underlying bits values.
+  underlying bits values.
 
 You can also define your own flags type outside of the [`bitflags`] macro and then use it to generate methods.
 This can be useful if you need a custom `#[derive]` attribute for a library that `bitflags` doesn't

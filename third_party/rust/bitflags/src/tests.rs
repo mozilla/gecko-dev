@@ -21,7 +21,9 @@ mod iter;
 mod parser;
 mod remove;
 mod symmetric_difference;
+mod truncate;
 mod union;
+mod unknown;
 
 bitflags! {
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
