@@ -7,6 +7,7 @@
 
 #include "CSSEditUtils.h"
 #include "HTMLEditor.h"
+#include "HTMLEditUtils.h"
 #include "PendingStyles.h"
 
 #include "mozilla/ContentIterator.h"
