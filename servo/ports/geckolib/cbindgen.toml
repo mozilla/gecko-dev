@@ -326,6 +326,7 @@ include = [
   "AnchorFunction",
   "AnchorSizeFunction",
   "Margin",
+  "PositionProperty",
 ]
 item_types = [
   "enums",

@@ -16,10 +16,10 @@ use std::fmt;
 use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::box_::{
-    Appearance, BaselineSource, BreakBetween, BreakWithin, Clear, Contain,
-    ContainerName, ContainerType, ContentVisibility, Display, Float, Overflow,
-    OverflowAnchor, OverflowClipBox, OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis,
-    ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
+    Appearance, BaselineSource, BreakBetween, BreakWithin, Clear, Contain, ContainerName,
+    ContainerType, ContentVisibility, Display, Float, Overflow, OverflowAnchor, OverflowClipBox,
+    OverscrollBehavior, PositionProperty, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop,
+    ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
 };
 
 /// A computed value for the `vertical-align` property.

@@ -114,7 +114,6 @@ rusty-enums = [
     "mozilla::StyleBoxAlign",
     "mozilla::StyleImageLayerRepeat",
     "mozilla::StyleImageLayerAttachment",
-    "mozilla::StylePositionProperty",
     "mozilla::StyleBoxDecorationBreak",
     "mozilla::StyleBorderStyle",
     "mozilla::StyleRuleInclusion",
@@ -632,6 +631,7 @@ cbindgen-types = [
     { gecko = "StyleInert", servo = "crate::values::computed::ui::Inert" },
     { gecko = "StyleMargin", servo = "crate::values::computed::length::Margin" },
     { gecko = "StyleGenericAnchorFunction", servo = "crate::values::generics::position::GenericAnchorFunction" },
+    { gecko = "StylePositionProperty", servo = "crate::values::computed::PositionProperty"},
 ]
 
 mapped-generic-types = [

@@ -42,9 +42,9 @@ pub use self::border::{
 pub use self::box_::{
     Appearance, BaselineSource, BreakBetween, BreakWithin, Clear, Contain, ContainIntrinsicSize,
     ContainerName, ContainerType, ContentVisibility, Display, Float, LineClamp, Overflow,
-    OverflowAnchor, OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollSnapAlign,
-    ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter,
-    TouchAction, VerticalAlign, WillChange, Zoom,
+    OverflowAnchor, OverflowClipBox, OverscrollBehavior, Perspective, PositionProperty, Resize,
+    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
+    ScrollbarGutter, TouchAction, VerticalAlign, WillChange, Zoom,
 };
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,
