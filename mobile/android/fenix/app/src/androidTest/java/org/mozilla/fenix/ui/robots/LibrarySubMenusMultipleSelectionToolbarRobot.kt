@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui.robots
 
 import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -70,10 +71,16 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
         Log.i(Constants.TAG, "verifyMultiSelectionCheckmark: Verified that the multi-selection checkmark for item with url: $url is displayed")
     }
 
-    fun verifyMultiSelectionCounter() {
-        Log.i(TAG, "verifyMultiSelectionCounter: Trying to verify that the multi-selection toolbar containing: \"1 selected\" is displayed")
-        onView(withText("1 selected")).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyMultiSelectionCounter: Verified that the multi-selection toolbar containing: \"1 selected\" is displayed")
+    fun verifyMultiSelectionCounter(counterNumber: Int) {
+        Log.i(TAG, "verifyMultiSelectionCounter: Trying to verify that the multi-selection toolbar containing: \"$counterNumber selected\" is displayed")
+        onView(withText("$counterNumber selected")).check(matches(isDisplayed()))
+        Log.i(TAG, "verifyMultiSelectionCounter: Verified that the multi-selection toolbar containing: \"$counterNumber selected\" is displayed")
+    }
+
+    fun verifyMultiSelectionCounter(counterNumber: Int, composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyMultiSelectionCounter: Trying to verify that the multi-selection toolbar containing: \"$counterNumber selected\" is displayed")
+        composeTestRule.onNodeWithText("$counterNumber selected").assertIsDisplayed()
+        Log.i(TAG, "verifyMultiSelectionCounter: Verified that the multi-selection toolbar containing: \"$counterNumber selected\" is displayed")
     }
 
     fun verifyShareHistoryButton() {

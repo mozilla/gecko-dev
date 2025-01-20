@@ -376,6 +376,12 @@ class BookmarksRobot {
         Log.i(TAG, "clickDeleteInEditModeButton: Clicked delete bookmarks button while in edit mode")
     }
 
+    fun selectItem(title: String) {
+        Log.i(TAG, "selectItem: Trying to click item with title: $title")
+        onView(withText(title)).click()
+        Log.i(TAG, "selectItem: Clicked item with title: $title")
+    }
+
     class Transition {
         fun closeMenu(interact: HomeScreenRobot.() -> Unit): Transition {
             Log.i(TAG, "closeMenu: Trying to click close bookmarks section button")

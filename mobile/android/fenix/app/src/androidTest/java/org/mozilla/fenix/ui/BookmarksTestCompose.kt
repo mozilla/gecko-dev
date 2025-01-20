@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -6,6 +10,7 @@ import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MockBrowserDataHelper.createBookmarkItem
+import org.mozilla.fenix.helpers.MockBrowserDataHelper.generateBookmarkFolder
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
@@ -18,6 +23,7 @@ class BookmarksTestCompose : TestSetup() {
         var title: String = "Bookmark title"
         var url: String = "https://www.example.com/"
     }
+    private val bookmarkFolderName = "My Folder"
 
     @get:Rule
     val composeTestRule =
@@ -39,17 +45,18 @@ class BookmarksTestCompose : TestSetup() {
     fun deleteBookmarkFoldersTest() {
         val website = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
-        browserScreen {
-            createBookmark(website.url)
+        createBookmarkItem(website.url.toString(), website.title, null)
+
+        homeScreen {
         }.openThreeDotMenu {
         }.openBookmarksMenu(composeTestRule) {
             verifyBookmarkTitle("Test_Page_1")
-            createFolder("My Folder")
-            verifyFolderTitle("My Folder")
+            createFolder(bookmarkFolderName)
+            verifyFolderTitle(bookmarkFolderName)
         }.openThreeDotMenu("Test_Page_1") {
         }.clickEdit {
             clickParentFolderSelector()
-            selectFolder("My Folder")
+            selectFolder(bookmarkFolderName)
             navigateUp()
             saveEditBookmark()
             createFolder("My Folder 2")
@@ -57,17 +64,17 @@ class BookmarksTestCompose : TestSetup() {
         }.openThreeDotMenu("My Folder 2") {
         }.clickEdit {
             clickParentFolderSelector()
-            selectFolder("My Folder")
+            selectFolder(bookmarkFolderName)
             navigateUp()
             saveEditBookmark()
-        }.openThreeDotMenu("My Folder") {
+        }.openThreeDotMenu(bookmarkFolderName) {
         }.clickDelete {
             cancelFolderDeletion()
-            verifyFolderTitle("My Folder")
-        }.openThreeDotMenu("My Folder") {
+            verifyFolderTitle(bookmarkFolderName)
+        }.openThreeDotMenu(bookmarkFolderName) {
         }.clickDelete {
             confirmDeletion()
-            verifyBookmarkIsDeleted("My Folder")
+            verifyBookmarkIsDeleted(bookmarkFolderName)
             verifyBookmarkIsDeleted("My Folder 2")
             verifyBookmarkIsDeleted("Test_Page_1")
         }
@@ -104,8 +111,9 @@ class BookmarksTestCompose : TestSetup() {
     fun shareBookmarkTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
-        browserScreen {
-            createBookmark(defaultWebPage.url)
+        createBookmarkItem(defaultWebPage.url.toString(), defaultWebPage.title, null)
+
+        homeScreen {
         }.openThreeDotMenu {
         }.openBookmarksMenu(composeTestRule) {
         }.openThreeDotMenu(defaultWebPage.title) {
@@ -139,6 +147,7 @@ class BookmarksTestCompose : TestSetup() {
         }
 
         multipleSelectionToolbar {
+            verifyMultiSelectionCounter(2, composeTestRule)
             clickMultiSelectThreeDotButton(composeTestRule)
         }.clickOpenInNewTabButton(composeTestRule) {
             verifyTabTrayIsOpen()
@@ -168,6 +177,7 @@ class BookmarksTestCompose : TestSetup() {
         }
 
         multipleSelectionToolbar {
+            verifyMultiSelectionCounter(2, composeTestRule)
             clickMultiSelectThreeDotButton(composeTestRule)
             clickMultiSelectDeleteButton(composeTestRule)
         }
@@ -181,6 +191,7 @@ class BookmarksTestCompose : TestSetup() {
         }
 
         multipleSelectionToolbar {
+            verifyMultiSelectionCounter(2, composeTestRule)
             clickMultiSelectThreeDotButton(composeTestRule)
             clickMultiSelectDeleteButton(composeTestRule)
         }
@@ -199,16 +210,11 @@ class BookmarksTestCompose : TestSetup() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
         val secondWebPage = TestAssetHelper.getHTMLControlsFormAsset(mockWebServer)
 
-        homeScreen {
-        }.openThreeDotMenu {
-        }.openBookmarksMenu(composeTestRule) {
-            createFolder("My Folder")
-            navigateUp()
-        }
+        val newFolder = generateBookmarkFolder(title = bookmarkFolderName, position = null)
+        createBookmarkItem(firstWebPage.url.toString(), firstWebPage.title, null, newFolder)
+        createBookmarkItem(secondWebPage.url.toString(), secondWebPage.title, null)
 
-        browserScreen {
-            createBookmark(composeTestRule, firstWebPage.url, "My Folder")
-            createBookmark(composeTestRule, secondWebPage.url)
+        homeScreen {
         }.openThreeDotMenu {
         }.openBookmarksMenu(composeTestRule) {
         }.clickSearchButton() {

@@ -146,7 +146,7 @@ class HistoryTest : TestSetup() {
 
         multipleSelectionToolbar {
             verifyMultiSelectionCheckmark()
-            verifyMultiSelectionCounter()
+            verifyMultiSelectionCounter(1)
             verifyShareHistoryButton()
             verifyCloseToolbarButton()
         }.closeToolbarReturnToHistory {
