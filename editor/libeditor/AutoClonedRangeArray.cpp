@@ -224,8 +224,7 @@ void AutoClonedRangeArray::EnsureRangesInTextNode(const Text& aTextNode) {
 Result<bool, nsresult>
 AutoClonedRangeArray::ShrinkRangesIfStartFromOrEndAfterAtomicContent(
     const HTMLEditor& aHTMLEditor, nsIEditor::EDirection aDirectionAndAmount,
-    IfSelectingOnlyOneAtomicContent aIfSelectingOnlyOneAtomicContent,
-    const Element* aEditingHost) {
+    IfSelectingOnlyOneAtomicContent aIfSelectingOnlyOneAtomicContent) {
   if (IsCollapsed()) {
     return false;
   }
@@ -246,7 +245,7 @@ AutoClonedRangeArray::ShrinkRangesIfStartFromOrEndAfterAtomicContent(
                "Changing range in selection may cause running script");
     Result<bool, nsresult> result =
         WSRunScanner::ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
-            aHTMLEditor, range, aEditingHost);
+            aHTMLEditor, range);
     if (result.isErr()) {
       NS_WARNING(
           "WSRunScanner::ShrinkRangeIfStartsFromOrEndsAfterAtomicContent() "

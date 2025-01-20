@@ -44,14 +44,11 @@ WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
 template WSScanResult
 WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
     const EditorRawDOMPointInText& aPoint) const;
-template EditorDOMPoint WSRunScanner::GetAfterLastVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter);
+template EditorDOMPoint WSRunScanner::GetAfterLastVisiblePoint(Text& aTextNode);
 template EditorRawDOMPoint WSRunScanner::GetAfterLastVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter);
-template EditorDOMPoint WSRunScanner::GetFirstVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter);
-template EditorRawDOMPoint WSRunScanner::GetFirstVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter);
+    Text& aTextNode);
+template EditorDOMPoint WSRunScanner::GetFirstVisiblePoint(Text& aTextNode);
+template EditorRawDOMPoint WSRunScanner::GetFirstVisiblePoint(Text& aTextNode);
 
 template <typename PT, typename CT>
 WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
@@ -250,8 +247,7 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
 
 // static
 template <typename EditorDOMPointType>
-EditorDOMPointType WSRunScanner::GetAfterLastVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter) {
+EditorDOMPointType WSRunScanner::GetAfterLastVisiblePoint(Text& aTextNode) {
   EditorDOMPoint atLastCharOfTextNode(
       &aTextNode, AssertedCast<uint32_t>(std::max<int64_t>(
                       static_cast<int64_t>(aTextNode.Length()) - 1, 0)));
@@ -259,8 +255,9 @@ EditorDOMPointType WSRunScanner::GetAfterLastVisiblePoint(
       !atLastCharOfTextNode.IsCharCollapsibleASCIISpace()) {
     return EditorDOMPointType::AtEndOf(aTextNode);
   }
-  TextFragmentData textFragmentData(atLastCharOfTextNode, aAncestorLimiter,
-                                    BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentData(
+      Scan::EditableNodes, atLastCharOfTextNode,
+      BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentData.IsInitialized())) {
     return EditorDOMPointType();  // TODO: Make here return error with Err.
   }
@@ -275,15 +272,15 @@ EditorDOMPointType WSRunScanner::GetAfterLastVisiblePoint(
 
 // static
 template <typename EditorDOMPointType>
-EditorDOMPointType WSRunScanner::GetFirstVisiblePoint(
-    Text& aTextNode, const Element* aAncestorLimiter) {
+EditorDOMPointType WSRunScanner::GetFirstVisiblePoint(Text& aTextNode) {
   EditorDOMPoint atStartOfTextNode(&aTextNode, 0);
   if (!atStartOfTextNode.IsContainerEmpty() &&
       atStartOfTextNode.IsCharCollapsibleASCIISpace()) {
     return atStartOfTextNode.To<EditorDOMPointType>();
   }
-  TextFragmentData textFragmentData(atStartOfTextNode, aAncestorLimiter,
-                                    BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentData(
+      Scan::EditableNodes, atStartOfTextNode,
+      BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentData.IsInitialized())) {
     return EditorDOMPointType();  // TODO: Make here return error with Err.
   }
@@ -420,14 +417,13 @@ WSRunScanner::ComputeRangeInTextNodesContainingInvisibleWhiteSpaces(
 
 // static
 Result<EditorDOMRangeInTexts, nsresult>
-WSRunScanner::GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint,
-                                                 const Element& aEditingHost) {
+WSRunScanner::GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint) {
   // Corresponding to computing delete range part of
   // `WhiteSpaceVisibilityKeeper::DeletePreviousWhiteSpace()`
   MOZ_ASSERT(aPoint.IsSetAndValid());
 
-  TextFragmentData textFragmentDataAtCaret(
-      aPoint, &aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentDataAtCaret(
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtCaret.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
@@ -496,14 +492,14 @@ WSRunScanner::GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint,
   }
 
   // And also delete invisible white-spaces if they become visible.
-  TextFragmentData textFragmentDataAtStart =
+  const TextFragmentData textFragmentDataAtStart =
       rangeToDelete.StartRef() != aPoint
-          ? TextFragmentData(rangeToDelete.StartRef(), &aEditingHost,
+          ? TextFragmentData(Scan::EditableNodes, rangeToDelete.StartRef(),
                              BlockInlineCheck::UseComputedDisplayStyle)
           : textFragmentDataAtCaret;
-  TextFragmentData textFragmentDataAtEnd =
+  const TextFragmentData textFragmentDataAtEnd =
       rangeToDelete.EndRef() != aPoint
-          ? TextFragmentData(rangeToDelete.EndRef(), &aEditingHost,
+          ? TextFragmentData(Scan::EditableNodes, rangeToDelete.EndRef(),
                              BlockInlineCheck::UseComputedDisplayStyle)
           : textFragmentDataAtCaret;
   if (NS_WARN_IF(!textFragmentDataAtStart.IsInitialized()) ||
@@ -521,13 +517,13 @@ WSRunScanner::GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint,
 // static
 Result<EditorDOMRangeInTexts, nsresult>
 WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(
-    const EditorDOMPoint& aPoint, const Element& aEditingHost) {
+    const EditorDOMPoint& aPoint) {
   // Corresponding to computing delete range part of
   // `WhiteSpaceVisibilityKeeper::DeleteInclusiveNextWhiteSpace()`
   MOZ_ASSERT(aPoint.IsSetAndValid());
 
   TextFragmentData textFragmentDataAtCaret(
-      aPoint, &aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtCaret.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
@@ -593,14 +589,14 @@ WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(
   }
 
   // And also delete invisible white-spaces if they become visible.
-  TextFragmentData textFragmentDataAtStart =
+  const TextFragmentData textFragmentDataAtStart =
       rangeToDelete.StartRef() != aPoint
-          ? TextFragmentData(rangeToDelete.StartRef(), &aEditingHost,
+          ? TextFragmentData(Scan::EditableNodes, rangeToDelete.StartRef(),
                              BlockInlineCheck::UseComputedDisplayStyle)
           : textFragmentDataAtCaret;
-  TextFragmentData textFragmentDataAtEnd =
+  const TextFragmentData textFragmentDataAtEnd =
       rangeToDelete.EndRef() != aPoint
-          ? TextFragmentData(rangeToDelete.EndRef(), &aEditingHost,
+          ? TextFragmentData(Scan::EditableNodes, rangeToDelete.EndRef(),
                              BlockInlineCheck::UseComputedDisplayStyle)
           : textFragmentDataAtCaret;
   if (NS_WARN_IF(!textFragmentDataAtStart.IsInitialized()) ||
@@ -617,12 +613,12 @@ WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(
 
 // static
 EditorDOMRange WSRunScanner::GetRangesForDeletingAtomicContent(
-    Element* aEditingHost, const nsIContent& aAtomicContent) {
+    const nsIContent& aAtomicContent) {
   if (aAtomicContent.IsHTMLElement(nsGkAtoms::br)) {
     // Preceding white-spaces should be preserved, but the following
     // white-spaces should be invisible around `<br>` element.
-    TextFragmentData textFragmentDataAfterBRElement(
-        EditorDOMPoint::After(aAtomicContent), aEditingHost,
+    const TextFragmentData textFragmentDataAfterBRElement(
+        Scan::EditableNodes, EditorDOMPoint::After(aAtomicContent),
         BlockInlineCheck::UseComputedDisplayStyle);
     if (NS_WARN_IF(!textFragmentDataAfterBRElement.IsInitialized())) {
       return EditorDOMRange();  // TODO: Make here return error with Err.
@@ -652,8 +648,9 @@ EditorDOMRange WSRunScanner::GetRangesForDeletingAtomicContent(
 
   // Both preceding and following white-spaces can be invisible around a
   // block element.
-  TextFragmentData textFragmentDataBeforeAtomicContent(
-      EditorDOMPoint(const_cast<nsIContent*>(&aAtomicContent)), aEditingHost,
+  const TextFragmentData textFragmentDataBeforeAtomicContent(
+      Scan::EditableNodes,
+      EditorDOMPoint(const_cast<nsIContent*>(&aAtomicContent)),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataBeforeAtomicContent.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
@@ -662,8 +659,8 @@ EditorDOMRange WSRunScanner::GetRangesForDeletingAtomicContent(
       textFragmentDataBeforeAtomicContent.GetNonCollapsedRangeInTexts(
           textFragmentDataBeforeAtomicContent
               .InvisibleTrailingWhiteSpaceRangeRef());
-  TextFragmentData textFragmentDataAfterAtomicContent(
-      EditorDOMPoint::After(aAtomicContent), aEditingHost,
+  const TextFragmentData textFragmentDataAfterAtomicContent(
+      Scan::EditableNodes, EditorDOMPoint::After(aAtomicContent),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAfterAtomicContent.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
@@ -720,15 +717,14 @@ EditorDOMRange WSRunScanner::GetRangeForDeletingBlockElementBoundaries(
                     .IsBefore(EditorRawDOMPoint(
                         const_cast<Element*>(&aRightBlockElement))));
 
-  const Element* editingHost = aHTMLEditor.ComputeEditingHost();
-
   EditorDOMRange range;
   // Include trailing invisible white-spaces in aLeftBlockElement.
-  TextFragmentData textFragmentDataAtEndOfLeftBlockElement(
+  const TextFragmentData textFragmentDataAtEndOfLeftBlockElement(
+      Scan::EditableNodes,
       aPointContainingTheOtherBlock.GetContainer() == &aLeftBlockElement
           ? aPointContainingTheOtherBlock
           : EditorDOMPoint::AtEndOf(const_cast<Element&>(aLeftBlockElement)),
-      editingHost, BlockInlineCheck::UseComputedDisplayOutsideStyle);
+      BlockInlineCheck::UseComputedDisplayOutsideStyle);
   if (NS_WARN_IF(!textFragmentDataAtEndOfLeftBlockElement.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
   }
@@ -750,12 +746,13 @@ EditorDOMRange WSRunScanner::GetRangeForDeletingBlockElementBoundaries(
     }
   }
   // Include leading invisible white-spaces in aRightBlockElement.
-  TextFragmentData textFragmentDataAtStartOfRightBlockElement(
+  const TextFragmentData textFragmentDataAtStartOfRightBlockElement(
+      Scan::EditableNodes,
       aPointContainingTheOtherBlock.GetContainer() == &aRightBlockElement &&
               !aPointContainingTheOtherBlock.IsEndOfContainer()
           ? aPointContainingTheOtherBlock.NextPoint()
           : EditorDOMPoint(const_cast<Element*>(&aRightBlockElement), 0u),
-      editingHost, BlockInlineCheck::UseComputedDisplayOutsideStyle);
+      BlockInlineCheck::UseComputedDisplayOutsideStyle);
   if (NS_WARN_IF(!textFragmentDataAtStartOfRightBlockElement.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
   }
@@ -773,14 +770,14 @@ EditorDOMRange WSRunScanner::GetRangeForDeletingBlockElementBoundaries(
 // static
 EditorDOMRange
 WSRunScanner::GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
-    Element* aEditingHost, const EditorDOMRange& aRange) {
+    const EditorDOMRange& aRange) {
   MOZ_ASSERT(aRange.IsPositionedAndValid());
   MOZ_ASSERT(aRange.EndRef().IsSetAndValid());
   MOZ_ASSERT(aRange.StartRef().IsSetAndValid());
 
   EditorDOMRange result;
-  TextFragmentData textFragmentDataAtStart(
-      aRange.StartRef(), aEditingHost,
+  const TextFragmentData textFragmentDataAtStart(
+      Scan::EditableNodes, aRange.StartRef(),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtStart.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
@@ -815,8 +812,9 @@ WSRunScanner::GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
     result.SetStart(aRange.StartRef());
   }
 
-  TextFragmentData textFragmentDataAtEnd(
-      aRange.EndRef(), aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentDataAtEnd(
+      Scan::EditableNodes, aRange.EndRef(),
+      BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtEnd.IsInitialized())) {
     return EditorDOMRange();  // TODO: Make here return error with Err.
   }
@@ -860,8 +858,7 @@ WSRunScanner::GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
 // static
 Result<bool, nsresult>
 WSRunScanner::ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
-    const HTMLEditor& aHTMLEditor, nsRange& aRange,
-    const Element* aEditingHost) {
+    const HTMLEditor& aHTMLEditor, nsRange& aRange) {
   MOZ_ASSERT(aRange.IsPositioned());
   MOZ_ASSERT(!aRange.IsInAnySelection(),
              "Changing range in selection may cause running script");
@@ -896,8 +893,8 @@ WSRunScanner::ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
     // If next content is a visible `<br>` element, special inline content
     // (e.g., `<img>`, non-editable text node, etc) or a block level void
     // element like `<hr>`, the range should start with it.
-    TextFragmentData textFragmentDataAtStart(
-        EditorRawDOMPoint(aRange.StartRef()), aEditingHost,
+    const TextFragmentData textFragmentDataAtStart(
+        Scan::EditableNodes, EditorRawDOMPoint(aRange.StartRef()),
         BlockInlineCheck::UseComputedDisplayStyle);
     if (NS_WARN_IF(!textFragmentDataAtStart.IsInitialized())) {
       return Err(NS_ERROR_FAILURE);
@@ -919,8 +916,8 @@ WSRunScanner::ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
     // If previous content is a visible `<br>` element, special inline content
     // (e.g., `<img>`, non-editable text node, etc) or a block level void
     // element like `<hr>`, the range should end after it.
-    TextFragmentData textFragmentDataAtEnd(
-        EditorRawDOMPoint(aRange.EndRef()), aEditingHost,
+    const TextFragmentData textFragmentDataAtEnd(
+        Scan::EditableNodes, EditorRawDOMPoint(aRange.EndRef()),
         BlockInlineCheck::UseComputedDisplayStyle);
     if (NS_WARN_IF(!textFragmentDataAtEnd.IsInitialized())) {
       return Err(NS_ERROR_FAILURE);

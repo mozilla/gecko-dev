@@ -1235,7 +1235,7 @@ class HTMLEditUtils final {
         return content;
       }
       if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-          aNode.IsEditable() && !content->IsEditable()) {
+          !HTMLEditUtils::IsSimplyEditableNode(*content)) {
         return content;
       }
       content = content->GetLastChild();
@@ -1283,7 +1283,7 @@ class HTMLEditUtils final {
         return content;
       }
       if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-          aNode.IsEditable() && !content->IsEditable()) {
+          !HTMLEditUtils::IsSimplyEditableNode(*content)) {
         return content;
       }
       content = content->GetFirstChild();
@@ -1323,6 +1323,10 @@ class HTMLEditUtils final {
             HTMLEditUtils::IsBlockElement(*parentElement, aBlockInlineCheck)) {
           return nullptr;
         }
+        if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
+            !parentElement->IsEditable()) {
+          return nullptr;
+        }
         nextContent = parentElement->GetNextSibling();
         if (nextContent) {
           break;
@@ -1341,7 +1345,7 @@ class HTMLEditUtils final {
       return nextContent;
     }
     if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-        aStartContent.IsEditable() && !nextContent->IsEditable()) {
+        !nextContent->IsEditable()) {
       return nextContent;
     }
     if (HTMLEditUtils::IsContainerNode(*nextContent)) {
@@ -1407,8 +1411,7 @@ class HTMLEditUtils final {
       return nextContent;
     }
     if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-        aStartPoint.GetContainer()->IsEditable() &&
-        !nextContent->IsEditable()) {
+        !HTMLEditUtils::IsSimplyEditableNode(*nextContent)) {
       return nextContent;
     }
     if (HTMLEditUtils::IsContainerNode(*nextContent)) {
@@ -1458,6 +1461,10 @@ class HTMLEditUtils final {
             HTMLEditUtils::IsBlockElement(*parentElement, aBlockInlineCheck)) {
           return nullptr;
         }
+        if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
+            !parentElement->IsEditable()) {
+          return nullptr;
+        }
         previousContent = parentElement->GetPreviousSibling();
         if (previousContent) {
           break;
@@ -1476,7 +1483,7 @@ class HTMLEditUtils final {
       return previousContent;
     }
     if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-        aStartContent.IsEditable() && !previousContent->IsEditable()) {
+        !HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
       return previousContent;
     }
     if (HTMLEditUtils::IsContainerNode(*previousContent)) {
@@ -1547,8 +1554,7 @@ class HTMLEditUtils final {
       return previousContent;
     }
     if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
-        aStartPoint.GetContainer()->IsEditable() &&
-        !previousContent->IsEditable()) {
+        !HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
       return previousContent;
     }
     if (HTMLEditUtils::IsContainerNode(*previousContent)) {

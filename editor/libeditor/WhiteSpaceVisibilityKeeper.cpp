@@ -821,7 +821,7 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
 Result<CreateLineBreakResult, nsresult>
 WhiteSpaceVisibilityKeeper::InsertLineBreak(
     LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
-    const EditorDOMPoint& aPointToInsert, const Element& aEditingHost) {
+    const EditorDOMPoint& aPointToInsert) {
   if (MOZ_UNLIKELY(NS_WARN_IF(!aPointToInsert.IsSet()))) {
     return Err(NS_ERROR_INVALID_ARG);
   }
@@ -830,10 +830,10 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
   // meanwhile, the pre case is handled in HandleInsertText() in
   // HTMLEditSubActionHandler.cpp
 
-  TextFragmentData textFragmentDataAtInsertionPoint(
-      aPointToInsert, &aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
-  if (MOZ_UNLIKELY(
-          NS_WARN_IF(!textFragmentDataAtInsertionPoint.IsInitialized()))) {
+  const TextFragmentData textFragmentDataAtInsertionPoint(
+      Scan::EditableNodes, aPointToInsert,
+      BlockInlineCheck::UseComputedDisplayStyle);
+  if (NS_WARN_IF(!textFragmentDataAtInsertionPoint.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
   EditorDOMRange invisibleLeadingWhiteSpaceRangeOfNewLine =
@@ -1036,8 +1036,7 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
 // static
 Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
     HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
-    const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo,
-    const Element& aEditingHost) {
+    const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo) {
   // MOOSE: for now, we always assume non-PRE formatting.  Fix this later.
   // meanwhile, the pre case is handled in HandleInsertText() in
   // HTMLEditSubActionHandler.cpp
@@ -1051,8 +1050,8 @@ Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
     return InsertTextResult();
   }
 
-  TextFragmentData textFragmentDataAtStart(
-      aRangeToBeReplaced.StartRef(), &aEditingHost,
+  const TextFragmentData textFragmentDataAtStart(
+      Scan::EditableNodes, aRangeToBeReplaced.StartRef(),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (MOZ_UNLIKELY(NS_WARN_IF(!textFragmentDataAtStart.IsInitialized()))) {
     return Err(NS_ERROR_FAILURE);
@@ -1063,7 +1062,7 @@ Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
   TextFragmentData textFragmentDataAtEnd =
       aRangeToBeReplaced.Collapsed()
           ? textFragmentDataAtStart
-          : TextFragmentData(aRangeToBeReplaced.EndRef(), &aEditingHost,
+          : TextFragmentData(Scan::EditableNodes, aRangeToBeReplaced.EndRef(),
                              BlockInlineCheck::UseComputedDisplayStyle);
   if (MOZ_UNLIKELY(NS_WARN_IF(!textFragmentDataAtEnd.IsInitialized()))) {
     return Err(NS_ERROR_FAILURE);
@@ -1433,8 +1432,8 @@ Result<CaretPoint, nsresult>
 WhiteSpaceVisibilityKeeper::DeletePreviousWhiteSpace(
     HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPoint,
     const Element& aEditingHost) {
-  TextFragmentData textFragmentDataAtDeletion(
-      aPoint, &aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentDataAtDeletion(
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtDeletion.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
@@ -1553,8 +1552,8 @@ Result<CaretPoint, nsresult>
 WhiteSpaceVisibilityKeeper::DeleteInclusiveNextWhiteSpace(
     HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPoint,
     const Element& aEditingHost) {
-  TextFragmentData textFragmentDataAtDeletion(
-      aPoint, &aEditingHost, BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentDataAtDeletion(
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtDeletion.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
@@ -1760,13 +1759,13 @@ Result<CaretPoint, nsresult> WhiteSpaceVisibilityKeeper::
       NS_EVENT_BITS_MUTATION_CHARACTERDATAMODIFIED);
 
   TextFragmentData textFragmentDataAtStart(
-      rangeToDelete.StartRef(), &aEditingHost,
+      Scan::EditableNodes, rangeToDelete.StartRef(),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtStart.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
   TextFragmentData textFragmentDataAtEnd(
-      rangeToDelete.EndRef(), &aEditingHost,
+      Scan::EditableNodes, rangeToDelete.EndRef(),
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtEnd.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
@@ -1879,10 +1878,10 @@ Result<CaretPoint, nsresult> WhiteSpaceVisibilityKeeper::
       // should retrieve the latest data for avoiding to delete/replace
       // unexpected range.
       textFragmentDataAtStart =
-          TextFragmentData(rangeToDelete.StartRef(), &aEditingHost,
+          TextFragmentData(Scan::EditableNodes, rangeToDelete.StartRef(),
                            BlockInlineCheck::UseComputedDisplayStyle);
       textFragmentDataAtEnd =
-          TextFragmentData(rangeToDelete.EndRef(), &aEditingHost,
+          TextFragmentData(Scan::EditableNodes, rangeToDelete.EndRef(),
                            BlockInlineCheck::UseComputedDisplayStyle);
     }
   }
@@ -1939,8 +1938,8 @@ Result<CaretPoint, nsresult> WhiteSpaceVisibilityKeeper::
 nsresult
 WhiteSpaceVisibilityKeeper::MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
     HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit) {
-  TextFragmentData textFragmentDataAtSplitPoint(
-      aPointToSplit, aHTMLEditor.ComputeEditingHost(),
+  const TextFragmentData textFragmentDataAtSplitPoint(
+      Scan::EditableNodes, aPointToSplit,
       BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentDataAtSplitPoint.IsInitialized())) {
     return NS_ERROR_FAILURE;
@@ -2113,8 +2112,8 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
   MOZ_ASSERT(aPoint.IsInContentNode());
   MOZ_ASSERT(EditorUtils::IsEditableContent(
       *aPoint.template ContainerAs<nsIContent>(), EditorType::HTML));
-  TextFragmentData textFragmentData(aPoint, &aEditingHost,
-                                    BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentData(
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentData.IsInitialized())) {
     return NS_ERROR_FAILURE;
   }
@@ -2469,9 +2468,8 @@ Result<CaretPoint, nsresult>
 WhiteSpaceVisibilityKeeper::DeleteInvisibleASCIIWhiteSpaces(
     HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPoint) {
   MOZ_ASSERT(aPoint.IsSet());
-  Element* editingHost = aHTMLEditor.ComputeEditingHost();
-  TextFragmentData textFragmentData(aPoint, editingHost,
-                                    BlockInlineCheck::UseComputedDisplayStyle);
+  const TextFragmentData textFragmentData(
+      Scan::EditableNodes, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
   if (NS_WARN_IF(!textFragmentData.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
