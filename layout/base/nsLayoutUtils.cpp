@@ -1263,16 +1263,24 @@ SideBits nsLayoutUtils::GetSideBitsForFixedPositionContent(
   SideBits sides = SideBits::eNone;
   if (aFixedPosFrame) {
     const nsStylePosition* position = aFixedPosFrame->StylePosition();
-    if (!position->GetInset(eSideRight).IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideRight, StylePositionProperty::Fixed)
+             .IsAuto()) {
       sides |= SideBits::eRight;
     }
-    if (!position->GetInset(eSideLeft).IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideLeft, StylePositionProperty::Fixed)
+             .IsAuto()) {
       sides |= SideBits::eLeft;
     }
-    if (!position->GetInset(eSideBottom).IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideBottom, StylePositionProperty::Fixed)
+             .IsAuto()) {
       sides |= SideBits::eBottom;
     }
-    if (!position->GetInset(eSideTop).IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideTop, StylePositionProperty::Fixed)
+             .IsAuto()) {
       sides |= SideBits::eTop;
     }
   }
