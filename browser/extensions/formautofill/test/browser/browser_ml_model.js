@@ -43,6 +43,12 @@ async function setup() {
 add_setup(async function () {
   const { cleanup, remoteClients } = await setup();
 
+  const originalConfig = MLAutofill.readConfig();
+
+  sinon.stub(MLAutofill, "readConfig").callsFake(() => {
+    return { ...originalConfig, modelId: "test-echo" };
+  });
+
   sinon.stub(MLAutofill, "run").callsFake(request => {
     const context = request.args[0];
     /* The input has the following format:

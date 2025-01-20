@@ -322,6 +322,17 @@ async function testSuggestion(
 add_task(async function test_MLSuggest() {
   const { cleanup, remoteClients } = await setup();
 
+  const originalIntentOptions = MLSuggest.INTENT_OPTIONS;
+  const originalNerOptions = MLSuggest.NER_OPTIONS;
+
+  // Stubs to indicate that wasm is being mocked
+  sinon.stub(MLSuggest, "INTENT_OPTIONS").get(() => {
+    return { ...originalIntentOptions, modelId: "test-echo" };
+  });
+  sinon.stub(MLSuggest, "NER_OPTIONS").get(() => {
+    return { ...originalNerOptions, modelId: "test-echo" };
+  });
+
   await MLSuggest.initialize();
   await testSuggestion(
     "restaurants in seattle, wa",

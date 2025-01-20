@@ -231,6 +231,8 @@ export const LogLevel = {
  * @typedef {import("../../translations/actors/TranslationsEngineParent.sys.mjs").TranslationsEngineParent} TranslationsEngineParent
  */
 
+const PIPELINE_TEST_NAMES = ["moz-echo", "test-echo"];
+
 /**
  * This class encapsulates the options for a pipeline process.
  */
@@ -385,6 +387,21 @@ export class PipelineOptions {
    */
   constructor(options) {
     this.updateOptions(options);
+  }
+
+  /**
+   * Determines if the pipeline is mocked.
+   *
+   * It is made static to enable easier global overriding during unit tests and to allow the
+   * check to be performed without requiring an instance of the class.
+   *
+   * @param {object} options - The options for the pipeline.
+   */
+  static isMocked(options) {
+    return (
+      PIPELINE_TEST_NAMES.includes(options.taskName) ||
+      PIPELINE_TEST_NAMES.includes(options.modelId)
+    );
   }
 
   /**

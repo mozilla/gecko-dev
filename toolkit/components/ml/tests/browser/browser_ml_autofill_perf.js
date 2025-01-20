@@ -44,6 +44,7 @@ add_task(async function test_ml_generic_pipeline() {
     modelRevision: "main",
     dtype: "int8",
     numThreads: 2,
+    timeoutMS: -1,
   });
 
   const args = [

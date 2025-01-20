@@ -443,8 +443,9 @@ class EngineDispatcher {
       pipelineOptions
     );
 
-    // In unit tests, maintain the current behavior of resolving during execution instead of initialization.
-    if (!Cu.isInAutomation) {
+    // When the pipeline is mocked typically in unit tests, the WASM files are mocked.
+    // In these cases, the pipeline is not resolved during initialization to allow the test to work.
+    if (!lazy.PipelineOptions.isMocked(pipelineOptions)) {
       await dispatcher.ensureInferenceEngineIsReady();
     }
 
@@ -462,14 +463,13 @@ class EngineDispatcher {
    * The worker will be shutdown automatically after some amount of time of not being used, unless:
    *
    * - timeoutMS is set to -1
-   * - we are running a test
    */
   keepAlive() {
     if (this.#keepAliveTimeout) {
       // Clear any previous timeout.
       lazy.clearTimeout(this.#keepAliveTimeout);
     }
-    if (!Cu.isInAutomation && this.timeoutMS >= 0) {
+    if (this.timeoutMS >= 0) {
       this.#keepAliveTimeout = lazy.setTimeout(
         this.terminate.bind(
           this,
