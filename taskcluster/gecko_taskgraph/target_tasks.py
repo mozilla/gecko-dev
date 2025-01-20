@@ -818,7 +818,8 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 return False
             if "chrome-m" in try_name and "-nofis" not in try_name:
                 return False
-            if "chrome-m" in try_name and "essential" in try_name:
+            # Bug 1929960 - Enable all chrome-m tp6m tests on a55 only
+            if "chrome-m" in try_name and "tp6m" in try_name and "hw-a55" in platform:
                 return True
             if "chrome-m" in try_name and (
                 ("ebay" in try_name and "live" not in try_name)
