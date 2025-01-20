@@ -9,9 +9,8 @@
         class="sidebar-panel"
         xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-        onload="init();"
-        onunload="unloadBookmarksSidebar();"
-        data-l10n-id="bookmarks-sidebar-content">
+        data-l10n-id="bookmarks-sidebar-content"
+        csp="default-src chrome:; style-src-elem chrome: 'unsafe-inline';">
 
   <script src="chrome://browser/content/places/bookmarksSidebar.js"/>
   <script src="chrome://global/content/globalOverlay.js"/>
@@ -52,8 +51,7 @@
     <search-textbox id="search-box" flex="1"
                     data-l10n-id="places-bookmarks-search"
                     data-l10n-attrs="placeholder"
-                    aria-controls="bookmarks-view"
-                    oncommand="searchBookmarks(this.value);"/>
+                    aria-controls="bookmarks-view"/>
   </hbox>
 
   <tree id="bookmarks-view"
@@ -62,11 +60,7 @@
         flex="1"
         hidecolumnpicker="true"
         context="placesContext"
-        singleclickopens="true"
-        onkeypress="PlacesUIUtils.onSidebarTreeKeyPress(event);"
-        onclick="PlacesUIUtils.onSidebarTreeClick(event);"
-        onmousemove="PlacesUIUtils.onSidebarTreeMouseMove(event);"
-        onmouseout="PlacesUIUtils.setMouseoverURL('', window);">
+        singleclickopens="true">
     <treecols>
       <treecol id="title" flex="1" primary="true" hideheader="true"/>
     </treecols>

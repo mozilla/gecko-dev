@@ -28,14 +28,31 @@ XPCOMUtils.defineLazyScriptGetter(
 /* End Shared Places Import */
 var gCumulativeSearches = 0;
 
-function init() {
+window.addEventListener("load", () => {
   let uidensity = window.top.document.documentElement.getAttribute("uidensity");
   if (uidensity) {
     document.documentElement.setAttribute("uidensity", uidensity);
   }
 
-  document.getElementById("bookmarks-view").place =
+  let view = document.getElementById("bookmarks-view");
+  view.place =
     "place:type=" + Ci.nsINavHistoryQueryOptions.RESULTS_AS_ROOTS_QUERY;
+  view.addEventListener("keypress", event =>
+    PlacesUIUtils.onSidebarTreeKeyPress(event)
+  );
+  view.addEventListener("click", event =>
+    PlacesUIUtils.onSidebarTreeClick(event)
+  );
+  view.addEventListener("mousemove", event =>
+    PlacesUIUtils.onSidebarTreeMouseMove(event)
+  );
+  view.addEventListener("mouseout", () =>
+    PlacesUIUtils.setMouseoverURL("", window)
+  );
+
+  document
+    .getElementById("search-box")
+    .addEventListener("command", searchBookmarks);
 
   let bhTooltip = document.getElementById("bhTooltip");
   bhTooltip.addEventListener("popupshowing", event => {
@@ -44,17 +61,19 @@ function init() {
   bhTooltip.addEventListener("popuphiding", () =>
     bhTooltip.removeAttribute("position")
   );
-}
+});
 
-function searchBookmarks(aSearchString) {
+function searchBookmarks(event) {
+  let { value } = event.currentTarget;
+
   var tree = document.getElementById("bookmarks-view");
-  if (!aSearchString) {
+  if (!value) {
     // eslint-disable-next-line no-self-assign
     tree.place = tree.place;
   } else {
     Glean.sidebar.search.bookmarks.add(1);
     gCumulativeSearches++;
-    tree.applyFilter(aSearchString, PlacesUtils.bookmarks.userContentRoots);
+    tree.applyFilter(value, PlacesUtils.bookmarks.userContentRoots);
   }
 }
 
@@ -72,10 +91,10 @@ function clearCumulativeCounter() {
   gCumulativeSearches = 0;
 }
 
-function unloadBookmarksSidebar() {
+window.addEventListener("unload", () => {
   clearCumulativeCounter();
   PlacesUIUtils.setMouseoverURL("", window);
-}
+});
 
 window.addEventListener("SidebarFocused", () =>
   document.getElementById("search-box").focus()
