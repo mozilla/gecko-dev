@@ -823,7 +823,7 @@ skip-if = ["true"] # Bug 1765369
 
 ["browser_webconsole_wasm_errors.js"]
 
-["browser_webconsole_webextension_promise_rejection.js"]
+["browser_webconsole_webextension_content_script.js"]
 
 ["browser_webconsole_websocket.js"]
 

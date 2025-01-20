@@ -23,6 +23,7 @@ add_task(async function () {
 
     files: {
       "content-script.js": function () {
+        console.log("def");
         Promise.reject("abc");
       },
     },
@@ -31,11 +32,26 @@ add_task(async function () {
   await extension.startup();
 
   const hud = await openNewTabAndConsole(TEST_URI);
-  await waitFor(() => findErrorMessage(hud, "uncaught exception: abc"));
 
-  // Open the debugger with the content script setting turned on in order
-  // to be able to show the content script target in the console evaluation context
+  // For now, console messages and errors are shown without having to enable the content script targets
+  await checkUniqueMessageExists(hud, "uncaught exception: abc", ".error");
+  await checkUniqueMessageExists(hud, "def", ".console-api");
+
+  // Enable the content script preference in order to see content scripts messages,
+  // sources and target.
+  const onTargetProcessed = waitForTargetProcessed(
+    hud.commands,
+    target => target.targetType == "content_script"
+  );
   await pushPref("devtools.debugger.show-content-scripts", true);
+  await onTargetProcessed;
+
+  // Wait for more to let a chance to process unexpected duplicated messages
+  await wait(500);
+
+  await checkUniqueMessageExists(hud, "uncaught exception: abc", ".error");
+  await checkUniqueMessageExists(hud, "def", ".console-api");
+
   await hud.toolbox.selectTool("jsdebugger");
 
   const evaluationContextSelectorButton = hud.ui.outputNode.querySelector(

@@ -71,6 +71,10 @@ class ConsoleMessageWatcher {
     const listener = new ConsoleAPIListener(window, onConsoleAPICall, {
       excludeMessagesBoundToWindow: isTargetActorContentProcess,
       matchExactWindow: targetActor.ignoreSubFrames,
+      addonId:
+        targetActor.targetType === Targets.TYPES.CONTENT_SCRIPT
+          ? targetActor.addonId
+          : null,
     });
     this.listener = listener;
     listener.init();
