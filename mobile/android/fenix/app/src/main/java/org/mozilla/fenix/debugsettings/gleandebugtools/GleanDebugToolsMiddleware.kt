@@ -7,7 +7,6 @@ package org.mozilla.fenix.debugsettings.gleandebugtools
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.ktx.kotlin.urlEncode
-import org.mozilla.fenix.R
 import org.mozilla.fenix.utils.ClipboardHandler
 
 internal const val PING_PREVIEW_URL = "https://debug-ping-preview.firebaseapp.com/"
@@ -24,7 +23,7 @@ class GleanDebugToolsMiddleware(
     private val gleanDebugToolsStorage: GleanDebugToolsStorage,
     private val clipboardHandler: ClipboardHandler,
     private val openDebugView: (String) -> Unit,
-    private val showToast: (Int) -> Unit,
+    private val showToast: (String) -> Unit,
 ) : Middleware<GleanDebugToolsState, GleanDebugToolsAction> {
     override fun invoke(
         context: MiddlewareContext<GleanDebugToolsState, GleanDebugToolsAction>,
@@ -51,24 +50,14 @@ class GleanDebugToolsMiddleware(
                 clipboardHandler.text = debugViewLink
             }
             is GleanDebugToolsAction.DebugViewTagChanged -> {} // No-op
-            is GleanDebugToolsAction.SendBaselinePing -> {
-                gleanDebugToolsStorage.sendBaselinePing(
+            is GleanDebugToolsAction.SendPing -> {
+                gleanDebugToolsStorage.sendPing(
+                    pingType = context.state.pingType,
                     debugViewTag = context.state.debugViewTag,
                 )
-                showToast(R.string.glean_debug_tools_send_baseline_ping_toast_message)
+                showToast(context.state.pingType)
             }
-            is GleanDebugToolsAction.SendMetricsPing -> {
-                gleanDebugToolsStorage.sendMetricsPing(
-                    debugViewTag = context.state.debugViewTag,
-                )
-                showToast(R.string.glean_debug_tools_send_metrics_ping_toast_message)
-            }
-            is GleanDebugToolsAction.SendPendingEventPing -> {
-                gleanDebugToolsStorage.sendPendingEventPing(
-                    debugViewTag = context.state.debugViewTag,
-                )
-                showToast(R.string.glean_debug_tools_send_pending_event_ping_toast_message)
-            }
+            is GleanDebugToolsAction.ChangePingType -> {} // No-op
         }
     }
 

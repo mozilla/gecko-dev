@@ -17,19 +17,12 @@ interface GleanDebugToolsStorage {
     fun setLogPings(enabled: Boolean)
 
     /**
-     * Send a baseline ping.
+     * Send a ping.
+     *
+     * @param pingType The type of ping to submit.
+     * @param debugViewTag The debug tag to use for the ping.
      */
-    fun sendBaselinePing(debugViewTag: String)
-
-    /**
-     * Send a metrics ping.
-     */
-    fun sendMetricsPing(debugViewTag: String)
-
-    /**
-     * Send a pending event ping.
-     */
-    fun sendPendingEventPing(debugViewTag: String)
+    fun sendPing(pingType: String, debugViewTag: String)
 }
 
 /**
@@ -40,18 +33,21 @@ class DefaultGleanDebugToolsStorage : GleanDebugToolsStorage {
         Glean.setLogPings(enabled)
     }
 
-    override fun sendBaselinePing(debugViewTag: String) {
+    override fun sendPing(pingType: String, debugViewTag: String) {
         Glean.setDebugViewTag(debugViewTag)
-        Glean.submitPingByName("baseline")
+        Glean.submitPingByName(pingType)
     }
 
-    override fun sendMetricsPing(debugViewTag: String) {
-        Glean.setDebugViewTag(debugViewTag)
-        Glean.submitPingByName("metrics")
-    }
+    /**
+     * @see [DefaultGleanDebugToolsStorage].
+     */
+    companion object {
 
-    override fun sendPendingEventPing(debugViewTag: String) {
-        Glean.setDebugViewTag(debugViewTag)
-        Glean.submitPingByName("events")
+        /**
+         * Get all the types of pings that can be submitted.
+         */
+        fun getPingTypes(): Set<String> {
+            return Glean.getRegisteredPingNames()
+        }
     }
 }

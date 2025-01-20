@@ -23,6 +23,7 @@ import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.telemetry.glean.Glean
+import org.mozilla.fenix.R
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
 import org.mozilla.fenix.debugsettings.addresses.AddressesTools
 import org.mozilla.fenix.debugsettings.addresses.FakeAddressesDebugLocalesRepository
@@ -90,10 +91,13 @@ fun FenixOverlay(
                         intent.data = Uri.parse(debugViewLink)
                         context.startActivity(intent)
                     },
-                    showToast = { resId ->
+                    showToast = { pingType ->
                         val toast = Toast.makeText(
                             context,
-                            context.getString(resId),
+                            context.getString(
+                                R.string.glean_debug_tools_send_ping_toast_message,
+                                pingType,
+                            ),
                             Toast.LENGTH_LONG,
                         )
                         toast.show()

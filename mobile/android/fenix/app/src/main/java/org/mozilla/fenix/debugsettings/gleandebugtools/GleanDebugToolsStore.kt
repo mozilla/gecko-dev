@@ -14,10 +14,14 @@ import mozilla.components.lib.state.UiStore
  *
  * @property logPingsToConsoleEnabled Whether logging pings to console is enabled.
  * @property debugViewTag The debug view tag of the ping.
+ * @property pingType The selected ping to be submitted.
+ * @property pingTypes The types of pings that can be submitted.
  */
 data class GleanDebugToolsState(
     val logPingsToConsoleEnabled: Boolean,
     val debugViewTag: String,
+    val pingType: String = "metrics",
+    val pingTypes: List<String> = DefaultGleanDebugToolsStorage.getPingTypes().sorted(),
 ) : State {
 
     /**
@@ -51,19 +55,14 @@ sealed class GleanDebugToolsAction : Action {
     data class DebugViewTagChanged(val newTag: String) : GleanDebugToolsAction()
 
     /**
-     * Send a pending event ping.
+     * Change the type of ping to submit to [newPing].
      */
-    data object SendPendingEventPing : GleanDebugToolsAction()
+    data class ChangePingType(val newPing: String) : GleanDebugToolsAction()
 
     /**
-     * Send a baseline ping.
+     * Send the ping.
      */
-    data object SendBaselinePing : GleanDebugToolsAction()
-
-    /**
-     * Send a metrics ping.
-     */
-    data object SendMetricsPing : GleanDebugToolsAction()
+    data object SendPing : GleanDebugToolsAction()
 
     /**
      * Open the relevant debug view.
@@ -93,11 +92,10 @@ internal object GleanDebugToolsReducer {
                     debugViewTag = action.newTag,
                 )
             }
-            is GleanDebugToolsAction.SendBaselinePing -> state
-            is GleanDebugToolsAction.SendMetricsPing -> state
-            is GleanDebugToolsAction.SendPendingEventPing -> state
             is GleanDebugToolsAction.OpenDebugView -> state
             is GleanDebugToolsAction.CopyDebugViewLink -> state
+            is GleanDebugToolsAction.SendPing -> state
+            is GleanDebugToolsAction.ChangePingType -> state.copy(pingType = action.newPing)
         }
     }
 }

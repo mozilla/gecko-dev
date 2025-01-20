@@ -25,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.Dropdown
+import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.button.PrimaryButton
@@ -83,9 +85,10 @@ fun GleanDebugToolsScreen(
 
         GleanDebugSendPingsSection(
             isButtonEnabled = gleanDebugToolsState.isDebugTagButtonEnabled,
-            onSendPendingEventPing = { gleanDebugToolsStore.dispatch(GleanDebugToolsAction.SendPendingEventPing) },
-            onSendBaselinePing = { gleanDebugToolsStore.dispatch(GleanDebugToolsAction.SendBaselinePing) },
-            onSendMetricsPing = { gleanDebugToolsStore.dispatch(GleanDebugToolsAction.SendMetricsPing) },
+            curPing = gleanDebugToolsState.pingType,
+            pingTypes = gleanDebugToolsState.pingTypes,
+            onPingItemClicked = { gleanDebugToolsStore.dispatch(GleanDebugToolsAction.ChangePingType(it)) },
+            onSendPing = { gleanDebugToolsStore.dispatch(GleanDebugToolsAction.SendPing) },
         )
     }
 }
@@ -178,29 +181,33 @@ private fun GleanDebugViewSection(
 @Composable
 private fun GleanDebugSendPingsSection(
     isButtonEnabled: Boolean,
-    onSendPendingEventPing: () -> Unit,
-    onSendBaselinePing: () -> Unit,
-    onSendMetricsPing: () -> Unit,
+    curPing: String,
+    pingTypes: List<String>,
+    onPingItemClicked: (String) -> Unit,
+    onSendPing: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
     ) {
-        GleanTestPingButton(
-            text = stringResource(R.string.glean_debug_tools_send_pending_event_pings_button_text),
-            enabled = isButtonEnabled,
-            onClick = onSendPendingEventPing,
+        Dropdown(
+            label = "Ping Type",
+            placeholder = "",
+            dropdownItems = getPingDropdownMenu(
+                curPing = curPing,
+                pings = pingTypes,
+                onClickItem = onPingItemClicked,
+            ),
         )
 
-        GleanTestPingButton(
-            text = stringResource(R.string.glean_debug_tools_send_baseline_pings_button_text),
-            enabled = isButtonEnabled,
-            onClick = onSendBaselinePing,
-        )
+        Spacer(modifier = Modifier.height(FirefoxTheme.space.small))
 
-        GleanTestPingButton(
-            text = stringResource(R.string.glean_debug_tools_send_metrics_pings_button_text),
+        PrimaryButton(
+            text = stringResource(R.string.glean_debug_tools_send_ping_button_text),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = FirefoxTheme.space.xxSmall),
             enabled = isButtonEnabled,
-            onClick = onSendMetricsPing,
+            onClick = onSendPing,
         )
     }
 }
@@ -241,28 +248,15 @@ private fun GleanDebugButton(
     )
 }
 
-/**
- * The UI for a send test ping button on the Glean Debug Tools page.
- *
- * @param text The text on the button.
- * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
- * be clickable.
- * @param onClick Called when the user clicks on the button.
- */
-@Composable
-private fun GleanTestPingButton(
-    text: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    PrimaryButton(
-        text = text,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = FirefoxTheme.space.xxSmall),
-        enabled = enabled,
-        onClick = onClick,
-    )
+private fun getPingDropdownMenu(
+    curPing: String,
+    pings: List<String>,
+    onClickItem: (String) -> Unit,
+) = pings.map {
+    MenuItem(
+        title = it,
+        isChecked = it == curPing,
+    ) { onClickItem(it) }
 }
 
 @Composable

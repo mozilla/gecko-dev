@@ -213,16 +213,8 @@
     <string name="glean_debug_tools_open_debug_view">Open debug view (in default browser)</string>
     <!-- The copy debug view link button text in Glean debug tools -->
     <string name="glean_debug_tools_copy_debug_view_link">Copy debug view link</string>
-    <!-- The send pending event pings button text in Glean debug tools -->
-    <string name="glean_debug_tools_send_pending_event_pings_button_text">Send pending event pings</string>
-    <!-- The send baseline event pings button text in Glean debug tools -->
-    <string name="glean_debug_tools_send_baseline_pings_button_text">Send baseline pings</string>
-    <!-- The send metrics event pings button text in Glean debug tools -->
-    <string name="glean_debug_tools_send_metrics_pings_button_text">Send metrics pings</string>
-    <!-- The send pending event pings toast message -->
-    <string name="glean_debug_tools_send_pending_event_ping_toast_message">Sent pending event ping</string>
-    <!-- The send baseline pings toast message -->
-    <string name="glean_debug_tools_send_baseline_ping_toast_message">Sent baseline ping</string>
-    <!-- The send metrics pings toast message -->
-    <string name="glean_debug_tools_send_metrics_ping_toast_message">Sent metrics ping</string>
+    <!-- The send ping button text in Glean debug tools -->
+    <string name="glean_debug_tools_send_ping_button_text">Send Ping</string>
+    <!-- The send pings toast message. The first parameter is the type of ping -->
+    <string name="glean_debug_tools_send_ping_toast_message">Sent %1$s ping</string>
 </resources>
