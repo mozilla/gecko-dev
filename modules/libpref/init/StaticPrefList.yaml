@@ -1038,7 +1038,10 @@
 # Limit of recent metadata we keep in memory for faster access, in KB.
 - name: browser.cache.disk.metadata_memory_limit
   type: RelaxedAtomicUint32
-  value: 250   # 0.25 MB
+#ifdef NIGHTLY_BUILD
+  value: 1024   # 1 MB
+#else
+  value: 250    # 0.25 MB
   mirror: always
 
 # Does the user want smart-sizing?
