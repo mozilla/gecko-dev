@@ -11,7 +11,7 @@
 #include "HTMLEditUtils.h"    // for HTMLEditUtils
 #include "HTMLEditHelpers.h"  // for SplitNodeResult
 #include "TextEditor.h"       // for TextEditor
-#include "WSRunObject.h"      // for WSRunScanner
+#include "WSRunScanner.h"     // for WSRunScanner
 
 #include "mozilla/CaretAssociationHint.h"  // for CaretAssociationHint
 #include "mozilla/IntegerRange.h"          // for IntegerRange

@@ -8,7 +8,6 @@
 #include "HTMLEditorInlines.h"
 #include "HTMLEditorNestedClasses.h"
 
-#include <algorithm>
 #include <utility>
 
 #include "AutoClonedRangeArray.h"
@@ -21,13 +20,13 @@
 #include "HTMLEditHelpers.h"
 #include "HTMLEditUtils.h"
 #include "PendingStyles.h"  // for SpecifiedStyle
-#include "WSRunObject.h"
+#include "WhiteSpaceVisibilityKeeper.h"
+#include "WSRunScanner.h"
 
 #include "ErrorList.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/CheckedInt.h"
 #include "mozilla/ContentIterator.h"
 #include "mozilla/EditorForwards.h"
 #include "mozilla/IntegerRange.h"
@@ -35,10 +34,7 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/OwningNonNull.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
-#include "mozilla/RangeUtils.h"
-#include "mozilla/StaticPrefs_editor.h"  // for StaticPrefs::editor_*
 #include "mozilla/TextComposition.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -49,8 +45,6 @@
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/StaticRange.h"
-#include "mozilla/mozalloc.h"
-#include "nsAString.h"
 #include "nsAtom.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
@@ -60,9 +54,7 @@
 #include "nsError.h"
 #include "nsFrameSelection.h"
 #include "nsGkAtoms.h"
-#include "nsHTMLDocument.h"
 #include "nsIContent.h"
-#include "nsID.h"
 #include "nsIFrame.h"
 #include "nsINode.h"
 #include "nsLiteralString.h"
@@ -75,7 +67,6 @@
 #include "nsTArray.h"
 #include "nsTextNode.h"
 #include "nsThreadUtils.h"
-#include "nsUnicharUtils.h"
 
 class nsISupports;
 

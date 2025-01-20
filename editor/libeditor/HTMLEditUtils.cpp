@@ -13,7 +13,7 @@
 #include "EditorForwards.h"        // for CollectChildrenOptions
 #include "EditorUtils.h"           // for EditorUtils
 #include "HTMLEditHelpers.h"       // for EditorInlineStyle
-#include "WSRunObject.h"           // for WSRunScanner
+#include "WSRunScanner.h"          // for WSRunScanner
 
 #include "mozilla/ArrayUtils.h"  // for ArrayLength
 #include "mozilla/Assertions.h"  // for MOZ_ASSERT, etc.
