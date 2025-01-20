@@ -9022,6 +9022,9 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
 
   ReleaseListeners();
 
+  // Release mUploadStream to free some memory sooner.
+  mUploadStream = nullptr;
+
   return NS_OK;
 }
 
