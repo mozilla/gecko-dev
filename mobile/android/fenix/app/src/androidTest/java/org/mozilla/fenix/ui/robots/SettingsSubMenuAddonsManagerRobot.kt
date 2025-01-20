@@ -29,7 +29,6 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withParent
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiScrollable
@@ -37,7 +36,6 @@ import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
-import org.hamcrest.CoreMatchers.instanceOf
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
@@ -46,6 +44,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
+import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
@@ -135,15 +134,20 @@ class SettingsSubMenuAddonsManagerRobot {
         }
     }
 
-    fun verifyAddonInstallCompleted(addonName: String, activityTestRule: HomeActivityIntentTestRule) {
+    fun verifyAddonInstallCompletedPrompt(addonName: String, activityTestRule: HomeActivityIntentTestRule) {
         for (i in 1..RETRY_COUNT) {
-            Log.i(TAG, "verifyAddonInstallCompleted: Started try #$i")
+            Log.i(TAG, "verifyAddonInstallCompletedPrompt: Started try #$i")
             try {
-                assertUIObjectExists(itemWithText("OK"), waitingTime = waitingTimeLong)
+                assertUIObjectExists(
+                    itemContainingText("$addonName has been added to $appName"),
+                    itemContainingText("Access $addonName from the $appName menu."),
+                    itemContainingText("OK"),
+                    waitingTime = waitingTimeLong,
+                )
 
                 break
             } catch (e: AssertionError) {
-                Log.i(TAG, "verifyAddonInstallCompleted: AssertionError caught, executing fallback methods")
+                Log.i(TAG, "verifyAddonInstallCompletedPrompt: AssertionError caught, executing fallback methods")
                 if (i == RETRY_COUNT) {
                     throw e
                 } else {
@@ -160,20 +164,6 @@ class SettingsSubMenuAddonsManagerRobot {
                 }
             }
         }
-    }
-
-    fun verifyAddonInstallCompletedPrompt(addonName: String) {
-        Log.i(TAG, "verifyAddonInstallCompletedPrompt: Trying to verify that completed add-on install prompt items are visible")
-        onView(
-            allOf(
-                withText("OK"),
-                withParent(instanceOf(RelativeLayout::class.java)),
-                hasSibling(withText("$addonName has been added to $appName")),
-                hasSibling(withText("Access $addonName from the $appName menu.")),
-            ),
-        )
-            .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-        Log.i(TAG, "verifyAddonInstallCompletedPrompt: Verified that completed add-on install prompt items are visible")
     }
 
     fun closeAddonInstallCompletePrompt() {
@@ -264,7 +254,7 @@ class SettingsSubMenuAddonsManagerRobot {
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompleted(addonName, activityTestRule)
+            verifyAddonInstallCompletedPrompt(addonName, activityTestRule)
         }
     }
 
@@ -277,7 +267,7 @@ class SettingsSubMenuAddonsManagerRobot {
             verifyAddonPermissionPrompt(addonName)
             selectAllowInPrivateBrowsing()
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompleted(addonName, activityTestRule)
+            verifyAddonInstallCompletedPrompt(addonName, activityTestRule)
         }
     }
 
@@ -306,12 +296,12 @@ class SettingsSubMenuAddonsManagerRobot {
                     try {
                         waitForAppWindowToBeUpdated()
                         Log.i(TAG, "verifyTheRecommendedAddons: Trying to verify that addon: $addon is recommended and displayed")
-                        composeTestRule.onNode(hasText(addon))
+                        composeTestRule.onNode(hasText(addon, substring = true))
                             .assertIsDisplayed()
                         Log.i(TAG, "verifyTheRecommendedAddons: Verified that addon: $addon is recommended and displayed")
 
                         Log.i(TAG, "verifyTheRecommendedAddons: Trying to verify that addon: $addon install button is displayed")
-                        composeTestRule.onNode(hasContentDescription("Add $addon"))
+                        composeTestRule.onNode(hasContentDescription("Add $addon", substring = true))
                             .assertIsDisplayed()
                         Log.i(TAG, "verifyTheRecommendedAddons: Verify that addon: $addon install button is displayed")
 
@@ -332,6 +322,13 @@ class SettingsSubMenuAddonsManagerRobot {
                 }
             }
         }
+    }
+
+    fun installRecommendedAddon(recommendedExtensionTitle: String, composeTestRule: ComposeTestRule) {
+        waitForAppWindowToBeUpdated()
+        Log.i(TAG, "installARecommendedAddons: Trying to click addon: $recommendedExtensionTitle install button")
+        composeTestRule.onNodeWithContentDescription("Add $recommendedExtensionTitle", substring = true).performClick()
+        Log.i(TAG, "installARecommendedAddons: Clicked addon: $recommendedExtensionTitle install button")
     }
 
     fun clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule: ComposeTestRule) =

@@ -22,6 +22,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingReso
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.Constants.PackageName.PRINT_SPOOLER
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
+import org.mozilla.fenix.helpers.DataGenerationHelper.getRecommendedExtensionTitle
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
@@ -337,8 +338,7 @@ class MainMenuTestCompose : TestSetup() {
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompleted(addonName, composeTestRule.activityRule)
-            verifyAddonInstallCompletedPrompt(addonName)
+            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
         }
@@ -374,8 +374,7 @@ class MainMenuTestCompose : TestSetup() {
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompleted(addonName, composeTestRule.activityRule)
-            verifyAddonInstallCompletedPrompt(addonName)
+            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
         }
@@ -745,8 +744,7 @@ class MainMenuTestCompose : TestSetup() {
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompleted(addonName, composeTestRule.activityRule)
-            verifyAddonInstallCompletedPrompt(addonName)
+            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
         }
@@ -766,6 +764,25 @@ class MainMenuTestCompose : TestSetup() {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifyNoExtensionsButton()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860775
+    @SmokeTest
+    @Test
+    fun verifyExtensionInstallTest() {
+        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            val recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
+            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
+            acceptPermissionToInstallAddon()
+            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
+            closeAddonInstallCompletePrompt()
         }
     }
 }

@@ -51,6 +51,8 @@ object Constants {
         )
     }
 
+    // "Ghostery" not included in the list because of the name discrepancy
+    // between the recommended list and the install confirmation prompt
     val recommendedAddons = listOf(
         "uBlock Origin",
         "Privacy Badger",
@@ -58,9 +60,8 @@ object Constants {
         "Dark Reader",
         "Bitwarden Password Manager",
         "Tampermonkey",
-        "Ghostery ",
-        "FoxyProxy Standard",
-        "NoScript Security Suite",
+        "FoxyProxy",
+        "NoScript",
         "Search by Image",
         "ClearURLs",
         "Firefox Relay",
