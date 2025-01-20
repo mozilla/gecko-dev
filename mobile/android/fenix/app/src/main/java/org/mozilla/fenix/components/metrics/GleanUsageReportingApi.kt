@@ -15,6 +15,11 @@ interface GleanUsageReportingApi {
     enum class UsageReason { ACTIVE, INACTIVE }
 
     /**
+     * This allows the ping to be switched on or off from the settings screen.
+     */
+    fun setEnabled(enabled: Boolean)
+
+    /**
      * The usage reason should be set here before the ping is sent.
      * @param usageReason the new reason state of the usage ping.
      */

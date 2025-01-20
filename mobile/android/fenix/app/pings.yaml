@@ -162,6 +162,7 @@ usage-reporting:
     - jrediger@mozilla.com
     - loines@mozilla.com
   metadata:
+    follows_collection_enabled: false
     include_info_sections: false
   reasons:
     dirty_startup: |

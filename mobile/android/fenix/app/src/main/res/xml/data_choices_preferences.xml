@@ -18,6 +18,15 @@
         android:title="@string/preferences_marketing_data_learn_more" />
 
     <SwitchPreference
+        android:key="@string/pref_key_daily_usage_ping"
+        android:summary="@string/preferences_daily_usage_ping_description"
+        android:title="@string/preferences_daily_usage_ping_title" />
+
+    <Preference
+        android:key="@string/pref_key_learn_about_daily_usage_ping"
+        android:title="@string/preferences_daily_usage_ping_learn_more" />
+
+    <SwitchPreference
         android:key="@string/pref_key_crash_reporting_always_report"
         android:summary="@string/preferences_automatically_send_crashes_description"
         android:title="@string/preferences_automatically_send_crashes_title" />

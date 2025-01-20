@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings
 
+import android.content.Context
 import android.os.Bundle
 import androidx.annotation.VisibleForTesting
 import androidx.navigation.findNavController
@@ -54,6 +55,14 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
                 } else {
                     context.components.analytics.metrics.stop(MetricServiceType.Marketing)
                 }
+            } else if (key == getPreferenceKey(R.string.pref_key_daily_usage_ping)) {
+                with(context.components.analytics.metrics) {
+                    if (context.settings().isDailyUsagePingEnabled) {
+                        start(MetricServiceType.UsageReporting)
+                    } else {
+                        stop(MetricServiceType.UsageReporting)
+                    }
+                }
             }
         }
     }
@@ -89,6 +98,11 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             isVisible = marketingTelemetryPref.isVisible
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_daily_usage_ping).apply {
+            isChecked = context.settings().isDailyUsagePingEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_crash_reporting_always_report).apply {
             isChecked = context.settings().crashReportAlwaysSend
             onPreferenceChangeListener = SharedPreferenceUpdater()
@@ -104,18 +118,29 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
-        when (preference.key) {
-            getPreferenceKey(R.string.pref_key_learn_about_marketing_telemetry) ->
-                openLearnMoreUrlInSandboxedTab()
-        }
+        context?.also { context ->
+            when (preference.key) {
+                getPreferenceKey(R.string.pref_key_learn_about_marketing_telemetry) -> openLearnMoreUrlInSandboxedTab(
+                    context,
+                    SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
+                )
 
+                getPreferenceKey(R.string.pref_key_learn_about_daily_usage_ping) -> openLearnMoreUrlInSandboxedTab(
+                    context,
+                    SupportUtils.getSumoURLForTopic(
+                        context = context,
+                        topic = SupportUtils.SumoTopic.USAGE_PING_SETTINGS,
+                    ),
+                )
+            }
+        }
         return super.onPreferenceTreeClick(preference)
     }
 
-    private fun openLearnMoreUrlInSandboxedTab() {
+    private fun openLearnMoreUrlInSandboxedTab(context: Context, url: String) {
         SupportUtils.launchSandboxCustomTab(
-            context = requireContext(),
-            url = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
+            context = context,
+            url = url,
         )
     }
 

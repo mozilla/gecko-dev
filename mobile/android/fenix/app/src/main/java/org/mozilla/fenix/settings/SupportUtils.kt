@@ -70,6 +70,7 @@ object SupportUtils {
         FIND_INSTALL_ADDONS("add-ons-firefox-android"),
         CRASH_REPORTS("mobile-crash-reports"),
         TECHNICAL_AND_INTERACTION_DATA("mobile-technical-and-interaction-data"),
+        USAGE_PING_SETTINGS("usage-ping-settings-mobile"),
     }
 
     enum class MozillaPage(internal val path: String) {

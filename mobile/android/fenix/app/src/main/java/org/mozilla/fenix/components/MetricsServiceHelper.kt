@@ -14,12 +14,14 @@ import org.mozilla.fenix.components.metrics.MetricServiceType
  * @param analytics [Analytics] component to be started if needed.
  * @param isTelemetryEnabled indicate if the telemetry metric should be started.
  * @param isMarketingTelemetryEnabled indicate if the marketing metric should be started.
+ * @param isDailyUsagePingEnabled indicate if the daily usage ping metric should be started.
  */
 fun startMetricsIfEnabled(
     logger: Logger,
     analytics: Analytics,
     isTelemetryEnabled: Boolean,
     isMarketingTelemetryEnabled: Boolean,
+    isDailyUsagePingEnabled: Boolean,
 ) {
     if (isTelemetryEnabled) {
         analytics.metrics.start(MetricServiceType.Data)
@@ -32,7 +34,7 @@ fun startMetricsIfEnabled(
         logger.info("Marketing metrics service started")
     }
 
-    if (isTelemetryEnabled) { // this will be behind a different switch
+    if (isDailyUsagePingEnabled) {
         analytics.metrics.start(MetricServiceType.UsageReporting)
         logger.info("Usage reporting metrics service started")
     }

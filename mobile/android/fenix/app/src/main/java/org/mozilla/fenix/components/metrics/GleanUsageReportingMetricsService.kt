@@ -14,10 +14,12 @@ import mozilla.components.support.base.log.logger.Logger
  * @param lifecycleOwner the top level container whose lifecycle is followed by usage data
  * @param gleanUsageReportingLifecycleObserver this can be provided to control
  * the start / stop sending events for the usage reporting ping
+ * @param gleanUsageReporting this can be provided to encapsulate interactions with the glean API
  */
 class GleanUsageReportingMetricsService(
     private val lifecycleOwner: LifecycleOwner = ProcessLifecycleOwner.get(),
     private val gleanUsageReportingLifecycleObserver: LifecycleEventObserver = GleanUsageReportingLifecycleObserver(),
+    private val gleanUsageReporting: GleanUsageReportingApi = GleanUsageReporting(),
 ) : MetricsService {
 
     override val type: MetricServiceType = MetricServiceType.UsageReporting
@@ -25,11 +27,13 @@ class GleanUsageReportingMetricsService(
 
     override fun start() {
         logger.debug("Start GleanUsageReportingMetricsService")
+        gleanUsageReporting.setEnabled(true)
         lifecycleOwner.lifecycle.addObserver(gleanUsageReportingLifecycleObserver)
     }
 
     override fun stop() {
         logger.debug("Stop GleanUsageReportingMetricsService")
+        gleanUsageReporting.setEnabled(false)
         lifecycleOwner.lifecycle.removeObserver(gleanUsageReportingLifecycleObserver)
     }
 

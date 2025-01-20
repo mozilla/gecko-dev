@@ -154,6 +154,7 @@ class Analytics(
             ),
             isDataTelemetryEnabled = { context.settings().isTelemetryEnabled },
             isMarketingDataTelemetryEnabled = { context.settings().isMarketingTelemetryEnabled },
+            isUsageTelemetryEnabled = { context.settings().isDailyUsagePingEnabled },
             context.settings(),
         )
     }

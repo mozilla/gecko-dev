@@ -1002,7 +1002,10 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Share information about how you discovered Firefox with Mozilla’s marketing partners. This helps us grow Firefox and build a better internet</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Learn more about marketing data</string>
-
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Daily usage ping</string>
+    <string name="preferences_daily_usage_ping_description">This helps Mozilla to estimate active users.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Learn more about daily usage ping</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Automatically send crash reports</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Automatically submit crash reports</string>

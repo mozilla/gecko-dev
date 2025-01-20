@@ -78,6 +78,9 @@ class MetricControllerTest {
     @MockK(relaxUnitFun = true)
     private lateinit var marketingService2: MetricsService
 
+    @MockK(relaxUnitFun = true)
+    private lateinit var usageReportingService: MetricsService
+
     @Before
     fun setup() {
         MockKAnnotations.init(this)
@@ -86,6 +89,7 @@ class MetricControllerTest {
         every { dataService2.type } returns MetricServiceType.Data
         every { marketingService1.type } returns MetricServiceType.Marketing
         every { marketingService2.type } returns MetricServiceType.Marketing
+        every { usageReportingService.type } returns MetricServiceType.UsageReporting
     }
 
     @Test
@@ -103,11 +107,11 @@ class MetricControllerTest {
     @Test
     fun `release metric controller starts and stops all data services`() {
         var enabled = true
-        val controller = ReleaseMetricController(
-            services = listOf(dataService1, marketingService1, dataService2, marketingService2),
+        val controller = createReleaseMetricController(
+            services = listOf(dataService1, marketingService1, dataService2, marketingService2, usageReportingService),
             isDataTelemetryEnabled = { enabled },
             isMarketingDataTelemetryEnabled = { enabled },
-            mockk(),
+            isUsageTelemetryEnabled = { enabled },
         )
 
         controller.start(MetricServiceType.Data)
@@ -125,16 +129,16 @@ class MetricControllerTest {
             marketingService1.stop()
             marketingService2.start()
             marketingService2.stop()
+            usageReportingService.start()
+            usageReportingService.stop()
         }
     }
 
     @Test
     fun `release metric controller starts data service only if enabled`() {
-        val controller = ReleaseMetricController(
+        val controller = createReleaseMetricController(
             services = listOf(dataService1),
             isDataTelemetryEnabled = { false },
-            isMarketingDataTelemetryEnabled = { true },
-            mockk(),
         )
 
         controller.start(MetricServiceType.Data)
@@ -145,13 +149,63 @@ class MetricControllerTest {
     }
 
     @Test
+    fun `release metric controller doesn't start usage reporting service if disabled`() {
+        val controller = createReleaseMetricController(
+            services = listOf(usageReportingService),
+            isUsageTelemetryEnabled = { false },
+        )
+        controller.start(MetricServiceType.UsageReporting)
+        verify(inverse = true) { usageReportingService.start() }
+    }
+
+    @Test
+    fun `release metric controller starts usage reporting service if enabled`() {
+        val controller = createReleaseMetricController(
+            services = listOf(usageReportingService),
+        )
+        controller.start(MetricServiceType.UsageReporting)
+        verify { usageReportingService.start() }
+    }
+
+    @Test
+    fun `release metric controller starts usage reporting service if data service disabled`() {
+        val controller = createReleaseMetricController(
+            services = listOf(dataService1, usageReportingService),
+            isDataTelemetryEnabled = { false },
+        )
+        controller.start(MetricServiceType.UsageReporting)
+        verify { usageReportingService.start() }
+    }
+
+    @Test
+    fun `release metric controller doesn't stop usage reporting service if enabled`() {
+        val controller = createReleaseMetricController(
+            services = listOf(dataService1, usageReportingService),
+        )
+        controller.start(MetricServiceType.UsageReporting)
+        controller.stop(MetricServiceType.UsageReporting)
+        verify(inverse = true) { usageReportingService.stop() }
+    }
+
+    @Test
+    fun `release metric controller stops usage reporting service if disabled`() {
+        var enabled = true
+        val controller = createReleaseMetricController(
+            services = listOf(dataService1, usageReportingService),
+            isUsageTelemetryEnabled = { enabled },
+        )
+        controller.start(MetricServiceType.UsageReporting)
+        enabled = false
+        controller.stop(MetricServiceType.UsageReporting)
+        verify { usageReportingService.stop() }
+    }
+
+    @Test
     fun `release metric controller starts service only once`() {
         var enabled = true
-        val controller = ReleaseMetricController(
+        val controller = createReleaseMetricController(
             services = listOf(dataService1),
             isDataTelemetryEnabled = { enabled },
-            isMarketingDataTelemetryEnabled = { true },
-            mockk(),
         )
 
         controller.start(MetricServiceType.Data)
@@ -167,7 +221,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN AwesomeBar duration fact is processed THEN the correct metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val action = mockk<Action>()
         val duration = 1000L
         var metadata = mapOf<String, Pair<*, Long>>(
@@ -275,11 +329,11 @@ class MetricControllerTest {
     @Test
     fun `release metric controller starts and stops all marketing services`() {
         var enabled = true
-        val controller = ReleaseMetricController(
+        val controller = createReleaseMetricController(
             services = listOf(dataService1, marketingService1, dataService2, marketingService2),
             isDataTelemetryEnabled = { enabled },
             isMarketingDataTelemetryEnabled = { enabled },
-            mockk(),
+            isUsageTelemetryEnabled = { enabled },
         )
 
         controller.start(MetricServiceType.Marketing)
@@ -304,11 +358,12 @@ class MetricControllerTest {
     fun `topsites fact should set value in SharedPreference`() {
         val enabled = true
         val settings: Settings = mockk(relaxed = true)
-        val controller = ReleaseMetricController(
+        val controller = createReleaseMetricController(
             services = listOf(dataService1),
             isDataTelemetryEnabled = { enabled },
             isMarketingDataTelemetryEnabled = { enabled },
-            settings,
+            isUsageTelemetryEnabled = { enabled },
+            settings = settings,
         )
 
         val fact = Fact(
@@ -329,11 +384,12 @@ class MetricControllerTest {
     fun `web extension fact should set value in SharedPreference`() {
         val enabled = true
         val settings = Settings(testContext)
-        val controller = ReleaseMetricController(
+        val controller = createReleaseMetricController(
             services = listOf(dataService1),
             isDataTelemetryEnabled = { enabled },
             isMarketingDataTelemetryEnabled = { enabled },
-            settings,
+            isUsageTelemetryEnabled = { enabled },
+            settings = settings,
         )
         val fact = Fact(
             Component.SUPPORT_WEBEXTENSIONS,
@@ -360,7 +416,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a fact with FEATURE_PROMPTS component THEN the right metric is recorded with no extras`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val action = mockk<Action>()
 
         // Verify display interaction
@@ -438,7 +494,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a FEATURE_MEDIA NOTIFICATION fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         // Verify the play action
         var fact = Fact(Component.FEATURE_MEDIA, Action.PLAY, MediaFacts.Items.NOTIFICATION)
         assertNull(MediaNotification.play.testGetValue())
@@ -466,7 +522,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a FEATURE_AUTOFILL fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         var fact = Fact(
             Component.FEATURE_AUTOFILL,
             mockk(relaxed = true),
@@ -534,7 +590,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a ContextualMenu fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val action = mockk<Action>()
         // Verify copy button interaction
         var fact = Fact(
@@ -607,7 +663,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a CreditCardAutofillDialog fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val action = mockk<Action>(relaxed = true)
         val itemsToEvents = listOf(
             CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_FORM_DETECTED to CreditCards.formDetected,
@@ -633,7 +689,7 @@ class MetricControllerTest {
 
     @Test
     fun `GIVEN pwa facts WHEN they are processed THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val action = mockk<Action>(relaxed = true)
 
         // a PWA shortcut from homescreen was opened
@@ -667,7 +723,7 @@ class MetricControllerTest {
 
     @Test
     fun `WHEN processing a suggestion fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
 
         // Verify synced tabs suggestion clicked
         assertNull(SyncedTabs.syncedTabsSuggestionClicked.testGetValue())
@@ -742,7 +798,9 @@ class MetricControllerTest {
 
     @Test
     fun `GIVEN advertising search facts WHEN the list is processed THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { false }, mockk())
+        val controller = createReleaseMetricController(
+            isMarketingDataTelemetryEnabled = { false },
+        )
         val action = mockk<Action>()
 
         // an ad was clicked in a Search Engine Result Page
@@ -804,7 +862,7 @@ class MetricControllerTest {
 
     @Test
     fun `GIVEN a site permissions prompt is shown WHEN processing the fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val fact = Fact(
             component = Component.FEATURE_SITEPERMISSIONS,
             action = Action.DISPLAY,
@@ -818,12 +876,15 @@ class MetricControllerTest {
         }
 
         assertEquals(1, SitePermissions.promptShown.testGetValue()!!.size)
-        assertEquals("test", SitePermissions.promptShown.testGetValue()!!.single().extra!!["permissions"])
+        assertEquals(
+            "test",
+            SitePermissions.promptShown.testGetValue()!!.single().extra!!["permissions"],
+        )
     }
 
     @Test
     fun `GIVEN site permissions are allowed WHEN processing the fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val fact = Fact(
             component = Component.FEATURE_SITEPERMISSIONS,
             action = Action.CONFIRM,
@@ -837,12 +898,15 @@ class MetricControllerTest {
         }
 
         assertEquals(1, SitePermissions.permissionsAllowed.testGetValue()!!.size)
-        assertEquals("allow", SitePermissions.permissionsAllowed.testGetValue()!!.single().extra!!["permissions"])
+        assertEquals(
+            "allow",
+            SitePermissions.permissionsAllowed.testGetValue()!!.single().extra!!["permissions"],
+        )
     }
 
     @Test
     fun `GIVEN site permissions are denied WHEN processing the fact THEN the right metric is recorded`() {
-        val controller = ReleaseMetricController(emptyList(), { true }, { true }, mockk())
+        val controller = createReleaseMetricController()
         val fact = Fact(
             component = Component.FEATURE_SITEPERMISSIONS,
             action = Action.CANCEL,
@@ -858,4 +922,19 @@ class MetricControllerTest {
         assertEquals(1, SitePermissions.permissionsDenied.testGetValue()!!.size)
         assertEquals("deny", SitePermissions.permissionsDenied.testGetValue()!!.single().extra!!["permissions"])
     }
+
+    private fun createReleaseMetricController(
+        services: List<MetricsService> = emptyList(),
+        isDataTelemetryEnabled: () -> Boolean = { true },
+        isMarketingDataTelemetryEnabled: () -> Boolean = { true },
+        isUsageTelemetryEnabled: () -> Boolean = { true },
+        settings: Settings = mockk(),
+    ) =
+        ReleaseMetricController(
+            services = services,
+            isDataTelemetryEnabled = isDataTelemetryEnabled,
+            isMarketingDataTelemetryEnabled = isMarketingDataTelemetryEnabled,
+            isUsageTelemetryEnabled = isUsageTelemetryEnabled,
+            settings = settings,
+        )
 }

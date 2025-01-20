@@ -264,6 +264,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                 analytics = components.analytics,
                 isTelemetryEnabled = settings().isTelemetryEnabled,
                 isMarketingTelemetryEnabled = settings().isMarketingTelemetryEnabled,
+                isDailyUsagePingEnabled = settings().isDailyUsagePingEnabled,
             )
         }
         setupPush()

@@ -16,6 +16,11 @@ class GleanUsageReportingLifecycleObserverTest {
         var pingSubmitCount: Int = 0
         var lastUsageReason: String? = null
         var lastDurationMillis: Long? = null
+        var lastEnabled: Boolean? = null
+
+        override fun setEnabled(enabled: Boolean) {
+            lastEnabled = enabled
+        }
 
         override fun setUsageReason(usageReason: GleanUsageReportingApi.UsageReason) {
             this.lastUsageReason = usageReason.name.lowercase()

@@ -339,6 +339,7 @@ class OnboardingFragment : Fragment() {
             analytics = requireComponents.analytics,
             isTelemetryEnabled = settings.isTelemetryEnabled,
             isMarketingTelemetryEnabled = settings.isMarketingTelemetryEnabled,
+            isDailyUsagePingEnabled = settings.isDailyUsagePingEnabled,
         )
 
         findNavController().nav(

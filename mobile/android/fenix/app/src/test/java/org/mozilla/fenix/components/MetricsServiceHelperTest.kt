@@ -40,6 +40,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = false,
+            isDailyUsagePingEnabled = false,
         )
         assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Data))
     }
@@ -51,6 +52,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = false,
         )
         assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Data))
     }
@@ -62,6 +64,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = true,
             isMarketingTelemetryEnabled = false,
+            isDailyUsagePingEnabled = false,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Data))
     }
@@ -73,6 +76,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = true,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = false,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Data))
     }
@@ -84,6 +88,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = false,
+            isDailyUsagePingEnabled = false,
         )
         assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Marketing))
     }
@@ -95,6 +100,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = true,
             isMarketingTelemetryEnabled = false,
+            isDailyUsagePingEnabled = false,
         )
         assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Marketing))
     }
@@ -106,6 +112,7 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = false,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Marketing))
     }
@@ -117,50 +124,55 @@ class MetricsServiceHelperTest {
             mockAnalytics,
             isTelemetryEnabled = true,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = false,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.Marketing))
     }
 
     @Test
-    fun `when telemetry is not enabled, and marketing telemetry is not enabled, do not start usage reporting`() {
+    fun `when daily usage ping is not enabled, and other telemetry is enabled, do not start usage reporting`() {
         startMetricsIfEnabled(
             mockLogger,
             mockAnalytics,
-            isTelemetryEnabled = false,
-            isMarketingTelemetryEnabled = false,
+            isTelemetryEnabled = true,
+            isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = false,
         )
         assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.UsageReporting))
     }
 
     @Test
-    fun `when telemetry is enabled, and marketing telemetry is not enabled, start usage reporting`() {
+    fun `when daily usage ping is enabled, and other telemetry is not enabled, start usage reporting`() {
         startMetricsIfEnabled(
             mockLogger,
             mockAnalytics,
-            isTelemetryEnabled = true,
+            isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = false,
+            isDailyUsagePingEnabled = true,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.UsageReporting))
     }
 
     @Test
-    fun `when telemetry is not enabled, and marketing telemetry is enabled, do not start usage reporting`() {
+    fun `when daily usage ping is enabled, and marketing telemetry is enabled, start usage reporting`() {
         startMetricsIfEnabled(
             mockLogger,
             mockAnalytics,
             isTelemetryEnabled = false,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = true,
         )
-        assertFalse(fakeMetricController.startedServiceTypes.contains(MetricServiceType.UsageReporting))
+        assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.UsageReporting))
     }
 
     @Test
-    fun `when telemetry is enabled, and marketing telemetry is enabled, start usage reporting`() {
+    fun `when all telemetry is enabled, start usage reporting`() {
         startMetricsIfEnabled(
             mockLogger,
             mockAnalytics,
             isTelemetryEnabled = true,
             isMarketingTelemetryEnabled = true,
+            isDailyUsagePingEnabled = true,
         )
         assertTrue(fakeMetricController.startedServiceTypes.contains(MetricServiceType.UsageReporting))
     }

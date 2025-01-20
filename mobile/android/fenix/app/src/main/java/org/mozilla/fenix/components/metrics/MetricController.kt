@@ -72,10 +72,20 @@ interface MetricController {
     fun track(event: Event)
 
     companion object {
+        /**
+         * Instantiate either a debug or release version of the metric controller.
+         * The debug version writes logs rather than sending real telemetry.
+         * @param services the list of available services to start
+         * @param isDataTelemetryEnabled has data telemetry been enabled?
+         * @param isMarketingDataTelemetryEnabled has marketing telemetry been enabled?
+         * @param isUsageTelemetryEnabled has usage telemetry been enabled?
+         * @param settings the user's preferences are held in the settings object
+         */
         fun create(
             services: List<MetricsService>,
             isDataTelemetryEnabled: () -> Boolean,
             isMarketingDataTelemetryEnabled: () -> Boolean,
+            isUsageTelemetryEnabled: () -> Boolean,
             settings: Settings,
         ): MetricController {
             return if (BuildConfig.TELEMETRY) {
@@ -83,6 +93,7 @@ interface MetricController {
                     services,
                     isDataTelemetryEnabled,
                     isMarketingDataTelemetryEnabled,
+                    isUsageTelemetryEnabled,
                     settings,
                 )
             } else {
@@ -116,6 +127,7 @@ internal class ReleaseMetricController(
     private val services: List<MetricsService>,
     private val isDataTelemetryEnabled: () -> Boolean,
     private val isMarketingDataTelemetryEnabled: () -> Boolean,
+    private val isUsageTelemetryEnabled: () -> Boolean,
     private val settings: Settings,
 ) : MetricController {
     private var initialized = mutableSetOf<MetricServiceType>()
@@ -545,7 +557,7 @@ internal class ReleaseMetricController(
     private fun isTelemetryEnabled(type: MetricServiceType): Boolean = when (type) {
         MetricServiceType.Data -> isDataTelemetryEnabled()
         MetricServiceType.Marketing -> isMarketingDataTelemetryEnabled()
-        MetricServiceType.UsageReporting -> isDataTelemetryEnabled() // this will have a separate switch in future
+        MetricServiceType.UsageReporting -> isUsageTelemetryEnabled()
     }
 
     companion object {
