@@ -13,7 +13,6 @@
   --in-content-page-color: rgb(21, 20, 26);
   --in-content-page-background: var(--background-color-canvas);
   --in-content-text-color: var(--in-content-page-color);
-  --in-content-box-background-odd: rgba(12, 12, 13, 0.05); /* grey 90 a05 */
   --in-content-box-border-color: color-mix(in srgb, currentColor 41%, transparent);
   --in-content-box-info-background: #f0f0f4;
   --in-content-item-hover: color-mix(in srgb, var(--in-content-primary-button-background) 20%, transparent);
@@ -105,7 +104,6 @@
      * in-content privileged pages and plain-text documents). */
     --in-content-page-color: rgb(251,251,254);
 
-    --in-content-box-background-odd: rgba(249,249,250,0.05);
     --in-content-box-info-background: rgba(249,249,250,0.15);
 
     --in-content-border-color: rgba(249,249,250,0.2);
@@ -144,7 +142,6 @@
   :root {
     --in-content-page-color: CanvasText;
 
-    --in-content-box-background-odd: var(--background-color-box);
     --in-content-box-border-color: -moz-DialogText;
     --in-content-box-info-background: var(--background-color-box);
 
@@ -921,7 +918,7 @@ xul|treechildren::-moz-tree-row {
 }
 
 xul|treechildren::-moz-tree-row(multicol, odd) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 html|select[size][multiple] > html|option:hover,
