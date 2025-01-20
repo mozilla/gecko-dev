@@ -421,6 +421,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
  public:
   using WSType = WSScanResult::WSType;
 
+  enum class IgnoreNonEditableNodes : bool { No, Yes };
+
   template <typename EditorDOMPointType>
   WSRunScanner(const Element* aEditingHost,
                const EditorDOMPointType& aScanStartPoint,
@@ -846,7 +848,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
   EditorDOMPointType GetInclusiveNextEditableCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
-        .GetInclusiveNextEditableCharPoint<EditorDOMPointType>(aPoint);
+        .GetInclusiveNextCharPoint<EditorDOMPointType>(
+            aPoint, IgnoreNonEditableNodes::Yes);
   }
 
   /**
@@ -861,7 +864,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
   EditorDOMPointType GetPreviousEditableCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
-        .GetPreviousEditableCharPoint<EditorDOMPointType>(aPoint);
+        .GetPreviousCharPoint<EditorDOMPointType>(aPoint,
+                                                  IgnoreNonEditableNodes::Yes);
   }
 
   /**
@@ -1159,14 +1163,45 @@ class MOZ_STACK_CLASS WSRunScanner final {
       return mNBSPData.LastPointRef();
     }
 
-    template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-              typename CT>
-    EditorDOMPointType GetInclusiveNextEditableCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint) const;
-    template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-              typename CT>
-    EditorDOMPointType GetPreviousEditableCharPoint(
-        const EditorDOMPointBase<PT, CT>& aPoint) const;
+    /**
+     * Return inclusive next point in inclusive next `Text` node from aPoint.
+     * So, it may be in a collapsed white-space or invisible white-spaces.
+     */
+    template <typename EditorDOMPointType, typename PT, typename CT>
+    [[nodiscard]] static EditorDOMPointType GetInclusiveNextCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint,
+        BlockInlineCheck aBlockInlineCheck,
+        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+        const nsIContent* aFollowingLimiterContent = nullptr);
+
+    template <typename EditorDOMPointType, typename PT, typename CT>
+    [[nodiscard]] EditorDOMPointType GetInclusiveNextCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint,
+        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
+      return GetInclusiveNextCharPoint<EditorDOMPointType>(
+          aPoint, mBlockInlineCheck, aIgnoreNonEditableNodes,
+          GetEndReasonContent());
+    }
+
+    /**
+     * Return previous point in inclusive previous `Text` node from aPoint.
+     * So, it may be in a collapsed white-space or invisible white-spaces.
+     */
+    template <typename EditorDOMPointType, typename PT, typename CT>
+    [[nodiscard]] static EditorDOMPointType GetPreviousCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint,
+        BlockInlineCheck aBlockInlineCheck,
+        IgnoreNonEditableNodes aIgnoreNonEditableNodes,
+        const nsIContent* aPrecedingLimiterContent = nullptr);
+
+    template <typename EditorDOMPointType, typename PT, typename CT>
+    [[nodiscard]] EditorDOMPointType GetPreviousCharPoint(
+        const EditorDOMPointBase<PT, CT>& aPoint,
+        IgnoreNonEditableNodes aIgnoreNonEditableNodes) const {
+      return GetPreviousCharPoint<EditorDOMPointType>(aPoint, mBlockInlineCheck,
+                                                      aIgnoreNonEditableNodes,
+                                                      GetStartReasonContent());
+    }
 
     template <typename EditorDOMPointType = EditorDOMPointInText>
     EditorDOMPointType GetEndOfCollapsibleASCIIWhiteSpaces(

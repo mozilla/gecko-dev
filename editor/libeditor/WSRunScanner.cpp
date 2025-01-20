@@ -372,10 +372,11 @@ WSRunScanner::ComputeRangeInTextNodesContainingInvisibleWhiteSpaces(
     } else {
       const auto atFirstInvisibleWhiteSpace =
           hasInvisibleLeadingWhiteSpaces
-              ? aStart.GetInclusiveNextEditableCharPoint<EditorDOMPointInText>(
-                    aroundFirstInvisibleWhiteSpace)
-              : aEnd.GetInclusiveNextEditableCharPoint<EditorDOMPointInText>(
-                    aroundFirstInvisibleWhiteSpace);
+              ? aStart.GetInclusiveNextCharPoint<EditorDOMPointInText>(
+                    aroundFirstInvisibleWhiteSpace, IgnoreNonEditableNodes::Yes)
+              : aEnd.GetInclusiveNextCharPoint<EditorDOMPointInText>(
+                    aroundFirstInvisibleWhiteSpace,
+                    IgnoreNonEditableNodes::Yes);
       MOZ_ASSERT(atFirstInvisibleWhiteSpace.IsSet());
       MOZ_ASSERT(
           atFirstInvisibleWhiteSpace.EqualsOrIsBefore(result.StartRef()));
@@ -402,8 +403,10 @@ WSRunScanner::ComputeRangeInTextNodesContainingInvisibleWhiteSpaces(
   }
   const auto atLastInvisibleWhiteSpace =
       hasInvisibleTrailingWhiteSpaces
-          ? aEnd.GetPreviousEditableCharPoint(afterLastInvisibleWhiteSpace)
-          : aStart.GetPreviousEditableCharPoint(afterLastInvisibleWhiteSpace);
+          ? aEnd.GetPreviousCharPoint<EditorDOMPointInText>(
+                afterLastInvisibleWhiteSpace, IgnoreNonEditableNodes::Yes)
+          : aStart.GetPreviousCharPoint<EditorDOMPointInText>(
+                afterLastInvisibleWhiteSpace, IgnoreNonEditableNodes::Yes);
   MOZ_ASSERT(atLastInvisibleWhiteSpace.IsSet());
   MOZ_ASSERT(atLastInvisibleWhiteSpace.IsContainerEmpty() ||
              atLastInvisibleWhiteSpace.IsAtLastContent());
@@ -428,8 +431,9 @@ WSRunScanner::GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint,
   if (NS_WARN_IF(!textFragmentDataAtCaret.IsInitialized())) {
     return Err(NS_ERROR_FAILURE);
   }
-  EditorDOMPointInText atPreviousChar =
-      textFragmentDataAtCaret.GetPreviousEditableCharPoint(aPoint);
+  auto atPreviousChar =
+      textFragmentDataAtCaret.GetPreviousCharPoint<EditorDOMPointInText>(
+          aPoint, IgnoreNonEditableNodes::Yes);
   if (!atPreviousChar.IsSet()) {
     return EditorDOMRangeInTexts();  // There is no content in the block.
   }
@@ -524,8 +528,8 @@ WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(
     return Err(NS_ERROR_FAILURE);
   }
   auto atCaret =
-      textFragmentDataAtCaret
-          .GetInclusiveNextEditableCharPoint<EditorDOMPointInText>(aPoint);
+      textFragmentDataAtCaret.GetInclusiveNextCharPoint<EditorDOMPointInText>(
+          aPoint, IgnoreNonEditableNodes::Yes);
   if (!atCaret.IsSet()) {
     return EditorDOMRangeInTexts();  // There is no content in the block.
   }
