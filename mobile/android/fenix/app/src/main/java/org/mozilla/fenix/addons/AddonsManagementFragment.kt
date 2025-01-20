@@ -10,7 +10,6 @@ import android.graphics.fonts.FontStyle.FONT_WEIGHT_MEDIUM
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
@@ -35,7 +34,6 @@ import org.mozilla.fenix.databinding.FragmentAddOnsManagementBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
 import org.mozilla.fenix.theme.ThemeManager
@@ -189,9 +187,7 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
 
     internal fun installAddon(addon: Addon) {
         binding?.addonProgressOverlay?.overlayCardView?.visibility = View.VISIBLE
-        if (provideAccessibilityServicesEnabled()) {
-            binding?.let { announceForAccessibility(it.addonProgressOverlay.addOnsOverlayText.text) }
-        }
+
         val installOperation = provideAddonManger().installAddon(
             url = addon.downloadUrl,
             installationMethod = InstallationMethod.MANAGER,
@@ -214,29 +210,6 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
                 }
             }
         }
-    }
-
-    private fun announceForAccessibility(announcementText: CharSequence) {
-        val event = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            AccessibilityEvent(AccessibilityEvent.TYPE_ANNOUNCEMENT)
-        } else {
-            @Suppress("DEPRECATION")
-            AccessibilityEvent.obtain(AccessibilityEvent.TYPE_ANNOUNCEMENT)
-        }
-
-        binding?.addonProgressOverlay?.overlayCardView?.onInitializeAccessibilityEvent(event)
-        event.text.add(announcementText)
-        event.contentDescription = null
-        binding?.addonProgressOverlay?.overlayCardView?.let {
-            it.parent?.requestSendAccessibilityEvent(
-                it,
-                event,
-            )
-        }
-    }
-
-    private fun provideAccessibilityServicesEnabled(): Boolean {
-        return requireContext().settings().accessibilityServicesEnabled
     }
 
     private fun openAMO() {
