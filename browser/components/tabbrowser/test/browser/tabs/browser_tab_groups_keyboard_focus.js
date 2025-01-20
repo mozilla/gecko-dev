@@ -133,6 +133,32 @@ add_task(async function test_TabGroupKeyboardFocus() {
   await EventUtils.synthesizeKey("KEY_Enter");
   Assert.ok(tabGroup.collapsed, "Tab group should be collapsed once again");
 
+  let editor = document.getElementById("tab-group-editor");
+  let panelShown = BrowserTestUtils.waitForPopupEvent(editor.panel, "shown");
+  //XXX Should simulate a context menu event, but this doesn't seem to work:
+  //await EventUtils.synthesizeKey("VK_CONTEXT_MENU");
+  gBrowser.tabContainer.on_contextmenu({ button: 0, preventDefault: () => {} });
+  info("Waiting for the context menu key to open the group context menu");
+  await panelShown;
+  is(
+    editor.panel.state,
+    "open",
+    "Tab group context menu should be open after hitting context menu key"
+  );
+  is(
+    gBrowser.tabContainer.ariaFocusedItem,
+    tabGroup.labelElement,
+    "Keyboard focus should remain on tab group label while group context menu is open"
+  );
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(editor.panel, "hidden");
+  EventUtils.synthesizeKey("VK_ESCAPE");
+  await panelHidden;
+  is(
+    gBrowser.tabContainer.ariaFocusedItem,
+    tabGroup.labelElement,
+    "Keyboard focus should remain on tab group label after closing the group menu context menu"
+  );
+
   info("Validate that keyboard focus skips over tabs in collapsed tab groups");
   await synthesizeKeyToChangeKeyboardFocus(tab4, "KEY_ArrowRight");
   is(

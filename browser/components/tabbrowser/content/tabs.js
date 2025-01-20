@@ -72,6 +72,7 @@
       this.addEventListener("mouseleave", this);
       this.addEventListener("focusin", this);
       this.addEventListener("focusout", this);
+      this.addEventListener("contextmenu", this);
     }
 
     init() {
@@ -1484,6 +1485,23 @@
       document
         .getElementById("tab-preview-panel")
         ?.removeAttribute("rolluponmousewheel");
+    }
+
+    on_contextmenu(event) {
+      // When pressing the context menu key (as opposed to right-clicking)
+      // while a tab group label has aria focus (as opposed to DOM focus),
+      // open the tab group context menu as if the label had DOM focus.
+      // The button property is used to differentiate between key and mouse.
+      if (
+        event.button == 0 &&
+        this.ariaFocusedItem &&
+        isTabGroupLabel(this.ariaFocusedItem)
+      ) {
+        gBrowser.tabGroupMenu.openEditModal(
+          this.ariaFocusedItem.closest("tab-group")
+        );
+        event.preventDefault();
+      }
     }
 
     get emptyTabTitle() {
