@@ -6,7 +6,6 @@
 
 #include "DMABufSurface.h"
 #include "DMABufLibWrapper.h"
-#include "DMABufFormats.h"
 
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
@@ -51,10 +50,8 @@
 
 /*
 TODO:
-  - DRM device selection:
-    https://lists.freedesktop.org/archives/wayland-devel/2018-November/039660.html
-  - Use uint64_t mBufferModifiers / mGbmBufferObject for RGBA
-  - Remove file descriptors open/close?
+DRM device selection:
+https://lists.freedesktop.org/archives/wayland-devel/2018-November/039660.html
 */
 
 /* C++ / C typecast macros for special EGL handle values */
@@ -489,15 +486,34 @@ already_AddRefed<gfx::DataSourceSurface> DMABufSurface::GetAsSourceSurface() {
   return source.forget();
 }
 
+#ifdef MOZ_WAYLAND
+void DMABufSurface::ReleaseWlBuffer() {
+  if (mWlBuffer) {
+    LOGDMABUF(
+        ("DMABufSurface::ReleaseWlBuffer() [%p] UID %d", mWlBuffer, GetUID()));
+    MozClearPointer(mWlBuffer, wl_buffer_destroy);
+  }
+}
+#endif
+
+int32_t DMABufSurface::GetFOURCCFormat() { return mFOURCCFormat; }
+
 DMABufSurfaceRGBA::DMABufSurfaceRGBA()
     : DMABufSurface(SURFACE_RGBA),
+      mSurfaceFlags(0),
       mWidth(0),
       mHeight(0),
+      mGmbFormat(nullptr),
       mEGLImage(LOCAL_EGL_NO_IMAGE),
       mTexture(0),
       mGbmBufferFlags(0) {}
 
-DMABufSurfaceRGBA::~DMABufSurfaceRGBA() { ReleaseSurface(); }
+DMABufSurfaceRGBA::~DMABufSurfaceRGBA() {
+#ifdef MOZ_WAYLAND
+  ReleaseWlBuffer();
+#endif
+  ReleaseSurface();
+}
 
 bool DMABufSurfaceRGBA::OpenFileDescriptorForPlane(
     const MutexAutoLock& aProofOfLock, int aPlane) {
@@ -553,48 +569,34 @@ void DMABufSurfaceRGBA::CloseFileDescriptorForPlane(
 
 bool DMABufSurfaceRGBA::Create(int aWidth, int aHeight,
                                int aDMABufSurfaceFlags) {
-  mFOURCCFormat = aDMABufSurfaceFlags & DMABUF_ALPHA ? GBM_FORMAT_ARGB8888
-                                                     : GBM_FORMAT_XRGB8888;
-  RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
-  if (!format) {
-    return false;
-  }
-  return Create(aWidth, aHeight, format, aDMABufSurfaceFlags);
-}
-
-bool DMABufSurfaceRGBA::Create(int aWidth, int aHeight,
-                               RefPtr<DRMFormat> aFormat,
-                               int aDMABufSurfaceFlags) {
   MOZ_ASSERT(mGbmBufferObject[0] == nullptr, "Already created?");
 
+  mSurfaceFlags = aDMABufSurfaceFlags;
+  mWidth = aWidth;
+  mHeight = aHeight;
+
+  LOGDMABUF(("DMABufSurfaceRGBA::Create() UID %d size %d x %d\n", mUID, mWidth,
+             mHeight));
+
   if (!GetDMABufDevice()->GetGbmDevice()) {
-    LOGDMABUF(("DMABufSurfaceRGBA::Create(): Missing GbmDevice!"));
+    LOGDMABUF(("    Missing GbmDevice!"));
     return false;
   }
 
-  mWidth = aWidth;
-  mHeight = aHeight;
-  mFOURCCFormat = aFormat->GetFormat();
-
-  LOGDMABUF(
-      ("DMABufSurfaceRGBA::Create() UID %d size %d x %d format 0x%x "
-       "modifiers %d\n",
-       mUID, mWidth, mHeight, mFOURCCFormat, aFormat->UseModifiers()));
-
-  if (aDMABufSurfaceFlags & DMABUF_TEXTURE) {
-    mGbmBufferFlags = GBM_BO_USE_RENDERING;
-  } else if (aDMABufSurfaceFlags & DMABUF_SCANOUT) {
-    mGbmBufferFlags = GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT;
+  mGmbFormat = GetDMABufDevice()->GetGbmFormat(mSurfaceFlags & DMABUF_ALPHA);
+  if (!mGmbFormat) {
+    // Requested DRM format is not supported.
+    return false;
   }
-  bool useModifiers =
-      aFormat->UseModifiers() && (aDMABufSurfaceFlags & DMABUF_USE_MODIFIERS);
+  mFOURCCFormat = mGmbFormat->mFormat;
+
+  bool useModifiers = (aDMABufSurfaceFlags & DMABUF_USE_MODIFIERS) &&
+                      !mGmbFormat->mModifiers.IsEmpty();
   if (useModifiers) {
     LOGDMABUF(("    Creating with modifiers\n"));
-    uint32_t modifiersNum = 0;
-    const uint64_t* modifiers = aFormat->GetModifiers(modifiersNum);
-    mGbmBufferObject[0] = GbmLib::CreateWithModifiers2(
+    mGbmBufferObject[0] = GbmLib::CreateWithModifiers(
         GetDMABufDevice()->GetGbmDevice(), mWidth, mHeight, mFOURCCFormat,
-        modifiers, modifiersNum, mGbmBufferFlags);
+        mGmbFormat->mModifiers.Elements(), mGmbFormat->mModifiers.Length());
     if (mGbmBufferObject[0]) {
       mBufferModifiers[0] = GbmLib::GetModifier(mGbmBufferObject[0]);
     }
@@ -602,7 +604,7 @@ bool DMABufSurfaceRGBA::Create(int aWidth, int aHeight,
 
   if (!mGbmBufferObject[0]) {
     LOGDMABUF(("    Creating without modifiers\n"));
-    mGbmBufferFlags = GBM_BO_USE_RENDERING | GBM_BO_USE_LINEAR;
+    mGbmBufferFlags = GBM_BO_USE_LINEAR;
     mGbmBufferObject[0] =
         GbmLib::Create(GetDMABufDevice()->GetGbmDevice(), mWidth, mHeight,
                        mFOURCCFormat, mGbmBufferFlags);
@@ -616,7 +618,6 @@ bool DMABufSurfaceRGBA::Create(int aWidth, int aHeight,
 
   if (mBufferModifiers[0] != DRM_FORMAT_MOD_INVALID) {
     mBufferPlaneCount = GbmLib::GetPlaneCount(mGbmBufferObject[0]);
-    LOGDMABUF(("    Planes count %d", mBufferPlaneCount));
     if (mBufferPlaneCount > DMABUF_BUFFER_PLANES) {
       LOGDMABUF(
           ("    There's too many dmabuf planes! (%d)", mBufferPlaneCount));
@@ -700,13 +701,8 @@ bool DMABufSurfaceRGBA::Create(
   mWidth = aWidth;
   mHeight = aHeight;
   mBufferModifiers[0] = aDMABufInfo.modifier;
-
-  // TODO: Read Vulkan modifiers from DMABufFormats?
-  mFOURCCFormat = GBM_FORMAT_ARGB8888;
-  RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
-  if (!format) {
-    return false;
-  }
+  mGmbFormat = GetDMABufDevice()->GetGbmFormat(true);
+  mFOURCCFormat = mGmbFormat->mFormat;
   mBufferPlaneCount = aDMABufInfo.plane_count;
 
   RefPtr<gfx::FileHandleWrapper> fd = std::move(aFd);
@@ -942,13 +938,11 @@ void DMABufSurfaceRGBA::ReleaseSurface() {
 }
 
 #ifdef MOZ_WAYLAND
-wl_buffer* DMABufSurfaceRGBA::CreateWlBuffer() {
+bool DMABufSurfaceRGBA::CreateWlBuffer() {
   nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
   auto* dmabuf = waylandDisplay->GetDmabuf();
   if (!dmabuf) {
-    gfxCriticalNoteOnce
-        << "DMABufSurfaceRGBA::CreateWlBuffer(): Missing DMABuf support!";
-    return nullptr;
+    return false;
   }
 
   MutexAutoLock lockFD(mSurfaceLock);
@@ -958,35 +952,33 @@ wl_buffer* DMABufSurfaceRGBA::CreateWlBuffer() {
 
   if (!OpenFileDescriptors(lockFD)) {
     LOGDMABUF(("  failed to open dmabuf fd"));
-    return nullptr;
+    return false;
   }
 
   struct zwp_linux_buffer_params_v1* params =
       zwp_linux_dmabuf_v1_create_params(dmabuf);
 
   LOGDMABUF(("  layer [0] modifier %" PRIx64, mBufferModifiers[0]));
-  for (int i = 0; i < mBufferPlaneCount; i++) {
-    zwp_linux_buffer_params_v1_add(
-        params, mDmabufFds[i]->GetHandle(), i, mOffsets[i], mStrides[i],
-        mBufferModifiers[0] >> 32, mBufferModifiers[0] & 0xffffffff);
-  }
+  zwp_linux_buffer_params_v1_add(
+      params, mDmabufFds[0]->GetHandle(), 0, mOffsets[0], mStrides[0],
+      mBufferModifiers[0] >> 32, mBufferModifiers[0] & 0xffffffff);
 
   LOGDMABUF(
       ("  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
        GetWidth(), GetHeight(), GetFOURCCFormat()));
-  wl_buffer* buffer = zwp_linux_buffer_params_v1_create_immed(
+  mWlBuffer = zwp_linux_buffer_params_v1_create_immed(
       params, GetWidth(), GetHeight(), GetFOURCCFormat(), 0);
-  if (!buffer) {
+  if (!mWlBuffer) {
     LOGDMABUF(
         ("  zwp_linux_buffer_params_v1_create_immed(): failed to create "
          "wl_buffer!"));
   } else {
-    LOGDMABUF(("  created wl_buffer [%p]", buffer));
+    LOGDMABUF(("  created wl_buffer [%p]", mWlBuffer));
   }
-  zwp_linux_buffer_params_v1_destroy(params);
 
   CloseFileDescriptors(lockFD);
-  return buffer;
+
+  return mWlBuffer != nullptr;
 }
 #endif
 
@@ -1150,7 +1142,7 @@ void DMABufSurfaceRGBA::Clear() {
 }
 
 bool DMABufSurfaceRGBA::HasAlpha() {
-  return mFOURCCFormat == GBM_FORMAT_ARGB8888;
+  return !mGmbFormat || mGmbFormat->mHasAlpha;
 }
 
 gfx::SurfaceFormat DMABufSurfaceRGBA::GetFormat() {
@@ -1168,16 +1160,6 @@ already_AddRefed<DMABufSurfaceRGBA> DMABufSurfaceRGBA::CreateDMABufSurface(
     int aWidth, int aHeight, int aDMABufSurfaceFlags) {
   RefPtr<DMABufSurfaceRGBA> surf = new DMABufSurfaceRGBA();
   if (!surf->Create(aWidth, aHeight, aDMABufSurfaceFlags)) {
-    return nullptr;
-  }
-  return surf.forget();
-}
-
-already_AddRefed<DMABufSurfaceRGBA> DMABufSurfaceRGBA::CreateDMABufSurface(
-    int aWidth, int aHeight, RefPtr<DRMFormat> aFormat,
-    int aDMABufSurfaceFlags) {
-  RefPtr<DMABufSurfaceRGBA> surf = new DMABufSurfaceRGBA();
-  if (!surf->Create(aWidth, aHeight, aFormat, aDMABufSurfaceFlags)) {
     return nullptr;
   }
   return surf.forget();
@@ -1249,7 +1231,12 @@ DMABufSurfaceYUV::DMABufSurfaceYUV()
   }
 }
 
-DMABufSurfaceYUV::~DMABufSurfaceYUV() { ReleaseSurface(); }
+DMABufSurfaceYUV::~DMABufSurfaceYUV() {
+#ifdef MOZ_WAYLAND
+  ReleaseWlBuffer();
+#endif
+  ReleaseSurface();
+}
 
 bool DMABufSurfaceYUV::OpenFileDescriptorForPlane(
     const MutexAutoLock& aProofOfLock, int aPlane) {
@@ -1843,13 +1830,11 @@ nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
 }
 
 #ifdef MOZ_WAYLAND
-wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
+bool DMABufSurfaceYUV::CreateWlBuffer() {
   nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
   auto* dmabuf = waylandDisplay->GetDmabuf();
   if (!dmabuf) {
-    gfxCriticalNoteOnce
-        << "DMABufSurfaceYUV::CreateWlBuffer(): Missing DMABuf support!";
-    return nullptr;
+    return false;
   }
 
   MutexAutoLock lockFD(mSurfaceLock);
@@ -1859,7 +1844,7 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
 
   if (!OpenFileDescriptors(lockFD)) {
     LOGDMABUF(("  failed to open dmabuf fd"));
-    return nullptr;
+    return false;
   }
 
   struct zwp_linux_buffer_params_v1* params =
@@ -1874,18 +1859,19 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
   LOGDMABUF(
       ("  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
        GetWidth(), GetHeight(), GetFOURCCFormat()));
-  wl_buffer* buffer = zwp_linux_buffer_params_v1_create_immed(
+  mWlBuffer = zwp_linux_buffer_params_v1_create_immed(
       params, GetWidth(), GetHeight(), GetFOURCCFormat(), 0);
-  if (!buffer) {
+  if (!mWlBuffer) {
     LOGDMABUF(
         ("  zwp_linux_buffer_params_v1_create_immed(): failed to create "
          "wl_buffer!"));
   } else {
-    LOGDMABUF(("  created wl_buffer [%p]", buffer));
+    LOGDMABUF(("  created wl_buffer [%p]", mWlBuffer));
   }
 
   CloseFileDescriptors(lockFD);
-  return buffer;
+
+  return mWlBuffer != nullptr;
 }
 #endif
 
