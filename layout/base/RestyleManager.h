@@ -506,6 +506,7 @@ class RestyleManager {
 
   ServoStyleSet* StyleSet() const { return PresContext()->StyleSet(); }
 
+  void RestyleWholeContainer(nsINode* aContainer, NodeSelectorFlags);
   void RestylePreviousSiblings(nsIContent* aStartingSibling);
   void RestyleSiblingsStartingWith(nsIContent* aStartingSibling);
 
@@ -547,6 +548,9 @@ class RestyleManager {
   // ProcessRestyledFrames, so we don't try to touch them again even if
   // they're referenced again later in the changelist.
   mozilla::UniquePtr<nsTHashSet<const nsIFrame*>> mDestroyedFrames;
+
+  // Containers we've already fully restyled / invalidated.
+  nsTHashSet<RefPtr<nsINode>> mRestyledAsWholeContainer;
 
  protected:
   // True if we're in the middle of a nsRefreshDriver refresh

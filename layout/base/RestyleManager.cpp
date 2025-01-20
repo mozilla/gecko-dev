@@ -134,19 +134,7 @@ void RestyleManager::ContentAppended(nsIContent* aFirstNewContent) {
   }
 
   if (selectorFlags & NodeSelectorFlags::HasSlowSelector) {
-    if (container->IsElement()) {
-      auto* containerElement = container->AsElement();
-      PostRestyleEvent(containerElement, RestyleHint::RestyleSubtree(),
-                       nsChangeHint(0));
-      if (selectorFlags & NodeSelectorFlags::HasSlowSelectorNthAll) {
-        StyleSet()->MaybeInvalidateRelativeSelectorForNthDependencyFromSibling(
-            containerElement->GetFirstElementChild(),
-            /* aForceRestyleSiblings = */ false);
-      }
-    } else {
-      RestylePreviousSiblings(aFirstNewContent);
-      RestyleSiblingsStartingWith(aFirstNewContent);
-    }
+    RestyleWholeContainer(container, selectorFlags);
     // Restyling the container is the most we can do here, so we're done.
     return;
   }
@@ -182,6 +170,24 @@ void RestyleManager::RestyleSiblingsStartingWith(nsIContent* aStartingSibling) {
     if (auto* element = Element::FromNode(sibling)) {
       PostRestyleEvent(element, RestyleHint::RestyleSubtree(), nsChangeHint(0));
     }
+  }
+}
+
+void RestyleManager::RestyleWholeContainer(nsINode* aContainer,
+                                           NodeSelectorFlags aSelectorFlags) {
+  if (!mRestyledAsWholeContainer.EnsureInserted(aContainer)) {
+    return;
+  }
+  if (auto* containerElement = Element::FromNode(aContainer)) {
+    PostRestyleEvent(containerElement, RestyleHint::RestyleSubtree(),
+                     nsChangeHint(0));
+    if (aSelectorFlags & NodeSelectorFlags::HasSlowSelectorNthAll) {
+      StyleSet()->MaybeInvalidateRelativeSelectorForNthDependencyFromSibling(
+          containerElement->GetFirstElementChild(),
+          /* aForceRestyleSiblings = */ false);
+    }
+  } else {
+    RestyleSiblingsStartingWith(aContainer->GetFirstChild());
   }
 }
 
@@ -399,19 +405,7 @@ void RestyleManager::RestyleForInsertOrChange(nsIContent* aChild) {
   }
 
   if (selectorFlags & NodeSelectorFlags::HasSlowSelector) {
-    if (container->IsElement()) {
-      auto* containerElement = container->AsElement();
-      PostRestyleEvent(containerElement, RestyleHint::RestyleSubtree(),
-                       nsChangeHint(0));
-      if (selectorFlags & NodeSelectorFlags::HasSlowSelectorNthAll) {
-        StyleSet()->MaybeInvalidateRelativeSelectorForNthDependencyFromSibling(
-            containerElement->GetFirstElementChild(),
-            /* aForceRestyleSiblings = */ false);
-      }
-    } else {
-      RestylePreviousSiblings(aChild);
-      RestyleSiblingsStartingWith(aChild);
-    }
+    RestyleWholeContainer(container, selectorFlags);
     // Restyling the container is the most we can do here, so we're done.
     return;
   }
@@ -468,10 +462,11 @@ void RestyleManager::ContentWillBeRemoved(nsIContent* aOldChild) {
   }
 
   // The container cannot be a document.
-  MOZ_ASSERT(container->IsElement() || container->IsShadowRoot());
+  const bool containerIsElement = container->IsElement();
+  MOZ_ASSERT(containerIsElement || container->IsShadowRoot());
 
   if (selectorFlags & NodeSelectorFlags::HasEmptySelector &&
-      container->IsElement()) {
+      containerIsElement) {
     // see whether we need to restyle the container
     bool isEmpty = true;  // :empty or :-moz-only-whitespace
     for (nsIContent* child = container->GetFirstChild(); child;
@@ -485,26 +480,25 @@ void RestyleManager::ContentWillBeRemoved(nsIContent* aOldChild) {
         break;
       }
     }
-    if (isEmpty && container->IsElement()) {
+    if (isEmpty && containerIsElement) {
       RestyleForEmptyChange(container->AsElement());
       return;
     }
   }
 
-  if (selectorFlags & NodeSelectorFlags::HasSlowSelector) {
-    if (container->IsElement()) {
-      auto* containerElement = container->AsElement();
-      PostRestyleEvent(containerElement, RestyleHint::RestyleSubtree(),
-                       nsChangeHint(0));
-      if (selectorFlags & NodeSelectorFlags::HasSlowSelectorNthAll) {
-        StyleSet()->MaybeInvalidateRelativeSelectorForNthDependencyFromSibling(
-            containerElement->GetFirstElementChild(),
-            /* aForceRestyleSiblings = */ false);
-      }
-    } else {
-      RestylePreviousSiblings(aOldChild);
-      RestyleSiblingsStartingWith(aOldChild);
-    }
+  // It is somewhat common to remove all nodes in a container from the
+  // beginning. If we're doing that, going through the
+  // HasSlowSelectorLaterSiblings code-path would be quadratic, so that's not
+  // amazing. Instead, we take the slower path (which also restyles the
+  // container) in that case. It restyles one more element, but it avoids the
+  // quadratic behavior.
+  const bool restyleWholeContainer =
+      (selectorFlags & NodeSelectorFlags::HasSlowSelector) ||
+      (selectorFlags & NodeSelectorFlags::HasSlowSelectorLaterSiblings &&
+       !aOldChild->GetPreviousSibling());
+
+  if (restyleWholeContainer) {
+    RestyleWholeContainer(container, selectorFlags);
     // Restyling the container is the most we can do here, so we're done.
     return;
   }
@@ -3267,6 +3261,7 @@ void RestyleManager::DoProcessPendingRestyles(ServoTraversalFlags aFlags) {
 
   while (styleSet->StyleDocument(aFlags)) {
     ClearSnapshots();
+    mRestyledAsWholeContainer.Clear();
 
     // Select scroll anchors for frames that have been scrolled. Do this
     // before processing restyled frames so that anchor nodes are correctly
@@ -3362,6 +3357,7 @@ void RestyleManager::DoProcessPendingRestyles(ServoTraversalFlags aFlags) {
   presContext->FinishedContainerQueryUpdate();
   presContext->UpdateHiddenByContentVisibilityForAnimationsIfNeeded();
   ClearSnapshots();
+  mRestyledAsWholeContainer.Clear();
   styleSet->AssertTreeIsClean();
 
   mHaveNonAnimationRestyles = false;
