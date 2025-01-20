@@ -307,6 +307,10 @@ struct JSWindowActorInfo
   nsCString name;
   bool allFrames;
 
+  // True if `url` is for ESM.
+  // False if `url` is for JSM or nothing.
+  bool isESModule;
+
   // This is to align with JSProcessActorInfo.
   // This attribute isn't used for JSWindow Actors.
   bool loadInDevToolsLoader;

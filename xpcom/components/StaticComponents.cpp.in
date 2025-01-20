@@ -83,6 +83,15 @@ const nsXPTInterface gInterfaces[] = {
 //# @interfaces@
 };
 
+//# @define_has_component_jsms@
+
+#ifdef HAS_COMPONENT_JSMS
+// TODO: Remove this once m-c and c-c migrations finish (bug 1881887).
+const StringOffset gComponentJSMs[] = {
+//# @component_jsms@
+};
+#endif
+
 const StringOffset gComponentESModules[] = {
 //# @component_esmodules@
 };
@@ -107,9 +116,12 @@ bool ContractEntry::Matches(const nsACString& aContractID) const {
   return aContractID == ContractID() && Module().Active();
 }
 
-static nsresult ConstructESModuleComponent(const nsACString& aURI,
-                                      const char* aConstructor,
-                                      nsISupports** aResult) {
+enum class ComponentType { JSM, ESM };
+
+template <ComponentType type>
+static nsresult ConstructJSMOrESMComponent(const nsACString& aURI,
+                                           const char* aConstructor,
+                                           nsISupports** aResult) {
   if (!nsComponentManagerImpl::JSLoaderReady()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -119,7 +131,12 @@ static nsresult ConstructESModuleComponent(const nsACString& aURI,
   JSContext* cx = jsapi.cx();
 
   JS::Rooted<JSObject*> exports(cx);
-  MOZ_TRY(mozJSModuleLoader::Get()->ImportESModule(cx, aURI, &exports));
+  if constexpr (type == ComponentType::JSM) {
+    JS::Rooted<JSObject*> global(cx);
+    MOZ_TRY(mozJSModuleLoader::Get()->Import(cx, aURI, &global, &exports));
+  } else {
+    MOZ_TRY(mozJSModuleLoader::Get()->ImportESModule(cx, aURI, &exports));
+  }
 
   JS::Rooted<JS::Value> ctor(cx);
   if (!JS_GetProperty(cx, exports, aConstructor, &ctor) ||
@@ -134,6 +151,20 @@ static nsresult ConstructESModuleComponent(const nsACString& aURI,
 
   return nsContentUtils::XPConnect()->WrapJS(cx, inst, NS_GET_IID(nsISupports),
                                              (void**)aResult);
+}
+
+[[maybe_unused]] static nsresult ConstructJSMComponent(const nsACString& aURI,
+                                                       const char* aConstructor,
+                                                       nsISupports** aResult) {
+  return ConstructJSMOrESMComponent<ComponentType::JSM>(
+    aURI, aConstructor, aResult);
+}
+
+static nsresult ConstructESModuleComponent(const nsACString& aURI,
+                                      const char* aConstructor,
+                                      nsISupports** aResult) {
+  return ConstructJSMOrESMComponent<ComponentType::ESM>(
+    aURI, aConstructor, aResult);
 }
 
 //# @module_cid_table@
@@ -321,6 +352,24 @@ const StaticProtocolHandler* StaticProtocolHandler::Lookup(const nsACString& aSc
     return true;
   }
   return false;
+}
+
+/* static */ already_AddRefed<nsIUTF8StringEnumerator>
+StaticComponents::GetComponentJSMs() {
+#ifdef HAS_COMPONENT_JSMS
+  auto jsms = MakeUnique<nsTArray<nsCString>>(std::size(gComponentJSMs));
+
+  for (const auto& entry : gComponentJSMs) {
+    jsms->AppendElement(GetString(entry));
+  }
+#else
+  auto jsms = MakeUnique<nsTArray<nsCString>>(0);
+#endif
+
+  nsCOMPtr<nsIUTF8StringEnumerator> result;
+  MOZ_ALWAYS_SUCCEEDS(NS_NewAdoptingUTF8StringEnumerator(getter_AddRefs(result),
+                                                         jsms.release()));
+  return result.forget();
 }
 
 /* static */ already_AddRefed<nsIUTF8StringEnumerator>

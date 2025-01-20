@@ -19,7 +19,7 @@ class TestGenStaticComponents(unittest.TestCase):
         clas = {
             "cid": "{a8566880-0bc7-4822-adb9-748c9af5cce7}",
             "contract_ids": ["@mozilla.org/dummy-class;1"],
-            "esModule": "resource:///modules/DummyClass.sys.mjs",
+            "jsm": "resource:///modules/DummyClass.jsm",
             "js_name": "dummyClass",
             "constructor": "DummyClassImpl",
             "categories": {
@@ -61,7 +61,7 @@ class TestGenStaticComponents(unittest.TestCase):
         clas = {
             "cid": "{a8566880-0bc7-4822-adb9-748c9af5cce7}",
             "contract_ids": ["@mozilla.org/dummy-class;1"],
-            "esModule": "resource:///modules/DummyClass.sys.mjs",
+            "jsm": "resource:///modules/DummyClass.jsm",
             "js_name": "dummyClass",
             "constructor": "DummyClassImpl",
             "categories": {
@@ -105,7 +105,7 @@ class TestGenStaticComponents(unittest.TestCase):
         clas = {
             "cid": "{a8566880-0bc7-4822-adb9-748c9af5cce7}",
             "contract_ids": ["@mozilla.org/dummy-class;1"],
-            "esModule": "resource:///modules/DummyClass.sys.mjs",
+            "jsm": "resource:///modules/DummyClass.jsm",
             "js_name": "dummyClass",
             "constructor": "DummyClassImpl",
             "categories": {
