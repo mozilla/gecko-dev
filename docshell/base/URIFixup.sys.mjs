@@ -92,6 +92,8 @@ const {
 
 const COMMON_PROTOCOLS = ["http", "https", "file"];
 
+const HTTPISH = new Set(["http", "https"]);
+
 // Regex used to identify user:password tokens in url strings.
 // This is not a strict valid characters check, because we try to fixup this
 // part of the url too.
@@ -331,9 +333,9 @@ URIFixup.prototype = {
       (!lazy.possiblyHostPortRegex.test(uriString) &&
         !lazy.userPasswordRegex.test(uriString))
     ) {
-      // Just try to create an URL out of it.
+      // Just try to create a URL out of it.
       try {
-        info.fixedURI = Services.io.newURI(uriString);
+        info.fixedURI = makeURIWithFixedLocalHosts(uriString, fixupFlags);
       } catch (ex) {
         if (ex.result != Cr.NS_ERROR_MALFORMED_URI) {
           throw ex;
@@ -395,7 +397,7 @@ URIFixup.prototype = {
       lazy.maxOneTabRegex.test(uriString) &&
       !detectSpaceInCredentials(untrimmedURIString)
     ) {
-      let uriWithProtocol = fixupURIProtocol(uriString);
+      let uriWithProtocol = fixupURIProtocol(uriString, fixupFlags);
       if (uriWithProtocol) {
         info.fixedURI = uriWithProtocol;
         info.fixupChangedProtocol = true;
@@ -529,7 +531,7 @@ URIFixup.prototype = {
       !submission ||
       // For security reasons (avoid redirecting to file, data, or other unsafe
       // protocols) we only allow fixup to http/https search engines.
-      !submission.uri.scheme.startsWith("http")
+      !HTTPISH.has(submission.uri.scheme)
     ) {
       throw new Components.Exception(
         "Invalid search submission uri",
@@ -561,7 +563,7 @@ URIFixup.prototype = {
       FIXUP_FLAG_FIX_SCHEME_TYPOS
     );
 
-    if (scheme != "http" && scheme != "https") {
+    if (!HTTPISH.has(scheme)) {
       throw new Components.Exception(
         "Scheme should be either http or https",
         Cr.NS_ERROR_FAILURE
@@ -572,7 +574,7 @@ URIFixup.prototype = {
     info.fixedURI = Services.io.newURI(fixedSchemeUriString);
 
     let host = info.fixedURI.host;
-    if (host != "http" && host != "https" && host != "localhost") {
+    if (!HTTPISH.has(host) && host != "localhost") {
       let modifiedHostname = maybeAddPrefixAndSuffix(host);
       updateHostAndScheme(info, modifiedHostname);
       info.preferredURI = info.fixedURI;
@@ -908,7 +910,7 @@ function maybeSetAlternateFixedURI(info, fixupFlags) {
   // Don't create an alternate uri for localhost, because it would be confusing.
   // Ditto for 'http' and 'https' as these are frequently the result of typos, e.g.
   // 'https//foo' (note missing : ).
-  if (oldHost == "localhost" || oldHost == "http" || oldHost == "https") {
+  if (oldHost == "localhost" || HTTPISH.has(oldHost)) {
     return false;
   }
 
@@ -972,10 +974,11 @@ function fileURIFixup(uriString) {
  *    user:pass@no-scheme.com
  *
  * @param {string} uriString The string to fixup.
+ * @param {Number} fixupFlags The fixup flags to use.
  * @returns {nsIURI} an nsIURI built adding the default protocol to the string,
  *          or null if fixing was not possible.
  */
-function fixupURIProtocol(uriString) {
+function fixupURIProtocol(uriString, fixupFlags) {
   // The longest URI scheme on the IANA list is 36 chars + 3 for ://
   let schemeChars = uriString.slice(0, 39);
 
@@ -984,11 +987,39 @@ function fixupURIProtocol(uriString) {
     uriString = "http://" + uriString;
   }
   try {
-    return Services.io.newURI(uriString);
+    return makeURIWithFixedLocalHosts(uriString, fixupFlags);
   } catch (ex) {
     // We generated an invalid uri.
   }
   return null;
+}
+
+/**
+ * A thin wrapper around `newURI` that fixes up the host if it's
+ * 0.0.0.0 or ::, which are no longer valid. Aims to facilitate
+ * user typos and/or "broken" links output by commandline tools.
+ *
+ * @param {string} uriString The string to make into a URI.
+ * @param {Number} fixupFlags The fixup flags to use.
+ * @throws NS_ERROR_MALFORMED_URI if the uri is invalid.
+ */
+function makeURIWithFixedLocalHosts(uriString, fixupFlags) {
+  let uri = Services.io.newURI(uriString);
+
+  // We only want to fix up 0.0.0.0 if the URL came from the user, either
+  // from the address bar or as a commandline argument (ie clicking links
+  // in other applications, terminal, etc.). We can't use
+  // FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP for this as that isn't normally allowed
+  // for external links, and the other flags are sometimes used for
+  // web-provided content. So we cheat and use the scheme typo flag.
+  if (fixupFlags & FIXUP_FLAG_FIX_SCHEME_TYPOS && HTTPISH.has(uri.scheme)) {
+    if (uri.host == "0.0.0.0") {
+      uri = uri.mutate().setHost("127.0.0.1").finalize();
+    } else if (uri.host == "::") {
+      uri = uri.mutate().setHost("[::1]").finalize();
+    }
+  }
+  return uri;
 }
 
 /**
