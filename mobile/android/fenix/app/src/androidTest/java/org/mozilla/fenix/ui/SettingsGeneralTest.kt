@@ -130,12 +130,9 @@ class SettingsGeneralTest : TestSetup() {
             openSearchBar()
             typeInSearchBar("French")
             verifySearchResultsContains(systemLocaleDefault)
-            clearSearchBar()
-            typeInSearchBar("French")
             selectLanguageSearchResult("Français")
             verifyLanguageHeaderIsTranslated(FRENCH_LANGUAGE_HEADER)
-            // Add this step when https://github.com/mozilla-mobile/fenix/issues/26733 is fixed
-            // verifyLanguageListIsDisplayed()
+            verifyLanguageListIsDisplayed()
         }
     }
 
