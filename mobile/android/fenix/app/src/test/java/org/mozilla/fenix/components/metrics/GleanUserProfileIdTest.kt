@@ -4,38 +4,20 @@
 
 package org.mozilla.fenix.components.metrics
 
-import android.content.Context
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
-import mozilla.components.support.utils.RunWhenReadyQueue
 import org.junit.Test
-import org.mockito.Mockito.mock
+import org.mozilla.fenix.components.metrics.fake.FakeGleanProfileId
+import org.mozilla.fenix.components.metrics.fake.FakeGleanProfileIdStore
+import org.mozilla.fenix.components.metrics.fake.FakeGleanUsageReporting
+import org.mozilla.fenix.components.metrics.fake.FakeLifecycleEventObserver
+import org.mozilla.fenix.components.metrics.fake.FakeLifecycleOwner
 import java.util.UUID
 
-internal class GleanMetricsServiceTest {
+internal class GleanUserProfileIdTest {
 
-    private val mockContext: Context = mock()
-    private val fakeGleanUsageId = object : GleanProfileId {
-        var gleanStoredProfileId: UUID? = null
-        var generatedProfileId: UUID = UUID.randomUUID()
-
-        override fun generateAndSet(): UUID {
-            gleanStoredProfileId = generatedProfileId
-            return generatedProfileId
-        }
-        override fun set(profileId: UUID) { gleanStoredProfileId = profileId }
-        override fun unset() { gleanStoredProfileId = null }
-    }
-    private val fakeGleanProfileIdStore = object : GleanProfileIdStore {
-        var appStoredProfileId: String? = null
-        override var profileId: String?
-            get() = appStoredProfileId
-            set(value) { appStoredProfileId = value }
-
-        override fun clear() {
-            appStoredProfileId = null
-        }
-    }
+    private val fakeGleanUsageId = FakeGleanProfileId()
+    private val fakeGleanProfileIdStore = FakeGleanProfileIdStore()
 
     @Test
     fun `when the app is run for the first time, before initialising glean there are no stored profile ids`() {
@@ -45,19 +27,19 @@ internal class GleanMetricsServiceTest {
 
     @Test
     fun `when the app is run for the first time, a new glean usage profile id is generated and set`() {
-        createGleanMetricsService().start()
+        createGleanUsageReportingMetricsService().start()
         assertEquals(fakeGleanUsageId.generatedProfileId, fakeGleanUsageId.gleanStoredProfileId)
     }
 
     @Test
     fun `when a new glean id is generated, it is stored in the app's prefs`() {
-        createGleanMetricsService().start()
+        createGleanUsageReportingMetricsService().start()
         assertEquals(fakeGleanUsageId.generatedProfileId.toString(), fakeGleanProfileIdStore.appStoredProfileId)
     }
 
     @Test
     fun `on the second run of the app, the glean usage profile id is retrieved from prefs`() {
-        val service = createGleanMetricsService()
+        val service = createGleanUsageReportingMetricsService()
         val firstGeneratedProfileId = fakeGleanUsageId.generatedProfileId
         service.start()
         fakeGleanUsageId.generatedProfileId = UUID.randomUUID()
@@ -67,7 +49,7 @@ internal class GleanMetricsServiceTest {
 
     @Test
     fun `on the second run of the app, the app stored glean usage profile id is set in glean`() {
-        val service = createGleanMetricsService()
+        val service = createGleanUsageReportingMetricsService()
         val firstGeneratedProfileId = fakeGleanUsageId.generatedProfileId
         service.start()
         fakeGleanUsageId.generatedProfileId = UUID.randomUUID()
@@ -77,18 +59,18 @@ internal class GleanMetricsServiceTest {
 
     @Test
     fun `when glean telemetry is switched off, the glean usage profile id is unset`() {
-        val service = createGleanMetricsService()
+        val service = createGleanUsageReportingMetricsService()
         service.start()
         service.stop()
         assertNull(fakeGleanProfileIdStore.appStoredProfileId)
         assertNull(fakeGleanUsageId.gleanStoredProfileId)
     }
 
-    private fun createGleanMetricsService() =
-        GleanMetricsService(
-            mockContext,
-            RunWhenReadyQueue(),
-            fakeGleanUsageId,
-            fakeGleanProfileIdStore,
-        )
+    private fun createGleanUsageReportingMetricsService() = GleanUsageReportingMetricsService(
+        lifecycleOwner = FakeLifecycleOwner(),
+        gleanUsageReportingLifecycleObserver = FakeLifecycleEventObserver(),
+        gleanUsageReporting = FakeGleanUsageReporting(),
+        gleanProfileId = fakeGleanUsageId,
+        gleanProfileIdStore = fakeGleanProfileIdStore,
+    )
 }
