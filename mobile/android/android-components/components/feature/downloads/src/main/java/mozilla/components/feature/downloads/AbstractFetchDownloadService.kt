@@ -939,13 +939,50 @@ abstract class AbstractFetchDownloadService : Service() {
 
         var copyVersionNumber = 1
 
-        while (potentialFile.exists() || fileNameExistsInCurrentDownloads(potentialFile.name, download, downloadJobs)) {
+        while (isFileInDownloads(potentialFile.name) ||
+            potentialFile.exists() ||
+            fileNameExistsInCurrentDownloads(
+                potentialFile.name,
+                download,
+                downloadJobs,
+            )
+        ) {
             potentialFile = File(path, "$fileBaseName(${copyVersionNumber++})$fileExtension")
         }
 
         return download.copy(
             fileName = potentialFile.name,
         )
+    }
+
+    private fun isFileInDownloads(fileName: String): Boolean {
+        val uri: Uri
+        val projection: Array<String>
+        val selection: String
+        val selectionArgs = arrayOf(fileName)
+
+        if (SDK_INT >= Build.VERSION_CODES.Q) {
+            uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            projection = arrayOf(
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+            )
+            selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} = ?"
+        } else {
+            uri = MediaStore.Files.getContentUri("external")
+            projection = arrayOf(MediaStore.MediaColumns._ID)
+            selection = "${MediaStore.MediaColumns.DATA} = ?"
+        }
+
+        context.contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                // File exists
+                logger.debug("File $fileName exists in Downloads folder.")
+                return true
+            }
+        }
+        // File does not exist
+        logger.debug("File $fileName does not exist in Downloads folder.")
+        return false
     }
 
     private fun fileNameExistsInCurrentDownloads(
