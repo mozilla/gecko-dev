@@ -123,7 +123,23 @@ fun OnboardingScreen(
     val hasScrolledToNextPage = remember { mutableStateOf(false) }
 
     LaunchedEffect(isSignedIn.value, isWidgetPinnedState) {
-        if ((isSignedIn.value == true || isWidgetPinnedState) && !hasScrolledToNextPage.value) {
+        val scrollToNextCardFromSignIn = isSignedIn.value?.let {
+            scrollToNextCardFromSignIn(
+                pagesToDisplay,
+                pagerState.currentPage,
+                it,
+            )
+        } ?: false
+
+        val scrollToNextCardFromAddWidget = scrollToNextCardFromAddWidget(
+            pagesToDisplay,
+            pagerState.currentPage,
+            isWidgetPinnedState,
+        )
+
+        val scrollToNextCard = scrollToNextCardFromSignIn || scrollToNextCardFromAddWidget
+
+        if (scrollToNextCard && !hasScrolledToNextPage.value) {
             scrollToNextPageOrDismiss()
             hasScrolledToNextPage.value = true
         }
@@ -198,6 +214,28 @@ fun OnboardingScreen(
         onMarketingDataLearnMoreClick = onMarketingDataLearnMoreClick,
         onboardingStore = onboardingStore,
     )
+}
+
+private fun scrollToNextCardFromAddWidget(
+    pagesToDisplay: List<OnboardingPageUiData>,
+    currentPageIndex: Int,
+    isWidgetPinnedState: Boolean,
+): Boolean {
+    val indexOfWidgetPage =
+        pagesToDisplay.indexOfFirst { it.type == OnboardingPageUiData.Type.ADD_SEARCH_WIDGET }
+    val currentPageIsWidgetPage = currentPageIndex == indexOfWidgetPage
+    return isWidgetPinnedState && currentPageIsWidgetPage
+}
+
+private fun scrollToNextCardFromSignIn(
+    pagesToDisplay: List<OnboardingPageUiData>,
+    currentPageIndex: Int,
+    isSignedIn: Boolean,
+): Boolean {
+    val indexOfSignInPage =
+        pagesToDisplay.indexOfFirst { it.type == OnboardingPageUiData.Type.SYNC_SIGN_IN }
+    val currentPageIsSignInPage = currentPageIndex == indexOfSignInPage
+    return isSignedIn && currentPageIsSignInPage
 }
 
 @Composable

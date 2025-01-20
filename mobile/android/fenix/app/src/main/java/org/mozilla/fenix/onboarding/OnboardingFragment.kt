@@ -17,14 +17,12 @@ import android.view.ViewGroup
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
-import androidx.core.app.NotificationManagerCompat
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.fragment.findNavController
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.service.nimbus.evalJexlSafe
 import mozilla.components.service.nimbus.messaging.use
-import mozilla.components.support.base.ext.areNotificationsEnabledSafe
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.BrowsersCache
 import org.mozilla.fenix.GleanMetrics.Pings
@@ -79,7 +77,7 @@ class OnboardingFragment : Fragment() {
         with(requireContext()) {
             pagesToDisplay(
                 showDefaultBrowserPage = isNotDefaultBrowser(this) && !isDefaultBrowserPromptSupported(),
-                showNotificationPage = canShowNotificationPage(this),
+                showNotificationPage = canShowNotificationPage(),
                 showAddWidgetPage = canShowAddSearchWidgetPrompt(),
             )
         }
@@ -359,9 +357,7 @@ class OnboardingFragment : Fragment() {
     private fun isNotDefaultBrowser(context: Context) =
         !BrowsersCache.all(context.applicationContext).isDefaultBrowser
 
-    private fun canShowNotificationPage(context: Context) =
-        !NotificationManagerCompat.from(context.applicationContext)
-            .areNotificationsEnabledSafe() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    private fun canShowNotificationPage() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
     private fun pagesToDisplay(
         showDefaultBrowserPage: Boolean,
