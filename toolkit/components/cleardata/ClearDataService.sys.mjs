@@ -1097,10 +1097,7 @@ const QuotaCleaner = {
       return;
     }
     // return early if directory does not exist or empty
-    if (
-      !(await IOUtils.getChildren(toBeRemovedDir, { ignoreAbsent: true }))
-        .length
-    ) {
+    if (!(await IOUtils.hasChildren(toBeRemovedDir, { ignoreAbsent: true }))) {
       return;
     }
 
