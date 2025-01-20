@@ -121,7 +121,7 @@ class SearchMiddlewareTest {
     }
 
     fun `Loads search engines for locale (An)`() {
-        Locale.setDefault(Locale("an", "AN"))
+        Locale.setDefault(Locale.Builder().setLanguage("an").setRegion("AN").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -159,7 +159,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (CA)`() {
-        Locale.setDefault(Locale("CA", "CA"))
+        Locale.setDefault(Locale.Builder().setLanguage("CA").setRegion("CA").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -197,7 +197,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (CY)`() {
-        Locale.setDefault(Locale("cy", "CY"))
+        Locale.setDefault(Locale.Builder().setLanguage("cy").setRegion("CY").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -235,7 +235,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (fy-NL)`() {
-        Locale.setDefault(Locale("fy", "NL"))
+        Locale.setDefault(Locale.Builder().setLanguage("fy").setRegion("NL").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -273,7 +273,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (en-AU)`() {
-        Locale.setDefault(Locale("en", "AU"))
+        Locale.setDefault(Locale.Builder().setLanguage("en").setRegion("AU").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -311,7 +311,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (en-GB)`() {
-        Locale.setDefault(Locale("en", "GB"))
+        Locale.setDefault(Locale.Builder().setLanguage("en").setRegion("GB").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -350,7 +350,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (en-IE)`() {
-        Locale.setDefault(Locale("en", "IE"))
+        Locale.setDefault(Locale.Builder().setLanguage("en").setRegion("IE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -389,7 +389,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (fr-BE)`() {
-        Locale.setDefault(Locale("fr", "BE"))
+        Locale.setDefault(Locale.Builder().setLanguage("fr").setRegion("BE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -428,7 +428,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (fr-CA)`() {
-        Locale.setDefault(Locale("fr", "CA"))
+        Locale.setDefault(Locale.Builder().setLanguage("fr").setRegion("CA").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -466,7 +466,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (fr-FR)`() {
-        Locale.setDefault(Locale("fr", "FR"))
+        Locale.setDefault(Locale.Builder().setLanguage("fr").setRegion("FR").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -505,7 +505,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (de-AT)`() {
-        Locale.setDefault(Locale("de", "AT"))
+        Locale.setDefault(Locale.Builder().setLanguage("de").setRegion("AT").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -545,7 +545,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (DE)`() {
-        Locale.setDefault(Locale("de", "DE"))
+        Locale.setDefault(Locale.Builder().setLanguage("de").setRegion("DE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -585,7 +585,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (DSB)`() {
-        Locale.setDefault(Locale("dsb", "DE"))
+        Locale.setDefault(Locale.Builder().setLanguage("dsb").setRegion("DE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -623,7 +623,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (HSB)`() {
-        Locale.setDefault(Locale("hsb", "DE"))
+        Locale.setDefault(Locale.Builder().setLanguage("hsb").setRegion("DE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -661,7 +661,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (ES)`() {
-        Locale.setDefault(Locale("es", "ES"))
+        Locale.setDefault(Locale.Builder().setLanguage("es").setRegion("ES").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -699,7 +699,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (IT)`() {
-        Locale.setDefault(Locale("it", "IT"))
+        Locale.setDefault(Locale.Builder().setLanguage("it").setRegion("IT").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -737,7 +737,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for Locale (lij)`() {
-        Locale.setDefault(Locale("lij", "ZE"))
+        Locale.setDefault(Locale.Builder().setLanguage("lij").setRegion("ZE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -775,7 +775,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (SE)`() {
-        Locale.setDefault(Locale("sv", "SE"))
+        Locale.setDefault(Locale.Builder().setLanguage("sv").setRegion("SE").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -814,7 +814,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (PL)`() {
-        Locale.setDefault(Locale("pl", "PL"))
+        Locale.setDefault(Locale.Builder().setLanguage("pl").setRegion("PL").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,
@@ -1796,7 +1796,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Loads search engines for locale (JA)`() {
-        Locale.setDefault(Locale("ja", "JA"))
+        Locale.setDefault(Locale.Builder().setLanguage("ja").setRegion("JA").build())
         val searchMiddleware = SearchMiddleware(
             testContext,
             ioDispatcher = dispatcher,

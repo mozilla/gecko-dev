@@ -16,7 +16,7 @@ class LocaleStateReducerTest {
     fun `WHEN updating locale action is called THEN the locale state is updated`() {
         val reducer = LocaleStateReducer
         val state = BrowserState()
-        val locale = Locale("es")
+        val locale = Locale.forLanguageTag("es")
         val action = LocaleAction.UpdateLocaleAction(locale)
 
         assertNull(state.locale)

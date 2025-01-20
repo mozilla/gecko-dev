@@ -16,7 +16,7 @@ class LocaleActionTest {
     @Test
     fun `WHEN a new locale is selected THEN it is updated in the store`() {
         val store = BrowserStore(BrowserState())
-        val locale1 = Locale("es")
+        val locale1 = Locale.forLanguageTag("es")
         store.dispatch(LocaleAction.UpdateLocaleAction(locale1)).joinBlocking()
         assertEquals(locale1, store.state.locale)
     }

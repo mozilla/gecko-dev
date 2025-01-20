@@ -45,7 +45,7 @@ class ExtensionsTest {
             translatableName = mapOf(Addon.DEFAULT_LOCALE to "name", "de" to "Name", "es" to "nombre"),
         )
 
-        Locale.setDefault(Locale("es"))
+        Locale.setDefault(Locale.forLanguageTag("es"))
 
         assertEquals("nombre", addon.translateName(testContext))
 
@@ -63,7 +63,7 @@ class ExtensionsTest {
         val addon = Addon("id")
         val map = mapOf(addon.defaultLocale to "Hello", "es" to "Hola", "de" to "Hallo")
 
-        Locale.setDefault(Locale("es"))
+        Locale.setDefault(Locale.forLanguageTag("es"))
 
         assertEquals("Hola", map.translate(addon, testContext))
 
@@ -123,7 +123,7 @@ class ExtensionsTest {
         Locale.setDefault(Locale.GERMAN)
         assertEquals("1.000", getFormattedAmount(amount))
 
-        Locale.setDefault(Locale("es"))
+        Locale.setDefault(Locale.forLanguageTag("es"))
         assertEquals("1.000", getFormattedAmount(amount))
     }
 

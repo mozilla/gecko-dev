@@ -15,9 +15,9 @@ fun String.toLocale(): Locale {
     return if (index != -1) {
         val langCode = substring(0, index)
         val countryCode = substring(index + 1)
-        Locale(langCode, countryCode)
+        Locale.Builder().setLanguage(langCode).setRegion(countryCode).build()
     } else {
-        Locale(this)
+        Locale.forLanguageTag(this)
     }
 }
 

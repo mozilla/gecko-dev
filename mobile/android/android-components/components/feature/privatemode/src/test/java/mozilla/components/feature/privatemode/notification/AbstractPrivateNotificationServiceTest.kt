@@ -146,7 +146,7 @@ class AbstractPrivateNotificationServiceTest {
         attachContext(service)
         service.onCreate()
 
-        val mockLocale = Locale("English")
+        val mockLocale = Locale.forLanguageTag("English")
         service.store.dispatch(LocaleAction.UpdateLocaleAction(mockLocale)).joinBlocking()
         dispatcher.scheduler.advanceUntilIdle()
 
