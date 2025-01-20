@@ -11,9 +11,7 @@ const {
 const {
   moveInfobar,
 } = require("resource://devtools/server/actors/highlighters/utils/markup.js");
-const {
-  truncateString,
-} = require("resource://devtools/shared/inspector/utils.js");
+const { truncateString } = require("resource://devtools/shared/string.js");
 
 const STRINGS_URI = "devtools/shared/locales/accessibility.properties";
 loader.lazyRequireGetter(

@@ -69,6 +69,7 @@ DevToolsModules(
     "picker-constants.js",
     "plural-form.js",
     "protocol.js",
+    "string.js",
     "system.js",
     "ThreadSafeDevToolsUtils.js",
     "throttle.js",
