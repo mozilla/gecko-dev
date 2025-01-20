@@ -69,6 +69,8 @@ class HTMLSlotElement final : public nsGenericHTMLElement {
 
   void RemoveManuallyAssignedNode(nsIContent&);
 
+  void RecalculateHasSlottedState();
+
  protected:
   virtual ~HTMLSlotElement();
   JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
