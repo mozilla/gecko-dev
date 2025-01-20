@@ -303,7 +303,7 @@ void HTMLSlotElement::InsertAssignedNode(uint32_t aIndex, nsIContent& aNode) {
   MOZ_ASSERT(!aNode.GetAssignedSlot(), "Losing track of a slot");
   mAssignedNodes.InsertElementAt(aIndex, &aNode);
   aNode.SetAssignedSlot(this);
-  RecalculateHasSlottedState();
+  SetStates(ElementState::HAS_SLOTTED, true);
   SlotAssignedNodeAdded(this, aNode);
 }
 
@@ -311,31 +311,8 @@ void HTMLSlotElement::AppendAssignedNode(nsIContent& aNode) {
   MOZ_ASSERT(!aNode.GetAssignedSlot(), "Losing track of a slot");
   mAssignedNodes.AppendElement(&aNode);
   aNode.SetAssignedSlot(this);
-  RecalculateHasSlottedState();
+  SetStates(ElementState::HAS_SLOTTED, true);
   SlotAssignedNodeAdded(this, aNode);
-}
-
-void HTMLSlotElement::RecalculateHasSlottedState() {
-  bool hasSlotted = false;
-  // Find the first node that makes this a slotted element.
-  for (const RefPtr<nsINode>& assignedNode : mAssignedNodes) {
-    if (auto* slot = HTMLSlotElement::FromNode(assignedNode)) {
-      if (slot->IsInShadowTree() &&
-          !slot->State().HasState(ElementState::HAS_SLOTTED)) {
-        continue;
-      }
-    }
-    hasSlotted = true;
-    break;
-  }
-  if (State().HasState(ElementState::HAS_SLOTTED) != hasSlotted) {
-    SetStates(ElementState::HAS_SLOTTED, hasSlotted);
-    // If slot is a slotted node itself, the assigned slot needs to
-    // RecalculateHasSlottedState:
-    if (auto* slot = GetAssignedSlot()) {
-      slot->RecalculateHasSlottedState();
-    }
-  }
 }
 
 void HTMLSlotElement::RemoveAssignedNode(nsIContent& aNode) {
@@ -345,8 +322,7 @@ void HTMLSlotElement::RemoveAssignedNode(nsIContent& aNode) {
              "How exactly?");
   mAssignedNodes.RemoveElement(&aNode);
   aNode.SetAssignedSlot(nullptr);
-
-  RecalculateHasSlottedState();
+  SetStates(ElementState::HAS_SLOTTED, !mAssignedNodes.IsEmpty());
   SlotAssignedNodeRemoved(this, aNode);
 }
 
@@ -359,7 +335,7 @@ void HTMLSlotElement::ClearAssignedNodes() {
   }
 
   mAssignedNodes.Clear();
-  RecalculateHasSlottedState();
+  SetStates(ElementState::HAS_SLOTTED, false);
 }
 
 void HTMLSlotElement::EnqueueSlotChangeEvent() {
