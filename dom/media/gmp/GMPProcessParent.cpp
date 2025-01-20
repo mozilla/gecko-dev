@@ -15,7 +15,6 @@
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "nsFmtString.h"
 
 #include "base/string_util.h"
 #include "base/process_util.h"
@@ -233,14 +232,7 @@ bool GMPProcessParent::Launch(int32_t aTimeoutMs) {
   // We need to wait until OnChannelConnected to clear the pref serializer, but
   // SyncLaunch will block until that is called, so we don't actually need to do
   // any overriding, and it only lives on the stack.
-  bool launched = SyncLaunch(std::move(args), aTimeoutMs);
-  if (launched) {
-    nsFmtString name{FMT_STRING(u"GMPProcessParent {}"),
-                     static_cast<void*>(this)};
-    mShutdownBlocker = media::ShutdownBlockingTicket::Create(
-        name, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
-  }
-  return launched;
+  return SyncLaunch(std::move(args), aTimeoutMs);
 }
 
 void GMPProcessParent::Delete(nsCOMPtr<nsIRunnable> aCallback) {

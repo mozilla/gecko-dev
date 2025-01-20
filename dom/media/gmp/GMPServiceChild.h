@@ -11,8 +11,8 @@
 #include "base/process.h"
 #include "mozilla/dom/PContent.h"
 #include "mozilla/gmp/PGMPServiceChild.h"
-#include "mozilla/media/MediaUtils.h"
 #include "mozilla/MozPromise.h"
+#include "nsIAsyncShutdown.h"
 #include "nsRefPtrHashtable.h"
 
 namespace mozilla::gmp {
@@ -21,7 +21,8 @@ class GMPContentParent;
 class GMPContentParentCloseBlocker;
 class GMPServiceChild;
 
-class GeckoMediaPluginServiceChild : public GeckoMediaPluginService {
+class GeckoMediaPluginServiceChild : public GeckoMediaPluginService,
+                                     public nsIAsyncShutdownBlocker {
   friend class GMPServiceChild;
 
  public:
@@ -29,6 +30,7 @@ class GeckoMediaPluginServiceChild : public GeckoMediaPluginService {
   nsresult Init() override;
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIASYNCSHUTDOWNBLOCKER
 
   NS_IMETHOD HasPluginForAPI(const nsACString& aAPI,
                              const nsTArray<nsCString>& aTags,
@@ -122,8 +124,11 @@ class GeckoMediaPluginServiceChild : public GeckoMediaPluginService {
   // - mShutdownBlockerHasBeenAdded.
   void RemoveShutdownBlockerIfNeeded();
 
-  // Ticket that controls the shutdown blocker.
-  UniquePtr<media::ShutdownBlockingTicket> mShutdownBlocker;
+#ifdef DEBUG
+  // Track if we've added a shutdown blocker for sanity checking. Main thread
+  // only.
+  bool mShutdownBlockerAdded = false;
+#endif  // DEBUG
   // The number of GetContentParent calls that have not yet been resolved or
   // rejected. We use this value to help determine if we need to block
   // shutdown. Should only be used on GMP thread to avoid races.

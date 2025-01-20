@@ -91,7 +91,8 @@ class GMPParent final
   void DeleteProcess();
 
   GMPState State() const;
-  nsCOMPtr<nsISerialEventTarget> GMPEventTarget();
+  bool IsOnGMPEventTarget() const;
+  nsCOMPtr<nsISerialEventTarget> GMPEventTarget() const;
 
   void OnPreferenceChange(const mozilla::dom::Pref& aPref);
 
@@ -128,6 +129,8 @@ class GMPParent final
   already_AddRefed<nsIFile> GetDirectory() {
     return nsCOMPtr<nsIFile>(mDirectory).forget();
   }
+
+  void AbortAsyncShutdown();
 
   // Called when the child process has died.
   void ChildTerminated();
