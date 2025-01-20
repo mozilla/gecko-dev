@@ -10,6 +10,7 @@
 #include "HTMLEditUtils.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/AncestorIterator.h"
 
 #include "nsCRT.h"
 #include "nsDebug.h"
@@ -21,6 +22,8 @@ namespace mozilla {
 
 using namespace dom;
 
+using AncestorType = HTMLEditUtils::AncestorType;
+using AncestorTypes = HTMLEditUtils::AncestorTypes;
 using LeafNodeType = HTMLEditUtils::LeafNodeType;
 
 template WSRunScanner::TextFragmentData::TextFragmentData(
@@ -72,58 +75,60 @@ NS_INSTANTIATE_CONST_METHOD_RETURNING_ANY_EDITOR_DOM_POINT(
     const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
     nsIEditor::EDirection aDirectionToDelete);
 
+constexpr static const AncestorTypes kScanAnyRootAncestorTypes = {
+    // If the point is in a block, we need to scan only in the block
+    AncestorType::ClosestBlockElement,
+    // So, we want a root element of the (shadow) tree root element of the
+    // point
+    // if there is no parent block
+    AncestorType::AllowRootOrAncestorLimiterElement,
+    // Basically, given point shouldn't be a void element, so, ignore
+    // ancestor
+    // void elements
+    AncestorType::IgnoreHRElement};
+constexpr static const AncestorTypes kScanEditableRootAncestorTypes = {
+    // Only editable elements
+    AncestorType::EditableElement,
+    // And the others are same as kScanAnyRootAncestorTypes
+    AncestorType::ClosestBlockElement,
+    AncestorType::AllowRootOrAncestorLimiterElement,
+    AncestorType::IgnoreHRElement};
+
 template <typename EditorDOMPointType>
 WSRunScanner::TextFragmentData::TextFragmentData(
     const EditorDOMPointType& aPoint, const Element* aEditingHost,
     BlockInlineCheck aBlockInlineCheck)
     : mEditingHost(aEditingHost), mBlockInlineCheck(aBlockInlineCheck) {
-  if (!aPoint.IsSetAndValid()) {
-    NS_WARNING("aPoint was invalid");
-    return;
-  }
-  if (!aPoint.IsInContentNode()) {
-    NS_WARNING("aPoint was in Document or DocumentFragment");
-    // I.e., we're try to modify outside of root element.  We don't need to
-    // support such odd case because web apps cannot append text nodes as
-    // direct child of Document node.
+  if (NS_WARN_IF(!aPoint.IsInContentNodeAndValidInComposedDoc()) ||
+      NS_WARN_IF(!aPoint.GetContainerOrContainerParentElement())) {
+    // We don't need to support composing in uncomposed tree.
     return;
   }
 
   mScanStartPoint = aPoint.template To<EditorDOMPoint>();
-  NS_ASSERTION(
-      EditorUtils::IsEditableContent(*mScanStartPoint.ContainerAs<nsIContent>(),
-                                     EditorType::HTML),
-      "Given content is not editable");
-  NS_ASSERTION(
-      mScanStartPoint.ContainerAs<nsIContent>()->GetAsElementOrParentElement(),
-      "Given content is not an element and an orphan node");
-  if (NS_WARN_IF(!EditorUtils::IsEditableContent(
-          *mScanStartPoint.ContainerAs<nsIContent>(), EditorType::HTML))) {
+  const Element* const
+      editableBlockElementOrInlineEditingHostOrNonEditableRootElement =
+          HTMLEditUtils::GetInclusiveAncestorElement(
+              *mScanStartPoint.ContainerAs<nsIContent>(),
+              HTMLEditUtils::IsSimplyEditableNode(
+                  *mScanStartPoint.ContainerAs<nsIContent>())
+                  ? kScanEditableRootAncestorTypes
+                  : kScanAnyRootAncestorTypes,
+              aBlockInlineCheck);
+  if (NS_WARN_IF(
+          !editableBlockElementOrInlineEditingHostOrNonEditableRootElement)) {
     return;
   }
-  const Element* editableBlockElementOrInlineEditingHost =
-      HTMLEditUtils::GetInclusiveAncestorElement(
-          *mScanStartPoint.ContainerAs<nsIContent>(),
-          HTMLEditUtils::ClosestEditableBlockElementOrInlineEditingHost,
-          aBlockInlineCheck);
-  if (!editableBlockElementOrInlineEditingHost) {
-    NS_WARNING(
-        "HTMLEditUtils::GetInclusiveAncestorElement(HTMLEditUtils::"
-        "ClosestEditableBlockElementOrInlineEditingHost) couldn't find "
-        "editing host");
-    return;
-  }
-
   mStart = BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-      mScanStartPoint, *editableBlockElementOrInlineEditingHost, mEditingHost,
-      &mNBSPData, aBlockInlineCheck);
+      mScanStartPoint, &mNBSPData, aBlockInlineCheck,
+      *editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
   MOZ_ASSERT_IF(mStart.IsNonCollapsibleCharacters(),
                 !mStart.PointRef().IsPreviousCharPreformattedNewLine());
   MOZ_ASSERT_IF(mStart.IsPreformattedLineBreak(),
                 mStart.PointRef().IsPreviousCharPreformattedNewLine());
   mEnd = BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-      mScanStartPoint, *editableBlockElementOrInlineEditingHost, mEditingHost,
-      &mNBSPData, aBlockInlineCheck);
+      mScanStartPoint, &mNBSPData, aBlockInlineCheck,
+      *editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
   MOZ_ASSERT_IF(mEnd.IsNonCollapsibleCharacters(),
                 !mEnd.PointRef().IsCharPreformattedNewLine());
   MOZ_ASSERT_IF(mEnd.IsPreformattedLineBreak(),
@@ -196,12 +201,9 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
 template <typename EditorDOMPointType>
 WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-        const EditorDOMPointType& aPoint,
-        const Element& aEditableBlockParentOrTopmostEditableInlineElement,
-        const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
-        BlockInlineCheck aBlockInlineCheck) {
+        const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+        BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
-  MOZ_ASSERT(aEditableBlockParentOrTopmostEditableInlineElement.IsEditable());
 
   if (aPoint.IsInTextNode() && !aPoint.IsStartOfContainer()) {
     Maybe<BoundaryData> startInTextNode =
@@ -213,28 +215,22 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     // The text node does not have visible character, let's keep scanning
     // preceding nodes.
     return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-        EditorDOMPoint(aPoint.template ContainerAs<Text>(), 0),
-        aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-        aNBSPData, aBlockInlineCheck);
+        EditorDOMPoint(aPoint.template ContainerAs<Text>(), 0), aNBSPData,
+        aBlockInlineCheck, aAncestorLimiter);
   }
 
   // Then, we need to check previous leaf node.
   nsIContent* previousLeafContentOrBlock =
       HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-          aPoint, aEditableBlockParentOrTopmostEditableInlineElement,
-          {LeafNodeType::LeafNodeOrNonEditableNode}, aBlockInlineCheck,
-          aEditingHost);
+          aPoint, {LeafNodeType::LeafNodeOrNonEditableNode}, aBlockInlineCheck,
+          &aAncestorLimiter);
   if (!previousLeafContentOrBlock) {
-    // No previous content means that we reached
-    // aEditableBlockParentOrTopmostEditableInlineElement boundary.
-    return BoundaryData(aPoint,
-                        const_cast<Element&>(
-                            aEditableBlockParentOrTopmostEditableInlineElement),
-                        HTMLEditUtils::IsBlockElement(
-                            aEditableBlockParentOrTopmostEditableInlineElement,
-                            aBlockInlineCheck)
-                            ? WSType::CurrentBlockBoundary
-                            : WSType::InlineEditingHostBoundary);
+    // No previous content means that we reached the aAncestorLimiter boundary.
+    return BoundaryData(
+        aPoint, const_cast<Element&>(aAncestorLimiter),
+        HTMLEditUtils::IsBlockElement(aAncestorLimiter, aBlockInlineCheck)
+            ? WSType::CurrentBlockBoundary
+            : WSType::InlineEditingHostBoundary);
   }
 
   if (HTMLEditUtils::IsBlockElement(*previousLeafContentOrBlock,
@@ -259,8 +255,7 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     // looking for the previous one.
     return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
         EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0),
-        aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-        aNBSPData, aBlockInlineCheck);
+        aNBSPData, aBlockInlineCheck, aAncestorLimiter);
   }
 
   Maybe<BoundaryData> startInTextNode =
@@ -274,9 +269,8 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
   // The text node does not have visible character, let's keep scanning
   // preceding nodes.
   return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-      EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0),
-      aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-      aNBSPData, aBlockInlineCheck);
+      EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0), aNBSPData,
+      aBlockInlineCheck, aAncestorLimiter);
 }
 
 // static
@@ -343,12 +337,9 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
 template <typename EditorDOMPointType>
 WSRunScanner::TextFragmentData::BoundaryData
 WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-    const EditorDOMPointType& aPoint,
-    const Element& aEditableBlockParentOrTopmostEditableInlineElement,
-    const Element* aEditingHost, NoBreakingSpaceData* aNBSPData,
-    BlockInlineCheck aBlockInlineCheck) {
+    const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+    BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
-  MOZ_ASSERT(aEditableBlockParentOrTopmostEditableInlineElement.IsEditable());
 
   if (aPoint.IsInTextNode() && !aPoint.IsEndOfContainer()) {
     Maybe<BoundaryData> endInTextNode =
@@ -361,27 +352,22 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
     // following nodes.
     return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
         EditorDOMPointInText::AtEndOf(*aPoint.template ContainerAs<Text>()),
-        aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-        aNBSPData, aBlockInlineCheck);
+        aNBSPData, aBlockInlineCheck, aAncestorLimiter);
   }
 
   // Then, we need to check next leaf node.
   nsIContent* nextLeafContentOrBlock =
       HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-          aPoint, aEditableBlockParentOrTopmostEditableInlineElement,
-          {LeafNodeType::LeafNodeOrNonEditableNode}, aBlockInlineCheck,
-          aEditingHost);
+          aPoint, {LeafNodeType::LeafNodeOrNonEditableNode}, aBlockInlineCheck,
+          &aAncestorLimiter);
   if (!nextLeafContentOrBlock) {
-    // No next content means that we reached
-    // aEditableBlockParentOrTopmostEditableInlineElement boundary.
-    return BoundaryData(aPoint.template To<EditorDOMPoint>(),
-                        const_cast<Element&>(
-                            aEditableBlockParentOrTopmostEditableInlineElement),
-                        HTMLEditUtils::IsBlockElement(
-                            aEditableBlockParentOrTopmostEditableInlineElement,
-                            aBlockInlineCheck)
-                            ? WSType::CurrentBlockBoundary
-                            : WSType::InlineEditingHostBoundary);
+    // No next content means that we reached aAncestorLimiter boundary.
+    return BoundaryData(
+        aPoint.template To<EditorDOMPoint>(),
+        const_cast<Element&>(aAncestorLimiter),
+        HTMLEditUtils::IsBlockElement(aAncestorLimiter, aBlockInlineCheck)
+            ? WSType::CurrentBlockBoundary
+            : WSType::InlineEditingHostBoundary);
   }
 
   if (HTMLEditUtils::IsBlockElement(*nextLeafContentOrBlock,
@@ -407,9 +393,8 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
     // Note that even if the empty text node is preformatted, we should keep
     // looking for the next one.
     return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-        EditorDOMPointInText(nextLeafContentOrBlock->AsText(), 0),
-        aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-        aNBSPData, aBlockInlineCheck);
+        EditorDOMPointInText(nextLeafContentOrBlock->AsText(), 0), aNBSPData,
+        aBlockInlineCheck, aAncestorLimiter);
   }
 
   Maybe<BoundaryData> endInTextNode =
@@ -424,8 +409,7 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
   // following nodes.
   return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
       EditorDOMPointInText::AtEndOf(*nextLeafContentOrBlock->AsText()),
-      aEditableBlockParentOrTopmostEditableInlineElement, aEditingHost,
-      aNBSPData, aBlockInlineCheck);
+      aNBSPData, aBlockInlineCheck, aAncestorLimiter);
 }
 
 const EditorDOMRange&
@@ -837,39 +821,30 @@ WSRunScanner::TextFragmentData::GetInclusiveNextEditableCharPoint(
     return EditorDOMPointType();
   }
 
-  NS_ASSERTION(
-      EditorUtils::IsEditableContent(*mScanStartPoint.ContainerAs<nsIContent>(),
-                                     EditorType::HTML),
-      "Given content is not editable");
-  NS_ASSERTION(
-      mScanStartPoint.ContainerAs<nsIContent>()->GetAsElementOrParentElement(),
-      "Given content is not an element and an orphan node");
-  nsIContent* editableBlockElementOrInlineEditingHost =
-      mScanStartPoint.ContainerAs<nsIContent>() &&
-              EditorUtils::IsEditableContent(
-                  *mScanStartPoint.ContainerAs<nsIContent>(), EditorType::HTML)
-          ? HTMLEditUtils::GetInclusiveAncestorElement(
-                *mScanStartPoint.ContainerAs<nsIContent>(),
-                HTMLEditUtils::ClosestEditableBlockElementOrInlineEditingHost,
-                mBlockInlineCheck)
-          : nullptr;
-  if (NS_WARN_IF(!editableBlockElementOrInlineEditingHost)) {
-    // Meaning that the container of `mScanStartPoint` is not editable.
-    editableBlockElementOrInlineEditingHost =
-        mScanStartPoint.ContainerAs<nsIContent>();
+  const Element* const
+      editableBlockElementOrInlineEditingHostOrNonEditableRootElement =
+          HTMLEditUtils::GetInclusiveAncestorElement(
+              *mScanStartPoint.ContainerAs<nsIContent>(),
+              HTMLEditUtils::IsSimplyEditableNode(
+                  *mScanStartPoint.ContainerAs<nsIContent>())
+                  ? kScanEditableRootAncestorTypes
+                  : kScanAnyRootAncestorTypes,
+              mBlockInlineCheck);
+  if (NS_WARN_IF(
+          !editableBlockElementOrInlineEditingHostOrNonEditableRootElement)) {
+    return EditorDOMPointType();
   }
 
   for (nsIContent* nextContent =
            HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
                *point.ContainerAs<nsIContent>(),
-               *editableBlockElementOrInlineEditingHost,
                {LeafNodeType::LeafNodeOrNonEditableNode}, mBlockInlineCheck,
-               mEditingHost);
+               editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
        nextContent;
        nextContent = HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
-           *nextContent, *editableBlockElementOrInlineEditingHost,
-           {LeafNodeType::LeafNodeOrNonEditableNode}, mBlockInlineCheck,
-           mEditingHost)) {
+           *nextContent, {LeafNodeType::LeafNodeOrNonEditableNode},
+           mBlockInlineCheck,
+           editableBlockElementOrInlineEditingHostOrNonEditableRootElement)) {
     if (!nextContent->IsText() || !nextContent->IsEditable()) {
       if (nextContent == GetEndReasonContent()) {
         break;  // Reached end of current runs.
@@ -921,40 +896,32 @@ EditorDOMPointType WSRunScanner::TextFragmentData::GetPreviousEditableCharPoint(
     return EditorDOMPointType();
   }
 
-  NS_ASSERTION(
-      EditorUtils::IsEditableContent(*mScanStartPoint.ContainerAs<nsIContent>(),
-                                     EditorType::HTML),
-      "Given content is not editable");
-  NS_ASSERTION(
-      mScanStartPoint.ContainerAs<nsIContent>()->GetAsElementOrParentElement(),
-      "Given content is not an element and an orphan node");
-  nsIContent* editableBlockElementOrInlineEditingHost =
-      mScanStartPoint.ContainerAs<nsIContent>() &&
-              EditorUtils::IsEditableContent(
-                  *mScanStartPoint.ContainerAs<nsIContent>(), EditorType::HTML)
-          ? HTMLEditUtils::GetInclusiveAncestorElement(
-                *mScanStartPoint.ContainerAs<nsIContent>(),
-                HTMLEditUtils::ClosestEditableBlockElementOrInlineEditingHost,
-                mBlockInlineCheck)
-          : nullptr;
-  if (NS_WARN_IF(!editableBlockElementOrInlineEditingHost)) {
-    // Meaning that the container of `mScanStartPoint` is not editable.
-    editableBlockElementOrInlineEditingHost =
-        mScanStartPoint.ContainerAs<nsIContent>();
+  const Element* const
+      editableBlockElementOrInlineEditingHostOrNonEditableRootElement =
+          HTMLEditUtils::GetInclusiveAncestorElement(
+              *mScanStartPoint.ContainerAs<nsIContent>(),
+              HTMLEditUtils::IsSimplyEditableNode(
+                  *mScanStartPoint.ContainerAs<nsIContent>())
+                  ? kScanEditableRootAncestorTypes
+                  : kScanAnyRootAncestorTypes,
+              mBlockInlineCheck);
+  if (NS_WARN_IF(
+          !editableBlockElementOrInlineEditingHostOrNonEditableRootElement)) {
+    return EditorDOMPointType();
   }
 
-  for (nsIContent* previousContent =
-           HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-               *point.ContainerAs<nsIContent>(),
-               *editableBlockElementOrInlineEditingHost,
-               {LeafNodeType::LeafNodeOrNonEditableNode}, mBlockInlineCheck,
-               mEditingHost);
-       previousContent;
-       previousContent =
-           HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-               *previousContent, *editableBlockElementOrInlineEditingHost,
-               {LeafNodeType::LeafNodeOrNonEditableNode}, mBlockInlineCheck,
-               mEditingHost)) {
+  for (
+      nsIContent* previousContent =
+          HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+              *point.ContainerAs<nsIContent>(),
+              {LeafNodeType::LeafNodeOrNonEditableNode}, mBlockInlineCheck,
+              editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
+      previousContent;
+      previousContent =
+          HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+              *previousContent, {LeafNodeType::LeafNodeOrNonEditableNode},
+              mBlockInlineCheck,
+              editableBlockElementOrInlineEditingHostOrNonEditableRootElement)) {
     if (!previousContent->IsText() || !previousContent->IsEditable()) {
       if (previousContent == GetStartReasonContent()) {
         break;  // Reached start of current runs.

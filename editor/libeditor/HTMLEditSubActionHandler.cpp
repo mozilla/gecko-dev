@@ -3362,13 +3362,12 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
                 *newCaretPosition.ContainerAs<nsIContent>(),
                 HTMLEditUtils::ClosestEditableBlockElementOrInlineEditingHost,
                 BlockInlineCheck::UseComputedDisplayStyle)) {
-      Element* editingHost = ComputeEditingHost();
       // Try to put caret next to immediately after previous editable leaf.
       nsIContent* previousContent =
           HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-              newCaretPosition, *editableBlockElementOrInlineEditingHost,
-              {LeafNodeType::LeafNodeOrNonEditableNode},
-              BlockInlineCheck::UseComputedDisplayStyle, editingHost);
+              newCaretPosition, {LeafNodeType::LeafNodeOrNonEditableNode},
+              BlockInlineCheck::UseComputedDisplayStyle,
+              editableBlockElementOrInlineEditingHost);
       if (previousContent &&
           !HTMLEditUtils::IsBlockElement(
               *previousContent, BlockInlineCheck::UseComputedDisplayStyle)) {
@@ -3383,10 +3382,9 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
       else if (nsIContent* nextContent =
                    HTMLEditUtils::GetNextLeafContentOrNextBlockElement(
                        newCaretPosition,
-                       *editableBlockElementOrInlineEditingHost,
                        {LeafNodeType::LeafNodeOrNonEditableNode},
                        BlockInlineCheck::UseComputedDisplayStyle,
-                       editingHost)) {
+                       editableBlockElementOrInlineEditingHost)) {
         newCaretPosition = nextContent->IsText() ||
                                    HTMLEditUtils::IsContainerNode(*nextContent)
                                ? EditorDOMPoint(nextContent, 0)
