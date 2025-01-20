@@ -488,12 +488,11 @@ export function sortThreads(a, b) {
     }
   }
 
-  // Order the frame targets and the worker targets by their target name
-  if (a.targetType == "frame" && b.targetType == "frame") {
-    return a.name.localeCompare(b.name);
-  } else if (
-    a.targetType.endsWith("worker") &&
-    b.targetType.endsWith("worker")
+  // Order the frame, worker and content script targets by their target name
+  if (
+    (a.targetType == "frame" && b.targetType == "frame") ||
+    (a.targetType.endsWith("worker") && b.targetType.endsWith("worker")) ||
+    (a.targetType == "content_script" && b.targetType == "content_script")
   ) {
     return a.name.localeCompare(b.name);
   }
