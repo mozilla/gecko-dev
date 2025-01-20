@@ -55,19 +55,25 @@ class SettingsPrivacyTest : TestSetup() {
         homeScreen {}.openThreeDotMenu {}.openSettings {}.openSettingsSubMenuDataCollection {
             // Studies depends on the telemetry switch,  if telemetry is off studies will be
             // turned off as well, and will require the app to be restarted.
+            // Daily usage ping should default to telemetry pref value
             verifyDataCollectionView(
-                true,
-                "On",
+                isUsageAndTechnicalDataEnabled = true,
+                isDailyUsagePingEnabled = true,
+                studiesSummary = "On",
             )
             clickUsageAndTechnicalDataToggle()
             verifyUsageAndTechnicalDataToggle(false)
+            verifyDailyUsagePingToggle(true)
+
             // Automatically turned off as telemetry was turned off.
             verifyDataCollectionView(
-                false,
-                "Off",
+                isUsageAndTechnicalDataEnabled = false,
+                isDailyUsagePingEnabled = true,
+                studiesSummary = "Off",
             )
             clickUsageAndTechnicalDataToggle()
             verifyUsageAndTechnicalDataToggle(true)
+            verifyDailyUsagePingToggle(true)
 
             clickStudiesOption()
             verifyStudiesToggle(false)

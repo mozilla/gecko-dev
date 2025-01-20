@@ -8,32 +8,12 @@ import androidx.lifecycle.Lifecycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.mozilla.fenix.components.metrics.fake.FakeGleanUsageReporting
 import org.mozilla.fenix.components.metrics.fake.FakeLifecycleOwner
 
 class GleanUsageReportingLifecycleObserverTest {
 
-    private val fakeGleanUsageReportingApi = object : GleanUsageReportingApi {
-        var pingSubmitCount: Int = 0
-        var lastUsageReason: String? = null
-        var lastDurationMillis: Long? = null
-        var lastEnabled: Boolean? = null
-
-        override fun setEnabled(enabled: Boolean) {
-            lastEnabled = enabled
-        }
-
-        override fun setUsageReason(usageReason: GleanUsageReportingApi.UsageReason) {
-            this.lastUsageReason = usageReason.name.lowercase()
-        }
-
-        override fun submitPing() {
-            pingSubmitCount++
-        }
-
-        override fun setDuration(durationMillis: Long) {
-            lastDurationMillis = durationMillis
-        }
-    }
+    private val fakeGleanUsageReporting = FakeGleanUsageReporting()
 
     private var fakeCurrentTime = 0L
     private val fakeCurrentTimeProvider = { ++fakeCurrentTime }
@@ -41,48 +21,48 @@ class GleanUsageReportingLifecycleObserverTest {
     @Test
     fun `before any lifecycle state changes, no pings are submitted`() {
         createGleanUsageReportingLifecycleObserver()
-        assertEquals(0, fakeGleanUsageReportingApi.pingSubmitCount)
+        assertEquals(0, fakeGleanUsageReporting.pingSubmitCount)
     }
 
     @Test
     fun `before any lifecycle state changes, no usage reason is set`() {
         createGleanUsageReportingLifecycleObserver()
-        assertNull(fakeGleanUsageReportingApi.lastUsageReason)
+        assertNull(fakeGleanUsageReporting.lastUsageReason)
     }
 
     @Test
     fun `when state changed to start, usage reason is set to active`() {
         val lifecycleObserver = createGleanUsageReportingLifecycleObserver()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_START)
-        assertEquals("active", fakeGleanUsageReportingApi.lastUsageReason)
+        assertEquals("active", fakeGleanUsageReporting.lastUsageReason)
     }
 
     @Test
     fun `when state changed to start, usage ping is sent`() {
         val lifecycleObserver = createGleanUsageReportingLifecycleObserver()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_START)
-        assertEquals(1, fakeGleanUsageReportingApi.pingSubmitCount)
+        assertEquals(1, fakeGleanUsageReporting.pingSubmitCount)
     }
 
     @Test
     fun `when state changed to stop, usage reason is set to inactive`() {
         val lifecycleObserver = createGleanUsageReportingLifecycleObserver()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_STOP)
-        assertEquals("inactive", fakeGleanUsageReportingApi.lastUsageReason)
+        assertEquals("inactive", fakeGleanUsageReporting.lastUsageReason)
     }
 
     @Test
     fun `when state changed to stop, usage ping is sent`() {
         val lifecycleObserver = createGleanUsageReportingLifecycleObserver()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_START)
-        assertEquals(1, fakeGleanUsageReportingApi.pingSubmitCount)
+        assertEquals(1, fakeGleanUsageReporting.pingSubmitCount)
     }
 
     @Test
     fun `when duration is not set, don't submit it`() {
         val lifecycleObserver = createGleanUsageReportingLifecycleObserver()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_STOP)
-        assertNull(fakeGleanUsageReportingApi.lastDurationMillis)
+        assertNull(fakeGleanUsageReporting.lastDurationMillis)
     }
 
     @Test
@@ -93,7 +73,7 @@ class GleanUsageReportingLifecycleObserverTest {
         fakeCurrentTimeProvider()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_STOP)
         assertEquals(3, fakeCurrentTime)
-        assertEquals(2L, fakeGleanUsageReportingApi.lastDurationMillis)
+        assertEquals(2L, fakeGleanUsageReporting.lastDurationMillis)
     }
 
     @Test
@@ -104,7 +84,7 @@ class GleanUsageReportingLifecycleObserverTest {
         fakeCurrentTimeProvider()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_PAUSE)
         assertEquals(2, fakeCurrentTime)
-        assertNull(fakeGleanUsageReportingApi.lastDurationMillis)
+        assertNull(fakeGleanUsageReporting.lastDurationMillis)
     }
 
     @Test
@@ -115,12 +95,12 @@ class GleanUsageReportingLifecycleObserverTest {
         fakeCurrentTimeProvider()
         lifecycleObserver.onStateChanged(FakeLifecycleOwner(), Lifecycle.Event.ON_DESTROY)
         assertEquals(2, fakeCurrentTime)
-        assertNull(fakeGleanUsageReportingApi.lastDurationMillis)
+        assertNull(fakeGleanUsageReporting.lastDurationMillis)
     }
 
     private fun createGleanUsageReportingLifecycleObserver() =
         GleanUsageReportingLifecycleObserver(
-            gleanUsageReportingApi = fakeGleanUsageReportingApi,
+            gleanUsageReportingApi = fakeGleanUsageReporting,
             currentTimeProvider = fakeCurrentTimeProvider,
         )
 }
