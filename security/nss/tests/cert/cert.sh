@@ -1688,7 +1688,7 @@ cert_inc_count()
 ########################################################################
 cert_san_and_generic_extensions()
 {
-    EXTDUMP=${CERT_EXTENSIONS_DIR}/sanext.der
+    EXTDUMP=sanext.der
 
     DIR="-d ${CERT_EXTENSIONS_DIR} -f ${R_PWFILE}"
     CERTNAME="-n WithSAN"

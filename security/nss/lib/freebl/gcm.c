@@ -28,6 +28,10 @@
 #define USE_ARM_GCM
 #endif
 
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#endif
+
 /* Forward declarations */
 SECStatus gcm_HashInit_hw(gcmHashContext *ghash);
 SECStatus gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf);
@@ -613,6 +617,120 @@ loser:
     return NULL;
 }
 
+static inline unsigned int
+load32_be(const unsigned char *p)
+{
+    return ((unsigned int)p[0]) << 24 | p[1] << 16 | p[2] << 8 | p[3];
+}
+
+static inline void
+store32_be(unsigned char *p, const unsigned int c)
+{
+    p[0] = (unsigned char)(c >> 24);
+    p[1] = (unsigned char)(c >> 16);
+    p[2] = (unsigned char)(c >> 8);
+    p[3] = (unsigned char)c;
+}
+
+static inline void
+gcm_ctr_xor(unsigned char *target, const unsigned char *x,
+            const unsigned char *y, unsigned int count)
+{
+    for (unsigned int i = 0; i < count; i++) {
+        target[i] = x[i] ^ y[i];
+    }
+}
+
+static inline void
+gcm_ctr_xor_block(unsigned char *target, const unsigned char *x,
+                  const unsigned char *y)
+{
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+    vst1q_u8(target, veorq_u8(vld1q_u8(x), vld1q_u8(y)));
+#else
+    gcm_ctr_xor(target, x, y, AES_BLOCK_SIZE);
+#endif
+}
+
+static SECStatus
+gcm_CTR_Update(CTRContext *ctr, unsigned char *outbuf,
+               unsigned int *outlen, unsigned int maxout,
+               const unsigned char *inbuf, unsigned int inlen)
+{
+    PORT_Assert(ctr->counterBits == 32);
+    PORT_Assert(0 < ctr->bufPtr && ctr->bufPtr <= AES_BLOCK_SIZE);
+
+    // The AES-GCM message length limit is 2^32 - 2 blocks.
+    const unsigned int blockLimit = 0xFFFFFFFEUL;
+
+    unsigned char *const pCounter = ctr->counter + AES_BLOCK_SIZE - 4;
+    unsigned int counter = load32_be(pCounter);
+
+    // Calculate the number of times that the counter has already been incremented.
+    unsigned char *const pCounterFirst = ctr->counterFirst + AES_BLOCK_SIZE - 4;
+    unsigned int ticks = (counter - load32_be(pCounterFirst)) & 0xFFFFFFFFUL;
+
+    // Get the number of bytes of keystream that are available in the internal buffer.
+    const unsigned int bufBytes = AES_BLOCK_SIZE - ctr->bufPtr;
+
+    // Calculate the number of times that we will increment the counter while
+    // encrypting inbuf. We can encrypt bufBytes bytes of the input without
+    // incrementing the counter.
+    unsigned int newTicks;
+    if (inlen < bufBytes) {
+        newTicks = 0;
+    } else if ((inlen - bufBytes) % AES_BLOCK_SIZE) {
+        newTicks = ((inlen - bufBytes) / AES_BLOCK_SIZE) + 1;
+    } else {
+        newTicks = ((inlen - bufBytes) / AES_BLOCK_SIZE);
+    }
+
+    // Ensure that the counter will not exceed the limit.
+    if (ticks > blockLimit - newTicks) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+
+    *outlen = inlen;
+    if (maxout < inlen) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        return SECFailure;
+    }
+
+    if (bufBytes) {
+        unsigned int needed = PR_MIN(bufBytes, inlen);
+        gcm_ctr_xor(outbuf, inbuf, ctr->buffer + ctr->bufPtr, needed);
+        ctr->bufPtr += needed;
+        outbuf += needed;
+        inbuf += needed;
+        inlen -= needed;
+        PORT_Assert(inlen == 0 || ctr->bufPtr == AES_BLOCK_SIZE);
+    }
+    while (inlen >= AES_BLOCK_SIZE) {
+        unsigned int tmp;
+        SECStatus rv = (*ctr->cipher)(ctr->context, ctr->buffer, &tmp, AES_BLOCK_SIZE,
+                                      ctr->counter, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+        PORT_Assert(rv == SECSuccess);
+        (void)rv;
+        store32_be(pCounter, ++counter);
+        gcm_ctr_xor_block(outbuf, inbuf, ctr->buffer);
+        outbuf += AES_BLOCK_SIZE;
+        inbuf += AES_BLOCK_SIZE;
+        inlen -= AES_BLOCK_SIZE;
+    }
+    if (inlen) {
+        unsigned int tmp;
+        SECStatus rv = (*ctr->cipher)(ctr->context, ctr->buffer, &tmp, AES_BLOCK_SIZE,
+                                      ctr->counter, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+        PORT_Assert(rv == SECSuccess);
+        (void)rv;
+        store32_be(pCounter, ++counter);
+        gcm_ctr_xor(outbuf, inbuf, ctr->buffer, inlen);
+        ctr->bufPtr = inlen;
+    }
+    return SECSuccess;
+}
+
 SECStatus
 gcm_InitCounter(GCMContext *gcm, const unsigned char *iv, unsigned int ivLen,
                 unsigned int tagBits, const unsigned char *aad,
@@ -670,8 +788,8 @@ gcm_InitCounter(GCMContext *gcm, const unsigned char *iv, unsigned int ivLen,
     /* calculate the final tag key. NOTE: gcm->tagKey is zero to start with.
      * if this assumption changes, we would need to explicitly clear it here */
     PORT_Memset(gcm->tagKey, 0, sizeof(gcm->tagKey));
-    rv = CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, AES_BLOCK_SIZE,
-                    gcm->tagKey, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+    rv = gcm_CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, AES_BLOCK_SIZE,
+                        gcm->tagKey, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -788,8 +906,8 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
         return SECFailure;
     }
 
-    rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                    inbuf, inlen, AES_BLOCK_SIZE);
+    rv = gcm_CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                        inbuf, inlen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -871,8 +989,8 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     }
     PORT_SafeZero(tag, sizeof(tag));
     /* finish the decryption */
-    return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                      inbuf, inlen, AES_BLOCK_SIZE);
+    return gcm_CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                          inbuf, inlen);
 }
 
 void
@@ -1069,8 +1187,8 @@ GCM_EncryptAEAD(GCMContext *gcm, unsigned char *outbuf,
 
     tagBytes = (gcm->tagBits + (PR_BITS_PER_BYTE - 1)) / PR_BITS_PER_BYTE;
 
-    rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                    inbuf, inlen, AES_BLOCK_SIZE);
+    rv = gcm_CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                        inbuf, inlen);
     CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     if (rv != SECSuccess) {
         return SECFailure;
@@ -1164,8 +1282,8 @@ GCM_DecryptAEAD(GCMContext *gcm, unsigned char *outbuf,
     }
     PORT_SafeZero(tag, sizeof(tag));
     /* finish the decryption */
-    rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                    inbuf, inlen, AES_BLOCK_SIZE);
+    rv = gcm_CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                        inbuf, inlen);
     CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     return rv;
 }

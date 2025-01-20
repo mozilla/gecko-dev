@@ -141,8 +141,8 @@ endif
 # If uname -s returns "MINGW*_NT-*", we assume that we are using
 # the uname.exe in the MSYS toolkit.
 #
-ifneq (,$(filter MINGW32_NT-% MINGW64_NT-%,$(OS_ARCH)))
-    OS_RELEASE := $(patsubst MINGW64_NT-%,%,$(patsubst MINGW32_NT-%,%,$(OS_ARCH)))
+ifneq (,$(filter MSYS_NT-% MINGW32_NT-% MINGW64_NT-%,$(OS_ARCH)))
+    OS_RELEASE := $(patsubst MSYS_NT-%,%,$(patsubst MINGW64_NT-%,%,$(patsubst MINGW32_NT-%,%,$(OS_ARCH))))
     OS_ARCH = WINNT
     USE_MSYS = 1
     ifndef CPU_ARCH

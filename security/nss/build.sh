@@ -70,7 +70,7 @@ ninja_params=()
 
 # Assume that MSVC is wanted if this is running on windows.
 platform=$(uname -s)
-if [ "${platform%-*}" = "MINGW32_NT" -o "${platform%-*}" = "MINGW64_NT" ]; then
+if [ "${platform%-*}" = "MINGW32_NT" -o "${platform%-*}" = "MINGW64_NT" -o "${platform%%-*}" = "MSYS_NT" ]; then
     msvc=1
 fi
 

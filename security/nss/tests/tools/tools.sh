@@ -637,6 +637,8 @@ verify_p12()
   # p12util -l will verify that decryption works properly.
   pp -t pkcs12 -i ${1} -o ${TMP}
   while read line ; do
+     # strip trailing carriage return
+     line="${line%$'\r'}"
      # first up: if we see an unencrypted key bag, then we know that the key
      # was unencrypted (NOTE: pk12util currently can't generate these kinds of
      # files).

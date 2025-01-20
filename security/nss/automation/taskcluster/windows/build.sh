@@ -20,7 +20,7 @@ fi
 popd
 
 # Build.
-make -C nss nss_build_all
+mozmake -C nss nss_build_all
 
 # Package.
 7z a public/build/dist.7z dist

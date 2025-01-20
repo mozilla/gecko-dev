@@ -123,10 +123,10 @@ function filter(opts) {
         "linux64-fuzz": "linux64",
         "linux64-make": "linux64",
         "linux-make": "linux32",
-        "win64-make": "windows2012-64",
-        "win-make": "windows2012-32",
-        "win64": "windows2012-64",
-        "win": "windows2012-32"
+        "win64-make": "windows2022-64",
+        "win-make": "windows2022-32",
+        "win64": "windows2022-64",
+        "win": "windows2022-32"
       };
 
       // Check the platform name.

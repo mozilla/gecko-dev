@@ -61,8 +61,8 @@ queue.filter(task => {
 
   if (task.tests == "bogo" || task.tests == "tlsfuzzer") {
     // No windows
-    if (task.platform == "windows2012-64" ||
-        task.platform == "windows2012-32") {
+    if (task.platform == "windows2022-64" ||
+        task.platform == "windows2022-32") {
       return false;
     }
 
@@ -140,7 +140,7 @@ queue.map(task => {
   }
 
   // Windows is slow.
-  if ((task.platform == "windows2012-32" || task.platform == "windows2012-64") &&
+  if ((task.platform == "windows2022-32" || task.platform == "windows2012-64") &&
       task.tests == "chains") {
     task.maxRunTime = 7200;
   }
@@ -232,37 +232,37 @@ export default async function main() {
     image: LINUX_IMAGE,
   }, "--enable-fips --opt");
 
-  await scheduleWindows("Windows 2012 64 (debug, make)", {
-    platform: "windows2012-64",
+  await scheduleWindows("Windows 2022 64 (debug, make)", {
+    platform: "windows2022-64",
     collection: "make",
     env: {USE_64: "1"}
   }, "build.sh");
 
-  await scheduleWindows("Windows 2012 32 (debug, make)", {
-    platform: "windows2012-32",
+  await scheduleWindows("Windows 2022 32 (debug, make)", {
+    platform: "windows2022-32",
     collection: "make"
   }, "build.sh");
 
-  await scheduleWindows("Windows 2012 64 (opt)", {
-    platform: "windows2012-64",
+  await scheduleWindows("Windows 2022 64 (opt)", {
+    platform: "windows2022-64",
   }, "build_gyp.sh --opt");
 
-  await scheduleWindows("Windows 2012 64 (debug)", {
-    platform: "windows2012-64",
+  await scheduleWindows("Windows 2022 64 (debug)", {
+    platform: "windows2022-64",
     collection: "debug"
   }, "build_gyp.sh");
 
-  await scheduleWindows("Windows 2012 64 Static (opt)", {
-    platform: "windows2012-64",
+  await scheduleWindows("Windows 2022 64 Static (opt)", {
+    platform: "windows2022-64",
     collection: "opt-static"
   }, "build_gyp.sh --opt --static");
 
-  await scheduleWindows("Windows 2012 32 (opt)", {
-    platform: "windows2012-32",
+  await scheduleWindows("Windows 2022 32 (opt)", {
+    platform: "windows2022-32",
   }, "build_gyp.sh --opt -t ia32");
 
-  await scheduleWindows("Windows 2012 32 (debug)", {
-    platform: "windows2012-32",
+  await scheduleWindows("Windows 2022 32 (debug)", {
+    platform: "windows2022-32",
     collection: "debug"
   }, "build_gyp.sh -t ia32");
 
@@ -872,14 +872,8 @@ async function scheduleFuzzing32() {
 
 async function scheduleWindows(name, base, build_script) {
   base = merge(base, {
-    workerType: "b-win2012-azure",
+    workerType: "b-win2022",
     env: {
-      PATH: "c:\\mozilla-build\\bin;c:\\mozilla-build\\python;" +
-           "c:\\mozilla-build\\msys\\local\\bin;c:\\mozilla-build\\7zip;" +
-           "c:\\mozilla-build\\info-zip;c:\\mozilla-build\\python\\Scripts;" +
-           "c:\\mozilla-build\\yasm;c:\\mozilla-build\\msys\\bin;" +
-           "c:\\Windows\\system32;c:\\mozilla-build\\upx391w;" +
-           "c:\\mozilla-build\\moztools-x64\\bin;c:\\mozilla-build\\wget;c:\\Program Files\\Mercurial",
       DOMSUF: "localdomain",
       HOST: "localhost",
     },
