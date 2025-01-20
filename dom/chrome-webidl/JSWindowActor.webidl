@@ -126,26 +126,10 @@ dictionary WindowActorOptions {
 
 dictionary WindowActorSidedOptions {
   /**
-   * The JSM path which should be loaded for the actor on this side.
-   *
-   * Mutually exclusive with `esModuleURI`.
-   *
-   * If neither this nor `esModuleURI` is passed, the specified side cannot receive
-   * messages, but may send them using `sendAsyncMessage` or `sendQuery`.
-   *
-   * TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-   *       (bug 1866732).
-   */
-  ByteString moduleURI;
-
-  /**
    * The ESM path which should be loaded for the actor on this side.
    *
-   * Mutually exclusive with `moduleURI`.
-   *
-   * If neither this nor `moduleURI` is passed, the specified side cannot
-   * receive messages, but may send them using `sendAsyncMessage` or
-   * `sendQuery`.
+   * If this is not is passed, the specified side cannot receive messages, but
+   * may send them using `sendAsyncMessage` or `sendQuery`.
    */
   ByteString esModuleURI;
 };
