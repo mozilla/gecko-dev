@@ -28,4 +28,4 @@ if CONFIG["MOZ_BUILD_APP"] != "tools/update-packaging":
     FORCE_STATIC_LIB = True
 
     if CONFIG["OS_ARCH"] == "WINNT":
-        USE_STATIC_LIBS = True
+        USE_STATIC_MSVCRT = True

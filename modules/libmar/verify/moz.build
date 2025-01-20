@@ -14,7 +14,7 @@ UNIFIED_SOURCES += [
 FORCE_STATIC_LIB = True
 
 if CONFIG["OS_ARCH"] == "WINNT":
-    USE_STATIC_LIBS = True
+    USE_STATIC_MSVCRT = True
 elif CONFIG["OS_ARCH"] == "Darwin" and not CONFIG["MOZ_USE_NSS_FOR_MAR"]:
     UNIFIED_SOURCES += [
         "MacVerifyCrypto.cpp",

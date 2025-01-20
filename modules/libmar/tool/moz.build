@@ -39,7 +39,7 @@ if CONFIG["MOZ_BUILD_APP"] != "tools/update-packaging":
         DEFINES["MAR_NSS"] = True
 
     if CONFIG["OS_ARCH"] == "WINNT":
-        USE_STATIC_LIBS = True
+        USE_STATIC_MSVCRT = True
 
         OS_LIBS += [
             "ws2_32",

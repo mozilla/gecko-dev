@@ -29,6 +29,6 @@ DEFINES['XZ_DEC_X86'] = 1
 DEFINES['XZ_USE_CRC64'] = 1
 
 if CONFIG['OS_ARCH'] == 'WINNT':
-    USE_STATIC_LIBS = True
+    USE_STATIC_MSVCRT = True
 
 Library('xz-embedded')

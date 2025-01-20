@@ -69,7 +69,7 @@ if CONFIG["CC_TYPE"] == "clang-cl":
 if CONFIG["OS_ARCH"] == "WINNT":
     DEFINES["UNICODE"] = True
     DEFINES["_UNICODE"] = True
-    USE_STATIC_LIBS = True
+    USE_STATIC_MSVCRT = True
     if CONFIG["CC_TYPE"] in ("clang", "gcc"):
         WIN32_EXE_LDFLAGS += ["-municode"]
 

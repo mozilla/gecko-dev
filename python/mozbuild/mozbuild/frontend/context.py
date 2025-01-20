@@ -1738,7 +1738,7 @@ VARIABLES = {
         """Whether the library in this directory is a static library.
         """,
     ),
-    "USE_STATIC_LIBS": (
+    "USE_STATIC_MSVCRT": (
         bool,
         bool,
         """Whether the code in this directory is a built against the static
@@ -3112,6 +3112,7 @@ DEPRECATION_HINTS = {
 
             DIST_FILES += [ 'foo' ]
     """,
+    "USE_STATIC_LIBS": "Please use the USE_STATIC_MSVCRT variable instead.",
 }
 
 # Make sure that all template variables have a deprecation hint.

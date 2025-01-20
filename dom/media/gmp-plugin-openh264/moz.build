@@ -18,7 +18,7 @@ SOURCES += [
 
 SharedLibrary("fakeopenh264")
 
-USE_STATIC_LIBS = True
+USE_STATIC_MSVCRT = True
 NoVisibilityFlags()
 # Don't use STL wrappers; this isn't Gecko code
 DisableStlWrapping()

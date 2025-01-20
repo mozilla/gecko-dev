@@ -12,5 +12,5 @@ SharedLibrary("crashinjectdll")
 
 DEFFILE = "crashinjectdll.def"
 
-USE_STATIC_LIBS = True
+USE_STATIC_MSVCRT = True
 NO_PGO = True

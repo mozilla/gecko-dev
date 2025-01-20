@@ -26,7 +26,7 @@ if CONFIG["OS_ARCH"] == "WINNT":
         "user32",
     ]
 
-USE_STATIC_LIBS = True
+USE_STATIC_MSVCRT = True
 NoVisibilityFlags()
 # Don't use STL wrappers; this isn't Gecko code
 DisableStlWrapping()

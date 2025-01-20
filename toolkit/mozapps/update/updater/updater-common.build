@@ -43,7 +43,7 @@ if CONFIG["OS_ARCH"] == "WINNT":
     RCINCLUDE = "%supdater.rc" % updater_rel_path
     DEFINES["UNICODE"] = True
     DEFINES["_UNICODE"] = True
-    USE_STATIC_LIBS = True
+    USE_STATIC_MSVCRT = True
 
     # Pick up nsWindowsRestart.cpp
     LOCAL_INCLUDES += [

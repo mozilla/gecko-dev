@@ -36,7 +36,7 @@ LOCAL_INCLUDES += [
     "/toolkit/xre",
 ]
 
-USE_STATIC_LIBS = True
+USE_STATIC_MSVCRT = True
 
 if CONFIG["CC_TYPE"] == "clang-cl":
     WIN32_EXE_LDFLAGS += ["-ENTRY:wmainCRTStartup"]

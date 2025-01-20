@@ -19,6 +19,6 @@ if CONFIG["RUSTC_VERSION"] and CONFIG["RUSTC_VERSION"] >= "1.78.0":
     ]
 
 DEFFILE = "mozwer.def"
-USE_STATIC_LIBS = True
+USE_STATIC_MSVCRT = True
 
 SharedLibrary("mozwer")
