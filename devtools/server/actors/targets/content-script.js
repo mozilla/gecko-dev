@@ -51,7 +51,9 @@ class WebExtensionContentScriptTargetActor extends BaseTargetActor {
     // Use a debugger against a unique global
     this.makeDebugger = makeDebugger.bind(null, {
       findDebuggees: _dbg => [this.contentScriptSandbox],
-      shouldAddNewGlobalAsDebuggee: () => true,
+
+      // Only accept the content script sandbox and nothing else.
+      shouldAddNewGlobalAsDebuggee: () => false,
     });
   }
 

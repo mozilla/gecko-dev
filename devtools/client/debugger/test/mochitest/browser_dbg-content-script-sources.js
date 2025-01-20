@@ -9,6 +9,23 @@
 add_task(async function () {
   const extension = await installAndStartContentScriptExtension();
 
+  const otherExtension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      name: "Other extension",
+      content_scripts: [
+        {
+          js: ["other_content_script.js"],
+          matches: ["https://example.com/*"],
+          run_at: "document_idle",
+        },
+      ],
+    },
+    files: {
+      "other_content_script.js": "// This one does nothing",
+    },
+  });
+  await otherExtension.startup();
+
   let dbg = await initDebugger("doc-content-script-sources.html");
   ok(
     !sourceExists(dbg, "content_script.js"),
@@ -32,7 +49,9 @@ add_task(async function () {
     "doc-content-script-sources.html",
     "doc-strict.html",
     "content_script.js",
+    "other_content_script.js",
   ]);
+  is(dbg.selectors.getSourceCount(), 4, "There are only three sources");
 
   await waitForSources(dbg, "content_script.js");
   await selectSource(dbg, "content_script.js");
@@ -46,7 +65,12 @@ add_task(async function () {
   // Verify that the content script is below the target of the frame it was executed against
   Assert.deepEqual(
     sourceTreeThreadLabels,
-    ["Main Thread", "Test content script extension", "Debugger test page"],
+    [
+      "Main Thread",
+      "Other extension",
+      "Test content script extension",
+      "Debugger test page",
+    ],
     "The threads are correctly ordered"
   );
   const threadPanelLabels = [...findAllElements(dbg, "threadsPaneItems")].map(
@@ -77,7 +101,6 @@ add_task(async function () {
     gBrowser.reloadTab(gBrowser.selectedTab);
     await waitForPaused(dbg);
     await waitForSelectedSource(dbg, "content_script.js");
-
     await waitFor(
       () => findElementWithSelector(dbg, ".sources-list .focused"),
       "Source is focused"
@@ -87,6 +110,20 @@ add_task(async function () {
       findSource(dbg, "content_script.js").id,
       2
     );
+
+    const pausedThread = dbg.selectors.getCurrentThread();
+    await stepIn(dbg);
+    is(
+      dbg.selectors.getCurrentThread(),
+      pausedThread,
+      "We step in the same thread"
+    );
+    await assertPausedAtSourceAndLine(
+      dbg,
+      findSource(dbg, "content_script.js").id,
+      7
+    );
+
     await resume(dbg);
   }
 
@@ -95,15 +132,19 @@ add_task(async function () {
 
   await closeTab(dbg, "content_script.js");
 
-  is(
-    dbg.selectors.getAllThreads().length,
-    2,
-    "Ensure that we only get the main thread and the content script thread"
+  await waitFor(
+    () => dbg.selectors.getAllThreads().length == 3,
+    "Ensure that we only get the main thread and the two content scripts thread"
+  );
+  await waitFor(
+    () => dbg.selectors.getSourceCount() == 4,
+    "There are only three sources"
   );
 
   await extension.unload();
+  await otherExtension.unload();
   await waitFor(
-    () => dbg.selectors.getAllThreads().length == 1,
-    "After unloading the add-on, the content script thread is removed"
+    () => dbg.selectors.getAllThreads().length == 2,
+    "After unloading the add-on, the content script thread is removed, but there is still two html documents"
   );
 });
