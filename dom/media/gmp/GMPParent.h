@@ -91,8 +91,7 @@ class GMPParent final
   void DeleteProcess();
 
   GMPState State() const;
-  bool IsOnGMPEventTarget() const;
-  nsCOMPtr<nsISerialEventTarget> GMPEventTarget() const;
+  nsCOMPtr<nsISerialEventTarget> GMPEventTarget();
 
   void OnPreferenceChange(const mozilla::dom::Pref& aPref);
 
