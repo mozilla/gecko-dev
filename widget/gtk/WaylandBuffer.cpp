@@ -131,7 +131,7 @@ void WaylandBuffer::ReturnBuffer(RefPtr<WaylandSurface> aWaylandSurface) {
              (void*)this, mSurface.get());
 
   MutexAutoLock lock(mBufferReleaseMutex);
-  MOZ_RELEASE_ASSERT(aWaylandSurface == mSurface);
+  MOZ_RELEASE_ASSERT(aWaylandSurface == mSurface || !mSurface);
 
   if (mBufferDeleteSyncCallback) {
     MOZ_DIAGNOSTIC_ASSERT(!HasWlBuffer());
@@ -139,6 +139,11 @@ void WaylandBuffer::ReturnBuffer(RefPtr<WaylandSurface> aWaylandSurface) {
   }
 
   DeleteWlBuffer();
+
+  // We're already detached from WaylandSurface
+  if (!mSurface) {
+    return;
+  }
 
   // There are various Wayland queues processed for every thread.
   // It's possible that wl_buffer release event is pending in any
