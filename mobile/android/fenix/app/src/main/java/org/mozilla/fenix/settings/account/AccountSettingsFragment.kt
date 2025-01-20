@@ -69,7 +69,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat() {
 
         override fun onLoggedOut() {
             viewLifecycleOwner.lifecycleScope.launch {
-                findNavController().popBackStack()
+                findNavController().popBackStack(R.id.accountSettingsFragment, inclusive = true)
 
                 // Remove the device name when we log out.
                 context?.let {
