@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -24,12 +25,14 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * A scaffold for a menu UI that implements the basic layout structure with [header] and [content].
  *
  * @param modifier [Modifier] to be applied to the layout.
+ * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param header The Composable header block to render.
  * @param content The Composable content block to render.
  */
 @Composable
 internal fun MenuScaffold(
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
     header: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -43,8 +46,6 @@ internal fun MenuScaffold(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
         }
-
-        val scrollState = rememberScrollState()
 
         if (scrollState.value != 0) {
             Divider(color = FirefoxTheme.colors.borderPrimary)

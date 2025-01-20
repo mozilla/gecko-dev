@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import org.mozilla.fenix.theme.Theme
  * @param isWebCompatReporterSupported Whether or not the report broken site feature is supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
+ * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onHelpButtonClick Invoked when the user clicks on the help button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
@@ -73,6 +75,7 @@ fun MainMenu(
     isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
+    scrollState: ScrollState,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
@@ -101,6 +104,7 @@ fun MainMenu(
                 onSettingsButtonClick = onSettingsButtonClick,
             )
         },
+        scrollState = scrollState,
     ) {
         NewTabsMenuGroup(
             accessPoint = accessPoint,
@@ -396,6 +400,7 @@ private fun MenuDialogPreview() {
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
                 extensionsMenuItemDescription = "No extensions enabled",
+                scrollState = ScrollState(0),
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},
@@ -438,6 +443,7 @@ private fun MenuDialogPrivatePreview() {
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
+                scrollState = ScrollState(0),
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},
