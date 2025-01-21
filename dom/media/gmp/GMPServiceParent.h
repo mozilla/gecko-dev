@@ -18,6 +18,7 @@
 #include "nsRefPtrHashtable.h"
 #include "nsThreadUtils.h"
 #include "mozilla/gmp/PGMPParent.h"
+#include "mozilla/media/MediaUtils.h"
 #include "mozilla/MozPromise.h"
 #include "GMPStorage.h"
 
@@ -36,8 +37,7 @@ class GMPServiceParent;
 
 class GeckoMediaPluginServiceParent final
     : public GeckoMediaPluginService,
-      public mozIGeckoMediaPluginChromeService,
-      public nsIAsyncShutdownBlocker {
+      public mozIGeckoMediaPluginChromeService {
  public:
   static already_AddRefed<GeckoMediaPluginServiceParent> GetSingleton();
 
@@ -45,7 +45,6 @@ class GeckoMediaPluginServiceParent final
   nsresult Init() override;
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIASYNCSHUTDOWNBLOCKER
 
   // mozIGeckoMediaPluginService
   NS_IMETHOD HasPluginForAPI(const nsACString& aAPI,
@@ -292,7 +291,10 @@ class GMPServiceParent final : public PGMPServiceParent {
  private:
   ~GMPServiceParent();
 
-  RefPtr<GeckoMediaPluginServiceParent> mService;
+  const RefPtr<GeckoMediaPluginServiceParent> mService;
+
+  // Ticket that controls the shutdown blocker.
+  const UniquePtr<media::ShutdownBlockingTicket> mShutdownBlocker;
 };
 
 }  // namespace gmp

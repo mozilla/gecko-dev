@@ -19,6 +19,7 @@
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "nsFmtString.h"
 #include "nsThreadUtils.h"
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxInfo.h"
@@ -82,8 +83,7 @@ GeckoMediaPluginServiceParent::GetSingleton() {
 
 NS_IMPL_ISUPPORTS_INHERITED(GeckoMediaPluginServiceParent,
                             GeckoMediaPluginService,
-                            mozIGeckoMediaPluginChromeService,
-                            nsIAsyncShutdownBlocker)
+                            mozIGeckoMediaPluginChromeService)
 
 GeckoMediaPluginServiceParent::GeckoMediaPluginServiceParent()
     : mScannedPluginOnDisk(false),
@@ -1821,20 +1821,6 @@ static bool IsNodeIdValid(GMPParent* aParent) {
   return !aParent->GetNodeId().IsEmpty();
 }
 
-NS_IMETHODIMP
-GeckoMediaPluginServiceParent::GetName(nsAString& aName) {
-  aName = u"GeckoMediaPluginServiceParent: shutdown"_ns;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GeckoMediaPluginServiceParent::GetState(nsIPropertyBag**) { return NS_OK; }
-
-NS_IMETHODIMP
-GeckoMediaPluginServiceParent::BlockShutdown(nsIAsyncShutdownClient*) {
-  return NS_OK;
-}
-
 // Called from GMPServiceParent::Create() which holds the lock
 void GeckoMediaPluginServiceParent::ServiceUserCreated(
     GMPServiceParent* aServiceParent) {
@@ -1843,15 +1829,6 @@ void GeckoMediaPluginServiceParent::ServiceUserCreated(
 
   MOZ_ASSERT(!mServiceParents.Contains(aServiceParent));
   mServiceParents.AppendElement(aServiceParent);
-  if (mServiceParents.Length() == 1) {
-    nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
-    MOZ_RELEASE_ASSERT(barrier);
-
-    nsresult rv = barrier->AddBlocker(
-        this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__,
-        u"GeckoMediaPluginServiceParent shutdown"_ns);
-    MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-  }
 }
 
 void GeckoMediaPluginServiceParent::ServiceUserDestroyed(
@@ -1861,12 +1838,6 @@ void GeckoMediaPluginServiceParent::ServiceUserDestroyed(
   MOZ_ASSERT(mServiceParents.Length() > 0);
   MOZ_ASSERT(mServiceParents.Contains(aServiceParent));
   mServiceParents.RemoveElement(aServiceParent);
-  if (mServiceParents.IsEmpty()) {
-    nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
-    MOZ_RELEASE_ASSERT(barrier);
-    nsresult rv = barrier->RemoveBlocker(this);
-    MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-  }
 }
 
 void GeckoMediaPluginServiceParent::ClearStorage() {
@@ -1908,15 +1879,19 @@ already_AddRefed<GMPParent> GeckoMediaPluginServiceParent::GetById(
 }
 
 GMPServiceParent::GMPServiceParent(GeckoMediaPluginServiceParent* aService)
-    : mService(aService) {
+    : mService(aService), mShutdownBlocker([](GMPServiceParent* aThis) {
+        nsFmtString name(u"GMPServiceParent {}", static_cast<void*>(aThis));
+        return media::ShutdownBlockingTicket::Create(
+            name, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
+      }(this)) {
   MOZ_ASSERT(NS_IsMainThread(), "Should be constructed on the main thread");
   MOZ_ASSERT(mService);
+  MOZ_RELEASE_ASSERT(mShutdownBlocker);
   mService->ServiceUserCreated(this);
 }
 
 GMPServiceParent::~GMPServiceParent() {
   MOZ_ASSERT(NS_IsMainThread(), "Should be destroyted on the main thread");
-  MOZ_ASSERT(mService);
   mService->ServiceUserDestroyed(this);
 }
 
