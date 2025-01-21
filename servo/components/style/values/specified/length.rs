@@ -1649,6 +1649,7 @@ impl From<Percentage> for LengthPercentage {
         if let Some(clamping_mode) = pc.calc_clamping_mode() {
             LengthPercentage::Calc(Box::new(CalcLengthPercentage {
                 clamping_mode,
+                has_anchor_function: false,
                 node: CalcNode::Leaf(calc::Leaf::Percentage(pc.get())),
             }))
         } else {
@@ -1811,11 +1812,11 @@ impl LengthPercentage {
     /// Returns self as specified::calc::CalcNode.
     /// Note that this expect the clamping_mode is AllowedNumericType::All for Calc. The caller
     /// should take care about it when using this function.
-    fn to_calc_node(self) -> CalcNode {
+    fn to_calc_node(self) -> (CalcNode, bool) {
         match self {
-            LengthPercentage::Length(l) => CalcNode::Leaf(calc::Leaf::Length(l)),
-            LengthPercentage::Percentage(p) => CalcNode::Leaf(calc::Leaf::Percentage(p.0)),
-            LengthPercentage::Calc(p) => p.node,
+            LengthPercentage::Length(l) => (CalcNode::Leaf(calc::Leaf::Length(l)), false),
+            LengthPercentage::Percentage(p) => (CalcNode::Leaf(calc::Leaf::Percentage(p.0)), false),
+            LengthPercentage::Calc(p) => (p.node, p.has_anchor_function),
         }
     }
 
@@ -1824,13 +1825,14 @@ impl LengthPercentage {
         let mut sum = smallvec::SmallVec::<[CalcNode; 2]>::new();
         sum.push(CalcNode::Leaf(calc::Leaf::Percentage(1.0)));
 
-        let mut node = self.to_calc_node();
+        let (mut node, has_anchor_function) = self.to_calc_node();
         node.negate();
         sum.push(node);
 
         let calc = CalcNode::Sum(sum.into_boxed_slice().into());
         LengthPercentage::Calc(Box::new(
-            calc.into_length_or_percentage(clamping_mode).unwrap(),
+            calc.into_length_or_percentage(clamping_mode, has_anchor_function)
+                .unwrap(),
         ))
     }
 }
