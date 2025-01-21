@@ -73,11 +73,6 @@ std::unique_ptr<FrameGeneratorInterface> CreateFromNV12FileFrameGenerator(
                                              frame_repeat_count);
 }
 
-std::unique_ptr<FrameGeneratorInterface> CreateFromIvfFileFrameGenerator(
-    std::string filename) {
-  return CreateFromIvfFileFrameGenerator(CreateEnvironment(), filename);
-}
-
 absl::Nonnull<std::unique_ptr<FrameGeneratorInterface>>
 CreateFromIvfFileFrameGenerator(const Environment& env,
                                 absl::string_view filename) {
