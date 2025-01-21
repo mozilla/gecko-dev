@@ -34,9 +34,9 @@
     "test:firefox": "wireit",
     "test:firefox:headful": "wireit",
     "test:firefox:headless": "wireit",
-    "validate-licenses": "node --experimental-strip-types tools/third_party/validate-licenses.ts",
+    "validate-licenses": "tsx tools/third_party/validate-licenses.ts",
     "unit": "npm run unit --workspaces --if-present",
-    "changelog": "node --experimental-strip-types tools/merge-changelogs.ts"
+    "changelog": "tsx tools/merge-changelogs.ts"
   },
   "wireit": {
     "build": {
@@ -187,6 +187,7 @@
     "source-map-support": "0.5.21",
     "spdx-satisfies": "5.0.1",
     "tsd": "0.31.2",
+    "tsx": "4.19.2",
     "typescript": "5.7.2",
     "wireit": "0.14.9"
   },
