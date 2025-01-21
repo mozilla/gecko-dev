@@ -55,8 +55,7 @@ TRRLoadInfo::SetPrincipalToInherit(nsIPrincipal* aPrincipalToInherit) {
 }
 
 NS_IMETHODIMP
-TRRLoadInfo::GetUserNavigationInvolvement(
-    uint8_t* aUserNavigationInvolvement) {
+TRRLoadInfo::GetUserNavigationInvolvement(uint8_t* aUserNavigationInvolvement) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
