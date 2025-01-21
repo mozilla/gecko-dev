@@ -5,15 +5,33 @@
 
 const NEW_PROFILE_NAME = "This is a new profile name";
 
-add_task(async function test_edit_profile_delete() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.require_user_interaction_for_beforeunload", false]],
-  });
-
+const setup = async () => {
   await initGroupDatabase();
   let profile = SelectableProfileService.currentProfile;
   Assert.ok(profile, "Should have a profile now");
 
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+  return profile;
+};
+
+add_task(async function test_edit_profile_delete() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.require_user_interaction_for_beforeunload", false]],
+  });
+  await setup();
+  is(
+    null,
+    Glean.profilesExisting.deleted.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -46,17 +64,26 @@ add_task(async function test_edit_profile_delete() {
       });
 
       await deletePageLoaded;
+
+      await assertGlean("profiles", "existing", "deleted");
     }
   );
-
   await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_edit_profile_name() {
-  await initGroupDatabase();
-  let profile = SelectableProfileService.currentProfile;
-  Assert.ok(profile, "Should have a profile now");
-
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  let profile = await setup();
+  is(
+    null,
+    Glean.profilesExisting.name.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -102,6 +129,8 @@ add_task(async function test_edit_profile_name() {
         NEW_PROFILE_NAME,
         "Current profile name was updated"
       );
+
+      await assertGlean("profiles", "existing", "name");
     }
   );
 });
@@ -113,9 +142,18 @@ add_task(async function test_edit_profile_avatar() {
     ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
     return;
   }
+  let profile = await setup();
 
-  let profile = SelectableProfileService.currentProfile;
-  Assert.ok(profile, "Should have a profile now");
+  // Before we load the edit page, set the profile's avatar to something other
+  // than the 0th item.
+  profile.avatar = "flower";
+  let expectedAvatar = "book";
+
+  is(
+    null,
+    Glean.profilesExisting.avatar.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
 
   await BrowserTestUtils.withNewTab(
     {
@@ -135,22 +173,212 @@ add_task(async function test_edit_profile_avatar() {
         await editProfileCard.updateComplete;
 
         let avatars = editProfileCard.avatars;
-        avatars[0].click();
+        let newAvatar = avatars[0];
+        Assert.ok(
+          !newAvatar.selected,
+          "The new avatar should not initially be selected"
+        );
+        newAvatar.click();
+
+        await ContentTaskUtils.waitForCondition(
+          () => newAvatar.selected,
+          "Waiting for new avatar to be selected"
+        );
+
+        // Sometimes the async message takes a bit longer to arrive.
+        await new Promise(resolve => content.setTimeout(resolve, 100));
       });
 
       let curProfile = await SelectableProfileService.getProfile(profile.id);
 
       Assert.equal(
         curProfile.avatar,
-        "book",
+        expectedAvatar,
         "Profile avatar was updated in database"
       );
 
       Assert.equal(
         SelectableProfileService.currentProfile.avatar,
-        "book",
+        expectedAvatar,
         "Current profile avatar was updated"
       );
+
+      await assertGlean("profiles", "existing", "avatar", expectedAvatar);
+    }
+  );
+});
+
+add_task(async function test_edit_profile_theme() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  let profile = await setup();
+
+  let expectedThemeId = "firefox-compact-dark@mozilla.org";
+
+  is(
+    null,
+    Glean.profilesExisting.theme.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
+        await editProfileCard.updateComplete;
+
+        let darkThemeCard = editProfileCard.themeCards[5];
+        darkThemeCard.click();
+
+        await ContentTaskUtils.waitForCondition(
+          () => darkThemeCard.selected,
+          "Waiting for the new theme chip to be selected"
+        );
+
+        // Sometimes the theme takes a little longer to update.
+        await new Promise(resolve => content.setTimeout(resolve, 100));
+      });
+
+      let curProfile = await SelectableProfileService.getProfile(profile.id);
+
+      Assert.equal(
+        curProfile.theme.themeId,
+        expectedThemeId,
+        "Profile theme was updated in database"
+      );
+
+      Assert.equal(
+        SelectableProfileService.currentProfile.theme.themeId,
+        expectedThemeId,
+        "Current profile theme was updated"
+      );
+
+      await assertGlean("profiles", "existing", "theme", expectedThemeId);
+
+      // Restore the light theme for later tests.
+      curProfile.theme = {
+        themeId: "firefox-compact-light@mozilla.org",
+        themeFg: "rgb(21,20,26)",
+        themeBg: "#f9f9fb",
+      };
+      await SelectableProfileService.updateProfile(curProfile);
+      let profilesParent =
+        browser.browsingContext.currentWindowGlobal.getActor("Profiles");
+      await profilesParent.enableTheme("firefox-compact-light@mozilla.org", {
+        method: "url",
+        source: "about:editprofile",
+      });
+    }
+  );
+});
+
+add_task(async function test_edit_profile_explore_more_themes() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  await setup();
+  is(
+    null,
+    Glean.profilesExisting.learnMore.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
+        await editProfileCard.updateComplete;
+
+        // To simplify the test, deactivate the link before clicking.
+        editProfileCard.moreThemesLink.href = "#";
+        editProfileCard.moreThemesLink.target = "";
+        editProfileCard.moreThemesLink.click();
+
+        // Wait a turn for the event to propagate.
+        await new Promise(resolve => content.setTimeout(resolve, 0));
+      });
+
+      await assertGlean("profiles", "existing", "learn_more");
+    }
+  );
+});
+
+add_task(async function test_edit_profile_displayed_closed_telemetry() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  await setup();
+  is(
+    null,
+    Glean.profilesExisting.displayed.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+  is(
+    null,
+    Glean.profilesExisting.closed.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      // Once the page has loaded, the displayed event should be available.
+      await assertGlean("profiles", "existing", "displayed");
+
+      Services.fog.testResetFOG();
+      Services.telemetry.clearEvents();
+
+      await SpecialPowers.spawn(browser, [], async () => {
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
+        await editProfileCard.updateComplete;
+
+        // Click the done editing button to trigger closed event.
+        editProfileCard.doneButton.click();
+      });
+
+      await assertGlean("profiles", "existing", "closed");
     }
   );
 });

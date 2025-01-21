@@ -108,3 +108,58 @@ add_setup(async () => {
 async function initGroupDatabase() {
   await SelectableProfileService.maybeSetupDataStore();
 }
+
+// Usage illustrated by two examples.
+//
+// Example 1. Basic usage.
+//
+// To verify
+//   `Glean.profilesNew.avatar.record({value: "book"})`,
+// we would call
+//   `assertGlean("profiles", "new", "avatar", "book")`.
+//
+// Example 2. Dealing with snake_case `object`.
+//
+// To verify
+//   `Glean.profilesNew.learnMore.record()`,
+// pass in the snake-case version,
+//   `assertGlean("profiles", "new", "learn_more")`
+// and snake-case will be auto-converted to camelCase where needed.
+const assertGlean = async (category, method, object, extra) => {
+  // Converts 'profiles' and 'new' to 'profilesNew'.
+  let gleanFn = category + method[0].toUpperCase() + method.substr(1);
+
+  // Needed to convert 'learn_more' to 'learnMore'.
+  const snakeToCamel = str =>
+    str.replace(/_([a-z])/g, (_, nextChar) => nextChar.toUpperCase());
+
+  await Services.fog.testFlushAllChildren();
+  let testEvents = Glean[gleanFn][snakeToCamel(object)].testGetValue();
+  Assert.equal(
+    testEvents.length,
+    1,
+    `Should have recorded the ${category} ${method} ${object} event exactly once`
+  );
+  Assert.equal(
+    testEvents[0].category,
+    `${category}.${method}`,
+    "Should have expected Glean event category"
+  );
+  Assert.equal(
+    testEvents[0].name,
+    object,
+    "Should have expected Glean event name"
+  );
+  if (extra) {
+    Assert.equal(
+      testEvents[0].extra.value,
+      extra,
+      "Should have expected Glean extra field"
+    );
+  }
+  TelemetryTestUtils.assertEvents([[category, method, object]], {
+    category,
+    method,
+    object,
+  });
+};

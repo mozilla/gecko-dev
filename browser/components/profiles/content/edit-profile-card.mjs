@@ -80,6 +80,8 @@ export class EditProfileCard extends MozLitElement {
     errorMessage: "#error-message",
     savedMessage: "#saved-message",
     deleteButton: "#delete-button",
+    doneButton: "#done-button",
+    moreThemesLink: "#more-themes",
     avatars: { all: "profiles-avatar" },
     headerAvatar: "#header-avatar",
     themeCards: { all: "profiles-theme-card" },
@@ -106,6 +108,7 @@ export class EditProfileCard extends MozLitElement {
     super.connectedCallback();
 
     window.addEventListener("beforeunload", this);
+    window.addEventListener("pagehide", this);
 
     this.init().then(() => (this.initialized = true));
   }
@@ -157,6 +160,9 @@ export class EditProfileCard extends MozLitElement {
           this.updateNameDebouncer.finalize();
         }
         break;
+      }
+      case "pagehide": {
+        RPMSendAsyncMessage("Profiles:PageHide");
       }
     }
   }
@@ -359,8 +365,19 @@ export class EditProfileCard extends MozLitElement {
       this.showErrorMessage("edit-profile-page-duplicate-name");
     } else {
       this.updateNameDebouncer.finalize();
+      // Remove the pagehide listener early to prevent double-counting the
+      // profiles.existing.closed Glean event.
+      window.removeEventListener("pagehide", this);
       RPMSendAsyncMessage("Profiles:CloseProfileTab");
     }
+  }
+
+  onMoreThemesClick() {
+    // Include the starting URI because the page will navigate before the
+    // event is asynchronously handled by Glean code in the parent actor.
+    RPMSendAsyncMessage("Profiles:MoreThemes", {
+      source: window.location.href,
+    });
   }
 
   buttonsTemplate() {
@@ -370,6 +387,7 @@ export class EditProfileCard extends MozLitElement {
         @click=${this.onDeleteClick}
       ></moz-button>
       <moz-button
+        id="done-button"
         data-l10n-id="new-profile-page-done-button"
         @click=${this.onDoneClick}
         type="primary"
@@ -402,8 +420,10 @@ export class EditProfileCard extends MozLitElement {
             <h3 data-l10n-id="edit-profile-page-theme-header"></h3>
             <div id="themes">${this.themesTemplate()}</div>
             <a
+              id="more-themes"
               href="https://addons.mozilla.org/firefox/themes/"
               target="_blank"
+              @click=${this.onMoreThemesClick}
               data-l10n-id="edit-profile-page-explore-themes"
             ></a>
 

@@ -179,6 +179,8 @@ export let RemotePageAccessManager = {
         "Profiles:UpdateProfileAvatar",
         "Profiles:OpenDeletePage",
         "Profiles:CloseProfileTab",
+        "Profiles:MoreThemes",
+        "Profiles:PageHide",
       ],
     },
     "about:newprofile": {
@@ -191,6 +193,8 @@ export let RemotePageAccessManager = {
         "Profiles:UpdateProfileAvatar",
         "Profiles:DeleteProfile",
         "Profiles:CloseProfileTab",
+        "Profiles:MoreThemes",
+        "Profiles:PageHide",
       ],
       RPMGetBoolPref: ["browser.profiles.profile-name.updated"],
       RPMGetFormatURLPref: ["app.support.baseURL"],
