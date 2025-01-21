@@ -181,12 +181,6 @@ class PhaseIter {
   operator Phase() const { return phase; }
 };
 
-JS_PUBLIC_API const char* JS::GetGCPhaseName(uint32_t val) {
-  PhaseKind kind = static_cast<PhaseKind>(val);
-  MOZ_RELEASE_ASSERT(kind < PhaseKind::LIMIT);
-  return phaseKinds[kind].name;
-}
-
 static double t(TimeDuration duration) { return duration.ToMilliseconds(); }
 
 static TimeDuration TimeBetween(TimeStamp start, TimeStamp end) {
@@ -1354,27 +1348,32 @@ void Statistics::sendSliceTelemetry(const SliceData& slice) {
       // Record the longest phase in any long slice.
       if (wasLongSlice) {
         PhaseKind longest = LongestPhaseSelfTimeInMajorGC(slice.phaseTimes);
-        if (longest != PhaseKind::NONE) {
-          runtime->metrics().GC_SLOW_PHASE(phaseKinds[longest].telemetryBucket);
-          runtime->metrics().GC_GLEAN_SLOW_PHASE(
-              static_cast<uint32_t>(longest));
+        reportLongestPhaseInMajorGC(longest, [runtime](auto sample) {
+          runtime->metrics().GC_SLOW_PHASE(sample);
+        });
 
-          // If the longest phase was waiting for parallel tasks then record the
-          // longest task.
-          if (longest == PhaseKind::JOIN_PARALLEL_TASKS) {
-            PhaseKind longestParallel =
-                FindLongestPhaseKind(slice.maxParallelTimes);
-            runtime->metrics().GC_SLOW_TASK(
-                phaseKinds[longestParallel].telemetryBucket);
-            runtime->metrics().GC_GLEAN_SLOW_TASK(
-                static_cast<uint32_t>(longestParallel));
-          }
+        // If the longest phase was waiting for parallel tasks then record the
+        // longest task.
+        if (longest == PhaseKind::JOIN_PARALLEL_TASKS) {
+          PhaseKind longestParallel =
+              FindLongestPhaseKind(slice.maxParallelTimes);
+          reportLongestPhaseInMajorGC(longestParallel, [runtime](auto sample) {
+            runtime->metrics().GC_SLOW_TASK(sample);
+          });
         }
       }
     }
 
     // Record `wasLongSlice` for all TimeBudget slices.
     runtime->metrics().GC_SLICE_WAS_LONG(wasLongSlice);
+  }
+}
+
+template <typename Fn>
+void Statistics::reportLongestPhaseInMajorGC(PhaseKind longest, Fn reportFn) {
+  if (longest != PhaseKind::NONE) {
+    uint8_t bucket = phaseKinds[longest].telemetryBucket;
+    reportFn(bucket);
   }
 }
 
