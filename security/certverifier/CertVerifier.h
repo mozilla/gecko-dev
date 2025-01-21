@@ -17,7 +17,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/bindings/MetricTypes.h"
 #include "mozpkix/pkixder.h"
 #include "mozpkix/pkixtypes.h"
 #include "nsString.h"
