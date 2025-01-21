@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { ASRouter } from "resource:///modules/asrouter/ASRouter.sys.mjs";
-import { TelemetryFeed } from "resource://activity-stream/lib/TelemetryFeed.sys.mjs";
 import { ASRouterParentProcessMessageHandler } from "resource:///modules/asrouter/ASRouterParentProcessMessageHandler.sys.mjs";
+import { ASRouterTelemetry } from "resource:///modules/asrouter/ASRouterTelemetry.sys.mjs";
 
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This
@@ -48,7 +48,7 @@ const createStorage = async telemetryFeed => {
 
 export const ASRouterDefaultConfig = () => {
   const router = ASRouter;
-  const telemetry = new TelemetryFeed();
+  const telemetry = new ASRouterTelemetry();
   const messageHandler = new ASRouterParentProcessMessageHandler({
     router,
     preferences: ASRouterPreferences,

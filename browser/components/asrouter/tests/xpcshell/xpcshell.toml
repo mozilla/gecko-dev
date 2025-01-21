@@ -7,6 +7,9 @@ run-if = ["os == 'mac'"] # osx specific tests
 
 ["test_ASRouterTargeting_snapshot.js"]
 
+["test_ASRouterTelemetry.js"]
+support-files = ["../schemas/*.schema.json"]
+
 ["test_ASRouter_getTargetingParameters.js"]
 
 ["test_CFRMessageProvider.js"]

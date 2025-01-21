@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "browser/components/newtab/test/schemas/asrouter_event_ping.schema.json",
+  "$id": "browser/components/asrouter/tests/schemas/asrouter_event_ping.schema.json",
   "title": "ASRouter event PingCentre ping",
   "type": "object",
   "properties": {

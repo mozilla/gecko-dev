@@ -22,6 +22,7 @@ EXTRA_JS_MODULES.asrouter += [
     "modules/ASRouterParentProcessMessageHandler.sys.mjs",
     "modules/ASRouterPreferences.sys.mjs",
     "modules/ASRouterTargeting.sys.mjs",
+    "modules/ASRouterTelemetry.sys.mjs",
     "modules/ASRouterTriggerListeners.sys.mjs",
     "modules/BookmarksBarButton.sys.mjs",
     "modules/CFRMessageProvider.sys.mjs",

@@ -6,19 +6,11 @@
 // environment won't choke on these module. This is because the Karma test
 // environment already stubs out XPCOMUtils, AppConstants and RemoteSettings,
 // and overrides importESModule to be a no-op (which can't be done for a static
-// import statement). MESSAGE_TYPE_HASH / msg isn't something that the tests
-// for this module seem to rely on in the Karma environment, but if that ever
-// becomes the case, we should import those into unit-entry like we do for the
-// ASRouter tests.
+// import statement).
 
 // eslint-disable-next-line mozilla/use-static-import
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
-// eslint-disable-next-line mozilla/use-static-import
-const { MESSAGE_TYPE_HASH: msg } = ChromeUtils.importESModule(
-  "resource:///modules/asrouter/ActorConstants.mjs"
 );
 
 import {
@@ -32,25 +24,16 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
-  AboutWelcomeTelemetry:
-    "resource:///modules/aboutwelcome/AboutWelcomeTelemetry.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
-  TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
   UTEventReporting: "resource://activity-stream/lib/UTEventReporting.sys.mjs",
-  UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
 });
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "Telemetry",
-  () => new lazy.AboutWelcomeTelemetry()
-);
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "handoffToAwesomebarPrefValue",
@@ -91,12 +74,6 @@ const ONBOARDING_ALLOWED_PAGE_VALUES = [
   "about:home",
   "about:newtab",
 ];
-
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "browserSessionId",
-  () => lazy.TelemetrySession.getMetadata("").sessionId
-);
 
 // `contextId` is a unique identifier used by Contextual Services
 const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
@@ -285,23 +262,6 @@ export class TelemetryFeed {
   }
 
   /**
-   *  Check if it is in the CFR experiment cohort by querying against the
-   *  experiment manager of Messaging System
-   *
-   *  @return {bool}
-   */
-  get isInCFRCohort() {
-    const experimentData = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: "cfr",
-    });
-    if (experimentData && experimentData.slug) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
    * addSession - Start tracking a new session
    *
    * @param  {string} id the portID of the open session
@@ -465,176 +425,6 @@ export class TelemetryFeed {
         lazy.TelemetryEnvironment.currentEnvironment.profile.resetDate ||
         lazy.TelemetryEnvironment.currentEnvironment.profile.creationDate,
     });
-  }
-
-  /**
-   * Create a ping for AS router event. The client_id is set to "n/a" by default,
-   * different component can override this by its own telemetry collection policy.
-   */
-  async createASRouterEvent(action) {
-    let event = {
-      ...action.data,
-      addon_version: Services.appinfo.appBuildID,
-      locale: Services.locale.appLocaleAsBCP47,
-    };
-    const session = this.sessions.get(au.getPortIdOfSender(action));
-    if (event.event_context && typeof event.event_context === "object") {
-      event.event_context = JSON.stringify(event.event_context);
-    }
-    switch (event.action) {
-      case "cfr_user_event":
-        event = await this.applyCFRPolicy(event);
-        break;
-      case "badge_user_event":
-        event = await this.applyToolbarBadgePolicy(event);
-        break;
-      case "infobar_user_event":
-        event = await this.applyInfoBarPolicy(event);
-        break;
-      case "spotlight_user_event":
-        event = await this.applySpotlightPolicy(event);
-        break;
-      case "toast_notification_user_event":
-        event = await this.applyToastNotificationPolicy(event);
-        break;
-      case "moments_user_event":
-        event = await this.applyMomentsPolicy(event);
-        break;
-      case "onboarding_user_event":
-        event = await this.applyOnboardingPolicy(event, session);
-        break;
-      case "menu_message_user_event":
-        event = await this.applyMenuMessagePolicy(event);
-        break;
-      case "asrouter_undesired_event":
-        event = this.applyUndesiredEventPolicy(event);
-        break;
-      default:
-        event = { ping: event };
-        break;
-    }
-    return event;
-  }
-
-  /**
-   * Per Bug 1484035, CFR metrics comply with following policies:
-   * 1). In release, it collects impression_id and bucket_id
-   * 2). In prerelease, it collects client_id and message_id
-   * 3). In shield experiments conducted in release, it collects client_id and message_id
-   * 4). In Private Browsing windows, unless in experiment, collects impression_id and bucket_id
-   */
-  async applyCFRPolicy(ping) {
-    if (
-      (lazy.UpdateUtils.getUpdateChannel(true) === "release" ||
-        ping.is_private) &&
-      !this.isInCFRCohort
-    ) {
-      ping.message_id = "n/a";
-      ping.impression_id = this._impressionId;
-    } else {
-      ping.client_id = await this.telemetryClientId;
-    }
-    delete ping.action;
-    delete ping.is_private;
-    return { ping, pingType: "cfr" };
-  }
-
-  /**
-   * Per Bug 1482134, all the metrics for What's New panel use client_id in
-   * all the release channels
-   */
-  async applyToolbarBadgePolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    // Attach page info to `event_context` if there is a session associated with this ping
-    delete ping.action;
-    return { ping, pingType: "toolbar-badge" };
-  }
-
-  async applyInfoBarPolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    delete ping.action;
-    return { ping, pingType: "infobar" };
-  }
-
-  async applySpotlightPolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    delete ping.action;
-    return { ping, pingType: "spotlight" };
-  }
-
-  async applyToastNotificationPolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    delete ping.action;
-    return { ping, pingType: "toast_notification" };
-  }
-
-  async applyMenuMessagePolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    delete ping.action;
-    return { ping, pingType: "menu" };
-  }
-
-  /**
-   * Per Bug 1484035, Moments metrics comply with following policies:
-   * 1). In release, it collects impression_id, and treats bucket_id as message_id
-   * 2). In prerelease, it collects client_id and message_id
-   * 3). In shield experiments conducted in release, it collects client_id and message_id
-   */
-  async applyMomentsPolicy(ping) {
-    if (
-      lazy.UpdateUtils.getUpdateChannel(true) === "release" &&
-      !this.isInCFRCohort
-    ) {
-      ping.message_id = "n/a";
-      ping.impression_id = this._impressionId;
-    } else {
-      ping.client_id = await this.telemetryClientId;
-    }
-    delete ping.action;
-    return { ping, pingType: "moments" };
-  }
-
-  /**
-   * Per Bug 1482134, all the metrics for Onboarding in AS router use client_id in
-   * all the release channels
-   */
-  async applyOnboardingPolicy(ping, session) {
-    ping.client_id = await this.telemetryClientId;
-    ping.browser_session_id = lazy.browserSessionId;
-    // Attach page info to `event_context` if there is a session associated with this ping
-    if (ping.action === "onboarding_user_event" && session && session.page) {
-      let event_context;
-
-      try {
-        event_context = ping.event_context
-          ? JSON.parse(ping.event_context)
-          : {};
-      } catch (e) {
-        // If `ping.event_context` is not a JSON serialized string, then we create a `value`
-        // key for it
-        event_context = { value: ping.event_context };
-      }
-
-      if (ONBOARDING_ALLOWED_PAGE_VALUES.includes(session.page)) {
-        event_context.page = session.page;
-      } else {
-        console.error(`Invalid 'page' for Onboarding event: ${session.page}`);
-      }
-      ping.event_context = JSON.stringify(event_context);
-    }
-    delete ping.action;
-    return { ping, pingType: "onboarding" };
-  }
-
-  applyUndesiredEventPolicy(ping) {
-    ping.impression_id = this._impressionId;
-    delete ping.action;
-    return { ping, pingType: "undesired-events" };
   }
 
   sendUTEvent(event_object, eventFunction) {
@@ -979,19 +769,6 @@ export class TelemetryFeed {
     }
   }
 
-  async handleASRouterUserEvent(action) {
-    const { ping, pingType } = await this.createASRouterEvent(action);
-    if (!pingType) {
-      console.error("Unknown ping type for ASRouter telemetry");
-      return;
-    }
-
-    // Now that the action has become a ping, we can echo it to Glean.
-    if (this.telemetryEnabled) {
-      lazy.Telemetry.submitGleanPingForPing({ ...ping, pingType });
-    }
-  }
-
   /**
    * This function submits callback events to the MARS unified ads service.
    */
@@ -1026,16 +803,6 @@ export class TelemetryFeed {
     } catch (error) {
       console.error("Error:", error);
     }
-  }
-
-  /**
-   * This function is used by ActivityStreamStorage to report errors
-   * trying to access IndexedDB.
-   */
-  SendASRouterUndesiredEvent(data) {
-    this.handleASRouterUserEvent({
-      data: { ...data, action: "asrouter_undesired_event" },
-    });
   }
 
   async sendPageTakeoverData() {
@@ -1201,28 +968,6 @@ export class TelemetryFeed {
         this.handleCardSectionUserEvent(action);
         break;
       }
-
-      // The remaining action types come from ASRouter, which doesn't use
-      // Actions from Actions.mjs, but uses these other custom strings.
-      case msg.TOOLBAR_BADGE_TELEMETRY:
-      // Intentional fall-through
-      case msg.TOOLBAR_PANEL_TELEMETRY:
-      // Intentional fall-through
-      case msg.MOMENTS_PAGE_TELEMETRY:
-      // Intentional fall-through
-      case msg.DOORHANGER_TELEMETRY:
-      // Intentional fall-through
-      case msg.INFOBAR_TELEMETRY:
-      // Intentional fall-through
-      case msg.SPOTLIGHT_TELEMETRY:
-      // Intentional fall-through
-      case msg.TOAST_NOTIFICATION_TELEMETRY:
-      // Intentional fall-through
-      case msg.MENU_MESSAGE_TELEMETRY:
-      // Intentional fall-through
-      case msg.AS_ROUTER_TELEMETRY_USER_EVENT:
-        this.handleASRouterUserEvent(action);
-        break;
     }
   }
 

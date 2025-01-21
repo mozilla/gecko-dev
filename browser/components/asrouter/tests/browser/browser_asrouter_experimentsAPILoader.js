@@ -16,8 +16,8 @@ const { ExperimentFakes, ExperimentTestUtils } = ChromeUtils.importESModule(
 const { ExperimentManager } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-const { TelemetryFeed } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/TelemetryFeed.sys.mjs"
+const { ASRouterTelemetry } = ChromeUtils.importESModule(
+  "resource:///modules/asrouter/ASRouterTelemetry.sys.mjs"
 );
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
@@ -202,11 +202,8 @@ add_task(async function test_loading_experimentsAPI() {
     "ExperimentAPI should return an experiment"
   );
 
-  const telemetryFeedInstance = new TelemetryFeed();
-  Assert.ok(
-    telemetryFeedInstance.isInCFRCohort,
-    "Telemetry should return true"
-  );
+  const telemetryInstance = new ASRouterTelemetry();
+  Assert.ok(telemetryInstance.isInCFRCohort, "Telemetry should return true");
 
   await assertMessageInState("xman_test_message");
 
