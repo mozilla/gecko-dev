@@ -126,12 +126,7 @@ deps = {
     'condition': 'not (host_os == "linux" and host_cpu == "arm64")',
   },
 
-  'third_party/rust': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/rust@0e0ef14876a32128574eaf80bc7fc1c7cde92006',
-    'condition': 'checkout_android or checkout_fuzzer',
-  },
-
-  'third_party/rust-toolchain': {
+  'src/third_party/rust-toolchain': {
     'dep_type': 'gcs',
     'bucket': 'chromium-browser-clang',
     'objects': [
