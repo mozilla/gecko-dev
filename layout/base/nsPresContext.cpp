@@ -247,7 +247,6 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mCurAppUnitsPerDevPixel(0),
       mDynamicToolbarMaxHeight(0),
       mDynamicToolbarHeight(0),
-      mKeyboardHeight(0),
       mPageSize(-1, -1),
       mPageScale(0.0),
       mPPScale(1.0f),
@@ -722,8 +721,6 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (IsRootContentDocumentCrossProcess()) {
     if (BrowserChild* browserChild = BrowserChild::GetFrom(GetDocShell())) {
-      mKeyboardHeight = browserChild->GetKeyboardHeight();
-
       if (MOZ_LIKELY(!Preferences::HasUserValue(
               "layout.dynamic-toolbar-max-height"))) {
         mDynamicToolbarMaxHeight = browserChild->GetDynamicToolbarMaxHeight();
@@ -3129,7 +3126,7 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
   dom::InteractiveWidget interactiveWidget = mDocument->InteractiveWidget();
   if (interactiveWidget == InteractiveWidget::OverlaysContent &&
-      mKeyboardHeight > 0) {
+      GetKeyboardHeight() > 0) {
     // On overlays-content mode, the toolbar offset change should NOT affect
     // the visual viewport while the software keyboard is being shown since
     // the toolbar will be positioned somewhere in the middle of the visual
@@ -3163,8 +3160,6 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
 void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   MOZ_ASSERT(IsRootContentDocumentCrossProcess());
-  mKeyboardHeight = aHeight;
-
   if (!mPresShell) {
     return;
   }
@@ -3175,8 +3170,13 @@ void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   }
 }
 
+ScreenIntCoord nsPresContext::GetKeyboardHeight() const {
+  MobileViewportManager* mvm = mPresShell->GetMobileViewportManager();
+  return mvm ? mvm->GetKeyboardHeight() : ScreenIntCoord(0);
+}
+
 bool nsPresContext::IsKeyboardHiddenOrResizesContentMode() const {
-  return mKeyboardHeight == 0 ||
+  return GetKeyboardHeight() == 0 ||
          mDocument->InteractiveWidget() == InteractiveWidget::ResizesContent;
 }
 
