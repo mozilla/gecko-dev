@@ -1474,4 +1474,23 @@ class TabListActionTest {
         dispatchJoinMoveAction(store, listOf("c", "d"), "b", true)
         assertSameTabs(store, tabList, "c,d to b+")
     }
+
+    @Test
+    fun `WHEN an unselected child tab is closed THEN the tab that is selected remains selected`() {
+        val store = BrowserStore()
+
+        val parent = createTab("https://www.mozilla.org")
+        val child = createTab("https://www.mozilla.org/en-US/internet-health/", parent = parent)
+        val nonChildTab = createTab("https://www.firefox.com")
+
+        store.dispatch(TabListAction.AddTabAction(parent)).joinBlocking()
+        store.dispatch(TabListAction.AddTabAction(nonChildTab)).joinBlocking()
+        store.dispatch(TabListAction.AddTabAction(child)).joinBlocking()
+
+        store.dispatch(TabListAction.SelectTabAction(nonChildTab.id)).joinBlocking()
+        store.dispatch(TabListAction.RemoveTabAction(child.id, selectParentIfExists = true)).joinBlocking()
+
+        assertEquals(nonChildTab.id, store.state.selectedTabId)
+        assertEquals(nonChildTab.content.url, store.state.selectedTab?.content?.url)
+    }
 }
