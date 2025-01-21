@@ -3038,6 +3038,13 @@ int PeerConnection::FeedbackAccordingToRfc8888CountForTesting() const {
   });
 }
 
+int PeerConnection::FeedbackAccordingToTransportCcCountForTesting() const {
+  return worker_thread()->BlockingCall([this]() {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    return call_->FeedbackAccordingToTransportCcCount();
+  });
+}
+
 std::function<void(const rtc::CopyOnWriteBuffer& packet,
                    int64_t packet_time_us)>
 PeerConnection::InitializeRtcpCallback() {

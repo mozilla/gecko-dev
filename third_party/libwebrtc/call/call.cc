@@ -280,6 +280,7 @@ class Call final : public webrtc::Call,
 
   void EnableSendCongestionControlFeedbackAccordingToRfc8888() override;
   int FeedbackAccordingToRfc8888Count() override;
+  int FeedbackAccordingToTransportCcCount() override;
 
   const FieldTrialsView& trials() const override;
 
@@ -1185,6 +1186,10 @@ void Call::EnableSendCongestionControlFeedbackAccordingToRfc8888() {
 
 int Call::FeedbackAccordingToRfc8888Count() {
   return transport_send_->ReceivedCongestionControlFeedbackCount();
+}
+
+int Call::FeedbackAccordingToTransportCcCount() {
+  return transport_send_->ReceivedTransportCcFeedbackCount();
 }
 
 const FieldTrialsView& Call::trials() const {

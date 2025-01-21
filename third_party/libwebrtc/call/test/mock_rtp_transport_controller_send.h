@@ -119,6 +119,7 @@ class MockRtpTransportControllerSend
               ReceivedCongestionControlFeedbackCount,
               (),
               (const, override));
+  MOCK_METHOD(int, ReceivedTransportCcFeedbackCount, (), (const, override));
 };
 }  // namespace webrtc
 #endif  // CALL_TEST_MOCK_RTP_TRANSPORT_CONTROLLER_SEND_H_

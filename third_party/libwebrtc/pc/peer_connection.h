@@ -443,6 +443,7 @@ class PeerConnection : public PeerConnectionInternal,
   }
   void RequestUsagePatternReportForTesting();
   int FeedbackAccordingToRfc8888CountForTesting() const;
+  int FeedbackAccordingToTransportCcCountForTesting() const;
 
   NetworkControllerInterface* GetNetworkController() override {
     if (!worker_thread()->IsCurrent()) {

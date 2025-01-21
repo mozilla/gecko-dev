@@ -471,6 +471,7 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
   }
   void EnableSendCongestionControlFeedbackAccordingToRfc8888() override {}
   int FeedbackAccordingToRfc8888Count() { return 0; }
+  int FeedbackAccordingToTransportCcCount() { return 0; }
 
  private:
   webrtc::AudioSendStream* CreateAudioSendStream(

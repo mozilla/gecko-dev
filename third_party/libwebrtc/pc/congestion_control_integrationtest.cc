@@ -23,6 +23,7 @@
 
 namespace webrtc {
 
+using testing::Eq;
 using testing::HasSubstr;
 
 class PeerConnectionCongestionControlTest
@@ -81,6 +82,26 @@ TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
   auto pc_internal = caller()->pc_internal();
   EXPECT_TRUE_WAIT(pc_internal->FeedbackAccordingToRfc8888CountForTesting() > 0,
                    kDefaultTimeout);
+}
+
+TEST_F(PeerConnectionCongestionControlTest, TransportCcGetsUsed) {
+  test::ScopedFieldTrials trials(
+      "WebRTC-RFC8888CongestionControlFeedback/Disabled/");
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  caller()->AddAudioVideoTracks();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  MediaExpectations media_expectations;
+  media_expectations.CalleeExpectsSomeAudio();
+  media_expectations.CalleeExpectsSomeVideo();
+  ASSERT_TRUE(ExpectNewFrames(media_expectations));
+  auto pc_internal = caller()->pc_internal();
+  EXPECT_TRUE_WAIT(
+      pc_internal->FeedbackAccordingToTransportCcCountForTesting() > 0,
+      kDefaultTimeout);
+  // Test that RFC 8888 feedback is NOT generated when field trial disabled.
+  EXPECT_THAT(pc_internal->FeedbackAccordingToRfc8888CountForTesting(), Eq(0));
 }
 
 }  // namespace webrtc

@@ -31,10 +31,10 @@ index 07a61605a9..039e9c7c9b 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/call.cc b/call/call.cc
-index 735b3d2c78..88242a6817 100644
+index f1385c9933..d6ea8135b8 100644
 --- a/call/call.cc
 +++ b/call/call.cc
-@@ -513,19 +513,6 @@ class Call final : public webrtc::Call,
+@@ -514,19 +514,6 @@ class Call final : public webrtc::Call,
  };
  }  // namespace internal
  
@@ -55,7 +55,7 @@ index 735b3d2c78..88242a6817 100644
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index c69e37416f..fd18e92a11 100644
+index ae6eaf82d9..eb4dae0f95 100644
 --- a/call/call.h
 +++ b/call/call.h
 @@ -25,6 +25,7 @@
