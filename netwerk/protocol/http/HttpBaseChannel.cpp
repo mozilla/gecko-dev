@@ -4467,11 +4467,18 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
     }
     newLoadInfo->ResetSandboxedNullPrincipalID();
 
-    // Reset HTTPS-first and -only status on http redirect. To not unexpectedly
-    // downgrade requests that weren't upgraded via HTTPS-First (Bug 1904238).
     if (isTopLevelDoc) {
+      // Reset HTTPS-first and -only status on http redirect. To not
+      // unexpectedly downgrade requests that weren't upgraded via HTTPS-First
+      // (Bug 1904238).
       Unused << newLoadInfo->SetHttpsOnlyStatus(
           nsILoadInfo::HTTPS_ONLY_UNINITIALIZED);
+
+      // Reset schemeless status flag to prevent schemeless HTTPS-First from
+      // repeatedly trying to upgrade loads that get downgraded again from the
+      // server by a redirect (Bug 1937386).
+      Unused << newLoadInfo->SetSchemelessInput(
+          nsILoadInfo::SchemelessInputTypeUnset);
     }
   }
 
