@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Popup test page</title>
+</head>
+<body>
+  <p>Popup Page</p>
+  <button id="openPopupButton" type="button">Open Popup</button>
+  <script>
+    document.getElementById("openPopupButton").addEventListener("click", () => {
+      window.open(
+        "https://example.com/browser/browser/base/content/test/about/sandbox_corp_iframe.sjs?error=inner_coop",
+        "_blank"
+      );
+    });
+  </script>
+</body>
+</html>
