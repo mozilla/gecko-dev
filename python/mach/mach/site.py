@@ -957,19 +957,22 @@ class PythonVirtualenv:
         """
         existing_packages = self._resolve_installed_packages()
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            constraints_path = os.path.join(tempdir, "site-constraints.txt")
-            with open(constraints_path, "w") as file:
-                file.write(
-                    "\n".join(
-                        [
-                            f"{name}=={version}"
-                            for name, version in existing_packages.items()
-                        ]
+        if existing_packages:
+            with tempfile.TemporaryDirectory() as tempdir:
+                constraints_path = os.path.join(tempdir, "site-constraints.txt")
+                with open(constraints_path, "w") as file:
+                    file.write(
+                        "\n".join(
+                            [
+                                f"{name}=={version}"
+                                for name, version in existing_packages.items()
+                            ]
+                        )
                     )
-                )
 
-            return self.pip_install(["--constraint", constraints_path] + pip_args)
+                self.pip_install(["--constraint", constraints_path] + pip_args)
+        else:
+            self.pip_install(pip_args)
 
     def pip_install(self, pip_install_args, **kwargs):
         # setuptools will use the architecture of the running Python instance when
