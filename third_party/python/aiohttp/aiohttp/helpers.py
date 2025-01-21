@@ -3,7 +3,9 @@
 import asyncio
 import base64
 import binascii
+import contextlib
 import datetime
+import enum
 import functools
 import inspect
 import netrc
@@ -12,7 +14,6 @@ import platform
 import re
 import sys
 import time
-import warnings
 import weakref
 from collections import namedtuple
 from contextlib import suppress
@@ -33,62 +34,47 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Pattern,
-    Set,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
     Union,
-    cast,
+    get_args,
+    overload,
 )
 from urllib.parse import quote
 from urllib.request import getproxies, proxy_bypass
 
-import async_timeout
 import attr
-from multidict import MultiDict, MultiDictProxy
+from multidict import MultiDict, MultiDictProxy, MultiMapping
 from yarl import URL
 
 from . import hdrs
-from .log import client_logger, internal_logger
-from .typedefs import PathLike, Protocol  # noqa
+from .log import client_logger
+
+if sys.version_info >= (3, 11):
+    import asyncio as async_timeout
+else:
+    import async_timeout
 
 __all__ = ("BasicAuth", "ChainMapProxy", "ETag")
 
 IS_MACOS = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-PY_36 = sys.version_info >= (3, 6)
-PY_37 = sys.version_info >= (3, 7)
-PY_38 = sys.version_info >= (3, 8)
 PY_310 = sys.version_info >= (3, 10)
 PY_311 = sys.version_info >= (3, 11)
-
-if sys.version_info < (3, 7):
-    import idna_ssl
-
-    idna_ssl.patch_match_hostname()
-
-    def all_tasks(
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-    ) -> Set["asyncio.Task[Any]"]:
-        tasks = list(asyncio.Task.all_tasks(loop))
-        return {t for t in tasks if not t.done()}
-
-else:
-    all_tasks = asyncio.all_tasks
 
 
 _T = TypeVar("_T")
 _S = TypeVar("_S")
 
+_SENTINEL = enum.Enum("_SENTINEL", "sentinel")
+sentinel = _SENTINEL.sentinel
 
-sentinel: Any = object()
-NO_EXTENSIONS: bool = bool(os.environ.get("AIOHTTP_NO_EXTENSIONS"))
+NO_EXTENSIONS = bool(os.environ.get("AIOHTTP_NO_EXTENSIONS"))
 
-# N.B. sys.flags.dev_mode is available on Python 3.7+, use getattr
-# for compatibility with older versions
-DEBUG: bool = getattr(sys.flags, "dev_mode", False) or (
+DEBUG = sys.flags.dev_mode or (
     not sys.flags.ignore_environment and bool(os.environ.get("PYTHONASYNCIODEBUG"))
 )
 
@@ -177,9 +163,11 @@ class BasicAuth(namedtuple("BasicAuth", ["login", "password", "encoding"])):
         """Create BasicAuth from url."""
         if not isinstance(url, URL):
             raise TypeError("url should be yarl.URL instance")
-        if url.user is None:
+        # Check raw_user and raw_password first as yarl is likely
+        # to already have these values parsed from the netloc in the cache.
+        if url.raw_user is None and url.raw_password is None:
             return None
-        return cls(url.user, url.password or "", encoding=encoding)
+        return cls(url.user or "", url.password or "", encoding=encoding)
 
     def encode(self) -> str:
         """Encode credentials."""
@@ -188,11 +176,12 @@ class BasicAuth(namedtuple("BasicAuth", ["login", "password", "encoding"])):
 
 
 def strip_auth_from_url(url: URL) -> Tuple[URL, Optional[BasicAuth]]:
-    auth = BasicAuth.from_url(url)
-    if auth is None:
+    """Remove user and password from URL if present and return BasicAuth object."""
+    # Check raw_user and raw_password first as yarl is likely
+    # to already have these values parsed from the netloc in the cache.
+    if url.raw_user is None and url.raw_password is None:
         return url, None
-    else:
-        return url.with_user(None), auth
+    return url.with_user(None), BasicAuth(url.user or "", url.password or "")
 
 
 def netrc_from_env() -> Optional[netrc.netrc]:
@@ -226,8 +215,11 @@ def netrc_from_env() -> Optional[netrc.netrc]:
     except netrc.NetrcParseError as e:
         client_logger.warning("Could not parse .netrc file: %s", e)
     except OSError as e:
+        netrc_exists = False
+        with contextlib.suppress(OSError):
+            netrc_exists = netrc_path.is_file()
         # we couldn't read the file (doesn't exist, permissions, etc.)
-        if netrc_env or netrc_path.is_file():
+        if netrc_env or netrc_exists:
             # only warn if the environment wanted us to load it,
             # or it appears like the default file does actually exist
             client_logger.warning("Could not read .netrc file: %s", e)
@@ -239,6 +231,35 @@ def netrc_from_env() -> Optional[netrc.netrc]:
 class ProxyInfo:
     proxy: URL
     proxy_auth: Optional[BasicAuth]
+
+
+def basicauth_from_netrc(netrc_obj: Optional[netrc.netrc], host: str) -> BasicAuth:
+    """
+    Return :py:class:`~aiohttp.BasicAuth` credentials for ``host`` from ``netrc_obj``.
+
+    :raises LookupError: if ``netrc_obj`` is :py:data:`None` or if no
+            entry is found for the ``host``.
+    """
+    if netrc_obj is None:
+        raise LookupError("No .netrc file found")
+    auth_from_netrc = netrc_obj.authenticators(host)
+
+    if auth_from_netrc is None:
+        raise LookupError(f"No entry for {host!s} found in the `.netrc` file.")
+    login, account, password = auth_from_netrc
+
+    # TODO(PY311): username = login or account
+    # Up to python 3.10, account could be None if not specified,
+    # and login will be empty string if not specified. From 3.11,
+    # login and account will be empty string if not specified.
+    username = login if (login or account is None) else account
+
+    # TODO(PY311): Remove this, as password will be empty string
+    # if not specified
+    if password is None:
+        password = ""
+
+    return BasicAuth(username, password)
 
 
 def proxies_from_env() -> Dict[str, ProxyInfo]:
@@ -258,53 +279,13 @@ def proxies_from_env() -> Dict[str, ProxyInfo]:
             )
             continue
         if netrc_obj and auth is None:
-            auth_from_netrc = None
             if proxy.host is not None:
-                auth_from_netrc = netrc_obj.authenticators(proxy.host)
-            if auth_from_netrc is not None:
-                # auth_from_netrc is a (`user`, `account`, `password`) tuple,
-                # `user` and `account` both can be username,
-                # if `user` is None, use `account`
-                *logins, password = auth_from_netrc
-                login = logins[0] if logins[0] else logins[-1]
-                auth = BasicAuth(cast(str, login), cast(str, password))
+                try:
+                    auth = basicauth_from_netrc(netrc_obj, proxy.host)
+                except LookupError:
+                    auth = None
         ret[proto] = ProxyInfo(proxy, auth)
     return ret
-
-
-def current_task(
-    loop: Optional[asyncio.AbstractEventLoop] = None,
-) -> "Optional[asyncio.Task[Any]]":
-    if sys.version_info >= (3, 7):
-        return asyncio.current_task(loop=loop)
-    else:
-        return asyncio.Task.current_task(loop=loop)
-
-
-def get_running_loop(
-    loop: Optional[asyncio.AbstractEventLoop] = None,
-) -> asyncio.AbstractEventLoop:
-    if loop is None:
-        loop = asyncio.get_event_loop()
-    if not loop.is_running():
-        warnings.warn(
-            "The object should be created within an async function",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if loop.get_debug():
-            internal_logger.warning(
-                "The object should be created within an async function", stack_info=True
-            )
-    return loop
-
-
-def isasyncgenfunction(obj: Any) -> bool:
-    func = getattr(inspect, "isasyncgenfunction", None)
-    if func is not None:
-        return func(obj)  # type: ignore[no-any-return]
-    else:
-        return False
 
 
 def get_env_proxy_for_url(url: URL) -> Tuple[URL, Optional[BasicAuth]]:
@@ -354,23 +335,15 @@ def parse_mimetype(mimetype: str) -> MimeType:
     for item in parts[1:]:
         if not item:
             continue
-        key, value = cast(
-            Tuple[str, str], item.split("=", 1) if "=" in item else (item, "")
-        )
+        key, _, value = item.partition("=")
         params.add(key.lower().strip(), value.strip(' "'))
 
     fulltype = parts[0].strip().lower()
     if fulltype == "*":
         fulltype = "*/*"
 
-    mtype, stype = (
-        cast(Tuple[str, str], fulltype.split("/", 1))
-        if "/" in fulltype
-        else (fulltype, "")
-    )
-    stype, suffix = (
-        cast(Tuple[str, str], stype.split("+", 1)) if "+" in stype else (stype, "")
-    )
+    mtype, _, stype = fulltype.partition("/")
+    stype, _, suffix = stype.partition("+")
 
     return MimeType(
         type=mtype, subtype=stype, suffix=suffix, parameters=MultiDictProxy(params)
@@ -500,52 +473,52 @@ try:
 except ImportError:
     pass
 
-_ipv4_pattern = (
-    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
-    r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-)
-_ipv6_pattern = (
-    r"^(?:(?:(?:[A-F0-9]{1,4}:){6}|(?=(?:[A-F0-9]{0,4}:){0,6}"
-    r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}$)(([0-9A-F]{1,4}:){0,5}|:)"
-    r"((:[0-9A-F]{1,4}){1,5}:|:)|::(?:[A-F0-9]{1,4}:){5})"
-    r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}"
-    r"(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|(?:[A-F0-9]{1,4}:){7}"
-    r"[A-F0-9]{1,4}|(?=(?:[A-F0-9]{0,4}:){0,7}[A-F0-9]{0,4}$)"
-    r"(([0-9A-F]{1,4}:){1,7}|:)((:[0-9A-F]{1,4}){1,7}|:)|(?:[A-F0-9]{1,4}:){7}"
-    r":|:(:[A-F0-9]{1,4}){7})$"
-)
-_ipv4_regex = re.compile(_ipv4_pattern)
-_ipv6_regex = re.compile(_ipv6_pattern, flags=re.IGNORECASE)
-_ipv4_regexb = re.compile(_ipv4_pattern.encode("ascii"))
-_ipv6_regexb = re.compile(_ipv6_pattern.encode("ascii"), flags=re.IGNORECASE)
 
+def is_ipv4_address(host: Optional[Union[str, bytes]]) -> bool:
+    """Check if host looks like an IPv4 address.
 
-def _is_ip_address(
-    regex: Pattern[str], regexb: Pattern[bytes], host: Optional[Union[str, bytes]]
-) -> bool:
-    if host is None:
+    This function does not validate that the format is correct, only that
+    the host is a str or bytes, and its all numeric.
+
+    This check is only meant as a heuristic to ensure that
+    a host is not a domain name.
+    """
+    if not host:
         return False
+    # For a host to be an ipv4 address, it must be all numeric.
     if isinstance(host, str):
-        return bool(regex.match(host))
-    elif isinstance(host, (bytes, bytearray, memoryview)):
-        return bool(regexb.match(host))
-    else:
-        raise TypeError(f"{host} [{type(host)}] is not a str or bytes")
+        return host.replace(".", "").isdigit()
+    if isinstance(host, (bytes, bytearray, memoryview)):
+        return host.decode("ascii").replace(".", "").isdigit()
+    raise TypeError(f"{host} [{type(host)}] is not a str or bytes")
 
 
-is_ipv4_address = functools.partial(_is_ip_address, _ipv4_regex, _ipv4_regexb)
-is_ipv6_address = functools.partial(_is_ip_address, _ipv6_regex, _ipv6_regexb)
+def is_ipv6_address(host: Optional[Union[str, bytes]]) -> bool:
+    """Check if host looks like an IPv6 address.
+
+    This function does not validate that the format is correct, only that
+    the host contains a colon and that it is a str or bytes.
+
+    This check is only meant as a heuristic to ensure that
+    a host is not a domain name.
+    """
+    if not host:
+        return False
+    # The host must contain a colon to be an IPv6 address.
+    if isinstance(host, str):
+        return ":" in host
+    if isinstance(host, (bytes, bytearray, memoryview)):
+        return b":" in host
+    raise TypeError(f"{host} [{type(host)}] is not a str or bytes")
 
 
 def is_ip_address(host: Optional[Union[str, bytes, bytearray, memoryview]]) -> bool:
+    """Check if host looks like an IP Address.
+
+    This check is only meant as a heuristic to ensure that
+    a host is not a domain name.
+    """
     return is_ipv4_address(host) or is_ipv6_address(host)
-
-
-def next_whole_second() -> datetime.datetime:
-    """Return current time rounded up to the next whole second."""
-    return datetime.datetime.now(datetime.timezone.utc).replace(
-        microsecond=0
-    ) + datetime.timedelta(seconds=0)
 
 
 _cached_current_datetime: Optional[int] = None
@@ -601,11 +574,15 @@ def _weakref_handle(info: "Tuple[weakref.ref[object], str]") -> None:
 
 
 def weakref_handle(
-    ob: object, name: str, timeout: float, loop: asyncio.AbstractEventLoop
+    ob: object,
+    name: str,
+    timeout: float,
+    loop: asyncio.AbstractEventLoop,
+    timeout_ceil_threshold: float = 5,
 ) -> Optional[asyncio.TimerHandle]:
     if timeout is not None and timeout > 0:
         when = loop.time() + timeout
-        if timeout >= 5:
+        if timeout >= timeout_ceil_threshold:
             when = ceil(when)
 
         return loop.call_at(when, _weakref_handle, (weakref.ref(ob), name))
@@ -613,24 +590,44 @@ def weakref_handle(
 
 
 def call_later(
-    cb: Callable[[], Any], timeout: float, loop: asyncio.AbstractEventLoop
+    cb: Callable[[], Any],
+    timeout: float,
+    loop: asyncio.AbstractEventLoop,
+    timeout_ceil_threshold: float = 5,
 ) -> Optional[asyncio.TimerHandle]:
-    if timeout is not None and timeout > 0:
-        when = loop.time() + timeout
-        if timeout > 5:
-            when = ceil(when)
-        return loop.call_at(when, cb)
-    return None
+    if timeout is None or timeout <= 0:
+        return None
+    now = loop.time()
+    when = calculate_timeout_when(now, timeout, timeout_ceil_threshold)
+    return loop.call_at(when, cb)
+
+
+def calculate_timeout_when(
+    loop_time: float,
+    timeout: float,
+    timeout_ceiling_threshold: float,
+) -> float:
+    """Calculate when to execute a timeout."""
+    when = loop_time + timeout
+    if timeout > timeout_ceiling_threshold:
+        return ceil(when)
+    return when
 
 
 class TimeoutHandle:
     """Timeout handle"""
 
+    __slots__ = ("_timeout", "_loop", "_ceil_threshold", "_callbacks")
+
     def __init__(
-        self, loop: asyncio.AbstractEventLoop, timeout: Optional[float]
+        self,
+        loop: asyncio.AbstractEventLoop,
+        timeout: Optional[float],
+        ceil_threshold: float = 5,
     ) -> None:
         self._timeout = timeout
         self._loop = loop
+        self._ceil_threshold = ceil_threshold
         self._callbacks: List[
             Tuple[Callable[..., None], Tuple[Any, ...], Dict[str, Any]]
         ] = []
@@ -643,11 +640,11 @@ class TimeoutHandle:
     def close(self) -> None:
         self._callbacks.clear()
 
-    def start(self) -> Optional[asyncio.Handle]:
+    def start(self) -> Optional[asyncio.TimerHandle]:
         timeout = self._timeout
         if timeout is not None and timeout > 0:
             when = self._loop.time() + timeout
-            if timeout >= 5:
+            if timeout >= self._ceil_threshold:
                 when = ceil(when)
             return self._loop.call_at(when, self.__call__)
         else:
@@ -670,10 +667,17 @@ class TimeoutHandle:
 
 
 class BaseTimerContext(ContextManager["BaseTimerContext"]):
-    pass
+
+    __slots__ = ()
+
+    def assert_timeout(self) -> None:
+        """Raise TimeoutError if timeout has been exceeded."""
 
 
 class TimerNoop(BaseTimerContext):
+
+    __slots__ = ()
+
     def __enter__(self) -> BaseTimerContext:
         return self
 
@@ -689,18 +693,31 @@ class TimerNoop(BaseTimerContext):
 class TimerContext(BaseTimerContext):
     """Low resolution timeout context manager"""
 
+    __slots__ = ("_loop", "_tasks", "_cancelled", "_cancelling")
+
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
         self._tasks: List[asyncio.Task[Any]] = []
         self._cancelled = False
+        self._cancelling = 0
+
+    def assert_timeout(self) -> None:
+        """Raise TimeoutError if timer has already been cancelled."""
+        if self._cancelled:
+            raise asyncio.TimeoutError from None
 
     def __enter__(self) -> BaseTimerContext:
-        task = current_task(loop=self._loop)
-
+        task = asyncio.current_task(loop=self._loop)
         if task is None:
             raise RuntimeError(
                 "Timeout context manager should be used " "inside a task"
             )
+
+        if sys.version_info >= (3, 11):
+            # Remember if the task was already cancelling
+            # so when we __exit__ we can decide if we should
+            # raise asyncio.TimeoutError or let the cancellation propagate
+            self._cancelling = task.cancelling()
 
         if self._cancelled:
             raise asyncio.TimeoutError from None
@@ -714,11 +731,22 @@ class TimerContext(BaseTimerContext):
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> Optional[bool]:
+        enter_task: Optional[asyncio.Task[Any]] = None
         if self._tasks:
-            self._tasks.pop()
+            enter_task = self._tasks.pop()
 
         if exc_type is asyncio.CancelledError and self._cancelled:
-            raise asyncio.TimeoutError from None
+            assert enter_task is not None
+            # The timeout was hit, and the task was cancelled
+            # so we need to uncancel the last task that entered the context manager
+            # since the cancellation should not leak out of the context manager
+            if sys.version_info >= (3, 11):
+                # If the task was already cancelling don't raise
+                # asyncio.TimeoutError and instead return None
+                # to allow the cancellation to propagate
+                if enter_task.uncancel() > self._cancelling:
+                    return None
+            raise asyncio.TimeoutError from exc_val
         return None
 
     def timeout(self) -> None:
@@ -729,27 +757,30 @@ class TimerContext(BaseTimerContext):
             self._cancelled = True
 
 
-def ceil_timeout(delay: Optional[float]) -> async_timeout.Timeout:
+def ceil_timeout(
+    delay: Optional[float], ceil_threshold: float = 5
+) -> async_timeout.Timeout:
     if delay is None or delay <= 0:
         return async_timeout.timeout(None)
 
-    loop = get_running_loop()
+    loop = asyncio.get_running_loop()
     now = loop.time()
     when = now + delay
-    if delay > 5:
+    if delay > ceil_threshold:
         when = ceil(when)
     return async_timeout.timeout_at(when)
 
 
 class HeadersMixin:
-
     ATTRS = frozenset(["_content_type", "_content_dict", "_stored_content_type"])
+
+    _headers: MultiMapping[str]
 
     _content_type: Optional[str] = None
     _content_dict: Optional[Dict[str, str]] = None
-    _stored_content_type = sentinel
+    _stored_content_type: Union[str, None, _SENTINEL] = sentinel
 
-    def _parse_content_type(self, raw: str) -> None:
+    def _parse_content_type(self, raw: Optional[str]) -> None:
         self._stored_content_type = raw
         if raw is None:
             # default value according to RFC 2616
@@ -758,36 +789,32 @@ class HeadersMixin:
         else:
             msg = HeaderParser().parsestr("Content-Type: " + raw)
             self._content_type = msg.get_content_type()
-            params = msg.get_params()
+            params = msg.get_params(())
             self._content_dict = dict(params[1:])  # First element is content type again
 
     @property
     def content_type(self) -> str:
         """The value of content part for Content-Type HTTP header."""
-        raw = self._headers.get(hdrs.CONTENT_TYPE)  # type: ignore[attr-defined]
+        raw = self._headers.get(hdrs.CONTENT_TYPE)
         if self._stored_content_type != raw:
             self._parse_content_type(raw)
-        return self._content_type  # type: ignore[return-value]
+        assert self._content_type is not None
+        return self._content_type
 
     @property
     def charset(self) -> Optional[str]:
         """The value of charset part for Content-Type HTTP header."""
-        raw = self._headers.get(hdrs.CONTENT_TYPE)  # type: ignore[attr-defined]
+        raw = self._headers.get(hdrs.CONTENT_TYPE)
         if self._stored_content_type != raw:
             self._parse_content_type(raw)
-        return self._content_dict.get("charset")  # type: ignore[union-attr]
+        assert self._content_dict is not None
+        return self._content_dict.get("charset")
 
     @property
     def content_length(self) -> Optional[int]:
         """The value of Content-Length HTTP header."""
-        content_length = self._headers.get(  # type: ignore[attr-defined]
-            hdrs.CONTENT_LENGTH
-        )
-
-        if content_length is not None:
-            return int(content_length)
-        else:
-            return None
+        content_length = self._headers.get(hdrs.CONTENT_LENGTH)
+        return None if content_length is None else int(content_length)
 
 
 def set_result(fut: "asyncio.Future[_T]", result: _T) -> None:
@@ -795,15 +822,91 @@ def set_result(fut: "asyncio.Future[_T]", result: _T) -> None:
         fut.set_result(result)
 
 
-def set_exception(fut: "asyncio.Future[_T]", exc: BaseException) -> None:
-    if not fut.done():
-        fut.set_exception(exc)
+_EXC_SENTINEL = BaseException()
 
 
-class ChainMapProxy(Mapping[str, Any]):
+class ErrorableProtocol(Protocol):
+    def set_exception(
+        self,
+        exc: BaseException,
+        exc_cause: BaseException = ...,
+    ) -> None: ...  # pragma: no cover
+
+
+def set_exception(
+    fut: "asyncio.Future[_T] | ErrorableProtocol",
+    exc: BaseException,
+    exc_cause: BaseException = _EXC_SENTINEL,
+) -> None:
+    """Set future exception.
+
+    If the future is marked as complete, this function is a no-op.
+
+    :param exc_cause: An exception that is a direct cause of ``exc``.
+                      Only set if provided.
+    """
+    if asyncio.isfuture(fut) and fut.done():
+        return
+
+    exc_is_sentinel = exc_cause is _EXC_SENTINEL
+    exc_causes_itself = exc is exc_cause
+    if not exc_is_sentinel and not exc_causes_itself:
+        exc.__cause__ = exc_cause
+
+    fut.set_exception(exc)
+
+
+@functools.total_ordering
+class AppKey(Generic[_T]):
+    """Keys for static typing support in Application."""
+
+    __slots__ = ("_name", "_t", "__orig_class__")
+
+    # This may be set by Python when instantiating with a generic type. We need to
+    # support this, in order to support types that are not concrete classes,
+    # like Iterable, which can't be passed as the second parameter to __init__.
+    __orig_class__: Type[object]
+
+    def __init__(self, name: str, t: Optional[Type[_T]] = None):
+        # Prefix with module name to help deduplicate key names.
+        frame = inspect.currentframe()
+        while frame:
+            if frame.f_code.co_name == "<module>":
+                module: str = frame.f_globals["__name__"]
+                break
+            frame = frame.f_back
+
+        self._name = module + "." + name
+        self._t = t
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, AppKey):
+            return self._name < other._name
+        return True  # Order AppKey above other types.
+
+    def __repr__(self) -> str:
+        t = self._t
+        if t is None:
+            with suppress(AttributeError):
+                # Set to type arg.
+                t = get_args(self.__orig_class__)[0]
+
+        if t is None:
+            t_repr = "<<Unknown>>"
+        elif isinstance(t, type):
+            if t.__module__ == "builtins":
+                t_repr = t.__qualname__
+            else:
+                t_repr = f"{t.__module__}.{t.__qualname__}"
+        else:
+            t_repr = repr(t)
+        return f"<AppKey({self._name}, type={t_repr})>"
+
+
+class ChainMapProxy(Mapping[Union[str, AppKey[Any]], Any]):
     __slots__ = ("_maps",)
 
-    def __init__(self, maps: Iterable[Mapping[str, Any]]) -> None:
+    def __init__(self, maps: Iterable[Mapping[Union[str, AppKey[Any]], Any]]) -> None:
         self._maps = tuple(maps)
 
     def __init_subclass__(cls) -> None:
@@ -812,7 +915,13 @@ class ChainMapProxy(Mapping[str, Any]):
             "is forbidden".format(cls.__name__)
         )
 
-    def __getitem__(self, key: str) -> Any:
+    @overload  # type: ignore[override]
+    def __getitem__(self, key: AppKey[_T]) -> _T: ...
+
+    @overload
+    def __getitem__(self, key: str) -> Any: ...
+
+    def __getitem__(self, key: Union[str, AppKey[_T]]) -> Any:
         for mapping in self._maps:
             try:
                 return mapping[key]
@@ -820,15 +929,27 @@ class ChainMapProxy(Mapping[str, Any]):
                 pass
         raise KeyError(key)
 
-    def get(self, key: str, default: Any = None) -> Any:
-        return self[key] if key in self else default
+    @overload  # type: ignore[override]
+    def get(self, key: AppKey[_T], default: _S) -> Union[_T, _S]: ...
+
+    @overload
+    def get(self, key: AppKey[_T], default: None = ...) -> Optional[_T]: ...
+
+    @overload
+    def get(self, key: str, default: Any = ...) -> Any: ...
+
+    def get(self, key: Union[str, AppKey[_T]], default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __len__(self) -> int:
         # reuses stored hash values if possible
-        return len(set().union(*self._maps))  # type: ignore[arg-type]
+        return len(set().union(*self._maps))
 
-    def __iter__(self) -> Iterator[str]:
-        d: Dict[str, Any] = {}
+    def __iter__(self) -> Iterator[Union[str, AppKey[Any]]]:
+        d: Dict[Union[str, AppKey[Any]], Any] = {}
         for mapping in reversed(self._maps):
             # reuses stored hash values if possible
             d.update(mapping)
@@ -846,7 +967,7 @@ class ChainMapProxy(Mapping[str, Any]):
 
 
 # https://tools.ietf.org/html/rfc7232#section-2.3
-_ETAGC = r"[!#-}\x80-\xff]+"
+_ETAGC = r"[!\x23-\x7E\x80-\xff]+"
 _ETAGC_RE = re.compile(_ETAGC)
 _QUOTED_ETAG = rf'(W/)?"({_ETAGC})"'
 QUOTED_ETAG_RE = re.compile(_QUOTED_ETAG)
@@ -876,3 +997,40 @@ def parse_http_date(date_str: Optional[str]) -> Optional[datetime.datetime]:
             with suppress(ValueError):
                 return datetime.datetime(*timetuple[:6], tzinfo=datetime.timezone.utc)
     return None
+
+
+@functools.lru_cache
+def must_be_empty_body(method: str, code: int) -> bool:
+    """Check if a request must return an empty body."""
+    return (
+        status_code_must_be_empty_body(code)
+        or method_must_be_empty_body(method)
+        or (200 <= code < 300 and method.upper() == hdrs.METH_CONNECT)
+    )
+
+
+def method_must_be_empty_body(method: str) -> bool:
+    """Check if a method must return an empty body."""
+    # https://datatracker.ietf.org/doc/html/rfc9112#section-6.3-2.1
+    # https://datatracker.ietf.org/doc/html/rfc9112#section-6.3-2.2
+    return method.upper() == hdrs.METH_HEAD
+
+
+def status_code_must_be_empty_body(code: int) -> bool:
+    """Check if a status code must return an empty body."""
+    # https://datatracker.ietf.org/doc/html/rfc9112#section-6.3-2.1
+    return code in {204, 304} or 100 <= code < 200
+
+
+def should_remove_content_length(method: str, code: int) -> bool:
+    """Check if a Content-Length header should be removed.
+
+    This should always be a subset of must_be_empty_body
+    """
+    # https://www.rfc-editor.org/rfc/rfc9110.html#section-8.6-8
+    # https://www.rfc-editor.org/rfc/rfc9110.html#section-15.4.5-4
+    return (
+        code in {204, 304}
+        or 100 <= code < 200
+        or (200 <= code < 300 and method.upper() == hdrs.METH_CONNECT)
+    )

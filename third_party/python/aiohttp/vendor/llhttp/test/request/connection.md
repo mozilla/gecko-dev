@@ -72,9 +72,9 @@ off=90 headers complete method=4 v=1/1 flags=1 content_length=0
 off=90 message complete
 ```
 
-### No restart when keep-alive is off (1.0) and parser is in strict mode
+### No restart when keep-alive is off (1.0)
 
-<!-- meta={"type": "request", "mode": "strict"} -->
+<!-- meta={"type": "request" } -->
 ```http
 PUT /url HTTP/1.0
 
@@ -96,7 +96,7 @@ off=21 message complete
 off=22 error code=5 reason="Data after `Connection: close`"
 ```
 
-### Resetting flags when keep-alive is off (1.0) and parser is in lenient mode
+### Resetting flags when keep-alive is off (1.0, lenient)
 
 Even though we allow restarts in loose mode, the flags should be still set to
 `0` upon restart.
@@ -241,11 +241,11 @@ off=40 headers complete method=4 v=1/1 flags=2 content_length=0
 off=40 message complete
 ```
 
-### CRLF between requests, explicit `close` (strict mode)
+### CRLF between requests, explicit `close`
 
-`close` means closed connection in strict mode.
+`close` means closed connection
 
-<!-- meta={"type": "request", "mode": "strict"} -->
+<!-- meta={"type": "request" } -->
 ```http
 POST / HTTP/1.1
 Host: www.example.com
@@ -289,7 +289,7 @@ off=133 message complete
 off=138 error code=5 reason="Data after `Connection: close`"
 ```
 
-### CRLF between requests, explicit `close` (lenient mode)
+### CRLF between requests, explicit `close` (lenient)
 
 Loose mode is more lenient, and allows further requests.
 
@@ -374,7 +374,7 @@ off=75 message complete
 
 ### Multiple tokens with folding
 
-<!-- meta={"type": "request"} -->
+<!-- meta={"type": "request-lenient-headers"} -->
 ```http
 GET /demo HTTP/1.1
 Host: example.com
@@ -465,7 +465,7 @@ off=75 error code=22 reason="Pause on CONNECT/Upgrade"
 
 ### Multiple tokens with folding, LWS, and CRLF
 
-<!-- meta={"type": "request"} -->
+<!-- meta={"type": "request-lenient-headers"} -->
 ```http
 GET /demo HTTP/1.1
 Connection: keep-alive, \r\n upgrade

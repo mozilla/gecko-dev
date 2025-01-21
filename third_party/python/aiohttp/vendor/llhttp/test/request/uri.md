@@ -133,35 +133,9 @@ off=42 headers complete method=1 v=1/1 flags=0 content_length=0
 off=42 message complete
 ```
 
-## UTF-8 in URI path in loose mode
-
-<!-- meta={"type": "request", "mode": "loose", "noScan": true} -->
-```http
-GET /δ¶/δt/космос/pope?q=1#narf HTTP/1.1
-Host: github.com
-
-
-```
-
-```log
-off=0 message begin
-off=0 len=3 span[method]="GET"
-off=3 method complete
-off=4 len=36 span[url]="/δ¶/δt/космос/pope?q=1#narf"
-off=41 url complete
-off=46 len=3 span[version]="1.1"
-off=49 version complete
-off=51 len=4 span[header_field]="Host"
-off=56 header_field complete
-off=57 len=10 span[header_value]="github.com"
-off=69 header_value complete
-off=71 headers complete method=1 v=1/1 flags=0 content_length=0
-off=71 message complete
-```
-
 ## Disallow UTF-8 in URI path in strict mode
 
-<!-- meta={"type": "request", "mode": "strict", "noScan": true} -->
+<!-- meta={"type": "request",  "noScan": true} -->
 ```http
 GET /δ¶/δt/pope?q=1#narf HTTP/1.1
 Host: github.com

@@ -1,0 +1,64 @@
+name: Aiohttp
+# If you don't understand the reason for a test failure, ping @Dreamsorcerer or open an issue in aio-libs/aiohttp.
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    permissions:
+      contents: read # to fetch code (actions/checkout)
+
+    name: Aiohttp regression tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout aiohttp
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      with:
+        repository: aio-libs/aiohttp
+    - name: Checkout llhttp
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      with:
+        path: vendor/llhttp
+    - name: Restore node_modules cache
+      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+      with:
+        path: vendor/llhttp/.npm
+        key: ubuntu-latest-node-${{ hashFiles('vendor/llhttp/**/package-lock.json') }}
+        restore-keys: ubuntu-latest-node-
+    - name: Install llhttp dependencies
+      run: npm ci --ignore-scripts
+      working-directory: vendor/llhttp
+    - name: Build llhttp
+      run: make
+      working-directory: vendor/llhttp
+    - name: Setup Python
+      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+      with:
+        python-version: 3.x
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+    - name: Provision the dev env
+      run: >-
+        PATH="${HOME}/.local/bin:${PATH}"
+        make .develop
+    - name: Run tests
+      env:
+        COLOR: yes
+      run: >-
+        PATH="${HOME}/.local/bin:${PATH}"
+        pytest tests/test_http_parser.py tests/test_web_functional.py
+    - name: Run dev_mode tests
+      env:
+        COLOR: yes
+      run: >-
+        PATH="${HOME}/.local/bin:${PATH}"
+        python -X dev -m pytest -m dev_mode tests/test_http_parser.py tests/test_web_functional.py

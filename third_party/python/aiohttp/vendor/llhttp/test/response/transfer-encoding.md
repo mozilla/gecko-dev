@@ -35,7 +35,7 @@ off=61 header_field complete
 off=62 len=7 span[header_value]="chunked"
 off=71 header_value complete
 off=73 headers complete status=200 v=1/1 flags=208 content_length=0
-off=75 error code=12 reason="Invalid character in chunk size"
+off=76 error code=12 reason="Invalid character in chunk size"
 ```
 
 ## `chunked` before other transfer-encoding
@@ -229,7 +229,7 @@ off=52 header_field complete
 off=53 len=7 span[header_value]="chunked"
 off=62 header_value complete
 off=64 headers complete status=200 v=1/1 flags=208 content_length=0
-off=65 error code=12 reason="Invalid character in chunk size"
+off=66 error code=12 reason="Invalid character in chunk size"
 ```
 
 
@@ -370,7 +370,7 @@ off=101 error code=2 reason="Invalid character in chunk extensions quoted value"
 
 ## Invalid OBS fold after chunked value
 
-<!-- meta={"type": "response" } -->
+<!-- meta={"type": "response-lenient-headers" } -->
 ```http
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked

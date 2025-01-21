@@ -147,9 +147,9 @@ off=35 version complete
 off=40 len=2 span[status]="OK"
 ```
 
-## HTTP/1.1 with keep-alive disabled and 204 status in strict mode
+## HTTP/1.1 with keep-alive disabled and 204 status
 
-<!-- meta={"type": "response", "mode": "strict"} -->
+<!-- meta={"type": "response" } -->
 ```http
 HTTP/1.1 204 No content
 Connection: close
@@ -172,11 +172,11 @@ off=46 message complete
 off=47 error code=5 reason="Data after `Connection: close`"
 ```
 
-## HTTP/1.1 with keep-alive disabled, content-length, and in loose mode
+## HTTP/1.1 with keep-alive disabled, content-length (lenient)
 
-Parser should discard extra request in loose mode.
+Parser should discard extra request in lenient mode.
 
-<!-- meta={"type": "response", "mode": "loose"} -->
+<!-- meta={"type": "response-lenient-data-after-close" } -->
 ```http
 HTTP/1.1 200 No content
 Content-Length: 5
@@ -204,11 +204,11 @@ off=65 len=5 span[body]="2ad73"
 off=70 message complete
 ```
 
-## HTTP/1.1 with keep-alive disabled, content-length, and in strict mode
+## HTTP/1.1 with keep-alive disabled, content-length
 
 Parser should discard extra request in strict mode.
 
-<!-- meta={"type": "response", "mode": "strict"} -->
+<!-- meta={"type": "response" } -->
 ```http
 HTTP/1.1 200 No content
 Content-Length: 5
@@ -237,44 +237,7 @@ off=70 message complete
 off=71 error code=5 reason="Data after `Connection: close`"
 ```
 
-## HTTP/1.1 with keep-alive disabled, content-length, and in lenient mode
-
-Parser should process extra request in lenient mode.
-
-<!-- meta={"type": "response-lenient-keep-alive"} -->
-```http
-HTTP/1.1 200 No content
-Content-Length: 5
-Connection: close
-
-2ad73HTTP/1.1 200 OK
-```
-
-```log
-off=0 message begin
-off=5 len=3 span[version]="1.1"
-off=8 version complete
-off=13 len=10 span[status]="No content"
-off=25 status complete
-off=25 len=14 span[header_field]="Content-Length"
-off=40 header_field complete
-off=41 len=1 span[header_value]="5"
-off=44 header_value complete
-off=44 len=10 span[header_field]="Connection"
-off=55 header_field complete
-off=56 len=5 span[header_value]="close"
-off=63 header_value complete
-off=65 headers complete status=200 v=1/1 flags=22 content_length=5
-off=65 len=5 span[body]="2ad73"
-off=70 message complete
-off=70 reset
-off=70 message begin
-off=75 len=3 span[version]="1.1"
-off=78 version complete
-off=83 len=2 span[status]="OK"
-```
-
-## HTTP/1.1 with keep-alive disabled and 204 status in lenient mode
+## HTTP/1.1 with keep-alive disabled and 204 status (lenient)
 
 <!-- meta={"type": "response-lenient-keep-alive"} -->
 ```http
@@ -335,9 +298,8 @@ off=84 header_field complete
 off=85 len=1 span[header_value]="4"
 off=88 header_value complete
 off=90 headers complete status=101 v=1/1 flags=34 content_length=4
-off=90 len=4 span[body]="body"
-off=94 message complete
-off=94 error code=22 reason="Pause on CONNECT/Upgrade"
+off=90 message complete
+off=90 error code=22 reason="Pause on CONNECT/Upgrade"
 ```
 
 ## HTTP 101 response with Upgrade and Transfer-Encoding header
@@ -377,16 +339,8 @@ off=87 header_field complete
 off=88 len=7 span[header_value]="chunked"
 off=97 header_value complete
 off=99 headers complete status=101 v=1/1 flags=21c content_length=0
-off=102 chunk header len=2
-off=102 len=2 span[body]="bo"
-off=106 chunk complete
-off=109 chunk header len=2
-off=109 len=2 span[body]="dy"
-off=113 chunk complete
-off=116 chunk header len=0
-off=118 chunk complete
-off=118 message complete
-off=118 error code=22 reason="Pause on CONNECT/Upgrade"
+off=99 message complete
+off=99 error code=22 reason="Pause on CONNECT/Upgrade"
 ```
 
 ## HTTP 200 response with Upgrade header
@@ -499,4 +453,195 @@ off=96 chunk complete
 off=99 chunk header len=0
 off=101 chunk complete
 off=101 message complete
+```
+
+## HTTP 304 with Content-Length
+
+<!-- meta={"type": "response"} -->
+```http
+HTTP/1.1 304 Not Modified
+Content-Length: 10
+
+
+HTTP/1.1 200 OK
+Content-Length: 5
+
+hello
+```
+
+```log
+off=0 message begin
+off=5 len=3 span[version]="1.1"
+off=8 version complete
+off=13 len=12 span[status]="Not Modified"
+off=27 status complete
+off=27 len=14 span[header_field]="Content-Length"
+off=42 header_field complete
+off=43 len=2 span[header_value]="10"
+off=47 header_value complete
+off=49 headers complete status=304 v=1/1 flags=20 content_length=10
+off=49 message complete
+off=51 reset
+off=51 message begin
+off=56 len=3 span[version]="1.1"
+off=59 version complete
+off=64 len=2 span[status]="OK"
+off=68 status complete
+off=68 len=14 span[header_field]="Content-Length"
+off=83 header_field complete
+off=84 len=1 span[header_value]="5"
+off=87 header_value complete
+off=89 headers complete status=200 v=1/1 flags=20 content_length=5
+off=89 len=5 span[body]="hello"
+off=94 message complete
+```
+
+## HTTP 304 with Transfer-Encoding
+
+<!-- meta={"type": "response"} -->
+```http
+HTTP/1.1 304 Not Modified
+Transfer-Encoding: chunked
+
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+
+5
+hello
+0
+
+```
+
+```log
+off=0 message begin
+off=5 len=3 span[version]="1.1"
+off=8 version complete
+off=13 len=12 span[status]="Not Modified"
+off=27 status complete
+off=27 len=17 span[header_field]="Transfer-Encoding"
+off=45 header_field complete
+off=46 len=7 span[header_value]="chunked"
+off=55 header_value complete
+off=57 headers complete status=304 v=1/1 flags=208 content_length=0
+off=57 message complete
+off=57 reset
+off=57 message begin
+off=62 len=3 span[version]="1.1"
+off=65 version complete
+off=70 len=2 span[status]="OK"
+off=74 status complete
+off=74 len=17 span[header_field]="Transfer-Encoding"
+off=92 header_field complete
+off=93 len=7 span[header_value]="chunked"
+off=102 header_value complete
+off=104 headers complete status=200 v=1/1 flags=208 content_length=0
+off=107 chunk header len=5
+off=107 len=5 span[body]="hello"
+off=114 chunk complete
+off=117 chunk header len=0
+```
+
+## HTTP 100 first, then 400
+
+<!-- meta={"type": "response"} -->
+```http
+HTTP/1.1 100 Continue
+
+
+HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=utf-8
+Content-Length: 14
+Date: Fri, 15 Sep 2023 19:47:23 GMT
+Server: Python/3.10 aiohttp/4.0.0a2.dev0
+
+404: Not Found
+```
+
+```log
+off=0 message begin
+off=5 len=3 span[version]="1.1"
+off=8 version complete
+off=13 len=8 span[status]="Continue"
+off=23 status complete
+off=25 headers complete status=100 v=1/1 flags=0 content_length=0
+off=25 message complete
+off=27 reset
+off=27 message begin
+off=32 len=3 span[version]="1.1"
+off=35 version complete
+off=40 len=9 span[status]="Not Found"
+off=51 status complete
+off=51 len=12 span[header_field]="Content-Type"
+off=64 header_field complete
+off=65 len=25 span[header_value]="text/plain; charset=utf-8"
+off=92 header_value complete
+off=92 len=14 span[header_field]="Content-Length"
+off=107 header_field complete
+off=108 len=2 span[header_value]="14"
+off=112 header_value complete
+off=112 len=4 span[header_field]="Date"
+off=117 header_field complete
+off=118 len=29 span[header_value]="Fri, 15 Sep 2023 19:47:23 GMT"
+off=149 header_value complete
+off=149 len=6 span[header_field]="Server"
+off=156 header_field complete
+off=157 len=32 span[header_value]="Python/3.10 aiohttp/4.0.0a2.dev0"
+off=191 header_value complete
+off=193 headers complete status=404 v=1/1 flags=20 content_length=14
+off=193 len=14 span[body]="404: Not Found"
+off=207 message complete
+```
+
+## HTTP 103 first, then 200
+
+<!-- meta={"type": "response"} -->
+```http
+HTTP/1.1 103 Early Hints
+Link: </styles.css>; rel=preload; as=style
+
+HTTP/1.1 200 OK
+Date: Wed, 13 Sep 2023 11:09:41 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Content-Length: 17
+
+response content
+```
+
+```log
+off=0 message begin
+off=5 len=3 span[version]="1.1"
+off=8 version complete
+off=13 len=11 span[status]="Early Hints"
+off=26 status complete
+off=26 len=4 span[header_field]="Link"
+off=31 header_field complete
+off=32 len=36 span[header_value]="</styles.css>; rel=preload; as=style"
+off=70 header_value complete
+off=72 headers complete status=103 v=1/1 flags=0 content_length=0
+off=72 message complete
+off=72 reset
+off=72 message begin
+off=77 len=3 span[version]="1.1"
+off=80 version complete
+off=85 len=2 span[status]="OK"
+off=89 status complete
+off=89 len=4 span[header_field]="Date"
+off=94 header_field complete
+off=95 len=29 span[header_value]="Wed, 13 Sep 2023 11:09:41 GMT"
+off=126 header_value complete
+off=126 len=10 span[header_field]="Connection"
+off=137 header_field complete
+off=138 len=10 span[header_value]="keep-alive"
+off=150 header_value complete
+off=150 len=10 span[header_field]="Keep-Alive"
+off=161 header_field complete
+off=162 len=9 span[header_value]="timeout=5"
+off=173 header_value complete
+off=173 len=14 span[header_field]="Content-Length"
+off=188 header_field complete
+off=189 len=2 span[header_value]="17"
+off=193 header_value complete
+off=195 headers complete status=200 v=1/1 flags=21 content_length=17
+off=195 len=16 span[body]="response content"
 ```

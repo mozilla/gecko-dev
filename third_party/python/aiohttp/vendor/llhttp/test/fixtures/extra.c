@@ -76,6 +76,26 @@ void llhttp__test_init_response(llparse_t* s) {
 }
 
 
+void llhttp__test_init_request_lenient_all(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= 
+    LENIENT_HEADERS | LENIENT_CHUNKED_LENGTH | LENIENT_KEEP_ALIVE |
+    LENIENT_TRANSFER_ENCODING | LENIENT_VERSION | LENIENT_DATA_AFTER_CLOSE |
+    LENIENT_OPTIONAL_LF_AFTER_CR | LENIENT_OPTIONAL_CR_BEFORE_LF |
+    LENIENT_OPTIONAL_CRLF_AFTER_CHUNK;
+}
+
+
+void llhttp__test_init_response_lenient_all(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= 
+    LENIENT_HEADERS | LENIENT_CHUNKED_LENGTH | LENIENT_KEEP_ALIVE |
+    LENIENT_TRANSFER_ENCODING | LENIENT_VERSION | LENIENT_DATA_AFTER_CLOSE |
+    LENIENT_OPTIONAL_LF_AFTER_CR | LENIENT_OPTIONAL_CR_BEFORE_LF |
+    LENIENT_OPTIONAL_CRLF_AFTER_CHUNK;
+}
+
+
 void llhttp__test_init_request_lenient_headers(llparse_t* s) {
   llhttp__test_init_request(s);
   s->lenient_flags |= LENIENT_HEADERS;
@@ -119,6 +139,56 @@ void llhttp__test_init_response_lenient_version(llparse_t* s) {
 void llhttp__test_init_response_lenient_headers(llparse_t* s) {
   llhttp__test_init_response(s);
   s->lenient_flags |= LENIENT_HEADERS;
+}
+
+void llhttp__test_init_request_lenient_data_after_close(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= LENIENT_DATA_AFTER_CLOSE;
+}
+
+void llhttp__test_init_response_lenient_data_after_close(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= LENIENT_DATA_AFTER_CLOSE;
+}
+
+void llhttp__test_init_request_lenient_optional_lf_after_cr(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_LF_AFTER_CR;
+}
+
+void llhttp__test_init_response_lenient_optional_lf_after_cr(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_LF_AFTER_CR;
+}
+
+void llhttp__test_init_request_lenient_optional_cr_before_lf(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_CR_BEFORE_LF;
+}
+
+void llhttp__test_init_response_lenient_optional_cr_before_lf(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_CR_BEFORE_LF;
+}
+
+void llhttp__test_init_request_lenient_optional_crlf_after_chunk(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_CRLF_AFTER_CHUNK;
+}
+
+void llhttp__test_init_response_lenient_optional_crlf_after_chunk(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= LENIENT_OPTIONAL_CRLF_AFTER_CHUNK;
+}
+
+void llhttp__test_init_request_lenient_spaces_after_chunk_size(llparse_t* s) {
+  llhttp__test_init_request(s);
+  s->lenient_flags |= LENIENT_SPACES_AFTER_CHUNK_SIZE;
+}
+
+void llhttp__test_init_response_lenient_spaces_after_chunk_size(llparse_t* s) {
+  llhttp__test_init_response(s);
+  s->lenient_flags |= LENIENT_SPACES_AFTER_CHUNK_SIZE;
 }
 
 

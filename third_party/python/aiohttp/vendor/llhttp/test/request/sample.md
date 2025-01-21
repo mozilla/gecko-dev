@@ -374,8 +374,9 @@ off=133 message complete
 ## Line folding in header value with LF
 
 <!-- meta={"type": "request"} -->
+
 ```http
-GET / HTTP/1.1\n\
+GET / HTTP/1.1
 Line1:   abc\n\
 \tdef\n\
  ghi\n\
@@ -400,10 +401,52 @@ off=4 len=1 span[url]="/"
 off=6 url complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
-off=15 len=5 span[header_field]="Line1"
-off=21 header_field complete
-off=24 len=3 span[header_value]="abc"
-off=27 error code=10 reason="Invalid header value char"
+off=16 len=5 span[header_field]="Line1"
+off=22 header_field complete
+off=25 len=3 span[header_value]="abc"
+off=28 error code=25 reason="Missing expected CR after header value"
+```
+
+## No LF after CR
+
+<!-- meta={"type":"request"} -->
+
+```http
+GET / HTTP/1.1\rLine: 1
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=15 error code=2 reason="Expected CRLF after version"
+```
+
+## No LF after CR (lenient)
+
+<!-- meta={"type":"request-lenient-optional-lf-after-cr"} -->
+
+```http
+GET / HTTP/1.1\rLine: 1
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=15 len=4 span[header_field]="Line"
+off=20 header_field complete
+off=21 len=1 span[header_value]="1"
 ```
 
 ## Request starting with CRLF
@@ -497,7 +540,7 @@ off=61 message complete
 
 See nodejs/test/parallel/test-http-headers-obstext.js
 
-<!-- meta={"type": "request"} -->
+<!-- meta={"type": "request-lenient-headers"} -->
 ```http
 GET / HTTP/1.1
 X-SSL-Nonsense:   -----BEGIN CERTIFICATE-----

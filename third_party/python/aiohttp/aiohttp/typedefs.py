@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -8,27 +7,20 @@ from typing import (
     Callable,
     Iterable,
     Mapping,
+    Protocol,
     Tuple,
     Union,
 )
 
 from multidict import CIMultiDict, CIMultiDictProxy, MultiDict, MultiDictProxy, istr
-from yarl import URL
+from yarl import URL, Query as _Query
 
-# These are for other modules to use (to avoid repeating the conditional import).
-if sys.version_info >= (3, 8):
-    from typing import Final as Final, Protocol as Protocol, TypedDict as TypedDict
-else:
-    from typing_extensions import (  # noqa: F401
-        Final,
-        Protocol as Protocol,
-        TypedDict as TypedDict,
-    )
+Query = _Query
 
 DEFAULT_JSON_ENCODER = json.dumps
 DEFAULT_JSON_DECODER = json.loads
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     _CIMultiDict = CIMultiDict[str]
     _CIMultiDictProxy = CIMultiDictProxy[str]
     _MultiDict = MultiDict[str]
@@ -45,7 +37,13 @@ else:
 Byteish = Union[bytes, bytearray, memoryview]
 JSONEncoder = Callable[[Any], str]
 JSONDecoder = Callable[[str], Any]
-LooseHeaders = Union[Mapping[Union[str, istr], str], _CIMultiDict, _CIMultiDictProxy]
+LooseHeaders = Union[
+    Mapping[str, str],
+    Mapping[istr, str],
+    _CIMultiDict,
+    _CIMultiDictProxy,
+    Iterable[Tuple[Union[str, istr], str]],
+]
 RawHeaders = Tuple[Tuple[bytes, bytes], ...]
 StrOrURL = Union[str, URL]
 
@@ -60,5 +58,12 @@ LooseCookies = Union[
 ]
 
 Handler = Callable[["Request"], Awaitable["StreamResponse"]]
+
+
+class Middleware(Protocol):
+    def __call__(
+        self, request: "Request", handler: Handler
+    ) -> Awaitable["StreamResponse"]: ...
+
 
 PathLike = Union[str, "os.PathLike[str]"]

@@ -448,3 +448,45 @@ off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=24 error code=23 reason="Pause on PRI/Upgrade"
 ```
+
+### QUERY request
+
+<!-- meta={"type": "request"} -->
+```http
+QUERY /contacts HTTP/1.1
+Host: example.org
+Content-Type: example/query
+Accept: text/csv
+Content-Length: 41
+
+select surname, givenname, email limit 10
+```
+
+```log
+off=0 message begin
+off=0 len=5 span[method]="QUERY"
+off=5 method complete
+off=6 len=9 span[url]="/contacts"
+off=16 url complete
+off=21 len=3 span[version]="1.1"
+off=24 version complete
+off=26 len=4 span[header_field]="Host"
+off=31 header_field complete
+off=32 len=11 span[header_value]="example.org"
+off=45 header_value complete
+off=45 len=12 span[header_field]="Content-Type"
+off=58 header_field complete
+off=59 len=13 span[header_value]="example/query"
+off=74 header_value complete
+off=74 len=6 span[header_field]="Accept"
+off=81 header_field complete
+off=82 len=8 span[header_value]="text/csv"
+off=92 header_value complete
+off=92 len=14 span[header_field]="Content-Length"
+off=107 header_field complete
+off=108 len=2 span[header_value]="41"
+off=112 header_value complete
+off=114 headers complete method=46 v=1/1 flags=20 content_length=41
+off=114 len=41 span[body]="select surname, givenname, email limit 10"
+off=155 message complete
+```

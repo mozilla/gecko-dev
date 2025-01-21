@@ -230,7 +230,7 @@ off=134 message complete
 POST /chunked_w_unicorns_after_length HTTP/1.1
 Transfer-Encoding: chunked
 
-5;ilovew3;somuchlove=aretheseparametersfor
+5;ilovew3;somuchlove=aretheseparametersfor;another=withvalue
 hello
 6;blahblah;blah
  world
@@ -257,17 +257,21 @@ off=88 len=10 span[chunk_extension_name]="somuchlove"
 off=99 chunk_extension_name complete
 off=99 len=21 span[chunk_extension_value]="aretheseparametersfor"
 off=121 chunk_extension_value complete
-off=122 chunk header len=5
-off=122 len=5 span[body]="hello"
-off=129 chunk complete
-off=131 len=8 span[chunk_extension_name]="blahblah"
-off=140 chunk_extension_name complete
-off=140 len=4 span[chunk_extension_name]="blah"
-off=145 chunk_extension_name complete
-off=146 chunk header len=6
-off=146 len=6 span[body]=" world"
-off=154 chunk complete
-off=157 chunk header len=0
+off=121 len=7 span[chunk_extension_name]="another"
+off=129 chunk_extension_name complete
+off=129 len=9 span[chunk_extension_value]="withvalue"
+off=139 chunk_extension_value complete
+off=140 chunk header len=5
+off=140 len=5 span[body]="hello"
+off=147 chunk complete
+off=149 len=8 span[chunk_extension_name]="blahblah"
+off=158 chunk_extension_name complete
+off=158 len=4 span[chunk_extension_name]="blah"
+off=163 chunk_extension_name complete
+off=164 chunk header len=6
+off=164 len=6 span[body]=" world"
+off=172 chunk complete
+off=175 chunk header len=0
 ```
 
 ### No semicolon before chunk extensions
@@ -302,7 +306,7 @@ off=83 header_field complete
 off=84 len=7 span[header_value]="chunked"
 off=93 header_value complete
 off=95 headers complete method=3 v=1/1 flags=208 content_length=0
-off=96 error code=12 reason="Invalid character in chunk size"
+off=97 error code=12 reason="Invalid character in chunk size"
 ```
 
 ### No extension after semicolon
@@ -348,7 +352,7 @@ off=98 error code=2 reason="Invalid character in chunk extensions"
 POST /chunked_w_unicorns_after_length HTTP/1.1
 Transfer-Encoding: chunked
 
-5;ilovew3="I love; extensions";somuchlove="aretheseparametersfor";blah;foo=bar
+5;ilovew3="I \"love\"; \\extensions\\";somuchlove="aretheseparametersfor";blah;foo=bar
 hello
 6;blahblah;blah
  world
@@ -371,29 +375,29 @@ off=76 header_value complete
 off=78 headers complete method=3 v=1/1 flags=208 content_length=0
 off=80 len=7 span[chunk_extension_name]="ilovew3"
 off=88 chunk_extension_name complete
-off=88 len=20 span[chunk_extension_value]=""I love; extensions""
-off=108 chunk_extension_value complete
-off=109 len=10 span[chunk_extension_name]="somuchlove"
-off=120 chunk_extension_name complete
-off=120 len=23 span[chunk_extension_value]=""aretheseparametersfor""
-off=143 chunk_extension_value complete
-off=144 len=4 span[chunk_extension_name]="blah"
-off=149 chunk_extension_name complete
-off=149 len=3 span[chunk_extension_name]="foo"
-off=153 chunk_extension_name complete
-off=153 len=3 span[chunk_extension_value]="bar"
-off=157 chunk_extension_value complete
-off=158 chunk header len=5
-off=158 len=5 span[body]="hello"
-off=165 chunk complete
-off=167 len=8 span[chunk_extension_name]="blahblah"
-off=176 chunk_extension_name complete
-off=176 len=4 span[chunk_extension_name]="blah"
-off=181 chunk_extension_name complete
-off=182 chunk header len=6
-off=182 len=6 span[body]=" world"
-off=190 chunk complete
-off=193 chunk header len=0
+off=88 len=28 span[chunk_extension_value]=""I \"love\"; \\extensions\\""
+off=116 chunk_extension_value complete
+off=117 len=10 span[chunk_extension_name]="somuchlove"
+off=128 chunk_extension_name complete
+off=128 len=23 span[chunk_extension_value]=""aretheseparametersfor""
+off=151 chunk_extension_value complete
+off=152 len=4 span[chunk_extension_name]="blah"
+off=157 chunk_extension_name complete
+off=157 len=3 span[chunk_extension_name]="foo"
+off=161 chunk_extension_name complete
+off=161 len=3 span[chunk_extension_value]="bar"
+off=165 chunk_extension_value complete
+off=166 chunk header len=5
+off=166 len=5 span[body]="hello"
+off=173 chunk complete
+off=175 len=8 span[chunk_extension_name]="blahblah"
+off=184 chunk_extension_name complete
+off=184 len=4 span[chunk_extension_name]="blah"
+off=189 chunk_extension_name complete
+off=190 chunk header len=6
+off=190 len=6 span[body]=" world"
+off=198 chunk complete
+off=201 chunk header len=0
 ```
 
 
@@ -494,9 +498,7 @@ off=86 len=8 span[header_value]="identity"
 off=96 header_value complete
 off=96 len=14 span[header_field]="Content-Length"
 off=111 header_field complete
-off=112 len=1 span[header_value]="5"
-off=115 header_value complete
-off=117 error code=4 reason="Content-Length can't be present with Transfer-Encoding"
+off=111 error code=11 reason="Content-Length can't be present with Transfer-Encoding"
 ```
 
 ## POST with `Transfer-Encoding` and `Content-Length` (lenient)
@@ -539,6 +541,43 @@ off=112 len=1 span[header_value]="1"
 off=115 header_value complete
 off=117 headers complete method=3 v=1/1 flags=220 content_length=1
 off=117 len=5 span[body]="World"
+```
+
+## POST with empty `Transfer-Encoding` and `Content-Length` (lenient)
+
+<!-- meta={"type": "request"} -->
+```http
+POST / HTTP/1.1
+Host: foo
+Content-Length: 10
+Transfer-Encoding:
+Transfer-Encoding:
+Transfer-Encoding:
+
+2
+AA
+0
+```
+
+```log
+off=0 message begin
+off=0 len=4 span[method]="POST"
+off=4 method complete
+off=5 len=1 span[url]="/"
+off=7 url complete
+off=12 len=3 span[version]="1.1"
+off=15 version complete
+off=17 len=4 span[header_field]="Host"
+off=22 header_field complete
+off=23 len=3 span[header_value]="foo"
+off=28 header_value complete
+off=28 len=14 span[header_field]="Content-Length"
+off=43 header_field complete
+off=44 len=2 span[header_value]="10"
+off=48 header_value complete
+off=48 len=17 span[header_field]="Transfer-Encoding"
+off=66 header_field complete
+off=66 error code=15 reason="Transfer-Encoding can't be present with Content-Length"
 ```
 
 ## POST with `chunked` before other transfer coding names
@@ -825,7 +864,7 @@ off=57 error code=12 reason="Invalid character in chunk size"
 
 ## Validate chunk parameters
 
-<!-- meta={"type": "request", "mode": "strict"} -->
+<!-- meta={"type": "request" } -->
 ```http
 PUT /url HTTP/1.1
 Transfer-Encoding: chunked
@@ -849,12 +888,12 @@ off=37 header_field complete
 off=38 len=7 span[header_value]="chunked"
 off=47 header_value complete
 off=49 headers complete method=4 v=1/1 flags=208 content_length=0
-off=50 error code=12 reason="Invalid character in chunk size"
+off=51 error code=12 reason="Invalid character in chunk size"
 ```
 
 ## Invalid OBS fold after chunked value
 
-<!-- meta={"type": "request", "mode": "strict"} -->
+<!-- meta={"type": "request-lenient-headers" } -->
 ```http
 PUT /url HTTP/1.1
 Transfer-Encoding: chunked
@@ -882,4 +921,267 @@ off=47 len=5 span[header_value]="  abc"
 off=54 header_value complete
 off=56 headers complete method=4 v=1/1 flags=200 content_length=0
 off=56 error code=15 reason="Request has invalid `Transfer-Encoding`"
+```
+
+### Chunk header not terminated by CRLF
+
+<!-- meta={"type": "request" } -->
+
+```http
+GET / HTTP/1.1
+Host: a
+Connection: close 
+Transfer-Encoding: chunked 
+
+5\r\r;ABCD
+34
+E
+0
+
+GET / HTTP/1.1 
+Host: a
+Content-Length: 5
+
+0
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=16 len=4 span[header_field]="Host"
+off=21 header_field complete
+off=22 len=1 span[header_value]="a"
+off=25 header_value complete
+off=25 len=10 span[header_field]="Connection"
+off=36 header_field complete
+off=37 len=6 span[header_value]="close "
+off=45 header_value complete
+off=45 len=17 span[header_field]="Transfer-Encoding"
+off=63 header_field complete
+off=64 len=8 span[header_value]="chunked "
+off=74 header_value complete
+off=76 headers complete method=1 v=1/1 flags=20a content_length=0
+off=78 error code=2 reason="Expected LF after chunk size"
+```
+
+### Chunk header not terminated by CRLF (lenient)
+
+<!-- meta={"type": "request-lenient-optional-lf-after-cr" } -->
+
+```http
+GET / HTTP/1.1
+Host: a
+Connection: close 
+Transfer-Encoding: chunked 
+
+6\r\r;ABCD
+33
+E
+0
+
+GET / HTTP/1.1 
+Host: a
+Content-Length: 5
+0
+
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=16 len=4 span[header_field]="Host"
+off=21 header_field complete
+off=22 len=1 span[header_value]="a"
+off=25 header_value complete
+off=25 len=10 span[header_field]="Connection"
+off=36 header_field complete
+off=37 len=6 span[header_value]="close "
+off=45 header_value complete
+off=45 len=17 span[header_field]="Transfer-Encoding"
+off=63 header_field complete
+off=64 len=8 span[header_value]="chunked "
+off=74 header_value complete
+off=76 headers complete method=1 v=1/1 flags=20a content_length=0
+off=78 chunk header len=6
+off=78 len=1 span[body]=cr
+off=79 len=5 span[body]=";ABCD"
+off=86 chunk complete
+off=90 chunk header len=51
+off=90 len=1 span[body]="E"
+off=91 len=1 span[body]=cr
+off=92 len=1 span[body]=lf
+off=93 len=1 span[body]="0"
+off=94 len=1 span[body]=cr
+off=95 len=1 span[body]=lf
+off=96 len=1 span[body]=cr
+off=97 len=1 span[body]=lf
+off=98 len=15 span[body]="GET / HTTP/1.1 "
+off=113 len=1 span[body]=cr
+off=114 len=1 span[body]=lf
+off=115 len=7 span[body]="Host: a"
+off=122 len=1 span[body]=cr
+off=123 len=1 span[body]=lf
+off=124 len=17 span[body]="Content-Length: 5"
+off=143 chunk complete
+off=146 chunk header len=0
+off=148 chunk complete
+off=148 message complete
+```
+
+### Chunk data not terminated by CRLF
+
+<!-- meta={"type": "request" } -->
+
+```http
+GET / HTTP/1.1
+Host: a
+Connection: close 
+Transfer-Encoding: chunked 
+
+5
+ABCDE0
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=16 len=4 span[header_field]="Host"
+off=21 header_field complete
+off=22 len=1 span[header_value]="a"
+off=25 header_value complete
+off=25 len=10 span[header_field]="Connection"
+off=36 header_field complete
+off=37 len=6 span[header_value]="close "
+off=45 header_value complete
+off=45 len=17 span[header_field]="Transfer-Encoding"
+off=63 header_field complete
+off=64 len=8 span[header_value]="chunked "
+off=74 header_value complete
+off=76 headers complete method=1 v=1/1 flags=20a content_length=0
+off=79 chunk header len=5
+off=79 len=5 span[body]="ABCDE"
+off=84 error code=2 reason="Expected LF after chunk data"
+```
+
+### Chunk data not terminated by CRLF (lenient)
+
+<!-- meta={"type": "request-lenient-optional-crlf-after-chunk" } -->
+
+```http
+GET / HTTP/1.1
+Host: a
+Connection: close 
+Transfer-Encoding: chunked 
+
+5
+ABCDE0
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="GET"
+off=3 method complete
+off=4 len=1 span[url]="/"
+off=6 url complete
+off=11 len=3 span[version]="1.1"
+off=14 version complete
+off=16 len=4 span[header_field]="Host"
+off=21 header_field complete
+off=22 len=1 span[header_value]="a"
+off=25 header_value complete
+off=25 len=10 span[header_field]="Connection"
+off=36 header_field complete
+off=37 len=6 span[header_value]="close "
+off=45 header_value complete
+off=45 len=17 span[header_field]="Transfer-Encoding"
+off=63 header_field complete
+off=64 len=8 span[header_value]="chunked "
+off=74 header_value complete
+off=76 headers complete method=1 v=1/1 flags=20a content_length=0
+off=79 chunk header len=5
+off=79 len=5 span[body]="ABCDE"
+off=84 chunk complete
+off=87 chunk header len=0
+```
+
+## Space after chunk header
+
+<!-- meta={"type": "request"} -->
+```http
+PUT /url HTTP/1.1
+Transfer-Encoding: chunked
+
+a \r\n0123456789
+0
+
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="PUT"
+off=3 method complete
+off=4 len=4 span[url]="/url"
+off=9 url complete
+off=14 len=3 span[version]="1.1"
+off=17 version complete
+off=19 len=17 span[header_field]="Transfer-Encoding"
+off=37 header_field complete
+off=38 len=7 span[header_value]="chunked"
+off=47 header_value complete
+off=49 headers complete method=4 v=1/1 flags=208 content_length=0
+off=51 error code=12 reason="Invalid character in chunk size"
+```
+
+## Space after chunk header (lenient)
+
+<!-- meta={"type": "request-lenient-spaces-after-chunk-size"} -->
+```http
+PUT /url HTTP/1.1
+Transfer-Encoding: chunked
+
+a \r\n0123456789
+0
+
+
+```
+
+```log
+off=0 message begin
+off=0 len=3 span[method]="PUT"
+off=3 method complete
+off=4 len=4 span[url]="/url"
+off=9 url complete
+off=14 len=3 span[version]="1.1"
+off=17 version complete
+off=19 len=17 span[header_field]="Transfer-Encoding"
+off=37 header_field complete
+off=38 len=7 span[header_value]="chunked"
+off=47 header_value complete
+off=49 headers complete method=4 v=1/1 flags=208 content_length=0
+off=53 chunk header len=10
+off=53 len=10 span[body]="0123456789"
+off=65 chunk complete
+off=68 chunk header len=0
+off=70 chunk complete
+off=70 message complete
 ```

@@ -1,7 +1,7 @@
 Lenient HTTP version parsing
 ============================
 
-### Invalid HTTP version with lenient
+### Invalid HTTP version (lenient)
 
 <!-- meta={"type": "response-lenient-version"} -->
 ```http

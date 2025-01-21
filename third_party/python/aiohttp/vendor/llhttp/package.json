@@ -1,6 +1,6 @@
 {
   "name": "llhttp",
-  "version": "8.1.1",
+  "version": "9.2.1",
   "description": "HTTP parser in LLVM IR",
   "main": "lib/llhttp.js",
   "types": "lib/llhttp.d.ts",
@@ -17,9 +17,9 @@
     "wasm": "ts-node bin/build_wasm.ts",
     "clean": "rm -rf lib && rm -rf test/tmp",
     "prepare": "npm run clean && npm run build-ts",
-    "lint": "tslint -c tslint.json bin/*.ts src/*.ts src/**/*.ts test/*.ts test/**/*.ts",
-    "mocha": "mocha --timeout=10000 -r ts-node/register/type-check --reporter progress test/*-test.ts",
-    "test": "npm run mocha && npm run lint",
+    "test": "node -r ts-node/register/type-check ./test/md-test.ts",
+    "lint": "eslint -c eslint.json bin/*.ts src/*.ts src/**/*.ts test/*.ts test/**/*.ts",
+    "lint-fix": "eslint --fix -c eslint.json bin/*.ts src/*.ts src/**/*.ts test/*.ts test/**/*.ts",
     "postversion": "RELEASE=`node -e \"process.stdout.write(require('./package').version)\"` make -B postversion",
     "github-release": "RELEASE_V=`node -e \"process.stdout.write('v' + require('./package').version)\"` make github-release"
   },
@@ -40,20 +40,18 @@
   },
   "homepage": "https://github.com/nodejs/llhttp#readme",
   "devDependencies": {
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^10.17.52",
-    "javascript-stringify": "^2.0.1",
+    "@stylistic/eslint-plugin": "^1.5.4",
+    "@types/node": "^20.11.10",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^6.20.0",
+    "eslint": "^8.56.0",
     "llparse-dot": "^1.0.1",
     "llparse-test-fixture": "^5.0.1",
     "mdgator": "^1.1.2",
-    "mocha": "^10.2.0",
-    "ts-node": "^7.0.1",
-    "tslint": "^5.20.1",
-    "typescript": "^3.9.9"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@types/semver": "^5.5.0",
-    "llparse": "^7.1.1",
-    "semver": "^5.7.1"
+    "llparse": "^7.1.1"
   }
 }

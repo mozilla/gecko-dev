@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Final,
     Iterator,
     Mapping,
     MutableMapping,
@@ -25,12 +26,19 @@ from typing import (
 from urllib.parse import parse_qsl
 
 import attr
-from multidict import CIMultiDict, CIMultiDictProxy, MultiDict, MultiDictProxy
+from multidict import (
+    CIMultiDict,
+    CIMultiDictProxy,
+    MultiDict,
+    MultiDictProxy,
+    MultiMapping,
+)
 from yarl import URL
 
 from . import hdrs
 from .abc import AbstractStreamWriter
 from .helpers import (
+    _SENTINEL,
     DEBUG,
     ETAG_ANY,
     LIST_QUOTED_ETAG_RE,
@@ -40,6 +48,7 @@ from .helpers import (
     parse_http_date,
     reify,
     sentinel,
+    set_exception,
 )
 from .http_parser import RawRequestMessage
 from .http_writer import HttpVersion
@@ -47,7 +56,6 @@ from .multipart import BodyPartReader, MultipartReader
 from .streams import EmptyStreamReader, StreamReader
 from .typedefs import (
     DEFAULT_JSON_DECODER,
-    Final,
     JSONDecoder,
     LooseHeaders,
     RawHeaders,
@@ -59,7 +67,7 @@ from .web_response import StreamResponse
 __all__ = ("BaseRequest", "FileField", "Request")
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .web_app import Application
     from .web_protocol import RequestHandler
     from .web_urldispatcher import UrlMappingMatchInfo
@@ -71,7 +79,7 @@ class FileField:
     filename: str
     file: io.BufferedReader
     content_type: str
-    headers: "CIMultiDictProxy[str]"
+    headers: CIMultiDictProxy[str]
 
 
 _TCHAR: Final[str] = string.digits + string.ascii_letters + r"!#$%&'*+.^_`|~-"
@@ -91,10 +99,10 @@ _QUOTED_STRING: Final[str] = r'"(?:{quoted_pair}|{qdtext})*"'.format(
     qdtext=_QDTEXT, quoted_pair=_QUOTED_PAIR
 )
 
-_FORWARDED_PAIR: Final[
-    str
-] = r"({token})=({token}|{quoted_string})(:\d{{1,4}})?".format(
-    token=_TOKEN, quoted_string=_QUOTED_STRING
+_FORWARDED_PAIR: Final[str] = (
+    r"({token})=({token}|{quoted_string})(:\d{{1,4}})?".format(
+        token=_TOKEN, quoted_string=_QUOTED_STRING
+    )
 )
 
 _QUOTED_PAIR_REPLACE_RE: Final[Pattern[str]] = re.compile(r"\\([\t !-~])")
@@ -161,12 +169,16 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         self._payload_writer = payload_writer
 
         self._payload = payload
-        self._headers = message.headers
+        self._headers: CIMultiDictProxy[str] = message.headers
         self._method = message.method
         self._version = message.version
         self._cache: Dict[str, Any] = {}
         url = message.url
-        if url.is_absolute():
+        if url.absolute:
+            if scheme is not None:
+                url = url.with_scheme(scheme)
+            if host is not None:
+                url = url.with_host(host)
             # absolute URL is given,
             # override auto-calculating url, host, and scheme
             # all other properties should be good
@@ -176,6 +188,10 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
             self._rel_url = url.relative()
         else:
             self._rel_url = message.url
+            if scheme is not None:
+                self._cache["scheme"] = scheme
+            if host is not None:
+                self._cache["host"] = host
         self._post: Optional[MultiDictProxy[Union[str, bytes, FileField]]] = None
         self._read_bytes: Optional[bytes] = None
 
@@ -189,22 +205,19 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         self._transport_sslcontext = transport.get_extra_info("sslcontext")
         self._transport_peername = transport.get_extra_info("peername")
 
-        if scheme is not None:
-            self._cache["scheme"] = scheme
-        if host is not None:
-            self._cache["host"] = host
         if remote is not None:
             self._cache["remote"] = remote
 
     def clone(
         self,
         *,
-        method: str = sentinel,
-        rel_url: StrOrURL = sentinel,
-        headers: LooseHeaders = sentinel,
-        scheme: str = sentinel,
-        host: str = sentinel,
-        remote: str = sentinel,
+        method: Union[str, _SENTINEL] = sentinel,
+        rel_url: Union[StrOrURL, _SENTINEL] = sentinel,
+        headers: Union[LooseHeaders, _SENTINEL] = sentinel,
+        scheme: Union[str, _SENTINEL] = sentinel,
+        host: Union[str, _SENTINEL] = sentinel,
+        remote: Union[str, _SENTINEL] = sentinel,
+        client_max_size: Union[int, _SENTINEL] = sentinel,
     ) -> "BaseRequest":
         """Clone itself with replacement some attributes.
 
@@ -219,14 +232,15 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         if method is not sentinel:
             dct["method"] = method
         if rel_url is not sentinel:
-            new_url = URL(rel_url)
+            new_url: URL = URL(rel_url)
             dct["url"] = new_url
             dct["path"] = str(new_url)
         if headers is not sentinel:
             # a copy semantic
             dct["headers"] = CIMultiDictProxy(CIMultiDict(headers))
             dct["raw_headers"] = tuple(
-                (k.encode("utf-8"), v.encode("utf-8")) for k, v in headers.items()
+                (k.encode("utf-8"), v.encode("utf-8"))
+                for k, v in dct["headers"].items()
             )
 
         message = self._message._replace(**dct)
@@ -238,6 +252,8 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
             kwargs["host"] = host
         if remote is not sentinel:
             kwargs["remote"] = remote
+        if client_max_size is sentinel:
+            client_max_size = self._client_max_size
 
         return self.__class__(
             message,
@@ -246,7 +262,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
             self._payload_writer,
             self._task,
             self._loop,
-            client_max_size=self._client_max_size,
+            client_max_size=client_max_size,
             state=self._state.copy(),
             **kwargs,
         )
@@ -268,6 +284,10 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
     @property
     def writer(self) -> AbstractStreamWriter:
         return self._payload_writer
+
+    @property
+    def client_max_size(self) -> int:
+        return self._client_max_size
 
     @reify
     def message(self) -> RawRequestMessage:
@@ -411,6 +431,10 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         - overridden value by .clone(host=new_host) call.
         - HOST HTTP header
         - socket.getfqdn() value
+
+        For example, 'example.com' or 'localhost:8080'.
+
+        For historical reasons, the port number may be included.
         """
         host = self._message.headers.get(hdrs.HOST)
         if host is not None:
@@ -434,8 +458,10 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
 
     @reify
     def url(self) -> URL:
-        url = URL.build(scheme=self.scheme, host=self.host)
-        return url.join(self._rel_url)
+        """The full URL of the request."""
+        # authority is used here because it may include the port number
+        # and we want yarl to parse it correctly
+        return URL.build(scheme=self.scheme, authority=self.host).join(self._rel_url)
 
     @reify
     def path(self) -> str:
@@ -464,9 +490,9 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         return self._message.path
 
     @reify
-    def query(self) -> "MultiDictProxy[str]":
+    def query(self) -> "MultiMapping[str]":
         """A multidict with all the variables in the query string."""
-        return MultiDictProxy(self._rel_url.query)
+        return self._rel_url.query
 
     @reify
     def query_string(self) -> str:
@@ -477,7 +503,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         return self._rel_url.query_string
 
     @reify
-    def headers(self) -> "CIMultiDictProxy[str]":
+    def headers(self) -> CIMultiDictProxy[str]:
         """A case-insensitive multidict proxy with all headers."""
         return self._headers
 
@@ -568,7 +594,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         A read-only dictionary-like object.
         """
         raw = self.headers.get(hdrs.COOKIE, "")
-        parsed: SimpleCookie[str] = SimpleCookie(raw)
+        parsed = SimpleCookie(raw)
         return MappingProxyType({key: val.value for key, val in parsed.items()})
 
     @reify
@@ -711,19 +737,21 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
                     # https://tools.ietf.org/html/rfc7578#section-4.4
                     if field.filename:
                         # store file in temp file
-                        tmp = tempfile.TemporaryFile()
+                        tmp = await self._loop.run_in_executor(
+                            None, tempfile.TemporaryFile
+                        )
                         chunk = await field.read_chunk(size=2**16)
                         while chunk:
                             chunk = field.decode(chunk)
-                            tmp.write(chunk)
+                            await self._loop.run_in_executor(None, tmp.write, chunk)
                             size += len(chunk)
                             if 0 < max_size < size:
-                                tmp.close()
+                                await self._loop.run_in_executor(None, tmp.close)
                                 raise HTTPRequestEntityTooLarge(
                                     max_size=max_size, actual_size=size
                                 )
                             chunk = await field.read_chunk(size=2**16)
-                        tmp.seek(0)
+                        await self._loop.run_in_executor(None, tmp.seek, 0)
 
                         if field_ct is None:
                             field_ct = "application/octet-stream"
@@ -800,7 +828,19 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         return
 
     def _cancel(self, exc: BaseException) -> None:
-        self._payload.set_exception(exc)
+        set_exception(self._payload, exc)
+
+    def _finish(self) -> None:
+        if self._post is None or self.content_type != "multipart/form-data":
+            return
+
+        # NOTE: Release file descriptors for the
+        # NOTE: `tempfile.Temporaryfile`-created `_io.BufferedRandom`
+        # NOTE: instances of files sent within multipart request body
+        # NOTE: via HTTP POST request.
+        for file_name, file_field_object in self._post.items():
+            if isinstance(file_field_object, FileField):
+                file_field_object.file.close()
 
 
 class Request(BaseRequest):
@@ -831,12 +871,13 @@ class Request(BaseRequest):
     def clone(
         self,
         *,
-        method: str = sentinel,
-        rel_url: StrOrURL = sentinel,
-        headers: LooseHeaders = sentinel,
-        scheme: str = sentinel,
-        host: str = sentinel,
-        remote: str = sentinel,
+        method: Union[str, _SENTINEL] = sentinel,
+        rel_url: Union[StrOrURL, _SENTINEL] = sentinel,
+        headers: Union[LooseHeaders, _SENTINEL] = sentinel,
+        scheme: Union[str, _SENTINEL] = sentinel,
+        host: Union[str, _SENTINEL] = sentinel,
+        remote: Union[str, _SENTINEL] = sentinel,
+        client_max_size: Union[int, _SENTINEL] = sentinel,
     ) -> "Request":
         ret = super().clone(
             method=method,
@@ -845,6 +886,7 @@ class Request(BaseRequest):
             scheme=scheme,
             host=host,
             remote=remote,
+            client_max_size=client_max_size,
         )
         new_ret = cast(Request, ret)
         new_ret._match_info = self._match_info
@@ -879,4 +921,5 @@ class Request(BaseRequest):
         if match_info is None:
             return
         for app in match_info._apps:
-            await app.on_response_prepare.send(self, response)
+            if on_response_prepare := app.on_response_prepare:
+                await on_response_prepare.send(self, response)

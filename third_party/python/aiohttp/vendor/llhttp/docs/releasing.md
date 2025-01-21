@@ -15,11 +15,12 @@ These are the required steps to release a new version of llhttp:
 
 First of all, make sure you have [GitHub CLI](https://cli.github.com) installed and configured. While this is not strictly necessary, it will make your life way easier.
 
-As a preliminary check, run the build command and execute the test suite locally:
+As a preliminary check, lint the code, run the build command and execute the test suite locally:
 
 ```
+npm run lint
 npm run build
-npm test
+npm run test
 ```
 
 If all goes good, you are ready to go!

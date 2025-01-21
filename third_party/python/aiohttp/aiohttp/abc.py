@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import socket
 from abc import ABC, abstractmethod
 from collections.abc import Sized
 from http.cookies import BaseCookie, Morsel
@@ -14,15 +15,15 @@ from typing import (
     List,
     Optional,
     Tuple,
+    TypedDict,
 )
 
 from multidict import CIMultiDict
 from yarl import URL
 
-from .helpers import get_running_loop
 from .typedefs import LooseCookies
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .web_app import Application
     from .web_exceptions import HTTPException
     from .web_request import BaseRequest, Request
@@ -65,7 +66,9 @@ class AbstractMatchInfo(ABC):
 
     @property
     @abstractmethod
-    def expect_handler(self) -> Callable[[Request], Awaitable[None]]:
+    def expect_handler(
+        self,
+    ) -> Callable[[Request], Awaitable[Optional[StreamResponse]]]:
         """Expect handler for 100-continue processing"""
 
     @property  # pragma: no branch
@@ -117,11 +120,35 @@ class AbstractView(ABC):
         """Execute the view handler."""
 
 
+class ResolveResult(TypedDict):
+    """Resolve result.
+
+    This is the result returned from an AbstractResolver's
+    resolve method.
+
+    :param hostname: The hostname that was provided.
+    :param host: The IP address that was resolved.
+    :param port: The port that was resolved.
+    :param family: The address family that was resolved.
+    :param proto: The protocol that was resolved.
+    :param flags: The flags that were resolved.
+    """
+
+    hostname: str
+    host: str
+    port: int
+    family: int
+    proto: int
+    flags: int
+
+
 class AbstractResolver(ABC):
     """Abstract DNS resolver."""
 
     @abstractmethod
-    async def resolve(self, host: str, port: int, family: int) -> List[Dict[str, Any]]:
+    async def resolve(
+        self, host: str, port: int = 0, family: socket.AddressFamily = socket.AF_INET
+    ) -> List[ResolveResult]:
         """Return IP address for given hostname"""
 
     @abstractmethod
@@ -129,7 +156,7 @@ class AbstractResolver(ABC):
         """Release resolver"""
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     IterableBase = Iterable[Morsel[str]]
 else:
     IterableBase = Iterable
@@ -142,7 +169,7 @@ class AbstractCookieJar(Sized, IterableBase):
     """Abstract Cookie Jar."""
 
     def __init__(self, *, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
-        self._loop = get_running_loop(loop)
+        self._loop = loop or asyncio.get_running_loop()
 
     @abstractmethod
     def clear(self, predicate: Optional[ClearCookiePredicate] = None) -> None:

@@ -5,6 +5,9 @@ on: [push, pull_request]
 env:
   CI: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build libllhttp.a
@@ -27,13 +30,13 @@ jobs:
           echo $env:PATH >> $env:GITHUB_PATH
 
       - name: Fetch code
-        uses: actions/checkout@v3
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 1
 
       # Skip macOS & Windows, cache there is slower
       - name: Restore node_modules cache for Linux
-        uses: actions/cache@v3
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         if: runner.os == 'Linux'
         with:
           path: ~/.npm
@@ -42,7 +45,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       - name: Build libllhttp.a
         shell: bash
@@ -70,13 +73,13 @@ jobs:
           echo $env:PATH >> $env:GITHUB_PATH
 
       - name: Fetch code
-        uses: actions/checkout@v3
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 1
 
       # Skip macOS & Windows, cache there is slower
       - name: Restore node_modules cache for Linux
-        uses: actions/cache@v3
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         if: runner.os == 'Linux'
         with:
           path: ~/.npm
@@ -85,25 +88,23 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       # Custom script, because progress looks not good in CI
       - name: Run tests
-        env:
-          CFLAGS: -O0
-        run: npx mocha --timeout 30000 -r ts-node/register/type-check test/*-test.ts
+        run: npm run test
 
   lint:
-    name: Run TSLint
+    name: Run ESLint
     runs-on: ubuntu-latest
     steps:
       - name: Fetch code
-        uses: actions/checkout@v3
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 1
 
       - name: Restore node_modules cache
-        uses: actions/cache@v3
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -111,7 +112,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       - name: Run lint command
         run: npm run lint

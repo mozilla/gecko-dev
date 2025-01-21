@@ -1,139 +1,267 @@
-import { enumToMap, IEnumMap } from './utils';
+import { enumToMap } from './utils';
 
-export type HTTPMode = 'loose' | 'strict';
+export type IntDict = Record<string, number>;
+
+// Emums
+
+export const ERROR: IntDict = {
+  OK: 0,
+  INTERNAL: 1,
+  STRICT: 2,
+  CR_EXPECTED: 25,
+  LF_EXPECTED: 3,
+  UNEXPECTED_CONTENT_LENGTH: 4,
+  UNEXPECTED_SPACE: 30,
+  CLOSED_CONNECTION: 5,
+  INVALID_METHOD: 6,
+  INVALID_URL: 7,
+  INVALID_CONSTANT: 8,
+  INVALID_VERSION: 9,
+  INVALID_HEADER_TOKEN: 10,
+  INVALID_CONTENT_LENGTH: 11,
+  INVALID_CHUNK_SIZE: 12,
+  INVALID_STATUS: 13,
+  INVALID_EOF_STATE: 14,
+  INVALID_TRANSFER_ENCODING: 15,
+
+  CB_MESSAGE_BEGIN: 16,
+  CB_HEADERS_COMPLETE: 17,
+  CB_MESSAGE_COMPLETE: 18,
+  CB_CHUNK_HEADER: 19,
+  CB_CHUNK_COMPLETE: 20,
+
+  PAUSED: 21,
+  PAUSED_UPGRADE: 22,
+  PAUSED_H2_UPGRADE: 23,
+
+  USER: 24,
+
+  CB_URL_COMPLETE: 26,
+  CB_STATUS_COMPLETE: 27,
+  CB_METHOD_COMPLETE: 32,
+  CB_VERSION_COMPLETE: 33,
+  CB_HEADER_FIELD_COMPLETE: 28,
+  CB_HEADER_VALUE_COMPLETE: 29,
+  CB_CHUNK_EXTENSION_NAME_COMPLETE: 34,
+  CB_CHUNK_EXTENSION_VALUE_COMPLETE: 35,
+  CB_RESET: 31,
+};
+
+export const TYPE: IntDict = {
+  BOTH: 0, // default
+  REQUEST: 1,
+  RESPONSE: 2,
+};
+
+export const FLAGS: IntDict = {
+  CONNECTION_KEEP_ALIVE: 1 << 0,
+  CONNECTION_CLOSE: 1 << 1,
+  CONNECTION_UPGRADE: 1 << 2,
+  CHUNKED: 1 << 3,
+  UPGRADE: 1 << 4,
+  CONTENT_LENGTH: 1 << 5,
+  SKIPBODY: 1 << 6,
+  TRAILING: 1 << 7,
+  // 1 << 8 is unused
+  TRANSFER_ENCODING: 1 << 9,
+};
+
+export const LENIENT_FLAGS: IntDict = {
+  HEADERS: 1 << 0,
+  CHUNKED_LENGTH: 1 << 1,
+  KEEP_ALIVE: 1 << 2,
+  TRANSFER_ENCODING: 1 << 3,
+  VERSION: 1 << 4,
+  DATA_AFTER_CLOSE: 1 << 5,
+  OPTIONAL_LF_AFTER_CR: 1 << 6,
+  OPTIONAL_CRLF_AFTER_CHUNK: 1 << 7,
+  OPTIONAL_CR_BEFORE_LF: 1 << 8,
+  SPACES_AFTER_CHUNK_SIZE: 1 << 9,
+};
+
+export const METHODS: IntDict = {
+  'DELETE': 0,
+  'GET': 1,
+  'HEAD': 2,
+  'POST': 3,
+  'PUT': 4,
+  /* pathological */
+  'CONNECT': 5,
+  'OPTIONS': 6,
+  'TRACE': 7,
+  /* WebDAV */
+  'COPY': 8,
+  'LOCK': 9,
+  'MKCOL': 10,
+  'MOVE': 11,
+  'PROPFIND': 12,
+  'PROPPATCH': 13,
+  'SEARCH': 14,
+  'UNLOCK': 15,
+  'BIND': 16,
+  'REBIND': 17,
+  'UNBIND': 18,
+  'ACL': 19,
+  /* subversion */
+  'REPORT': 20,
+  'MKACTIVITY': 21,
+  'CHECKOUT': 22,
+  'MERGE': 23,
+  /* upnp */
+  'M-SEARCH': 24,
+  'NOTIFY': 25,
+  'SUBSCRIBE': 26,
+  'UNSUBSCRIBE': 27,
+  /* RFC-5789 */
+  'PATCH': 28,
+  'PURGE': 29,
+  /* CalDAV */
+  'MKCALENDAR': 30,
+  /* RFC-2068, section 19.6.1.2 */
+  'LINK': 31,
+  'UNLINK': 32,
+  /* icecast */
+  'SOURCE': 33,
+  /* RFC-7540, section 11.6 */
+  'PRI': 34,
+  /* RFC-2326 RTSP */
+  'DESCRIBE': 35,
+  'ANNOUNCE': 36,
+  'SETUP': 37,
+  'PLAY': 38,
+  'PAUSE': 39,
+  'TEARDOWN': 40,
+  'GET_PARAMETER': 41,
+  'SET_PARAMETER': 42,
+  'REDIRECT': 43,
+  'RECORD': 44,
+  /* RAOP */
+  'FLUSH': 45,
+  /* DRAFT https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-02.html */
+  'QUERY': 46,
+};
+
+export const STATUSES: IntDict = {
+  CONTINUE: 100,
+  SWITCHING_PROTOCOLS: 101,
+  PROCESSING: 102,
+  EARLY_HINTS: 103,
+  RESPONSE_IS_STALE: 110, // Unofficial
+  REVALIDATION_FAILED: 111, // Unofficial
+  DISCONNECTED_OPERATION: 112, // Unofficial
+  HEURISTIC_EXPIRATION: 113, // Unofficial
+  MISCELLANEOUS_WARNING: 199, // Unofficial
+  OK: 200,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NON_AUTHORITATIVE_INFORMATION: 203,
+  NO_CONTENT: 204,
+  RESET_CONTENT: 205,
+  PARTIAL_CONTENT: 206,
+  MULTI_STATUS: 207,
+  ALREADY_REPORTED: 208,
+  TRANSFORMATION_APPLIED: 214, // Unofficial
+  IM_USED: 226,
+  MISCELLANEOUS_PERSISTENT_WARNING: 299, // Unofficial
+  MULTIPLE_CHOICES: 300,
+  MOVED_PERMANENTLY: 301,
+  FOUND: 302,
+  SEE_OTHER: 303,
+  NOT_MODIFIED: 304,
+  USE_PROXY: 305,
+  SWITCH_PROXY: 306, // No longer used
+  TEMPORARY_REDIRECT: 307,
+  PERMANENT_REDIRECT: 308,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  PAYMENT_REQUIRED: 402,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+  NOT_ACCEPTABLE: 406,
+  PROXY_AUTHENTICATION_REQUIRED: 407,
+  REQUEST_TIMEOUT: 408,
+  CONFLICT: 409,
+  GONE: 410,
+  LENGTH_REQUIRED: 411,
+  PRECONDITION_FAILED: 412,
+  PAYLOAD_TOO_LARGE: 413,
+  URI_TOO_LONG: 414,
+  UNSUPPORTED_MEDIA_TYPE: 415,
+  RANGE_NOT_SATISFIABLE: 416,
+  EXPECTATION_FAILED: 417,
+  IM_A_TEAPOT: 418,
+  PAGE_EXPIRED: 419, // Unofficial
+  ENHANCE_YOUR_CALM: 420, // Unofficial
+  MISDIRECTED_REQUEST: 421,
+  UNPROCESSABLE_ENTITY: 422,
+  LOCKED: 423,
+  FAILED_DEPENDENCY: 424,
+  TOO_EARLY: 425,
+  UPGRADE_REQUIRED: 426,
+  PRECONDITION_REQUIRED: 428,
+  TOO_MANY_REQUESTS: 429,
+  REQUEST_HEADER_FIELDS_TOO_LARGE_UNOFFICIAL: 430, // Unofficial
+  REQUEST_HEADER_FIELDS_TOO_LARGE: 431,
+  LOGIN_TIMEOUT: 440, // Unofficial
+  NO_RESPONSE: 444, // Unofficial
+  RETRY_WITH: 449, // Unofficial
+  BLOCKED_BY_PARENTAL_CONTROL: 450, // Unofficial
+  UNAVAILABLE_FOR_LEGAL_REASONS: 451,
+  CLIENT_CLOSED_LOAD_BALANCED_REQUEST: 460, // Unofficial
+  INVALID_X_FORWARDED_FOR: 463, // Unofficial
+  REQUEST_HEADER_TOO_LARGE: 494, // Unofficial
+  SSL_CERTIFICATE_ERROR: 495, // Unofficial
+  SSL_CERTIFICATE_REQUIRED: 496, // Unofficial
+  HTTP_REQUEST_SENT_TO_HTTPS_PORT: 497, // Unofficial
+  INVALID_TOKEN: 498, // Unofficial
+  CLIENT_CLOSED_REQUEST: 499, // Unofficial
+  INTERNAL_SERVER_ERROR: 500,
+  NOT_IMPLEMENTED: 501,
+  BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
+  GATEWAY_TIMEOUT: 504,
+  HTTP_VERSION_NOT_SUPPORTED: 505,
+  VARIANT_ALSO_NEGOTIATES: 506,
+  INSUFFICIENT_STORAGE: 507,
+  LOOP_DETECTED: 508,
+  BANDWIDTH_LIMIT_EXCEEDED: 509,
+  NOT_EXTENDED: 510,
+  NETWORK_AUTHENTICATION_REQUIRED: 511,
+  WEB_SERVER_UNKNOWN_ERROR: 520, // Unofficial
+  WEB_SERVER_IS_DOWN: 521, // Unofficial
+  CONNECTION_TIMEOUT: 522, // Unofficial
+  ORIGIN_IS_UNREACHABLE: 523, // Unofficial
+  TIMEOUT_OCCURED: 524, // Unofficial
+  SSL_HANDSHAKE_FAILED: 525, // Unofficial
+  INVALID_SSL_CERTIFICATE: 526, // Unofficial
+  RAILGUN_ERROR: 527, // Unofficial
+  SITE_IS_OVERLOADED: 529, // Unofficial
+  SITE_IS_FROZEN: 530, // Unofficial
+  IDENTITY_PROVIDER_AUTHENTICATION_ERROR: 561, // Unofficial
+  NETWORK_READ_TIMEOUT: 598, // Unofficial
+  NETWORK_CONNECT_TIMEOUT: 599, // Unofficial
+};
+
+export const FINISH: IntDict = {
+  SAFE: 0,
+  SAFE_WITH_CB: 1,
+  UNSAFE: 2,
+};
+
+export const HEADER_STATE: IntDict = {
+  GENERAL: 0,
+  CONNECTION: 1,
+  CONTENT_LENGTH: 2,
+  TRANSFER_ENCODING: 3,
+  UPGRADE: 4,
+  CONNECTION_KEEP_ALIVE: 5,
+  CONNECTION_CLOSE: 6,
+  CONNECTION_UPGRADE: 7,
+  TRANSFER_ENCODING_CHUNKED: 8,
+};
 
 // C headers
-
-export enum ERROR {
-  OK = 0,
-  INTERNAL = 1,
-  STRICT = 2,
-  CR_EXPECTED = 25,
-  LF_EXPECTED = 3,
-  UNEXPECTED_CONTENT_LENGTH = 4,
-  UNEXPECTED_SPACE = 30,
-  CLOSED_CONNECTION = 5,
-  INVALID_METHOD = 6,
-  INVALID_URL = 7,
-  INVALID_CONSTANT = 8,
-  INVALID_VERSION = 9,
-  INVALID_HEADER_TOKEN = 10,
-  INVALID_CONTENT_LENGTH = 11,
-  INVALID_CHUNK_SIZE = 12,
-  INVALID_STATUS = 13,
-  INVALID_EOF_STATE = 14,
-  INVALID_TRANSFER_ENCODING = 15,
-
-  CB_MESSAGE_BEGIN = 16,
-  CB_HEADERS_COMPLETE = 17,
-  CB_MESSAGE_COMPLETE = 18,
-  CB_CHUNK_HEADER = 19,
-  CB_CHUNK_COMPLETE = 20,
-
-  PAUSED = 21,
-  PAUSED_UPGRADE = 22,
-  PAUSED_H2_UPGRADE = 23,
-
-  USER = 24,
-
-  CB_URL_COMPLETE = 26,
-  CB_STATUS_COMPLETE = 27,
-  CB_METHOD_COMPLETE = 32,
-  CB_VERSION_COMPLETE = 33,
-  CB_HEADER_FIELD_COMPLETE = 28,
-  CB_HEADER_VALUE_COMPLETE = 29,
-  CB_CHUNK_EXTENSION_NAME_COMPLETE = 34,
-  CB_CHUNK_EXTENSION_VALUE_COMPLETE = 35,
-  CB_RESET = 31,
-}
-
-export enum TYPE {
-  BOTH = 0,  // default
-  REQUEST = 1,
-  RESPONSE = 2,
-}
-
-export enum FLAGS {
-  CONNECTION_KEEP_ALIVE = 1 << 0,
-  CONNECTION_CLOSE = 1 << 1,
-  CONNECTION_UPGRADE = 1 << 2,
-  CHUNKED = 1 << 3,
-  UPGRADE = 1 << 4,
-  CONTENT_LENGTH = 1 << 5,
-  SKIPBODY = 1 << 6,
-  TRAILING = 1 << 7,
-  // 1 << 8 is unused
-  TRANSFER_ENCODING = 1 << 9,
-}
-
-export enum LENIENT_FLAGS {
-  HEADERS = 1 << 0,
-  CHUNKED_LENGTH = 1 << 1,
-  KEEP_ALIVE = 1 << 2,
-  TRANSFER_ENCODING = 1 << 3,
-  VERSION = 1 << 4,
-}
-
-export enum METHODS {
-  DELETE = 0,
-  GET = 1,
-  HEAD = 2,
-  POST = 3,
-  PUT = 4,
-  /* pathological */
-  CONNECT = 5,
-  OPTIONS = 6,
-  TRACE = 7,
-  /* WebDAV */
-  COPY = 8,
-  LOCK = 9,
-  MKCOL = 10,
-  MOVE = 11,
-  PROPFIND = 12,
-  PROPPATCH = 13,
-  SEARCH = 14,
-  UNLOCK = 15,
-  BIND = 16,
-  REBIND = 17,
-  UNBIND = 18,
-  ACL = 19,
-  /* subversion */
-  REPORT = 20,
-  MKACTIVITY = 21,
-  CHECKOUT = 22,
-  MERGE = 23,
-  /* upnp */
-  'M-SEARCH' = 24,
-  NOTIFY = 25,
-  SUBSCRIBE = 26,
-  UNSUBSCRIBE = 27,
-  /* RFC-5789 */
-  PATCH = 28,
-  PURGE = 29,
-  /* CalDAV */
-  MKCALENDAR = 30,
-  /* RFC-2068, section 19.6.1.2 */
-  LINK = 31,
-  UNLINK = 32,
-  /* icecast */
-  SOURCE = 33,
-  /* RFC-7540, section 11.6 */
-  PRI = 34,
-  /* RFC-2326 RTSP */
-  DESCRIBE = 35,
-  ANNOUNCE = 36,
-  SETUP = 37,
-  PLAY = 38,
-  PAUSE = 39,
-  TEARDOWN = 40,
-  GET_PARAMETER = 41,
-  SET_PARAMETER = 42,
-  REDIRECT = 43,
-  RECORD = 44,
-  /* RAOP */
-  FLUSH = 45,
-}
-
 export const METHODS_HTTP = [
   METHODS.DELETE,
   METHODS.GET,
@@ -172,6 +300,7 @@ export const METHODS_HTTP = [
 
   // TODO(indutny): should we allow it with HTTP?
   METHODS.SOURCE,
+  METHODS.QUERY,
 ];
 
 export const METHODS_ICE = [
@@ -198,115 +327,10 @@ export const METHODS_RTSP = [
 ];
 
 export const METHOD_MAP = enumToMap(METHODS);
-export const H_METHOD_MAP: IEnumMap = {};
 
-for (const key of Object.keys(METHOD_MAP)) {
-  if (/^H/.test(key)) {
-    H_METHOD_MAP[key] = METHOD_MAP[key];
-  }
-}
-
-export enum STATUSES {
-  CONTINUE = 100,
-  SWITCHING_PROTOCOLS = 101,
-  PROCESSING = 102,
-  EARLY_HINTS = 103,
-  RESPONSE_IS_STALE = 110, // Unofficial
-  REVALIDATION_FAILED = 111, // Unofficial
-  DISCONNECTED_OPERATION = 112, // Unofficial
-  HEURISTIC_EXPIRATION = 113, // Unofficial
-  MISCELLANEOUS_WARNING = 199, // Unofficial
-  OK = 200,
-  CREATED = 201,
-  ACCEPTED = 202,
-  NON_AUTHORITATIVE_INFORMATION = 203,
-  NO_CONTENT = 204,
-  RESET_CONTENT = 205,
-  PARTIAL_CONTENT = 206,
-  MULTI_STATUS = 207,
-  ALREADY_REPORTED = 208,
-  TRANSFORMATION_APPLIED = 214, // Unofficial
-  IM_USED = 226,
-  MISCELLANEOUS_PERSISTENT_WARNING = 299, // Unofficial
-  MULTIPLE_CHOICES = 300,
-  MOVED_PERMANENTLY = 301,
-  FOUND = 302,
-  SEE_OTHER = 303,
-  NOT_MODIFIED = 304,
-  USE_PROXY = 305,
-  SWITCH_PROXY = 306, // No longer used
-  TEMPORARY_REDIRECT = 307,
-  PERMANENT_REDIRECT = 308,
-  BAD_REQUEST = 400,
-  UNAUTHORIZED = 401,
-  PAYMENT_REQUIRED = 402,
-  FORBIDDEN = 403,
-  NOT_FOUND = 404,
-  METHOD_NOT_ALLOWED = 405,
-  NOT_ACCEPTABLE = 406,
-  PROXY_AUTHENTICATION_REQUIRED = 407,
-  REQUEST_TIMEOUT = 408,
-  CONFLICT = 409,
-  GONE = 410,
-  LENGTH_REQUIRED = 411,
-  PRECONDITION_FAILED = 412,
-  PAYLOAD_TOO_LARGE = 413,
-  URI_TOO_LONG = 414,
-  UNSUPPORTED_MEDIA_TYPE = 415,
-  RANGE_NOT_SATISFIABLE = 416,
-  EXPECTATION_FAILED = 417,
-  IM_A_TEAPOT = 418,
-  PAGE_EXPIRED = 419, // Unofficial
-  ENHANCE_YOUR_CALM = 420, // Unofficial
-  MISDIRECTED_REQUEST = 421,
-  UNPROCESSABLE_ENTITY = 422,
-  LOCKED = 423,
-  FAILED_DEPENDENCY = 424,
-  TOO_EARLY = 425,
-  UPGRADE_REQUIRED = 426,
-  PRECONDITION_REQUIRED = 428,
-  TOO_MANY_REQUESTS = 429,
-  REQUEST_HEADER_FIELDS_TOO_LARGE_UNOFFICIAL = 430, // Unofficial
-  REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
-  LOGIN_TIMEOUT = 440, // Unofficial
-  NO_RESPONSE = 444, // Unofficial
-  RETRY_WITH = 449, // Unofficial
-  BLOCKED_BY_PARENTAL_CONTROL = 450, // Unofficial
-  UNAVAILABLE_FOR_LEGAL_REASONS = 451,
-  CLIENT_CLOSED_LOAD_BALANCED_REQUEST = 460, // Unofficial
-  INVALID_X_FORWARDED_FOR = 463, // Unofficial
-  REQUEST_HEADER_TOO_LARGE = 494, // Unofficial
-  SSL_CERTIFICATE_ERROR = 495, // Unofficial
-  SSL_CERTIFICATE_REQUIRED = 496, // Unofficial
-  HTTP_REQUEST_SENT_TO_HTTPS_PORT = 497, // Unofficial
-  INVALID_TOKEN = 498, // Unofficial
-  CLIENT_CLOSED_REQUEST = 499, // Unofficial
-  INTERNAL_SERVER_ERROR = 500,
-  NOT_IMPLEMENTED = 501,
-  BAD_GATEWAY = 502,
-  SERVICE_UNAVAILABLE = 503,
-  GATEWAY_TIMEOUT = 504,
-  HTTP_VERSION_NOT_SUPPORTED = 505,
-  VARIANT_ALSO_NEGOTIATES = 506,
-  INSUFFICIENT_STORAGE = 507,
-  LOOP_DETECTED = 508,
-  BANDWIDTH_LIMIT_EXCEEDED = 509,
-  NOT_EXTENDED = 510,
-  NETWORK_AUTHENTICATION_REQUIRED = 511,
-  WEB_SERVER_UNKNOWN_ERROR = 520, // Unofficial
-  WEB_SERVER_IS_DOWN = 521, // Unofficial
-  CONNECTION_TIMEOUT = 522, // Unofficial
-  ORIGIN_IS_UNREACHABLE = 523, // Unofficial
-  TIMEOUT_OCCURED = 524, // Unofficial
-  SSL_HANDSHAKE_FAILED = 525, // Unofficial
-  INVALID_SSL_CERTIFICATE = 526, // Unofficial
-  RAILGUN_ERROR = 527, // Unofficial
-  SITE_IS_OVERLOADED = 529, // Unofficial
-  SITE_IS_FROZEN = 530, // Unofficial
-  IDENTITY_PROVIDER_AUTHENTICATION_ERROR = 561, // Unofficial
-  NETWORK_READ_TIMEOUT = 598, // Unofficial
-  NETWORK_CONNECT_TIMEOUT = 599, // Unofficial
-}
+export const H_METHOD_MAP = Object.fromEntries(
+  Object.entries(METHODS).filter(([ k ]) => k.startsWith('H'))
+);
 
 export const STATUSES_HTTP = [
   STATUSES.CONTINUE,
@@ -410,12 +434,6 @@ export const STATUSES_HTTP = [
   STATUSES.NETWORK_CONNECT_TIMEOUT,
 ];
 
-export enum FINISH {
-  SAFE = 0,
-  SAFE_WITH_CB = 1,
-  UNSAFE = 2,
-}
-
 // Internal
 
 export type CharList = Array<string | number>;
@@ -453,7 +471,7 @@ export const USERINFO_CHARS: CharList = ALPHANUM
   .concat([ '%', ';', ':', '&', '=', '+', '$', ',' ]);
 
 // TODO(indutny): use RFC
-export const STRICT_URL_CHAR: CharList = ([
+export const URL_CHAR: CharList = ([
   '!', '"', '$', '%', '&', '\'',
   '(', ')', '*', '+', ',', '-', '.', '/',
   ':', ';', '<', '=', '>',
@@ -461,14 +479,6 @@ export const STRICT_URL_CHAR: CharList = ([
   '`',
   '{', '|', '}', '~',
 ] as CharList).concat(ALPHANUM);
-
-export const URL_CHAR: CharList = STRICT_URL_CHAR
-  .concat(([ '\t', '\f' ] as CharList));
-
-// All characters with 0x80 bit set to 1
-for (let i = 0x80; i <= 0xff; i++) {
-  URL_CHAR.push(i);
-}
 
 export const HEX: CharList = NUM.concat(
   [ 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F' ]);
@@ -480,14 +490,12 @@ export const HEX: CharList = NUM.concat(
  *                    | "/" | "[" | "]" | "?" | "="
  *                    | "{" | "}" | SP | HT
  */
-export const STRICT_TOKEN: CharList = ([
+export const TOKEN: CharList = ([
   '!', '#', '$', '%', '&', '\'',
   '*', '+', '-', '.',
   '^', '_', '`',
   '|', '~',
 ] as CharList).concat(ALPHANUM);
-
-export const TOKEN: CharList = STRICT_TOKEN.concat([ ' ' ]);
 
 /*
  * Verify that a char is a valid visible (printable) US-ASCII
@@ -511,21 +519,19 @@ for (let i = 0x21; i <= 0xff; i++) {
   }
 }
 
+export const HTAB_SP_VCHAR_OBS_TEXT: CharList = [ '\t', ' ' ];
+
+// VCHAR: https://tools.ietf.org/html/rfc5234#appendix-B.1
+for (let i = 0x21; i <= 0x7E; i++) {
+  HTAB_SP_VCHAR_OBS_TEXT.push(i);
+}
+// OBS_TEXT: https://datatracker.ietf.org/doc/html/rfc9110#name-collected-abnf
+for (let i = 0x80; i <= 0xff; i++) {
+  HTAB_SP_VCHAR_OBS_TEXT.push(i);
+}
+
 export const MAJOR = NUM_MAP;
 export const MINOR = MAJOR;
-
-export enum HEADER_STATE {
-  GENERAL = 0,
-  CONNECTION = 1,
-  CONTENT_LENGTH = 2,
-  TRANSFER_ENCODING = 3,
-  UPGRADE = 4,
-
-  CONNECTION_KEEP_ALIVE = 5,
-  CONNECTION_CLOSE = 6,
-  CONNECTION_UPGRADE = 7,
-  TRANSFER_ENCODING_CHUNKED = 8,
-}
 
 export const SPECIAL_HEADERS = {
   'connection': HEADER_STATE.CONNECTION,

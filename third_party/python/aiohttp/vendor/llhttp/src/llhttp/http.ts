@@ -7,16 +7,13 @@ import Node = source.node.Node;
 import {
   CharList,
   CONNECTION_TOKEN_CHARS, ERROR, FINISH, FLAGS, H_METHOD_MAP, HEADER_CHARS,
-  HEADER_STATE, HEX_MAP,
-  HTTPMode,
+  HEADER_STATE, HEX_MAP, HTAB_SP_VCHAR_OBS_TEXT,
   LENIENT_FLAGS,
   MAJOR, METHOD_MAP, METHODS, METHODS_HTTP, METHODS_ICE, METHODS_RTSP,
   MINOR, NUM_MAP, QUOTED_STRING, SPECIAL_HEADERS,
-  STRICT_TOKEN, TOKEN, TYPE,
+  TOKEN, TYPE,
 } from './constants';
 import { URL } from './url';
-
-type MaybeNode = string | Match | Node;
 
 const NODES: ReadonlyArray<string> = [
   'start',
@@ -50,6 +47,7 @@ const NODES: ReadonlyArray<string> = [
   'req_http_minor',
   'req_http_end',
   'req_http_complete',
+  'req_http_complete_crlf',
 
   'req_pri_upgrade',
 
@@ -94,10 +92,10 @@ const NODES: ReadonlyArray<string> = [
   'chunk_extension_name',
   'chunk_extension_value',
   'chunk_extension_quoted_value',
+  'chunk_extension_quoted_value_quoted_pair',
   'chunk_extension_quoted_value_done',
   'chunk_data',
   'chunk_data_almost_done',
-  'chunk_data_almost_done_skip',
   'chunk_complete',
   'body_identity',
   'body_identity_eof',
@@ -168,12 +166,11 @@ export class HTTP {
   private readonly callback: ICallbackMap;
   private readonly nodes: Map<string, Match> = new Map();
 
-  constructor(private readonly llparse: LLParse,
-              private readonly mode: HTTPMode = 'loose') {
+  constructor(private readonly llparse: LLParse) {
     const p = llparse;
 
-    this.url = new URL(p, mode);
-    this.TOKEN = mode === 'strict' ? STRICT_TOKEN : TOKEN;
+    this.url = new URL(p);
+    this.TOKEN = TOKEN;
 
     this.span = {
       body: p.span(p.code.span('llhttp__on_body')),
@@ -226,7 +223,7 @@ export class HTTP {
     p.property('i8', 'http_major');
     p.property('i8', 'http_minor');
     p.property('i8', 'header_state');
-    p.property('i8', 'lenient_flags');
+    p.property('i16', 'lenient_flags');
     p.property('i8', 'upgrade');
     p.property('i8', 'finish');
     p.property('i16', 'flags');
@@ -313,6 +310,10 @@ export class HTTP {
       );
     };
 
+    const checkIfAllowLFWithoutCR = (success: Node, failure: Node) => {
+      return this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_CR_BEFORE_LF, { 1: success }, failure);
+    };
+
     // Response
     n('start_res')
       .match('HTTP/', span.version.start(n('res_http_major')))
@@ -331,14 +332,14 @@ export class HTTP {
       .otherwise(this.span.version.end(p.error(ERROR.INVALID_VERSION, 'Invalid minor version')));
 
     n('res_http_end')
-      .otherwise(this.span.version.end().otherwise(
+      .otherwise(this.span.version.end(
         this.invokePausable('on_version_complete', ERROR.CB_VERSION_COMPLETE, 'res_after_version'),
       ));
 
     n('res_after_version')
       .match(' ', this.update('status_code', 0, 'res_status_code_digit_1'))
       .otherwise(p.error(ERROR.INVALID_VERSION,
-          'Expected space after version'));
+        'Expected space after version'));
 
     n('res_status_code_digit_1')
       .select(NUM_MAP, this.mulAdd('status_code', {
@@ -348,11 +349,11 @@ export class HTTP {
       .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid status code'));
 
     n('res_status_code_digit_2')
-    .select(NUM_MAP, this.mulAdd('status_code', {
-      overflow: p.error(ERROR.INVALID_STATUS, 'Invalid status code'),
-      success: 'res_status_code_digit_3',
-    }))
-    .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid status code'));
+      .select(NUM_MAP, this.mulAdd('status_code', {
+        overflow: p.error(ERROR.INVALID_STATUS, 'Invalid status code'),
+        success: 'res_status_code_digit_3',
+      }))
+      .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid status code'));
 
     n('res_status_code_digit_3')
       .select(NUM_MAP, this.mulAdd('status_code', {
@@ -361,33 +362,43 @@ export class HTTP {
       }))
       .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid status code'));
 
-    n('res_status_code_otherwise')
-      .match(' ', n('res_status_start'))
-      .peek([ '\r', '\n' ], n('res_status_start'))
-      .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid response status'));
-
     const onStatusComplete = this.invokePausable(
       'on_status_complete', ERROR.CB_STATUS_COMPLETE, n('headers_start'),
     );
 
-    n('res_status_start')
+    n('res_status_code_otherwise')
+      .match(' ', n('res_status_start'))
       .match('\r', n('res_line_almost_done'))
-      .match('\n', onStatusComplete)
+      .match(
+        '\n',
+        checkIfAllowLFWithoutCR(
+          onStatusComplete,
+          p.error(ERROR.INVALID_STATUS, 'Invalid response status'),
+        ),
+      )
+      .otherwise(p.error(ERROR.INVALID_STATUS, 'Invalid response status'));
+
+    n('res_status_start')
       .otherwise(span.status.start(n('res_status')));
 
     n('res_status')
       .peek('\r', span.status.end().skipTo(n('res_line_almost_done')))
-      .peek('\n', span.status.end().skipTo(onStatusComplete))
+      .peek(
+        '\n',
+        span.status.end().skipTo(
+          checkIfAllowLFWithoutCR(
+            onStatusComplete,
+            p.error(ERROR.CR_EXPECTED, 'Missing expected CR after response line'),
+          ),
+        ),
+      )
       .skipTo(n('res_status'));
 
-    if (this.mode === 'strict') {
-      n('res_line_almost_done')
-        .match('\n', onStatusComplete)
-        .otherwise(p.error(ERROR.STRICT, 'Expected LF after CR'));
-    } else {
-      n('res_line_almost_done')
-        .skipTo(onStatusComplete);
-    }
+    n('res_line_almost_done')
+      .match([ '\r', '\n' ], onStatusComplete)
+      .otherwise(this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_LF_AFTER_CR, {
+        1: onStatusComplete,
+      }, p.error(ERROR.STRICT, 'Expected LF after CR')));
 
     // Request
     n('start_req').otherwise(this.span.method.start(n('after_start_req')));
@@ -395,7 +406,7 @@ export class HTTP {
     n('after_start_req')
       .select(METHOD_MAP, this.store('method', this.span.method.end(
         this.invokePausable('on_method_complete', ERROR.CB_METHOD_COMPLETE, n('req_first_space_before_url'),
-      ))))
+        ))))
       .otherwise(p.error(ERROR.INVALID_METHOD, 'Invalid method encountered'));
 
     n('req_first_space_before_url')
@@ -426,7 +437,7 @@ export class HTTP {
           this.update('http_minor', 9, onUrlCompleteHTTP09)),
       );
 
-    const checkMethod = (methods: METHODS[], error: string): Node => {
+    const checkMethod = (methods: number[], error: string): Node => {
       const success = n('req_http_version');
       const failure = p.error(ERROR.INVALID_CONSTANT, error);
 
@@ -463,19 +474,33 @@ export class HTTP {
       .otherwise(this.span.version.end(p.error(ERROR.INVALID_VERSION, 'Invalid minor version')));
 
     n('req_http_end').otherwise(
-      span.version.end().otherwise(
+      span.version.end(
         this.invokePausable(
           'on_version_complete',
           ERROR.CB_VERSION_COMPLETE,
           this.load('method', {
             [METHODS.PRI]: n('req_pri_upgrade'),
           }, n('req_http_complete')),
-        )),
+        ),
+      ),
     );
 
     n('req_http_complete')
-      .match([ '\r\n', '\n' ], n('headers_start'))
+      .match('\r', n('req_http_complete_crlf'))
+      .match(
+        '\n',
+        checkIfAllowLFWithoutCR(
+          n('req_http_complete_crlf'),
+          p.error(ERROR.INVALID_VERSION, 'Expected CRLF after version'),
+        ),
+      )
       .otherwise(p.error(ERROR.INVALID_VERSION, 'Expected CRLF after version'));
+
+    n('req_http_complete_crlf')
+      .match('\n', n('headers_start'))
+      .otherwise(this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_LF_AFTER_CR, {
+        1: n('headers_start'),
+      }, p.error(ERROR.STRICT, 'Expected CRLF after version')));
 
     n('req_pri_upgrade')
       .match('\r\n\r\nSM\r\n\r\n',
@@ -494,6 +519,9 @@ export class HTTP {
     const span = this.span;
     const n = (name: string): Match => this.node<Match>(name);
 
+    const onInvalidHeaderFieldChar =
+      p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header field char');
+
     n('headers_start')
       .match(' ',
         this.testLenientFlags(LENIENT_FLAGS.HEADERS, {
@@ -504,9 +532,15 @@ export class HTTP {
 
     n('header_field_start')
       .match('\r', n('headers_almost_done'))
-      /* they might be just sending \n instead of \r\n so this would be
-       * the second \n to denote the end of headers*/
-      .peek('\n', n('headers_almost_done'))
+      .match('\n',
+        this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_CR_BEFORE_LF, {
+          1: this.testFlags(FLAGS.TRAILING, {
+            1: this.invokePausable('on_chunk_complete',
+              ERROR.CB_CHUNK_COMPLETE, 'message_done'),
+          }).otherwise(this.headersCompleted()),
+        }, onInvalidHeaderFieldChar),
+      )
+      .peek(':', p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header token'))
       .otherwise(span.headerField.start(n('header_field')));
 
     n('header_field')
@@ -515,12 +549,41 @@ export class HTTP {
       .select(SPECIAL_HEADERS, this.store('header_state', 'header_field_colon'))
       .otherwise(this.resetHeaderState('header_field_general'));
 
-    const onHeaderFieldComplete = this.invokePausable(
-      'on_header_field_complete', ERROR.CB_HEADER_FIELD_COMPLETE, n('header_value_discard_ws'),
-    );
+    /* https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3, paragraph 3.
+     *
+     * If a message is received with both a Transfer-Encoding and a
+     * Content-Length header field, the Transfer-Encoding overrides the
+     * Content-Length.  Such a message might indicate an attempt to
+     * perform request smuggling (Section 9.5) or response splitting
+     * (Section 9.4) and **ought to be handled as an error**.  A sender MUST
+     * remove the received Content-Length field prior to forwarding such
+     * a message downstream.
+     *
+     * Since llhttp 9, we go for the stricter approach and treat this as an error.
+     */
+    const checkInvalidTransferEncoding = (otherwise: Node) => {
+      return this.testFlags(FLAGS.CONTENT_LENGTH, {
+        1: this.testLenientFlags(LENIENT_FLAGS.CHUNKED_LENGTH, {
+          0: p.error(ERROR.INVALID_TRANSFER_ENCODING, 'Transfer-Encoding can\'t be present with Content-Length'),
+        }).otherwise(otherwise),
+      }).otherwise(otherwise);
+    };
 
-    const onInvalidHeaderFieldChar =
-      p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header field char');
+    const checkInvalidContentLength = (otherwise: Node) => {
+      return this.testFlags(FLAGS.TRANSFER_ENCODING, {
+        1: this.testLenientFlags(LENIENT_FLAGS.CHUNKED_LENGTH, {
+          0: p.error(ERROR.INVALID_CONTENT_LENGTH, 'Content-Length can\'t be present with Transfer-Encoding'),
+        }).otherwise(otherwise),
+      }).otherwise(otherwise);
+    };
+
+    const onHeaderFieldComplete = this.invokePausable(
+      'on_header_field_complete', ERROR.CB_HEADER_FIELD_COMPLETE,
+      this.load('header_state', {
+        [HEADER_STATE.TRANSFER_ENCODING]: checkInvalidTransferEncoding(n('header_value_discard_ws')),
+        [HEADER_STATE.CONTENT_LENGTH]: checkInvalidContentLength(n('header_value_discard_ws')),
+      }, 'header_value_discard_ws'),
+    );
 
     const checkLenientFlagsOnColon =
       this.testLenientFlags(LENIENT_FLAGS.HEADERS, {
@@ -567,7 +630,7 @@ export class HTTP {
     n('header_value_discard_ws')
       .match([ ' ', '\t' ], n('header_value_discard_ws'))
       .match('\r', n('header_value_discard_ws_almost_done'))
-      .match('\n', this.testLenientFlags(LENIENT_FLAGS.HEADERS, {
+      .match('\n', this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_CR_BEFORE_LF, {
         1: n('header_value_discard_lws'),
       }, p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header value char')))
       .otherwise(span.headerValue.start(n('header_value_start')));
@@ -685,7 +748,7 @@ export class HTTP {
     n('header_value_content_length_ws')
       .match(' ', n('header_value_content_length_ws'))
       .peek([ '\r', '\n' ],
-          this.setFlag(FLAGS.CONTENT_LENGTH, 'header_value_otherwise'))
+        this.setFlag(FLAGS.CONTENT_LENGTH, 'header_value_otherwise'))
       .otherwise(invalidContentLength('Invalid character in Content-Length'));
 
     //
@@ -731,12 +794,25 @@ export class HTTP {
       .match(HEADER_CHARS, n('header_value'))
       .otherwise(n('header_value_otherwise'));
 
+    const checkIfAllowLFWithoutCR = (success: Node, failure: Node) => {
+      return this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_CR_BEFORE_LF, { 1: success }, failure);
+    };
+
     const checkLenient = this.testLenientFlags(LENIENT_FLAGS.HEADERS, {
       1: n('header_value_lenient'),
     }, span.headerValue.end(p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header value char')));
 
     n('header_value_otherwise')
       .peek('\r', span.headerValue.end().skipTo(n('header_value_almost_done')))
+      .peek(
+        '\n',
+        span.headerValue.end(
+          checkIfAllowLFWithoutCR(
+            n('header_value_almost_done'),
+            p.error(ERROR.CR_EXPECTED, 'Missing expected CR after header value'),
+          ),
+        ),
+      )
       .otherwise(checkLenient);
 
     n('header_value_lenient')
@@ -744,94 +820,33 @@ export class HTTP {
       .peek('\n', span.headerValue.end(n('header_value_almost_done')))
       .skipTo(n('header_value_lenient'));
 
-    n('header_value_lenient_failed')
-      .peek('\n', span.headerValue.end().skipTo(
-        p.error(ERROR.CR_EXPECTED, 'Missing expected CR after header value')),
-      )
-      .otherwise(p.error(ERROR.INVALID_HEADER_TOKEN, 'Invalid header value char'));
-
     n('header_value_almost_done')
       .match('\n', n('header_value_lws'))
       .otherwise(p.error(ERROR.LF_EXPECTED,
         'Missing expected LF after header value'));
 
     n('header_value_lws')
-      .peek([ ' ', '\t' ],
-        this.load('header_state', {
-          [HEADER_STATE.TRANSFER_ENCODING_CHUNKED]:
-            this.resetHeaderState(span.headerValue.start(n('header_value_start'))),
-        }, span.headerValue.start(n('header_value_start'))))
+      .peek(
+        [ ' ', '\t' ],
+        this.testLenientFlags(LENIENT_FLAGS.HEADERS, {
+          1: this.load('header_state', {
+            [HEADER_STATE.TRANSFER_ENCODING_CHUNKED]:
+              this.resetHeaderState(span.headerValue.start(n('header_value_start'))),
+          }, span.headerValue.start(n('header_value_start'))),
+        }, p.error(ERROR.INVALID_HEADER_TOKEN, 'Unexpected whitespace after header value')))
       .otherwise(this.setHeaderFlags(onHeaderValueComplete));
 
     const checkTrailing = this.testFlags(FLAGS.TRAILING, {
       1: this.invokePausable('on_chunk_complete',
         ERROR.CB_CHUNK_COMPLETE, 'message_done'),
-    });
+    }).otherwise(this.headersCompleted());
 
-    if (this.mode === 'strict') {
-      n('headers_almost_done')
-        .match('\n', checkTrailing)
-        .otherwise(p.error(ERROR.STRICT, 'Expected LF after headers'));
-    } else {
-      n('headers_almost_done')
-        .skipTo(checkTrailing);
-    }
-
-    // Set `upgrade` if needed
-    const beforeHeadersComplete = p.invoke(callback.beforeHeadersComplete);
-
-    /* Present `Transfer-Encoding` header overrides `Content-Length` even if the
-     * actual coding is not `chunked`. As per spec:
-     *
-     * https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3
-     *
-     * If a message is received with both a Transfer-Encoding and a
-     * Content-Length header field, the Transfer-Encoding overrides the
-     * Content-Length.  Such a message might indicate an attempt to
-     * perform request smuggling (Section 9.5) or response splitting
-     * (Section 9.4) and **ought to be handled as an error**.  A sender MUST
-     * remove the received Content-Length field prior to forwarding such
-     * a message downstream.
-     *
-     * (Note our emphasis on **ought to be handled as an error**
-     */
-
-    const ENCODING_CONFLICT = FLAGS.TRANSFER_ENCODING | FLAGS.CONTENT_LENGTH;
-
-    const onEncodingConflict =
-      this.testLenientFlags(LENIENT_FLAGS.CHUNKED_LENGTH, {
-        0: p.error(ERROR.UNEXPECTED_CONTENT_LENGTH,
-          'Content-Length can\'t be present with Transfer-Encoding'),
-
-        // For LENIENT mode fall back to past behavior:
-        // Ignore `Transfer-Encoding` when `Content-Length` is present.
-      }).otherwise(beforeHeadersComplete);
-
-    const checkEncConflict = this.testFlags(ENCODING_CONFLICT, {
-      1: onEncodingConflict,
-    }).otherwise(beforeHeadersComplete);
-
-    checkTrailing.otherwise(checkEncConflict);
-
-    /* Here we call the headers_complete callback. This is somewhat
-     * different than other callbacks because if the user returns 1, we
-     * will interpret that as saying that this message has no body. This
-     * is needed for the annoying case of receiving a response to a HEAD
-     * request.
-     *
-     * We'd like to use CALLBACK_NOTIFY_NOADVANCE() here but we cannot, so
-     * we have to simulate it by handling a change in errno below.
-     */
-    const onHeadersComplete = p.invoke(callback.onHeadersComplete, {
-      0: n('headers_done'),
-      1: this.setFlag(FLAGS.SKIPBODY, 'headers_done'),
-      2: this.update('upgrade', 1,
-        this.setFlag(FLAGS.SKIPBODY, 'headers_done')),
-      [ERROR.PAUSED]: this.pause('Paused by on_headers_complete',
-        'headers_done'),
-    }, p.error(ERROR.CB_HEADERS_COMPLETE, 'User callback error'));
-
-    beforeHeadersComplete.otherwise(onHeadersComplete);
+    n('headers_almost_done')
+      .match('\n', checkTrailing)
+      .otherwise(
+        this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_LF_AFTER_CR, {
+          1: checkTrailing,
+        }, p.error(ERROR.STRICT, 'Expected LF after headers')));
 
     const upgradePause = p.pause(ERROR.PAUSED_UPGRADE,
       'Pause on CONNECT/Upgrade');
@@ -889,19 +904,36 @@ export class HTTP {
       .otherwise(n('chunk_size_otherwise'));
 
     n('chunk_size_otherwise')
+      .match(
+        [ ' ', '\t' ],
+        this.testLenientFlags(
+          LENIENT_FLAGS.SPACES_AFTER_CHUNK_SIZE,
+          {
+            1: n('chunk_size_otherwise'),
+          },
+          p.error(ERROR.INVALID_CHUNK_SIZE, 'Invalid character in chunk size'),
+        ),
+      )
       .match('\r', n('chunk_size_almost_done'))
+      .match(
+        '\n',
+        checkIfAllowLFWithoutCR(
+          n('chunk_size_almost_done'),
+          p.error(ERROR.CR_EXPECTED, 'Missing expected CR after chunk size'),
+        ),
+      )
       .match(';', n('chunk_extensions'))
       .otherwise(p.error(ERROR.INVALID_CHUNK_SIZE,
         'Invalid character in chunk size'));
 
     const onChunkExtensionNameCompleted = (destination: Node) => {
       return this.invokePausable(
-       'on_chunk_extension_name', ERROR.CB_CHUNK_EXTENSION_NAME_COMPLETE, destination);
+        'on_chunk_extension_name', ERROR.CB_CHUNK_EXTENSION_NAME_COMPLETE, destination);
     };
 
     const onChunkExtensionValueCompleted = (destination: Node) => {
       return this.invokePausable(
-       'on_chunk_extension_value', ERROR.CB_CHUNK_EXTENSION_VALUE_COMPLETE, destination);
+        'on_chunk_extension_value', ERROR.CB_CHUNK_EXTENSION_VALUE_COMPLETE, destination);
     };
 
     n('chunk_extensions')
@@ -910,7 +942,7 @@ export class HTTP {
       .otherwise(this.span.chunkExtensionName.start(n('chunk_extension_name')));
 
     n('chunk_extension_name')
-      .match(STRICT_TOKEN, n('chunk_extension_name'))
+      .match(TOKEN, n('chunk_extension_name'))
       .peek('=', this.span.chunkExtensionName.end().skipTo(
         this.span.chunkExtensionValue.start(
           onChunkExtensionNameCompleted(n('chunk_extension_value')),
@@ -922,18 +954,34 @@ export class HTTP {
       .peek('\r', this.span.chunkExtensionName.end().skipTo(
         onChunkExtensionNameCompleted(n('chunk_size_almost_done')),
       ))
+      .peek('\n', this.span.chunkExtensionName.end(
+        onChunkExtensionNameCompleted(
+          checkIfAllowLFWithoutCR(
+            n('chunk_size_almost_done'),
+            p.error(ERROR.CR_EXPECTED, 'Missing expected CR after chunk extension name'),
+          ),
+        ),
+      ))
       .otherwise(this.span.chunkExtensionName.end().skipTo(
         p.error(ERROR.STRICT, 'Invalid character in chunk extensions name'),
       ));
 
     n('chunk_extension_value')
       .match('"', n('chunk_extension_quoted_value'))
-      .match(STRICT_TOKEN, n('chunk_extension_value'))
+      .match(TOKEN, n('chunk_extension_value'))
       .peek(';', this.span.chunkExtensionValue.end().skipTo(
-        onChunkExtensionValueCompleted(n('chunk_size_otherwise')),
+        onChunkExtensionValueCompleted(n('chunk_extensions')),
       ))
       .peek('\r', this.span.chunkExtensionValue.end().skipTo(
         onChunkExtensionValueCompleted(n('chunk_size_almost_done')),
+      ))
+      .peek('\n', this.span.chunkExtensionValue.end(
+        onChunkExtensionValueCompleted(
+          checkIfAllowLFWithoutCR(
+            n('chunk_size_almost_done'),
+            p.error(ERROR.CR_EXPECTED, 'Missing expected CR after chunk extension value'),
+          ),
+        ),
       ))
       .otherwise(this.span.chunkExtensionValue.end().skipTo(
         p.error(ERROR.STRICT, 'Invalid character in chunk extensions value'),
@@ -944,24 +992,37 @@ export class HTTP {
       .match('"', this.span.chunkExtensionValue.end(
         onChunkExtensionValueCompleted(n('chunk_extension_quoted_value_done')),
       ))
+      .match('\\', n('chunk_extension_quoted_value_quoted_pair'))
       .otherwise(this.span.chunkExtensionValue.end().skipTo(
         p.error(ERROR.STRICT, 'Invalid character in chunk extensions quoted value'),
+      ));
+
+    n('chunk_extension_quoted_value_quoted_pair')
+      .match(HTAB_SP_VCHAR_OBS_TEXT, n('chunk_extension_quoted_value'))
+      .otherwise(this.span.chunkExtensionValue.end().skipTo(
+        p.error(ERROR.STRICT, 'Invalid quoted-pair in chunk extensions quoted value'),
       ));
 
     n('chunk_extension_quoted_value_done')
       .match(';', n('chunk_extensions'))
       .match('\r', n('chunk_size_almost_done'))
+      .peek(
+        '\n',
+        checkIfAllowLFWithoutCR(
+          n('chunk_size_almost_done'),
+          p.error(ERROR.CR_EXPECTED, 'Missing expected CR after chunk extension value'),
+        ),
+      )
       .otherwise(p.error(ERROR.STRICT,
         'Invalid character in chunk extensions quote value'));
 
-    if (this.mode === 'strict') {
-      n('chunk_size_almost_done')
-        .match('\n', n('chunk_size_almost_done_lf'))
-        .otherwise(p.error(ERROR.STRICT, 'Expected LF after chunk size'));
-    } else {
-      n('chunk_size_almost_done')
-        .skipTo(n('chunk_size_almost_done_lf'));
-    }
+    n('chunk_size_almost_done')
+      .match('\n', n('chunk_size_almost_done_lf'))
+      .otherwise(
+        this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_LF_AFTER_CR, {
+          1: n('chunk_size_almost_done_lf'),
+        }).otherwise(p.error(ERROR.STRICT, 'Expected LF after chunk size')),
+      );
 
     const toChunk = this.isEqual('content_length', 0, {
       equal: this.setFlag(FLAGS.TRAILING, 'header_field_start'),
@@ -977,17 +1038,20 @@ export class HTTP {
         .otherwise(p.consume('content_length').otherwise(
           span.body.end(n('chunk_data_almost_done')))));
 
-    if (this.mode === 'strict') {
-      n('chunk_data_almost_done')
-        .match('\r\n', n('chunk_complete'))
-        .otherwise(p.error(ERROR.STRICT, 'Expected CRLF after chunk'));
-    } else {
-      n('chunk_data_almost_done')
-        .skipTo(n('chunk_data_almost_done_skip'));
-    }
-
-    n('chunk_data_almost_done_skip')
-      .skipTo(n('chunk_complete'));
+    n('chunk_data_almost_done')
+      .match('\r\n', n('chunk_complete'))
+      .match(
+        '\n',
+        checkIfAllowLFWithoutCR(
+          n('chunk_complete'),
+          p.error(ERROR.CR_EXPECTED, 'Missing expected CR after chunk data'),
+        ),
+      )
+      .otherwise(
+        this.testLenientFlags(LENIENT_FLAGS.OPTIONAL_CRLF_AFTER_CHUNK, {
+          1: n('chunk_complete'),
+        }).otherwise(p.error(ERROR.STRICT, 'Expected LF after chunk data')),
+      );
 
     n('chunk_complete')
       .otherwise(this.invokePausable('on_chunk_complete',
@@ -1015,21 +1079,49 @@ export class HTTP {
         1: this.update('content_length', 0, n('restart')),
       }, this.update('finish', FINISH.SAFE, lenientClose)));
 
-    if (this.mode === 'strict') {
-      // Error on extra data after `Connection: close`
-      n('closed')
-        .match([ '\r', '\n' ], n('closed'))
-        .skipTo(p.error(ERROR.CLOSED_CONNECTION,
-          'Data after `Connection: close`'));
-    } else {
-      // Discard all data after `Connection: close`
-      n('closed').skipTo(n('closed'));
-    }
+    const lenientDiscardAfterClose = this.testLenientFlags(LENIENT_FLAGS.DATA_AFTER_CLOSE, {
+      1: n('closed'),
+    }, p.error(ERROR.CLOSED_CONNECTION, 'Data after `Connection: close`'));
+
+    n('closed')
+      .match([ '\r', '\n' ], n('closed'))
+      .skipTo(lenientDiscardAfterClose);
 
     n('restart')
       .otherwise(
         this.update('initial_message_completed', 1, this.update('finish', FINISH.SAFE, n('start')),
-      ));
+        ));
+  }
+
+  private headersCompleted(): Node {
+    const p = this.llparse;
+    const callback = this.callback;
+    const n = (name: string): Match => this.node<Match>(name);
+
+    // Set `upgrade` if needed
+    const beforeHeadersComplete = p.invoke(callback.beforeHeadersComplete);
+
+    /* Here we call the headers_complete callback. This is somewhat
+     * different than other callbacks because if the user returns 1, we
+     * will interpret that as saying that this message has no body. This
+     * is needed for the annoying case of receiving a response to a HEAD
+     * request.
+     *
+     * We'd like to use CALLBACK_NOTIFY_NOADVANCE() here but we cannot, so
+     * we have to simulate it by handling a change in errno below.
+     */
+    const onHeadersComplete = p.invoke(callback.onHeadersComplete, {
+      0: n('headers_done'),
+      1: this.setFlag(FLAGS.SKIPBODY, 'headers_done'),
+      2: this.update('upgrade', 1,
+        this.setFlag(FLAGS.SKIPBODY, 'headers_done')),
+      [ERROR.PAUSED]: this.pause('Paused by on_headers_complete',
+        'headers_done'),
+    }, p.error(ERROR.CB_HEADERS_COMPLETE, 'User callback error'));
+
+    beforeHeadersComplete.otherwise(onHeadersComplete);
+
+    return beforeHeadersComplete;
   }
 
   private node<T extends Node>(name: string | T): T {
@@ -1038,7 +1130,7 @@ export class HTTP {
     }
 
     assert(this.nodes.has(name), `Unknown node with name "${name}"`);
-    return this.nodes.get(name)! as any;
+    return this.nodes.get(name) as unknown as T;
   }
 
   private load(field: string, map: { [key: number]: Node },
@@ -1080,17 +1172,17 @@ export class HTTP {
     return span.start(span.end(this.node(next)));
   }
 
-  private unsetFlag(flag: FLAGS, next: string | Node): Node {
+  private unsetFlag(flag: number, next: string | Node): Node {
     const p = this.llparse;
     return p.invoke(p.code.and('flags', ~flag), this.node(next));
   }
 
-  private setFlag(flag: FLAGS, next: string | Node): Node {
+  private setFlag(flag: number, next: string | Node): Node {
     const p = this.llparse;
     return p.invoke(p.code.or('flags', flag), this.node(next));
   }
 
-  private testFlags(flag: FLAGS, map: { [key: number]: Node },
+  private testFlags(flag: number, map: { [key: number]: Node },
                     next?: string | Node): Node {
     const p = this.llparse;
     const res = p.invoke(p.code.test('flags', flag), map);
@@ -1100,7 +1192,7 @@ export class HTTP {
     return res;
   }
 
-  private testLenientFlags(flag: LENIENT_FLAGS, map: { [key: number]: Node },
+  private testLenientFlags(flag: number, map: { [key: number]: Node },
                            next?: string | Node): Node {
     const p = this.llparse;
     const res = p.invoke(p.code.test('lenient_flags', flag), map);
@@ -1151,8 +1243,7 @@ export class HTTP {
     return res;
   }
 
-  private invokePausable(name: string, errorCode: ERROR, next: string | Node)
-    : Node {
+  private invokePausable(name: string, errorCode: number, next: string | Node): Node {
     let cb;
 
     switch (name) {

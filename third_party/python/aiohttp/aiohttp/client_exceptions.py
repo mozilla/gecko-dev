@@ -2,10 +2,11 @@
 
 import asyncio
 import warnings
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
-from .http_parser import RawResponseMessage
-from .typedefs import LooseHeaders
+from multidict import MultiMapping
+
+from .typedefs import StrOrURL
 
 try:
     import ssl
@@ -15,20 +16,25 @@ except ImportError:  # pragma: no cover
     ssl = SSLContext = None  # type: ignore[assignment]
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .client_reqrep import ClientResponse, ConnectionKey, Fingerprint, RequestInfo
+    from .http_parser import RawResponseMessage
 else:
-    RequestInfo = ClientResponse = ConnectionKey = None
+    RequestInfo = ClientResponse = ConnectionKey = RawResponseMessage = None
 
 __all__ = (
     "ClientError",
     "ClientConnectionError",
+    "ClientConnectionResetError",
     "ClientOSError",
     "ClientConnectorError",
     "ClientProxyConnectionError",
     "ClientSSLError",
+    "ClientConnectorDNSError",
     "ClientConnectorSSLError",
     "ClientConnectorCertificateError",
+    "ConnectionTimeoutError",
+    "SocketTimeoutError",
     "ServerConnectionError",
     "ServerTimeoutError",
     "ServerDisconnectedError",
@@ -39,6 +45,11 @@ __all__ = (
     "ContentTypeError",
     "ClientPayloadError",
     "InvalidURL",
+    "InvalidUrlClientError",
+    "RedirectClientError",
+    "NonHttpUrlClientError",
+    "InvalidUrlRedirectClientError",
+    "NonHttpUrlRedirectClientError",
 )
 
 
@@ -47,9 +58,13 @@ class ClientError(Exception):
 
 
 class ClientResponseError(ClientError):
-    """Connection error during reading response.
+    """Base class for exceptions that occur after getting a response.
 
-    request_info: instance of RequestInfo
+    request_info: An instance of RequestInfo.
+    history: A sequence of responses, if redirects occurred.
+    status: HTTP status code.
+    message: Error message.
+    headers: Response headers.
     """
 
     def __init__(
@@ -60,7 +75,7 @@ class ClientResponseError(ClientError):
         code: Optional[int] = None,
         status: Optional[int] = None,
         message: str = "",
-        headers: Optional[LooseHeaders] = None,
+        headers: Optional[MultiMapping[str]] = None,
     ) -> None:
         self.request_info = request_info
         if code is not None:
@@ -89,7 +104,7 @@ class ClientResponseError(ClientError):
         return "{}, message={!r}, url={!r}".format(
             self.status,
             self.message,
-            self.request_info.real_url,
+            str(self.request_info.real_url),
         )
 
     def __repr__(self) -> str:
@@ -146,6 +161,10 @@ class ClientConnectionError(ClientError):
     """Base class for client socket errors."""
 
 
+class ClientConnectionResetError(ClientConnectionError, ConnectionResetError):
+    """ConnectionResetError"""
+
+
 class ClientOSError(ClientConnectionError, OSError):
     """OSError error."""
 
@@ -176,16 +195,24 @@ class ClientConnectorError(ClientOSError):
         return self._conn_key.port
 
     @property
-    def ssl(self) -> Union[SSLContext, None, bool, "Fingerprint"]:
+    def ssl(self) -> Union[SSLContext, bool, "Fingerprint"]:
         return self._conn_key.ssl
 
     def __str__(self) -> str:
         return "Cannot connect to host {0.host}:{0.port} ssl:{1} [{2}]".format(
-            self, self.ssl if self.ssl is not None else "default", self.strerror
+            self, "default" if self.ssl is True else self.ssl, self.strerror
         )
 
     # OSError.__reduce__ does too much black magick
     __reduce__ = BaseException.__reduce__
+
+
+class ClientConnectorDNSError(ClientConnectorError):
+    """DNS resolution failed during client connection.
+
+    Raised in :class:`aiohttp.connector.TCPConnector` if
+        DNS resolution fails.
+    """
 
 
 class ClientProxyConnectionError(ClientConnectorError):
@@ -215,7 +242,7 @@ class UnixClientConnectorError(ClientConnectorError):
 
     def __str__(self) -> str:
         return "Cannot connect to unix socket {0.path} ssl:{1} [{2}]".format(
-            self, self.ssl if self.ssl is not None else "default", self.strerror
+            self, "default" if self.ssl is True else self.ssl, self.strerror
         )
 
 
@@ -236,6 +263,14 @@ class ServerDisconnectedError(ServerConnectionError):
 
 class ServerTimeoutError(ServerConnectionError, asyncio.TimeoutError):
     """Server timeout error."""
+
+
+class ConnectionTimeoutError(ServerTimeoutError):
+    """Connection timeout error."""
+
+
+class SocketTimeoutError(ServerTimeoutError):
+    """Socket timeout error."""
 
 
 class ServerFingerprintMismatch(ServerConnectionError):
@@ -267,17 +302,52 @@ class InvalidURL(ClientError, ValueError):
 
     # Derive from ValueError for backward compatibility
 
-    def __init__(self, url: Any) -> None:
+    def __init__(self, url: StrOrURL, description: Union[str, None] = None) -> None:
         # The type of url is not yarl.URL because the exception can be raised
         # on URL(url) call
-        super().__init__(url)
+        self._url = url
+        self._description = description
+
+        if description:
+            super().__init__(url, description)
+        else:
+            super().__init__(url)
 
     @property
-    def url(self) -> Any:
-        return self.args[0]
+    def url(self) -> StrOrURL:
+        return self._url
+
+    @property
+    def description(self) -> "str | None":
+        return self._description
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.url}>"
+        return f"<{self.__class__.__name__} {self}>"
+
+    def __str__(self) -> str:
+        if self._description:
+            return f"{self._url} - {self._description}"
+        return str(self._url)
+
+
+class InvalidUrlClientError(InvalidURL):
+    """Invalid URL client error."""
+
+
+class RedirectClientError(ClientError):
+    """Client redirect error."""
+
+
+class NonHttpUrlClientError(ClientError):
+    """Non http URL client error."""
+
+
+class InvalidUrlRedirectClientError(InvalidUrlClientError, RedirectClientError):
+    """Invalid URL redirect client error."""
+
+
+class NonHttpUrlRedirectClientError(NonHttpUrlClientError, RedirectClientError):
+    """Non http URL redirect client error."""
 
 
 class ClientSSLError(ClientConnectorError):

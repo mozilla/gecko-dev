@@ -23,6 +23,7 @@ pypi:pywatchman==1.4.1
 vendored:third_party/python/Jinja2
 vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/PyYAML/lib/
+vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp
 vendored:third_party/python/aiosignal
 vendored:third_party/python/appdirs
@@ -44,6 +45,7 @@ vendored:third_party/python/markdown_it_py
 vendored:third_party/python/mdurl
 vendored:third_party/python/mohawk
 vendored:third_party/python/mozilla_repo_urls
+vendored:third_party/python/propcache
 vendored:third_party/python/pygments
 vendored:third_party/python/pylru
 vendored:third_party/python/redo

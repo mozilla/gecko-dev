@@ -1,0 +1,50 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@stylistic/recommended-extends"
+  ],
+  "rules": {
+    "max-len": [
+      "error",
+      {
+        "code": 120
+      }
+    ],
+    "no-console": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "@stylistic/array-bracket-spacing": ["error", "always"],
+    "@stylistic/operator-linebreak": ["error", "after"],
+    "@stylistic/brace-style": ["error", "1tbs", { "allowSingleLine": true }],
+    "@stylistic/member-delimiter-style": ["error", {
+      "overrides": {
+        "interface": {
+          "multiline": {
+            "delimiter": "semi",
+            "requireLast": true
+          }
+        }
+      }
+    }],
+    "indent": "off",
+    "@stylistic/indent": ["error", 2, {
+      "SwitchCase": 1,
+      "FunctionDeclaration":  { "parameters": "first" },
+      "FunctionExpression": { "parameters": "first" }
+    }],
+    "semi": "off",
+    "@stylistic/semi": ["error", "always"]
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": [
+      "tsconfig.eslint.json"
+    ],
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true,
+      "modules": true,
+      "experimentalObjectRestSpread": true
+    }
+  }
+}

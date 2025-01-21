@@ -238,46 +238,24 @@ off=7 len=14 span[url.host]="[fe80::a%eth0]"
 off=21 len=1 span[url.path]="/"
 ```
 
-## Disallow tab in URL in strict mode
+## Disallow tab in URL
 
-<!-- meta={"mode": "strict", "noScan": true} -->
+<!-- meta={ "noScan": true} -->
 ```url
 /foo\tbar/
 ```
 
 ```log
-off=5 error code=7 reason="Invalid characters in url (strict mode)"
+off=5 error code=7 reason="Invalid characters in url"
 ```
 
-## Tab in URL in loose mode
+## Disallow form-feed in URL
 
-<!-- meta={"mode": "loose"} -->
-```url
-/foo\tbar/
-```
-
-```log
-off=0 len=9 span[url.path]="/foo\tbar/"
-```
-
-## Disallow form-feed in URL in strict mode
-
-<!-- meta={"mode": "strict", "noScan": true} -->
+<!-- meta={ "noScan": true} -->
 ```url
 /foo\fbar/
 ```
 
 ```log
-off=5 error code=7 reason="Invalid characters in url (strict mode)"
-```
-
-## Form-feed in URL in loose mode
-
-<!-- meta={"mode": "loose"} -->
-```url
-/foo\fbar/
-```
-
-```log
-off=0 len=9 span[url.path]="/foo\fbar/"
+off=5 error code=7 reason="Invalid characters in url"
 ```

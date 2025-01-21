@@ -3,7 +3,7 @@ Lenient header value parsing
 
 Parsing with header value token checks off.
 
-## Header value with lenient
+## Header value (lenient)
 
 <!-- meta={"type": "request-lenient-headers"} -->
 ```http
@@ -29,7 +29,7 @@ off=33 headers complete method=1 v=1/1 flags=0 content_length=0
 off=33 message complete
 ```
 
-## Second request header value with lenient
+## Second request header value (lenient)
 
 <!-- meta={"type": "request-lenient-headers"} -->
 ```http
@@ -73,7 +73,7 @@ off=71 headers complete method=1 v=1/1 flags=0 content_length=0
 off=71 message complete
 ```
 
-## Header value without lenient
+## Header value
 
 <!-- meta={"type": "request"} -->
 ```http
@@ -98,7 +98,7 @@ off=28 len=0 span[header_value]=""
 off=28 error code=10 reason="Invalid header value char"
 ```
 
-### Empty headers separated by CR (Lenient)
+### Empty headers separated by CR (lenient)
 
 <!-- meta={"type": "request-lenient-headers"} -->
 ```http

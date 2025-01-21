@@ -1,4 +1,5 @@
-import * as assert from 'assert';
+import * as assert from 'node:assert';
+import { describe, test } from 'node:test';
 import * as fs from 'fs';
 import { LLParse } from 'llparse';
 import { Group, MDGator, Metadata, Test } from 'mdgator';
@@ -6,53 +7,25 @@ import * as path from 'path';
 import * as vm from 'vm';
 
 import * as llhttp from '../src/llhttp';
-import {IHTTPResult} from '../src/llhttp/http';
-import {IURLResult} from '../src/llhttp/url';
-import { build, FixtureResult, TestType } from './fixtures';
+import { allowedTypes, build, FixtureResult, Node, TestType } from './fixtures';
 
 //
 // Cache nodes/llparse instances ahead of time
 // (different types of tests will re-use them)
 //
 
-interface INodeCacheEntry {
-  llparse: LLParse;
-  entry: IHTTPResult['entry'];
-}
-
-interface IUrlCacheEntry {
-  llparse: LLParse;
-  entry: IURLResult['entry']['normal'];
-}
-
-const nodeCache = new Map<llhttp.HTTPMode, INodeCacheEntry>();
-const urlCache = new Map<llhttp.HTTPMode, IUrlCacheEntry>();
 const modeCache = new Map<string, FixtureResult>();
 
-function buildNode(mode: llhttp.HTTPMode) {
-  let entry = nodeCache.get(mode);
-
-  if (entry) {
-    return entry;
-  }
-
+function buildNode() {
   const p = new LLParse();
-  const instance = new llhttp.HTTP(p, mode);
+  const instance = new llhttp.HTTP(p);
 
-  entry = { llparse: p, entry: instance.build().entry };
-  nodeCache.set(mode, entry);
-  return entry;
+  return { llparse: p, entry: instance.build().entry };
 }
 
-function buildURL(mode: llhttp.HTTPMode) {
-  let entry = urlCache.get(mode);
-
-  if (entry) {
-    return entry;
-  }
-
+function buildURL() {
   const p = new LLParse();
-  const instance = new llhttp.URL(p, mode, true);
+  const instance = new llhttp.URL(p, true);
 
   const node = instance.build();
 
@@ -60,34 +33,30 @@ function buildURL(mode: llhttp.HTTPMode) {
   node.exit.toHTTP.otherwise(node.entry.normal);
   node.exit.toHTTP09.otherwise(node.entry.normal);
 
-  entry = { llparse: p, entry: node.entry.normal };
-  urlCache.set(mode, entry);
-  return entry;
+  return { llparse: p, entry: node.entry.normal };
 }
 
 //
 // Build binaries using cached nodes/llparse
 //
 
-async function buildMode(mode: llhttp.HTTPMode, ty: TestType, meta: any)
-    : Promise<FixtureResult> {
-
-  const cacheKey = `${mode}:${ty}:${JSON.stringify(meta || {})}`;
+async function buildMode(ty: TestType, meta: Metadata): Promise<FixtureResult> {
+  const cacheKey = `${ty}:${JSON.stringify(meta || {})}`;
   let entry = modeCache.get(cacheKey);
 
   if (entry) {
     return entry;
   }
 
-  let node;
+  let node: { llparse: LLParse; entry: Node };
   let prefix: string;
   let extra: string[];
   if (ty === 'url') {
-    node = buildURL(mode);
+    node = buildURL();
     prefix = 'url';
     extra = [];
   } else {
-    node = buildNode(mode);
+    node = buildNode();
     prefix = 'http';
     extra = [
       '-DLLHTTP__TEST_HTTP',
@@ -103,16 +72,12 @@ async function buildMode(mode: llhttp.HTTPMode, ty: TestType, meta: any)
     extra.push('-DLLHTTP__TEST_SKIP_BODY=1');
   }
 
-  entry = await build(node.llparse, node.entry, `${prefix}-${mode}-${ty}`, {
+  entry = await build(node.llparse, node.entry, `${prefix}-${ty}`, {
     extra,
   }, ty);
 
   modeCache.set(cacheKey, entry);
   return entry;
-}
-
-interface IFixtureMap {
-  [key: string]: { [key: string]: Promise<FixtureResult> };
 }
 
 //
@@ -125,11 +90,11 @@ function run(name: string): void {
   const raw = fs.readFileSync(path.join(__dirname, name + '.md')).toString();
   const groups = md.parse(raw);
 
-  function runSingleTest(mode: llhttp.HTTPMode, ty: TestType, meta: any,
+  function runSingleTest(ty: TestType, meta: Metadata,
                          input: string,
                          expected: ReadonlyArray<string | RegExp>): void {
-    it(`should pass in mode="${mode}" and for type="${ty}"`, async () => {
-      const binary = await buildMode(mode, ty, meta);
+    test(`should pass for type="${ty}"`, { timeout: 60000 }, async () => {
+      const binary = await buildMode(ty, meta);
       await binary.check(input, expected, {
         noScan: meta.noScan === true,
       });
@@ -138,8 +103,7 @@ function run(name: string): void {
 
   function runTest(test: Test) {
     describe(test.name + ` at ${name}.md:${test.line + 1}`, () => {
-      let modes: llhttp.HTTPMode[] = [ 'strict', 'loose' ];
-      let types: TestType[] = [ 'none' ];
+      let types: TestType[] = [];
 
       const isURL = test.values.has('url');
       const inputKey = isURL ? 'url' : 'http';
@@ -160,37 +124,14 @@ function run(name: string): void {
       if (isURL) {
         types = [ 'url' ];
       } else {
-        assert(meta.hasOwnProperty('type'), 'Missing required `type` metadata');
-        if (meta.type === 'request') {
-          types.push('request');
-        } else if (meta.type === 'response') {
-          types.push('response');
-        } else if (meta.type === 'request-only') {
-          types = [ 'request' ];
-        } else if (meta.type === 'request-lenient-headers') {
-          types = [ 'request-lenient-headers' ];
-        } else if (meta.type === 'request-lenient-chunked-length') {
-          types = [ 'request-lenient-chunked-length' ];
-        } else if (meta.type === 'request-lenient-keep-alive') {
-          types = [ 'request-lenient-keep-alive' ];
-        } else if (meta.type === 'request-lenient-transfer-encoding') {
-          types = [ 'request-lenient-transfer-encoding' ];
-        } else if (meta.type === 'request-lenient-version') {
-          types = [ 'request-lenient-version' ];
-        } else if (meta.type === 'response-lenient-keep-alive') {
-          types = [ 'response-lenient-keep-alive' ];
-        } else if (meta.type === 'response-lenient-headers') {
-          types = [ 'response-lenient-headers' ];
-        } else if (meta.type === 'response-lenient-version') {
-          types = [ 'response-lenient-version' ];
-        } else if (meta.type === 'response-only') {
-          types = [ 'response' ];
-        } else if (meta.type === 'request-finish') {
-          types = [ 'request-finish' ];
-        } else if (meta.type === 'response-finish') {
-          types = [ 'response-finish' ];
-        } else {
-          throw new Error(`Invalid value of \`type\` metadata: "${meta.type}"`);
+        assert(Object.prototype.hasOwnProperty.call(meta, 'type'), 'Missing required `type` metadata');
+
+        if (meta.type) {
+          if (!allowedTypes.includes(meta.type)) {
+            throw new Error(`Invalid value of \`type\` metadata: "${meta.type}"`);
+          }
+
+          types.push(meta.type);
         }
       }
 
@@ -198,15 +139,6 @@ function run(name: string): void {
 
       assert.strictEqual(test.values.get('log')!.length, 1,
         'Expected just one output');
-
-      if (meta.mode === 'strict') {
-        modes = [ 'strict' ];
-      } else if (meta.mode === 'loose') {
-        modes = [ 'loose' ];
-      } else {
-        assert(!meta.hasOwnProperty('mode'),
-          `Invalid value of \`mode\` metadata: "${meta.mode}"`);
-      }
 
       let input: string = test.values.get(inputKey)![0];
       let expected: string = test.values.get('log')![0];
@@ -265,22 +197,18 @@ function run(name: string): void {
         }
       });
 
-      for (const mode of modes) {
-        for (const ty of types) {
-          if (meta.skip === true || (process.env.ONLY === 'true' && !meta.only)) {
-            continue;
-          }
-
-          runSingleTest(mode, ty, meta, input, fullExpected);
+      for (const ty of types) {
+        if (meta.skip === true || (process.env.ONLY === 'true' && !meta.only)) {
+          continue;
         }
+
+        runSingleTest(ty, meta, input, fullExpected);
       }
     });
   }
 
   function runGroup(group: Group) {
-    describe(group.name + ` at ${name}.md:${group.line + 1}`, function() {
-      this.timeout(60000);
-
+    describe(group.name + ` at ${name}.md:${group.line + 1}`, function () {
       for (const child of group.children) {
         runGroup(child);
       }

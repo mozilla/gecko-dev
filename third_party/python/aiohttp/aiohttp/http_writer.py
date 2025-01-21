@@ -8,6 +8,8 @@ from multidict import CIMultiDict
 
 from .abc import AbstractStreamWriter
 from .base_protocol import BaseProtocol
+from .client_exceptions import ClientConnectionResetError
+from .compression_utils import ZLibCompressor
 from .helpers import NO_EXTENSIONS
 
 __all__ = ("StreamWriter", "HttpVersion", "HttpVersion10", "HttpVersion11")
@@ -43,7 +45,7 @@ class StreamWriter(AbstractStreamWriter):
         self.output_size = 0
 
         self._eof = False
-        self._compress: Any = None
+        self._compress: Optional[ZLibCompressor] = None
         self._drain_waiter = None
 
         self._on_chunk_sent: _T_OnChunkSent = on_chunk_sent
@@ -63,16 +65,15 @@ class StreamWriter(AbstractStreamWriter):
     def enable_compression(
         self, encoding: str = "deflate", strategy: int = zlib.Z_DEFAULT_STRATEGY
     ) -> None:
-        zlib_mode = 16 + zlib.MAX_WBITS if encoding == "gzip" else zlib.MAX_WBITS
-        self._compress = zlib.compressobj(wbits=zlib_mode, strategy=strategy)
+        self._compress = ZLibCompressor(encoding=encoding, strategy=strategy)
 
     def _write(self, chunk: bytes) -> None:
         size = len(chunk)
         self.buffer_size += size
         self.output_size += size
-        transport = self.transport
-        if not self._protocol.connected or transport is None or transport.is_closing():
-            raise ConnectionResetError("Cannot write to closing transport")
+        transport = self._protocol.transport
+        if transport is None or transport.is_closing():
+            raise ClientConnectionResetError("Cannot write to closing transport")
         transport.write(chunk)
 
     async def write(
@@ -93,7 +94,7 @@ class StreamWriter(AbstractStreamWriter):
                 chunk = chunk.cast("c")
 
         if self._compress is not None:
-            chunk = self._compress.compress(chunk)
+            chunk = await self._compress.compress(chunk)
             if not chunk:
                 return
 
@@ -138,9 +139,9 @@ class StreamWriter(AbstractStreamWriter):
 
         if self._compress:
             if chunk:
-                chunk = self._compress.compress(chunk)
+                chunk = await self._compress.compress(chunk)
 
-            chunk = chunk + self._compress.flush()
+            chunk += self._compress.flush()
             if chunk and self.chunked:
                 chunk_len = ("%x\r\n" % len(chunk)).encode("ascii")
                 chunk = chunk_len + chunk + b"\r\n0\r\n\r\n"
@@ -189,7 +190,7 @@ def _py_serialize_headers(status_line: str, headers: "CIMultiDict[str]") -> byte
 _serialize_headers = _py_serialize_headers
 
 try:
-    import aiohttp._http_writer as _http_writer  # type: ignore[import]
+    import aiohttp._http_writer as _http_writer  # type: ignore[import-not-found]
 
     _c_serialize_headers = _http_writer._serialize_headers
     if not NO_EXTENSIONS:

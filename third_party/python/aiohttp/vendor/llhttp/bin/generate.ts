@@ -1,101 +1,51 @@
 #!/usr/bin/env -S npx ts-node
-import * as fs from 'fs';
+
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { LLParse } from 'llparse';
-import * as path from 'path';
-import * as semver from 'semver';
+import { dirname, resolve } from 'path';
+import { CHeaders, HTTP } from '../src/llhttp';
 
-import * as llhttp from '../src/llhttp';
+// https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+// eslint-disable-next-line max-len
+const semverRE = /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
-const pkgFile = path.join(__dirname, '..', 'package.json');
-const pkg = JSON.parse(fs.readFileSync(pkgFile).toString());
+const C_FILE = resolve(__dirname, '../build/c/llhttp.c');
+const HEADER_FILE = resolve(__dirname, '../build/llhttp.h');
 
-const BUILD_DIR = path.join(__dirname, '..', 'build');
-const C_DIR = path.join(BUILD_DIR, 'c');
-const SRC_DIR = path.join(__dirname, '..', 'src');
+const pkg = JSON.parse(
+  readFileSync(resolve(__dirname, '..', 'package.json')).toString(),
+);
 
-const C_FILE = path.join(C_DIR, 'llhttp.c');
-const HEADER_FILE = path.join(BUILD_DIR, 'llhttp.h');
+const version = pkg.version.match(semverRE)?.groups;
+const llparse = new LLParse('llhttp__internal');
 
-for (const dir of [ BUILD_DIR, C_DIR ]) {
-  try {
-    fs.mkdirSync(dir);
-  } catch (e) {
-    // no-op
-  }
-}
+const cHeaders = new CHeaders();
+const nativeHeaders = readFileSync(resolve(__dirname, '../src/native/api.h'));
+const generated = llparse.build(new HTTP(llparse).build().entry, {
+  c: {
+    header: 'llhttp',
+  },
+  debug: process.env.LLPARSE_DEBUG ? 'llhttp__debug' : undefined,
+  headerGuard: 'INCLUDE_LLHTTP_ITSELF_H_',
+});
 
-function build(mode: 'strict' | 'loose') {
-  const llparse = new LLParse('llhttp__internal');
-  const instance = new llhttp.HTTP(llparse, mode);
+const headers = `
+#ifndef INCLUDE_LLHTTP_H_
+#define INCLUDE_LLHTTP_H_
 
-  return llparse.build(instance.build().entry, {
-    c: {
-      header: 'llhttp',
-    },
-    debug: process.env.LLPARSE_DEBUG ? 'llhttp__debug' : undefined,
-    headerGuard: 'INCLUDE_LLHTTP_ITSELF_H_',
-  });
-}
+#define LLHTTP_VERSION_MAJOR ${version.major}
+#define LLHTTP_VERSION_MINOR ${version.minor}
+#define LLHTTP_VERSION_PATCH ${version.patch}
 
-function guard(strict: string, loose: string): string {
-  let out = '';
+${generated.header}
 
-  if (strict === loose) {
-    return strict;
-  }
+${cHeaders.build()}
 
-  out += '#if LLHTTP_STRICT_MODE\n';
-  out += '\n';
-  out += strict + '\n';
-  out += '\n';
-  out += '#else  /* !LLHTTP_STRICT_MODE */\n';
-  out += '\n';
-  out += loose + '\n';
-  out += '\n';
-  out += '#endif  /* LLHTTP_STRICT_MODE */\n';
+${nativeHeaders}
 
-  return out;
-}
+#endif  /* INCLUDE_LLHTTP_H_ */
+`;
 
-const artifacts = {
-  loose: build('loose'),
-  strict: build('strict'),
-};
-
-let headers = '';
-
-headers += '#ifndef INCLUDE_LLHTTP_H_\n';
-headers += '#define INCLUDE_LLHTTP_H_\n';
-
-headers += '\n';
-
-const version = semver.parse(pkg.version)!;
-
-headers += `#define LLHTTP_VERSION_MAJOR ${version.major}\n`;
-headers += `#define LLHTTP_VERSION_MINOR ${version.minor}\n`;
-headers += `#define LLHTTP_VERSION_PATCH ${version.patch}\n`;
-headers += '\n';
-
-headers += '#ifndef LLHTTP_STRICT_MODE\n';
-headers += '# define LLHTTP_STRICT_MODE 0\n';
-headers += '#endif\n';
-headers += '\n';
-
-const cHeaders = new llhttp.CHeaders();
-
-headers += guard(artifacts.strict.header, artifacts.loose.header);
-
-headers += '\n';
-
-headers += cHeaders.build();
-
-headers += '\n';
-
-headers += fs.readFileSync(path.join(SRC_DIR, 'native', 'api.h'));
-
-headers += '\n';
-headers += '#endif  /* INCLUDE_LLHTTP_H_ */\n';
-
-fs.writeFileSync(C_FILE,
-  guard(artifacts.strict.c || '', artifacts.loose.c || ''));
-fs.writeFileSync(HEADER_FILE, headers);
+mkdirSync(dirname(C_FILE), { recursive: true });
+writeFileSync(HEADER_FILE, headers);
+writeFileSync(C_FILE, generated.c);
