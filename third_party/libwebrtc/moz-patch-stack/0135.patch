@@ -1,23 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 15 Oct 2024 16:13:00 -0500
-Subject: Bug 1924098 - (fix-4e41db264b) our base-toolchains builds need the
- struct name to build
+Date: Tue, 15 Oct 2024 16:46:00 -0500
+Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
+ LibvpxVp9Encoder::InitAndSetControlSettings
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/479c6364706093d4a863c3514a1031ee4783fb59
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
 ---
- call/flexfec_receive_stream_impl.cc | 2 +-
+ modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/call/flexfec_receive_stream_impl.cc b/call/flexfec_receive_stream_impl.cc
-index bb4122a83f..c70db3d528 100644
---- a/call/flexfec_receive_stream_impl.cc
-+++ b/call/flexfec_receive_stream_impl.cc
-@@ -114,7 +114,7 @@ FlexfecReceiveStreamImpl::FlexfecReceiveStreamImpl(
-                                            recovered_packet_receiver)),
-       rtp_receive_statistics_(ReceiveStatistics::Create(&env.clock())),
-       rtp_rtcp_(env,
--                {.audio = false,
-+                RtpRtcpInterface::Configuration{.audio = false,
-                  .receiver_only = true,
-                  .receive_statistics = rtp_receive_statistics_.get(),
-                  .outgoing_transport = config.rtcp_send_transport,
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 4defd80355..379075d12c 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1296,7 +1296,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
+   // bugs in trying to do it the "right" way, we basically re-do
+   // the initialization.
+   vpx_codec_destroy(encoder_); // clean up old state
+-  int result = InitAndSetControlSettings(&codec_);
++  int result = InitAndSetControlSettings();
+   if (result == WEBRTC_VIDEO_CODEC_OK) {
+     // TODO: Mozilla rates have become much more complicated, we need to store
+     // more state or find another way of doing this.
