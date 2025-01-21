@@ -2545,9 +2545,7 @@ var SessionStoreInternal = {
 
     // Add saved tab group references to saved tab group state.
     for (let tabGroupToSave of newlySavedTabGroups.values()) {
-      if (tabGroupToSave.tabs.length) {
-        this._recordSavedTabGroupState(tabGroupToSave);
-      }
+      this._recordSavedTabGroupState(tabGroupToSave);
     }
   },
 
@@ -7792,9 +7790,7 @@ var SessionStoreInternal = {
       tabGroup.tabs,
       tabGroup.ownerGlobal
     );
-    if (tabGroupState.tabs.length) {
-      this._recordSavedTabGroupState(tabGroupState);
-    }
+    this._recordSavedTabGroupState(tabGroupState);
   },
 
   /**
@@ -7802,7 +7798,10 @@ var SessionStoreInternal = {
    * @returns {void}
    */
   _recordSavedTabGroupState(savedTabGroupState) {
-    if (this.getSavedTabGroup(savedTabGroupState.id)) {
+    if (
+      !savedTabGroupState.tabs.length ||
+      this.getSavedTabGroup(savedTabGroupState.id)
+    ) {
       return;
     }
     this._savedGroups.push(savedTabGroupState);
