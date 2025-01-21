@@ -1526,6 +1526,9 @@ formautofill.ml:
       infer_reason:
         description: The inference method. Possible values are `autocomplete`, `fathom`, `regex-heuristic`, or `update-heuristic`.
         type: string
+      is_valid_section:
+        description: Whether the inferred field is in a valid credit card or address section.
+        type: boolean
       fathom_infer_label:
         description: The inferred result by the Fathom model.
         type: string

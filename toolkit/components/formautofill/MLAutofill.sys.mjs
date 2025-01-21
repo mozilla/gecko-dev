@@ -73,7 +73,7 @@ export class MLAutofill {
     return MLAutofill.engine.run(request);
   }
 
-  static async runInference(fieldDetails) {
+  static async runInference(section) {
     if (!MLAutofill.engine) {
       await MLAutofill.initialize();
       if (!MLAutofill.engine) {
@@ -82,12 +82,12 @@ export class MLAutofill {
     }
 
     const results = await Promise.all(
-      fieldDetails.map((fieldDetail, index) => {
+      section.fieldDetails.map((fieldDetail, index) => {
         const input = MLAutofill.constructMLInput(
           fieldDetail.mlHeaderInput ?? " ",
           fieldDetail.mlinput,
-          fieldDetails[index - 1]?.mlinput ?? " ",
-          fieldDetails[index + 1]?.mlinput ?? " ",
+          section.fieldDetails[index - 1]?.mlinput ?? " ",
+          section.fieldDetails[index + 1]?.mlinput ?? " ",
           fieldDetail.mlButtonInput ?? " "
         );
         const request = { args: [input] };
@@ -95,13 +95,15 @@ export class MLAutofill {
       })
     );
 
+    const isValidSection = section.isValidSection();
     for (let idx = 0; idx < results.length; idx++) {
-      const fieldDetail = fieldDetails[idx];
+      const fieldDetail = section.fieldDetails[idx];
       const result = results[idx][0];
 
       const extra = {
         infer_field_name: fieldDetail.fieldName,
         infer_reason: fieldDetail.reason,
+        is_valid_section: isValidSection,
         fathom_infer_label: fieldDetail.fathomLabel ?? "",
         fathom_infer_score: fieldDetail.fathomConfidence?.toString() ?? "",
         ml_revision: MLAutofill.modelRevision ?? "",

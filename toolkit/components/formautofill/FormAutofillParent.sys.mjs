@@ -526,8 +526,7 @@ export class FormAutofillParent extends JSWindowActorParent {
     sections.forEach(section => section.onDetected());
 
     if (FormAutofill.isMLExperimentEnabled) {
-      const allFieldDetails = sections.flatMap(section => section.fieldDetails);
-      lazy.MLAutofill.runInference(allFieldDetails);
+      sections.forEach(section => lazy.MLAutofill.runInference(section));
     }
 
     // Inform all the child actors of the updated 'fieldDetails'

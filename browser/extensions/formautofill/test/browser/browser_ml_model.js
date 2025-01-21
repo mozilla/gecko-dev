@@ -98,6 +98,7 @@ add_task(async function test_run_ml_experiment() {
     return {
       infer_field_name: fieldName,
       infer_reason: "autocomplete",
+      is_valid_section: "true",
       fathom_infer_label: fathom_label ?? "",
       fathom_infer_score: fathom_score ?? "",
       ml_revision: "",
