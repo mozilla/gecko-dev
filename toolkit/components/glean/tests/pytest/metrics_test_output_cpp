@@ -10,16 +10,8 @@
 #define mozilla_GleanMetrics_h
 
 #include "mozilla/glean/bindings/MetricTypes.h"
-#include "mozilla/Maybe.h"
-#include "nsTArray.h"
-#include "nsPrintfCString.h"
-
-#include <tuple>
 
 namespace mozilla::glean {
-
-struct NoExtraKeys;
-enum class DynamicLabel: uint16_t { };
 
 namespace test {
   /**

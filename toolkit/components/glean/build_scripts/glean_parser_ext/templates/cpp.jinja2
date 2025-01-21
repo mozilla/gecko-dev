@@ -12,16 +12,8 @@ Jinja2 template is not. Please file bugs! #}
 #define mozilla_Glean{{ options.header_name }}_h
 
 #include "mozilla/glean/bindings/MetricTypes.h"
-#include "mozilla/Maybe.h"
-#include "nsTArray.h"
-#include "nsPrintfCString.h"
-
-#include <tuple>
 
 namespace mozilla::glean {
-
-struct NoExtraKeys;
-enum class DynamicLabel: uint16_t { };
 
 {%- macro generate_extra_keys(obj) -%}
 {% for name, suffix in obj["_generate_enums"] %}
