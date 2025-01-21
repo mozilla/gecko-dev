@@ -18,6 +18,7 @@
 #include "mozilla/ipc/Endpoint.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
+#include "nsFmtString.h"
 #include "nsIObserverService.h"
 #include "nsReadableUtils.h"
 #include "nsXPCOMPrivate.h"
@@ -62,37 +63,8 @@ nsresult GeckoMediaPluginServiceChild::Init() {
   return GeckoMediaPluginService::Init();
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(GeckoMediaPluginServiceChild,
-                            GeckoMediaPluginService, nsIAsyncShutdownBlocker)
-
-// Used to identify blockers that we put in place.
-static const nsLiteralString kShutdownBlockerName =
-    u"GeckoMediaPluginServiceChild: shutdown"_ns;
-
-// nsIAsyncShutdownBlocker members
-NS_IMETHODIMP
-GeckoMediaPluginServiceChild::GetName(nsAString& aName) {
-  aName = kShutdownBlockerName;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GeckoMediaPluginServiceChild::GetState(nsIPropertyBag**) { return NS_OK; }
-
-NS_IMETHODIMP
-GeckoMediaPluginServiceChild::BlockShutdown(nsIAsyncShutdownClient*) {
-  MOZ_ASSERT(NS_IsMainThread());
-  GMP_LOG_DEBUG("%s::%s", __CLASS__, __FUNCTION__);
-
-  mXPCOMWillShutdown = true;
-
-  MutexAutoLock lock(mMutex);
-  Unused << NS_WARN_IF(NS_FAILED(mGMPThread->Dispatch(
-      NewRunnableMethod("GeckoMediaPluginServiceChild::BeginShutdown", this,
-                        &GeckoMediaPluginServiceChild::BeginShutdown))));
-  return NS_OK;
-}
-// End nsIAsyncShutdownBlocker members
+NS_IMPL_ISUPPORTS_INHERITED0(GeckoMediaPluginServiceChild,
+                             GeckoMediaPluginService)
 
 GeckoMediaPluginServiceChild::~GeckoMediaPluginServiceChild() {
   MOZ_ASSERT(!mServiceChild);
@@ -480,21 +452,28 @@ nsresult GeckoMediaPluginServiceChild::AddShutdownBlocker() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mShuttingDownOnGMPThread,
              "No call paths should add blockers once we're shutting down!");
-  MOZ_ASSERT(!mShutdownBlockerAdded, "Should only add blocker once!");
+  MOZ_ASSERT(!mShutdownBlocker, "Should only add blocker once!");
   GMP_LOG_DEBUG("%s::%s ", __CLASS__, __FUNCTION__);
 
-  nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
-  if (NS_WARN_IF(!barrier)) {
-    return NS_ERROR_NOT_AVAILABLE;
+  nsFmtString name(u"GeckoMediaPluginServiceChild {}",
+                   static_cast<void*>(this));
+  mShutdownBlocker = media::ShutdownBlockingTicket::Create(
+      name, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
+  if (mShutdownBlocker) {
+    mShutdownBlocker->ShutdownPromise()->Then(
+        mMainThread, __func__, [this, self = RefPtr(this), name]() {
+          GMP_LOG_DEBUG("GMPServiceChild::BlockShutdown: %s",
+                        NS_ConvertUTF16toUTF8(name).get());
+          mXPCOMWillShutdown = true;
+          nsCOMPtr gmpThread = GetGMPThread();
+          gmpThread->Dispatch(
+              NewRunnableMethod("GMPServiceChild::BeginShutdown", this,
+                                &GeckoMediaPluginServiceChild::BeginShutdown));
+        });
+    return NS_OK;
   }
 
-  nsresult rv =
-      barrier->AddBlocker(this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__),
-                          __LINE__, kShutdownBlockerName);
-#ifdef DEBUG
-  mShutdownBlockerAdded = NS_SUCCEEDED(rv);
-#endif
-  return rv;
+  return NS_ERROR_FAILURE;
 }
 
 void GeckoMediaPluginServiceChild::RemoveShutdownBlocker() {
@@ -503,23 +482,7 @@ void GeckoMediaPluginServiceChild::RemoveShutdownBlocker() {
              "We should only remove blockers once we're "
              "shutting down!");
   GMP_LOG_DEBUG("%s::%s ", __CLASS__, __FUNCTION__);
-  nsresult rv = mMainThread->Dispatch(NS_NewRunnableFunction(
-      "GeckoMediaPluginServiceChild::"
-      "RemoveShutdownBlocker",
-      [this, self = RefPtr<GeckoMediaPluginServiceChild>(this)]() {
-        nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
-        if (NS_WARN_IF(!barrier)) {
-          return;
-        }
-
-        nsresult rv = barrier->RemoveBlocker(this);
-        MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-      }));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    MOZ_ASSERT_UNREACHABLE(
-        "Main thread should always be alive when we "
-        "call this!");
-  }
+  mShutdownBlocker = nullptr;
 }
 
 void GeckoMediaPluginServiceChild::RemoveShutdownBlockerIfNeeded() {
