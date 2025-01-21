@@ -14,7 +14,6 @@
 #include "mozilla/dom/indexedDB/Key.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsISupports.h"
 #include "nsString.h"
 
 class mozIStorageStatement;
@@ -33,7 +32,6 @@ class SerializedKeyRange;
 
 class IDBKeyRange {
  protected:
-  nsCOMPtr<nsISupports> mGlobal;
   indexedDB::Key mLower;
   indexedDB::Key mUpper;
   JS::Heap<JS::Value> mCachedLowerVal;
@@ -99,8 +97,6 @@ class IDBKeyRange {
   bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
-  nsISupports* GetParentObject() const { return mGlobal; }
-
   void GetLower(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 ErrorResult& aRv);
 
@@ -112,8 +108,7 @@ class IDBKeyRange {
   bool UpperOpen() const { return mUpperOpen; }
 
  protected:
-  IDBKeyRange(nsISupports* aGlobal, bool aLowerOpen, bool aUpperOpen,
-              bool aIsOnly);
+  IDBKeyRange(bool aLowerOpen, bool aUpperOpen, bool aIsOnly);
 
   virtual ~IDBKeyRange();
 };

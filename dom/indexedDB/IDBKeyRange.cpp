@@ -35,10 +35,8 @@ void GetKeyFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal, Key& aKey,
 
 }  // namespace
 
-IDBKeyRange::IDBKeyRange(nsISupports* aGlobal, bool aLowerOpen, bool aUpperOpen,
-                         bool aIsOnly)
-    : mGlobal(aGlobal),
-      mCachedLowerVal(JS::UndefinedValue()),
+IDBKeyRange::IDBKeyRange(bool aLowerOpen, bool aUpperOpen, bool aIsOnly)
+    : mCachedLowerVal(JS::UndefinedValue()),
       mCachedUpperVal(JS::UndefinedValue()),
       mLowerOpen(aLowerOpen),
       mUpperOpen(aUpperOpen),
@@ -75,7 +73,7 @@ void IDBKeyRange::FromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal,
   }
 
   // A valid key returns an 'only' IDBKeyRange.
-  keyRange = new IDBKeyRange(nullptr, false, false, true);
+  keyRange = new IDBKeyRange(false, false, true);
   GetKeyFromJSVal(aCx, aVal, keyRange->Lower(), aRv);
   if (!aRv.Failed()) {
     *aKeyRange = std::move(keyRange);
@@ -85,9 +83,8 @@ void IDBKeyRange::FromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal,
 // static
 RefPtr<IDBKeyRange> IDBKeyRange::FromSerialized(
     const SerializedKeyRange& aKeyRange) {
-  RefPtr<IDBKeyRange> keyRange =
-      new IDBKeyRange(nullptr, aKeyRange.lowerOpen(), aKeyRange.upperOpen(),
-                      aKeyRange.isOnly());
+  RefPtr<IDBKeyRange> keyRange = new IDBKeyRange(
+      aKeyRange.lowerOpen(), aKeyRange.upperOpen(), aKeyRange.isOnly());
   keyRange->Lower() = aKeyRange.lower();
   if (!keyRange->IsOnly()) {
     keyRange->Upper() = aKeyRange.upper();
@@ -109,7 +106,6 @@ void IDBKeyRange::ToSerialized(SerializedKeyRange& aKeyRange) const {
 NS_IMPL_CYCLE_COLLECTION_CLASS(IDBKeyRange)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IDBKeyRange)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBKeyRange)
@@ -118,7 +114,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBKeyRange)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBKeyRange)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal)
   tmp->DropJSObjects();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -227,8 +222,7 @@ bool IDBKeyRange::Includes(JSContext* aCx, JS::Handle<JS::Value> aValue,
 RefPtr<IDBKeyRange> IDBKeyRange::Only(const GlobalObject& aGlobal,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
-  RefPtr<IDBKeyRange> keyRange =
-      new IDBKeyRange(aGlobal.GetAsSupports(), false, false, true);
+  RefPtr<IDBKeyRange> keyRange = new IDBKeyRange(false, false, true);
 
   GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
@@ -242,8 +236,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::Only(const GlobalObject& aGlobal,
 RefPtr<IDBKeyRange> IDBKeyRange::LowerBound(const GlobalObject& aGlobal,
                                             JS::Handle<JS::Value> aValue,
                                             bool aOpen, ErrorResult& aRv) {
-  RefPtr<IDBKeyRange> keyRange =
-      new IDBKeyRange(aGlobal.GetAsSupports(), aOpen, true, false);
+  RefPtr<IDBKeyRange> keyRange = new IDBKeyRange(aOpen, true, false);
 
   GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
@@ -257,8 +250,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::LowerBound(const GlobalObject& aGlobal,
 RefPtr<IDBKeyRange> IDBKeyRange::UpperBound(const GlobalObject& aGlobal,
                                             JS::Handle<JS::Value> aValue,
                                             bool aOpen, ErrorResult& aRv) {
-  RefPtr<IDBKeyRange> keyRange =
-      new IDBKeyRange(aGlobal.GetAsSupports(), true, aOpen, false);
+  RefPtr<IDBKeyRange> keyRange = new IDBKeyRange(true, aOpen, false);
 
   GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Upper(), aRv);
   if (aRv.Failed()) {
@@ -274,8 +266,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::Bound(const GlobalObject& aGlobal,
                                        JS::Handle<JS::Value> aUpper,
                                        bool aLowerOpen, bool aUpperOpen,
                                        ErrorResult& aRv) {
-  RefPtr<IDBKeyRange> keyRange =
-      new IDBKeyRange(aGlobal.GetAsSupports(), aLowerOpen, aUpperOpen, false);
+  RefPtr<IDBKeyRange> keyRange = new IDBKeyRange(aLowerOpen, aUpperOpen, false);
 
   GetKeyFromJSVal(aGlobal.Context(), aLower, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
