@@ -21,7 +21,8 @@
 
 // Taken and adapted from https://github.com/angular/angular-cli/blob/173823d/scripts/validate-licenses.ts.
 
-import * as path from 'path';
+import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 import checker from 'license-checker';
 import spdxSatisfies from 'spdx-satisfies';
@@ -92,7 +93,8 @@ function _passesSpdx(licenses: string[], accepted: string[]) {
 
 function main(): Promise<number> {
   return new Promise(resolve => {
-    const startFolder = path.join(__dirname, '..', '..');
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const startFolder = join(__dirname, '..', '..');
     checker.init(
       {start: startFolder, excludePrivatePackages: true},
       (err: Error, json: object) => {
@@ -136,7 +138,7 @@ function main(): Promise<number> {
               console.error(`${pkg.id}: ${JSON.stringify(pkg.licenses)}`);
             });
             console.error(
-              `\n${badLicensePackages.length} total packages with invalid licenses.`
+              `\n${badLicensePackages.length} total packages with invalid licenses.`,
             );
             resolve(2);
           } else {
@@ -144,7 +146,7 @@ function main(): Promise<number> {
             resolve(0);
           }
         }
-      }
+      },
     );
   });
 }

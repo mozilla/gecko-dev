@@ -5,7 +5,7 @@
  */
 
 import expect from 'expect';
-import type {PuppeteerLaunchOptions} from 'puppeteer-core/internal/node/PuppeteerNode.js';
+import type {LaunchOptions} from 'puppeteer-core/internal/node/LaunchOptions.js';
 
 import {getTestState, launch} from '../mocha-utils.js';
 
@@ -15,9 +15,7 @@ describe('DevTools', function () {
    */
   this.timeout(20_000);
 
-  let launchOptions: PuppeteerLaunchOptions & {
-    devtools: boolean;
-  };
+  let launchOptions: LaunchOptions;
   const browsers: Array<() => Promise<void>> = [];
 
   beforeEach(async () => {
@@ -40,7 +38,7 @@ describe('DevTools', function () {
       browsers.map((close, index) => {
         delete browsers[index];
         return close();
-      })
+      }),
     );
   });
 
@@ -65,7 +63,7 @@ describe('DevTools', function () {
     expect(
       await page.evaluate(() => {
         return 2 * 3;
-      })
+      }),
     ).toBe(6);
     expect(await browser.pages()).toContain(page);
   });
@@ -85,14 +83,14 @@ describe('DevTools', function () {
     expect(
       await page.evaluate(() => {
         return 2 * 3;
-      })
+      }),
     ).toBe(6);
     // The page won't be part of browser.pages() if a custom isPageTarget is not provided
     expect(await browser.pages()).not.toContain(page);
   });
   it('should open devtools when "devtools: true" option is given', async () => {
     const browser = await launchBrowser(
-      Object.assign({devtools: true}, launchOptions)
+      Object.assign({devtools: true}, launchOptions),
     );
     const context = await browser.createBrowserContext();
     await Promise.all([
@@ -105,7 +103,7 @@ describe('DevTools', function () {
   });
   it('should expose DevTools as a page', async () => {
     const browser = await launchBrowser(
-      Object.assign({devtools: true}, launchOptions)
+      Object.assign({devtools: true}, launchOptions),
     );
     const context = await browser.createBrowserContext();
     const [target] = await Promise.all([

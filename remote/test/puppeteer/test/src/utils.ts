@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {rm} from 'fs/promises';
+import {access, constants, rm, watch} from 'fs/promises';
 import {tmpdir} from 'os';
+import {basename, dirname} from 'path';
 
 import expect from 'expect';
 import type {Frame} from 'puppeteer-core/internal/api/Frame.js';
@@ -23,12 +24,12 @@ declare module 'expect' {
 
 export const extendExpectWithToBeGolden = (
   goldenDir: string,
-  outputDir: string
+  outputDir: string,
 ): void => {
   expect.extend({
     toBeGolden: (
       testScreenshot: string | Uint8Array,
-      goldenFilePath: string
+      goldenFilePath: string,
     ) => {
       const result = compare(
         goldenDir,
@@ -36,7 +37,7 @@ export const extendExpectWithToBeGolden = (
         typeof testScreenshot === 'string'
           ? testScreenshot
           : Buffer.from(testScreenshot),
-        goldenFilePath
+        goldenFilePath,
       );
 
       if (result.pass) {
@@ -61,7 +62,7 @@ export const extendExpectWithToBeGolden = (
 export const attachFrame = async (
   pageOrFrame: Page | Frame,
   frameId: string,
-  url: string
+  url: string,
 ): Promise<Frame> => {
   using handle = await pageOrFrame.evaluateHandle(
     async (frameId, url) => {
@@ -75,7 +76,7 @@ export const attachFrame = async (
       return frame;
     },
     frameId,
-    url
+    url,
   );
   return await handle.contentFrame();
 };
@@ -86,7 +87,7 @@ export const isFavicon = (request: {url: () => string | string[]}): boolean => {
 
 export async function detachFrame(
   pageOrFrame: Page | Frame,
-  frameId: string
+  frameId: string,
 ): Promise<void> {
   await pageOrFrame.evaluate(frameId => {
     const frame = document.getElementById(frameId) as HTMLIFrameElement;
@@ -97,7 +98,7 @@ export async function detachFrame(
 export async function navigateFrame(
   pageOrFrame: Page | Frame,
   frameId: string,
-  url: string
+  url: string,
 ): Promise<void> {
   await pageOrFrame.evaluate(
     (frameId, url) => {
@@ -108,13 +109,13 @@ export async function navigateFrame(
       });
     },
     frameId,
-    url
+    url,
   );
 }
 
 export const dumpFrames = async (
   frame: Frame,
-  indentation = ''
+  indentation = '',
 ): Promise<string[]> => {
   let description = frame.url().replace(/:\d{4,5}\//, ':<PORT>/');
   using element = await frame.frameElement();
@@ -138,7 +139,7 @@ export const waitEvent = async <T = any>(
   eventName: string,
   predicate: (event: T) => boolean = () => {
     return true;
-  }
+  },
 ): Promise<T> => {
   const deferred = Deferred.create<T>({
     timeout: 5000,
@@ -166,7 +167,7 @@ export interface FilePlaceholder {
 export function getUniqueVideoFilePlaceholder(): FilePlaceholder {
   return {
     filename: `${tmpdir()}/test-video-${Math.round(
-      Math.random() * 10000
+      Math.random() * 10000,
     )}.webm`,
     [Symbol.dispose]() {
       void rmIfExists(this.filename);
@@ -176,4 +177,35 @@ export function getUniqueVideoFilePlaceholder(): FilePlaceholder {
 
 export function rmIfExists(file: string): Promise<void> {
   return rm(file).catch(() => {});
+}
+
+export async function waitForFileExistence(
+  filePath: string,
+  timeout = 1000,
+): Promise<void> {
+  try {
+    await access(filePath, constants.R_OK);
+  } catch {
+    return await new Promise(async (resolve, reject) => {
+      const abortController = new AbortController();
+      const timer = setTimeout(() => {
+        abortController.abort();
+        reject(
+          new Error(
+            `Exceeded timeout of ${timeout} ms for watching ${filePath}`,
+          ),
+        );
+      }, timeout);
+      const dir = dirname(filePath);
+      const fileBasename = basename(filePath);
+      const watcher = watch(dir, {signal: abortController.signal});
+      for await (const event of watcher) {
+        if (event.eventType === 'rename' && event.filename === fileBasename) {
+          clearTimeout(timer);
+          abortController.abort();
+          resolve();
+        }
+      }
+    });
+  }
 }

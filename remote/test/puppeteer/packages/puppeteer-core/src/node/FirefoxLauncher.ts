@@ -15,10 +15,7 @@ import {debugError} from '../common/util.js';
 import {assert} from '../util/assert.js';
 
 import {BrowserLauncher, type ResolvedLaunchArgs} from './BrowserLauncher.js';
-import type {
-  BrowserLaunchArgumentOptions,
-  PuppeteerNodeLaunchOptions,
-} from './LaunchOptions.js';
+import type {LaunchOptions} from './LaunchOptions.js';
 import type {PuppeteerNode} from './PuppeteerNode.js';
 import {rm} from './util/fs.js';
 
@@ -32,26 +29,11 @@ export class FirefoxLauncher extends BrowserLauncher {
 
   static getPreferences(
     extraPrefsFirefox?: Record<string, unknown>,
-    protocol?: 'cdp' | 'webDriverBiDi'
   ): Record<string, unknown> {
     return {
       ...extraPrefsFirefox,
-      ...(protocol === 'webDriverBiDi'
-        ? {
-            // Only enable the WebDriver BiDi protocol
-            'remote.active-protocols': 1,
-          }
-        : {
-            // Do not close the window when the last tab gets closed
-            'browser.tabs.closeWindowWithLastTab': false,
-            // Prevent various error message on the console
-            // jest-puppeteer asserts that no error message is emitted by the console
-            'network.cookie.cookieBehavior': 0,
-            // Temporarily force disable BFCache in parent (https://bit.ly/bug-1732263)
-            'fission.bfcacheInParent': false,
-            // Only enable the CDP protocol
-            'remote.active-protocols': 2,
-          }),
+      // Only enable the WebDriver BiDi protocol
+      'remote.active-protocols': 1,
       // Force all web content to use a single content process. TODO: remove
       // this once Firefox supports mouse event dispatch from the main frame
       // context. Once this happens, webContentIsolationStrategy should only
@@ -65,7 +47,7 @@ export class FirefoxLauncher extends BrowserLauncher {
    * @internal
    */
   override async computeLaunchArguments(
-    options: PuppeteerNodeLaunchOptions = {}
+    options: LaunchOptions = {},
   ): Promise<ResolvedLaunchArgs> {
     const {
       ignoreDefaultArgs = false,
@@ -83,7 +65,7 @@ export class FirefoxLauncher extends BrowserLauncher {
       firefoxArguments.push(
         ...this.defaultArgs(options).filter(arg => {
           return !ignoreDefaultArgs.includes(arg);
-        })
+        }),
       );
     } else {
       firefoxArguments.push(...args);
@@ -97,7 +79,7 @@ export class FirefoxLauncher extends BrowserLauncher {
       if (pipe) {
         assert(
           debuggingPort === null,
-          'Browser should be launched with either pipe or debugging port - not both.'
+          'Browser should be launched with either pipe or debugging port - not both.',
         );
       }
       firefoxArguments.push(`--remote-debugging-port=${debuggingPort || 0}`);
@@ -129,21 +111,18 @@ export class FirefoxLauncher extends BrowserLauncher {
 
     await createProfile(SupportedBrowsers.FIREFOX, {
       path: userDataDir,
-      preferences: FirefoxLauncher.getPreferences(
-        extraPrefsFirefox,
-        options.protocol
-      ),
+      preferences: FirefoxLauncher.getPreferences(extraPrefsFirefox),
     });
 
     let firefoxExecutable: string;
     if (this.puppeteer._isPuppeteerCore || executablePath) {
       assert(
         executablePath,
-        `An \`executablePath\` must be specified for \`puppeteer-core\``
+        `An \`executablePath\` must be specified for \`puppeteer-core\``,
       );
       firefoxExecutable = executablePath;
     } else {
-      firefoxExecutable = this.executablePath();
+      firefoxExecutable = this.executablePath(undefined);
     }
 
     return {
@@ -159,7 +138,7 @@ export class FirefoxLauncher extends BrowserLauncher {
    */
   override async cleanUserDataDir(
     userDataDir: string,
-    opts: {isTemp: boolean}
+    opts: {isTemp: boolean},
   ): Promise<void> {
     if (opts.isTemp) {
       try {
@@ -181,7 +160,7 @@ export class FirefoxLauncher extends BrowserLauncher {
               await unlink(prefsPath);
               await rename(prefsBackupPath, prefsPath);
             }
-          })
+          }),
         );
         for (const result of results) {
           if (result.status === 'rejected') {
@@ -194,11 +173,14 @@ export class FirefoxLauncher extends BrowserLauncher {
     }
   }
 
-  override executablePath(): string {
-    return this.resolveExecutablePath();
+  override executablePath(_: unknown, validatePath = true): string {
+    return this.resolveExecutablePath(
+      undefined,
+      /* validatePath=*/ validatePath,
+    );
   }
 
-  override defaultArgs(options: BrowserLaunchArgumentOptions = {}): string[] {
+  override defaultArgs(options: LaunchOptions = {}): string[] {
     const {
       devtools = false,
       headless = !devtools,

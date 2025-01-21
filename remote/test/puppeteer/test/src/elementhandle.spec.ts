@@ -6,6 +6,7 @@
 
 import expect from 'expect';
 import {Puppeteer} from 'puppeteer';
+import type {Point, Quad} from 'puppeteer-core/internal/api/ElementHandle.js';
 import {ElementHandle} from 'puppeteer-core/internal/api/ElementHandle.js';
 import {
   asyncDisposeSymbol,
@@ -18,6 +19,7 @@ import {
   setupTestBrowserHooks,
   shortWaitForArrayToHaveAtLeastNElements,
 } from './mocha-utils.js';
+import {initializeTouchEventReport} from './touch-event-utils.js';
 import {attachFrame} from './utils.js';
 
 describe('ElementHandle specs', function () {
@@ -55,7 +57,7 @@ describe('ElementHandle specs', function () {
 
       await page.setViewport({width: 500, height: 500});
       await page.setContent(
-        '<div style="width: 100px; height: 100px">hello</div>'
+        '<div style="width: 100px; height: 100px">hello</div>',
       );
       using elementHandle = (await page.$('div'))!;
       await page.evaluate(element => {
@@ -73,7 +75,7 @@ describe('ElementHandle specs', function () {
         </svg>
       `);
       using element = (await page.$(
-        '#therect'
+        '#therect',
       )) as ElementHandle<SVGRectElement>;
       const pptrBoundingBox = await element.boundingBox();
       const webBoundingBox = await page.evaluate(e => {
@@ -147,6 +149,89 @@ describe('ElementHandle specs', function () {
       using element = (await page.$('div'))!;
       expect(await element.boxModel()).toBe(null);
     });
+
+    it('should correctly compute box model with offsets', async () => {
+      const {page} = await getTestState();
+      const border = 10;
+      const padding = 11;
+      const margin = 12;
+      const width = 200;
+      const height = 100;
+      const verticalOffset = 100;
+      const horizontalOffset = 100;
+      await page.setContent(`<div
+        style='position:absolute; left: ${horizontalOffset}px; top: ${verticalOffset}px; width: ${width}px; height: ${height}px; border: ${border}px solid green; padding: ${padding}px; margin: ${margin}px;'
+        id='box'>
+      </div>`);
+      using element = (await page.$('#box'))!;
+      const boxModel = await element.boxModel();
+
+      function makeQuad(topLeft: Point, bottomRight: Point): Quad {
+        return [
+          {
+            x: topLeft.x,
+            y: topLeft.y,
+          },
+          {
+            x: bottomRight.x,
+            y: topLeft.y,
+          },
+          {
+            x: bottomRight.x,
+            y: bottomRight.y,
+          },
+          {
+            x: topLeft.x,
+            y: bottomRight.y,
+          },
+        ];
+      }
+
+      expect(boxModel).toEqual({
+        content: makeQuad(
+          {
+            x: horizontalOffset + padding + margin + border,
+            y: verticalOffset + padding + margin + border,
+          },
+          {
+            x: horizontalOffset + width + padding + margin + border,
+            y: verticalOffset + height + padding + margin + border,
+          },
+        ),
+        padding: makeQuad(
+          {
+            x: horizontalOffset + margin + border,
+            y: verticalOffset + margin + border,
+          },
+          {
+            x: horizontalOffset + width + padding * 2 + margin + border,
+            y: verticalOffset + padding * 2 + height + margin + border,
+          },
+        ),
+        border: makeQuad(
+          {
+            x: horizontalOffset + margin,
+            y: verticalOffset + margin,
+          },
+          {
+            x: horizontalOffset + width + padding * 2 + margin + border * 2,
+            y: verticalOffset + padding * 2 + height + margin + border * 2,
+          },
+        ),
+        margin: makeQuad(
+          {
+            x: horizontalOffset,
+            y: verticalOffset,
+          },
+          {
+            x: horizontalOffset + width + padding * 2 + margin * 2 + border * 2,
+            y: verticalOffset + padding * 2 + height + margin * 2 + border * 2,
+          },
+        ),
+        width: width + padding * 2 + border * 2,
+        height: height + padding * 2 + border * 2,
+      });
+    });
   });
 
   describe('ElementHandle.contentFrame', function () {
@@ -186,7 +271,7 @@ describe('ElementHandle specs', function () {
       expect(
         await page.evaluate(() => {
           return (globalThis as any).result;
-        })
+        }),
       ).toBe('Clicked');
     });
     it('should return Point data', async () => {
@@ -236,7 +321,7 @@ describe('ElementHandle specs', function () {
         await page.evaluate(() => {
           // @ts-expect-error clicked is expected to be in the page's scope.
           return clicked;
-        })
+        }),
       ).toBe(true);
     });
     it('should not work for TextNodes', async () => {
@@ -319,6 +404,172 @@ describe('ElementHandle specs', function () {
     });
   });
 
+  describe('ElementHandle.touchStart', () => {
+    it('should work', async () => {
+      const {page} = await getTestState();
+      const {events} = await initializeTouchEventReport(page);
+
+      await page.evaluate(() => {
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        document.body.innerHTML = `
+          <div style="cursor: pointer; width: 120px; height: 60px; margin: 30px; padding: 15px;"></div>
+        `;
+      });
+
+      using divHandle = (await page.$('div'))!;
+      await divHandle.touchStart();
+      await shortWaitForArrayToHaveAtLeastNElements(events, 1);
+
+      const expectedTouchLocation = [45 + 60, 45 + 30]; // margin + middle point offset
+
+      expect(events).toEqual([
+        {
+          changed: [expectedTouchLocation],
+          touches: [expectedTouchLocation],
+        },
+      ]);
+    });
+
+    it('should work with the returned Touch', async () => {
+      const {page} = await getTestState();
+      const {events} = await initializeTouchEventReport(page);
+
+      await page.evaluate(() => {
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        document.body.innerHTML = `
+          <div style="cursor: pointer; width: 120px; height: 60px; margin: 30px; padding: 15px;"></div>
+        `;
+      });
+
+      using divHandle = (await page.$('div'))!;
+      const touch = await divHandle.touchStart();
+      await touch.move(150, 150);
+
+      await shortWaitForArrayToHaveAtLeastNElements(events, 2);
+
+      const expectedTouchLocation = [45 + 60, 45 + 30]; // margin + middle point offset
+
+      expect(events).toEqual([
+        {
+          changed: [expectedTouchLocation],
+          touches: [expectedTouchLocation],
+        },
+        {
+          changed: [[150, 150]],
+          touches: [[150, 150]],
+        },
+      ]);
+    });
+  });
+
+  describe('ElementHandle.touchMove', () => {
+    it('should work', async () => {
+      const {page} = await getTestState();
+      const {events} = await initializeTouchEventReport(page);
+
+      await page.evaluate(() => {
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        document.body.innerHTML = `
+          <div style="cursor: pointer; width: 120px; height: 60px; margin: 30px; padding: 15px;"></div>
+        `;
+      });
+
+      using divHandle = (await page.$('div'))!;
+
+      await page.touchscreen.touchStart(200, 200);
+      await divHandle.touchMove();
+
+      await shortWaitForArrayToHaveAtLeastNElements(events, 2);
+
+      const expectedDivTouchLocation = [45 + 60, 45 + 30]; // margin + middle point offset
+      expect(events).toEqual([
+        {
+          changed: [[200, 200]],
+          touches: [[200, 200]],
+        },
+        {
+          changed: [expectedDivTouchLocation],
+          touches: [expectedDivTouchLocation],
+        },
+      ]);
+    });
+
+    it('should work with a pre-existing Touch', async () => {
+      const {page} = await getTestState();
+      const {events} = await initializeTouchEventReport(page);
+
+      await page.evaluate(() => {
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        document.body.innerHTML = `
+          <div style="cursor: pointer; width: 120px; height: 60px; margin: 30px; padding: 15px;"></div>
+        `;
+      });
+
+      using divHandle = (await page.$('div'))!;
+      await page.touchscreen.touchStart(200, 200);
+      const secondTouch = await page.touchscreen.touchStart(200, 100);
+      await divHandle.touchMove(secondTouch);
+
+      await shortWaitForArrayToHaveAtLeastNElements(events, 3);
+
+      const expectedDivTouchLocation = [45 + 60, 45 + 30]; // margin + middle point offset
+
+      expect(events).toEqual([
+        {
+          changed: [[200, 200]],
+          touches: [[200, 200]],
+        },
+        {
+          changed: [[200, 100]],
+          touches: [
+            [200, 200],
+            [200, 100],
+          ],
+        },
+        {
+          changed: [expectedDivTouchLocation],
+          touches: [[200, 200], expectedDivTouchLocation],
+        },
+      ]);
+    });
+  });
+
+  describe('ElementHandle.touchEnd', () => {
+    it('should work', async () => {
+      const {page} = await getTestState();
+      const {events} = await initializeTouchEventReport(page);
+
+      await page.evaluate(() => {
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        document.body.innerHTML = `
+          <div style="cursor: pointer; width: 120px; height: 60px; margin: 30px; padding: 15px;"></div>
+        `;
+      });
+
+      using divHandle = (await page.$('div'))!;
+
+      await page.touchscreen.touchStart(100, 100);
+      await divHandle.touchEnd();
+      await shortWaitForArrayToHaveAtLeastNElements(events, 2);
+
+      expect(events).toEqual([
+        {
+          changed: [[100, 100]],
+          touches: [[100, 100]],
+        },
+        {
+          changed: [[100, 100]],
+          touches: [],
+        },
+      ]);
+    });
+  });
+
   describe('ElementHandle.clickablePoint', function () {
     it('should work', async () => {
       const {page} = await getTestState();
@@ -344,7 +595,7 @@ describe('ElementHandle specs', function () {
         await divHandle.clickablePoint({
           x: 10,
           y: 15,
-        })
+        }),
       ).toEqual({
         x: 30 + 10, // margin + offset
         y: 30 + 15, // margin + offset
@@ -355,25 +606,25 @@ describe('ElementHandle specs', function () {
       const {page} = await getTestState();
 
       await page.setContent(
-        '<button style="width: 10px; height: 10px; position: absolute; left: -20px"></button>'
+        '<button style="width: 10px; height: 10px; position: absolute; left: -20px"></button>',
       );
       using handle = await page.locator('button').waitHandle();
       await expect(handle.clickablePoint()).rejects.toBeInstanceOf(Error);
 
       await page.setContent(
-        '<button style="width: 10px; height: 10px; position: absolute; right: -20px"></button>'
+        '<button style="width: 10px; height: 10px; position: absolute; right: -20px"></button>',
       );
       using handle2 = await page.locator('button').waitHandle();
       await expect(handle2.clickablePoint()).rejects.toBeInstanceOf(Error);
 
       await page.setContent(
-        '<button style="width: 10px; height: 10px; position: absolute; top: -20px"></button>'
+        '<button style="width: 10px; height: 10px; position: absolute; top: -20px"></button>',
       );
       using handle3 = await page.locator('button').waitHandle();
       await expect(handle3.clickablePoint()).rejects.toBeInstanceOf(Error);
 
       await page.setContent(
-        '<button style="width: 10px; height: 10px; position: absolute; bottom: -20px"></button>'
+        '<button style="width: 10px; height: 10px; position: absolute; bottom: -20px"></button>',
       );
       using handle4 = await page.locator('button').waitHandle();
       await expect(handle4.clickablePoint()).rejects.toBeInstanceOf(Error);
@@ -383,7 +634,7 @@ describe('ElementHandle specs', function () {
       const {page} = await getTestState();
 
       await page.setContent(
-        `<iframe name='frame' style='position: absolute; left: -100px' srcdoc="<button style='width: 10px; height: 10px;'></button>"></iframe>`
+        `<iframe name='frame' style='position: absolute; left: -100px' srcdoc="<button style='width: 10px; height: 10px;'></button>"></iframe>`,
       );
       const frame = await page.waitForFrame(async frame => {
         using element = await frame.frameElement();
@@ -400,7 +651,7 @@ describe('ElementHandle specs', function () {
       await expect(handle.clickablePoint()).rejects.toBeInstanceOf(Error);
 
       await page.setContent(
-        `<iframe name='frame2' style='position: absolute; top: -100px' srcdoc="<button style='width: 10px; height: 10px;'></button>"></iframe>`
+        `<iframe name='frame2' style='position: absolute; top: -100px' srcdoc="<button style='width: 10px; height: 10px;'></button>"></iframe>`,
       );
       const frame2 = await page.waitForFrame(async frame => {
         using element = await frame.frameElement();
@@ -441,7 +692,7 @@ describe('ElementHandle specs', function () {
         await divHandle.clickablePoint({
           x: 10,
           y: 15,
-        })
+        }),
       ).toEqual({
         x: 20 + 30 + 10, // iframe pos + margin + offset
         y: 20 + 30 + 15, // iframe pos + margin + offset
@@ -457,7 +708,7 @@ describe('ElementHandle specs', function () {
       }) as Promise<ElementHandle<HTMLDivElement>>;
       // Set the page content after the waitFor has been started.
       await page.setContent(
-        '<div id="not-foo"></div><div class="bar">bar2</div><div class="foo">Foo1</div>'
+        '<div id="not-foo"></div><div class="bar">bar2</div><div class="foo">Foo1</div>',
       );
       using element = (await waitFor)!;
       if (element instanceof Error) {
@@ -479,7 +730,7 @@ describe('ElementHandle specs', function () {
       expect(
         await element2.evaluate(el => {
           return el.innerText;
-        })
+        }),
       ).toStrictEqual('bar1');
     });
 
@@ -495,20 +746,20 @@ describe('ElementHandle specs', function () {
         </div>
         <div id=el3>
           el3
-        </div>`
+        </div>`,
       );
 
       using elById = (await page.waitForSelector(
-        '#el1'
+        '#el1',
       )) as ElementHandle<HTMLDivElement>;
 
       using elByXpath = (await elById.waitForSelector(
-        'xpath/.//div'
+        'xpath/.//div',
       )) as ElementHandle<HTMLDivElement>;
       expect(
         await elByXpath.evaluate(el => {
           return el.id;
-        })
+        }),
       ).toStrictEqual('el2');
     });
   });
@@ -523,7 +774,7 @@ describe('ElementHandle specs', function () {
       expect(
         await page.evaluate(() => {
           return document.querySelector('button:hover')!.id;
-        })
+        }),
       ).toBe('button-6');
     });
   });
@@ -561,7 +812,7 @@ describe('ElementHandle specs', function () {
       expect(
         await button.isIntersectingViewport({
           threshold: 0.001,
-        })
+        }),
       ).toBe(false);
     });
     it('should work with threshold of 1', async () => {
@@ -574,7 +825,7 @@ describe('ElementHandle specs', function () {
       expect(
         await button.isIntersectingViewport({
           threshold: 1,
-        })
+        }),
       ).toBe(true);
     });
     it('should work with svg elements', async () => {
@@ -662,12 +913,12 @@ describe('ElementHandle specs', function () {
         },
       });
       using element = (await page.$(
-        'getById/foo'
+        'getById/foo',
       )) as ElementHandle<HTMLDivElement>;
       expect(
         await page.evaluate(element => {
           return element.id;
-        }, element)
+        }, element),
       ).toBe('foo');
       const handlerNamesAfterRegistering = Puppeteer.customQueryHandlerNames();
       expect(handlerNamesAfterRegistering.includes('getById')).toBeTruthy();
@@ -679,7 +930,7 @@ describe('ElementHandle specs', function () {
         throw new Error('Custom query handler name not set - throw expected');
       } catch (error) {
         expect(error).not.toStrictEqual(
-          new Error('Custom query handler name not set - throw expected')
+          new Error('Custom query handler name not set - throw expected'),
         );
       }
       const handlerNamesAfterUnregistering =
@@ -694,18 +945,18 @@ describe('ElementHandle specs', function () {
           },
         });
         throw new Error(
-          'Custom query handler name was invalid - throw expected'
+          'Custom query handler name was invalid - throw expected',
         );
       } catch (error) {
         expect(error).toStrictEqual(
-          new Error('Custom query handler names may only contain [a-zA-Z]')
+          new Error('Custom query handler names may only contain [a-zA-Z]'),
         );
       }
     });
     it('should work for multiple elements', async () => {
       const {page} = await getTestState();
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo">Foo1</div><div class="foo baz">Foo2</div>'
+        '<div id="not-foo"></div><div class="foo">Foo1</div><div class="foo baz">Foo2</div>',
       );
       Puppeteer.registerCustomQueryHandler('getByClass', {
         queryAll: (_element, selector) => {
@@ -720,7 +971,7 @@ describe('ElementHandle specs', function () {
           return await page.evaluate(element => {
             return element.className;
           }, element);
-        })
+        }),
       );
 
       expect(classNames).toStrictEqual(['foo', 'foo baz']);
@@ -728,7 +979,7 @@ describe('ElementHandle specs', function () {
     it('should eval correctly', async () => {
       const {page} = await getTestState();
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo">Foo1</div><div class="foo baz">Foo2</div>'
+        '<div id="not-foo"></div><div class="foo">Foo1</div><div class="foo baz">Foo2</div>',
       );
       Puppeteer.registerCustomQueryHandler('getByClass', {
         queryAll: (_element, selector) => {
@@ -754,7 +1005,7 @@ describe('ElementHandle specs', function () {
 
       // Set the page content after the waitFor has been started.
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo">Foo1</div>'
+        '<div id="not-foo"></div><div class="foo">Foo1</div>',
       );
       const element = await waitFor;
 
@@ -778,7 +1029,7 @@ describe('ElementHandle specs', function () {
 
       // Set the page content after the waitFor has been started.
       await page.setContent(
-        '<div id="not-foo"></div><div class="bar">bar2</div><div class="foo">Foo1</div>'
+        '<div id="not-foo"></div><div class="bar">bar2</div><div class="foo">Foo1</div>',
       );
       using element = (await waitFor)!;
       if (element instanceof Error) {
@@ -804,7 +1055,7 @@ describe('ElementHandle specs', function () {
       expect(
         await element2.evaluate(el => {
           return el.innerText;
-        })
+        }),
       ).toStrictEqual('bar1');
     });
 
@@ -821,7 +1072,7 @@ describe('ElementHandle specs', function () {
 
       // Set the page content after the waitFor has been started.
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo">Foo1</div>'
+        '<div id="not-foo"></div><div class="foo">Foo1</div>',
       );
       const element = await waitFor;
 
@@ -834,7 +1085,7 @@ describe('ElementHandle specs', function () {
     it('should work when both queryOne and queryAll are registered', async () => {
       const {page} = await getTestState();
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo"><div id="nested-foo" class="foo"/></div><div class="foo baz">Foo2</div>'
+        '<div id="not-foo"></div><div class="foo"><div id="nested-foo" class="foo"/></div><div class="foo baz">Foo2</div>',
       );
       Puppeteer.registerCustomQueryHandler('getByClass', {
         queryOne: (element, selector) => {
@@ -854,7 +1105,7 @@ describe('ElementHandle specs', function () {
     it('should eval when both queryOne and queryAll are registered', async () => {
       const {page} = await getTestState();
       await page.setContent(
-        '<div id="not-foo"></div><div class="foo">text</div><div class="foo baz">content</div>'
+        '<div id="not-foo"></div><div class="foo">text</div><div class="foo baz">content</div>',
       );
       Puppeteer.registerCustomQueryHandler('getByClass', {
         queryOne: (element, selector) => {
@@ -892,12 +1143,12 @@ describe('ElementHandle specs', function () {
       });
 
       using element = (await page.$(
-        'getById/foo'
+        'getById/foo',
       )) as ElementHandle<HTMLDivElement>;
       expect(
         await page.evaluate(element => {
           return element.id;
-        }, element)
+        }, element),
       ).toBe('foo');
     });
   });

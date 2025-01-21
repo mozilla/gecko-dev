@@ -25,8 +25,8 @@
 
 import {execSync} from 'child_process';
 
-import packageJson from '../package.json' assert {type: 'json'};
-import {PUPPETEER_REVISIONS} from '../src/revisions.js';
+import packageJson from '../package.json' with {type: 'json'};
+import {PUPPETEER_REVISIONS} from '../lib/esm/puppeteer/revisions.js';
 
 async function main() {
   const currentProtocolPackageInstalledVersion =
@@ -37,7 +37,7 @@ async function main() {
    */
   if (/^[^0-9]/.test(currentProtocolPackageInstalledVersion)) {
     console.log(
-      `ERROR: devtools-protocol package is not pinned to a specific version.\n`
+      `ERROR: devtools-protocol package is not pinned to a specific version.\n`,
     );
     process.exit(1);
   }
@@ -45,7 +45,7 @@ async function main() {
   const chromeVersion = PUPPETEER_REVISIONS.chrome;
   // find the right revision for our Chrome version.
   const req = await fetch(
-    `https://googlechromelabs.github.io/chrome-for-testing/known-good-versions.json`
+    `https://googlechromelabs.github.io/chrome-for-testing/known-good-versions.json`,
   );
   const releases = await req.json();
   const chromeRevision = releases.versions.find(release => {
@@ -58,7 +58,7 @@ async function main() {
   console.log(
     'Checking npm for devtools-protocol revisions:\n',
     `'${command}'`,
-    '\n'
+    '\n',
   );
 
   const output = execSync(command, {
@@ -78,7 +78,7 @@ async function main() {
   }
 
   console.log(
-    `Correct devtools-protocol version found (${bestRevisionFromNpm}).`
+    `Correct devtools-protocol version found (${bestRevisionFromNpm}).`,
   );
   process.exit(0);
 }

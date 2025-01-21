@@ -158,7 +158,7 @@ export class TestServer {
 
   setRoute(
     path: string,
-    handler: (req: IncomingMessage, res: ServerResponse) => void
+    handler: (req: IncomingMessage, res: ServerResponse) => void,
   ): void {
     this.#routes.set(path, handler);
   }
@@ -205,7 +205,7 @@ export class TestServer {
 
   #onRequest: RequestListener = (
     request: TestIncomingMessage,
-    response
+    response,
   ): void => {
     this.#requests.add(response);
 
@@ -227,12 +227,12 @@ export class TestServer {
     });
     assert(request.url);
     const url = new URL(request.url, `https://${request.headers.host}`);
-    const path = url.pathname + url.search;
+    const path = url.pathname;
     const auth = this.#auths.get(path);
     if (auth) {
       const credentials = Buffer.from(
         (request.headers.authorization || '').split(' ')[1] || '',
-        'base64'
+        'base64',
       ).toString();
       if (credentials !== `${auth.username}:${auth.password}`) {
         response.writeHead(401, {
@@ -258,8 +258,9 @@ export class TestServer {
   serveFile(
     request: IncomingMessage,
     response: ServerResponse,
-    pathName: string
+    pathName: string,
   ): void {
+    pathName = decodeURIComponent(pathName);
     if (pathName === '/') {
       pathName = '/index.html';
     }
@@ -296,7 +297,7 @@ export class TestServer {
       const mimeType = getMimeType(filePath);
       if (mimeType) {
         const isTextEncoding = /^text\/|^application\/(javascript|json)/.test(
-          mimeType
+          mimeType,
         );
         const contentType = isTextEncoding
           ? `${mimeType}; charset=utf-8`

@@ -12,6 +12,7 @@ import type {BrowserContextEvents} from '../api/BrowserContext.js';
 import {BrowserContext, BrowserContextEvent} from '../api/BrowserContext.js';
 import {PageEvent, type Page} from '../api/Page.js';
 import type {Target} from '../api/Target.js';
+import type {Cookie, CookieData} from '../common/Cookie.js';
 import {EventEmitter} from '../common/EventEmitter.js';
 import {debugError} from '../common/util.js';
 import type {Viewport} from '../common/Viewport.js';
@@ -22,7 +23,14 @@ import type {BidiBrowser} from './Browser.js';
 import type {BrowsingContext} from './core/BrowsingContext.js';
 import {UserContext} from './core/UserContext.js';
 import type {BidiFrame} from './Frame.js';
-import {BidiPage} from './Page.js';
+import {
+  BidiPage,
+  bidiToPuppeteerCookie,
+  cdpSpecificCookiePropertiesFromPuppeteerToBidi,
+  convertCookiesExpiryCdpToBiDi,
+  convertCookiesPartitionKeyFromPuppeteerToBiDi,
+  convertCookiesSameSiteCdpToBiDi,
+} from './Page.js';
 import {BidiWorkerTarget} from './Target.js';
 import {BidiFrameTarget, BidiPageTarget} from './Target.js';
 import type {BidiWebWorker} from './WebWorker.js';
@@ -41,7 +49,7 @@ export class BidiBrowserContext extends BrowserContext {
   static from(
     browser: BidiBrowser,
     userContext: UserContext,
-    options: BidiBrowserContextOptions
+    options: BidiBrowserContextOptions,
   ): BidiBrowserContext {
     const context = new BidiBrowserContext(browser, userContext, options);
     context.#initialize();
@@ -69,7 +77,7 @@ export class BidiBrowserContext extends BrowserContext {
   private constructor(
     browser: BidiBrowser,
     userContext: UserContext,
-    options: BidiBrowserContextOptions
+    options: BidiBrowserContextOptions,
   ) {
     super();
     this.#browser = browser;
@@ -88,17 +96,15 @@ export class BidiBrowserContext extends BrowserContext {
 
       // We need to wait for the DOMContentLoaded as the
       // browsingContext still may be navigating from the about:blank
-      browsingContext.once('DOMContentLoaded', () => {
-        if (browsingContext.originalOpener) {
-          for (const context of this.userContext.browsingContexts) {
-            if (context.id === browsingContext.originalOpener) {
-              this.#pages
-                .get(context)!
-                .trustedEmitter.emit(PageEvent.Popup, page);
-            }
+      if (browsingContext.originalOpener) {
+        for (const context of this.userContext.browsingContexts) {
+          if (context.id === browsingContext.originalOpener) {
+            this.#pages
+              .get(context)!
+              .trustedEmitter.emit(PageEvent.Popup, page);
           }
         }
-      });
+      }
     });
     this.userContext.on('closed', () => {
       this.trustedEmitter.removeAllListeners();
@@ -179,7 +185,7 @@ export class BidiBrowserContext extends BrowserContext {
     using _guard = await this.waitForScreenshotOperations();
 
     const context = await this.userContext.createBrowsingContext(
-      Bidi.BrowsingContext.CreateType.Tab
+      Bidi.BrowsingContext.CreateType.Tab,
     );
     const page = this.#pages.get(context)!;
     if (!page) {
@@ -199,7 +205,7 @@ export class BidiBrowserContext extends BrowserContext {
   override async close(): Promise<void> {
     assert(
       this.userContext.id !== UserContext.DEFAULT,
-      'Default BrowserContext cannot be closed!'
+      'Default BrowserContext cannot be closed!',
     );
 
     try {
@@ -223,7 +229,7 @@ export class BidiBrowserContext extends BrowserContext {
 
   override async overridePermissions(
     origin: string,
-    permissions: Permission[]
+    permissions: Permission[],
   ): Promise<void> {
     const permissionsSet = new Set(
       permissions.map(permission => {
@@ -233,7 +239,7 @@ export class BidiBrowserContext extends BrowserContext {
           throw new Error('Unknown permission: ' + permission);
         }
         return permission;
-      })
+      }),
     );
     await Promise.all(
       Array.from(WEB_PERMISSION_TO_PROTOCOL_PERMISSION.keys()).map(
@@ -245,7 +251,7 @@ export class BidiBrowserContext extends BrowserContext {
             },
             permissionsSet.has(permission)
               ? Bidi.Permissions.PermissionState.Granted
-              : Bidi.Permissions.PermissionState.Denied
+              : Bidi.Permissions.PermissionState.Denied,
           );
           this.#overrides.push({origin, permission});
           // TODO: some permissions are outdated and setting them to denied does
@@ -254,8 +260,8 @@ export class BidiBrowserContext extends BrowserContext {
             return result.catch(debugError);
           }
           return result;
-        }
-      )
+        },
+      ),
     );
   }
 
@@ -267,7 +273,7 @@ export class BidiBrowserContext extends BrowserContext {
           {
             name: permission,
           },
-          Bidi.Permissions.PermissionState.Prompt
+          Bidi.Permissions.PermissionState.Prompt,
         )
         .catch(debugError);
     });
@@ -280,5 +286,46 @@ export class BidiBrowserContext extends BrowserContext {
       return undefined;
     }
     return this.userContext.id;
+  }
+
+  override async cookies(): Promise<Cookie[]> {
+    const cookies = await this.userContext.getCookies();
+    return cookies.map(cookie => {
+      return bidiToPuppeteerCookie(cookie, true);
+    });
+  }
+
+  override async setCookie(...cookies: CookieData[]): Promise<void> {
+    await Promise.all(
+      cookies.map(async cookie => {
+        const bidiCookie: Bidi.Storage.PartialCookie = {
+          domain: cookie.domain,
+          name: cookie.name,
+          value: {
+            type: 'string',
+            value: cookie.value,
+          },
+          ...(cookie.path !== undefined ? {path: cookie.path} : {}),
+          ...(cookie.httpOnly !== undefined ? {httpOnly: cookie.httpOnly} : {}),
+          ...(cookie.secure !== undefined ? {secure: cookie.secure} : {}),
+          ...(cookie.sameSite !== undefined
+            ? {sameSite: convertCookiesSameSiteCdpToBiDi(cookie.sameSite)}
+            : {}),
+          ...{expiry: convertCookiesExpiryCdpToBiDi(cookie.expires)},
+          // Chrome-specific properties.
+          ...cdpSpecificCookiePropertiesFromPuppeteerToBidi(
+            cookie,
+            'sameParty',
+            'sourceScheme',
+            'priority',
+            'url',
+          ),
+        };
+        return await this.userContext.setCookie(
+          bidiCookie,
+          convertCookiesPartitionKeyFromPuppeteerToBiDi(cookie.partitionKey),
+        );
+      }),
+    );
   }
 }

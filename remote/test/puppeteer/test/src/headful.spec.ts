@@ -9,7 +9,7 @@ import os from 'os';
 import path from 'path';
 
 import expect from 'expect';
-import type {PuppeteerLaunchOptions} from 'puppeteer-core/internal/node/PuppeteerNode.js';
+import type {LaunchOptions} from 'puppeteer-core/internal/node/LaunchOptions.js';
 import {rmSync} from 'puppeteer-core/internal/node/util/fs.js';
 
 import {getTestState, launch} from './mocha-utils.js';
@@ -22,8 +22,8 @@ describe('headful tests', function () {
    */
   this.timeout(20_000);
 
-  let headfulOptions: PuppeteerLaunchOptions & {headless: false};
-  let headlessOptions: PuppeteerLaunchOptions & {headless: true};
+  let headfulOptions: LaunchOptions & {headless: false};
+  let headlessOptions: LaunchOptions & {headless: true};
 
   const browsers: Array<() => Promise<void>> = [];
 
@@ -40,7 +40,7 @@ describe('headful tests', function () {
   });
 
   async function launchBrowser(options: any) {
-    const {browser, close} = await launch(options, {createContext: false});
+    const {browser, close} = await launch(options);
     browsers.push(close);
     return browser;
   }
@@ -50,7 +50,7 @@ describe('headful tests', function () {
       browsers.map((close, index) => {
         delete browsers[index];
         return close();
-      })
+      }),
     );
   });
 
@@ -62,7 +62,7 @@ describe('headful tests', function () {
       const userDataDir = await mkdtemp(TMP_FOLDER);
       // Write a cookie in headful chrome
       const headfulBrowser = await launchBrowser(
-        Object.assign({userDataDir}, headfulOptions)
+        Object.assign({userDataDir}, headfulOptions),
       );
       try {
         const headfulPage = await headfulBrowser.newPage();
@@ -76,7 +76,7 @@ describe('headful tests', function () {
       }
       // Read the cookie from headless chrome
       const headlessBrowser = await launchBrowser(
-        Object.assign({userDataDir}, headlessOptions)
+        Object.assign({userDataDir}, headlessOptions),
       );
       let cookie = '';
       try {

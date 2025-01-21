@@ -42,7 +42,8 @@ class AngularProject {
       schematics: 'schematics ../../:ng-add --dry-run=false',
       'schematics:e2e': 'schematics ../../:e2e --dry-run=false',
       'schematics:config': 'schematics ../../:config --dry-run=false',
-      'schematics:smoke': `schematics ../../:ng-add --dry-run=false --test-runner="${testRunner}" && ng e2e`,
+      'schematics:add': `schematics ../../:ng-add --dry-run=false --test-runner="${testRunner}"`,
+      'schematics:smoke': 'ng e2e',
     };
   };
   /** Folder name */
@@ -79,7 +80,7 @@ class AngularProject {
           // Replace new lines with a prefix including the test runner
           .replace(
             /(?:\r\n?|\n)(?=.*[\r\n])/g,
-            `\n${this.#runner}:${this.type} - `
+            `\n${this.#runner}:${this.type} - `,
           );
         console.log(`${this.#runner}:${this.type} - ${data}`);
       };
@@ -124,8 +125,11 @@ class AngularProject {
     };
   }
 
-  async runNpmScripts(command) {
-    await this.executeCommand(`npm run ${command}`, this.commandOptions);
+  async runNpmScripts(command, options) {
+    await this.executeCommand(`npm run ${command}`, {
+      ...this.commandOptions,
+      options,
+    });
   }
 
   async runSchematics() {
@@ -140,9 +144,15 @@ class AngularProject {
     await this.runNpmScripts('schematics:config');
   }
 
+  async runNgAdd() {
+    await this.runNpmScripts(
+      `schematics:add -- --port=${AngularProject.port()}`,
+    );
+  }
+
   async runSmoke() {
     await this.runNpmScripts(
-      `schematics:smoke -- --port=${AngularProject.port()}`
+      `schematics:smoke -- --port=${AngularProject.port()}`,
     );
   }
 }
@@ -158,7 +168,7 @@ export class AngularProjectSingle extends AngularProject {
           PUPPETEER_SKIP_DOWNLOAD: 'true',
           ...process.env,
         },
-      }
+      },
     );
   }
 }
@@ -174,16 +184,22 @@ export class AngularProjectMulti extends AngularProject {
           PUPPETEER_SKIP_DOWNLOAD: 'true',
           ...process.env,
         },
-      }
+      },
     );
 
     await this.executeCommand(
       `ng generate application core --style=css --routing=true`,
-      this.commandOptions
+      {
+        PUPPETEER_SKIP_DOWNLOAD: 'true',
+        ...this.commandOptions,
+      },
     );
     await this.executeCommand(
       `ng generate application admin --style=css --routing=false`,
-      this.commandOptions
+      {
+        PUPPETEER_SKIP_DOWNLOAD: 'true',
+        ...this.commandOptions,
+      },
     );
   }
 }

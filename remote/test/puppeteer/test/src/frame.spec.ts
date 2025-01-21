@@ -267,7 +267,7 @@ describe('Frame specs', function () {
 
       expect(page.frames()).toHaveLength(2);
       expect(page.frames()[1]!.url()).toBe(
-        server.PREFIX + '/frames/frame.html?param=value#fragment'
+        server.PREFIX + '/frames/frame.html?param=value#fragment',
       );
     });
     it('should support lazy frames', async () => {
@@ -279,7 +279,7 @@ describe('Frame specs', function () {
       expect(
         page.frames().map(frame => {
           return frame._hasStartedLoading;
-        })
+        }),
       ).toEqual([true, true, false]);
     });
   });
@@ -319,6 +319,45 @@ describe('Frame specs', function () {
         return frame.name;
       });
       expect(name2).toBe('theFrameName');
+    });
+
+    it('should handle shadow roots', async () => {
+      const {page} = await getTestState();
+      await page.setContent(`
+        <div id="shadow-host"></div>
+        <script>
+          const host = document.getElementById('shadow-host');
+          const shadowRoot = host.attachShadow({ mode: 'closed' });
+          const frame = document.createElement('iframe');
+          frame.srcdoc = '<p>Inside frame</p>';
+          shadowRoot.appendChild(frame);
+        </script>
+      `);
+      const frame = page.frames()[1]!;
+      using frameElement = (await frame.frameElement())!;
+      expect(
+        await frameElement.evaluate(el => {
+          return el.tagName.toLocaleLowerCase();
+        }),
+      ).toBe('iframe');
+    });
+
+    it('should return ElementHandle in the correct world', async () => {
+      const {page, server} = await getTestState();
+      await attachFrame(page, 'theFrameId', server.EMPTY_PAGE);
+      await page.evaluate(() => {
+        // @ts-expect-error different page context
+        globalThis['isMainWorld'] = true;
+      }, server.EMPTY_PAGE);
+      expect(page.frames()).toHaveLength(2);
+      using frame1 = await page.frames()[1]!.frameElement();
+      assert(frame1);
+      assert(
+        await frame1.evaluate(() => {
+          // @ts-expect-error different page context
+          return globalThis['isMainWorld'];
+        }),
+      );
     });
   });
 });

@@ -1,33 +1,369 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+## [24.0.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.11.1...puppeteer-v24.0.0) (2025-01-09)
+
+
+### Bug Fixes
+
+* remove erroneous changelog entry ([#13479](https://github.com/puppeteer/puppeteer/issues/13479)) ([6de3238](https://github.com/puppeteer/puppeteer/commit/6de32386c2294a74eb3df3fbc9b179ffeed083f5))
+
 
 ### Dependencies
 
 * The following workspace dependencies were updated
   * dependencies
-    * @puppeteer/browsers bumped from 0.3.0 to 0.3.1
+    * @puppeteer/browsers bumped from 2.6.1 to 2.7.0
+    * puppeteer-core bumped from 23.11.1 to 24.0.0
+
+## [23.11.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.11.0...puppeteer-v23.11.1) (2024-12-19)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
 
 ### Dependencies
 
 * The following workspace dependencies were updated
   * dependencies
-    * puppeteer-core bumped from 20.1.1 to 20.1.2
-    * @puppeteer/browsers bumped from 1.0.1 to 1.1.0
+    * puppeteer-core bumped from 23.11.0 to 23.11.1
+
+## [23.11.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.10.4...puppeteer-v23.11.0) (2024-12-18)
+
+
+### Bug Fixes
+
+* **deps:** bump chromium-bidi to 0.11.0 ([#13418](https://github.com/puppeteer/puppeteer/issues/13418)) ([771e4b2](https://github.com/puppeteer/puppeteer/commit/771e4b27abf21436dba80d568b82c9235bfb7de3))
+
 
 ### Dependencies
 
 * The following workspace dependencies were updated
   * dependencies
-    * puppeteer-core bumped from 20.8.1 to 20.8.2
-    * @puppeteer/browsers bumped from 1.4.4 to 1.4.5
+    * puppeteer-core bumped from 23.10.4 to 23.11.0
+
+## [23.10.4](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.10.3...puppeteer-v23.10.4) (2024-12-12)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
 
 ### Dependencies
 
 * The following workspace dependencies were updated
   * dependencies
-    * puppeteer-core bumped from 21.0.2 to 21.0.3
-    * @puppeteer/browsers bumped from 1.5.1 to 1.6.0
+    * puppeteer-core bumped from 23.10.3 to 23.10.4
+
+## [23.10.3](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.10.2...puppeteer-v23.10.3) (2024-12-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.6.0 to 2.6.1
+    * puppeteer-core bumped from 23.10.2 to 23.10.3
+
+## [23.10.2](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.10.1...puppeteer-v23.10.2) (2024-12-09)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.5.0 to 2.6.0
+    * puppeteer-core bumped from 23.10.1 to 23.10.2
+
+## [23.10.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.10.0...puppeteer-v23.10.1) (2024-12-04)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.10.0 to 23.10.1
+
+## [23.10.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.9.0...puppeteer-v23.10.0) (2024-12-03)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.4.1 to 2.5.0
+    * puppeteer-core bumped from 23.9.0 to 23.10.0
+
+## [23.9.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.8.0...puppeteer-v23.9.0) (2024-11-21)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.8.0 to 23.9.0
+
+## [23.8.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.7.1...puppeteer-v23.8.0) (2024-11-13)
+
+
+### Features
+
+* roll to Chrome 131.0.6778.69 ([#13291](https://github.com/puppeteer/puppeteer/issues/13291)) ([34568e0](https://github.com/puppeteer/puppeteer/commit/34568e0b2d9e8a95050bd60e54d1d21b1cd0558c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.7.1 to 23.8.0
+
+## [23.7.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.7.0...puppeteer-v23.7.1) (2024-11-07)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.7.0 to 23.7.1
+
+## [23.7.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.6.1...puppeteer-v23.7.0) (2024-11-04)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.4.0 to 2.4.1
+    * puppeteer-core bumped from 23.6.1 to 23.7.0
+
+## [23.6.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.6.0...puppeteer-v23.6.1) (2024-10-28)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.6.0 to 23.6.1
+
+## [23.6.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.5.3...puppeteer-v23.6.0) (2024-10-16)
+
+
+### Features
+
+* roll to Chrome 130.0.6723.58 ([#13195](https://github.com/puppeteer/puppeteer/issues/13195)) ([1cf5116](https://github.com/puppeteer/puppeteer/commit/1cf5116a2d3dd817cf38e46363e483fee58ed5bc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.5.3 to 23.6.0
+
+## [23.5.3](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.5.2...puppeteer-v23.5.3) (2024-10-10)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.5.2 to 23.5.3
+
+## [23.5.2](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.5.1...puppeteer-v23.5.2) (2024-10-09)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.5.1 to 23.5.2
+
+## [23.5.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.5.0...puppeteer-v23.5.1) (2024-10-07)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.5.0 to 23.5.1
+
+## [23.5.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.4.1...puppeteer-v23.5.0) (2024-10-02)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.4.1 to 23.5.0
+
+## [23.4.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.4.0...puppeteer-v23.4.1) (2024-09-25)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.4.0 to 23.4.1
+
+## [23.4.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.3.1...puppeteer-v23.4.0) (2024-09-18)
+
+
+### Features
+
+* roll to Chrome 129.0.6668.58 ([#13099](https://github.com/puppeteer/puppeteer/issues/13099)) ([6614660](https://github.com/puppeteer/puppeteer/commit/661466031edf730022bce4d706f76dd0b04dea05))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.3.1 to 23.4.0
+
+## [23.3.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.3.0...puppeteer-v23.3.1) (2024-09-16)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.3.0 to 23.3.1
+
+## [23.3.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.2.2...puppeteer-v23.3.0) (2024-09-04)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.3.1 to 2.4.0
+    * puppeteer-core bumped from 23.2.2 to 23.3.0
+
+## [23.2.2](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.2.1...puppeteer-v23.2.2) (2024-09-03)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.2.1 to 23.2.2
+
+## [23.2.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.2.0...puppeteer-v23.2.1) (2024-08-29)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.2.0 to 23.2.1
+
+## [23.2.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.1.1...puppeteer-v23.2.0) (2024-08-26)
+
+
+### Features
+
+* roll to Chrome 128.0.6613.84 ([#13005](https://github.com/puppeteer/puppeteer/issues/13005)) ([132a7ce](https://github.com/puppeteer/puppeteer/commit/132a7ce624ed8a9529c19c057c486bea2e737cb7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.1.1 to 23.2.0
+
+## [23.1.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.1.0...puppeteer-v23.1.1) (2024-08-21)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.1.0 to 23.1.1
 
 ## [23.1.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.0.2...puppeteer-v23.1.0) (2024-08-14)
 
@@ -2064,7 +2400,7 @@ All notable changes to this project will be documented in this file. See [standa
 * fix release-please bot ([#8400](https://github.com/puppeteer/puppeteer/issues/8400)) ([5c235c7](https://github.com/puppeteer/puppeteer/commit/5c235c701fc55380f09d09ac2cf63f2c94b60e3d))
 * use strict TS in Input.ts ([#8392](https://github.com/puppeteer/puppeteer/issues/8392)) ([af92a24](https://github.com/puppeteer/puppeteer/commit/af92a24ba9fc8efea1ba41f96d87515cf760da65))
 
-### [14.1.1](https://github.com/puppeteer/puppeteer/compare/v14.1.0...v14.1.1) (2022-05-19)
+## [14.1.1](https://github.com/puppeteer/puppeteer/compare/v14.1.0...v14.1.1) (2022-05-19)
 
 
 ### Bug Fixes
@@ -2146,7 +2482,7 @@ All notable changes to this project will be documented in this file. See [standa
 * ignore favicon requests in page.spec event handler tests ([#8208](https://github.com/puppeteer/puppeteer/issues/8208)) ([04e5c88](https://github.com/puppeteer/puppeteer/commit/04e5c889973432c6163a8539cdec23c0e8726bff))
 * **network.spec.ts:** typo in the word should ([#8223](https://github.com/puppeteer/puppeteer/issues/8223)) ([e93faad](https://github.com/puppeteer/puppeteer/commit/e93faadc21b7fcb1e03b69c451c28b769f9cde51))
 
-### [13.5.2](https://github.com/puppeteer/puppeteer/compare/v13.5.1...v13.5.2) (2022-03-31)
+## [13.5.2](https://github.com/puppeteer/puppeteer/compare/v13.5.1...v13.5.2) (2022-03-31)
 
 
 ### Bug Fixes
@@ -2154,7 +2490,7 @@ All notable changes to this project will be documented in this file. See [standa
 * chromium downloading hung at 99% ([#8169](https://github.com/puppeteer/puppeteer/issues/8169)) ([8f13470](https://github.com/puppeteer/puppeteer/commit/8f13470af06045857f32496f03e77b14f3ecff98))
 * get extra headers from Fetch.requestPaused event ([#8162](https://github.com/puppeteer/puppeteer/issues/8162)) ([37ede68](https://github.com/puppeteer/puppeteer/commit/37ede6877017a8dc6c946a3dff4ec6d79c3ebc59))
 
-### [13.5.1](https://github.com/puppeteer/puppeteer/compare/v13.5.0...v13.5.1) (2022-03-09)
+## [13.5.1](https://github.com/puppeteer/puppeteer/compare/v13.5.0...v13.5.1) (2022-03-09)
 
 
 ### Bug Fixes
@@ -2175,7 +2511,7 @@ All notable changes to this project will be documented in this file. See [standa
 * **page:** page.createIsolatedWorld error catching has been added ([#7848](https://github.com/puppeteer/puppeteer/issues/7848)) ([309e8b8](https://github.com/puppeteer/puppeteer/commit/309e8b80da0519327bc37b44a3ebb6f2e2d357a7))
 * **tests:** ensure all tests honour BINARY envvar ([#8092](https://github.com/puppeteer/puppeteer/issues/8092)) ([3b8b9ad](https://github.com/puppeteer/puppeteer/commit/3b8b9adde5d18892af96329b6f9303979f9c04f5))
 
-### [13.4.1](https://github.com/puppeteer/puppeteer/compare/v13.4.0...v13.4.1) (2022-03-01)
+## [13.4.1](https://github.com/puppeteer/puppeteer/compare/v13.4.0...v13.4.1) (2022-03-01)
 
 
 ### Bug Fixes
@@ -2199,7 +2535,7 @@ All notable changes to this project will be documented in this file. See [standa
 * ensure dom binding is not called after detach ([#8024](https://github.com/puppeteer/puppeteer/issues/8024)) ([5c308b0](https://github.com/puppeteer/puppeteer/commit/5c308b0704123736ddb085f97596c201ea18cf4a)), closes [#7814](https://github.com/puppeteer/puppeteer/issues/7814)
 * use both __dirname and require.resolve to support different bundlers ([#8046](https://github.com/puppeteer/puppeteer/issues/8046)) ([e6a6295](https://github.com/puppeteer/puppeteer/commit/e6a6295d9a7480bb59ee58a2cc7785171fa0fa2c)), closes [#8044](https://github.com/puppeteer/puppeteer/issues/8044)
 
-### [13.3.2](https://github.com/puppeteer/puppeteer/compare/v13.3.1...v13.3.2) (2022-02-14)
+## [13.3.2](https://github.com/puppeteer/puppeteer/compare/v13.3.1...v13.3.2) (2022-02-14)
 
 
 ### Bug Fixes
@@ -2207,7 +2543,7 @@ All notable changes to this project will be documented in this file. See [standa
 * always use ENV executable path when present ([#7985](https://github.com/puppeteer/puppeteer/issues/7985)) ([6d6ea9b](https://github.com/puppeteer/puppeteer/commit/6d6ea9bf59daa3fb851b3da8baa27887e0aa2c28))
 * use require.resolve instead of __dirname ([#8003](https://github.com/puppeteer/puppeteer/issues/8003)) ([bbb186d](https://github.com/puppeteer/puppeteer/commit/bbb186d88cb99e4914299c983c822fa41a80f356))
 
-### [13.3.1](https://github.com/puppeteer/puppeteer/compare/v13.3.0...v13.3.1) (2022-02-10)
+## [13.3.1](https://github.com/puppeteer/puppeteer/compare/v13.3.0...v13.3.1) (2022-02-10)
 
 
 ### Bug Fixes
@@ -2236,7 +2572,7 @@ All notable changes to this project will be documented in this file. See [standa
 * migrate more files to strict-mode TypeScript ([#7950](https://github.com/puppeteer/puppeteer/issues/7950)) ([aaac8d9](https://github.com/puppeteer/puppeteer/commit/aaac8d9c44327a2c503ffd6c97b7f21e8010c3e4))
 * typos in documentation ([#7968](https://github.com/puppeteer/puppeteer/issues/7968)) ([41ab4e9](https://github.com/puppeteer/puppeteer/commit/41ab4e9127df64baa6c43ecde2f7ddd702ba7b0c))
 
-### [13.1.3](https://github.com/puppeteer/puppeteer/compare/v13.1.2...v13.1.3) (2022-01-31)
+## [13.1.3](https://github.com/puppeteer/puppeteer/compare/v13.1.2...v13.1.3) (2022-01-31)
 
 
 ### Bug Fixes
@@ -2245,7 +2581,7 @@ All notable changes to this project will be documented in this file. See [standa
 * make more files work in strict-mode TypeScript ([#7936](https://github.com/puppeteer/puppeteer/issues/7936)) ([0636513](https://github.com/puppeteer/puppeteer/commit/0636513e34046f4d40b5e88beb2b18b16dab80aa))
 * page.pdf producing an invalid pdf ([#7868](https://github.com/puppeteer/puppeteer/issues/7868)) ([afea509](https://github.com/puppeteer/puppeteer/commit/afea509544fb99bfffe5b0bebe6f3575c53802f0)), closes [#7757](https://github.com/puppeteer/puppeteer/issues/7757)
 
-### [13.1.2](https://github.com/puppeteer/puppeteer/compare/v13.1.1...v13.1.2) (2022-01-25)
+## [13.1.2](https://github.com/puppeteer/puppeteer/compare/v13.1.1...v13.1.2) (2022-01-25)
 
 
 ### Bug Fixes
@@ -2254,7 +2590,7 @@ All notable changes to this project will be documented in this file. See [standa
 * types in Browser.ts to be compatible with strict mode Typescript ([#7918](https://github.com/puppeteer/puppeteer/issues/7918)) ([a8ec0aa](https://github.com/puppeteer/puppeteer/commit/a8ec0aadc9c90d224d568d9e418d14261e6e85b1)), closes [#6769](https://github.com/puppeteer/puppeteer/issues/6769)
 * types in Connection.ts to be compatible with strict mode Typescript ([#7919](https://github.com/puppeteer/puppeteer/issues/7919)) ([d80d602](https://github.com/puppeteer/puppeteer/commit/d80d6027ea8e1b7fcdaf045398629cf8e6512658)), closes [#6769](https://github.com/puppeteer/puppeteer/issues/6769)
 
-### [13.1.1](https://github.com/puppeteer/puppeteer/compare/v13.1.0...v13.1.1) (2022-01-18)
+## [13.1.1](https://github.com/puppeteer/puppeteer/compare/v13.1.0...v13.1.1) (2022-01-18)
 
 
 ### Bug Fixes
@@ -2275,7 +2611,7 @@ All notable changes to this project will be documented in this file. See [standa
 * correctly compute clickable points for elements inside OOPIFs ([#7900](https://github.com/puppeteer/puppeteer/issues/7900)) ([486bbe0](https://github.com/puppeteer/puppeteer/commit/486bbe010d5ee5c446d9e8daf61a080232379c3f)), closes [#7849](https://github.com/puppeteer/puppeteer/issues/7849)
 * error for pre-existing OOPIFs ([#7899](https://github.com/puppeteer/puppeteer/issues/7899)) ([d7937b8](https://github.com/puppeteer/puppeteer/commit/d7937b806d331bf16c2016aaf16e932b1334eac8)), closes [#7844](https://github.com/puppeteer/puppeteer/issues/7844) [#7896](https://github.com/puppeteer/puppeteer/issues/7896)
 
-### [13.0.1](https://github.com/puppeteer/puppeteer/compare/v13.0.0...v13.0.1) (2021-12-22)
+## [13.0.1](https://github.com/puppeteer/puppeteer/compare/v13.0.0...v13.0.1) (2021-12-22)
 
 
 ### Bug Fixes
@@ -2303,7 +2639,7 @@ All notable changes to this project will be documented in this file. See [standa
 * revert "feat(typescript): allow using puppeteer without dom lib" ([02c9af6](https://github.com/puppeteer/puppeteer/commit/02c9af62d64060a83f53368640f343ae2e30e38a)), closes [#6998](https://github.com/puppeteer/puppeteer/issues/6998)
 * typo in 'already-handled' constant of the request interception API ([#7813](https://github.com/puppeteer/puppeteer/issues/7813)) ([8242422](https://github.com/puppeteer/puppeteer/commit/824242246de9e158aacb85f71350a79cb386ed92)), closes [#7745](https://github.com/puppeteer/puppeteer/issues/7745) [#7747](https://github.com/puppeteer/puppeteer/issues/7747) [#7780](https://github.com/puppeteer/puppeteer/issues/7780)
 
-### [12.0.1](https://github.com/puppeteer/puppeteer/compare/v12.0.0...v12.0.1) (2021-11-29)
+## [12.0.1](https://github.com/puppeteer/puppeteer/compare/v12.0.0...v12.0.1) (2021-11-29)
 
 
 ### Bug Fixes
@@ -2451,7 +2787,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 * drop support for Node.js 10 ([#7200](https://github.com/puppeteer/puppeteer/issues/7200)) ([97c9fe2](https://github.com/puppeteer/puppeteer/commit/97c9fe2520723d45a5a86da06b888ae888d400be)), closes [#6753](https://github.com/puppeteer/puppeteer/issues/6753)
 
-### [9.1.1](https://github.com/puppeteer/puppeteer/compare/v9.1.0...v9.1.1) (2021-05-05)
+## [9.1.1](https://github.com/puppeteer/puppeteer/compare/v9.1.0...v9.1.1) (2021-05-05)
 
 
 ### Bug Fixes
@@ -2535,21 +2871,21 @@ All notable changes to this project will be documented in this file. See [standa
 * jsonValue() type is generic ([#6865](https://github.com/puppeteer/puppeteer/issues/6865)) ([bdaba78](https://github.com/puppeteer/puppeteer/commit/bdaba7829da366aabbc81885d84bb2401ab3eaff))
 * wider compat TS types and CI checks to ensure correct type defs ([#6855](https://github.com/puppeteer/puppeteer/issues/6855)) ([6a0eb78](https://github.com/puppeteer/puppeteer/commit/6a0eb7841fd82493903b0b9fa153d2de181350eb))
 
-### [7.0.4](https://github.com/puppeteer/puppeteer/compare/v7.0.3...v7.0.4) (2021-02-09)
+## [7.0.4](https://github.com/puppeteer/puppeteer/compare/v7.0.3...v7.0.4) (2021-02-09)
 
 
 ### Bug Fixes
 
 * make publish bot run full build, not just tsc ([#6848](https://github.com/puppeteer/puppeteer/issues/6848)) ([f718b14](https://github.com/puppeteer/puppeteer/commit/f718b14b64df8be492d344ddd35e40961ff750c5))
 
-### [7.0.3](https://github.com/puppeteer/puppeteer/compare/v7.0.2...v7.0.3) (2021-02-09)
+## [7.0.3](https://github.com/puppeteer/puppeteer/compare/v7.0.2...v7.0.3) (2021-02-09)
 
 
 ### Bug Fixes
 
 * include lib/types.d.ts in files list ([#6844](https://github.com/puppeteer/puppeteer/issues/6844)) ([e34f317](https://github.com/puppeteer/puppeteer/commit/e34f317b37533256a063c1238609b488d263b998))
 
-### [7.0.2](https://github.com/puppeteer/puppeteer/compare/v7.0.1...v7.0.2) (2021-02-09)
+## [7.0.2](https://github.com/puppeteer/puppeteer/compare/v7.0.1...v7.0.2) (2021-02-09)
 
 
 ### Bug Fixes
@@ -2558,7 +2894,7 @@ All notable changes to this project will be documented in this file. See [standa
 * **domworld:** reset bindings when context changes ([#6766](https://github.com/puppeteer/puppeteer/issues/6766)) ([#6836](https://github.com/puppeteer/puppeteer/issues/6836)) ([4e8d074](https://github.com/puppeteer/puppeteer/commit/4e8d074c2f8384a2f283f5edf9ef69c40bd8464f))
 * **launcher:** output correct error message for browser ([#6815](https://github.com/puppeteer/puppeteer/issues/6815)) ([6c61874](https://github.com/puppeteer/puppeteer/commit/6c618747979c3a08f2727e9e22fe45cade8c926a))
 
-### [7.0.1](https://github.com/puppeteer/puppeteer/compare/v7.0.0...v7.0.1) (2021-02-04)
+## [7.0.1](https://github.com/puppeteer/puppeteer/compare/v7.0.0...v7.0.1) (2021-02-04)
 
 
 ### Bug Fixes

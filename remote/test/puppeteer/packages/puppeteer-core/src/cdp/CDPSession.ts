@@ -31,6 +31,7 @@ export class CdpCDPSession extends CDPSession {
   #connection?: Connection;
   #parentSessionId?: string;
   #target?: CdpTarget;
+  #rawErrors = false;
 
   /**
    * @internal
@@ -39,13 +40,15 @@ export class CdpCDPSession extends CDPSession {
     connection: Connection,
     targetType: string,
     sessionId: string,
-    parentSessionId: string | undefined
+    parentSessionId: string | undefined,
+    rawErrors: boolean,
   ) {
     super();
     this.#connection = connection;
     this.#targetType = targetType;
     this.#sessionId = sessionId;
     this.#parentSessionId = parentSessionId;
+    this.#rawErrors = rawErrors;
   }
 
   /**
@@ -73,7 +76,8 @@ export class CdpCDPSession extends CDPSession {
 
   override parentSession(): CDPSession | undefined {
     if (!this.#parentSessionId) {
-      // To make it work in Firefox that does not have parent (tab) sessions.
+      // In some cases, e.g., DevTools pages there is no parent session. In this
+      // case, we treat the current session as the parent session.
       return this;
     }
     const parent = this.#connection?.session(this.#parentSessionId);
@@ -83,13 +87,13 @@ export class CdpCDPSession extends CDPSession {
   override send<T extends keyof ProtocolMapping.Commands>(
     method: T,
     params?: ProtocolMapping.Commands[T]['paramsType'][0],
-    options?: CommandOptions
+    options?: CommandOptions,
   ): Promise<ProtocolMapping.Commands[T]['returnType']> {
     if (!this.#connection) {
       return Promise.reject(
         new TargetCloseError(
-          `Protocol error (${method}): Session closed. Most likely the ${this.#targetType} has been closed.`
-        )
+          `Protocol error (${method}): Session closed. Most likely the ${this.#targetType} has been closed.`,
+        ),
       );
     }
     return this.#connection._rawSend(
@@ -97,7 +101,7 @@ export class CdpCDPSession extends CDPSession {
       method,
       params,
       this.#sessionId,
-      options
+      options,
     );
   }
 
@@ -113,11 +117,15 @@ export class CdpCDPSession extends CDPSession {
   }): void {
     if (object.id) {
       if (object.error) {
-        this.#callbacks.reject(
-          object.id,
-          createProtocolErrorMessage(object),
-          object.error.message
-        );
+        if (this.#rawErrors) {
+          this.#callbacks.rejectRaw(object.id, object.error);
+        } else {
+          this.#callbacks.reject(
+            object.id,
+            createProtocolErrorMessage(object),
+            object.error.message,
+          );
+        }
       } else {
         this.#callbacks.resolve(object.id, object.result);
       }
@@ -134,7 +142,7 @@ export class CdpCDPSession extends CDPSession {
   override async detach(): Promise<void> {
     if (!this.#connection) {
       throw new Error(
-        `Session already detached. Most likely the ${this.#targetType} has been closed.`
+        `Session already detached. Most likely the ${this.#targetType} has been closed.`,
       );
     }
     await this.#connection.send('Target.detachFromTarget', {

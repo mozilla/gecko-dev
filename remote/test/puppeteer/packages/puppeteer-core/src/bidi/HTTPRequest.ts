@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type * as Bidi from 'chromium-bidi/lib/cjs/protocol/protocol.js';
+import type {Protocol} from 'devtools-protocol';
 
 import type {CDPSession} from '../api/CDPSession.js';
 import type {
@@ -33,7 +34,7 @@ export class BidiHTTPRequest extends HTTPRequest {
   static from(
     bidiRequest: Request,
     frame: BidiFrame,
-    redirect?: BidiHTTPRequest
+    redirect?: BidiHTTPRequest,
   ): BidiHTTPRequest {
     const request = new BidiHTTPRequest(bidiRequest, frame, redirect);
     request.#initialize();
@@ -49,7 +50,7 @@ export class BidiHTTPRequest extends HTTPRequest {
   private constructor(
     request: Request,
     frame: BidiFrame,
-    redirect?: BidiHTTPRequest
+    redirect?: BidiHTTPRequest,
   ) {
     super();
     requests.set(request, this);
@@ -88,7 +89,7 @@ export class BidiHTTPRequest extends HTTPRequest {
       this.#response = BidiHTTPResponse.from(
         data,
         this,
-        this.#frame.page().browser().cdpSupported
+        this.#frame.page().browser().cdpSupported,
       );
     });
     this.#request.on('authenticate', this.#handleAuthentication);
@@ -101,7 +102,7 @@ export class BidiHTTPRequest extends HTTPRequest {
           {
             headers: this.headers(),
           },
-          0
+          0,
         );
       });
     }
@@ -145,7 +146,7 @@ export class BidiHTTPRequest extends HTTPRequest {
   get #hasInternalHeaderOverwrite(): boolean {
     return Boolean(
       Object.keys(this.#extraHTTPHeaders).length ||
-        Object.keys(this.#userAgentHeaders).length
+        Object.keys(this.#userAgentHeaders).length,
     );
   }
 
@@ -184,8 +185,11 @@ export class BidiHTTPRequest extends HTTPRequest {
     return this.#request.navigation !== undefined;
   }
 
-  override initiator(): Bidi.Network.Initiator {
-    return this.#request.initiator;
+  override initiator(): Protocol.Network.Initiator | undefined {
+    return {
+      ...this.#request.initiator,
+      type: this.#request.initiator?.type ?? 'other',
+    };
   }
 
   override redirectChain(): BidiHTTPRequest[] {
@@ -198,19 +202,19 @@ export class BidiHTTPRequest extends HTTPRequest {
 
   override async continue(
     overrides?: ContinueRequestOverrides,
-    priority?: number | undefined
+    priority?: number | undefined,
   ): Promise<void> {
     return await super.continue(
       {
         headers: this.#hasInternalHeaderOverwrite ? this.headers() : undefined,
         ...overrides,
       },
-      priority
+      priority,
     );
   }
 
   override async _continue(
-    overrides: ContinueRequestOverrides = {}
+    overrides: ContinueRequestOverrides = {},
   ): Promise<void> {
     const headers: Bidi.Network.Header[] = getBidiHeaders(overrides.headers);
     this.interception.handled = true;
@@ -243,7 +247,7 @@ export class BidiHTTPRequest extends HTTPRequest {
 
   override async _respond(
     response: Partial<ResponseForRequest>,
-    _priority?: number
+    _priority?: number,
   ): Promise<void> {
     this.interception.handled = true;
 

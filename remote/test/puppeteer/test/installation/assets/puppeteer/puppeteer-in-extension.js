@@ -4,7 +4,7 @@ import path from 'path';
 const pathToExtension = path.join(
   process.cwd(),
   'puppeteer-in-extension',
-  'out'
+  'out',
 );
 
 const browser = await puppeteer.launch({
@@ -22,7 +22,7 @@ try {
   const workerTarget = await browser.waitForTarget(
     target =>
       target.type() === 'service_worker' &&
-      target.url().endsWith('background.js')
+      target.url().endsWith('background.js'),
   );
   const worker = await workerTarget.worker();
 
@@ -33,8 +33,10 @@ try {
     return await globalThis.testConnect(url);
   }, `http://localhost:${port}/playground.html`);
 
-  if (result !== 'Playground') {
-    throw new Error('Unexpected playground.html page title: ' + result);
+  if (result !== 'Playground|Iframe') {
+    throw new Error(
+      'Unexpected playground.html+iframe.html page titles: ' + result,
+    );
   }
 } finally {
   await browser.close();

@@ -10,6 +10,7 @@ import {
   merge,
   raceWith,
 } from '../../third_party/rxjs/rxjs.js';
+import type {Cookie, CookieData} from '../common/Cookie.js';
 import {EventEmitter, type EventType} from '../common/EventEmitter.js';
 import {
   debugError,
@@ -154,21 +155,21 @@ export abstract class BrowserContext extends EventEmitter<BrowserContextEvents> 
    * ```ts
    * await page.evaluate(() => window.open('https://www.example.com/'));
    * const newWindowTarget = await browserContext.waitForTarget(
-   *   target => target.url() === 'https://www.example.com/'
+   *   target => target.url() === 'https://www.example.com/',
    * );
    * ```
    */
   async waitForTarget(
     predicate: (x: Target) => boolean | Promise<boolean>,
-    options: WaitForTargetOptions = {}
+    options: WaitForTargetOptions = {},
   ): Promise<Target> {
     const {timeout: ms = 30000} = options;
     return await firstValueFrom(
       merge(
         fromEmitterEvent(this, BrowserContextEvent.TargetCreated),
         fromEmitterEvent(this, BrowserContextEvent.TargetChanged),
-        from(this.targets())
-      ).pipe(filterAsync(predicate), raceWith(timeout(ms)))
+        from(this.targets()),
+      ).pipe(filterAsync(predicate), raceWith(timeout(ms))),
     );
   }
 
@@ -202,7 +203,7 @@ export abstract class BrowserContext extends EventEmitter<BrowserContextEvents> 
    */
   abstract overridePermissions(
     origin: string,
-    permissions: Permission[]
+    permissions: Permission[],
   ): Promise<void>;
 
   /**
@@ -244,6 +245,31 @@ export abstract class BrowserContext extends EventEmitter<BrowserContextEvents> 
   abstract close(): Promise<void>;
 
   /**
+   * Gets all cookies in the browser context.
+   */
+  abstract cookies(): Promise<Cookie[]>;
+
+  /**
+   * Sets a cookie in the browser context.
+   */
+  abstract setCookie(...cookies: CookieData[]): Promise<void>;
+
+  /**
+   * Removes cookie in the browser context
+   * @param cookies - {@link Cookie | cookie} to remove
+   */
+  async deleteCookie(...cookies: Cookie[]): Promise<void> {
+    return await this.setCookie(
+      ...cookies.map(cookie => {
+        return {
+          ...cookie,
+          expires: 1,
+        };
+      }),
+    );
+  }
+
+  /**
    * Whether this {@link BrowserContext | browser context} is closed.
    */
   get closed(): boolean {
@@ -258,7 +284,7 @@ export abstract class BrowserContext extends EventEmitter<BrowserContextEvents> 
   }
 
   /** @internal */
-  [disposeSymbol](): void {
+  override [disposeSymbol](): void {
     return void this.close().catch(debugError);
   }
 

@@ -6,6 +6,7 @@
 
 import {Deferred} from '../util/Deferred.js';
 import {rewriteError} from '../util/ErrorLike.js';
+import {createIncrementalIdGenerator} from '../util/incremental-id-generator.js';
 
 import {ProtocolError, TargetCloseError} from './Errors.js';
 import {debugError} from './util.js';
@@ -22,7 +23,7 @@ export class CallbackRegistry {
   create(
     label: string,
     timeout: number | undefined,
-    request: (id: number) => void
+    request: (id: number) => void,
   ): Promise<unknown> {
     const callback = new Callback(this.#idGenerator(), label, timeout);
     this.#callbacks.set(callback.id, callback);
@@ -51,10 +52,18 @@ export class CallbackRegistry {
     this._reject(callback, message, originalMessage);
   }
 
+  rejectRaw(id: number, error: object): void {
+    const callback = this.#callbacks.get(id);
+    if (!callback) {
+      return;
+    }
+    callback.reject(error as any);
+  }
+
   _reject(
     callback: Callback,
     errorMessage: string | ProtocolError,
-    originalMessage?: string
+    originalMessage?: string,
   ): void {
     let error: ProtocolError;
     let message: string;
@@ -71,8 +80,8 @@ export class CallbackRegistry {
       rewriteError(
         error,
         `Protocol error (${callback.label}): ${message}`,
-        originalMessage
-      )
+        originalMessage,
+      ),
     );
   }
 
@@ -99,7 +108,9 @@ export class CallbackRegistry {
     const result: Error[] = [];
     for (const callback of this.#callbacks.values()) {
       result.push(
-        new Error(`${callback.label} timed out. Trace: ${callback.error.stack}`)
+        new Error(
+          `${callback.label} timed out. Trace: ${callback.error.stack}`,
+        ),
       );
     }
     return result;
@@ -124,8 +135,8 @@ export class Callback {
         this.#deferred.reject(
           rewriteError(
             this.#error,
-            `${label} timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.`
-          )
+            `${label} timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.`,
+          ),
         );
       }, timeout);
     }
@@ -157,18 +168,3 @@ export class Callback {
     return this.#label;
   }
 }
-
-/**
- * @internal
- */
-export function createIncrementalIdGenerator(): GetIdFn {
-  let id = 0;
-  return (): number => {
-    return ++id;
-  };
-}
-
-/**
- * @internal
- */
-export type GetIdFn = () => number;

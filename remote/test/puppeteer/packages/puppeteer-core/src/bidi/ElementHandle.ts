@@ -6,7 +6,12 @@
 
 import type * as Bidi from 'chromium-bidi/lib/cjs/protocol/protocol.js';
 
-import {ElementHandle, type AutofillData} from '../api/ElementHandle.js';
+import {
+  bindIsolatedHandle,
+  ElementHandle,
+  type AutofillData,
+} from '../api/ElementHandle.js';
+import {UnsupportedOperation} from '../common/Errors.js';
 import type {AwaitableIterable} from '../common/types.js';
 import {environment} from '../environment.js';
 import {AsyncIterableUtil} from '../util/AsyncIterableUtil.js';
@@ -22,9 +27,11 @@ import type {BidiFrameRealm} from './Realm.js';
 export class BidiElementHandle<
   ElementType extends Node = Element,
 > extends ElementHandle<ElementType> {
+  #backendNodeId?: number;
+
   static from<ElementType extends Node = Element>(
     value: Bidi.Script.RemoteValue,
-    realm: BidiFrameRealm
+    realm: BidiFrameRealm,
   ): BidiElementHandle<ElementType> {
     return new BidiElementHandle(value, realm);
   }
@@ -64,10 +71,10 @@ export class BidiElementHandle<
   }
 
   override async contentFrame(
-    this: BidiElementHandle<HTMLIFrameElement>
+    this: BidiElementHandle<HTMLIFrameElement>,
   ): Promise<BidiFrame>;
   @throwIfDisposed()
-  @ElementHandle.bindIsolatedHandle
+  @bindIsolatedHandle
   override async contentFrame(): Promise<BidiFrame | null> {
     using handle = (await this.evaluateHandle(element => {
       if (
@@ -98,20 +105,22 @@ export class BidiElementHandle<
   ): Promise<void> {
     // Locate all files and confirm that they exist.
     const path = environment.value.path;
-    files = files.map(file => {
-      if (path.win32.isAbsolute(file) || path.posix.isAbsolute(file)) {
-        return file;
-      } else {
-        return path.resolve(file);
-      }
-    });
+    if (path) {
+      files = files.map(file => {
+        if (path.win32.isAbsolute(file) || path.posix.isAbsolute(file)) {
+          return file;
+        } else {
+          return path.resolve(file);
+        }
+      });
+    }
     await this.frame.setFiles(this, files);
   }
 
   override async *queryAXTree(
     this: BidiElementHandle<HTMLElement>,
     name?: string | undefined,
-    role?: string | undefined
+    role?: string | undefined,
   ): AwaitableIterable<ElementHandle<Node>> {
     const results = await this.frame.locateNodes(this, {
       type: 'accessibility',
@@ -125,5 +134,19 @@ export class BidiElementHandle<
       // TODO: maybe change ownership since the default ownership is probably none.
       return Promise.resolve(BidiElementHandle.from(node, this.realm));
     });
+  }
+
+  override async backendNodeId(): Promise<number> {
+    if (!this.frame.page().browser().cdpSupported) {
+      throw new UnsupportedOperation();
+    }
+    if (this.#backendNodeId) {
+      return this.#backendNodeId;
+    }
+    const {node} = await this.frame.client.send('DOM.describeNode', {
+      objectId: this.handle.id,
+    });
+    this.#backendNodeId = node.backendNodeId;
+    return this.#backendNodeId;
   }
 }

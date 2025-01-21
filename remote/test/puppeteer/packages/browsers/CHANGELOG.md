@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.7.0](https://github.com/puppeteer/puppeteer/compare/browsers-v2.6.1...browsers-v2.7.0) (2025-01-09)
+
+
+### Features
+
+* resolve relative paths to absolute before unpacking ([#13466](https://github.com/puppeteer/puppeteer/issues/13466)) ([f23c391](https://github.com/puppeteer/puppeteer/commit/f23c391e3c22bf9c9e9ff2c400f5a0c6b07effad))
+
+
+### Bug Fixes
+
+* skip retries for same URL ([#13469](https://github.com/puppeteer/puppeteer/issues/13469)) ([04135ec](https://github.com/puppeteer/puppeteer/commit/04135ec6571312e4dbec0fead182beb8ec9f39d0))
+
+## [2.6.1](https://github.com/puppeteer/puppeteer/compare/browsers-v2.6.0...browsers-v2.6.1) (2024-12-10)
+
+
+### Bug Fixes
+
+* support .tar.xz archives for Firefox 135+ ([#13391](https://github.com/puppeteer/puppeteer/issues/13391)) ([d247a7f](https://github.com/puppeteer/puppeteer/commit/d247a7fcd4fc01cf0c53d733632a1e9687b8004d))
+
+## [2.6.0](https://github.com/puppeteer/puppeteer/compare/browsers-v2.5.0...browsers-v2.6.0) (2024-12-09)
+
+
+### Features
+
+* allow listing installed browsers ([#13385](https://github.com/puppeteer/puppeteer/issues/13385)) ([8b814bf](https://github.com/puppeteer/puppeteer/commit/8b814bfd1bfb5156d4d1334c7d2d3292ea17fbfc))
+
+## [2.5.0](https://github.com/puppeteer/puppeteer/compare/browsers-v2.4.1...browsers-v2.5.0) (2024-12-03)
+
+
+### Features
+
+* support LaunchOptions in executablePath() ([#13340](https://github.com/puppeteer/puppeteer/issues/13340)) ([6acfee6](https://github.com/puppeteer/puppeteer/commit/6acfee6810da378844d4dca7f28d539dd46a3529))
+
+## [2.4.1](https://github.com/puppeteer/puppeteer/compare/browsers-v2.4.0...browsers-v2.4.1) (2024-11-04)
+
+
+### Bug Fixes
+
+* **browsers:** correctly import yargs for esm module ([#13249](https://github.com/puppeteer/puppeteer/issues/13249)) ([694fef9](https://github.com/puppeteer/puppeteer/commit/694fef9f4ea61a9fa65a8dddff73dc6b81e8986a))
+
+## [2.4.0](https://github.com/puppeteer/puppeteer/compare/browsers-v2.3.1...browsers-v2.4.0) (2024-09-04)
+
+
+### Features
+
+* support --install-deps flag in the browsers CLI ([#12580](https://github.com/puppeteer/puppeteer/issues/12580)) ([b832417](https://github.com/puppeteer/puppeteer/commit/b832417eede8506b0fb70d4e4fceb0fa9655cdf5))
+
 ## [2.3.1](https://github.com/puppeteer/puppeteer/compare/browsers-v2.3.0...browsers-v2.3.1) (2024-08-14)
 
 

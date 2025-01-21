@@ -46,6 +46,10 @@ export class CdpHTTPRequest extends HTTPRequest {
     return this.#client;
   }
 
+  override set client(newClient: CDPSession) {
+    this.#client = newClient;
+  }
+
   constructor(
     client: CDPSession,
     frame: Frame | null,
@@ -77,7 +81,7 @@ export class CdpHTTPRequest extends HTTPRequest {
        */
       type?: Protocol.Network.ResourceType;
     },
-    redirectChain: CdpHTTPRequest[]
+    redirectChain: CdpHTTPRequest[],
   ) {
     super();
     this.#client = client;
@@ -85,7 +89,7 @@ export class CdpHTTPRequest extends HTTPRequest {
     this.#isNavigationRequest =
       data.requestId === data.loaderId && data.type === 'Document';
     this._interceptionId = interceptionId;
-    this.#url = data.request.url;
+    this.#url = data.request.url + (data.request.urlFragment ?? '');
     this.#resourceType = (data.type || 'other').toLowerCase() as ResourceType;
     this.#method = data.request.method;
     this.#postData = data.request.postData;
@@ -179,7 +183,7 @@ export class CdpHTTPRequest extends HTTPRequest {
 
     if (this._interceptionId === undefined) {
       throw new Error(
-        'HTTPRequest is missing _interceptionId needed for Fetch.continueRequest'
+        'HTTPRequest is missing _interceptionId needed for Fetch.continueRequest',
       );
     }
     await this.#client
@@ -231,7 +235,7 @@ export class CdpHTTPRequest extends HTTPRequest {
     const status = response.status || 200;
     if (this._interceptionId === undefined) {
       throw new Error(
-        'HTTPRequest is missing _interceptionId needed for Fetch.fulfillRequest'
+        'HTTPRequest is missing _interceptionId needed for Fetch.fulfillRequest',
       );
     }
     await this.#client
@@ -249,12 +253,12 @@ export class CdpHTTPRequest extends HTTPRequest {
   }
 
   async _abort(
-    errorReason: Protocol.Network.ErrorReason | null
+    errorReason: Protocol.Network.ErrorReason | null,
   ): Promise<void> {
     this.interception.handled = true;
     if (this._interceptionId === undefined) {
       throw new Error(
-        'HTTPRequest is missing _interceptionId needed for Fetch.failRequest'
+        'HTTPRequest is missing _interceptionId needed for Fetch.failRequest',
       );
     }
     await this.#client

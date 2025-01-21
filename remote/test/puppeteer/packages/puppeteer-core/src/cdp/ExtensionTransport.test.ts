@@ -14,7 +14,7 @@ import {ExtensionTransport} from './ExtensionTransport.js';
 type EventListenerFunction = (
   source: chrome.debugger.Debuggee,
   method: string,
-  params?: object | undefined
+  params?: object | undefined,
 ) => void;
 
 describe('ExtensionTransport', function () {
@@ -22,7 +22,12 @@ describe('ExtensionTransport', function () {
     sinon.restore();
   });
 
-  function mockChrome() {
+  function mockChrome(
+    fakeSendCommand?: sinon.SinonSpy<
+      [chrome.debugger.Debuggee, string, object | undefined],
+      Promise<object>
+    >,
+  ) {
     const fakeAttach = sinon.fake.resolves<
       [chrome.debugger.Debuggee, string],
       Promise<void>
@@ -31,10 +36,12 @@ describe('ExtensionTransport', function () {
       [chrome.debugger.Debuggee],
       Promise<void>
     >(undefined);
-    const fakeSendCommand = sinon.fake.resolves<
-      [chrome.debugger.Debuggee, string, object | undefined],
-      Promise<object>
-    >({});
+    const actualFakeSendCommand =
+      fakeSendCommand ??
+      sinon.fake.resolves<
+        [chrome.debugger.Debuggee, string, object | undefined],
+        Promise<object>
+      >({});
     const fakeGetTargets = sinon.fake.resolves<
       [],
       Promise<chrome.debugger.TargetInfo[]>
@@ -44,7 +51,7 @@ describe('ExtensionTransport', function () {
       debugger: {
         attach: fakeAttach,
         detach: fakeDetach,
-        sendCommand: fakeSendCommand,
+        sendCommand: actualFakeSendCommand,
         getTargets: fakeGetTargets,
         onEvent: {
           addListener: (cb: EventListenerFunction) => {
@@ -62,7 +69,7 @@ describe('ExtensionTransport', function () {
     return {
       fakeAttach,
       fakeDetach,
-      fakeSendCommand,
+      fakeSendCommand: actualFakeSendCommand,
       fakeGetTargets,
       onEvent,
     };
@@ -103,7 +110,7 @@ describe('ExtensionTransport', function () {
         await testTranportResponse({
           id: 1,
           method: 'Browser.getVersion',
-        })
+        }),
       ).toStrictEqual([
         '{"id":1,"method":"Browser.getVersion","result":{"protocolVersion":"1.3","product":"chrome","revision":"unknown","userAgent":"chrome","jsVersion":"unknown"}}',
       ]);
@@ -114,7 +121,7 @@ describe('ExtensionTransport', function () {
         await testTranportResponse({
           id: 1,
           method: 'Target.getBrowserContexts',
-        })
+        }),
       ).toStrictEqual([
         '{"id":1,"method":"Target.getBrowserContexts","result":{"browserContextIds":[]}}',
       ]);
@@ -125,7 +132,7 @@ describe('ExtensionTransport', function () {
         await testTranportResponse({
           id: 1,
           method: 'Target.setDiscoverTargets',
-        })
+        }),
       ).toStrictEqual([
         '{"method":"Target.targetCreated","params":{"targetInfo":{"targetId":"tabTargetId","type":"tab","title":"tab","url":"about:blank","attached":false,"canAccessOpener":false}}}',
         '{"method":"Target.targetCreated","params":{"targetInfo":{"targetId":"pageTargetId","type":"page","title":"page","url":"about:blank","attached":false,"canAccessOpener":false}}}',
@@ -138,7 +145,7 @@ describe('ExtensionTransport', function () {
         await testTranportResponse({
           id: 1,
           method: 'Target.setAutoAttach',
-        })
+        }),
       ).toStrictEqual([
         '{"method":"Target.attachedToTarget","params":{"targetInfo":{"targetId":"tabTargetId","type":"tab","title":"tab","url":"about:blank","attached":false,"canAccessOpener":false},"sessionId":"tabTargetSessionId"}}',
         '{"id":1,"method":"Target.setAutoAttach","result":{}}',
@@ -151,7 +158,7 @@ describe('ExtensionTransport', function () {
           id: 1,
           method: 'Target.setAutoAttach',
           sessionId: 'tabTargetSessionId',
-        })
+        }),
       ).toStrictEqual([
         '{"method":"Target.attachedToTarget","params":{"targetInfo":{"targetId":"pageTargetId","type":"page","title":"page","url":"about:blank","attached":false,"canAccessOpener":false},"sessionId":"pageTargetSessionId"}}',
         '{"id":1,"sessionId":"tabTargetSessionId","method":"Target.setAutoAttach","result":{}}',
@@ -167,7 +174,7 @@ describe('ExtensionTransport', function () {
           method: 'Runtime.evaluate',
           params: {},
           sessionId: 'pageTargetSessionId',
-        })
+        }),
       );
       expect(fakeSendCommand.calledOnce).toBeTruthy();
       expect(fakeSendCommand.lastCall.args).toStrictEqual([
@@ -177,6 +184,38 @@ describe('ExtensionTransport', function () {
         },
         'Runtime.evaluate',
         {},
+      ]);
+    });
+
+    it('handles errors', async () => {
+      const error = new Error('test error');
+      // @ts-expect-error not-standard.
+      error.code = -999;
+      mockChrome(
+        sinon.fake.rejects<
+          [chrome.debugger.Debuggee, string, object | undefined],
+          Promise<object>
+        >(error),
+      );
+      const transport = await ExtensionTransport.connectTab(1);
+      const onmessageFake = sinon.fake();
+      transport.onmessage = onmessageFake;
+      transport.send(
+        JSON.stringify({
+          id: 1,
+          method: 'Runtime.evaluate',
+          params: {},
+          sessionId: 'testSessionId',
+        }),
+      );
+      // Drain task queue.
+      await new Promise(resolve => {
+        return setTimeout(resolve, 0);
+      });
+      expect(onmessageFake.args).toStrictEqual([
+        [
+          '{"id":1,"sessionId":"testSessionId","method":"Runtime.evaluate","error":{"code":-999,"message":"test error"}}',
+        ],
       ]);
     });
   });

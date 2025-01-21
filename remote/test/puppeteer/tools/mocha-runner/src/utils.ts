@@ -22,7 +22,7 @@ export function extendProcessEnv(envs: object[]): NodeJS.ProcessEnv {
     },
     {
       ...process.env,
-    }
+    },
   );
 
   if (process.env['CI']) {
@@ -34,13 +34,13 @@ export function extendProcessEnv(envs: object[]): NodeJS.ProcessEnv {
 
         return acc;
       },
-      {} as Record<string, unknown>
+      {} as Record<string, unknown>,
     );
 
     console.log(
       'PUPPETEER env:\n',
       JSON.stringify(puppeteerEnv, null, 2),
-      '\n'
+      '\n',
     );
   }
 
@@ -61,7 +61,7 @@ export function writeJSON(path: string, json: unknown): unknown {
 
 export function filterByPlatform<T extends {platforms: NodeJS.Platform[]}>(
   items: T[],
-  platform: NodeJS.Platform
+  platform: NodeJS.Platform,
 ): T[] {
   return items.filter(item => {
     return item.platforms.includes(platform);
@@ -72,29 +72,35 @@ export function prettyPrintJSON(json: unknown): void {
   console.log(JSON.stringify(json, null, 2));
 }
 
-export function printSuggestions(
+export function getSuggestionsForAction(
   recommendations: RecommendedExpectation[],
   action: RecommendedExpectation['action'],
-  message: string
-): void {
-  const toPrint = recommendations.filter(item => {
+): RecommendedExpectation[] {
+  return recommendations.filter(item => {
     return item.action === action;
   });
-  if (toPrint.length) {
+}
+
+export function printSuggestions(
+  recommendations: RecommendedExpectation[],
+  message: string,
+  printBasedOn = false,
+): void {
+  if (recommendations.length) {
     console.log(message);
     prettyPrintJSON(
-      toPrint.map(item => {
+      recommendations.map(item => {
         return item.expectation;
-      })
+      }),
     );
-    if (action !== 'remove') {
+    if (printBasedOn) {
       console.log(
-        'The recommendations are based on the following applied expectations:'
+        'The recommendations are based on the following applied expectations:',
       );
       prettyPrintJSON(
-        toPrint.map(item => {
+        recommendations.map(item => {
           return item.basedOn;
-        })
+        }),
       );
     }
   }
@@ -102,7 +108,7 @@ export function printSuggestions(
 
 export function filterByParameters(
   expectations: TestExpectation[],
-  parameters: string[]
+  parameters: string[],
 ): TestExpectation[] {
   const querySet = new Set(parameters);
   return expectations.filter(ex => {
@@ -118,7 +124,7 @@ export function filterByParameters(
  */
 export function findEffectiveExpectationForTest(
   expectations: TestExpectation[],
-  result: MochaTestResult
+  result: MochaTestResult,
 ): TestExpectation | undefined {
   return expectations.find(expectation => {
     return testIdMatchesExpectationPattern(result, expectation.testIdPattern);
@@ -141,7 +147,7 @@ export function getExpectationUpdates(
   context: {
     platforms: NodeJS.Platform[];
     parameters: string[];
-  }
+  },
 ): RecommendedExpectation[] {
   const output = new Map<string, RecommendedExpectation>();
 
@@ -153,7 +159,7 @@ export function getExpectationUpdates(
   for (const pass of results.passes) {
     const expectationEntry = findEffectiveExpectationForTest(
       expectations,
-      pass
+      pass,
     );
     if (expectationEntry && !expectationEntry.expectations.includes('PASS')) {
       if (isWildCardPattern(expectationEntry.testIdPattern)) {
@@ -200,12 +206,12 @@ export function getExpectationUpdates(
 
     const expectationEntry = findEffectiveExpectationForTest(
       expectations,
-      failure
+      failure,
     );
     if (expectationEntry && !expectationEntry.expectations.includes('SKIP')) {
       if (
         !expectationEntry.expectations.includes(
-          getTestResultForFailure(failure)
+          getTestResultForFailure(failure),
         )
       ) {
         // If the effective explanation is a wildcard, we recommend adding a new
@@ -260,7 +266,7 @@ export function getExpectationUpdates(
 }
 
 export function getTestResultForFailure(
-  test: Pick<MochaTestResult, 'err'>
+  test: Pick<MochaTestResult, 'err'>,
 ): TestResult {
   return test.err?.code === 'ERR_MOCHA_TIMEOUT' ? 'TIMEOUT' : 'FAIL';
 }
@@ -273,7 +279,7 @@ export function getTestId(file: string, fullTitle?: string): string {
 
 export function testIdMatchesExpectationPattern(
   test: MochaTestResult | Pick<Mocha.Test, 'title' | 'file' | 'fullTitle'>,
-  pattern: string
+  pattern: string,
 ): boolean {
   const patternRegExString = pattern
     // Replace `*` with non special character

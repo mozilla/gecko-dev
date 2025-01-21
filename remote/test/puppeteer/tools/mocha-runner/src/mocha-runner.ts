@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env -S node
 
 /**
  * @license
@@ -20,7 +20,6 @@ import {
   zPlatform,
   zTestSuiteFile,
   type MochaResults,
-  type Platform,
   type TestExpectation,
   type TestSuite,
   type TestSuiteFile,
@@ -30,6 +29,7 @@ import {
   filterByParameters,
   filterByPlatform,
   getExpectationUpdates,
+  getSuggestionsForAction,
   printSuggestions,
   readJSON,
   writeJSON,
@@ -89,14 +89,11 @@ const {
   })
   .parseSync();
 
-function getApplicableTestSuites(
-  parsedSuitesFile: TestSuiteFile,
-  platform: Platform
-): TestSuite[] {
+function getApplicableTestSuites(parsedSuitesFile: TestSuiteFile): TestSuite[] {
   let applicableSuites: TestSuite[] = [];
 
   if (!testSuiteId) {
-    applicableSuites = filterByPlatform(parsedSuitesFile.testSuites, platform);
+    applicableSuites = parsedSuitesFile.testSuites;
   } else {
     const testSuite = parsedSuitesFile.testSuites.find(suite => {
       return suite.id === testSuiteId;
@@ -105,12 +102,6 @@ function getApplicableTestSuites(
     if (!testSuite) {
       console.error(`Test suite ${testSuiteId} is not defined`);
       process.exit(1);
-    }
-
-    if (!testSuite.platforms.includes(platform)) {
-      console.warn(
-        `Test suite ${testSuiteId} is not enabled for your platform. Running it anyway.`
-      );
     }
 
     applicableSuites = [testSuite];
@@ -128,14 +119,14 @@ async function main() {
   const platform = zPlatform.parse(os.platform());
 
   const expectations = readJSON(
-    path.join(process.cwd(), 'test', 'TestExpectations.json')
+    path.join(process.cwd(), 'test', 'TestExpectations.json'),
   ) as TestExpectation[];
 
   const parsedSuitesFile = zTestSuiteFile.parse(
-    readJSON(path.join(process.cwd(), 'test', 'TestSuites.json'))
+    readJSON(path.join(process.cwd(), 'test', 'TestSuites.json')),
   );
 
-  const applicableSuites = getApplicableTestSuites(parsedSuitesFile, platform);
+  const applicableSuites = getApplicableTestSuites(parsedSuitesFile);
 
   console.log('Planning to run the following test suites', applicableSuites);
   if (statsPath) {
@@ -150,7 +141,7 @@ async function main() {
 
       const applicableExpectations = filterByParameters(
         filterByPlatform(expectations, platform),
-        parameters
+        parameters,
       ).reverse();
 
       // Add more logging when the GitHub Action Debugging option is set
@@ -178,14 +169,14 @@ async function main() {
                 testIdPattern: ex.testIdPattern,
                 skip: ex.expectations.includes('SKIP'),
               };
-            })
+            }),
           ),
         },
         githubActionDebugging,
       ]);
 
       const tmpDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'puppeteer-test-runner-')
+        path.join(os.tmpdir(), 'puppeteer-test-runner-'),
       );
       const tmpFilename = statsPath
         ? statsPath
@@ -229,7 +220,7 @@ async function main() {
         console.log(
           `Running shard ${shardId}-${shards}. Picked ${
             args.length - argsLength
-          } files out of ${specs.length}.`
+          } files out of ${specs.length}.`,
         );
       } else {
         args.push(...specs);
@@ -238,13 +229,7 @@ async function main() {
         'npx',
         [
           ...(useCoverage
-            ? [
-                'c8',
-                '--check-coverage',
-                '--lines',
-                String(suite.expectedLineCoverage),
-                'npx',
-              ]
+            ? ['c8', '--check-coverage', '--lines', '90', 'npx']
             : []),
           'mocha',
           ...mochaArgs.map(String),
@@ -255,7 +240,7 @@ async function main() {
           cwd: process.cwd(),
           stdio: 'inherit',
           env,
-        }
+        },
       );
       await new Promise<void>((resolve, reject) => {
         handle.on('error', err => {
@@ -265,9 +250,17 @@ async function main() {
           resolve();
         });
       });
-      console.log('Finished', JSON.stringify(parameters));
       try {
-        const results = readJSON(tmpFilename) as MochaResults;
+        const results = (() => {
+          try {
+            return readJSON(tmpFilename) as MochaResults;
+          } catch (cause) {
+            throw new Error('Test results are not found', {
+              cause,
+            });
+          }
+        })();
+        console.log('Finished', JSON.stringify(parameters));
         const updates = getExpectationUpdates(results, applicableExpectations, {
           platforms: [os.platform()],
           parameters,
@@ -285,7 +278,7 @@ async function main() {
           if (!shard && totalTests < minTests) {
             fail = true;
             console.log(
-              `Test run matches expectations but the number of discovered tests is too low (expected: ${minTests}, actual: ${totalTests}).`
+              `Test run matches expectations but the number of discovered tests is too low (expected: ${minTests}, actual: ${totalTests}).`,
             );
             writeJSON(tmpFilename, results);
             continue;
@@ -303,23 +296,31 @@ async function main() {
     fail = true;
     console.error(err);
   } finally {
+    const added = getSuggestionsForAction(recommendations, 'add');
+    const removed = getSuggestionsForAction(recommendations, 'remove');
+    const updated = getSuggestionsForAction(recommendations, 'update');
     if (!!provideSuggestions) {
       printSuggestions(
-        recommendations,
-        'add',
-        'Add the following to TestExpectations.json to ignore the error:'
+        added,
+        'Add the following to TestExpectations.json to ignore the error:',
+        true,
       );
       printSuggestions(
-        recommendations,
-        'remove',
-        'Remove the following from the TestExpectations.json to ignore the error:'
+        removed,
+        'Remove the following from the TestExpectations.json to ignore the error:',
       );
       printSuggestions(
-        recommendations,
-        'update',
-        'Update the following expectations in the TestExpectations.json to ignore the error:'
+        updated,
+        'Update the following expectations in the TestExpectations.json to ignore the error:',
+        true,
       );
     }
+    const unexpected = added.length + removed.length + updated.length;
+    console.log(
+      fail && Boolean(unexpected)
+        ? `Run failed: ${unexpected} unexpected result(s).`
+        : `Run succeeded.`,
+    );
     process.exit(fail ? 1 : 0);
   }
 }

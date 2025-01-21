@@ -11,10 +11,15 @@ import {getJSON} from '../httpUtil.js';
 
 import {BrowserPlatform, type ProfileOptions} from './types.js';
 
+function getFormat(buildId: string): string {
+  const majorVersion = Number(buildId.split('.').shift()!);
+  return majorVersion >= 135 ? 'xz' : 'bz2';
+}
+
 function archiveNightly(platform: BrowserPlatform, buildId: string): string {
   switch (platform) {
     case BrowserPlatform.LINUX:
-      return `firefox-${buildId}.en-US.${platform}-x86_64.tar.bz2`;
+      return `firefox-${buildId}.en-US.${platform}-x86_64.tar.${getFormat(buildId)}`;
     case BrowserPlatform.MAC_ARM:
     case BrowserPlatform.MAC:
       return `firefox-${buildId}.en-US.mac.dmg`;
@@ -27,7 +32,7 @@ function archiveNightly(platform: BrowserPlatform, buildId: string): string {
 function archive(platform: BrowserPlatform, buildId: string): string {
   switch (platform) {
     case BrowserPlatform.LINUX:
-      return `firefox-${buildId}.tar.bz2`;
+      return `firefox-${buildId}.tar.${getFormat(buildId)}`;
     case BrowserPlatform.MAC_ARM:
     case BrowserPlatform.MAC:
       return `Firefox ${buildId}.dmg`;
@@ -64,9 +69,9 @@ function parseBuildId(buildId: string): [FirefoxChannel, string] {
 export function resolveDownloadUrl(
   platform: BrowserPlatform,
   buildId: string,
-  baseUrl?: string
+  baseUrl?: string,
 ): string {
-  const [channel, resolvedBuildId] = parseBuildId(buildId);
+  const [channel] = parseBuildId(buildId);
   switch (channel) {
     case FirefoxChannel.NIGHTLY:
       baseUrl ??=
@@ -81,27 +86,33 @@ export function resolveDownloadUrl(
       baseUrl ??= 'https://archive.mozilla.org/pub/firefox/releases';
       break;
   }
-  switch (channel) {
-    case FirefoxChannel.NIGHTLY:
-      return `${baseUrl}/${resolveDownloadPath(platform, resolvedBuildId).join('/')}`;
-    case FirefoxChannel.DEVEDITION:
-    case FirefoxChannel.BETA:
-    case FirefoxChannel.STABLE:
-    case FirefoxChannel.ESR:
-      return `${baseUrl}/${resolvedBuildId}/${platformName(platform)}/en-US/${archive(platform, resolvedBuildId)}`;
-  }
+  return `${baseUrl}/${resolveDownloadPath(platform, buildId).join('/')}`;
 }
 
 export function resolveDownloadPath(
   platform: BrowserPlatform,
-  buildId: string
+  buildId: string,
 ): string[] {
-  return [archiveNightly(platform, buildId)];
+  const [channel, resolvedBuildId] = parseBuildId(buildId);
+  switch (channel) {
+    case FirefoxChannel.NIGHTLY:
+      return [archiveNightly(platform, resolvedBuildId)];
+    case FirefoxChannel.DEVEDITION:
+    case FirefoxChannel.BETA:
+    case FirefoxChannel.STABLE:
+    case FirefoxChannel.ESR:
+      return [
+        resolvedBuildId,
+        platformName(platform),
+        'en-US',
+        archive(platform, resolvedBuildId),
+      ];
+  }
 }
 
 export function relativeExecutablePath(
   platform: BrowserPlatform,
-  buildId: string
+  buildId: string,
 ): string {
   const [channel] = parseBuildId(buildId);
   switch (channel) {
@@ -113,7 +124,7 @@ export function relativeExecutablePath(
             'Firefox Nightly.app',
             'Contents',
             'MacOS',
-            'firefox'
+            'firefox',
           );
         case BrowserPlatform.LINUX:
           return path.join('firefox', 'firefox');
@@ -147,7 +158,7 @@ export enum FirefoxChannel {
 }
 
 export async function resolveBuildId(
-  channel: FirefoxChannel = FirefoxChannel.NIGHTLY
+  channel: FirefoxChannel = FirefoxChannel.NIGHTLY,
 ): Promise<string> {
   const channelToVersionKey = {
     [FirefoxChannel.ESR]: 'FIREFOX_ESR',
@@ -157,7 +168,7 @@ export async function resolveBuildId(
     [FirefoxChannel.NIGHTLY]: 'FIREFOX_NIGHTLY',
   };
   const versions = (await getJSON(
-    new URL('https://product-details.mozilla.org/1.0/firefox_versions.json')
+    new URL('https://product-details.mozilla.org/1.0/firefox_versions.json'),
   )) as Record<string, string>;
   const version = versions[channelToVersionKey[channel]];
   if (!version) {
@@ -182,7 +193,7 @@ export async function createProfile(options: ProfileOptions): Promise<void> {
 }
 
 function defaultProfilePreferences(
-  extraPrefs: Record<string, unknown>
+  extraPrefs: Record<string, unknown>,
 ): Record<string, unknown> {
   const server = 'dummy.test';
 

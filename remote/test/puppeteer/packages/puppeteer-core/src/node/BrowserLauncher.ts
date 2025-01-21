@@ -31,11 +31,7 @@ import type {SupportedBrowser} from '../common/SupportedBrowser.js';
 import {debugError, DEFAULT_VIEWPORT} from '../common/util.js';
 import type {Viewport} from '../common/Viewport.js';
 
-import type {
-  BrowserLaunchArgumentOptions,
-  ChromeReleaseChannel,
-  PuppeteerNodeLaunchOptions,
-} from './LaunchOptions.js';
+import type {ChromeReleaseChannel, LaunchOptions} from './LaunchOptions.js';
 import {NodeWebSocketTransport as WebSocketTransport} from './NodeWebSocketTransport.js';
 import {PipeTransport} from './PipeTransport.js';
 import type {PuppeteerNode} from './PuppeteerNode.js';
@@ -75,7 +71,7 @@ export abstract class BrowserLauncher {
     return this.#browser;
   }
 
-  async launch(options: PuppeteerNodeLaunchOptions = {}): Promise<Browser> {
+  async launch(options: LaunchOptions = {}): Promise<Browser> {
     const {
       dumpio = false,
       env = process.env,
@@ -84,6 +80,7 @@ export abstract class BrowserLauncher {
       handleSIGHUP = true,
       acceptInsecureCerts = false,
       defaultViewport = DEFAULT_VIEWPORT,
+      downloadBehavior,
       slowMo = 0,
       timeout = 30000,
       waitForInitialPage = true,
@@ -97,6 +94,10 @@ export abstract class BrowserLauncher {
       protocol = 'webDriverBiDi';
     }
 
+    if (this.#browser === 'firefox' && protocol === 'cdp') {
+      throw new Error('Connecting to Firefox using CDP is no longer supported');
+    }
+
     const launchArgs = await this.computeLaunchArguments({
       ...options,
       protocol,
@@ -104,7 +105,7 @@ export abstract class BrowserLauncher {
 
     if (!existsSync(launchArgs.executablePath)) {
       throw new Error(
-        `Browser was not found at the configured executablePath (${launchArgs.executablePath})`
+        `Browser was not found at the configured executablePath (${launchArgs.executablePath})`,
       );
     }
 
@@ -118,23 +119,11 @@ export abstract class BrowserLauncher {
 
     if (
       this.#browser === 'firefox' &&
-      protocol !== 'webDriverBiDi' &&
-      this.puppeteer.configuration.logLevel === 'warn'
-    ) {
-      console.warn(
-        `Chrome DevTools Protocol (CDP) support for Firefox is deprecated in Puppeteer ` +
-          `and it will be eventually removed. ` +
-          `Use WebDriver BiDi instead (see https://pptr.dev/webdriver-bidi#get-started).`
-      );
-    }
-
-    if (
-      this.#browser === 'firefox' &&
       protocol === 'webDriverBiDi' &&
       usePipe
     ) {
       throw new Error(
-        'Pipe connections are not supported wtih Firefox and WebDriver BiDi'
+        'Pipe connections are not supported wtih Firefox and WebDriver BiDi',
       );
     }
 
@@ -173,7 +162,7 @@ export abstract class BrowserLauncher {
             slowMo,
             defaultViewport,
             acceptInsecureCerts,
-          }
+          },
         );
       } else {
         if (usePipe) {
@@ -197,18 +186,18 @@ export abstract class BrowserLauncher {
             {
               defaultViewport,
               acceptInsecureCerts,
-            }
+            },
           );
         } else {
           browser = await CdpBrowser._create(
-            this.browser,
             cdpConnection,
             [],
             acceptInsecureCerts,
             defaultViewport,
+            downloadBehavior,
             browserProcess.nodeProcess,
             browserCloseCallback,
-            options.targetFilter
+            options.targetFilter,
           );
         }
       }
@@ -227,15 +216,18 @@ export abstract class BrowserLauncher {
     return browser;
   }
 
-  abstract executablePath(channel?: ChromeReleaseChannel): string;
+  abstract executablePath(
+    channel?: ChromeReleaseChannel,
+    validatePath?: boolean,
+  ): string;
 
-  abstract defaultArgs(object: BrowserLaunchArgumentOptions): string[];
+  abstract defaultArgs(object: LaunchOptions): string[];
 
   /**
    * @internal
    */
   protected abstract computeLaunchArguments(
-    options: PuppeteerNodeLaunchOptions
+    options: LaunchOptions,
   ): Promise<ResolvedLaunchArgs>;
 
   /**
@@ -243,7 +235,7 @@ export abstract class BrowserLauncher {
    */
   protected abstract cleanUserDataDir(
     path: string,
-    opts: {isTemp: boolean}
+    opts: {isTemp: boolean},
   ): Promise<void>;
 
   /**
@@ -251,7 +243,7 @@ export abstract class BrowserLauncher {
    */
   protected async closeBrowser(
     browserProcess: ReturnType<typeof launch>,
-    cdpConnection?: Connection
+    cdpConnection?: Connection,
   ): Promise<void> {
     if (cdpConnection) {
       // Attempt to close the browser gracefully
@@ -270,9 +262,9 @@ export abstract class BrowserLauncher {
           timer(5000).pipe(
             map(() => {
               return from(browserProcess.close());
-            })
-          )
-        )
+            }),
+          ),
+        ),
       );
     }
   }
@@ -282,14 +274,14 @@ export abstract class BrowserLauncher {
    */
   protected async waitForPageTarget(
     browser: Browser,
-    timeout: number
+    timeout: number,
   ): Promise<void> {
     try {
       await browser.waitForTarget(
         t => {
           return t.type() === 'page';
         },
-        {timeout}
+        {timeout},
       );
     } catch (error) {
       await browser.close();
@@ -302,18 +294,22 @@ export abstract class BrowserLauncher {
    */
   protected async createCdpSocketConnection(
     browserProcess: ReturnType<typeof launch>,
-    opts: {timeout: number; protocolTimeout: number | undefined; slowMo: number}
+    opts: {
+      timeout: number;
+      protocolTimeout: number | undefined;
+      slowMo: number;
+    },
   ): Promise<Connection> {
     const browserWSEndpoint = await browserProcess.waitForLineOutput(
       CDP_WEBSOCKET_ENDPOINT_REGEX,
-      opts.timeout
+      opts.timeout,
     );
     const transport = await WebSocketTransport.create(browserWSEndpoint);
     return new Connection(
       browserWSEndpoint,
       transport,
       opts.slowMo,
-      opts.protocolTimeout
+      opts.protocolTimeout,
     );
   }
 
@@ -322,14 +318,18 @@ export abstract class BrowserLauncher {
    */
   protected async createCdpPipeConnection(
     browserProcess: ReturnType<typeof launch>,
-    opts: {timeout: number; protocolTimeout: number | undefined; slowMo: number}
+    opts: {
+      timeout: number;
+      protocolTimeout: number | undefined;
+      slowMo: number;
+    },
   ): Promise<Connection> {
     // stdio was assigned during start(), and the 'pipe' option there adds the
     // 4th and 5th items to stdio array
     const {3: pipeWrite, 4: pipeRead} = browserProcess.nodeProcess.stdio;
     const transport = new PipeTransport(
       pipeWrite as NodeJS.WritableStream,
-      pipeRead as NodeJS.ReadableStream
+      pipeRead as NodeJS.ReadableStream,
     );
     return new Connection('', transport, opts.slowMo, opts.protocolTimeout);
   }
@@ -344,7 +344,7 @@ export abstract class BrowserLauncher {
     opts: {
       defaultViewport: Viewport | null;
       acceptInsecureCerts?: boolean;
-    }
+    },
   ): Promise<Browser> {
     const BiDi = await import(/* webpackIgnore: true */ '../bidi/bidi.js');
     const bidiConnection = await BiDi.connectBidiOverCdp(connection);
@@ -370,12 +370,12 @@ export abstract class BrowserLauncher {
       slowMo: number;
       defaultViewport: Viewport | null;
       acceptInsecureCerts?: boolean;
-    }
+    },
   ): Promise<Browser> {
     const browserWSEndpoint =
       (await browserProcess.waitForLineOutput(
         WEBDRIVER_BIDI_WEBSOCKET_ENDPOINT_REGEX,
-        opts.timeout
+        opts.timeout,
       )) + '/session';
     const transport = await WebSocketTransport.create(browserWSEndpoint);
     const BiDi = await import(/* webpackIgnore: true */ '../bidi/bidi.js');
@@ -383,7 +383,7 @@ export abstract class BrowserLauncher {
       browserWSEndpoint,
       transport,
       opts.slowMo,
-      opts.protocolTimeout
+      opts.protocolTimeout,
     );
     return await BiDi.BidiBrowser.create({
       connection: bidiConnection,
@@ -400,19 +400,22 @@ export abstract class BrowserLauncher {
   protected getProfilePath(): string {
     return join(
       this.puppeteer.configuration.temporaryDirectory ?? tmpdir(),
-      `puppeteer_dev_${this.browser}_profile-`
+      `puppeteer_dev_${this.browser}_profile-`,
     );
   }
 
   /**
    * @internal
    */
-  protected resolveExecutablePath(headless?: boolean | 'shell'): string {
+  resolveExecutablePath(
+    headless?: boolean | 'shell',
+    validatePath = true,
+  ): string {
     let executablePath = this.puppeteer.configuration.executablePath;
     if (executablePath) {
-      if (!existsSync(executablePath)) {
+      if (validatePath && !existsSync(executablePath)) {
         throw new Error(
-          `Tried to find the browser at the configured path (${executablePath}), but no executable was found.`
+          `Tried to find the browser at the configured path (${executablePath}), but no executable was found.`,
         );
       }
       return executablePath;
@@ -420,7 +423,7 @@ export abstract class BrowserLauncher {
 
     function puppeteerBrowserToInstalledBrowser(
       browser?: SupportedBrowser,
-      headless?: boolean | 'shell'
+      headless?: boolean | 'shell',
     ) {
       switch (browser) {
         case 'chrome':
@@ -434,34 +437,39 @@ export abstract class BrowserLauncher {
       return InstalledBrowser.CHROME;
     }
 
+    const browserType = puppeteerBrowserToInstalledBrowser(
+      this.browser,
+      headless,
+    );
+
     executablePath = computeExecutablePath({
       cacheDir: this.puppeteer.defaultDownloadPath!,
-      browser: puppeteerBrowserToInstalledBrowser(this.browser, headless),
+      browser: browserType,
       buildId: this.puppeteer.browserVersion,
     });
 
-    if (!existsSync(executablePath)) {
+    if (validatePath && !existsSync(executablePath)) {
       const configVersion =
         this.puppeteer.configuration?.[this.browser]?.version;
       if (configVersion) {
         throw new Error(
-          `Tried to find the browser at the configured path (${executablePath}) for version ${configVersion}, but no executable was found.`
+          `Tried to find the browser at the configured path (${executablePath}) for version ${configVersion}, but no executable was found.`,
         );
       }
       switch (this.browser) {
         case 'chrome':
           throw new Error(
             `Could not find Chrome (ver. ${this.puppeteer.browserVersion}). This can occur if either\n` +
-              ' 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n' +
+              ` 1. you did not perform an installation before running the script (e.g. \`npx puppeteer browsers install ${browserType}\`) or\n` +
               ` 2. your cache path is incorrectly configured (which is: ${this.puppeteer.configuration.cacheDirectory}).\n` +
-              'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.'
+              'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.',
           );
         case 'firefox':
           throw new Error(
             `Could not find Firefox (rev. ${this.puppeteer.browserVersion}). This can occur if either\n` +
               ' 1. you did not perform an installation for Firefox before running the script (e.g. `npx puppeteer browsers install firefox`) or\n' +
               ` 2. your cache path is incorrectly configured (which is: ${this.puppeteer.configuration.cacheDirectory}).\n` +
-              'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.'
+              'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.',
           );
       }
     }

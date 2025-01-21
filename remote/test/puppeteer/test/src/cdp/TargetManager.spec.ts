@@ -7,42 +7,26 @@
 import expect from 'expect';
 import type {CdpBrowser} from 'puppeteer-core/internal/cdp/Browser.js';
 
-import {getTestState, launch} from '../mocha-utils.js';
+import {setupSeparateTestBrowserHooks} from '../mocha-utils.js';
 import {attachFrame} from '../utils.js';
 
 describe('TargetManager', () => {
-  /* We use a special browser for this test as we need the --site-per-process flag */
-  let state: Awaited<ReturnType<typeof launch>> & {
-    browser: CdpBrowser;
-  };
-
-  beforeEach(async () => {
-    const {defaultBrowserOptions} = await getTestState({
-      skipLaunch: true,
-    });
-    state = (await launch(
-      Object.assign({}, defaultBrowserOptions, {
-        args: (defaultBrowserOptions.args || []).concat([
-          '--site-per-process',
-          '--remote-debugging-port=21222',
-          '--host-rules=MAP * 127.0.0.1',
-        ]),
-      }),
-      {createPage: false}
-    )) as Awaited<ReturnType<typeof launch>> & {
-      browser: CdpBrowser;
-    };
-  });
-
-  afterEach(async () => {
-    await state.close();
-  });
+  // We start a new browser instance for this test because we need the
+  // --site-per-process flag.
+  const state = setupSeparateTestBrowserHooks(
+    {
+      args: ['--site-per-process'],
+    },
+    {
+      createPage: false,
+    },
+  );
 
   // CDP-specific test.
   it('should handle targets', async () => {
     const {server, context, browser} = state;
 
-    const targetManager = browser._targetManager();
+    const targetManager = (browser as CdpBrowser)._targetManager();
     expect(targetManager.getAvailableTargets().size).toBe(3);
 
     expect(await context.pages()).toHaveLength(0);
@@ -73,7 +57,7 @@ describe('TargetManager', () => {
     await attachFrame(
       page,
       'frame2',
-      server.CROSS_PROCESS_PREFIX + '/empty.html'
+      server.CROSS_PROCESS_PREFIX + '/empty.html',
     );
     await framePromise;
     expect(await context.pages()).toHaveLength(1);
@@ -86,7 +70,7 @@ describe('TargetManager', () => {
     await attachFrame(
       page,
       'frame3',
-      server.CROSS_PROCESS_PREFIX + '/empty.html'
+      server.CROSS_PROCESS_PREFIX + '/empty.html',
     );
     await framePromise;
     expect(await context.pages()).toHaveLength(1);
