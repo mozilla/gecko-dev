@@ -508,13 +508,31 @@ def get_repack_ids_by_platform(config, build_platform):
 
 
 def get_partners_to_be_published(config):
-    # hardcoded kind because release-bouncer-aliases doesn't match otherwise
-    partner_config = get_partner_config_by_kind(config, "release-partner-repack")
+    return _get_repack_partners(config) + _get_attribution_partners(config)
+
+
+def _get_repack_partners(config):
+    repack_partner_config = get_partner_config_by_kind(config, "release-partner-repack")
     partners = []
-    for partner, subconfigs in partner_config.items():
+
+    for partner, subconfigs in repack_partner_config.items():
         for sub_config_name, sub_config in subconfigs.items():
             if sub_config.get("publish_to_releases"):
                 partners.append((partner, sub_config_name, sub_config["platforms"]))
+
+    return partners
+
+
+def _get_attribution_partners(config):
+    attribution_partner_config = get_partner_config_by_kind(
+        config, "release-partner-attribution"
+    )
+    partners = []
+
+    for entry in attribution_partner_config.get("configs", []):
+        if entry.get("publish_to_releases"):
+            partners.append((entry["campaign"], entry["content"], entry["platforms"]))
+
     return partners
 
 
