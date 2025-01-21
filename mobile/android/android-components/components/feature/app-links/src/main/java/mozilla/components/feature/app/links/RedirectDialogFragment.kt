@@ -15,11 +15,14 @@ import androidx.fragment.app.DialogFragment
 abstract class RedirectDialogFragment : DialogFragment() {
 
     /**
-     * A callback to trigger a download, call it when you are ready to open the linked app. For instance,
+     * A callback to trigger a redirect action. Call it when you are ready to open the linked app. For instance,
      * a valid use case can be in confirmation dialog, after the positive button is clicked,
      * this callback must be called.
+     *
+     * checkboxChecked - Boolean parameter indicating if the checkbox is ticked or not when clicking
+     * on the positive button
      */
-    var onConfirmRedirect: () -> Unit = {}
+    var onConfirmRedirect: (checkboxChecked: Boolean) -> Unit = {}
 
     /**
      * A callback to trigger when user dismisses the dialog.

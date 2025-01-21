@@ -7,6 +7,10 @@ package mozilla.components.feature.app.links
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
+import android.widget.CheckBox
+import android.widget.FrameLayout
 import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
@@ -46,18 +50,32 @@ class SimpleRedirectDialogFragment(
             val dialogMessageString = getString(KEY_MESSAGE_STRING, "")
             val positiveButtonText = getInt(KEY_POSITIVE_TEXT, R.string.mozac_feature_applinks_confirm_dialog_confirm)
             val negativeButtonText = getInt(KEY_NEGATIVE_TEXT, R.string.mozac_feature_applinks_confirm_dialog_deny)
+            val checkboxText = getInt(KEY_CHECKBOX_TEXT, R.string.mozac_feature_applinks_confirm_dialog_checkbox_label)
             val themeResId = getInt(KEY_THEME_ID, 0)
             val cancelable = getBoolean(KEY_CANCELABLE, false)
+            val showCheckbox = getBoolean(KEY_CHECKBOX, false)
 
-            val dialog = getBuilder(themeResId)
-                .setTitle(dialogTitleText)
-                .setMessage(dialogMessageString)
-                .setPositiveButton(positiveButtonText) { _, _ -> }
-                .setNegativeButton(negativeButtonText) { _, _ ->
+            val checkbox = CheckBox(requireContext()).apply {
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.MarginLayoutParams.WRAP_CONTENT,
+                    ViewGroup.MarginLayoutParams.WRAP_CONTENT,
+                )
+                id = VIEW_ID
+                setText(checkboxText)
+            }
+
+            val dialog = getBuilder(themeResId).apply {
+                if (showCheckbox) {
+                    setView(getLayout(checkbox))
+                }
+                setTitle(dialogTitleText)
+                setMessage(dialogMessageString)
+                setPositiveButton(positiveButtonText) { _, _ -> }
+                setNegativeButton(negativeButtonText) { _, _ ->
                     onCancelRedirect()
                 }
-                .setCancelable(cancelable)
-                .create()
+                setCancelable(cancelable)
+            }.create()
 
             dialog.withCenterAlignedButtons()
             dialog.setOnShowListener {
@@ -66,13 +84,20 @@ class SimpleRedirectDialogFragment(
                     if (promptAbuserDetector.areDialogsBeingAbused()) {
                         promptAbuserDetector.updateJSDialogAbusedState()
                     } else {
-                        onConfirmRedirect()
+                        onConfirmRedirect(showCheckbox && checkbox.isChecked)
                         dialog.dismiss()
                     }
                 }
             }
             dialog
         }
+    }
+
+    private fun getLayout(view: View) = FrameLayout(requireContext()).apply {
+        val leftPadding = resources.getDimension(R.dimen.mozac_feature_applinks_confirm_dialog_checkbox_margin).toInt()
+
+        setPadding(leftPadding, 0, 0, 0)
+        addView(view)
     }
 
     companion object {
@@ -84,8 +109,10 @@ class SimpleRedirectDialogFragment(
             dialogMessageString: String = "",
             @StringRes positiveButtonText: Int = R.string.mozac_feature_applinks_confirm_dialog_confirm,
             @StringRes negativeButtonText: Int = R.string.mozac_feature_applinks_confirm_dialog_deny,
+            @StringRes checkboxText: Int? = null,
             @StyleRes themeResId: Int = 0,
             cancelable: Boolean = false,
+            showCheckbox: Boolean = false,
             maxSuccessiveDialogMillisLimit: Int = TIME_SHOWN_OFFSET_MILLIS,
         ): RedirectDialogFragment {
             val fragment = SimpleRedirectDialogFragment(maxSuccessiveDialogMillisLimit)
@@ -100,9 +127,15 @@ class SimpleRedirectDialogFragment(
 
                 putInt(KEY_NEGATIVE_TEXT, negativeButtonText)
 
+                checkboxText?.let {
+                    putInt(KEY_CHECKBOX_TEXT, it)
+                }
+
                 putInt(KEY_THEME_ID, themeResId)
 
                 putBoolean(KEY_CANCELABLE, cancelable)
+
+                putBoolean(KEY_CHECKBOX, showCheckbox)
             }
 
             fragment.arguments = arguments
@@ -115,6 +148,8 @@ class SimpleRedirectDialogFragment(
 
         const val KEY_NEGATIVE_TEXT = "KEY_NEGATIVE_TEXT"
 
+        const val KEY_CHECKBOX_TEXT = "KEY_CHECKBOX_TEXT"
+
         const val KEY_TITLE_TEXT = "KEY_TITLE_TEXT"
 
         const val KEY_MESSAGE_STRING = "KEY_MESSAGE_STRING"
@@ -122,7 +157,12 @@ class SimpleRedirectDialogFragment(
         const val KEY_THEME_ID = "KEY_THEME_ID"
 
         const val KEY_CANCELABLE = "KEY_CANCELABLE"
+
+        private const val KEY_CHECKBOX = "KEY_CHECKBOX"
+
         private const val TIME_SHOWN_OFFSET_MILLIS = 1000
+
+        internal const val VIEW_ID = 111
     }
 
     private fun requireBundle(): Bundle {

@@ -116,7 +116,7 @@ class AppLinksFeature(
         }
 
         val dialog = getOrCreateDialog(tab.content.private, url)
-        dialog.onConfirmRedirect = doOpenApp
+        dialog.onConfirmRedirect = { doOpenApp() }
         dialog.onCancelRedirect = doNotOpenApp
 
         if (!isAlreadyADialogCreated()) {
