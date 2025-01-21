@@ -583,6 +583,13 @@ pref("browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled", false);
 // characters than this threshold.
 pref("browser.urlbar.quicksuggest.ampTopPickCharThreshold", 0);
 
+// The matching strategy for AMP suggestions. Zero is the usual default
+// exact-keyword strategy. Other values are the integers defined on
+// `AmpMatchingStrategy` in `RustSuggest.sys.mjs` (corresponding to the
+// `AmpMatchingStrategy` enum in the Rust component coerced to a 1-based integer
+// value).
+pref("browser.urlbar.quicksuggest.ampMatchingStrategy", 0);
+
 // Comma-separated list of Suggest exposure suggestion types to enable.
 pref("browser.urlbar.quicksuggest.exposureSuggestionTypes", "");
 

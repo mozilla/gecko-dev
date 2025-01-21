@@ -232,6 +232,15 @@ urlbar:
         will be able to click the "Show less frequently" command for addon
         suggestions. If undefined or zero, the user will be able to click the
         command without any limit.
+    ampMatchingStrategy:
+      type: int
+      fallbackPref: browser.urlbar.quicksuggest.ampMatchingStrategy
+      description: >-
+        The matching strategy for AMP suggestions. Leave undefined or set to
+        zero to use the usual default exact-keyword strategy. Otherwise set to
+        an integer value defined on `AmpMatchingStrategy` in
+        `RustSuggest.sys.mjs` (corresponding to the `AmpMatchingStrategy` enum
+        in the Rust component coerced to a 1-based integer value).
     autoFillAdaptiveHistoryEnabled:
       type: boolean
       fallbackPref: browser.urlbar.autoFill.adaptiveHistory.enabled

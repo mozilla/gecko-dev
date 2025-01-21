@@ -7,6 +7,7 @@ import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeatu
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AmpMatchingStrategy: "resource://gre/modules/RustSuggest.sys.mjs",
   CONTEXTUAL_SERVICES_PING_TYPES:
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
@@ -44,6 +45,25 @@ export class AmpSuggestions extends SuggestProvider {
 
   get rustSuggestionType() {
     return "Amp";
+  }
+
+  get rustProviderConstraints() {
+    let intValue = lazy.UrlbarPrefs.get("ampMatchingStrategy");
+    if (!intValue) {
+      // If the value is zero or otherwise falsey, use the usual default
+      // exact-keyword strategy by returning null here.
+      return null;
+    }
+    if (!Object.values(lazy.AmpMatchingStrategy).includes(intValue)) {
+      this.logger.error(
+        "Unknown AmpMatchingStrategy value, using default strategy",
+        { intValue }
+      );
+      return null;
+    }
+    return {
+      ampAlternativeMatching: intValue,
+    };
   }
 
   isSuggestionSponsored() {

@@ -7,6 +7,11 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  AmpMatchingStrategy: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
+});
+
 const SPONSORED_SEARCH_STRING = "amp";
 const NONSPONSORED_SEARCH_STRING = "wikipedia";
 const SPONSORED_AND_NONSPONSORED_SEARCH_STRING = "sponsored and non-sponsored";
@@ -1868,3 +1873,124 @@ add_task(async function ampTopPickCharThreshold_zero() {
 
   UrlbarPrefs.clear("quicksuggest.ampTopPickCharThreshold");
 });
+
+// Tests `ampMatchingStrategy`.
+add_task(async function ampMatchingStrategy() {
+  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+  await QuickSuggestTestUtils.forceSync();
+
+  // Test each strategy in `AmpMatchingStrategy`. There are only a few.
+  for (let [key, value] of Object.entries(AmpMatchingStrategy)) {
+    await doAmpMatchingStrategyTest({ key, value });
+
+    // Reset back to the default strategy just to make sure that works.
+    await doAmpMatchingStrategyTest({
+      key: "(default)",
+      value: 0,
+    });
+  }
+
+  // Test an invalid strategy integer value. The default strategy should
+  // actually be used. First we need to set a valid non-default strategy.
+  await doAmpMatchingStrategyTest({
+    key: "FTS_AGAINST_TITLE",
+    value: AmpMatchingStrategy.FTS_AGAINST_TITLE,
+  });
+  await doAmpMatchingStrategyTest({
+    key: "(invalid)",
+    value: 99,
+    expectedStrategy: 0,
+  });
+
+  Services.prefs.clearUserPref(
+    "browser.urlbar.quicksuggest.ampMatchingStrategy"
+  );
+  await QuickSuggestTestUtils.forceSync();
+});
+
+async function doAmpMatchingStrategyTest({
+  key,
+  value,
+  expectedStrategy = value,
+}) {
+  info("Doing ampMatchingStrategy test: " + JSON.stringify({ key, value }));
+
+  let sandbox = sinon.createSandbox();
+  let ingestSpy = sandbox.spy(QuickSuggest.rustBackend._test_store, "ingest");
+
+  // Set the strategy. It should trigger ingest. (Assuming it's different from
+  // the current strategy. If it's not, ingest won't happen.)
+  Services.prefs.setIntPref(
+    "browser.urlbar.quicksuggest.ampMatchingStrategy",
+    value
+  );
+
+  let ingestCall = await TestUtils.waitForCondition(() => {
+    return ingestSpy.getCalls().find(call => {
+      let ingestConstraints = call.args[0];
+      return ingestConstraints?.providers[0] == SuggestionProvider.AMP;
+    });
+  }, "Waiting for ingest() to be called with Amp provider");
+
+  // Check the provider constraints in the ingest constraints.
+  let { providerConstraints } = ingestCall.args[0];
+  if (!expectedStrategy) {
+    Assert.ok(
+      !providerConstraints,
+      "ingest() should not have been called with provider constraints"
+    );
+  } else {
+    Assert.ok(
+      providerConstraints,
+      "ingest() should have been called with provider constraints"
+    );
+    Assert.strictEqual(
+      providerConstraints.ampAlternativeMatching,
+      expectedStrategy,
+      "ampAlternativeMatching should have been set"
+    );
+  }
+
+  // Now do a query to make sure it also uses the correct provider constraints.
+  // No need to use `check_results()`. We only need to trigger a query, and
+  // checking the right results unnecessarily complicates things.
+  let querySpy = sandbox.spy(
+    QuickSuggest.rustBackend._test_store,
+    "queryWithMetrics"
+  );
+
+  let controller = UrlbarTestUtils.newMockController();
+  await controller.startQuery(
+    createContext(SPONSORED_SEARCH_STRING, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    })
+  );
+
+  let queryCalls = querySpy.getCalls();
+  Assert.equal(queryCalls.length, 1, "query() should have been called once");
+
+  let query = queryCalls[0].args[0];
+  Assert.ok(query, "query() should have been called with a query object");
+  Assert.ok(
+    query.providerConstraints,
+    "query() should have been called with provider constraints"
+  );
+
+  if (!expectedStrategy) {
+    Assert.strictEqual(
+      query.providerConstraints.ampAlternativeMatching,
+      null,
+      "ampAlternativeMatching should not have been set on query provider constraints"
+    );
+  } else {
+    Assert.strictEqual(
+      query.providerConstraints.ampAlternativeMatching,
+      expectedStrategy,
+      "ampAlternativeMatching should have been set on query provider constraints"
+    );
+  }
+
+  sandbox.restore();
+}
