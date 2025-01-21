@@ -32,6 +32,10 @@ task-defaults:
     shipping-phase: promote
     worker-type: b-linux-gcp
     worker:
+        artifacts:
+            - name: releng/partner
+              path: /builds/worker/artifacts/releng/partner
+              type: directory
         docker-image:
             in-tree: "partner-repack"
         chain-of-trust: true
