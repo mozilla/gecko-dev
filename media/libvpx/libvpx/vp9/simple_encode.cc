@@ -964,10 +964,12 @@ std::vector<std::vector<double>> SimpleEncode::ObserveFirstPassStats() {
   for (size_t i = 0; i < impl_ptr_->first_pass_stats.size() - 1; ++i) {
     double *buf_start =
         reinterpret_cast<double *>(&impl_ptr_->first_pass_stats[i]);
-    // We use - 1 here because the last member in FIRSTPASS_STATS is not double
+    // We use - 2 here because:
+    // (1). The last member in FIRSTPASS_STATS is not double.
+    // (2). We do not need the last - 1 member.
     double *buf_end =
         buf_start + sizeof(impl_ptr_->first_pass_stats[i]) / sizeof(*buf_end) -
-        1;
+        2;
     std::vector<double> this_stats(buf_start, buf_end);
     output_stats.push_back(this_stats);
   }

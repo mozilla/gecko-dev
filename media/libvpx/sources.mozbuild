@@ -2295,6 +2295,8 @@ files = {
     'libvpx/vp9/encoder/arm/neon/vp9_frame_scale_neon.c',
     'libvpx/vp9/encoder/arm/neon/vp9_quantize_neon.c',
     'libvpx/vp9/encoder/arm/neon/vp9_temporal_filter_neon.c',
+    'libvpx/vp9/encoder/arm/neon/vp9_temporal_filter_neon_dotprod.c',
+    'libvpx/vp9/encoder/arm/neon/vp9_temporal_filter_neon_i8mm.c',
     'libvpx/vp9/encoder/vp9_alt_ref_aq.c',
     'libvpx/vp9/encoder/vp9_aq_360.c',
     'libvpx/vp9/encoder/vp9_aq_complexity.c',

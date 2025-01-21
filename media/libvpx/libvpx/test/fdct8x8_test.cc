@@ -133,7 +133,7 @@ void idct8x8_64_add_12_sse2(const tran_low_t *in, uint8_t *out, int stride) {
 #endif  // HAVE_SSE2
 #endif  // CONFIG_VP9_HIGHBITDEPTH
 
-// Visual Studio 2022 < 17.12.3 (cl.exe) targeting AArch64 with optimizations
+// Visual Studio 2022 (cl.exe) < 17.12.3 targeting AArch64 with optimizations
 // enabled produces invalid code in RunExtremalCheck() and
 // RunInvAccuracyCheck(). See:
 // https://developercommunity.visualstudio.com/t/1770-preview-1:-Misoptimization-for-AR/10369786
