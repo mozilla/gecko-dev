@@ -4,9 +4,12 @@
 
 import React from "react";
 
-function ThumbsUpToast({ onDismissClick }) {
+function ThumbsUpToast({ onDismissClick, onAnimationEnd }) {
   return (
-    <div className="notification-feed-item is-success">
+    <div
+      className="notification-feed-item is-success"
+      onAnimationEnd={onAnimationEnd}
+    >
       <div className="icon icon-check-filled icon-themed"></div>
       <div
         className="notification-feed-item-text"

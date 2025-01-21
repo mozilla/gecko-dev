@@ -945,11 +945,19 @@ function Notifications(prevState = INITIAL_STATE.Notifications, action) {
         toastId: action.data.toastId,
         toastQueue: [action.data.toastId],
       };
-    case at.HIDE_TOAST_MESSAGE:
+    case at.HIDE_TOAST_MESSAGE: {
+      const { showNotifications, toastId: hiddenToastId } = action.data;
+      const queuedToasts = [...prevState.toastQueue].filter(
+        toastId => toastId !== hiddenToastId
+      );
       return {
         ...prevState,
-        showNotifications: action.data.showNotifications,
+        toastCounter: queuedToasts.length,
+        toastQueue: queuedToasts,
+        toastId: "",
+        showNotifications,
       };
+    }
     default:
       return prevState;
   }

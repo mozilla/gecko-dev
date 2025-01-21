@@ -7484,11 +7484,19 @@ function Notifications(prevState = INITIAL_STATE.Notifications, action) {
         toastId: action.data.toastId,
         toastQueue: [action.data.toastId],
       };
-    case actionTypes.HIDE_TOAST_MESSAGE:
+    case actionTypes.HIDE_TOAST_MESSAGE: {
+      const { showNotifications, toastId: hiddenToastId } = action.data;
+      const queuedToasts = [...prevState.toastQueue].filter(
+        toastId => toastId !== hiddenToastId
+      );
       return {
         ...prevState,
-        showNotifications: action.data.showNotifications,
+        toastCounter: queuedToasts.length,
+        toastQueue: queuedToasts,
+        toastId: "",
+        showNotifications,
       };
+    }
     default:
       return prevState;
   }
@@ -12145,10 +12153,12 @@ const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state =>
 
 
 function ThumbsUpToast({
-  onDismissClick
+  onDismissClick,
+  onAnimationEnd
 }) {
   return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item is-success"
+    className: "notification-feed-item is-success",
+    onAnimationEnd: onAnimationEnd
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "icon icon-check-filled icon-themed"
   }), /*#__PURE__*/external_React_default().createElement("div", {
@@ -12168,10 +12178,12 @@ function ThumbsUpToast({
 
 
 function ThumbsDownToast({
-  onDismissClick
+  onDismissClick,
+  onAnimationEnd
 }) {
   return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item is-success"
+    className: "notification-feed-item is-success",
+    onAnimationEnd: onAnimationEnd
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "icon icon-check-filled icon-themed"
   }), /*#__PURE__*/external_React_default().createElement("div", {
@@ -12199,40 +12211,53 @@ function Notifications_Notifications({
 }) {
   const toastQueue = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastQueue);
   const toastCounter = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastCounter);
-  const onDismissClick = (0,external_React_namespaceObject.useCallback)(() => {
+
+  /**
+   * Syncs {@link toastQueue} array so it can be used to
+   * remove the toasts wrapper if there are none after a
+   * toast is auto-hidden (animated out) via CSS.
+   */
+  const syncHiddenToastData = (0,external_React_namespaceObject.useCallback)(() => {
+    const toastId = toastQueue[toastQueue.length - 1];
+    const queuedToasts = [...toastQueue].slice(1);
     dispatch(actionCreators.OnlyToOneContent({
       type: actionTypes.HIDE_TOAST_MESSAGE,
       data: {
+        toastQueue: queuedToasts,
+        toastCounter: queuedToasts.length,
+        toastId,
         showNotifications: false
       }
     }, "ActivityStream:Content"));
-  }, [dispatch]);
+  }, [dispatch, toastQueue]);
   const getToast = (0,external_React_namespaceObject.useCallback)(() => {
     // Note: This architecture could expand to support multiple toast notifications at once
     const latestToastItem = toastQueue[toastQueue.length - 1];
     switch (latestToastItem) {
       case "thumbsDownToast":
         return /*#__PURE__*/external_React_default().createElement(ThumbsDownToast, {
-          onDismissClick: onDismissClick,
+          onDismissClick: syncHiddenToastData,
+          onAnimationEnd: syncHiddenToastData,
           key: toastCounter
         });
       case "thumbsUpToast":
         return /*#__PURE__*/external_React_default().createElement(ThumbsUpToast, {
-          onDismissClick: onDismissClick,
+          onDismissClick: syncHiddenToastData,
+          onAnimationEnd: syncHiddenToastData,
           key: toastCounter
         });
       default:
         throw new Error("No toast found");
     }
-  }, [onDismissClick, toastCounter, toastQueue]);
+  }, [syncHiddenToastData, toastCounter, toastQueue]);
   (0,external_React_namespaceObject.useEffect)(() => {
     getToast();
   }, [toastQueue, getToast]);
-  return /*#__PURE__*/external_React_default().createElement("div", {
+  return toastQueue.length ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "notification-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("ul", {
     className: "notification-feed"
-  }, getToast()));
+  }, getToast())) : "";
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx

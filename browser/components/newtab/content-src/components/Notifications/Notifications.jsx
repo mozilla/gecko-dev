@@ -12,19 +12,29 @@ function Notifications({ dispatch }) {
   const toastQueue = useSelector(state => state.Notifications.toastQueue);
   const toastCounter = useSelector(state => state.Notifications.toastCounter);
 
-  const onDismissClick = useCallback(() => {
+  /**
+   * Syncs {@link toastQueue} array so it can be used to
+   * remove the toasts wrapper if there are none after a
+   * toast is auto-hidden (animated out) via CSS.
+   */
+  const syncHiddenToastData = useCallback(() => {
+    const toastId = toastQueue[toastQueue.length - 1];
+    const queuedToasts = [...toastQueue].slice(1);
     dispatch(
       ac.OnlyToOneContent(
         {
           type: at.HIDE_TOAST_MESSAGE,
           data: {
+            toastQueue: queuedToasts,
+            toastCounter: queuedToasts.length,
+            toastId,
             showNotifications: false,
           },
         },
         "ActivityStream:Content"
       )
     );
-  }, [dispatch]);
+  }, [dispatch, toastQueue]);
 
   const getToast = useCallback(() => {
     // Note: This architecture could expand to support multiple toast notifications at once
@@ -33,25 +43,35 @@ function Notifications({ dispatch }) {
     switch (latestToastItem) {
       case "thumbsDownToast":
         return (
-          <ThumbsDownToast onDismissClick={onDismissClick} key={toastCounter} />
+          <ThumbsDownToast
+            onDismissClick={syncHiddenToastData}
+            onAnimationEnd={syncHiddenToastData}
+            key={toastCounter}
+          />
         );
       case "thumbsUpToast":
         return (
-          <ThumbsUpToast onDismissClick={onDismissClick} key={toastCounter} />
+          <ThumbsUpToast
+            onDismissClick={syncHiddenToastData}
+            onAnimationEnd={syncHiddenToastData}
+            key={toastCounter}
+          />
         );
       default:
         throw new Error("No toast found");
     }
-  }, [onDismissClick, toastCounter, toastQueue]);
+  }, [syncHiddenToastData, toastCounter, toastQueue]);
 
   useEffect(() => {
     getToast();
   }, [toastQueue, getToast]);
 
-  return (
+  return toastQueue.length ? (
     <div className="notification-wrapper">
       <ul className="notification-feed">{getToast()}</ul>
     </div>
+  ) : (
+    ""
   );
 }
 
