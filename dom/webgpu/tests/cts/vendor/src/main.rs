@@ -103,7 +103,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
 
         ensure!(
             root.try_child(&orig_working_dir)
-                .map_or(false, |c| c.relative_path() == cts_vendor_dir),
+                .is_ok_and(|c| c.relative_path() == cts_vendor_dir),
             concat!(
                 "It is expected to run this tool from the root of its Cargo project, ",
                 "but this does not appear to have been done. Bailing."
@@ -281,13 +281,10 @@ fn run(args: CliArgs) -> miette::Result<()> {
         npm_run_wpt_cmd.spawn()
     })?;
 
-    let cts_https_html_path = out_wpt_dir.child("cts.https.html");
+    let cts_https_html_path = out_wpt_dir.child("cts-withsomeworkers.https.html");
 
     {
-        for file_name in [
-            "cts-chunked2sec.https.html",
-            "cts-withsomeworkers.https.html",
-        ] {
+        for file_name in ["cts-chunked2sec.https.html", "cts.https.html"] {
             let file_name = out_wpt_dir.child(file_name);
             log::info!("removing extraneous {file_name}…");
             remove_file(&*file_name)?;
@@ -386,20 +383,30 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 "^",
                 "<meta name=variant content='",
                 r"\?",
-                r"q=(?P<test_path>[^']*?):\*'",
-                ">",
+                r"(:?worker=(?P<worker_type>\w+)&)?",
+                r"q=(?P<test_path>[^']*?):\*",
+                "'>",
                 "$"
             ))
             .unwrap();
             cts_cases = cases_start
                 .split_terminator('\n')
                 .filter_map(|line| {
+                    if line.is_empty() {
+                        // Empty separator lines exist between groups of different `worker_type`s.
+                        return None;
+                    }
                     let captures = meta_variant_regex.captures(line);
                     if captures.is_none() {
                         parsing_failed = true;
                         log::error!("line is not a test case: {line:?}");
                     }
                     let captures = captures?;
+
+                    // TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1938663
+                    if captures.name("worker_type").map(|m| m.as_str()) == Some("service") {
+                        return None;
+                    }
 
                     let test_path = captures["test_path"].to_owned();
 
