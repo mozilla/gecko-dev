@@ -1141,11 +1141,6 @@ bool WebRenderBridgeParent::SetDisplayList(
   wr::Vec<uint8_t> dlSpatialTreeData(std::move(aSpatialTreeDL));
 
   if (IsRootWebRenderBridgeParent()) {
-#ifdef MOZ_WIDGET_GTK
-    if (mWidget->AsGTK()) {
-      mWidget->AsGTK()->RemoteLayoutSizeUpdated(aRect);
-    }
-#endif
     LayoutDeviceIntSize widgetSize = mWidget->GetClientSize();
     LayoutDeviceIntRect rect =
         LayoutDeviceIntRect(LayoutDeviceIntPoint(), widgetSize);

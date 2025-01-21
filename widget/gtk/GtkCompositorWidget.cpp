@@ -92,27 +92,6 @@ LayoutDeviceIntSize GtkCompositorWidget::GetClientSize() {
   return *size;
 }
 
-void GtkCompositorWidget::RemoteLayoutSizeUpdated(
-    const LayoutDeviceRect& aSize) {
-  if (!mWidget || !mWidget->IsWaitingForCompositorResume()) {
-    return;
-  }
-
-  LOG("GtkCompositorWidget::RemoteLayoutSizeUpdated() %d x %d",
-      (int)aSize.width, (int)aSize.height);
-
-  // We're waiting for layout to match widget size.
-  auto clientSize = mClientSize.Lock();
-  if (clientSize->width != (int)aSize.width ||
-      clientSize->height != (int)aSize.height) {
-    LOG("quit, client size doesn't match (%d x %d)", clientSize->width,
-        clientSize->height);
-    return;
-  }
-
-  mWidget->ResumeCompositorFromCompositorThread();
-}
-
 EGLNativeWindowType GtkCompositorWidget::GetEGLNativeWindow() {
   EGLNativeWindowType window = nullptr;
   if (mWidget) {

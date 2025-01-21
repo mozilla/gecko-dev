@@ -470,20 +470,7 @@ class nsWindow final : public nsBaseWidget {
   };
 #endif
 
-  typedef enum {
-    // WebRender compositor is enabled
-    COMPOSITOR_ENABLED,
-    // WebRender compositor is paused as we're repainting whole window and
-    // we're waiting for content process to update page content.
-    COMPOSITOR_PAUSED_FLICKERING
-  } WindowCompositorState;
-
-  // Pause compositor to avoid rendering artifacts from content process.
   void ResumeCompositorImpl();
-  void ResumeCompositorFlickering();
-  void ResumeCompositorFromCompositorThread();
-  void PauseCompositorFlickering();
-  bool IsWaitingForCompositorResume();
 
   // Force hide this window, remove compositor etc. to avoid
   // rendering queue blocking (see Bug 1782948).
@@ -586,11 +573,6 @@ class nsWindow final : public nsBaseWidget {
   mozilla::Maybe<GdkPoint> mGdkWindowRootOrigin;
 
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate = nullptr;
-  mozilla::Atomic<WindowCompositorState, mozilla::Relaxed> mCompositorState{
-      COMPOSITOR_ENABLED};
-  // This is used in COMPOSITOR_PAUSED_FLICKERING mode only to resume compositor
-  // in some reasonable time when page content is not updated.
-  guint mCompositorPauseTimeoutID = 0;
 
   // The actual size mode that's in effect.
   nsSizeMode mSizeMode = nsSizeMode_Normal;
