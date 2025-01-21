@@ -98,12 +98,11 @@ def make_task_description(config, jobs):
         if not build_platform:
             raise Exception("Cannot find build platform!")
 
-        label = config.kind
         description = "Beetmover for partner attribution"
         attributes = copy_attributes_from_dependent_job(dep_job)
 
         task = {
-            "label": label,
+            "label": "{}-{}".format(config.kind, job["name"]),
             "description": description,
             "dependencies": {dep_job.kind: dep_job.label},
             "attributes": attributes,
