@@ -4022,7 +4022,7 @@ profiles:
     products:
       - "firefox"
   existing:
-    objects: ["avatar", "closed", "deleted", "displayed", "learn_more", "name", "theme"]
+    objects: ["alert", "avatar", "closed", "deleted", "displayed", "learn_more", "name", "theme"]
     release_channel_collection: opt-out
     record_in_processes:
       - main
@@ -4041,7 +4041,7 @@ profiles:
     products:
       - "firefox"
   new:
-    objects: ["avatar", "closed", "deleted", "displayed", "learn_more", "name", "theme"]
+    objects: ["alert", "avatar", "closed", "deleted", "displayed", "learn_more", "name", "theme"]
     release_channel_collection: opt-out
     record_in_processes:
       - main

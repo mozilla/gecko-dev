@@ -197,6 +197,13 @@ export class PromptCollection {
           true
         );
       }
+      let gleanFn =
+        originNoSuffix === "about:newprofile"
+          ? "profilesNew"
+          : "profilesExisting";
+      let value = buttonNumClicked === 0 ? "leave" : "cancel";
+      Glean[gleanFn].alert.record({ value });
+
       return buttonNumClicked !== 1;
     }
 

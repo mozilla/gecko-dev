@@ -34,6 +34,31 @@ profiles.default:
     telemetry_mirror: Profiles_Default_Updated
 
 profiles.existing:
+  alert:
+    type: event
+    description: >
+      Recorded when the user tries to close the about:editprofile page without
+      setting a name. A beforeunload alert is then displayed. We record the
+      user's decision to stay on the page or leave in the `extra` value.
+    extra_keys:
+      value:
+        description:
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter. The `value` is `leave` if the user chose
+          to leave the page, and `cancel` if the user chose to stay on the
+          page.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_Existing_Alert
   avatar:
     type: event
     description: Recorded when the user selects a different avatar.
@@ -159,6 +184,31 @@ profiles.existing:
     telemetry_mirror: Profiles_Existing_Theme
 
 profiles.new:
+  alert:
+    type: event
+    description: >
+      Recorded when the user tries to close the about:newprofile page without
+      setting a name. A beforeunload alert is then displayed. We record the
+      user's decision to stay on the page or leave in the `extra` value.
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter. The `value` is `leave` if the user chose
+          to leave the page, and `cancel` if the user chose to stay on the
+          page.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Alert
   avatar:
     type: event
     description: Recorded when the user selects a different avatar.
