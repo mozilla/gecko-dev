@@ -72,12 +72,11 @@ CATEGORIES = {
 }
 
 
-def _activate_python_environment(topsrcdir, get_state_dir):
+def _activate_python_environment(topsrcdir, get_state_dir, quiet):
     from mach.site import MachSiteManager
 
     mach_environment = MachSiteManager.from_environment(
-        topsrcdir,
-        get_state_dir,
+        topsrcdir, get_state_dir, quiet=quiet
     )
     mach_environment.activate()
 
@@ -152,9 +151,20 @@ def initialize(topsrcdir, args=()):
 
     check_for_spaces(topsrcdir)
 
+    # See bug 1874208:
+    # Status messages from site.py break usages of `./mach environment`.
+    # We pass `quiet` only for it to work around this, so that all other
+    # commands can still write status messages.
+    if args and args[0] == "environment":
+        quiet = True
+    else:
+        quiet = False
+
     # normpath state_dir to normalize msys-style slashes.
     _activate_python_environment(
-        topsrcdir, lambda: os.path.normpath(get_state_dir(True, topsrcdir=topsrcdir))
+        topsrcdir,
+        lambda: os.path.normpath(get_state_dir(True, topsrcdir=topsrcdir)),
+        quiet=quiet,
     )
     _maybe_activate_mozillabuild_environment()
 
@@ -341,6 +351,7 @@ def initialize(topsrcdir, args=()):
             lambda: os.path.normpath(get_state_dir(True, topsrcdir=topsrcdir)),
             site_name,
             get_virtualenv_base_dir(topsrcdir),
+            quiet=quiet,
         )
 
         command_site_manager.activate()

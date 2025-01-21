@@ -49,6 +49,11 @@ def use_uv():
     ) and shutil.which("uv")
 
 
+@lru_cache(maxsize=None)
+def show_pip_output():
+    return os.environ.get("MACH_SHOW_PIP_OUTPUT", "").lower() in ("1", "true")
+
+
 def pip_command(*, python_executable, subcommand=None, args=None, non_uv_args=None):
     if use_uv():
         command = ["uv", "pip"]
@@ -285,6 +290,7 @@ class MachSiteManager:
         requirements: MachEnvRequirements,
         original_python: "ExternalPythonSite",
         site_packages_source: SitePackagesSource,
+        quiet: bool = False,
     ):
         """
         Args:
@@ -311,9 +317,16 @@ class MachSiteManager:
             original_python,
             self._virtualenv_root,
         )
+        self._quiet = quiet
+
+    def _log(self, message: str):
+        if not self._quiet:
+            print(message)
 
     @classmethod
-    def from_environment(cls, topsrcdir: str, get_state_dir: Callable[[], str]):
+    def from_environment(
+        cls, topsrcdir: str, get_state_dir: Callable[[], str], quiet: bool = False
+    ):
         """
         Args:
             topsrcdir: The path to the Firefox repo
@@ -355,6 +368,7 @@ class MachSiteManager:
             requirements,
             original_python,
             source,
+            quiet,
         )
 
     def _up_to_date(self):
@@ -416,6 +430,7 @@ class MachSiteManager:
                 activate_virtualenv(self._virtualenv())
 
     def _build(self):
+        self._log(f"Creating the 'mach' site at {self._virtualenv_root}")
         if self._site_packages_source != SitePackagesSource.VENV:
             # The Mach virtualenv doesn't have a physical virtualenv on-disk if it won't
             # be "pip install"-ing. So, there's no build work to do.
@@ -464,7 +479,7 @@ class MachSiteManager:
 
     def _virtualenv(self):
         assert self._site_packages_source == SitePackagesSource.VENV
-        return PythonVirtualenv(self._metadata.prefix)
+        return PythonVirtualenv(self._metadata.prefix, self._quiet)
 
 
 class CommandSiteManager:
@@ -497,6 +512,7 @@ class CommandSiteManager:
         active_metadata: MozSiteMetadata,
         populate_virtualenv: bool,
         requirements: MachEnvRequirements,
+        quiet: bool = False,
     ):
         """
         Args:
@@ -516,7 +532,8 @@ class CommandSiteManager:
         self._mach_virtualenv_root = mach_virtualenv_root
         self.virtualenv_root = virtualenv_root
         self._site_name = site_name
-        self._virtualenv = PythonVirtualenv(self.virtualenv_root)
+        self._quiet = quiet
+        self._virtualenv = PythonVirtualenv(self.virtualenv_root, self._quiet)
         self.python_path = self._virtualenv.python_path
         self.bin_path = self._virtualenv.bin_path
         self._populate_virtualenv = populate_virtualenv
@@ -530,6 +547,13 @@ class CommandSiteManager:
             virtualenv_root,
         )
 
+    def _log(self, message: str):
+        if not self._quiet:
+            # Ideally we would write to stderr here, but mozharness
+            # has tests that fail if there is any output to stderr.
+            # So until that changes, this will have to do.
+            print(message)
+
     @classmethod
     def from_environment(
         cls,
@@ -537,6 +561,7 @@ class CommandSiteManager:
         get_state_dir: Callable[[], Optional[str]],
         site_name: str,
         command_virtualenvs_dir: str,
+        quiet: bool = False,
     ):
         """
         Args:
@@ -585,6 +610,7 @@ class CommandSiteManager:
             active_metadata,
             populate_virtualenv,
             resolve_requirements(topsrcdir, site_name),
+            quiet,
         )
 
     def ensure(self):
@@ -612,7 +638,9 @@ class CommandSiteManager:
                             f"already been activated. Was it modified while this Mach process "
                             f"was running?"
                         )
-
+                    self._log(
+                        f"Creating the '{self._site_name}' site at {self.virtualenv_root}"
+                    )
                     _create_venv_with_pthfile(
                         self._virtualenv,
                         self._pthfile_lines(),
@@ -621,7 +649,7 @@ class CommandSiteManager:
                         self._metadata,
                     )
         except Timeout:
-            print(
+            self._log(
                 f"Could not acquire the lock at {lock_file} for the {self._site_name} site after {timeout} seconds."
             )
 
@@ -632,7 +660,6 @@ class CommandSiteManager:
         site, you can simply instantiate an instance of this class
         and call .activate() to make the virtualenv active.
         """
-
         active_site = MozSiteMetadata.from_runtime()
         site_is_already_active = active_site.site_name == self._site_name
         if (
@@ -683,6 +710,7 @@ class CommandSiteManager:
         expected hash of the downloaded package. See:
         https://pip.pypa.io/en/stable/reference/pip_install/#hash-checking-mode
         """
+        self._log(f"Installing pip requirements to the '{self._site_name}' site.")
 
         if not os.path.isabs(path):
             path = os.path.join(self._topsrcdir, path)
@@ -692,14 +720,9 @@ class CommandSiteManager:
         if require_hashes:
             args.append("--require-hashes")
 
-        install_result = self._virtualenv.pip_install(
-            args,
-            check=not quiet,
-            stdout=subprocess.PIPE if quiet else None,
-        )
+        install_result = self._virtualenv.pip_install(args)
 
         if install_result.returncode:
-            print(install_result.stdout)
             raise InstallPipRequirementsException(
                 f'Failed to install "{path}" into the "{self._site_name}" site.'
             )
@@ -777,13 +800,15 @@ class CommandSiteManager:
                 # the "pip check" failure is easier.
                 print(install_result.stdout)
 
-            subprocess.check_call(
+            result = subprocess.run(
                 pip_command(
                     python_executable=self.python_path, subcommand="list", args=["-v"]
                 ),
-                stdout=sys.stderr,
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
             )
-            print(check_result.stdout, file=sys.stderr)
+            print(result.stdout, file=sys.stderr)
             raise InstallPipRequirementsException(
                 f'As part of validation after installing "{path}" into the '
                 f'"{self._site_name}" site, the site appears to contain installed '
@@ -872,7 +897,7 @@ class CommandSiteManager:
 class PythonVirtualenv:
     """Calculates paths of interest for general python virtual environments"""
 
-    def __init__(self, prefix):
+    def __init__(self, prefix, quiet=False):
         self.prefix = os.path.realpath(prefix)
         self.paths = self._get_sysconfig_paths(self.prefix)
 
@@ -885,6 +910,7 @@ class PythonVirtualenv:
 
         self.bin_path = self.paths["scripts"]
         self.python_path = os.path.join(self.bin_path, python_exe_name)
+        self._quiet = quiet
 
     @staticmethod
     def _get_sysconfig_paths(prefix):
@@ -999,8 +1025,10 @@ class PythonVirtualenv:
             "ARCHFLAGS", "-arch {}".format(platform.machine())
         )
         kwargs.setdefault("check", True)
-        kwargs.setdefault("stderr", subprocess.STDOUT)
+        kwargs.setdefault("stdout", None if show_pip_output() else subprocess.PIPE)
+        kwargs.setdefault("stderr", None if show_pip_output() else subprocess.PIPE)
         kwargs.setdefault("universal_newlines", True)
+        kwargs.setdefault("text", True)
 
         # It's tempting to call pip natively via pip.main(). However,
         # the current Python interpreter may not be the virtualenv python.
@@ -1010,7 +1038,7 @@ class PythonVirtualenv:
         # It /might/ be possible to cheat and set sys.executable to
         # self.python_path. However, this seems more risk than it's worth.
 
-        return subprocess.run(
+        install_result = subprocess.run(
             pip_command(
                 python_executable=self.python_path,
                 subcommand="install",
@@ -1019,12 +1047,22 @@ class PythonVirtualenv:
             **kwargs,
         )
 
+        if install_result.returncode and not self._quiet:
+            if install_result.stdout:
+                print(install_result.stdout)
+            if install_result.stderr:
+                print(install_result.stderr, file=sys.stderr)
+
+        return install_result
+
     def install_optional_packages(self, optional_requirements):
         for requirement in optional_requirements:
             try:
                 self.pip_install_with_constraints([str(requirement.requirement)])
-            except subprocess.CalledProcessError:
+            except subprocess.CalledProcessError as error:
                 print(
+                    f"{error.output if error.output else ''}"
+                    f"{error.stderr if error.stderr else ''}"
                     f"Could not install {requirement.requirement.name}, so "
                     f"{requirement.repercussion}. Continuing."
                 )
@@ -1222,7 +1260,7 @@ def resolve_requirements(topsrcdir, site_name):
 
 
 def _resolve_installed_packages(python_executable):
-    pip_json = subprocess.check_output(
+    result = subprocess.run(
         pip_command(
             python_executable=python_executable,
             subcommand="list",
@@ -1230,9 +1268,12 @@ def _resolve_installed_packages(python_executable):
             non_uv_args=["--disable-pip-version-check"],
         ),
         universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
     )
 
-    installed_packages = json.loads(pip_json)
+    installed_packages = json.loads(result.stdout)
     return {package["name"]: package["version"] for package in installed_packages}
 
 
