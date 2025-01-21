@@ -36,11 +36,7 @@ interface CookieStore : EventTarget {
   [Throws, UseCounter]
   Promise<undefined> delete(CookieStoreDeleteOptions options);
 
-  /* Bug 1475599 - By spec, `onchange` should be available only on `Window`,
-   * but because we do not want to implement the ExtendableCookieChangeEvent
-   * for ServiceWorker, we have decided to expose this EventHandler everywhere.
-   */
-  //[Exposed=Window]
+  [Exposed=Window]
   attribute EventHandler onchange;
 };
 

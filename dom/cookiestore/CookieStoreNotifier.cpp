@@ -22,24 +22,17 @@ NS_IMPL_ISUPPORTS(CookieStoreNotifier, nsIObserver);
 // static
 already_AddRefed<CookieStoreNotifier> CookieStoreNotifier::Create(
     CookieStore* aCookieStore) {
-  nsIPrincipal* principal = nullptr;
+  MOZ_ASSERT(NS_IsMainThread());
 
-  if (!NS_IsMainThread()) {
-    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(workerPrivate);
-    principal = workerPrivate->GetPrincipal();
-  } else {
-    nsCOMPtr<nsPIDOMWindowInner> window = aCookieStore->GetOwnerWindow();
-    MOZ_ASSERT(window);
+  nsCOMPtr<nsPIDOMWindowInner> window = aCookieStore->GetOwnerWindow();
+  MOZ_ASSERT(window);
 
-    nsCOMPtr<Document> document = window->GetExtantDoc();
-    if (NS_WARN_IF(!document)) {
-      return nullptr;
-    }
-
-    principal = document->NodePrincipal();
+  nsCOMPtr<Document> document = window->GetExtantDoc();
+  if (NS_WARN_IF(!document)) {
+    return nullptr;
   }
 
+  nsIPrincipal* principal = document->NodePrincipal();
   if (NS_WARN_IF(!principal)) {
     return nullptr;
   }
@@ -54,21 +47,21 @@ already_AddRefed<CookieStoreNotifier> CookieStoreNotifier::Create(
     return nullptr;
   }
 
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (NS_WARN_IF(!os)) {
+    return nullptr;
+  }
+
   RefPtr<CookieStoreNotifier> notifier = new CookieStoreNotifier(
       aCookieStore, baseDomain, principal->OriginAttributesRef());
 
-  bool privateBrowsing = principal->OriginAttributesRef().IsPrivateBrowsing();
-
-  notifier->mEventTarget = GetCurrentSerialEventTarget();
-
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(
-        NS_NewRunnableFunction(__func__, [notifier, privateBrowsing] {
-          notifier->AddObserversOnMainThread(privateBrowsing);
-        }));
-  } else {
-    notifier->AddObserversOnMainThread(privateBrowsing);
-  }
+  nsresult rv =
+      os->AddObserver(notifier,
+                      principal->OriginAttributesRef().IsPrivateBrowsing()
+                          ? "private-cookie-changed"
+                          : "cookie-changed",
+                      false);
+  Unused << NS_WARN_IF(NS_FAILED(rv));
 
   return notifier.forget();
 }
@@ -79,50 +72,25 @@ CookieStoreNotifier::CookieStoreNotifier(
     : mCookieStore(aCookieStore),
       mBaseDomain(aBaseDomain),
       mOriginAttributes(aOriginAttributes) {
+  MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aCookieStore);
 }
 
 CookieStoreNotifier::~CookieStoreNotifier() = default;
 
 void CookieStoreNotifier::Disentangle() {
+  MOZ_ASSERT(NS_IsMainThread());
+
   mCookieStore = nullptr;
 
-  bool privateBrowsing = mOriginAttributes.IsPrivateBrowsing();
-
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(NS_NewRunnableFunction(
-        __func__, [self = RefPtr(this), privateBrowsing] {
-          self->RemoveObserversOnMainThread(privateBrowsing);
-        }));
-  } else {
-    RemoveObserversOnMainThread(privateBrowsing);
-  }
-}
-
-void CookieStoreNotifier::AddObserversOnMainThread(bool aPrivateBrowsing) {
-  MOZ_ASSERT(NS_IsMainThread());
-
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (NS_WARN_IF(!os)) {
     return;
   }
 
-  nsresult rv = os->AddObserver(
-      this, aPrivateBrowsing ? "private-cookie-changed" : "cookie-changed",
-      false);
-  Unused << NS_WARN_IF(NS_FAILED(rv));
-}
-
-void CookieStoreNotifier::RemoveObserversOnMainThread(bool aPrivateBrowsing) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (NS_WARN_IF(!os)) {
-    return;
-  }
-
-  nsresult rv = os->RemoveObserver(
-      this, aPrivateBrowsing ? "private-cookie-changed" : "cookie-changed");
+  nsresult rv = os->RemoveObserver(this, mOriginAttributes.IsPrivateBrowsing()
+                                             ? "private-cookie-changed"
+                                             : "cookie-changed");
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 
@@ -193,7 +161,7 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
 
   bool deletedEvent = action == nsICookieNotification::COOKIE_DELETED;
 
-  mEventTarget->Dispatch(NS_NewRunnableFunction(
+  GetCurrentSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       __func__, [self = RefPtr(this), item, deletedEvent] {
         self->DispatchEvent(item, deletedEvent);
       }));
@@ -203,7 +171,7 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
 
 void CookieStoreNotifier::DispatchEvent(const CookieListItem& aItem,
                                         bool aDeletedEvent) {
-  MOZ_ASSERT(mEventTarget->IsOnCurrentThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   if (!mCookieStore) {
     return;
@@ -218,22 +186,20 @@ void CookieStoreNotifier::DispatchEvent(const CookieListItem& aItem,
     return;
   }
 
-  if (NS_IsMainThread()) {
-    nsCOMPtr<nsPIDOMWindowInner> window = mCookieStore->GetOwnerWindow();
-    if (!window) {
-      return;
-    }
+  nsCOMPtr<nsPIDOMWindowInner> window = mCookieStore->GetOwnerWindow();
+  if (!window) {
+    return;
+  }
 
-    RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
-    if (!bc) {
-      return;
-    }
+  RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
+  if (!bc) {
+    return;
+  }
 
-    if (bc->IsInBFCache() ||
-        (window->GetExtantDoc() && window->GetExtantDoc()->GetBFCacheEntry())) {
-      mDelayedDOMEvents.AppendElement(event);
-      return;
-    }
+  if (bc->IsInBFCache() ||
+      (window->GetExtantDoc() && window->GetExtantDoc()->GetBFCacheEntry())) {
+    mDelayedDOMEvents.AppendElement(event);
+    return;
   }
 
   mCookieStore->DispatchEvent(*event);
