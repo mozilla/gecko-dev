@@ -318,8 +318,8 @@ void Gecko_CopyImageOrientationFrom(nsStyleVisibility* aDst,
 // list-style-image style.
 void Gecko_SetListStyleImageNone(nsStyleList* style_struct);
 
-void Gecko_SetListStyleImageImageValue(
-    nsStyleList* style_struct, const mozilla::StyleComputedImageUrl* url);
+void Gecko_SetListStyleImageImageValue(nsStyleList* style_struct,
+                                       const mozilla::StyleComputedUrl* url);
 
 void Gecko_CopyListStyleImageFrom(nsStyleList* dest, const nsStyleList* src);
 
@@ -424,9 +424,6 @@ void Gecko_nsStyleSVG_CopyContextProperties(nsStyleSVG* dst,
 
 void Gecko_GetComputedURLSpec(const mozilla::StyleComputedUrl* url,
                               nsCString* spec);
-
-void Gecko_GetComputedImageURLSpec(const mozilla::StyleComputedUrl* url,
-                                   nsCString* spec);
 
 // Return true if the given image MIME type is supported
 bool Gecko_IsSupportedImageMimeType(const uint8_t* mime_type,

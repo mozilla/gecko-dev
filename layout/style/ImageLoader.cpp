@@ -405,7 +405,7 @@ void ImageLoader::ClearFrames(nsPresContext* aPresContext) {
 }
 
 static CORSMode EffectiveCorsMode(nsIURI* aURI,
-                                  const StyleComputedImageUrl& aImage) {
+                                  const StyleComputedUrl& aImage) {
   MOZ_ASSERT(aURI);
   StyleCorsMode mode = aImage.CorsMode();
   if (mode == StyleCorsMode::None) {
@@ -420,7 +420,7 @@ static CORSMode EffectiveCorsMode(nsIURI* aURI,
 
 /* static */
 already_AddRefed<imgRequestProxy> ImageLoader::LoadImage(
-    const StyleComputedImageUrl& aImage, Document& aDocument) {
+    const StyleComputedUrl& aImage, Document& aDocument) {
   MOZ_ASSERT(NS_IsMainThread());
   nsIURI* uri = aImage.GetURI();
   if (!uri) {

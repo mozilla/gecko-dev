@@ -95,8 +95,6 @@ trivial_to_resolved_value!(crate::values::AtomIdent);
 trivial_to_resolved_value!(crate::custom_properties::VariableValue);
 trivial_to_resolved_value!(crate::stylesheets::UrlExtraData);
 trivial_to_resolved_value!(computed::url::ComputedUrl);
-#[cfg(feature = "gecko")]
-trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
 trivial_to_resolved_value!(crate::Namespace);
 #[cfg(feature = "servo")]

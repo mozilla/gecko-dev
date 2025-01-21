@@ -19,7 +19,7 @@ use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::NonNegative;
 use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
 use crate::values::specified::position::{Position, PositionComponent, Side};
-use crate::values::specified::url::SpecifiedImageUrl;
+use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{
     Angle, AngleOrPercentage, Color, Length, LengthPercentage, NonNegativeLength,
     NonNegativeLengthPercentage, Resolution,
@@ -40,7 +40,7 @@ fn gradient_color_interpolation_method_enabled() -> bool {
 
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::Image<Gradient, SpecifiedImageUrl, Color, Percentage, Resolution>;
+pub type Image = generic::Image<Gradient, SpecifiedUrl, Color, Percentage, Resolution>;
 
 // Images should remain small, see https://github.com/servo/servo/pull/18430
 size_of_test!(Image, 16);
@@ -216,7 +216,7 @@ impl Image {
         }
 
         if let Ok(url) = input
-            .try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode))
+            .try_parse(|input| SpecifiedUrl::parse_with_cors_mode(context, input, cors_mode))
         {
             return Ok(generic::Image::Url(url));
         }
@@ -419,7 +419,7 @@ impl ImageSetItem {
         flags: ParseImageFlags,
     ) -> Result<Self, ParseError<'i>> {
         let image = match input.try_parse(|i| i.expect_url_or_string()) {
-            Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(
+            Ok(url) => Image::Url(SpecifiedUrl::parse_from_string(
                 url.as_ref().into(),
                 context,
                 cors_mode,

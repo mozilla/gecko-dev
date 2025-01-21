@@ -257,7 +257,6 @@ include = [
   "Translate",
   "BorderImageWidth",
   "ComputedUrl",
-  "ComputedImageUrl",
   "UrlOrNone",
   "Filter",
   "Gradient",
@@ -946,7 +945,7 @@ renaming_overrides_prefixing = true
   bool IsImageRequestType() const;
 
   // Gets the image request URL.
-  const StyleComputedImageUrl* GetImageRequestURLValue() const;
+  const StyleComputedUrl* GetImageRequestURLValue() const;
 
   // Gets the image data of this image if it has any image request.
   imgRequestProxy* GetImageRequest() const;

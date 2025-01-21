@@ -1550,7 +1550,7 @@ void StyleImage::ResolveImage(Document& aDoc, const StyleImage* aOld) {
   const auto* url = GetImageRequestURLValue();
   // We could avoid this const_cast generating more code but it's not really
   // worth it.
-  const_cast<StyleComputedImageUrl*>(url)->ResolveImage(aDoc, old);
+  const_cast<StyleComputedUrl*>(url)->ResolveImage(aDoc, old);
 }
 
 template <>
@@ -1903,7 +1903,7 @@ bool nsStyleImageLayers::Layer::operator==(const Layer& aOther) const {
 template <class ComputedValueItem>
 static void FillImageLayerList(
     nsStyleAutoArray<nsStyleImageLayers::Layer>& aLayers,
-    ComputedValueItem nsStyleImageLayers::Layer::*aResultLocation,
+    ComputedValueItem nsStyleImageLayers::Layer::* aResultLocation,
     uint32_t aItemCount, uint32_t aFillCount) {
   MOZ_ASSERT(aFillCount <= aLayers.Length(), "unexpected array length");
   for (uint32_t sourceLayer = 0, destLayer = aItemCount; destLayer < aFillCount;
@@ -1916,7 +1916,7 @@ static void FillImageLayerList(
 // layer.mPosition.*aResultLocation instead of layer.*aResultLocation.
 static void FillImageLayerPositionCoordList(
     nsStyleAutoArray<nsStyleImageLayers::Layer>& aLayers,
-    LengthPercentage Position::*aResultLocation, uint32_t aItemCount,
+    LengthPercentage Position::* aResultLocation, uint32_t aItemCount,
     uint32_t aFillCount) {
   MOZ_ASSERT(aFillCount <= aLayers.Length(), "unexpected array length");
   for (uint32_t sourceLayer = 0, destLayer = aItemCount; destLayer < aFillCount;

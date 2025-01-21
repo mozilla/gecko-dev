@@ -7,9 +7,9 @@
 use crate::values::generics::url::GenericUrlOrNone;
 
 #[cfg(feature = "gecko")]
-pub use crate::gecko::url::{SpecifiedImageUrl, SpecifiedUrl};
+pub use crate::gecko::url::SpecifiedUrl;
 #[cfg(feature = "servo")]
-pub use crate::servo::url::{SpecifiedImageUrl, SpecifiedUrl};
+pub use crate::servo::url::SpecifiedUrl;
 
 /// Specified <url> | <none>
 pub type UrlOrNone = GenericUrlOrNone<SpecifiedUrl>;

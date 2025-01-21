@@ -9,7 +9,7 @@
 
 use crate::values::computed::percentage::Percentage;
 use crate::values::computed::position::Position;
-use crate::values::computed::url::ComputedImageUrl;
+use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{
     AngleOrPercentage, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
@@ -26,7 +26,7 @@ pub use specified::ImageRendering;
 
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::GenericImage<Gradient, ComputedImageUrl, Color, Percentage, Resolution>;
+pub type Image = generic::GenericImage<Gradient, ComputedUrl, Color, Percentage, Resolution>;
 
 // Images should remain small, see https://github.com/servo/servo/pull/18430
 size_of_test!(Image, 16);

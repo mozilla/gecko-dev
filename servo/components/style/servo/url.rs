@@ -204,9 +204,6 @@ impl ToComputedValue for SpecifiedUrl {
     }
 }
 
-/// A specified image url() value for servo.
-pub type SpecifiedImageUrl = CssUrl;
-
 /// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ComputedUrl {
@@ -241,6 +238,3 @@ impl ToCss for ComputedUrl {
         dest.write_char(')')
     }
 }
-
-/// The computed value of a CSS `url()` for image.
-pub type ComputedImageUrl = ComputedUrl;

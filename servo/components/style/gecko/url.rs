@@ -60,7 +60,8 @@ impl PartialEq for CssUrlData {
 }
 
 impl CssUrl {
-    fn parse_with_cors_mode<'i, 't>(
+    /// Parse a URL with a particular CORS mode.
+    pub fn parse_with_cors_mode<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
@@ -278,52 +279,6 @@ impl ToComputedValue for SpecifiedUrl {
     }
 }
 
-/// A specified image `url()` value.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub struct SpecifiedImageUrl(pub SpecifiedUrl);
-
-impl SpecifiedImageUrl {
-    /// Parse a URL from a string value that is a valid CSS token for a URL.
-    pub fn parse_from_string(url: String, context: &ParserContext, cors_mode: CorsMode) -> Self {
-        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(url, context, cors_mode))
-    }
-
-    /// Provides an alternate method for parsing that associates the URL
-    /// with anonymous CORS headers.
-    pub fn parse_with_cors_mode<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        cors_mode: CorsMode,
-    ) -> Result<Self, ParseError<'i>> {
-        Ok(SpecifiedImageUrl(SpecifiedUrl::parse_with_cors_mode(
-            context, input, cors_mode,
-        )?))
-    }
-}
-
-impl Parse for SpecifiedImageUrl {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        SpecifiedUrl::parse(context, input).map(SpecifiedImageUrl)
-    }
-}
-
-impl ToComputedValue for SpecifiedImageUrl {
-    type ComputedValue = ComputedImageUrl;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ComputedImageUrl(self.0.to_computed_value(context))
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        SpecifiedImageUrl(ToComputedValue::from_computed_value(&computed.0))
-    }
-}
-
 /// The computed value of a CSS non-image `url()`.
 ///
 /// The only difference between specified and computed URLs is the
@@ -357,21 +312,6 @@ impl ToCss for ComputedUrl {
         W: Write,
     {
         self.serialize_with(bindings::Gecko_GetComputedURLSpec, dest)
-    }
-}
-
-/// The computed value of a CSS image `url()`.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
-#[repr(transparent)]
-pub struct ComputedImageUrl(pub ComputedUrl);
-
-impl ToCss for ComputedImageUrl {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.0
-            .serialize_with(bindings::Gecko_GetComputedImageURLSpec, dest)
     }
 }
 
