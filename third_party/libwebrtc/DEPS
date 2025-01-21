@@ -585,6 +585,11 @@ deps = {
       'dep_type': 'cipd',
   },
 
+  'src/third_party/zstd/src': {
+    'url': Var('chromium_git') + '/external/github.com/facebook/zstd.git' + '@' + '7fb5347e88f10472226c9aa1962a148e55d8c480',
+    'condition': 'checkout_android',
+  },
+
   'src/tools/luci-go': {
       'packages': [
         {
