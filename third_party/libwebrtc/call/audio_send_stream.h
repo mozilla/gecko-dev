@@ -147,7 +147,6 @@ class AudioSendStream : public AudioSender {
       int payload_type;
       SdpAudioFormat format;
       bool nack_enabled = false;
-      bool transport_cc_enabled = false;
       bool enable_non_sender_rtt = false;
       std::optional<int> cng_payload_type;
       std::optional<int> red_payload_type;

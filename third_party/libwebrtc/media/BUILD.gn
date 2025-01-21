@@ -1017,6 +1017,7 @@ if (rtc_include_tests) {
         "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
         "../audio",
         "../call:call_interfaces",
+        "../call:payload_type_picker",
         "../call:video_receive_stream_api",
         "../call:video_send_stream_api",
         "../common_video",

@@ -271,7 +271,7 @@ index a6640678d9..835221fd96 100644
  
  rtc_source_set("scalability_mode") {
 diff --git a/audio/BUILD.gn b/audio/BUILD.gn
-index 9f3889a34b..e9f39af208 100644
+index 437883da54..7083cdbea1 100644
 --- a/audio/BUILD.gn
 +++ b/audio/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -470,7 +470,7 @@ index d91a446629..3c18ef1841 100644
  
  group("logging") {
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index e48d2ffada..76f45d7045 100644
+index 0850e86bd2..017a2529c2 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -6,7 +6,7 @@

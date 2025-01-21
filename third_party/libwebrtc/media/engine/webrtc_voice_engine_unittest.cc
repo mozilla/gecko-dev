@@ -48,6 +48,7 @@
 #include "call/audio_state.h"
 #include "call/call.h"
 #include "call/call_config.h"
+#include "call/payload_type_picker.h"
 #include "media/base/codec.h"
 #include "media/base/fake_media_engine.h"
 #include "media/base/fake_network_interface.h"
@@ -954,18 +955,6 @@ TEST_P(WebRtcVoiceEngineTestFake, CreateRecvStream) {
   EXPECT_EQ(0xFA17FA17, config.rtp.local_ssrc);
   EXPECT_EQ(ReceiveImpl()->transport(), config.rtcp_send_transport);
   EXPECT_EQ("", config.sync_group);
-}
-
-TEST_P(WebRtcVoiceEngineTestFake, OpusSupportsTransportCc) {
-  const std::vector<cricket::Codec>& codecs = engine_->send_codecs();
-  bool opus_found = false;
-  for (const cricket::Codec& codec : codecs) {
-    if (codec.name == "opus") {
-      EXPECT_TRUE(HasTransportCc(codec));
-      opus_found = true;
-    }
-  }
-  EXPECT_TRUE(opus_found);
 }
 
 // Test that we set our inbound codecs properly, including changing PT.

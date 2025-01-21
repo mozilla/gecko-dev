@@ -502,7 +502,7 @@ index cf169882e5..07a61605a9 100644
  
  rtc_library("payload_type_picker") {
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index 540956c1fd..c60526771e 100644
+index 768ba0b19e..2d2cc89b08 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
 @@ -27,7 +27,7 @@
@@ -574,7 +574,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index c66c2887bb..666e909cd0 100644
+index 5563faea4c..505d0cf123 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -76,7 +76,7 @@ rtc_library("rtc_media_base") {
@@ -1288,7 +1288,7 @@ index d5a5314f0e..4034e3f067 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 83780db703..b19b753b44 100644
+index 418959284d..91c0d32c14 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -17,7 +17,7 @@ rtc_library("video_stream_encoder_interface") {

@@ -1456,7 +1456,6 @@ bool WebRtcVoiceSendChannel::SetSendCodecs(
       if (voice_codec.bitrate > 0) {
         send_codec_spec->target_bitrate_bps = voice_codec.bitrate;
       }
-      send_codec_spec->transport_cc_enabled = HasTransportCc(voice_codec);
       send_codec_spec->nack_enabled = HasNack(voice_codec);
       send_codec_spec->enable_non_sender_rtt = HasRrtr(voice_codec);
       bitrate_config = GetBitrateConfigForCodec(voice_codec);

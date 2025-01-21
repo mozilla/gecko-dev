@@ -25,7 +25,7 @@
 #include "api/video_codecs/h264_profile_level_id.h"
 #include "api/video_codecs/sdp_video_format.h"
 #ifdef RTC_ENABLE_H265
-#include "api/video_codecs/h265_profile_tier_level.h"
+#include "api/video_codecs/h265_profile_tier_level.h"  // IWYU pragma: keep
 #endif
 #include "media/base/codec_comparators.h"
 #include "media/base/media_constants.h"
@@ -316,11 +316,6 @@ bool HasRemb(const Codec& codec) {
 bool HasRrtr(const Codec& codec) {
   return codec.HasFeedbackParam(
       FeedbackParam(kRtcpFbParamRrtr, kParamValueEmpty));
-}
-
-bool HasTransportCc(const Codec& codec) {
-  return codec.HasFeedbackParam(
-      FeedbackParam(kRtcpFbParamTransportCc, kParamValueEmpty));
 }
 
 const Codec* FindMatchingVideoCodec(const std::vector<Codec>& supported_codecs,
