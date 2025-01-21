@@ -74,11 +74,14 @@ def vendor_puppeteer(command_context, repository, commitish, install):
         os.path.join(puppeteer_dir, "json-mocha-reporter.js"),
         os.path.join(remotedir(command_context), "json-mocha-reporter.js"),
     )
+
+    print("Removing folders for current Puppeteer version…")
     shutil.rmtree(puppeteer_dir, ignore_errors=True)
     os.makedirs(puppeteer_dir)
+
     with TemporaryDirectory() as tmpdir:
-        git("clone", "-q", repository, tmpdir)
-        git("checkout", commitish, worktree=tmpdir)
+        print(f'Fetching commitish "{commitish}" from {repository}…')
+        git("clone", "--depth", "1", "--branch", commitish, repository, tmpdir)
         git(
             "checkout-index",
             "-a",
@@ -139,6 +142,7 @@ def vendor_puppeteer(command_context, repository, commitish, install):
             "PUPPETEER_SKIP_DOWNLOAD": "1",  # Don't download any build
         }
 
+        print("Cleaning up and installing new version of Puppeteer…")
         run_npm(
             "run",
             "clean",
