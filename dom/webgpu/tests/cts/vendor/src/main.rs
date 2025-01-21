@@ -296,6 +296,35 @@ fn run(args: CliArgs) -> miette::Result<()> {
     let cts_boilerplate_short_timeout;
     let cts_boilerplate_long_timeout;
     let cts_cases;
+    #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+    enum WorkerType {
+        Dedicated,
+        Service,
+        Shared,
+    }
+
+    impl WorkerType {
+        const DEDICATED: &str = "dedicated";
+        const SERVICE: &str = "service";
+        const SHARED: &str = "shared";
+
+        pub(crate) fn new(s: &str) -> Option<Self> {
+            match s {
+                Self::DEDICATED => Some(WorkerType::Dedicated),
+                Self::SERVICE => Some(WorkerType::Service),
+                Self::SHARED => Some(WorkerType::Shared),
+                _ => None,
+            }
+        }
+
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                Self::Dedicated => Self::DEDICATED,
+                Self::Service => Self::SERVICE,
+                Self::Shared => Self::SHARED,
+            }
+        }
+    }
     {
         {
             let (boilerplate, cases_start) = {
@@ -403,14 +432,22 @@ fn run(args: CliArgs) -> miette::Result<()> {
                     }
                     let captures = captures?;
 
-                    // TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1938663
-                    if captures.name("worker_type").map(|m| m.as_str()) == Some("service") {
-                        return None;
-                    }
-
                     let test_path = captures["test_path"].to_owned();
 
-                    Some((test_path, line))
+                    let worker_type =
+                        captures
+                            .name("worker_type")
+                            .map(|wt| wt.as_str())
+                            .and_then(|wt| match WorkerType::new(wt) {
+                                Some(wt) => Some(wt),
+                                None => {
+                                    parsing_failed = true;
+                                    log::error!("unrecognized `worker` type {wt:?}");
+                                    None
+                                }
+                            });
+
+                    Some((test_path, worker_type, line))
                 })
                 .collect::<Vec<_>>();
             ensure!(
@@ -430,8 +467,8 @@ fn run(args: CliArgs) -> miette::Result<()> {
     cts_ckt.regen_dir(out_wpt_dir.join("cts"), |cts_tests_dir| {
         log::info!("re-distributing tests into single file per test path…");
         let mut failed_writing = false;
-        let mut cts_cases_by_spec_file_dir = BTreeMap::<_, BTreeSet<_>>::new();
-        for (path, meta) in cts_cases {
+        let mut cts_cases_by_spec_file_dir = BTreeMap::<_, BTreeMap<_, BTreeSet<_>>>::new();
+        for (path, worker_type, meta) in cts_cases {
             let case_dir = {
                 // Context: We want to mirror CTS upstream's `src/webgpu/**/*.spec.ts` paths as
                 // entire WPT tests, with each subtest being a WPT variant. Here's a diagram of
@@ -468,6 +505,8 @@ fn run(args: CliArgs) -> miette::Result<()> {
             if !cts_cases_by_spec_file_dir
                 .entry(case_dir)
                 .or_default()
+                .entry(worker_type)
+                .or_default()
                 .insert(meta)
             {
                 log::warn!("duplicate entry {meta:?} detected")
@@ -488,19 +527,26 @@ fn run(args: CliArgs) -> miette::Result<()> {
             fn insert_with_default_name<'a>(
                 split_cases: &mut BTreeMap<fs::Child<'a>, WptEntry<'a>>,
                 spec_file_dir: fs::Child<'a>,
-                cases: BTreeSet<&'a str>,
+                cases: BTreeMap<Option<WorkerType>, BTreeSet<&'a str>>,
                 timeout_length: TimeoutLength,
             ) {
-                let path = spec_file_dir.child("cts.https.html");
-                assert!(split_cases
-                    .insert(
-                        path,
-                        WptEntry {
-                            cases,
-                            timeout_length
-                        }
-                    )
-                    .is_none());
+                for (worker_type, cases) in cases {
+                    // TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1938663
+                    if worker_type == Some(WorkerType::Service) {
+                        continue;
+                    }
+                    let file_stem = worker_type.map(|wt| wt.as_str()).unwrap_or("cts");
+                    let path = spec_file_dir.child(format!("{file_stem}.https.html"));
+                    assert!(split_cases
+                        .insert(
+                            path,
+                            WptEntry {
+                                cases,
+                                timeout_length
+                            }
+                        )
+                        .is_none());
+                }
             }
             {
                 let dld_path =
