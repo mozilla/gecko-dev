@@ -469,6 +469,8 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
   const webrtc::FieldTrialsView& trials() const override {
     return env_.field_trials();
   }
+  void EnableSendCongestionControlFeedbackAccordingToRfc8888() override {}
+  int FeedbackAccordingToRfc8888Count() { return 0; }
 
  private:
   webrtc::AudioSendStream* CreateAudioSendStream(

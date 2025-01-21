@@ -21,8 +21,10 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "api/adaptation/resource.h"
 #include "api/async_dns_resolver.h"
+#include "api/audio/audio_device.h"
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/data_channel_interface.h"
@@ -35,8 +37,8 @@
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
-#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtc_event_log_output.h"
+#include "api/rtp_parameters.h"
 #include "api/rtp_receiver_interface.h"
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_interface.h"
@@ -47,11 +49,14 @@
 #include "api/set_remote_description_observer_interface.h"
 #include "api/stats/rtc_stats_collector_callback.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/bandwidth_estimation_settings.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "api/transport/enums.h"
+#include "api/transport/network_control.h"
 #include "api/turn_customizer.h"
 #include "call/call.h"
+#include "call/payload_type_picker.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/port.h"
@@ -70,7 +75,6 @@
 #include "pc/rtp_transceiver.h"
 #include "pc/rtp_transmission_manager.h"
 #include "pc/rtp_transport_internal.h"
-#include "pc/sctp_data_channel.h"
 #include "pc/sdp_offer_answer.h"
 #include "pc/session_description.h"
 #include "pc/transceiver_list.h"
@@ -438,6 +442,7 @@ class PeerConnection : public PeerConnectionInternal,
     return_histogram_very_quickly_ = true;
   }
   void RequestUsagePatternReportForTesting();
+  int FeedbackAccordingToRfc8888CountForTesting() const;
 
   NetworkControllerInterface* GetNetworkController() override {
     if (!worker_thread()->IsCurrent()) {

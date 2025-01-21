@@ -656,6 +656,7 @@ void RtpTransportControllerSend::OnCongestionControlFeedback(
     Timestamp receive_time,
     const rtcp::CongestionControlFeedback& feedback) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
+  ++feedback_count_;
   // TODO: bugs.webrtc.org/42225697 - update feedback demuxer for RFC 8888.
   // Suggest feedback_demuxer_.OnTransportFeedback use TransportPacketFeedback
   // instead. See usage in OnTransportFeedback.

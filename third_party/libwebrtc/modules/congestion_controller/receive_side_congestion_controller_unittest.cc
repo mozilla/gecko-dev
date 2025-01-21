@@ -10,6 +10,7 @@
 
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -22,13 +23,18 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "modules/rtp_rtcp/source/rtcp_packet.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/buffer.h"
 #include "system_wrappers/include/clock.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scenario/scenario.h"
+#include "test/scenario/scenario_config.h"
 
 namespace webrtc {
 namespace test {
@@ -133,7 +139,7 @@ TEST(ReceiveSideCongestionControllerTest, SendsRfc8888FeedbackIfEnabled) {
   ReceiveSideCongestionController controller(
       CreateEnvironment(&clock), rtcp_sender.AsStdFunction(),
       remb_sender.AsStdFunction(), nullptr);
-  controller.EnablSendCongestionControlFeedbackAccordingToRfc8888();
+  controller.EnableSendCongestionControlFeedbackAccordingToRfc8888();
 
   // Expect that RTCP feedback is sent.
   EXPECT_CALL(rtcp_sender, Call)

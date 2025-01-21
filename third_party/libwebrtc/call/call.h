@@ -146,6 +146,9 @@ class Call {
   virtual void SetClientBitratePreferences(
       const BitrateSettings& preferences) = 0;
 
+  virtual void EnableSendCongestionControlFeedbackAccordingToRfc8888() = 0;
+  virtual int FeedbackAccordingToRfc8888Count() = 0;
+
   virtual const FieldTrialsView& trials() const = 0;
 
   virtual TaskQueueBase* network_thread() const = 0;

@@ -11,6 +11,7 @@
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -18,13 +19,21 @@
 #include "api/environment/environment.h"
 #include "api/media_types.h"
 #include "api/sequence_checker.h"
+#include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "modules/congestion_controller/remb_throttler.h"
 #include "modules/remote_bitrate_estimator/congestion_control_feedback_generator.h"
 #include "modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h"
 #include "modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h"
 #include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 namespace webrtc {
 
@@ -96,12 +105,12 @@ ReceiveSideCongestionController::ReceiveSideCongestionController(
       {&force_send_rfc8888_feedback},
       env.field_trials().Lookup("WebRTC-RFC8888CongestionControlFeedback"));
   if (force_send_rfc8888_feedback) {
-    EnablSendCongestionControlFeedbackAccordingToRfc8888();
+    EnableSendCongestionControlFeedbackAccordingToRfc8888();
   }
 }
 
 void ReceiveSideCongestionController::
-    EnablSendCongestionControlFeedbackAccordingToRfc8888() {
+    EnableSendCongestionControlFeedbackAccordingToRfc8888() {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   send_rfc8888_congestion_feedback_ = true;
 }

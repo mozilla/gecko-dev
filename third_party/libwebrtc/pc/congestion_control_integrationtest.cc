@@ -66,4 +66,21 @@ TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
   }
 }
 
+TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
+  test::ScopedFieldTrials trials(
+      "WebRTC-RFC8888CongestionControlFeedback/Enabled/");
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  caller()->AddAudioVideoTracks();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  MediaExpectations media_expectations;
+  media_expectations.CalleeExpectsSomeAudio();
+  media_expectations.CalleeExpectsSomeVideo();
+  ASSERT_TRUE(ExpectNewFrames(media_expectations));
+  auto pc_internal = caller()->pc_internal();
+  EXPECT_TRUE_WAIT(pc_internal->FeedbackAccordingToRfc8888CountForTesting() > 0,
+                   kDefaultTimeout);
+}
+
 }  // namespace webrtc

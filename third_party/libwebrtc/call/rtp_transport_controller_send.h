@@ -142,6 +142,11 @@ class RtpTransportControllerSend final
     return controller_.get();
   }
 
+  int ReceivedCongestionControlFeedbackCount() const override {
+    RTC_DCHECK_RUN_ON(&sequence_checker_);
+    return feedback_count_;
+  }
+
  private:
   void MaybeCreateControllers() RTC_RUN_ON(sequence_checker_);
   void UpdateNetworkAvailability() RTC_RUN_ON(sequence_checker_);
@@ -228,6 +233,8 @@ class RtpTransportControllerSend final
 
   DataSize congestion_window_size_ RTC_GUARDED_BY(sequence_checker_);
   bool is_congested_ RTC_GUARDED_BY(sequence_checker_);
+  // Count of feedback messages received.
+  int feedback_count_ RTC_GUARDED_BY(sequence_checker_) = 0;
 
   // Protected by internal locks.
   RateLimiter retransmission_rate_limiter_;

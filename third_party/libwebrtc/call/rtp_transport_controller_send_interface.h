@@ -161,6 +161,8 @@ class RtpTransportControllerSendInterface {
 
   virtual void EnsureStarted() = 0;
   virtual NetworkControllerInterface* GetNetworkController() = 0;
+  // Count of RFC8888 feedback reports received
+  virtual int ReceivedCongestionControlFeedbackCount() const = 0;
 };
 
 }  // namespace webrtc

@@ -18,6 +18,7 @@ rtc_library("congestion_controller") {
   ]
 
   deps = [
+    "..:module_api",
     "../../api:rtp_parameters",
     "../../api:sequence_checker",
     "../../api/environment",
@@ -28,6 +29,7 @@ rtc_library("congestion_controller") {
     "../../api/units:timestamp",
     "../../rtc_base:logging",
     "../../rtc_base:macromagic",
+    "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/synchronization:mutex",
     "../pacing",
     "../remote_bitrate_estimator",
@@ -56,6 +58,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../../api/units:data_size",
       "../../api/units:time_delta",
       "../../api/units:timestamp",
+      "../../rtc_base:buffer",
       "../../system_wrappers",
       "../../test:explicit_key_value_config",
       "../../test:test_support",

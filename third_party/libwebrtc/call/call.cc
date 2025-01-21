@@ -278,6 +278,9 @@ class Call final : public webrtc::Call,
 
   Stats GetStats() const override;
 
+  void EnableSendCongestionControlFeedbackAccordingToRfc8888() override;
+  int FeedbackAccordingToRfc8888Count() override;
+
   const FieldTrialsView& trials() const override;
 
   TaskQueueBase* network_thread() const override;
@@ -1174,6 +1177,14 @@ Call::Stats Call::GetStats() const {
       configured_max_padding_bitrate_bps_.load(std::memory_order_relaxed);
 
   return stats;
+}
+
+void Call::EnableSendCongestionControlFeedbackAccordingToRfc8888() {
+  receive_side_cc_.EnableSendCongestionControlFeedbackAccordingToRfc8888();
+}
+
+int Call::FeedbackAccordingToRfc8888Count() {
+  return transport_send_->ReceivedCongestionControlFeedbackCount();
 }
 
 const FieldTrialsView& Call::trials() const {

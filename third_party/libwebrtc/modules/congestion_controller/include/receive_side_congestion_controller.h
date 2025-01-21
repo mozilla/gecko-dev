@@ -11,15 +11,19 @@
 #ifndef MODULES_CONGESTION_CONTROLLER_INCLUDE_RECEIVE_SIDE_CONGESTION_CONTROLLER_H_
 #define MODULES_CONGESTION_CONTROLLER_INCLUDE_RECEIVE_SIDE_CONGESTION_CONTROLLER_H_
 
+#include <cstdint>
 #include <memory>
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
+#include "api/media_types.h"
 #include "api/sequence_checker.h"
 #include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/remb_throttler.h"
+#include "modules/include/module_common_types.h"
 #include "modules/remote_bitrate_estimator/congestion_control_feedback_generator.h"
 #include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
@@ -44,7 +48,7 @@ class ReceiveSideCongestionController : public CallStatsObserver {
 
   ~ReceiveSideCongestionController() override = default;
 
-  void EnablSendCongestionControlFeedbackAccordingToRfc8888();
+  void EnableSendCongestionControlFeedbackAccordingToRfc8888();
 
   void OnReceivedPacket(const RtpPacketReceived& packet, MediaType media_type);
 
