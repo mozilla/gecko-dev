@@ -144,6 +144,12 @@ EncoderInfoSettings::GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
     return bitrate_limits[interpolation_index];
   }
 
+  // 0 means our resolution is smaller than the smallest resolution in the list,
+  // we will select smallest data as the return result.
+  if (interpolation_index == 0) {
+    return *bitrate_limits.begin();
+  }
+
   // No matching resolution, do a linear interpolate.
   int lower_pixel_count =
       bitrate_limits[interpolation_index - 1].frame_size_pixels;
