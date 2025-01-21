@@ -1358,6 +1358,82 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
   return {StyleAlignFlags::NORMAL};
 }
 
+nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
+    Side aSide, StylePositionProperty aPosition) const {
+  const auto& inset = mOffset.Get(aSide);
+  const auto side = [&](Side aSide) {
+    switch (aSide) {
+      case eSideTop:
+        return StylePhysicalSide::Top;
+      case eSideBottom:
+        return StylePhysicalSide::Bottom;
+      case eSideLeft:
+        return StylePhysicalSide::Left;
+      case eSideRight:
+        return StylePhysicalSide::Right;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unhandled side?");
+        return StylePhysicalSide::Top;
+    }
+  };
+  switch (inset.tag) {
+    case StyleInset::Tag::Auto:
+      return AnchorResolvedInset{InsetAuto{}};
+    case StyleInset::Tag::LengthPercentage: {
+      const auto& lp = inset.AsLengthPercentage();
+      if (lp.IsCalc()) {
+        const auto& c = lp.AsCalc();
+        if (!c.has_anchor_function) {
+          return AnchorResolvedInset{LengthPercentageReference{lp}};
+        }
+        auto resolved = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+        Servo_ResolveAnchorPositioningFunctionInCalc(&c, side(aSide), aPosition,
+                                                     &resolved);
+        if (resolved.IsInvalid()) {
+          return AnchorResolvedInset{InsetAuto{}};
+        }
+        return AnchorResolvedInset{resolved.AsValid()};
+      }
+      return AnchorResolvedInset{LengthPercentageReference{lp}};
+    }
+    case StyleInset::Tag::AnchorFunction: {
+      auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
+      Servo_ResolveAnchorFunction(&*inset.AsAnchorFunction(), side(aSide),
+                                  aPosition, &resolved);
+      if (resolved.IsInvalid()) {
+        return AnchorResolvedInset{InsetAuto{}};
+      }
+      if (resolved.IsResolvedReference()) {
+        const auto* fallback = resolved.AsResolvedReference();
+        return AnchorResolvedInset{LengthPercentageReference{*fallback}};
+      }
+      return AnchorResolvedInset{resolved.AsResolved()};
+    }
+    case StyleInset::Tag::AnchorSizeFunction: {
+      auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
+      Servo_ResolveAnchorSizeFunction(&*inset.AsAnchorSizeFunction(), aPosition,
+                                      &resolved);
+      if (resolved.IsInvalid()) {
+        return AnchorResolvedInset{InsetAuto{}};
+      }
+      if (resolved.IsResolvedReference()) {
+        const auto* fallback = resolved.AsResolvedReference();
+        return AnchorResolvedInset{LengthPercentageReference{*fallback}};
+      }
+      return AnchorResolvedInset{resolved.AsResolved()};
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unhandled inset type");
+      return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
+  }
+}
+
+nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
+    LogicalSide aSide, WritingMode aWM,
+    StylePositionProperty aPosition) const {
+  return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
+}
+
 MOZ_RUNINIT const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
 MOZ_RUNINIT const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
 MOZ_RUNINIT const StyleMaxSize nsStylePosition::kNoneMaxSize =
