@@ -372,6 +372,7 @@ rtc_source_set("media_session") {
     "../api:rtp_parameters",
     "../api:rtp_transceiver_direction",
     "../api/crypto:options",
+    "../api/video_codecs:video_codecs_api",
     "../call:payload_type",
     "../media:codec",
     "../media:media_constants",

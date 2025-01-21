@@ -239,6 +239,7 @@ Codec CreateAudioRtxCodec(int rtx_payload_type, int associated_payload_type);
 Codec CreateVideoCodec(const std::string& name);
 Codec CreateVideoCodec(int id, const std::string& name);
 Codec CreateVideoCodec(const webrtc::SdpVideoFormat& c);
+Codec CreateVideoCodec(int id, const webrtc::SdpVideoFormat& c);
 Codec CreateVideoRtxCodec(int rtx_payload_type, int associated_payload_type);
 
 // Get the codec setting associated with `payload_type`. If there

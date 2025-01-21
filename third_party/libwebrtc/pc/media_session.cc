@@ -54,6 +54,10 @@
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
 
+#ifdef RTC_ENABLE_H265
+#include "api/video_codecs/h265_profile_tier_level.h"
+#endif
+
 namespace {
 
 using rtc::UniqueRandomIdGenerator;
@@ -1064,6 +1068,60 @@ const TransportDescription* GetTransportDescription(
   return desc;
 }
 
+// For offer, negotiated codec must have the same level-id as that in
+// |supported_codecs| with same profile.
+void NegotiateVideoCodecLevelsForOffer(
+    const MediaDescriptionOptions& media_description_options,
+    const std::vector<Codec>& supported_codecs,
+    std::vector<Codec>& filtered_codecs) {
+  if (filtered_codecs.empty() || supported_codecs.empty()) {
+    return;
+  }
+
+  // TODO(http://crbugs.com/376306259): We should handle level-idx for AV1.
+  // Ideally this should be done for all codecs, but RFCs of other codecs
+  // do not clear define the expected behavior for the level in the offer.
+#ifdef RTC_ENABLE_H265
+  if (media_description_options.type == MEDIA_TYPE_VIDEO) {
+    std::unordered_map<webrtc::H265Profile, webrtc::H265Level>
+        supported_h265_profiles;
+    // The assumption here is that H.265 codecs with the same profile and tier
+    // are already with highest level for that profile in both
+    // |supported_codecs| and |filtered_codecs|.
+    for (const Codec& supported_codec : supported_codecs) {
+      if (absl::EqualsIgnoreCase(supported_codec.name, kH265CodecName)) {
+        std::optional<webrtc::H265ProfileTierLevel> supported_ptl =
+            webrtc::ParseSdpForH265ProfileTierLevel(supported_codec.params);
+        if (supported_ptl.has_value()) {
+          supported_h265_profiles[supported_ptl->profile] =
+              supported_ptl->level;
+        }
+      }
+    }
+
+    if (supported_h265_profiles.empty()) {
+      return;
+    }
+
+    for (auto& filtered_codec : filtered_codecs) {
+      if (absl::EqualsIgnoreCase(filtered_codec.name, kH265CodecName)) {
+        std::optional<webrtc::H265ProfileTierLevel> filtered_ptl =
+            webrtc::ParseSdpForH265ProfileTierLevel(filtered_codec.params);
+        if (filtered_ptl.has_value()) {
+          auto it = supported_h265_profiles.find(filtered_ptl->profile);
+
+          if (it != supported_h265_profiles.end() &&
+              filtered_ptl->level != it->second) {
+            filtered_codec.params[kH265FmtpLevelId] =
+                webrtc::H265LevelToString(it->second);
+          }
+        }
+      }
+    }
+  }
+#endif
+}
+
 webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
@@ -1139,6 +1197,8 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
       }
     }
   }
+  NegotiateVideoCodecLevelsForOffer(media_description_options, supported_codecs,
+                                    filtered_codecs);
   return filtered_codecs;
 }
 
@@ -2365,6 +2425,9 @@ void MediaSessionDescriptionFactory::ComputeVideoCodecsIntersectionAndUnion() {
   // order we'd like to follow. The reasoning is that encoding is usually more
   // expensive than decoding, and prioritizing a codec in the send list probably
   // means it's a codec we can handle efficiently.
+  // Also for the same profile of a codec, if there are different levels in the
+  // send and receive codecs, |video_sendrecv_codecs_| will contain the lower
+  // level of the two for that profile.
   NegotiateCodecs(video_recv_codecs_, video_send_codecs_,
                   &video_sendrecv_codecs_, true);
 }
