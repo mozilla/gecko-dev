@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-if (!window.smartblockTiktokShimInitialized) {
-  // Guard against this script running multiple times
-  window.smartblockTiktokShimInitialized = Object.freeze(true);
+/* globals browser */
 
-  // Original URL of the Instagram embed script.
+if (!window.smartblockTikTokShimInitialized) {
+  // Guard against this script running multiple times
+  window.smartblockTikTokShimInitialized = true;
+
+  const SHIM_ID = "TiktokEmbed";
+
+  // Original URL of the TikTok embed script.
   const ORIGINAL_URL = "https://www.tiktok.com/embed.js";
 
   const LOGO_URL = "https://smartblock.firefox.etp/tiktok.svg";
@@ -15,44 +19,17 @@ if (!window.smartblockTiktokShimInitialized) {
   let embedPlaceholders = [];
 
   // Bug 1925582: this should be a common snippet for use in multiple shims.
-  const sendMessageToAddon = (function () {
-    const shimId = "TiktokEmbed";
-    const pendingMessages = new Map();
-    const channel = new MessageChannel();
-    channel.port1.onerror = console.error;
-    channel.port1.onmessage = event => {
-      const { messageId, response, message } = event.data;
-      const resolve = pendingMessages.get(messageId);
-      if (resolve) {
-        // message is a response to a previous message
-        pendingMessages.delete(messageId);
-        resolve(response);
-      } else {
-        addonMessageHandler(message);
-      }
-    };
-    function reconnect() {
-      const detail = {
-        pendingMessages: [...pendingMessages.values()],
-        port: channel.port2,
-        shimId,
-      };
-      window.dispatchEvent(new CustomEvent("ShimConnects", { detail }));
-    }
-    window.addEventListener("ShimHelperReady", reconnect);
-    reconnect();
-    return function (message) {
-      const messageId = crypto.randomUUID();
-      return new Promise(resolve => {
-        const payload = { message, messageId, shimId };
-        pendingMessages.set(messageId, resolve);
-        channel.port1.postMessage(payload);
-      });
-    };
-  })();
+  function sendMessageToAddon(message) {
+    return browser.runtime.sendMessage({ message, shimId: SHIM_ID });
+  }
 
   function addonMessageHandler(message) {
-    let { topic, data } = message;
+    let { topic, data, shimId } = message;
+    // Only react to messages which are targeting this shim.
+    if (shimId != SHIM_ID) {
+      return;
+    }
+
     if (topic === "smartblock:unblock-embed") {
       if (data != window.location.hostname) {
         // host name does not match the original hostname, user must have navigated
@@ -66,7 +43,11 @@ if (!window.smartblockTiktokShimInitialized) {
 
       // recreate scripts
       let scriptElement = document.createElement("script");
-      scriptElement.src = ORIGINAL_URL;
+
+      // Set the script element's src with the website's principal instead of
+      // the content script principal to ensure the tracker script is not loaded
+      // via the content script's expanded principal.
+      scriptElement.wrappedJSObject.src = ORIGINAL_URL;
       document.body.appendChild(scriptElement);
     }
   }
@@ -164,8 +145,11 @@ if (!window.smartblockTiktokShimInitialized) {
       // Wait for user to opt-in.
       shadowRoot
         .getElementById("smartblock-placeholder-button")
-        .addEventListener("click", () => {
-          // Send a message to the addon to allow loading Instagram tracking resources
+        .addEventListener("click", ({ isTrusted }) => {
+          if (!isTrusted) {
+            return;
+          }
+          // Send a message to the addon to allow loading TikTok tracking resources
           // needed by the embed.
           sendMessageToAddon("embedClicked");
         });
@@ -174,6 +158,11 @@ if (!window.smartblockTiktokShimInitialized) {
       originalEmbedContainer.replaceWith(placeholderDiv);
     });
   }
+
+  // Listen for messages from the background script.
+  browser.runtime.onMessage.addListener(request => {
+    addonMessageHandler(request);
+  });
 
   createShimPlaceholders();
 }

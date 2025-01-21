@@ -55,6 +55,7 @@ class Shim {
     this.onlyIfDFPIActive = opts.onlyIfDFPIActive;
     this.onlyIfPrivateBrowsing = opts.onlyIfPrivateBrowsing;
     this._options = opts.options || {};
+    this.webExposedShimHelpers = opts.webExposedShimHelpers;
     this.needsShimHelpers = opts.needsShimHelpers;
     this.platform = opts.platform || "all";
     this.runFirst = opts.runFirst;
@@ -1072,6 +1073,7 @@ class Shims {
     return { requestHeaders };
   }
 
+  // eslint-disable-next-line complexity
   async _ensureShimForRequestOnTab(details) {
     await this._haveCheckedEnabledPrefs;
 
@@ -1156,7 +1158,14 @@ class Shims {
       // complete via local redirect. Shims should gracefully handle this as well.
 
       const { target } = match;
-      const { bug, file, id, name, needsShimHelpers } = shimToApply;
+      const { bug, file, id, name } = shimToApply;
+
+      // Determine whether we should inject helper scripts into the page.
+      // webExposedShimHelpers is an optional list of helpers to provide
+      // directly to the website (see script injection below). If not used shims
+      // should pass an empty array to disable this functionality.
+      const needsShimHelpers =
+        shimToApply.webExposedShimHelpers || shimToApply.needsShimHelpers;
       runFirst = shimToApply.runFirst;
 
       const redirect = target || file;
