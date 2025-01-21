@@ -16,7 +16,7 @@
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/AccessibleMetrics.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "mozilla/MacStringHelpers.h"
 

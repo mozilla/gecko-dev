@@ -9,7 +9,7 @@
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
 #include "certdb.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/SecurityCertverifierMetrics.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Casting.h"

@@ -8,7 +8,7 @@
 #include "mozilla/browser/NimbusFeatureManifest.h"
 #include "mozilla/Try.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NimbusMetrics.h"
 #include "jsapi.h"
 #include "js/JSON.h"
 #include "nsJSUtils.h"

@@ -38,7 +38,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/JsXpconnectMetrics.h"
 
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"

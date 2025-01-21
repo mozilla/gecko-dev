@@ -7,7 +7,7 @@
 #include "CacheFileUtils.h"
 #include "CacheObserver.h"
 #include "LoadContextInfo.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/Telemetry.h"
 #include "nsCOMPtr.h"

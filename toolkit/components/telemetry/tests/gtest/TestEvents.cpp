@@ -11,7 +11,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/fog_ffi_generated.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GleanTestsTestMetrics.h"
 #include "TelemetryFixture.h"
 #include "TelemetryTestHelpers.h"
 

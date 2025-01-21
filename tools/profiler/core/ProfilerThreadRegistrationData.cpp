@@ -8,7 +8,6 @@
 
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/FOGIPC.h"
-#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "js/AllocationRecording.h"
 #include "js/ProfilingStack.h"

@@ -7,7 +7,7 @@
 #include "WindowsLocationProvider.h"
 #include "WindowsLocationParent.h"
 #include "mozilla/dom/WindowsUtilsParent.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomGeolocationMetrics.h"
 #include "GeolocationPosition.h"
 #include "nsComponentManagerUtils.h"
 #include "mozilla/ipc/UtilityProcessManager.h"

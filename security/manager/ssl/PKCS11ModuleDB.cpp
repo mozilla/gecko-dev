@@ -8,7 +8,7 @@
 
 #include "CertVerifier.h"
 #include "ScopedNSSTypes.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsNSSCertHelper.h"

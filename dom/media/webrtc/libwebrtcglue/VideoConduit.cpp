@@ -81,7 +81,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/ReverseIterator.h"
 #include "mozilla/StateWatching.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
 #include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/Types.h"

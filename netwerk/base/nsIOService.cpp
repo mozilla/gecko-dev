@@ -65,7 +65,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "nsNSSComponent.h"
 #include "IPv4Parser.h"
 #include "ssl.h"

@@ -16,7 +16,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/StaticMutex.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
 #include "nsThreadUtils.h"
 #include "VideoUtils.h"
 

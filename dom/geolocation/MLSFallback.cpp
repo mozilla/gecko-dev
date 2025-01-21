@@ -10,7 +10,7 @@
 #include "nsIGeolocationProvider.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Logging.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomGeolocationMetrics.h"
 
 extern mozilla::LazyLogModule gGeolocationLog;
 

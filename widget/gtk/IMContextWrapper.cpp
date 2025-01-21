@@ -20,7 +20,7 @@
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_intl.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/WidgetGtkMetrics.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"

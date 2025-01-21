@@ -7,7 +7,7 @@
 #include "mozilla/css/StreamLoader.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Encoding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/CacheExpirationTime.h"
 #include "nsContentUtils.h"

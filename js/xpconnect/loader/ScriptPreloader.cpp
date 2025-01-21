@@ -23,7 +23,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/TaskController.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/JsXpconnectMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/Unused.h"

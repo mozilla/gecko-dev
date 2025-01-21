@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ClearDataCallback.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/AntitrackingBouncetrackingprotectionMetrics.h"
 #include "nsIBounceTrackingProtection.h"
 #include "nsIURIClassifier.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"

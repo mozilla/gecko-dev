@@ -34,7 +34,7 @@
 #include "prtime.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "xpcpublic.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/AntitrackingBouncetrackingprotectionMetrics.h"
 #include "mozilla/ContentBlockingLog.h"
 #include "mozilla/glean/GleanPings.h"
 #include "mozilla/dom/WindowContext.h"

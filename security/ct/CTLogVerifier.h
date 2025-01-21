@@ -11,7 +11,6 @@
 #include "CTLog.h"
 #include "CTUtils.h"
 #include "SignedCertificateTimestamp.h"
-#include "mozilla/glean/GleanMetrics.h"
 #include "mozpkix/Input.h"
 #include "mozpkix/Result.h"
 #include "mozpkix/pkix.h"

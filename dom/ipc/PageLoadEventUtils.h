@@ -8,7 +8,7 @@
 #define mozilla_dom_page_load_event_utils_h__
 
 #include "ipc/IPCMessageUtils.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMetrics.h"
 
 #include <cstdint>
 

@@ -17,7 +17,7 @@
 
 #include "SurfacePipeFactory.h"
 
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ImageDecodersMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtrExtensions.h"
 

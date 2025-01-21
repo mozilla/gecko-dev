@@ -34,7 +34,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/NullPrincipal.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ParserHtmlparserMetrics.h"
 
 #include "nsThreadUtils.h"
 #include "mozilla/ClearOnShutdown.h"

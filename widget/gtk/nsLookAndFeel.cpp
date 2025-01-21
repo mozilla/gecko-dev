@@ -29,7 +29,7 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/WidgetGtkMetrics.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/WidgetUtilsGtk.h"
 #include "ScreenHelperGTK.h"

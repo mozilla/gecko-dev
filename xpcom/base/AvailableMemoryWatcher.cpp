@@ -12,7 +12,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "nsExceptionHandler.h"
 #include "nsMemoryPressure.h"
 #include "nsXULAppAPI.h"

@@ -13,7 +13,9 @@
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaEmeMetrics.h"
+#include "mozilla/glean/DomMediaMetrics.h"
+#include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {

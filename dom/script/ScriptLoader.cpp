@@ -13,7 +13,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/FetchPriority.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "mozilla/dom/RequestBinding.h"
 
 #include "prsystem.h"

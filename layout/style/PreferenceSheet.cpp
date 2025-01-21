@@ -14,7 +14,7 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPrefs_ui.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/AccessibleMetrics.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/dom/Document.h"

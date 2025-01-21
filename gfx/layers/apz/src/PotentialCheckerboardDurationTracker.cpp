@@ -6,8 +6,8 @@
 
 #include "PotentialCheckerboardDurationTracker.h"
 
-#include "mozilla/Telemetry.h"           // for Telemetry
-#include "mozilla/glean/GleanMetrics.h"  // for Glean telemetry
+#include "mozilla/Telemetry.h"         // for Telemetry
+#include "mozilla/glean/GfxMetrics.h"  // for Glean telemetry
 
 namespace mozilla {
 namespace layers {

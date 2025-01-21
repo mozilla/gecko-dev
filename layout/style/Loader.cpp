@@ -18,7 +18,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/Logging.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/LayoutMetrics.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PreloadHashKey.h"
 #include "mozilla/ResultExtensions.h"

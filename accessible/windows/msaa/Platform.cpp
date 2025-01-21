@@ -22,7 +22,7 @@
 #include <tuple>
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-#  include "mozilla/glean/GleanMetrics.h"
+#  include "mozilla/glean/AccessibleMetrics.h"
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
 using namespace mozilla;

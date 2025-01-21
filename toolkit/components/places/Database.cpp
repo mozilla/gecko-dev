@@ -8,7 +8,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_places.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/PlacesMetrics.h"
 
 #include "Database.h"
 

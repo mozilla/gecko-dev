@@ -12,7 +12,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/PrintingMetrics.h"
 #include "nsAnonymousTemporaryFile.h"
 
 #include <wchar.h>

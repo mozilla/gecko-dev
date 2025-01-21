@@ -40,7 +40,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsCSPContext.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomSecurityMetrics.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "LoadInfo.h"
 #include "mozilla/StaticPrefs_extensions.h"

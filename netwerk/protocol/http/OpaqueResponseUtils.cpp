@@ -9,7 +9,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/JSValidatorParent.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "ErrorList.h"
 #include "nsContentUtils.h"
 #include "nsHttpResponseHead.h"

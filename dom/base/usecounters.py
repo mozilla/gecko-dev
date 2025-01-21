@@ -659,7 +659,7 @@ def metric_map(f, *inputs):
 #include "mozilla/dom/UseCounterMetrics.h"
 
 #include "mozilla/dom/WorkerPrivate.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomUseCounterMetrics.h"
 
 namespace mozilla::dom {
 

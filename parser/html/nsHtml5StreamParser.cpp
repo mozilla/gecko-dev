@@ -24,7 +24,7 @@
 #include "mozilla/StaticPrefs_html5.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/TextUtils.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BindingDeclarations.h"

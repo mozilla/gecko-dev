@@ -4,7 +4,7 @@
 
 #include "HTTPSSVC.h"
 #include "mozilla/net/DNS.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsHttp.h"
 #include "nsHttpHandler.h"

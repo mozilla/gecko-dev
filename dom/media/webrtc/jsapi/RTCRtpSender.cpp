@@ -63,7 +63,7 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/RTCRtpParametersBinding.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "js/RootingAPI.h"
 #include "jsep/JsepTransceiver.h"
 #include "RTCStatsReport.h"

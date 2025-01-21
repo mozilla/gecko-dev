@@ -11,7 +11,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/NotificationBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomNotificationMetrics.h"
 #include "nsContentUtils.h"
 #include "nsIAlertsService.h"
 #include "nsINotificationStorage.h"

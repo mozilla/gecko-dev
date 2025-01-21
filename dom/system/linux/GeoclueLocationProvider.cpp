@@ -21,7 +21,7 @@
 #include "mozilla/XREAppData.h"
 #include "mozilla/dom/GeolocationPosition.h"
 #include "mozilla/dom/GeolocationPositionErrorBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomGeolocationMetrics.h"
 #include "MLSFallback.h"
 #include "nsAppRunner.h"
 #include "nsCOMPtr.h"

@@ -6,7 +6,7 @@
 
 #include "DecoderTraits.h"
 #include "MediaContainerType.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaHlsMetrics.h"
 #include "mozilla/Preferences.h"
 
 #include "OggDecoder.h"

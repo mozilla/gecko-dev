@@ -20,7 +20,7 @@
 
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/SSE.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/XREAppData.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/GUniquePtr.h"
@@ -129,7 +129,7 @@ static bool ManageChildProcess(const char* aProcessName, int* aPID, int* aPipe,
   const TimeStamp deadline =
       TimeStamp::Now() + TimeDuration::FromMilliseconds(aTimeout);
 
-  struct pollfd pfd {};
+  struct pollfd pfd{};
   pfd.fd = *aPipe;
   pfd.events = POLLIN;
 
@@ -310,7 +310,7 @@ void GfxInfo::GetData() {
 
   // only useful for Linux kernel version check for FGLRX driver.
   // assumes X client == X server, which is sad.
-  struct utsname unameobj {};
+  struct utsname unameobj{};
   if (uname(&unameobj) >= 0) {
     mOS.Assign(unameobj.sysname);
     mOSRelease.Assign(unameobj.release);

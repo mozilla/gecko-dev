@@ -41,7 +41,7 @@
 #include "mozilla/ServoStyleConsts.h"   // for StyleComputedTimingFunction
 #include "mozilla/EventForwards.h"      // for nsEventStatus_*
 #include "mozilla/EventStateManager.h"  // for EventStateManager
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/MouseEvents.h"     // for WidgetWheelEvent
 #include "mozilla/Preferences.h"     // for Preferences
 #include "mozilla/RecursiveMutex.h"  // for RecursiveMutexAutoLock, etc

@@ -35,7 +35,7 @@
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/Unused.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaMetrics.h"
 #include "nsContentUtils.h"
 #include "nsLiteralString.h"
 #include "nsPrintfCString.h"

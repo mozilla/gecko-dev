@@ -9,7 +9,7 @@
 #include "audio_thread_priority.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"

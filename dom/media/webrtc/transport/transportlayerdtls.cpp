@@ -16,7 +16,7 @@
 #include "dtlsidentity.h"
 #include "keyhi.h"
 #include "logging.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"

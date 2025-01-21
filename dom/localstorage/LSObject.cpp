@@ -32,7 +32,7 @@
 #include "mozilla/dom/PBackgroundLSRequest.h"
 #include "mozilla/dom/PBackgroundLSSharedTypes.h"
 #include "mozilla/dom/quota/PrincipalUtils.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomLocalstorageMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"

@@ -10,7 +10,7 @@
 #include "mozilla/dom/FragmentDirective.h"
 #include "mozilla/dom/PerformanceResourceTimingBinding.h"
 #include "mozilla/dom/PerformanceTimingBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomPerformanceMetrics.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIHttpChannel.h"

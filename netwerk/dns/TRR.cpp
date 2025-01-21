@@ -45,7 +45,7 @@
 #include "mozilla/UniquePtr.h"
 // Put DNSLogging.h at the end to avoid LOG being overwritten by other headers.
 #include "DNSLogging.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 
 namespace mozilla {
 namespace net {

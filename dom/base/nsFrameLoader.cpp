@@ -141,7 +141,7 @@
 #endif
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-#  include "mozilla/glean/GleanMetrics.h"
+#  include "mozilla/glean/DomMetrics.h"
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
 using namespace mozilla;

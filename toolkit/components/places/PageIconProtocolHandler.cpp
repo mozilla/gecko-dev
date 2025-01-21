@@ -21,7 +21,7 @@
 #include "nsIURIMutator.h"
 #include "nsNetUtil.h"
 #include "SimpleChannel.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/PlacesMetrics.h"
 
 #define PAGE_ICON_SCHEME "page-icon"
 

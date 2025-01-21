@@ -25,7 +25,7 @@
 #include "json/json.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CmdLineAndEnvUtils.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ToolkitMozappsDefaultagentMetrics.h"
 #include "mozilla/glean/GleanPings.h"
 #include "mozilla/HelperMacros.h"
 #include "mozilla/UniquePtr.h"

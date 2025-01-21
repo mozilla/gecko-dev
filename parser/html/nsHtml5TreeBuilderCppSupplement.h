@@ -13,7 +13,7 @@
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/ShadowRootBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ParserHtmlMetrics.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Likely.h"
 #include "mozilla/StaticPrefs_dom.h"

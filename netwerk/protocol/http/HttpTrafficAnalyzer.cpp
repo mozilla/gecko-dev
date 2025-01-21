@@ -7,7 +7,7 @@
 #include "HttpLog.h"
 
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsSocketTransportService2.h"

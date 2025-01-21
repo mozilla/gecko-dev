@@ -15,7 +15,7 @@
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/GeolocationPositionError.h"
 #include "mozilla/dom/GeolocationPositionErrorBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomGeolocationMetrics.h"
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"

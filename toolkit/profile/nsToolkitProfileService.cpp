@@ -58,7 +58,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIToolkitShellService.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ToolkitProfileMetrics.h"
 #include "nsProxyRelease.h"
 #ifdef MOZ_HAS_REMOTE
 #  include "nsRemoteService.h"

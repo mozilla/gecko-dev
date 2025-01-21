@@ -8,7 +8,7 @@
 #include "mozilla/gtest/nsUserCharacteristics.h"
 
 #include "mozilla/glean/GleanPings.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ResistfingerprintingMetrics.h"
 
 using namespace mozilla;
 

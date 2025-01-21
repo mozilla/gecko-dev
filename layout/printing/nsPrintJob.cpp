@@ -27,7 +27,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/PresShellInlines.h"
 #include "mozilla/StaticPrefs_print.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/PrintingMetrics.h"
 #include "mozilla/Try.h"
 #include "nsIBrowserChild.h"
 #include "nsIOService.h"

@@ -19,7 +19,7 @@
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/StaticPrefs_timer.h"
 
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/XpcomMetrics.h"
 
 #include <math.h>
 

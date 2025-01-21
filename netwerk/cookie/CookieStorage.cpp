@@ -14,7 +14,7 @@
 #include "nsICookieNotification.h"
 #include "CookieStorage.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsIMutableArray.h"
 #include "nsTPriorityQueue.h"

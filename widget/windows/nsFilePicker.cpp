@@ -46,8 +46,6 @@
 #include "nsWindow.h"
 #include "WinUtils.h"
 
-#include "mozilla/glean/GleanMetrics.h"
-
 #include "mozilla/widget/filedialog/WinFileDialogCommands.h"
 #include "mozilla/widget/filedialog/WinFileDialogParent.h"
 

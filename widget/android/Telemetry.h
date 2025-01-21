@@ -11,7 +11,7 @@
 #include "nsIGeckoViewBridge.h"
 
 #include "mozilla/TimeStamp.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/MobileSharedModulesGeckoviewMetrics.h"
 
 namespace mozilla {
 namespace widget {

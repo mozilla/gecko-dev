@@ -13,7 +13,7 @@
 
 #include "mozilla/Logging.h"
 #include "mozilla/glean/GleanPings.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ResistfingerprintingMetrics.h"
 
 #include "jsapi.h"
 #include "mozilla/Components.h"

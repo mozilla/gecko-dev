@@ -5,7 +5,8 @@
 
 #include "gtest/gtest.h"
 #include "js/Conversions.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GleanTestsTestMetrics.h"
+#include "mozilla/glean/TelemetryMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "TelemetryFixture.h"
 #include "TelemetryTestHelpers.h"

@@ -22,7 +22,7 @@
 #include "SurfaceCacheUtils.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/WidgetMetrics.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/ServoStyleSet.h"

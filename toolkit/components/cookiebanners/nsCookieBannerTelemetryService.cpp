@@ -8,7 +8,7 @@
 
 #include "mozilla/Base64.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/CookiebannersMetrics.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Logging.h"

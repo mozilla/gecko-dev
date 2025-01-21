@@ -26,7 +26,7 @@
 #include "mozilla/Casting.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ContentBlockingNotifier.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/ResistfingerprintingMetrics.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HelperMacros.h"
 #include "mozilla/Likely.h"

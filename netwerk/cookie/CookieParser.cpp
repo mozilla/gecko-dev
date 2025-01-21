@@ -8,7 +8,7 @@
 
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/net/Cookie.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/TextUtils.h"

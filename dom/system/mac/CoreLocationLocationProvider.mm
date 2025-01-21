@@ -14,7 +14,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/GeolocationPositionErrorBinding.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomGeolocationMetrics.h"
 #include "MLSFallback.h"
 
 #include <CoreLocation/CLError.h>

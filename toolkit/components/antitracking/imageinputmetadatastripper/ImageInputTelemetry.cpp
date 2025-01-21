@@ -11,7 +11,7 @@
 #include "mozilla/dom/Blob.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/FileList.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/AntitrackingImageinputmetadatastripperMetrics.h"
 #include "nsIPrincipal.h"
 
 namespace mozilla {

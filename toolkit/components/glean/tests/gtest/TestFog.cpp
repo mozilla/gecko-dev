@@ -5,7 +5,7 @@
 #include "FOGFixture.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GleanTestsTestMetrics.h"
 #include "mozilla/glean/GleanPings.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "mozilla/Maybe.h"

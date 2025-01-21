@@ -11,7 +11,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/dom/WindowGlobalParent.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/CookiebannersMetrics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_cookiebanners.h"
 #include "nsCOMPtr.h"

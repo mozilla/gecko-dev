@@ -10,7 +10,7 @@
 
 #include "mozilla/FileUtils.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Telemetry.h"
 #include "mozIStorageAsyncStatement.h"

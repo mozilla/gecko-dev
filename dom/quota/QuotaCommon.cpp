@@ -17,7 +17,7 @@
 #include "mozilla/TextUtils.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/ScopedLogExtraInfo.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/DomQuotaMetrics.h"
 #include "nsIConsoleService.h"
 #include "nsIFile.h"
 #include "nsServiceManagerUtils.h"

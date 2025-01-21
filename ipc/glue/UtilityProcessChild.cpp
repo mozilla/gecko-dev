@@ -45,7 +45,7 @@
 
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/FOGIPC.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/GleanTestsTestMetrics.h"
 
 #include "mozilla/Services.h"
 
