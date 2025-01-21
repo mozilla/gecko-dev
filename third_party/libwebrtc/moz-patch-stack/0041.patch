@@ -237,7 +237,7 @@ index f5bb27217a..b8363ad79e 100644
        suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
        cflags = [ "-mfpu=neon" ]
 diff --git a/modules/audio_processing/agc2/rnn_vad/BUILD.gn b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
-index 47b9466a44..f99fe509d1 100644
+index a23a7c15ce..2b265650a0 100644
 --- a/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 +++ b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 @@ -18,7 +18,7 @@ rtc_library("rnn_vad") {

@@ -169,9 +169,6 @@ void FakeRecordingDevice::SetMicLevel(const int level) {
 
 void FakeRecordingDevice::SetUndoMicLevel(const int level) {
   RTC_DCHECK(worker_);
-  // TODO(alessiob): The behavior with undo level equal to zero is not clear yet
-  // and will be defined in future CLs once more FakeRecordingDeviceWorker
-  // implementations need to be added.
   RTC_CHECK(level > 0) << "Zero undo mic level is unsupported";
   worker_->set_undo_mic_level(level);
 }

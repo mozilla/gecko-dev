@@ -550,7 +550,7 @@ index 5da168a292..c37c525f15 100644
    }
  
 diff --git a/modules/audio_processing/agc2/rnn_vad/BUILD.gn b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
-index f99fe509d1..6a9da3f37f 100644
+index 2b265650a0..fd69ef810e 100644
 --- a/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 +++ b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 @@ -19,7 +19,7 @@ rtc_library("rnn_vad") {
@@ -562,7 +562,7 @@ index f99fe509d1..6a9da3f37f 100644
      cflags = [ "-mfpu=neon" ]
    }
  
-@@ -88,7 +88,7 @@ rtc_source_set("rnn_vad_layers") {
+@@ -87,7 +87,7 @@ rtc_source_set("rnn_vad_layers") {
  
    defines = []
    if (rtc_build_with_neon && current_cpu != "arm64") {
@@ -571,7 +571,7 @@ index f99fe509d1..6a9da3f37f 100644
      cflags = [ "-mfpu=neon" ]
    }
  
-@@ -149,7 +149,7 @@ rtc_library("rnn_vad_pitch") {
+@@ -148,7 +148,7 @@ rtc_library("rnn_vad_pitch") {
  
    defines = []
    if (rtc_build_with_neon && current_cpu != "arm64") {
@@ -580,7 +580,7 @@ index f99fe509d1..6a9da3f37f 100644
      cflags = [ "-mfpu=neon" ]
    }
  
-@@ -272,7 +272,7 @@ if (rtc_include_tests) {
+@@ -271,7 +271,7 @@ if (rtc_include_tests) {
  
      defines = []
      if (rtc_build_with_neon && current_cpu != "arm64") {
