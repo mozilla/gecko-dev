@@ -40,6 +40,11 @@
   .moz-card {
     padding-block: var(--card-padding-block, var(--card-padding));
   }
+  #moz-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--card-article-gap);
+  }
 }
 
 .moz-card {
@@ -51,9 +56,6 @@
 
 #moz-card-details {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--card-article-gap);
 }
 
 summary {
