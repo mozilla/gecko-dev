@@ -1461,7 +1461,7 @@ void MacroAssembler::branchTruncateDoubleMaybeModUint32(FloatRegister src,
                                                         Label* fail) {
   // ARMv8.3 chips support the FJCVTZS instruction, which handles exactly this
   // logic.
-  if (CPUHas(vixl::CPUFeatures::kFP, vixl::CPUFeatures::kJSCVT)) {
+  if (hasFjcvtzs()) {
     Fjcvtzs(ARMRegister(dest, 32), ARMFPRegister(src, 64));
     return;
   }

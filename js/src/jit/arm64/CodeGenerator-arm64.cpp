@@ -1102,8 +1102,16 @@ void CodeGenerator::visitMathF(LMathF* math) {
 }
 
 void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
-  emitTruncateDouble(ToFloatRegister(ins->input()), ToRegister(ins->output()),
-                     ins->mir());
+  FloatRegister input = ToFloatRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  // Directly call Fjcvtzs if available to avoid generating unused OOL code in
+  // emitTruncateDouble.
+  if (masm.hasFjcvtzs()) {
+    masm.Fjcvtzs(ARMRegister(output, 32), ARMFPRegister(input, 64));
+  } else {
+    emitTruncateDouble(input, output, ins->mir());
+  }
 }
 
 void CodeGenerator::visitNearbyInt(LNearbyInt* lir) {
@@ -1124,8 +1132,16 @@ void CodeGenerator::visitNearbyIntF(LNearbyIntF* lir) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  emitTruncateDouble(ToFloatRegister(lir->getOperand(0)),
-                     ToRegister(lir->getDef(0)), lir->mir());
+  FloatRegister input = ToFloatRegister(lir->in());
+  Register output = ToRegister(lir->output());
+
+  // Directly call Fjcvtzs if available to avoid generating unused OOL code in
+  // emitTruncateDouble.
+  if (masm.hasFjcvtzs()) {
+    masm.Fjcvtzs(ARMRegister(output, 32), ARMFPRegister(input, 64));
+  } else {
+    emitTruncateDouble(input, output, lir->mir());
+  }
 }
 
 void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
