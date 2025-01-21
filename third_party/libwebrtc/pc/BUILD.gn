@@ -2086,7 +2086,6 @@ if (rtc_include_tests && !build_with_chromium) {
     ]
 
     include_dirs = []
-    configs = []
     if (rtc_build_libsrtp) {
       include_dirs += [ "//third_party/libsrtp/srtp" ]
       deps += [ "//third_party/libsrtp" ]
