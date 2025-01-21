@@ -97,7 +97,7 @@ quotamanager.initialize.repository:
     notification_emails:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 137
+    expires: never
     labels:
       - persistent
       - temporary
