@@ -234,6 +234,8 @@ skip-if = ["os == 'android'"]
 
 ["test_envChain_subscript_in_JSM.js"]
 
+["test_envChain_subscript_in_frameScript.js"]
+
 ["test_error_to_exception.js"]
 
 ["test_eventSource.js"]
@@ -268,9 +270,6 @@ skip-if = ["os == 'android' && processor == 'x86_64'"]
 
 ["test_import_global.js"]
 
-["test_import_global_worker.js"]
-skip-if = ["os == 'android'"]
-
 ["test_import_global_contextual.js"]
 
 ["test_import_global_contextual_worker.js"]
@@ -279,6 +278,9 @@ skip-if = ["os == 'android'"]
 ["test_import_global_current.js"]
 
 ["test_import_global_current_worker.js"]
+skip-if = ["os == 'android'"]
+
+["test_import_global_worker.js"]
 skip-if = ["os == 'android'"]
 
 ["test_import_shim.js"]
@@ -394,13 +396,13 @@ skip-if = [
 
 ["test_want_components.js"]
 
-["test_wasm_tailcalls_profiler.js"]
+["test_wasm_jspi_profiler.js"]
 skip-if = [
   "tsan",
   "!nightly_build",
 ]
 
-["test_wasm_jspi_profiler.js"]
+["test_wasm_tailcalls_profiler.js"]
 skip-if = [
   "tsan",
   "!nightly_build",

@@ -332,6 +332,69 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=nsvo] (lexical vars)
  *
+ * C.5. Subscript loading into a target object in a frame script with unique
+ *      scope
+ *
+ * Subscript may be loaded into a target object inside a frame script
+ * environment.  If the frame script has an unique scope, the subscript inherits
+ * the unique scope, with additional WithEnvironmentObject and NSLEO are
+ * created for qualified variables.
+ *
+ *   SystemGlobal
+ *       |
+ *   GlobalLexicalEnvironmentObject[this=global]
+ *       |
+ *   NonSyntacticVariablesObject (unqualified names)
+ *       |
+ *   WithEnvironmentObject [SupportUnscopables=No] wrapping messageManager
+ *       |
+ *   NonSyntacticLexicalEnvironmentObject[this=messageManager]
+ *       |
+ *   WithEnvironmentObject [SupportUnscopables=No] wrapping target
+ *     (qualified 'var's)
+ *       |
+ *   NonSyntacticLexicalEnvironmentObject[this=target] (lexical vars)
+ *
+ * C.6. Subscript loading into a target object in a frame script without unique
+ *      scope
+ *
+ * If the frame script doesn't have an unique scope, the subscript uses the
+ * global scope, with additional WithEnvironmentObject and NSLEO are
+ * created for qualified variables.
+ *
+ *   SystemGlobal (unqualified names)
+ *       |
+ *   GlobalLexicalEnvironmentObject[this=global]
+ *       |
+ *   WithEnvironmentObject [SupportUnscopables=No] wrapping target
+ *     (qualified 'var's)
+ *       |
+ *   NonSyntacticLexicalEnvironmentObject[this=target] (lexical vars)
+ *
+ * C.7. Subscript loading into a frame script with unique scope
+ *
+ * If a subscript doesn't use a target object and the frame script has an
+ * unique scope, the subscript uses the same environment as the frame script.
+ *
+ *   SystemGlobal
+ *       |
+ *   GlobalLexicalEnvironmentObject[this=global]
+ *       |
+ *   NonSyntacticVariablesObject (qualified 'var's and unqualified names)
+ *       |
+ *   WithEnvironmentObject [SupportUnscopables=No] wrapping messageManager
+ *       |
+ *   NonSyntacticLexicalEnvironmentObject[this=messageManager] (lexical vars)
+ *
+ * C.8. Subscript loading into a frame script without unique scope
+ *
+ * If a subscript doesn't use a target object and the frame script doesn't have
+ * an unique scope, the subscript uses the global scope.
+ *
+ *   SystemGlobal (qualified 'var's and unqualified names)
+ *       |
+ *   GlobalLexicalEnvironmentObject[this=global] (lexical vars)
+ *
  * D.1. DOM event handlers without direct eval
  *
  * DOM event handlers are compiled as functions with HTML elements on the
