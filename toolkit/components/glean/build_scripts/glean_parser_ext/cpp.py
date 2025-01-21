@@ -8,39 +8,10 @@
 Outputter to generate C++ code for metrics.
 """
 
-import json
-
 import jinja2
 from glean_parser import metrics, util
+from mozbuild.util import memoize
 from util import generate_metric_ids, generate_ping_ids, get_metrics
-
-
-def cpp_datatypes_filter(value):
-    """
-    A Jinja2 filter that renders C++ literals.
-
-    Based on Python's JSONEncoder, but overrides:
-      - lists to array literals {}
-      - strings to "value"
-    """
-
-    class CppEncoder(json.JSONEncoder):
-        def iterencode(self, value):
-            if isinstance(value, list):
-                yield "{"
-                first = True
-                for subvalue in list(value):
-                    if not first:
-                        yield ", "
-                    yield from self.iterencode(subvalue)
-                    first = False
-                yield "}"
-            elif isinstance(value, str):
-                yield '"' + value + '"'
-            else:
-                yield from super().iterencode(value)
-
-    return "".join(CppEncoder().iterencode(value))
 
 
 def type_name(obj):
@@ -84,6 +55,19 @@ def extra_type_name(typ: str) -> str:
         return "UNSUPPORTED"
 
 
+@memoize
+def get_metrics_template(get_metric_id):
+    return util.get_jinja2_template(
+        "cpp.jinja2",
+        filters=(
+            ("snake_case", lambda value: value.replace(".", "_").replace("-", "_")),
+            ("type_name", type_name),
+            ("extra_type_name", extra_type_name),
+            ("metric_id", get_metric_id),
+        ),
+    )
+
+
 def output_cpp(objs, output_fd, options={}):
     """
     Given a tree of objects, output C++ code to the file-like object `output_fd`.
@@ -94,8 +78,6 @@ def output_cpp(objs, output_fd, options={}):
     :param options: options dictionary.
     """
 
-    # Monkeypatch util.snake_case for the templates to use
-    util.snake_case = lambda value: value.replace(".", "_").replace("-", "_")
     # Monkeypatch util.get_jinja2_template to find templates nearby
 
     def get_local_template(template_name, filters=()):
@@ -111,29 +93,21 @@ def output_cpp(objs, output_fd, options={}):
         return env.get_template(template_name)
 
     util.get_jinja2_template = get_local_template
-    get_metric_id = generate_metric_ids(objs)
-    get_ping_id = generate_ping_ids(objs)
 
     if "pings" in objs:
-        template_filename = "cpp_pings.jinja2"
+        template = util.get_jinja2_template(
+            "cpp_pings.jinja2",
+            filters=(("ping_id", generate_ping_ids(objs)),),
+        )
         if objs.get("tags"):
             del objs["tags"]
     else:
-        template_filename = "cpp.jinja2"
+        template = get_metrics_template(
+            options["get_metric_id"]
+            if "get_metric_id" in options
+            else generate_metric_ids(objs)
+        )
         objs = get_metrics(objs)
 
-    template = util.get_jinja2_template(
-        template_filename,
-        filters=(
-            ("cpp", cpp_datatypes_filter),
-            ("snake_case", util.snake_case),
-            ("type_name", type_name),
-            ("extra_type_name", extra_type_name),
-            ("metric_id", get_metric_id),
-            ("ping_id", get_ping_id),
-            ("Camelize", util.Camelize),
-        ),
-    )
-
-    output_fd.write(template.render(all_objs=objs))
+    output_fd.write(template.render(all_objs=objs, options=options))
     output_fd.write("\n")

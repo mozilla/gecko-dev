@@ -8,8 +8,8 @@ Jinja2 template is not. Please file bugs! #}
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_GleanMetrics_h
-#define mozilla_GleanMetrics_h
+#ifndef mozilla_Glean{{ options.header_name }}_h
+#define mozilla_Glean{{ options.header_name }}_h
 
 #include "mozilla/glean/bindings/MetricTypes.h"
 #include "mozilla/Maybe.h"
@@ -105,4 +105,4 @@ namespace {{ category_name|snake_case }} {
 
 } // namespace mozilla::glean
 
-#endif // mozilla_GleanMetrics_h
+#endif // mozilla_Glean{{ options.header_name }}_h

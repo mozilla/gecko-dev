@@ -15,6 +15,7 @@ import jog
 import rust
 from buildconfig import topsrcdir
 from glean_parser import lint, metrics, parser, translate, util
+from metrics_header_names import convert_yaml_path_to_header_name
 from mozbuild.util import FileAvoidWrite, memoize
 from util import generate_metric_ids
 
@@ -141,8 +142,37 @@ def main(cpp_fd, *args):
     [js_h_path, js_cpp_path, rust_path] = args[-3:]
     args = args[:-3]
     all_objs, options = parse(args)
+    all_metric_header_files = {}
 
-    cpp.output_cpp(all_objs, cpp_fd, options)
+    for category_name in all_objs.keys():
+        if category_name in ["pings", "tags"]:
+            continue
+        for name, metric in all_objs[category_name].items():
+            filepath = metric.defined_in["filepath"].replace("\\", "/")
+            if not (filepath.startswith(topsrcdir) and filepath.endswith(".yaml")):
+                raise ParserError("Unexpected path" + filepath)
+
+            filename = convert_yaml_path_to_header_name(filepath[len(topsrcdir) + 1 :])
+            if not filename in all_metric_header_files:
+                all_metric_header_files[filename] = {}
+            if not category_name in all_metric_header_files[filename]:
+                all_metric_header_files[filename][category_name] = {}
+            all_metric_header_files[filename][category_name][name] = metric
+
+    if "pings" in all_objs:
+        cpp.output_cpp(all_objs, cpp_fd, options)
+    else:
+        get_metric_id = generate_metric_ids(all_objs)
+        for header_name, objs in all_metric_header_files.items():
+            cpp.output_cpp(
+                objs,
+                (
+                    cpp_fd
+                    if header_name == "GleanMetrics"
+                    else open_output(header_name + ".h")
+                ),
+                {"header_name": header_name, "get_metric_id": get_metric_id},
+            )
 
     with open_output(js_h_path) as js_fd:
         with open_output(js_cpp_path) as js_cpp_fd:

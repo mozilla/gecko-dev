@@ -43,7 +43,7 @@ def test_all_metric_types():
     all_objs, options = run_glean_parser.parse_with_options(input_files, options)
 
     output_fd = io.StringIO()
-    cpp.output_cpp(all_objs, output_fd, options)
+    cpp.output_cpp(all_objs, output_fd, {"header_name": "Metrics"})
 
     expect(
         path.join(path.dirname(__file__), "metrics_test_output_cpp"),

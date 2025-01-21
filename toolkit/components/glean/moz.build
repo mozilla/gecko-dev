@@ -112,6 +112,10 @@ SOURCES += [
 # Provides us the list of dependent metrics|pings.yaml.
 include("metrics_index.py")
 
+# Provides the function to convert a metrics.yaml path to the name of a header.
+include("build_scripts/glean_parser_ext/metrics_header_names.py")
+
+
 # Allow defining metrics/pings/tags elsewhere (like for Thunderbird).
 # See https://source-docs.thunderbird.net/en/latest/telemetry/index.html
 # See also: MOZ_GLEAN_INTERESTING_METRICS_FILES
@@ -126,6 +130,15 @@ if CONFIG["MOZ_GLEAN_EXTRA_PINGS_FILES"]:
 if CONFIG["MOZ_GLEAN_EXTRA_TAGS_FILES"]:
     tags_yamls.extend(CONFIG["MOZ_GLEAN_EXTRA_TAGS_FILES"])
     tags_yamls = sorted(tags_yamls)
+
+metrics_headers = sorted(
+    {
+        convert_yaml_path_to_header_name(path) + ".h"
+        for path in metrics_yamls
+        if path != "toolkit/components/glean/metrics.yaml"
+    }
+)
+EXPORTS.mozilla.glean += [("!" + filename) for filename in metrics_headers]
 
 # GeneratedFile's `inputs` are relative to our dir.
 # The yamls arrays are relative to topsrcdir, so we need to transform:
@@ -153,6 +166,7 @@ GeneratedFile(
 
 GeneratedFile(
     "GleanMetrics.h",
+    *metrics_headers,
     "GleanJSMetricsLookup.h",
     "GleanJSMetricsLookup.cpp",
     "api/src/metrics.rs",
