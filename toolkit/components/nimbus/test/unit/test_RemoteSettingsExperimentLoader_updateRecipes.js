@@ -1717,7 +1717,6 @@ add_task(
     const manager = loader.manager;
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await loader.init();
     await manager.onStartup();
@@ -1744,7 +1743,6 @@ add_task(
     const manager = loader.manager;
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     const slug = "foo";
     const EXPERIMENT = ExperimentFakes.recipe(slug, {

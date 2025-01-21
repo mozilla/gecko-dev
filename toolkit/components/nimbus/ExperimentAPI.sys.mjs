@@ -692,10 +692,16 @@ ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
   return lazy.ExperimentManager;
 });
 
-ChromeUtils.defineLazyGetter(ExperimentAPI, "_store", function () {
-  return IS_MAIN_PROCESS
-    ? lazy.ExperimentManager.store
-    : new lazy.ExperimentStore();
+Object.defineProperty(ExperimentAPI, "_store", {
+  get() {
+    if (IS_MAIN_PROCESS) {
+      return ExperimentAPI._manager.store;
+    }
+
+    ExperimentAPI._store = new lazy.ExperimentStore();
+    return ExperimentAPI._store;
+  },
+  configurable: true,
 });
 
 ChromeUtils.defineLazyGetter(
