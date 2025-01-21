@@ -41,27 +41,24 @@ bool TrackInfo::IsEqualTo(const TrackInfo& rhs) const {
 }
 
 nsCString TrackInfo::ToString() const {
-  nsCString rv;
-
+  nsAutoCString rv;
   rv.AppendPrintf(
-      "TrackInfo: id:%s kind:%s label:%s language:%s enabled:%s trackid: %d "
+      "(TrackInfo: id:%s kind:%s label:%s language:%s enabled:%s trackid: %d "
       "mimetype:%s duration:%s media time:%s crypto:%s rendered externaly: %s "
-      "type:%s",
+      "type:%s)",
       NS_ConvertUTF16toUTF8(mId).get(), NS_ConvertUTF16toUTF8(mKind).get(),
       NS_ConvertUTF16toUTF8(mLabel).get(),
       NS_ConvertUTF16toUTF8(mLanguage).get(), mEnabled ? "true" : "false",
       mTrackId, mMimeType.get(), mDuration.ToString().get(),
       mMediaTime.ToString().get(), EnumValueToString(mCrypto.mCryptoScheme),
       mIsRenderedExternally ? "true" : "false", TrackTypeToStr(mType));
-
   if (!mTags.IsEmpty()) {
     rv.AppendPrintf("\n");
     for (const auto& tag : mTags) {
       rv.AppendPrintf("%s:%s", tag.mKey.get(), tag.mValue.get());
     }
   }
-
-  return rv;
+  return std::move(rv);
 }
 
 bool VideoInfo::operator==(const VideoInfo& rhs) const {
@@ -82,8 +79,8 @@ bool AudioInfo::operator==(const AudioInfo& rhs) const {
 }
 
 nsCString AudioInfo::ToString() const {
-  nsCString rv;
-
+  nsAutoCString rv;
+  rv.Append(TrackInfo::ToString());
   rv.AppendPrintf(
       "AudioInfo: %s, %" PRIu32 "Hz, %" PRIu32 "ch (%s) %" PRIu32
       "-bits, profile: %" PRIu8 ", extended profile: %" PRIu8 ", %s extradata",
@@ -91,8 +88,7 @@ nsCString AudioInfo::ToString() const {
       AudioConfig::ChannelLayout::ChannelMapToString(mChannelMap).get(),
       mBitDepth, mProfile, mExtendedProfile,
       mCodecSpecificConfig.is<NoCodecSpecificData>() ? "no" : "with");
-
-  return rv;
+  return std::move(rv);
 }
 
 }  // namespace mozilla
