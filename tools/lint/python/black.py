@@ -128,7 +128,7 @@ def setup(root, **lintargs):
     log.debug("Black needs to be installed or updated")
     virtualenv_manager = lintargs["virtualenv_manager"]
     try:
-        virtualenv_manager.install_pip_requirements(BLACK_REQUIREMENTS_PATH, quiet=True)
+        virtualenv_manager.install_pip_requirements(BLACK_REQUIREMENTS_PATH)
     except subprocess.CalledProcessError:
         print(BLACK_INSTALL_ERROR)
         return 1

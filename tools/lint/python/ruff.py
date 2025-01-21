@@ -83,7 +83,7 @@ def setup(root, log, **lintargs):
 
     virtualenv_manager = lintargs["virtualenv_manager"]
     try:
-        virtualenv_manager.install_pip_requirements(RUFF_REQUIREMENTS_PATH, quiet=True)
+        virtualenv_manager.install_pip_requirements(RUFF_REQUIREMENTS_PATH)
     except subprocess.CalledProcessError:
         print(RUFF_INSTALL_ERROR)
         return 1

@@ -44,9 +44,7 @@ RSTCHECK_FORMAT_REGEX = re.compile(r"(.*):(.*): \(.*/([0-9]*)\) (.*)$")
 def setup(root, **lintargs):
     virtualenv_manager = lintargs["virtualenv_manager"]
     try:
-        virtualenv_manager.install_pip_requirements(
-            rstcheck_requirements_file, quiet=True
-        )
+        virtualenv_manager.install_pip_requirements(rstcheck_requirements_file)
     except subprocess.CalledProcessError:
         print(RSTCHECK_INSTALL_ERROR)
         return 1

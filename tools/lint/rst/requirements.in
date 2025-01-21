@@ -1,12 +1,13 @@
 alabaster==0.7.13
 charset-normalizer==2.0.12
+colorama==0.4.6
 docutils==0.18.1
 fluent.pygments==1.0
 idna==2.10
 imagesize==1.4.1
 importlib-metadata==6.0.0
 markupsafe==2.0.1
-packaging==21.0
+packaging==23.1
 requests==2.27.1
 snowballstemmer==2.2.0
 sphinxcontrib-applehelp==1.0.4
