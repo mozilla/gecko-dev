@@ -27,7 +27,6 @@ class MockWavReader : public WavReaderInterface {
   MockWavReader(int sample_rate, size_t num_channels, size_t num_samples);
   ~MockWavReader();
 
-  // TODO(alessiob): use ON_CALL to return random samples if needed.
   MOCK_METHOD(size_t, ReadFloatSamples, (rtc::ArrayView<float>), (override));
   MOCK_METHOD(size_t, ReadInt16Samples, (rtc::ArrayView<int16_t>), (override));
 

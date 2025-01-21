@@ -187,13 +187,6 @@ std::unique_ptr<std::map<std::string, SpeakerOutputFilePaths>> Simulate(
   const auto& audiotrack_readers = multiend_call.audiotrack_readers();
   auto audiotracks = PreloadAudioTracks(audiotrack_readers);
 
-  // TODO(alessiob): When speaker_names.size() == 2, near-end and far-end
-  // across the 2 speakers are symmetric; hence, the code below could be
-  // replaced by only creating the near-end or the far-end. However, this would
-  // require to split the unit tests and document the behavior in README.md.
-  // In practice, it should not be an issue since the files are not expected to
-  // be signinificant.
-
   // Write near-end and far-end output tracks.
   for (const auto& speaking_turn : multiend_call.speaking_turns()) {
     const std::string& active_speaker_name = speaking_turn.speaker_name;
