@@ -1,100 +1,86 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - webrtc.gni - filter out '//third_party/abseil-cpp/'
- deps r=ng,webrtc-reviewers
+Subject: Bug 1921707 - libwebrtc preprocessor, .json, .gni, and *.gn changes
+ r=ng,webrtc-reviewers
 
-Differential Revision: https://phabricator.services.mozilla.com/D224079
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/45b99d1ba95b46896506de1c7dd92f19e4dc9207
+Differential Revision: https://phabricator.services.mozilla.com/D224076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7017edc7cfc880bb19f94115d4f48a8c58920a9b
 ---
- webrtc.gni | 71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
+ .gn                           | 4 ++--
+ media/BUILD.gn                | 2 +-
+ modules/video_coding/BUILD.gn | 2 +-
+ webrtc.gni                    | 6 +++---
+ 4 files changed, 7 insertions(+), 7 deletions(-)
 
+diff --git a/.gn b/.gn
+index e379d18527..c810498584 100644
+--- a/.gn
++++ b/.gn
+@@ -18,7 +18,7 @@ script_executable = "python3"
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly
+ # in the source tree, e.g. for third party source trees.
+-secondary_source = "//build/secondary/"
++secondary_source = "//libwebrtc/"
+ 
+ # These are the targets to skip header checking by default. The files in targets
+ # matching these patterns (see "gn help label_pattern" for format) will not have
+@@ -36,7 +36,7 @@ no_check_targets = [
+ # to force additional review for new uses of exec_script, which is strongly
+ # discouraged except for gypi_to_gn calls.
+ exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
+-                        [ "//build_overrides/build.gni" ]
++                        [ "//libwebrtc/build_overrides/build.gni" ]
+ 
+ # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
+ # available yet.
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index ddb6cd9d1b..e48d2ffada 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -7,7 +7,7 @@
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+ import("//build/config/linux/pkg_config.gni")
+-import("//third_party/libaom/options.gni")
++import("//libwebrtc/third_party/libaom/options.gni")
+ import("../webrtc.gni")
+ 
+ group("media") {
+diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
+index c5c6ce13dd..ee3a30dc4c 100644
+--- a/modules/video_coding/BUILD.gn
++++ b/modules/video_coding/BUILD.gn
+@@ -7,7 +7,7 @@
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+ import("//build/config/linux/pkg_config.gni")
+-import("//third_party/libaom/options.gni")
++import("//libwebrtc/third_party/libaom/options.gni")
+ import("../../webrtc.gni")
+ 
+ rtc_library("encoded_frame") {
 diff --git a/webrtc.gni b/webrtc.gni
-index 60fd992710..c6ccfb2deb 100644
+index 5efc1979fd..60fd992710 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -685,6 +685,36 @@ template("rtc_source_set") {
-         deps += [ "//third_party/abseil-cpp:absl" ]
-       }
-     }
-+
-+    # Rather than widespread changes to most, if not all, BUILD.gn files
-+    # we'll do some filtering on dependencies here.
-+    if (build_with_mozilla && defined(deps)) {
-+      # Now that abseil-cpp is moved to Mozilla's third_party directory
-+      # we remove all the abseil-cpp dependency listings so moz.build
-+      # generation succeed.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # We don't build any of the test code, but many of the test
-+      # targets list gtest/gmock as a dependency.  We can simply
-+      # filter them out here.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//testing/g", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+    }
-   }
- }
+@@ -11,7 +11,7 @@ import("//build/config/mips.gni")
+ import("//build/config/ozone.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build/config/sysroot.gni")
+-import("//build_overrides/build.gni")
++import("//libwebrtc/build_overrides/build.gni")
  
-@@ -919,6 +949,47 @@ template("rtc_library") {
-         deps += [ "//third_party/abseil-cpp:absl" ]
-       }
-     }
-+
-+    # Rather than widespread changes to most, if not all, BUILD.gn files
-+    # we'll do some filtering on dependencies here.
-+    if (build_with_mozilla && defined(deps)) {
-+      # Now that abseil-cpp is moved to Mozilla's third_party directory
-+      # we remove all the abseil-cpp dependency listings so moz.build
-+      # generation succeed.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # We don't build any of the test code, but many of the test
-+      # targets list gtest/gmock as a dependency.  We can simply
-+      # filter them out here.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//testing/g", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # Moving the google build directory requires looking for libwebrtc's
-+      # third_party dependencies under libwebrtc/third_party instead of
-+      # simply third_party.
-+      modified_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
-+        modified_deps += [ newdep ]
-+      }
-+      deps = []
-+      deps = modified_deps
-+    }
-   }
- }
+ if (!build_with_chromium && is_component_build) {
+   print("The Gn argument `is_component_build` is currently " +
+@@ -492,8 +492,8 @@ all_poison_types = [
+   "software_video_codecs",
+ ]
  
+-absl_include_config = "//third_party/abseil-cpp:absl_include_config"
+-absl_define_config = "//third_party/abseil-cpp:absl_define_config"
++absl_include_config = "//libwebrtc/third_party/abseil-cpp:absl_include_config"
++absl_define_config = "//libwebrtc/third_party/abseil-cpp:absl_define_config"
+ 
+ # Abseil Flags are testonly, so this config will only be applied to WebRTC targets
+ # that are testonly.

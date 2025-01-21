@@ -1,24 +1,104 @@
-From: Randell Jesup <rjesup@mozilla.com>
-Date: Tue, 1 Oct 2024 21:28:00 +0000
-Subject: Bug 1922048: fix comma instead of semicolon in libwebrtc AEC code
- r=mjf,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 1 Oct 2024 21:05:00 +0000
+Subject: Bug 1921706 - use relative paths on deps in a few places to avoid
+ future issues. r=ng,webrtc-reviewers DONTBUILD
 
-Differential Revision: https://phabricator.services.mozilla.com/D224242
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd7a2f8d10cf9d6e862b8f8bb8e675f0d9ddb4bf
+Note: this produces no changes in the generated moz.build files.
+
+Differential Revision: https://phabricator.services.mozilla.com/D224070
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bbec1b95ddb5e00967a0fb002f54f8f24336b904
 ---
- modules/audio_processing/aec3/echo_canceller3.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/audio_coding/BUILD.gn  |  2 +-
+ modules/portal/BUILD.gn        |  8 ++++----
+ modules/video_capture/BUILD.gn |  2 +-
+ sdk/BUILD.gn                   | 14 ++++++++++++++
+ test/BUILD.gn                  |  6 ++++++
+ 5 files changed, 26 insertions(+), 6 deletions(-)
 
-diff --git a/modules/audio_processing/aec3/echo_canceller3.cc b/modules/audio_processing/aec3/echo_canceller3.cc
-index 00010ceaea..4b3747e92b 100644
---- a/modules/audio_processing/aec3/echo_canceller3.cc
-+++ b/modules/audio_processing/aec3/echo_canceller3.cc
-@@ -781,7 +781,7 @@ EchoCanceller3::EchoCanceller3(
-     linear_output_framer_.reset(
-         new BlockFramer(/*num_bands=*/1, num_capture_channels_));
-     linear_output_block_ =
--        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_),
-+        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_);
-     linear_output_sub_frame_view_ =
-         std::vector<std::vector<rtc::ArrayView<float>>>(
-             1, std::vector<rtc::ArrayView<float>>(num_capture_channels_));
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index 1df856e2e9..e547f76cff 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
+     deps += [ rtc_opus_dir ]
+     public_configs = [ "//third_party/opus:opus_config" ]
+   } else if (build_with_mozilla) {
+-    public_configs = [ "//third_party/opus:opus_config" ]
++    public_configs = [ "../../third_party/opus:opus_config" ]
+   }
+ }
+ 
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index aff8609b54..901597ecde 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -137,10 +137,10 @@ if (!build_with_mozilla) {
+       deps -= [ ":pipewire_stubs" ]
+       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
+       public_deps = [
+-        "//third_party/pipewire",
+-        "//third_party/drm",
+-        "//third_party/gbm",
+-        "//third_party/libepoxy"
++        "../../third_party/pipewire",
++        "../../third_party/drm",
++        "../../third_party/gbm",
++        "../../third_party/libepoxy"
+       ]
+     }
+   }
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index d9b3471572..60e191908b 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         ]
+         if (build_with_mozilla) {
+           configs -= [ "../portal:pipewire_base" ]
+-          public_deps = [ "//third_party/pipewire" ]
++          public_deps = [ "../../third_party/pipewire" ]
+         }
+       }
+     }
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 94628394c1..bdfb7141e9 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -588,6 +588,20 @@ if (is_ios || is_mac) {
+         "CoreGraphics.framework",
+         "CoreVideo.framework",
+       ]
++      if (build_with_mozilla) {
++        deps -= [
++          "//api/video:video_frame",
++          "//api/video:video_rtp_headers",
++          "//common_video",
++          "//rtc_base:checks",
++        ]
++        deps += [
++          "../api/video:video_frame",
++          "../api/video:video_rtp_headers",
++          "../common_video",
++          "../rtc_base:checks",
++        ]
++      }
+     }
+ 
+     if (!build_with_mozilla) {
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index 4034e3f067..969966259f 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -483,6 +483,12 @@ rtc_source_set("test_support") {
+     "//testing/gmock",
+     "//testing/gtest",
+   ]
++  if (build_with_mozilla) {
++    all_dependent_configs -= [
++      "//third_party/googletest:gmock_config",
++      "//third_party/googletest:gtest_config",
++    ]
++  }
+ }
+ 
+ rtc_library("fixed_fps_video_frame_writer_adapter") {

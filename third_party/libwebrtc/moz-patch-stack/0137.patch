@@ -1,31 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 29 Oct 2024 18:20:00 +0000
-Subject: Bug 1925119 - add dcsctp to libwebrtc build. r=bwc,webrtc-reviewers
+Date: Tue, 15 Oct 2024 16:46:00 -0500
+Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
+ LibvpxVp9Encoder::InitAndSetControlSettings
 
-Differential Revision: https://phabricator.services.mozilla.com/D225892
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a33b06e51017d25542a95c2a460bfed41c553b
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
 ---
- BUILD.gn | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 97227f0e03..f11d86d211 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -567,6 +567,7 @@ if (!build_with_chromium) {
-       "call",
-       "common_audio",
-       "common_video",
-+      ":dcsctp",
-       "logging:rtc_event_log_api",
-       "media",
-       "modules",
-@@ -886,7 +887,7 @@ if (rtc_include_tests && !build_with_chromium) {
- # Build target for standalone dcsctp
- rtc_static_library("dcsctp") {
-   # Only the root target should depend on this.
--  visibility = [ "//:default" ]
-+  visibility = [ "//:default", "//libwebrtc:webrtc" ]
-   sources = []
-   complete_static_lib = true
-   suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 4defd80355..379075d12c 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1296,7 +1296,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
+   // bugs in trying to do it the "right" way, we basically re-do
+   // the initialization.
+   vpx_codec_destroy(encoder_); // clean up old state
+-  int result = InitAndSetControlSettings(&codec_);
++  int result = InitAndSetControlSettings();
+   if (result == WEBRTC_VIDEO_CODEC_OK) {
+     // TODO: Mozilla rates have become much more complicated, we need to store
+     // more state or find another way of doing this.

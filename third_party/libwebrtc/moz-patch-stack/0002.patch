@@ -1,201 +1,260 @@
-From: =?UTF-8?q?Erik=20Spr=C3=A5ng?= <sprang@webrtc.org>
-Date: Wed, 20 Nov 2024 14:01:33 +0100
-Subject: (cherry-pick-branch-heads/6834) [M132 merge] Avoid potential deadlock
- due to queue in corruption detection.
+From: Alessio Bazzica <alessiob@webrtc.org>
+Date: Wed, 13 Nov 2024 13:49:30 +0100
+Subject: (cherry-pick-branch-heads/6834) With stereo decoding and mono packets
+ produce mono after CN/PLC
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-In particular, some platforms have a limited pool of frames in the
-capturer stack, so we need to avoid stashing raw frames in the frame
-instrumentation generator that may be dropped by limiting the size of
-the queue and avoid putting anything in there until we know we will
-send it to the encoder.
+The workaround in https://webrtc-review.googlesource.com/c/src/+/367740
+is incomplete because it does not fix the issue for the first decoded
+mono packet after CN/PLC. This CL extends the workaround to such a case
+and adds a unit test for it.
 
-(cherry picked from commit 9aeed0c5f4518763ad6e8aa9547223301612805b)
+Note: it was verified that the 2nd packet after CN/PLC is trivial
+stereo.
 
-Bug: webrtc:358039777, chromium:380095413
-Change-Id: I054ae53dd5e6ac6a22da39c5049f47788561e77a
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368641
-Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-Commit-Queue: Erik Språng <sprang@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43432}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368901
-Cr-Commit-Position: refs/branch-heads/6834@{#2}
+Credits: jakobi@webrtc.org for raising the concern
+
+(cherry picked from commit ebb11c4c87e4c0288d1ac18f38b4efa4254b3c6a)
+
+Bug: chromium:378896415
+Change-Id: Ide27e411781693f14629cf9db8b6c0c0fc762a17
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368160
+Reviewed-by: Jakob Ivarsson‎ <jakobi@webrtc.org>
+Commit-Queue: Alessio Bazzica <alessiob@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43393}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368560
+Reviewed-by: Henrik Lundin <henrik.lundin@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6834@{#1}
 Cr-Branched-From: a5d71009ac1dce7da23813dc9413c03073cfa8ca-refs/heads/main@{#43387}
 ---
- .../frame_instrumentation_generator.cc        |  7 +++
- ...rame_instrumentation_generator_unittest.cc | 36 ++++++++++++
- video/video_stream_encoder.cc                 |  7 ++-
- video/video_stream_encoder_unittest.cc        | 55 +++++++++++++++++++
- 4 files changed, 102 insertions(+), 3 deletions(-)
+ modules/audio_coding/BUILD.gn                 |  1 +
+ .../opus/audio_decoder_opus_unittest.cc       | 83 ++++++++++++++++---
+ .../codecs/opus/opus_interface.cc             | 30 ++++---
+ 3 files changed, 88 insertions(+), 26 deletions(-)
 
-diff --git a/video/corruption_detection/frame_instrumentation_generator.cc b/video/corruption_detection/frame_instrumentation_generator.cc
-index cc2b1122e4..df6fe865a5 100644
---- a/video/corruption_detection/frame_instrumentation_generator.cc
-+++ b/video/corruption_detection/frame_instrumentation_generator.cc
-@@ -36,6 +36,10 @@
- namespace webrtc {
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index a2a1ca8328..78bdccfefe 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -1505,6 +1505,7 @@ if (rtc_include_tests) {
+         "../../test:test_support",
+         "codecs/opus/test",
+         "codecs/opus/test:test_unittest",
++        "//testing/gmock",
+         "//testing/gtest",
+         "//third_party/abseil-cpp/absl/flags:flag",
+         "//third_party/abseil-cpp/absl/memory",
+diff --git a/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc b/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
+index 71f0d38b25..998b88a105 100644
+--- a/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
++++ b/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
+@@ -28,6 +28,7 @@
+ #include "rtc_base/checks.h"
+ #include "rtc_base/random.h"
+ #include "test/explicit_key_value_config.h"
++#include "test/gmock.h"
+ #include "test/gtest.h"
+ #include "test/testsupport/file_utils.h"
+ 
+@@ -35,6 +36,7 @@ namespace webrtc {
  namespace {
  
-+// Avoid holding on to frames that might have been dropped by encoder, as that
-+// can lead to frame buffer pools draining.
-+constexpr size_t kMaxPendingFrames = 3;
-+
- std::optional<FilterSettings> GetCorruptionFilterSettings(
-     const EncodedImage& encoded_image,
-     VideoCodecType video_codec_type,
-@@ -75,6 +79,9 @@ FrameInstrumentationGenerator::FrameInstrumentationGenerator(
-     : video_codec_type_(video_codec_type) {}
+ using test::ExplicitKeyValueConfig;
++using testing::SizeIs;
  
- void FrameInstrumentationGenerator::OnCapturedFrame(VideoFrame frame) {
-+  while (captured_frames_.size() >= kMaxPendingFrames) {
-+    captured_frames_.pop();
+ using DecodeResult = ::webrtc::AudioDecoder::EncodedAudioFrame::DecodeResult;
+ using ParseResult = ::webrtc::AudioDecoder::ParseResult;
+@@ -158,7 +160,6 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
+   std::vector<int16_t> decoded_frame(kEncoderFrameLength *
+                                      decoder_num_channels);
+ 
+-  bool dtx_packet_found = false;
+   for (int i = 0; i < 50; ++i) {
+     generator.GenerateNextFrame(input_frame);
+     rtc::Buffer payload;
+@@ -170,8 +171,9 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
+       continue;
+     }
+ 
+-    // Decode `payload`. If not a DTX packet, decoding it may update the
+-    // internal decoder parameters for comfort noise generation.
++    // Decode `payload`. If it encodes a DTX packet (i.e., 1 byte payload), the
++    // decoder will switch to DTX mode. Otherwise, it may update the internal
++    // decoder parameters for comfort noise generation.
+     std::vector<ParseResult> parse_results =
+         decoder.ParsePayload(std::move(payload), timestamp++);
+     RTC_CHECK_EQ(parse_results.size(), 1);
+@@ -179,14 +181,62 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
+         parse_results[0].frame->Decode(decoded_frame);
+     RTC_CHECK(decode_results);
+     RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
+-
+     if (parse_results[0].frame->IsDtxPacket()) {
+-      // The decoder is now in DTX mode.
+-      dtx_packet_found = true;
++      return;
++    }
 +  }
-   captured_frames_.push(frame);
- }
- 
-diff --git a/video/corruption_detection/frame_instrumentation_generator_unittest.cc b/video/corruption_detection/frame_instrumentation_generator_unittest.cc
-index 2305127699..7f8992be51 100644
---- a/video/corruption_detection/frame_instrumentation_generator_unittest.cc
-+++ b/video/corruption_detection/frame_instrumentation_generator_unittest.cc
-@@ -11,6 +11,7 @@
- #include "video/corruption_detection/frame_instrumentation_generator.h"
- 
- #include <cstdint>
-+#include <memory>
- #include <optional>
- #include <vector>
- 
-@@ -686,5 +687,40 @@ TEST(FrameInstrumentationGeneratorTest, GetterAndSetterOperatesAsExpected) {
- #endif  // GTEST_HAS_DEATH_TEST
- }
- 
-+TEST(FrameInstrumentationGeneratorTest, QueuesAtMostThreeInputFrames) {
-+  auto generator = std::make_unique<FrameInstrumentationGenerator>(
-+      VideoCodecType::kVideoCodecVP8);
-+
-+  bool frames_destroyed[4] = {};
-+  class TestBuffer : public webrtc::I420Buffer {
-+   public:
-+    TestBuffer(int width, int height, bool* frame_destroyed_indicator)
-+        : I420Buffer(width, height),
-+          frame_destroyed_indicator_(frame_destroyed_indicator) {}
-+
-+   private:
-+    friend class RefCountedObject<TestBuffer>;
-+    ~TestBuffer() override { *frame_destroyed_indicator_ = true; }
-+
-+    bool* frame_destroyed_indicator_;
-+  };
-+
-+  // Insert four frames, the first one should expire and be released.
-+  for (int i = 0; i < 4; ++i) {
-+    generator->OnCapturedFrame(
-+        VideoFrame::Builder()
-+            .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
-+                kDefaultScaledWidth, kDefaultScaledHeight,
-+                &frames_destroyed[i]))
-+            .set_rtp_timestamp(1 + (33 * i))
-+            .build());
-+  }
-+
-+  EXPECT_THAT(frames_destroyed, ElementsAre(true, false, false, false));
-+
-+  generator.reset();
-+  EXPECT_THAT(frames_destroyed, ElementsAre(true, true, true, true));
++  RTC_CHECK_NOTREACHED();
 +}
 +
++// Generates packets by encoding speech frames and decodes them until a non-DTX
++// packet is generated and, when that condition is met, returns the decoded
++// audio samples.
++std::vector<int16_t> EncodeDecodeSpeechUntilOneFrameIsDecoded(
++    AudioEncoderOpusImpl& encoder,
++    AudioDecoderOpusImpl& decoder,
++    uint32_t& rtp_timestamp,
++    uint32_t& timestamp) {
++  RTC_CHECK(encoder.NumChannels() == 1 || encoder.NumChannels() == 2);
++  const bool stereo_encoding = encoder.NumChannels() == 2;
++  const size_t decoder_num_channels = decoder.Channels();
++  std::vector<int16_t> decoded_frame(kEncoderFrameLength *
++                                     decoder_num_channels);
++
++  PCMFile pcm_file;
++  pcm_file.Open(test::ResourcePath(
++                    stereo_encoding ? "near48_stereo" : "near48_mono", "pcm"),
++                kSampleRateHz, "rb");
++  pcm_file.ReadStereo(stereo_encoding);
++
++  AudioFrame audio_frame;
++  while (true) {
++    if (pcm_file.EndOfFile()) {
+       break;
+     }
++    pcm_file.Read10MsData(audio_frame);
++    rtc::Buffer payload;
++    encoder.Encode(rtp_timestamp++, audio_frame.data_view().data(), &payload);
++
++    // Ignore empty payloads: the encoder needs more audio to produce a packet.
++    if (payload.size() == 0) {
++      continue;
++    }
++
++    // Decode `payload`.
++    std::vector<ParseResult> parse_results =
++        decoder.ParsePayload(std::move(payload), timestamp++);
++    RTC_CHECK_EQ(parse_results.size(), 1);
++    std::optional<DecodeResult> decode_results =
++        parse_results[0].frame->Decode(decoded_frame);
++    RTC_CHECK(decode_results);
++
++    if (parse_results[0].frame->IsDtxPacket()) {
++      continue;
++    }
++    RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
++    return decoded_frame;
+   }
+-  RTC_CHECK(dtx_packet_found);
++  RTC_CHECK_NOTREACHED();
+ }
+ 
  }  // namespace
- }  // namespace webrtc
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index e2037575fa..c62a3e1c90 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -1560,9 +1560,6 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
+@@ -239,6 +289,7 @@ TEST(AudioDecoderOpusTest,
+   constexpr size_t kDecoderNumChannels = 2;
+   AudioDecoderOpusImpl decoder(env.field_trials(), kDecoderNumChannels,
+                                kSampleRateHz);
++  std::vector<int16_t> decoded_frame;
  
-   encoder_stats_observer_->OnIncomingFrame(incoming_frame.width(),
-                                            incoming_frame.height());
--  if (frame_instrumentation_generator_) {
--    frame_instrumentation_generator_->OnCapturedFrame(incoming_frame);
--  }
-   ++captured_frame_count_;
-   bool cwnd_frame_drop =
-       cwnd_frame_drop_interval_ &&
-@@ -2032,6 +2029,10 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
+   uint32_t rtp_timestamp = 0xFFFu;
+   uint32_t timestamp = 0;
+@@ -250,7 +301,7 @@ TEST(AudioDecoderOpusTest,
+                                          timestamp);
  
-   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
- 
-+  if (frame_instrumentation_generator_) {
-+    frame_instrumentation_generator_->OnCapturedFrame(out_frame);
-+  }
+   // Decode an empty packet so that Opus generates comfort noise.
+-  std::array<int16_t, kEncoderFrameLength * kDecoderNumChannels> decoded_frame;
++  decoded_frame.resize(kEncoderFrameLength * kDecoderNumChannels);
+   AudioDecoder::SpeechType speech_type;
+   const int num_decoded_samples =
+       decoder.Decode(/*encoded=*/nullptr, /*encoded_len=*/0, kSampleRateHz,
+@@ -262,8 +313,14 @@ TEST(AudioDecoderOpusTest,
+                                              num_decoded_samples);
+   // Make sure that comfort noise is not a muted frame.
+   ASSERT_FALSE(IsZeroedFrame(decoded_view));
+-
+   EXPECT_TRUE(IsTrivialStereo(decoded_view));
 +
-   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
-   was_encode_called_since_last_initialization_ = true;
- 
-diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
-index 859c7927be..08ae5cae95 100644
---- a/video/video_stream_encoder_unittest.cc
-+++ b/video/video_stream_encoder_unittest.cc
-@@ -1702,6 +1702,61 @@ TEST_F(VideoStreamEncoderTest, PopulatesFrameInstrumentationDataWhenSetTo) {
-   video_stream_encoder_->Stop();
++  // Also check the first decoded audio frame after comfort noise.
++  decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
++      encoder, decoder, rtp_timestamp, timestamp);
++  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
++  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
++  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
  }
  
-+TEST_F(VideoStreamEncoderTest,
-+       FrameInstrumentationGeneratorDoesNotStashDroppedFrames) {
-+  // Set low rate but high resolution. Make sure input frame is dropped and
-+  // instance is released, even with corruption detection enabled.
-+  const DataRate kLowRate = DataRate::KilobitsPerSec(300);
-+  codec_width_ = 1280;
-+  codec_height_ = 720;
+ TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
+@@ -296,8 +353,14 @@ TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
+                                              concealment_audio.size());
+   // Make sure that packet loss concealment is not a muted frame.
+   ASSERT_FALSE(IsZeroedFrame(decoded_view));
+-
+   EXPECT_TRUE(IsTrivialStereo(decoded_view));
 +
-+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
-+      true;
-+  ConfigureEncoder(video_encoder_config_.Copy());
-+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-+      kLowRate, kLowRate, kLowRate, 0, 0, 0);
++  // Also check the first decoded audio frame after packet loss concealment.
++  std::vector<int16_t> decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
++      encoder, decoder, rtp_timestamp, timestamp);
++  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
++  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
++  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
+ }
+ 
+ TEST(AudioDecoderOpusTest,
+diff --git a/modules/audio_coding/codecs/opus/opus_interface.cc b/modules/audio_coding/codecs/opus/opus_interface.cc
+index 565f803741..d18b517fe4 100644
+--- a/modules/audio_coding/codecs/opus/opus_interface.cc
++++ b/modules/audio_coding/codecs/opus/opus_interface.cc
+@@ -547,22 +547,9 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
+                       int16_t* decoded,
+                       int16_t* audio_type) {
+   int decoded_samples_per_channel;
+-
+   if (encoded_bytes == 0) {
+     *audio_type = DetermineAudioType(inst, encoded_bytes);
+     decoded_samples_per_channel = DecodePlc(inst, decoded);
+-
+-    // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
+-    // below.
+-    if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
+-      // Stereo decoding is enabled and the last observed packet to decode
+-      // encoded mono audio. In this case, Opus generates non-trivial stereo
+-      // audio. Since this is unwanted, copy the left channel into the right
+-      // one.
+-      for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
+-        decoded[i + 1] = decoded[i];
+-      }
+-    }
+   } else {
+     decoded_samples_per_channel = DecodeNative(
+         inst, encoded, encoded_bytes,
+@@ -570,14 +557,25 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
+ 
+     // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
+     // below.
+-    const int num_channels = opus_packet_get_nb_channels(encoded);
+-    RTC_DCHECK(num_channels == 1 || num_channels == 2);
+-    inst->last_packet_num_channels = num_channels;
++    inst->last_packet_num_channels = opus_packet_get_nb_channels(encoded);
++    RTC_DCHECK(inst->last_packet_num_channels == 1 ||
++               inst->last_packet_num_channels == 2);
+   }
+   if (decoded_samples_per_channel < 0) {
+     return -1;
+   }
+ 
++  // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block below.
++  // When stereo decoding is enabled and the last observed non-empty packet
++  // encoded mono audio, the Opus decoder may generate non-trivial stereo audio.
++  // As that is undesired, in that case make sure that `decoded` contains
++  // trivial stereo audio by copying the left channel into the right one.
++  if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
++    for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
++      decoded[i + 1] = decoded[i];
++    }
++  }
 +
-+  rtc::Event frame_destroyed_event;
-+  // Insert two frames, so that the first one isn't stored in the encoder queue.
-+  video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
-+  video_source_.IncomingCapturedFrame(CreateFrame(34, /*event=*/nullptr));
-+  EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
-+
-+  EXPECT_FALSE(sink_.GetLastFrameInstrumentationData().has_value());
-+  video_stream_encoder_->Stop();
-+}
-+
-+TEST_F(VideoStreamEncoderTest,
-+       FrameInstrumentationGeneratorHandlesQueuedFrames) {
-+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
-+      true;
-+  ConfigureEncoder(video_encoder_config_.Copy());
-+
-+  // Mark stream as suspended.
-+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-+      DataRate::Zero(), DataRate::Zero(), DataRate::Zero(), 0, 0, 0);
-+  video_stream_encoder_->WaitUntilTaskQueueIsIdle();
-+
-+  // We need a QP for the encoded frame.
-+  fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
-+      kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
-+
-+  // Insert a frame, that should be treated as dropped due to suspended state.
-+  video_source_.IncomingCapturedFrame(
-+      CreateFrame(1, codec_width_, codec_height_));
-+
-+  ExpectDroppedFrame();
-+
-+  // Resume and increase bitrate budget, process stashed frames.
-+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
-+
-+  WaitForEncodedFrame(1);
-+  EXPECT_TRUE(sink_.GetLastFrameInstrumentationData().has_value());
-+
-+  video_stream_encoder_->Stop();
-+}
-+
- TEST_F(VideoStreamEncoderTest,
-        DoesNotPopulateFrameInstrumentationDataWhenSetNotTo) {
-   video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
+   return decoded_samples_per_channel;
+ }
+ 

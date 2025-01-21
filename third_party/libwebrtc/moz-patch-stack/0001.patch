@@ -1,260 +1,179 @@
-From: Alessio Bazzica <alessiob@webrtc.org>
-Date: Wed, 13 Nov 2024 13:49:30 +0100
-Subject: (cherry-pick-branch-heads/6834) With stereo decoding and mono packets
- produce mono after CN/PLC
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Michael Froman <mjfroman@mac.com>
+Date: Tue, 21 Jan 2025 14:10:04 -0600
+Subject: (tmp-cherry-pick) Revert "Set default scalability mode for H.265 to
+ L1T1." (54ed3ad524)
 
-The workaround in https://webrtc-review.googlesource.com/c/src/+/367740
-is incomplete because it does not fix the issue for the first decoded
-mono packet after CN/PLC. This CL extends the workaround to such a case
-and adds a unit test for it.
+This reverts commit 775639e930f14a619974944594b40c633cc574a3.
 
-Note: it was verified that the 2nd packet after CN/PLC is trivial
-stereo.
+Reason for revert: Breaks internal tests.
 
-Credits: jakobi@webrtc.org for raising the concern
+Original change's description:
+> Set default scalability mode for H.265 to L1T1.
+>
+> H.265 does not have software fallback, and it may have issue supporting
+> more than 1 temporal layers on some devices. Set default to L1T1 when
+> scalability is not configured, or if a scalability mode is reported as
+> not supported by encoder.
+>
+> Bug: chromium:41480904
+> Change-Id: I53895c45ec821d65774ffe2db5f418184e3fb02a
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/367835
+> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+> Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+> Commit-Queue: Jianlin Qiu <jianlin.qiu@intel.com>
+> Cr-Commit-Position: refs/heads/main@{#43389}
 
-(cherry picked from commit ebb11c4c87e4c0288d1ac18f38b4efa4254b3c6a)
-
-Bug: chromium:378896415
-Change-Id: Ide27e411781693f14629cf9db8b6c0c0fc762a17
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368160
-Reviewed-by: Jakob Ivarsson‎ <jakobi@webrtc.org>
-Commit-Queue: Alessio Bazzica <alessiob@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43393}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368560
-Reviewed-by: Henrik Lundin <henrik.lundin@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6834@{#1}
-Cr-Branched-From: a5d71009ac1dce7da23813dc9413c03073cfa8ca-refs/heads/main@{#43387}
+Bug: chromium:41480904
+No-Try: true
+Change-Id: I5485b1abfd5f586ec187cc57817940aa2efd72af
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368200
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+Reviewed-by: Jeremy Leconte <jleconte@webrtc.org>
+Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43396}
 ---
- modules/audio_coding/BUILD.gn                 |  1 +
- .../opus/audio_decoder_opus_unittest.cc       | 83 ++++++++++++++++---
- .../codecs/opus/opus_interface.cc             | 30 ++++---
- 3 files changed, 88 insertions(+), 26 deletions(-)
+ media/engine/webrtc_video_engine.cc           |  9 +-
+ media/engine/webrtc_video_engine_unittest.cc  | 86 +------------------
+ .../video_coding/svc/scalability_mode_util.h  |  4 -
+ 3 files changed, 5 insertions(+), 94 deletions(-)
 
-diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index a2a1ca8328..78bdccfefe 100644
---- a/modules/audio_coding/BUILD.gn
-+++ b/modules/audio_coding/BUILD.gn
-@@ -1505,6 +1505,7 @@ if (rtc_include_tests) {
-         "../../test:test_support",
-         "codecs/opus/test",
-         "codecs/opus/test:test_unittest",
-+        "//testing/gmock",
-         "//testing/gtest",
-         "//third_party/abseil-cpp/absl/flags:flag",
-         "//third_party/abseil-cpp/absl/memory",
-diff --git a/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc b/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
-index 71f0d38b25..998b88a105 100644
---- a/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
-+++ b/modules/audio_coding/codecs/opus/audio_decoder_opus_unittest.cc
-@@ -28,6 +28,7 @@
- #include "rtc_base/checks.h"
- #include "rtc_base/random.h"
- #include "test/explicit_key_value_config.h"
-+#include "test/gmock.h"
- #include "test/gtest.h"
- #include "test/testsupport/file_utils.h"
- 
-@@ -35,6 +36,7 @@ namespace webrtc {
- namespace {
- 
- using test::ExplicitKeyValueConfig;
-+using testing::SizeIs;
- 
- using DecodeResult = ::webrtc::AudioDecoder::EncodedAudioFrame::DecodeResult;
- using ParseResult = ::webrtc::AudioDecoder::ParseResult;
-@@ -158,7 +160,6 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
-   std::vector<int16_t> decoded_frame(kEncoderFrameLength *
-                                      decoder_num_channels);
- 
--  bool dtx_packet_found = false;
-   for (int i = 0; i < 50; ++i) {
-     generator.GenerateNextFrame(input_frame);
-     rtc::Buffer payload;
-@@ -170,8 +171,9 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index 69b71fff7e..781e997cc4 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -553,17 +553,10 @@ void FallbackToDefaultScalabilityModeIfNotSupported(
+       // scalability mode of the first encoding when the others are inactive.
        continue;
      }
- 
--    // Decode `payload`. If not a DTX packet, decoding it may update the
--    // internal decoder parameters for comfort noise generation.
-+    // Decode `payload`. If it encodes a DTX packet (i.e., 1 byte payload), the
-+    // decoder will switch to DTX mode. Otherwise, it may update the internal
-+    // decoder parameters for comfort noise generation.
-     std::vector<ParseResult> parse_results =
-         decoder.ParsePayload(std::move(payload), timestamp++);
-     RTC_CHECK_EQ(parse_results.size(), 1);
-@@ -179,14 +181,62 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
-         parse_results[0].frame->Decode(decoded_frame);
-     RTC_CHECK(decode_results);
-     RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
 -
-     if (parse_results[0].frame->IsDtxPacket()) {
--      // The decoder is now in DTX mode.
--      dtx_packet_found = true;
-+      return;
-+    }
-+  }
-+  RTC_CHECK_NOTREACHED();
-+}
-+
-+// Generates packets by encoding speech frames and decodes them until a non-DTX
-+// packet is generated and, when that condition is met, returns the decoded
-+// audio samples.
-+std::vector<int16_t> EncodeDecodeSpeechUntilOneFrameIsDecoded(
-+    AudioEncoderOpusImpl& encoder,
-+    AudioDecoderOpusImpl& decoder,
-+    uint32_t& rtp_timestamp,
-+    uint32_t& timestamp) {
-+  RTC_CHECK(encoder.NumChannels() == 1 || encoder.NumChannels() == 2);
-+  const bool stereo_encoding = encoder.NumChannels() == 2;
-+  const size_t decoder_num_channels = decoder.Channels();
-+  std::vector<int16_t> decoded_frame(kEncoderFrameLength *
-+                                     decoder_num_channels);
-+
-+  PCMFile pcm_file;
-+  pcm_file.Open(test::ResourcePath(
-+                    stereo_encoding ? "near48_stereo" : "near48_mono", "pcm"),
-+                kSampleRateHz, "rb");
-+  pcm_file.ReadStereo(stereo_encoding);
-+
-+  AudioFrame audio_frame;
-+  while (true) {
-+    if (pcm_file.EndOfFile()) {
-       break;
+     if (!encoding.scalability_mode.has_value() ||
+         !IsScalabilityModeSupportedByCodec(codec, *encoding.scalability_mode,
+                                            config)) {
+-      encoding.scalability_mode =
+-          (encoding.scalability_mode !=
+-               std::string(webrtc::kDefaultScalabilityModeStr) &&
+-           IsScalabilityModeSupportedByCodec(
+-               codec, webrtc::kDefaultScalabilityModeStr, config))
+-              ? webrtc::kDefaultScalabilityModeStr
+-              : webrtc::kNoLayeringScalabilityModeStr;
++      encoding.scalability_mode = webrtc::kDefaultScalabilityModeStr;
+       RTC_LOG(LS_INFO) << " -> " << *encoding.scalability_mode;
      }
-+    pcm_file.Read10MsData(audio_frame);
-+    rtc::Buffer payload;
-+    encoder.Encode(rtp_timestamp++, audio_frame.data_view().data(), &payload);
-+
-+    // Ignore empty payloads: the encoder needs more audio to produce a packet.
-+    if (payload.size() == 0) {
-+      continue;
-+    }
-+
-+    // Decode `payload`.
-+    std::vector<ParseResult> parse_results =
-+        decoder.ParsePayload(std::move(payload), timestamp++);
-+    RTC_CHECK_EQ(parse_results.size(), 1);
-+    std::optional<DecodeResult> decode_results =
-+        parse_results[0].frame->Decode(decoded_frame);
-+    RTC_CHECK(decode_results);
-+
-+    if (parse_results[0].frame->IsDtxPacket()) {
-+      continue;
-+    }
-+    RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
-+    return decoded_frame;
    }
--  RTC_CHECK(dtx_packet_found);
-+  RTC_CHECK_NOTREACHED();
+diff --git a/media/engine/webrtc_video_engine_unittest.cc b/media/engine/webrtc_video_engine_unittest.cc
+index 11f2ec6dfb..3aff1a6ac3 100644
+--- a/media/engine/webrtc_video_engine_unittest.cc
++++ b/media/engine/webrtc_video_engine_unittest.cc
+@@ -8481,90 +8481,12 @@ TEST_F(WebRtcVideoChannelTest, FallbackForUnsetOrUnsupportedScalabilityMode) {
+   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
  }
  
- }  // namespace
-@@ -239,6 +289,7 @@ TEST(AudioDecoderOpusTest,
-   constexpr size_t kDecoderNumChannels = 2;
-   AudioDecoderOpusImpl decoder(env.field_trials(), kDecoderNumChannels,
-                                kSampleRateHz);
-+  std::vector<int16_t> decoded_frame;
- 
-   uint32_t rtp_timestamp = 0xFFFu;
-   uint32_t timestamp = 0;
-@@ -250,7 +301,7 @@ TEST(AudioDecoderOpusTest,
-                                          timestamp);
- 
-   // Decode an empty packet so that Opus generates comfort noise.
--  std::array<int16_t, kEncoderFrameLength * kDecoderNumChannels> decoded_frame;
-+  decoded_frame.resize(kEncoderFrameLength * kDecoderNumChannels);
-   AudioDecoder::SpeechType speech_type;
-   const int num_decoded_samples =
-       decoder.Decode(/*encoded=*/nullptr, /*encoded_len=*/0, kSampleRateHz,
-@@ -262,8 +313,14 @@ TEST(AudioDecoderOpusTest,
-                                              num_decoded_samples);
-   // Make sure that comfort noise is not a muted frame.
-   ASSERT_FALSE(IsZeroedFrame(decoded_view));
+-#ifdef RTC_ENABLE_H265
+-TEST_F(
+-    WebRtcVideoChannelTest,
+-    NoLayeringValueUsedIfModeIsUnsetOrUnsupportedByH265AndDefaultUnsupported) {
+-  const absl::InlinedVector<ScalabilityMode, webrtc::kScalabilityModeCount>
+-      kSupportedModes = {ScalabilityMode::kL1T1, ScalabilityMode::kL1T3};
 -
-   EXPECT_TRUE(IsTrivialStereo(decoded_view));
-+
-+  // Also check the first decoded audio frame after comfort noise.
-+  decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
-+      encoder, decoder, rtp_timestamp, timestamp);
-+  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
-+  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
-+  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
- }
- 
- TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
-@@ -296,8 +353,14 @@ TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
-                                              concealment_audio.size());
-   // Make sure that packet loss concealment is not a muted frame.
-   ASSERT_FALSE(IsZeroedFrame(decoded_view));
+-  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
+-      "H265", webrtc::CodecParameterMap(), kSupportedModes));
+-  cricket::VideoSenderParameters send_parameters;
+-  send_parameters.codecs.push_back(GetEngineCodec("H265"));
+-  EXPECT_TRUE(send_channel_->SetSenderParameters(send_parameters));
 -
-   EXPECT_TRUE(IsTrivialStereo(decoded_view));
-+
-+  // Also check the first decoded audio frame after packet loss concealment.
-+  std::vector<int16_t> decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
-+      encoder, decoder, rtp_timestamp, timestamp);
-+  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
-+  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
-+  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
- }
- 
- TEST(AudioDecoderOpusTest,
-diff --git a/modules/audio_coding/codecs/opus/opus_interface.cc b/modules/audio_coding/codecs/opus/opus_interface.cc
-index 565f803741..d18b517fe4 100644
---- a/modules/audio_coding/codecs/opus/opus_interface.cc
-+++ b/modules/audio_coding/codecs/opus/opus_interface.cc
-@@ -547,22 +547,9 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
-                       int16_t* decoded,
-                       int16_t* audio_type) {
-   int decoded_samples_per_channel;
+-  FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
 -
-   if (encoded_bytes == 0) {
-     *audio_type = DetermineAudioType(inst, encoded_bytes);
-     decoded_samples_per_channel = DecodePlc(inst, decoded);
+-  // Send a full size frame so all simulcast layers are used when reconfiguring.
+-  webrtc::test::FrameForwarder frame_forwarder;
+-  VideoOptions options;
+-  EXPECT_TRUE(
+-      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
+-  send_channel_->SetSend(true);
+-  frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame());
 -
--    // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
--    // below.
--    if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
--      // Stereo decoding is enabled and the last observed packet to decode
--      // encoded mono audio. In this case, Opus generates non-trivial stereo
--      // audio. Since this is unwanted, copy the left channel into the right
--      // one.
--      for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
--        decoded[i + 1] = decoded[i];
--      }
--    }
-   } else {
-     decoded_samples_per_channel = DecodeNative(
-         inst, encoded, encoded_bytes,
-@@ -570,14 +557,25 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
+-  // Set scalability mode.
+-  webrtc::RtpParameters parameters =
+-      send_channel_->GetRtpSendParameters(last_ssrc_);
+-  EXPECT_EQ(kNumSimulcastStreams, parameters.encodings.size());
+-  parameters.encodings[0].scalability_mode = std::nullopt;
+-  parameters.encodings[1].scalability_mode = "L1T3";  // Supported.
+-  parameters.encodings[2].scalability_mode = "L3T3";  // Unsupported.
+-  EXPECT_TRUE(send_channel_->SetRtpSendParameters(last_ssrc_, parameters).ok());
+-
+-  // Verify that the new value is propagated down to the encoder.
+-  // Check that WebRtcVideoSendStream updates VideoEncoderConfig correctly.
+-  const std::optional<ScalabilityMode> kDefaultScalabilityMode =
+-      webrtc::ScalabilityModeFromString(webrtc::kNoLayeringScalabilityModeStr);
+-  EXPECT_EQ(2, stream->num_encoder_reconfigurations());
+-  webrtc::VideoEncoderConfig encoder_config = stream->GetEncoderConfig().Copy();
+-  EXPECT_EQ(kNumSimulcastStreams, encoder_config.number_of_streams);
+-  EXPECT_THAT(encoder_config.simulcast_layers,
+-              ElementsAre(Field(&webrtc::VideoStream::scalability_mode,
+-                                kDefaultScalabilityMode),
+-                          Field(&webrtc::VideoStream::scalability_mode,
+-                                ScalabilityMode::kL1T3),
+-                          Field(&webrtc::VideoStream::scalability_mode,
+-                                kDefaultScalabilityMode)));
+-
+-  // FakeVideoSendStream calls CreateEncoderStreams, test that the vector of
+-  // VideoStreams are created appropriately for the simulcast case.
+-  EXPECT_THAT(stream->GetVideoStreams(),
+-              ElementsAre(Field(&webrtc::VideoStream::scalability_mode,
+-                                kDefaultScalabilityMode),
+-                          Field(&webrtc::VideoStream::scalability_mode,
+-                                ScalabilityMode::kL1T3),
+-                          Field(&webrtc::VideoStream::scalability_mode,
+-                                kDefaultScalabilityMode)));
+-
+-  // GetParameters.
+-  parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
+-  EXPECT_THAT(
+-      parameters.encodings,
+-      ElementsAre(
+-          Field(&webrtc::RtpEncodingParameters::scalability_mode,
+-                webrtc::kNoLayeringScalabilityModeStr),
+-          Field(&webrtc::RtpEncodingParameters::scalability_mode, "L1T3"),
+-          Field(&webrtc::RtpEncodingParameters::scalability_mode,
+-                webrtc::kNoLayeringScalabilityModeStr)));
+-
+-  // No parameters changed, encoder should not be reconfigured.
+-  EXPECT_TRUE(send_channel_->SetRtpSendParameters(last_ssrc_, parameters).ok());
+-  EXPECT_EQ(2, stream->num_encoder_reconfigurations());
+-
+-  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
+-}
+-#endif
+-
+ TEST_F(WebRtcVideoChannelTest,
+        DefaultValueUsedIfScalabilityModeIsUnsupportedByCodec) {
+-  encoder_factory_->AddSupportedVideoCodec(
+-      webrtc::SdpVideoFormat("VP8", webrtc::CodecParameterMap(),
+-                             {ScalabilityMode::kL1T1, ScalabilityMode::kL1T2}));
+-  encoder_factory_->AddSupportedVideoCodec(
+-      webrtc::SdpVideoFormat("VP9", webrtc::CodecParameterMap(),
+-                             {ScalabilityMode::kL1T2, ScalabilityMode::kL3T3}));
++  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
++      "VP8", webrtc::CodecParameterMap(), {ScalabilityMode::kL1T1}));
++  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
++      "VP9", webrtc::CodecParameterMap(), {ScalabilityMode::kL3T3}));
  
-     // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
-     // below.
--    const int num_channels = opus_packet_get_nb_channels(encoded);
--    RTC_DCHECK(num_channels == 1 || num_channels == 2);
--    inst->last_packet_num_channels = num_channels;
-+    inst->last_packet_num_channels = opus_packet_get_nb_channels(encoded);
-+    RTC_DCHECK(inst->last_packet_num_channels == 1 ||
-+               inst->last_packet_num_channels == 2);
-   }
-   if (decoded_samples_per_channel < 0) {
-     return -1;
-   }
+   cricket::VideoSenderParameters send_parameters;
+   send_parameters.codecs.push_back(GetEngineCodec("VP9"));
+diff --git a/modules/video_coding/svc/scalability_mode_util.h b/modules/video_coding/svc/scalability_mode_util.h
+index f7689988bc..80c7283c25 100644
+--- a/modules/video_coding/svc/scalability_mode_util.h
++++ b/modules/video_coding/svc/scalability_mode_util.h
+@@ -26,10 +26,6 @@ enum class ScalabilityModeResolutionRatio {
  
-+  // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block below.
-+  // When stereo decoding is enabled and the last observed non-empty packet
-+  // encoded mono audio, the Opus decoder may generate non-trivial stereo audio.
-+  // As that is undesired, in that case make sure that `decoded` contains
-+  // trivial stereo audio by copying the left channel into the right one.
-+  if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
-+    for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
-+      decoded[i + 1] = decoded[i];
-+    }
-+  }
-+
-   return decoded_samples_per_channel;
- }
+ static constexpr char kDefaultScalabilityModeStr[] = "L1T2";
  
+-// Scalability mode to be used if falling back to default scalability mode is
+-// unsupported.
+-static constexpr char kNoLayeringScalabilityModeStr[] = "L1T1";
+-
+ RTC_EXPORT std::optional<ScalabilityMode> MakeScalabilityMode(
+     int num_spatial_layers,
+     int num_temporal_layers,
