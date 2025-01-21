@@ -206,6 +206,7 @@ add_task(async function test_getLocalizedValue() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -261,6 +262,7 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -343,6 +345,7 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -425,6 +428,7 @@ add_task(async function test_getVariables() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -488,6 +492,7 @@ add_task(async function test_getVariables_fallback() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -714,6 +719,7 @@ add_task(async function test_getVariables_fallback_unenroll() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();
@@ -852,6 +858,7 @@ add_task(async function test_updateRecipes() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.stub(manager, "onRecipe");
 
   const recipe = ExperimentFakes.recipe("foo", {
@@ -898,6 +905,7 @@ async function test_updateRecipes_missingLocale({
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.stub(manager, "onRecipe");
   sandbox.spy(manager, "onFinalize");
 
@@ -986,6 +994,7 @@ add_task(async function test_updateRecipes_missingEntry() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.stub(manager, "onRecipe");
   sandbox.spy(manager, "onFinalize");
 
@@ -1099,6 +1108,7 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.spy(manager, "onRecipe");
   sandbox.spy(manager, "onFinalize");
   sandbox.spy(manager, "unenroll");
@@ -1251,6 +1261,7 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.spy(manager, "onRecipe");
   sandbox.spy(manager, "onFinalize");
   sandbox.spy(manager, "unenroll");

@@ -12,15 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentStore: "resource://nimbus/lib/ExperimentStore.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  RemoteSettingsExperimentLoader:
-    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "log", () => {
-  const { Logger } = ChromeUtils.importESModule(
-    "resource://messaging-system/lib/Logger.sys.mjs"
-  );
-  return new Logger("ExperimentAPI");
 });
 
 const IS_MAIN_PROCESS =
@@ -82,48 +73,11 @@ const experimentBranchAccessor = {
   },
 };
 
-let initialized = false;
-
 export const ExperimentAPI = {
   /**
-   * Initialize the ExperimentAPI.
-   *
-   * This will initialize the ExperimentManager and the
-   * RemoteSettingsExperimentLoader. It will also trigger The
-   * RemoteSettingsExperimentLoader to update recipes.
+   * @returns {Promise} Resolves when the API has synchronized to the main store
    */
-  async init() {
-    if (!initialized) {
-      initialized = true;
-
-      try {
-        await this._manager.onStartup();
-      } catch (e) {
-        lazy.log.error("Failed to initialize ExperimentManager:", e);
-      }
-
-      try {
-        await lazy.RemoteSettingsExperimentLoader.init();
-      } catch (e) {
-        lazy.log.error(
-          "Failed to initialize RemoteSettingsExperimentLoader:",
-          e
-        );
-      }
-    }
-  },
-
-  /**
-   * Wait for the ExperimentAPI to become ready.
-   *
-   * ExperimentAPI will be initialized if it has not already.
-   *
-   * @returns {Promise}
-   *          A promise that resolves when the API has synchronized to the main
-   *          store
-   */
-  async ready() {
-    await this.init();
+  ready() {
     return this._store.ready();
   },
 
@@ -738,16 +692,10 @@ ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
   return lazy.ExperimentManager;
 });
 
-Object.defineProperty(ExperimentAPI, "_store", {
-  get() {
-    if (IS_MAIN_PROCESS) {
-      return ExperimentAPI._manager.store;
-    }
-
-    ExperimentAPI._store = new lazy.ExperimentStore();
-    return ExperimentAPI._store;
-  },
-  configurable: true,
+ChromeUtils.defineLazyGetter(ExperimentAPI, "_store", function () {
+  return IS_MAIN_PROCESS
+    ? lazy.ExperimentManager.store
+    : new lazy.ExperimentStore();
 });
 
 ChromeUtils.defineLazyGetter(

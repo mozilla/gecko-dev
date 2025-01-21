@@ -22,9 +22,9 @@ add_task(async function test_getExperiment_fromChild_slug() {
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.experiment("foo");
 
-  sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
-
   await manager.onStartup();
+
+  sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
 
   await manager.store.addEnrollment(expected);
 
@@ -54,9 +54,8 @@ add_task(async function test_getExperiment_fromParent_slug() {
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.experiment("foo");
 
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
   await manager.onStartup();
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
@@ -76,9 +75,8 @@ add_task(async function test_getExperimentMetaData() {
   const expected = ExperimentFakes.experiment("foo");
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
   await manager.onStartup();
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
@@ -107,9 +105,8 @@ add_task(async function test_getRolloutMetaData() {
   const expected = ExperimentFakes.rollout("foo");
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
   await manager.onStartup();
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
