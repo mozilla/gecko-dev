@@ -10,7 +10,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import mozilla.components.concept.storage.EncryptedLogin
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.service.sync.logins.InvalidRecordException
@@ -109,13 +108,6 @@ class SavedLoginsStorageControllerTest {
             httpRealm = "httpRealm",
             formActionOrigin = "",
         )
-        val oldLoginEncrypted = EncryptedLogin(
-            guid = "id",
-            origin = "https://www.test.co.gov.org",
-            httpRealm = "httpRealm",
-            formActionOrigin = "",
-            secFields = "fake-encrypted-data",
-        )
         val newLogin = Login(
             guid = "id",
             origin = "https://www.test.co.gov.org",
@@ -126,8 +118,7 @@ class SavedLoginsStorageControllerTest {
         )
 
         coEvery { passwordsStorage.get(any()) } returns oldLogin
-        coEvery { passwordsStorage.update(any(), any()) } returns oldLoginEncrypted
-        coEvery { passwordsStorage.decryptLogin(any()) } returns newLogin
+        coEvery { passwordsStorage.update(any(), any()) } returns newLogin
 
         controller.save(oldLogin.guid, "newUsername", "newPassword")
 

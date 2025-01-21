@@ -9,13 +9,9 @@ import android.content.SharedPreferences
 import mozilla.appservices.logins.KeyRegenerationEventReason
 import mozilla.appservices.logins.checkCanary
 import mozilla.appservices.logins.createCanary
-import mozilla.appservices.logins.decryptFields
 import mozilla.appservices.logins.recordKeyRegenerationEvent
-import mozilla.components.concept.storage.EncryptedLogin
 import mozilla.components.concept.storage.KeyGenerationReason
 import mozilla.components.concept.storage.KeyManager
-import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.ManagedKey
 import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 
 /**
@@ -42,7 +38,7 @@ class LoginsCrypto(
             is KeyGenerationReason.RecoveryNeeded.AbnormalState -> KeyRegenerationEventReason.Other
         }
         recordKeyRegenerationEvent(telemetryEventReason)
-        storage.conn.getStorage().wipeLocal()
+        storage.getStorage().wipeLocal()
     }
 
     override fun getStoredCanary(): String? {
@@ -78,46 +74,9 @@ class LoginsCrypto(
                 // A bad key should trigger a IncorrectKey, but check this branch just in case.
                 KeyGenerationReason.RecoveryNeeded.Corrupt
             }
-        } catch (e: IncorrectKey) {
+        } catch (e: InvalidKey) {
             KeyGenerationReason.RecoveryNeeded.Corrupt
         }
-    }
-
-    /**
-     * Decrypts ciphertext fields within [login], producing a plaintext [Login].
-     */
-    suspend fun decryptLogin(login: EncryptedLogin): Login {
-        return decryptLogin(login, getOrGenerateKey())
-    }
-
-    /**
-     * Decrypts ciphertext fields within [login], producing a plaintext [Login].
-     *
-     * This version inputs a ManagedKey.  Use this for operations that
-     * decrypt multiple logins to avoid constructing the key multiple times.
-     */
-    fun decryptLogin(login: EncryptedLogin, key: ManagedKey): Login {
-        val secFields = decryptFields(login.secFields, key.key)
-        // Note: The autofill code catches errors on decryptFields and returns
-        // null, but it's not as easy to recover in this case since the code
-        // almost certainly going to need to a [Login], so we just throw in
-        // that case.  Decryption errors shouldn't be happen as long as the
-        // canary checking code below is working correctly
-
-        return Login(
-            guid = login.guid,
-            origin = login.origin,
-            username = secFields.username,
-            password = secFields.password,
-            formActionOrigin = login.formActionOrigin,
-            httpRealm = login.httpRealm,
-            usernameField = login.usernameField,
-            passwordField = login.passwordField,
-            timesUsed = login.timesUsed,
-            timeCreated = login.timeCreated,
-            timeLastUsed = login.timeLastUsed,
-            timePasswordChanged = login.timePasswordChanged,
-        )
     }
 
     companion object {

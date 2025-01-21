@@ -178,7 +178,7 @@ interface LoginsStorage : AutoCloseable {
      * @param login [LoginEntry] to add.
      * @return [EncryptedLogin] that was added
      */
-    suspend fun add(entry: LoginEntry): EncryptedLogin
+    suspend fun add(entry: LoginEntry): Login
 
     /**
      * Updates an existing login in the database
@@ -191,7 +191,7 @@ interface LoginsStorage : AutoCloseable {
      * @param login [LoginEntry] to add.
      * @return [EncryptedLogin] that was added
      */
-    suspend fun update(guid: String, entry: LoginEntry): EncryptedLogin
+    suspend fun update(guid: String, entry: LoginEntry): Login
 
     /**
      * Checks if a record exists for a [LoginEntry] and calls either add() or update()
@@ -202,7 +202,7 @@ interface LoginsStorage : AutoCloseable {
      * @param login [LoginEntry] to add or update.
      * @return [EncryptedLogin] that was added
      */
-    suspend fun addOrUpdate(entry: LoginEntry): EncryptedLogin
+    suspend fun addOrUpdate(entry: LoginEntry): Login
 
     /**
      * Fetch the list of logins for some origin from the underlying storage layer.
@@ -211,14 +211,6 @@ interface LoginsStorage : AutoCloseable {
      * @return A list of [Login] objects, representing matching logins.
      */
     suspend fun getByBaseDomain(origin: String): List<Login>
-
-    /**
-     * Decrypt an [EncryptedLogin]
-     *
-     * @param login [EncryptedLogin] to decrypt
-     * @return [Login] with decrypted data
-     */
-    suspend fun decryptLogin(login: EncryptedLogin): Login
 }
 
 /**

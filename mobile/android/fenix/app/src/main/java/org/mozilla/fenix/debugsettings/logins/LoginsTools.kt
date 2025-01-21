@@ -30,7 +30,6 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import mozilla.components.concept.storage.EncryptedLogin
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginsStorage
@@ -75,7 +74,7 @@ fun LoginsTools(
         onAddFakeLogin = {
             origin?.let {
                 scope.launch {
-                    val new = loginsStorage.add(
+                    existingLogins += loginsStorage.add(
                         LoginEntry(
                             username = "fake_username${existingLogins.size + 1}",
                             password = "fake_password${existingLogins.size + 1}",
@@ -83,7 +82,6 @@ fun LoginsTools(
                             formActionOrigin = "https://$origin",
                         ),
                     )
-                    existingLogins += loginsStorage.decryptLogin(new)
                 }
             }
         },
@@ -173,15 +171,13 @@ internal class FakeLoginsStorage : LoginsStorage {
     override suspend fun touch(guid: String) = Unit
     override suspend fun list(): List<Login> = listOf()
     override suspend fun findLoginToUpdate(entry: LoginEntry): Login? = null
-    override suspend fun add(entry: LoginEntry): EncryptedLogin {
+    override suspend fun add(entry: LoginEntry): Login {
         val guid = UUID.randomUUID().toString()
         loginsByGuid[guid] = entry
-        return EncryptedLogin(guid, "", secFields = "")
+        return entry.toLogin(guid)
     }
-    override suspend fun update(guid: String, entry: LoginEntry) =
-        EncryptedLogin("", "", secFields = "")
-    override suspend fun addOrUpdate(entry: LoginEntry) =
-        EncryptedLogin("", "", secFields = "")
+    override suspend fun update(guid: String, entry: LoginEntry) = entry.toLogin(guid)
+    override suspend fun addOrUpdate(entry: LoginEntry) = entry.toLogin("guid")
     override suspend fun getByBaseDomain(origin: String) = loginsByGuid.map { (guid, login) ->
         Login(
             guid = guid,
@@ -190,14 +186,16 @@ internal class FakeLoginsStorage : LoginsStorage {
             password = login.password,
         )
     }
-    override suspend fun decryptLogin(login: EncryptedLogin): Login =
-        with(loginsByGuid[login.guid]!!) {
-            Login(
-                guid = login.guid,
-                origin = origin,
-                username = username,
-                password = password,
-            )
-        }
     override fun close() = Unit
+
+    private fun LoginEntry.toLogin(guid: String) = Login(
+        guid = guid,
+        username = username,
+        password = password,
+        origin = origin,
+        formActionOrigin = formActionOrigin,
+        httpRealm = httpRealm,
+        usernameField = usernameField,
+        passwordField = passwordField,
+    )
 }
