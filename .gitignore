@@ -158,7 +158,7 @@ devtools/client/debugger/assets/build
 devtools/client/debugger/assets/module-manifest.json
 
 # Ignore node_module directories and npm artifacts
-remote/test/puppeteer/**.tsbuildinfo
+remote/test/puppeteer/**/*.tsbuildinfo
 remote/test/puppeteer/**/lib/
 remote/test/puppeteer/**/node_modules/
 remote/test/puppeteer/**/.wireit/
@@ -184,6 +184,7 @@ remote/test/puppeteer/test/installation/puppeteer*.tgz
 remote/test/puppeteer/test/output-firefox
 remote/test/puppeteer/test/output-chromium
 remote/test/puppeteer/testserver/lib/
+remote/test/puppeteer/tools/doctest/bin/
 remote/test/puppeteer/tools/internal/
 remote/test/puppeteer/tools/mocha-runner/bin/
 remote/test/puppeteer/website
