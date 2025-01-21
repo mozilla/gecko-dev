@@ -1,27 +1,190 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 29 Aug 2024 08:31:00 +0000
-Subject: Bug 1914837 - Always initialize DesktopCapturer::pid.
- r=webrtc-reviewers,ng
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Thu, 5 Sep 2024 16:04:00 +0000
+Subject: Bug 1830275 - Add missing support for device change notifications
+ r=pehrsons,webrtc-reviewers
 
-This member is patched on top of libwebrtc. New backends could be added from
-under us. It needs to be initialized.
+Registers each DeviceInfoPipeWire in PipeWireSession we use and calls
+DeviceChange() for each once there is a new camera added or removed to
+invoke OnDeviceChange() for every registered VideoInputFeedback.
 
-Differential Revision: https://phabricator.services.mozilla.com/D220265
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fdf5b0a81b0c0e87d31c5963091681a0e5960678
+Differential Revision: https://phabricator.services.mozilla.com/D219218
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60eb5ef11c8df7eb6e0d616cb76885d9109f114d
 ---
- modules/desktop_capture/desktop_capturer.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../linux/device_info_pipewire.cc             | 10 +++-
+ .../video_capture/linux/pipewire_session.cc   | 47 ++++++++++++++++++-
+ .../video_capture/linux/pipewire_session.h    | 26 +++++++++-
+ 3 files changed, 79 insertions(+), 4 deletions(-)
 
-diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
-index 60c04723d6..fb3cc94f74 100644
---- a/modules/desktop_capture/desktop_capturer.h
-+++ b/modules/desktop_capture/desktop_capturer.h
-@@ -82,7 +82,7 @@ class RTC_EXPORT DesktopCapturer {
-   struct Source {
-     // The unique id to represent a Source of current DesktopCapturer.
-     SourceId id;
--    pid_t pid;
-+    pid_t pid = 0;
+diff --git a/modules/video_capture/linux/device_info_pipewire.cc b/modules/video_capture/linux/device_info_pipewire.cc
+index db2a3c7099..a0607b4aba 100644
+--- a/modules/video_capture/linux/device_info_pipewire.cc
++++ b/modules/video_capture/linux/device_info_pipewire.cc
+@@ -29,13 +29,19 @@
+ namespace webrtc {
+ namespace videocapturemodule {
+ DeviceInfoPipeWire::DeviceInfoPipeWire(VideoCaptureOptions* options)
+-    : DeviceInfoImpl(), pipewire_session_(options->pipewire_session()) {}
++    : DeviceInfoImpl(), pipewire_session_(options->pipewire_session()) {
++  const bool ret = pipewire_session_->RegisterDeviceInfo(this);
++  RTC_CHECK(ret);
++}
  
-     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
-     // should not be used to identify a source.
+ int32_t DeviceInfoPipeWire::Init() {
+   return 0;
+ }
+ 
+-DeviceInfoPipeWire::~DeviceInfoPipeWire() = default;
++DeviceInfoPipeWire::~DeviceInfoPipeWire() {
++  const bool ret = pipewire_session_->DeRegisterDeviceInfo(this);
++  RTC_CHECK(ret);
++}
+ 
+ uint32_t DeviceInfoPipeWire::NumberOfDevices() {
+   RTC_CHECK(pipewire_session_);
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 98eb656096..0b1504170b 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "modules/video_capture/linux/pipewire_session.h"
++#include "modules/video_capture/linux/device_info_pipewire.h"
+ 
+ #include <spa/monitor/device.h>
+ #include <spa/param/format-utils.h>
+@@ -286,6 +287,28 @@ void PipeWireSession::InitPipeWire(int fd) {
+     Finish(VideoCaptureOptions::Status::ERROR);
+ }
+ 
++bool PipeWireSession::RegisterDeviceInfo(DeviceInfoPipeWire* device_info) {
++  RTC_CHECK(device_info);
++  MutexLock lock(&device_info_lock_);
++  auto it = std::find(device_info_list_.begin(), device_info_list_.end(), device_info);
++  if (it == device_info_list_.end()) {
++    device_info_list_.push_back(device_info);
++    return true;
++  }
++  return false;
++}
++
++bool PipeWireSession::DeRegisterDeviceInfo(DeviceInfoPipeWire* device_info) {
++  RTC_CHECK(device_info);
++  MutexLock lock(&device_info_lock_);
++  auto it = std::find(device_info_list_.begin(), device_info_list_.end(), device_info);
++  if (it != device_info_list_.end()) {
++    device_info_list_.erase(it);
++    return true;
++  }
++  return false;
++}
++
+ RTC_NO_SANITIZE("cfi-icall")
+ bool PipeWireSession::StartPipeWire(int fd) {
+   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
+@@ -358,6 +381,21 @@ void PipeWireSession::PipeWireSync() {
+   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
+ }
+ 
++void PipeWireSession::NotifyDeviceChange() {
++  RTC_LOG(LS_INFO) << "Notify about device list changes";
++  MutexLock lock(&device_info_lock_);
++
++  // It makes sense to notify about device changes only once we are
++  // properly initialized.
++  if (status_ != VideoCaptureOptions::Status::SUCCESS) {
++    return;
++  }
++
++  for (auto* deviceInfo : device_info_list_) {
++    deviceInfo->DeviceChange();
++  }
++}
++
+ // static
+ void PipeWireSession::OnCoreError(void* data,
+                                   uint32_t id,
+@@ -416,6 +454,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+ 
+   that->nodes_.push_back(PipeWireNode::Create(that, id, props));
+   that->PipeWireSync();
++
++  that->NotifyDeviceChange();
+ }
+ 
+ // static
+@@ -427,10 +467,15 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
+                              return node->id() == id;
+                            });
+   that->nodes_.erase(it, that->nodes_.end());
++
++  that->NotifyDeviceChange();
+ }
+ 
+ void PipeWireSession::Finish(VideoCaptureOptions::Status status) {
+-  status_ = status;
++  {
++    MutexLock lock(&device_info_lock_);
++    status_ = status;
++  }
+ 
+   webrtc::MutexLock lock(&callback_lock_);
+ 
+diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
+index 84273ea695..1f3a00614f 100644
+--- a/modules/video_capture/linux/pipewire_session.h
++++ b/modules/video_capture/linux/pipewire_session.h
+@@ -29,6 +29,7 @@
+ namespace webrtc {
+ namespace videocapturemodule {
+ 
++class DeviceInfoPipeWire;
+ class PipeWireSession;
+ class VideoCaptureModulePipeWire;
+ 
+@@ -97,6 +98,21 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+ 
+   void Init(VideoCaptureOptions::Callback* callback,
+             int fd = kInvalidPipeWireFd);
++
++  // [De]Register DeviceInfo for device change updates
++  // These methods will add or remove references to DeviceInfo
++  // objects that we want to notify about device changes.
++  // NOTE: We do not take ownership of these objects and
++  // they should never be released by us. All the instances
++  // of DeviceInfoPipeWire must outlive their registration.
++
++  // Returns true when DeviceInfo was successfuly registered
++  // or false otherwise, when it was already registered before.
++  bool RegisterDeviceInfo(DeviceInfoPipeWire* device_info);
++  // Returns true when DeviceInfo was successfuly unregistered
++  // or false otherwise, when it was not previously registered.
++  bool DeRegisterDeviceInfo(DeviceInfoPipeWire* device_info);
++
+   const std::deque<PipeWireNode::PipeWireNodePtr>& nodes() const {
+     return nodes_;
+   }
+@@ -111,6 +127,8 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+   void StopPipeWire();
+   void PipeWireSync();
+ 
++  void NotifyDeviceChange();
++
+   static void OnCoreError(void* data,
+                           uint32_t id,
+                           int seq,
+@@ -133,7 +151,13 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+   VideoCaptureOptions::Callback* callback_ RTC_GUARDED_BY(&callback_lock_) =
+       nullptr;
+ 
+-  VideoCaptureOptions::Status status_;
++  webrtc::Mutex device_info_lock_;
++  std::vector<DeviceInfoPipeWire*> device_info_list_
++      RTC_GUARDED_BY(device_info_lock_);
++  // Guard with device_info_lock, because currently it's the only place where
++  // we use this status information.
++  VideoCaptureOptions::Status status_
++      RTC_GUARDED_BY(device_info_lock_);
+ 
+   struct pw_thread_loop* pw_main_loop_ = nullptr;
+   struct pw_context* pw_context_ = nullptr;

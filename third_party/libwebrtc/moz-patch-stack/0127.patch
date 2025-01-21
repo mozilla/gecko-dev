@@ -1,37 +1,104 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 16 Sep 2024 14:51:00 +0000
-Subject: Bug 1918996 - Use SCShareableContentStyleNone on macOS 15.
- r=webrtc-reviewers,jib
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 1 Oct 2024 21:05:00 +0000
+Subject: Bug 1921706 - use relative paths on deps in a few places to avoid
+ future issues. r=ng,webrtc-reviewers DONTBUILD
 
-Differential Revision: https://phabricator.services.mozilla.com/D222270
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ade6f6dc0c5a5df1c87e78a45b2878c4ade54358
+Note: this produces no changes in the generated moz.build files.
+
+Differential Revision: https://phabricator.services.mozilla.com/D224070
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bbec1b95ddb5e00967a0fb002f54f8f24336b904
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 14 +++++++++++---
- 1 file changed, 11 insertions(+), 3 deletions(-)
+ modules/audio_coding/BUILD.gn  |  2 +-
+ modules/portal/BUILD.gn        |  8 ++++----
+ modules/video_capture/BUILD.gn |  2 +-
+ sdk/BUILD.gn                   | 14 ++++++++++++++
+ test/BUILD.gn                  |  6 ++++++
+ 5 files changed, 26 insertions(+), 6 deletions(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index d431ef0fc8..191e79f991 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -305,10 +305,18 @@ void ScreenCapturerSck::EnsureVisible() {
-   SCContentSharingPickerConfiguration* config = picker.defaultConfiguration;
-   config.allowedPickerModes = picker_modes_;
-   picker.defaultConfiguration = config;
-+  SCShareableContentStyle style = SCShareableContentStyleNone;
-   // Pick a sensible style to start out with, based on our current mode.
--  // Default to Screen because if using Window the picker automatically hides
--  // our current window to show others.
--  SCShareableContentStyle style = SCShareableContentStyleDisplay;
-+  if (@available(macOS 15, *)) {
-+    // Stick with None because if we use Display, the picker doesn't let us
-+    // pick a window when first opened. Behaves like Window in 14 except doesn't
-+    // change window focus.
-+  } else {
-+    // Default to Display because if using Window the picker automatically hides
-+    // our current window to show others. Saves a click compared to None when
-+    // picking a display.
-+    style = SCShareableContentStyleDisplay;
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index 1df856e2e9..e547f76cff 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
+     deps += [ rtc_opus_dir ]
+     public_configs = [ "//third_party/opus:opus_config" ]
+   } else if (build_with_mozilla) {
+-    public_configs = [ "//third_party/opus:opus_config" ]
++    public_configs = [ "../../third_party/opus:opus_config" ]
+   }
+ }
+ 
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index aff8609b54..901597ecde 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -137,10 +137,10 @@ if (!build_with_mozilla) {
+       deps -= [ ":pipewire_stubs" ]
+       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
+       public_deps = [
+-        "//third_party/pipewire",
+-        "//third_party/drm",
+-        "//third_party/gbm",
+-        "//third_party/libepoxy"
++        "../../third_party/pipewire",
++        "../../third_party/drm",
++        "../../third_party/gbm",
++        "../../third_party/libepoxy"
+       ]
+     }
+   }
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index d9b3471572..60e191908b 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         ]
+         if (build_with_mozilla) {
+           configs -= [ "../portal:pipewire_base" ]
+-          public_deps = [ "//third_party/pipewire" ]
++          public_deps = [ "../../third_party/pipewire" ]
+         }
+       }
+     }
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 94628394c1..bdfb7141e9 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -588,6 +588,20 @@ if (is_ios || is_mac) {
+         "CoreGraphics.framework",
+         "CoreVideo.framework",
+       ]
++      if (build_with_mozilla) {
++        deps -= [
++          "//api/video:video_frame",
++          "//api/video:video_rtp_headers",
++          "//common_video",
++          "//rtc_base:checks",
++        ]
++        deps += [
++          "../api/video:video_frame",
++          "../api/video:video_rtp_headers",
++          "../common_video",
++          "../rtc_base:checks",
++        ]
++      }
+     }
+ 
+     if (!build_with_mozilla) {
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index 4034e3f067..969966259f 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -483,6 +483,12 @@ rtc_source_set("test_support") {
+     "//testing/gmock",
+     "//testing/gtest",
+   ]
++  if (build_with_mozilla) {
++    all_dependent_configs -= [
++      "//third_party/googletest:gmock_config",
++      "//third_party/googletest:gtest_config",
++    ]
 +  }
-   if (picker_modes_ == SCContentSharingPickerModeSingleDisplay) {
-     style = SCShareableContentStyleDisplay;
-   } else if (picker_modes_ == SCContentSharingPickerModeSingleWindow ||
+ }
+ 
+ rtc_library("fixed_fps_video_frame_writer_adapter") {

@@ -1,59 +1,30 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 21 Jun 2024 16:28:00 -0500
-Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
- third_party library.
+From: Byron Campen <docfaraday@gmail.com>
+Date: Thu, 25 Jul 2024 10:07:00 -0500
+Subject: Bug 1909234 - (fix-4fec6f9c67dc) Hollow out the new ssl_adapter lib.
+ r?mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c4d7c93b78fb52d28452d055
 ---
- BUILD.gn                                |  2 ++
- modules/video_coding/generic_decoder.cc | 10 +++++-----
- 2 files changed, 7 insertions(+), 5 deletions(-)
+ rtc_base/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 07971feb1c..7f6cf2193f 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -278,6 +278,7 @@ config("rtc_prod_config") {
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index d869d076a3..28bd1320c3 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1648,6 +1648,7 @@ if (!build_with_mozilla) {
  }
  
- group("tracing") {
+ rtc_library("ssl_adapter") {
 +if (!build_with_mozilla) {
-   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
-   if (rtc_use_perfetto) {
-     if (build_with_chromium) {
-@@ -294,6 +295,7 @@ group("tracing") {
-         [ "//third_party/perfetto/include/perfetto/tracing" ]
+   visibility = [ "*" ]
+   sources = [
+     "openssl_adapter.cc",
+@@ -1696,6 +1697,7 @@ rtc_library("ssl_adapter") {
+     configs += [ "..:external_ssl_library" ]
    }
  }
 +}
  
- if (rtc_use_perfetto) {
-   rtc_library("webrtc_libperfetto") {
-diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 23199f7a34..721ce7fac9 100644
---- a/modules/video_coding/generic_decoder.cc
-+++ b/modules/video_coding/generic_decoder.cc
-@@ -109,9 +109,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
-                                       std::optional<int32_t> decode_time_ms,
-                                       std::optional<uint8_t> qp) {
-   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
--  TRACE_EVENT(
--      "webrtc", "VCMDecodedFrameCallback::Decoded",
--      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
-+  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
-+                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
-+                       decodedImage.rtp_timestamp());
-   // TODO(holmer): We should improve this so that we can handle multiple
-   // callbacks from one call to Decode().
-   std::optional<FrameInfo> frame_info;
-@@ -319,8 +319,8 @@ int32_t VCMGenericDecoder::Decode(
-     const std::optional<
-         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
-         frame_instrumentation_data) {
--  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
--              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
-+  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
-+               frame.RtpTimestamp());
-   FrameInfo frame_info;
-   frame_info.rtp_timestamp = frame.RtpTimestamp();
-   frame_info.decode_start = now;
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]
