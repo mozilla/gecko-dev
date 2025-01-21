@@ -10806,6 +10806,7 @@ release_partner_config:
           - win64-shippable
           - win32-shippable
         upload_to_candidates: true
+        publish_to_releases: true
       - campaign: softonic
         content: softonic-003
         locales:
