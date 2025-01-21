@@ -1442,25 +1442,29 @@ collection-usage-ping =
     .accesskey = u
 collection-usage-ping-description = This helps { -vendor-short-name } to estimate active users.
 
-collection-health-report =
-    .label = Allow { -brand-short-name } to send technical and interaction data to { -vendor-short-name }
+collection-health-report2 =
+    .label = Send technical and interaction data to { -vendor-short-name }
     .accesskey = r
 collection-health-report-link = Learn more
+collection-health-report-description = This helps us improve { -brand-product-name } features, performance, and stability.
 
-collection-studies =
-    .label = Allow { -brand-short-name } to install and run studies
+collection-studies2 =
+    .label = Install and run studies
+collection-studies-description = Try out features and ideas before they’re released to everyone.
 collection-studies-link = View { -brand-short-name } studies
 
-addon-recommendations =
-    .label = Allow { -brand-short-name } to make personalized extension recommendations
-addon-recommendations-link = Learn more
+addon-recommendations2 =
+    .label = Allow personalized extension recommendations
+addon-recommendations-description = Get extension recommendations to improve your browsing experience.
 
 # This message is displayed above disabled data sharing options in developer builds
 # or builds with no Telemetry support available.
-collection-health-report-disabled = Data reporting is disabled for this build configuration
+collection-health-report-disabled2 = Data reporting is disabled for this build configuration.
 
-collection-backlogged-crash-reports = Allow { -brand-short-name } to send backlogged crash reports on your behalf
+collection-backlogged-crash-reports2 =
+    .label = Automatically send crash reports
     .accesskey = c
+collection-backlogged-crash-reports-description = This helps { -vendor-short-name } diagnose and fix issues with the browser. Reports may include personal or sensitive data.
 
 privacy-segmentation-section-header = New features that enhance your browsing
 

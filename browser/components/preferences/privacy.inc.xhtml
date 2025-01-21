@@ -932,73 +932,71 @@
               data-l10n-id="collection-health-report-telemetry-disabled-link"/>
     </description>
   </hbox>
+
   <vbox data-subcategory="reports">
-    <hbox>
-      <checkbox id="submitHealthReportBox"
-                data-l10n-id="collection-health-report"
-                class="tail-with-learn-more"/>
+    <checkbox id="submitHealthReportBox"
+              data-l10n-id="collection-health-report2"/>
+    <description class="indent tip-caption">
+#ifdef MOZ_TELEMETRY_REPORTING
+      <html:span data-l10n-id="collection-health-report-description"/>
+#else # !MOZ_TELEMETRY_REPORTING
+      <html:span data-l10n-id="collection-health-report-disabled2"/>
+#endif # MOZ_TELEMETRY_REPORTING
       <html:a id="FHRLearnMore"
               class="learnMore"
               target="_blank"
               data-l10n-id="collection-health-report-link"/>
-    </hbox>
-    <hbox class="indent">
+    </description>
+
+    <vbox class="indent">
       <checkbox id="addonRecommendationEnabled"
-                class="tail-with-learn-more"
-                data-l10n-id="addon-recommendations"/>
-      <html:a is="moz-support-link"
-              id="addonRecommendationLearnMore"
-              class="learnMore"
-              data-l10n-id="addon-recommendations-link"
-              support-page="personalized-addons"/>
-    </hbox>
-#ifndef MOZ_TELEMETRY_REPORTING
-  <description id="TelemetryDisabledDesc"
-    class="indent tip-caption" control="telemetryGroup"
-    data-l10n-id="collection-health-report-disabled"/>
-#endif
+                data-l10n-id="addon-recommendations2"/>
+      <description class="indent tip-caption">
+        <html:span data-l10n-id="addon-recommendations-description"/>
+        <html:a is="moz-support-link"
+                id="addonRecommendationLearnMore"
+                class="learnMore"
+                support-page="personalized-addons"/>
+      </description>
 
 #ifdef MOZ_NORMANDY
-    <hbox align="center" class="indent">
       <checkbox id="optOutStudiesEnabled"
-                class="tail-with-learn-more"
-                data-l10n-id="collection-studies"/>
-      <html:a id="viewShieldStudies"
-              href="about:studies"
-              class="learnMore"
-              target="_blank"
-              data-l10n-id="collection-studies-link"/>
-    </hbox>
-#endif
-
-    <vbox>
-      <hbox align="center" class="checkbox-row">
-      <checkbox id="submitUsagePingBox"
-                class="tail-with-learn-more"
-                data-l10n-id="collection-usage-ping"
-                preference="datareporting.usage.uploadEnabled"/>
-        <html:a is="moz-support-link"
+                data-l10n-id="collection-studies2"/>
+      <description class="indent tip-caption">
+        <html:span data-l10n-id="collection-studies-description"/>
+        <html:a id="viewShieldStudies"
+                href="about:studies"
                 class="learnMore"
-                support-page="usage-ping-settings"/>
-      </hbox>
-      <description class="indent tip-caption" data-l10n-id="collection-usage-ping-description"/>
+                target="_blank"
+                data-l10n-id="collection-studies-link"/>
+      </description>
+#endif # MOZ_NORMANDY
     </vbox>
 
+    <checkbox id="submitUsagePingBox"
+              data-l10n-id="collection-usage-ping"
+              preference="datareporting.usage.uploadEnabled"/>
+    <description class="indent tip-caption">
+      <html:span data-l10n-id="collection-usage-ping-description"/>
+      <html:a id="submitUsagePingLearnMore"
+              is="moz-support-link"
+              class="learnMore"
+              support-page="usage-ping-settings"/>
+    </description>
+
 #ifdef MOZ_CRASHREPORTER
-    <hbox align="center" class="checkbox-row">
-      <html:input type="checkbox"
-                id="automaticallySubmitCrashesBox"
-                preference="browser.crashReports.unsubmittedCheck.autoSubmit2"/>
-      <html:label is="moz-label"
-                for="automaticallySubmitCrashesBox"
-                id="crashReporterLabel"
-                data-l10n-id="collection-backlogged-crash-reports"
-                data-l10n-attrs="accesskey"/>
-      <html:a id="crashReporterLearnMore" is="moz-support-link" class="learnMore"/>
-    </hbox>
-#endif
+    <checkbox id="automaticallySubmitCrashesBox"
+              data-l10n-id="collection-backlogged-crash-reports2"
+              preference="browser.crashReports.unsubmittedCheck.autoSubmit2"/>
+    <description class="indent tip-caption">
+      <html:span data-l10n-id="collection-backlogged-crash-reports-description"/>
+      <html:a is="moz-support-link"
+              class="learnMore"
+              id="crashReporterLearnMore"/>
+    </description>
+#endif # MOZ_CRASHREPORTER
   </vbox>
-#endif
+#endif MOZ_DATA_REPORTING
   <vbox class="firefoxSuggestOptionBox" id="firefoxSuggestPrivacyContainer" hidden="true">
     <html:moz-toggle id="firefoxSuggestDataCollectionPrivacyToggle"
                      preference="browser.urlbar.quicksuggest.dataCollection.enabled"
