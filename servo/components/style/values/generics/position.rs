@@ -11,8 +11,10 @@ use style_traits::CssWriter;
 use style_traits::SpecifiedValueInfo;
 use style_traits::ToCss;
 
+use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::ToAnimatedZero;
-use crate::values::generics::length::GenericAnchorSizeFunction;
+use crate::values::generics::box_::PositionProperty;
+use crate::values::generics::length::{AnchorResolutionResult, GenericAnchorSizeFunction};
 use crate::values::generics::ratio::Ratio;
 use crate::values::generics::Optional;
 use crate::values::DashedIdent;
@@ -375,6 +377,26 @@ where
     }
 }
 
+impl<Percentage, LengthPercentage> GenericAnchorFunction<Percentage, LengthPercentage> {
+    /// Resolve the anchor function. On failure, return reference to fallback, if exists.
+    pub fn resolve<'a>(
+        &'a self,
+        side: PhysicalSide,
+        position_property: PositionProperty,
+    ) -> AnchorResolutionResult<'a, LengthPercentage> {
+        if !position_property.is_absolutely_positioned() {
+            return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
+        }
+
+        if !self.side.valid_for_side(side) {
+            return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
+        }
+
+        // TODO(dshin): Do the actual anchor resolution here.
+        AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref())
+    }
+}
+
 /// Keyword values for the anchor positioning function.
 #[derive(
     Animate,
@@ -423,6 +445,22 @@ pub enum AnchorSideKeyword {
     Center,
 }
 
+impl AnchorSideKeyword {
+    fn valid_for_side(&self, side: PhysicalSide) -> bool {
+        match self {
+            Self::Left | Self::Right => side == PhysicalSide::Left || side == PhysicalSide::Right,
+            Self::Top | Self::Bottom => side == PhysicalSide::Top || side == PhysicalSide::Bottom,
+            Self::Inside |
+            Self::Outside |
+            Self::Start |
+            Self::End |
+            Self::SelfStart |
+            Self::SelfEnd |
+            Self::Center => true,
+        }
+    }
+}
+
 /// Anchor side for the anchor positioning function.
 #[derive(
     Animate,
@@ -449,4 +487,14 @@ pub enum AnchorSide<P> {
     Keyword(AnchorSideKeyword),
     /// Percentage value between the `start` and `end` sides.
     Percentage(P),
+}
+
+impl<P> AnchorSide<P> {
+    /// Is this anchor side valid for a given side?
+    pub fn valid_for_side(&self, side: PhysicalSide) -> bool {
+        match self {
+            Self::Keyword(k) => k.valid_for_side(side),
+            Self::Percentage(_) => true,
+        }
+    }
 }
