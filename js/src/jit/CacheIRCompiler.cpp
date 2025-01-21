@@ -4215,30 +4215,34 @@ bool CacheIRCompiler::emitTruncateDoubleToUInt32(NumberOperandId inputId,
 
   allocator.ensureDoubleRegister(masm, inputId, floatReg);
 
-  Label done, truncateABICall;
+  Label truncateABICall;
 
   masm.branchTruncateDoubleMaybeModUint32(floatReg, res, &truncateABICall);
-  masm.jump(&done);
 
-  masm.bind(&truncateABICall);
-  LiveRegisterSet save = liveVolatileRegs();
-  save.takeUnchecked(floatReg);
-  // Bug 1451976
-  save.takeUnchecked(floatReg.get().asSingle());
-  masm.PushRegsInMask(save);
+  if (truncateABICall.used()) {
+    Label done;
+    masm.jump(&done);
 
-  using Fn = int32_t (*)(double);
-  masm.setupUnalignedABICall(res);
-  masm.passABIArg(floatReg, ABIType::Float64);
-  masm.callWithABI<Fn, JS::ToInt32>(ABIType::General,
-                                    CheckUnsafeCallWithABI::DontCheckOther);
-  masm.storeCallInt32Result(res);
+    masm.bind(&truncateABICall);
+    LiveRegisterSet save = liveVolatileRegs();
+    save.takeUnchecked(floatReg);
+    // Bug 1451976
+    save.takeUnchecked(floatReg.get().asSingle());
+    masm.PushRegsInMask(save);
 
-  LiveRegisterSet ignore;
-  ignore.add(res);
-  masm.PopRegsInMaskIgnore(save, ignore);
+    using Fn = int32_t (*)(double);
+    masm.setupUnalignedABICall(res);
+    masm.passABIArg(floatReg, ABIType::Float64);
+    masm.callWithABI<Fn, JS::ToInt32>(ABIType::General,
+                                      CheckUnsafeCallWithABI::DontCheckOther);
+    masm.storeCallInt32Result(res);
 
-  masm.bind(&done);
+    LiveRegisterSet ignore;
+    ignore.add(res);
+    masm.PopRegsInMaskIgnore(save, ignore);
+
+    masm.bind(&done);
+  }
   return true;
 }
 
