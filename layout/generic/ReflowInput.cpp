@@ -1783,8 +1783,8 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   if (iEndIsAuto) {
     offsets.IEnd(cbwm) = 0;
   } else {
-    offsets.IEnd(cbwm) =
-        nsLayoutUtils::ComputeCBDependentValue(cbSize.ISize(cbwm), iEndOffset.AsLengthPercentage());
+    offsets.IEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
+        cbSize.ISize(cbwm), iEndOffset.AsLengthPercentage());
   }
 
   if (iStartIsAuto && iEndIsAuto) {
@@ -1806,8 +1806,8 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   if (bEndIsAuto) {
     offsets.BEnd(cbwm) = 0;
   } else {
-    offsets.BEnd(cbwm) =
-        nsLayoutUtils::ComputeCBDependentValue(cbSize.BSize(cbwm), bEndOffset.AsLengthPercentage());
+    offsets.BEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
+        cbSize.BSize(cbwm), bEndOffset.AsLengthPercentage());
   }
 
   if (bStartIsAuto && bEndIsAuto) {

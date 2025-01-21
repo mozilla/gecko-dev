@@ -1411,7 +1411,8 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
+        return AnchorResolvedInset{
+            AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
       return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
@@ -1424,7 +1425,8 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
+        return AnchorResolvedInset{
+            AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
       return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
@@ -1435,8 +1437,7 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
 }
 
 nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
-    LogicalSide aSide, WritingMode aWM,
-    StylePositionProperty aPosition) const {
+    LogicalSide aSide, WritingMode aWM, StylePositionProperty aPosition) const {
   return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
 }
 
