@@ -2039,6 +2039,38 @@ bool CacheIRCompiler::emitGuardNumberToIntPtrIndex(NumberOperandId inputId,
   return true;
 }
 
+static void TruncateDoubleModUint32(MacroAssembler& masm,
+                                    FloatRegister floatReg, Register result,
+                                    const LiveRegisterSet& liveVolatileRegs) {
+  Label truncateABICall;
+  masm.branchTruncateDoubleMaybeModUint32(floatReg, result, &truncateABICall);
+
+  if (truncateABICall.used()) {
+    Label done;
+    masm.jump(&done);
+
+    masm.bind(&truncateABICall);
+    LiveRegisterSet save = liveVolatileRegs;
+    save.takeUnchecked(floatReg);
+    // Bug 1451976
+    save.takeUnchecked(floatReg.asSingle());
+    masm.PushRegsInMask(save);
+
+    using Fn = int32_t (*)(double);
+    masm.setupUnalignedABICall(result);
+    masm.passABIArg(floatReg, ABIType::Float64);
+    masm.callWithABI<Fn, JS::ToInt32>(ABIType::General,
+                                      CheckUnsafeCallWithABI::DontCheckOther);
+    masm.storeCallInt32Result(result);
+
+    LiveRegisterSet ignore;
+    ignore.add(result);
+    masm.PopRegsInMaskIgnore(save, ignore);
+
+    masm.bind(&done);
+  }
+}
+
 bool CacheIRCompiler::emitGuardToInt32ModUint32(ValOperandId inputId,
                                                 Int32OperandId resultId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
@@ -2067,8 +2099,8 @@ bool CacheIRCompiler::emitGuardToInt32ModUint32(ValOperandId inputId,
       []() {
         // No-op if the value is already an int32.
       },
-      [&](FloatRegister floatReg, Label* fail) {
-        masm.branchTruncateDoubleMaybeModUint32(floatReg, output, fail);
+      [&](FloatRegister floatReg) {
+        TruncateDoubleModUint32(masm, floatReg, output, liveVolatileRegs());
       });
 
   return true;
@@ -4215,34 +4247,7 @@ bool CacheIRCompiler::emitTruncateDoubleToUInt32(NumberOperandId inputId,
 
   allocator.ensureDoubleRegister(masm, inputId, floatReg);
 
-  Label truncateABICall;
-
-  masm.branchTruncateDoubleMaybeModUint32(floatReg, res, &truncateABICall);
-
-  if (truncateABICall.used()) {
-    Label done;
-    masm.jump(&done);
-
-    masm.bind(&truncateABICall);
-    LiveRegisterSet save = liveVolatileRegs();
-    save.takeUnchecked(floatReg);
-    // Bug 1451976
-    save.takeUnchecked(floatReg.get().asSingle());
-    masm.PushRegsInMask(save);
-
-    using Fn = int32_t (*)(double);
-    masm.setupUnalignedABICall(res);
-    masm.passABIArg(floatReg, ABIType::Float64);
-    masm.callWithABI<Fn, JS::ToInt32>(ABIType::General,
-                                      CheckUnsafeCallWithABI::DontCheckOther);
-    masm.storeCallInt32Result(res);
-
-    LiveRegisterSet ignore;
-    ignore.add(res);
-    masm.PopRegsInMaskIgnore(save, ignore);
-
-    masm.bind(&done);
-  }
+  TruncateDoubleModUint32(masm, floatReg, res, liveVolatileRegs());
   return true;
 }
 
