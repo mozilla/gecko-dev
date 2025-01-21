@@ -334,6 +334,9 @@ add_task(async function notRelevant() {
     result,
     command: "not_relevant",
     feature: QuickSuggest.getFeature("PocketSuggestions"),
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
   });
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
@@ -396,6 +399,9 @@ add_task(async function notInterested() {
     result,
     command: "not_interested",
     feature: QuickSuggest.getFeature("PocketSuggestions"),
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
   });
 
   Assert.ok(

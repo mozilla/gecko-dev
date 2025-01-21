@@ -563,6 +563,121 @@ add_task(async function bestMatch() {
   merinoClient().resetSession();
 });
 
+// Tests a sponsored suggestion that isn't managed by a feature.
+add_task(async function unmanaged_sponsored() {
+  await doUnmanagedTest({
+    pref: "suggest.quicksuggest.sponsored",
+    suggestion: {
+      title: "Sponsored without feature",
+      url: "https://example.com/sponsored-without-feature",
+      provider: "sponsored-unrecognized-provider",
+      is_sponsored: true,
+    },
+  });
+});
+
+// Tests a nonsponsored suggestion that isn't managed by a feature.
+add_task(async function unmanaged_nonsponsored() {
+  await doUnmanagedTest({
+    pref: "suggest.quicksuggest.nonsponsored",
+    suggestion: {
+      title: "Nonsponsored without feature",
+      url: "https://example.com/nonsponsored-without-feature",
+      provider: "nonsponsored-unrecognized-provider",
+      // no is_sponsored
+    },
+  });
+});
+
+async function doUnmanagedTest({ pref, suggestion }) {
+  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+  await QuickSuggestTestUtils.forceSync();
+
+  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
+  MerinoTestUtils.server.response.body.suggestions = [suggestion];
+
+  let expectedResult = {
+    type: UrlbarUtils.RESULT_TYPE.URL,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    heuristic: false,
+    payload: {
+      title: suggestion.title,
+      url: suggestion.url,
+      displayUrl: suggestion.url.substring("https://".length),
+      provider: suggestion.provider,
+      telemetryType: suggestion.provider,
+      isSponsored: !!suggestion.is_sponsored,
+      source: "merino",
+      isBlockable: true,
+      blockL10n: {
+        id: "urlbar-result-menu-dismiss-firefox-suggest",
+      },
+      isManageable: true,
+      shouldShowUrl: true,
+    },
+  };
+
+  // Do an initial search. Sponsored and nonsponsored suggestions are both
+  // enabled, so the suggestion should be matched.
+  info("Doing search 1");
+  await check_results({
+    context: createContext("test", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [expectedResult],
+  });
+
+  // Set the pref to false and do another search. The suggestion shouldn't be
+  // matched.
+  UrlbarPrefs.set(pref, false);
+  await QuickSuggestTestUtils.forceSync();
+
+  info("Doing search 2");
+  await check_results({
+    context: createContext("test", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  // Flip the pref back to true and do a third search.
+  UrlbarPrefs.set(pref, true);
+  await QuickSuggestTestUtils.forceSync();
+
+  info("Doing search 3");
+  let context = createContext("test", {
+    providers: [UrlbarProviderQuickSuggest.name],
+    isPrivate: false,
+  });
+  await check_results({
+    context,
+    matches: [expectedResult],
+  });
+
+  // Trigger the dismiss command on the result.
+  triggerCommand({
+    feature: UrlbarProviderQuickSuggest,
+    command: "dismiss",
+    result: context.results[0],
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
+  });
+  await QuickSuggest.blockedSuggestions._test_readyPromise;
+
+  Assert.ok(
+    await QuickSuggest.blockedSuggestions.has(suggestion.url),
+    "The suggestion URL should be blocked"
+  );
+
+  await QuickSuggest.blockedSuggestions.clear();
+  MerinoTestUtils.server.reset();
+  merinoClient().resetSession();
+}
+
 function merinoClient() {
   return QuickSuggest.getFeature("SuggestBackendMerino")?.client;
 }

@@ -482,6 +482,9 @@ add_task(async function notRelevant() {
     result,
     command: "not_relevant",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
   });
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 

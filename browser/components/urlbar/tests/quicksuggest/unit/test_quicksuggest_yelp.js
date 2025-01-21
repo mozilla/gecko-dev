@@ -542,8 +542,10 @@ add_task(async function notRelevant() {
     result,
     command: "not_relevant",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
   });
-
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
   Assert.ok(
@@ -618,6 +620,9 @@ add_task(async function notInterested() {
     result,
     command: "not_interested",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
   });
 
   Assert.ok(
@@ -747,6 +752,10 @@ add_task(async function showLessFrequently() {
       feature,
       command: "show_less_frequently",
       searchString: input,
+      expectedCountsByCall: {
+        acknowledgeFeedback: 1,
+        invalidateResultMenuCommands: after.canShowLessFrequently ? 0 : 1,
+      },
     });
 
     Assert.equal(

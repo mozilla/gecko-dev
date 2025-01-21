@@ -266,13 +266,27 @@ class ProviderQuickSuggest extends UrlbarProvider {
   }
 
   onEngagement(queryContext, controller, details) {
-    let feature = this.#getFeatureByResult(details.result);
-    feature?.onEngagement(
-      queryContext,
-      controller,
-      details,
-      this._trimmedSearchString
-    );
+    let { result } = details;
+
+    // Delegate to the result's feature if there is one.
+    let feature = this.#getFeatureByResult(result);
+    if (feature) {
+      feature.onEngagement(
+        queryContext,
+        controller,
+        details,
+        this._trimmedSearchString
+      );
+      return;
+    }
+
+    // Otherwise, handle commands. The dismiss, manage, and help commands are
+    // supported for results without features. Dismissal is the only one we need
+    // to handle here since urlbar handles the others.
+    if (details.selType == "dismiss" && result.payload.isBlockable) {
+      lazy.QuickSuggest.blockedSuggestions.add(result.payload.url);
+      controller.removeResult(result);
+    }
   }
 
   onSearchSessionEnd(queryContext, controller, details) {
