@@ -904,13 +904,13 @@ struct UncopyableExtension {
   static constexpr RTPExtensionType kId = kRtpExtensionDependencyDescriptor;
   static constexpr absl::string_view Uri() { return "uri"; }
 
-  static size_t ValueSize(const UncopyableValue& value) { return 1; }
-  static bool Write(rtc::ArrayView<uint8_t> data,
-                    const UncopyableValue& value) {
+  static size_t ValueSize(const UncopyableValue& /* value */) { return 1; }
+  static bool Write(rtc::ArrayView<uint8_t> /* data */,
+                    const UncopyableValue& /* value */) {
     return true;
   }
-  static bool Parse(rtc::ArrayView<const uint8_t> data,
-                    UncopyableValue* value) {
+  static bool Parse(rtc::ArrayView<const uint8_t> /* data */,
+                    UncopyableValue* /* value */) {
     return true;
   }
 };
@@ -939,7 +939,9 @@ struct ParseByReferenceExtension {
   static constexpr RTPExtensionType kId = kRtpExtensionDependencyDescriptor;
   static constexpr absl::string_view Uri() { return "uri"; }
 
-  static size_t ValueSize(uint8_t value1, uint8_t value2) { return 2; }
+  static size_t ValueSize(uint8_t /* value1 */, uint8_t /* value2 */) {
+    return 2;
+  }
   static bool Write(rtc::ArrayView<uint8_t> data,
                     uint8_t value1,
                     uint8_t value2) {

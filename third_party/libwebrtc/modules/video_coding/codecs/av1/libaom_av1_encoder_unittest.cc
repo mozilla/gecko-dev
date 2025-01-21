@@ -415,7 +415,7 @@ TEST(LibaomAv1EncoderTest, AdheresToTargetBitrateDespiteUnevenFrameTiming) {
    private:
     Result OnEncodedImage(
         const EncodedImage& encoded_image,
-        const CodecSpecificInfo* codec_specific_info) override {
+        const CodecSpecificInfo* /* codec_specific_info */) override {
       bytes_encoded_ += DataSize::Bytes(encoded_image.size());
       return Result(Result::Error::OK);
     }

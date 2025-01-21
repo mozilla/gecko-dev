@@ -240,8 +240,8 @@ DefaultTemporalLayers::DefaultTemporalLayers(int number_of_temporal_layers)
 DefaultTemporalLayers::~DefaultTemporalLayers() = default;
 
 void DefaultTemporalLayers::SetQpLimits(size_t stream_index,
-                                        int min_qp,
-                                        int max_qp) {
+                                        int /* min_qp */,
+                                        int /* max_qp */) {
   RTC_DCHECK_LT(stream_index, StreamCount());
   // Ignore.
 }
@@ -260,7 +260,7 @@ bool DefaultTemporalLayers::SupportsEncoderFrameDropping(
 void DefaultTemporalLayers::OnRatesUpdated(
     size_t stream_index,
     const std::vector<uint32_t>& bitrates_bps,
-    int framerate_fps) {
+    int /* framerate_fps */) {
   RTC_DCHECK_LT(stream_index, StreamCount());
   RTC_DCHECK_GT(bitrates_bps.size(), 0);
   RTC_DCHECK_LE(bitrates_bps.size(), num_layers_);
@@ -471,7 +471,7 @@ void DefaultTemporalLayers::OnEncodeDone(size_t stream_index,
                                          uint32_t rtp_timestamp,
                                          size_t size_bytes,
                                          bool is_keyframe,
-                                         int qp,
+                                         int /* qp */,
                                          CodecSpecificInfo* info) {
   RTC_DCHECK_LT(stream_index, StreamCount());
   RTC_DCHECK_GT(num_layers_, 0);
@@ -576,7 +576,7 @@ void DefaultTemporalLayers::OnEncodeDone(size_t stream_index,
   pending_frames_.pop_front();
 }
 
-void DefaultTemporalLayers::OnFrameDropped(size_t stream_index,
+void DefaultTemporalLayers::OnFrameDropped(size_t /* stream_index */,
                                            uint32_t rtp_timestamp) {
   CullPendingFramesBefore(rtp_timestamp);
   RTC_CHECK(!pending_frames_.empty());
@@ -584,12 +584,13 @@ void DefaultTemporalLayers::OnFrameDropped(size_t stream_index,
   pending_frames_.pop_front();
 }
 
-void DefaultTemporalLayers::OnPacketLossRateUpdate(float packet_loss_rate) {}
+void DefaultTemporalLayers::OnPacketLossRateUpdate(
+    float /* packet_loss_rate */) {}
 
-void DefaultTemporalLayers::OnRttUpdate(int64_t rtt_ms) {}
+void DefaultTemporalLayers::OnRttUpdate(int64_t /* rtt_ms */) {}
 
 void DefaultTemporalLayers::OnLossNotification(
-    const VideoEncoder::LossNotification& loss_notification) {}
+    const VideoEncoder::LossNotification& /* loss_notification */) {}
 
 FrameDependencyStructure DefaultTemporalLayers::GetTemplateStructure(
     int num_layers) const {

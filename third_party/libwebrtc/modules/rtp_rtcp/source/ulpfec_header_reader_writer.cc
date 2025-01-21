@@ -98,7 +98,7 @@ UlpfecHeaderWriter::~UlpfecHeaderWriter() = default;
 // returns a bound on the sequence number spread), if logic is added to
 // UlpfecHeaderWriter::FinalizeFecHeader to truncate packet masks which end
 // in a string of zeroes. (Similar to how it is done in the FlexFEC case.)
-size_t UlpfecHeaderWriter::MinPacketMaskSize(const uint8_t* packet_mask,
+size_t UlpfecHeaderWriter::MinPacketMaskSize(const uint8_t* /* packet_mask */,
                                              size_t packet_mask_size) const {
   return packet_mask_size;
 }

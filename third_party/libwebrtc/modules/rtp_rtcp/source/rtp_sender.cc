@@ -335,7 +335,8 @@ int32_t RTPSender::ReSendPacket(uint16_t packet_id) {
   return packet_size;
 }
 
-void RTPSender::OnReceivedAckOnSsrc(int64_t extended_highest_sequence_number) {
+void RTPSender::OnReceivedAckOnSsrc(
+    int64_t /* extended_highest_sequence_number */) {
   MutexLock lock(&send_mutex_);
   bool update_required = !ssrc_has_acked_;
   ssrc_has_acked_ = true;
@@ -345,7 +346,7 @@ void RTPSender::OnReceivedAckOnSsrc(int64_t extended_highest_sequence_number) {
 }
 
 void RTPSender::OnReceivedAckOnRtxSsrc(
-    int64_t extended_highest_sequence_number) {
+    int64_t /* extended_highest_sequence_number */) {
   MutexLock lock(&send_mutex_);
   bool update_required = !rtx_ssrc_has_acked_;
   rtx_ssrc_has_acked_ = true;

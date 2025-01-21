@@ -134,8 +134,8 @@ H264EncoderSettings H264EncoderSettings::Parse(const SdpVideoFormat& format) {
 }
 
 absl::Nonnull<std::unique_ptr<VideoEncoder>> CreateH264Encoder(
-    const Environment& env,
-    H264EncoderSettings settings) {
+    [[maybe_unused]] const Environment& env,
+    [[maybe_unused]] H264EncoderSettings settings) {
 #if defined(WEBRTC_USE_H264)
   RTC_CHECK(g_rtc_use_h264);
   RTC_LOG(LS_INFO) << "Creating H264EncoderImpl.";

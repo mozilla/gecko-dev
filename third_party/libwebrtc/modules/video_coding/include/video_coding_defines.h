@@ -64,11 +64,11 @@ class VCMReceiveCallback {
   };
 
   // TODO: bugs.webrtc.org/358039777 - Delete this function.
-  virtual int32_t FrameToRender(VideoFrame& videoFrame,  // NOLINT
-                                std::optional<uint8_t> qp,
-                                TimeDelta decode_time,
-                                VideoContentType content_type,
-                                VideoFrameType frame_type) {
+  virtual int32_t FrameToRender(VideoFrame& /* videoFrame */,  // NOLINT
+                                std::optional<uint8_t> /* qp */,
+                                TimeDelta /* decode_time */,
+                                VideoContentType /* content_type */,
+                                VideoFrameType /* frame_type */) {
     RTC_CHECK_NOTREACHED();
     return 0;
   }

@@ -57,7 +57,7 @@ VideoCodecUnitTest::FakeEncodeCompleteCallback::OnEncodedImage(
 
 void VideoCodecUnitTest::FakeDecodeCompleteCallback::Decoded(
     VideoFrame& frame,
-    std::optional<int32_t> decode_time_ms,
+    std::optional<int32_t> /* decode_time_ms */,
     std::optional<uint8_t> qp) {
   MutexLock lock(&test_->decoded_frame_section_);
   test_->decoded_frame_.emplace(frame);
@@ -97,7 +97,8 @@ void VideoCodecUnitTest::SetUp() {
   EXPECT_TRUE(decoder_->Configure(decoder_settings));
 }
 
-void VideoCodecUnitTest::ModifyCodecSettings(VideoCodec* codec_settings) {}
+void VideoCodecUnitTest::ModifyCodecSettings(VideoCodec* /* codec_settings */) {
+}
 
 VideoFrame VideoCodecUnitTest::NextInputFrame() {
   test::FrameGeneratorInterface::VideoFrameData frame_data =

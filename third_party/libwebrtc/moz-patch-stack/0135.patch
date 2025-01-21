@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 4defd80355..379075d12c 100644
+index 8b2e3fe295..22cc5f6a78 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -1296,7 +1296,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(

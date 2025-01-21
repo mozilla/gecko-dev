@@ -96,7 +96,7 @@ class SendTransport : public Transport {
     delay_ms_ = delay_ms;
   }
   bool SendRtp(rtc::ArrayView<const uint8_t> data,
-               const PacketOptions& options) override {
+               const PacketOptions& /* options */) override {
     RtpPacket packet;
     EXPECT_TRUE(packet.Parse(data));
     ++rtp_packets_sent_;

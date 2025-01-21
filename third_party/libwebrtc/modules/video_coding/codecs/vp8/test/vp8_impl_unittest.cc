@@ -607,7 +607,7 @@ TEST_F(TestVp8Impl, KeepsTimestampOnReencode) {
 
   EXPECT_CALL(*vpx, img_wrap(_, _, _, _, _, _))
       .WillOnce(Invoke([](vpx_image_t* img, vpx_img_fmt_t fmt, unsigned int d_w,
-                          unsigned int d_h, unsigned int stride_align,
+                          unsigned int d_h, unsigned int /* stride_align */,
                           unsigned char* img_data) {
         img->fmt = fmt;
         img->d_w = d_w;
@@ -906,7 +906,7 @@ TEST_P(TestVp8ImplWithMaxFrameDropTrial, EnforcesMaxFrameDropInterval) {
 
    protected:
     Result OnEncodedImage(const EncodedImage& encoded_image,
-                          const CodecSpecificInfo* codec_specific_info) {
+                          const CodecSpecificInfo* /* codec_specific_info */) {
       Timestamp timestamp =
           Timestamp::Millis(encoded_image.RtpTimestamp() / 90);
       if (last_callback_.IsFinite()) {

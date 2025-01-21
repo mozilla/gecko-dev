@@ -29,7 +29,7 @@ const int kNumInitialPackets = 2;
 namespace testing {
 
 void TestBitrateObserver::OnReceiveBitrateChanged(
-    const std::vector<uint32_t>& ssrcs,
+    const std::vector<uint32_t>& /* ssrcs */,
     uint32_t bitrate) {
   latest_bitrate_ = bitrate;
   updated_ = true;
@@ -251,7 +251,7 @@ void RemoteBitrateEstimatorTest::IncomingPacket(uint32_t ssrc,
 // Returns true if an over-use was seen, false otherwise.
 // The StreamGenerator::updated() should be used to check for any changes in
 // target bitrate after the call to this function.
-bool RemoteBitrateEstimatorTest::GenerateAndProcessFrame(uint32_t ssrc,
+bool RemoteBitrateEstimatorTest::GenerateAndProcessFrame(uint32_t /* ssrc */,
                                                          uint32_t bitrate_bps) {
   RTC_DCHECK_GT(bitrate_bps, 0);
   stream_generator_->SetBitrateBps(bitrate_bps);

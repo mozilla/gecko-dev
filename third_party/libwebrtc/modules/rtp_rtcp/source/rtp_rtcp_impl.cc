@@ -219,7 +219,8 @@ void ModuleRtpRtcpImpl::RegisterSendPayloadFrequency(int payload_type,
   rtcp_sender_.SetRtpClockRate(payload_type, payload_frequency);
 }
 
-int32_t ModuleRtpRtcpImpl::DeRegisterSendPayload(const int8_t payload_type) {
+int32_t ModuleRtpRtcpImpl::DeRegisterSendPayload(
+    const int8_t /* payload_type */) {
   return 0;
 }
 
@@ -403,7 +404,7 @@ ModuleRtpRtcpImpl::FetchFecPackets() {
 }
 
 void ModuleRtpRtcpImpl::OnAbortedRetransmissions(
-    rtc::ArrayView<const uint16_t> sequence_numbers) {
+    rtc::ArrayView<const uint16_t> /* sequence_numbers */) {
   RTC_DCHECK_NOTREACHED()
       << "Stream flushing not supported with legacy rtp modules.";
 }

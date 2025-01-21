@@ -52,7 +52,9 @@ class LoopbackTransportTest : public webrtc::Transport {
     EXPECT_TRUE(sent_packets_.back().Parse(data));
     return true;
   }
-  bool SendRtcp(rtc::ArrayView<const uint8_t> data) override { return false; }
+  bool SendRtcp(rtc::ArrayView<const uint8_t> /* data */) override {
+    return false;
+  }
   const RtpPacketReceived& last_sent_packet() { return sent_packets_.back(); }
   int packets_sent() { return sent_packets_.size(); }
 

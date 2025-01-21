@@ -40,11 +40,12 @@ using ::testing::MockFunction;
 using ::testing::SizeIs;
 using ::testing::WithoutArgs;
 
-RtpPacketReceived CreatePacket(Timestamp arrival_time,
-                               bool marker,
-                               uint32_t ssrc = 1234,
-                               uint16_t seq = 1,
-                               rtc::EcnMarking ecn = rtc::EcnMarking::kNotEct) {
+RtpPacketReceived CreatePacket(
+    Timestamp arrival_time,
+    bool marker,
+    uint32_t ssrc = 1234,
+    uint16_t seq = 1,
+    rtc::EcnMarking /* ecn */ = rtc::EcnMarking::kNotEct) {
   RtpPacketReceived packet;
   packet.SetSsrc(ssrc);
   packet.SetSequenceNumber(seq);

@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c12307f3817bec877
  1 file changed, 13 insertions(+)
 
 diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
-index 7cccdb51a7..2a6afb3147 100644
+index 82f8a2db81..95059abc07 100644
 --- a/modules/video_capture/device_info_impl.cc
 +++ b/modules/video_capture/device_info_impl.cc
 @@ -100,10 +100,23 @@ int32_t DeviceInfoImpl::GetBestMatchedCapability(

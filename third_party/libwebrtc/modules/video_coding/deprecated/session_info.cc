@@ -420,7 +420,7 @@ bool VCMSessionInfo::HaveLastPacket() const {
 
 int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
                                  uint8_t* frame_buffer,
-                                 const FrameData& frame_data) {
+                                 const FrameData& /* frame_data */) {
   if (packet.video_header.frame_type == VideoFrameType::kEmptyFrame) {
     // Update sequence number of an empty packet.
     // Only media packets are inserted into the packet list.

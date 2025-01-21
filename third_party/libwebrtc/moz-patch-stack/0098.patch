@@ -31,12 +31,12 @@ index be56eac626..6fcc4e3b0d 100644
    rtp_module.SetSendingMediaStatus(sending);
    if (sending) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 051d77c4f7..b545633f25 100644
+index a59bae521d..5b27aa5f7c 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -223,8 +223,23 @@ bool RTCPSender::Sending() const {
  
- void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
+ void RTCPSender::SetSendingStatus(const FeedbackState& /* feedback_state */,
                                    bool sending) {
 -  MutexLock lock(&mutex_rtcp_sender_);
 -  sending_ = sending;
@@ -61,7 +61,7 @@ index 051d77c4f7..b545633f25 100644
  
  void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-index 7485508dab..e1a7327ebf 100644
+index 9cca326ac5..ede02ea636 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 @@ -346,12 +346,13 @@ TEST_F(RtcpSenderTest, SendBye) {
@@ -81,10 +81,10 @@ index 7485508dab..e1a7327ebf 100644
  
  TEST_F(RtcpSenderTest, SendFir) {
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index bb9553db31..9b35be8709 100644
+index b4c944ccf8..9b5898b2e7 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -312,6 +312,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+@@ -313,6 +313,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
  
  int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
    if (rtcp_sender_.Sending() != sending) {

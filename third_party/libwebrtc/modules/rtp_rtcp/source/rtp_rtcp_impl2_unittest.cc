@@ -104,7 +104,7 @@ class SendTransport : public Transport,
   void SetRtpRtcpModule(ModuleRtpRtcpImpl2* receiver) { receiver_ = receiver; }
   void SimulateNetworkDelay(TimeDelta delay) { delay_ = delay; }
   bool SendRtp(rtc::ArrayView<const uint8_t> data,
-               const PacketOptions& options) override {
+               const PacketOptions& /* options */) override {
     EXPECT_TRUE(last_packet_.Parse(data));
     ++rtp_packets_sent_;
     return true;

@@ -47,8 +47,8 @@ RTPSenderAudio::~RTPSenderAudio() {}
 int32_t RTPSenderAudio::RegisterAudioPayload(absl::string_view payload_name,
                                              const int8_t payload_type,
                                              const uint32_t frequency,
-                                             const size_t channels,
-                                             const uint32_t rate) {
+                                             const size_t /* channels */,
+                                             const uint32_t /* rate */) {
   if (absl::EqualsIgnoreCase(payload_name, "cn")) {
     MutexLock lock(&send_audio_mutex_);
     //  we can have multiple CNG payload types

@@ -56,11 +56,12 @@ class VideoCodecUnitTest : public ::testing::Test {
     explicit FakeDecodeCompleteCallback(VideoCodecUnitTest* test)
         : test_(test) {}
 
-    int32_t Decoded(VideoFrame& frame) override {
+    int32_t Decoded(VideoFrame& /* frame */) override {
       RTC_DCHECK_NOTREACHED();
       return -1;
     }
-    int32_t Decoded(VideoFrame& frame, int64_t decode_time_ms) override {
+    int32_t Decoded(VideoFrame& /* frame */,
+                    int64_t /* decode_time_ms */) override {
       RTC_DCHECK_NOTREACHED();
       return -1;
     }

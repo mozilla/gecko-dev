@@ -1603,7 +1603,7 @@ void LibvpxVp9Encoder::FillReferenceIndices(const vpx_codec_cx_pkt& pkt,
   }
 }
 
-void LibvpxVp9Encoder::UpdateReferenceBuffers(const vpx_codec_cx_pkt& pkt,
+void LibvpxVp9Encoder::UpdateReferenceBuffers(const vpx_codec_cx_pkt& /* pkt */,
                                               const size_t pic_num) {
   vpx_svc_layer_id_t layer_id = {0};
   libvpx_->codec_control(encoder_, VP9E_GET_SVC_LAYER_ID, &layer_id);

@@ -78,7 +78,7 @@ class TestTransport : public Transport {
   TestTransport() {}
 
   bool SendRtp(rtc::ArrayView<const uint8_t> /*data*/,
-               const PacketOptions& options) override {
+               const PacketOptions& /* options */) override {
     return false;
   }
   bool SendRtcp(rtc::ArrayView<const uint8_t> data) override {

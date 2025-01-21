@@ -298,7 +298,7 @@ TEST_F(PacketRouterTest, PadsOnLastActiveMediaStream) {
   RtpRtcpInterface* last_send_module;
   EXPECT_CALL(rtp_1, GeneratePadding(kPaddingBytes))
       .Times(1)
-      .WillOnce([&](size_t target_size_bytes) {
+      .WillOnce([&](size_t /* target_size_bytes */) {
         last_send_module = &rtp_1;
         std::vector<std::unique_ptr<RtpPacketToSend>> packets;
         packets.push_back(BuildRtpPacket(kSsrc1));
@@ -306,7 +306,7 @@ TEST_F(PacketRouterTest, PadsOnLastActiveMediaStream) {
       });
   EXPECT_CALL(rtp_3, GeneratePadding(kPaddingBytes))
       .Times(1)
-      .WillOnce([&](size_t target_size_bytes) {
+      .WillOnce([&](size_t /* target_size_bytes */) {
         last_send_module = &rtp_3;
         std::vector<std::unique_ptr<RtpPacketToSend>> packets;
         packets.push_back(BuildRtpPacket(kSsrc3));
@@ -371,7 +371,7 @@ TEST_F(PacketRouterTest, AllocatesTransportSequenceNumbers) {
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
   EXPECT_CALL(notify_bwe_callback, Call)
       .WillOnce([](const RtpPacketToSend& packet,
-                   const PacedPacketInfo& pacing_info) {
+                   const PacedPacketInfo& /* pacing_info */) {
         EXPECT_EQ(packet.transport_sequence_number(), 1);
       });
   packet_router.SendPacket(std::move(packet), PacedPacketInfo());
@@ -442,9 +442,8 @@ TEST_F(PacketRouterTest, DoesNotIncrementTransportSequenceNumberOnSendFailure) {
   // Return failure status code to make sure sequence number is not incremented.
   auto packet = BuildRtpPacket(kSsrc);
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
-  EXPECT_CALL(rtp, CanSendPacket).WillOnce([&](const RtpPacketToSend& packet) {
-    return false;
-  });
+  EXPECT_CALL(rtp, CanSendPacket)
+      .WillOnce([&](const RtpPacketToSend& /* packet */) { return false; });
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
 
   // Send another packet, verify transport sequence number is still at the
@@ -455,7 +454,7 @@ TEST_F(PacketRouterTest, DoesNotIncrementTransportSequenceNumberOnSendFailure) {
   EXPECT_CALL(rtp, CanSendPacket).WillOnce(Return(true));
   EXPECT_CALL(rtp, SendPacket)
       .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
-                    const PacedPacketInfo& pacing_info) {
+                    const PacedPacketInfo& /* pacing_info */) {
         EXPECT_EQ(packet->transport_sequence_number(),
                   kStartTransportSequenceNumber);
       });

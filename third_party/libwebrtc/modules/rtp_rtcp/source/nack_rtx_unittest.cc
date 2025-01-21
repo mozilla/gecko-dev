@@ -78,7 +78,7 @@ class RtxLoopBackTransport : public webrtc::Transport {
   }
 
   bool SendRtp(rtc::ArrayView<const uint8_t> data,
-               const PacketOptions& options) override {
+               const PacketOptions& /* options */) override {
     count_++;
     RtpPacketReceived packet;
     if (!packet.Parse(data))

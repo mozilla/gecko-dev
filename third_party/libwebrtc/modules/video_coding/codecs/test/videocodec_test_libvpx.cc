@@ -364,7 +364,7 @@ TEST(VideoCodecTestLibvpx, MAYBE_SimulcastVP8) {
 
   InternalEncoderFactory internal_encoder_factory;
   auto adapted_encoder_factory = std::make_unique<FunctionVideoEncoderFactory>(
-      [&](const Environment& env, const SdpVideoFormat& format) {
+      [&](const Environment& env, const SdpVideoFormat& /* format */) {
         return std::make_unique<SimulcastEncoderAdapter>(
             env, &internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
       });

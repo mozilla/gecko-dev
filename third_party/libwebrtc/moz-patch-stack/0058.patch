@@ -48,10 +48,10 @@ index bb035729f8..53211fa2b4 100644
  // Video Content Type.
  //
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index ed816caa10..2ad2d18036 100644
+index 5b5c7c1e50..d0fafb4cd1 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -104,6 +104,7 @@ class AudioLevelExtension {
+@@ -106,6 +106,7 @@ class AudioLevelExtension {
    static bool Write(rtc::ArrayView<uint8_t> data, const AudioLevel& extension);
  };
  
@@ -59,7 +59,7 @@ index ed816caa10..2ad2d18036 100644
  class CsrcAudioLevel {
   public:
    static constexpr RTPExtensionType kId = kRtpExtensionCsrcAudioLevel;
-@@ -118,6 +119,7 @@ class CsrcAudioLevel {
+@@ -120,6 +121,7 @@ class CsrcAudioLevel {
    static bool Write(rtc::ArrayView<uint8_t> data,
                      rtc::ArrayView<const uint8_t> csrc_audio_levels);
  };
@@ -67,7 +67,7 @@ index ed816caa10..2ad2d18036 100644
  
  class TransmissionOffset {
   public:
-@@ -308,6 +310,7 @@ class ColorSpaceExtension {
+@@ -310,6 +312,7 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
@@ -75,7 +75,7 @@ index ed816caa10..2ad2d18036 100644
  class CsrcAudioLevel {
   public:
    static constexpr RTPExtensionType kId = kRtpExtensionCsrcAudioLevel;
-@@ -322,6 +325,7 @@ class CsrcAudioLevel {
+@@ -324,6 +327,7 @@ class CsrcAudioLevel {
    static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
    static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
  };
@@ -111,7 +111,7 @@ index 3192c27a49..306c17e2c2 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 9ff0c56253..1633319987 100644
+index 01de2fdabc..5cba8860a4 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
 @@ -115,7 +115,9 @@ bool IsNonVolatile(RTPExtensionType type) {

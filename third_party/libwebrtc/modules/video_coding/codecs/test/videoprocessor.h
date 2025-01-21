@@ -141,13 +141,13 @@ class VideoProcessor {
     int32_t Decoded(webrtc::VideoFrame& image) override;
 
     int32_t Decoded(webrtc::VideoFrame& image,
-                    int64_t decode_time_ms) override {
+                    int64_t /* decode_time_ms */) override {
       return Decoded(image);
     }
 
     void Decoded(webrtc::VideoFrame& image,
-                 std::optional<int32_t> decode_time_ms,
-                 std::optional<uint8_t> qp) override {
+                 std::optional<int32_t> /* decode_time_ms */,
+                 std::optional<uint8_t> /* qp */) override {
       Decoded(image);
     }
 

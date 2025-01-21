@@ -34,12 +34,13 @@ class MediaReceiverRtcpObserver {
  public:
   virtual ~MediaReceiverRtcpObserver() = default;
 
-  virtual void OnSenderReport(uint32_t sender_ssrc,
-                              NtpTime ntp_time,
-                              uint32_t rtp_time) {}
-  virtual void OnBye(uint32_t sender_ssrc) {}
-  virtual void OnBitrateAllocation(uint32_t sender_ssrc,
-                                   const VideoBitrateAllocation& allocation) {}
+  virtual void OnSenderReport(uint32_t /* sender_ssrc */,
+                              NtpTime /* ntp_time */,
+                              uint32_t /* rtp_time */) {}
+  virtual void OnBye(uint32_t /* sender_ssrc */) {}
+  virtual void OnBitrateAllocation(
+      uint32_t /* sender_ssrc */,
+      const VideoBitrateAllocation& /* allocation */) {}
 };
 
 // Handles RTCP related messages for a single RTP stream (i.e. single SSRC)
@@ -76,14 +77,14 @@ class RtpStreamRtcpHandler {
   };
   virtual RtpStats SentStats() = 0;
 
-  virtual void OnNack(uint32_t sender_ssrc,
-                      rtc::ArrayView<const uint16_t> sequence_numbers) {}
-  virtual void OnFir(uint32_t sender_ssrc) {}
-  virtual void OnPli(uint32_t sender_ssrc) {}
+  virtual void OnNack(uint32_t /* sender_ssrc */,
+                      rtc::ArrayView<const uint16_t> /* sequence_numbers */) {}
+  virtual void OnFir(uint32_t /* sender_ssrc */) {}
+  virtual void OnPli(uint32_t /* sender_ssrc */) {}
 
   // Called on an RTCP packet with sender or receiver reports with a report
   // block for the handled RTP stream.
-  virtual void OnReport(const ReportBlockData& report_block) {}
+  virtual void OnReport(const ReportBlockData& /* report_block */) {}
 };
 
 struct RtcpTransceiverConfig {

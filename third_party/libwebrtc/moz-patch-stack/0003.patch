@@ -744,7 +744,7 @@ index 3745e9cba5..f68cfb94c1 100644
        device_names->push_back(rtc::ToUtf8(device.DeviceName));
      }
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 51ace1cf75..051d77c4f7 100644
+index 8b8b88cb27..a59bae521d 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -211,7 +211,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
@@ -807,10 +807,10 @@ index 46c82180eb..bb035729f8 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index b8495f4ba6..ed816caa10 100644
+index eb35da45c0..5b5c7c1e50 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -308,6 +308,21 @@ class ColorSpaceExtension {
+@@ -310,6 +310,21 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
@@ -848,7 +848,7 @@ index 19372880b2..3192c27a49 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
-index 5f9544dcab..7c2b93e219 100644
+index 689a5fc2e7..2cb8370f99 100644
 --- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 @@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
@@ -916,7 +916,7 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index c467cb76fd..9ff0c56253 100644
+index 7739631edd..01de2fdabc 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
 @@ -140,6 +140,10 @@ bool IsNonVolatile(RTPExtensionType type) {
@@ -931,7 +931,7 @@ index c467cb76fd..9ff0c56253 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
-index ff32a78580..7cccdb51a7 100644
+index d55ea6dcce..82f8a2db81 100644
 --- a/modules/video_capture/device_info_impl.cc
 +++ b/modules/video_capture/device_info_impl.cc
 @@ -65,7 +65,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
@@ -1289,13 +1289,13 @@ index 48920b27c0..f31b239c71 100644
  
    // Returns the name of the device used by this module.
 diff --git a/modules/video_capture/video_capture_factory.cc b/modules/video_capture/video_capture_factory.cc
-index 563ef5abd2..e085ac2df8 100644
+index e4afdb4164..127bb06a2e 100644
 --- a/modules/video_capture/video_capture_factory.cc
 +++ b/modules/video_capture/video_capture_factory.cc
 @@ -16,11 +16,7 @@ namespace webrtc {
  
  rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
-     const char* deviceUniqueIdUTF8) {
+     [[maybe_unused]] const char* deviceUniqueIdUTF8) {
 -#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
 -  return nullptr;
 -#else
@@ -1424,7 +1424,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index b3aff7a17b..4defd80355 100644
+index c558f9262d..8b2e3fe295 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -282,6 +282,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,

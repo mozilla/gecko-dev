@@ -44,7 +44,7 @@ constexpr size_t kDecoderFrameMemoryLength = 10;
 VCMDecodedFrameCallback::VCMDecodedFrameCallback(
     VCMTiming* timing,
     Clock* clock,
-    const FieldTrialsView& field_trials,
+    const FieldTrialsView& /* field_trials */,
     CorruptionScoreCalculator* corruption_score_calculator)
     : _clock(clock),
       _timing(timing),

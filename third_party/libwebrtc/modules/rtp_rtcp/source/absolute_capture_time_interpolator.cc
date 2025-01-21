@@ -81,7 +81,7 @@ uint64_t AbsoluteCaptureTimeInterpolator::InterpolateAbsoluteCaptureTimestamp(
 bool AbsoluteCaptureTimeInterpolator::ShouldInterpolateExtension(
     Timestamp receive_time,
     uint32_t source,
-    uint32_t rtp_timestamp,
+    uint32_t /* rtp_timestamp */,
     int rtp_clock_frequency_hz) const {
   // Shouldn't if the last received extension is not eligible for interpolation,
   // in particular if we don't have a previously received extension stored.

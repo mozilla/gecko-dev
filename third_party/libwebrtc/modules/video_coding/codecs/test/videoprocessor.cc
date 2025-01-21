@@ -644,8 +644,8 @@ void VideoProcessor::DecodeFrame(const EncodedImage& encoded_image,
 
 const webrtc::EncodedImage* VideoProcessor::BuildAndStoreSuperframe(
     const EncodedImage& encoded_image,
-    const VideoCodecType codec,
-    size_t frame_number,
+    const VideoCodecType /* codec */,
+    size_t /* frame_number */,
     size_t spatial_idx,
     bool inter_layer_predicted) {
   // Should only be called for SVC.

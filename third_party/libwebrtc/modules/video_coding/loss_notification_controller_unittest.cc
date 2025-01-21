@@ -35,7 +35,7 @@ struct Packet {
 
 Packet CreatePacket(
     bool first_in_frame,
-    bool last_in_frame,
+    bool /* last_in_frame */,
     uint16_t seq_num,
     uint16_t frame_id,
     bool is_key_frame,

@@ -56,7 +56,8 @@ std::function<void(rtc::ArrayView<const uint8_t>)> GetRtcpTransport(
 
   bool first = true;
   std::string log_prefix = config.debug_id;
-  return [first, log_prefix](rtc::ArrayView<const uint8_t> packet) mutable {
+  return [first,
+          log_prefix](rtc::ArrayView<const uint8_t> /* packet */) mutable {
     if (first) {
       RTC_LOG(LS_ERROR) << log_prefix << "Sending RTCP packets is disabled.";
       first = false;

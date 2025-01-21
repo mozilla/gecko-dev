@@ -65,10 +65,10 @@ index 2551534b9f..029fc3a5e2 100644
    std::optional<TimeDelta> AverageRtt() const;
    std::optional<TimeDelta> LastRtt() const;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index fba976d8d0..6bf4113cbe 100644
+index 6390343c03..9ba5e9c6ac 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -516,8 +516,10 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
+@@ -517,8 +517,10 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
  
  // Received RTCP report.
  void ModuleRtpRtcpImpl::RemoteRTCPSenderInfo(uint32_t* packet_count,
@@ -82,7 +82,7 @@ index fba976d8d0..6bf4113cbe 100644
  
  std::vector<ReportBlockData> ModuleRtpRtcpImpl::GetLatestReportBlockData()
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.h b/modules/rtp_rtcp/source/rtp_rtcp_impl.h
-index 446882ea67..2ad73523db 100644
+index 00783ac95c..2d6ceb4633 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.h
 @@ -204,7 +204,8 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
@@ -96,10 +96,10 @@ index 446882ea67..2ad73523db 100644
    // A snapshot of the most recent Report Block with additional data of
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index 4b9253f94f..c3366c6872 100644
+index e25a4f069b..05f3b876c6 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-@@ -527,8 +527,10 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
+@@ -528,8 +528,10 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
  
  // Received RTCP report.
  void ModuleRtpRtcpImpl2::RemoteRTCPSenderInfo(uint32_t* packet_count,

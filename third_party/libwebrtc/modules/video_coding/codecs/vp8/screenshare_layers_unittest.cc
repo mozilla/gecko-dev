@@ -84,7 +84,7 @@ class ScreenshareLayerTest : public ::testing::Test {
     return flags;
   }
 
-  int ConfigureFrame(bool key_frame) {
+  int ConfigureFrame(bool /* key_frame */) {
     tl_config_ = NextFrameConfig(0, timestamp_);
     EXPECT_EQ(0, tl_config_.encoder_layer_id)
         << "ScreenshareLayers always encodes using the bitrate allocator for "

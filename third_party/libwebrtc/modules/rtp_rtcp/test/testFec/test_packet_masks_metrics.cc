@@ -693,7 +693,7 @@ class FecPacketMaskMetricsTest : public ::testing::Test {
                                      int num_media_packets,
                                      int num_fec_packets,
                                      int mask_bytes_fec_packet,
-                                     CodeType code_type) {
+                                     CodeType /* code_type */) {
     for (int i = 0; i < num_fec_packets; i++) {
       for (int j = 0; j < num_media_packets; j++) {
         const uint8_t byte_mask =

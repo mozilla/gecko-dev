@@ -287,7 +287,9 @@ class DiscardRenderer final : public TestAudioDeviceModule::Renderer {
 
   int NumChannels() const override { return num_channels_; }
 
-  bool Render(rtc::ArrayView<const int16_t> data) override { return true; }
+  bool Render(rtc::ArrayView<const int16_t> /* data */) override {
+    return true;
+  }
 
  private:
   int sampling_frequency_in_hz_;

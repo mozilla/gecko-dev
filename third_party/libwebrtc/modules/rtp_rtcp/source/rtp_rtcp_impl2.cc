@@ -169,7 +169,8 @@ void ModuleRtpRtcpImpl2::RegisterSendPayloadFrequency(int payload_type,
   rtcp_sender_.SetRtpClockRate(payload_type, payload_frequency);
 }
 
-int32_t ModuleRtpRtcpImpl2::DeRegisterSendPayload(const int8_t payload_type) {
+int32_t ModuleRtpRtcpImpl2::DeRegisterSendPayload(
+    const int8_t /* payload_type */) {
   return 0;
 }
 

@@ -72,7 +72,7 @@ class ScopedDav1dPicture
 constexpr char kDav1dName[] = "dav1d";
 
 // Calling `dav1d_data_wrap` requires a `free_callback` to be registered.
-void NullFreeCallback(const uint8_t* buffer, void* opaque) {}
+void NullFreeCallback(const uint8_t* /* buffer */, void* /* opaque */) {}
 
 Dav1dDecoder::Dav1dDecoder() = default;
 
