@@ -16,24 +16,24 @@
  SecureContext,
  Pref="dom.cookieStore.enabled"]
 interface CookieStore : EventTarget {
-  [Throws]
+  [Throws, UseCounter]
   Promise<CookieListItem?> get(USVString name);
-  [Throws]
+  [Throws, UseCounter]
   Promise<CookieListItem?> get(optional CookieStoreGetOptions options = {});
 
-  [Throws]
+  [Throws, UseCounter]
   Promise<CookieList> getAll(USVString name);
-  [Throws]
+  [Throws, UseCounter]
   Promise<CookieList> getAll(optional CookieStoreGetOptions options = {});
 
-  [Throws]
+  [Throws, UseCounter]
   Promise<undefined> set(USVString name, USVString value);
-  [Throws]
+  [Throws, UseCounter]
   Promise<undefined> set(CookieInit options);
 
-  [Throws]
+  [Throws, UseCounter]
   Promise<undefined> delete(USVString name);
-  [Throws]
+  [Throws, UseCounter]
   Promise<undefined> delete(CookieStoreDeleteOptions options);
 
   /* Bug 1475599 - By spec, `onchange` should be available only on `Window`,
