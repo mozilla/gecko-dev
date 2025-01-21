@@ -519,6 +519,7 @@ rtc_library("rtc_internal_video_codecs") {
     "../api/video:video_frame",
     "../api/video:video_rtp_headers",
     "../api/video_codecs:rtc_software_fallback_wrappers",
+    "../api/video_codecs:scalability_mode",
     "../api/video_codecs:video_codecs_api",
     "../api/video_codecs:video_encoder_factory_template",
     "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
@@ -534,6 +535,7 @@ rtc_library("rtc_internal_video_codecs") {
     "../rtc_base/system:rtc_export",
     "../system_wrappers:field_trial",
     "../test:fake_video_codecs",
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings",
   ]
   if (build_with_mozilla) {

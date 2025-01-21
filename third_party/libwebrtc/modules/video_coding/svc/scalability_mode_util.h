@@ -26,6 +26,10 @@ enum class ScalabilityModeResolutionRatio {
 
 static constexpr char kDefaultScalabilityModeStr[] = "L1T2";
 
+// Scalability mode to be used if falling back to default scalability mode is
+// unsupported.
+static constexpr char kNoLayeringScalabilityModeStr[] = "L1T1";
+
 RTC_EXPORT std::optional<ScalabilityMode> MakeScalabilityMode(
     int num_spatial_layers,
     int num_temporal_layers,

@@ -13,6 +13,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/container/inlined_vector.h"
 #include "absl/memory/memory.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
@@ -21,6 +22,7 @@
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/test/create_time_controller.h"
 #include "api/transport/field_trial_based_config.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
@@ -179,7 +181,13 @@ class LambdaSetRemoteDescriptionObserver
 class FakeVideoEncoderFactory : public VideoEncoderFactory {
  public:
   std::vector<SdpVideoFormat> GetSupportedFormats() const override {
-    return {SdpVideoFormat::VP8()};
+    const absl::InlinedVector<webrtc::ScalabilityMode,
+                              webrtc::kScalabilityModeCount>
+        kSupportedScalabilityModes = {webrtc::ScalabilityMode::kL1T1,
+                                      webrtc::ScalabilityMode::kL1T2,
+                                      webrtc::ScalabilityMode::kL1T3};
+    return {
+        SdpVideoFormat(cricket::kVp8CodecName, {}, kSupportedScalabilityModes)};
   }
   std::unique_ptr<VideoEncoder> Create(const Environment& env,
                                        const SdpVideoFormat& format) override {

@@ -8480,12 +8480,90 @@ TEST_F(WebRtcVideoChannelTest, FallbackForUnsetOrUnsupportedScalabilityMode) {
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
 }
 
+#ifdef RTC_ENABLE_H265
+TEST_F(
+    WebRtcVideoChannelTest,
+    NoLayeringValueUsedIfModeIsUnsetOrUnsupportedByH265AndDefaultUnsupported) {
+  const absl::InlinedVector<ScalabilityMode, webrtc::kScalabilityModeCount>
+      kSupportedModes = {ScalabilityMode::kL1T1, ScalabilityMode::kL1T3};
+
+  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
+      "H265", webrtc::CodecParameterMap(), kSupportedModes));
+  cricket::VideoSenderParameters send_parameters;
+  send_parameters.codecs.push_back(GetEngineCodec("H265"));
+  EXPECT_TRUE(send_channel_->SetSenderParameters(send_parameters));
+
+  FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
+
+  // Send a full size frame so all simulcast layers are used when reconfiguring.
+  webrtc::test::FrameForwarder frame_forwarder;
+  VideoOptions options;
+  EXPECT_TRUE(
+      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
+  send_channel_->SetSend(true);
+  frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame());
+
+  // Set scalability mode.
+  webrtc::RtpParameters parameters =
+      send_channel_->GetRtpSendParameters(last_ssrc_);
+  EXPECT_EQ(kNumSimulcastStreams, parameters.encodings.size());
+  parameters.encodings[0].scalability_mode = std::nullopt;
+  parameters.encodings[1].scalability_mode = "L1T3";  // Supported.
+  parameters.encodings[2].scalability_mode = "L3T3";  // Unsupported.
+  EXPECT_TRUE(send_channel_->SetRtpSendParameters(last_ssrc_, parameters).ok());
+
+  // Verify that the new value is propagated down to the encoder.
+  // Check that WebRtcVideoSendStream updates VideoEncoderConfig correctly.
+  const std::optional<ScalabilityMode> kDefaultScalabilityMode =
+      webrtc::ScalabilityModeFromString(webrtc::kNoLayeringScalabilityModeStr);
+  EXPECT_EQ(2, stream->num_encoder_reconfigurations());
+  webrtc::VideoEncoderConfig encoder_config = stream->GetEncoderConfig().Copy();
+  EXPECT_EQ(kNumSimulcastStreams, encoder_config.number_of_streams);
+  EXPECT_THAT(encoder_config.simulcast_layers,
+              ElementsAre(Field(&webrtc::VideoStream::scalability_mode,
+                                kDefaultScalabilityMode),
+                          Field(&webrtc::VideoStream::scalability_mode,
+                                ScalabilityMode::kL1T3),
+                          Field(&webrtc::VideoStream::scalability_mode,
+                                kDefaultScalabilityMode)));
+
+  // FakeVideoSendStream calls CreateEncoderStreams, test that the vector of
+  // VideoStreams are created appropriately for the simulcast case.
+  EXPECT_THAT(stream->GetVideoStreams(),
+              ElementsAre(Field(&webrtc::VideoStream::scalability_mode,
+                                kDefaultScalabilityMode),
+                          Field(&webrtc::VideoStream::scalability_mode,
+                                ScalabilityMode::kL1T3),
+                          Field(&webrtc::VideoStream::scalability_mode,
+                                kDefaultScalabilityMode)));
+
+  // GetParameters.
+  parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
+  EXPECT_THAT(
+      parameters.encodings,
+      ElementsAre(
+          Field(&webrtc::RtpEncodingParameters::scalability_mode,
+                webrtc::kNoLayeringScalabilityModeStr),
+          Field(&webrtc::RtpEncodingParameters::scalability_mode, "L1T3"),
+          Field(&webrtc::RtpEncodingParameters::scalability_mode,
+                webrtc::kNoLayeringScalabilityModeStr)));
+
+  // No parameters changed, encoder should not be reconfigured.
+  EXPECT_TRUE(send_channel_->SetRtpSendParameters(last_ssrc_, parameters).ok());
+  EXPECT_EQ(2, stream->num_encoder_reconfigurations());
+
+  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
+}
+#endif
+
 TEST_F(WebRtcVideoChannelTest,
        DefaultValueUsedIfScalabilityModeIsUnsupportedByCodec) {
-  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
-      "VP8", webrtc::CodecParameterMap(), {ScalabilityMode::kL1T1}));
-  encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
-      "VP9", webrtc::CodecParameterMap(), {ScalabilityMode::kL3T3}));
+  encoder_factory_->AddSupportedVideoCodec(
+      webrtc::SdpVideoFormat("VP8", webrtc::CodecParameterMap(),
+                             {ScalabilityMode::kL1T1, ScalabilityMode::kL1T2}));
+  encoder_factory_->AddSupportedVideoCodec(
+      webrtc::SdpVideoFormat("VP9", webrtc::CodecParameterMap(),
+                             {ScalabilityMode::kL1T2, ScalabilityMode::kL3T3}));
 
   cricket::VideoSenderParameters send_parameters;
   send_parameters.codecs.push_back(GetEngineCodec("VP9"));

@@ -45,6 +45,7 @@ if (rtc_include_tests) {
       "../../api/transport:datagram_transport_interface",
       "../../api/transport:enums",
       "../../api/transport:field_trial_based_config",
+      "../../api/video_codecs:scalability_mode",
       "../../api/video_codecs:video_decoder_factory_template",
       "../../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
       "../../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
@@ -85,6 +86,7 @@ if (rtc_include_tests) {
       "../network:emulated_network",
       "../scenario",
       "../time_controller",
+      "//third_party/abseil-cpp/absl/container:inlined_vector",
       "//third_party/abseil-cpp/absl/flags:flag",
       "//third_party/abseil-cpp/absl/memory",
     ]

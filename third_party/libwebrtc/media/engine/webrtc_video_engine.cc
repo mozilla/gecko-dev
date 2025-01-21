@@ -553,10 +553,17 @@ void FallbackToDefaultScalabilityModeIfNotSupported(
       // scalability mode of the first encoding when the others are inactive.
       continue;
     }
+
     if (!encoding.scalability_mode.has_value() ||
         !IsScalabilityModeSupportedByCodec(codec, *encoding.scalability_mode,
                                            config)) {
-      encoding.scalability_mode = webrtc::kDefaultScalabilityModeStr;
+      encoding.scalability_mode =
+          (encoding.scalability_mode !=
+               std::string(webrtc::kDefaultScalabilityModeStr) &&
+           IsScalabilityModeSupportedByCodec(
+               codec, webrtc::kDefaultScalabilityModeStr, config))
+              ? webrtc::kDefaultScalabilityModeStr
+              : webrtc::kNoLayeringScalabilityModeStr;
       RTC_LOG(LS_INFO) << " -> " << *encoding.scalability_mode;
     }
   }

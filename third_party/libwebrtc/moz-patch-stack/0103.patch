@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecf
  1 file changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 505d0cf123..7d99316652 100644
+index f7920c267f..39ce13c335 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {

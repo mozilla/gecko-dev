@@ -38,7 +38,7 @@ index f11d86d211..6f75ecbbf5 100644
        ]
        # Added when we removed deps in other places to avoid building
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 017a2529c2..4e67851e3f 100644
+index b865d3b610..401e739dce 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -12,12 +12,10 @@ import("../webrtc.gni")
@@ -102,7 +102,7 @@ index 017a2529c2..4e67851e3f 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -715,6 +713,12 @@ rtc_library("rtc_audio_video") {
+@@ -717,6 +715,12 @@ rtc_library("rtc_audio_video") {
      "engine/webrtc_voice_engine.cc",
      "engine/webrtc_voice_engine.h",
    ]
