@@ -36,6 +36,7 @@
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtp_headers.h"
 #include "api/transport/bandwidth_usage.h"
+#include "api/transport/ecn_marking.h"
 #include "api/transport/goog_cc_factory.h"
 #include "api/transport/network_control.h"
 #include "api/transport/network_types.h"
@@ -55,6 +56,7 @@
 #include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/receiver_report.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/remb.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/report_block.h"
@@ -616,6 +618,12 @@ void EventLogAnalyzer::InitializeMapOfNamedGraphs(bool show_detector_state,
   });
   plots_.RegisterPlot("outgoing_twcc_loss", [this](Plot* plot) {
     this->CreateOutgoingTWCCLossRateGraph(plot);
+  });
+  plots_.RegisterPlot("outgoing_ecn_feedback", [this](Plot* plot) {
+    this->CreateOutgoingEcnFeedbackGraph(plot);
+  });
+  plots_.RegisterPlot("incoming_ecn_feedback", [this](Plot* plot) {
+    this->CreateIncomingEcnFeedbackGraph(plot);
   });
   plots_.RegisterPlot("network_delay_feedback", [this](Plot* plot) {
     this->CreateNetworkDelayFeedbackGraph(plot);
@@ -1555,6 +1563,65 @@ void EventLogAnalyzer::CreateGoogCcSimulationGraph(Plot* plot) const {
                  "Time (s)", kLeftMargin, kRightMargin);
   plot->SetSuggestedYAxis(0, 10, "Bitrate (kbps)", kBottomMargin, kTopMargin);
   plot->SetTitle("Simulated BWE behavior");
+}
+
+void EventLogAnalyzer::CreateOutgoingEcnFeedbackGraph(Plot* plot) const {
+  CreateEcnFeedbackGraph(plot, kOutgoingPacket);
+  plot->SetTitle("Outgoing ECN count per feedback");
+}
+
+void EventLogAnalyzer::CreateIncomingEcnFeedbackGraph(Plot* plot) const {
+  CreateEcnFeedbackGraph(plot, kIncomingPacket);
+  plot->SetTitle("Incoming ECN count per feedback");
+}
+
+void EventLogAnalyzer::CreateEcnFeedbackGraph(Plot* plot,
+                                              PacketDirection direction) const {
+  TimeSeries not_ect("Not ECN capable", LineStyle::kBar,
+                     PointStyle::kHighlight);
+  TimeSeries ect_1("ECN capable", LineStyle::kBar, PointStyle::kHighlight);
+  TimeSeries ce("Congestion experienced", LineStyle::kBar,
+                PointStyle::kHighlight);
+
+  for (const LoggedRtcpCongestionControlFeedback& feedback :
+       parsed_log_.congestion_feedback(direction)) {
+    int ect_1_count = 0;
+    int not_ect_count = 0;
+    int ce_count = 0;
+
+    for (const rtcp::CongestionControlFeedback::PacketInfo& info :
+         feedback.congestion_feedback.packets()) {
+      switch (info.ecn) {
+        case webrtc::EcnMarking::kNotEct:
+          ++not_ect_count;
+          break;
+        case webrtc::EcnMarking::kEct1:
+          ++ect_1_count;
+          break;
+        case webrtc::EcnMarking::kEct0:
+          RTC_LOG(LS_ERROR) << "unexpected ect(0)";
+          break;
+        case webrtc::EcnMarking::kCe:
+          ++ce_count;
+          break;
+      }
+    }
+    ect_1.points.emplace_back(config_.GetCallTimeSec(feedback.timestamp),
+                              ect_1_count);
+    not_ect.points.emplace_back(config_.GetCallTimeSec(feedback.timestamp),
+                                not_ect_count);
+    ce.points.emplace_back(config_.GetCallTimeSec(feedback.timestamp),
+                           ce_count);
+  }
+
+  plot->AppendTimeSeriesIfNotEmpty(std::move(ect_1));
+  plot->AppendTimeSeriesIfNotEmpty(std::move(not_ect));
+  plot->AppendTimeSeriesIfNotEmpty(std::move(ce));
+
+  plot->SetXAxis(config_.CallBeginTimeSec(), config_.CallEndTimeSec(),
+                 "Time (s)", kLeftMargin, kRightMargin);
+  plot->SetSuggestedYAxis(0, 10, "Count per feedback", kBottomMargin,
+                          kTopMargin);
 }
 
 void EventLogAnalyzer::CreateOutgoingTWCCLossRateGraph(Plot* plot) const {

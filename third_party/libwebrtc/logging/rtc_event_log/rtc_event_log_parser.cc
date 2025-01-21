@@ -80,6 +80,7 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/bye.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/extended_reports.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/fir.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/nack.h"
@@ -753,6 +754,7 @@ ParsedRtcEventLog::ParseStatus StoreRtcpBlocks(
     std::vector<LoggedRtcpPacketPli>* pli_list,
     std::vector<LoggedRtcpPacketBye>* bye_list,
     std::vector<LoggedRtcpPacketTransportFeedback>* transport_feedback_list,
+    std::vector<LoggedRtcpCongestionControlFeedback>* congestion_feedback_list,
     std::vector<LoggedRtcpPacketLossNotification>* loss_notification_list) {
   Timestamp timestamp = Timestamp::Micros(timestamp_us);
   rtcp::CommonHeader header;
@@ -765,6 +767,12 @@ ParsedRtcEventLog::ParseStatus StoreRtcpBlocks(
       parsed_block.timestamp = timestamp;
       RTC_PARSE_CHECK_OR_RETURN(parsed_block.transport_feedback.Parse(header));
       transport_feedback_list->push_back(std::move(parsed_block));
+    } else if (header.type() == rtcp::Rtpfb::kPacketType &&
+               header.fmt() ==
+                   rtcp::CongestionControlFeedback::kFeedbackMessageType) {
+      rtcp::CongestionControlFeedback feedback;
+      RTC_PARSE_CHECK_OR_RETURN(feedback.Parse(header));
+      congestion_feedback_list->emplace_back(timestamp, std::move(feedback));
     } else if (header.type() == rtcp::SenderReport::kPacketType) {
       LoggedRtcpPacketSenderReport parsed_block;
       parsed_block.timestamp = timestamp;
@@ -1309,7 +1317,7 @@ ParsedRtcEventLog::ParseStatus ParsedRtcEventLog::ParseStream(
         timestamp_us, packet_begin, packet_end, &incoming_sr_, &incoming_rr_,
         &incoming_xr_, &incoming_remb_, &incoming_nack_, &incoming_fir_,
         &incoming_pli_, &incoming_bye_, &incoming_transport_feedback_,
-        &incoming_loss_notification_);
+        &incoming_congestion_feedback_, &incoming_loss_notification_);
     RTC_RETURN_IF_ERROR(store_rtcp_status);
   }
 
@@ -1321,7 +1329,7 @@ ParsedRtcEventLog::ParseStatus ParsedRtcEventLog::ParseStream(
         timestamp_us, packet_begin, packet_end, &outgoing_sr_, &outgoing_rr_,
         &outgoing_xr_, &outgoing_remb_, &outgoing_nack_, &outgoing_fir_,
         &outgoing_pli_, &outgoing_bye_, &outgoing_transport_feedback_,
-        &outgoing_loss_notification_);
+        &outgoing_congestion_feedback_, &outgoing_loss_notification_);
     RTC_RETURN_IF_ERROR(store_rtcp_status);
   }
 

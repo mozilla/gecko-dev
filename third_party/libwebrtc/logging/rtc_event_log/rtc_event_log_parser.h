@@ -632,6 +632,15 @@ class ParsedRtcEventLog {
     }
   }
 
+  const std::vector<LoggedRtcpCongestionControlFeedback>& congestion_feedback(
+      PacketDirection direction) const {
+    if (direction == kIncomingPacket) {
+      return incoming_congestion_feedback_;
+    } else {
+      return outgoing_congestion_feedback_;
+    }
+  }
+
   const std::vector<LoggedRtcpPacketLossNotification>& loss_notifications(
       PacketDirection direction) {
     if (direction == kIncomingPacket) {
@@ -865,6 +874,10 @@ class ParsedRtcEventLog {
   std::vector<LoggedRtcpPacketBye> outgoing_bye_;
   std::vector<LoggedRtcpPacketTransportFeedback> incoming_transport_feedback_;
   std::vector<LoggedRtcpPacketTransportFeedback> outgoing_transport_feedback_;
+  std::vector<LoggedRtcpCongestionControlFeedback>
+      incoming_congestion_feedback_;
+  std::vector<LoggedRtcpCongestionControlFeedback>
+      outgoing_congestion_feedback_;
   std::vector<LoggedRtcpPacketLossNotification> incoming_loss_notification_;
   std::vector<LoggedRtcpPacketLossNotification> outgoing_loss_notification_;
 

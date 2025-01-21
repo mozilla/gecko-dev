@@ -115,6 +115,8 @@ class EventLogAnalyzer {
                                     Plot* plot) const;
 
   void CreateOutgoingTWCCLossRateGraph(Plot* plot) const;
+  void CreateOutgoingEcnFeedbackGraph(Plot* plot) const;
+  void CreateIncomingEcnFeedbackGraph(Plot* plot) const;
   void CreateGoogCcSimulationGraph(Plot* plot) const;
   void CreateSendSideBweSimulationGraph(Plot* plot) const;
   void CreateReceiveSideBweSimulationGraph(Plot* plot) const;
@@ -144,6 +146,7 @@ class EventLogAnalyzer {
   void CreateAccumulatedPacketsTimeSeries(Plot* plot,
                                           const IterableType& packets,
                                           const std::string& label) const;
+  void CreateEcnFeedbackGraph(Plot* plot, PacketDirection direction) const;
 
   const ParsedRtcEventLog& parsed_log_;
 

@@ -244,7 +244,10 @@ int main(int argc, char* argv[]) {
         "simulated_neteq_preferred_buffer_size",
         "simulated_neteq_concealment_events", "simulated_neteq_preemptive_rate",
         "simulated_neteq_accelerate_rate", "simulated_neteq_speech_expand_rate",
-        "simulated_neteq_expand_rate"}}};
+        "simulated_neteq_expand_rate"}},
+      {"l4s",
+       {"incoming_bitrate", "outgoing_bitrate", "incoming_ecn_feedback",
+        "outgoing_ecn_feedback"}}};
 
   if (absl::GetFlag(FLAGS_list_plots)) {
     std::cerr << "List of registered plots (for use with the --plot flag):"
