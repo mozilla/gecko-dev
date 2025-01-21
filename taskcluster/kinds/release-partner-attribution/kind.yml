@@ -11,6 +11,11 @@ transforms:
     - gecko_taskgraph.transforms.task:transforms
 
 kind-dependencies:
+    # macOS
+    - toolchain
+    - repackage
+    - repackage-l10n
+    # Windows
     - repackage-signing
     - repackage-signing-l10n
 
@@ -40,3 +45,14 @@ tasks:
         run:
             using: mach
             mach: python python/mozrelease/mozrelease/attribute_builds.py
+    macos:
+        fetches:
+            toolchain:
+                - linux64-libdmg
+        platforms:
+            - macosx64-shippable
+        run:
+            using: run-task
+            cwd: "{checkout}"
+            # Command defined in transforms
+            command: "foo"
