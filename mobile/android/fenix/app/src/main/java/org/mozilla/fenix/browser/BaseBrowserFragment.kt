@@ -1404,7 +1404,7 @@ abstract class BaseBrowserFragment :
 
     @VisibleForTesting
     internal fun shouldPullToRefreshBeEnabled(inFullScreen: Boolean): Boolean {
-        return FeatureFlags.pullToRefreshEnabled &&
+        return FeatureFlags.PULL_TO_REFRESH_ENABLED &&
             requireContext().settings().isPullToRefreshEnabledInBrowser &&
             !inFullScreen
     }

@@ -118,7 +118,7 @@ class BackgroundServices(
             SyncEngine.Passwords,
             SyncEngine.Tabs,
             SyncEngine.CreditCards,
-            if (FeatureFlags.syncAddressesFeature) SyncEngine.Addresses else null,
+            if (FeatureFlags.SYNC_ADDRESSES_FEATURE) SyncEngine.Addresses else null,
         )
     private val syncConfig =
         SyncConfig(supportedEngines, PeriodicSyncConfig(periodMinutes = 240)) // four hours
@@ -140,7 +140,7 @@ class BackgroundServices(
             storePair = SyncEngine.CreditCards to creditCardsStorage,
             keyProvider = lazy { creditCardKeyProvider },
         )
-        if (FeatureFlags.syncAddressesFeature) {
+        if (FeatureFlags.SYNC_ADDRESSES_FEATURE) {
             GlobalSyncableStoreProvider.configureStore(SyncEngine.Addresses to creditCardsStorage)
         }
     }

@@ -115,7 +115,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_enable_fxsuggest).apply {
-            isVisible = FeatureFlags.fxSuggest
+            isVisible = FeatureFlags.FX_SUGGEST
             isChecked = context.settings().enableFxSuggest
             onPreferenceChangeListener = object : Preference.OnPreferenceChangeListener {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {

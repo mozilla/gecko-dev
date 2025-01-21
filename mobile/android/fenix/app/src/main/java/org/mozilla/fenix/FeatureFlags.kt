@@ -24,12 +24,12 @@ object FeatureFlags {
      * Pull-to-refresh allows you to pull the web content down far enough to have the page to
      * reload.
      */
-    const val pullToRefreshEnabled = true
+    const val PULL_TO_REFRESH_ENABLED = true
 
     /**
      * Enables the Sync Addresses feature.
      */
-    const val syncAddressesFeature = false
+    const val SYNC_ADDRESSES_FEATURE = false
 
     /**
      * Show Pocket recommended stories on home.
@@ -50,43 +50,43 @@ object FeatureFlags {
     /**
      * Enables compose on the top sites.
      */
-    const val composeTopSites = false
+    const val COMPOSE_TOP_SITES = false
 
     /**
      * Enables new search settings UI with two extra fragments, for managing the default engine
      * and managing search shortcuts in the quick search menu.
      */
-    const val unifiedSearchSettings = true
+    const val UNIFIED_SEARCH_SETTINGS = true
 
     /**
      * Allows users to enable Firefox Suggest.
      */
-    const val fxSuggest = true
+    const val FX_SUGGEST = true
 
     /**
      * Enable Meta attribution.
      */
-    const val metaAttributionEnabled = true
+    const val META_ATTRIBUTION_ENABLED = true
 
     /**
      * Enables the Compose Homepage.
      */
-    const val composeHomepage = false
+    const val COMPOSE_HOMEPAGE = false
 
     /**
      * Enables Homepage as a New Tab.
      */
-    const val homepageAsNewTab = false
+    const val HOMEPAGE_AS_NEW_TAB = false
 
     /**
      * Enables Merino content recommendations.
      */
-    const val merinoContentRecommendations = false
+    const val MERINO_CONTENT_RECOMMENDATIONS = false
 
     /**
      * Enables the Unified Trust Panel.
      */
-    const val unifiedTrustPanel = false
+    const val UNIFIED_TRUST_PANEL = false
 
     /**
      * Enables native WebCompat Reporter.

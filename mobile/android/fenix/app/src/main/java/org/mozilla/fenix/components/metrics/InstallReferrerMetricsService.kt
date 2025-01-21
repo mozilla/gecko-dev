@@ -14,7 +14,6 @@ import org.json.JSONObject
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.MetaAttribution
 import org.mozilla.fenix.GleanMetrics.PlayStoreAttribution
-import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 import java.io.UnsupportedEncodingException
@@ -66,7 +65,7 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
                             PlayStoreAttribution.installReferrerResponse.set(installReferrerResponse)
 
                             val utmParams = UTMParams.parseUTMParameters(installReferrerResponse)
-                            if (FeatureFlags.metaAttributionEnabled) {
+                            if (FeatureFlags.META_ATTRIBUTION_ENABLED) {
                                 MetaParams.extractMetaAttribution(utmParams.content)
                                     ?.recordMetaAttribution()
                             }

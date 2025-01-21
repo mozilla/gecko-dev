@@ -165,7 +165,7 @@ class CustomizationFragment : PreferenceFragmentCompat() {
 
     private fun setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible: Boolean) {
         requirePreference<SwitchPreference>(R.string.pref_key_website_pull_to_refresh).apply {
-            isVisible = FeatureFlags.pullToRefreshEnabled
+            isVisible = FeatureFlags.PULL_TO_REFRESH_ENABLED
             isChecked = context.settings().isPullToRefreshEnabledInBrowser
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }

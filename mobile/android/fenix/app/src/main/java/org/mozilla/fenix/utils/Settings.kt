@@ -1673,7 +1673,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var showContentRecommendations by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_pocket_content_recommendations),
-        default = FeatureFlags.merinoContentRecommendations,
+        default = FeatureFlags.MERINO_CONTENT_RECOMMENDATIONS,
     )
 
     /**
@@ -1876,7 +1876,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var enableComposeTopSites by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_top_sites),
-        default = FeatureFlags.composeTopSites,
+        default = FeatureFlags.COMPOSE_TOP_SITES,
     )
 
     /**
@@ -1884,7 +1884,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var enableComposeHomepage by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_homepage),
-        default = FeatureFlags.composeHomepage,
+        default = FeatureFlags.COMPOSE_HOMEPAGE,
     )
 
     /**
@@ -1901,7 +1901,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var enableHomepageAsNewTab by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_as_new_tab),
-        default = FeatureFlags.homepageAsNewTab,
+        default = FeatureFlags.HOMEPAGE_AS_NEW_TAB,
     )
 
     /**
@@ -1909,7 +1909,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var enableUnifiedTrustPanel by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_unified_trust_panel),
-        default = FeatureFlags.unifiedTrustPanel,
+        default = FeatureFlags.UNIFIED_TRUST_PANEL,
     )
 
     /**
@@ -1952,7 +1952,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the new Search settings UI is enabled.
      */
-    var enableUnifiedSearchSettingsUI: Boolean = showUnifiedSearchFeature && FeatureFlags.unifiedSearchSettings
+    var enableUnifiedSearchSettingsUI: Boolean = showUnifiedSearchFeature && FeatureFlags.UNIFIED_SEARCH_SETTINGS
 
     /**
      * Indicates if hidden engines were restored due to migration to unified search settings UI.
@@ -1970,7 +1970,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var enableFxSuggest by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_fxsuggest),
         default = { FxNimbus.features.fxSuggest.value().enabled },
-        featureFlag = FeatureFlags.fxSuggest,
+        featureFlag = FeatureFlags.FX_SUGGEST,
     )
 
     /**
@@ -1994,7 +1994,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var showSponsoredSuggestions by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_show_sponsored_suggestions),
         default = { enableFxSuggest },
-        featureFlag = FeatureFlags.fxSuggest,
+        featureFlag = FeatureFlags.FX_SUGGEST,
     )
 
     /**
@@ -2005,7 +2005,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var showNonSponsoredSuggestions by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_show_nonsponsored_suggestions),
         default = { enableFxSuggest },
-        featureFlag = FeatureFlags.fxSuggest,
+        featureFlag = FeatureFlags.FX_SUGGEST,
     )
 
     /**
