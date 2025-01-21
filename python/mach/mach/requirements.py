@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import os
+import re
 from pathlib import Path
 
 from packaging.requirements import Requirement
@@ -63,11 +64,18 @@ class MachEnvRequirements:
         self.pypi_requirements = []
         self.pypi_optional_requirements = []
         self.vendored_requirements = []
+        self.vendored_fallback_requirements = []
 
     def pths_as_absolute(self, topsrcdir: str):
         return [
             os.path.normcase(Path(topsrcdir) / pth.path)
             for pth in (self.pth_requirements + self.vendored_requirements)
+        ]
+
+    def pths_fallback_as_absolute(self, topsrcdir: str):
+        return [
+            os.path.normcase(Path(topsrcdir) / pth.path)
+            for pth in self.vendored_fallback_requirements
         ]
 
     @classmethod
@@ -124,6 +132,32 @@ def _parse_mach_env_requirements(
             requirements_output.pth_requirements.append(PthSpecifier(params))
         elif action == "vendored":
             requirements_output.vendored_requirements.append(PthSpecifier(params))
+        elif action == "vendored-fallback":
+            if is_thunderbird_packages_txt:
+                raise Exception(THUNDERBIRD_PYPI_ERROR)
+
+            pypi_pkg, vendored_path, repercussion = params.split(":")
+            requirements = topsrcdir / "third_party" / "python" / "requirements.txt"
+            with open(requirements) as req:
+                content = req.read()
+                pattern = re.compile(rf"^({pypi_pkg}==.*) \\$", re.MULTILINE)
+                version_matches = pattern.findall(content, re.MULTILINE)
+                if len(version_matches) != 1:
+                    raise Exception(
+                        f"vendored-fallback package {pypi_pkg} is not referenced in {requirements}"
+                    )
+                (raw_requirement,) = version_matches
+
+            requirements_output.pypi_optional_requirements.append(
+                PypiOptionalSpecifier(
+                    repercussion,
+                    _parse_package_specifier(raw_requirement, only_strict_requirements),
+                )
+            )
+
+            requirements_output.vendored_fallback_requirements.append(
+                PthSpecifier(vendored_path)
+            )
         elif action == "packages.txt":
             _parse_requirements_definition_file(
                 topsrcdir / params,

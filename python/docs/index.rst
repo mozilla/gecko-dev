@@ -160,6 +160,18 @@ By default ``./mach vendor python`` only fully runs if changes are detected in t
 want to force the full vendor to run, just add ``--force``.
 
 
+If the package contains optional native dependencies, they won't be compiled as
+part of the vendored package. It is however possible to prefer the pypi version
+which may contain the native bits, while allowing to fallback to the vendored
+version:
+
+.. code:: text
+
+    ...
+    vendored-fallback:pypi-package-name:third_party/python/new-package:explanation
+    ...
+
+
 .. _mach-and-build-native-dependencies:
 
 Mach/Build Native 3rd-party Dependencies
