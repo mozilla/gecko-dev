@@ -75,8 +75,9 @@ std::unique_ptr<FrameGeneratorInterface> CreateFromNV12FileFrameGenerator(
 
 absl::Nonnull<std::unique_ptr<FrameGeneratorInterface>>
 CreateFromIvfFileFrameGenerator(const Environment& env,
-                                absl::string_view filename) {
-  return std::make_unique<IvfVideoFrameGenerator>(env, filename);
+                                absl::string_view filename,
+                                std::optional<int> fps_hint) {
+  return std::make_unique<IvfVideoFrameGenerator>(env, filename, fps_hint);
 }
 
 std::unique_ptr<FrameGeneratorInterface>

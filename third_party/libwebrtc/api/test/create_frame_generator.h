@@ -57,7 +57,8 @@ std::unique_ptr<FrameGeneratorInterface> CreateFromNV12FileFrameGenerator(
 
 absl::Nonnull<std::unique_ptr<FrameGeneratorInterface>>
 CreateFromIvfFileFrameGenerator(const Environment& env,
-                                absl::string_view filename);
+                                absl::string_view filename,
+                                std::optional<int> fps_hint = std::nullopt);
 
 // Creates a frame generator which takes a set of yuv files (wrapping a
 // frame generator created by CreateFromYuvFile() above), but outputs frames

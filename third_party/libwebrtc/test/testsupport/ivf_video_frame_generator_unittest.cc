@@ -167,15 +167,21 @@ class IvfVideoFrameGeneratorTest : public ::testing::Test {
 
 }  // namespace
 
-TEST_F(IvfVideoFrameGeneratorTest, DoesNotKnowFps) {
+TEST_F(IvfVideoFrameGeneratorTest, FpsWithoutHint) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecVP8, CreateVp8Encoder(env_));
-  IvfVideoFrameGenerator generator(env_, file_name_);
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/std::nullopt);
   EXPECT_EQ(generator.fps(), std::nullopt);
+}
+
+TEST_F(IvfVideoFrameGeneratorTest, FpsWithHint) {
+  CreateTestVideoFile(VideoCodecType::kVideoCodecVP8, CreateVp8Encoder(env_));
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/123);
+  EXPECT_EQ(generator.fps(), 123);
 }
 
 TEST_F(IvfVideoFrameGeneratorTest, Vp8) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecVP8, CreateVp8Encoder(env_));
-  IvfVideoFrameGenerator generator(env_, file_name_);
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/std::nullopt);
   for (size_t i = 0; i < video_frames_.size(); ++i) {
     auto& expected_frame = video_frames_[i];
     VideoFrame actual_frame = BuildFrame(generator.NextFrame());
@@ -185,7 +191,7 @@ TEST_F(IvfVideoFrameGeneratorTest, Vp8) {
 
 TEST_F(IvfVideoFrameGeneratorTest, Vp8DoubleRead) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecVP8, CreateVp8Encoder(env_));
-  IvfVideoFrameGenerator generator(env_, file_name_);
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/std::nullopt);
   for (size_t i = 0; i < video_frames_.size() * 2; ++i) {
     auto& expected_frame = video_frames_[i % video_frames_.size()];
     VideoFrame actual_frame = BuildFrame(generator.NextFrame());
@@ -195,7 +201,7 @@ TEST_F(IvfVideoFrameGeneratorTest, Vp8DoubleRead) {
 
 TEST_F(IvfVideoFrameGeneratorTest, Vp9) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecVP9, CreateVp9Encoder(env_));
-  IvfVideoFrameGenerator generator(env_, file_name_);
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/std::nullopt);
   for (size_t i = 0; i < video_frames_.size(); ++i) {
     auto& expected_frame = video_frames_[i];
     VideoFrame actual_frame = BuildFrame(generator.NextFrame());
@@ -206,7 +212,7 @@ TEST_F(IvfVideoFrameGeneratorTest, Vp9) {
 #if defined(WEBRTC_USE_H264)
 TEST_F(IvfVideoFrameGeneratorTest, H264) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecH264, CreateH264Encoder(env_));
-  IvfVideoFrameGenerator generator(env_, file_name_);
+  IvfVideoFrameGenerator generator(env_, file_name_, /*fps_hint=*/std::nullopt);
   for (size_t i = 0; i < video_frames_.size(); ++i) {
     auto& expected_frame = video_frames_[i];
     VideoFrame actual_frame = BuildFrame(generator.NextFrame());

@@ -32,7 +32,10 @@ namespace test {
 // All methods except constructor must be used from the same thread.
 class IvfVideoFrameGenerator : public FrameGeneratorInterface {
  public:
-  IvfVideoFrameGenerator(const Environment& env, absl::string_view file_name);
+  // Allow to specify a `fps_hint` in case the fps of the video is known.
+  IvfVideoFrameGenerator(const Environment& env,
+                         absl::string_view file_name,
+                         std::optional<int> fps_hint);
   ~IvfVideoFrameGenerator() override;
 
   VideoFrameData NextFrame() override;
@@ -40,7 +43,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   void ChangeResolution(size_t width, size_t height) override;
   Resolution GetResolution() const override;
 
-  std::optional<int> fps() const override { return std::nullopt; }
+  std::optional<int> fps() const override { return fps_hint_; }
 
  private:
   class DecodedCallback : public DecodedImageCallback {
@@ -66,6 +69,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
 
   size_t width_;
   size_t height_;
+  std::optional<int> fps_hint_;
 
   // This lock is used to ensure that all API method will be called
   // sequentially. It is required because we need to ensure that generator
