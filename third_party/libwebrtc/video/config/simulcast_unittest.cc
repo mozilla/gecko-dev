@@ -413,4 +413,33 @@ TEST(SimulcastTest, BitratesForVP9) {
   EXPECT_NEAR(streams[2].min_bitrate_bps, 481000, 20000);
 }
 
+#ifdef RTC_ENABLE_H265
+TEST(SimulcastTest, BitratesForH265) {
+  ExplicitKeyValueConfig trials("");
+
+  const size_t kMaxLayers = 3;
+  std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
+      CreateResolutions(/*max_width=*/1280, /*max_height=*/720, kMaxLayers),
+      !kScreenshare, true, trials, webrtc::kVideoCodecH265);
+
+  ASSERT_THAT(streams, SizeIs(kMaxLayers));
+  EXPECT_EQ(1280u, streams[2].width);
+  EXPECT_EQ(720u, streams[2].height);
+  EXPECT_EQ(streams[2].max_bitrate_bps, 1524000);
+  EXPECT_EQ(streams[2].target_bitrate_bps, 1524000);
+  EXPECT_EQ(streams[2].min_bitrate_bps, 481000);
+
+  streams = cricket::GetSimulcastConfig(
+      CreateResolutions(/*max_width=*/1276, /*max_height=*/716, kMaxLayers),
+      !kScreenshare, true, trials, webrtc::kVideoCodecH265);
+
+  ASSERT_THAT(streams, SizeIs(kMaxLayers));
+  EXPECT_EQ(1276u, streams[2].width);
+  EXPECT_EQ(716u, streams[2].height);
+  EXPECT_NEAR(streams[2].max_bitrate_bps, 1524000, 20000);
+  EXPECT_NEAR(streams[2].target_bitrate_bps, 1524000, 20000);
+  EXPECT_NEAR(streams[2].min_bitrate_bps, 481000, 20000);
+}
+#endif
+
 }  // namespace webrtc

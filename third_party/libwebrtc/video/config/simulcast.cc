@@ -137,6 +137,40 @@ constexpr const SimulcastFormat kSimulcastFormatsVP9[] = {
      webrtc::DataRate::KilobitsPerSec(0),
      webrtc::DataRate::KilobitsPerSec(30)}};
 
+// TODO(crbugs.com/41480904): For now this table is just a copy from VP9, and
+// needs to be tuned for H.265.
+// These tables describe from which resolution we can use how many simulcast
+// layers at what bitrates (maximum, target, and minimum).
+// Important!! Keep this table from high resolution to low resolution.
+constexpr const SimulcastFormat kSimulcastFormatsH265[] = {
+    {1920, 1080, 3, webrtc::DataRate::KilobitsPerSec(3367),
+     webrtc::DataRate::KilobitsPerSec(3367),
+     webrtc::DataRate::KilobitsPerSec(769)},
+    {1280, 720, 3, webrtc::DataRate::KilobitsPerSec(1524),
+     webrtc::DataRate::KilobitsPerSec(1524),
+     webrtc::DataRate::KilobitsPerSec(481)},
+    {960, 540, 3, webrtc::DataRate::KilobitsPerSec(879),
+     webrtc::DataRate::KilobitsPerSec(879),
+     webrtc::DataRate::KilobitsPerSec(337)},
+    {640, 360, 2, webrtc::DataRate::KilobitsPerSec(420),
+     webrtc::DataRate::KilobitsPerSec(420),
+     webrtc::DataRate::KilobitsPerSec(193)},
+    {480, 270, 2, webrtc::DataRate::KilobitsPerSec(257),
+     webrtc::DataRate::KilobitsPerSec(257),
+     webrtc::DataRate::KilobitsPerSec(121)},
+    {320, 180, 1, webrtc::DataRate::KilobitsPerSec(142),
+     webrtc::DataRate::KilobitsPerSec(142),
+     webrtc::DataRate::KilobitsPerSec(30)},
+    {240, 135, 1, webrtc::DataRate::KilobitsPerSec(101),
+     webrtc::DataRate::KilobitsPerSec(101),
+     webrtc::DataRate::KilobitsPerSec(30)},
+    // As the resolution goes down, interpolate the target and max bitrates down
+    // towards zero. The min bitrate is still limited at 30 kbps and the target
+    // and the max will be capped from below accordingly.
+    {0, 0, 1, webrtc::DataRate::KilobitsPerSec(0),
+     webrtc::DataRate::KilobitsPerSec(0),
+     webrtc::DataRate::KilobitsPerSec(30)}};
+
 constexpr webrtc::DataRate Interpolate(const webrtc::DataRate& a,
                                        const webrtc::DataRate& b,
                                        float rate) {
@@ -161,6 +195,10 @@ std::vector<SimulcastFormat> GetSimulcastFormats(
     case webrtc::kVideoCodecVP9:
       formats.insert(formats.begin(), std::begin(kSimulcastFormatsVP9),
                      std::end(kSimulcastFormatsVP9));
+      break;
+    case webrtc::kVideoCodecH265:
+      formats.insert(formats.begin(), std::begin(kSimulcastFormatsH265),
+                     std::end(kSimulcastFormatsH265));
       break;
     default:
       formats.insert(formats.begin(), std::begin(kSimulcastFormatsVP8),
