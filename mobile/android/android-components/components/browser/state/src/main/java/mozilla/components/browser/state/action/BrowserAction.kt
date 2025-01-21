@@ -378,6 +378,11 @@ sealed class UndoAction : BrowserAction() {
      * Restores the tabs in [UndoHistoryState].
      */
     object RestoreRecoverableTabs : UndoAction()
+
+    /**
+     * Updates the [EngineState] for the given tab id in [UndoHistoryState].
+     */
+    data class UpdateEngineStateForRecoverableTab(val id: String, val engineState: EngineSessionState) : UndoAction()
 }
 
 /**

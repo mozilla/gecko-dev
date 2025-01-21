@@ -41,6 +41,22 @@ internal object UndoReducer {
                     state
                 }
             }
+
+            is UndoAction.UpdateEngineStateForRecoverableTab -> {
+                state.copy(
+                    undoHistory = state.undoHistory.let { undoHistory ->
+                        undoHistory.copy(
+                            tabs = undoHistory.tabs.map { tab ->
+                                if (tab.state.id == action.id) {
+                                    tab.copy(engineSessionState = action.engineState)
+                                } else {
+                                    tab
+                                }
+                            },
+                        )
+                    },
+                )
+            }
         }
     }
 }
