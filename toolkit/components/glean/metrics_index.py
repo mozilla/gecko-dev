@@ -41,7 +41,6 @@ gecko_metrics = [
     "image/decoders/metrics.yaml",
     "js/xpconnect/metrics.yaml",
     "layout/base/metrics.yaml",
-    "mobile/shared/actors/metrics.yaml",
     "mobile/shared/modules/geckoview/metrics.yaml",
     "modules/libjar/metrics.yaml",
     "modules/libpref/metrics.yaml",
