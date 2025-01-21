@@ -11,12 +11,13 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertAny
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onNodeWithText
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.PositionAssertions
 import androidx.test.espresso.intent.Intents
@@ -50,7 +51,6 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
-import org.mozilla.fenix.helpers.TestHelper.waitForObjects
 
 /**
  * Implementation of Robot Pattern for the search fragment.
@@ -85,6 +85,7 @@ class SearchRobot {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifySearchEngineSuggestionResults(
         rule: ComposeTestRule,
         vararg searchSuggestions: String,
@@ -99,16 +100,16 @@ class SearchRobot {
             Log.i(TAG, "verifySearchEngineSuggestionResults: Started try #$i")
             try {
                 for (searchSuggestion in searchSuggestions) {
-                    mDevice.waitForObjects(mDevice.findObject(UiSelector().textContains(searchSuggestion)))
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to perform scroll action to $searchSuggestion search suggestion")
-                    rule.onNodeWithTag("mozac.awesomebar.suggestions").performScrollToNode(hasText(searchSuggestion))
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Performed scroll action to $searchSuggestion search suggestion")
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to verify that $searchSuggestion search suggestion exists")
-                    rule.onNodeWithTag("mozac.awesomebar.suggestions").assertExists()
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Verified that $searchSuggestion search suggestion exists")
+                    Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to perform \"Close soft keyboard\" action")
+                    closeSoftKeyboard()
+                    Log.i(TAG, "verifySearchEngineSuggestionResults: Performed \"Close soft keyboard\" action")
+                    Log.i(TAG, "verifySearchEngineSuggestionResults: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists")
+                    rule.waitUntilExactlyOneExists(hasText(searchSuggestion), waitingTime)
+                    Log.i(TAG, "verifySearchEngineSuggestionResults: Waited for $waitingTime ms until $searchSuggestion search suggestion exists")
                 }
+
                 break
-            } catch (e: AssertionError) {
+            } catch (e: ComposeTimeoutException) {
                 Log.i(TAG, "verifySearchEngineSuggestionResults: AssertionError caught, executing fallback methods")
                 if (i == RETRY_COUNT) {
                     throw e
@@ -127,6 +128,11 @@ class SearchRobot {
                     }
                 }
             }
+        }
+        for (searchSuggestion in searchSuggestions) {
+            Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to verify that $searchSuggestion search suggestion exists")
+            rule.onNodeWithText(searchSuggestion).assertIsDisplayed()
+            Log.i(TAG, "verifySearchEngineSuggestionResults: Verified that $searchSuggestion search suggestion exists")
         }
     }
 
