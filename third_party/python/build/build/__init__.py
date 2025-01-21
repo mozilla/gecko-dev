@@ -18,7 +18,7 @@ from ._types import SubprocessRunner as RunnerType
 from ._util import check_dependency
 
 
-__version__ = '1.2.2'
+__version__ = '1.2.2.post1'
 
 __all__ = [
     '__version__',

@@ -71,6 +71,7 @@ vendored:third_party/python/click
 vendored:third_party/python/colorama
 vendored:third_party/python/diskcache
 vendored:third_party/python/distro
+vendored:third_party/python/filelock
 vendored:third_party/python/glean_parser
 vendored:third_party/python/idna
 vendored:third_party/python/importlib_metadata
