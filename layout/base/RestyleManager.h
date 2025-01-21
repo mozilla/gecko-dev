@@ -272,45 +272,43 @@ class RestyleManager {
     void Put(nsIContent* aContent, ComputedStyle* aComputedStyle) {
       MOZ_ASSERT(aContent);
       PseudoStyleType pseudoType = aComputedStyle->GetPseudoType();
-      // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
-      // transitions if the associated frames are destroyed. I expect we just
-      // store the view transition pseudo-elements in |mContents|.
-      if (pseudoType == PseudoStyleType::NotPseudo) {
-        mContents.AppendElement(aContent);
+      if (pseudoType == PseudoStyleType::NotPseudo ||
+          PseudoStyle::IsViewTransitionPseudoElement(pseudoType)) {
+        mContents.AppendElement(aContent->AsElement());
       } else if (pseudoType == PseudoStyleType::before) {
         MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
                    nsGkAtoms::mozgeneratedcontentbefore);
-        mBeforeContents.AppendElement(aContent->GetParent());
+        mBeforeContents.AppendElement(aContent->GetParent()->AsElement());
       } else if (pseudoType == PseudoStyleType::after) {
         MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
                    nsGkAtoms::mozgeneratedcontentafter);
-        mAfterContents.AppendElement(aContent->GetParent());
+        mAfterContents.AppendElement(aContent->GetParent()->AsElement());
       } else if (pseudoType == PseudoStyleType::marker) {
         MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
                    nsGkAtoms::mozgeneratedcontentmarker);
-        mMarkerContents.AppendElement(aContent->GetParent());
+        mMarkerContents.AppendElement(aContent->GetParent()->AsElement());
       }
     }
 
     void StopAnimationsForElementsWithoutFrames();
 
    private:
-    void StopAnimationsWithoutFrame(nsTArray<RefPtr<nsIContent>>& aArray,
+    void StopAnimationsWithoutFrame(nsTArray<RefPtr<Element>>& aArray,
                                     const PseudoStyleRequest& aPseudoRequest);
 
     RestyleManager* mRestyleManager;
     AutoRestore<AnimationsWithDestroyedFrame*> mRestorePointer;
 
-    // Below three arrays might include elements that have already had their
+    // Below four arrays might include elements that have already had their
     // animations or transitions stopped.
     //
     // mBeforeContents, mAfterContents and mMarkerContents hold the real element
     // rather than the content node for the generated content (which might
-    // change during a reframe)
-    nsTArray<RefPtr<nsIContent>> mContents;
-    nsTArray<RefPtr<nsIContent>> mBeforeContents;
-    nsTArray<RefPtr<nsIContent>> mAfterContents;
-    nsTArray<RefPtr<nsIContent>> mMarkerContents;
+    // change during a reframe).
+    nsTArray<RefPtr<Element>> mContents;
+    nsTArray<RefPtr<Element>> mBeforeContents;
+    nsTArray<RefPtr<Element>> mAfterContents;
+    nsTArray<RefPtr<Element>> mMarkerContents;
   };
 
   /**

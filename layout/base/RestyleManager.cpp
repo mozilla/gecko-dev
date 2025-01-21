@@ -2061,55 +2061,63 @@ void RestyleManager::AnimationsWithDestroyedFrame ::
 }
 
 void RestyleManager::AnimationsWithDestroyedFrame ::StopAnimationsWithoutFrame(
-    nsTArray<RefPtr<nsIContent>>& aArray,
+    nsTArray<RefPtr<Element>>& aArray,
     const PseudoStyleRequest& aPseudoRequest) {
-  nsAnimationManager* animationManager =
-      mRestyleManager->PresContext()->AnimationManager();
-  nsTransitionManager* transitionManager =
-      mRestyleManager->PresContext()->TransitionManager();
-  for (nsIContent* content : aArray) {
+  nsPresContext* context = mRestyleManager->PresContext();
+  nsAnimationManager* animationManager = context->AnimationManager();
+  nsTransitionManager* transitionManager = context->TransitionManager();
+  const Document* doc = context->Document();
+  for (Element* element : aArray) {
+    PseudoStyleRequest request = aPseudoRequest;
+
     switch (aPseudoRequest.mType) {
-      case PseudoStyleType::NotPseudo:
-        if (content->GetPrimaryFrame()) {
+      case PseudoStyleType::NotPseudo: {
+        if (element->GetPrimaryFrame()) {
           continue;
         }
+
+        // The contents of view transition pseudos are put together with
+        // NotPseudo.
+        const auto type = element->GetPseudoElementType();
+        if (PseudoStyle::IsViewTransitionPseudoElement(type)) {
+          request = {
+              type,
+              element->HasName()
+                  ? element->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
+                  : nullptr};
+          // View transition pseudo-elements use the document element to look up
+          // their animations.
+          element = doc->GetRootElement();
+          MOZ_ASSERT(element);
+        }
         break;
+      }
       case PseudoStyleType::before:
-        if (nsLayoutUtils::GetBeforeFrame(content)) {
+        if (nsLayoutUtils::GetBeforeFrame(element)) {
           continue;
         }
         break;
       case PseudoStyleType::after:
-        if (nsLayoutUtils::GetAfterFrame(content)) {
+        if (nsLayoutUtils::GetAfterFrame(element)) {
           continue;
         }
         break;
       case PseudoStyleType::marker:
-        if (nsLayoutUtils::GetMarkerFrame(content)) {
+        if (nsLayoutUtils::GetMarkerFrame(element)) {
           continue;
         }
         break;
-      case PseudoStyleType::viewTransition:
-      case PseudoStyleType::viewTransitionGroup:
-      case PseudoStyleType::viewTransitionImagePair:
-      case PseudoStyleType::viewTransitionOld:
-      case PseudoStyleType::viewTransitionNew:
-        // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
-        // transitions if the associated frames are destroyed.
       default:
-        // Do nothing
+        MOZ_ASSERT_UNREACHABLE("Unexpected PseudoStyleType");
         break;
     }
-    dom::Element* element = content->AsElement();
 
-    // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
-    // transitions if the associated frames are destroyed.
-    animationManager->StopAnimationsForElement(element, aPseudoRequest);
-    transitionManager->StopAnimationsForElement(element, aPseudoRequest);
+    animationManager->StopAnimationsForElement(element, request);
+    transitionManager->StopAnimationsForElement(element, request);
 
     // All other animations should keep running but not running on the
     // *compositor* at this point.
-    if (EffectSet* effectSet = EffectSet::Get(element, aPseudoRequest)) {
+    if (EffectSet* effectSet = EffectSet::Get(element, request)) {
       for (KeyframeEffect* effect : *effectSet) {
         effect->ResetIsRunningOnCompositor();
       }
