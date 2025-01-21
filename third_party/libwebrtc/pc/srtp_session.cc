@@ -169,23 +169,9 @@ SrtpSession::~SrtpSession() {
 }
 
 bool SrtpSession::SetSend(int crypto_suite,
-                          const uint8_t* key,
-                          size_t len,
-                          const std::vector<int>& extension_ids) {
-  return SetSend(crypto_suite, {key, len}, extension_ids);
-}
-
-bool SrtpSession::SetSend(int crypto_suite,
                           const rtc::ZeroOnFreeBuffer<uint8_t>& key,
                           const std::vector<int>& extension_ids) {
   return SetKey(ssrc_any_outbound, crypto_suite, key, extension_ids);
-}
-
-bool SrtpSession::UpdateSend(int crypto_suite,
-                             const uint8_t* key,
-                             size_t len,
-                             const std::vector<int>& extension_ids) {
-  return UpdateSend(crypto_suite, {key, len}, extension_ids);
 }
 
 bool SrtpSession::UpdateSend(int crypto_suite,
@@ -194,24 +180,10 @@ bool SrtpSession::UpdateSend(int crypto_suite,
   return UpdateKey(ssrc_any_outbound, crypto_suite, key, extension_ids);
 }
 
-bool SrtpSession::SetRecv(int crypto_suite,
-                          const uint8_t* key,
-                          size_t len,
-                          const std::vector<int>& extension_ids) {
-  return SetReceive(crypto_suite, {key, len}, extension_ids);
-}
-
 bool SrtpSession::SetReceive(int crypto_suite,
                              const rtc::ZeroOnFreeBuffer<uint8_t>& key,
                              const std::vector<int>& extension_ids) {
   return SetKey(ssrc_any_inbound, crypto_suite, key, extension_ids);
-}
-
-bool SrtpSession::UpdateRecv(int crypto_suite,
-                             const uint8_t* key,
-                             size_t len,
-                             const std::vector<int>& extension_ids) {
-  return UpdateReceive(crypto_suite, {key, len}, extension_ids);
 }
 
 bool SrtpSession::UpdateReceive(int crypto_suite,
