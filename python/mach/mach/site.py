@@ -1427,8 +1427,11 @@ def _create_venv_with_pthfile(
     os.environ["VIRTUAL_ENV"] = virtualenv_root
 
     if populate_with_pip:
-        for requirement in requirements.pypi_requirements:
-            target_venv.pip_install([str(requirement.requirement)])
+        if requirements.pypi_requirements:
+            requirements_list = [
+                str(req.requirement) for req in requirements.pypi_requirements
+            ]
+            target_venv.pip_install(requirements_list)
         target_venv.install_optional_packages(requirements.pypi_optional_requirements)
 
     metadata.write(is_finalized=True)
