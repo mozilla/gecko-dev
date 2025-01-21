@@ -649,7 +649,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-jetstream2**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-jetstream2**
@@ -958,7 +958,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-jetstream2**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-jetstream2**
@@ -1491,7 +1491,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-motionmark-1-3**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-motionmark-1-3**
@@ -1817,7 +1817,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-motionmark-1-3**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-motionmark-1-3**
@@ -2154,7 +2154,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**
@@ -2480,7 +2480,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
         - ✅
-        - ✅
+        - ❌
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**

@@ -505,7 +505,8 @@ browsertime-benchmark:
                     firefox:
                         by-test-platform:
                             windows.*-32.*: []
-                            .*64.*shippable.*/.*: [trunk]
+                            (?!macosx1400).*64.*shippable.*/.*: [trunk]
+                            macosx1400.*shippable.*: [mozilla-central]
                             default: []
                     default: []
     max-run-time:
