@@ -9518,7 +9518,7 @@
 # Whether the `:has-slotted` pseudo class is enabled
 - name: layout.css.has-slotted-selector.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
   rust: true
 
