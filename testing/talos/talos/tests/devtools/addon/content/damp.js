@@ -196,6 +196,15 @@ Damp.prototype = {
     );
   },
 
+  async navigatePage(uri) {
+    const browser = gBrowser.selectedBrowser;
+    const onLoad = this._awaitBrowserLoaded(browser);
+    browser.fixupAndLoadURIString(uri, {
+      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    });
+    return onLoad;
+  },
+
   reloadPage(onReload) {
     return new Promise(resolve => {
       let browser = gBrowser.selectedBrowser;

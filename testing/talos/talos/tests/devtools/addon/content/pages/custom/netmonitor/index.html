@@ -70,6 +70,7 @@ let searchParams = new URLSearchParams(location.search);
 let bigFileRequests = searchParams.get("bigFileRequests");
 let postDataRequests = searchParams.get("postDataRequests");
 let xhrRequests = searchParams.get("xhrRequests");
+let dataRequests = searchParams.get("dataRequests");
 
 // Do one XHR against a significant size file
 async function requestBigFile() {
@@ -125,9 +126,16 @@ window.onload = async function() {
   for (let i = 0; i < postDataRequests; i++) {
     await requestPostData();
   }
+
   for (let i = 0; i < xhrRequests; i++) {
     await doSmallRequest(i);
   }
+
+  const dataRequestPromises = [];
+  for (let i = 0; i < dataRequests; i++) {
+    dataRequestPromises.push(fetch("data:text/plain,1"));
+  }
+  await Promise.all(dataRequestPromises);
 
   // Tells damp test script when all request are sent
   window.postMessage("ready", "*");

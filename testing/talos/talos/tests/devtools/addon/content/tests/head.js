@@ -186,6 +186,15 @@ exports.closeToolboxAndLog = async function (name, toolbox) {
   test.done();
 };
 
+exports.navigatePageAndLog = async function (url, name, toolbox) {
+  dump(`Navigate page on '${name}' to url '${url}'\n`);
+  let test = runTest(`${name}.navigate.DAMP`);
+  await damp.navigatePage(url);
+  test.done();
+
+  await recordPendingPaints(`${name}.navigate`, toolbox);
+};
+
 exports.reloadPageAndLog = async function (name, toolbox, onReload) {
   dump(`Reload page on '${name}'\n`);
   let test = runTest(`${name}.reload.DAMP`);
