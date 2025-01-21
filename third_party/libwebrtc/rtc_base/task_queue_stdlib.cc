@@ -16,6 +16,7 @@
 #include <map>
 #include <memory>
 #include <queue>
+#include <tuple>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
@@ -200,12 +201,12 @@ TaskQueueStdlib::NextTask TaskQueueStdlib::GetNextTask() {
     return result;
   }
 
-  if (delayed_queue_.size() > 0) {
+  if (!delayed_queue_.empty()) {
     auto delayed_entry = delayed_queue_.begin();
     const auto& delay_info = delayed_entry->first;
     auto& delay_run = delayed_entry->second;
     if (tick_us >= delay_info.next_fire_at_us) {
-      if (pending_queue_.size() > 0) {
+      if (!pending_queue_.empty()) {
         auto& entry = pending_queue_.front();
         auto& entry_order = entry.first;
         auto& entry_run = entry.second;
@@ -225,7 +226,7 @@ TaskQueueStdlib::NextTask TaskQueueStdlib::GetNextTask() {
         DivideRoundUp(delay_info.next_fire_at_us - tick_us, 1'000));
   }
 
-  if (pending_queue_.size() > 0) {
+  if (!pending_queue_.empty()) {
     auto& entry = pending_queue_.front();
     result.run_task = std::move(entry.second);
     pending_queue_.pop();

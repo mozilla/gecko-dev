@@ -10,6 +10,9 @@
 
 #include "rtc_base/task_queue_stdlib.h"
 
+#include <memory>
+#include <string>
+
 #include "api/task_queue/task_queue_factory.h"
 #include "api/task_queue/task_queue_test.h"
 #include "api/units/time_delta.h"
