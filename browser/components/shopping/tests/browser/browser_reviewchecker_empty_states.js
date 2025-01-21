@@ -126,6 +126,10 @@ add_task(
           "Empty state should have a list of sites for an unsupported site"
         );
         Assert.ok(
+          shoppingContainer.emptyStateSupportedListEl.children.length,
+          "Empty state should have at least 1 link in list of sites for an unsupported site"
+        );
+        Assert.ok(
           !shoppingContainer.analysisExplainerEl,
           "Empty state should not show the analysis-explainer for an unsupported site"
         );

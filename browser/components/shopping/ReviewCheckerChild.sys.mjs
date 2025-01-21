@@ -85,6 +85,7 @@ export class ReviewCheckerChild extends RemotePageChild {
 
   #currentURI = null;
   #product = null;
+  #supportedDomains = null;
 
   get currentURL() {
     return this.#currentURI?.spec;
@@ -395,10 +396,16 @@ export class ReviewCheckerChild extends RemotePageChild {
         await this.updateRecommendations(product);
       }
     } else {
-      let supportedDomains = ShoppingProduct.getSupportedDomains();
+      if (!this.#supportedDomains) {
+        this.#supportedDomains = ShoppingProduct.getSupportedDomains();
+      }
       // If the URI is not a product page, we should display an empty state.
       // That empty state could be for either a support or unsupported site.
-      this.updateLocation({ isProductPage, isSupportedSite, supportedDomains });
+      this.updateLocation({
+        isProductPage,
+        isSupportedSite,
+        supportedDomains: this.#supportedDomains,
+      });
     }
   }
 
@@ -655,11 +662,17 @@ export class ReviewCheckerChild extends RemotePageChild {
    * @param {object?} options
    * @param {bool} [options.isProductPage=false] If the location has a product or not.
    * @param {bool} [options.isSupportedSite=false] If the location is on a supported site or not.
+   * @param {object | null} [options.supportedDomains] Object mapping supported sites and domains, or null if the list is unavailable or inapplicable.
    */
-  updateLocation({ isProductPage = true, isSupportedSite = false } = {}) {
+  updateLocation({
+    isProductPage = true,
+    isSupportedSite = false,
+    supportedDomains,
+  } = {}) {
     this.sendToContent("Update", {
       isProductPage,
       isSupportedSite,
+      supportedDomains,
     });
   }
 
