@@ -34,6 +34,9 @@ task-defaults:
 
 tasks:
     win:
+        platforms:
+            - win64-shippable
+            - win32-shippable
         run:
             using: mach
             mach: python python/mozrelease/mozrelease/attribute_builds.py
