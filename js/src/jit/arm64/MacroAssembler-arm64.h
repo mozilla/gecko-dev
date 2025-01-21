@@ -599,14 +599,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     ARMRegister dest32(dest, 32);
 
     // ARMv8.3 chips support the FJCVTZS instruction, which handles exactly this
-    // logic.  But the simulator does not implement it.
-#if defined(JS_SIMULATOR_ARM64)
-    const bool fjscvt = false;
-#else
-    const bool fjscvt =
-        CPUHas(vixl::CPUFeatures::kFP, vixl::CPUFeatures::kJSCVT);
-#endif
-    if (fjscvt) {
+    // logic.
+    if (CPUHas(vixl::CPUFeatures::kFP, vixl::CPUFeatures::kJSCVT)) {
       // Convert double to integer, rounding toward zero.
       // The Z-flag is set iff the conversion is exact. -0 unsets the Z-flag.
       Fjcvtzs(dest32, fsrc64);
