@@ -4127,7 +4127,7 @@ void Element::GetAnimations(const GetAnimationsOptions& aOptions,
   GetAnimationsWithoutFlush(aOptions, aAnimations);
 }
 
-static void GetAnimationsUnsorted(Element* aElement,
+static void GetAnimationsUnsorted(const Element* aElement,
                                   const PseudoStyleRequest& aPseudoRequest,
                                   nsTArray<RefPtr<Animation>>& aAnimations) {
   MOZ_ASSERT(aPseudoRequest.IsNotPseudo() ||
@@ -4153,11 +4153,44 @@ static void GetAnimationsUnsorted(Element* aElement,
   }
 }
 
+// This traverses all the view transition pseudo-elements and get all of the
+// animations on them.
+static void GetAnimationsOfViewTransitionTree(
+    const Element* aOriginatingElement,
+    nsTArray<RefPtr<Animation>>& aAnimations) {
+  if (!aOriginatingElement->IsRootElement()) {
+    return;
+  }
+
+  const Document* doc = aOriginatingElement->OwnerDoc();
+  const ViewTransition* vt = doc->GetActiveViewTransition();
+  if (!vt) {
+    return;
+  }
+
+  Element* root = vt->GetRoot();
+  if (!root) {
+    return;
+  }
+
+  for (const nsIContent* node = root; node; node = node->GetNextNode(root)) {
+    if (!node->IsElement()) {
+      continue;
+    }
+    const Element* pseudo = node->AsElement();
+    const PseudoStyleRequest request(
+        pseudo->GetPseudoElementType(),
+        pseudo->HasName()
+            ? pseudo->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
+            : nullptr);
+    GetAnimationsUnsorted(aOriginatingElement, request, aAnimations);
+  }
+}
+
 void Element::GetAnimationsWithoutFlush(
     const GetAnimationsOptions& aOptions,
     nsTArray<RefPtr<Animation>>& aAnimations) {
   Element* elem = this;
-  // FIXME: Bug 1921109. Support getAnimations() for view transitions.
   PseudoStyleRequest pseudoRequest;
   // For animations on generated-content elements, the animations are stored
   // on the parent element.
@@ -4176,8 +4209,10 @@ void Element::GetAnimationsWithoutFlush(
     return;
   }
 
-  if (!aOptions.mSubtree ||
-      AnimationUtils::IsSupportedPseudoForAnimations(pseudoRequest)) {
+  // FIXME: Bug 1935557. Rewrite this to support pseudoElement option.
+  if (!aOptions.mSubtree || (pseudoRequest.mType == PseudoStyleType::before ||
+                             pseudoRequest.mType == PseudoStyleType::after ||
+                             pseudoRequest.mType == PseudoStyleType::marker)) {
     GetAnimationsUnsorted(elem, pseudoRequest, aAnimations);
   } else {
     for (nsIContent* node = this; node; node = node->GetNextNode(this)) {
@@ -4191,6 +4226,7 @@ void Element::GetAnimationsWithoutFlush(
       GetAnimationsUnsorted(element, PseudoStyleRequest::After(), aAnimations);
       GetAnimationsUnsorted(element, PseudoStyleRequest::Marker(), aAnimations);
     }
+    GetAnimationsOfViewTransitionTree(this, aAnimations);
   }
   aAnimations.Sort(AnimationPtrComparator<RefPtr<Animation>>());
 }
