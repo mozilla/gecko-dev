@@ -1,0 +1,24 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 19 Dec 2024 14:39:00 +0000
+Subject: Bug 1918648 - Enable SCContentSharingPicker on macOS 14.
+ r=jib,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D222595
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7e99057db3afb4ea1df43c7607382976343f325
+---
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 191e79f991..438b9bee40 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -26,7 +26,7 @@
+ using webrtc::DesktopFrameIOSurface;
+ 
+ #define SCK_AVAILABLE @available(macOS 14.0, *)
+-#define SCCSPICKER_AVAILABLE @available(macOS 15.0, *)
++#define SCCSPICKER_AVAILABLE @available(macOS 14.0, *)
+ 
+ namespace webrtc {
+ class ScreenCapturerSck;

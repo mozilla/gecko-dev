@@ -1,24 +1,36 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 19 Dec 2024 14:39:00 +0000
-Subject: Bug 1918648 - Enable SCContentSharingPicker on macOS 14.
- r=jib,webrtc-reviewers
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Wed, 27 Nov 2024 03:41:00 +0000
+Subject: Bug 1921154 - workaround older AV1;r=mjf,webrtc-reviewers
 
-Differential Revision: https://phabricator.services.mozilla.com/D222595
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7e99057db3afb4ea1df43c7607382976343f325
+Differential Revision: https://phabricator.services.mozilla.com/D228740
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/275786a9d6482996002fe1be24e8c6708430d892
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/video_coding/codecs/av1/libaom_av1_encoder.cc | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 191e79f991..438b9bee40 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -26,7 +26,7 @@
- using webrtc::DesktopFrameIOSurface;
+diff --git a/modules/video_coding/codecs/av1/libaom_av1_encoder.cc b/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
+index a183704caa..9a8bd1d7b4 100644
+--- a/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
++++ b/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
+@@ -298,8 +298,9 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
+   } else {
+     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_PALETTE, 0);
+   }
+-
++#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
+   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_AUTO_TILES, 1);
++#endif
+   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ROW_MT, 1);
+   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_OBMC, 0);
+   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_NOISE_SENSITIVITY, 0);
+@@ -332,8 +333,10 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
+   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
  
- #define SCK_AVAILABLE @available(macOS 14.0, *)
--#define SCCSPICKER_AVAILABLE @available(macOS 15.0, *)
-+#define SCCSPICKER_AVAILABLE @available(macOS 14.0, *)
+   if (adaptive_max_consec_drops_) {
++#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
+     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
+                                       250);
++#endif
+   }
  
- namespace webrtc {
- class ScreenCapturerSck;
+   return WEBRTC_VIDEO_CODEC_OK;

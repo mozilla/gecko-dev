@@ -1,30 +1,21 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 5 Dec 2024 13:45:00 -0600
-Subject: Bug 1934695 - (fix-3fa21c89c0) fix upstream compile issue in
- apm_data_dumper.h
+Date: Thu, 21 Nov 2024 13:57:00 -0600
+Subject: Bug 1928110 - (fix-d259a754a8) add missing include
 
-It is unclear why upstream modified a single DumpRaw call differently than
-all the others, but it doesn't build for us.  We'll fix it the same they
-fixed all the other calls using [[maybe_unused]] annotations.
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8f64d5713228e3112f3014d9a269dce10795febf
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/250798952aa5b1f0c4996bcd95c77e917d44f738
 ---
- modules/audio_processing/logging/apm_data_dumper.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ rtc_base/ssl_stream_adapter.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/modules/audio_processing/logging/apm_data_dumper.h b/modules/audio_processing/logging/apm_data_dumper.h
-index 09d24bd034..d05b580b09 100644
---- a/modules/audio_processing/logging/apm_data_dumper.h
-+++ b/modules/audio_processing/logging/apm_data_dumper.h
-@@ -348,9 +348,9 @@ class ApmDataDumper {
- #endif
-   }
+diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
+index ece5b44ac5..b9041d0b5e 100644
+--- a/rtc_base/ssl_stream_adapter.h
++++ b/rtc_base/ssl_stream_adapter.h
+@@ -15,6 +15,7 @@
+ #include <stdint.h>
  
--  void DumpRaw(absl::string_view /* name */,
--               rtc::ArrayView<const size_t> /* v */,
--               int /* dump_set */ = kDefaultDumpSet) {
-+  void DumpRaw([[maybe_unused]] absl::string_view name,
-+               [[maybe_unused]] rtc::ArrayView<const size_t> v,
-+               [[maybe_unused]] int dump_set = kDefaultDumpSet) {
- #if WEBRTC_APM_DEBUG_DUMP == 1
-     if (dump_set_to_use_ && *dump_set_to_use_ != dump_set)
-       return;
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <vector>
+ 

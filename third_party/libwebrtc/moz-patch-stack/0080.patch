@@ -1,66 +1,24 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Thu, 20 Jul 2023 14:24:00 +0000
-Subject: Bug 1838080: Use the current TaskQueue, instead of the current
- thread, to init this. r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 5 Jul 2023 19:15:00 +0000
+Subject: Bug 1841864 - upstream commit 4baea5b07f should properly check size
+ of encoder_config_.simulcast_layers. r=jib
 
-There are situations where the current thread is not set, but the current
-TaskQueue is (but not vice versa).
-
-Differential Revision: https://phabricator.services.mozilla.com/D180736
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/62e71a2f745c4b98d5ee7ce9e6386aa1b657be9b
+Differential Revision: https://phabricator.services.mozilla.com/D182813
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a7179d8d75313b6c9c76a496e10d102da019ff4f
 ---
- .../rtp_video_stream_receiver_frame_transformer_delegate.cc  | 3 +--
- .../rtp_video_stream_receiver_frame_transformer_delegate.h   | 5 ++---
- video/rtp_video_stream_receiver2.cc                          | 2 +-
- 3 files changed, 4 insertions(+), 6 deletions(-)
+ video/video_stream_encoder.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-index 42402e79b8..7ab96263cf 100644
---- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-+++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-@@ -96,8 +96,7 @@ RtpVideoStreamReceiverFrameTransformerDelegate::
-         RtpVideoFrameReceiver* receiver,
-         Clock* clock,
-         rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--        rtc::Thread* network_thread,
--        uint32_t ssrc)
-+        TaskQueueBase* network_thread, uint32_t ssrc)
-     : receiver_(receiver),
-       frame_transformer_(std::move(frame_transformer)),
-       network_thread_(network_thread),
-diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-index f08fc692dd..02f2e53923 100644
---- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-+++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-@@ -41,8 +41,7 @@ class RtpVideoStreamReceiverFrameTransformerDelegate
-       RtpVideoFrameReceiver* receiver,
-       Clock* clock,
-       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--      rtc::Thread* network_thread,
--      uint32_t ssrc);
-+      TaskQueueBase* network_thread, uint32_t ssrc);
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index c62a3e1c90..dfd490cf02 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -1394,7 +1394,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
  
-   void Init();
-   void Reset();
-@@ -71,7 +70,7 @@ class RtpVideoStreamReceiverFrameTransformerDelegate
-   RtpVideoFrameReceiver* receiver_ RTC_GUARDED_BY(network_sequence_checker_);
-   rtc::scoped_refptr<FrameTransformerInterface> frame_transformer_
-       RTC_GUARDED_BY(network_sequence_checker_);
--  rtc::Thread* const network_thread_;
-+  TaskQueueBase* const network_thread_;
-   const uint32_t ssrc_;
-   Clock* const clock_;
-   bool short_circuit_ RTC_GUARDED_BY(network_sequence_checker_) = false;
-diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 483012c88d..c09c85a778 100644
---- a/video/rtp_video_stream_receiver2.cc
-+++ b/video/rtp_video_stream_receiver2.cc
-@@ -341,7 +341,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
-     frame_transformer_delegate_ =
-         rtc::make_ref_counted<RtpVideoStreamReceiverFrameTransformerDelegate>(
-             this, &env_.clock(), std::move(frame_transformer),
--            rtc::Thread::Current(), config_.rtp.remote_ssrc);
-+            TaskQueueBase::Current(), config_.rtp.remote_ssrc);
-     frame_transformer_delegate_->Init();
-   }
- }
+   bool is_svc = false;
+   bool single_stream_or_non_first_inactive = true;
+-  for (size_t i = 1; i < encoder_config_.number_of_streams; ++i) {
++  for (size_t i = 1; i < encoder_config_.simulcast_layers.size(); ++i) {
+     if (encoder_config_.simulcast_layers[i].active) {
+       single_stream_or_non_first_inactive = false;
+       break;

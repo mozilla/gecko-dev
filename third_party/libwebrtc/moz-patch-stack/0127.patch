@@ -1,100 +1,104 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - webrtc.gni - filter out '//third_party/abseil-cpp/'
- deps r=ng,webrtc-reviewers
+Date: Tue, 1 Oct 2024 21:05:00 +0000
+Subject: Bug 1921706 - use relative paths on deps in a few places to avoid
+ future issues. r=ng,webrtc-reviewers DONTBUILD
 
-Differential Revision: https://phabricator.services.mozilla.com/D224079
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/45b99d1ba95b46896506de1c7dd92f19e4dc9207
+Note: this produces no changes in the generated moz.build files.
+
+Differential Revision: https://phabricator.services.mozilla.com/D224070
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bbec1b95ddb5e00967a0fb002f54f8f24336b904
 ---
- webrtc.gni | 71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
+ modules/audio_coding/BUILD.gn  |  2 +-
+ modules/portal/BUILD.gn        |  8 ++++----
+ modules/video_capture/BUILD.gn |  2 +-
+ sdk/BUILD.gn                   | 14 ++++++++++++++
+ test/BUILD.gn                  |  6 ++++++
+ 5 files changed, 26 insertions(+), 6 deletions(-)
 
-diff --git a/webrtc.gni b/webrtc.gni
-index 60fd992710..c6ccfb2deb 100644
---- a/webrtc.gni
-+++ b/webrtc.gni
-@@ -685,6 +685,36 @@ template("rtc_source_set") {
-         deps += [ "//third_party/abseil-cpp:absl" ]
-       }
-     }
-+
-+    # Rather than widespread changes to most, if not all, BUILD.gn files
-+    # we'll do some filtering on dependencies here.
-+    if (build_with_mozilla && defined(deps)) {
-+      # Now that abseil-cpp is moved to Mozilla's third_party directory
-+      # we remove all the abseil-cpp dependency listings so moz.build
-+      # generation succeed.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # We don't build any of the test code, but many of the test
-+      # targets list gtest/gmock as a dependency.  We can simply
-+      # filter them out here.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//testing/g", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+    }
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index 1df856e2e9..e547f76cff 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
+     deps += [ rtc_opus_dir ]
+     public_configs = [ "//third_party/opus:opus_config" ]
+   } else if (build_with_mozilla) {
+-    public_configs = [ "//third_party/opus:opus_config" ]
++    public_configs = [ "../../third_party/opus:opus_config" ]
    }
  }
  
-@@ -919,6 +949,47 @@ template("rtc_library") {
-         deps += [ "//third_party/abseil-cpp:absl" ]
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index aff8609b54..901597ecde 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -137,10 +137,10 @@ if (!build_with_mozilla) {
+       deps -= [ ":pipewire_stubs" ]
+       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
+       public_deps = [
+-        "//third_party/pipewire",
+-        "//third_party/drm",
+-        "//third_party/gbm",
+-        "//third_party/libepoxy"
++        "../../third_party/pipewire",
++        "../../third_party/drm",
++        "../../third_party/gbm",
++        "../../third_party/libepoxy"
+       ]
+     }
+   }
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index d9b3471572..60e191908b 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         ]
+         if (build_with_mozilla) {
+           configs -= [ "../portal:pipewire_base" ]
+-          public_deps = [ "//third_party/pipewire" ]
++          public_deps = [ "../../third_party/pipewire" ]
+         }
        }
      }
-+
-+    # Rather than widespread changes to most, if not all, BUILD.gn files
-+    # we'll do some filtering on dependencies here.
-+    if (build_with_mozilla && defined(deps)) {
-+      # Now that abseil-cpp is moved to Mozilla's third_party directory
-+      # we remove all the abseil-cpp dependency listings so moz.build
-+      # generation succeed.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 94628394c1..bdfb7141e9 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -588,6 +588,20 @@ if (is_ios || is_mac) {
+         "CoreGraphics.framework",
+         "CoreVideo.framework",
+       ]
++      if (build_with_mozilla) {
++        deps -= [
++          "//api/video:video_frame",
++          "//api/video:video_rtp_headers",
++          "//common_video",
++          "//rtc_base:checks",
++        ]
++        deps += [
++          "../api/video:video_frame",
++          "../api/video:video_rtp_headers",
++          "../common_video",
++          "../rtc_base:checks",
++        ]
 +      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # We don't build any of the test code, but many of the test
-+      # targets list gtest/gmock as a dependency.  We can simply
-+      # filter them out here.
-+      filtered_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//testing/g", "")
-+        if (newdep == dep) {
-+          filtered_deps += [ dep ]
-+        }
-+      }
-+      deps = []
-+      deps = filtered_deps
-+
-+      # Moving the google build directory requires looking for libwebrtc's
-+      # third_party dependencies under libwebrtc/third_party instead of
-+      # simply third_party.
-+      modified_deps = []
-+      foreach (dep, deps) {
-+        newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
-+        modified_deps += [ newdep ]
-+      }
-+      deps = []
-+      deps = modified_deps
-+    }
-   }
+     }
+ 
+     if (!build_with_mozilla) {
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index 4034e3f067..969966259f 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -483,6 +483,12 @@ rtc_source_set("test_support") {
+     "//testing/gmock",
+     "//testing/gtest",
+   ]
++  if (build_with_mozilla) {
++    all_dependent_configs -= [
++      "//third_party/googletest:gmock_config",
++      "//third_party/googletest:gtest_config",
++    ]
++  }
  }
  
+ rtc_library("fixed_fps_video_frame_writer_adapter") {

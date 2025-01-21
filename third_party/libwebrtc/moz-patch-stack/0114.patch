@@ -1,190 +1,82 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Thu, 5 Sep 2024 16:04:00 +0000
-Subject: Bug 1830275 - Add missing support for device change notifications
- r=pehrsons,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Tue, 27 Aug 2024 10:01:00 +0000
+Subject: Bug 1914835 - With ScreenCaptureKit embed the mouse cursor directly.
+ r=webrtc-reviewers,ng
 
-Registers each DeviceInfoPipeWire in PipeWireSession we use and calls
-DeviceChange() for each once there is a new camera added or removed to
-invoke OnDeviceChange() for every registered VideoInputFeedback.
+The MouseCursorMonitor on macOS is rather expensive, as for every pulled frame
+it compares all pixels of the cursors used for the current and last frames.
+Getting to the pixels may also incur a conversion.
 
-Differential Revision: https://phabricator.services.mozilla.com/D219218
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60eb5ef11c8df7eb6e0d616cb76885d9109f114d
+Note that this comparison happens even if the backend reports it had embedded
+the cursor already, as the embedding only affects composing the monitored cursor
+into a captured frame.
+
+Differential Revision: https://phabricator.services.mozilla.com/D220092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ca7b371646d8aa40b2c3faf54570fcd1331a677
 ---
- .../linux/device_info_pipewire.cc             | 10 +++-
- .../video_capture/linux/pipewire_session.cc   | 47 ++++++++++++++++++-
- .../video_capture/linux/pipewire_session.h    | 26 +++++++++-
- 3 files changed, 79 insertions(+), 4 deletions(-)
+ .../desktop_capture/mac/screen_capturer_sck.h   |  3 +++
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 ++++++++++++++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
 
-diff --git a/modules/video_capture/linux/device_info_pipewire.cc b/modules/video_capture/linux/device_info_pipewire.cc
-index db2a3c7099..a0607b4aba 100644
---- a/modules/video_capture/linux/device_info_pipewire.cc
-+++ b/modules/video_capture/linux/device_info_pipewire.cc
-@@ -29,13 +29,19 @@
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 2c5241d33e..105cbf0783 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -18,6 +18,9 @@
+ 
  namespace webrtc {
- namespace videocapturemodule {
- DeviceInfoPipeWire::DeviceInfoPipeWire(VideoCaptureOptions* options)
--    : DeviceInfoImpl(), pipewire_session_(options->pipewire_session()) {}
-+    : DeviceInfoImpl(), pipewire_session_(options->pipewire_session()) {
-+  const bool ret = pipewire_session_->RegisterDeviceInfo(this);
-+  RTC_CHECK(ret);
-+}
  
- int32_t DeviceInfoPipeWire::Init() {
-   return 0;
- }
- 
--DeviceInfoPipeWire::~DeviceInfoPipeWire() = default;
-+DeviceInfoPipeWire::~DeviceInfoPipeWire() {
-+  const bool ret = pipewire_session_->DeRegisterDeviceInfo(this);
-+  RTC_CHECK(ret);
-+}
- 
- uint32_t DeviceInfoPipeWire::NumberOfDevices() {
-   RTC_CHECK(pipewire_session_);
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index 98eb656096..0b1504170b 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -9,6 +9,7 @@
-  */
- 
- #include "modules/video_capture/linux/pipewire_session.h"
-+#include "modules/video_capture/linux/device_info_pipewire.h"
- 
- #include <spa/monitor/device.h>
- #include <spa/param/format-utils.h>
-@@ -286,6 +287,28 @@ void PipeWireSession::InitPipeWire(int fd) {
-     Finish(VideoCaptureOptions::Status::ERROR);
- }
- 
-+bool PipeWireSession::RegisterDeviceInfo(DeviceInfoPipeWire* device_info) {
-+  RTC_CHECK(device_info);
-+  MutexLock lock(&device_info_lock_);
-+  auto it = std::find(device_info_list_.begin(), device_info_list_.end(), device_info);
-+  if (it == device_info_list_.end()) {
-+    device_info_list_.push_back(device_info);
-+    return true;
-+  }
-+  return false;
-+}
++// Returns true if the ScreenCaptureKit capturer is available.
++bool ScreenCapturerSckAvailable();
 +
-+bool PipeWireSession::DeRegisterDeviceInfo(DeviceInfoPipeWire* device_info) {
-+  RTC_CHECK(device_info);
-+  MutexLock lock(&device_info_lock_);
-+  auto it = std::find(device_info_list_.begin(), device_info_list_.end(), device_info);
-+  if (it != device_info_list_.end()) {
-+    device_info_list_.erase(it);
-+    return true;
-+  }
-+  return false;
-+}
-+
- RTC_NO_SANITIZE("cfi-icall")
- bool PipeWireSession::StartPipeWire(int fd) {
-   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
-@@ -358,6 +381,21 @@ void PipeWireSession::PipeWireSync() {
-   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
- }
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 9e2d9047e6..6bd08e52ce 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -24,6 +24,8 @@
  
-+void PipeWireSession::NotifyDeviceChange() {
-+  RTC_LOG(LS_INFO) << "Notify about device list changes";
-+  MutexLock lock(&device_info_lock_);
-+
-+  // It makes sense to notify about device changes only once we are
-+  // properly initialized.
-+  if (status_ != VideoCaptureOptions::Status::SUCCESS) {
-+    return;
-+  }
-+
-+  for (auto* deviceInfo : device_info_list_) {
-+    deviceInfo->DeviceChange();
-+  }
-+}
-+
- // static
- void PipeWireSession::OnCoreError(void* data,
-                                   uint32_t id,
-@@ -416,6 +454,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+ using webrtc::DesktopFrameIOSurface;
  
-   that->nodes_.push_back(PipeWireNode::Create(that, id, props));
-   that->PipeWireSync();
++#define SCK_AVAILABLE @available(macOS 14.0, *)
 +
-+  that->NotifyDeviceChange();
- }
- 
- // static
-@@ -427,10 +467,15 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
-                              return node->id() == id;
-                            });
-   that->nodes_.erase(it, that->nodes_.end());
-+
-+  that->NotifyDeviceChange();
- }
- 
- void PipeWireSession::Finish(VideoCaptureOptions::Status status) {
--  status_ = status;
-+  {
-+    MutexLock lock(&device_info_lock_);
-+    status_ = status;
-+  }
- 
-   webrtc::MutexLock lock(&callback_lock_);
- 
-diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index 84273ea695..1f3a00614f 100644
---- a/modules/video_capture/linux/pipewire_session.h
-+++ b/modules/video_capture/linux/pipewire_session.h
-@@ -29,6 +29,7 @@
  namespace webrtc {
- namespace videocapturemodule {
+ class ScreenCapturerSck;
+ }  // namespace webrtc
+@@ -48,6 +50,14 @@ API_AVAILABLE(macos(14.0))
  
-+class DeviceInfoPipeWire;
- class PipeWireSession;
- class VideoCaptureModulePipeWire;
+ namespace webrtc {
  
-@@ -97,6 +98,21 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
++bool ScreenCapturerSckAvailable() {
++  bool sonomaOrHigher = false;
++  if (SCK_AVAILABLE) {
++    sonomaOrHigher = true;
++  }
++  return sonomaOrHigher;
++}
++
+ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
+  public:
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+@@ -353,11 +363,10 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+ }
  
-   void Init(VideoCaptureOptions::Callback* callback,
-             int fd = kInvalidPipeWireFd);
-+
-+  // [De]Register DeviceInfo for device change updates
-+  // These methods will add or remove references to DeviceInfo
-+  // objects that we want to notify about device changes.
-+  // NOTE: We do not take ownership of these objects and
-+  // they should never be released by us. All the instances
-+  // of DeviceInfoPipeWire must outlive their registration.
-+
-+  // Returns true when DeviceInfo was successfuly registered
-+  // or false otherwise, when it was already registered before.
-+  bool RegisterDeviceInfo(DeviceInfoPipeWire* device_info);
-+  // Returns true when DeviceInfo was successfuly unregistered
-+  // or false otherwise, when it was not previously registered.
-+  bool DeRegisterDeviceInfo(DeviceInfoPipeWire* device_info);
-+
-   const std::deque<PipeWireNode::PipeWireNodePtr>& nodes() const {
-     return nodes_;
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+-  if (@available(macOS 14.0, *)) {
++  if (SCK_AVAILABLE) {
+     return std::make_unique<ScreenCapturerSck>(options);
+-  } else {
+-    return nullptr;
    }
-@@ -111,6 +127,8 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
-   void StopPipeWire();
-   void PipeWireSync();
++  return nullptr;
+ }
  
-+  void NotifyDeviceChange();
+ }  // namespace webrtc
+@@ -419,3 +428,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+ }
+ 
+ @end
 +
-   static void OnCoreError(void* data,
-                           uint32_t id,
-                           int seq,
-@@ -133,7 +151,13 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
-   VideoCaptureOptions::Callback* callback_ RTC_GUARDED_BY(&callback_lock_) =
-       nullptr;
- 
--  VideoCaptureOptions::Status status_;
-+  webrtc::Mutex device_info_lock_;
-+  std::vector<DeviceInfoPipeWire*> device_info_list_
-+      RTC_GUARDED_BY(device_info_lock_);
-+  // Guard with device_info_lock, because currently it's the only place where
-+  // we use this status information.
-+  VideoCaptureOptions::Status status_
-+      RTC_GUARDED_BY(device_info_lock_);
- 
-   struct pw_thread_loop* pw_main_loop_ = nullptr;
-   struct pw_context* pw_context_ = nullptr;
++#undef SCK_AVAILABLE

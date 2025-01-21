@@ -1,23 +1,52 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 17 May 2024 22:30:00 -0500
-Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
- python3
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 2 May 2024 00:47:00 -0700
+Subject: Bug 1892299 - fix-afaae4e38a - fix adapted_track_source build
+ exclusion;r?mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecfe7527e75629dbc65fc9cbc1
 ---
- .gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ media/BUILD.gn | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
 
-diff --git a/.gn b/.gn
-index 6c011fd453..01bb0e7b02 100644
---- a/.gn
-+++ b/.gn
-@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 666e909cd0..ddb6cd9d1b 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {
+     "base/video_broadcaster.h",  # Used downstream
+     "base/video_common.h",  # Used downstream
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "base/adapted_video_track_source.h",
++    ]
++  }
+   deps = [
+     ":adapted_video_track_source",
+     ":codec",
+@@ -127,12 +132,6 @@ rtc_library("rtc_media_base") {
+     "../video/config:encoder_config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+   ]
+-    if (build_with_mozilla) {
+-    sources -= [
+-      "base/adapted_video_track_source.cc",
+-      "base/adapted_video_track_source.h",
+-    ]
+-  }
+ }
  
- # The python interpreter to use by default. On Windows, this will look
- # for vpython3.exe and vpython3.bat.
--script_executable = "vpython3"
-+script_executable = "python3"
- 
- # The secondary source root is a parallel directory tree where
- # GN build files are placed when they can not be placed directly
+ rtc_library("adapted_video_track_source") {
+@@ -140,6 +139,12 @@ rtc_library("adapted_video_track_source") {
+     "base/adapted_video_track_source.cc",
+     "base/adapted_video_track_source.h",
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "base/adapted_video_track_source.cc",
++      "base/adapted_video_track_source.h",
++    ]
++  }
+   deps = [
+     ":video_adapter",
+     ":video_broadcaster",

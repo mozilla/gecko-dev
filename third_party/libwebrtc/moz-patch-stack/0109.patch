@@ -1,26 +1,48 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Fri, 26 Jul 2024 09:26:00 -0500
-Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
- belongs. r?mjf
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P2 - for BSD reference null socket server
+ instead;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
+Differential Revision: https://phabricator.services.mozilla.com/D211095
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0993ae41fb7db1624dedc5cf2278cd5a505f18f5
 ---
- api/test/network_emulation/BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ rtc_base/internal/default_socket_server.cc | 4 ++--
+ rtc_base/virtual_socket_server.cc          | 2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
-index bb4af451b7..447309828f 100644
---- a/api/test/network_emulation/BUILD.gn
-+++ b/api/test/network_emulation/BUILD.gn
-@@ -6,10 +6,10 @@
- # in the file PATENTS.  All contributing project authors may
- # be found in the AUTHORS file in the root of the source tree.
+diff --git a/rtc_base/internal/default_socket_server.cc b/rtc_base/internal/default_socket_server.cc
+index 5632b989fc..cb7b81978a 100644
+--- a/rtc_base/internal/default_socket_server.cc
++++ b/rtc_base/internal/default_socket_server.cc
+@@ -14,7 +14,7 @@
  
--import("//third_party/protobuf/proto_library.gni")
- import("../../../webrtc.gni")
+ #include "rtc_base/socket_server.h"
  
- if (rtc_enable_protobuf) {
-+  import("//third_party/protobuf/proto_library.gni")
-   proto_library("network_config_schedule_proto") {
-     visibility = [ "*" ]
-     sources = [ "network_config_schedule.proto" ]
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+ #include "rtc_base/null_socket_server.h"
+ #else
+ #include "rtc_base/physical_socket_server.h"
+@@ -23,7 +23,7 @@
+ namespace rtc {
+ 
+ std::unique_ptr<SocketServer> CreateDefaultSocketServer() {
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+   return std::unique_ptr<SocketServer>(new rtc::NullSocketServer);
+ #else
+   return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
+diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
+index bea068d36f..4463edf738 100644
+--- a/rtc_base/virtual_socket_server.cc
++++ b/rtc_base/virtual_socket_server.cc
+@@ -24,7 +24,9 @@
+ #include "rtc_base/event.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/logging.h"
++#if !defined(WEBRTC_BSD)
+ #include "rtc_base/physical_socket_server.h"
++#endif
+ #include "rtc_base/socket_address_pair.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/time_utils.h"

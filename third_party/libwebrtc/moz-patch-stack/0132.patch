@@ -1,23 +1,55 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 15 Oct 2024 16:13:00 -0500
-Subject: Bug 1924098 - (fix-4e41db264b) our base-toolchains builds need the
- struct name to build
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - add filtering for new build directory location in
+ third_party/libwebrtc/webrtc.gni r=ng,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/479c6364706093d4a863c3514a1031ee4783fb59
+Differential Revision: https://phabricator.services.mozilla.com/D224545
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f18c05287ce831369f44715a4174facff4f12652
 ---
- call/flexfec_receive_stream_impl.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ webrtc.gni | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/call/flexfec_receive_stream_impl.cc b/call/flexfec_receive_stream_impl.cc
-index bb4122a83f..c70db3d528 100644
---- a/call/flexfec_receive_stream_impl.cc
-+++ b/call/flexfec_receive_stream_impl.cc
-@@ -114,7 +114,7 @@ FlexfecReceiveStreamImpl::FlexfecReceiveStreamImpl(
-                                            recovered_packet_receiver)),
-       rtp_receive_statistics_(ReceiveStatistics::Create(&env.clock())),
-       rtp_rtcp_(env,
--                {.audio = false,
-+                RtpRtcpInterface::Configuration{.audio = false,
-                  .receiver_only = true,
-                  .receive_statistics = rtp_receive_statistics_.get(),
-                  .outgoing_transport = config.rtcp_send_transport,
+diff --git a/webrtc.gni b/webrtc.gni
+index ccff1b4365..d29bf59424 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -540,7 +540,7 @@ template("rtc_test") {
+       min_sdk_version = 21
+       target_sdk_version = 23
+       deps += [
+-        "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
++        "//chromium/build/android/gtest_apk:native_test_instrumentation_test_runner_java",
+         webrtc_root + "test:native_test_java",
+       ]
+     }
+@@ -985,11 +985,21 @@ template("rtc_library") {
+       modified_deps = []
+       foreach (dep, deps) {
+         newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
++        newdep = string_replace(newdep, "//build", "//chromium/build")
+         modified_deps += [ newdep ]
+       }
+       deps = []
+       deps = modified_deps
+     }
++    if (build_with_mozilla && defined(data_deps)) {
++      modified_deps = []
++      foreach (dep, data_deps) {
++        newdep = string_replace(dep, "//build/", "//chromium/build/")
++        modified_deps += [ newdep ]
++      }
++      data_deps = []
++      data_deps = modified_deps
++    }
+   }
+ }
+ 
+@@ -1027,7 +1037,7 @@ template("rtc_executable") {
+     if (is_win) {
+       deps += [
+         # Give executables the default manifest on Windows (a no-op elsewhere).
+-        "//build/win:default_exe_manifest",
++        "//chromium/build/win:default_exe_manifest",
+       ]
+     }
+ 

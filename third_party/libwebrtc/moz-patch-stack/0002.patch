@@ -1,43 +1,201 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Sat, 13 Feb 2021 04:20:00 -0800
-Subject: Bug 1654112 - Add pid_t to desktop_capture_types.h; r=pehrsons
+From: =?UTF-8?q?Erik=20Spr=C3=A5ng?= <sprang@webrtc.org>
+Date: Wed, 20 Nov 2024 14:01:33 +0100
+Subject: (cherry-pick-branch-heads/6834) [M132 merge] Avoid potential deadlock
+ due to queue in corruption detection.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Upstreaming bug 1697385
+In particular, some platforms have a limited pool of frames in the
+capturer stack, so we need to avoid stashing raw frames in the frame
+instrumentation generator that may be dropped by limiting the size of
+the queue and avoid putting anything in there until we know we will
+send it to the encoder.
 
-Also includes:
-Bug 1654112 - Clarifying prev. rev that moved pid_t into the global namespace; r=dminor
+(cherry picked from commit 9aeed0c5f4518763ad6e8aa9547223301612805b)
 
-Differential Revision: https://phabricator.services.mozilla.com/D107897
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/539b69f0e21118a1898f1ef689577c7193ff7be7
+Bug: webrtc:358039777, chromium:380095413
+Change-Id: I054ae53dd5e6ac6a22da39c5049f47788561e77a
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368641
+Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+Commit-Queue: Erik Språng <sprang@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43432}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368901
+Cr-Commit-Position: refs/branch-heads/6834@{#2}
+Cr-Branched-From: a5d71009ac1dce7da23813dc9413c03073cfa8ca-refs/heads/main@{#43387}
 ---
- modules/desktop_capture/desktop_capture_types.h | 4 ++++
- modules/video_capture/video_capture.h           | 1 +
- 2 files changed, 5 insertions(+)
+ .../frame_instrumentation_generator.cc        |  7 +++
+ ...rame_instrumentation_generator_unittest.cc | 36 ++++++++++++
+ video/video_stream_encoder.cc                 |  7 ++-
+ video/video_stream_encoder_unittest.cc        | 55 +++++++++++++++++++
+ 4 files changed, 102 insertions(+), 3 deletions(-)
 
-diff --git a/modules/desktop_capture/desktop_capture_types.h b/modules/desktop_capture/desktop_capture_types.h
-index a4e3e897fd..e777a45f92 100644
---- a/modules/desktop_capture/desktop_capture_types.h
-+++ b/modules/desktop_capture/desktop_capture_types.h
-@@ -13,6 +13,10 @@
- 
- #include <stdint.h>
- 
-+#ifdef XP_WIN      // Moving this into the global namespace
-+typedef int pid_t; // matching what used to be in
-+#endif             // video_capture_defines.h
-+
+diff --git a/video/corruption_detection/frame_instrumentation_generator.cc b/video/corruption_detection/frame_instrumentation_generator.cc
+index cc2b1122e4..df6fe865a5 100644
+--- a/video/corruption_detection/frame_instrumentation_generator.cc
++++ b/video/corruption_detection/frame_instrumentation_generator.cc
+@@ -36,6 +36,10 @@
  namespace webrtc {
+ namespace {
  
- enum class CaptureType { kWindow, kScreen, kAnyScreenContent };
-diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
-index f31b239c71..7279bed476 100644
---- a/modules/video_capture/video_capture.h
-+++ b/modules/video_capture/video_capture.h
-@@ -13,6 +13,7 @@
++// Avoid holding on to frames that might have been dropped by encoder, as that
++// can lead to frame buffer pools draining.
++constexpr size_t kMaxPendingFrames = 3;
++
+ std::optional<FilterSettings> GetCorruptionFilterSettings(
+     const EncodedImage& encoded_image,
+     VideoCodecType video_codec_type,
+@@ -75,6 +79,9 @@ FrameInstrumentationGenerator::FrameInstrumentationGenerator(
+     : video_codec_type_(video_codec_type) {}
  
- #include "api/video/video_rotation.h"
- #include "api/video/video_sink_interface.h"
-+#include "modules/desktop_capture/desktop_capture_types.h"
- #include "modules/video_capture/raw_video_sink_interface.h"
- #include "modules/video_capture/video_capture_defines.h"
- #include <set>
+ void FrameInstrumentationGenerator::OnCapturedFrame(VideoFrame frame) {
++  while (captured_frames_.size() >= kMaxPendingFrames) {
++    captured_frames_.pop();
++  }
+   captured_frames_.push(frame);
+ }
+ 
+diff --git a/video/corruption_detection/frame_instrumentation_generator_unittest.cc b/video/corruption_detection/frame_instrumentation_generator_unittest.cc
+index 2305127699..7f8992be51 100644
+--- a/video/corruption_detection/frame_instrumentation_generator_unittest.cc
++++ b/video/corruption_detection/frame_instrumentation_generator_unittest.cc
+@@ -11,6 +11,7 @@
+ #include "video/corruption_detection/frame_instrumentation_generator.h"
+ 
+ #include <cstdint>
++#include <memory>
+ #include <optional>
+ #include <vector>
+ 
+@@ -686,5 +687,40 @@ TEST(FrameInstrumentationGeneratorTest, GetterAndSetterOperatesAsExpected) {
+ #endif  // GTEST_HAS_DEATH_TEST
+ }
+ 
++TEST(FrameInstrumentationGeneratorTest, QueuesAtMostThreeInputFrames) {
++  auto generator = std::make_unique<FrameInstrumentationGenerator>(
++      VideoCodecType::kVideoCodecVP8);
++
++  bool frames_destroyed[4] = {};
++  class TestBuffer : public webrtc::I420Buffer {
++   public:
++    TestBuffer(int width, int height, bool* frame_destroyed_indicator)
++        : I420Buffer(width, height),
++          frame_destroyed_indicator_(frame_destroyed_indicator) {}
++
++   private:
++    friend class RefCountedObject<TestBuffer>;
++    ~TestBuffer() override { *frame_destroyed_indicator_ = true; }
++
++    bool* frame_destroyed_indicator_;
++  };
++
++  // Insert four frames, the first one should expire and be released.
++  for (int i = 0; i < 4; ++i) {
++    generator->OnCapturedFrame(
++        VideoFrame::Builder()
++            .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
++                kDefaultScaledWidth, kDefaultScaledHeight,
++                &frames_destroyed[i]))
++            .set_rtp_timestamp(1 + (33 * i))
++            .build());
++  }
++
++  EXPECT_THAT(frames_destroyed, ElementsAre(true, false, false, false));
++
++  generator.reset();
++  EXPECT_THAT(frames_destroyed, ElementsAre(true, true, true, true));
++}
++
+ }  // namespace
+ }  // namespace webrtc
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index e2037575fa..c62a3e1c90 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -1560,9 +1560,6 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
+ 
+   encoder_stats_observer_->OnIncomingFrame(incoming_frame.width(),
+                                            incoming_frame.height());
+-  if (frame_instrumentation_generator_) {
+-    frame_instrumentation_generator_->OnCapturedFrame(incoming_frame);
+-  }
+   ++captured_frame_count_;
+   bool cwnd_frame_drop =
+       cwnd_frame_drop_interval_ &&
+@@ -2032,6 +2029,10 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
+ 
+   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
+ 
++  if (frame_instrumentation_generator_) {
++    frame_instrumentation_generator_->OnCapturedFrame(out_frame);
++  }
++
+   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
+   was_encode_called_since_last_initialization_ = true;
+ 
+diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
+index 859c7927be..08ae5cae95 100644
+--- a/video/video_stream_encoder_unittest.cc
++++ b/video/video_stream_encoder_unittest.cc
+@@ -1702,6 +1702,61 @@ TEST_F(VideoStreamEncoderTest, PopulatesFrameInstrumentationDataWhenSetTo) {
+   video_stream_encoder_->Stop();
+ }
+ 
++TEST_F(VideoStreamEncoderTest,
++       FrameInstrumentationGeneratorDoesNotStashDroppedFrames) {
++  // Set low rate but high resolution. Make sure input frame is dropped and
++  // instance is released, even with corruption detection enabled.
++  const DataRate kLowRate = DataRate::KilobitsPerSec(300);
++  codec_width_ = 1280;
++  codec_height_ = 720;
++
++  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
++      true;
++  ConfigureEncoder(video_encoder_config_.Copy());
++  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
++      kLowRate, kLowRate, kLowRate, 0, 0, 0);
++
++  rtc::Event frame_destroyed_event;
++  // Insert two frames, so that the first one isn't stored in the encoder queue.
++  video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
++  video_source_.IncomingCapturedFrame(CreateFrame(34, /*event=*/nullptr));
++  EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
++
++  EXPECT_FALSE(sink_.GetLastFrameInstrumentationData().has_value());
++  video_stream_encoder_->Stop();
++}
++
++TEST_F(VideoStreamEncoderTest,
++       FrameInstrumentationGeneratorHandlesQueuedFrames) {
++  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
++      true;
++  ConfigureEncoder(video_encoder_config_.Copy());
++
++  // Mark stream as suspended.
++  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
++      DataRate::Zero(), DataRate::Zero(), DataRate::Zero(), 0, 0, 0);
++  video_stream_encoder_->WaitUntilTaskQueueIsIdle();
++
++  // We need a QP for the encoded frame.
++  fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
++      kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
++
++  // Insert a frame, that should be treated as dropped due to suspended state.
++  video_source_.IncomingCapturedFrame(
++      CreateFrame(1, codec_width_, codec_height_));
++
++  ExpectDroppedFrame();
++
++  // Resume and increase bitrate budget, process stashed frames.
++  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
++      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
++
++  WaitForEncodedFrame(1);
++  EXPECT_TRUE(sink_.GetLastFrameInstrumentationData().has_value());
++
++  video_stream_encoder_->Stop();
++}
++
+ TEST_F(VideoStreamEncoderTest,
+        DoesNotPopulateFrameInstrumentationDataWhenSetNotTo) {
+   video_send_config_.encoder_settings.enable_frame_instrumentation_generator =

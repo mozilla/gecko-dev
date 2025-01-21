@@ -1,21 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 21 Nov 2024 13:57:00 -0600
-Subject: Bug 1928110 - (fix-d259a754a8) add missing include
+Date: Tue, 15 Oct 2024 16:46:00 -0500
+Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
+ LibvpxVp9Encoder::InitAndSetControlSettings
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/250798952aa5b1f0c4996bcd95c77e917d44f738
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
 ---
- rtc_base/ssl_stream_adapter.h | 1 +
- 1 file changed, 1 insertion(+)
+ modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
-index ece5b44ac5..b9041d0b5e 100644
---- a/rtc_base/ssl_stream_adapter.h
-+++ b/rtc_base/ssl_stream_adapter.h
-@@ -15,6 +15,7 @@
- #include <stdint.h>
- 
- #include <memory>
-+#include <optional>
- #include <string>
- #include <vector>
- 
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 4defd80355..379075d12c 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1296,7 +1296,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
+   // bugs in trying to do it the "right" way, we basically re-do
+   // the initialization.
+   vpx_codec_destroy(encoder_); // clean up old state
+-  int result = InitAndSetControlSettings(&codec_);
++  int result = InitAndSetControlSettings();
+   if (result == WEBRTC_VIDEO_CODEC_OK) {
+     // TODO: Mozilla rates have become much more complicated, we need to store
+     // more state or find another way of doing this.

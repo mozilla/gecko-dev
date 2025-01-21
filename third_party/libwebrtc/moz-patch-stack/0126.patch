@@ -1,86 +1,37 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - libwebrtc preprocessor, .json, .gni, and *.gn changes
- r=ng,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Mon, 16 Sep 2024 14:51:00 +0000
+Subject: Bug 1918996 - Use SCShareableContentStyleNone on macOS 15.
+ r=webrtc-reviewers,jib
 
-Differential Revision: https://phabricator.services.mozilla.com/D224076
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7017edc7cfc880bb19f94115d4f48a8c58920a9b
+Differential Revision: https://phabricator.services.mozilla.com/D222270
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ade6f6dc0c5a5df1c87e78a45b2878c4ade54358
 ---
- .gn                           | 4 ++--
- media/BUILD.gn                | 2 +-
- modules/video_coding/BUILD.gn | 2 +-
- webrtc.gni                    | 6 +++---
- 4 files changed, 7 insertions(+), 7 deletions(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
 
-diff --git a/.gn b/.gn
-index e379d18527..c810498584 100644
---- a/.gn
-+++ b/.gn
-@@ -18,7 +18,7 @@ script_executable = "python3"
- # The secondary source root is a parallel directory tree where
- # GN build files are placed when they can not be placed directly
- # in the source tree, e.g. for third party source trees.
--secondary_source = "//build/secondary/"
-+secondary_source = "//libwebrtc/"
- 
- # These are the targets to skip header checking by default. The files in targets
- # matching these patterns (see "gn help label_pattern" for format) will not have
-@@ -36,7 +36,7 @@ no_check_targets = [
- # to force additional review for new uses of exec_script, which is strongly
- # discouraged except for gypi_to_gn calls.
- exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
--                        [ "//build_overrides/build.gni" ]
-+                        [ "//libwebrtc/build_overrides/build.gni" ]
- 
- # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
- # available yet.
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index ddb6cd9d1b..e48d2ffada 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -7,7 +7,7 @@
- # be found in the AUTHORS file in the root of the source tree.
- 
- import("//build/config/linux/pkg_config.gni")
--import("//third_party/libaom/options.gni")
-+import("//libwebrtc/third_party/libaom/options.gni")
- import("../webrtc.gni")
- 
- group("media") {
-diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index c5c6ce13dd..ee3a30dc4c 100644
---- a/modules/video_coding/BUILD.gn
-+++ b/modules/video_coding/BUILD.gn
-@@ -7,7 +7,7 @@
- # be found in the AUTHORS file in the root of the source tree.
- 
- import("//build/config/linux/pkg_config.gni")
--import("//third_party/libaom/options.gni")
-+import("//libwebrtc/third_party/libaom/options.gni")
- import("../../webrtc.gni")
- 
- rtc_library("encoded_frame") {
-diff --git a/webrtc.gni b/webrtc.gni
-index 5efc1979fd..60fd992710 100644
---- a/webrtc.gni
-+++ b/webrtc.gni
-@@ -11,7 +11,7 @@ import("//build/config/mips.gni")
- import("//build/config/ozone.gni")
- import("//build/config/sanitizers/sanitizers.gni")
- import("//build/config/sysroot.gni")
--import("//build_overrides/build.gni")
-+import("//libwebrtc/build_overrides/build.gni")
- 
- if (!build_with_chromium && is_component_build) {
-   print("The Gn argument `is_component_build` is currently " +
-@@ -492,8 +492,8 @@ all_poison_types = [
-   "software_video_codecs",
- ]
- 
--absl_include_config = "//third_party/abseil-cpp:absl_include_config"
--absl_define_config = "//third_party/abseil-cpp:absl_define_config"
-+absl_include_config = "//libwebrtc/third_party/abseil-cpp:absl_include_config"
-+absl_define_config = "//libwebrtc/third_party/abseil-cpp:absl_define_config"
- 
- # Abseil Flags are testonly, so this config will only be applied to WebRTC targets
- # that are testonly.
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index d431ef0fc8..191e79f991 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -305,10 +305,18 @@ void ScreenCapturerSck::EnsureVisible() {
+   SCContentSharingPickerConfiguration* config = picker.defaultConfiguration;
+   config.allowedPickerModes = picker_modes_;
+   picker.defaultConfiguration = config;
++  SCShareableContentStyle style = SCShareableContentStyleNone;
+   // Pick a sensible style to start out with, based on our current mode.
+-  // Default to Screen because if using Window the picker automatically hides
+-  // our current window to show others.
+-  SCShareableContentStyle style = SCShareableContentStyleDisplay;
++  if (@available(macOS 15, *)) {
++    // Stick with None because if we use Display, the picker doesn't let us
++    // pick a window when first opened. Behaves like Window in 14 except doesn't
++    // change window focus.
++  } else {
++    // Default to Display because if using Window the picker automatically hides
++    // our current window to show others. Saves a click compared to None when
++    // picking a display.
++    style = SCShareableContentStyleDisplay;
++  }
+   if (picker_modes_ == SCContentSharingPickerModeSingleDisplay) {
+     style = SCShareableContentStyleDisplay;
+   } else if (picker_modes_ == SCContentSharingPickerModeSingleWindow ||

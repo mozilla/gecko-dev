@@ -1,167 +1,204 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Fri, 6 Dec 2024 22:10:00 +0000
-Subject: Bug 1920530 - Cherry-pick upstream libwebrtc commit 0c282c471b
- r=webrtc-reviewers,mjf
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Wed, 27 Nov 2024 03:41:00 +0000
+Subject: Bug 1921154 - libwebrtc build related changes for
+ AV1;r=mjf,webrtc-reviewers
 
-Upstream commit: https://webrtc.googlesource.com/src/+/0c282c471b794933dfa7a38bc5a4ee55f70769a1
-       Reset encoder on simulcast layer maxFramerate changes
+These are most of the changes needed to get a build with AV1.
+The crypto/openssl changes are later altered in the stack adding an NSPR based implementation of the functionality that was missing.
 
-       Without this, Firefox wasn't passing WPT
-       webrtc/simulcast/setParameters-maxFramerate.https.html.
-
-       The main issue is the SetRates API's RateControlParameters doesn't have
-       a way to model maxFramerate for simulcast layers.
-
-       A long term fix would probably be to represent maxFramerate for all
-       simulcast layers in RateControlParameters. This change is a short term
-       fix, and resets the encoder iff a simulcast layer's maxFramerate has
-       changed, and also differs from the maxFramerate of the codec (passed to
-       SetRates), which matches the layer with the highest maxFramerate.
-
-       Bug: None
-       Change-Id: I088dda0fe88092fe5a5cc61114e10847f072a87b
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/370124
-       Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-       Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-       Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#43497}
-
-Differential Revision: https://phabricator.services.mozilla.com/D231236
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b8fe02922ca1a294c53a9ea6478c448348fda53d
+Differential Revision: https://phabricator.services.mozilla.com/D228540
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4527c41ef71d7683c60d9c435991a0d93bc5ce4d
 ---
- video/video_stream_encoder.cc          |  9 +++
- video/video_stream_encoder_unittest.cc | 78 +++++++++++++++++++-------
- 2 files changed, 66 insertions(+), 21 deletions(-)
+ BUILD.gn          |  4 ++++
+ media/BUILD.gn    | 24 ++++++++++++++----------
+ rtc_base/BUILD.gn | 44 ++++++++++++++++++++++++--------------------
+ webrtc.gni        |  4 ++--
+ 4 files changed, 44 insertions(+), 32 deletions(-)
 
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index dfd490cf02..96d8880381 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -174,6 +174,15 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
-             prev_send_codec.simulcastStream[i].qpMax) {
-       return true;
-     }
-+
-+    if (new_send_codec.simulcastStream[i].maxFramerate !=
-+            prev_send_codec.simulcastStream[i].maxFramerate &&
-+        new_send_codec.simulcastStream[i].maxFramerate !=
-+            new_send_codec.maxFramerate) {
-+      // SetRates can only represent maxFramerate for one layer. Reset the
-+      // encoder if there are multiple layers that differ in maxFramerate.
-+      return true;
+diff --git a/BUILD.gn b/BUILD.gn
+index f11d86d211..6f75ecbbf5 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -524,6 +524,9 @@ if (!rtc_build_ssl) {
+       "crypto",
+       "ssl",
+     ]
++    if (build_with_mozilla) {
++      libs = []
 +    }
    }
+ }
  
-   if (new_send_codec.codecType == kVideoCodecVP9) {
-diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
-index 08ae5cae95..62d48ef916 100644
---- a/video/video_stream_encoder_unittest.cc
-+++ b/video/video_stream_encoder_unittest.cc
-@@ -9360,10 +9360,10 @@ INSTANTIATE_TEST_SUITE_P(
-     TestParametersVideoCodecAndAllowI420ConversionToString);
- #endif
+@@ -619,6 +622,7 @@ if (!build_with_chromium) {
+         "api/environment:environment_factory",
+         "api/video:video_frame",
+         "api/video:video_rtp_headers",
++        "api/video_codecs:builtin_video_decoder_factory",
+         "test:rtp_test_utils",
+       ]
+       # Added when we removed deps in other places to avoid building
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 76f45d7045..aa6ea24934 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -12,12 +12,10 @@ import("../webrtc.gni")
  
--class ReconfigureEncoderTest : public VideoStreamEncoderTest {
-+class ReconfigureSimulcastEncoderTest : public VideoStreamEncoderTest {
-  protected:
--  void RunTest(const std::vector<VideoStream>& configs,
--               const int expected_num_init_encode) {
-+  void RunSimulcastTest(const std::vector<std::vector<VideoStream>>& configs,
-+                        const int expected_num_init_encode) {
-     ConfigureEncoder(configs[0]);
-     OnBitrateUpdated(kTargetBitrate);
-     InsertFrameAndWaitForEncoded();
-@@ -9384,11 +9384,17 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
-     video_stream_encoder_->Stop();
+ group("media") {
+   deps = []
+-  if (!build_with_mozilla) {
+-    deps += [
+-      ":rtc_media",
+-      ":rtc_media_base",
+-    ]
+-  }
++  deps += [
++    ":rtc_media",
++    ":rtc_media_base",
++  ]
+ }
+ 
+ config("rtc_media_defines_config") {
+@@ -273,6 +271,9 @@ rtc_library("media_engine") {
+       "base/media_engine.cc",
+       "base/media_engine.h",
+     ]
++    deps -= [
++      ":media_channel_impl",
++    ]
    }
+ }
  
--  void ConfigureEncoder(const VideoStream& stream) {
-+  void ConfigureEncoder(const std::vector<VideoStream>& streams) {
-     VideoEncoderConfig config;
--    test::FillEncoderConfiguration(kVideoCodecVP8, /*num_streams=*/1, &config);
--    config.max_bitrate_bps = stream.max_bitrate_bps;
--    config.simulcast_layers[0] = stream;
-+    test::FillEncoderConfiguration(kVideoCodecVP8,
-+                                   /*num_streams=*/streams.size(), &config);
-+    auto highest_bitrate_stream =
-+        absl::c_max_element(streams, [](const auto& a, const auto& b) {
-+          return a.max_bitrate_bps < b.max_bitrate_bps;
-+        });
-+    config.max_bitrate_bps = highest_bitrate_stream->max_bitrate_bps;
-+    config.simulcast_layers = streams;
-+    config.number_of_streams = streams.size();
-     config.video_stream_factory = nullptr;
-     video_stream_encoder_->ConfigureEncoder(std::move(config),
-                                             kMaxPayloadLength);
-@@ -9407,20 +9413,23 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
-   }
+@@ -403,6 +404,7 @@ rtc_library("codec") {
+   ]
+ }
  
-   void ExpectEqual(const VideoCodec& actual,
--                   const VideoStream& expected) const {
--    EXPECT_EQ(actual.numberOfSimulcastStreams, 1);
--    EXPECT_EQ(actual.simulcastStream[0].maxFramerate, expected.max_framerate);
--    EXPECT_EQ(actual.simulcastStream[0].minBitrate * 1000,
--              static_cast<unsigned int>(expected.min_bitrate_bps));
--    EXPECT_EQ(actual.simulcastStream[0].maxBitrate * 1000,
--              static_cast<unsigned int>(expected.max_bitrate_bps));
--    EXPECT_EQ(actual.simulcastStream[0].width,
--              kWidth / expected.scale_resolution_down_by);
--    EXPECT_EQ(actual.simulcastStream[0].height,
--              kHeight / expected.scale_resolution_down_by);
--    EXPECT_EQ(actual.simulcastStream[0].numberOfTemporalLayers,
--              expected.num_temporal_layers);
--    EXPECT_EQ(actual.GetScalabilityMode(), expected.scalability_mode);
-+                   const std::vector<VideoStream>& expected) const {
-+    EXPECT_EQ(actual.numberOfSimulcastStreams, expected.size());
-+    for (size_t i = 0; i < actual.numberOfSimulcastStreams; ++i) {
-+      EXPECT_EQ(actual.simulcastStream[i].maxFramerate,
-+                expected[i].max_framerate);
-+      EXPECT_EQ(actual.simulcastStream[i].minBitrate * 1000,
-+                static_cast<unsigned int>(expected[i].min_bitrate_bps));
-+      EXPECT_EQ(actual.simulcastStream[i].maxBitrate * 1000,
-+                static_cast<unsigned int>(expected[i].max_bitrate_bps));
-+      EXPECT_EQ(actual.simulcastStream[i].width,
-+                kWidth / expected[i].scale_resolution_down_by);
-+      EXPECT_EQ(actual.simulcastStream[i].height,
-+                kHeight / expected[i].scale_resolution_down_by);
-+      EXPECT_EQ(actual.simulcastStream[i].numberOfTemporalLayers,
-+                expected[i].num_temporal_layers);
-+      EXPECT_EQ(actual.GetScalabilityMode(), expected[i].scalability_mode);
-+    }
-   }
++# MOZILLA Bug 1931241 - how much of this do we need?
+ rtc_library("rtp_utils") {
+ if (!build_with_mozilla) {
+   sources = [
+@@ -448,7 +450,6 @@ rtc_library("media_constants") {
+ }
  
-   VideoStream DefaultConfig() const {
-@@ -9440,6 +9449,33 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
-   int64_t timestamp_ms_ = 0;
- };
+ rtc_library("turn_utils") {
+-if (!build_with_mozilla) {
+   sources = [
+     "base/turn_utils.cc",
+     "base/turn_utils.h",
+@@ -459,17 +460,14 @@ if (!build_with_mozilla) {
+     "../rtc_base/system:rtc_export",
+   ]
+ }
+-}
  
-+TEST_F(ReconfigureSimulcastEncoderTest, ReconfiguredIfMaxFramerateChanges) {
-+  VideoStream config_before_high = DefaultConfig();
-+  config_before_high.scale_resolution_down_by = 1;
-+  config_before_high.max_framerate = 30;
-+  VideoStream config_before_low = config_before_high;
-+  config_before_low.scale_resolution_down_by = 2;
-+  config_before_low.max_framerate = 20;
-+
-+  // Keep the highest layer's max_framerate so as to not cause a change in
-+  // VideoCodec::maxFramerate that may influence this test.
-+  VideoStream config_after_high = config_before_high;
-+  VideoStream config_after_low = config_before_low;
-+  config_after_low.max_framerate = 10;
-+
-+  RunSimulcastTest({{config_before_high, config_before_low},
-+                    {config_after_high, config_after_low}},
-+                   /*expected_num_init_encode=*/2);
-+}
-+
-+class ReconfigureEncoderTest : public ReconfigureSimulcastEncoderTest {
-+ public:
-+  void RunTest(const std::vector<VideoStream>& configs,
-+               const int expected_num_init_encode) {
-+    RunSimulcastTest({{configs[0]}, {configs[1]}}, expected_num_init_encode);
+ rtc_library("rid_description") {
+-if (!build_with_mozilla) {
+   sources = [
+     "base/rid_description.cc",
+     "base/rid_description.h",
+   ]
+   deps = []
+ }
+-}
+ 
+ rtc_library("rtc_simulcast_encoder_adapter") {
+   visibility = [ "*" ]
+@@ -715,6 +713,12 @@ rtc_library("rtc_audio_video") {
+     "engine/webrtc_voice_engine.cc",
+     "engine/webrtc_voice_engine.h",
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "engine/webrtc_video_engine.cc",
++      "engine/webrtc_voice_engine.cc",
++    ]
 +  }
-+};
+ 
+   public_configs = []
+   if (!build_with_chromium) {
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index be88e2c586..c12590eadc 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1526,29 +1526,32 @@ rtc_source_set("ssl_header") {
+ }
+ 
+ rtc_source_set("digest") {
+-  visibility = [ "*" ]
+-  sources = [
+-    "message_digest.cc",
+-    "message_digest.h",
+-    "openssl_digest.cc",
+-    "openssl_digest.h",
+-  ]
+-  deps = [
+-    ":checks",
+-    ":ssl_header",
+-    ":stringutils",
+-    "//third_party/abseil-cpp/absl/strings:string_view",
+-  ]
+-
+-  # If we are building the SSL library ourselves, we know it's BoringSSL.
+-  if (rtc_build_ssl) {
+-    deps += [ "//third_party/boringssl" ]
+-  } else {
+-    configs += [ "..:external_ssl_library" ]
+-  }
++if (!build_with_mozilla) {
++   visibility = [ "*" ]
++   sources = [
++     "message_digest.cc",
++     "message_digest.h",
++     "openssl_digest.cc",
++     "openssl_digest.h",
++   ]
++   deps = [
++     ":checks",
++     ":ssl_header",
++     ":stringutils",
++     "//third_party/abseil-cpp/absl/strings:string_view",
++   ]
 +
- TEST_F(ReconfigureEncoderTest, NotReconfiguredIfMaxFramerateChanges) {
-   VideoStream config1 = DefaultConfig();
-   VideoStream config2 = config1;
++   # If we are building the SSL library ourselves, we know it's BoringSSL.
++   if (rtc_build_ssl) {
++     deps += [ "//third_party/boringssl" ]
++   } else {
++     configs += [ "..:external_ssl_library" ]
++   }
++}
+ }
+ 
+ rtc_library("crypto_random") {
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   sources = [
+     "crypto_random.cc",
+@@ -1569,6 +1572,7 @@ rtc_library("crypto_random") {
+     configs += [ "..:external_ssl_library" ]
+   }
+ }
++}
+ 
+ rtc_library("ssl") {
+ if (!build_with_mozilla) {
+diff --git a/webrtc.gni b/webrtc.gni
+index d29bf59424..6e86706f29 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -125,7 +125,7 @@ declare_args() {
+ 
+   # Used to specify an external OpenSSL include path when not compiling the
+   # library that comes with WebRTC (i.e. rtc_build_ssl == 0).
+-  rtc_ssl_root = "unused"
++  rtc_ssl_root = ""
+ 
+   # Enable when an external authentication mechanism is used for performing
+   # packet authentication for RTP packets instead of libsrtp.
+@@ -346,7 +346,7 @@ declare_args() {
+ }
+ 
+ # Enable liboam only on non-mozilla builds.
+-enable_libaom = !build_with_mozilla
++enable_libaom = true
+ 
+ # Make it possible to provide custom locations for some libraries (move these
+ # up into declare_args should we need to actually use them for the GN build).

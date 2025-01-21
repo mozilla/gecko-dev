@@ -1,34 +1,59 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 9 Jul 2021 18:14:00 -0500
-Subject: Bug 1654112 - mutex changes to fix tsan errors. r=ng
+From: Philipp Hancke <phancke@meta.com>
+Date: Mon, 25 Nov 2024 10:14:35 -0800
+Subject: (cherry-pick-branch-heads/6834) [M132] h264: skip empty NAL units, do
+ not reject them
 
-Differential Revision: https://phabricator.services.mozilla.com/D119674
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3d5503acf9a4b22e02c4300f29e4fbfed406ea2c
+BUG=webrtc:380291923,chromium:381016774
+
+(cherry picked from commit b7cb8fe75a0b0f19a003e4f78f83fb7bd8fa84ef)
+
+Change-Id: If05268bde2ac0c600dcef479c88ca54dce708dcb
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368893
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Commit-Queue: Philipp Hancke <phancke@meta.com>
+Cr-Original-Commit-Position: refs/heads/main@{#43451}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/369480
+Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6834@{#3}
+Cr-Branched-From: a5d71009ac1dce7da23813dc9413c03073cfa8ca-refs/heads/main@{#43387}
 ---
- rtc_base/logging.cc | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc |  4 ++--
+ .../source/video_rtp_depacketizer_h264_unittest.cc     | 10 ++++++++++
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index adf6deffa9..d9c782965e 100644
---- a/rtc_base/logging.cc
-+++ b/rtc_base/logging.cc
-@@ -275,8 +275,8 @@ void LogMessage::LogTimestamps(bool on) {
+diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+index 97bbe7db24..b9e74f5781 100644
+--- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
++++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+@@ -101,8 +101,8 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
+         nal_unit.subview(H264::kNaluTypeSize);
+ 
+     if (nalu_data.empty()) {
+-      RTC_LOG(LS_ERROR) << "Empty NAL unit found.";
+-      return std::nullopt;
++      RTC_LOG(LS_WARNING) << "Skipping empty NAL unit.";
++      continue;
+     }
+ 
+     switch (nalu.type) {
+diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
+index 8f1d272b77..8330bf2d6b 100644
+--- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
++++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
+@@ -542,5 +542,15 @@ TEST(VideoRtpDepacketizerH264Test, SeiSetsFirstPacketInFrame) {
+   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
  }
  
- void LogMessage::LogToDebug(LoggingSeverity min_sev) {
--  g_dbg_sev = min_sev;
-   webrtc::MutexLock lock(&GetLoggingLock());
-+  g_dbg_sev = min_sev;
-   UpdateMinLogSeverity();
- }
- 
-@@ -460,6 +460,9 @@ void LogMessage::OutputToDebug(const LogLineRef& log_line) {
- 
- // static
- bool LogMessage::IsNoop(LoggingSeverity severity) {
-+  // Added MutexLock to fix tsan warnings on accessing g_dbg_sev. (mjf)
-+  // See https://bugs.chromium.org/p/chromium/issues/detail?id=1228729
-+  webrtc::MutexLock lock(&GetLoggingLock());
-   if (severity >= g_dbg_sev || severity >= g_min_sev)
-     return false;
-   return streams_empty_.load(std::memory_order_relaxed);
++TEST(VideoRtpDepacketizerH264Test, EmptyNaluPayload) {
++  const uint8_t kPayload[] = {
++      0x10,  // End of sequence.
++  };
++  VideoRtpDepacketizerH264 depacketizer;
++  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
++      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
++  ASSERT_TRUE(parsed);
++}
++
+ }  // namespace
+ }  // namespace webrtc

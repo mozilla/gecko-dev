@@ -1,21 +1,27 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Wed, 18 Sep 2024 11:14:00 -0500
-Subject: Bug 1918268 - (fix-ec5a968070) readd an include that upstream removed
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 29 Aug 2024 08:31:00 +0000
+Subject: Bug 1914837 - Always initialize DesktopCapturer::pid.
+ r=webrtc-reviewers,ng
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8c080511a17a87c65771747faa74f859b7fe70bb
+This member is patched on top of libwebrtc. New backends could be added from
+under us. It needs to be initialized.
+
+Differential Revision: https://phabricator.services.mozilla.com/D220265
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fdf5b0a81b0c0e87d31c5963091681a0e5960678
 ---
- api/transport/network_control.h | 1 +
- 1 file changed, 1 insertion(+)
+ modules/desktop_capture/desktop_capturer.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/api/transport/network_control.h b/api/transport/network_control.h
-index 90cdebe9bb..0f712da8bb 100644
---- a/api/transport/network_control.h
-+++ b/api/transport/network_control.h
-@@ -17,6 +17,7 @@
- #include "absl/base/attributes.h"
- #include "api/environment/environment.h"
- #include "api/field_trials_view.h"
-+#include "api/rtc_event_log/rtc_event_log.h"
- #include "api/transport/network_types.h"
- #include "api/units/data_rate.h"
- #include "api/units/time_delta.h"
+diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
+index 60c04723d6..fb3cc94f74 100644
+--- a/modules/desktop_capture/desktop_capturer.h
++++ b/modules/desktop_capture/desktop_capturer.h
+@@ -82,7 +82,7 @@ class RTC_EXPORT DesktopCapturer {
+   struct Source {
+     // The unique id to represent a Source of current DesktopCapturer.
+     SourceId id;
+-    pid_t pid;
++    pid_t pid = 0;
+ 
+     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
+     // should not be used to identify a source.

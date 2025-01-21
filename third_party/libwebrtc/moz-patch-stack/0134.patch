@@ -1,31 +1,35 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 29 Oct 2024 18:20:00 +0000
-Subject: Bug 1925119 - add dcsctp to libwebrtc build. r=bwc,webrtc-reviewers
+Date: Mon, 14 Oct 2024 18:40:00 -0500
+Subject: Bug 1924098 - (fix-93c9aa1914) add missing include that upstream
+ missed
 
-Differential Revision: https://phabricator.services.mozilla.com/D225892
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a33b06e51017d25542a95c2a460bfed41c553b
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a6b254783eaa91d0305d8516f27f1ca68c6772
 ---
- BUILD.gn | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ call/video_receive_stream.h | 1 +
+ call/video_send_stream.h    | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 97227f0e03..f11d86d211 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -567,6 +567,7 @@ if (!build_with_chromium) {
-       "call",
-       "common_audio",
-       "common_video",
-+      ":dcsctp",
-       "logging:rtc_event_log_api",
-       "media",
-       "modules",
-@@ -886,7 +887,7 @@ if (rtc_include_tests && !build_with_chromium) {
- # Build target for standalone dcsctp
- rtc_static_library("dcsctp") {
-   # Only the root target should depend on this.
--  visibility = [ "//:default" ]
-+  visibility = [ "//:default", "//libwebrtc:webrtc" ]
-   sources = []
-   complete_static_lib = true
-   suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
+diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
+index 574d8cea6d..50c27e7242 100644
+--- a/call/video_receive_stream.h
++++ b/call/video_receive_stream.h
+@@ -25,6 +25,7 @@
+ #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+ #include "api/crypto/crypto_options.h"
+ #include "api/crypto/frame_decryptor_interface.h"
++#include "api/crypto/frame_encryptor_interface.h"
+ #include "api/frame_transformer_interface.h"
+ #include "api/rtp_headers.h"
+ #include "api/scoped_refptr.h"
+diff --git a/call/video_send_stream.h b/call/video_send_stream.h
+index 2f5ff4ad3c..f2f9561a03 100644
+--- a/call/video_send_stream.h
++++ b/call/video_send_stream.h
+@@ -21,6 +21,7 @@
+ #include "api/adaptation/resource.h"
+ #include "api/call/transport.h"
+ #include "api/crypto/crypto_options.h"
++#include "api/crypto/frame_encryptor_interface.h"
+ #include "api/frame_transformer_interface.h"
+ #include "api/rtp_parameters.h"
+ #include "api/rtp_sender_setparameters_callback.h"
