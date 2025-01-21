@@ -376,8 +376,11 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
   }
 
   // 3. Check for general exceptions
-  if (OnionException(aURI) || LoopbackOrLocalException(aURI) ||
-      UnknownPublicSuffixException(aURI)) {
+  if (OnionException(aURI) ||
+      (!mozilla::StaticPrefs::dom_security_https_first_for_local_addresses() &&
+       LoopbackOrLocalException(aURI)) ||
+      (!mozilla::StaticPrefs::dom_security_https_first_for_unknown_suffixes() &&
+       UnknownPublicSuffixException(aURI))) {
     return false;
   }
 

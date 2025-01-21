@@ -4131,6 +4131,18 @@
   value: false
   mirror: always
 
+# If true, HTTPS-First will upgrade local addresses
+- name: dom.security.https_first_for_local_addresses
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# If true, HTTPS-First will upgrade unknown suffixes
+- name: dom.security.https_first_for_unknown_suffixes
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # If true, top-level requests in Private Browsing Mode will get
 # upgraded to HTTPS. (If dom.security.https_first
 # is set to true then this pref has no effect)
