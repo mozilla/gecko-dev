@@ -146,8 +146,6 @@ class AppLinksFeature(
             } else {
                 message
             },
-            positiveButtonText = R.string.mozac_feature_applinks_confirm_dialog_confirm,
-            negativeButtonText = R.string.mozac_feature_applinks_confirm_dialog_deny,
         )
     }
 
