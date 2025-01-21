@@ -11,28 +11,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import mozfile
 from mozlint import result
 
 here = os.path.abspath(os.path.dirname(__file__))
-RUFF_REQUIREMENTS_PATH = os.path.join(here, "ruff_requirements.txt")
-
-RUFF_NOT_FOUND = """
-Could not find ruff! Install ruff and try again.
-
-    $ pip install -U --require-hashes -r {}
-""".strip().format(
-    RUFF_REQUIREMENTS_PATH
-)
-
-
-RUFF_INSTALL_ERROR = """
-Unable to install correct version of ruff!
-Try to install it manually with:
-    $ pip install -U --require-hashes -r {}
-""".strip().format(
-    RUFF_REQUIREMENTS_PATH
-)
 
 
 def default_bindir():
@@ -61,32 +42,6 @@ def get_ruff_version(binary):
     if matches:
         return matches[1]
     print("Error: Could not parse the version '{}'".format(output))
-
-
-def setup(root, log, **lintargs):
-    virtualenv_bin_path = lintargs.get("virtualenv_bin_path")
-    binary = mozfile.which("ruff", path=(virtualenv_bin_path, default_bindir()))
-
-    if binary and os.path.isfile(binary):
-        log.debug(f"Looking for ruff at {binary}")
-        version = get_ruff_version(binary)
-        versions = [
-            line.split()[0].strip()
-            for line in open(RUFF_REQUIREMENTS_PATH).readlines()
-            if line.startswith("ruff==")
-        ]
-        if [f"ruff=={version}"] == versions:
-            log.debug("ruff is present with expected version {}".format(version))
-            return 0
-        else:
-            log.debug("ruff is present but unexpected version {}".format(version))
-
-    virtualenv_manager = lintargs["virtualenv_manager"]
-    try:
-        virtualenv_manager.install_pip_requirements(RUFF_REQUIREMENTS_PATH)
-    except subprocess.CalledProcessError:
-        print(RUFF_INSTALL_ERROR)
-        return 1
 
 
 def run_process(config, cmd, **kwargs):

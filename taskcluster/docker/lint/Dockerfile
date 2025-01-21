@@ -15,10 +15,6 @@ ADD topsrcdir/python/mozbuild/mozbuild/action/tooltool.py /build/tooltool.py
 ADD topsrcdir/taskcluster/docker/recipes/install-node.sh /build/install-node.sh
 
 ADD system-setup.sh /tmp/system-setup.sh
-# %include tools/lint/spell/codespell_requirements.txt
-ADD topsrcdir/tools/lint/spell/codespell_requirements.txt /tmp/codespell_requirements.txt
-# %include tools/lint/tox/tox_requirements.txt
-ADD topsrcdir/tools/lint/tox/tox_requirements.txt /tmp/tox_requirements.txt
 RUN bash /tmp/system-setup.sh
 
 RUN chown -R worker:worker /builds/worker/bin && chmod 755 /builds/worker/bin/*

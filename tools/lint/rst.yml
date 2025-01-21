@@ -8,4 +8,3 @@ rst:
         - 'tools/lint/rst/**'
     type: external
     payload: rst:lint
-    setup: rst:setup

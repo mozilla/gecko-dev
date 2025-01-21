@@ -322,7 +322,6 @@ py-ruff:
             - 'pyproject.toml'
             - 'tools/lint/ruff.yml'
             - 'tools/lint/python/ruff.py'
-            - 'tools/lint/python/ruff_requirements.txt'
 
 test-manifest:
     description: lint test manifests

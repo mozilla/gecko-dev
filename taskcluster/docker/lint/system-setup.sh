@@ -46,21 +46,5 @@ cd /build
 
 npm install -g yarn@1.22.18
 
-###
-# codespell Setup
-###
-
-cd /setup
-
-pip3 install --break-system-packages --require-hashes -r /tmp/codespell_requirements.txt
-
-###
-# tox Setup
-###
-
-cd /setup
-
-pip3 install --break-system-packages --require-hashes -r /tmp/tox_requirements.txt
-
 cd /
 rm -rf /setup

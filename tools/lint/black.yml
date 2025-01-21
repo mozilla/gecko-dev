@@ -16,4 +16,3 @@ black:
         - 'tools/lint/python/**'
     type: external
     payload: python.black:lint
-    setup: python.black:setup

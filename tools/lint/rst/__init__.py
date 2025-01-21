@@ -41,15 +41,6 @@ Try to install it manually with:
 RSTCHECK_FORMAT_REGEX = re.compile(r"(.*):(.*): \(.*/([0-9]*)\) (.*)$")
 
 
-def setup(root, **lintargs):
-    virtualenv_manager = lintargs["virtualenv_manager"]
-    try:
-        virtualenv_manager.install_pip_requirements(rstcheck_requirements_file)
-    except subprocess.CalledProcessError:
-        print(RSTCHECK_INSTALL_ERROR)
-        return 1
-
-
 def get_rstcheck_binary():
     """
     Returns the path of the first rstcheck binary available

@@ -94,5 +94,4 @@ codespell:
     support-files:
         - 'tools/lint/spell/**'
     type: external
-    setup: spell:setup
     payload: spell:lint

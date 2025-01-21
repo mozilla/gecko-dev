@@ -1,4 +1,28 @@
 requires-python:>=3.8
+# We need sphinx to avoid some rstcheck errors and warnings
+pypi:Sphinx==7.1.2
+pypi:alabaster==0.7.13
+pypi:black==24.8.0
+pypi:codespell==2.3.0
+pypi:dataclasses==0.6
+pypi:distlib==0.3.7
+pypi:docutils==0.18.1
+pypi:fluent.pygments==1.0
+pypi:imagesize==1.4.1
+pypi:markupsafe==2.0.1
+pypi:more-itertools==7.2.0
+pypi:pluggy==0.13.1
+pypi:py==1.11.0
+pypi:pytz==2022.7.1
+pypi:rstcheck==6.2.4
+pypi:ruff==0.9.0
+pypi:snowballstemmer==2.2.0
+pypi:sphinxcontrib-applehelp==1.0.4
+pypi:sphinxcontrib-htmlhelp==2.0.1
+pypi:sphinxcontrib-mermaid==1.0.0
+pypi:tox==2.7.0
+pypi:typed-ast==1.4.2; python_version < '3.8'
+pypi:virtualenv==20.24.7
 vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp

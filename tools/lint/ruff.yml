@@ -14,4 +14,3 @@ ruff:
     warning-rules: [PLR, PLW]
     type: external
     payload: python.ruff:lint
-    setup: python.ruff:setup

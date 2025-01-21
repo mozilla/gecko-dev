@@ -17,24 +17,11 @@ from mozlint import result
 from mozlint.util.implementation import LintProcess
 
 here = os.path.abspath(os.path.dirname(__file__))
-CODESPELL_REQUIREMENTS_PATH = os.path.join(here, "codespell_requirements.txt")
 
 CODESPELL_NOT_FOUND = """
-Could not find codespell! Install codespell and try again.
+Could not find codespell!
+""".strip()
 
-    $ pip install -U --require-hashes -r {}
-""".strip().format(
-    CODESPELL_REQUIREMENTS_PATH
-)
-
-
-CODESPELL_INSTALL_ERROR = """
-Unable to install correct version of codespell
-Try to install it manually with:
-    $ pip install -U --require-hashes -r {}
-""".strip().format(
-    CODESPELL_REQUIREMENTS_PATH
-)
 
 results = []
 
@@ -90,15 +77,6 @@ def get_codespell_binary():
         return binary
 
     return which("codespell")
-
-
-def setup(root, **lintargs):
-    virtualenv_manager = lintargs["virtualenv_manager"]
-    try:
-        virtualenv_manager.install_pip_requirements(CODESPELL_REQUIREMENTS_PATH)
-    except subprocess.CalledProcessError:
-        print(CODESPELL_INSTALL_ERROR)
-        return 1
 
 
 def get_codespell_version(binary):
