@@ -26,13 +26,13 @@ using Telemetry::HistogramID;
 
 static Maybe<HistogramID> HistogramIdForMetric(uint32_t aId) {
   switch(aId) {
-    case 3: { // test.custom_distribution_metric
+    case 28021745: { // test.custom_distribution_metric
       return Some(HistogramID::SOME_LINEAR_HISTOGRAM);
     }
-    case 10: { // test.memory_distribution_metric
+    case 6804861: { // test.memory_distribution_metric
       return Some(HistogramID::SOME_MEM_HISTOGRAM_KB);
     }
-    case 15: { // test.timing_distribution_metric
+    case 25552771: { // test.timing_distribution_metric
       return Some(HistogramID::SOME_TIME_HISTOGRAM_MS);
     }
     default: {
