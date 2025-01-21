@@ -562,9 +562,10 @@ EffectCompositor::GetAnimationElementAndPseudoForFrame(const nsIFrame* aFrame) {
     case PseudoStyleType::viewTransitionImagePair:
     case PseudoStyleType::viewTransitionOld:
     case PseudoStyleType::viewTransitionNew: {
-      request.mIdentifier = element->HasName()
-                       ? element->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
-                       : nullptr;
+      request.mIdentifier =
+          element->HasName()
+              ? element->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
+              : nullptr;
       element = element->OwnerDoc()->GetRootElement();
       break;
     }
