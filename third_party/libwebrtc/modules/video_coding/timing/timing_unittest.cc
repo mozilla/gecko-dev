@@ -449,4 +449,46 @@ TEST(VCMTimingTest, GetTimings) {
   EXPECT_THAT(timings, HasConsistentVideoDelayTimings());
 }
 
+TEST(VCMTimingTest, GetTimingsBeforeAndAfterValidRtpTimestamp) {
+  SimulatedClock clock(33);
+  test::ScopedKeyValueConfig field_trials;
+  VCMTiming timing(&clock, field_trials);
+
+  // Setup.
+  TimeDelta min_playout_delay = TimeDelta::Millis(50);
+  timing.set_min_playout_delay(min_playout_delay);
+  timing.set_max_playout_delay(TimeDelta::Millis(500));
+
+  // On decodable frames before valid rtp timestamp.
+  constexpr int decodeable_frame_cnt = 10;
+  constexpr uint32_t any_time_elapsed = 17;
+  constexpr uint32_t rtp_ts_base = 3000;
+  constexpr uint32_t rtp_ts_delta_10fps = 9000;
+  constexpr uint32_t frame_ts_delta_10fps = 100;
+  uint32_t rtp_ts = rtp_ts_base;
+
+  for (int i = 0; i < decodeable_frame_cnt; i++) {
+    clock.AdvanceTimeMilliseconds(any_time_elapsed);
+    rtp_ts += rtp_ts_delta_10fps;
+
+    Timestamp render_time = timing.RenderTime(rtp_ts, clock.CurrentTime());
+    // Render time should be CurrentTime, because timing.IncomingTimestamp has
+    // not been called yet.
+    EXPECT_EQ(render_time, clock.CurrentTime());
+  }
+
+  // On frame complete, which one not 'metadata.delayed_by_retransmission'
+  Timestamp valid_frame_ts = clock.CurrentTime();
+  timing.IncomingTimestamp(rtp_ts, valid_frame_ts);
+
+  clock.AdvanceTimeMilliseconds(any_time_elapsed);
+  rtp_ts += rtp_ts_delta_10fps;
+
+  Timestamp render_time = timing.RenderTime(rtp_ts, clock.CurrentTime());
+  // Render time should be relative to the latest valid frame timestamp.
+  EXPECT_EQ(render_time, valid_frame_ts +
+                             TimeDelta::Millis(frame_ts_delta_10fps) +
+                             min_playout_delay);
+}
+
 }  // namespace webrtc
