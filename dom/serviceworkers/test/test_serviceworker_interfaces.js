@@ -152,8 +152,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CountQueuingStrategy",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CookieChangeEvent", earlyBetaOrEarlier: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CookieStore", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Crypto",
