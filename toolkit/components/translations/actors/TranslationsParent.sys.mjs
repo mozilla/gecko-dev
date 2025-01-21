@@ -95,7 +95,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   USE_LEXICAL_SHORTLIST_PREF,
   /* aDefaultValue */ false,
   /* aOnUpdate */ () => {
-    Services.prefs.notifyObservers;
     Services.obs.notifyObservers(
       null,
       TOPIC_TRANSLATIONS_PREF_CHANGED,
