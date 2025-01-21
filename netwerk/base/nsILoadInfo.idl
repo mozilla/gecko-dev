@@ -22,6 +22,7 @@ webidl BrowsingContext;
 native LoadContextRef(already_AddRefed<nsISupports>);
 %{C++
 #include "nsTArray.h"
+#include "mozilla/dom/UserNavigationInvolvement.h"
 #include "mozilla/LoadTainting.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/UniquePtr.h"
@@ -1617,4 +1618,18 @@ interface nsILoadInfo : nsISupports
    * When true, this load will never be upgraded to HTTPS.
    */
   [infallible] attribute boolean skipHTTPSUpgrade;
+
+  /**
+   * see https://html.spec.whatwg.org/#user-navigation-involvement
+   */
+  attribute uint8_t userNavigationInvolvement;
+%{C++
+    mozilla::dom::UserNavigationInvolvement GetUserNavigationInvolvement() {
+      uint8_t userNavigationInvolvement = 0;
+      mozilla::DebugOnly<nsresult> rv = GetUserNavigationInvolvement(&userNavigationInvolvement);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      MOZ_DIAGNOSTIC_ASSERT(userNavigationInvolvement < 3);
+      return static_cast<mozilla::dom::UserNavigationInvolvement>(userNavigationInvolvement);
+    }
+%}
 };

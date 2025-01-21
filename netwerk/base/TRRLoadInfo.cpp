@@ -54,6 +54,17 @@ TRRLoadInfo::SetPrincipalToInherit(nsIPrincipal* aPrincipalToInherit) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+TRRLoadInfo::GetUserNavigationInvolvement(
+    uint8_t* aUserNavigationInvolvement) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetUserNavigationInvolvement(uint8_t aUserNavigationInvolvement) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 nsIPrincipal* TRRLoadInfo::PrincipalToInherit() { return nullptr; }
 
 nsIPrincipal* TRRLoadInfo::FindPrincipalToInherit(nsIChannel* aChannel) {

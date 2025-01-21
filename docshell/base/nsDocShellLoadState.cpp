@@ -695,6 +695,16 @@ void nsDocShellLoadState::SetLoadType(uint32_t aLoadType) {
   mLoadType = aLoadType;
 }
 
+mozilla::dom::UserNavigationInvolvement
+nsDocShellLoadState::UserNavigationInvolvement() const {
+  return mUserNavigationInvolvement;
+}
+
+void nsDocShellLoadState::SetUserNavigationInvolvement(
+    mozilla::dom::UserNavigationInvolvement aUserNavigationInvolvement) {
+  mUserNavigationInvolvement = aUserNavigationInvolvement;
+}
+
 nsISHEntry* nsDocShellLoadState::SHEntry() const { return mSHEntry; }
 
 void nsDocShellLoadState::SetSHEntry(nsISHEntry* aSHEntry) {
@@ -1326,6 +1336,7 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.ShouldCheckForRecursion() = mShouldCheckForRecursion;
   loadState.IsFormSubmission() = mIsFormSubmission;
   loadState.LoadType() = mLoadType;
+  loadState.userNavigationInvolvement() = mUserNavigationInvolvement;
   loadState.Target() = mTarget;
   loadState.TargetBrowsingContext() = mTargetBrowsingContext;
   loadState.LoadFlags() = mLoadFlags;

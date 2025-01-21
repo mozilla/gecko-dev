@@ -8,6 +8,7 @@
 #define mozilla_LoadInfo_h
 
 #include "mozilla/dom/FeaturePolicy.h"
+#include "mozilla/dom/UserNavigationInvolvement.h"
 #include "nsIInterceptionInfo.h"
 #include "nsILoadInfo.h"
 #include "nsIPrincipal.h"
@@ -262,7 +263,8 @@ class LoadInfo final : public nsILoadInfo {
       bool aHasInjectedCookieForCookieBannerHandling,
       nsILoadInfo::SchemelessInputType aSchemelessInput,
       nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry,
-      bool aIsNewWindowTarget);
+      bool aIsNewWindowTarget,
+      dom::UserNavigationInvolvement aUserNavigationInvolvement);
 
   LoadInfo(const LoadInfo& rhs);
 
@@ -421,6 +423,9 @@ class LoadInfo final : public nsILoadInfo {
 
   nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =
       nsILoadInfo::NOT_INITIALIZED;
+
+  dom::UserNavigationInvolvement mUserNavigationInvolvement =
+      dom::UserNavigationInvolvement::None;
 
   bool mIsNewWindowTarget = false;
   bool mSkipHTTPSUpgrade = false;

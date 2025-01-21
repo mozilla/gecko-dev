@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/SessionHistoryEntry.h"
+#include "mozilla/dom/UserNavigationInvolvement.h"
 
 #include "nsILoadInfo.h"
 
@@ -171,6 +172,11 @@ class nsDocShellLoadState final {
   uint32_t LoadType() const;
 
   void SetLoadType(uint32_t aLoadType);
+
+  mozilla::dom::UserNavigationInvolvement UserNavigationInvolvement() const;
+
+  void SetUserNavigationInvolvement(
+      mozilla::dom::UserNavigationInvolvement aUserNavigationInvolvement);
 
   nsISHEntry* SHEntry() const;
 
@@ -531,6 +537,10 @@ class nsDocShellLoadState final {
   // Contains a load type as specified by the nsDocShellLoadTypes::load*
   // constants
   uint32_t mLoadType;
+
+  // https://html.spec.whatwg.org/#user-navigation-involvement
+  mozilla::dom::UserNavigationInvolvement mUserNavigationInvolvement =
+      mozilla::dom::UserNavigationInvolvement::None;
 
   // Active Session History entry (if loading from SH)
   nsCOMPtr<nsISHEntry> mSHEntry;

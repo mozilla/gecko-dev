@@ -8,6 +8,7 @@ include "mozilla/dom/DomSecurityIPCUtils.h";
 include "mozilla/GfxMessageUtils.h";
 include "mozilla/dom/CSPMessageUtils.h";
 include "mozilla/dom/DocShellMessageUtils.h";
+include "mozilla/dom/NavigationAPIIPCUtils.h";
 include "mozilla/dom/PermissionMessageUtils.h";
 include "mozilla/dom/PropertyBagUtils.h";
 include "mozilla/dom/ReferrerInfoUtils.h";
@@ -58,6 +59,7 @@ using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 [MoveOnly] using class mozilla::ipc::BigBuffer from "mozilla/ipc/BigBuffer.h";
 using mozilla::dom::NotificationDirection from "mozilla/dom/NotificationBinding.h";
+using mozilla::dom::UserNavigationInvolvement from "mozilla/dom/UserNavigationInvolvement.h";
 
 namespace mozilla {
 namespace dom {
@@ -194,7 +196,10 @@ struct DocShellLoadStateInit
   uint32_t LoadFlags;
   uint32_t InternalLoadFlags;
 
-  // The TriggineringSandboxFlags are the SandboxFlags of the entity
+  // https://html.spec.whatwg.org/#user-navigation-involvement
+  UserNavigationInvolvement userNavigationInvolvement;
+
+  // The TriggeringSandboxFlags are the SandboxFlags of the entity
   // responsible for causing the load to occur.
   uint32_t TriggeringSandboxFlags;
   uint64_t TriggeringWindowId;

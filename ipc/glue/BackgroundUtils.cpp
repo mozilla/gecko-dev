@@ -602,7 +602,8 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetStoragePermission(), overriddenFingerprintingSettingsArg,
       aLoadInfo->GetIsMetaRefresh(), aLoadInfo->GetLoadingEmbedderPolicy(),
       aLoadInfo->GetIsOriginTrialCoepCredentiallessEnabledForTopLevel(),
-      unstrippedURI, interceptionInfoArg, aLoadInfo->GetIsNewWindowTarget());
+      unstrippedURI, interceptionInfoArg, aLoadInfo->GetIsNewWindowTarget(),
+      aLoadInfo->GetUserNavigationInvolvement());
 
   return NS_OK;
 }
@@ -897,7 +898,8 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.unstrippedURI(), interceptionInfo,
       loadInfoArgs.hasInjectedCookieForCookieBannerHandling(),
       loadInfoArgs.schemelessInput(), loadInfoArgs.httpsUpgradeTelemetry(),
-      loadInfoArgs.isNewWindowTarget());
+      loadInfoArgs.isNewWindowTarget(),
+      loadInfoArgs.userNavigationInvolvement());
 
   if (loadInfoArgs.isFromProcessingFrameAttributes()) {
     loadInfo->SetIsFromProcessingFrameAttributes();
@@ -980,7 +982,8 @@ void LoadInfoToParentLoadInfoForwarder(
       aLoadInfo->GetRequestBlockingReason(), aLoadInfo->GetStoragePermission(),
       overriddenFingerprintingSettingsArg, aLoadInfo->GetIsMetaRefresh(),
       isThirdPartyContextToTopWindow, aLoadInfo->GetIsInThirdPartyContext(),
-      aLoadInfo->GetIsOn3PCBExceptionList(), unstrippedURI);
+      aLoadInfo->GetIsOn3PCBExceptionList(), unstrippedURI,
+      aLoadInfo->GetUserNavigationInvolvement());
 }
 
 nsresult MergeParentLoadInfoForwarder(
@@ -1107,6 +1110,9 @@ nsresult MergeParentLoadInfoForwarder(
     aLoadInfo->SetContainerFeaturePolicyInfo(
         *aForwarderArgs.containerFeaturePolicyInfo());
   }
+
+  aLoadInfo->SetUserNavigationInvolvement(
+      uint8_t(aForwarderArgs.userNavigationInvolvement()));
 
   return NS_OK;
 }

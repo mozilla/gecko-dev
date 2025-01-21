@@ -749,7 +749,8 @@ LoadInfo::LoadInfo(
     bool aHasInjectedCookieForCookieBannerHandling,
     nsILoadInfo::SchemelessInputType aSchemelessInput,
     nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry,
-    bool aIsNewWindowTarget)
+    bool aIsNewWindowTarget,
+    dom::UserNavigationInvolvement aUserNavigationInvolvement)
     : mLoadingPrincipal(aLoadingPrincipal),
       mTriggeringPrincipal(aTriggeringPrincipal),
       mPrincipalToInherit(aPrincipalToInherit),
@@ -833,6 +834,7 @@ LoadInfo::LoadInfo(
           aHasInjectedCookieForCookieBannerHandling),
       mSchemelessInput(aSchemelessInput),
       mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry),
+      mUserNavigationInvolvement(aUserNavigationInvolvement),
       mIsNewWindowTarget(aIsNewWindowTarget) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
   MOZ_ASSERT(mLoadingPrincipal ||
@@ -995,6 +997,18 @@ LoadInfo::GetLoadingDocument(Document** aResult) {
     RefPtr<Document> context = node->OwnerDoc();
     context.forget(aResult);
   }
+  return NS_OK;
+}
+NS_IMETHODIMP
+LoadInfo::GetUserNavigationInvolvement(uint8_t* aUserNavigationInvolvement) {
+  *aUserNavigationInvolvement = uint8_t(mUserNavigationInvolvement);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetUserNavigationInvolvement(uint8_t aUserNavigationInvolvement) {
+  mUserNavigationInvolvement =
+      dom::UserNavigationInvolvement(aUserNavigationInvolvement);
   return NS_OK;
 }
 
