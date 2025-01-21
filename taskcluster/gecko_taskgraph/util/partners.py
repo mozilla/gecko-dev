@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import xml.etree.ElementTree as ET
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import requests
 import yaml
@@ -553,3 +553,48 @@ def generate_attribution_code(defaults, partner):
 
     code = urlencode(params)
     return code
+
+
+MACOS_ATTRIBUTION_SENTINEL = "__MOZCUSTOM__"
+
+
+def build_macos_attribution_dmg_command(dmg_app_path, attributions):
+    command = []
+    for a in attributions:
+        output_dir = os.path.dirname(os.path.abspath(a["output"]))
+        create_dir_command = "mkdir -p {}".format(output_dir)
+        if create_dir_command not in command:
+            command.append(create_dir_command)
+
+        command.append(
+            " ".join(
+                [
+                    dmg_app_path,
+                    "attribute",
+                    a["input"],
+                    a["output"],
+                    MACOS_ATTRIBUTION_SENTINEL,
+                    _build_macos_attribution_string(attribution_code=a["attribution"]),
+                ]
+            )
+        )
+    return " && ".join(command)
+
+
+def _build_macos_attribution_string(attribution_code):
+    quoted_attribution_code = quote(attribution_code)
+    attribution_string = "{}{}".format(
+        MACOS_ATTRIBUTION_SENTINEL, quoted_attribution_code
+    )
+    # Padding must happen after string is URL-quoted, otherwise the tabs themselves
+    # are quoted as well.
+    padded_attribution_string = _pad_macos_attribution_code(attribution_string)
+    return "'{}'".format(padded_attribution_string)
+
+
+def _pad_macos_attribution_code(attribution_string):
+    # Attribution length should be aligned with ATTR_CODE_MAX_LENGTH
+    #   from browser/components/attribution/AttributionCode.sys
+    while len(attribution_string) < 1010:
+        attribution_string += "\t"
+    return attribution_string

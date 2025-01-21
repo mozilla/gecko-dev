@@ -5,6 +5,8 @@
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by
 
+from gecko_taskgraph.util.partners import build_macos_attribution_dmg_command
+
 transforms = TransformSequence()
 resolve_keyed_by_transforms = TransformSequence()
 
@@ -55,15 +57,17 @@ def mac_attribution(config, jobs):
     attribution data is the last thing in job.run.command
     """
     for job in jobs:
+        dlsource = job.pop("dlsource")
         if "macosx" in job["attributes"]["build_platform"]:
-            # Last argument of command should be the attribution data
-            command = job["run"]["command"]
-            attribution_arg = command[-1]
-            # Attribution length should be aligned with ATTR_CODE_MAX_LENGTH
-            #   from browser/components/attribution/AttributionCode.sys
-            while len(attribution_arg) < 1010:
-                attribution_arg += "\t"
-            # Wrap attribution value in quotes to prevent run-task from removing tabs
-            command[-1] = "'" + attribution_arg + "'"
-            job["run"]["command"] = " ".join(command)
+            job["run"]["command"] = build_macos_attribution_dmg_command(
+                "/builds/worker/fetches/dmg/dmg",
+                [
+                    {
+                        "input": "/builds/worker/fetches/target.dmg",
+                        "output": "/builds/worker/artifacts/target.dmg",
+                        "attribution": "dlsource={}".format(dlsource),
+                    }
+                ],
+            )
+
         yield job

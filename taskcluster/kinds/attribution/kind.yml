@@ -49,6 +49,8 @@ task-defaults:
         from-file: browser/installer/attribution.yml
         substitution-fields:
             - run.command
+            - dlsource
+    dlsource: "{attribution_code[json][dlsource]}"
     worker:
         artifacts:
             - name: public/build
@@ -76,14 +78,7 @@ task-defaults:
                     # attribution of other files, which they can append themselves.
                     - --input
                     - /builds/worker/fetches/target.installer.exe
-                mac.*:
-                    - mkdir -p /builds/worker/artifacts &&
-                    - /builds/worker/fetches/dmg/dmg
-                    - attribute
-                    - /builds/worker/fetches/target.dmg
-                    - /builds/worker/artifacts/target.dmg
-                    - __MOZCUSTOM__
-                    - __MOZCUSTOM__dlsource%3D{attribution_code[json][dlsource]}
+                mac.*: []   # Defined in transforms
     use-python: default
 
 tasks:
