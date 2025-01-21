@@ -117,7 +117,7 @@ var Prefs = {
     this._initialized = true;
 
     this._prefBranch = Services.prefs.getBranch("browser.formfill.");
-    this._prefBranch.addObserver("", this, true);
+    this._prefBranch.addObserver("", this);
 
     this._agedWeight = this._prefBranch.getIntPref("agedWeight");
     this._boundaryWeight = this._prefBranch.getIntPref("boundaryWeight");
@@ -172,10 +172,7 @@ var Prefs = {
     }
   },
 
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 };
 
 function log(aMessage) {
