@@ -28,12 +28,15 @@ template <class TimelineType>
 void TimelineCollection<TimelineType>::Destroy() {
   auto* data = mElement.GetAnimationData();
   MOZ_ASSERT(data);
+  // Copy the request because mPseudo may be deleted when clearing the
+  // collection.
+  const PseudoStyleRequest request = mPseudo;
   if constexpr (std::is_same_v<TimelineType, dom::ScrollTimeline>) {
-    MOZ_ASSERT(data->GetScrollTimelineCollection(mPseudo) == this);
-    data->ClearScrollTimelineCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetScrollTimelineCollection(request) == this);
+    data->ClearScrollTimelineCollectionFor(request);
   } else if constexpr (std::is_same_v<TimelineType, dom::ViewTimeline>) {
-    MOZ_ASSERT(data->GetViewTimelineCollection(mPseudo) == this);
-    data->ClearViewTimelineCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetViewTimelineCollection(request) == this);
+    data->ClearViewTimelineCollectionFor(request);
   } else {
     MOZ_ASSERT_UNREACHABLE("Unsupported TimelienType");
   }

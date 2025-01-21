@@ -77,7 +77,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   MOZ_CAN_RUN_SCRIPT void CallUpdateCallback(ErrorResult&);
   void Activate();
 
-  void ClearActiveTransition();
+  void ClearActiveTransition(bool aIsDocumentHidden);
   void Timeout();
   void Setup();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureOldState();

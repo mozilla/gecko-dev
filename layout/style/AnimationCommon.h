@@ -123,7 +123,18 @@ class OwningElementRef final {
                                               &aChildIndex, &aOtherChildIndex);
     }
 
-    enum SortingIndex : uint8_t { NotPseudo, Marker, Before, After, Other };
+    enum SortingIndex : uint8_t {
+      NotPseudo,
+      Marker,
+      Before,
+      After,
+      ViewTransition,
+      ViewTransitionGroup,
+      ViewTransitionImagePair,
+      ViewTransitionOld,
+      ViewTransitionNew,
+      Other
+    };
     auto sortingIndex =
         [](const PseudoStyleRequest& aPseudoRequest) -> SortingIndex {
       switch (aPseudoRequest.mType) {
@@ -135,6 +146,16 @@ class OwningElementRef final {
           return SortingIndex::Before;
         case PseudoStyleType::after:
           return SortingIndex::After;
+        case PseudoStyleType::viewTransition:
+          return SortingIndex::ViewTransition;
+        case PseudoStyleType::viewTransitionGroup:
+          return SortingIndex::ViewTransitionGroup;
+        case PseudoStyleType::viewTransitionImagePair:
+          return SortingIndex::ViewTransitionImagePair;
+        case PseudoStyleType::viewTransitionOld:
+          return SortingIndex::ViewTransitionOld;
+        case PseudoStyleType::viewTransitionNew:
+          return SortingIndex::ViewTransitionNew;
         default:
           MOZ_ASSERT_UNREACHABLE("Unexpected pseudo type");
           return SortingIndex::Other;

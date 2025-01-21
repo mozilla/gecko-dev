@@ -530,34 +530,51 @@ EffectCompositor::GetAnimationElementAndPseudoForFrame(const nsIFrame* aFrame) {
   // Always return the same object to benefit from return-value optimization.
   Maybe<NonOwningAnimationTarget> result;
 
-  // FIXME: Bug 1922095. We also need to retrieve the functional parameter for
-  // view transitions.
-  const auto& request = PseudoStyleRequest(aFrame->Style()->GetPseudoType());
+  auto request = PseudoStyleRequest(aFrame->Style()->GetPseudoType());
   const bool isSupportedPseudo =
       AnimationUtils::IsSupportedPseudoForAnimations(request);
 
+  // If it is a pseudo element but we don't support animations for it, just
+  // return.
   if (!request.IsNotPseudo() && !isSupportedPseudo) {
     return result;
   }
 
   nsIContent* content = aFrame->GetContent();
-  if (!content) {
+  if (!content || !content->IsElement()) {
     return result;
   }
 
-  if (isSupportedPseudo) {
-    content = content->GetParent();
-    if (!content) {
-      return result;
+  Element* element = content->AsElement();
+  switch (request.mType) {
+    case PseudoStyleType::before:
+    case PseudoStyleType::after:
+    case PseudoStyleType::marker: {
+      nsIContent* parent = element->GetParent();
+      if (!parent || !parent->IsElement()) {
+        return result;
+      }
+      element = parent->AsElement();
+      break;
     }
+    case PseudoStyleType::viewTransition:
+    case PseudoStyleType::viewTransitionGroup:
+    case PseudoStyleType::viewTransitionImagePair:
+    case PseudoStyleType::viewTransitionOld:
+    case PseudoStyleType::viewTransitionNew: {
+      request.mIdentifier = element->HasName()
+                       ? element->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
+                       : nullptr;
+      element = element->OwnerDoc()->GetRootElement();
+      break;
+    }
+    case PseudoStyleType::NotPseudo:
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown PseudoStyleType");
   }
 
-  if (!content->IsElement()) {
-    return result;
-  }
-
-  result.emplace(content->AsElement(), request);
-
+  result.emplace(element, request);
   return result;
 }
 

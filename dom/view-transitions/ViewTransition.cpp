@@ -10,6 +10,7 @@
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
 #include "mozilla/webrender/WebRenderAPI.h"
+#include "mozilla/ElementAnimationData.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "mozilla/SVGIntegrationUtils.h"
 #include "mozilla/WritingModes.h"
@@ -631,7 +632,7 @@ void ViewTransition::HandleFrame() {
     // 4.1: Set transition's phase to "done".
     mPhase = Phase::Done;
     // 4.2: Clear view transition transition.
-    ClearActiveTransition();
+    ClearActiveTransition(false);
     // 4.3: Resolve transition's finished promise.
     if (Promise* finished = GetFinished(IgnoreErrors())) {
       finished->MaybeResolveWithUndefined();
@@ -646,8 +647,20 @@ void ViewTransition::ClearNamedElements() {
   mNamedElements.Clear();
 }
 
+static void ClearViewTransitionsAnimationData(Element* aRoot) {
+  if (!aRoot) {
+    return;
+  }
+
+  auto* data = aRoot->GetAnimationData();
+  if (!data) {
+    return;
+  }
+  data->ClearViewTransitionPseudos();
+}
+
 // https://drafts.csswg.org/css-view-transitions-1/#clear-view-transition
-void ViewTransition::ClearActiveTransition() {
+void ViewTransition::ClearActiveTransition(bool aIsDocumentHidden) {
   // Steps 1-2
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(mDocument->GetActiveViewTransition() == this);
@@ -664,6 +677,17 @@ void ViewTransition::ClearActiveTransition() {
     }
     mViewTransitionRoot->UnbindFromTree();
     mViewTransitionRoot = nullptr;
+
+    // If the doucment is being destroyed, we cannot get the animation data
+    // (e.g. it may crash when using nsINode::GetBoolFlag()), so we have to skip
+    // this case. It's fine because those animations should still be stopped and
+    // removed if no frame there.
+    //
+    // Another case is that the document is hidden. In that case, we don't setup
+    // the pseudo elements, so it's fine to skip it as well.
+    if (!aIsDocumentHidden) {
+      ClearViewTransitionsAnimationData(mDocument->GetRootElement());
+    }
   }
   mDocument->ClearActiveViewTransition();
 }
@@ -700,7 +724,7 @@ void ViewTransition::SkipTransition(
   // Step 5: If document's active view transition is transition, Clear view
   // transition transition.
   if (mDocument->GetActiveViewTransition() == this) {
-    ClearActiveTransition();
+    ClearActiveTransition(aReason == SkipTransitionReason::DocumentHidden);
   }
 
   // Step 6: Set transition's phase to "done".

@@ -36,12 +36,15 @@ void AnimationCollection<AnimationType>::Destroy() {
   mCalledDestroy = true;
   auto* data = mElement.GetAnimationData();
   MOZ_ASSERT(data);
+  // Copy the request because mPseudo may be deleted when clearing the
+  // collection.
+  const PseudoStyleRequest request = mPseudo;
   if constexpr (std::is_same_v<AnimationType, dom::CSSAnimation>) {
-    MOZ_ASSERT(data->GetAnimationCollection(mPseudo) == this);
-    data->ClearAnimationCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetAnimationCollection(request) == this);
+    data->ClearAnimationCollectionFor(request);
   } else {
-    MOZ_ASSERT(data->GetTransitionCollection(mPseudo) == this);
-    data->ClearTransitionCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetTransitionCollection(request) == this);
+    data->ClearTransitionCollectionFor(request);
   }
 }
 
