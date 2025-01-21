@@ -11346,7 +11346,7 @@ void PresShell::SetIsActive(bool aIsActive) {
   }
 }
 
-RefPtr<MobileViewportManager> PresShell::GetMobileViewportManager() const {
+MobileViewportManager* PresShell::GetMobileViewportManager() const {
   return mMobileViewportManager;
 }
 
