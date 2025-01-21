@@ -28,11 +28,11 @@
         type="arrow"
         class="panel tab-group-editor-panel"
         orient="vertical"
-        role="menu"
+        role="dialog"
         norolluponanchor="true">
       <html:div class="panel-header">
-        <html:h1 class="tab-group-create-mode-only" data-l10n-id="tab-group-editor-title-create"></html:h1>
-        <html:h1 class="tab-group-edit-mode-only" data-l10n-id="tab-group-editor-title-edit"></html:h1>
+        <html:h1 id="tab-group-editor-title-create" class="tab-group-create-mode-only" data-l10n-id="tab-group-editor-title-create"></html:h1>
+        <html:h1 id="tab-group-editor-title-edit" class="tab-group-edit-mode-only" data-l10n-id="tab-group-editor-title-edit"></html:h1>
       </html:div>
       <toolbarseparator />
       <html:div class="panel-body tab-group-editor-name">
@@ -181,9 +181,18 @@
       return this.#createMode;
     }
 
-    set createMode(mode) {
-      this.#panel.classList.toggle("tab-group-editor-mode-create", mode);
-      this.#createMode = mode;
+    set createMode(enableCreateMode) {
+      this.#panel.classList.toggle(
+        "tab-group-editor-mode-create",
+        enableCreateMode
+      );
+      this.#panel.setAttribute(
+        "aria-labelledby",
+        enableCreateMode
+          ? "tab-group-editor-title-create"
+          : "tab-group-editor-title-edit"
+      );
+      this.#createMode = enableCreateMode;
     }
 
     get activeGroup() {
