@@ -897,7 +897,10 @@ const AVAILABLE_SHIMS = [
     platform: "desktop",
     name: "Instagram embed placeholder",
     bug: "1892173",
-    file: "instagram-embed.js",
+    runFirst: "instagram-embed.js",
+    // Blank stub file just so we run the script above when the matched script
+    // files get blocked.
+    file: "empty-script.js",
     matches: [
       "https://www.instagram.com/embed.js",
       "https://platform.instagram.com/*/embeds.js",
@@ -917,7 +920,10 @@ const AVAILABLE_SHIMS = [
     platform: "desktop",
     name: "Tiktok embed placeholder",
     bug: "1892172",
-    file: "tiktok-embed.js",
+    runFirst: "tiktok-embed.js",
+    // Blank stub file just so we run the script above when the matched script
+    // files get blocked.
+    file: "empty-script.js",
     matches: ["https://www.tiktok.com/embed.js"],
     logos: ["tiktok.svg"],
     needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
