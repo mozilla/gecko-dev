@@ -252,15 +252,6 @@ enum class StyleMathVariant : uint8_t {
 // See nsStyleFont::mMathStyle
 enum class StyleMathStyle : uint8_t { Compact = 0, Normal = 1 };
 
-// See nsStyleDisplay.mPosition
-enum class StylePositionProperty : uint8_t {
-  Static,
-  Relative,
-  Absolute,
-  Fixed,
-  Sticky,
-};
-
 enum class FrameBorderProperty : uint8_t { Yes, No, One, Zero };
 
 enum class ScrollingAttribute : uint8_t {

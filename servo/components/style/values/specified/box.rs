@@ -1924,3 +1924,5 @@ impl Zoom {
         Self::Value(NonNegativeNumberOrPercentage::new_number(n))
     }
 }
+
+pub use crate::values::generics::box_::PositionProperty;
