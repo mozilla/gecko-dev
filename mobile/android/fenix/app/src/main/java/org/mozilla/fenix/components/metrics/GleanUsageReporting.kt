@@ -34,6 +34,10 @@ class GleanUsageReporting : GleanUsageReportingApi {
         Pings.usageReporting.submit()
     }
 
+    override fun requestDataDeletion() {
+        Pings.usageDeletionRequest.submit()
+    }
+
     private fun setUsageConstantValues() {
         Usage.os.set("android")
         Usage.osVersion.set(Build.VERSION.RELEASE)

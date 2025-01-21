@@ -47,6 +47,7 @@ class GleanUsageReportingMetricsService(
         gleanUsageReporting.setEnabled(false)
         unsetUsageProfileId()
         lifecycleOwner.lifecycle.removeObserver(gleanUsageReportingLifecycleObserver)
+        gleanUsageReporting.requestDataDeletion()
     }
 
     override fun track(event: Event) {

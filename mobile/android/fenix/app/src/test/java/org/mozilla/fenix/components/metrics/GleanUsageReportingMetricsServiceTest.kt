@@ -70,6 +70,21 @@ internal class GleanUsageReportingMetricsServiceTest {
         assertFalse(fakeGleanUsageReporting.lastEnabled!!)
     }
 
+    @Test
+    fun `when usage reporting is started, no data deletion request is sent`() {
+        createGleanUsageReportingMetricsService().start()
+        assertNull(fakeGleanUsageReporting.dataDeletionRequested)
+    }
+
+    @Test
+    fun `when usage reporting is stopped, a data deletion request is sent`() {
+        val service = createGleanUsageReportingMetricsService()
+        service.start()
+        service.stop()
+        assertNotNull(fakeGleanUsageReporting.dataDeletionRequested)
+        assertTrue(fakeGleanUsageReporting.dataDeletionRequested!!)
+    }
+
     private fun createGleanUsageReportingMetricsService() = GleanUsageReportingMetricsService(
         lifecycleOwner = fakeLifecycleOwner,
         gleanUsageReportingLifecycleObserver = fakeLifecycleEventObserver,

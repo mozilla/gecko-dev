@@ -35,4 +35,9 @@ interface GleanUsageReportingApi {
      * Send the ping to Glean.
      */
     fun submitPing()
+
+    /**
+     * Allows the user to request that all collected usage reporting data be deleted.
+     */
+    fun requestDataDeletion()
 }

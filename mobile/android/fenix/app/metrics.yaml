@@ -12175,6 +12175,7 @@ usage:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1921220
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1926829
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928975
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1921220
     data_sensitivity:
@@ -12187,6 +12188,7 @@ usage:
     expires: never
     send_in_pings:
       - usage-reporting
+      - usage-deletion-request
 
   duration:
     type: timespan

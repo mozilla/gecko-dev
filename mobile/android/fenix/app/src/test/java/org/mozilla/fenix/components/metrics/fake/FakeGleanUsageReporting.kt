@@ -17,6 +17,7 @@ class FakeGleanUsageReporting : GleanUsageReportingApi {
     var lastUsageReason: String? = null
     var lastDurationMillis: Long? = null
     var lastEnabled: Boolean? = null
+    var dataDeletionRequested: Boolean? = null
 
     override fun setEnabled(enabled: Boolean) {
         lastEnabled = enabled
@@ -28,6 +29,10 @@ class FakeGleanUsageReporting : GleanUsageReportingApi {
 
     override fun submitPing() {
         pingSubmitCount++
+    }
+
+    override fun requestDataDeletion() {
+        dataDeletionRequested = true
     }
 
     override fun setDuration(durationMillis: Long) {
