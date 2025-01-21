@@ -4,6 +4,12 @@
 WebRTC currently uses libfuzzer for fuzz testing however FuzzTest is a new approach which we have not yet looked into but we will in the future.
 
 Before continuing, read the [libfuzzer][libfuzzer-getting-started] and [FuzzTest][fuzztest-getting-started] getting started docs to get familar.
+You will also need to download libfuzzer specific libraries, which are not downloaded by default. The easiest way to do this is to set the `checkout_fuzzer` custom variable in your .gclient file then run gclient runhooks.
+```
+  "custom_vars": {
+    "checkout_fuzzer": True,
+  },
+```
 
 ## Compiling locally
 To build the fuzzers residing in the [test/fuzzers][fuzzers] directory, use
