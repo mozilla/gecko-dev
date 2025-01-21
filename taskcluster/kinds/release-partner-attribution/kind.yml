@@ -16,6 +16,11 @@ kind-dependencies:
 
 # move this into the single job ??
 task-defaults:
+    attributes:
+        build_platform: linux-shippable
+        build_type: opt
+        artifact_prefix: releng/partner
+        shippable: true
     description: Release Promotion partner attribution
     run-on-projects: []  # to make sure this never runs as part of CI
     shipping-product: firefox
@@ -26,14 +31,9 @@ task-defaults:
             in-tree: "partner-repack"
         chain-of-trust: true
         max-run-time: 1800
-    run:
-        using: mach
-        mach: python python/mozrelease/mozrelease/attribute_builds.py
 
 tasks:
     win:
-        attributes:
-            build_platform: linux-shippable
-            build_type: opt
-            artifact_prefix: releng/partner
-            shippable: true
+        run:
+            using: mach
+            mach: python python/mozrelease/mozrelease/attribute_builds.py
