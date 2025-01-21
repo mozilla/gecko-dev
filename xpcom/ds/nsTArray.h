@@ -649,30 +649,6 @@ class nsDefaultComparator {
   bool LessThan(const A& aA, const B& aB) const { return aA < aB; }
 };
 
-template <bool IsTriviallyCopyConstructible, bool IsSameType>
-struct AssignRangeAlgorithm {
-  template <class Item, class ElemType, class IndexType, class SizeType>
-  static void implementation(ElemType* aElements, IndexType aStart,
-                             SizeType aCount, const Item* aValues) {
-    ElemType* iter = aElements + aStart;
-    ElemType* end = iter + aCount;
-    for (; iter != end; ++iter, ++aValues) {
-      nsTArrayElementTraits<ElemType>::Construct(iter, *aValues);
-    }
-  }
-};
-
-template <>
-struct AssignRangeAlgorithm<true, true> {
-  template <class Item, class ElemType, class IndexType, class SizeType>
-  static void implementation(ElemType* aElements, IndexType aStart,
-                             SizeType aCount, const Item* aValues) {
-    if (aValues) {
-      memcpy(aElements + aStart, aValues, aCount * sizeof(ElemType));
-    }
-  }
-};
-
 //
 // Normally elements are copied with memcpy and memmove, but for some element
 // types that is problematic.  The nsTArray_RelocationStrategy template class
@@ -2434,10 +2410,7 @@ class nsTArray_Impl
   // @param aValues The array of elements to copy.
   template <class Item>
   void AssignRange(index_type aStart, size_type aCount, const Item* aValues) {
-    AssignRangeAlgorithm<
-        std::is_trivially_copyable_v<Item>,
-        std::is_same_v<Item, value_type>>::implementation(Elements(), aStart,
-                                                          aCount, aValues);
+    std::uninitialized_copy(aValues, aValues + aCount, Elements() + aStart);
   }
 };
 
