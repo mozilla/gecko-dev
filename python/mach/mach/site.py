@@ -23,6 +23,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Optional
 
+from filelock import FileLock, Timeout
 from packaging.specifiers import SpecifierSet
 
 from mach.requirements import (
@@ -591,23 +592,37 @@ class CommandSiteManager:
         If using a virtualenv Python binary directly, it's useful to call this function
         first to ensure that the virtualenv doesn't have obsolete references or packages.
         """
-        result = self._up_to_date()
-        if not result.is_up_to_date:
-            active_site = MozSiteMetadata.from_runtime()
-            if active_site.site_name == self._site_name:
-                print(result.reason, file=sys.stderr)
-                raise Exception(
-                    f'The "{self._site_name}" site is out-of-date, even though it has '
-                    f"already been activated. Was it modified while this Mach process "
-                    f"was running?"
-                )
+        lock_file = Path(self.virtualenv_root).with_suffix(".lock")
+        timeout = 60
 
-            _create_venv_with_pthfile(
-                self._virtualenv,
-                self._pthfile_lines(),
-                self._populate_virtualenv,
-                self._requirements,
-                self._metadata,
+        # In the scenario where multiple processes use the same site that does not yet exist,
+        # they will trample each other when attempting to create it. To resolve this, we use
+        # a file lock. The first process to reach the lock will create it and ensure it is up
+        # to date, while the other(s) wait(s). Once the first releases the lock, the others
+        # will continue one-by-one and determine it's up-to-date.
+        try:
+            with FileLock(lock_file, timeout=timeout):
+                result = self._up_to_date()
+                if not result.is_up_to_date:
+                    active_site = MozSiteMetadata.from_runtime()
+                    if active_site.site_name == self._site_name:
+                        print(result.reason, file=sys.stderr)
+                        raise Exception(
+                            f'The "{self._site_name}" site is out-of-date, even though it has '
+                            f"already been activated. Was it modified while this Mach process "
+                            f"was running?"
+                        )
+
+                    _create_venv_with_pthfile(
+                        self._virtualenv,
+                        self._pthfile_lines(),
+                        self._populate_virtualenv,
+                        self._requirements,
+                        self._metadata,
+                    )
+        except Timeout:
+            print(
+                f"Could not acquire the lock at {lock_file} for the {self._site_name} site after {timeout} seconds."
             )
 
     def activate(self):

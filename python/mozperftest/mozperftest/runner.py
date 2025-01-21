@@ -50,11 +50,13 @@ def _activate_virtualenvs(flavor):
 
     # We need the "mach" module to access the logic to parse virtualenv
     # requirements. Since that depends on "packaging", we add that to the path too.
+    # We need filelock for solving a virtualenv race condition
     sys.path[0:0] = [
         os.path.join(SRC_ROOT, module)
         for module in (
             os.path.join("python", "mach"),
             os.path.join("third_party", "python", "packaging"),
+            os.path.join("third_party", "python", "filelock"),
         )
     ]
 
