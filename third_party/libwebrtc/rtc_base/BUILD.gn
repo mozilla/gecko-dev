@@ -187,6 +187,8 @@ rtc_library("event_tracer") {
   sources = [
     "event_tracer.cc",
     "event_tracer.h",
+    "trace_categories.cc",
+    "trace_categories.h",
     "trace_event.h",
   ]
   deps = [
@@ -203,12 +205,6 @@ rtc_library("event_tracer") {
     "system:rtc_export",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
-  if (rtc_use_perfetto) {
-    sources += [
-      "trace_categories.cc",
-      "trace_categories.h",
-    ]
-  }
 }
 
 rtc_library("histogram_percentile_counter") {
