@@ -198,24 +198,6 @@ PACKAGE_FORMATS = {
         "output": "target.store.msix",
     },
     "dmg": {
-        "args": ["dmg"],
-        "inputs": {
-            "input": "target{archive_format}",
-        },
-        "output": "target.dmg",
-    },
-    "dmg-attrib": {
-        "args": [
-            "dmg",
-            "--attribution_sentinel",
-            "__MOZCUSTOM__",
-        ],
-        "inputs": {
-            "input": "target{archive_format}",
-        },
-        "output": "target.dmg",
-    },
-    "dmg-lzma": {
         "args": [
             "dmg",
             "--compression",
@@ -226,7 +208,7 @@ PACKAGE_FORMATS = {
         },
         "output": "target.dmg",
     },
-    "dmg-attrib-lzma": {
+    "dmg-attrib": {
         "args": [
             "dmg",
             "--compression",
