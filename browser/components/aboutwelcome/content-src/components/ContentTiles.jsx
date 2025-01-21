@@ -41,7 +41,7 @@ export const ContentTiles = props => {
     const { header } = tile;
 
     return (
-      <div key={index} className="content-tile">
+      <div key={index} className={`content-tile ${header ? "has-header" : ""}`}>
         {header?.title && (
           <button
             className="tile-header"
@@ -50,14 +50,17 @@ export const ContentTiles = props => {
             aria-controls={`tile-content-${index}`}
             style={AboutWelcomeUtils.getValidStyle(header.style, HEADER_STYLES)}
           >
-            <Localized text={header}>
-              <span className="header-title">{header.title}</span>
-            </Localized>
-            <Localized text={header}>
-              {header.subtitle && (
-                <span className="header-subtitle">{header.subtitle}</span>
-              )}
-            </Localized>
+            <div className="header-text-container">
+              <Localized text={header}>
+                <span className="header-title">{header.title}</span>
+              </Localized>
+              <Localized text={header}>
+                {header.subtitle && (
+                  <span className="header-subtitle">{header.subtitle}</span>
+                )}
+              </Localized>
+            </div>
+            <div className="arrow-icon"></div>
           </button>
         )}
         {isExpanded || !header ? (

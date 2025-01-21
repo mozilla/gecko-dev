@@ -2043,13 +2043,15 @@ const ContentTiles = props => {
     } = tile;
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       key: index,
-      className: "content-tile"
+      className: `content-tile ${header ? "has-header" : ""}`
     }, header?.title && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
       className: "tile-header",
       onClick: () => toggleTile(index, tile),
       "aria-expanded": isExpanded,
       "aria-controls": `tile-content-${index}`,
       style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_9__.AboutWelcomeUtils.getValidStyle(header.style, HEADER_STYLES)
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "header-text-container"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: header
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
@@ -2058,7 +2060,9 @@ const ContentTiles = props => {
       text: header
     }, header.subtitle && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
       className: "header-subtitle"
-    }, header.subtitle))), isExpanded || !header ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    }, header.subtitle))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "arrow-icon"
+    })), isExpanded || !header ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "tile-content",
       id: `tile-content-${index}`
     }, tile.type === "addons-picker" && tile.data && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_AddonsPicker__WEBPACK_IMPORTED_MODULE_2__.AddonsPicker, {

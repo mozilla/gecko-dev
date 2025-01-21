@@ -84,17 +84,21 @@ const MESSAGES = () => [
         {
           id: "SCREEN_1",
           content: {
-            spotlight_style: {
+            screen_style: {
               display: "block",
               padding: "20px 0 0 0",
-              width: "616px",
+              width: "560px",
             },
-            logo: {},
+            logo: {
+              height: "40px",
+              width: "40",
+            },
             title: {
               raw: "Content tiles test",
             },
             subtitle: {
               raw: "Review the content below before continuing.",
+              fontSize: "15px",
             },
             tiles: [
               {
@@ -115,7 +119,6 @@ const MESSAGES = () => [
                 type: "embedded_browser",
                 header: {
                   title: "Test Title 2",
-                  subtitle: "Read more",
                 },
                 data: {
                   style: {
@@ -127,10 +130,6 @@ const MESSAGES = () => [
               },
               {
                 type: "multiselect",
-                header: {
-                  title: "Test Title 3",
-                  subtitle: "Manage options",
-                },
                 data: [
                   {
                     id: "checkbox-test-1",
@@ -138,6 +137,9 @@ const MESSAGES = () => [
                     defaultValue: false,
                     label: {
                       raw: "Test option 1",
+                    },
+                    description: {
+                      raw: "This is description text explaining text option 1.",
                     },
                     action: {
                       type: "SET_PREF",
@@ -156,6 +158,9 @@ const MESSAGES = () => [
                     label: {
                       raw: "Test option 2",
                     },
+                    description: {
+                      raw: "This is description text explaining text option 2.",
+                    },
                     action: {
                       type: "SET_PREF",
                       data: {
@@ -173,7 +178,7 @@ const MESSAGES = () => [
             primary_button: {
               label: {
                 raw: "Continue",
-                marginBlock: "28px 0",
+                marginBlock: "30px 0",
               },
               action: {
                 type: "MULTI_ACTION",
