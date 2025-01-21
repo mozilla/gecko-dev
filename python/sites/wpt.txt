@@ -13,4 +13,4 @@ pypi:ujson==5.7.0
 pypi:aioquic==1.2.0
 # Bug 1823701 - tomli is a pytest dependency that isn't pulled into WPT's
 # vendor dir for some reason
-pypi:tomli==2.0.1
+pypi:tomli==2.2.1
