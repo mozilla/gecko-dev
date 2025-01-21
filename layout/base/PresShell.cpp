@@ -11344,7 +11344,7 @@ void PresShell::SetIsActive(bool aIsActive) {
   }
 }
 
-MobileViewportManager* PresShell::GetMobileViewportManager() const {
+RefPtr<MobileViewportManager> PresShell::GetMobileViewportManager() const {
   return mMobileViewportManager;
 }
 
@@ -11416,12 +11416,7 @@ void PresShell::MaybeRecreateMobileViewportManager(bool aAfterInitialization) {
           ("Created MVM %p (type %d) for URI %s", mMobileViewportManager.get(),
            (int)*mvmType, uri ? uri->GetSpecOrDefault().get() : "(null)"));
     }
-    if (BrowserChild* browserChild = BrowserChild::GetFrom(this)) {
-      mMobileViewportManager->UpdateKeyboardHeight(
-          browserChild->GetKeyboardHeight());
-    }
   }
-
   if (aAfterInitialization) {
     // Setting the initial viewport will trigger a reflow.
     if (mMobileViewportManager) {

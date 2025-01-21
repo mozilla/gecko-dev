@@ -247,6 +247,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mCurAppUnitsPerDevPixel(0),
       mDynamicToolbarMaxHeight(0),
       mDynamicToolbarHeight(0),
+      mKeyboardHeight(0),
       mPageSize(-1, -1),
       mPageScale(0.0),
       mPPScale(1.0f),
@@ -721,6 +722,8 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (IsRootContentDocumentCrossProcess()) {
     if (BrowserChild* browserChild = BrowserChild::GetFrom(GetDocShell())) {
+      mKeyboardHeight = browserChild->GetKeyboardHeight();
+
       if (MOZ_LIKELY(!Preferences::HasUserValue(
               "layout.dynamic-toolbar-max-height"))) {
         mDynamicToolbarMaxHeight = browserChild->GetDynamicToolbarMaxHeight();
@@ -1773,7 +1776,7 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
 
   // Array of references to the member variable of each time stamp
   // for the different interaction types, keyed by InteractionType.
-  TimeStamp nsPresContext::* interactionTimes[] = {
+  TimeStamp nsPresContext::*interactionTimes[] = {
       &nsPresContext::mFirstClickTime, &nsPresContext::mFirstKeyTime,
       &nsPresContext::mFirstMouseMoveTime, &nsPresContext::mFirstScrollTime};
 
@@ -1809,7 +1812,7 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
 
   // Check if we are recording the first of any of the interaction types.
   bool isFirstInteraction = true;
-  for (TimeStamp nsPresContext::* memberPtr : interactionTimes) {
+  for (TimeStamp nsPresContext::*memberPtr : interactionTimes) {
     TimeStamp& timeStamp = this->*(memberPtr);
     if (!timeStamp.IsNull()) {
       isFirstInteraction = false;
@@ -3126,7 +3129,7 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
   dom::InteractiveWidget interactiveWidget = mDocument->InteractiveWidget();
   if (interactiveWidget == InteractiveWidget::OverlaysContent &&
-      GetKeyboardHeight() > 0) {
+      mKeyboardHeight > 0) {
     // On overlays-content mode, the toolbar offset change should NOT affect
     // the visual viewport while the software keyboard is being shown since
     // the toolbar will be positioned somewhere in the middle of the visual
@@ -3160,6 +3163,8 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
 void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   MOZ_ASSERT(IsRootContentDocumentCrossProcess());
+  mKeyboardHeight = aHeight;
+
   if (!mPresShell) {
     return;
   }
@@ -3170,13 +3175,8 @@ void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   }
 }
 
-ScreenIntCoord nsPresContext::GetKeyboardHeight() const {
-  MobileViewportManager* mvm = mPresShell->GetMobileViewportManager();
-  return mvm ? mvm->GetKeyboardHeight() : ScreenIntCoord(0);
-}
-
 bool nsPresContext::IsKeyboardHiddenOrResizesContentMode() const {
-  return GetKeyboardHeight() == 0 ||
+  return mKeyboardHeight == 0 ||
          mDocument->InteractiveWidget() == InteractiveWidget::ResizesContent;
 }
 

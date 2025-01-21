@@ -648,12 +648,6 @@ void MobileViewportManager::RefreshViewportSize(bool aForceAdjustResolution) {
     return;
   }
 
-  // Now it's time to update the keyboard height
-  if (mPendingKeyboardHeight) {
-    mKeyboardHeight = *mPendingKeyboardHeight;
-    mPendingKeyboardHeight.reset();
-  }
-
   nsViewportInfo viewportInfo =
       mContext->GetViewportInfo(GetLayoutDisplaySize());
   MVM_LOG("%p: viewport info has zooms min=%f max=%f default=%f,valid=%d\n",
@@ -766,11 +760,10 @@ ParentLayerSize MobileViewportManager::GetCompositionSizeWithoutDynamicToolbar()
 
 void MobileViewportManager::UpdateKeyboardHeight(
     ScreenIntCoord aKeyboardHeight) {
-  if (mPendingKeyboardHeight == Some(aKeyboardHeight)) {
+  if (aKeyboardHeight == mKeyboardHeight) {
     return;
   }
-
-  mPendingKeyboardHeight = Some(aKeyboardHeight);
+  mKeyboardHeight = aKeyboardHeight;
   mInvalidViewport = true;
 }
 

@@ -128,8 +128,12 @@ class ScrollAnchorContainer;
 }  // namespace layout
 
 // 039d8ffc-fa55-42d7-a53a-388cb129b052
-#define NS_PRESSHELL_IID \
-  {0x039d8ffc, 0xfa55, 0x42d7, {0xa5, 0x3a, 0x38, 0x8c, 0xb1, 0x29, 0xb0, 0x52}}
+#define NS_PRESSHELL_IID                             \
+  {                                                  \
+    0x039d8ffc, 0xfa55, 0x42d7, {                    \
+      0xa5, 0x3a, 0x38, 0x8c, 0xb1, 0x29, 0xb0, 0x52 \
+    }                                                \
+  }
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
 
@@ -414,7 +418,7 @@ class PresShell final : public nsStubDocumentObserver,
    * viewport. Will return null in situations where we don't have a mobile
    * viewport, and for documents that are not the root content document.
    */
-  MobileViewportManager* GetMobileViewportManager() const;
+  RefPtr<MobileViewportManager> GetMobileViewportManager() const;
 
   /**
    * Called when document load completes.
