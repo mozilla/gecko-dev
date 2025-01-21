@@ -61,6 +61,10 @@ window.addEventListener("load", () => {
   bhTooltip.addEventListener("popuphiding", () =>
     bhTooltip.removeAttribute("position")
   );
+
+  document
+    .getElementById("sidebar-panel-close")
+    .addEventListener("click", closeSidebarPanel);
 });
 
 function searchBookmarks(event) {
@@ -95,6 +99,14 @@ window.addEventListener("unload", () => {
   clearCumulativeCounter();
   PlacesUIUtils.setMouseoverURL("", window);
 });
+
+function closeSidebarPanel(e) {
+  e.preventDefault();
+  let view = e.target.getAttribute("view");
+  window.browsingContext.embedderWindowGlobal.browsingContext.window.SidebarController.toggle(
+    view
+  );
+}
 
 window.addEventListener("SidebarFocused", () =>
   document.getElementById("search-box").focus()

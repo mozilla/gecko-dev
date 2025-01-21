@@ -7,6 +7,23 @@
   background-color: transparent;
 }
 
+#sidebar-panel-header {
+  justify-content: space-between;
+  padding-inline: var(--space-large);
+  padding-block-start: var(--space-large);
+
+  > h4 {
+    margin-block: var(--space-large);
+    font-weight: var(--font-weight-bold);
+    font-size: 15px;
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "sidebar.revamp") {
+    display: none;
+  }
+}
+
 /* Themed sidebars */
 
 .sidebar-panel[lwt-sidebar] {

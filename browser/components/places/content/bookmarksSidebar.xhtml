@@ -41,12 +41,21 @@
     <html:link rel="localization" href="toolkit/global/textActions.ftl"/>
     <html:link rel="localization" href="browser/browser.ftl"/>
     <html:link rel="localization" href="browser/places.ftl"/>
+    <html:link rel="localization" href="browser/sidebarMenu.ftl"/>
   </linkset>
 
 #include placesCommands.inc.xhtml
 #include placesContextMenu.inc.xhtml
 #include bookmarksHistoryTooltip.inc.xhtml
-
+  <box id="sidebar-panel-header" align="center">
+    <h4 data-l10n-id="sidebar-menu-bookmarks-2"></h4>
+    <html:moz-button
+        id="sidebar-panel-close"
+        type="icon ghost"
+        iconsrc="chrome://global/skin/icons/close.svg"
+        data-l10n-id="sidebar-close-button">
+    </html:moz-button>
+  </box>
   <hbox id="sidebar-search-container" align="center">
     <search-textbox id="search-box" flex="1"
                     data-l10n-id="places-bookmarks-search"

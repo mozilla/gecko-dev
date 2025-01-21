@@ -91,6 +91,8 @@ support-files = ["bookmarklet_windowOpen_dummy.html"]
 
 ["browser_bookmarks_checkDefaultBookmarks.js"]
 
+["browser_bookmarks_close_panel.js"]
+
 ["browser_bookmarks_sidebar_search.js"]
 support-files = ["pageopeningwindow.html"]
 

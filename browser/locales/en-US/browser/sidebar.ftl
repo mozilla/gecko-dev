@@ -143,6 +143,8 @@ sidebar-menu-history-header =
   .heading = History
 sidebar-menu-syncedtabs-header =
   .heading = Tabs from other devices
+sidebar-menu-bookmarks-header =
+  .heading = Bookmarks
 
 ## Titles for sidebar menu panels.
 
