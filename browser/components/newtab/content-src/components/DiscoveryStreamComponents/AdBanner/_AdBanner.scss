@@ -34,6 +34,9 @@
     margin-inline: auto;
 
     .ad-banner-dismiss {
+      // Contrast fix for users who have wallpapers set
+      @include wallpaper-contrast-fix;
+
       margin-block: 0 var(--space-small);
       margin-inline: 0 var(--space-xxsmall);
       text-align: end;
@@ -41,7 +44,10 @@
       .icon-dismiss {
         background-size: var(--size-item-small);
         border: 0;
-        cursor: pointer;
+      }
+
+      .icon-dismiss:hover {
+        background-color: var(--newtab-button-hover-background);
       }
     }
 
@@ -86,6 +92,9 @@
     }
 
     .ad-banner-sponsored {
+      // Contrast fix for users who have wallpapers set
+      @include wallpaper-contrast-fix;
+
       margin-block: var(--space-small) 0;
 
       span {
