@@ -229,42 +229,42 @@ objects:
   TermsOfServiceData:
     description: An object to describe the terms of service onboarding card.
     fields:
-      lineOneText:
+      line-one-text:
         type: Text
         description: The text for line one.
         # This should never be defaulted.
         default: ""
-      lineOneLinkText:
+      line-one-link-text:
         type: Text
         description: The text for the link of line one.
         # This should never be defaulted.
         default: ""
-      lineOneLinkURL:
+      line-one-link-url:
         type: Text
         description: The url for the link of line one.
         # This should never be defaulted.
         default: ""
-      lineTwoText:
+      line-two-text:
         type: Text
         description: The text for line two.
         # This should never be defaulted.
         default: ""
-      lineTwoLinkText:
+      line-two-link-text:
         type: Text
         description: The text for the link of line two.
         # This should never be defaulted.
         default: ""
-      lineTwoLinkURL:
+      line-two-link-url:
         type: Text
         description: The url for the link of line two.
         # This should never be defaulted.
         default: ""
-      lineThreeText:
+      line-three-text:
         type: Text
         description: The text for line three.
         # This should never be defaulted.
         default: ""
-      lineThreeLinkText:
+      line-three-link-text:
         type: Text
         description: The text for the link of line three.
         # This should never be defaulted.
@@ -273,23 +273,23 @@ objects:
   MarketingData:
     description: An object to describe the marketing data onboarding card.
     fields:
-      bodyLineOneText:
+      body-line-one-text:
         type: Text
         description: The text for line one of the body.
         default: ""
-      bodyLineOneLinkText:
+      body-line-one-link-text:
         type: Text
         description: The link text from line one of the body.
         default: ""
-      linkUrl:
+      link-url:
         type: String
         description: The url for the link text
         default: ""
-      bodyLineTwoText:
+      body-line-two-text:
         type: Text
         description: The text for line two of the body.
         default: ""
-      bodyLineThreeText:
+      body-line-three-text:
         type: Text
         description: The text for line three of the body.
         default: ""
