@@ -75,21 +75,11 @@ already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
 
   // If a module URI was provided, use it to construct an instance of the actor.
   JS::Rooted<JSObject*> actorObj(aCx);
-  if (side.mModuleURI || side.mESModuleURI) {
+  if (side.mESModuleURI) {
     JS::Rooted<JSObject*> exports(aCx);
-    if (side.mModuleURI) {
-      // TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-      //       (bug 1866732).
-      JS::Rooted<JSObject*> global(aCx);
-      aRv = loader->Import(aCx, side.mModuleURI.ref(), &global, &exports);
-      if (aRv.Failed()) {
-        return nullptr;
-      }
-    } else {
-      aRv = loader->ImportESModule(aCx, side.mESModuleURI.ref(), &exports);
-      if (aRv.Failed()) {
-        return nullptr;
-      }
+    aRv = loader->ImportESModule(aCx, side.mESModuleURI.ref(), &exports);
+    if (aRv.Failed()) {
+      return nullptr;
     }
     MOZ_ASSERT(exports, "null exports!");
 

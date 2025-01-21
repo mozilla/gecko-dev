@@ -20,11 +20,7 @@ class JSActorProtocolUtils {
   static void FromIPCShared(ProtoT& aProto, const ActorInfoT& aInfo) {
     aProto->mRemoteTypes = aInfo.remoteTypes().Clone();
 
-    if (aInfo.isESModule()) {
-      aProto->mChild.mESModuleURI = aInfo.url();
-    } else {
-      aProto->mChild.mModuleURI = aInfo.url();
-    }
+    aProto->mChild.mESModuleURI = aInfo.url();
 
     aProto->mLoadInDevToolsLoader = aInfo.loadInDevToolsLoader();
 
@@ -37,13 +33,7 @@ class JSActorProtocolUtils {
 
     aInfo.remoteTypes() = aProto->mRemoteTypes.Clone();
 
-    if (aProto->mChild.mModuleURI) {
-      aInfo.url() = aProto->mChild.mModuleURI;
-      aInfo.isESModule() = false;
-    } else {
-      aInfo.url() = aProto->mChild.mESModuleURI;
-      aInfo.isESModule() = true;
-    }
+    aInfo.url() = aProto->mChild.mESModuleURI;
 
     aInfo.loadInDevToolsLoader() = aProto->mLoadInDevToolsLoader;
 
@@ -62,15 +52,7 @@ class JSActorProtocolUtils {
     if (aOptions.mParent.WasPassed()) {
       const auto& parentOptions = aOptions.mParent.Value();
 
-      if (parentOptions.mModuleURI.WasPassed()) {
-        if (parentOptions.mEsModuleURI.WasPassed()) {
-          aRv.ThrowNotSupportedError(
-              "moduleURI and esModuleURI are mutually exclusive.");
-          return false;
-        }
-
-        aProto->mParent.mModuleURI.emplace(parentOptions.mModuleURI.Value());
-      } else if (parentOptions.mEsModuleURI.WasPassed()) {
+      if (parentOptions.mEsModuleURI.WasPassed()) {
         aProto->mParent.mESModuleURI.emplace(
             parentOptions.mEsModuleURI.Value());
       } else {
@@ -82,15 +64,7 @@ class JSActorProtocolUtils {
     if (aOptions.mChild.WasPassed()) {
       const auto& childOptions = aOptions.mChild.Value();
 
-      if (childOptions.mModuleURI.WasPassed()) {
-        if (childOptions.mEsModuleURI.WasPassed()) {
-          aRv.ThrowNotSupportedError(
-              "moduleURI and esModuleURI are exclusive.");
-          return false;
-        }
-
-        aProto->mChild.mModuleURI.emplace(childOptions.mModuleURI.Value());
-      } else if (childOptions.mEsModuleURI.WasPassed()) {
+      if (childOptions.mEsModuleURI.WasPassed()) {
         aProto->mChild.mESModuleURI.emplace(childOptions.mEsModuleURI.Value());
       } else {
         aRv.ThrowNotSupportedError(

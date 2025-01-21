@@ -98,7 +98,6 @@ class JSActorService final {
 class JSActorProtocol : public nsISupports {
  public:
   struct Sided {
-    Maybe<nsCString> mModuleURI;
     Maybe<nsCString> mESModuleURI;
   };
 
