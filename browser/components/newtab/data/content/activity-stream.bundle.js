@@ -12146,61 +12146,42 @@ const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state =>
   IntersectionObserver: globalThis.IntersectionObserver,
   document: globalThis.document
 }))(_Weather);
-;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbsUpToast.jsx
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbUpThumbDownToast.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-function ThumbsUpToast({
+function ThumbUpThumbDownToast({
   onDismissClick,
   onAnimationEnd
 }) {
-  return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item is-success",
+  const mozMessageBarRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const {
+      current: mozMessageBarElement
+    } = mozMessageBarRef;
+    mozMessageBarElement.addEventListener("message-bar:user-dismissed", onDismissClick, {
+      once: true
+    });
+    return () => {
+      mozMessageBarElement.removeEventListener("message-bar:user-dismissed", onDismissClick);
+    };
+  }, [onDismissClick]);
+  return /*#__PURE__*/external_React_default().createElement("moz-message-bar", {
+    type: "success",
+    class: "notification-feed-item",
+    dismissable: true,
+    "data-l10n-id": "newtab-toast-thumbs-up-or-down2",
+    ref: mozMessageBarRef,
     onAnimationEnd: onAnimationEnd
-  }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "icon icon-check-filled icon-themed"
-  }), /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item-text",
-    "data-l10n-id": "newtab-toast-thumbs-up-or-down"
-  }), /*#__PURE__*/external_React_default().createElement("button", {
-    onClick: onDismissClick,
-    className: "icon icon-dismiss",
-    "data-l10n-id": "newtab-toast-dismiss-button"
-  }));
-}
-
-;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbsDownToast.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-function ThumbsDownToast({
-  onDismissClick,
-  onAnimationEnd
-}) {
-  return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item is-success",
-    onAnimationEnd: onAnimationEnd
-  }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "icon icon-check-filled icon-themed"
-  }), /*#__PURE__*/external_React_default().createElement("div", {
-    className: "notification-feed-item-text",
-    "data-l10n-id": "newtab-toast-thumbs-up-or-down"
-  }), /*#__PURE__*/external_React_default().createElement("button", {
-    onClick: onDismissClick,
-    className: "icon icon-dismiss",
-    "data-l10n-id": "newtab-toast-dismiss-button"
-  }));
+  });
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/Notifications/Notifications.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 
 
 
@@ -12233,31 +12214,21 @@ function Notifications_Notifications({
   const getToast = (0,external_React_namespaceObject.useCallback)(() => {
     // Note: This architecture could expand to support multiple toast notifications at once
     const latestToastItem = toastQueue[toastQueue.length - 1];
-    switch (latestToastItem) {
-      case "thumbsDownToast":
-        return /*#__PURE__*/external_React_default().createElement(ThumbsDownToast, {
-          onDismissClick: syncHiddenToastData,
-          onAnimationEnd: syncHiddenToastData,
-          key: toastCounter
-        });
-      case "thumbsUpToast":
-        return /*#__PURE__*/external_React_default().createElement(ThumbsUpToast, {
-          onDismissClick: syncHiddenToastData,
-          onAnimationEnd: syncHiddenToastData,
-          key: toastCounter
-        });
-      default:
-        throw new Error("No toast found");
+    if (!latestToastItem) {
+      throw new Error("No toast found");
     }
+    return /*#__PURE__*/external_React_default().createElement(ThumbUpThumbDownToast, {
+      onDismissClick: syncHiddenToastData,
+      onAnimationEnd: syncHiddenToastData,
+      key: toastCounter
+    });
   }, [syncHiddenToastData, toastCounter, toastQueue]);
   (0,external_React_namespaceObject.useEffect)(() => {
     getToast();
   }, [toastQueue, getToast]);
   return toastQueue.length ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "notification-wrapper"
-  }, /*#__PURE__*/external_React_default().createElement("ul", {
-    className: "notification-feed"
-  }, getToast())) : "";
+  }, getToast()) : "";
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx

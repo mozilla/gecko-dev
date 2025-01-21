@@ -5,8 +5,7 @@
 import React, { useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
-import { ThumbsUpToast } from "./Toasts/ThumbsUpToast";
-import { ThumbsDownToast } from "./Toasts/ThumbsDownToast";
+import { ThumbUpThumbDownToast } from "./Toasts/ThumbUpThumbDownToast";
 
 function Notifications({ dispatch }) {
   const toastQueue = useSelector(state => state.Notifications.toastQueue);
@@ -40,26 +39,17 @@ function Notifications({ dispatch }) {
     // Note: This architecture could expand to support multiple toast notifications at once
     const latestToastItem = toastQueue[toastQueue.length - 1];
 
-    switch (latestToastItem) {
-      case "thumbsDownToast":
-        return (
-          <ThumbsDownToast
-            onDismissClick={syncHiddenToastData}
-            onAnimationEnd={syncHiddenToastData}
-            key={toastCounter}
-          />
-        );
-      case "thumbsUpToast":
-        return (
-          <ThumbsUpToast
-            onDismissClick={syncHiddenToastData}
-            onAnimationEnd={syncHiddenToastData}
-            key={toastCounter}
-          />
-        );
-      default:
-        throw new Error("No toast found");
+    if (!latestToastItem) {
+      throw new Error("No toast found");
     }
+
+    return (
+      <ThumbUpThumbDownToast
+        onDismissClick={syncHiddenToastData}
+        onAnimationEnd={syncHiddenToastData}
+        key={toastCounter}
+      />
+    );
   }, [syncHiddenToastData, toastCounter, toastQueue]);
 
   useEffect(() => {
@@ -67,9 +57,7 @@ function Notifications({ dispatch }) {
   }, [toastQueue, getToast]);
 
   return toastQueue.length ? (
-    <div className="notification-wrapper">
-      <ul className="notification-feed">{getToast()}</ul>
-    </div>
+    <div className="notification-wrapper">{getToast()}</div>
   ) : (
     ""
   );
