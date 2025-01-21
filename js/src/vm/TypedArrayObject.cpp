@@ -2303,9 +2303,13 @@ TypedArrayIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
     return -1;
   }
 
-  int32_t d;
-  if (!mozilla::NumberEqualsInt32(searchElement.toNumber(), &d)) {
-    return -1;
+  int64_t d;
+  if (searchElement.isInt32()) {
+    d = searchElement.toInt32();
+  } else {
+    if (!mozilla::NumberEqualsInt64(searchElement.toDouble(), &d)) {
+      return -1;
+    }
   }
 
   // Ensure search element is representable using |ExternalType|, which implies
@@ -2489,9 +2493,13 @@ TypedArrayLastIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
     return -1;
   }
 
-  int32_t d;
-  if (!mozilla::NumberEqualsInt32(searchElement.toNumber(), &d)) {
-    return -1;
+  int64_t d;
+  if (searchElement.isInt32()) {
+    d = searchElement.toInt32();
+  } else {
+    if (!mozilla::NumberEqualsInt64(searchElement.toDouble(), &d)) {
+      return -1;
+    }
   }
 
   // Ensure search element is representable using |ExternalType|, which implies
