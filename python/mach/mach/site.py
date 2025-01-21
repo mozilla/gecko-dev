@@ -19,6 +19,7 @@ import sysconfig
 import tempfile
 import warnings
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -37,6 +38,29 @@ METADATA_FILENAME = "moz_virtualenv_metadata.json"
 PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS = ("mach", "build", "common")
 
 _is_windows = sys.platform == "cygwin" or (sys.platform == "win32" and os.sep == "\\")
+
+
+@lru_cache(maxsize=None)
+def use_uv():
+    return os.environ.get("MACH_NO_UV", "").lower() not in (
+        "1",
+        "true",
+    ) and shutil.which("uv")
+
+
+def pip_command(*, python_executable, subcommand=None, args=None, non_uv_args=None):
+    if use_uv():
+        command = ["uv", "pip"]
+        if subcommand:
+            command.append(subcommand)
+        full_command = command + (args or [])
+    else:
+        command = [python_executable, "-m", "pip"]
+        if subcommand:
+            command.append(subcommand)
+        full_command = command + (non_uv_args or []) + (args or [])
+
+    return full_command
 
 
 class VenvModuleNotFoundException(Exception):
@@ -658,6 +682,7 @@ class CommandSiteManager:
             check=not quiet,
             stdout=subprocess.PIPE if quiet else None,
         )
+
         if install_result.returncode:
             print(install_result.stdout)
             raise InstallPipRequirementsException(
@@ -665,7 +690,7 @@ class CommandSiteManager:
             )
 
         check_result = subprocess.run(
-            [self.python_path, "-m", "pip", "check"],
+            pip_command(python_executable=self.python_path, subcommand="check"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
@@ -724,7 +749,7 @@ class CommandSiteManager:
         _delete_ignored_egg_info_dirs()
 
         check_result = subprocess.run(
-            [self.python_path, "-m", "pip", "check"],
+            pip_command(python_executable=self.python_path, subcommand="check"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
@@ -738,7 +763,10 @@ class CommandSiteManager:
                 print(install_result.stdout)
 
             subprocess.check_call(
-                [self.python_path, "-m", "pip", "list", "-v"], stdout=sys.stderr
+                pip_command(
+                    python_executable=self.python_path, subcommand="list", args=["-v"]
+                ),
+                stdout=sys.stderr,
             )
             print(check_result.stdout, file=sys.stderr)
             raise InstallPipRequirementsException(
@@ -963,8 +991,13 @@ class PythonVirtualenv:
         # force the virtualenv's interpreter to be used and all is well.
         # It /might/ be possible to cheat and set sys.executable to
         # self.python_path. However, this seems more risk than it's worth.
+
         return subprocess.run(
-            [self.python_path, "-m", "pip", "install"] + pip_install_args,
+            pip_command(
+                python_executable=self.python_path,
+                subcommand="install",
+                args=pip_install_args,
+            ),
             **kwargs,
         )
 
@@ -1172,15 +1205,12 @@ def resolve_requirements(topsrcdir, site_name):
 
 def _resolve_installed_packages(python_executable):
     pip_json = subprocess.check_output(
-        [
-            python_executable,
-            "-m",
-            "pip",
-            "list",
-            "--format",
-            "json",
-            "--disable-pip-version-check",
-        ],
+        pip_command(
+            python_executable=python_executable,
+            subcommand="list",
+            args=["--format", "json"],
+            non_uv_args=["--disable-pip-version-check"],
+        ),
         universal_newlines=True,
     )
 
@@ -1278,7 +1308,7 @@ def _assert_pip_check(pthfile_lines, virtualenv_name, requirements):
         ) as f:
             f.write("\n".join(pthfile_lines))
 
-        pip = [check_env.python_path, "-m", "pip"]
+        pip = pip_command(python_executable=check_env.python_path)
         if requirements:
             packages = _resolve_installed_packages(check_env.python_path)
             validation_result = RequirementsValidationResult.from_packages(
@@ -1386,6 +1416,15 @@ def _create_venv_with_pthfile(
     pthfile_contents = "\n".join(pthfile_lines)
     with open(os.path.join(platlib_site_packages_dir, PTH_FILENAME), "w") as f:
         f.write(pthfile_contents)
+
+    # Since we now support 'uv pip', "VIRTUAL_ENV" needs to be set to where we
+    # want it to install the packages into. With 'pip' we just use the venv's python
+    # executable, which is relative to the venv. That's not possible with 'uv`, and it's
+    # also not in the venv directory.
+    # Prior to this, we would only set this env var when activating the venv, but now we
+    # also need it set here (it still needs to be set in 'activate_virtualenv' as well
+    # since we won't always take this code path).
+    os.environ["VIRTUAL_ENV"] = virtualenv_root
 
     if populate_with_pip:
         for requirement in requirements.pypi_requirements:
