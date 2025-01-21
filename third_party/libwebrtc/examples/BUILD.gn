@@ -891,5 +891,10 @@ if (!build_with_chromium) {
       "//third_party/abseil-cpp/absl/flags:flag",
       "//third_party/abseil-cpp/absl/flags:parse",
     ]
+    if (is_win) {
+      deps += [
+        "../rtc_base:win32_socket_init",
+      ]
+    }
   }
 }

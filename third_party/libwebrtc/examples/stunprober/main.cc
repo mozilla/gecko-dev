@@ -28,6 +28,10 @@
 #include "rtc_base/time_utils.h"
 #include "test/scoped_key_value_config.h"
 
+#ifdef WEBRTC_WIN
+#include "rtc_base/win32_socket_init.h"
+#endif  // WEBRTC_WIN
+
 using stunprober::AsyncCallback;
 using stunprober::StunProber;
 
@@ -108,6 +112,9 @@ void StopTrial(rtc::Thread* thread, StunProber* prober, int result) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+#ifdef WEBRTC_WIN
+  rtc::WinsockInitializer winsock_init;
+#endif  // WEBRTC_WIN
   absl::ParseCommandLine(argc, argv);
 
   std::vector<rtc::SocketAddress> server_addresses;

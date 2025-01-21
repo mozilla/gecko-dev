@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index 2f731ced22..9ce5156a29 100644
+index d21d70535e..fa50ffd1fd 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
