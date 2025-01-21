@@ -5,7 +5,6 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::generics::box_::PositionProperty;
 use crate::values::generics::Optional;
 use crate::values::DashedIdent;
 #[cfg(feature = "gecko")]
@@ -451,26 +450,6 @@ where
     }
 }
 
-/// Result of resolving an anchor function.
-pub enum AnchorResolutionResult<'a, LengthPercentage> {
-    /// Function resolved to a valid anchor.
-    Resolved(LengthPercentage),
-    /// Referenced anchor is invalid, but fallback is used.
-    Fallback(&'a LengthPercentage),
-    /// Referenced anchor is invalid.
-    Invalid,
-}
-
-impl<'a, LengthPercentage> AnchorResolutionResult<'a, LengthPercentage> {
-    /// Return result for an invalid anchor function, depending on if it has any fallback.
-    pub fn new_anchor_invalid(fallback: Option<&'a LengthPercentage>) -> Self {
-        if let Some(fb) = fallback {
-            return Self::Fallback(fb);
-        }
-        Self::Invalid
-    }
-}
-
 impl<LengthPercentage> GenericAnchorSizeFunction<LengthPercentage>
 {
     /// Parse the inner part of `anchor-size()`, after the parser has consumed "anchor-size(".
@@ -507,19 +486,6 @@ impl<LengthPercentage> GenericAnchorSizeFunction<LengthPercentage>
                 fallback: fallback.into(),
             })
         })
-    }
-
-    /// Resolve the anchor size function. On failure, return reference to fallback, if exists.
-    pub fn resolve<'a>(
-        &'a self,
-        position_property: PositionProperty,
-    ) -> AnchorResolutionResult<'a, LengthPercentage> {
-        if !position_property.is_absolutely_positioned() {
-            return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
-        }
-
-        // TODO(dshin): Do the actual anchor resolution here.
-        AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref())
     }
 }
 

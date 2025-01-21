@@ -41,17 +41,25 @@ ${helpers.single_keyword(
     affects="layout",
 )}
 
-${helpers.predefined_type(
-    "position",
-    "PositionProperty",
-    "computed::PositionProperty::Static",
-    engines="gecko servo",
-    initial_specified_value="specified::PositionProperty::Static",
-    animation_type="discrete",
-    spec="https://drafts.csswg.org/css-position/#position-property",
-    servo_restyle_damage="rebuild_and_reflow",
-    affects="layout",
-)}
+<%helpers:single_keyword
+    name="position"
+    values="static absolute relative fixed sticky"
+    engines="gecko servo"
+    animation_type="discrete"
+    gecko_enum_prefix="StylePositionProperty"
+    spec="https://drafts.csswg.org/css-position/#position-property"
+    servo_restyle_damage="rebuild_and_reflow"
+    affects="layout"
+>
+impl computed_value::T {
+    pub fn is_absolutely_positioned(self) -> bool {
+        matches!(self, Self::Absolute | Self::Fixed)
+    }
+    pub fn is_relative(self) -> bool {
+        self == Self::Relative
+    }
+}
+</%helpers:single_keyword>
 
 // Changes do not invalidate our element. We handle notify/invalidating
 // elements that reference anchor-name elsewhere.

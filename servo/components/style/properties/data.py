@@ -566,7 +566,6 @@ class Longhand(Property):
                 "Integer",
                 "PositionArea",
                 "PositionAreaKeyword",
-                "PositionProperty",
                 "JustifyContent",
                 "JustifyItems",
                 "JustifySelf",

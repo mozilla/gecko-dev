@@ -211,33 +211,3 @@ impl<L> Perspective<L> {
         Perspective::None
     }
 }
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-#[allow(missing_docs)]
-pub enum PositionProperty {
-    Static = 0,
-    Relative,
-    Absolute,
-    Fixed,
-    Sticky,
-}
-
-impl PositionProperty {
-    /// Is the box absolutely positioned?
-    pub fn is_absolutely_positioned(self) -> bool {
-        matches!(self, Self::Absolute | Self::Fixed)
-    }
-}

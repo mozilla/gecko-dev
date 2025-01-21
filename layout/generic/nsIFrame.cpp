@@ -1252,7 +1252,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
       const nsStylePosition* pos = StylePosition();
       const nsStylePosition* oldPos = aOldComputedStyle->StylePosition();
       if (!needAnchorSuppression &&
-          (oldPos->mOffset != pos->mOffset ||
+          (!oldPos->InsetEquals(*pos) ||
            oldPos->GetWidth() != pos->GetWidth() ||
            oldPos->GetMinWidth() != pos->GetMinWidth() ||
            oldPos->GetMaxWidth() != pos->GetMaxWidth() ||
@@ -6902,21 +6902,14 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto& styleBSize = aSizeOverrides.mStyleBSize
                                ? *aSizeOverrides.mStyleBSize
                                : stylePos->BSize(aWM);
-  const auto positionProperty = StyleDisplay()->mPosition;
   const auto iStartOffsetIsAuto =
-      stylePos
-          ->GetAnchorResolvedInset(LogicalSide::IStart, aWM, positionProperty)
-          .IsAuto();
+      stylePos->GetInset(LogicalSide::IStart, aWM).IsAuto();
   const auto iEndOffsetIsAuto =
-      stylePos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM, positionProperty)
-          .IsAuto();
+      stylePos->GetInset(LogicalSide::IEnd, aWM).IsAuto();
   const auto bStartOffsetIsAuto =
-      stylePos
-          ->GetAnchorResolvedInset(LogicalSide::BStart, aWM, positionProperty)
-          .IsAuto();
+      stylePos->GetInset(LogicalSide::BStart, aWM).IsAuto();
   const auto bEndOffsetIsAuto =
-      stylePos->GetAnchorResolvedInset(LogicalSide::BEnd, aWM, positionProperty)
-          .IsAuto();
+      stylePos->GetInset(LogicalSide::BEnd, aWM).IsAuto();
   const auto boxSizingAdjust = stylePos->mBoxSizing == StyleBoxSizing::Border
                                    ? aBorderPadding
                                    : LogicalSize(aWM);
@@ -7029,8 +7022,12 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
       } else if (!iShouldStretch) {
         // If one axis has `auto` inset, that is the ratio dependent axis,
         // otherwise the block axis is.
-        const bool inlineInsetHasAuto = iStartOffsetIsAuto || iEndOffsetIsAuto;
-        const bool blockInsetHasAuto = bStartOffsetIsAuto || bEndOffsetIsAuto;
+        const bool inlineInsetHasAuto =
+            stylePos->GetInset(LogicalSide::IStart, aWM).IsAuto() ||
+            stylePos->GetInset(LogicalSide::IEnd, aWM).IsAuto();
+        const bool blockInsetHasAuto =
+            stylePos->GetInset(LogicalSide::BStart, aWM).IsAuto() ||
+            stylePos->GetInset(LogicalSide::BEnd, aWM).IsAuto();
         aspectRatioUsage = inlineInsetHasAuto && !blockInsetHasAuto
                                ? AspectRatioUsage::ToComputeISize
                                : AspectRatioUsage::ToComputeBSize;

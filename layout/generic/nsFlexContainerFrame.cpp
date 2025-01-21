@@ -4640,8 +4640,8 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   if (bsize.HasPercent() ||
       (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
        (bsize.IsAuto() || !bsize.IsLengthPercentage()) &&
-       !stylePos->mOffset.Get(LogicalSide::BStart, wm).MaybeAuto() &&
-       !stylePos->mOffset.Get(LogicalSide::BEnd, wm).MaybeAuto())) {
+       !stylePos->GetInset(LogicalSide::BStart, wm).IsAuto() &&
+       !stylePos->GetInset(LogicalSide::BEnd, wm).IsAuto())) {
     AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
   }
 

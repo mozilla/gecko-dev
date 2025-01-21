@@ -1910,20 +1910,18 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     PercentageBaseGetter aHeightGetter) {
   const nsStylePosition* positionData = StylePosition();
   int32_t sign = 1;
-  const auto positionProperty = StyleDisplay()->mPosition;
-  auto coord = positionData->GetAnchorResolvedInset(aSide, positionProperty);
+  auto coord = positionData->GetInset(aSide);
 
-  if (coord.IsAuto()) {
+  if (!coord.IsLengthPercentage()) {
     if (!aResolveAuto) {
       auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
       val->SetString("auto");
       return val.forget();
     }
-    coord = positionData->GetAnchorResolvedInset(NS_OPPOSITE_SIDE(aSide),
-                                                 positionProperty);
+    coord = positionData->GetInset(NS_OPPOSITE_SIDE(aSide));
     sign = -1;
   }
-  if (coord.IsAuto()) {
+  if (!coord.IsLengthPercentage()) {
     return PixelsToCSSValue(0.0f);
   }
 
@@ -1945,17 +1943,14 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetAbsoluteOffset(
     mozilla::Side aSide) {
-  const auto positionProperty = StyleDisplay()->mPosition;
-  const auto coord =
-      StylePosition()->GetAnchorResolvedInset(aSide, positionProperty);
-  const auto oppositeCoord = StylePosition()->GetAnchorResolvedInset(
-      NS_OPPOSITE_SIDE(aSide), positionProperty);
+  const auto& coord = StylePosition()->GetInset(aSide);
+  const auto& oppositeCoord =
+      StylePosition()->GetInset(NS_OPPOSITE_SIDE(aSide));
 
   if (coord.IsAuto() || oppositeCoord.IsAuto()) {
     return AppUnitsToCSSValue(GetUsedAbsoluteOffset(aSide));
   }
 
-  // TODO(dshin): We're resolving anchor offset potentially twice...
   return GetNonStaticPositionOffset(
       aSide, false, &nsComputedDOMStyle::GetCBPaddingRectWidth,
       &nsComputedDOMStyle::GetCBPaddingRectHeight);
@@ -2027,13 +2022,7 @@ nscoord nsComputedDOMStyle::GetUsedAbsoluteOffset(mozilla::Side aSide) {
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetStaticOffset(
     mozilla::Side aSide) {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  const auto resolved =
-      StylePosition()->GetAnchorResolvedInset(aSide, StyleDisplay()->mPosition);
-  if (resolved.IsAuto()) {
-    val->SetString("auto");
-  } else {
-    SetValueToLengthPercentage(val, resolved.AsLengthPercentage(), false);
-  }
+  SetValueToInset(val, StylePosition()->GetInset(aSide));
   return val.forget();
 }
 
@@ -2157,6 +2146,17 @@ void nsComputedDOMStyle::SetValueToLengthPercentageOrAuto(
   }
   SetValueToLengthPercentage(aValue, aSize.AsLengthPercentage(),
                              aClampNegativeCalc);
+}
+
+void nsComputedDOMStyle::SetValueToInset(nsROCSSPrimitiveValue* aValue,
+                                         const mozilla::StyleInset& aInset) {
+  // This function isn't used for absolutely positioned insets, so just assume
+  // `anchor()` or `anchor-size()` is `auto`.
+  if (!aInset.IsLengthPercentage()) {
+    aValue->SetString("auto");
+    return;
+  }
+  SetValueToLengthPercentage(aValue, aInset.AsLengthPercentage(), false);
 }
 
 void nsComputedDOMStyle::SetValueToMargin(nsROCSSPrimitiveValue* aValue,

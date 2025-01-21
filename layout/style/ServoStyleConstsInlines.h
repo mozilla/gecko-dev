@@ -815,16 +815,6 @@ inline bool StyleInset::IsAnchorPositioningFunction() const {
   return IsAnchorFunction() || IsAnchorSizeFunction();
 }
 
-template <>
-inline bool StyleInset::MaybeAuto() const {
-  return IsAuto() || IsAnchorPositioningFunction();
-}
-
-template <>
-inline bool StyleInset::MaybePercentageAware() const {
-  return HasPercent() || IsAnchorPositioningFunction();
-}
-
 #undef IMPL_LENGTHPERCENTAGE_FORWARDS
 
 template <>
