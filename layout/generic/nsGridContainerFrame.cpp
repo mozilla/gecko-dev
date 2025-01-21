@@ -8434,9 +8434,11 @@ nscoord nsGridContainerFrame::MasonryLayout(GridReflowInput& aState,
                                      ? LogicalSide::IStart
                                      : LogicalSide::BStart;
         if (masonryStart == 0 ||
-            (masonryStart == kAutoLine && item->mFrame->StylePosition()
-                                              ->GetInset(masonrySide, wm)
-                                              .IsAuto())) {
+            (masonryStart == kAutoLine &&
+             item->mFrame->StylePosition()
+                 ->GetAnchorResolvedInset(
+                     masonrySide, wm, item->mFrame->StyleDisplay()->mPosition)
+                 .IsAuto())) {
           sortedItems.AppendElement(item);
         } else {
           item = nullptr;

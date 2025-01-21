@@ -1309,8 +1309,12 @@ nsChangeHint nsStylePosition::CalcDifference(
   // Don't try to handle changes between types efficiently; at least for
   // changing into/out of `auto`, we will hardly ever be able to avoid a reflow.
   // TODO(dshin, Bug 1917695): Re-evaulate this for `anchor()`.
-  if (!InsetEquals(aNewData)) {
-    if (IsEqualInsetType(mOffset, aNewData.mOffset)) {
+  if (mOffset != aNewData.mOffset) {
+    if (IsEqualInsetType(mOffset, aNewData.mOffset) &&
+        aNewData.mOffset.All([](const StyleInset& aInset) {
+          // Err on the side of triggering reflow for anchor positioning.
+          return !aInset.IsAnchorPositioningFunction();
+        })) {
       hint |=
           nsChangeHint_RecomputePosition | nsChangeHint_UpdateParentOverflow;
     } else {
@@ -1378,49 +1382,51 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
   };
   switch (inset.tag) {
     case StyleInset::Tag::Auto:
-      return AnchorResolvedInset{InsetAuto{}};
+      return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
     case StyleInset::Tag::LengthPercentage: {
       const auto& lp = inset.AsLengthPercentage();
       if (lp.IsCalc()) {
         const auto& c = lp.AsCalc();
         if (!c.has_anchor_function) {
-          return AnchorResolvedInset{LengthPercentageReference{lp}};
+          return AnchorResolvedInset{
+              AnchorResolvedInset::V{LengthPercentageReference{lp}}};
         }
         auto resolved = StyleCalcAnchorPositioningFunctionResolution::Invalid();
         Servo_ResolveAnchorPositioningFunctionInCalc(&c, side(aSide), aPosition,
                                                      &resolved);
         if (resolved.IsInvalid()) {
-          return AnchorResolvedInset{InsetAuto{}};
+          return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
         }
-        return AnchorResolvedInset{resolved.AsValid()};
+        return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsValid()}};
       }
-      return AnchorResolvedInset{LengthPercentageReference{lp}};
+      return AnchorResolvedInset{
+          AnchorResolvedInset::V{LengthPercentageReference{lp}}};
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorFunction(&*inset.AsAnchorFunction(), side(aSide),
                                   aPosition, &resolved);
       if (resolved.IsInvalid()) {
-        return AnchorResolvedInset{InsetAuto{}};
+        return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{LengthPercentageReference{*fallback}};
+        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
-      return AnchorResolvedInset{resolved.AsResolved()};
+      return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
     case StyleInset::Tag::AnchorSizeFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorSizeFunction(&*inset.AsAnchorSizeFunction(), aPosition,
                                       &resolved);
       if (resolved.IsInvalid()) {
-        return AnchorResolvedInset{InsetAuto{}};
+        return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
       }
       if (resolved.IsResolvedReference()) {
         const auto* fallback = resolved.AsResolvedReference();
-        return AnchorResolvedInset{LengthPercentageReference{*fallback}};
+        return AnchorResolvedInset{AnchorResolvedInset::V{LengthPercentageReference{*fallback}}};
       }
-      return AnchorResolvedInset{resolved.AsResolved()};
+      return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsResolved()}};
     }
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled inset type");
@@ -1434,7 +1440,6 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
   return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
 }
 
-MOZ_RUNINIT const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
 MOZ_RUNINIT const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
 MOZ_RUNINIT const StyleMaxSize nsStylePosition::kNoneMaxSize =
     StyleMaxSize::None();

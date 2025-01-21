@@ -726,10 +726,18 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // Returns whether we need to compute an hypothetical position if we were
   // absolutely positioned.
   bool NeedsHypotheticalPositionIfAbsPos() const {
-    return (GetInset(mozilla::eSideRight).IsAuto() &&
-            GetInset(mozilla::eSideLeft).IsAuto()) ||
-           (GetInset(mozilla::eSideTop).IsAuto() &&
-            GetInset(mozilla::eSideBottom).IsAuto());
+    return (GetAnchorResolvedInset(mozilla::eSideRight,
+                                   mozilla::StylePositionProperty::Absolute)
+                .IsAuto() &&
+            GetAnchorResolvedInset(mozilla::eSideLeft,
+                                   mozilla::StylePositionProperty::Absolute)
+                .IsAuto()) ||
+           (GetAnchorResolvedInset(mozilla::eSideTop,
+                                   mozilla::StylePositionProperty::Absolute)
+                .IsAuto() &&
+            GetAnchorResolvedInset(mozilla::eSideBottom,
+                                   mozilla::StylePositionProperty::Absolute)
+                .IsAuto());
   }
 
   const mozilla::StyleContainIntrinsicSize& ContainIntrinsicBSize(
@@ -839,40 +847,38 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
 
   struct InsetAuto {};
   using LengthPercentageReference = std::reference_wrapper<const mozilla::StyleLengthPercentage>;
-  using AnchorResolvedInset =
-      mozilla::Variant<InsetAuto, LengthPercentageReference,
-                       mozilla::StyleLengthPercentage>;
+  struct AnchorResolvedInset {
+    using V = mozilla::Variant<InsetAuto, LengthPercentageReference,
+                               mozilla::StyleLengthPercentage>;
+    V mVariant;
+
+    bool IsAuto() const { return mVariant.is<InsetAuto>(); }
+
+    const mozilla::StyleLengthPercentage& AsLengthPercentage() const {
+      const bool isReference = mVariant.is<LengthPercentageReference>();
+      MOZ_ASSERT(isReference || mVariant.is<mozilla::StyleLengthPercentage>(),
+                 "Not LengthPercentage type");
+      if (isReference) {
+        return mVariant.as<LengthPercentageReference>().get();
+      }
+      return mVariant.as<mozilla::StyleLengthPercentage>();
+    }
+
+    bool HasPercent() const {
+      if (IsAuto()) {
+        return false;
+      }
+      return AsLengthPercentage().HasPercent();
+    }
+  };
+
+  // TODO(dshin): These inset getters are to be removed when
+  // interleaving computation is implemented.
   AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const;
   AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::LogicalSide aSide, WritingMode aWM,
       mozilla::StylePositionProperty aPosition) const;
-
-  // TODO(dshin): The following functions are used as shims to deal
-  // anchor positioning functions as if it's `auto`, before the computation
-  // is implemented.
-  static const mozilla::StyleInset kAutoInset;
-  const mozilla::StyleInset& GetInset(mozilla::Side aSide) const {
-    const auto& result = mOffset.Get(aSide);
-    if (MOZ_UNLIKELY(result.IsAnchorPositioningFunction())) {
-      return kAutoInset;
-    }
-    return result;
-  }
-
-  bool InsetEquals(const nsStylePosition& aOther) const {
-    for (const auto side : mozilla::AllPhysicalSides()) {
-      if (GetInset(side) != aOther.GetInset(side)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // As with other logical-coordinate accessors, definitions for these
-  // are found in WritingModes.h.
-  inline const mozilla::StyleInset& GetInset(mozilla::LogicalSide aSide,
-                                             WritingMode) const;
 
   // TODO(dshin): These size getters can be removed when anchor
   // size is actually calculated.
