@@ -17,6 +17,7 @@
 #include "mozilla/gfx/GPUChild.h"
 #include "mozilla/gfx/GPUParent.h"
 #include "mozilla/gfx/GPUProcessManager.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Hal.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/net/SocketProcessChild.h"

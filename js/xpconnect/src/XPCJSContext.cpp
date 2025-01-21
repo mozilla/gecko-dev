@@ -34,6 +34,7 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/glean/JsXpconnectMetrics.h"
 
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"

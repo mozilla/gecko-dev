@@ -28,6 +28,7 @@
 #include "cert_storage/src/cert_storage.h"
 #include "mozilla/Logging.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/net/SocketProcessBackgroundChild.h"
 #include "mozilla/psm/SelectTLSClientAuthCertChild.h"

@@ -111,6 +111,7 @@
 #include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/simpledb/ActorsParent.h"
 #include "mozilla/fallible.h"
+#include "mozilla/glean/DomQuotaMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundChild.h"

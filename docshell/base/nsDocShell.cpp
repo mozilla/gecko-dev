@@ -89,6 +89,7 @@
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/dom/JSWindowActorChild.h"
 #include "mozilla/dom/DocumentBinding.h"
+#include "mozilla/glean/DocshellMetrics.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/net/DocumentChannel.h"
 #include "mozilla/net/DocumentChannelChild.h"

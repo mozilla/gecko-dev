@@ -45,6 +45,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/PerformanceStorage.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/ipc/BackgroundUtils.h"

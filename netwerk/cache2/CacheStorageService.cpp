@@ -30,7 +30,7 @@
 #include "mozilla/AtomicBitfields.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/Services.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/IntegerPrintfMacros.h"

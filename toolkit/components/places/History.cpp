@@ -52,6 +52,7 @@
 #include "mozilla/dom/PlacesVisit.h"
 #include "mozilla/dom/PlacesVisitTitle.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/glean/PlacesMetrics.h"
 
 #include "nsIBrowserWindowTracker.h"
 #include "nsImportModule.h"

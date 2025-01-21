@@ -12,6 +12,7 @@
 #include "secerr.h"
 #include "mozilla/Base64.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "nsNSSCallbacks.h"
 #include "nsProxyRelease.h"
 

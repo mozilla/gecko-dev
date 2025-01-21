@@ -40,6 +40,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/Vector.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "mozilla/net/SocketProcessParent.h"
 #include "mozpkix/pkixnss.h"
 #include "nsAppDirectoryServiceDefs.h"
