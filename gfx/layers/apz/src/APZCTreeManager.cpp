@@ -3845,7 +3845,7 @@ void APZCTreeManager::SetFixedLayerMargins(ScreenIntCoord aTop,
 ScreenPoint APZCTreeManager::ComputeFixedMarginsOffset(
     const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
     const ScreenMargin& aGeckoFixedLayerMargins) const {
-  // If the software keybaord is visible and the interactive-widget is not
+  // If the software keyboard is visible and the interactive-widget is not
   // resizes-content, we don't need to move the position:fixed or sticky
   // elements at all.
   if (mIsSoftwareKeyboardVisible &&
