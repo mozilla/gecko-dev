@@ -26,6 +26,7 @@ const {
   getColumns,
   getSelectedRequest,
   getClickedRequest,
+  getWaterfallScale,
 } = require("resource://devtools/client/netmonitor/src/selectors/index.js");
 
 loader.lazyRequireGetter(
@@ -76,6 +77,8 @@ class RequestListContent extends Component {
       networkDetailsOpen: PropTypes.bool.isRequired,
       networkDetailsWidth: PropTypes.number,
       networkDetailsHeight: PropTypes.number,
+      waterfallScale: PropTypes.number,
+      slowLimit: PropTypes.number,
       cloneRequest: PropTypes.func.isRequired,
       clickedRequest: PropTypes.object,
       openDetailsPanelTab: PropTypes.func.isRequired,
@@ -400,6 +403,8 @@ class RequestListContent extends Component {
       openRequestBlockingAndDisableUrls,
       networkActionOpen,
       networkDetailsOpen,
+      slowLimit,
+      waterfallScale,
     } = this.props;
 
     return div(
@@ -449,6 +454,8 @@ class RequestListContent extends Component {
                 requestFilterTypes,
                 openRequestBlockingAndAddUrl,
                 openRequestBlockingAndDisableUrls,
+                slowLimit,
+                waterfallScale,
               });
             })
           )
@@ -472,6 +479,8 @@ module.exports = connect(
     networkDetailsOpen: state.ui.networkDetailsOpen,
     networkDetailsWidth: state.ui.networkDetailsWidth,
     networkDetailsHeight: state.ui.networkDetailsHeight,
+    waterfallScale: getWaterfallScale(state),
+    slowLimit: state.ui.slowLimit,
     clickedRequest: getClickedRequest(state),
     displayedRequests: getDisplayedRequests(state),
     firstRequestStartedMs: state.requests.firstStartedMs,

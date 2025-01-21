@@ -190,7 +190,7 @@ const COLUMN_COMPONENTS = [
   {
     column: "file",
     ColumnComponent: RequestListColumnFile,
-    props: ["onWaterfallMouseDown"],
+    props: ["onWaterfallMouseDown", "slowLimit"],
   },
   {
     column: "url",
@@ -274,6 +274,7 @@ class RequestListItem extends Component {
       requestFilterTypes: PropTypes.object.isRequired,
       selectedActionBarTabId: PropTypes.string,
       intersectionObserver: PropTypes.object,
+      waterfallScale: PropTypes.number,
     };
   }
 
@@ -352,6 +353,7 @@ class RequestListItem extends Component {
       onMouseDown,
       onWaterfallMouseDown,
       selectedActionBarTabId,
+      waterfallScale,
     } = this.props;
 
     const classList = ["request-list-item", index % 2 ? "odd" : "even"];
@@ -405,6 +407,7 @@ class RequestListItem extends Component {
           item,
           onWaterfallMouseDown,
           isVisible,
+          waterfallScale,
         })
     );
   }
