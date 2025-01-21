@@ -238,7 +238,7 @@ export class MegalistAlpha extends MozLitElement {
       @keypress=${e => {
         if (e.shiftKey && e.key === "Tab") {
           e.preventDefault();
-          this.shadowRoot.querySelector("#more-options-menubutton").focus();
+          this.shadowRoot.querySelector(".passwords-list").focus();
         } else if (e.key === "Tab") {
           e.preventDefault();
           const webContent =
