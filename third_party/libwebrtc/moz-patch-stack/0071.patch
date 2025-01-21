@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c5df7f40392464ffc
  1 file changed, 1 insertion(+)
 
 diff --git a/modules/video_coding/timing/timestamp_extrapolator.cc b/modules/video_coding/timing/timestamp_extrapolator.cc
-index 15605033c8..e9a3ce211e 100644
+index c54bbf893f..a7e77e87fb 100644
 --- a/modules/video_coding/timing/timestamp_extrapolator.cc
 +++ b/modules/video_coding/timing/timestamp_extrapolator.cc
-@@ -126,6 +126,7 @@ void TimestampExtrapolator::Update(Timestamp now, uint32_t ts90khz) {
+@@ -140,6 +140,7 @@ void TimestampExtrapolator::Update(Timestamp now, uint32_t ts90khz) {
  std::optional<Timestamp> TimestampExtrapolator::ExtrapolateLocalTime(
      uint32_t timestamp90khz) const {
    int64_t unwrapped_ts90khz = unwrapper_.PeekUnwrap(timestamp90khz);

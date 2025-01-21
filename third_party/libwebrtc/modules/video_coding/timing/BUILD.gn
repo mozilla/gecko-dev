@@ -90,6 +90,7 @@ rtc_library("timestamp_extrapolator") {
     "../../../api/units:timestamp",
     "../../../modules:module_api_public",
     "../../../rtc_base:rtc_numerics",
+    "../../../system_wrappers:metrics",
   ]
 }
 
@@ -139,6 +140,7 @@ rtc_library("timing_unittests") {
     "../../../api/units:timestamp",
     "../../../rtc_base:histogram_percentile_counter",
     "../../../rtc_base:timeutils",
+    "../../../system_wrappers:metrics",
     "../../../system_wrappers:system_wrappers",
     "../../../test:scoped_key_value_config",
     "../../../test:test_support",
