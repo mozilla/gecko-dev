@@ -326,7 +326,9 @@ ProcessRuntime::InitializeSecurity(const ProcessCategory aProcessCategory) {
   HANDLE rawToken = nullptr;
   BOOL ok = ::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &rawToken);
   if (!ok) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
   nsAutoHandle token(rawToken);
 
@@ -334,21 +336,27 @@ ProcessRuntime::InitializeSecurity(const ProcessCategory aProcessCategory) {
   ok = ::GetTokenInformation(token, TokenUser, nullptr, len, &len);
   DWORD win32Error = ::GetLastError();
   if (!ok && win32Error != ERROR_INSUFFICIENT_BUFFER) {
-    return HRESULT_FROM_WIN32(win32Error);
+    HRESULT hr = HRESULT_FROM_WIN32(win32Error);
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   auto tokenUserBuf = MakeUnique<BYTE[]>(len);
   TOKEN_USER& tokenUser = *reinterpret_cast<TOKEN_USER*>(tokenUserBuf.get());
   ok = ::GetTokenInformation(token, TokenUser, tokenUserBuf.get(), len, &len);
   if (!ok) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   len = 0;
   ok = ::GetTokenInformation(token, TokenPrimaryGroup, nullptr, len, &len);
   win32Error = ::GetLastError();
   if (!ok && win32Error != ERROR_INSUFFICIENT_BUFFER) {
-    return HRESULT_FROM_WIN32(win32Error);
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   auto tokenPrimaryGroupBuf = MakeUnique<BYTE[]>(len);
@@ -357,26 +365,34 @@ ProcessRuntime::InitializeSecurity(const ProcessCategory aProcessCategory) {
   ok = ::GetTokenInformation(token, TokenPrimaryGroup,
                              tokenPrimaryGroupBuf.get(), len, &len);
   if (!ok) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   SECURITY_DESCRIPTOR sd;
   if (!::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   BYTE systemSid[SECURITY_MAX_SID_SIZE];
   DWORD systemSidSize = sizeof(systemSid);
   if (!::CreateWellKnownSid(WinLocalSystemSid, nullptr, systemSid,
                             &systemSidSize)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   BYTE adminSid[SECURITY_MAX_SID_SIZE];
   DWORD adminSidSize = sizeof(adminSid);
   if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr, adminSid,
                             &adminSidSize)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   const bool allowAllNonRestrictedAppContainers =
@@ -387,7 +403,9 @@ ProcessRuntime::InitializeSecurity(const ProcessCategory aProcessCategory) {
   if (allowAllNonRestrictedAppContainers) {
     if (!::CreateWellKnownSid(WinBuiltinAnyPackageSid, nullptr,
                               appContainersSid, &appContainersSidSize)) {
-      return HRESULT_FROM_WIN32(::GetLastError());
+      HRESULT hr = HRESULT_FROM_WIN32(::GetLastError());
+      MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+      return hr;
     }
   }
 
@@ -461,27 +479,37 @@ ProcessRuntime::InitializeSecurity(const ProcessCategory aProcessCategory) {
   win32Error =
       ::SetEntriesInAclW(entries.length(), entries.begin(), nullptr, &rawDacl);
   if (win32Error != ERROR_SUCCESS) {
-    return HRESULT_FROM_WIN32(win32Error);
+    HRESULT hr = HRESULT_FROM_WIN32(win32Error);
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   UniquePtr<ACL, LocalFreeDeleter> dacl(rawDacl);
 
   if (!::SetSecurityDescriptorDacl(&sd, TRUE, dacl.get(), FALSE)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(win32Error);
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   if (!::SetSecurityDescriptorOwner(&sd, tokenUser.User.Sid, FALSE)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(win32Error);
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
   if (!::SetSecurityDescriptorGroup(&sd, tokenPrimaryGroup.PrimaryGroup,
                                     FALSE)) {
-    return HRESULT_FROM_WIN32(::GetLastError());
+    HRESULT hr = HRESULT_FROM_WIN32(win32Error);
+    MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+    return hr;
   }
 
-  return wrapped::CoInitializeSecurity(
+  HRESULT hr = wrapped::CoInitializeSecurity(
       &sd, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_DEFAULT,
       RPC_C_IMP_LEVEL_IDENTIFY, nullptr, EOAC_NONE, nullptr);
+  MOZ_DIAGNOSTIC_ASSERT(SUCCEEDED(hr));
+  return hr;
 }
 
 }  // namespace mscom
