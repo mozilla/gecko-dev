@@ -157,6 +157,7 @@ TEST(HaltonFrameSamplerTest, FrameIsNotSampledWhenTimestampsAreEqual) {
           /*is_key_frame=*/false, /*rtp_timestamp=*/0, /*num_samples=*/1),
       _);
 }
+
 #endif  // GTEST_HAS_DEATH_TEST
 
 TEST(HaltonFrameSamplerGaussianFilteringTest,
@@ -234,6 +235,18 @@ TEST(HaltonFrameSamplerGaussianFilteringTest,
       GetSampleValuesForFrame(kDefaultI420Buffer, kDefaultSampleCoordinates,
                               kDefaultScaledWidth, kDefaultScaledHeight, -1.0),
       IsEmpty());
+}
+
+TEST(HaltonFrameSamplerGaussianFilteringTest,
+     ShouldReturnEmptyListWhenUpscaling) {
+  const scoped_refptr<I420Buffer> kDefaultI420Buffer =
+      MakeDefaultI420FrameBuffer();
+
+  EXPECT_THAT(GetSampleValuesForFrame(kDefaultI420Buffer,
+                                      MakeDefaultSampleCoordinates(),
+                                      /*scaled_width=*/8, /*scaled_height=*/8,
+                                      kDefaultStdDevGaussianBlur),
+              IsEmpty());
 }
 
 TEST(HaltonFrameSamplerGaussianFilteringTest,
@@ -337,8 +350,8 @@ TEST(HaltonFrameSamplerGaussianFilteringTest,
       {.row = 0.8, .column = 0.4}};
 
   // With scaling.
-  const int kScaledWidth = 10;
-  const int kScaledHeight = 10;
+  const int kScaledWidth = 2;
+  const int kScaledHeight = 2;
 
   // No filtering.
   const double kStdDevGaussianBlur = 0.02;
@@ -346,13 +359,13 @@ TEST(HaltonFrameSamplerGaussianFilteringTest,
   EXPECT_THAT(
       GetSampleValuesForFrame(kI420Buffer, kSampleCoordinates, kScaledWidth,
                               kScaledHeight, kStdDevGaussianBlur),
-      ElementsAre(AllOf(Field(&FilteredSample::value, DoubleEq(96.0)),
+      ElementsAre(AllOf(Field(&FilteredSample::value, DoubleEq(131.0)),
                         Field(&FilteredSample::plane, ImagePlane::kChroma)),
-                  AllOf(Field(&FilteredSample::value, DoubleEq(30.0)),
+                  AllOf(Field(&FilteredSample::value, DoubleEq(35.0)),
                         Field(&FilteredSample::plane, ImagePlane::kChroma)),
-                  AllOf(Field(&FilteredSample::value, DoubleEq(66.0)),
+                  AllOf(Field(&FilteredSample::value, DoubleEq(131.0)),
                         Field(&FilteredSample::plane, ImagePlane::kChroma)),
-                  AllOf(Field(&FilteredSample::value, DoubleNear(127.0, 1.0)),
+                  AllOf(Field(&FilteredSample::value, DoubleEq(98.0)),
                         Field(&FilteredSample::plane, ImagePlane::kLuma))));
 }
 
