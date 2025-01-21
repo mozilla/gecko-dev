@@ -45,9 +45,18 @@ async function waitForAllRequestsFinished(
     let payloadReady = 0;
     let resolveWithLessThanMaxRequestsTimer = null;
 
+    // Keep track of the last time we logged requests to log at most 20 times.
+    let remainingLastDump = Infinity;
     function onPayloadReady() {
       payloadReady++;
-      dump(`Waiting for ${maxExpectedRequests - payloadReady} requests\n`);
+      const remaining = maxExpectedRequests - payloadReady;
+      if (remainingLastDump - remaining > maxExpectedRequests / 20) {
+        remainingLastDump = remaining;
+        dump(
+          `[waitForAllRequestsFinished] Waiting for ${remaining} / ${maxExpectedRequests} requests\n`
+        );
+      }
+
       maybeResolve();
     }
 
@@ -66,6 +75,9 @@ async function waitForAllRequestsFinished(
 
       // Have all the requests finished yet?
       if (payloadReady >= maxExpectedRequests) {
+        dump(
+          `[waitForAllRequestsFinished] Received more than ${maxExpectedRequests} (max) requests, resolving\n`
+        );
         doResolve();
         return;
       }
@@ -73,7 +85,12 @@ async function waitForAllRequestsFinished(
       // If we're past the minimum threshold, wait to see if more requests come
       // up, but resolve otherwise.
       if (payloadReady >= minExpectedRequests) {
-        resolveWithLessThanMaxRequestsTimer = setTimeout(doResolve, 1000);
+        resolveWithLessThanMaxRequestsTimer = setTimeout(() => {
+          dump(
+            `[waitForAllRequestsFinished] Received more than ${minExpectedRequests} (min) requests, resolving\n`
+          );
+          doResolve();
+        }, 1000);
       }
     }
 
