@@ -220,9 +220,6 @@ VideoConfig::VideoConfig(absl::string_view stream_label,
                          int32_t fps)
     : width(width), height(height), fps(fps), stream_label(stream_label) {}
 
-AudioConfig::AudioConfig(absl::string_view stream_label)
-    : stream_label(stream_label) {}
-
 VideoCodecConfig::VideoCodecConfig(absl::string_view name)
     : name(name), required_params() {}
 

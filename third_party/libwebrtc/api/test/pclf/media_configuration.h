@@ -348,9 +348,6 @@ struct VideoConfig {
 
 // Contains properties for audio in the call.
 struct AudioConfig {
-  AudioConfig() = default;
-  explicit AudioConfig(absl::string_view stream_label);
-
   // Have to be unique among all specified configs for all peers in the call.
   // Will be auto generated if omitted.
   std::optional<std::string> stream_label;

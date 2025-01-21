@@ -52,8 +52,8 @@ void AddDefaultAudioVideoPeer(
     absl::string_view video_stream_label,
     const PeerNetworkDependencies& network_dependencies,
     PeerConnectionE2EQualityTestFixture& fixture) {
-  AudioConfig audio{std::string(audio_stream_label)};
-  audio.sync_group = std::string(peer_name);
+  AudioConfig audio{.stream_label = std::string(audio_stream_label),
+                    .sync_group = std::string(peer_name)};
   VideoConfig video(std::string(video_stream_label), 320, 180, 15);
   video.sync_group = std::string(peer_name);
   auto peer = std::make_unique<PeerConfigurer>(network_dependencies);
