@@ -1892,6 +1892,14 @@ release_partner_config:
         upload_to_candidates: 'true'
   release-partner-attribution:
     configs:
+      - campaign: smi
+        content: smi-001
+        locales:
+          - en-GB
+        platforms:
+          - win64-shippable
+          - win32-shippable
+        upload_to_candidates: true
       - campaign: softonic
         content: softonic-003
         locales:
