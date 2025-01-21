@@ -157,3 +157,128 @@ profiles.existing:
       - nbaumgardner@mozilla.com
     expires: never
     telemetry_mirror: Profiles_Existing_Theme
+
+profiles.new:
+  avatar:
+    type: event
+    description: Recorded when the user selects a different avatar.
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter. The `value` is the name of the avatar.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Avatar
+  closed:
+    type: event
+    description: Recorded when the page is closed.
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter. If the user clicked the "Done Editing"
+          button, the `value` will be `done_editing`. Otherwise, the user
+          navigated away or closed the tab, and the `value` will be `pagehide`.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Closed
+  deleted:
+    type: event
+    description: Recorded when the user clicks the delete button.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Deleted
+  displayed:
+    type: event
+    description: Recorded when the page is loaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Displayed
+  learn_more:
+    type: event
+    description: Recorded when the "explore more addons" link is clicked.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_LearnMore
+  name:
+    type: event
+    description: >
+      Recorded when the name is changed. This event is fired either after the
+      user has stopped typing in the name input field for 2 seconds, or if
+      they have edited the name, then quickly closed the tab.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Name
+  theme:
+    type: event
+    description: Recorded when the user selects a different theme.
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event (name of the theme). Mirrors to the Legacy
+          Telemetry event's `value` parameter. The `value` is the ID of the
+          theme, which may be the ID of a built-in theme or a third-party
+          theme. The map of IDs to profile names must be added elsewhere.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941698
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_New_Theme

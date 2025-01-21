@@ -9,6 +9,16 @@ add_setup(async () => {
   await initGroupDatabase();
 });
 
+const setup = async () => {
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+  return profile;
+};
+
 add_task(async function test_new_profile_beforeunload() {
   if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
     // `mochitest-browser` suite `add_task` does not yet support
@@ -84,8 +94,12 @@ add_task(async function test_create_profile_name() {
     set: [["browser.profiles.profile-name.updated", false]],
   });
 
-  let profile = SelectableProfileService.currentProfile;
-  Assert.ok(profile, "Should have a profile now");
+  let profile = await setup();
+  is(
+    null,
+    Glean.profilesNew.name.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
 
   await BrowserTestUtils.withNewTab(
     {
@@ -134,6 +148,8 @@ add_task(async function test_create_profile_name() {
         NEW_PROFILE_NAME,
         "Current profile name was updated"
       );
+
+      await assertGlean("profiles", "new", "name");
     }
   );
 
@@ -148,8 +164,94 @@ add_task(async function test_new_profile_avatar() {
     return;
   }
 
-  let profile = SelectableProfileService.currentProfile;
-  Assert.ok(profile, "Should have a profile now");
+  let profile = await setup();
+
+  let expectedAvatar = "briefcase";
+  // Before we load the new page, set the profile's avatar to something other
+  // than the expected item.
+  profile.avatar = "flower";
+  await SelectableProfileService.updateProfile(profile);
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:newprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [expectedAvatar], async expected => {
+        let newProfileCard =
+          content.document.querySelector("new-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => newProfileCard.initialized,
+          "Waiting for new-profile-card to be initialized"
+        );
+
+        await newProfileCard.updateComplete;
+
+        let avatars = newProfileCard.avatars;
+        let newAvatar = Array.from(avatars).find(
+          avatar => avatar.value === expected
+        );
+        Assert.ok(
+          !newAvatar.selected,
+          "The new avatar should not initially be selected"
+        );
+        newAvatar.click();
+
+        await ContentTaskUtils.waitForCondition(
+          () => newAvatar.selected,
+          "Waiting for new avatar to be selected"
+        );
+
+        // Sometimes the async message takes a bit longer to arrive.
+        await new Promise(resolve => content.setTimeout(resolve, 100));
+      });
+
+      let curProfile = await SelectableProfileService.getProfile(profile.id);
+
+      Assert.equal(
+        curProfile.avatar,
+        expectedAvatar,
+        "Profile avatar was updated in database"
+      );
+
+      Assert.equal(
+        SelectableProfileService.currentProfile.avatar,
+        expectedAvatar,
+        "Current profile avatar was updated"
+      );
+
+      await assertGlean("profiles", "new", "avatar", expectedAvatar);
+    }
+  );
+});
+
+add_task(async function test_new_profile_theme() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  let profile = await setup();
+
+  // Set the profile to the built-in light theme to avoid theme randomization
+  // by the new profile card and make the built-in dark theme card available
+  // to be clicked.
+  profile.theme = {
+    themeId: "firefox-compact-light@mozilla.org",
+    themeFg: "rgb(21,20,26)",
+    themeBg: "#f9f9fb",
+  };
+
+  let expectedThemeId = "firefox-compact-dark@mozilla.org";
+
+  is(
+    null,
+    Glean.profilesNew.theme.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
 
   await BrowserTestUtils.withNewTab(
     {
@@ -168,23 +270,157 @@ add_task(async function test_new_profile_avatar() {
 
         await newProfileCard.updateComplete;
 
-        let avatars = newProfileCard.avatars;
-        avatars[0].click();
+        let darkThemeCard = newProfileCard.themeCards[5];
+
+        Assert.ok(
+          !darkThemeCard.selected,
+          "Dark theme chip should not be selected"
+        );
+        darkThemeCard.click();
+
+        await newProfileCard.updateComplete;
+        await ContentTaskUtils.waitForCondition(
+          () => darkThemeCard.selected,
+          "Waiting for the new theme chip to be selected"
+        );
+
+        // Sometimes the theme takes a little longer to update.
+        await new Promise(resolve => content.setTimeout(resolve, 100));
       });
 
       let curProfile = await SelectableProfileService.getProfile(profile.id);
 
       Assert.equal(
-        curProfile.avatar,
-        "book",
-        "Profile avatar was updated in database"
+        curProfile.theme.themeId,
+        expectedThemeId,
+        "Profile theme was updated in database"
       );
 
       Assert.equal(
-        SelectableProfileService.currentProfile.avatar,
-        "book",
-        "Current profile avatar was updated"
+        SelectableProfileService.currentProfile.theme.themeId,
+        expectedThemeId,
+        "Current profile theme was updated"
       );
+
+      await assertGlean("profiles", "new", "theme", expectedThemeId);
+
+      curProfile.theme = {
+        themeId: "firefox-compact-light@mozilla.org",
+        themeFg: "rgb(21,20,26)",
+        themeBg: "#f9f9fb",
+      };
+      await SelectableProfileService.updateProfile(curProfile);
+      let profilesParent =
+        browser.browsingContext.currentWindowGlobal.getActor("Profiles");
+      await profilesParent.enableTheme("firefox-compact-light@mozilla.org", {
+        method: "url",
+        source: "about:newprofile",
+      });
+    }
+  );
+});
+
+add_task(async function test_new_profile_explore_more_themes() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  await setup();
+  is(
+    null,
+    Glean.profilesNew.learnMore.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:newprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        let newProfileCard =
+          content.document.querySelector("new-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => newProfileCard.initialized,
+          "Waiting for new-profile-card to be initialized"
+        );
+
+        await newProfileCard.updateComplete;
+
+        // To simplify the test, deactivate the link before clicking.
+        newProfileCard.moreThemesLink.href = "#";
+        newProfileCard.moreThemesLink.target = "";
+        newProfileCard.moreThemesLink.click();
+
+        // Wait a turn for the event to propagate.
+        await new Promise(resolve => content.setTimeout(resolve, 0));
+      });
+
+      await assertGlean("profiles", "new", "learn_more");
+    }
+  );
+});
+
+add_task(async function test_new_profile_displayed_closed_telemetry() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  await setup();
+  is(
+    null,
+    Glean.profilesNew.displayed.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+  is(
+    null,
+    Glean.profilesNew.closed.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:newprofile",
+    },
+    async browser => {
+      await assertGlean("profiles", "new", "displayed");
+
+      Services.fog.testResetFOG();
+      Services.telemetry.clearEvents();
+
+      await SpecialPowers.spawn(browser, [], async () => {
+        let newProfileCard =
+          content.document.querySelector("new-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => newProfileCard.initialized,
+          "Waiting for new-profile-card to be initialized"
+        );
+
+        await newProfileCard.updateComplete;
+
+        let nameInput = newProfileCard.nameInput;
+        nameInput.value = "test profile name";
+        nameInput.dispatchEvent(new content.Event("input"));
+
+        await ContentTaskUtils.waitForCondition(() => {
+          let savedMessage =
+            newProfileCard.shadowRoot.querySelector("#saved-message");
+          return ContentTaskUtils.isVisible(savedMessage);
+        });
+
+        // Click the done editing button to trigger closed event.
+        newProfileCard.doneButton.click();
+      });
+
+      await assertGlean("profiles", "new", "closed");
     }
   );
 });

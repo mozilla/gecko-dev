@@ -195,6 +195,9 @@ export class ProfilesParent extends JSWindowActorParent {
     let source = this.browsingContext.embedderElement?.currentURI.displaySpec;
     switch (message.name) {
       case "Profiles:DeleteProfile": {
+        if (source === "about:newprofile") {
+          Glean.profilesNew.closed.record({ value: "delete" });
+        }
         let profiles = await SelectableProfileService.getAllProfiles();
 
         if (profiles.length <= 1) {
@@ -228,6 +231,7 @@ export class ProfilesParent extends JSWindowActorParent {
         break;
       }
       case "Profiles:GetNewProfileContent": {
+        Glean.profilesNew.displayed.record();
         return this.#getProfileContent();
       }
       case "Profiles:GetEditProfileContent": {
@@ -237,6 +241,8 @@ export class ProfilesParent extends JSWindowActorParent {
       case "Profiles:MoreThemes": {
         if (message.data.source === "about:editprofile") {
           Glean.profilesExisting.learnMore.record();
+        } else if (message.data.source === "about:newprofile") {
+          Glean.profilesNew.learnMore.record();
         }
         break;
       }
@@ -254,12 +260,16 @@ export class ProfilesParent extends JSWindowActorParent {
       case "Profiles:PageHide": {
         if (source === "about:editprofile") {
           Glean.profilesExisting.closed.record({ value: "pagehide" });
+        } else if (source === "about:newprofile") {
+          Glean.profilesNew.closed.record({ value: "pagehide" });
         }
         break;
       }
       case "Profiles:UpdateProfileName": {
         if (source === "about:editprofile") {
           Glean.profilesExisting.name.record();
+        } else if (source === "about:newprofile") {
+          Glean.profilesNew.name.record();
         }
         let profileObj = message.data;
         SelectableProfileService.currentProfile.name = profileObj.name;
@@ -316,6 +326,8 @@ export class ProfilesParent extends JSWindowActorParent {
         SelectableProfileService.currentProfile.avatar = avatar;
         if (source === "about:editprofile") {
           Glean.profilesExisting.avatar.record({ value: avatar });
+        } else if (source === "about:newprofile") {
+          Glean.profilesNew.avatar.record({ value: avatar });
         }
         break;
       }
@@ -329,6 +341,8 @@ export class ProfilesParent extends JSWindowActorParent {
         await this.enableTheme(themeId, telemetryInfo);
         if (source === "about:editprofile") {
           Glean.profilesExisting.theme.record({ value: themeId });
+        } else if (source === "about:newprofile") {
+          Glean.profilesNew.theme.record({ value: themeId });
         }
 
         // The enable theme promise resolves after the
@@ -339,6 +353,8 @@ export class ProfilesParent extends JSWindowActorParent {
       case "Profiles:CloseProfileTab": {
         if (source === "about:editprofile") {
           Glean.profilesExisting.closed.record({ value: "done_editing" });
+        } else if (source === "about:newprofile") {
+          Glean.profilesNew.closed.record({ value: "done_editing" });
         }
         gBrowser.removeTab(this.tab);
         break;
