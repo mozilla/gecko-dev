@@ -327,6 +327,8 @@ tags = "os_integration"
 
 ["browser_tab_groups_state.js"]
 
+["browser_tab_groups_undo.js"]
+
 ["browser_tab_label_during_restore.js"]
 https_first_disabled = true
 

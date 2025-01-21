@@ -237,10 +237,6 @@ export var SessionStore = {
     return SessionStoreInternal._LAST_ACTION_CLOSED_TAB;
   },
 
-  get LAST_ACTION_CLOSED_TAB_GROUP() {
-    return SessionStoreInternal._LAST_ACTION_CLOSED_TAB_GROUP;
-  },
-
   get LAST_ACTION_CLOSED_WINDOW() {
     return SessionStoreInternal._LAST_ACTION_CLOSED_WINDOW;
   },
@@ -433,6 +429,14 @@ export var SessionStore = {
    */
   getClosedTabGroups: function ss_getClosedTabGroups(aOptions) {
     return SessionStoreInternal.getClosedTabGroups(aOptions);
+  },
+
+  /**
+   * Get the last closed tab ID associated with a specific window
+   * @param {Window} aWindow
+   */
+  getLastClosedTabGroupId(window) {
+    return SessionStoreInternal.getLastClosedTabGroupId(window);
   },
 
   /**
@@ -1061,8 +1065,6 @@ var SessionStoreInternal = {
   },
 
   _LAST_ACTION_CLOSED_TAB: "tab",
-
-  _LAST_ACTION_CLOSED_TAB_GROUP: "tab-group",
 
   _LAST_ACTION_CLOSED_WINDOW: "window",
 
@@ -1912,7 +1914,11 @@ var SessionStoreInternal = {
       closedGroups: [],
       selected: 0,
       _closedTabs: [],
+      // NOTE: this naming refers to the number of tabs in a *multiselection*, not in a tab group.
+      // This naming was chosen before the introduction of tab groups proper.
+      // TODO: choose more distinct naming in bug1928424
       _lastClosedTabGroupCount: -1,
+      lastClosedTabGroupId: null,
       busy: false,
       chromeFlags: aWindow.docShell.treeOwner
         .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -2785,6 +2791,7 @@ var SessionStoreInternal = {
       // Reset the closed tab list.
       windowData._closedTabs = [];
       windowData._lastClosedTabGroupCount = -1;
+      windowData.lastClosedTabGroupId = null;
       this._closedObjectsChanged = true;
     }
 
@@ -3068,10 +3075,6 @@ var SessionStoreInternal = {
       return;
     }
 
-    // Record the closed action right away to make sure it's also being
-    // recorded for groups that are saved and closed
-    this._addClosedAction(this._LAST_ACTION_CLOSED_TAB_GROUP, tabGroup.id);
-
     if (this.getSavedTabGroup(tabGroup.id)) {
       // If a tab group is being removed from the tab strip but it's already
       // saved, then this is a "save and close" action; the saved tab group
@@ -3115,6 +3118,7 @@ var SessionStoreInternal = {
       let tabState = lazy.TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
       this.maybeSaveClosedTab(win, tab, tabState, {
         closedTabsArray: closedTabs,
+        closedInTabGroup: true,
       });
     });
     return closedTabs;
@@ -3153,8 +3157,15 @@ var SessionStoreInternal = {
    *        The array of closed tabs to save to. This could be a
    *        window's _closedTabs array or the tab list of a
    *        closed tab group.
+   * @param {boolean} [options.closedInTabGroup]
+   *        If this tab was closed due to the closing of a tab group.
    */
-  maybeSaveClosedTab(aWindow, aTab, tabState, { closedTabsArray } = {}) {
+  maybeSaveClosedTab(
+    aWindow,
+    aTab,
+    tabState,
+    { closedTabsArray, closedInTabGroup = false } = {}
+  ) {
     // Don't save private tabs
     let isPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(aWindow);
     if (!isPrivateWindow && tabState.isPrivate) {
@@ -3173,7 +3184,8 @@ var SessionStoreInternal = {
       image: aWindow.gBrowser.getIcon(aTab),
       pos: aTab._tPos,
       closedAt: Date.now(),
-      closedInGroup: aTab._closedInGroup,
+      closedInGroup: aTab._closedInMultiselection,
+      closedInTabGroupId: closedInTabGroup ? aTab.group.id : null,
       sourceWindowId: aWindow.__SSi,
     };
 
@@ -3329,16 +3341,10 @@ var SessionStoreInternal = {
    *        The tabData to be inserted.
    * @param closedTabs (array)
    *        The list of closed tabs for a window.
-   * @param saveAction (boolean|null)
+   * @param saveAction (boolean)
    *        Whether or not to add an action to the closed actions stack on save.
-   *        True by default if the tab was not closed as part of a tab group; false otherwise.
    */
-  saveClosedTabData(winData, closedTabs, tabData, saveAction = null) {
-    if (saveAction === null) {
-      // By default, a closed action for this tab, but only if it wasn't closed as part of a tab group.
-      saveAction = closedTabs === winData._closedTabs;
-    }
-
+  saveClosedTabData(winData, closedTabs, tabData, saveAction = true) {
     // Find the index of the first tab in the list
     // of closed tabs that was closed before our tab.
     let index = closedTabs.findIndex(tab => {
@@ -3369,6 +3375,8 @@ var SessionStoreInternal = {
     } else {
       winData._lastClosedTabGroupCount = -1;
     }
+
+    winData.lastClosedTabGroupId = tabData.closedInTabGroupId || null;
 
     if (saveAction) {
       this._addClosedAction(this._LAST_ACTION_CLOSED_TAB, tabData.closedId);
@@ -3933,6 +3941,7 @@ var SessionStoreInternal = {
   resetLastClosedTabCount(aWindow) {
     if ("__SSi" in aWindow) {
       this._windows[aWindow.__SSi]._lastClosedTabGroupCount = -1;
+      this._windows[aWindow.__SSi].lastClosedTabGroupId = null;
     } else {
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
     }
@@ -4088,6 +4097,14 @@ var SessionStoreInternal = {
       }
     }
     return closedTabGroups;
+  },
+
+  getLastClosedTabGroupId(aWindow) {
+    if ("__SSi" in aWindow) {
+      return this._windows[aWindow.__SSi].lastClosedTabGroupId;
+    }
+
+    throw new Error("Window is not tracked");
   },
 
   /**
@@ -5601,6 +5618,8 @@ var SessionStoreInternal = {
       this._resetClosedTabIds(group.tabs, aWindow.__SSi);
     });
     this._windows[aWindow.__SSi].closedGroups = newClosedTabGroupsData;
+    this._windows[aWindow.__SSi].lastClosedTabGroupId =
+      winData.lastClosedTabGroupId || null;
 
     if (!this._isWindowLoaded(aWindow)) {
       // from now on, the data will come from the actual window
@@ -7876,6 +7895,7 @@ var SessionStoreInternal = {
       targetWindow
     );
     this.forgetClosedTabGroup(source, tabGroupId);
+    sourceWinData.lastClosedTabGroupId = null;
 
     group.select();
     return group;

@@ -4164,7 +4164,7 @@
 
       for (let tab of tabs) {
         if (!skipRemoves) {
-          tab._closedInGroup = true;
+          tab._closedInMultiselection = true;
         }
         if (!skipRemoves && !skipSessionStore) {
           if (tab.group) {
@@ -4396,7 +4396,7 @@
           this.removeTab(tab, aParams);
           if (!tab.closing) {
             // If we abort the closing of the tab.
-            tab._closedInGroup = false;
+            tab._closedInMultiselection = false;
           }
         }
 
