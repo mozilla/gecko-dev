@@ -472,12 +472,17 @@ void MemOperand::AddOffset(int64_t offset) {
 }
 
 static CPUFeatures InitCachedCPUFeatures() {
+#ifdef JS_SIMULATOR_ARM64
+  // Enable all features for the Simulator.
+  return CPUFeatures::All();
+#else
   CPUFeatures cpu_features = CPUFeatures::AArch64LegacyBaseline();
 
   // Mozilla change: always use maximally-present features.
   cpu_features.Combine(CPUFeatures::InferFromOS());
 
   return cpu_features;
+#endif
 }
 
 // Assembler
