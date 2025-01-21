@@ -118,7 +118,10 @@ add_task(async function testExtensionList() {
     "extension-enable-addon-button-label",
     "The toggle has the enable label"
   );
-  ok(disableToggle.getAttribute("aria-label"), "There's an aria-label");
+  ok(
+    disableToggle.buttonEl.getAttribute("aria-label"),
+    "There's an aria-label"
+  );
   ok(!disableToggle.hidden, "The toggle is visible");
 
   let disabled = BrowserTestUtils.waitForEvent(list, "move");
@@ -137,7 +140,10 @@ add_task(async function testExtensionList() {
     "extension-enable-addon-button-label",
     "The button has the same enable label"
   );
-  ok(disableToggle.getAttribute("aria-label"), "There's an aria-label");
+  ok(
+    disableToggle.buttonEl.getAttribute("aria-label"),
+    "There's an aria-label"
+  );
 
   // Remove the add-on.
   let removeButton = card.querySelector('[action="remove"]');
