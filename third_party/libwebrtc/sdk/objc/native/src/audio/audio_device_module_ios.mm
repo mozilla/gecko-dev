@@ -651,6 +651,13 @@ AudioDeviceModuleIOS::AudioDeviceModuleIOS(bool bypass_voice_processing,
     return ok;
   }
 
+  std::optional<AudioDeviceModule::Stats> AudioDeviceModuleIOS::GetStats() const {
+    if (audio_device_ == nullptr) {
+      return std::nullopt;
+    };
+    return audio_device_->GetStats();
+  }
+
 #if defined(WEBRTC_IOS)
   int AudioDeviceModuleIOS::GetPlayoutAudioParameters(
       AudioParameters* params) const {

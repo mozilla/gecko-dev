@@ -127,6 +127,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
 
   int32_t GetPlayoutUnderrunCount() const override;
 
+  std::optional<Stats> GetStats() const override;
+
 #if defined(WEBRTC_IOS)
   int GetPlayoutAudioParameters(AudioParameters* params) const override;
   int GetRecordAudioParameters(AudioParameters* params) const override;

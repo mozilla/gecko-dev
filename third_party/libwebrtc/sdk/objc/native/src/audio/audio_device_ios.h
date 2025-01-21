@@ -166,6 +166,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
 
   bool IsInterrupted();
 
+  std::optional<AudioDeviceModule::Stats> GetStats() const;
+
  private:
   // Called by the relevant AudioSessionObserver methods on `thread_`.
   void HandleInterruptionBegin();
@@ -173,7 +175,7 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
   void HandleValidRouteChange();
   void HandleCanPlayOrRecordChange(bool can_play_or_record);
   void HandleSampleRateChange();
-  void HandlePlayoutGlitchDetected();
+  void HandlePlayoutGlitchDetected(uint64_t glitch_duration_ms);
   void HandleOutputVolumeChange();
 
   // Uses current `playout_parameters_` and `record_parameters_` to inform the
@@ -291,7 +293,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
   bool has_configured_session_ RTC_GUARDED_BY(thread_);
 
   // Counts number of detected audio glitches on the playout side.
-  int64_t num_detected_playout_glitches_ RTC_GUARDED_BY(thread_);
+  std::atomic<uint64_t> num_detected_playout_glitches_;
+  std::atomic<uint64_t> total_playout_glitches_duration_ms_;
   int64_t last_playout_time_ RTC_GUARDED_BY(io_thread_checker_);
 
   // Counts number of playout callbacks per call.
@@ -307,6 +310,12 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
   rtc::scoped_refptr<PendingTaskSafetyFlag> safety_ =
       PendingTaskSafetyFlag::Create();
 
+  // Playout stats.
+  std::atomic<uint64_t> total_playout_samples_count_;
+  std::atomic<uint64_t> total_playout_samples_duration_ms_;
+  std::atomic<uint64_t> total_playout_delay_ms_;
+  std::atomic<double> hw_output_latency_;
+  int last_hw_output_latency_update_sample_count_;
   // Ratio between mach tick units and nanosecond. Used to change mach tick
   // units to nanoseconds.
   double machTickUnitsToNanoseconds_;
