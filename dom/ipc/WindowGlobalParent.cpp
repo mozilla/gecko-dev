@@ -33,7 +33,7 @@
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/glean/DomUseCounterMetrics.h"
-#include "mozilla/glean/MobileSharedModulesGeckoviewMetrics.h"
+#include "mozilla/glean/GeckoviewMetrics.h"
 #include "mozilla/Components.h"
 #include "mozilla/IdentityCredentialRequestManager.h"
 #include "mozilla/ScopeExit.h"

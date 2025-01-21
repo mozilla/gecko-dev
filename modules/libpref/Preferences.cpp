@@ -23,7 +23,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RemoteType.h"
-#include "mozilla/glean/ModulesLibprefMetrics.h"
+#include "mozilla/glean/LibprefMetrics.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Logging.h"
