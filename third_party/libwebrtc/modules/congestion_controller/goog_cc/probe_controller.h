@@ -65,8 +65,13 @@ struct ProbeControllerConfig {
       estimate_lower_than_network_state_estimate_probing_interval;
   FieldTrialParameter<double> network_state_probe_scale;
   // Overrides min_probe_duration if network_state_estimate_probing_interval
-  // is set and a network state estimate is known.
+  // is set and a network state estimate is known and equal or higher than the
+  // probe target.
   FieldTrialParameter<TimeDelta> network_state_probe_duration;
+  // Overrides min_probe_delta if network_state_estimate_probing_interval
+  // is set and a network state estimate is known and equal or higher than the
+  // probe target.
+  FieldTrialParameter<TimeDelta> network_state_min_probe_delta;
 
   // Configures the probes emitted by changed to the allocated bitrate.
   FieldTrialParameter<bool> probe_on_max_allocated_bitrate_change;

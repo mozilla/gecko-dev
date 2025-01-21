@@ -106,6 +106,8 @@ ProbeControllerConfig::ProbeControllerConfig(
       network_state_probe_scale("network_state_scale", 1.0),
       network_state_probe_duration("network_state_probe_duration",
                                    TimeDelta::Millis(15)),
+      network_state_min_probe_delta("network_state_min_probe_delta",
+                                    TimeDelta::Millis(20)),
       probe_on_max_allocated_bitrate_change("probe_max_allocation", true),
       first_allocation_probe_scale("alloc_p1", 1),
       second_allocation_probe_scale("alloc_p2", 2),
@@ -135,6 +137,7 @@ ProbeControllerConfig::ProbeControllerConfig(
                    &min_probe_delta,
                    &initial_min_probe_delta,
                    &network_state_estimate_probing_interval,
+                   &network_state_min_probe_delta,
                    &probe_if_estimate_lower_than_network_state_estimate_ratio,
                    &estimate_lower_than_network_state_estimate_probing_interval,
                    &network_state_probe_scale,
@@ -529,9 +532,11 @@ ProbeClusterConfig ProbeController::CreateProbeClusterConfig(Timestamp at_time,
   config.at_time = at_time;
   config.target_data_rate = bitrate;
   if (network_estimate_ &&
-      config_.network_state_estimate_probing_interval->IsFinite()) {
+      config_.network_state_estimate_probing_interval->IsFinite() &&
+      network_estimate_->link_capacity_upper.IsFinite() &&
+      network_estimate_->link_capacity_upper >= bitrate) {
     config.target_duration = config_.network_state_probe_duration;
-    config.min_probe_delta = config_.min_probe_delta;
+    config.min_probe_delta = config_.network_state_min_probe_delta;
   } else if (at_time < last_allowed_repeated_initial_probe_) {
     config.target_duration = config_.initial_probe_duration;
     config.min_probe_delta = config_.initial_min_probe_delta;

@@ -1393,7 +1393,8 @@ TEST(ProbeControllerTest, SendsProbeIfNetworkStateEstimateLowerThanMaxProbe) {
   ProbeControllerFixture fixture(
       "WebRTC-Bwe-ProbingConfiguration/"
       "network_state_interval:2s,skip_if_est_larger_than_fraction_of_max:0.9,"
-      "/");
+      "network_state_probe_duration:100ms,network_"
+      "state_min_probe_delta:20/");
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
   ASSERT_THAT(
@@ -1420,13 +1421,19 @@ TEST(ProbeControllerTest, SendsProbeIfNetworkStateEstimateLowerThanMaxProbe) {
       {.link_capacity_upper = 2 * kStartBitrate});
   probes = probe_controller->Process(fixture.CurrentTime());
   EXPECT_FALSE(probes.empty());
+  EXPECT_LE(probes[0].target_data_rate, 2 * kStartBitrate);
+  // Expect probe durations to be picked from field trial probe target is lower
+  // or equal to the network state estimate.
+  EXPECT_EQ(probes[0].min_probe_delta, TimeDelta::Millis(20));
+  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(100));
 }
 
 TEST(ProbeControllerTest,
      ProbeNotLimitedByNetworkStateEsimateIfLowerThantCurrent) {
   ProbeControllerFixture fixture(
       "WebRTC-Bwe-ProbingConfiguration/"
-      "network_state_interval:5s/");
+      "network_state_interval:5s,network_state_probe_duration:100ms,network_"
+      "state_min_probe_delta:20/");
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
   ASSERT_THAT(
@@ -1452,6 +1459,10 @@ TEST(ProbeControllerTest,
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   EXPECT_EQ(probes[0].target_data_rate, kStartBitrate);
+  // Expect probe durations to be default since network state estimate is lower
+  // than the probe rate.
+  EXPECT_EQ(probes[0].min_probe_delta, TimeDelta::Millis(2));
+  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(15));
 }
 
 TEST(ProbeControllerTest, DontProbeIfDelayIncreased) {
