@@ -10,8 +10,10 @@
 #include "mozilla/Assertions.h"
 #include "BasePrincipal.h"
 #include "Document.h"
+#include "TextDirectiveCreator.h"
 #include "TextDirectiveFinder.h"
 #include "TextDirectiveUtil.h"
+#include "mozilla/ResultVariant.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/FragmentDirectiveBinding.h"
@@ -439,6 +441,20 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
     TEXT_FRAGMENT_LOG("Collapsed range. Nothing to do here...");
     resultPromise->MaybeResolve(JS::NullHandleValue);
     return resultPromise.forget();
+  }
+
+  Result<nsCString, ErrorResult> textDirective =
+      TextDirectiveCreator::CreateTextDirectiveFromRange(*mDocument, &aRange);
+  if (textDirective.isOk()) {
+    nsCString textDirectiveString = textDirective.unwrap();
+    if (textDirectiveString.IsEmpty()) {
+      resultPromise->MaybeResolve(JS::NullHandleValue);
+    } else {
+      resultPromise->MaybeResolve(std::move(textDirectiveString));
+    }
+  } else {
+    ErrorResult rv = textDirective.unwrapErr();
+    resultPromise->MaybeReject(std::move(rv));
   }
 
   return resultPromise.forget();

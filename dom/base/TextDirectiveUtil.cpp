@@ -20,11 +20,28 @@
 #include "fragmentdirectives_ffi_generated.h"
 #include "Text.h"
 #include "mozilla/ContentIterator.h"
+#include "mozilla/ResultVariant.h"
 #include "mozilla/intl/WordBreaker.h"
 #include "mozilla/SelectionMovementUtils.h"
 
 namespace mozilla::dom {
 LazyLogModule sFragmentDirectiveLog("FragmentDirective");
+
+/* static */
+Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
+    nsRange* aRange) {
+  ErrorResult rv;
+  nsString content;
+  if (!aRange) {
+    return content;
+  }
+  aRange->ToString(content, rv);
+  if (rv.Failed()) {
+    return Err(std::move(rv));
+  }
+  content.CompressWhitespace();
+  return content;
+}
 
 /* static */ bool TextDirectiveUtil::NodeIsVisibleTextNode(
     const nsINode& aNode) {
@@ -354,6 +371,110 @@ LazyLogModule sFragmentDirectiveLog("FragmentDirective");
     }
   }
   return true;
+}
+
+/* static */ Result<Ok, ErrorResult>
+TextDirectiveUtil::ExtendRangeToWordBoundaries(nsRange& aRange) {
+  MOZ_ASSERT(!aRange.Collapsed());
+  PeekOffsetOptions options = {
+      PeekOffsetOption::JumpLines, PeekOffsetOption::StopAtScroller,
+      PeekOffsetOption::IsKeyboardSelect, PeekOffsetOption::Extend};
+  // To extend a range `inputRange` to its word boundaries, perform these steps:
+  // 1. To extend the start boundary:
+  // 1.1 Let `newStartBoundary` be a range boundary, initially null.
+  // 1.2 Create a new range boundary `rangeStartWordEndBoundary` at the next
+  //    word end boundary at `inputRange`s start point.
+  // 1.3 Then, create a new range boundary `rangeStartWordStartBoundary`
+  //     at the previous word start boundary of `rangeStartWordEndBoundary`
+  // 1.4 If `rangeStartWordStartBoundary` is not at the same (normalized)
+  //     position as `inputRange`s start point, let `newStartBoundary` be
+  //     `rangeStartWordStartBoundary`.
+  Result<Maybe<RangeBoundary>, ErrorResult> newStartBoundary =
+      SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+          aRange.StartRef(), nsDirection::eDirNext, CaretAssociationHint::After,
+          intl::BidiEmbeddingLevel::DefaultLTR(),
+          nsSelectionAmount::eSelectWord, options)
+          .andThen([&options](const RangeBoundary& rangeStartWordEndBoundary) {
+            return SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+                rangeStartWordEndBoundary, nsDirection::eDirPrevious,
+                CaretAssociationHint::Before,
+                intl::BidiEmbeddingLevel::DefaultLTR(),
+                nsSelectionAmount::eSelectWord, options);
+          })
+          .map([&rangeStart = aRange.StartRef()](
+                   RangeBoundary&& rangeStartWordStartBoundary) {
+            return NormalizedRangeBoundariesAreEqual(
+                       rangeStartWordStartBoundary, rangeStart)
+                       ? Nothing{}
+                       : Some(std::move(rangeStartWordStartBoundary));
+          })
+          .mapErr([](nsresult rv) { return ErrorResult(rv); });
+  if (MOZ_UNLIKELY(newStartBoundary.isErr())) {
+    return newStartBoundary.propagateErr();
+  }
+
+  // 2. To extend the end boundary:
+  // 2.1 Let `newEndBoundary` be a range boundary, initially null.
+  // 2.2 Create a new range boundary `rangeEndWordStartBoundary` at the previous
+  //     word start boundary at `inputRange`s end point.
+  // 2.3 Then, create a new range boundary `rangeEndWordEndBoundary` at the next
+  //     word end boundary from `rangeEndWordStartBoundary`.
+  // 2.4 If `rangeEndWordEndBoundary` is not at the same (normalized) position
+  //     as  `inputRange`s end point, let `newEndBoundary` be
+  //     `rangEndWordEndBoundary`.
+  Result<Maybe<RangeBoundary>, ErrorResult> newEndBoundary =
+      SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+          aRange.EndRef(), nsDirection::eDirPrevious,
+          CaretAssociationHint::Before, intl::BidiEmbeddingLevel::DefaultLTR(),
+          nsSelectionAmount::eSelectWord, options)
+          .andThen([&options](const RangeBoundary& rangeEndWordStartBoundary) {
+            return SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+                rangeEndWordStartBoundary, nsDirection::eDirNext,
+                CaretAssociationHint::After,
+                intl::BidiEmbeddingLevel::DefaultLTR(),
+                nsSelectionAmount::eSelectWord, options);
+          })
+          .map([&rangeEnd =
+                    aRange.EndRef()](RangeBoundary&& rangeEndWordEndBoundary) {
+            return NormalizedRangeBoundariesAreEqual(rangeEndWordEndBoundary,
+                                                     rangeEnd)
+                       ? Nothing{}
+                       : Some(std::move(rangeEndWordEndBoundary));
+          })
+          .mapErr([](auto rv) { return ErrorResult(rv); });
+  if (MOZ_UNLIKELY(newEndBoundary.isErr())) {
+    return newEndBoundary.propagateErr();
+  }
+  // 3. If `newStartBoundary` is not null, set `inputRange`s start point to
+  //    `newStartBoundary`.
+  MOZ_TRY(newStartBoundary.andThen(
+      [&aRange](Maybe<RangeBoundary>&& boundary) -> Result<Ok, ErrorResult> {
+        if (boundary.isNothing() || !boundary->IsSetAndValid()) {
+          return Ok();
+        }
+        ErrorResult rv;
+        aRange.SetStart(boundary->AsRaw(), rv);
+        if (MOZ_UNLIKELY(rv.Failed())) {
+          return Err(std::move(rv));
+        }
+        return Ok();
+      }));
+  // 4. If `newEndBoundary` is not null, set `inputRange`s end point to
+  //    `newEndBoundary`.
+  MOZ_TRY(newEndBoundary.andThen(
+      [&aRange](Maybe<RangeBoundary>&& boundary) -> Result<Ok, ErrorResult> {
+        if (boundary.isNothing() || !boundary->IsSetAndValid()) {
+          return Ok();
+        }
+        ErrorResult rv;
+        aRange.SetEnd(boundary->AsRaw(), rv);
+        if (MOZ_UNLIKELY(rv.Failed())) {
+          return Err(std::move(rv));
+        }
+        return Ok();
+      }));
+
+  return Ok();
 }
 
 }  // namespace mozilla::dom

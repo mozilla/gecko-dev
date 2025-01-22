@@ -36,6 +36,9 @@ class TextDirectiveUtil final {
   MOZ_ALWAYS_INLINE static bool ShouldLog() {
     return MOZ_LOG_TEST(sFragmentDirectiveLog, LogLevel::Debug);
   }
+
+  static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);
+
   /**
    * @brief Return true if `aNode` is a visible Text node.
    *
@@ -177,6 +180,15 @@ class TextDirectiveUtil final {
   static bool NormalizedRangeBoundariesAreEqual(
       const RangeBoundary& aRangeBoundary1,
       const RangeBoundary& aRangeBoundary2);
+
+  /**
+   * @brief Extends the range boundaries to word boundaries across nodes.
+   *
+   * @param[inout] aRange The range. Changes to the range are done in-place.
+   *
+   * @return Returns an error value if something failed along the way.
+   */
+  static Result<Ok, ErrorResult> ExtendRangeToWordBoundaries(nsRange& aRange);
 };
 }  // namespace mozilla::dom
 
