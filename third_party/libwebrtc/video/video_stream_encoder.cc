@@ -952,12 +952,6 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
     max_data_payload_length_ = max_data_payload_length;
     pending_encoder_reconfiguration_ = true;
 
-    if (settings_.enable_frame_instrumentation_generator) {
-      frame_instrumentation_generator_ =
-          std::make_unique<FrameInstrumentationGenerator>(
-              encoder_config_.codec_type);
-    }
-
     // Reconfigure the encoder now if the frame resolution is known.
     // Otherwise, the reconfiguration is deferred until the next frame to
     // minimize the number of reconfigurations. The codec configuration
@@ -1324,6 +1318,11 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       next_frame_types_.resize(
           std::max(static_cast<int>(codec.numberOfSimulcastStreams), 1),
           VideoFrameType::kVideoFrameKey);
+      if (settings_.enable_frame_instrumentation_generator) {
+        frame_instrumentation_generator_ =
+            std::make_unique<FrameInstrumentationGenerator>(
+                encoder_config_.codec_type);
+      }
     }
 
     frame_encode_metadata_writer_.Reset();
@@ -2505,6 +2504,7 @@ void VideoStreamEncoder::ReleaseEncoder() {
   }
   encoder_->Release();
   encoder_initialized_ = false;
+  frame_instrumentation_generator_ = nullptr;
   TRACE_EVENT0("webrtc", "VCMGenericEncoder::Release");
 }
 

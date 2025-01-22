@@ -34,7 +34,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b8fe02922ca1a294c
  2 files changed, 66 insertions(+), 21 deletions(-)
 
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index dfd490cf02..96d8880381 100644
+index e4b7e548f7..28584e906a 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
 @@ -174,6 +174,15 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
@@ -54,10 +54,10 @@ index dfd490cf02..96d8880381 100644
  
    if (new_send_codec.codecType == kVideoCodecVP9) {
 diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
-index 08ae5cae95..62d48ef916 100644
+index 07474fc069..dc977f2e67 100644
 --- a/video/video_stream_encoder_unittest.cc
 +++ b/video/video_stream_encoder_unittest.cc
-@@ -9360,10 +9360,10 @@ INSTANTIATE_TEST_SUITE_P(
+@@ -9404,10 +9404,10 @@ INSTANTIATE_TEST_SUITE_P(
      TestParametersVideoCodecAndAllowI420ConversionToString);
  #endif
  
@@ -71,7 +71,7 @@ index 08ae5cae95..62d48ef916 100644
      ConfigureEncoder(configs[0]);
      OnBitrateUpdated(kTargetBitrate);
      InsertFrameAndWaitForEncoded();
-@@ -9384,11 +9384,17 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
+@@ -9428,11 +9428,17 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
      video_stream_encoder_->Stop();
    }
  
@@ -93,7 +93,7 @@ index 08ae5cae95..62d48ef916 100644
      config.video_stream_factory = nullptr;
      video_stream_encoder_->ConfigureEncoder(std::move(config),
                                              kMaxPayloadLength);
-@@ -9407,20 +9413,23 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
+@@ -9451,20 +9457,23 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
    }
  
    void ExpectEqual(const VideoCodec& actual,
@@ -131,7 +131,7 @@ index 08ae5cae95..62d48ef916 100644
    }
  
    VideoStream DefaultConfig() const {
-@@ -9440,6 +9449,33 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
+@@ -9484,6 +9493,33 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
    int64_t timestamp_ms_ = 0;
  };
  
