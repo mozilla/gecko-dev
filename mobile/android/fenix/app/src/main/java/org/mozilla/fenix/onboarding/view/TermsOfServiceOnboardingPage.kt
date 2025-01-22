@@ -184,7 +184,7 @@ private fun OnboardingPagePreview() {
         TermsOfServiceOnboardingPage(
             pageState = OnboardingPageState(
                 title = stringResource(id = R.string.onboarding_welcome_to_firefox),
-                description = stringResource(id = R.string.onboarding_terms_of_service_sub_header),
+                description = stringResource(id = R.string.onboarding_terms_of_service_sub_header_2),
                 termsOfService = OnboardingTermsOfService(
                     lineOneText = stringResource(id = R.string.onboarding_term_of_service_line_one_2),
                     lineOneLinkText = stringResource(id = R.string.onboarding_term_of_service_line_one_link_text_2),
