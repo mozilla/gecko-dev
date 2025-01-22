@@ -16,6 +16,7 @@ from gecko_taskgraph.util.partners import (
     apply_partner_priority,
     check_if_partners_enabled,
     generate_attribution_code,
+    get_ftp_platform,
     get_partner_config_by_kind,
 )
 
@@ -55,27 +56,18 @@ def add_command_arguments(config, tasks):
 
                 fetches[upstream_label].add((upstream_artifact, stage_platform, locale))
 
-                artifact_part = "{platform}/{locale}/target.installer.exe".format(
-                    platform=stage_platform, locale=locale
-                )
-                artifact = (
-                    "releng/partner/{partner}/{sub_partner}/{artifact_part}".format(
-                        partner=partner_config["campaign"],
-                        sub_partner=partner_config["content"],
-                        artifact_part=artifact_part,
-                    )
-                )
+                output_artifact = _get_output_path(partner_config, platform, locale)
                 # config for script
                 # TODO - generalise input & output ??
                 #  add releng/partner prefix via get_artifact_prefix..()
                 attributions.append(
                     {
-                        "input": f"/builds/worker/fetches/{artifact_part}",
-                        "output": f"/builds/worker/artifacts/{artifact}",
+                        "input": _get_input_path(stage_platform, platform, locale),
+                        "output": "/builds/worker/artifacts/{}".format(output_artifact),
                         "attribution": attribution_code,
                     }
                 )
-                release_artifacts.append(artifact)
+                release_artifacts.append(output_artifact)
 
     # bail-out early if we don't have any attributions to do
     if not attributions:
@@ -112,6 +104,37 @@ def add_command_arguments(config, tasks):
         task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
 
         yield task
+
+
+def _get_input_path(stage_platform, platform, locale):
+    return (
+        "/builds/worker/fetches/{stage_platform}/{locale}/{artifact_file_name}".format(
+            stage_platform=stage_platform,
+            locale=locale,
+            artifact_file_name=_get_artifact_file_name(platform),
+        )
+    )
+
+
+def _get_output_path(partner_config, platform, locale):
+    return "releng/partner/{partner}/{sub_partner}/{ftp_platform}/{locale}/{artifact_file_name}".format(
+        partner=partner_config["campaign"],
+        sub_partner=partner_config["content"],
+        ftp_platform=get_ftp_platform(platform),
+        locale=locale,
+        artifact_file_name=_get_artifact_file_name(platform),
+    )
+
+
+def _get_artifact_file_name(platform):
+    if platform.startswith("win"):
+        return "target.installer.exe"
+    elif platform.startswith("macos"):
+        return "target.dmg"
+    else:
+        raise NotImplementedError(
+            'Case for platform "{}" is not implemented'.format(platform)
+        )
 
 
 def _get_upstream_task_label_and_artifact(platform, locale):
