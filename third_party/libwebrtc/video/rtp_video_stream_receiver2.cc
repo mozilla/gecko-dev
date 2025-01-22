@@ -510,13 +510,15 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
 
 void RtpVideoStreamReceiver2::SetLastCorruptionDetectionIndex(
     const absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>&
-        frame_instrumentation_data) {
+        frame_instrumentation_data,
+    int spatial_idx) {
   if (const auto* sync_data = absl::get_if<FrameInstrumentationSyncData>(
           &frame_instrumentation_data)) {
-    last_corruption_detection_index_ = sync_data->sequence_index;
+    last_corruption_detection_state_by_layer_[spatial_idx].sequence_index =
+        sync_data->sequence_index;
   } else if (const auto* data = absl::get_if<FrameInstrumentationData>(
                  &frame_instrumentation_data)) {
-    last_corruption_detection_index_ =
+    last_corruption_detection_state_by_layer_[spatial_idx].sequence_index =
         data->sequence_index + data->sample_values.size();
   } else {
     RTC_DCHECK_NOTREACHED();
@@ -622,17 +624,34 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     }
     CorruptionDetectionMessage message;
     rtp_packet.GetExtension<CorruptionDetectionExtension>(&message);
+    int spatial_idx = 0;
+    if (video_header.generic.has_value()) {
+      spatial_idx = video_header.generic->spatial_index;
+    }
     if (message.sample_values().empty()) {
       video_header.frame_instrumentation_data =
           ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
-              message, last_corruption_detection_index_);
+              message, last_corruption_detection_state_by_layer_[spatial_idx]
+                           .sequence_index);
     } else {
-      video_header.frame_instrumentation_data =
-          ConvertCorruptionDetectionMessageToFrameInstrumentationData(
-              message, last_corruption_detection_index_);
+      // `OnReceivedPayloadData` might be called several times, however, we
+      // don't want to increase the sequence index each time.
+      if (!last_corruption_detection_state_by_layer_[spatial_idx]
+               .timestamp.has_value() ||
+          rtp_packet.Timestamp() !=
+              last_corruption_detection_state_by_layer_[spatial_idx]
+                  .timestamp) {
+        video_header.frame_instrumentation_data =
+            ConvertCorruptionDetectionMessageToFrameInstrumentationData(
+                message, last_corruption_detection_state_by_layer_[spatial_idx]
+                             .sequence_index);
+        last_corruption_detection_state_by_layer_[spatial_idx].timestamp =
+            rtp_packet.Timestamp();
+      }
     }
     if (video_header.frame_instrumentation_data.has_value()) {
-      SetLastCorruptionDetectionIndex(*video_header.frame_instrumentation_data);
+      SetLastCorruptionDetectionIndex(*video_header.frame_instrumentation_data,
+                                      spatial_idx);
     }
   }
   video_header.video_frame_tracking_id =

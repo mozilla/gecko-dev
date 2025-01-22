@@ -119,6 +119,15 @@ FrameInstrumentationGenerator::OnEncodedImage(
     contexts_[layer_id].rtp_timestamp_of_last_key_frame =
         encoded_image.RtpTimestamp();
   } else if (contexts_.find(layer_id) == contexts_.end()) {
+    // TODO: bugs.webrtc.org/358039777 - Update this if statement such that LxTy
+    // scalability modes work properly. It is not a problem for LxTy_KEY
+    // scalability.
+    //
+    // For LxTy, it sometimes hinders calculating corruption score on the higher
+    // spatial layers. Because e.g. in L3T1 the first frame might not create 3
+    // spatial layers but, only 2. Then, we end up not creating this in the map
+    // and will therefore not get any corruption score until a new key frame is
+    // sent.
     RTC_LOG(LS_INFO) << "The first frame of a spatial or simulcast layer is "
                         "not a key frame.";
     return std::nullopt;

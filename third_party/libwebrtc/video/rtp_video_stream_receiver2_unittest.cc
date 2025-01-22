@@ -22,6 +22,7 @@
 #include "call/test/mock_rtp_packet_sink_interface.h"
 #include "common_video/h264/h264_common.h"
 #include "media/base/media_constants.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/frame_object.h"
 #include "modules/rtp_rtcp/source/rtp_descriptor_authentication.h"
 #include "modules/rtp_rtcp/source/rtp_format.h"
@@ -50,6 +51,7 @@ namespace {
 
 using test::ExplicitKeyValueConfig;
 using ::testing::_;
+using ::testing::DoubleNear;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Invoke;
@@ -57,6 +59,15 @@ using ::testing::SizeIs;
 using ::testing::Values;
 
 const uint8_t kH264StartCode[] = {0x00, 0x00, 0x00, 0x01};
+
+// Corruption detection metrics for testing.
+constexpr double kStd = 1.0;
+constexpr int kLumaThreshold = 5;
+constexpr int kChormaThreshold = 3;
+constexpr int kVp9PayloadType = 99;
+constexpr int kNumSamples = 13;
+// 8 bits.
+constexpr int kMaxSequenceIdx = 127;
 
 std::vector<uint64_t> GetAbsoluteCaptureTimestamps(const EncodedFrame* frame) {
   std::vector<uint64_t> result;
@@ -251,7 +262,6 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
 TEST_F(RtpVideoStreamReceiver2Test, CacheColorSpaceFromLastPacketOfKeyframe) {
   // Test that color space is cached from the last packet of a key frame and
   // that it's not reset by padding packets without color space.
-  constexpr int kVp9PayloadType = 99;
   const ColorSpace kColorSpace(
       ColorSpace::PrimaryID::kFILM, ColorSpace::TransferID::kBT2020_12,
       ColorSpace::MatrixID::kBT2020_NCL, ColorSpace::RangeID::kFull);
@@ -361,6 +371,237 @@ TEST_F(RtpVideoStreamReceiver2Test, CacheColorSpaceFromLastPacketOfKeyframe) {
       }));
   rtp_video_stream_receiver_->OnRtpPacket(delta_frame_packet);
 }
+
+class ReceivedPacketGenerator {
+ public:
+  ReceivedPacketGenerator() = default;
+
+  void SetPayload(const std::vector<uint8_t>& payload,
+                  VideoFrameType video_frame_type) {
+    video_frame_type_ = video_frame_type;
+    RtpPacketizer::PayloadSizeLimits pay_load_size_limits;
+    RTPVideoHeaderVP9 rtp_video_header_vp9;
+    rtp_video_header_vp9.InitRTPVideoHeaderVP9();
+    rtp_video_header_vp9.inter_pic_predicted =
+        (video_frame_type == VideoFrameType::kVideoFrameDelta);
+    rtp_packetizer_ = std::make_unique<RtpPacketizerVp9>(
+        payload, pay_load_size_limits, rtp_video_header_vp9);
+  }
+
+  size_t NumPackets() { return rtp_packetizer_->NumPackets(); }
+
+  void SetCorruptionDetectionHeader(const CorruptionDetectionMessage& msg) {
+    corruption_detection_msg_ = msg;
+  }
+
+  RtpPacketReceived NextPacket(bool include_corruption_header) {
+    RtpHeaderExtensionMap extension_map;
+    extension_map.Register<CorruptionDetectionExtension>(/*id=*/1);
+    RtpPacketToSend packet_to_send(&extension_map);
+    packet_to_send.SetSequenceNumber(sequence_number_++);
+    packet_to_send.SetSsrc(kSsrc);
+    packet_to_send.SetPayloadType(kVp9PayloadType);
+    packet_to_send.SetTimestamp(timestamp_++);
+    if (include_corruption_header) {
+      EXPECT_TRUE(packet_to_send.SetExtension<CorruptionDetectionExtension>(
+          corruption_detection_msg_));
+    }
+    rtp_packetizer_->NextPacket(&packet_to_send);
+
+    RtpPacketReceived received_packet(&extension_map);
+    received_packet.Parse(packet_to_send.data(), packet_to_send.size());
+    return received_packet;
+  }
+
+ private:
+  uint16_t sequence_number_ = 0;
+  uint32_t timestamp_ = 0;
+  VideoFrameType video_frame_type_;
+  CorruptionDetectionMessage corruption_detection_msg_;
+  std::unique_ptr<RtpPacketizer> rtp_packetizer_;
+};
+
+std::optional<CorruptionDetectionMessage> GetCorruptionDetectionMessage(
+    int sequence_idx,
+    bool interpret_as_MSB) {
+  CorruptionDetectionMessage::Builder builder;
+  builder.WithSequenceIndex(sequence_idx);
+  builder.WithInterpretSequenceIndexAsMostSignificantBits(interpret_as_MSB);
+  builder.WithStdDev(kStd);
+  builder.WithLumaErrorThreshold(kLumaThreshold);
+  builder.WithChromaErrorThreshold(kChormaThreshold);
+
+  double sample_value = 0.5;
+  std::vector<double> sample_values;
+  for (int i = 0; i < kNumSamples; i++) {
+    sample_values.push_back(sample_value);
+    sample_value += 0.5;
+  }
+  builder.WithSampleValues(sample_values);
+
+  std::optional<CorruptionDetectionMessage> kCorruptionDetectionMsg =
+      builder.Build();
+  return kCorruptionDetectionMsg;
+}
+
+TEST_F(RtpVideoStreamReceiver2Test,
+       FrameInstrumentationDataGetsPopulatedLSBIncreasedCorrectly) {
+  const std::vector<uint8_t> kKeyFramePayload = {0, 1, 2, 3, 4};
+  const std::vector<uint8_t> kDeltaFramePayload = {5, 6, 7, 8, 9};
+
+  // Prepare the receiver for VP9.
+  webrtc::CodecParameterMap codec_params;
+  rtp_video_stream_receiver_->AddReceiveCodec(kVp9PayloadType, kVideoCodecVP9,
+                                              codec_params,
+                                              /*raw_payload=*/false);
+
+  ReceivedPacketGenerator received_packet_generator;
+  std::optional<CorruptionDetectionMessage> corruption_detection_msg =
+      GetCorruptionDetectionMessage(
+          /*sequence_idx=*/0, /*interpret_as_MSB*/ true);
+  ASSERT_TRUE(corruption_detection_msg.has_value());
+  received_packet_generator.SetCorruptionDetectionHeader(
+      *corruption_detection_msg);
+
+  // Generate key frame packets.
+  received_packet_generator.SetPayload(kKeyFramePayload,
+                                       VideoFrameType::kVideoFrameKey);
+  // Have corruption header on the key frame.
+  RtpPacketReceived key_frame_packet =
+      received_packet_generator.NextPacket(/*include_corruption_header=*/true);
+  // Generate delta frame packet.
+  received_packet_generator.SetPayload(kDeltaFramePayload,
+                                       VideoFrameType::kVideoFrameDelta);
+  // Don't have corruption header on the delta frame (is not a general rule).
+  RtpPacketReceived delta_frame_packet =
+      received_packet_generator.NextPacket(/*include_corruption_header=*/false);
+
+  rtp_video_stream_receiver_->StartReceive();
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(
+      kKeyFramePayload.data(), kKeyFramePayload.size());
+
+  EXPECT_TRUE(key_frame_packet.GetExtension<CorruptionDetectionExtension>());
+  std::unique_ptr<EncodedFrame> key_encoded_frame;
+  EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_))
+      .WillOnce([&](EncodedFrame* encoded_frame) {
+        key_encoded_frame = std::make_unique<EncodedFrame>(*encoded_frame);
+      });
+  rtp_video_stream_receiver_->OnRtpPacket(key_frame_packet);
+  ASSERT_TRUE(key_encoded_frame != nullptr);
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data_key_frame =
+          key_encoded_frame->CodecSpecific()->frame_instrumentation_data;
+  ASSERT_TRUE(data_key_frame.has_value());
+  ASSERT_TRUE(
+      absl::holds_alternative<FrameInstrumentationData>(*data_key_frame));
+  FrameInstrumentationData frame_inst_data_key_frame =
+      absl::get<FrameInstrumentationData>(*data_key_frame);
+  EXPECT_EQ(frame_inst_data_key_frame.sequence_index, 0);
+  EXPECT_TRUE(frame_inst_data_key_frame.communicate_upper_bits);
+  EXPECT_THAT(frame_inst_data_key_frame.std_dev, DoubleNear(kStd, 0.1));
+  EXPECT_EQ(frame_inst_data_key_frame.luma_error_threshold, kLumaThreshold);
+  EXPECT_EQ(frame_inst_data_key_frame.chroma_error_threshold, kChormaThreshold);
+
+  mock_on_complete_frame_callback_.ClearExpectedBitstream();
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(
+      kDeltaFramePayload.data(), kDeltaFramePayload.size());
+
+  EXPECT_FALSE(delta_frame_packet.GetExtension<CorruptionDetectionExtension>());
+  std::unique_ptr<EncodedFrame> delta_encoded_frame;
+  EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_))
+      .WillOnce([&](EncodedFrame* encoded_frame) {
+        delta_encoded_frame = std::make_unique<EncodedFrame>(*encoded_frame);
+      });
+  rtp_video_stream_receiver_->OnRtpPacket(delta_frame_packet);
+  ASSERT_TRUE(delta_encoded_frame != nullptr);
+  // Not delta frame specific but as this test is designed, second frame
+  // shouldnt have corruption header.
+  EXPECT_FALSE(delta_encoded_frame->CodecSpecific()
+                   ->frame_instrumentation_data.has_value());
+}
+
+TEST_F(RtpVideoStreamReceiver2Test,
+       FrameInstrumentationDataGetsPopulatedMSBIncreasedCorrectly) {
+  const std::vector<uint8_t> kKeyFramePayload = {0, 1, 2, 3, 4};
+  const std::vector<uint8_t> kDeltaFramePayload = {5, 6, 7, 8, 9};
+
+  // Prepare the receiver for VP9.
+  webrtc::CodecParameterMap codec_params;
+  rtp_video_stream_receiver_->AddReceiveCodec(kVp9PayloadType, kVideoCodecVP9,
+                                              codec_params,
+                                              /*raw_payload=*/false);
+
+  ReceivedPacketGenerator received_packet_generator;
+  std::optional<CorruptionDetectionMessage> corruption_detection_msg =
+      GetCorruptionDetectionMessage(
+          /*sequence_idx=*/0, /*interpret_as_MSB*/ true);
+  ASSERT_TRUE(corruption_detection_msg.has_value());
+  received_packet_generator.SetCorruptionDetectionHeader(
+      *corruption_detection_msg);
+
+  // Generate key frame packets.
+  received_packet_generator.SetPayload(kKeyFramePayload,
+                                       VideoFrameType::kVideoFrameKey);
+  // Have corruption header on the key frame.
+  RtpPacketReceived key_frame_packet =
+      received_packet_generator.NextPacket(/*include_corruption_header=*/true);
+  rtp_video_stream_receiver_->StartReceive();
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(
+      kKeyFramePayload.data(), kKeyFramePayload.size());
+  rtp_video_stream_receiver_->OnRtpPacket(key_frame_packet);
+
+  RtpPacketReceived delta_frame_packet;
+  int sequence_idx = 0;
+  for (int i = 0; i < 10; i++) {
+    sequence_idx += kNumSamples;
+    if (sequence_idx > kMaxSequenceIdx) {
+      sequence_idx = sequence_idx - (kMaxSequenceIdx + 1);
+    }
+    corruption_detection_msg = GetCorruptionDetectionMessage(
+        /*sequence_idx=*/sequence_idx, /*interpret_as_MSB*/ false);
+    ASSERT_TRUE(corruption_detection_msg.has_value());
+    received_packet_generator.SetCorruptionDetectionHeader(
+        *corruption_detection_msg);
+
+    // Generate delta frame packet.
+    received_packet_generator.SetPayload(kDeltaFramePayload,
+                                         VideoFrameType::kVideoFrameDelta);
+    // Send corruption header with each frame.
+    delta_frame_packet = received_packet_generator.NextPacket(
+        /*include_corruption_header=*/true);
+
+    mock_on_complete_frame_callback_.ClearExpectedBitstream();
+    mock_on_complete_frame_callback_.AppendExpectedBitstream(
+        kDeltaFramePayload.data(), kDeltaFramePayload.size());
+
+    EXPECT_TRUE(
+        delta_frame_packet.GetExtension<CorruptionDetectionExtension>());
+    std::unique_ptr<EncodedFrame> delta_encoded_frame;
+    EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_))
+        .WillOnce([&](EncodedFrame* encoded_frame) {
+          delta_encoded_frame = std::make_unique<EncodedFrame>(*encoded_frame);
+        });
+    rtp_video_stream_receiver_->OnRtpPacket(delta_frame_packet);
+    ASSERT_TRUE(delta_encoded_frame != nullptr);
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        data = delta_encoded_frame->CodecSpecific()->frame_instrumentation_data;
+    ASSERT_TRUE(data.has_value());
+    ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data));
+    FrameInstrumentationData frame_inst_data =
+        absl::get<FrameInstrumentationData>(*data);
+    if (frame_inst_data.sequence_index < (kMaxSequenceIdx + 1)) {
+      EXPECT_EQ(frame_inst_data.sequence_index, sequence_idx);
+    } else {
+      EXPECT_EQ(frame_inst_data.sequence_index,
+                sequence_idx + kMaxSequenceIdx + 1);
+    }
+  }
+}
+
+// TODO: bugs.webrtc.org/358039777 - Add tests for corruption detection when we
+// have scalability.
 
 TEST_F(RtpVideoStreamReceiver2Test, GenericKeyFrame) {
   RtpPacketReceived rtp_packet;

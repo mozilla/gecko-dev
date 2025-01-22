@@ -921,6 +921,7 @@ if (rtc_include_tests) {
       "../modules/pacing",
       "../modules/rtp_rtcp",
       "../modules/rtp_rtcp:rtp_rtcp_format",
+      "../modules/rtp_rtcp:rtp_rtcp_format",
       "../modules/video_coding",
       "../modules/video_coding:codec_globals_headers",
       "../modules/video_coding:encoded_frame",

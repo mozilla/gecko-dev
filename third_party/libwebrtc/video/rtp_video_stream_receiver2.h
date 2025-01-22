@@ -326,8 +326,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
       RTC_RUN_ON(packet_sequence_checker_);
   void SetLastCorruptionDetectionIndex(
       const absl::variant<FrameInstrumentationSyncData,
-                          FrameInstrumentationData>&
-          frame_instrumentation_data);
+                          FrameInstrumentationData>& frame_instrumentation_data,
+      int spatial_idx);
 
   const Environment env_;
   TaskQueueBase* const worker_queue_;
@@ -461,7 +461,13 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   Timestamp next_keyframe_request_for_missing_video_structure_ =
       Timestamp::MinusInfinity();
   bool sps_pps_idr_is_h264_keyframe_ = false;
-  int last_corruption_detection_index_ = 0;
+
+  struct CorruptionDetectionLayerState {
+    int sequence_index = 0;
+    std::optional<uint32_t> timestamp;
+  };
+  std::array<CorruptionDetectionLayerState, kMaxSpatialLayers>
+      last_corruption_detection_state_by_layer_;
 };
 
 }  // namespace webrtc
