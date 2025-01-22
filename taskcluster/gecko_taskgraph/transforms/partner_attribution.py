@@ -14,6 +14,7 @@ from taskgraph.transforms.base import TransformSequence
 
 from gecko_taskgraph.util.partners import (
     apply_partner_priority,
+    build_macos_attribution_dmg_command,
     check_if_partners_enabled,
     generate_attribution_code,
     get_ftp_platform,
@@ -160,6 +161,15 @@ def _get_upstream_task_label_and_artifact(platform, locale):
                 locale=locale, platform=platform
             )
             upstream_artifact = "{locale}/target.installer.exe".format(locale=locale)
+    elif platform.startswith("macos"):
+        if locale == "en-US":
+            upstream_label = "repackage-{platform}/opt".format(platform=platform)
+            upstream_artifact = "target.dmg"
+        else:
+            upstream_label = "repackage-l10n-{locale}-{platform}/opt".format(
+                locale=locale, platform=platform
+            )
+            upstream_artifact = "{locale}/target.dmg".format(locale=locale)
     else:
         raise NotImplementedError(
             'Case for platform "{}" is not implemented'.format(platform)
@@ -173,6 +183,11 @@ def _build_attribution_config(task, task_platforms, attributions):
         worker = task.get("worker", {})
         worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
             attributions, sort_keys=True
+        )
+    elif any(p.startswith("macos") for p in task_platforms):
+        run = task.setdefault("run", {})
+        run["command"] = build_macos_attribution_dmg_command(
+            "/builds/worker/fetches/dmg/dmg", attributions
         )
     else:
         raise NotImplementedError(

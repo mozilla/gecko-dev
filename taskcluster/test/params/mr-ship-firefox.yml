@@ -10802,6 +10802,7 @@ release_partner_config:
         locales:
           - en-GB
         platforms:
+          - macosx64-shippable
           - win64-shippable
           - win32-shippable
         upload_to_candidates: true
