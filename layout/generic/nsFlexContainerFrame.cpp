@@ -3670,29 +3670,32 @@ CrossAxisPositionTracker::CrossAxisPositionTracker(
              "GenerateFlexLines should've produced at least 1 line");
   mPackingSpaceRemaining -= aCrossGapSize * (numLines - 1);
 
-  // If <overflow-position> is 'safe' and packing space is negative
-  // all align options fall back to 'start'
-  if ((alignContentFlags & StyleAlignFlags::SAFE) &&
-      mPackingSpaceRemaining < 0) {
-    mAlignContent.primary = StyleAlignFlags::START;
-  }
-
-  // If packing space is negative, 'space-between' and 'stretch' behave like
-  // 'flex-start', and 'space-around' and 'space-evenly' behave like 'center'.
-  // In those cases, it's simplest to just pretend we have a different
-  // 'align-content' value and share code. (If we only have one line, all of
-  // the 'space-*' keywords fall back as well, but 'stretch' doesn't because
-  // even a single line can still stretch.)
+  // If packing space is negative, 'stretch' behaves like 'flex-start',
+  // 'space-between' behaves like 'safe flex-start', and 'space-around' and
+  // 'space-evenly' behave like 'safe center'. In those cases, it's simplest to
+  // just pretend we have a different 'align-content' value and share code. (If
+  // we only have one line, all of the 'space-*' keywords fall back as well, but
+  // 'stretch' doesn't because even a single line can still stretch.)
+  // https://drafts.csswg.org/css-align-3/#distribution-values
   if (mPackingSpaceRemaining < 0 &&
       mAlignContent.primary == StyleAlignFlags::STRETCH) {
     mAlignContent.primary = StyleAlignFlags::FLEX_START;
   } else if (mPackingSpaceRemaining < 0 || numLines == 1) {
     if (mAlignContent.primary == StyleAlignFlags::SPACE_BETWEEN) {
+      alignContentFlags = StyleAlignFlags::SAFE;
       mAlignContent.primary = StyleAlignFlags::FLEX_START;
     } else if (mAlignContent.primary == StyleAlignFlags::SPACE_AROUND ||
                mAlignContent.primary == StyleAlignFlags::SPACE_EVENLY) {
+      alignContentFlags = StyleAlignFlags::SAFE;
       mAlignContent.primary = StyleAlignFlags::CENTER;
     }
+  }
+
+  // If <overflow-position> is 'safe' and packing space is negative
+  // all align options fall back to 'start'
+  if ((alignContentFlags & StyleAlignFlags::SAFE) &&
+      mPackingSpaceRemaining < 0) {
+    mAlignContent.primary = StyleAlignFlags::START;
   }
 
   // Map 'start'/'end' to 'flex-start'/'flex-end'.
