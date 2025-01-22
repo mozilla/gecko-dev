@@ -276,10 +276,10 @@ class OnboardingMapperTest {
         val description = "Terms of service card body"
         val primaryButtonLabel = "add-ons card primary button text"
 
-        val lineOneText = "By continuing, you agree to the Firefox %1\$s."
-        val lineOneLinkText = "Terms of Service"
+        val lineOneText = "By continuing, you agree to the %1\$s."
+        val lineOneLinkText = "Firefox Terms of Use"
         val lineOneLinkUrl = "LinkOne"
-        val lineTwoText = "Firefox cares about your privacy. Read more in our %1\$s."
+        val lineTwoText = "Firefox cares about your privacy. Learn more in our %1\$s."
         val lineTwoLinkText = "Privacy Notice"
         val lineTwoLinkUrl = "LinkTwo"
         val lineThreeText = "To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. %1\$s"
@@ -304,10 +304,10 @@ class OnboardingMapperTest {
         )
 
         val nimbusTermsOfServiceData = TermsOfServiceData(
-            lineOneText = StringHolder(R.string.onboarding_term_of_service_line_one, ""),
-            lineOneLinkText = StringHolder(R.string.onboarding_term_of_service_line_one_link_text, ""),
+            lineOneText = StringHolder(R.string.onboarding_term_of_service_line_one_2, ""),
+            lineOneLinkText = StringHolder(R.string.onboarding_term_of_service_line_one_link_text_2, ""),
             lineOneLinkUrl = StringHolder(null, lineOneLinkUrl),
-            lineTwoText = StringHolder(R.string.onboarding_term_of_service_line_two, ""),
+            lineTwoText = StringHolder(R.string.onboarding_term_of_service_line_two_2, ""),
             lineTwoLinkText = StringHolder(R.string.onboarding_term_of_service_line_two_link_text, ""),
             lineTwoLinkUrl = StringHolder(null, lineTwoLinkUrl),
             lineThreeText = StringHolder(R.string.onboarding_term_of_service_line_three, ""),

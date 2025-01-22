@@ -112,10 +112,10 @@ private fun CrashReportingPreference(
     Spacer(modifier = Modifier.height(8.dp))
 
     LinkText(
-        text = stringResource(R.string.onboarding_preferences_dialog_crash_reporting_learn_more),
+        text = stringResource(R.string.onboarding_preferences_dialog_crash_reporting_learn_more_2),
         linkTextStates = listOf(
             LinkTextState(
-                text = stringResource(id = R.string.onboarding_preferences_dialog_crash_reporting_learn_more),
+                text = stringResource(id = R.string.onboarding_preferences_dialog_crash_reporting_learn_more_2),
                 url = "",
                 onClick = { onLinkClick() },
             ),
@@ -140,7 +140,7 @@ private fun UsageDataPreference(
     Spacer(modifier = Modifier.height(8.dp))
 
     Text(
-        text = stringResource(R.string.onboarding_preferences_dialog_usage_data_description),
+        text = stringResource(R.string.onboarding_preferences_dialog_usage_data_description_2),
         color = FirefoxTheme.colors.textPrimary,
         style = FirefoxTheme.typography.caption,
     )
@@ -148,10 +148,10 @@ private fun UsageDataPreference(
     Spacer(modifier = Modifier.height(8.dp))
 
     LinkText(
-        text = stringResource(R.string.onboarding_preferences_dialog_usage_data_learn_more),
+        text = stringResource(R.string.onboarding_preferences_dialog_usage_data_learn_more_2),
         linkTextStates = listOf(
             LinkTextState(
-                text = stringResource(id = R.string.onboarding_preferences_dialog_usage_data_learn_more),
+                text = stringResource(id = R.string.onboarding_preferences_dialog_usage_data_learn_more_2),
                 url = "",
                 onClick = { onLinkClick() },
             ),
