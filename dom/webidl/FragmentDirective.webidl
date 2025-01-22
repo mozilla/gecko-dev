@@ -13,7 +13,4 @@ interface FragmentDirective {
 
     [Pref="dom.text_fragments.enabled", ChromeOnly, Throws]
     undefined removeAllTextDirectives();
-
-    [Pref="dom.text_fragments.create_text_fragment.enabled", ChromeOnly]
-    Promise<DOMString> createTextDirective(Range range);
 };

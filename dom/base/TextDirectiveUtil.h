@@ -36,11 +36,6 @@ class TextDirectiveUtil final {
   MOZ_ALWAYS_INLINE static bool ShouldLog() {
     return MOZ_LOG_TEST(sFragmentDirectiveLog, LogLevel::Debug);
   }
-
-  static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);
-
-  static Result<nsString, ErrorResult> RangeContentAsFoldCase(nsRange* aRange);
-
   /**
    * @brief Return true if `aNode` is a visible Text node.
    *
@@ -163,87 +158,6 @@ class TextDirectiveUtil final {
    * https://wicg.github.io/scroll-to-text-fragment/#next-non-whitespace-position
    */
   static void AdvanceStartToNextNonWhitespacePosition(nsRange& aRange);
-
-  static RangeBoundary MoveBoundaryToNextNonWhitespacePosition(
-      const RangeBoundary& aRangeBoundary);
-  static RangeBoundary MoveBoundaryToPreviousNonWhitespacePosition(
-      const RangeBoundary& aRangeBoundary);
-
-  static Result<Maybe<RangeBoundary>, ErrorResult> FindBlockBoundaryInRange(
-      const nsRange& aRange, TextScanDirection aDirection);
-
-  static Result<RangeBoundary, ErrorResult> FindNextBlockBoundary(
-      const RangeBoundary& aRangeBoundary, TextScanDirection aDirection);
-
-  /**
-   * @brief Compares two range boundaries whether they are "normalized equal".
-   *
-   * Range boundaries are "normalized equal" if there is no visible text between
-   * them, for example here (range boundaries represented by `|`):
-   *
-   * ```html
-   * <span>foo |<p>|bar</p></span>
-   * ```
-   *
-   * In this case, comparing the boundaries for equality would return false.
-   * But, when calling this function, they would be considered normalized equal.
-   *
-   * @return true if the boundaries are normalized equal.
-   */
-  static bool NormalizedRangeBoundariesAreEqual(
-      const RangeBoundary& aRangeBoundary1,
-      const RangeBoundary& aRangeBoundary2);
-
-  /**
-   * @brief Extends the range boundaries to word boundaries across nodes.
-   *
-   * @param[inout] aRange The range. Changes to the range are done in-place.
-   *
-   * @return Returns an error value if something failed along the way.
-   */
-  static Result<Ok, ErrorResult> ExtendRangeToWordBoundaries(nsRange& aRange);
-
-  /**
-   * @brief Create a `TextDirective` From `nsRange`s representing the context
-   *        terms.
-   *
-   * Every parameter besides `aStart` is allowed to be nullptr or a collapsed
-   * range. Ranges are converted to strings using their `ToString()` method.
-   * Whitespace is compressed.
-   *
-   * @return The created `TextDirective`, or an error if converting the ranges
-   *         to string fails.
-   */
-  static Result<TextDirective, ErrorResult> CreateTextDirectiveFromRanges(
-      nsRange* aPrefix, nsRange* aStart, nsRange* aEnd, nsRange* aSuffix);
-
-  /**
-   * Find the length of the common prefix between two folded strings.
-   *
-   * @return The length of the common prefix.
-   */
-  static uint32_t FindCommonPrefix(const nsAString& aFoldedStr1,
-                                   const nsAString& aFoldedStr2);
-
-  /**
-   * Find the length of the common suffix between two folded strings.
-   *
-   * @return The length of the common suffix.
-   */
-  static uint32_t FindCommonSuffix(const nsAString& aFoldedStr1,
-                                   const nsAString& aFoldedStr2);
-
-  /**
-   * Map a logical offset to a container node and offset within the DOM.
-   *
-   * @param aRange         The nsRange to map the offset from.
-   * @param aLogicalOffset The logical offset in the flattened text content of
-   *                       the range. The offset is always starting at the start
-   *                       of the range.
-   * @return a `RangeBoundary` that represents the logical offset, or an error.
-   */
-  static RangeBoundary CreateRangeBoundaryByMovingOffsetFromRangeStart(
-      nsRange* aRange, uint32_t aLogicalOffset);
 };
 }  // namespace mozilla::dom
 

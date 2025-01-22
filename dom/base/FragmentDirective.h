@@ -20,7 +20,6 @@ class nsIURI;
 class nsRange;
 namespace mozilla::dom {
 class Document;
-class Promise;
 class Text;
 class TextDirectiveFinder;
 
@@ -137,15 +136,6 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
    * This is exposed as a Chrome-Only API.
    */
   MOZ_CAN_RUN_SCRIPT void RemoveAllTextDirectives(ErrorResult& aRv);
-
-  /** Creates a text directive string from a given range.
-   *
-   * @param aRange  The input range.
-   *
-   * @return Returns the created text directive as resolved promise, or a
-   *         rejected promise in case of an error.
-   */
-  already_AddRefed<Promise> CreateTextDirective(nsRange& aRange);
 
  private:
   RefPtr<Document> mDocument;

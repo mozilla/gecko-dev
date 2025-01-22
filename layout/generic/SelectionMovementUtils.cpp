@@ -54,7 +54,7 @@ SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
   MOZ_ASSERT(aDirection == eDirNext || aDirection == eDirPrevious);
   MOZ_ASSERT(aAmount == eSelectCharacter || aAmount == eSelectCluster ||
              aAmount == eSelectWord || aAmount == eSelectBeginLine ||
-             aAmount == eSelectEndLine || aAmount == eSelectParagraph);
+             aAmount == eSelectEndLine);
 
   if (!aRangeBoundary.IsSetAndValid()) {
     return Err(NS_ERROR_FAILURE);

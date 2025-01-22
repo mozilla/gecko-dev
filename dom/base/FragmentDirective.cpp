@@ -10,15 +10,12 @@
 #include "mozilla/Assertions.h"
 #include "BasePrincipal.h"
 #include "Document.h"
-#include "TextDirectiveCreator.h"
 #include "TextDirectiveFinder.h"
 #include "TextDirectiveUtil.h"
-#include "mozilla/ResultVariant.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/FragmentDirectiveBinding.h"
 #include "mozilla/dom/FragmentOrElement.h"
-#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/PresShell.h"
 #include "nsContentUtils.h"
@@ -423,41 +420,6 @@ void FragmentDirective::RemoveAllTextDirectives(ErrorResult& aRv) {
     return;
   }
   targetTextSelection->RemoveAllRanges(aRv);
-}
-already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
-    nsRange& aRange) {
-  RefPtr<Promise> resultPromise =
-      Promise::Create(mDocument->GetOwnerGlobal(), IgnoreErrors());
-  if (!resultPromise) {
-    return nullptr;
-  }
-  if (!StaticPrefs::dom_text_fragments_create_text_fragment_enabled() ||
-      !StaticPrefs::dom_text_fragments_enabled()) {
-    TEXT_FRAGMENT_LOG("Creating text fragments is disabled.");
-    resultPromise->MaybeResolve(JS::NullHandleValue);
-    return resultPromise.forget();
-  }
-  if (aRange.Collapsed()) {
-    TEXT_FRAGMENT_LOG("Collapsed range. Nothing to do here...");
-    resultPromise->MaybeResolve(JS::NullHandleValue);
-    return resultPromise.forget();
-  }
-
-  Result<nsCString, ErrorResult> textDirective =
-      TextDirectiveCreator::CreateTextDirectiveFromRange(*mDocument, &aRange);
-  if (textDirective.isOk()) {
-    nsCString textDirectiveString = textDirective.unwrap();
-    if (textDirectiveString.IsEmpty()) {
-      resultPromise->MaybeResolve(JS::NullHandleValue);
-    } else {
-      resultPromise->MaybeResolve(std::move(textDirectiveString));
-    }
-  } else {
-    ErrorResult rv = textDirective.unwrapErr();
-    resultPromise->MaybeReject(std::move(rv));
-  }
-
-  return resultPromise.forget();
 }
 
 }  // namespace mozilla::dom

@@ -1709,8 +1709,6 @@ skip-if = [
   "os == 'android'", # The test needs to run reasonably fast.
 ]
 
-["test_text-fragments-create-text-directive.html"]
-
 ["test_text-fragments-get-text-directive-ranges.html"]
 
 ["test_text_wholeText.html"]
