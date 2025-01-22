@@ -3220,7 +3220,7 @@ TEST(DcSctpSocketTest, ResentInitAckHasDifferentParameters) {
   EXPECT_NE(init_ack_chunk_1.initial_tsn(), init_ack_chunk_2.initial_tsn());
 }
 
-TEST(DcSctpSocketResendInitTest, ConnectionCanContinueFromFirstInitAck) {
+TEST(DcSctpSocketTest, ConnectionCanContinueFromFirstInitAck) {
   // If an INIT chunk has to be resent (due to INIT_ACK not received in time),
   // another INIT will be sent, and if both INITs were actually received, both
   // will be responded to by an INIT_ACK. While these two INIT_ACKs may have
@@ -3261,7 +3261,7 @@ TEST(DcSctpSocketResendInitTest, ConnectionCanContinueFromFirstInitAck) {
   EXPECT_THAT(msg->payload(), SizeIs(kLargeMessageSize));
 }
 
-TEST(DcSctpSocketResendInitTest, ConnectionCanContinueFromSecondInitAck) {
+TEST(DcSctpSocketTest, ConnectionCanContinueFromSecondInitAck) {
   // Just as above, but discarding the first INIT_ACK.
   SocketUnderTest a("A");
   SocketUnderTest z("Z");
