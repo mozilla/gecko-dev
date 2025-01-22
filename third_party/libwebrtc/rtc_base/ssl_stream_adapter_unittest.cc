@@ -1387,10 +1387,8 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
   ASSERT_EQ(96 / 8, salt_len);
 }
 
-// Test an exporter
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
+// Test the DTLS-SRTP key exporter
+TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpExporter) {
   const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
@@ -1408,15 +1406,7 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
   EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
   EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
   EXPECT_EQ(client_out, server_out);
-
-  // Legacy variant.
-  rtc::ZeroOnFreeBuffer<uint8_t> legacy_out(2 * (key_len + salt_len));
-  EXPECT_TRUE(client_ssl_->ExportKeyingMaterial("EXTRACTOR-dtls_srtp", nullptr,
-                                                0, false, legacy_out.data(),
-                                                legacy_out.size()));
-  EXPECT_EQ(client_out, legacy_out);
 }
-#pragma clang diagnostic pop
 
 // Test not yet valid certificates are not rejected.
 TEST_F(SSLStreamAdapterTestDTLS, TestCertNotYetValid) {

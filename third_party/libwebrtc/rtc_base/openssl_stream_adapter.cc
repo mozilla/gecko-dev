@@ -383,20 +383,6 @@ bool OpenSSLStreamAdapter::ExportSrtpKeyingMaterial(
   return true;
 }
 
-bool OpenSSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
-                                                const uint8_t* context,
-                                                size_t context_len,
-                                                bool use_context,
-                                                uint8_t* result,
-                                                size_t result_len) {
-  if (SSL_export_keying_material(ssl_, result, result_len, label.data(),
-                                 label.length(), context, context_len,
-                                 use_context) != 1) {
-    return false;
-  }
-  return true;
-}
-
 uint16_t OpenSSLStreamAdapter::GetPeerSignatureAlgorithm() const {
   if (state_ != SSL_CONNECTED) {
     return 0;

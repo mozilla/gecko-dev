@@ -205,15 +205,6 @@ class SSLStreamAdapter : public StreamInterface {
   // Key Exporter interface from RFC 5705
   virtual bool ExportSrtpKeyingMaterial(
       rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) = 0;
-  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
-  ExportKeyingMaterial(absl::string_view label,
-                       const uint8_t* context,
-                       size_t context_len,
-                       bool use_context,
-                       uint8_t* result,
-                       size_t result_len) {
-    return false;
-  }
 
   // Returns the signature algorithm or 0 if not applicable.
   virtual uint16_t GetPeerSignatureAlgorithm() const = 0;
