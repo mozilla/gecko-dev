@@ -109,22 +109,14 @@ class VoiceEngineInterface : public RtpHeaderExtensionQueryInterface {
       const MediaConfig& /* config */,
       const AudioOptions& /* options */,
       const webrtc::CryptoOptions& /* crypto_options */,
-      webrtc::AudioCodecPairId /* codec_pair_id */) {
-    // TODO(hta): Make pure virtual when all downstream has updated
-    RTC_CHECK_NOTREACHED();
-    return nullptr;
-  }
+      webrtc::AudioCodecPairId /* codec_pair_id */) = 0;
 
   virtual std::unique_ptr<VoiceMediaReceiveChannelInterface>
   CreateReceiveChannel(webrtc::Call* /* call */,
                        const MediaConfig& /* config */,
                        const AudioOptions& /* options */,
                        const webrtc::CryptoOptions& /* crypto_options */,
-                       webrtc::AudioCodecPairId /* codec_pair_id */) {
-    // TODO(hta): Make pure virtual when all downstream has updated
-    RTC_CHECK_NOTREACHED();
-    return nullptr;
-  }
+                       webrtc::AudioCodecPairId /* codec_pair_id */) = 0;
 
   // Legacy: Retrieve list of supported codecs.
   // + protection codecs, and assigns PT numbers that may have to be
@@ -159,22 +151,14 @@ class VideoEngineInterface : public RtpHeaderExtensionQueryInterface {
       const MediaConfig& /* config */,
       const VideoOptions& /* options */,
       const webrtc::CryptoOptions& /* crypto_options */,
-      webrtc::
-          VideoBitrateAllocatorFactory* /* video_bitrate_allocator_factory */) {
-    // Default implementation, delete when all is updated
-    RTC_CHECK_NOTREACHED();
-    return nullptr;
-  }
+      webrtc::VideoBitrateAllocatorFactory*
+      /* video_bitrate_allocator_factory */) = 0;
 
   virtual std::unique_ptr<VideoMediaReceiveChannelInterface>
   CreateReceiveChannel(webrtc::Call* /* call */,
                        const MediaConfig& /* config */,
                        const VideoOptions& /* options */,
-                       const webrtc::CryptoOptions& /* crypto_options */) {
-    // Default implementation, delete when all is updated
-    RTC_CHECK_NOTREACHED();
-    return nullptr;
-  }
+                       const webrtc::CryptoOptions& /* crypto_options */) = 0;
 
   // Legacy: Retrieve list of supported codecs.
   // + protection codecs, and assigns PT numbers that may have to be

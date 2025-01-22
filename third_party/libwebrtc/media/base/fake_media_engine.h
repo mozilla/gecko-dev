@@ -805,7 +805,6 @@ class FakeVoiceEngine : public VoiceEngineInterface {
  private:
   std::vector<Codec> recv_codecs_;
   std::vector<Codec> send_codecs_;
-  bool fail_create_channel_;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions_;
 
   friend class FakeMediaEngine;
@@ -847,7 +846,6 @@ class FakeVideoEngine : public VideoEngineInterface {
   std::vector<Codec> recv_codecs_;
   bool capture_;
   VideoOptions options_;
-  bool fail_create_channel_;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions_;
 
   friend class FakeMediaEngine;
@@ -863,8 +861,6 @@ class FakeMediaEngine : public CompositeMediaEngine {
   void SetAudioRecvCodecs(const std::vector<Codec>& codecs);
   void SetAudioSendCodecs(const std::vector<Codec>& codecs);
   void SetVideoCodecs(const std::vector<Codec>& codecs);
-
-  void set_fail_create_channel(bool fail);
 
   FakeVoiceEngine* fake_voice_engine() { return voice_; }
   FakeVideoEngine* fake_video_engine() { return video_; }

@@ -278,29 +278,6 @@ class PeerConnectionMediaTestPlanB : public PeerConnectionMediaBaseTest {
       : PeerConnectionMediaBaseTest(SdpSemantics::kPlanB_DEPRECATED) {}
 };
 
-TEST_P(PeerConnectionMediaTest,
-       FailToSetRemoteDescriptionIfCreateMediaChannelFails) {
-  auto caller = CreatePeerConnectionWithAudioVideo();
-  auto callee = CreatePeerConnectionWithAudioVideo();
-  callee->media_engine()->set_fail_create_channel(true);
-
-  std::string error;
-  ASSERT_FALSE(callee->SetRemoteDescription(caller->CreateOffer(), &error));
-  EXPECT_THAT(error,
-              HasSubstr("Failed to set remote offer sdp: Failed to create"));
-}
-
-TEST_P(PeerConnectionMediaTest,
-       FailToSetLocalDescriptionIfCreateMediaChannelFails) {
-  auto caller = CreatePeerConnectionWithAudioVideo();
-  caller->media_engine()->set_fail_create_channel(true);
-
-  std::string error;
-  ASSERT_FALSE(caller->SetLocalDescription(caller->CreateOffer(), &error));
-  EXPECT_THAT(error,
-              HasSubstr("Failed to set local offer sdp: Failed to create"));
-}
-
 std::vector<std::string> GetIds(
     const std::vector<cricket::StreamParams>& streams) {
   std::vector<std::string> ids;

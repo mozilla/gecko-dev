@@ -534,7 +534,7 @@ bool FakeVideoMediaReceiveChannel::GetStats(VideoMediaReceiveInfo* /* info */) {
   return false;
 }
 
-FakeVoiceEngine::FakeVoiceEngine() : fail_create_channel_(false) {
+FakeVoiceEngine::FakeVoiceEngine() {
   // Add a fake audio codec. Note that the name must not be "" as there are
   // sanity checks against that.
   SetCodecs({cricket::CreateAudioCodec(101, "fake_audio_codec", 8000, 1)});
@@ -606,8 +606,7 @@ void FakeVoiceEngine::SetRtpHeaderExtensions(
   header_extensions_ = std::move(header_extensions);
 }
 
-FakeVideoEngine::FakeVideoEngine()
-    : capture_(false), fail_create_channel_(false) {
+FakeVideoEngine::FakeVideoEngine() : capture_(false) {
   // Add a fake video codec. Note that the name must not be "" as there are
   // sanity checks against that.
   send_codecs_.push_back(cricket::CreateVideoCodec(111, "fake_video_codec"));
@@ -625,10 +624,6 @@ FakeVideoEngine::CreateSendChannel(
     const webrtc::CryptoOptions& /* crypto_options */,
     webrtc::
         VideoBitrateAllocatorFactory* /* video_bitrate_allocator_factory */) {
-  if (fail_create_channel_) {
-    return nullptr;
-  }
-
   std::unique_ptr<FakeVideoMediaSendChannel> ch =
       std::make_unique<FakeVideoMediaSendChannel>(options,
                                                   call->network_thread());
@@ -640,10 +635,6 @@ FakeVideoEngine::CreateReceiveChannel(
     const MediaConfig& /* config */,
     const VideoOptions& options,
     const webrtc::CryptoOptions& /* crypto_options */) {
-  if (fail_create_channel_) {
-    return nullptr;
-  }
-
   std::unique_ptr<FakeVideoMediaReceiveChannel> ch =
       std::make_unique<FakeVideoMediaReceiveChannel>(options,
                                                      call->network_thread());
@@ -696,10 +687,6 @@ void FakeMediaEngine::SetAudioSendCodecs(const std::vector<Codec>& codecs) {
 void FakeMediaEngine::SetVideoCodecs(const std::vector<Codec>& codecs) {
   video_->SetSendCodecs(codecs);
   video_->SetRecvCodecs(codecs);
-}
-void FakeMediaEngine::set_fail_create_channel(bool fail) {
-  voice_->fail_create_channel_ = fail;
-  video_->fail_create_channel_ = fail;
 }
 
 }  // namespace cricket

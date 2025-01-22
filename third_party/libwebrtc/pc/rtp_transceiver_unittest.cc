@@ -99,6 +99,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   // Clear the current channel - required to allow SetChannel()
   EXPECT_CALL(*channel1_ptr, SetFirstPacketReceivedCallback(_));
   transceiver->ClearChannel();
+  ASSERT_EQ(nullptr, transceiver->channel());
   // Channel can no longer be set, so this call should be a no-op.
   transceiver->SetChannel(std::move(channel2),
                           [](const std::string&) { return nullptr; });
