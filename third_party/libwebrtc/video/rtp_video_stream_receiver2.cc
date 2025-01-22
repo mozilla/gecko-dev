@@ -622,36 +622,49 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     } else if (last_color_space_) {
       video_header.color_space = last_color_space_;
     }
-    CorruptionDetectionMessage message;
-    rtp_packet.GetExtension<CorruptionDetectionExtension>(&message);
-    int spatial_idx = 0;
+
+    std::optional<int> spatial_id;
     if (video_header.generic.has_value()) {
-      spatial_idx = video_header.generic->spatial_index;
-    }
-    if (message.sample_values().empty()) {
-      video_header.frame_instrumentation_data =
-          ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
-              message, last_corruption_detection_state_by_layer_[spatial_idx]
-                           .sequence_index);
-    } else {
-      // `OnReceivedPayloadData` might be called several times, however, we
-      // don't want to increase the sequence index each time.
-      if (!last_corruption_detection_state_by_layer_[spatial_idx]
-               .timestamp.has_value() ||
-          rtp_packet.Timestamp() !=
-              last_corruption_detection_state_by_layer_[spatial_idx]
-                  .timestamp) {
-        video_header.frame_instrumentation_data =
-            ConvertCorruptionDetectionMessageToFrameInstrumentationData(
-                message, last_corruption_detection_state_by_layer_[spatial_idx]
-                             .sequence_index);
-        last_corruption_detection_state_by_layer_[spatial_idx].timestamp =
-            rtp_packet.Timestamp();
+      spatial_id = video_header.generic->spatial_index;
+      if (spatial_id >= kMaxSpatialLayers) {
+        RTC_LOG(LS_WARNING) << "Invalid spatial id: " << *spatial_id
+                            << ". Ignoring corruption detection mesaage.";
+        spatial_id.reset();
       }
+    } else {
+      spatial_id = 0;
     }
-    if (video_header.frame_instrumentation_data.has_value()) {
-      SetLastCorruptionDetectionIndex(*video_header.frame_instrumentation_data,
-                                      spatial_idx);
+
+    std::optional<CorruptionDetectionMessage> message =
+        rtp_packet.GetExtension<CorruptionDetectionExtension>();
+    if (message.has_value() && spatial_id.has_value()) {
+      if (message->sample_values().empty()) {
+        video_header.frame_instrumentation_data =
+            ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+                *message, last_corruption_detection_state_by_layer_[*spatial_id]
+                              .sequence_index);
+      } else {
+        // `OnReceivedPayloadData` might be called several times, however, we
+        // don't want to increase the sequence index each time.
+        if (!last_corruption_detection_state_by_layer_[*spatial_id]
+                 .timestamp.has_value() ||
+            rtp_packet.Timestamp() !=
+                last_corruption_detection_state_by_layer_[*spatial_id]
+                    .timestamp) {
+          video_header.frame_instrumentation_data =
+              ConvertCorruptionDetectionMessageToFrameInstrumentationData(
+                  *message,
+                  last_corruption_detection_state_by_layer_[*spatial_id]
+                      .sequence_index);
+          last_corruption_detection_state_by_layer_[*spatial_id].timestamp =
+              rtp_packet.Timestamp();
+        }
+      }
+
+      if (video_header.frame_instrumentation_data.has_value()) {
+        SetLastCorruptionDetectionIndex(
+            *video_header.frame_instrumentation_data, *spatial_id);
+      }
     }
   }
   video_header.video_frame_tracking_id =
