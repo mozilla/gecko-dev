@@ -394,6 +394,7 @@ const AVAILABLE_SHIMS = [
           "*://portal.sds.ox.ac.uk/*",
           "*://curate.nd.edu/*",
           "*://kilthub.cmu.edu/*",
+          "*://publications.cispa.de/*",
         ],
         runAt: "document_start",
       },
