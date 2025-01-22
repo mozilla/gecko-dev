@@ -18,6 +18,7 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/metrics.h"
@@ -78,10 +79,10 @@ AbsoluteCaptureTimeInterpolator::OnReceivePacket(
                               (receive_time - *first_packet_time_).ms());
       first_extension_time_ = receive_time;
     }
-    uint64_t ntp_delta =
+    int64_t ntp_delta =
         uint64_t{clock_->ConvertTimestampToNtpTime(receive_time)} -
         received_extension->absolute_capture_timestamp;
-    TimeDelta capture_delta = TimeDelta::Micros(UQ32x32ToInt64Us(ntp_delta));
+    TimeDelta capture_delta = TimeDelta::Micros(Q32x32ToInt64Us(ntp_delta));
     RTC_HISTOGRAM_COUNTS_1G("WebRTC.Call.AbsCapture.Delta",
                             abs(capture_delta.us()));
     if (previous_capture_delta_) {
@@ -96,8 +97,8 @@ AbsoluteCaptureTimeInterpolator::OnReceivePacket(
                                 (receive_time - *first_packet_time_).ms());
         first_offset_time_ = receive_time;
       }
-      TimeDelta offset_as_delta = TimeDelta::Micros(UQ32x32ToInt64Us(
-          *received_extension->estimated_capture_clock_offset));
+      TimeDelta offset_as_delta = TimeDelta::Micros(
+          Q32x32ToInt64Us(*received_extension->estimated_capture_clock_offset));
       RTC_HISTOGRAM_COUNTS_1G("WebRTC.Call.AbsCapture.Offset",
                               abs(offset_as_delta.us()));
       if (previous_offset_as_delta_) {
