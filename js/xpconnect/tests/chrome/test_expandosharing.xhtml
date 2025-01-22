@@ -21,10 +21,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=758415
   /** Test for Cross-Origin Xray Expando Sharing. **/
   SimpleTest.waitForExplicitFinish();
 
-  // Import our test JSM. We first strip the filename off
-  // the chrome url, then append the jsm filename.
+  // Import our test ESM. We first strip the filename off
+  // the chrome url, then append the esm filename.
   var base = /.*\//.exec(window.location.href)[0];
-  const {checkFromJSM} = ChromeUtils.import(base + "file_expandosharing.jsm");
+  const {checkFromESM} = ChromeUtils.importESModule(base + "file_expandosharing.sys.mjs");
 
   // Wait for all child frames to load.
   var gLoadCount = 0;
@@ -55,10 +55,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=758415
 
     /* globals gWinA1, gWinA2, gWinA3, gWinB, gWinC */
 
-    // Test expando sharing with a JSM for different types of Xrays.
-    testJSM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetWN));
-    testJSM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetDOM));
-    testJSM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetJS));
+    // Test expando sharing with an ESM for different types of Xrays.
+    testESM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetWN));
+    testESM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetDOM));
+    testESM(Cu.unwaiveXrays(gWinC.wrappedJSObject.targetJS));
 
     // Make sure sandboxes never share expandos with anyone else.
     testSandbox(Cu.unwaiveXrays(gWinB.wrappedJSObject.targetWN));
@@ -71,12 +71,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=758415
     SimpleTest.finish();
   }
 
-  // Make sure that expandos are shared between us and a JSM.
-  function testJSM(target) {
+  // Make sure that expandos are shared between us and an ESM.
+  function testESM(target) {
     target.numProp = 42;
     target.strProp = "foo";
     target.objProp = { bar: "baz" };
-    checkFromJSM(target, is);
+    checkFromESM(target, is);
   }
 
   function testSandbox(target) {

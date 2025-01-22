@@ -47,7 +47,7 @@ function go() {
        "System sandbox created in different compartment is in system compartment");
 
     ok(isSameCompartment(window, XPCOMUtils),
-       "Object defined in JSM is in same compartment");
+       "Object defined in system module is in same compartment");
 
     SimpleTest.finish();
 }
