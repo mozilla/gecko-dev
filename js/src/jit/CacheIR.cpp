@@ -4074,7 +4074,7 @@ AttachDecision HasPropIRGenerator::tryAttachSmallObjectVariableKey(
     return AttachDecision::NoAction;
   }
 
-  if (!key.isString()) {
+  if (!idVal_.isString()) {
     return AttachDecision::NoAction;
   }
 
