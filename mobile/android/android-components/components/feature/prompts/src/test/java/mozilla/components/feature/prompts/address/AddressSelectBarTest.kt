@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.storage.Address
 import mozilla.components.feature.prompts.R
+import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.AddressAutofillDialogFacts
@@ -163,5 +164,25 @@ class AddressSelectBarTest {
 
         assertFalse(bar.isPromptDisplayed)
         verify(listener).onHidden()
+    }
+
+    @Test
+    fun `WHEN the prompt is expanded THEN inform listeners about it`() {
+        val listener: ExpandablePrompt.Listener = mock()
+        addressSelectBar.expandablePromptListener = listener
+
+        addressSelectBar.expand()
+
+        verify(listener).onExpanded()
+    }
+
+    @Test
+    fun `WHEN the prompt is collapsed THEN inform listeners about it`() {
+        val listener: ExpandablePrompt.Listener = mock()
+        addressSelectBar.expandablePromptListener = listener
+
+        addressSelectBar.collapse()
+
+        verify(listener).onCollapsed()
     }
 }

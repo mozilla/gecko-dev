@@ -5,13 +5,16 @@ permalink: /changelog/
 ---
 
 # 136.0 (In Development)
+* **support-ktx**
+    * 🆕 New `ExpandablePrompt` interface implemented by `AddressSelectBar`, `CreditCardSelectBar` to inform when it is expanded or collapsed. [Bug 19010409](https://bugzilla.mozilla.org/show_bug.cgi?id=19010409).
 
 # 135.0
+* **support-ktx**
+    * 🆕 `Context.setApplicationNightMode()` will apply the provided night mode on all API levels and persist it on Android 31+ so that on new launches the splashscreen matches. [Bug 1919488](https://bugzilla.mozilla.org/show_bug.cgi?id=1919488)
 * **feature-downloads**
-  * `AbstractFetchDownloadService.createOpenFileIntent` will no longer create an intent to open PDF files from the caller application if it can open PDFs. The user will be prompted to choose an application. See [Bug 1941609](https://bugzilla.mozilla.org/show_bug.cgi?id=1941609).
-
+    * `AbstractFetchDownloadService.createOpenFileIntent` will no longer create an intent to open PDF files from the caller application if it can open PDFs. The user will be prompted to choose an application. See [Bug 1941609](https://bugzilla.mozilla.org/show_bug.cgi?id=1941609).
 * **feature-prompts**
-    * 🆕 New `ToggleablePrompt` interface implemented by `AddressSelectBar`, `CreditCard` `LoginSelectBar` and `SuggestStrongPasswordBar` to inform when these are shown or hidden. [Bug 1909746](https://bugzilla.mozilla.org/show_bug.cgi?id=1909746).
+    * 🆕 New `ToggleablePrompt` interface implemented by `AddressSelectBar`, `CreditCardSelectBar` `LoginSelectBar` and `SuggestStrongPasswordBar` to inform when these are shown or hidden. [Bug 1909746](https://bugzilla.mozilla.org/show_bug.cgi?id=1909746).
     * 🆕 New `ExpandablePrompt` interface implemented by `LoginSelectBar` to inform when it is expanded or collapsed. [Bug 1909746](https://bugzilla.mozilla.org/show_bug.cgi?id=1909746).
 
 # 134.0

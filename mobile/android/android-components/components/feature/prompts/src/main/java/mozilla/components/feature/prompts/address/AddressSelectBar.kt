@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.storage.Address
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
+import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.emitAddressAutofillExpandedFact
@@ -33,7 +34,9 @@ class AddressSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : ConstraintLayout(context, attrs, defStyleAttr), AutocompletePrompt<Address> {
+) : ConstraintLayout(context, attrs, defStyleAttr),
+    AutocompletePrompt<Address>,
+    ExpandablePrompt {
 
     private var view: View? = null
     private var recyclerView: RecyclerView? = null
@@ -43,6 +46,7 @@ class AddressSelectBar @JvmOverloads constructor(
     private var headerTextStyle: Int? = null
     override var isPromptDisplayed: Boolean = false
         private set
+    private var isExpanded: Boolean = false
 
     private val listAdapter = AddressAdapter { address ->
         selectablePromptListener?.apply {
@@ -53,6 +57,7 @@ class AddressSelectBar @JvmOverloads constructor(
 
     override var toggleablePromptListener: ToggleablePrompt.Listener? = null
     override var selectablePromptListener: SelectablePromptView.Listener<Address>? = null
+    override var expandablePromptListener: ExpandablePrompt.Listener? = null
 
     init {
         context.withStyledAttributes(
@@ -95,6 +100,28 @@ class AddressSelectBar @JvmOverloads constructor(
         toggleablePromptListener?.onShown()
     }
 
+    override fun expand() {
+        view?.hideKeyboard()
+        recyclerView?.isVisible = true
+        manageAddressesView?.isVisible = true
+        emitAddressAutofillExpandedFact()
+        expanderView?.rotation = ROTATE_180
+        headerView?.contentDescription =
+            context.getString(R.string.mozac_feature_prompts_collapse_address_content_description_2)
+        expandablePromptListener?.onExpanded()
+        isExpanded = true
+    }
+
+    override fun collapse() {
+        manageAddressesView?.isVisible = false
+        recyclerView?.isVisible = false
+        expanderView?.rotation = 0F
+        headerView?.contentDescription =
+            context.getString(R.string.mozac_feature_prompts_expand_address_content_description_2)
+        expandablePromptListener?.onCollapsed()
+        isExpanded = false
+    }
+
     override fun populate(options: List<Address>) {
         listAdapter.submitList(options)
     }
@@ -120,6 +147,10 @@ class AddressSelectBar @JvmOverloads constructor(
 
         expanderView =
             findViewById<AppCompatImageView>(R.id.mozac_feature_address_expander).apply {
+                setOnClickListener {
+                    toggleSelectAddressHeader(!isExpanded)
+                }
+
                 headerView?.currentTextColor?.let {
                     ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(it))
                 }
@@ -138,20 +169,7 @@ class AddressSelectBar @JvmOverloads constructor(
      * @param shouldExpand True if the list of addresses should be displayed, false otherwise.
      */
     private fun toggleSelectAddressHeader(shouldExpand: Boolean) {
-        recyclerView?.isVisible = shouldExpand
-        manageAddressesView?.isVisible = shouldExpand
-
-        if (shouldExpand) {
-            emitAddressAutofillExpandedFact()
-            view?.hideKeyboard()
-            expanderView?.rotation = ROTATE_180
-            headerView?.contentDescription =
-                context.getString(R.string.mozac_feature_prompts_collapse_address_content_description_2)
-        } else {
-            expanderView?.rotation = 0F
-            headerView?.contentDescription =
-                context.getString(R.string.mozac_feature_prompts_expand_address_content_description_2)
-        }
+        if (shouldExpand) expand() else collapse()
     }
 
     companion object {

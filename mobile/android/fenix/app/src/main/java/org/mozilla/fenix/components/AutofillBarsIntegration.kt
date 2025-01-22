@@ -35,7 +35,9 @@ class AutofillBarsIntegration(
         loginsBar.expandablePromptListener = loginsBar.createExpandedListener()
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
         addressBar.toggleablePromptListener = addressBar.createToggleListener()
+        addressBar.expandablePromptListener = addressBar.createExpandedListener()
         creditCardBar.toggleablePromptListener = creditCardBar.createToggleListener()
+        creditCardBar.expandablePromptListener = creditCardBar.createExpandedListener()
     }
 
     var isVisible: Boolean = false
@@ -43,7 +45,7 @@ class AutofillBarsIntegration(
     var isExpanded: Boolean = false
         private set
 
-    private fun LoginSelectBar.createExpandedListener() = object : ExpandablePrompt.Listener {
+    private fun <T : View> T.createExpandedListener() = object : ExpandablePrompt.Listener {
         override fun onExpanded() {
             (behavior as? AutofillSelectBarBehavior<*>)?.placeAtBottom(this@createExpandedListener)
             // Remove the custom behavior to ensure the autofill bar stays fixed in place
