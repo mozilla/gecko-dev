@@ -287,11 +287,19 @@ class OnboardingMapperTest {
 
     @Test
     fun `GIVEN a marketing data collection opt out page WHEN mapToOnboardingPageState is called THEN creates the expected OnboardingPageState`() {
+        val marketingData = OnboardingMarketingData(
+            bodyOneText = "marketing data body one",
+            bodyOneLinkText = "marketing data body one link",
+            bodyTwoText = "marketing data body two",
+            bodyThreeText = "marketing data body three",
+        )
+
         val expected = OnboardingPageState(
             imageRes = R.drawable.ic_high_five,
             title = "marketing data title",
             description = "marketing data body",
             primaryButton = Action("marketing data button text", unitLambda),
+            marketingData = marketingData,
         )
 
         val onboardingPageUiData = OnboardingPageUiData(
@@ -300,6 +308,7 @@ class OnboardingMapperTest {
             title = "marketing data title",
             description = "marketing data body",
             primaryButtonLabel = "marketing data button text",
+            marketingData = marketingData,
         )
 
         val actual = mapToOnboardingPageState(

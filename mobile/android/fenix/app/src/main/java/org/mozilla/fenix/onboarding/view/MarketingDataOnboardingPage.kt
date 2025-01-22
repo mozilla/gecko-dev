@@ -87,7 +87,7 @@ fun MarketingDataOnboardingPage(
                 linkTextStates = listOf(
                     LinkTextState(
                         text = marketingData.bodyOneLinkText,
-                        url = marketingData.linkUrl,
+                        url = "",
                         onClick = { onMarketingDataLearnMoreClick() },
                     ),
                 ),
@@ -167,7 +167,6 @@ private fun MarketingDataOnboardingPagePreview() {
                         " technology partners",
                     bodyThreeText = "This helps us understand how you discovered Firefox and" +
                         " improve our marketing campaigns.",
-                    linkUrl = "",
                 ),
             ),
             onMarketingDataContinueClick = {},

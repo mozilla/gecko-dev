@@ -152,7 +152,6 @@ private fun MarketingData.toOnboardingMarketingData() = OnboardingMarketingData(
     bodyOneLinkText = bodyLineOneLinkText,
     bodyTwoText = bodyLineTwoText,
     bodyThreeText = bodyLineThreeText,
-    linkUrl = linkUrl,
 )
 
 private fun AddOnData.toOnboardingAddOn() = with(this) {

@@ -144,7 +144,6 @@ data class OnboardingTermsOfService(
 data class OnboardingMarketingData(
     val bodyOneText: String,
     val bodyOneLinkText: String,
-    val linkUrl: String,
     val bodyTwoText: String,
     val bodyThreeText: String,
 )
