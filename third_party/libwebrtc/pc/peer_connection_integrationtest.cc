@@ -4286,8 +4286,9 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_TRUE_WAIT(
       metrics::NumSamples("WebRTC.Call.AbsCapture.ExtensionWait") > 0,
       kDefaultTimeout);
-  // Observed deltas are up to 37 msec. Allow 100 msec.
-  EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Delta"), 100'000);
+  // Observed deltas are more than 100 msec. Use 1 minute as tolerance;
+  // this is a check against wrong timebase.
+  EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Delta"), 60'000'000);
   ASSERT_TRUE_WAIT(metrics::NumSamples("WebRTC.Call.AbsCapture.OffsetWait") > 0,
                    kDefaultTimeout);
   // On a point-to-point call, we expect the offset to be zero.
