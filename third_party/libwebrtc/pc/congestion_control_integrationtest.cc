@@ -25,6 +25,7 @@ namespace webrtc {
 
 using testing::Eq;
 using testing::HasSubstr;
+using testing::Not;
 
 class PeerConnectionCongestionControlTest
     : public PeerConnectionIntegrationBaseTest {
@@ -65,6 +66,9 @@ TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
   for (const auto& content : parsed_contents) {
     EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
   }
+  // Check that the answer does not contain transport-cc
+  std::string answer_str = absl::StrCat(*caller()->pc()->remote_description());
+  EXPECT_THAT(answer_str, Not(HasSubstr("transport-cc")));
 }
 
 TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
@@ -82,6 +86,9 @@ TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
   auto pc_internal = caller()->pc_internal();
   EXPECT_TRUE_WAIT(pc_internal->FeedbackAccordingToRfc8888CountForTesting() > 0,
                    kDefaultTimeout);
+  // There should be no transport-cc generated.
+  EXPECT_THAT(pc_internal->FeedbackAccordingToTransportCcCountForTesting(),
+              Eq(0));
 }
 
 TEST_F(PeerConnectionCongestionControlTest, TransportCcGetsUsed) {

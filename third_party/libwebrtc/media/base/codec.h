@@ -56,6 +56,7 @@ class FeedbackParams {
 
   bool Has(const FeedbackParam& param) const;
   void Add(const FeedbackParam& param);
+  bool Remove(const FeedbackParam& param);
 
   void Intersect(const FeedbackParams& from);
 

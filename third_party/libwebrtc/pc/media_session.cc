@@ -1542,6 +1542,22 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
   StreamParamsVec current_streams =
       GetCurrentStreamParams(current_active_contents);
 
+  // Decide what congestion control feedback format we're using.
+  bool has_ack_ccfb = false;
+  if (transport_desc_factory_->trials().IsEnabled(
+          "WebRTC-RFC8888CongestionControlFeedback")) {
+    for (const auto& content : offer->contents()) {
+      if (content.media_description()->rtcp_fb_ack_ccfb()) {
+        has_ack_ccfb = true;
+      } else if (has_ack_ccfb) {
+        RTC_LOG(LS_ERROR)
+            << "Inconsistent rtcp_fb_ack_ccfb marking, ignoring all";
+        has_ack_ccfb = false;
+        break;
+      }
+    }
+  }
+
   // Get list of all possible codecs that respects existing payload type
   // mappings and uses a single payload type space.
   //
@@ -1601,9 +1617,17 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
         msection_index < current_description->contents().size()) {
       current_content = &current_description->contents()[msection_index];
     }
+    // Don't offer the transport-cc header extension if "ack ccfb" is in use.
+    auto header_extensions_in = media_description_options.header_extensions;
+    if (has_ack_ccfb) {
+      for (auto& option : header_extensions_in) {
+        if (option.uri == webrtc::RtpExtension::kTransportSequenceNumberUri) {
+          option.direction = RtpTransceiverDirection::kStopped;
+        }
+      }
+    }
     RtpHeaderExtensions header_extensions = RtpHeaderExtensionsFromCapabilities(
-        UnstoppedRtpHeaderExtensionCapabilities(
-            media_description_options.header_extensions));
+        UnstoppedRtpHeaderExtensionCapabilities(header_extensions_in));
     RTCError error;
     switch (media_description_options.type) {
       case MEDIA_TYPE_AUDIO:
@@ -2220,7 +2244,16 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   }
   AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
                            codecs_to_include);
-
+  // RFC 8888 support. Only answer with "ack ccfb" if offer has it and
+  // experiment is enabled.
+  if (offer_content_description->rtcp_fb_ack_ccfb()) {
+    answer_content->set_rtcp_fb_ack_ccfb(
+        transport_desc_factory_->trials().IsEnabled(
+            "WebRTC-RFC8888CongestionControlFeedback"));
+    for (auto& codec : codecs_to_include) {
+      codec.feedback_params.Remove(FeedbackParam(kRtcpFbParamTransportCc));
+    }
+  }
   if (!SetCodecsInAnswer(offer_content_description, codecs_to_include,
                          media_description_options, session_options,
                          ssrc_generator(), current_streams,
@@ -2228,15 +2261,6 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
                          transport_desc_factory_->trials())) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                          "Failed to set codecs in answer");
-  }
-  // RFC 8888 support. Only answer with "ack ccfb" if offer has it and
-  // experiment is enabled.
-  // TODO: https://issues.webrtc.org/42225697 - disable transport-cc
-  // when ccfb is negotiated.
-  if (offer_content_description->rtcp_fb_ack_ccfb()) {
-    answer_content->set_rtcp_fb_ack_ccfb(
-        transport_desc_factory_->trials().IsEnabled(
-            "WebRTC-RFC8888CongestionControlFeedback"));
   }
   if (!CreateMediaContentAnswer(
           offer_content_description, media_description_options, session_options,

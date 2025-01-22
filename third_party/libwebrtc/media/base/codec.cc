@@ -68,6 +68,15 @@ void FeedbackParams::Add(const FeedbackParam& param) {
   RTC_CHECK(!HasDuplicateEntries());
 }
 
+bool FeedbackParams::Remove(const FeedbackParam& param) {
+  if (!Has(param)) {
+    return false;
+  }
+  params_.erase(std::remove(params_.begin(), params_.end(), param),
+                params_.end());
+  return true;
+}
+
 void FeedbackParams::Intersect(const FeedbackParams& from) {
   std::vector<FeedbackParam>::iterator iter_to = params_.begin();
   while (iter_to != params_.end()) {
