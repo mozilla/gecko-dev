@@ -16,7 +16,6 @@ kind-dependencies:
 
 # move this into the single job ??
 task-defaults:
-    name: partner-attribution
     description: Release Promotion partner attribution
     run-on-projects: []  # to make sure this never runs as part of CI
     shipping-product: firefox
@@ -32,7 +31,7 @@ task-defaults:
         mach: python python/mozrelease/mozrelease/attribute_builds.py
 
 tasks:
-    partner-attribution:
+    win:
         attributes:
             build_platform: linux-shippable
             build_type: opt
