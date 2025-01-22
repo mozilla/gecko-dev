@@ -68,6 +68,10 @@ export class AboutTranslationsChild extends JSWindowActorChild {
         );
         break;
       }
+      case "AboutTranslations:RebuildTranslator": {
+        this.#sendEventToContent({ type: "rebuild-translator" });
+        break;
+      }
       default:
         throw new Error("Unknown AboutTranslations message: " + name);
     }
@@ -97,7 +101,7 @@ export class AboutTranslationsChild extends JSWindowActorChild {
         let contentWindow;
         try {
           contentWindow = this.contentWindow;
-        } catch (error) {
+        } catch {
           // The content window is no longer available.
           reject();
           return;
