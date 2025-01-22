@@ -987,7 +987,7 @@ export class FormAutofillHandler {
     }
   }
 
-  clearFilledFields(elementIds) {
+  clearFilledFields(focusedId, elementIds) {
     const fieldDetails = elementIds.map(id =>
       this.getFieldDetailByElementId(id)
     );
@@ -999,35 +999,26 @@ export class FormAutofillHandler {
       }
 
       if (element.autofillState == FIELD_STATES.AUTO_FILLED) {
-        if (HTMLInputElement.isInstance(element)) {
-          element.setUserInput("");
-        } else if (HTMLSelectElement.isInstance(element)) {
-          // If we can't find a selected option, then we should just reset to the first option's value
-          this.#resetSelectElementValue(element);
+        let value = "";
+        if (HTMLSelectElement.isInstance(element)) {
+          if (!element.options.length) {
+            continue;
+          }
+          // Resets a <select> element to its selected option or the first
+          // option if there is none selected.
+          const selected = [...element.options].find(option =>
+            option.hasAttribute("selected")
+          );
+          value = selected ? selected.value : element.options[0].value;
         }
+        FormAutofillHandler.fillFieldValue(element, value);
       }
     }
-  }
 
-  /**
-   * Resets a <select> element to its selected option or the first option if there is none selected.
-   *
-   * @param {HTMLElement} element
-   */
-  #resetSelectElementValue(element) {
-    if (!element.options.length) {
-      return;
+    let focusedElement = FormAutofillUtils.getElementByIdentifier(focusedId);
+    if (FormAutofillUtils.focusOnAutofill && focusedElement) {
+      focusedElement.focus({ preventScroll: true });
     }
-    const selected = [...element.options].find(option =>
-      option.hasAttribute("selected")
-    );
-    element.value = selected ? selected.value : element.options[0].value;
-    element.dispatchEvent(
-      new element.ownerGlobal.Event("input", { bubbles: true })
-    );
-    element.dispatchEvent(
-      new element.ownerGlobal.Event("change", { bubbles: true })
-    );
   }
 
   /**

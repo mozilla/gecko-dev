@@ -1406,9 +1406,12 @@ async function triggerCapture(browser, submitButtonSelector, fillSelectors) {
  *        Region to assign before running the test
  * @param {Array} patterns.expectedResult
  *        The expected result of this heuristic test. See below for detailed explanation
+ * @param {Function} patterns.onTestStart
+ *        Function that is executed before the test starts. This runs after the form
+ *        field has been focused.
  * @param {Function} patterns.onTestComplete
- *        Function that is executed when the test is complete. This can be used by the test
- *        to verify the status after running the test.
+ *        Function that is executed when the test is complete, but before the tab is closed.
+ *        This can be used by the test to verify the status after running the test.
  *
  * @param {string} patterns.autofillTrigger
  *        The selector to find the element to trigger the autocomplete popup.
@@ -1570,6 +1573,10 @@ async function add_heuristic_tests(
         }
       }
 
+      if (testPattern.onTestStart) {
+        await testPattern.onTestStart();
+      }
+
       info(`Waiting for expected section count`);
       const actor =
         browser.browsingContext.currentWindowGlobal.getActor("FormAutofill");
@@ -1620,11 +1627,11 @@ async function add_heuristic_tests(
         verifyCaptureRecord(guid, testPattern.captureExpectedRecord);
         await removeAllRecords();
       }
-    });
 
-    if (testPattern.onTestComplete) {
-      await testPattern.onTestComplete();
-    }
+      if (testPattern.onTestComplete) {
+        await testPattern.onTestComplete();
+      }
+    });
 
     if (testPattern.profile) {
       await removeAllRecords();

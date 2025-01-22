@@ -463,9 +463,9 @@ export class FormAutofillChild extends JSWindowActorChild {
         return result;
       }
       case "FormAutofill:ClearFilledFields": {
-        const { ids } = message.data;
+        const { ids, focusedId } = message.data;
         const handler = this.#getHandlerByElementId(ids[0]);
-        handler?.clearFilledFields(ids);
+        handler?.clearFilledFields(focusedId, ids);
         break;
       }
       case "FormAutofill:PreviewFields": {
