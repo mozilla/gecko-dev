@@ -250,13 +250,11 @@ TEST(AudioReceiveStreamTest, GetStats) {
     EXPECT_EQ(kCallStats.payload_bytes_received, stats.payload_bytes_received);
     EXPECT_EQ(kCallStats.header_and_padding_bytes_received,
               stats.header_and_padding_bytes_received);
-    EXPECT_EQ(static_cast<uint32_t>(kCallStats.packetsReceived),
+    EXPECT_EQ(static_cast<uint32_t>(kCallStats.packets_received),
               stats.packets_received);
-    EXPECT_EQ(kCallStats.cumulativeLost, stats.packets_lost);
+    EXPECT_EQ(kCallStats.packets_lost, stats.packets_lost);
     EXPECT_EQ(kReceiveCodec.second.name, stats.codec_name);
-    EXPECT_EQ(
-        kCallStats.jitterSamples / (kReceiveCodec.second.clockrate_hz / 1000),
-        stats.jitter_ms);
+    EXPECT_EQ(kCallStats.jitter_ms, stats.jitter_ms);
     EXPECT_EQ(kNetworkStats.currentBufferSize, stats.jitter_buffer_ms);
     EXPECT_EQ(kNetworkStats.preferredBufferSize,
               stats.jitter_buffer_preferred_ms);
@@ -320,7 +318,7 @@ TEST(AudioReceiveStreamTest, GetStats) {
     EXPECT_EQ(kAudioDecodeStats.decoded_plc_cng, stats.decoding_plc_cng);
     EXPECT_EQ(kAudioDecodeStats.decoded_muted_output,
               stats.decoding_muted_output);
-    EXPECT_EQ(kCallStats.capture_start_ntp_time_ms_,
+    EXPECT_EQ(kCallStats.capture_start_ntp_time_ms,
               stats.capture_start_ntp_time_ms);
     EXPECT_EQ(kPlayoutNtpTimestampMs, stats.estimated_playout_ntp_timestamp_ms);
     recv_stream->UnregisterFromTransport();

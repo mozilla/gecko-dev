@@ -257,25 +257,35 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   webrtc::AudioReceiveStreamInterface::Stats stats;
   stats.remote_ssrc = remote_ssrc();
 
-  webrtc::CallReceiveStatistics call_stats =
-      channel_receive_->GetRTCPStatistics();
   auto receive_codec = channel_receive_->GetReceiveCodec();
   if (receive_codec) {
     stats.codec_name = receive_codec->second.name;
     stats.codec_payload_type = receive_codec->first;
-    int clockrate_khz = receive_codec->second.clockrate_hz / 1000;
-    if (clockrate_khz > 0) {
-      stats.jitter_ms = call_stats.jitterSamples / clockrate_khz;
-    }
   }
+
+  webrtc::CallReceiveStatistics call_stats =
+      channel_receive_->GetRTCPStatistics();
   stats.payload_bytes_received = call_stats.payload_bytes_received;
   stats.header_and_padding_bytes_received =
       call_stats.header_and_padding_bytes_received;
-  stats.packets_received = call_stats.packetsReceived;
-  stats.packets_lost = call_stats.cumulativeLost;
+  stats.packets_received = call_stats.packets_received;
+  stats.packets_lost = call_stats.packets_lost;
+  stats.jitter_ms = call_stats.jitter_ms;
   stats.nacks_sent = call_stats.nacks_sent;
-  stats.capture_start_ntp_time_ms = call_stats.capture_start_ntp_time_ms_;
+  stats.capture_start_ntp_time_ms = call_stats.capture_start_ntp_time_ms;
   stats.last_packet_received = call_stats.last_packet_received;
+  stats.last_sender_report_timestamp = call_stats.last_sender_report_timestamp;
+  stats.last_sender_report_utc_timestamp =
+      call_stats.last_sender_report_utc_timestamp;
+  stats.last_sender_report_remote_utc_timestamp =
+      call_stats.last_sender_report_remote_utc_timestamp;
+  stats.sender_reports_packets_sent = call_stats.sender_reports_packets_sent;
+  stats.sender_reports_bytes_sent = call_stats.sender_reports_bytes_sent;
+  stats.sender_reports_reports_count = call_stats.sender_reports_reports_count;
+  stats.round_trip_time = call_stats.round_trip_time;
+  stats.round_trip_time_measurements = call_stats.round_trip_time_measurements;
+  stats.total_round_trip_time = call_stats.total_round_trip_time;
+
   stats.delay_estimate_ms = channel_receive_->GetDelayEstimate();
   stats.audio_level = channel_receive_->GetSpeechOutputLevelFullRange();
   stats.total_output_energy = channel_receive_->GetTotalOutputEnergy();
@@ -333,18 +343,6 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.decoding_cng = ds.decoded_cng;
   stats.decoding_plc_cng = ds.decoded_plc_cng;
   stats.decoding_muted_output = ds.decoded_muted_output;
-
-  stats.last_sender_report_timestamp = call_stats.last_sender_report_timestamp;
-  stats.last_sender_report_utc_timestamp =
-      call_stats.last_sender_report_utc_timestamp;
-  stats.last_sender_report_remote_utc_timestamp =
-      call_stats.last_sender_report_remote_utc_timestamp;
-  stats.sender_reports_packets_sent = call_stats.sender_reports_packets_sent;
-  stats.sender_reports_bytes_sent = call_stats.sender_reports_bytes_sent;
-  stats.sender_reports_reports_count = call_stats.sender_reports_reports_count;
-  stats.round_trip_time = call_stats.round_trip_time;
-  stats.round_trip_time_measurements = call_stats.round_trip_time_measurements;
-  stats.total_round_trip_time = call_stats.total_round_trip_time;
 
   return stats;
 }

@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 55 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index d693a47263..9daccb0bdd 100644
+index 6864a6bb6f..3b88ebd330 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
@@ -42,7 +42,7 @@ index d693a47263..9daccb0bdd 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index ea4c912d28..3e3165bb21 100644
+index 43b7d3e4da..8f61049a6f 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -109,7 +109,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -73,7 +73,7 @@ index ea4c912d28..3e3165bb21 100644
  
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
-@@ -1214,13 +1217,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -1208,13 +1211,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -91,7 +91,7 @@ index ea4c912d28..3e3165bb21 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index fbc7f1eea7..bf0c486dd8 100644
+index cb1953587c..10f4bbd936 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -29,6 +29,7 @@

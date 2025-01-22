@@ -51,15 +51,15 @@ class RtpPacketReceived;
 class RtpRtcp;
 
 struct CallReceiveStatistics {
-  int cumulativeLost;
-  unsigned int jitterSamples;
+  int packets_lost = 0;
+  uint32_t jitter_ms = 0;
   int64_t payload_bytes_received = 0;
   int64_t header_and_padding_bytes_received = 0;
-  int packetsReceived;
+  int packets_received = 0;
   uint32_t nacks_sent = 0;
   // The capture NTP time (in local timebase) of the first played out audio
   // frame.
-  int64_t capture_start_ntp_time_ms_;
+  int64_t capture_start_ntp_time_ms = 0;
   // The timestamp at which the last packet was received, i.e. the time of the
   // local clock when it was received - not the RTP timestamp of that packet.
   // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-lastpacketreceivedtimestamp
@@ -78,7 +78,7 @@ struct CallReceiveStatistics {
   uint64_t sender_reports_reports_count = 0;
   std::optional<TimeDelta> round_trip_time;
   TimeDelta total_round_trip_time = TimeDelta::Zero();
-  int round_trip_time_measurements;
+  int round_trip_time_measurements = 0;
 };
 
 namespace voe {
