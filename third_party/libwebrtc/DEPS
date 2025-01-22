@@ -376,7 +376,7 @@ deps = {
   # Used for building libFuzzers (only supports Linux).
   'src/third_party/libFuzzer/src': {
     'url': 'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/compiler-rt/lib/fuzzer.git@487e79376394754705984c5de7c4ce7f82f2bd7c',
-    'condition': 'checkout_fuzzer',
+    'condition': 'checkout_linux',
   },
   'src/third_party/fuzztest/src':
     'https://chromium.googlesource.com/external/github.com/google/fuzztest.git@0021f30508bc7f73fa5270962d022acb480d242f',
