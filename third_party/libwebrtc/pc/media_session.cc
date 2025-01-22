@@ -736,14 +736,11 @@ std::vector<Codec> MatchCodecPreference(
   for (const auto& codec_preference : codec_preferences) {
     auto found_codec = absl::c_find_if(
         supported_codecs, [&codec_preference](const Codec& codec) {
-          webrtc::RtpCodecParameters codec_parameters =
-              codec.ToCodecParameters();
-          return codec_parameters.name == codec_preference.name &&
-                 codec_parameters.kind == codec_preference.kind &&
-                 codec_parameters.num_channels ==
-                     codec_preference.num_channels &&
-                 codec_parameters.clock_rate == codec_preference.clock_rate &&
-                 codec_parameters.parameters == codec_preference.parameters;
+          // We should not filter out the codec in |codec_preferences| if it
+          // has a higher level than the codec in |supported_codecs|, as the
+          // codec in |supported_codecs| may be only with lower level in
+          // |send_codecs_| and |recv_codecs_| for the same codec.
+          return IsSameRtpCodecIgnoringLevel(codec, codec_preference);
         });
 
     if (found_codec != supported_codecs.end()) {
