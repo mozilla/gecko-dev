@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -269,47 +270,33 @@ void OpenSSLStreamAdapter::SetServerRole(SSLRole role) {
   role_ = role;
 }
 
-bool OpenSSLStreamAdapter::SetPeerCertificateDigest(
+SSLPeerCertificateDigestError OpenSSLStreamAdapter::SetPeerCertificateDigest(
     absl::string_view digest_alg,
-    const unsigned char* digest_val,
-    size_t digest_len,
-    SSLPeerCertificateDigestError* error) {
+    rtc::ArrayView<uint8_t> digest_val) {
   RTC_DCHECK(!peer_certificate_verified_);
   RTC_DCHECK(!HasPeerCertificateDigest());
   size_t expected_len;
-  if (error) {
-    *error = SSLPeerCertificateDigestError::NONE;
-  }
 
   if (!OpenSSLDigest::GetDigestSize(digest_alg, &expected_len)) {
     RTC_LOG(LS_WARNING) << "Unknown digest algorithm: " << digest_alg;
-    if (error) {
-      *error = SSLPeerCertificateDigestError::UNKNOWN_ALGORITHM;
-    }
-    return false;
+    return SSLPeerCertificateDigestError::UNKNOWN_ALGORITHM;
   }
-  if (expected_len != digest_len) {
-    if (error) {
-      *error = SSLPeerCertificateDigestError::INVALID_LENGTH;
-    }
-    return false;
+  if (expected_len != digest_val.size()) {
+    return SSLPeerCertificateDigestError::INVALID_LENGTH;
   }
 
-  peer_certificate_digest_value_.SetData(digest_val, digest_len);
+  peer_certificate_digest_value_.SetData(digest_val);
   peer_certificate_digest_algorithm_ = std::string(digest_alg);
 
   if (!peer_cert_chain_) {
     // Normal case, where the digest is set before we obtain the certificate
     // from the handshake.
-    return true;
+    return SSLPeerCertificateDigestError::NONE;
   }
 
   if (!VerifyPeerCertificate()) {
     Error("SetPeerCertificateDigest", -1, SSL_AD_BAD_CERTIFICATE, false);
-    if (error) {
-      *error = SSLPeerCertificateDigestError::VERIFICATION_FAILED;
-    }
-    return false;
+    return SSLPeerCertificateDigestError::VERIFICATION_FAILED;
   }
 
   if (state_ == SSL_CONNECTED) {
@@ -318,8 +305,7 @@ bool OpenSSLStreamAdapter::SetPeerCertificateDigest(
     // events and may not be prepared for reentrancy.
     PostEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
   }
-
-  return true;
+  return SSLPeerCertificateDigestError::NONE;
 }
 
 std::optional<absl::string_view> OpenSSLStreamAdapter::GetTlsCipherSuiteName()

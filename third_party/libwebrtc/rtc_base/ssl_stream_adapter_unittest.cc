@@ -10,7 +10,11 @@
 
 #include "rtc_base/ssl_stream_adapter.h"
 
+#ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/digest.h>
+#else
 #include <openssl/evp.h>
+#endif
 #include <openssl/sha.h>
 
 #include <cstddef>
@@ -20,6 +24,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -29,6 +34,7 @@
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/units/time_delta.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/buffer_queue.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/checks.h"
@@ -36,10 +42,7 @@
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/memory/fifo_buffer.h"
-#include "rtc_base/memory_stream.h"
 #include "rtc_base/message_digest.h"
-#include "rtc_base/openssl_stream_adapter.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/stream.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
@@ -508,9 +511,9 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   }
 
   void SetPeerIdentitiesByDigest(bool correct, bool expect_success) {
-    unsigned char server_digest[EVP_MAX_MD_SIZE];
+    rtc::Buffer server_digest(0, EVP_MAX_MD_SIZE);
     size_t server_digest_len;
-    unsigned char client_digest[EVP_MAX_MD_SIZE];
+    rtc::Buffer client_digest(0, EVP_MAX_MD_SIZE);
     size_t client_digest_len;
     bool rv;
     rtc::SSLPeerCertificateDigestError err;
@@ -524,29 +527,31 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     RTC_DCHECK(client_identity());
 
     rv = server_identity()->certificate().ComputeDigest(
-        digest_algorithm_, server_digest, digest_length_, &server_digest_len);
+        digest_algorithm_, server_digest.data(), digest_length_,
+        &server_digest_len);
     ASSERT_TRUE(rv);
+    server_digest.SetSize(server_digest_len);
     rv = client_identity()->certificate().ComputeDigest(
-        digest_algorithm_, client_digest, digest_length_, &client_digest_len);
+        digest_algorithm_, client_digest.data(), digest_length_,
+        &client_digest_len);
     ASSERT_TRUE(rv);
+    client_digest.SetSize(client_digest_len);
 
     if (!correct) {
       RTC_LOG(LS_INFO) << "Setting bogus digest for server cert";
       server_digest[0]++;
     }
-    rv = client_ssl_->SetPeerCertificateDigest(digest_algorithm_, server_digest,
-                                               server_digest_len, &err);
+    err =
+        client_ssl_->SetPeerCertificateDigest(digest_algorithm_, server_digest);
     EXPECT_EQ(expected_err, err);
-    EXPECT_EQ(expect_success, rv);
 
     if (!correct) {
       RTC_LOG(LS_INFO) << "Setting bogus digest for client cert";
       client_digest[0]++;
     }
-    rv = server_ssl_->SetPeerCertificateDigest(digest_algorithm_, client_digest,
-                                               client_digest_len, &err);
+    err =
+        server_ssl_->SetPeerCertificateDigest(digest_algorithm_, client_digest);
     EXPECT_EQ(expected_err, err);
-    EXPECT_EQ(expect_success, rv);
 
     identities_set_ = true;
   }
@@ -668,21 +673,25 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
 
     // Collect both of the certificate digests; needs to be done before calling
     // SetPeerCertificateDigest as that may reset the identity.
-    unsigned char server_digest[EVP_MAX_MD_SIZE];
+    rtc::Buffer server_digest(0, EVP_MAX_MD_SIZE);
     size_t server_digest_len;
-    unsigned char client_digest[EVP_MAX_MD_SIZE];
+    rtc::Buffer client_digest(0, EVP_MAX_MD_SIZE);
     size_t client_digest_len;
     bool rv;
 
     ASSERT_THAT(server_identity(), NotNull());
     rv = server_identity()->certificate().ComputeDigest(
-        digest_algorithm_, server_digest, digest_length_, &server_digest_len);
+        digest_algorithm_, server_digest.data(), digest_length_,
+        &server_digest_len);
     ASSERT_TRUE(rv);
+    server_digest.SetSize(server_digest_len);
 
     ASSERT_THAT(client_identity(), NotNull());
     rv = client_identity()->certificate().ComputeDigest(
-        digest_algorithm_, client_digest, digest_length_, &client_digest_len);
+        digest_algorithm_, client_digest.data(), digest_length_,
+        &client_digest_len);
     ASSERT_TRUE(rv);
+    client_digest.SetSize(client_digest_len);
 
     if (!valid_identity) {
       RTC_LOG(LS_INFO) << "Setting bogus digest for client/server certs";
@@ -696,10 +705,9 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
         valid_identity
             ? rtc::SSLPeerCertificateDigestError::NONE
             : rtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
-    rv = client_ssl_->SetPeerCertificateDigest(digest_algorithm_, server_digest,
-                                               server_digest_len, &err);
+    err =
+        client_ssl_->SetPeerCertificateDigest(digest_algorithm_, server_digest);
     EXPECT_EQ(expected_err, err);
-    EXPECT_EQ(valid_identity, rv);
     // State should then transition to SS_OPEN or SS_CLOSED based on validation
     // of the identity.
     if (valid_identity) {
@@ -715,10 +723,9 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     }
 
     // Set the peer certificate digest for the server.
-    rv = server_ssl_->SetPeerCertificateDigest(digest_algorithm_, client_digest,
-                                               client_digest_len, &err);
+    err =
+        server_ssl_->SetPeerCertificateDigest(digest_algorithm_, client_digest);
     EXPECT_EQ(expected_err, err);
-    EXPECT_EQ(valid_identity, rv);
     if (valid_identity) {
       EXPECT_EQ(rtc::SS_OPEN, server_ssl_->GetState());
     } else {
@@ -1465,6 +1472,19 @@ TEST_F(SSLStreamAdapterTestDTLSFromPEMStrings, TestDTLSGetPeerCertificate) {
   // It's kCERT_PEM
   ASSERT_EQ(kCERT_PEM, server_peer_cert->ToPEMString());
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+TEST_F(SSLStreamAdapterTestDTLSFromPEMStrings,
+       DeprecatedSetPeerCertificateDigest) {
+  rtc::SSLPeerCertificateDigestError error;
+  // Pass in a wrong length to trigger an error.
+  bool ret = client_ssl_->SetPeerCertificateDigest(rtc::DIGEST_SHA_256, {},
+                                                   /*length=*/0, &error);
+  EXPECT_FALSE(ret);
+  EXPECT_EQ(error, rtc::SSLPeerCertificateDigestError::INVALID_LENGTH);
+}
+#pragma clang diagnostic pop
 
 // Test getting the DTLS 1.2 version.
 TEST_F(SSLStreamAdapterTestDTLS, TestGetSslVersionBytes) {

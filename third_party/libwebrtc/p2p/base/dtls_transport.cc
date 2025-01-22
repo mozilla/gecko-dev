@@ -11,28 +11,38 @@
 #include "p2p/base/dtls_transport.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/crypto/crypto_options.h"
 #include "api/dtls_transport_interface.h"
+#include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/units/timestamp.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_transport_state.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_writable_state.h"
+#include "p2p/base/dtls_transport_internal.h"
+#include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/packet_transport_internal.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/dscp.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/network/ecn_marking.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network_route.h"
 #include "rtc_base/rtc_certificate.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/stream.h"
-#include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 
 namespace cricket {
@@ -312,11 +322,9 @@ bool DtlsTransport::SetRemoteFingerprint(absl::string_view digest_alg,
     // This can occur if DTLS is set up before a remote fingerprint is
     // received. For instance, if we set up DTLS due to receiving an early
     // ClientHello.
-    rtc::SSLPeerCertificateDigestError err;
-    if (!dtls_->SetPeerCertificateDigest(
-            remote_fingerprint_algorithm_,
-            reinterpret_cast<unsigned char*>(remote_fingerprint_value_.data()),
-            remote_fingerprint_value_.size(), &err)) {
+    rtc::SSLPeerCertificateDigestError err = dtls_->SetPeerCertificateDigest(
+        remote_fingerprint_algorithm_, remote_fingerprint_value_);
+    if (err != rtc::SSLPeerCertificateDigestError::NONE) {
       RTC_LOG(LS_ERROR) << ToString()
                         << ": Couldn't set DTLS certificate digest.";
       set_dtls_state(webrtc::DtlsTransportState::kFailed);
@@ -381,10 +389,9 @@ bool DtlsTransport::SetupDtls() {
   dtls_->SetEventCallback(
       [this](int events, int err) { OnDtlsEvent(events, err); });
   if (remote_fingerprint_value_.size() &&
-      !dtls_->SetPeerCertificateDigest(
-          remote_fingerprint_algorithm_,
-          reinterpret_cast<unsigned char*>(remote_fingerprint_value_.data()),
-          remote_fingerprint_value_.size())) {
+      dtls_->SetPeerCertificateDigest(remote_fingerprint_algorithm_,
+                                      remote_fingerprint_value_) !=
+          rtc::SSLPeerCertificateDigestError::NONE) {
     RTC_LOG(LS_ERROR) << ToString()
                       << ": Couldn't set DTLS certificate digest.";
     return false;

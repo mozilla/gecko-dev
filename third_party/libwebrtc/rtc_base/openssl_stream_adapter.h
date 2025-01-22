@@ -78,11 +78,9 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
 
   // Default argument is for compatibility
   void SetServerRole(SSLRole role = SSL_SERVER) override;
-  bool SetPeerCertificateDigest(
+  SSLPeerCertificateDigestError SetPeerCertificateDigest(
       absl::string_view digest_alg,
-      const unsigned char* digest_val,
-      size_t digest_len,
-      SSLPeerCertificateDigestError* error = nullptr) override;
+      rtc::ArrayView<uint8_t> digest_val) override;
 
   std::unique_ptr<SSLCertChain> GetPeerSSLCertChain() const override;
 

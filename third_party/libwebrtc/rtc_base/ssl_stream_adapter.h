@@ -20,8 +20,9 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/stream.h"
@@ -171,13 +172,16 @@ class SSLStreamAdapter : public StreamInterface {
   // channel (such as the signaling channel). This must specify the terminal
   // certificate, not just a CA. SSLStream makes a copy of the digest value.
   //
-  // Returns true if successful.
-  // `error` is optional and provides more information about the failure.
-  virtual bool SetPeerCertificateDigest(
+  // Returns SSLPeerCertificateDigestError::NONE if successful.
+  virtual SSLPeerCertificateDigestError SetPeerCertificateDigest(
       absl::string_view digest_alg,
-      const unsigned char* digest_val,
-      size_t digest_len,
-      SSLPeerCertificateDigestError* error = nullptr) = 0;
+      rtc::ArrayView<uint8_t> digest_val) = 0;
+  [[deprecated(
+      "Use SetPeerCertificateDigest with ArrayView instead")]] virtual bool
+  SetPeerCertificateDigest(absl::string_view digest_alg,
+                           const unsigned char* digest_val,
+                           size_t digest_len,
+                           SSLPeerCertificateDigestError* error = nullptr);
 
   // Retrieves the peer's certificate chain including leaf certificate, if a
   // connection has been established.
