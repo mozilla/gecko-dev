@@ -127,8 +127,6 @@ support-files = [
 
 ["test_bug451678.js"]
 
-["test_bug604362.js"]
-
 ["test_bug677864.js"]
 
 ["test_bug711404.js"]
