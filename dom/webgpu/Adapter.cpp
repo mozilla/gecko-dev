@@ -178,6 +178,45 @@ struct FeatureImplementationStatus {
   }
 };
 
+double GetLimitDefault(Limit aLimit) {
+  switch (aLimit) {
+      // clang-format off
+      case Limit::MaxTextureDimension1D: return 8192;
+      case Limit::MaxTextureDimension2D: return 8192;
+      case Limit::MaxTextureDimension3D: return 2048;
+      case Limit::MaxTextureArrayLayers: return 256;
+      case Limit::MaxBindGroups: return 4;
+      case Limit::MaxBindGroupsPlusVertexBuffers: return 24;
+      case Limit::MaxBindingsPerBindGroup: return 1000;
+      case Limit::MaxDynamicUniformBuffersPerPipelineLayout: return 8;
+      case Limit::MaxDynamicStorageBuffersPerPipelineLayout: return 4;
+      case Limit::MaxSampledTexturesPerShaderStage: return 16;
+      case Limit::MaxSamplersPerShaderStage: return 16;
+      case Limit::MaxStorageBuffersPerShaderStage: return 8;
+      case Limit::MaxStorageTexturesPerShaderStage: return 4;
+      case Limit::MaxUniformBuffersPerShaderStage: return 12;
+      case Limit::MaxUniformBufferBindingSize: return 65536;
+      case Limit::MaxStorageBufferBindingSize: return 134217728;
+      case Limit::MinUniformBufferOffsetAlignment: return 256;
+      case Limit::MinStorageBufferOffsetAlignment: return 256;
+      case Limit::MaxVertexBuffers: return 8;
+      case Limit::MaxBufferSize: return 268435456;
+      case Limit::MaxVertexAttributes: return 16;
+      case Limit::MaxVertexBufferArrayStride: return 2048;
+      case Limit::MaxInterStageShaderVariables: return 16;
+      case Limit::MaxColorAttachments: return 8;
+      case Limit::MaxColorAttachmentBytesPerSample: return 32;
+      case Limit::MaxComputeWorkgroupStorageSize: return 16384;
+      case Limit::MaxComputeInvocationsPerWorkgroup: return 256;
+      case Limit::MaxComputeWorkgroupSizeX: return 256;
+      case Limit::MaxComputeWorkgroupSizeY: return 256;
+      case Limit::MaxComputeWorkgroupSizeZ: return 64;
+      case Limit::MaxComputeWorkgroupsPerDimension: return 65535;
+      // clang-format on
+  }
+  MOZ_CRASH("Bad Limit");
+}
+
 Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
                  const std::shared_ptr<ffi::WGPUAdapterInformation>& aInfo)
     : ChildOf(aParent),
@@ -232,6 +271,15 @@ Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
       // not implemented.
       // 2. We don't recognize that bit, but maybe it's a wpgu-native-only
       // feature.
+    }
+  }
+
+  // We clamp limits to defaults when requestDevice is called, but
+  // we return the actual limits when only requestAdapter is called.
+  // So, we should clamp the limits here too if we should RFP.
+  if (GetParentObject()->ShouldResistFingerprinting(RFPTarget::WebGPULimits)) {
+    for (const auto limit : MakeInclusiveEnumeratedRange(Limit::_LAST)) {
+      SetLimit(mLimits->mFfi.get(), limit, GetLimitDefault(limit));
     }
   }
 }
@@ -342,45 +390,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 
   ffi::WGPULimits deviceLimits = *mLimits->mFfi;
   for (const auto limit : MakeInclusiveEnumeratedRange(Limit::_LAST)) {
-    const auto defaultValue = [&]() -> double {
-      switch (limit) {
-          // clang-format off
-      case Limit::MaxTextureDimension1D: return 8192;
-      case Limit::MaxTextureDimension2D: return 8192;
-      case Limit::MaxTextureDimension3D: return 2048;
-      case Limit::MaxTextureArrayLayers: return 256;
-      case Limit::MaxBindGroups: return 4;
-      case Limit::MaxBindGroupsPlusVertexBuffers: return 24;
-      case Limit::MaxBindingsPerBindGroup: return 1000;
-      case Limit::MaxDynamicUniformBuffersPerPipelineLayout: return 8;
-      case Limit::MaxDynamicStorageBuffersPerPipelineLayout: return 4;
-      case Limit::MaxSampledTexturesPerShaderStage: return 16;
-      case Limit::MaxSamplersPerShaderStage: return 16;
-      case Limit::MaxStorageBuffersPerShaderStage: return 8;
-      case Limit::MaxStorageTexturesPerShaderStage: return 4;
-      case Limit::MaxUniformBuffersPerShaderStage: return 12;
-      case Limit::MaxUniformBufferBindingSize: return 65536;
-      case Limit::MaxStorageBufferBindingSize: return 134217728;
-      case Limit::MinUniformBufferOffsetAlignment: return 256;
-      case Limit::MinStorageBufferOffsetAlignment: return 256;
-      case Limit::MaxVertexBuffers: return 8;
-      case Limit::MaxBufferSize: return 268435456;
-      case Limit::MaxVertexAttributes: return 16;
-      case Limit::MaxVertexBufferArrayStride: return 2048;
-      case Limit::MaxInterStageShaderVariables: return 16;
-      case Limit::MaxColorAttachments: return 8;
-      case Limit::MaxColorAttachmentBytesPerSample: return 32;
-      case Limit::MaxComputeWorkgroupStorageSize: return 16384;
-      case Limit::MaxComputeInvocationsPerWorkgroup: return 256;
-      case Limit::MaxComputeWorkgroupSizeX: return 256;
-      case Limit::MaxComputeWorkgroupSizeY: return 256;
-      case Limit::MaxComputeWorkgroupSizeZ: return 64;
-      case Limit::MaxComputeWorkgroupsPerDimension: return 65535;
-          // clang-format on
-      }
-      MOZ_CRASH("Bad Limit");
-    }();
-    SetLimit(&deviceLimits, limit, defaultValue);
+    SetLimit(&deviceLimits, limit, GetLimitDefault(limit));
   }
 
   // -
@@ -491,6 +501,9 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
             }
           }
           /// Clamp to default if higher than default
+          /// Changing implementation in a way that increases fingerprinting
+          /// surface? Please create a bug in [Core::Privacy: Anti
+          /// Tracking](https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Privacy%3A%20Anti-Tracking)
           requestedValue =
               std::min(requestedValue, GetLimit(deviceLimits, limit));
         }

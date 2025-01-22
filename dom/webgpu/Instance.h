@@ -62,6 +62,9 @@ class Instance final : public nsWrapperCache {
       const dom::GPURequestAdapterOptions& aOptions, ErrorResult& aRv);
 
   dom::GPUTextureFormat GetPreferredCanvasFormat() const {
+    // Changing implementation in a way that increases fingerprinting surface?
+    // Please create a bug in [Core::Privacy: Anti
+    // Tracking](https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Privacy%3A%20Anti-Tracking)
     if (kIsAndroid) {
       return dom::GPUTextureFormat::Rgba8unorm;
     }

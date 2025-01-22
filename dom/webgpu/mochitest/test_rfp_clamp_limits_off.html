@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      const func = async function () {
+        const adapter = await navigator.gpu.requestAdapter();
+        const device = await adapter.requestDevice();
+
+        const limitKeys = Object.keys(device.limits.__proto__).filter(
+          key => !["constructor"].includes(key)
+        );
+        const adapterLimits = limitKeys.map(key => adapter.limits[key]);
+        const deviceLimits = limitKeys.map(key => device.limits[key]);
+
+        for (let i = 0; i < limitKeys.length; i++) {
+          if (adapterLimits[i] !== deviceLimits[i]) {
+            ok(true, "Adapter and device limits are different");
+            return;
+          }
+        }
+        ok(false, "Adapter and device limits are the same");
+      };
+
+      SimpleTest.waitForExplicitFinish();
+      func()
+        .catch(e => ok(false, "Unhandled exception " + e))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>
