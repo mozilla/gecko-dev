@@ -159,7 +159,7 @@ class SwipeToDismissState2(
 private fun Modifier.anchoredHorizontalDraggable(
     state: SwipeToDismissState2,
     scope: CoroutineScope,
-) = pointerInput(Unit) {
+) = pointerInput(key1 = state) {
     if (state.enabled) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
