@@ -348,6 +348,40 @@ Result<Ok, ErrorResult> TextDirectiveCandidate::CreateTextDirectiveString() {
   return Ok();
 }
 
+void TextDirectiveCandidate::LogCurrentState(const char* aCallerFunc) const {
+  if (!TextDirectiveUtil::ShouldLog()) {
+    return;
+  }
+  auto getRangeContent = [](nsRange* range) {
+    auto content = TextDirectiveUtil::RangeContentAsString(range).unwrapOr(
+        u"<nsRange::ToString() failed>"_ns);
+    return NS_ConvertUTF16toUTF8(content.IsEmpty() ? u"<empty range>"_ns
+                                                   : content);
+  };
+  auto fullTextDirectiveString =
+      TextDirectiveUtil::CreateTextDirectiveFromRanges(
+          mFullPrefixRange, mFullStartRange ? mFullStartRange : mStartRange,
+          mFullEndRange, mFullSuffixRange)
+          .map([](auto textDirective) {
+            nsCString value;
+            create_text_directive(&textDirective, &value);
+            return value;
+          })
+          .unwrapOr("<creating text directive failed>"_ns);
+  TEXT_FRAGMENT_LOG_FN(
+      "State of text directive candidate %p:\nPercent-encoded string: "
+      "%s\n\nCurrent context terms:\nPrefix: %s\nStart: %s\nEnd: %s\nSuffix: "
+      "%s\n\nMaximum expanded context terms:\nPercent-encoded string: "
+      "%s\nPrefix:\n%s\nStart:\n%s\nEnd:\n%s\nSuffix:\n%s",
+      aCallerFunc, this, mTextDirectiveString.Data(),
+      getRangeContent(mPrefixRange).Data(), getRangeContent(mStartRange).Data(),
+      getRangeContent(mEndRange).Data(), getRangeContent(mSuffixRange).Data(),
+      fullTextDirectiveString.Data(), getRangeContent(mFullPrefixRange).Data(),
+      getRangeContent(mFullStartRange).Data(),
+      getRangeContent(mFullEndRange).Data(),
+      getRangeContent(mFullSuffixRange).Data());
+}
+
 TextDirectiveCreator::TextDirectiveCreator(
     Document& aDocument, nsRange* aInputRange,
     TextDirectiveCandidate&& aTextDirective)
