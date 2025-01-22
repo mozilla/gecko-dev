@@ -334,7 +334,7 @@ index 3f674f8e58..f00a081f4f 100644
  # Disable partition_alloc for WebRTC standalone builds.
  use_partition_alloc_as_malloc_default = false
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 4a03865f65..13c266ec60 100644
+index bd73d20cdd..42ad6654bf 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
 @@ -291,7 +291,7 @@ if (rtc_build_with_neon) {

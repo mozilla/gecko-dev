@@ -17,6 +17,7 @@
 #include <limits>
 
 #include "common_audio/wav_header.h"
+#include "rtc_base/logging.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 
@@ -30,6 +31,18 @@
 #endif
 
 namespace webrtc {
+
+namespace {
+const char* SampleFormatToStr(WavFile::SampleFormat format) {
+  switch (format) {
+    case WavFile::SampleFormat::kInt16:
+      return "int16";
+    case WavFile::SampleFormat::kFloat:
+      return "float";
+  }
+  RTC_CHECK_NOTREACHED();
+}
+}  // namespace
 
 static const float kSamples[] = {0.0, 10.0, 4e4, -1e9};
 
@@ -125,6 +138,9 @@ TEST(WavWriterTest, LargeFile) {
                            std::sin(t * kToneHz * 2 * M_PI);
           samples[i] = std::pow(std::sin(t * 2 * 2 * M_PI), 10) * x;
           samples[i + 1] = std::pow(std::cos(t * 2 * 2 * M_PI), 10) * x;
+          // See https://issues.webrtc.org/issues/379973428
+          RTC_CHECK(isfinite(samples[i]));
+          RTC_CHECK(isfinite(samples[i + 1]));
         }
         {
           WavWriter w(outfile, kSampleRate, kNumChannels, wav_format);
@@ -161,6 +177,14 @@ TEST(WavWriterTest, LargeFile) {
             EXPECT_EQ(kNumSamples, r.ReadSamples(kNumSamples, read_samples));
             for (size_t i = 0; i < kNumSamples; ++i) {
               EXPECT_NEAR(samples[i], read_samples[i], 1);
+              if (!isfinite(samples[i])) {
+                // See https://issues.webrtc.org/issues/379973428
+                RTC_LOG(LS_ERROR)
+                    << "samples[" << i << "] is not finite. "
+                    << "wav_format=" << SampleFormatToStr(wav_format)
+                    << ", write_format=" << SampleFormatToStr(write_format)
+                    << ", read_format=" << SampleFormatToStr(read_format);
+              }
             }
             EXPECT_EQ(0u, r.ReadSamples(kNumSamples, read_samples));
           } else {
@@ -168,6 +192,14 @@ TEST(WavWriterTest, LargeFile) {
             EXPECT_EQ(kNumSamples, r.ReadSamples(kNumSamples, read_samples));
             for (size_t i = 0; i < kNumSamples; ++i) {
               EXPECT_NEAR(samples[i], static_cast<float>(read_samples[i]), 1);
+              if (!isfinite(samples[i])) {
+                // See https://issues.webrtc.org/issues/379973428
+                RTC_LOG(LS_ERROR)
+                    << "samples[" << i << "] is not finite. "
+                    << "wav_format=" << SampleFormatToStr(wav_format)
+                    << ", write_format=" << SampleFormatToStr(write_format)
+                    << ", read_format=" << SampleFormatToStr(read_format);
+              }
             }
             EXPECT_EQ(0u, r.ReadSamples(kNumSamples, read_samples));
           }
