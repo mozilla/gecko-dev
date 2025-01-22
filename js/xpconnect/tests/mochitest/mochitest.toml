@@ -153,8 +153,6 @@ skip-if = ["os == 'android' && debug"]
 
 ["test_bug764389.html"]
 
-["test_bug772288.html"]
-
 ["test_bug781476.html"]
 
 ["test_bug789713.html"]
