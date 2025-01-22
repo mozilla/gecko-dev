@@ -15,9 +15,11 @@
 #include "nsRange.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "ContentIterator.h"
 #include "Document.h"
 #include "fragmentdirectives_ffi_generated.h"
 #include "Text.h"
+#include "mozilla/ContentIterator.h"
 #include "mozilla/intl/WordBreaker.h"
 #include "mozilla/SelectionMovementUtils.h"
 
@@ -250,6 +252,108 @@ LazyLogModule sFragmentDirectiveLog("FragmentDirective");
 
     aRange.SetStart(node, offset + 1);
   }
+}
+
+/* static */ bool TextDirectiveUtil::NormalizedRangeBoundariesAreEqual(
+    const RangeBoundary& aRangeBoundary1,
+    const RangeBoundary& aRangeBoundary2) {
+  MOZ_ASSERT(aRangeBoundary1.IsSetAndValid() &&
+             aRangeBoundary2.IsSetAndValid());
+  if (aRangeBoundary1 == aRangeBoundary2) {
+    return true;
+  }
+  auto textSubStringIsOnlyWhitespace =
+      [](const Text* textNode, uint32_t startIndex, uint32_t endIndex) {
+        MOZ_ASSERT(textNode);
+        if (startIndex > endIndex) {
+          std::swap(startIndex, endIndex);
+        }
+        MOZ_ASSERT(startIndex < textNode->Length());
+        if (startIndex == endIndex) {
+          return true;
+        }
+        const nsTextFragment& textFragment = textNode->TextFragment();
+
+        for (uint32_t i = startIndex; i < endIndex; ++i) {
+          char16_t ch = textFragment.CharAt(i);
+          if (!nsContentUtils::IsHTMLWhitespaceOrNBSP(ch)) {
+            return false;
+          }
+        }
+        return true;
+      };
+  const nsINode* node1 = aRangeBoundary1.Container();
+  const nsINode* node2 = aRangeBoundary2.Container();
+  size_t offset1 =
+      *aRangeBoundary1.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+  size_t offset2 =
+      *aRangeBoundary2.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+
+  if (node1 == node2) {
+    if (const Text* text = Text::FromNodeOrNull(node1)) {
+      return textSubStringIsOnlyWhitespace(text, offset1, offset2);
+    }
+    return offset1 == offset2;
+  }
+
+  mozilla::UnsafePreContentIterator iter;
+  // ContentIterator classes require boundaries to be in correct order.
+  auto comp = nsContentUtils::ComparePoints(aRangeBoundary1, aRangeBoundary2);
+  if (!comp) {
+    return false;
+  }
+  if (*comp == 0) {
+    return true;
+  }
+  const auto& [firstBoundary, secondBoundary] =
+      *comp == -1 ? std::tuple{&aRangeBoundary1, &aRangeBoundary2}
+                  : std::tuple{&aRangeBoundary2, &aRangeBoundary1};
+
+  if (NS_FAILED(iter.Init(firstBoundary->AsRaw(), secondBoundary->AsRaw()))) {
+    return false;
+  }
+
+  for (; !iter.IsDone(); iter.Next()) {
+    auto* node = iter.GetCurrentNode();
+    if (!node || !TextDirectiveUtil::NodeIsVisibleTextNode(*node)) {
+      continue;
+    }
+    if (node == firstBoundary->Container()) {
+      auto firstOffset =
+          *firstBoundary->Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+      if (firstOffset == node->Length()) {
+        // if this is the start node, it's a text node and the offset is at the
+        // end, continue with the next node.
+        continue;
+      }
+      if (const Text* text = Text::FromNodeOrNull(node)) {
+        if (textSubStringIsOnlyWhitespace(text, firstOffset, text->Length())) {
+          continue;
+        }
+      }
+    }
+    if (node == secondBoundary->Container()) {
+      auto secondOffset =
+          *secondBoundary->Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+      if (secondOffset == 0) {
+        // if this is the end node, it's a text node and the offset is 0, return
+        // true.
+        return true;
+      }
+      if (const Text* text = Text::FromNodeOrNull(node)) {
+        if (textSubStringIsOnlyWhitespace(text, 0, secondOffset)) {
+          return true;
+        }
+      }
+    }
+
+    if (node->Length() && !node->AsText()->TextIsOnlyWhitespace()) {
+      // if the text node only contains whitespace, ignore it; otherwise, the
+      // boundaries are not at the same spot.
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace mozilla::dom
