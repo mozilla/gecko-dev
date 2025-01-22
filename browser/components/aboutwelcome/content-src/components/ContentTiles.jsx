@@ -22,6 +22,13 @@ const HEADER_STYLES = [
   "height",
 ];
 
+const TILE_STYLES = [
+  "marginBlock",
+  "marginInline",
+  "paddingBlock",
+  "paddingInline",
+];
+
 export const ContentTiles = props => {
   const { content } = props;
   const [expandedTileIndex, setExpandedTileIndex] = useState(null);
@@ -41,7 +48,11 @@ export const ContentTiles = props => {
     const { header } = tile;
 
     return (
-      <div key={index} className={`content-tile ${header ? "has-header" : ""}`}>
+      <div
+        key={index}
+        className={`content-tile ${header ? "has-header" : ""}`}
+        style={AboutWelcomeUtils.getValidStyle(tile.style, TILE_STYLES)}
+      >
         {header?.title && (
           <button
             className="tile-header"

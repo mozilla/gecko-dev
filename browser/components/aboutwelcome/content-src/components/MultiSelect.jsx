@@ -18,6 +18,20 @@ const MULTI_SELECT_STYLES = [
   "gap",
 ];
 
+const TILE_STYLES = [
+  "marginBlock",
+  "marginInline",
+  "paddingBlock",
+  "paddingInline",
+];
+
+// Do not include styles applied at the content tile level
+for (let i = MULTI_SELECT_STYLES.length - 1; i >= 0; i--) {
+  if (TILE_STYLES.includes(MULTI_SELECT_STYLES[i])) {
+    MULTI_SELECT_STYLES.splice(i, 1);
+  }
+}
+
 const MULTI_SELECT_ICON_STYLES = [
   ...CONFIGURABLE_STYLES,
   "width",
