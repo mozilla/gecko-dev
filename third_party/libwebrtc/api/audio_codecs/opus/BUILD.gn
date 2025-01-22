@@ -98,3 +98,16 @@ rtc_library("audio_decoder_multiopus") {
     "//third_party/abseil-cpp/absl/strings",
   ]
 }
+
+rtc_library("unittests") {
+  visibility = [ "*" ]
+  testonly = true
+  sources = [ "audio_decoder_opus_unittest.cc" ]
+  deps = [
+    ":audio_decoder_opus",
+    "../../../api/environment",
+    "../../../api/environment:environment_factory",
+    "../../../test:explicit_key_value_config",
+    "../../../test:test_support",
+  ]
+}

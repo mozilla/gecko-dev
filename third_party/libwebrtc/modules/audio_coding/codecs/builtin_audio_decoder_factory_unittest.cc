@@ -118,8 +118,8 @@ TEST(AudioDecoderFactoryTest, CreateOpus) {
   rtc::scoped_refptr<AudioDecoderFactory> adf =
       CreateBuiltinAudioDecoderFactory();
   ASSERT_TRUE(adf);
-  // Opus supports 48 kHz, 2 channels, and wants a "stereo" parameter whose
-  // value is either "0" or "1".
+  // Opus supports 48 kHz and 2 channels. It is possible to specify a "stereo"
+  // parameter whose value is either "0" or "1".
   for (int hz : {8000, 16000, 32000, 48000}) {
     for (int channels : {0, 1, 2, 3}) {
       for (std::string stereo : {"XX", "0", "1", "2"}) {

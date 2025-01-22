@@ -121,7 +121,7 @@ index 7f6cf2193f..97227f0e03 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 3b824fa8fb..5bf1134262 100644
+index 2b690728e0..5c0113372b 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -211,7 +211,7 @@ index a3ee0d4e0c..322c52ac64 100644
  
  rtc_source_set("audio_encoder_g722_config") {
 diff --git a/api/audio_codecs/opus/BUILD.gn b/api/audio_codecs/opus/BUILD.gn
-index 29b2999f1b..2c0529b000 100644
+index fad98a9619..5fd83d4aa0 100644
 --- a/api/audio_codecs/opus/BUILD.gn
 +++ b/api/audio_codecs/opus/BUILD.gn
 @@ -8,8 +8,8 @@
