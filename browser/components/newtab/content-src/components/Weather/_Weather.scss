@@ -142,7 +142,19 @@
 
   // Edge case: medium screens where we hide the weather icon and
   // detail info row for overlap issues
-  .weatherIconCol, .weatherDetailedSummaryRow {
+  .weatherDetailedSummaryRow {
+    display: block;
+
+    @media (min-width: $break-point-medium) {
+      display: none;
+    }
+
+    @media (min-width: $break-point-large) {
+      display: block;
+    }
+  }
+
+  .weatherIconCol {
     display: flex;
 
     @media (min-width: $break-point-medium) {
@@ -433,13 +445,15 @@
 }
 
 .weatherHighLowTemps {
-  display: flex;
+  display: inline-flex;
   gap: var(--space-xxsmall);
   text-transform: uppercase;
   word-spacing: var(--space-xxsmall);
+  margin-inline-end: var(--space-small);
 }
 
 .weatherTextSummary {
+  display: inline;
   text-align: center;
   max-width: 90px;
 }
@@ -649,14 +663,23 @@
     }
   }
 
-  // Edge case: Show weather icon, detailed view at a later breakpoint
+  // Edge case: Show weather icon at a later breakpoint
   // then the temperature and city name
-  .weatherIconCol,
-  .weatherDetailedSummaryRow {
+  .weatherIconCol {
     display: none;
 
     @media(min-width: $break-point-widest) {
       display: flex;
+    }
+  }
+
+  // Edge case: Show detailed view at a later breakpoint
+  // then the temperature and city name
+  .weatherDetailedSummaryRow {
+    display: none;
+
+    @media(min-width: $break-point-widest) {
+      display: block;
     }
   }
 

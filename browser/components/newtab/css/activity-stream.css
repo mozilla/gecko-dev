@@ -2729,16 +2729,29 @@ main section {
     padding-top: 30px;
   }
 }
-.has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
-  display: flex;
+.has-weather.has-search .weatherDetailedSummaryRow {
+  display: block;
 }
 @media (min-width: 610px) {
-  .has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
+  .has-weather.has-search .weatherDetailedSummaryRow {
     display: none;
   }
 }
 @media (min-width: 866px) {
-  .has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
+  .has-weather.has-search .weatherDetailedSummaryRow {
+    display: block;
+  }
+}
+.has-weather.has-search .weatherIconCol {
+  display: flex;
+}
+@media (min-width: 610px) {
+  .has-weather.has-search .weatherIconCol {
+    display: none;
+  }
+}
+@media (min-width: 866px) {
+  .has-weather.has-search .weatherIconCol {
     display: flex;
   }
 }
@@ -2981,13 +2994,15 @@ main section {
 }
 
 .weatherHighLowTemps {
-  display: flex;
+  display: inline-flex;
   gap: var(--space-xxsmall);
   text-transform: uppercase;
   word-spacing: var(--space-xxsmall);
+  margin-inline-end: var(--space-small);
 }
 
 .weatherTextSummary {
+  display: inline;
   text-align: center;
   max-width: 90px;
 }
@@ -3165,25 +3180,31 @@ main section {
   }
 }
 .has-weather.has-search.layout-variant-a .weatherIconCol,
-.has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
 .has-weather.has-search.layout-variant-b .weatherIconCol,
-.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
 .layout-variant-a .weatherIconCol,
-.layout-variant-a .weatherDetailedSummaryRow,
-.layout-variant-b .weatherIconCol,
-.layout-variant-b .weatherDetailedSummaryRow {
+.layout-variant-b .weatherIconCol {
   display: none;
 }
 @media (min-width: 1122px) {
   .has-weather.has-search.layout-variant-a .weatherIconCol,
-.has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
 .has-weather.has-search.layout-variant-b .weatherIconCol,
-.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
 .layout-variant-a .weatherIconCol,
-.layout-variant-a .weatherDetailedSummaryRow,
-.layout-variant-b .weatherIconCol,
-.layout-variant-b .weatherDetailedSummaryRow {
+.layout-variant-b .weatherIconCol {
     display: flex;
+  }
+}
+.has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
+.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
+.layout-variant-a .weatherDetailedSummaryRow,
+.layout-variant-b .weatherDetailedSummaryRow {
+  display: none;
+}
+@media (min-width: 1122px) {
+  .has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
+.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
+.layout-variant-a .weatherDetailedSummaryRow,
+.layout-variant-b .weatherDetailedSummaryRow {
+    display: block;
   }
 }
 .has-weather.has-search.layout-variant-a .weatherCard,
