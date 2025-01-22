@@ -12,36 +12,6 @@ add_task(async function test_translations_settings_download_languages() {
     prefs: [["browser.translations.newSettingsUI.enable", true]],
   });
 
-  const frenchModels = [
-    "lex.50.50.enfr.s2t.bin",
-    "lex.50.50.fren.s2t.bin",
-    "model.enfr.intgemm.alphas.bin",
-    "model.fren.intgemm.alphas.bin",
-    "vocab.enfr.spm",
-    "vocab.fren.spm",
-  ];
-
-  const allModels = [
-    "lex.50.50.enes.s2t.bin",
-    "lex.50.50.enfr.s2t.bin",
-    "lex.50.50.enuk.s2t.bin",
-    "lex.50.50.esen.s2t.bin",
-    "lex.50.50.fren.s2t.bin",
-    "lex.50.50.uken.s2t.bin",
-    "model.enes.intgemm.alphas.bin",
-    "model.enfr.intgemm.alphas.bin",
-    "model.enuk.intgemm.alphas.bin",
-    "model.esen.intgemm.alphas.bin",
-    "model.fren.intgemm.alphas.bin",
-    "model.uken.intgemm.alphas.bin",
-    "vocab.enes.spm",
-    "vocab.enfr.spm",
-    "vocab.enuk.spm",
-    "vocab.esen.spm",
-    "vocab.fren.spm",
-    "vocab.uken.spm",
-  ];
-
   assertVisibility({
     message: "Expect paneGeneral elements to be visible.",
     visible: { settingsButton },
@@ -67,6 +37,11 @@ add_task(async function test_translations_settings_download_languages() {
   );
   langFr.parentNode.querySelector("moz-button").click();
   await clickButton;
+
+  const frenchModels = languageModelNames([
+    { fromLang: "fr", toLang: "en" },
+    { fromLang: "en", toLang: "fr" },
+  ]);
 
   Assert.deepEqual(
     await remoteClients.translationModels.resolvePendingDownloads(
@@ -102,6 +77,8 @@ add_task(async function test_translations_settings_download_languages() {
   );
   langAll.querySelector("moz-button").click();
   await clickButtonAll;
+
+  const allModels = languageModelNames(LANGUAGE_PAIRS);
 
   Assert.deepEqual(
     await remoteClients.translationModels.resolvePendingDownloads(

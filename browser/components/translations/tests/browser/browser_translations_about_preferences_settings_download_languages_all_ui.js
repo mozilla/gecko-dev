@@ -12,32 +12,20 @@ add_task(async function test_translations_settings_download_languages_all() {
     prefs: [["browser.translations.newSettingsUI.enable", true]],
   });
 
-  const frenchModels = [
-    "lex.50.50.enfr.s2t.bin",
-    "lex.50.50.fren.s2t.bin",
-    "model.enfr.intgemm.alphas.bin",
-    "model.fren.intgemm.alphas.bin",
-    "vocab.enfr.spm",
-    "vocab.fren.spm",
-  ];
+  const frenchModels = languageModelNames([
+    { fromLang: "fr", toLang: "en" },
+    { fromLang: "en", toLang: "fr" },
+  ]);
 
-  const spanishModels = [
-    "lex.50.50.enes.s2t.bin",
-    "lex.50.50.esen.s2t.bin",
-    "model.enes.intgemm.alphas.bin",
-    "model.esen.intgemm.alphas.bin",
-    "vocab.enes.spm",
-    "vocab.esen.spm",
-  ];
+  const spanishModels = languageModelNames([
+    { fromLang: "es", toLang: "en" },
+    { fromLang: "en", toLang: "es" },
+  ]);
 
-  const ukrainianModels = [
-    "lex.50.50.enuk.s2t.bin",
-    "lex.50.50.uken.s2t.bin",
-    "model.enuk.intgemm.alphas.bin",
-    "model.uken.intgemm.alphas.bin",
-    "vocab.enuk.spm",
-    "vocab.uken.spm",
-  ];
+  const ukrainianModels = languageModelNames([
+    { fromLang: "uk", toLang: "en" },
+    { fromLang: "en", toLang: "uk" },
+  ]);
 
   assertVisibility({
     message: "Expect paneGeneral elements to be visible.",
