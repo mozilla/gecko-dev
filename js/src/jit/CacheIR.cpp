@@ -4087,7 +4087,7 @@ AttachDecision HasPropIRGenerator::tryAttachSmallObjectVariableKey(
     return AttachDecision::NoAction;
   }
 
-  if (obj->getClass()->getResolve()) {
+  if (ClassCanHaveExtraProperties(obj->getClass())) {
     return AttachDecision::NoAction;
   }
 
