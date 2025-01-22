@@ -23,6 +23,7 @@
 #include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/bye.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/extended_reports.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/fir.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/nack.h"
@@ -464,6 +465,9 @@ void RtcpTransceiverImpl::HandleRtpFeedback(
     case rtcp::TransportFeedback::kFeedbackMessageType:
       HandleTransportFeedback(rtcp_packet_header, now);
       break;
+    case rtcp::CongestionControlFeedback::kFeedbackMessageType:
+      HandleCongestionControlFeedback(rtcp_packet_header, now);
+      break;
   }
 }
 
@@ -490,6 +494,20 @@ void RtcpTransceiverImpl::HandleTransportFeedback(
   rtcp::TransportFeedback feedback;
   if (feedback.Parse(rtcp_packet_header)) {
     config_.network_link_observer->OnTransportFeedback(now, feedback);
+  }
+}
+
+void RtcpTransceiverImpl::HandleCongestionControlFeedback(
+    const rtcp::CommonHeader& rtcp_packet_header,
+    Timestamp now) {
+  RTC_DCHECK_EQ(rtcp_packet_header.fmt(),
+                rtcp::CongestionControlFeedback::kFeedbackMessageType);
+  if (config_.network_link_observer == nullptr) {
+    return;
+  }
+  rtcp::CongestionControlFeedback feedback;
+  if (feedback.Parse(rtcp_packet_header)) {
+    config_.network_link_observer->OnCongestionControlFeedback(now, feedback);
   }
 }
 
