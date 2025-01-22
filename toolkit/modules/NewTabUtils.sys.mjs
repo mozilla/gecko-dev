@@ -300,15 +300,12 @@ var AllPages = {
    * no-op after the first invokation.
    */
   _addObserver: function AllPages_addObserver() {
-    Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
-    Services.obs.addObserver(this, "page-thumbnail:create", true);
+    Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this);
+    Services.obs.addObserver(this, "page-thumbnail:create");
     this._addObserver = function () {};
   },
 
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 };
 
 /**
@@ -2130,14 +2127,11 @@ var Links = {
    * invokation.
    */
   _addObserver: function Links_addObserver() {
-    Services.obs.addObserver(this, "browser:purge-session-history", true);
+    Services.obs.addObserver(this, "browser:purge-session-history");
     this._addObserver = function () {};
   },
 
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 };
 
 Links.compareLinks = Links.compareLinks.bind(Links);
