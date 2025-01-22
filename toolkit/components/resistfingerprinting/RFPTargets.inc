@@ -95,6 +95,7 @@ ITEM_VALUE(SiteSpecificZoom,            61)
 ITEM_VALUE(FontVisibilityRestrictGenerics, 62)
 ITEM_VALUE(WebVTT,                      63)
 ITEM_VALUE(WebGPULimits,                64)
+ITEM_VALUE(WebGPUIsFallbackAdapter,     65)
 
 // !!! Don't forget to update kDefaultFingerprintingProtections in nsRFPService.cpp
 // if necessary.
