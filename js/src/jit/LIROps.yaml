@@ -1161,6 +1161,13 @@
     input: WordSized
   num_temps: 1
 
+# Sign value of a int32 with expected double result.
+- name: SignID
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
 - name: MathFunctionD
   gen_boilerplate: false
 

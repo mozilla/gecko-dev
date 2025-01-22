@@ -2087,22 +2087,25 @@ void LIRGenerator::visitPow(MPow* ins) {
 }
 
 void LIRGenerator::visitSign(MSign* ins) {
-  if (ins->type() == ins->input()->type()) {
-    LInstructionHelper<1, 1, 0>* lir;
-    if (ins->type() == MIRType::Int32) {
-      lir = new (alloc()) LSignI(useRegister(ins->input()));
-    } else {
-      MOZ_ASSERT(ins->type() == MIRType::Double);
-      lir = new (alloc()) LSignD(useRegister(ins->input()));
-    }
-    define(lir, ins);
-  } else {
-    MOZ_ASSERT(ins->type() == MIRType::Int32);
-    MOZ_ASSERT(ins->input()->type() == MIRType::Double);
+  MOZ_ASSERT(ins->type() == MIRType::Int32 || ins->type() == MIRType::Double);
+  MOZ_ASSERT(ins->input()->type() == MIRType::Int32 ||
+             ins->input()->type() == MIRType::Double);
 
-    auto* lir = new (alloc()) LSignDI(useRegister(ins->input()), tempDouble());
-    assignSnapshot(lir, ins->bailoutKind());
-    define(lir, ins);
+  if (ins->type() == ins->input()->type()) {
+    if (ins->type() == MIRType::Int32) {
+      define(new (alloc()) LSignI(useRegister(ins->input())), ins);
+    } else {
+      define(new (alloc()) LSignD(useRegister(ins->input())), ins);
+    }
+  } else {
+    if (ins->type() == MIRType::Int32) {
+      auto* lir =
+          new (alloc()) LSignDI(useRegister(ins->input()), tempDouble());
+      assignSnapshot(lir, ins->bailoutKind());
+      define(lir, ins);
+    } else {
+      define(new (alloc()) LSignID(useRegister(ins->input()), temp()), ins);
+    }
   }
 }
 
