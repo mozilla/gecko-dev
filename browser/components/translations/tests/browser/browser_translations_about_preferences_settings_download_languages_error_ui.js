@@ -22,7 +22,7 @@ add_task(
       "vocab.fren.spm",
     ];
 
-    const spainishModels = [
+    const spanishModels = [
       "lex.50.50.enes.s2t.bin",
       "lex.50.50.esen.s2t.bin",
       "model.enes.intgemm.alphas.bin",
@@ -136,9 +136,9 @@ add_task(
 
     Assert.deepEqual(
       await remoteClients.translationModels.resolvePendingDownloads(
-        spainishModels.length
+        spanishModels.length
       ),
-      spainishModels,
+      spanishModels,
       "Spanish models were downloaded."
     );
 
