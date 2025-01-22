@@ -674,4 +674,51 @@ TextDirectiveUtil::CreateTextDirectiveFromRanges(nsRange* aPrefix,
   return textDirective;
 }
 
+uint32_t TextDirectiveUtil::FindCommonPrefix(const nsAString& aFoldedStr1,
+                                             const nsAString& aFoldedStr2) {
+  const uint32_t maxCommonLength =
+      std::min(aFoldedStr1.Length(), aFoldedStr2.Length());
+  uint32_t commonLength = 0;
+  const char16_t* iter1 = aFoldedStr1.BeginReading();
+  const char16_t* iter2 = aFoldedStr2.BeginReading();
+
+  while (commonLength < maxCommonLength) {
+    if (*iter1 != *iter2) {
+      break;
+    }
+    ++iter1;
+    ++iter2;
+    ++commonLength;
+  }
+  // this condition ensures that if the high surrogate is removed if the low
+  // surrogate does not match.
+  if (commonLength && NS_IS_HIGH_SURROGATE(*(iter1 - 1))) {
+    --commonLength;
+  }
+  return commonLength;
+}
+
+uint32_t TextDirectiveUtil::FindCommonSuffix(const nsAString& aFoldedStr1,
+                                             const nsAString& aFoldedStr2) {
+  const uint32_t maxCommonLength =
+      std::min(aFoldedStr1.Length(), aFoldedStr2.Length());
+  uint32_t commonLength = 0;
+  const char16_t* iter1 = aFoldedStr1.EndReading();
+  const char16_t* iter2 = aFoldedStr2.EndReading();
+  while (commonLength != maxCommonLength) {
+    if (*(iter1 - 1) != *(iter2 - 1)) {
+      break;
+    }
+    --iter1;
+    --iter2;
+    ++commonLength;
+  }
+  // this condition ensures that a matching low surrogate is removed if the high
+  // surrogate does not match.
+  if (commonLength && NS_IS_LOW_SURROGATE(*iter1)) {
+    --commonLength;
+  }
+  return commonLength;
+}
+
 }  // namespace mozilla::dom

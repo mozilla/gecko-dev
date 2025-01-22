@@ -217,6 +217,21 @@ class TextDirectiveUtil final {
   static Result<TextDirective, ErrorResult> CreateTextDirectiveFromRanges(
       nsRange* aPrefix, nsRange* aStart, nsRange* aEnd, nsRange* aSuffix);
 
+  /**
+   * Find the length of the common prefix between two folded strings.
+   *
+   * @return The length of the common prefix.
+   */
+  static uint32_t FindCommonPrefix(const nsAString& aFoldedStr1,
+                                   const nsAString& aFoldedStr2);
+
+  /**
+   * Find the length of the common suffix between two folded strings.
+   *
+   * @return The length of the common suffix.
+   */
+  static uint32_t FindCommonSuffix(const nsAString& aFoldedStr1,
+                                   const nsAString& aFoldedStr2);
 };
 }  // namespace mozilla::dom
 
