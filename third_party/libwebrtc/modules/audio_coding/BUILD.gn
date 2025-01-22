@@ -527,6 +527,7 @@ rtc_library("neteq") {
     "../../api/neteq:neteq_api",
     "../../api/neteq:neteq_controller_api",
     "../../api/neteq:tick_timer",
+    "../../api/units:time_delta",
     "../../api/units:timestamp",
     "../../common_audio",
     "../../common_audio:common_audio_c",
