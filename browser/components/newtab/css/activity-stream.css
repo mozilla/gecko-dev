@@ -2814,7 +2814,6 @@ main section {
 }
 .weatherCard:hover {
   box-shadow: var(--box-shadow-10);
-  background: var(--background-color-box);
 }
 .weatherCard a {
   color: var(--text-color);
@@ -2843,7 +2842,7 @@ main section {
   cursor: pointer;
 }
 .weatherInfoLink:hover, .weatherButtonContextMenuWrapper:hover {
-  background-color: var(--button-background-color-ghost-hover);
+  background-color: var(--newtab-background-color-secondary);
 }
 .weatherInfoLink:hover::after, .weatherButtonContextMenuWrapper:hover::after {
   background-color: transparent;

@@ -243,7 +243,6 @@
 
   &:hover {
     box-shadow: var(--box-shadow-10);
-    background: var(--background-color-box);
   }
 
   a {
@@ -273,7 +272,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: var(--button-background-color-ghost-hover);
+    background-color: var(--newtab-background-color-secondary);
 
     &::after {
       background-color: transparent
