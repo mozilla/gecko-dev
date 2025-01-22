@@ -671,9 +671,12 @@
   .urlbarView-title:not(:empty) ~ & {
     font-size: var(--urlbarView-small-font-size);
 
-    /* This targets both rich and non-rich results, so not using the child selector here. */
-    .urlbarView-row:not(:hover, [selected], [sponsored]) & {
-      color: var(--urlbarView-action-color);
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+      /* This targets both rich and non-rich results, so not using the child selector here. */
+      .urlbarView-row:not(:hover, [selected], [sponsored]) & {
+        color: var(--urlbarView-action-color);
+      }
     }
 
     &[slide-in] {
@@ -748,7 +751,6 @@
     /* stylelint-disable-next-line media-query-no-invalid */
     @media (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
       -moz-context-properties: fill, fill-opacity;
-      color: var(--toolbar-field-focus-color);
       padding-inline-start: calc(var(--urlbarView-favicon-width) + 8px);
       background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
       background-repeat: no-repeat;

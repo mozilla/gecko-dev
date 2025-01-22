@@ -1,5 +1,11 @@
 "use strict";
 
+// ScotchBonnet being enabled changes some of the styling that is being
+// tested here.
+let scotchBonnet = Services.prefs.getBoolPref(
+  "browser.urlbar.scotchBonnet.enableOverride"
+);
+
 // This test checks whether applied WebExtension themes that attempt to change
 // popup properties are applied correctly to the autocomplete bar.
 const POPUP_COLOR_DARK = "#00A400";
@@ -10,9 +16,11 @@ const POPUP_SELECTED_COLOR = "#9400ff";
 const POPUP_SELECTED_TEXT_COLOR = "#09b9a6";
 
 const POPUP_URL_COLOR_DARK = "#0061e0";
-const POPUP_ACTION_COLOR_DARK = "#5b5b66";
+const POPUP_ACTION_COLOR_DARK = scotchBonnet ? POPUP_TEXT_COLOR_DARK : "#00000";
 const POPUP_URL_COLOR_BRIGHT = "#00ddff";
-const POPUP_ACTION_COLOR_BRIGHT = "#bfbfc9";
+const POPUP_ACTION_COLOR_BRIGHT = scotchBonnet
+  ? POPUP_TEXT_COLOR_BRIGHT
+  : "#bfbfc9";
 
 const SEARCH_TERM = "urlbar-reflows-" + Date.now();
 
