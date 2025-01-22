@@ -22,7 +22,7 @@ namespace cricket {
 class MockActiveIceController : public cricket::ActiveIceControllerInterface {
  public:
   explicit MockActiveIceController(
-      const cricket::ActiveIceControllerFactoryArgs& args) {}
+      const cricket::ActiveIceControllerFactoryArgs& /* args */) {}
   ~MockActiveIceController() override = default;
 
   MOCK_METHOD(void, SetIceConfig, (const cricket::IceConfig&), (override));

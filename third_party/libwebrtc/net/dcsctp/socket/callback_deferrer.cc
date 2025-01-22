@@ -92,7 +92,7 @@ void CallbackDeferrer::OnAborted(ErrorKind error, absl::string_view message) {
 void CallbackDeferrer::OnConnected() {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
-      +[](CallbackData data, DcSctpSocketCallbacks& cb) {
+      +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnConnected();
       },
       absl::monostate{});
@@ -101,7 +101,7 @@ void CallbackDeferrer::OnConnected() {
 void CallbackDeferrer::OnClosed() {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
-      +[](CallbackData data, DcSctpSocketCallbacks& cb) {
+      +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnClosed();
       },
       absl::monostate{});
@@ -110,7 +110,7 @@ void CallbackDeferrer::OnClosed() {
 void CallbackDeferrer::OnConnectionRestarted() {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
-      +[](CallbackData data, DcSctpSocketCallbacks& cb) {
+      +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnConnectionRestarted();
       },
       absl::monostate{});
@@ -164,7 +164,7 @@ void CallbackDeferrer::OnBufferedAmountLow(StreamID stream_id) {
 void CallbackDeferrer::OnTotalBufferedAmountLow() {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
-      +[](CallbackData data, DcSctpSocketCallbacks& cb) {
+      +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnTotalBufferedAmountLow();
       },
       absl::monostate{});

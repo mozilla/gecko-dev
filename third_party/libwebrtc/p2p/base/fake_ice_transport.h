@@ -312,7 +312,7 @@ class FakeIceTransport : public IceTransportInternal {
   int SendPacket(const char* data,
                  size_t len,
                  const rtc::PacketOptions& options,
-                 int flags) override {
+                 int /* flags */) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     if (!dest_) {
       return -1;

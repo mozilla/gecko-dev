@@ -116,7 +116,7 @@ class PayloadTypeSuggesterForTests : public PayloadTypeSuggester {
   }
   RTCError AddLocalMapping(const std::string& /* mid */,
                            PayloadType /* payload_type */,
-                           const cricket::Codec& codec) override {
+                           const cricket::Codec& /* codec */) override {
     return RTCError::OK();
   }
 
@@ -532,9 +532,9 @@ std::unique_ptr<Call> Call::Create(CallConfig config) {
 // Call perf test will use Internal::Call::CreateVideoSendStream() to inject
 // FecController.
 VideoSendStream* Call::CreateVideoSendStream(
-    VideoSendStream::Config config,
-    VideoEncoderConfig encoder_config,
-    std::unique_ptr<FecController> fec_controller) {
+    VideoSendStream::Config /* config */,
+    VideoEncoderConfig /* encoder_config */,
+    std::unique_ptr<FecController> /* fec_controller */) {
   return nullptr;
 }
 

@@ -1042,7 +1042,7 @@ void DcSctpSocket::ReportFailedToParseChunk(int chunk_type) {
   callbacks_.OnError(ErrorKind::kParseFailed, sb.str());
 }
 
-void DcSctpSocket::HandleData(const CommonHeader& header,
+void DcSctpSocket::HandleData(const CommonHeader& /* header */,
                               const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<DataChunk> chunk = DataChunk::Parse(descriptor.data);
   if (ValidateParseSuccess(chunk) && ValidateHasTCB()) {
@@ -1050,7 +1050,7 @@ void DcSctpSocket::HandleData(const CommonHeader& header,
   }
 }
 
-void DcSctpSocket::HandleIData(const CommonHeader& header,
+void DcSctpSocket::HandleIData(const CommonHeader& /* header */,
                                const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<IDataChunk> chunk = IDataChunk::Parse(descriptor.data);
   if (ValidateParseSuccess(chunk) && ValidateHasTCB()) {
@@ -1117,7 +1117,7 @@ void DcSctpSocket::HandleDataCommon(AnyDataChunk& chunk) {
   }
 }
 
-void DcSctpSocket::HandleInit(const CommonHeader& header,
+void DcSctpSocket::HandleInit(const CommonHeader& /* header */,
                               const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<InitChunk> chunk = InitChunk::Parse(descriptor.data);
   if (!ValidateParseSuccess(chunk)) {
@@ -1247,7 +1247,7 @@ void DcSctpSocket::HandleInit(const CommonHeader& header,
 }
 
 void DcSctpSocket::HandleInitAck(
-    const CommonHeader& header,
+    const CommonHeader& /* header */,
     const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<InitAckChunk> chunk = InitAckChunk::Parse(descriptor.data);
   if (!ValidateParseSuccess(chunk)) {
@@ -1446,7 +1446,7 @@ bool DcSctpSocket::HandleCookieEchoWithTCB(const CommonHeader& header,
 }
 
 void DcSctpSocket::HandleCookieAck(
-    const CommonHeader& header,
+    const CommonHeader& /* header */,
     const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<CookieAckChunk> chunk = CookieAckChunk::Parse(descriptor.data);
   if (!ValidateParseSuccess(chunk)) {
@@ -1477,7 +1477,7 @@ void DcSctpSocket::MaybeDeliverMessages() {
   }
 }
 
-void DcSctpSocket::HandleSack(const CommonHeader& header,
+void DcSctpSocket::HandleSack(const CommonHeader& /* header */,
                               const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<SackChunk> chunk = SackChunk::Parse(descriptor.data);
 
@@ -1510,7 +1510,7 @@ void DcSctpSocket::HandleSack(const CommonHeader& header,
 }
 
 void DcSctpSocket::HandleHeartbeatRequest(
-    const CommonHeader& header,
+    const CommonHeader& /* header */,
     const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<HeartbeatRequestChunk> chunk =
       HeartbeatRequestChunk::Parse(descriptor.data);
@@ -1521,7 +1521,7 @@ void DcSctpSocket::HandleHeartbeatRequest(
 }
 
 void DcSctpSocket::HandleHeartbeatAck(
-    const CommonHeader& header,
+    const CommonHeader& /* header */,
     const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<HeartbeatAckChunk> chunk =
       HeartbeatAckChunk::Parse(descriptor.data);
@@ -1531,7 +1531,7 @@ void DcSctpSocket::HandleHeartbeatAck(
   }
 }
 
-void DcSctpSocket::HandleAbort(const CommonHeader& header,
+void DcSctpSocket::HandleAbort(const CommonHeader& /* header */,
                                const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<AbortChunk> chunk = AbortChunk::Parse(descriptor.data);
   if (ValidateParseSuccess(chunk)) {
@@ -1551,7 +1551,7 @@ void DcSctpSocket::HandleAbort(const CommonHeader& header,
   }
 }
 
-void DcSctpSocket::HandleError(const CommonHeader& header,
+void DcSctpSocket::HandleError(const CommonHeader& /* header */,
                                const SctpPacket::ChunkDescriptor& descriptor) {
   std::optional<ErrorChunk> chunk = ErrorChunk::Parse(descriptor.data);
   if (ValidateParseSuccess(chunk)) {
@@ -1569,7 +1569,7 @@ void DcSctpSocket::HandleError(const CommonHeader& header,
 }
 
 void DcSctpSocket::HandleReconfig(
-    const CommonHeader& header,
+    const CommonHeader& /* header */,
     const SctpPacket::ChunkDescriptor& descriptor) {
   Timestamp now = callbacks_.Now();
   std::optional<ReConfigChunk> chunk = ReConfigChunk::Parse(descriptor.data);

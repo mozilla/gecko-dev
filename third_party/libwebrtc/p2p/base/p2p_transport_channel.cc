@@ -900,7 +900,7 @@ void P2PTransportChannel::MaybeStartGathering() {
 }
 
 // A new port is available, attempt to make connections for it
-void P2PTransportChannel::OnPortReady(PortAllocatorSession* session,
+void P2PTransportChannel::OnPortReady(PortAllocatorSession* /* session */,
                                       PortInterface* port) {
   RTC_DCHECK_RUN_ON(network_thread_);
 
@@ -946,7 +946,7 @@ void P2PTransportChannel::OnPortReady(PortAllocatorSession* session,
 
 // A new candidate is available, let listeners know
 void P2PTransportChannel::OnCandidatesReady(
-    PortAllocatorSession* session,
+    PortAllocatorSession* /* session */,
     const std::vector<Candidate>& candidates) {
   RTC_DCHECK_RUN_ON(network_thread_);
   for (size_t i = 0; i < candidates.size(); ++i) {
@@ -955,7 +955,7 @@ void P2PTransportChannel::OnCandidatesReady(
 }
 
 void P2PTransportChannel::OnCandidateError(
-    PortAllocatorSession* session,
+    PortAllocatorSession* /* session */,
     const IceCandidateErrorEvent& event) {
   RTC_DCHECK(network_thread_ == rtc::Thread::Current());
   if (candidate_error_callback_) {
@@ -964,7 +964,7 @@ void P2PTransportChannel::OnCandidateError(
 }
 
 void P2PTransportChannel::OnCandidatesAllocationDone(
-    PortAllocatorSession* session) {
+    PortAllocatorSession* /* session */) {
   RTC_DCHECK_RUN_ON(network_thread_);
   if (config_.gather_continually()) {
     RTC_LOG(LS_INFO) << "P2PTransportChannel: " << transport_name()
@@ -1136,7 +1136,7 @@ void P2PTransportChannel::OnCandidateFilterChanged(uint32_t prev_filter,
   }
 }
 
-void P2PTransportChannel::OnRoleConflict(PortInterface* port) {
+void P2PTransportChannel::OnRoleConflict(PortInterface* /* port */) {
   SignalRoleConflict(this);  // STUN ping will be sent when SetRole is called
                              // from Transport.
 }
@@ -2138,7 +2138,7 @@ void P2PTransportChannel::OnPortDestroyed(PortInterface* port) {
 }
 
 void P2PTransportChannel::OnPortsPruned(
-    PortAllocatorSession* session,
+    PortAllocatorSession* /* session */,
     const std::vector<PortInterface*>& ports) {
   RTC_DCHECK_RUN_ON(network_thread_);
   for (PortInterface* port : ports) {

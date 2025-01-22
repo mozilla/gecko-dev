@@ -164,7 +164,8 @@ void RetransmissionQueue::HandleIncreasedCumulativeTsnAck(
   }
 }
 
-void RetransmissionQueue::HandlePacketLoss(UnwrappedTSN highest_tsn_acked) {
+void RetransmissionQueue::HandlePacketLoss(
+    UnwrappedTSN /* highest_tsn_acked */) {
   if (!is_in_fast_recovery()) {
     // https://tools.ietf.org/html/rfc4960#section-7.2.4
     // "If not in Fast Recovery, adjust the ssthresh and cwnd of the

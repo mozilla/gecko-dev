@@ -683,8 +683,8 @@ std::string Port::CreateStunUsername(absl::string_view remote_username) const {
   return std::string(remote_username) + ":" + username_fragment();
 }
 
-bool Port::HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
-                                const rtc::ReceivedPacket& packet) {
+bool Port::HandleIncomingPacket(rtc::AsyncPacketSocket* /* socket */,
+                                const rtc::ReceivedPacket& /* packet */) {
   RTC_DCHECK_NOTREACHED();
   return false;
 }

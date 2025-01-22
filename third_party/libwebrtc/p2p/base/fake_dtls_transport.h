@@ -271,7 +271,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   }
 
  private:
-  void OnIceTransportReadPacket(PacketTransportInternal* ice_,
+  void OnIceTransportReadPacket(PacketTransportInternal* /* ice_ */,
                                 const rtc::ReceivedPacket& packet) {
     NotifyPacketReceived(packet);
   }

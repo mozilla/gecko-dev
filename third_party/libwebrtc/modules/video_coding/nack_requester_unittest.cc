@@ -34,7 +34,7 @@ class TestNackRequester : public ::testing::Test,
   void SetUp() override {}
 
   void SendNack(const std::vector<uint16_t>& sequence_numbers,
-                bool buffering_allowed) override {
+                bool /* buffering_allowed */) override {
     sent_nacks_.insert(sent_nacks_.end(), sequence_numbers.begin(),
                        sequence_numbers.end());
     if (waiting_for_send_nack_) {
@@ -276,7 +276,7 @@ class TestNackRequesterWithFieldTrial : public ::testing::Test,
         keyframes_requested_(0) {}
 
   void SendNack(const std::vector<uint16_t>& sequence_numbers,
-                bool buffering_allowed) override {
+                bool /* buffering_allowed */) override {
     sent_nacks_.insert(sent_nacks_.end(), sequence_numbers.begin(),
                        sequence_numbers.end());
   }

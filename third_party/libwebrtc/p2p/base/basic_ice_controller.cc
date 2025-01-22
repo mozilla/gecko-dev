@@ -415,7 +415,7 @@ BasicIceController::GetBestWritableConnectionPerNetwork() const {
 
 IceControllerInterface::SwitchResult
 BasicIceController::HandleInitialSelectDampening(
-    IceSwitchReason reason,
+    IceSwitchReason /* reason */,
     const Connection* new_connection) {
   if (!field_trials_->initial_select_dampening.has_value() &&
       !field_trials_->initial_select_dampening_ping_received.has_value()) {
@@ -732,7 +732,7 @@ int BasicIceController::CompareConnections(
 int BasicIceController::CompareCandidatePairNetworks(
     const Connection* a,
     const Connection* b,
-    std::optional<rtc::AdapterType> network_preference) const {
+    std::optional<rtc::AdapterType> /* network_preference */) const {
   int compare_a_b_by_network_preference =
       CompareCandidatePairsByNetworkPreference(a, b,
                                                config_.network_preference);

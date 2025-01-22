@@ -60,7 +60,7 @@ class FakePacketTransport : public PacketTransportInternal {
   int SendPacket(const char* data,
                  size_t len,
                  const PacketOptions& options,
-                 int flags) override {
+                 int /* flags */) override {
     if (!dest_ || error_ != 0) {
       return -1;
     }

@@ -106,7 +106,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
       std::optional<rtc::SSLRole> role) = 0;
 
   ABSL_DEPRECATED("Set the max version via construction.")
-  bool SetSslMaxProtocolVersion(rtc::SSLProtocolVersion version) {
+  bool SetSslMaxProtocolVersion(rtc::SSLProtocolVersion /* version */) {
     return true;
   }
 

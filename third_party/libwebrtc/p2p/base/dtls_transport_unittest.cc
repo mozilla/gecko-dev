@@ -250,7 +250,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
                      << "' is writable";
   }
 
-  void OnTransportReadPacket(rtc::PacketTransportInternal* transport,
+  void OnTransportReadPacket(rtc::PacketTransportInternal* /* transport */,
                              const rtc::ReceivedPacket& packet) {
     uint32_t packet_num = 0;
     ASSERT_TRUE(VerifyPacket(packet.payload(), &packet_num));
@@ -268,7 +268,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
     }
   }
 
-  void OnTransportSentPacket(rtc::PacketTransportInternal* transport,
+  void OnTransportSentPacket(rtc::PacketTransportInternal* /* transport */,
                              const rtc::SentPacket& sent_packet) {
     sent_packet_ = sent_packet;
   }
@@ -276,8 +276,9 @@ class DtlsTestClient : public sigslot::has_slots<> {
   rtc::SentPacket sent_packet() const { return sent_packet_; }
 
   // Hook into the raw packet stream to make sure DTLS packets are encrypted.
-  void OnFakeIceTransportReadPacket(rtc::PacketTransportInternal* transport,
-                                    const rtc::ReceivedPacket& packet) {
+  void OnFakeIceTransportReadPacket(
+      rtc::PacketTransportInternal* /* transport */,
+      const rtc::ReceivedPacket& packet) {
     // Packets should not be decrypted on the underlying Transport packets.
     ASSERT_EQ(packet.decryption_info(), rtc::ReceivedPacket::kNotDecrypted);
 

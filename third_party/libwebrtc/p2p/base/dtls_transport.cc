@@ -78,7 +78,7 @@ StreamInterfaceChannel::StreamInterfaceChannel(
 
 rtc::StreamResult StreamInterfaceChannel::Read(rtc::ArrayView<uint8_t> buffer,
                                                size_t& read,
-                                               int& error) {
+                                               int& /* error */) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
 
   if (state_ == rtc::SS_CLOSED)
@@ -96,7 +96,7 @@ rtc::StreamResult StreamInterfaceChannel::Read(rtc::ArrayView<uint8_t> buffer,
 rtc::StreamResult StreamInterfaceChannel::Write(
     rtc::ArrayView<const uint8_t> data,
     size_t& written,
-    int& error) {
+    int& /* error */) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
   // Always succeeds, since this is an unreliable transport anyway.
   // TODO(zhihuang): Should this block if ice_transport_'s temporarily
@@ -685,13 +685,14 @@ void DtlsTransport::OnReadPacket(rtc::PacketTransportInternal* transport,
   }
 }
 
-void DtlsTransport::OnSentPacket(rtc::PacketTransportInternal* transport,
+void DtlsTransport::OnSentPacket(rtc::PacketTransportInternal* /* transport */,
                                  const rtc::SentPacket& sent_packet) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   SignalSentPacket(this, sent_packet);
 }
 
-void DtlsTransport::OnReadyToSend(rtc::PacketTransportInternal* transport) {
+void DtlsTransport::OnReadyToSend(
+    rtc::PacketTransportInternal* /* transport */) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   if (writable()) {
     SignalReadyToSend(this);

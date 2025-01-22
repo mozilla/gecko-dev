@@ -89,7 +89,7 @@ class MockDcSctpSocketCallbacks : public DcSctpSocketCallbacks {
               (override));
 
   std::unique_ptr<Timeout> CreateTimeout(
-      webrtc::TaskQueueBase::DelayPrecision precision) override {
+      webrtc::TaskQueueBase::DelayPrecision /* precision */) override {
     // The fake timeout manager does not implement |precision|.
     return timeout_manager_.CreateTimeout();
   }

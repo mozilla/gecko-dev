@@ -221,7 +221,7 @@ int InterleavedReassemblyStreams::Add(UnwrappedTSN tsn, Data data) {
 }
 
 size_t InterleavedReassemblyStreams::HandleForwardTsn(
-    UnwrappedTSN new_cumulative_ack_tsn,
+    UnwrappedTSN /* new_cumulative_ack_tsn */,
     rtc::ArrayView<const AnyForwardTsnChunk::SkippedStream> skipped_streams) {
   size_t removed_bytes = 0;
   for (const auto& skipped : skipped_streams) {

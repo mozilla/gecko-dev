@@ -463,7 +463,7 @@ int VCMFecMethod::BitsPerFrame(const VCMProtectionParameters* parameters) {
 }
 
 bool VCMFecMethod::EffectivePacketLoss(
-    const VCMProtectionParameters* parameters) {
+    const VCMProtectionParameters* /* parameters */) {
   // Effective packet loss to encoder is based on RPL (residual packet loss)
   // this is a soft setting based on degree of FEC protection
   // RPL = received/input packet loss - average_FEC_recovery

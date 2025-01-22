@@ -100,15 +100,15 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
     vss_->ProcessMessagesUntilIdle();
   }
 
-  void OnReadPacket(rtc::AsyncPacketSocket* socket,
+  void OnReadPacket(rtc::AsyncPacketSocket* /* socket */,
                     const rtc::ReceivedPacket& packet) {
     recv_packets_.push_back(
         std::string(reinterpret_cast<const char*>(packet.payload().data()),
                     packet.payload().size()));
   }
 
-  void OnSentPacket(rtc::AsyncPacketSocket* socket,
-                    const rtc::SentPacket& packet) {
+  void OnSentPacket(rtc::AsyncPacketSocket* /* socket */,
+                    const rtc::SentPacket& /* packet */) {
     ++sent_packets_;
   }
 
@@ -172,7 +172,8 @@ TEST_F(AsyncStunTCPSocketTest, TestMultipleStunPackets) {
 
 TEST_F(AsyncStunTCPSocketTest, ProcessInputHandlesMultiplePackets) {
   send_socket_->RegisterReceivedPacketCallback(
-      [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
+      [&](rtc::AsyncPacketSocket* /* socket */,
+          const rtc::ReceivedPacket& packet) {
         recv_packets_.push_back(
             std::string(reinterpret_cast<const char*>(packet.payload().data()),
                         packet.payload().size()));

@@ -114,9 +114,9 @@ RtpFrameReferenceFinderImpl::PaddingReceived(uint16_t seq_num) {
 
 void RtpFrameReferenceFinderImpl::ClearTo(uint16_t seq_num) {
   struct ClearToVisitor {
-    void operator()(absl::monostate& ref_finder) {}
-    void operator()(RtpGenericFrameRefFinder& ref_finder) {}
-    void operator()(RtpFrameIdOnlyRefFinder& ref_finder) {}
+    void operator()(absl::monostate& /* ref_finder */) {}
+    void operator()(RtpGenericFrameRefFinder& /* ref_finder */) {}
+    void operator()(RtpFrameIdOnlyRefFinder& /* ref_finder */) {}
     void operator()(RtpSeqNumOnlyRefFinder& ref_finder) {
       ref_finder.ClearTo(seq_num);
     }

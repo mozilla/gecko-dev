@@ -241,7 +241,7 @@ TEST(TaskQueuePacedSenderTest, ReschedulesProcessOnRateChange) {
   EXPECT_CALL(packet_router, SendPacket)
       .Times(3)
       .WillRepeatedly([&](std::unique_ptr<RtpPacketToSend> /* packet */,
-                          const PacedPacketInfo& cluster_info) {
+                          const PacedPacketInfo& /* cluster_info */) {
         if (first_packet_time.IsInfinite()) {
           first_packet_time = time_controller.GetClock()->CurrentTime();
         } else if (second_packet_time.IsInfinite()) {

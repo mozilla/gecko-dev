@@ -363,7 +363,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
 
   int16_t network_cost() const override { return network_cost_; }
 
-  void GetStunStats(std::optional<StunStats>* stats) override {}
+  void GetStunStats(std::optional<StunStats>* /* stats */) override {}
 
  protected:
   void UpdateNetworkCost() override;
@@ -427,7 +427,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
   rtc::DiffServCodePoint StunDscpValue() const override;
 
   // Extra work to be done in subclasses when a connection is destroyed.
-  virtual void HandleConnectionDestroyed(Connection* conn) {}
+  virtual void HandleConnectionDestroyed(Connection* /* conn */) {}
 
   void DestroyAllConnections();
 

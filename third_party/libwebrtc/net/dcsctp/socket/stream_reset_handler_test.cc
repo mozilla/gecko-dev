@@ -114,7 +114,7 @@ class StreamResetHandlerTest : public testing::Test {
             kMyInitialTsn,
             kArwnd,
             producer_,
-            [](TimeDelta rtt) {},
+            [](TimeDelta /* rtt */) {},
             []() {},
             *t3_rtx_timer_,
             DcSctpOptions())),
@@ -202,8 +202,8 @@ class StreamResetHandlerTest : public testing::Test {
     reasm_ = std::make_unique<ReassemblyQueue>("log: ", kArwnd);
     reasm_->RestoreFromState(state);
     retransmission_queue_ = std::make_unique<RetransmissionQueue>(
-        "", &callbacks_, kMyInitialTsn, kArwnd, producer_, [](TimeDelta rtt) {},
-        []() {}, *t3_rtx_timer_, DcSctpOptions(),
+        "", &callbacks_, kMyInitialTsn, kArwnd, producer_,
+        [](TimeDelta /* rtt */) {}, []() {}, *t3_rtx_timer_, DcSctpOptions(),
         /*supports_partial_reliability=*/true,
         /*use_message_interleaving=*/false);
     retransmission_queue_->RestoreFromState(state);

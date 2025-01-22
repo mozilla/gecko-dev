@@ -173,7 +173,7 @@ class TestPort : public Port {
                ICE_TYPE_PREFERENCE_HOST, 0, "", true);
   }
 
-  virtual bool SupportsProtocol(absl::string_view protocol) const {
+  virtual bool SupportsProtocol(absl::string_view /* protocol */) const {
     return true;
   }
 
@@ -194,7 +194,7 @@ class TestPort : public Port {
   }
 
   virtual Connection* CreateConnection(const Candidate& remote_candidate,
-                                       CandidateOrigin origin) {
+                                       CandidateOrigin /* origin */) {
     Connection* conn = new ProxyConnection(NewWeakPtr(), 0, remote_candidate);
     AddOrReplaceConnection(conn);
     // Set use-candidate attribute flag as this will add USE-CANDIDATE attribute
@@ -204,8 +204,8 @@ class TestPort : public Port {
   }
   virtual int SendTo(const void* data,
                      size_t size,
-                     const rtc::SocketAddress& addr,
-                     const rtc::PacketOptions& options,
+                     const rtc::SocketAddress& /* addr */,
+                     const rtc::PacketOptions& /* options */,
                      bool payload) {
     if (!payload) {
       auto msg = std::make_unique<IceMessage>();
@@ -220,7 +220,9 @@ class TestPort : public Port {
     }
     return static_cast<int>(size);
   }
-  virtual int SetOption(rtc::Socket::Option opt, int value) { return 0; }
+  virtual int SetOption(rtc::Socket::Option /* opt */, int /* value */) {
+    return 0;
+  }
   virtual int GetOption(rtc::Socket::Option opt, int* value) { return -1; }
   virtual int GetError() { return 0; }
   void Reset() {

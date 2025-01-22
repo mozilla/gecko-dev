@@ -287,7 +287,7 @@ class DcSctpSocketCallbacks {
   //
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
-  virtual void SendPacket(rtc::ArrayView<const uint8_t> data) {}
+  virtual void SendPacket(rtc::ArrayView<const uint8_t> /* data */) {}
 
   // Called when the library wants the packet serialized as `data` to be sent.
   //
@@ -312,7 +312,7 @@ class DcSctpSocketCallbacks {
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
   virtual std::unique_ptr<Timeout> CreateTimeout(
-      webrtc::TaskQueueBase::DelayPrecision precision) {
+      webrtc::TaskQueueBase::DelayPrecision /* precision */) {
     // TODO(hbos): When dependencies have migrated to this new signature, make
     // this pure virtual and delete the other version.
     return CreateTimeout();
@@ -423,7 +423,7 @@ class DcSctpSocketCallbacks {
   // below the threshold set when calling `SetBufferedAmountLowThreshold`.
   //
   // It is allowed to call into this library from within this callback.
-  virtual void OnBufferedAmountLow(StreamID stream_id) {}
+  virtual void OnBufferedAmountLow(StreamID /* stream_id */) {}
 
   // Will be called when the total amount of data buffered (in the entire send
   // buffer, for all streams) falls to or below the threshold specified in
@@ -456,7 +456,7 @@ class DcSctpSocketCallbacks {
   //
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
-  virtual void OnLifecycleMessageFullySent(LifecycleId lifecycle_id) {}
+  virtual void OnLifecycleMessageFullySent(LifecycleId /* lifecycle_id */) {}
 
   // OnLifecycleMessageExpired will be called when a message has expired. If it
   // was expired with data remaining in the send queue that had not been sent
@@ -474,8 +474,8 @@ class DcSctpSocketCallbacks {
   //
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
-  virtual void OnLifecycleMessageExpired(LifecycleId lifecycle_id,
-                                         bool maybe_delivered) {}
+  virtual void OnLifecycleMessageExpired(LifecycleId /* lifecycle_id */,
+                                         bool /* maybe_delivered */) {}
 
   // OnLifecycleMessageDelivered will be called when a non-expired message has
   // been acknowledged by the peer as delivered.
@@ -493,7 +493,7 @@ class DcSctpSocketCallbacks {
   //
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
-  virtual void OnLifecycleMessageDelivered(LifecycleId lifecycle_id) {}
+  virtual void OnLifecycleMessageDelivered(LifecycleId /* lifecycle_id */) {}
 
   // OnLifecycleEnd will be called when a lifecycle event has reached its end.
   // It will be called when processing of a message is complete, no matter how
@@ -513,7 +513,7 @@ class DcSctpSocketCallbacks {
   //
   // Note that it's NOT ALLOWED to call into this library from within this
   // callback.
-  virtual void OnLifecycleEnd(LifecycleId lifecycle_id) {}
+  virtual void OnLifecycleEnd(LifecycleId /* lifecycle_id */) {}
 };
 
 // The DcSctpSocket implementation implements the following interface.

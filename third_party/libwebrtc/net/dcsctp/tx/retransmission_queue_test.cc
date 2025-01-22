@@ -81,7 +81,7 @@ class RetransmissionQueueTest : public testing::Test {
 
   std::function<SendQueue::DataToSend(Timestamp, size_t)> CreateChunk(
       OutgoingMessageId message_id) {
-    return [this, message_id](Timestamp now, size_t max_size) {
+    return [this, message_id](Timestamp /* now */, size_t /* max_size */) {
       return SendQueue::DataToSend(message_id,
                                    gen_.Ordered({1, 2, 3, 4}, "BE"));
     };

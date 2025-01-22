@@ -283,7 +283,7 @@ void SimulcastRateAllocator::DistributeAllocationToTemporalLayers(
 
 std::vector<uint32_t> SimulcastRateAllocator::DefaultTemporalLayerAllocation(
     int bitrate_kbps,
-    int max_bitrate_kbps,
+    int /* max_bitrate_kbps */,
     int simulcast_id) const {
   const size_t num_temporal_layers = NumTemporalStreams(simulcast_id);
   std::vector<uint32_t> bitrates;

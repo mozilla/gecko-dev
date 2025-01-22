@@ -28,7 +28,7 @@ class FuzzerTimeout : public Timeout {
   explicit FuzzerTimeout(std::set<TimeoutID>& active_timeouts)
       : active_timeouts_(active_timeouts) {}
 
-  void Start(DurationMs duration_ms, TimeoutID timeout_id) override {
+  void Start(DurationMs /* duration_ms */, TimeoutID timeout_id) override {
     // Start is only allowed to be called on stopped or expired timeouts.
     if (timeout_id_.has_value()) {
       // It has been started before, but maybe it expired. Ensure that it's not
@@ -60,22 +60,25 @@ class FuzzerCallbacks : public DcSctpSocketCallbacks {
     sent_packets_.emplace_back(std::vector<uint8_t>(data.begin(), data.end()));
   }
   std::unique_ptr<Timeout> CreateTimeout(
-      webrtc::TaskQueueBase::DelayPrecision precision) override {
+      webrtc::TaskQueueBase::DelayPrecision /* precision */) override {
     // The fuzzer timeouts don't implement |precision|.
     return std::make_unique<FuzzerTimeout>(active_timeouts_);
   }
   webrtc::Timestamp Now() override { return webrtc::Timestamp::Millis(42); }
-  uint32_t GetRandomInt(uint32_t low, uint32_t high) override {
+  uint32_t GetRandomInt(uint32_t /* low */, uint32_t /* high */) override {
     return kRandomValue;
   }
-  void OnMessageReceived(DcSctpMessage message) override {}
-  void OnError(ErrorKind error, absl::string_view message) override {}
-  void OnAborted(ErrorKind error, absl::string_view message) override {}
+  void OnMessageReceived(DcSctpMessage /* message */) override {}
+  void OnError(ErrorKind /* error */,
+               absl::string_view /* message */) override {}
+  void OnAborted(ErrorKind /* error */,
+                 absl::string_view /* message */) override {}
   void OnConnected() override {}
   void OnClosed() override {}
   void OnConnectionRestarted() override {}
-  void OnStreamsResetFailed(rtc::ArrayView<const StreamID> outgoing_streams,
-                            absl::string_view reason) override {}
+  void OnStreamsResetFailed(
+      rtc::ArrayView<const StreamID> /* outgoing_streams */,
+      absl::string_view /* reason */) override {}
   void OnStreamsResetPerformed(
       rtc::ArrayView<const StreamID> outgoing_streams) override {}
   void OnIncomingStreamsReset(

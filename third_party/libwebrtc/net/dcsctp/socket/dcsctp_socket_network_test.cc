@@ -216,18 +216,19 @@ class SctpActor : public DcSctpSocketCallbacks {
 
   void OnConnectionRestarted() override {}
 
-  void OnStreamsResetFailed(rtc::ArrayView<const StreamID> outgoing_streams,
-                            absl::string_view reason) override {}
+  void OnStreamsResetFailed(
+      rtc::ArrayView<const StreamID> /* outgoing_streams */,
+      absl::string_view /* reason */) override {}
 
   void OnStreamsResetPerformed(
-      rtc::ArrayView<const StreamID> outgoing_streams) override {}
+      rtc::ArrayView<const StreamID> /* outgoing_streams */) override {}
 
   void OnIncomingStreamsReset(
-      rtc::ArrayView<const StreamID> incoming_streams) override {}
+      rtc::ArrayView<const StreamID> /* incoming_streams */) override {}
 
   void NotifyOutgoingMessageBufferEmpty() override {}
 
-  void OnBufferedAmountLow(StreamID stream_id) override {
+  void OnBufferedAmountLow(StreamID /* stream_id */) override {
     if (mode_ == ActorMode::kThroughputSender) {
       std::vector<uint8_t> payload(kHugePayloadSize);
       sctp_socket_.Send(DcSctpMessage(kStreamId, kPpid, std::move(payload)),

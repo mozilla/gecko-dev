@@ -216,16 +216,16 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
     rtc::InitRandom(NULL, 0);
   }
 
-  void OnPortComplete(cricket::Port* port) {
+  void OnPortComplete(cricket::Port* /* port */) {
     ASSERT_FALSE(done_);
     done_ = true;
     error_ = false;
   }
-  void OnPortError(cricket::Port* port) {
+  void OnPortError(cricket::Port* /* port */) {
     done_ = true;
     error_ = true;
   }
-  void OnCandidateError(cricket::Port* port,
+  void OnCandidateError(cricket::Port* /* port */,
                         const cricket::IceCandidateErrorEvent& event) {
     error_event_ = event;
   }
@@ -344,7 +344,7 @@ TEST_F(StunPortWithMockDnsResolverTest, TestPrepareAddressHostname) {
       [](webrtc::MockAsyncDnsResolver* resolver,
          webrtc::MockAsyncDnsResolverResult* resolver_result) {
         EXPECT_CALL(*resolver, Start(kValidHostnameAddr, /*family=*/AF_INET, _))
-            .WillOnce([](const rtc::SocketAddress& addr, int family,
+            .WillOnce([](const rtc::SocketAddress& /* addr */, int /* family */,
                          absl::AnyInvocable<void()> callback) { callback(); });
 
         EXPECT_CALL(*resolver, result)
@@ -370,7 +370,7 @@ TEST_F(StunPortWithMockDnsResolverTest,
       [](webrtc::MockAsyncDnsResolver* resolver,
          webrtc::MockAsyncDnsResolverResult* resolver_result) {
         EXPECT_CALL(*resolver, Start(kValidHostnameAddr, /*family=*/AF_INET, _))
-            .WillOnce([](const rtc::SocketAddress& addr, int family,
+            .WillOnce([](const rtc::SocketAddress& /* addr */, int /* family */,
                          absl::AnyInvocable<void()> callback) { callback(); });
         EXPECT_CALL(*resolver, result)
             .WillRepeatedly(ReturnPointee(resolver_result));

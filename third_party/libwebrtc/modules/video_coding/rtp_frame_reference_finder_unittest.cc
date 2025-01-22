@@ -150,7 +150,7 @@ class TestRtpFrameReferenceFinder : public ::testing::Test {
     RefsToSet(m, refs...);
   }
 
-  void RefsToSet(std::set<int64_t>* m) const {}
+  void RefsToSet(std::set<int64_t>* /* m */) const {}
 
   Random rand_;
   std::unique_ptr<RtpFrameReferenceFinder> reference_finder_;

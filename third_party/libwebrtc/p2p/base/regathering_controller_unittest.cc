@@ -95,7 +95,7 @@ class RegatheringControllerTest : public ::testing::Test,
     allocator_session_->ClearGettingPorts();
   }
 
-  void OnIceRegathering(cricket::PortAllocatorSession* allocator_session,
+  void OnIceRegathering(cricket::PortAllocatorSession* /* allocator_session */,
                         cricket::IceRegatheringReason reason) {
     ++count_[reason];
   }

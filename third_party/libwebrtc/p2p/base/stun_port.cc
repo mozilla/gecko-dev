@@ -129,7 +129,7 @@ UDPPort::AddressResolver::AddressResolver(
 void UDPPort::AddressResolver::Resolve(
     const rtc::SocketAddress& address,
     int family,
-    const webrtc::FieldTrialsView& field_trials) {
+    const webrtc::FieldTrialsView& /* field_trials */) {
   if (resolvers_.find(address) != resolvers_.end())
     return;
 
@@ -240,7 +240,7 @@ void UDPPort::MaybePrepareStunCandidate() {
 }
 
 Connection* UDPPort::CreateConnection(const Candidate& address,
-                                      CandidateOrigin origin) {
+                                      CandidateOrigin /* origin */) {
   if (!SupportsProtocol(address.protocol())) {
     return nullptr;
   }
@@ -281,7 +281,7 @@ int UDPPort::SendTo(const void* data,
                     size_t size,
                     const rtc::SocketAddress& addr,
                     const rtc::PacketOptions& options,
-                    bool payload) {
+                    bool /* payload */) {
   rtc::PacketOptions modified_options(options);
   CopyPortInformationToPacketInfo(&modified_options.info_signaled_after_sent);
   int sent = socket_->SendTo(data, size, addr, modified_options);
@@ -350,7 +350,7 @@ void UDPPort::set_stun_keepalive_delay(const std::optional<int>& delay) {
   stun_keepalive_delay_ = delay.value_or(STUN_KEEPALIVE_INTERVAL);
 }
 
-void UDPPort::OnLocalAddressReady(rtc::AsyncPacketSocket* socket,
+void UDPPort::OnLocalAddressReady(rtc::AsyncPacketSocket* /* socket */,
                                   const rtc::SocketAddress& address) {
   // When adapter enumeration is disabled and binding to the any address, the
   // default local address will be issued as a candidate instead if
@@ -368,7 +368,7 @@ void UDPPort::OnLocalAddressReady(rtc::AsyncPacketSocket* socket,
   MaybePrepareStunCandidate();
 }
 
-void UDPPort::PostAddAddress(bool is_final) {
+void UDPPort::PostAddAddress(bool /* is_final */) {
   MaybeSetPortCompleteOrError();
 }
 
@@ -396,12 +396,12 @@ void UDPPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
   }
 }
 
-void UDPPort::OnSentPacket(rtc::AsyncPacketSocket* socket,
+void UDPPort::OnSentPacket(rtc::AsyncPacketSocket* /* socket */,
                            const rtc::SentPacket& sent_packet) {
   PortInterface::SignalSentPacket(sent_packet);
 }
 
-void UDPPort::OnReadyToSend(rtc::AsyncPacketSocket* socket) {
+void UDPPort::OnReadyToSend(rtc::AsyncPacketSocket* /* socket */) {
   Port::OnReadyToSend();
 }
 

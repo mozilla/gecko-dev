@@ -257,7 +257,9 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   // Default implementation in order to allow downstream usage deletion.
   // TODO: bugs.webrtc.org/42224914 - Remove when all downstream overrides are
   // gone.
-  virtual void SetIceTiebreaker(uint64_t tiebreaker) { RTC_CHECK_NOTREACHED(); }
+  virtual void SetIceTiebreaker(uint64_t /* tiebreaker */) {
+    RTC_CHECK_NOTREACHED();
+  }
 
   virtual void SetIceCredentials(absl::string_view ice_ufrag,
                                  absl::string_view ice_pwd);

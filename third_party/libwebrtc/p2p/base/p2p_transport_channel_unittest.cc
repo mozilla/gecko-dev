@@ -194,7 +194,7 @@ class ResolverFactoryFixture : public webrtc::MockAsyncDnsResolverFactory {
     mock_async_dns_resolver_ = std::make_unique<webrtc::MockAsyncDnsResolver>();
     EXPECT_CALL(*mock_async_dns_resolver_, Start(_, _))
         .WillRepeatedly(
-            [](const rtc::SocketAddress& addr,
+            [](const rtc::SocketAddress& /* addr */,
                absl::AnyInvocable<void()> callback) { callback(); });
     EXPECT_CALL(*mock_async_dns_resolver_, result())
         .WillOnce(ReturnRef(mock_async_dns_resolver_result_));

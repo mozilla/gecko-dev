@@ -19,7 +19,8 @@ PacketTransportInternal::PacketTransportInternal() = default;
 
 PacketTransportInternal::~PacketTransportInternal() = default;
 
-bool PacketTransportInternal::GetOption(rtc::Socket::Option opt, int* value) {
+bool PacketTransportInternal::GetOption(rtc::Socket::Option /* opt */,
+                                        int* /* value */) {
   return false;
 }
 

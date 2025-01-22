@@ -132,7 +132,7 @@ size_t AsyncStunTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
 }
 
 size_t AsyncStunTCPSocket::GetExpectedLength(const void* data,
-                                             size_t len,
+                                             size_t /* len */,
                                              int* pad_bytes) {
   *pad_bytes = 0;
   PacketLength pkt_len =
