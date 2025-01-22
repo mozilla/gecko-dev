@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.storage.CreditCardsAddressesStorage
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
@@ -65,8 +66,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
          * @param gleanDebugToolsStore [GleanDebugToolsStore] used to dispatch glean debug tools actions.
          * @param loginsStorage [LoginsStorage] used to access logins for [LoginsScreen].
          * @param addressesDebugLocalesRepository used to control storage for [AddressesTools].
+         * @param creditCardsAddressesStorage used to access addresses for [AddressesTools].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          */
+        @Suppress("LongParameterList")
         fun generateDebugDrawerDestinations(
             debugDrawerStore: DebugDrawerStore,
             browserStore: BrowserStore,
@@ -74,6 +77,7 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
             gleanDebugToolsStore: GleanDebugToolsStore,
             loginsStorage: LoginsStorage,
             addressesDebugLocalesRepository: AddressesDebugLocalesRepository,
+            creditCardsAddressesStorage: CreditCardsAddressesStorage,
             inactiveTabsEnabled: Boolean,
         ): List<DebugDrawerDestination> =
             entries.map { debugDrawerRoute ->
@@ -109,7 +113,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                             debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.Addresses)
                         }
                         content = {
-                            AddressesTools(addressesDebugLocalesRepository)
+                            AddressesTools(
+                                debugLocalesRepository = addressesDebugLocalesRepository,
+                                creditCardsAddressesStorage = creditCardsAddressesStorage,
+                            )
                         }
                     }
 
