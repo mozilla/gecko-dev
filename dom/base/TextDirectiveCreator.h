@@ -46,6 +46,18 @@ class TextDirectiveCandidate {
   static Result<TextDirectiveCandidate, ErrorResult> CreateFromInputRange(
       const nsRange* aInputRange);
 
+  static Result<TextDirectiveCandidate, ErrorResult> CreateFromStartAndEndRange(
+      const nsRange* aStartRange, const nsRange* aEndRange);
+
+  /** Returns true if the candidate uses exact matching (and not range-based) */
+  bool UseExactMatch() const { return !mEndRange; }
+
+  nsRange* StartRange() { return mStartRange; }
+  const nsRange* StartRange() const { return mStartRange; }
+
+  nsRange* EndRange() { return mEndRange; }
+  const nsRange* EndRange() const { return mEndRange; }
+
   /**
    * @brief Returns a percent-encoded text directive string representation of
    *        this candidate.
@@ -146,6 +158,38 @@ class TextDirectiveCreator final {
    */
   static Result<nsCString, ErrorResult> CreateTextDirectiveFromRange(
       Document& aDocument, nsRange* aInputRange);
+
+ private:
+  TextDirectiveCreator(Document& aDocument, nsRange* aInputRange,
+                       TextDirectiveCandidate&& aTextDirective);
+  /**
+   * Find all ranges up to the end of the target range that have the same
+   * content. The input range will *not* be part of the result, therefore an
+   * empty array indicates that there are no conflicts and the text directive
+   * can be constructed trivially.
+   */
+  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+  FindAllMatchingCandidates();
+
+  /**
+   * @brief Find all occurrences of `aSearchQuery` in the partial document.
+   *
+   * This method uses `nsFind` to perform a case-insensitive search for
+   * `aSearchQuery` in the document up to the end of `mInputRange`. It is not
+   * necessary to continue searching after the end of our input range.
+   *
+   * @return List of `nsRange`s which have the case-insensitive-same content as
+   *         `mInputRange`.
+   */
+  Result<nsTArray<RefPtr<nsRange>>, ErrorResult> FindAllMatchingRanges(
+      const nsString& aSearchQuery);
+
+  Result<nsCString, ErrorResult> CreateTextDirectiveFromMatches(
+      const nsTArray<TextDirectiveCandidate>& aTextDirectiveMatches);
+
+  Document& mDocument;
+  RefPtr<nsRange> mInputRange;
+  TextDirectiveCandidate mTextDirective;
 };
 }  // namespace mozilla::dom
 #endif
