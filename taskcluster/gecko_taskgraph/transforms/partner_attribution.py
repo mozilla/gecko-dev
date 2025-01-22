@@ -103,13 +103,6 @@ def add_command_arguments(config, tasks):
                     }
                     for upstream_artifact, platform, locale in upstream_artifacts
                 ]
-            worker["artifacts"] = [
-                {
-                    "name": "releng/partner",
-                    "path": "/builds/worker/artifacts/releng/partner",
-                    "type": "directory",
-                }
-            ]
             task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
 
             _build_attribution_config(task, task_platforms, attributions)
