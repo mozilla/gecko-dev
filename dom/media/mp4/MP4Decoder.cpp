@@ -124,8 +124,13 @@ nsTArray<UniquePtr<TrackInfo>> MP4Decoder::GetTracksInfo(
       continue;
     }
 #endif
-#ifdef MOZ_WMF
+// TODO : remove the WMF pref check after removing the hevc pref in bug 1941945.
+#if defined(MOZ_APPLEMEDIA) || defined(MOZ_WMF)
+#  ifdef MOZ_WMF
     if (StaticPrefs::media_wmf_hevc_enabled() && IsH265CodecString(codec)) {
+#  else
+    if (IsH265CodecString(codec)) {
+#  endif
       auto trackInfo =
           CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
               "video/hevc"_ns, aType);
@@ -199,12 +204,18 @@ bool MP4Decoder::IsSupportedType(const MediaContainerType& aType,
           CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
               "video/av1"_ns, aType));
     }
+// TODO : merge hevc codes after removing the hevc pref in bug 1941945.
 #ifdef MOZ_WMF
     if (StaticPrefs::media_wmf_hevc_enabled()) {
       tracks.AppendElement(
           CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
               "video/hevc"_ns, aType));
     }
+#endif
+#ifdef MOZ_APPLEMEDIA
+    tracks.AppendElement(
+        CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+            "video/hevc"_ns, aType));
 #endif
   }
 
