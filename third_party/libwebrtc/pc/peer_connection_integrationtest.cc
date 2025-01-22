@@ -4252,6 +4252,48 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   }
 }
 
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+       AbsCaptureTimestampShouldBeMeteredCorrectly) {
+  metrics::Reset();
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  caller()->AddVideoTrack();
+  auto transceiver = caller()->pc()->GetTransceivers()[0];
+  auto extensions = transceiver->GetHeaderExtensionsToNegotiate();
+  bool found = false;
+  for (auto& extension : extensions) {
+    if (extension.uri == RtpExtension::kAbsoluteCaptureTimeUri) {
+      extension.direction = RtpTransceiverDirection::kSendRecv;
+      found = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(found);
+  ASSERT_TRUE(transceiver->SetHeaderExtensionsToNegotiate(extensions).ok());
+
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  const auto& negotiated_header_extensions = caller()
+                                                 ->pc()
+                                                 ->remote_description()
+                                                 ->description()
+                                                 ->contents()[0]
+                                                 .media_description()
+                                                 ->rtp_header_extensions();
+  ASSERT_TRUE(RtpExtension::FindHeaderExtensionByUri(
+      negotiated_header_extensions, RtpExtension::kAbsoluteCaptureTimeUri,
+      RtpExtension::kDiscardEncryptedExtension));
+  ASSERT_TRUE_WAIT(
+      metrics::NumSamples("WebRTC.Call.AbsCapture.ExtensionWait") > 0,
+      kDefaultTimeout);
+  // Observed deltas are up to 37 msec. Allow 100 msec.
+  EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Delta"), 100'000);
+  ASSERT_TRUE_WAIT(metrics::NumSamples("WebRTC.Call.AbsCapture.OffsetWait") > 0,
+                   kDefaultTimeout);
+  // On a point-to-point call, we expect the offset to be zero.
+  EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Offset"), 2);
+}
+
 }  // namespace
 
 }  // namespace webrtc

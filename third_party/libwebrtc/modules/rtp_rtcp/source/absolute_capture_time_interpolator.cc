@@ -78,9 +78,10 @@ AbsoluteCaptureTimeInterpolator::OnReceivePacket(
                               (receive_time - *first_packet_time_).ms());
       first_extension_time_ = receive_time;
     }
-    Timestamp capture_as_timestamp = Timestamp::Micros(
-        UQ32x32ToInt64Us(received_extension->absolute_capture_timestamp));
-    TimeDelta capture_delta = receive_time - capture_as_timestamp;
+    uint64_t ntp_delta =
+        uint64_t{clock_->ConvertTimestampToNtpTime(receive_time)} -
+        received_extension->absolute_capture_timestamp;
+    TimeDelta capture_delta = TimeDelta::Micros(UQ32x32ToInt64Us(ntp_delta));
     RTC_HISTOGRAM_COUNTS_1G("WebRTC.Call.AbsCapture.Delta",
                             abs(capture_delta.us()));
     if (previous_capture_delta_) {
