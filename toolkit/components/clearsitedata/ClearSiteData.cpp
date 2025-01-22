@@ -185,6 +185,12 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
   int32_t cleanFlags = 0;
   RefPtr<PendingCleanupHolder> holder = new PendingCleanupHolder(aChannel);
 
+  if (StaticPrefs::privacy_clearSiteDataHeader_cache_enabled() &&
+      (flags & eCache)) {
+    LogOpToConsole(aChannel, uri, eCache);
+    cleanFlags |= nsIClearDataService::CLEAR_ALL_CACHES;
+  }
+
   if (flags & eCookies) {
     LogOpToConsole(aChannel, uri, eCookies);
     cleanFlags |= nsIClearDataService::CLEAR_COOKIES |
@@ -234,6 +240,13 @@ uint32_t ClearSiteData::ParseHeader(nsIHttpChannel* aChannel,
     // around tokens.
     value.StripTaggedASCII(mozilla::ASCIIMask::MaskWhitespace());
 
+    if (StaticPrefs::privacy_clearSiteDataHeader_cache_enabled()) {
+      if (value.EqualsLiteral("\"cache\"")) {
+        flags |= eCache;
+        continue;
+      }
+    }
+
     if (value.EqualsLiteral("\"cookies\"")) {
       flags |= eCookies;
       continue;
@@ -246,6 +259,9 @@ uint32_t ClearSiteData::ParseHeader(nsIHttpChannel* aChannel,
 
     if (value.EqualsLiteral("\"*\"")) {
       flags = eCookies | eStorage;
+      if (StaticPrefs::privacy_clearSiteDataHeader_cache_enabled()) {
+        flags |= eCache;
+      }
       break;
     }
 
@@ -297,6 +313,10 @@ void ClearSiteData::LogToConsoleInternal(
 
 void ClearSiteData::TypeToString(Type aType, nsAString& aStr) const {
   switch (aType) {
+    case eCache:
+      aStr.AssignLiteral("cache");
+      break;
+
     case eCookies:
       aStr.AssignLiteral("cookies");
       break;

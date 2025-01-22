@@ -39,6 +39,7 @@ class ClearSiteData final : public nsIObserver {
   uint32_t ParseHeader(nsIHttpChannel* aChannel, nsIURI* aURI) const;
 
   enum Type {
+    eCache = 0x01,
     eCookies = 0x02,
     eStorage = 0x04,
   };
