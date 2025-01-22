@@ -209,8 +209,6 @@ support-files = [
 ["test_defineESModuleGetters_options_worker.js"]
 skip-if = ["os == 'android'"]
 
-["test_defineModuleGetter.js"]
-
 ["test_envChain_frameScript.js"]
 
 ["test_envChain_subscript.js"]
