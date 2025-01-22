@@ -162,6 +162,17 @@ class TextDirectiveUtil final {
    */
   static void AdvanceStartToNextNonWhitespacePosition(nsRange& aRange);
 
+  static RangeBoundary MoveBoundaryToNextNonWhitespacePosition(
+      const RangeBoundary& aRangeBoundary);
+  static RangeBoundary MoveBoundaryToPreviousNonWhitespacePosition(
+      const RangeBoundary& aRangeBoundary);
+
+  static Result<Maybe<RangeBoundary>, ErrorResult> FindBlockBoundaryInRange(
+      const nsRange& aRange, TextScanDirection aDirection);
+
+  static Result<RangeBoundary, ErrorResult> FindNextBlockBoundary(
+      const RangeBoundary& aRangeBoundary, TextScanDirection aDirection);
+
   /**
    * @brief Compares two range boundaries whether they are "normalized equal".
    *
@@ -189,6 +200,20 @@ class TextDirectiveUtil final {
    * @return Returns an error value if something failed along the way.
    */
   static Result<Ok, ErrorResult> ExtendRangeToWordBoundaries(nsRange& aRange);
+
+  /**
+   * @brief Create a `TextDirective` From `nsRange`s representing the context
+   *        terms.
+   *
+   * Every parameter besides `aStart` is allowed to be nullptr or a collapsed
+   * range. Ranges are converted to strings using their `ToString()` method.
+   * Whitespace is compressed.
+   *
+   * @return The created `TextDirective`, or an error if converting the ranges
+   *         to string fails.
+   */
+  static Result<TextDirective, ErrorResult> CreateTextDirectiveFromRanges(
+      nsRange* aPrefix, nsRange* aStart, nsRange* aEnd, nsRange* aSuffix);
 };
 }  // namespace mozilla::dom
 

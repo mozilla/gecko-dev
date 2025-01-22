@@ -6,7 +6,11 @@
 
 #ifndef DOM_TEXTDIRECTIVECREATOR_H_
 #define DOM_TEXTDIRECTIVECREATOR_H_
+
+#include <tuple>
+#include "RangeBoundary.h"
 #include "nsStringFwd.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
 
 class nsRange;
@@ -18,6 +22,91 @@ class ErrorResult;
 namespace mozilla::dom {
 class Document;
 
+/**
+ * @brief Helper which represents a potential text directive using `nsRange`s.
+ *
+ * In addition to the _current_ context terms of the text directive, it also
+ * contains the _fully expanded_ context terms, i.e. the ranges until the next
+ * block boundary.
+ */
+class TextDirectiveCandidate {
+ public:
+  /**
+   * @brief Creates a candidate from a given input range.
+   *
+   * This function determines whether the candidate needs to use exact or
+   * range-based matching based on whether the input range contains a block
+   * boundary.
+   * Then, it determines the fully-expanded ranges for all context terms and
+   * creates an instance.
+   *
+   * @param aInputRange The input range.
+   * @return A text directive candidate, or an error.
+   */
+  static Result<TextDirectiveCandidate, ErrorResult> CreateFromInputRange(
+      const nsRange* aInputRange);
+
+ private:
+  TextDirectiveCandidate(nsRange* aStartRange, nsRange* aFullStartRange,
+                         nsRange* aEndRange, nsRange* aFullEndRange,
+                         nsRange* aPrefixRange, nsRange* aFullPrefixRange,
+                         nsRange* aSuffixRange, nsRange* aFullSuffixRange);
+
+  /**
+   * @brief Creates a range which starts at the beginning of `aRange` and ends
+   *        at the first block boundary inside of `aRange`.
+   *
+   * @return nullptr if `aRange` does not contain a block boundary.
+   */
+  static Result<RefPtr<nsRange>, ErrorResult>
+  MaybeCreateStartToBlockBoundaryRange(const nsRange& aRange);
+
+  /**
+   * @brief Creates a range which starts at the last block boundary in `aRange`
+   *        and ends at `aRange`s end.
+   *
+   * @return nullptr if `aRange` does not contain a block boundary.
+   */
+  static Result<RefPtr<nsRange>, ErrorResult>
+  MaybeCreateEndToBlockBoundaryRange(const nsRange& aRange);
+
+  /**
+   * @brief Creates the collapsed and fully expanded prefix ranges.
+   *
+   * The created ranges _end_ at `aRangeBoundary`. The first returned element is
+   * collapsed to `aRangeBoundary`, the second one is expanded to the nearest
+   * block boundary to the left.
+   *
+   * @param aRangeBoundary The end point of the created ranges.
+   * @return The first element is the collapsed range, the second one is the
+   *         fully expanded range.
+   */
+  static Result<std::tuple<RefPtr<nsRange>, RefPtr<nsRange>>, ErrorResult>
+  CreatePrefixRanges(const RangeBoundary& aRangeBoundary);
+
+  /**
+   * @brief Creates the collapsed and fully expanded suffix ranges.
+   *
+   * The created ranges _start_ at `aRangeBoundary`. The first returned element
+   * is collapsed to `aRangeBoundary`, the second one is expanded to the nearest
+   * block boundary to the right.
+   *
+   * @param aRangeBoundary The start point of the created ranges.
+   * @return The first element is the collapsed range, the second one is the
+   *         fully expanded range.
+   */
+  static Result<std::tuple<RefPtr<nsRange>, RefPtr<nsRange>>, ErrorResult>
+  CreateSuffixRanges(const RangeBoundary& aRangeBoundary);
+  RefPtr<nsRange> mStartRange;
+  RefPtr<nsRange> mFullStartRange;
+  RefPtr<nsRange> mEndRange;
+  RefPtr<nsRange> mFullEndRange;
+
+  RefPtr<nsRange> mPrefixRange;
+  RefPtr<nsRange> mFullPrefixRange;
+  RefPtr<nsRange> mSuffixRange;
+  RefPtr<nsRange> mFullSuffixRange;
+};
 
 /**
  * @brief Helper class to create a text directive string from a given `nsRange`.
