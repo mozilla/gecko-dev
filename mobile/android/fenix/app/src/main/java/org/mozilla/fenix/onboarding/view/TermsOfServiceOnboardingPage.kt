@@ -70,11 +70,11 @@ fun TermsOfServiceOnboardingPage(
                     style = FirefoxTheme.typography.headline5,
                 )
 
-                Spacer(Modifier.height(25.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Text(
                     text = description,
-                    color = FirefoxTheme.colors.textPrimary,
+                    color = FirefoxTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
                     style = FirefoxTheme.typography.subtitle1,
                 )
