@@ -7,6 +7,8 @@ package org.mozilla.fenix.webcompat.store
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,6 +36,71 @@ class WebCompatReporterStoreTest {
     fun `WHEN the broken URL is updated with an invalid URL THEN the state should have an input error`() {
         store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = ""))
         assertTrue(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the reason is not empty THEN the state should not have an input error`() {
+        assertNull(store.state.reason)
+        assertTrue(store.state.hasReasonDropdownError)
+
+        store.dispatch(WebCompatReporterAction.ReasonChanged(WebCompatReporterState.BrokenSiteReason.Slow))
+
+        assertNotNull(store.state.reason)
+        assertFalse(store.state.hasReasonDropdownError)
+    }
+
+    @Test
+    fun `WHEN the reason is empty THEN the state should have an input error`() {
+        val store = WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                reason = null,
+            ),
+        )
+
+        assertNull(store.state.reason)
+        assertTrue(store.state.hasReasonDropdownError)
+    }
+
+    @Test
+    fun `WHEN there is no error THEN the submit button should be enabled`() {
+        val store = WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                enteredUrl = "https://www.mozilla.org/",
+                reason = WebCompatReporterState.BrokenSiteReason.Slow,
+            ),
+        )
+
+        assertFalse(store.state.hasUrlTextError)
+        assertFalse(store.state.hasReasonDropdownError)
+        assertTrue(store.state.isSubmitEnabled)
+    }
+
+    @Test
+    fun `WHEN the URL has an error THEN the submit button should be disabled`() {
+        val store = WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                enteredUrl = "",
+                reason = WebCompatReporterState.BrokenSiteReason.Slow,
+            ),
+        )
+
+        assertTrue(store.state.hasUrlTextError)
+        assertFalse(store.state.hasReasonDropdownError)
+        assertFalse(store.state.isSubmitEnabled)
+    }
+
+    @Test
+    fun `WHEN the reason has an error THEN the submit button should be disabled`() {
+        val store = WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                enteredUrl = "https://www.mozilla.org/",
+                reason = null,
+            ),
+        )
+
+        assertFalse(store.state.hasUrlTextError)
+        assertTrue(store.state.hasReasonDropdownError)
+        assertFalse(store.state.isSubmitEnabled)
     }
 
     @Test

@@ -22,7 +22,7 @@ import org.mozilla.fenix.compose.MenuItem
  *
  * @property tabUrl The URL of the current tab when the reporter was opened.
  * @property enteredUrl The URL that is being reported as broken.
- * @property reason Optional param specifying the reason that [enteredUrl] is broken.
+ * @property reason Specifies the reason that [enteredUrl] is broken.
  * @property problemDescription Description of the encountered problem.
  */
 data class WebCompatReporterState(
@@ -84,6 +84,18 @@ data class WebCompatReporterState(
      */
     val hasUrlTextError: Boolean
         get() = enteredUrl.isEmpty()
+
+    /**
+     * Whether the reason dropdown has an error.
+     */
+    val hasReasonDropdownError: Boolean
+        get() = reason == null
+
+    /**
+     * Whether the submit button is enabled.
+     */
+    val isSubmitEnabled: Boolean
+        get() = !hasUrlTextError && !hasReasonDropdownError
 }
 
 /**

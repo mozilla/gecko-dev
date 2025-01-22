@@ -1308,9 +1308,13 @@
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
     <string name="webcompat_reporter_url_error_invalid">Please enter a valid URL</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
-    <string name="webcompat_reporter_label_whats_broken">What’s broken? (optional)</string>
-    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">What’s broken? (optional)</string>
+    <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken_2">What’s broken?</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">Choose reason</string>
+    <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason_error">Please choose a reason</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">Describe the problem (optional)</string>
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
