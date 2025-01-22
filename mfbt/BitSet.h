@@ -56,7 +56,7 @@ class BitSet {
       return *this;
     }
 
-    MOZ_IMPLICIT operator bool() const { return mBitSet.Test(mPos); }
+    MOZ_IMPLICIT operator bool() const { return mBitSet.test(mPos); }
 
    private:
     BitSet<N, Word>& mBitSet;
@@ -76,9 +76,9 @@ class BitSet {
     PodCopy(mStorage.begin(), aStorage.Elements(), kNumWords);
   }
 
-  static constexpr size_t Size() { return N; }
+  static constexpr size_t size() { return N; }
 
-  constexpr bool Test(size_t aPos) const {
+  constexpr bool test(size_t aPos) const {
     MOZ_ASSERT(aPos < N);
     return mStorage[aPos / kBitsPerWord] & (Word(1) << (aPos % kBitsPerWord));
   }
@@ -94,7 +94,7 @@ class BitSet {
 
   explicit constexpr operator bool() { return !IsEmpty(); }
 
-  constexpr bool operator[](size_t aPos) const { return Test(aPos); }
+  constexpr bool operator[](size_t aPos) const { return test(aPos); }
 
   Reference operator[](size_t aPos) {
     MOZ_ASSERT(aPos < N);
@@ -193,7 +193,7 @@ class BitSet {
     return wordIndex * kBitsPerWord + pos;
   }
 
-  size_t FindLast() const { return FindPrev(Size() - 1); }
+  size_t FindLast() const { return FindPrev(size() - 1); }
 
   // Return the position of the previous bit set starting from |aFromPos|
   // inclusive, or SIZE_MAX if none.

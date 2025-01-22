@@ -1111,7 +1111,7 @@ void AntiTrackingUtils::UpdateAntiTrackingInfoForChannel(nsIChannel* aChannel) {
   // Note that we need to put this after computing the IsThirdPartyToTopWindow
   // flag because it will be used when getting the granular fingerprinting
   // protections.
-  Maybe<RFPTarget> overriddenFingerprintingSettings =
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings =
       nsRFPService::GetOverriddenFingerprintingSettingsForChannel(aChannel);
 
   if (overriddenFingerprintingSettings) {

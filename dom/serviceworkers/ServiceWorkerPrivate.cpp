@@ -553,8 +553,8 @@ nsresult ServiceWorkerPrivate::Initialize() {
   // it's a third-party service worker. So, the cookieJarSettings can directly
   // use the partitionKey from it. For first-party case, we can populate the
   // partitionKey from the principal URI.
-  Maybe<uint64_t> overriddenFingerprintingSettingsArg;
-  Maybe<RFPTarget> overriddenFingerprintingSettings;
+  Maybe<RFPTargetSet> overriddenFingerprintingSettingsArg;
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings;
   nsCOMPtr<nsIURI> firstPartyURI;
   bool foreignByAncestorContext = false;
   bool isOn3PCBExceptionList = false;
@@ -583,7 +583,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
                 firstPartyURI, uri);
         if (overriddenFingerprintingSettings.isSome()) {
           overriddenFingerprintingSettingsArg.emplace(
-              uint64_t(overriddenFingerprintingSettings.ref()));
+              overriddenFingerprintingSettings.ref());
         }
 
         RefPtr<net::CookieService> csSingleton =
@@ -626,7 +626,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
 
       if (overriddenFingerprintingSettings.isSome()) {
         overriddenFingerprintingSettingsArg.emplace(
-            uint64_t(overriddenFingerprintingSettings.ref()));
+            overriddenFingerprintingSettings.ref());
       }
     }
   } else {
@@ -642,7 +642,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
 
     if (overriddenFingerprintingSettings.isSome()) {
       overriddenFingerprintingSettingsArg.emplace(
-          uint64_t(overriddenFingerprintingSettings.ref()));
+          overriddenFingerprintingSettings.ref());
     }
   }
 

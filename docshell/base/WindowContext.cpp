@@ -14,7 +14,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/UserActivationIPCUtils.h"
 #include "mozilla/PermissionDelegateIPCUtils.h"
-#include "mozilla/RFPTargetIPCUtils.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -22,6 +21,7 @@
 #include "nsIScriptError.h"
 #include "nsIWebProgressListener.h"
 #include "nsIXULRuntime.h"
+#include "nsRFPTargetSetIDL.h"
 #include "nsRefPtrHashtable.h"
 #include "nsContentUtils.h"
 
@@ -76,6 +76,19 @@ bool WindowContext::IsInBFCache() {
     return mBrowsingContext->IsInBFCache();
   }
   return TopWindowContext()->GetWindowStateSaved();
+}
+
+already_AddRefed<nsIRFPTargetSetIDL>
+WindowContext::GetOverriddenFingerprintingSettingsWebIDL() const {
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings =
+      GetOverriddenFingerprintingSettings();
+  if (overriddenFingerprintingSettings.isNothing()) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIRFPTargetSetIDL> protections =
+      new nsRFPTargetSetIDL(overriddenFingerprintingSettings.ref());
+  return protections.forget();
 }
 
 nsGlobalWindowInner* WindowContext::GetInnerWindow() const {
@@ -241,7 +254,7 @@ bool WindowContext::CanSet(FieldIndex<IDX_ShouldResistFingerprinting>,
 }
 
 bool WindowContext::CanSet(FieldIndex<IDX_OverriddenFingerprintingSettings>,
-                           const Maybe<RFPTarget>& aValue,
+                           const Maybe<RFPTargetSet>& aValue,
                            ContentParent* aSource) {
   return CheckOnlyOwningProcessCanSet(aSource);
 }

@@ -8,6 +8,7 @@ interface URI;
 interface nsIDocShell;
 interface RemoteTab;
 interface nsIDOMProcessParent;
+interface nsIRFPTargetSetIDL;
 
 [Exposed=Window, ChromeOnly]
 interface WindowContext {
@@ -43,7 +44,7 @@ interface WindowContext {
   // null, which means we are using default fingerprinting protection in the
   // context.
   [BinaryName="OverriddenFingerprintingSettingsWebIDL"]
-  readonly attribute unsigned long long? overriddenFingerprintingSettings;
+  readonly attribute nsIRFPTargetSetIDL? overriddenFingerprintingSettings;
 
   /**
    * Partially determines whether script execution is allowed in this

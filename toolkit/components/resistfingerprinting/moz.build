@@ -13,6 +13,7 @@ JAR_MANIFESTS += ["jar.mn"]
 
 UNIFIED_SOURCES += [
     "nsRFPService.cpp",
+    "nsRFPTargetSetIDL.cpp",
     "RelativeTimeline.cpp",
 ]
 # Because nsUserCharacteristics doesn't `use namespace mozilla` (because we're going to wind
@@ -31,10 +32,14 @@ SPHINX_TREES["resistfingerprinting"] = "docs"
 
 FINAL_LIBRARY = "xul"
 
-EXPORTS += ["nsRFPService.h", "nsUserCharacteristics.h", "RFPTargets.inc"]
+EXPORTS += [
+    "nsRFPService.h",
+    "nsRFPTargetSetIDL.h",
+    "nsUserCharacteristics.h",
+    "RFPTargets.inc",
+]
 EXPORTS.mozilla += [
     "RelativeTimeline.h",
-    "RFPTargetIPCUtils.h",
 ]
 EXPORTS.mozilla.gtest += ["nsUserCharacteristics.h"]
 
@@ -54,6 +59,7 @@ XPCOM_MANIFESTS += [
 XPIDL_SOURCES += [
     "nsIFingerprintingWebCompatService.idl",
     "nsIRFPService.idl",
+    "nsIRFPTargetSetIDL.idl",
     "nsIUserCharacteristicsPageService.idl",
 ]
 

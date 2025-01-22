@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/**
+ * Used to represent active RFPTargets.
+ * We used to use uint64_t, but we ran out of bits.
+ */
+[scriptable, uuid(6c072f47-f25c-484f-add8-051b07789593)]
+interface nsIRFPTargetSetIDL : nsISupports {
+  attribute uint64_t low;
+  attribute uint64_t high;
+};

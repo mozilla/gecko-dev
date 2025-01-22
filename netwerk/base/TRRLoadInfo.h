@@ -45,7 +45,7 @@ class TRRLoadInfo final : public nsILoadInfo {
   Maybe<mozilla::dom::ClientInfo> mReservedClientInfo;
   Maybe<mozilla::dom::ClientInfo> mInitialClientInfo;
   Maybe<mozilla::dom::ServiceWorkerDescriptor> mController;
-  Maybe<RFPTarget> mOverriddenFingerprintingSettings;
+  Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
 };
 
 }  // namespace net
