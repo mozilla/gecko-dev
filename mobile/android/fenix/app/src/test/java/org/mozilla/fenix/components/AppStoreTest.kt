@@ -39,6 +39,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getFilteredStories
 import org.mozilla.fenix.ext.getStories
 import org.mozilla.fenix.home.bookmarks.Bookmark
+import org.mozilla.fenix.home.pocket.PocketImpression
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
@@ -519,7 +520,14 @@ class AppStoreTest {
             ),
         )
 
-        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(story1, story3))).join()
+        appStore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                impressions = listOf(
+                    PocketImpression(story = story1, position = 0),
+                    PocketImpression(story = story3, position = 2),
+                ),
+            ),
+        ).join()
 
         assertEquals(4, appStore.state.recommendationState.pocketSponsoredStories.size)
         assertEquals(3, appStore.state.recommendationState.pocketSponsoredStories[0].caps.currentImpressions.size)
@@ -565,8 +573,8 @@ class AppStoreTest {
         appStore.dispatch(
             ContentRecommendationsAction.PocketStoriesShown(
                 listOf(
-                    recommendation1,
-                    recommendation3,
+                    PocketImpression(story = recommendation1, position = 0),
+                    PocketImpression(story = recommendation3, position = 2),
                 ),
             ),
         ).join()

@@ -6,7 +6,6 @@ package org.mozilla.fenix.ext
 
 import io.mockk.every
 import io.mockk.mockk
-import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
@@ -17,6 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mozilla.fenix.TestUtils.getFakeContentRecommendations
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.components.appstate.recommendations.copyWithRecommendationsState
@@ -755,32 +755,6 @@ private fun getFakePocketStories(
                     timeToRead = randomNumber,
                     category = category,
                     timesShown = index.toLong(),
-                ),
-            )
-        }
-    }
-}
-
-private fun getFakeContentRecommendations(
-    limit: Int = 1,
-): List<ContentRecommendation> {
-    return mutableListOf<ContentRecommendation>().apply {
-        for (index in 0 until limit) {
-            add(
-                ContentRecommendation(
-                    corpusItemId = "corpusItemId$index",
-                    scheduledCorpusItemId = "scheduledCorpusItemId$index",
-                    url = "https://story$index.com",
-                    title = "Recommendation - This is a ${"very ".repeat(index)} long title",
-                    excerpt = "Excerpt",
-                    topic = null,
-                    publisher = "Publisher",
-                    isTimeSensitive = false,
-                    imageUrl = "",
-                    tileId = index.toLong(),
-                    receivedRank = index,
-                    recommendedAt = index.toLong(),
-                    impressions = index.toLong(),
                 ),
             )
         }

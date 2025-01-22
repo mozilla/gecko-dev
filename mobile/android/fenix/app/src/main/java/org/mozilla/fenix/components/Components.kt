@@ -42,6 +42,7 @@ import org.mozilla.fenix.ext.sort
 import org.mozilla.fenix.home.PocketUpdatesMiddleware
 import org.mozilla.fenix.home.blocklist.BlocklistHandler
 import org.mozilla.fenix.home.blocklist.BlocklistMiddleware
+import org.mozilla.fenix.home.middleware.HomeTelemetryMiddleware
 import org.mozilla.fenix.messaging.state.MessagingMiddleware
 import org.mozilla.fenix.onboarding.FenixOnboarding
 import org.mozilla.fenix.perf.AppStartReasonProvider
@@ -238,6 +239,7 @@ class Components(private val context: Context) {
                         currentTimeInMillis = { System.currentTimeMillis() },
                     ),
                 ),
+                HomeTelemetryMiddleware(),
             ),
         ).also {
             it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))

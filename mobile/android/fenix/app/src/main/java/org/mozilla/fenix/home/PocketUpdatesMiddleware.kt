@@ -72,7 +72,7 @@ class PocketUpdatesMiddleware(
                 persistStoriesImpressions(
                     coroutineScope = coroutineScope,
                     pocketStoriesService = pocketStoriesService,
-                    updatedStories = action.storiesShown,
+                    updatedStories = action.impressions.map { it.story },
                 )
             }
             is ContentRecommendationsAction.SelectPocketStoriesCategory,

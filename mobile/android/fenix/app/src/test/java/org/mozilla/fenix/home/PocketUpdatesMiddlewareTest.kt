@@ -27,6 +27,7 @@ import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories.SelectedPocketStoriesCategory
+import org.mozilla.fenix.home.pocket.PocketImpression
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 
@@ -58,7 +59,16 @@ class PocketUpdatesMiddlewareTest {
             listOf(pocketMiddleware),
         )
 
-        appstore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(story2))).joinBlocking()
+        appstore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                impressions = listOf(
+                    PocketImpression(
+                        story = story2,
+                        position = 1,
+                    ),
+                ),
+            ),
+        ).joinBlocking()
 
         coVerify { pocketService.updateStoriesTimesShown(listOf(story2.copy(timesShown = 1))) }
     }

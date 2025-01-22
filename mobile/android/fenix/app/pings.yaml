@@ -33,6 +33,17 @@ first-session:
   notification_emails:
     - android-probes@mozilla.com
 
+home:
+  description: |
+    Homepage new tab related instrumentation.
+  include_client_id: true
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1928577
+  data_reviews:
+    - https://phabricator.services.mozilla.com/D233815
+  notification_emails:
+    - android-probes@mozilla.com
+
 topsites-impression:
   description: |
     Recorded when a sponsored top site is rendered and visible on the home

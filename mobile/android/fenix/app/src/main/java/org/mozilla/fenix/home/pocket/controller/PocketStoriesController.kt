@@ -17,6 +17,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.pocket.PocketImpression
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.view.POCKET_CATEGORIES_SELECTED_AT_A_TIME_COUNT
 import org.mozilla.fenix.utils.Settings
@@ -29,9 +30,10 @@ interface PocketStoriesController {
      * Callback to decide what should happen as an effect of a specific story being shown.
      *
      * @param storyShown The just shown [PocketStory].
-     * @param storyPosition `row x column` matrix representing the grid position of the shown story.
+     * @param storyPosition `row x column x index` matrix representing the grid and index position
+     * of the shown story.
      */
-    fun handleStoryShown(storyShown: PocketStory, storyPosition: Pair<Int, Int>)
+    fun handleStoryShown(storyShown: PocketStory, storyPosition: Triple<Int, Int, Int>)
 
     /**
      * Callback to decide what should happen as an effect of a new list of stories being shown.
@@ -51,9 +53,10 @@ interface PocketStoriesController {
      * Callback for when the user clicks on a specific story.
      *
      * @param storyClicked The just clicked [PocketStory].
-     * @param storyPosition `row x column` matrix representing the grid position of the clicked story.
+     * @param storyPosition `row x column x index` matrix representing the grid and index position
+     * of the clicked story.
      */
-    fun handleStoryClicked(storyClicked: PocketStory, storyPosition: Pair<Int, Int>)
+    fun handleStoryClicked(storyClicked: PocketStory, storyPosition: Triple<Int, Int, Int>)
 
     /**
      * Callback for when the "Learn more" link is clicked.
@@ -84,9 +87,18 @@ internal class DefaultPocketStoriesController(
 ) : PocketStoriesController {
     override fun handleStoryShown(
         storyShown: PocketStory,
-        storyPosition: Pair<Int, Int>,
+        storyPosition: Triple<Int, Int, Int>,
     ) {
-        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(storyShown)))
+        appStore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                impressions = listOf(
+                    PocketImpression(
+                        story = storyShown,
+                        position = storyPosition.third,
+                    ),
+                ),
+            ),
+        )
 
         when (storyShown) {
             is PocketSponsoredStory -> {
@@ -112,7 +124,9 @@ internal class DefaultPocketStoriesController(
         // Sponsored stories use a different API for more accurate tracking.
         appStore.dispatch(
             ContentRecommendationsAction.PocketStoriesShown(
-                storiesShown = storiesShown.filter { it is ContentRecommendation || it is PocketRecommendedStory },
+                impressions = storiesShown
+                    .filter { it is ContentRecommendation || it is PocketRecommendedStory }
+                    .map { PocketImpression(story = it, position = storiesShown.indexOf(it)) },
             ),
         )
 
@@ -162,7 +176,7 @@ internal class DefaultPocketStoriesController(
 
     override fun handleStoryClicked(
         storyClicked: PocketStory,
-        storyPosition: Pair<Int, Int>,
+        storyPosition: Triple<Int, Int, Int>,
     ) {
         val newTab = homeActivity.settings().enableHomepageAsNewTab.not()
         homeActivity.openToBrowserAndLoad(
@@ -192,8 +206,13 @@ internal class DefaultPocketStoriesController(
                 Pings.spoc.submit(Pings.spocReasonCodes.click)
             }
 
-            is PocketStory.ContentRecommendation -> {
-                // no-op
+            is ContentRecommendation -> {
+                appStore.dispatch(
+                    ContentRecommendationsAction.ContentRecommendationClicked(
+                        recommendation = storyClicked,
+                        position = storyPosition.third,
+                    ),
+                )
             }
         }
     }

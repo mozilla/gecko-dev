@@ -304,8 +304,8 @@ fun PocketStories(
     contentPadding: Dp,
     backgroundColor: Color = FirefoxTheme.colors.layer2,
     showPlaceholderStory: Boolean = true,
-    onStoryShown: (PocketStory, Pair<Int, Int>) -> Unit,
-    onStoryClicked: (PocketStory, Pair<Int, Int>) -> Unit,
+    onStoryShown: (PocketStory, Triple<Int, Int, Int>) -> Unit,
+    onStoryClicked: (PocketStory, Triple<Int, Int, Int>) -> Unit,
     onDiscoverMoreClicked: (String) -> Unit,
 ) {
     // Show stories in at most 3 rows but on any number of columns depending on the data received.
@@ -368,7 +368,10 @@ fun PocketStories(
                                         .buildUpon()
                                         .appendQueryParameter(URI_PARAM_UTM_KEY, POCKET_STORIES_UTM_VALUE)
                                         .build().toString()
-                                    onStoryClicked(it.copy(url = uri), rowIndex to columnIndex)
+                                    onStoryClicked(
+                                        it.copy(url = uri),
+                                        Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                    )
                                 }
                             }
 
@@ -392,7 +395,12 @@ fun PocketStories(
                                 Box(
                                     modifier = Modifier.onShown(
                                         threshold = 0.5f,
-                                        onVisible = { onStoryShown(story, rowIndex to columnIndex) },
+                                        onVisible = {
+                                            onStoryShown(
+                                                story,
+                                                Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                            )
+                                        },
                                         screenBounds = screenBounds,
                                     ),
                                 ) {
@@ -400,16 +408,24 @@ fun PocketStories(
                                         story = story,
                                         backgroundColor = backgroundColor,
                                     ) {
-                                        onStoryClicked(story, rowIndex to columnIndex)
+                                        onStoryClicked(
+                                            story,
+                                            Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                        )
                                     }
                                 }
                             }
 
-                            is ContentRecommendation -> ContentRecommendation(
-                                recommendation = story,
-                                backgroundColor = backgroundColor,
-                            ) {
-                                onStoryClicked(story, rowIndex to columnIndex)
+                            is ContentRecommendation -> {
+                                ContentRecommendation(
+                                    recommendation = story,
+                                    backgroundColor = backgroundColor,
+                                ) {
+                                    onStoryClicked(
+                                        story,
+                                        Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                    )
+                                }
                             }
                         }
                     }

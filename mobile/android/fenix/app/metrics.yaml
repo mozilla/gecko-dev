@@ -12896,3 +12896,83 @@ webcompatreporting:
       - twisniewski@mozilla.com
       - webcompat-reporting-tool-telemetry@mozilla.com
     expires: never
+
+home.content.article:
+  impression:
+    type: event
+    description: >
+      Recorded when a pocket tile is visible to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928577
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D233815
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    extra_keys:
+      is_sponsored: &is_sponsored_pocket
+        description: Whether the pocket tile was sponsored (has an ad callback).
+        type: boolean
+      position: &pocket_position
+        description: The position (0-index) of the pocket tile.
+        type: quantity
+      tile_id: &pocket_tile_id
+        description: >
+          A content identifier.
+          For organic Pocket recommendations it is an opaque id produced by
+          Pocket's recommendation systems.
+          For sponsored Pocket content it is Kevel's "ad ID".
+        type: quantity
+      scheduled_corpus_item_id: &scheduled_corpus_item_id
+        description: >
+          A content identifier.
+          For organic content recommendations it is an opaque id produced by
+          Merino's recommendation systems that corresponds uniquely to
+          a piece of content scheduled for a specific day on a specific surface.
+          This is the replacement for tile_id.
+        type: string
+      corpus_item_id: &corpus_item_id
+        description: >
+          A content identifier.
+          For organic content recommendations it is an opaque id produced by
+          Merino's recommendation systems that corresponds uniquely to the URL.
+          This is the replacement for tile_id and scheduled_corpus_item_id.
+        type: string
+      received_rank: &received_rank
+        description: The rank or order of the recommendation at the time it was sent to the client.
+        type: quantity
+      recommended_at: &recommended_at
+        description: The time in milliseconds the recommendation was recommended at.
+        type: quantity
+      topic: &topic
+        description: The topic of the recommendation. Like "entertainment".
+        type: string
+    send_in_pings:
+      - home
+
+  click:
+    type: event
+    description: >
+      Recorded when a pocket tile is clicked.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928577
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D233815
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    extra_keys:
+      is_sponsored: *is_sponsored_pocket
+      position: *pocket_position
+      tile_id: *pocket_tile_id
+      scheduled_corpus_item_id: *scheduled_corpus_item_id
+      corpus_item_id: *corpus_item_id
+      received_rank: *received_rank
+      recommended_at: *recommended_at
+      topic: *topic
+    send_in_pings:
+      - home

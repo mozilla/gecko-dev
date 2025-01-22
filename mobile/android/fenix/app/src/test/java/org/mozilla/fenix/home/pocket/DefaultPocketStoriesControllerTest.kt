@@ -185,11 +185,19 @@ class DefaultPocketStoriesControllerTest {
         val store = spyk(AppStore())
         val controller = createController(appStore = store)
         val storyShown: PocketRecommendedStory = mockk()
-        val storyGridLocation = 1 to 2
+        val storyPosition = Triple(1, 2, 3)
 
-        controller.handleStoryShown(storyShown, storyGridLocation)
+        controller.handleStoryShown(storyShown, storyPosition)
 
-        verify { store.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(storyShown))) }
+        verify {
+            store.dispatch(
+                ContentRecommendationsAction.PocketStoriesShown(
+                    impressions = listOf(
+                        PocketImpression(story = storyShown, position = 3),
+                    ),
+                ),
+            )
+        }
     }
 
     @Test
@@ -212,9 +220,17 @@ class DefaultPocketStoriesControllerTest {
                 wasPingSent = true
             }
 
-            controller.handleStoryShown(storyShown, 1 to 2)
+            controller.handleStoryShown(storyShown, storyPosition = Triple(1, 2, 3))
 
-            verify { store.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(storyShown))) }
+            verify {
+                store.dispatch(
+                    ContentRecommendationsAction.PocketStoriesShown(
+                        impressions = listOf(
+                            PocketImpression(story = storyShown, position = 3),
+                        ),
+                    ),
+                )
+            }
             assertNotNull(Pocket.homeRecsSpocShown.testGetValue())
             assertEquals(1, Pocket.homeRecsSpocShown.testGetValue()!!.size)
             val data = Pocket.homeRecsSpocShown.testGetValue()!!.single().extra
@@ -241,9 +257,9 @@ class DefaultPocketStoriesControllerTest {
         verify {
             store.dispatch(
                 ContentRecommendationsAction.PocketStoriesShown(
-                    storiesShown = listOf(
-                        recommendation,
-                        story,
+                    impressions = listOf(
+                        PocketImpression(story = recommendation, position = 0),
+                        PocketImpression(story = story, position = 1),
                     ),
                 ),
             )
@@ -268,7 +284,7 @@ class DefaultPocketStoriesControllerTest {
         val controller = createController()
         assertNull(Pocket.homeRecsStoryClicked.testGetValue())
 
-        controller.handleStoryClicked(story, 1 to 2)
+        controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verify { homeActivity.openToBrowserAndLoad(story.url, true, BrowserDirection.FromHome) }
 
@@ -297,7 +313,7 @@ class DefaultPocketStoriesControllerTest {
         val controller = createController()
         assertNull(Pocket.homeRecsStoryClicked.testGetValue())
 
-        controller.handleStoryClicked(story, 1 to 2)
+        controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verify { homeActivity.openToBrowserAndLoad(story.url, false, BrowserDirection.FromHome) }
 
@@ -338,7 +354,7 @@ class DefaultPocketStoriesControllerTest {
                 wasPingSent = true
             }
 
-            controller.handleStoryClicked(storyClicked, 2 to 3)
+            controller.handleStoryClicked(storyClicked, storyPosition = Triple(2, 3, 4))
 
             verify { homeActivity.openToBrowserAndLoad(storyClicked.url, true, BrowserDirection.FromHome) }
             assertNotNull(Pocket.homeRecsSpocClicked.testGetValue())
@@ -381,7 +397,7 @@ class DefaultPocketStoriesControllerTest {
                 wasPingSent = true
             }
 
-            controller.handleStoryClicked(storyClicked, 2 to 3)
+            controller.handleStoryClicked(storyClicked, storyPosition = Triple(2, 3, 4))
 
             verify { homeActivity.openToBrowserAndLoad(storyClicked.url, false, BrowserDirection.FromHome) }
             assertNotNull(Pocket.homeRecsSpocClicked.testGetValue())
@@ -426,7 +442,7 @@ class DefaultPocketStoriesControllerTest {
         val story = PocketRecommendedStory("", "url", "", "", "", 0, 0)
         val controller = createController()
 
-        controller.handleStoryClicked(story, 1 to 2)
+        controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verifyOrder {
             homeActivity.openToBrowserAndLoad(story.url, true, BrowserDirection.FromHome)
@@ -440,7 +456,7 @@ class DefaultPocketStoriesControllerTest {
         val story = PocketRecommendedStory("", "url", "", "", "", 0, 0)
         val controller = createController()
 
-        controller.handleStoryClicked(story, 1 to 2)
+        controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verifyOrder {
             homeActivity.openToBrowserAndLoad(story.url, false, BrowserDirection.FromHome)

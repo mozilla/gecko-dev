@@ -16,9 +16,10 @@ interface PocketStoriesInteractor {
      * Callback for when a certain story is shown to the user.
      *
      * @param storyShown The story shown to the user.
-     * @param storyPosition `row x column` matrix representing the grid position of the shown story.
+     * @param storyPosition `row x column x index` matrix representing the grid and index position
+     * of the shown story.
      */
-    fun onStoryShown(storyShown: PocketStory, storyPosition: Pair<Int, Int>)
+    fun onStoryShown(storyShown: PocketStory, storyPosition: Triple<Int, Int, Int>)
 
     /**
      * Callback for then new stories are shown to the user.
@@ -38,9 +39,10 @@ interface PocketStoriesInteractor {
      * Callback for when the user clicks on a specific story.
      *
      * @param storyClicked The just clicked [PocketStory].
-     * @param storyPosition `row x column` matrix representing the grid position of the clicked story.
+     * @param storyPosition `row x column x index` matrix representing the grid and index position
+     * of the clicked story.
      */
-    fun onStoryClicked(storyClicked: PocketStory, storyPosition: Pair<Int, Int>)
+    fun onStoryClicked(storyClicked: PocketStory, storyPosition: Triple<Int, Int, Int>)
 
     /**
      * Callback for when the user clicks the "Learn more" link.
