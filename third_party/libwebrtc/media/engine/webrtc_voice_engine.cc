@@ -1449,6 +1449,7 @@ bool WebRtcVoiceSendChannel::SetSendCodecs(
       voice_codec_info = engine()->encoder_factory_->QueryAudioEncoder(format);
       if (!voice_codec_info) {
         RTC_LOG(LS_WARNING) << "Unknown codec " << ToString(voice_codec);
+        send_codec_position++;
         continue;
       }
 

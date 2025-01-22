@@ -117,6 +117,8 @@ const cricket::Codec kTelephoneEventCodec1 =
     cricket::CreateAudioCodec(106, "telephone-event", 8000, 1);
 const cricket::Codec kTelephoneEventCodec2 =
     cricket::CreateAudioCodec(107, "telephone-event", 32000, 1);
+const cricket::Codec kUnknownCodec =
+    cricket::CreateAudioCodec(127, "XYZ", 32000, 1);
 
 const uint32_t kSsrc0 = 0;
 const uint32_t kSsrc1 = 1;
@@ -983,7 +985,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetRecvCodecsUnsupportedCodec) {
   EXPECT_TRUE(SetupChannel());
   cricket::AudioReceiverParameters parameters;
   parameters.codecs.push_back(kOpusCodec);
-  parameters.codecs.push_back(cricket::CreateAudioCodec(127, "XYZ", 32000, 1));
+  parameters.codecs.push_back(kUnknownCodec);
   EXPECT_FALSE(receive_channel_->SetReceiverParameters(parameters));
 }
 
@@ -1731,6 +1733,22 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedFmtpAmountOfRedundancy) {
   EXPECT_EQ(111, send_codec_spec3.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec3.format.name.c_str());
   EXPECT_EQ(std::nullopt, send_codec_spec3.red_payload_type);
+}
+
+// Test that we use Opus/Red by default if an unknown codec
+// is before RED and Opus.
+TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecRedWithUnknownCodec) {
+  EXPECT_TRUE(SetupSendStream());
+  cricket::AudioSenderParameter parameters;
+  parameters.codecs.push_back(kUnknownCodec);
+  parameters.codecs.push_back(kRed48000Codec);
+  parameters.codecs.back().params[""] = "111/111";
+  parameters.codecs.push_back(kOpusCodec);
+  SetSenderParameters(parameters);
+  const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
+  EXPECT_EQ(111, send_codec_spec.payload_type);
+  EXPECT_STRCASEEQ("opus", send_codec_spec.format.name.c_str());
+  EXPECT_EQ(112, send_codec_spec.red_payload_type);
 }
 
 // Test that WebRtcVoiceEngine reconfigures, rather than recreates its
