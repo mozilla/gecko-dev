@@ -10,7 +10,7 @@ import android.util.Log
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import java.io.ByteArrayOutputStream
-import kotlin.math.max
+import kotlin.math.min
 
 object AssertUtils {
     private val lineLength = 1024
@@ -19,7 +19,7 @@ object AssertUtils {
 
     private fun outputLongString(prefix: String, string: String) {
         for (i in 0..string.length step lineLength) {
-            Log.d(LOGTAG, prefix + string.substring(i, max(i + lineLength, string.length)))
+            Log.d(LOGTAG, prefix + string.substring(i, min(i + lineLength, string.length)))
         }
     }
 
