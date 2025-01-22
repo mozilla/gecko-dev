@@ -508,6 +508,15 @@ class SelectableProfileServiceClass {
     switch (event.type) {
       case "activate": {
         this.setDefaultProfileForGroup();
+        if ("nsIWinTaskbar" in Ci && this.#badge) {
+          let iconController = TASKBAR_ICON_CONTROLLERS.get(event.target);
+
+          iconController?.setOverlayIcon(
+            this.#badge.image,
+            this.#badge.description,
+            this.#badge.iconPaintContext
+          );
+        }
         break;
       }
     }
