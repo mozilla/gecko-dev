@@ -3586,9 +3586,10 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         }
       }
 
-      if (viewportCache.Length()) {
-        fields->SetAttribute(CacheKey::Viewport, std::move(viewportCache));
-      }
+      // Always send the viewport cache, even if we have no accessibles
+      // in it. We don't want to send a delete entry because the viewport
+      // cache _does_ exist, it is simply representing an empty screen.
+      fields->SetAttribute(CacheKey::Viewport, std::move(viewportCache));
     }
   }
 
