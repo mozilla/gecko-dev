@@ -19,10 +19,12 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/create_time_controller.h"
 #include "api/test/simulated_network.h"
+#include "api/transport/ecn_marking.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
-#include "rtc_base/event.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/gunit.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "test/gmock.h"
@@ -45,34 +47,37 @@ class SocketReader : public sigslot::has_slots<> {
   explicit SocketReader(rtc::Socket* socket, rtc::Thread* network_thread)
       : socket_(socket), network_thread_(network_thread) {
     socket_->SignalReadEvent.connect(this, &SocketReader::OnReadEvent);
-    size_ = 128 * 1024;
-    buf_ = new char[size_];
   }
-  ~SocketReader() override { delete[] buf_; }
 
   void OnReadEvent(rtc::Socket* socket) {
     RTC_DCHECK(socket_ == socket);
     RTC_DCHECK(network_thread_->IsCurrent());
-    int64_t timestamp;
-    len_ = socket_->Recv(buf_, size_, &timestamp);
+
+    rtc::Socket::ReceiveBuffer receive_buffer(payload_);
+    socket_->RecvFrom(receive_buffer);
+    last_ecn_mark_ = receive_buffer.ecn;
 
     MutexLock lock(&lock_);
     received_count_++;
   }
 
-  int ReceivedCount() {
+  int ReceivedCount() const {
     MutexLock lock(&lock_);
     return received_count_;
+  }
+
+  webrtc::EcnMarking LastEcnMarking() const {
+    MutexLock lock(&lock_);
+    return last_ecn_mark_;
   }
 
  private:
   rtc::Socket* const socket_;
   rtc::Thread* const network_thread_;
-  char* buf_;
-  size_t size_;
-  int len_;
+  rtc::Buffer payload_;
+  webrtc::EcnMarking last_ecn_mark_;
 
-  Mutex lock_;
+  mutable Mutex lock_;
   int received_count_ RTC_GUARDED_BY(lock_) = 0;
 };
 
@@ -357,6 +362,69 @@ TEST(NetworkEmulationManagerTest, Run) {
   ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 2,
                            kStatsWaitTimeout.ms(),
                            *network_manager.time_controller());
+}
+
+TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
+  NetworkEmulationManagerImpl network_manager(
+      {.time_mode = TimeMode::kRealTime});
+
+  EmulatedNetworkNode* alice_node = network_manager.CreateEmulatedNode(
+      std::make_unique<SimulatedNetwork>(BuiltInNetworkBehaviorConfig()));
+  EmulatedNetworkNode* bob_node = network_manager.CreateEmulatedNode(
+      std::make_unique<SimulatedNetwork>(BuiltInNetworkBehaviorConfig()));
+  EmulatedEndpoint* alice_endpoint =
+      network_manager.CreateEndpoint(EmulatedEndpointConfig());
+  EmulatedEndpoint* bob_endpoint =
+      network_manager.CreateEndpoint(EmulatedEndpointConfig());
+  network_manager.CreateRoute(alice_endpoint, {alice_node}, bob_endpoint);
+  network_manager.CreateRoute(bob_endpoint, {bob_node}, alice_endpoint);
+
+  EmulatedNetworkManagerInterface* nt1 =
+      network_manager.CreateEmulatedNetworkManagerInterface({alice_endpoint});
+  EmulatedNetworkManagerInterface* nt2 =
+      network_manager.CreateEmulatedNetworkManagerInterface({bob_endpoint});
+
+  rtc::Thread* t1 = nt1->network_thread();
+  rtc::Thread* t2 = nt2->network_thread();
+
+  rtc::Socket* s1 = nullptr;
+  rtc::Socket* s2 = nullptr;
+  SendTask(t1,
+           [&] { s1 = t1->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM); });
+  SendTask(t2,
+           [&] { s2 = t2->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM); });
+
+  SocketReader r1(s1, t1);
+  SocketReader r2(s2, t2);
+
+  rtc::SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
+  rtc::SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
+
+  SendTask(t1, [&] {
+    s1->Bind(a1);
+    a1 = s1->GetLocalAddress();
+  });
+  SendTask(t2, [&] {
+    s2->Bind(a2);
+    a2 = s2->GetLocalAddress();
+  });
+
+  SendTask(t1, [&] { s1->Connect(a2); });
+  SendTask(t2, [&] { s2->Connect(a1); });
+
+  t1->PostTask([&]() {
+    s1->SetOption(rtc::Socket::Option::OPT_SEND_ECN, 1);
+    rtc::CopyOnWriteBuffer data("Hello");
+    s1->Send(data.data(), data.size());
+  });
+
+  network_manager.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
+
+  EXPECT_EQ(r2.ReceivedCount(), 1);
+  EXPECT_EQ(r2.LastEcnMarking(), webrtc::EcnMarking::kEct1);
+
+  SendTask(t1, [&] { delete s1; });
+  SendTask(t2, [&] { delete s2; });
 }
 
 TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {

@@ -890,6 +890,7 @@ rtc_source_set("simulated_network_api") {
   deps = [
     "../rtc_base:macromagic",
     "../rtc_base:random",
+    "transport:ecn_marking",
     "units:data_rate",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
   ]

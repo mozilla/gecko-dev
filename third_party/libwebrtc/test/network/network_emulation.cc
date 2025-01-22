@@ -28,6 +28,7 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
+#include "api/transport/ecn_marking.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/logging.h"
@@ -370,7 +371,7 @@ void LinkEmulation::OnPacketReceived(EmulatedIpPacket packet) {
     uint64_t packet_id = next_packet_id_++;
     bool sent = network_behavior_->EnqueuePacket(
         PacketInFlightInfo(GetPacketSizeForEmulation(packet),
-                           packet.arrival_time.us(), packet_id));
+                           packet.arrival_time.us(), packet_id, packet.ecn));
     if (sent) {
       packets_.emplace_back(StoredPacket{.id = packet_id,
                                          .sent_time = clock_->CurrentTime(),
@@ -410,6 +411,8 @@ void LinkEmulation::Process(Timestamp at_time) {
     if (delivery_info.receive_time_us != PacketDeliveryInfo::kNotReceived) {
       packet->packet.arrival_time =
           Timestamp::Micros(delivery_info.receive_time_us);
+      // Link may have changed ECN.
+      packet->packet.ecn = delivery_info.ecn;
       receiver_->OnPacketReceived(std::move(packet->packet));
     }
     while (!packets_.empty() && packets_.front().removed) {
@@ -615,12 +618,13 @@ uint64_t EmulatedEndpointImpl::GetId() const {
 void EmulatedEndpointImpl::SendPacket(const rtc::SocketAddress& from,
                                       const rtc::SocketAddress& to,
                                       rtc::CopyOnWriteBuffer packet_data,
-                                      uint16_t application_overhead) {
+                                      uint16_t application_overhead,
+                                      EcnMarking ecn) {
   if (!options_.allow_send_packet_with_different_source_ip) {
     RTC_CHECK(from.ipaddr() == options_.ip);
   }
   EmulatedIpPacket packet(from, to, std::move(packet_data),
-                          clock_->CurrentTime(), application_overhead);
+                          clock_->CurrentTime(), application_overhead, ecn);
   task_queue_->PostTask([this, packet = std::move(packet)]() mutable {
     RTC_DCHECK_RUN_ON(task_queue_);
     stats_builder_.OnPacketSent(packet.arrival_time, clock_->CurrentTime(),

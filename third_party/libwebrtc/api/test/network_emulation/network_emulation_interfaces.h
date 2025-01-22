@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "api/numerics/samples_stats_counter.h"
+#include "api/transport/ecn_marking.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/timestamp.h"
@@ -33,7 +34,8 @@ struct EmulatedIpPacket {
                    const rtc::SocketAddress& to,
                    rtc::CopyOnWriteBuffer data,
                    Timestamp arrival_time,
-                   uint16_t application_overhead = 0);
+                   uint16_t application_overhead = 0,
+                   EcnMarking ecn = EcnMarking::kNotEct);
   ~EmulatedIpPacket() = default;
   // This object is not copyable or assignable.
   EmulatedIpPacket(const EmulatedIpPacket&) = delete;
@@ -52,6 +54,7 @@ struct EmulatedIpPacket {
   rtc::CopyOnWriteBuffer data;
   uint16_t headers_size;
   Timestamp arrival_time;
+  EcnMarking ecn;
 };
 
 // Interface for handling IP packets from an emulated network. This is used with
@@ -254,7 +257,8 @@ class EmulatedEndpoint : public EmulatedNetworkReceiverInterface {
   virtual void SendPacket(const rtc::SocketAddress& from,
                           const rtc::SocketAddress& to,
                           rtc::CopyOnWriteBuffer packet_data,
-                          uint16_t application_overhead = 0) = 0;
+                          uint16_t application_overhead = 0,
+                          EcnMarking ecn = EcnMarking::kNotEct) = 0;
 
   // Binds receiver to this endpoint to send and receive data.
   // `desired_port` is a port that should be used. If it is equal to 0,

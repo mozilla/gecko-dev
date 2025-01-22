@@ -29,6 +29,7 @@
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/simulated_network.h"
+#include "api/transport/ecn_marking.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/copy_on_write_buffer.h"
@@ -297,7 +298,8 @@ class EmulatedEndpointImpl : public EmulatedEndpoint {
   void SendPacket(const rtc::SocketAddress& from,
                   const rtc::SocketAddress& to,
                   rtc::CopyOnWriteBuffer packet_data,
-                  uint16_t application_overhead = 0) override;
+                  uint16_t application_overhead = 0,
+                  EcnMarking ecn = EcnMarking::kNotEct) override;
 
   std::optional<uint16_t> BindReceiver(
       uint16_t desired_port,

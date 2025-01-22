@@ -19,24 +19,40 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "api/transport/ecn_marking.h"
 #include "api/units/data_rate.h"
 
 namespace webrtc {
 
 struct PacketInFlightInfo {
+  PacketInFlightInfo(size_t size,
+                     int64_t send_time_us,
+                     uint64_t packet_id,
+                     webrtc::EcnMarking ecn)
+      : size(size),
+        send_time_us(send_time_us),
+        packet_id(packet_id),
+        ecn(ecn) {}
+
   PacketInFlightInfo(size_t size, int64_t send_time_us, uint64_t packet_id)
-      : size(size), send_time_us(send_time_us), packet_id(packet_id) {}
+      : PacketInFlightInfo(size,
+                           send_time_us,
+                           packet_id,
+                           webrtc::EcnMarking::kNotEct) {}
 
   size_t size;
   int64_t send_time_us;
   // Unique identifier for the packet in relation to other packets in flight.
   uint64_t packet_id;
+  webrtc::EcnMarking ecn;
 };
 
 struct PacketDeliveryInfo {
   static constexpr int kNotReceived = -1;
   PacketDeliveryInfo(PacketInFlightInfo source, int64_t receive_time_us)
-      : receive_time_us(receive_time_us), packet_id(source.packet_id) {}
+      : receive_time_us(receive_time_us),
+        packet_id(source.packet_id),
+        ecn(source.ecn) {}
 
   bool operator==(const PacketDeliveryInfo& other) const {
     return receive_time_us == other.receive_time_us &&
@@ -45,6 +61,7 @@ struct PacketDeliveryInfo {
 
   int64_t receive_time_us;
   uint64_t packet_id;
+  webrtc::EcnMarking ecn;
 };
 
 // BuiltInNetworkBehaviorConfig is a built-in network behavior configuration

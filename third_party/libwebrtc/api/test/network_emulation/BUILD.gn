@@ -52,6 +52,7 @@ rtc_library("network_emulation") {
     "../../../rtc_base:socket_address",
     "../../numerics",
     "../../task_queue",
+    "../../transport:ecn_marking",
     "../../units:data_rate",
     "../../units:data_size",
     "../../units:time_delta",
