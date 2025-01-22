@@ -206,7 +206,7 @@ export var TelemetryEnvironment = {
    * Intended for use in tests only.
    */
   testCleanRestart() {
-    getGlobal().shutdown();
+    getGlobal().shutdownForTestCleanRestart();
     gGlobalEnvironment = null;
     gActiveExperimentStartupBuffer = new Map();
     return getGlobal();
@@ -1236,6 +1236,13 @@ EnvironmentCache.prototype = {
     this._shutdown = true;
   },
 
+  shutdownForTestCleanRestart() {
+    // The testcase will re-create a new EnvironmentCache instance.
+    // The observer should be removed for the old instance.
+    this._stopWatchingPrefs();
+    this.shutdown();
+  },
+
   /**
    * Only used in tests, set the preferences to watch.
    * @param aPreferences A map of preferences names and their recording policy.
@@ -1311,7 +1318,7 @@ EnvironmentCache.prototype = {
     );
   },
 
-  QueryInterface: ChromeUtils.generateQI(["nsISupportsWeakReference"]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   /**
    * Start watching the preferences.
@@ -1319,7 +1326,7 @@ EnvironmentCache.prototype = {
   _startWatchingPrefs() {
     this._log.trace("_startWatchingPrefs - " + this._watchedPrefs);
 
-    Services.prefs.addObserver("", this, true);
+    Services.prefs.addObserver("", this);
   },
 
   _onPrefChanged(aData) {
