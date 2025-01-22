@@ -87,7 +87,7 @@ export const AdBanner = ({
   const clampedRow = Math.max(1, Math.min(9, row));
 
   return (
-    <aside className={`ad-banner-wrapper`} style={{ gridRow: clampedRow }}>
+    <aside className="ad-banner-wrapper" style={{ gridRow: clampedRow }}>
       <div className={`ad-banner-inner ${spoc.format}`}>
         <div className="ad-banner-dismiss">
           <button
