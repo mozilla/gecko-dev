@@ -129,6 +129,13 @@ mod test {
             static GLOBAL_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
             let lock = GLOBAL_LOCK.lock().unwrap();
+
+            // Since Glean v63.0.0, custom pings are required to be instantiated prior to Glean init
+            // in order to ensure they are enabled and able to collect data. This is due to the data
+            // collection state being determined at the ping level now instead of just by the global
+            // Glean collection enabled flag. See Bug 1934931 for more information.
+            _ = &*crash;
+
             glean::test_reset_glean(config(cfg), client_info_metrics(cfg), true);
             GleanTest { _guard: lock }
         }
