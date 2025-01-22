@@ -71,6 +71,7 @@ object SupportUtils {
         CRASH_REPORTS("mobile-crash-reports"),
         TECHNICAL_AND_INTERACTION_DATA("mobile-technical-and-interaction-data"),
         USAGE_PING_SETTINGS("usage-ping-settings-mobile"),
+        MARKETING_DATA("mobile-marketing-data"),
     }
 
     enum class MozillaPage(internal val path: String) {

@@ -255,8 +255,12 @@ class OnboardingFragment : Fragment() {
                     onboardingStore.state.toolbarOptionSelected.id,
                 )
             },
-            onMarketingDataLearnMoreClick = { learnMoreUrl ->
-                launchSandboxCustomTab(learnMoreUrl)
+            onMarketingDataLearnMoreClick = {
+                val url = SupportUtils.getSumoURLForTopic(
+                    requireContext(),
+                    SupportUtils.SumoTopic.MARKETING_DATA,
+                )
+                launchSandboxCustomTab(url)
             },
             onMarketingDataContinueClick = { allowMarketingDataCollection ->
                 with(requireContext().settings()) {

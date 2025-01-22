@@ -93,7 +93,7 @@ fun OnboardingScreen(
     onCustomizeToolbarClick: () -> Unit,
     onCustomizeThemeClick: () -> Unit,
     onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
-    onMarketingDataLearnMoreClick: (url: String) -> Unit,
+    onMarketingDataLearnMoreClick: () -> Unit,
     onFinish: (pageType: OnboardingPageUiData) -> Unit,
     onImpression: (pageType: OnboardingPageUiData) -> Unit,
 ) {
@@ -259,7 +259,7 @@ private fun OnboardingContent(
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onAgreeAndConfirmTermsOfService: () -> Unit,
     onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
-    onMarketingDataLearnMoreClick: (url: String) -> Unit,
+    onMarketingDataLearnMoreClick: () -> Unit,
 ) {
     val nestedScrollConnection = remember { DisableForwardSwipeNestedScrollConnection(pagerState) }
 
@@ -323,7 +323,7 @@ private fun OnboardingPageForType(
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
     onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
-    onMarketingDataLearnMoreClick: (url: String) -> Unit,
+    onMarketingDataLearnMoreClick: () -> Unit,
 ) {
     when (type) {
         OnboardingPageUiData.Type.DEFAULT_BROWSER,
