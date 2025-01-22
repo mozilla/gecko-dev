@@ -555,11 +555,11 @@ async function testWindowSizeSetting(
 
 class RoundedWindowTest {
   // testOuter is optional.  run() can be invoked with only 1 parameter.
-  static run(testCases, testOuter) {
+  static run(testCases, testOuter, extraPrefs = []) {
     // "this" is the calling class itself.
     // e.g. when invoked by RoundedWindowTest.run(), "this" is "class RoundedWindowTest".
     let test = new this(testCases);
-    add_task(async () => test.setup());
+    add_task(async () => test.setup(extraPrefs));
     add_task(async () => {
       if (testOuter == undefined) {
         // If testOuter is not given, do tests for both inner and outer.
@@ -575,9 +575,9 @@ class RoundedWindowTest {
     this.testCases = testCases;
   }
 
-  async setup() {
+  async setup(extraPrefs) {
     await SpecialPowers.pushPrefEnv({
-      set: [["privacy.resistFingerprinting", true]],
+      set: [["privacy.resistFingerprinting", true], ...extraPrefs],
     });
 
     // Calculate the popup window's chrome UI size for tests of outerWidth/Height.
@@ -668,7 +668,15 @@ async function runActualTest(uri, testFunction, expectedResults, extraData) {
     browserWin = openedWin.gBrowser;
   }
 
+  // This is hacky, but since we added IsJSContextCurrentlyChromePrivileged(),
+  // we ended up disabling RFP for this tab because the test suite
+  // has the system principal when it opens it. So we disable the
+  // principal check for a brief moment.
+  await SpecialPowers.pushPrefEnv({
+    set: [["privacy.resistFingerprinting.principalCheckEnabled", false]],
+  });
   let tab = await BrowserTestUtils.openNewForegroundTab(browserWin, uri);
+  await SpecialPowers.popPrefEnv();
 
   if ("etp_reload" in extraData) {
     ContentBlockingAllowList.add(tab.linkedBrowser);
@@ -702,11 +710,13 @@ async function runActualTest(uri, testFunction, expectedResults, extraData) {
     tab.linkedBrowser,
     [IFRAME_DOMAIN, CROSS_ORIGIN_DOMAIN, filterExtraData(extraData)],
     async function (iframe_domain_, cross_origin_domain_, extraData_) {
-      return content.wrappedJSObject.runTheTest(
-        iframe_domain_,
-        cross_origin_domain_,
-        extraData_
-      );
+      return content.wrappedJSObject.eval(`
+        runTheTest(
+          ${JSON.stringify(iframe_domain_)},
+          ${JSON.stringify(cross_origin_domain_)},
+          ${JSON.stringify(extraData_)}
+        );
+      `);
     }
   );
 
@@ -721,7 +731,7 @@ async function runActualTest(uri, testFunction, expectedResults, extraData) {
       popup_tab.linkedBrowser,
       [],
       async function () {
-        let r = content.wrappedJSObject.give_result();
+        let r = content.wrappedJSObject.eval("give_result()");
         return r;
       }
     );

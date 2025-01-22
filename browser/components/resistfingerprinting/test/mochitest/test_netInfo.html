@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script>
+/* global SimpleTest SpecialPowers */
+
+SimpleTest.waitForExplicitFinish();
+document.addEventListener("DOMContentLoaded", function() {
+  SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.netinfo.enabled", true],
+      ["privacy.resistFingerprinting", true],
+    ],
+  }, async function() {
+    ok("connection" in navigator, "navigator.connection should exist");
+
+    is(
+      navigator.connection.type,
+      "unknown",
+      "The connection type is spoofed correctly"
+    );
+
+    await new Promise(resolve => {
+      let worker = new Worker("file_workerNetInfo.js");
+
+      worker.onmessage = function (e) {
+        if (e.data.type == "status") {
+          ok(e.data.status, e.data.msg);
+        } else if (e.data.type == "finish") {
+          resolve();
+        } else {
+          ok(false, "Unknown message type");
+          resolve();
+        }
+      };
+      worker.postMessage({ type: "runTests" });
+    });
+    SimpleTest.finish();
+  });
+});
+</script>

@@ -299,7 +299,8 @@ bool IsJSContextCurrentlyChromePrivileged() {
 /* static */
 bool nsRFPService::IsRFPEnabledFor(
     bool aIsPrivateMode, RFPTarget aTarget,
-    const Maybe<RFPTarget>& aOverriddenFingerprintingSettings) {
+    const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
+    bool aSkipChromePrincipalCheck /* = false */) {
   MOZ_ASSERT(aTarget != RFPTarget::AllTargets);
 
 #if SPOOFED_MAX_TOUCH_POINTS > 0
@@ -308,7 +309,7 @@ bool nsRFPService::IsRFPEnabledFor(
   }
 #endif
 
-  if (IsJSContextCurrentlyChromePrivileged()) {
+  if (!aSkipChromePrincipalCheck && IsJSContextCurrentlyChromePrivileged()) {
     return false;
   }
 

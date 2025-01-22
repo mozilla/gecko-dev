@@ -2119,7 +2119,11 @@ function eventConsumer(aEvent) {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.resistFingerprinting", true]],
+    set: [
+      ["privacy.resistFingerprinting", true],
+      // Disable the principal check because synthesizeKey is system privileged.
+      ["privacy.resistFingerprinting.principalCheckEnabled", false],
+    ],
   });
 });
 

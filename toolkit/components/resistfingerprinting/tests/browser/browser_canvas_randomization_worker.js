@@ -170,6 +170,7 @@ async function runTest(enabled) {
       ["privacy.fingerprintingProtection.pbmode", true],
       ["privacy.fingerprintingProtection.overrides", RFPOverrides],
       ["privacy.resistFingerprinting", false],
+      ["privacy.resistFingerprinting.principalCheckEnabled", false],
     ],
   });
 

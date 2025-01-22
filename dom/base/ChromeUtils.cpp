@@ -2487,8 +2487,13 @@ bool ChromeUtils::ShouldResistFingerprinting(
   // This global object appears to be the global window, not for individual
   // sites so to exempt individual sites (instead of just PBM/Not-PBM windows)
   // more work would be needed to get the correct context.
+  // We set aSkipChromePrincipalCheck to true because ChromeUtils is only
+  // called from chrome code where we are system principal.
+  // We only want to check document's properties and not JS context's
+  // properties.
   return nsRFPService::IsRFPEnabledFor(isPBM, target,
-                                       overriddenFingerprintingSettings);
+                                       overriddenFingerprintingSettings,
+                                       /* aSkipChromePrincipalCheck */ true);
 }
 
 /* static */

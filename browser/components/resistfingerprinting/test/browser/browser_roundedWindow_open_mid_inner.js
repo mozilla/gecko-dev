@@ -4,23 +4,27 @@
  *   middle values.
  */
 
-OpenTest.run([
-  {
-    settingWidth: 600,
-    settingHeight: 600,
-    targetWidth: 600,
-    targetHeight: 600,
-  },
-  {
-    settingWidth: 599,
-    settingHeight: 599,
-    targetWidth: 600,
-    targetHeight: 600,
-  },
-  {
-    settingWidth: 401,
-    settingHeight: 501,
-    targetWidth: 600,
-    targetHeight: 600,
-  },
-]);
+OpenTest.run(
+  [
+    {
+      settingWidth: 600,
+      settingHeight: 600,
+      targetWidth: 600,
+      targetHeight: 600,
+    },
+    {
+      settingWidth: 599,
+      settingHeight: 599,
+      targetWidth: 600,
+      targetHeight: 600,
+    },
+    {
+      settingWidth: 401,
+      settingHeight: 501,
+      targetWidth: 600,
+      targetHeight: 600,
+    },
+  ],
+  undefined,
+  [["privacy.resistFingerprinting.principalCheckEnabled", false]]
+);

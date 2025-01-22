@@ -34,23 +34,24 @@ add_task(async function test_new_window() {
     tab.linkedBrowser,
     [{ gMaxAvailWidth, gMaxAvailHeight }],
     async function (input) {
+      let windowWaived = content.wrappedJSObject.window;
       is(
-        content.screen.width,
+        windowWaived.screen.width,
         input.gMaxAvailWidth,
         "The screen.width has a correct rounded value"
       );
       is(
-        content.screen.height,
+        windowWaived.screen.height,
         input.gMaxAvailHeight,
         "The screen.height has a correct rounded value"
       );
       is(
-        content.innerWidth,
+        windowWaived.innerWidth,
         input.gMaxAvailWidth,
         "The window.innerWidth has a correct rounded value"
       );
       is(
-        content.innerHeight,
+        windowWaived.innerHeight,
         input.gMaxAvailHeight,
         "The window.innerHeight has a correct rounded value"
       );

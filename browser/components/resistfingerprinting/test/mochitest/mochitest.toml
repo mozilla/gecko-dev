@@ -4,6 +4,7 @@ tags = "resistfingerprinting"
 
 support-files = [
   "file_animation_api.html",
+  "file_workerNetInfo.js",
   "worker_child.js",
   "worker_grandchild.js",
   "!/dom/tests/mochitest/geolocation/network_geolocation.sjs",
@@ -18,6 +19,8 @@ support-files = ["decode_error.mp4"]
 
 ["test_bug1382499_touch_api.html"]
 
+["test_bug1885101_screenwindow_sizes.html"]
+
 ["test_device_sensor_event.html"]
 
 ["test_geolocation.html"]
@@ -29,10 +32,11 @@ support-files = ["test_hide_gamepad_info_iframe.html"]
 
 ["test_keyboard_event.html"]
 
+["test_netInfo.html"]
+https_first_disabled = true
+
 ["test_pointer_event.html"]
 support-files = ["../../../../../dom/events/test/pointerevents/mochitest_support_external.js"]
 
 ["test_speech_synthesis.html"]
 skip-if = ["verify"]
-
-["test_bug1885101_screenwindow_sizes.html"]
