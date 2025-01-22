@@ -50,6 +50,7 @@
 #include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/MediaDeviceInfoBinding.h"
+#include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/fallible.h"
 #include "mozilla/XorShift128PlusRNG.h"
 
@@ -234,6 +235,67 @@ bool nsRFPService::IsRFPPrefEnabled(bool aIsPrivateMode) {
   return false;
 }
 
+bool IsJSContextCurrentlyChromePrivileged() {
+  // If the current thread is Elevated Javascript (from an actor), we don't want
+  // RFP to apply So we need to check the JSContext at the last second.
+
+  // Elevated Javascript is not going to be on many process types
+  // and the JSContext is not initialized, resulting in asserts.
+  auto processType = XRE_GetProcessType();
+  if (processType == GeckoProcessType_Utility ||
+      processType == GeckoProcessType_Socket ||
+      processType == GeckoProcessType_GPU ||
+      processType == GeckoProcessType_RDD) {
+    return false;
+  }
+
+  // Elevated Javascript can only occur on Main Thread.
+  if (NS_IsMainThread() &&
+      StaticPrefs::privacy_resistFingerprinting_principalCheckEnabled()) {
+    auto* cx = nsContentUtils::GetCurrentJSContext();
+    if (!cx) {
+      return false;
+    }
+
+    JS::Realm* realm = js::GetContextRealm(cx);
+    if (!realm) {
+      return false;
+    }
+
+    JSPrincipals* principals = JS::GetRealmPrincipals(realm);
+    if (!principals) {
+      return false;
+    }
+
+    nsIPrincipal* principal = nsJSPrincipals::get(principals);
+    return principal && principal->IsSystemPrincipal();
+  }
+  return false;
+
+#ifdef DEBUG
+  // At least we're _pretty sure_ that Elevated JavaScript cannot run
+  // off-main-thread. Let's just assert here to be sure.
+  auto* workerCx = dom::GetCurrentWorkerThreadJSContext();
+  if (workerCx) {
+    JS::Realm* realm = js::GetContextRealm(workerCx);
+    MOZ_ASSERT(realm);
+
+    JSPrincipals* principals = JS::GetRealmPrincipals(realm);
+    auto workerCtxPrin = nsJSPrincipals::get(principals);
+
+    auto* wp = dom::GetWorkerPrivateFromContext(workerCx);
+    MOZ_ASSERT(wp, "Did not get WorkerPrivate from worker's JSContext");
+    MOZ_ASSERT(
+        !workerCtxPrin || workerCtxPrin->GetIsNullPrincipal() ||
+            wp->UsesSystemPrincipal() == workerCtxPrin->IsSystemPrincipal(),
+        "System Principal mismatch between WorkerPrivate and Context");
+    // Workers (including System-privileged ones) can create Null-Principaled
+    // objects and that's expected. We're more interested in a Null or
+    // ContentPrincipaled worker suddenlly appearing as System Principaled.
+  }
+#endif
+}
+
 /* static */
 bool nsRFPService::IsRFPEnabledFor(
     bool aIsPrivateMode, RFPTarget aTarget,
@@ -245,6 +307,10 @@ bool nsRFPService::IsRFPEnabledFor(
     return false;
   }
 #endif
+
+  if (IsJSContextCurrentlyChromePrivileged()) {
+    return false;
+  }
 
   if (StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() ||
       (aIsPrivateMode &&

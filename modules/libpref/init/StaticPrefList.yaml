@@ -15290,6 +15290,13 @@
   mirror: always
   do_not_use_directly: true
 
+# Control whether we should check for system principal in the current JSContext
+# when checking for whether we should resist fingerprinting.
+- name: privacy.resistFingerprinting.principalCheckEnabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Disables FPP Remote settings bucket. Allows user to stop overriding
 # of FPP overrides
 - name: privacy.fingerprintingProtection.remoteOverrides.enabled
