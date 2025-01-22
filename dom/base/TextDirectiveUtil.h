@@ -232,6 +232,18 @@ class TextDirectiveUtil final {
    */
   static uint32_t FindCommonSuffix(const nsAString& aFoldedStr1,
                                    const nsAString& aFoldedStr2);
+
+  /**
+   * Map a logical offset to a container node and offset within the DOM.
+   *
+   * @param aRange         The nsRange to map the offset from.
+   * @param aLogicalOffset The logical offset in the flattened text content of
+   *                       the range. The offset is always starting at the start
+   *                       of the range.
+   * @return a `RangeBoundary` that represents the logical offset, or an error.
+   */
+  static RangeBoundary CreateRangeBoundaryByMovingOffsetFromRangeStart(
+      nsRange* aRange, uint32_t aLogicalOffset);
 };
 }  // namespace mozilla::dom
 

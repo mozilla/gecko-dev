@@ -232,6 +232,274 @@ TextDirectiveCandidate::CreateFromStartAndEndRange(const nsRange* aStartRange,
   return instance;
 }
 
+Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
+    RefPtr<nsRange>&& aNewPrefixRange, RefPtr<nsRange>&& aNewStartRange,
+    RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange) const {
+  MOZ_ASSERT(
+      mFullPrefixRange && mFullSuffixRange,
+      "TextDirectiveCandidate::CloneWith(): Source object is in invalid state");
+
+  TextDirectiveCandidate clone(mStartRange, mFullStartRange, mEndRange,
+                               mFullEndRange, mPrefixRange, mFullPrefixRange,
+                               mSuffixRange, mFullSuffixRange);
+
+  if (aNewPrefixRange) {
+    clone.mPrefixRange = std::move(aNewPrefixRange);
+  }
+  if (aNewStartRange) {
+    clone.mStartRange = std::move(aNewStartRange);
+  }
+  // mEndRange is null if exact matching is used.
+  MOZ_ASSERT_IF(aNewEndRange, mEndRange);
+  if (aNewEndRange) {
+    clone.mEndRange = std::move(aNewEndRange);
+  }
+  if (aNewSuffixRange) {
+    clone.mSuffixRange = std::move(aNewSuffixRange);
+  }
+
+  // from now on, the cloned candidate is immutable. Therefore it is allowed to
+  // create a text directive string representation, which will be stored in the
+  // object and used later.
+  MOZ_TRY(clone.CreateTextDirectiveString());
+  return clone;
+}
+
+Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+TextDirectiveCandidate::CreateNewCandidatesForMatches(
+    const nsTArray<const TextDirectiveCandidate*>& aMatches,
+    RangeContentCache& aRangeContentCache) {
+  TEXT_FRAGMENT_LOG("Creating new candidates for candidate %s",
+                    mTextDirectiveString.Data());
+
+  // To Create a list of new candidates for a text directive candidate given a
+  // set of text directive candidates `matches`, follow these steps:
+  // 1. Let `newCandidates` be a list of text directive candidates, initially
+  //    empty.
+  nsTArray<TextDirectiveCandidate> newCandidates;
+  // 2. For each `match` in `matches`:
+  for (const auto* match : aMatches) {
+    // 2.1 Let `newCandidatesForThisMatch` be the result of the Create New
+    //     Candidates for a given match algorithm.
+    Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+        maybeNewCandidatesForThisMatch =
+            CreateNewCandidatesForGivenMatch(*match, aRangeContentCache);
+    if (MOZ_UNLIKELY(maybeNewCandidatesForThisMatch.isErr())) {
+      return maybeNewCandidatesForThisMatch.propagateErr();
+    }
+    auto newCandidatesForThisMatch = maybeNewCandidatesForThisMatch.unwrap();
+    // 2.2 If `newCandidatesForThisMatch` is empty, return an empty list.
+    // Note: If it was not possible to create a new match (ie. it was not
+    // possible to find a unique match by extending any of the context terms),
+    // it is not possible to create a text directive for the given input range.
+    // In this case, return an empty array to indicate this to the caller.
+    if (newCandidatesForThisMatch.IsEmpty()) {
+      return nsTArray<TextDirectiveCandidate>{};
+    }
+    // 2.3 Insert the elements of `newCandidatesForThisMatch` into
+    //     `newCandidates`.
+    newCandidates.AppendElements(std::move(newCandidatesForThisMatch));
+  }
+  // 3. Return `newCandidates`.
+  return newCandidates;
+}
+
+Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
+    const TextDirectiveCandidate& aOther,
+    RangeContentCache& aRangeContentCache) const {
+  // To Create New Candidates For A Given Match given a text directive candidate
+  // `this` and a text directive candidate `other`, follow these steps:
+  // 1. Let `newCandidates` be a list of text directive candidates, initially
+  //    empty.
+  // 2. For `contextTerm` in ['prefix´, 'suffix´, 'start', 'end']:
+  // 2.1 Let `extendedRange` be a range, initially null.
+  // 2.2 Let `thisFullRange` be the fully-expanded range for
+  //     `contextTerm` of `this` candidate, and `otherFullRange` the
+  //     fully-expanded range for `contextTerm` of the other candidate.
+  // 2.3 if `contextTerm` is 'start' or 'end' and exact matching is used,
+  //     continue.
+  // 2.4 Let `thisFullRangeContent` and `otherFullRangeContent` be the fold-case
+  //     representations of `thisFullRange` and `otherFullRange`.
+  // 2.5 If `contextTerm` is 'prefix´ or 'end', let `commonContext` be the
+  //     common suffix of `thisFullRangeContent` and `otherFullRangeContent`.
+  //     Otherwise, let `commonContext` be the common prefix.
+  // 2.6 If `commonContext` is equal to `thisFullRangeContent`, continue.
+  // 2.7  If 'contextTerm' is 'prefix' or 'end':
+  // 2.7.1 Create a range boundary `newRangeBoundary` by moving the length of
+  //       the common suffix, starting from the end point of the fully
+  //       expanded range of the property.
+  // 2.7.2 Move `newRangeBoundary` one word to the left.
+  // 2.7.3 Assert: `newRangeBoundary` is not before the start boundary of the
+  //       fully expanded context term (this would conflict with step 2.6).
+  // 2.7.4 Initialize `extendedRange` using `newRangeBoundary` as start point
+  //       and the end point of the fully expanded range of `this` as end point.
+  // 2.8 else:
+  // 2.8.1 Create a range boundary `newRangeBoundary` by moving the length of
+  //       the common prefix, starting from the start point of the fully
+  //       expanded range of the property.
+  // 2.8.2 Move `newRangeBoundary` one word to the right.
+  // 2.8.3 Assert: `newRangeBoundary` is not behind the end boundary of the
+  //       fully expanded context term (this would conflict with step 2.6).
+  // 2.8.4 Initialize `extendedRange` using the start point of the fully
+  //       expanded range of `this` as start point and `newRangeBoundary` as end
+  //       point.
+  // 2.9 If `contextTerm` is `start`:
+  // 2.9.1 Let `expandLimit` be the start point of the non-expanded end range.
+  // 2.9.2 If `newRangeBoundary` is behind `expandLimit`, set `newRangeBoundary`
+  //       to `expandLimit`.
+  // 2.10 If `contextTerm` is `end`:
+  // 2.10.1 Let `expandLimit` be the end point of the non-expanded start range.
+  // 2.10.2 If `newRangeBoundary` is before `expandLimit`, set
+  //        `newRangeBoundary` to `expandLimit`.
+  // 2.9 Clone the text directive candidate `this`, replacing `contextTerm`
+  //     with `extendedRange` and insert it into `newCandidates`.
+  // 3. Return `newCandidates`.
+
+  AutoTArray<TextDirectiveCandidate, 4> newCandidates;
+  auto createRangeExtendedUntilMismatch =
+      [&aRangeContentCache](
+          nsRange* thisFullRange, nsRange* otherFullRange,
+          TextScanDirection expandDirection,
+          Maybe<RangeBoundary> expandLimit =
+              Nothing{}) -> Result<RefPtr<nsRange>, ErrorResult> {
+    ErrorResult rv;
+    auto foldCaseContents =
+        aRangeContentCache.Get(thisFullRange, otherFullRange);
+    if (MOZ_UNLIKELY(foldCaseContents.isErr())) {
+      return foldCaseContents.propagateErr();
+    }
+    const auto& [thisFullRangeFoldCase, otherFullRangeFoldCase] =
+        foldCaseContents.unwrap();
+
+    auto equalSubstringLength =
+        expandDirection == TextScanDirection::Right
+            ? TextDirectiveUtil::FindCommonPrefix(thisFullRangeFoldCase,
+                                                  otherFullRangeFoldCase)
+            : TextDirectiveUtil::FindCommonSuffix(thisFullRangeFoldCase,
+                                                  otherFullRangeFoldCase);
+    if (equalSubstringLength == thisFullRangeFoldCase.Length()) {
+      // even when the range is fully extended, it would match `other`.
+      // Therefore, it can be skipped.
+      return RefPtr<nsRange>(nullptr);
+    }
+    size_t indexFromStartOfFullRange =
+        expandDirection == TextScanDirection::Right
+            ? equalSubstringLength
+            : thisFullRangeFoldCase.Length() - equalSubstringLength;
+    Result<RangeBoundary, ErrorResult> maybeNewRangeBoundary =
+        TextDirectiveUtil::CreateRangeBoundaryByMovingOffsetFromRangeStart(
+            thisFullRange, indexFromStartOfFullRange);
+    if (MOZ_UNLIKELY(maybeNewRangeBoundary.isErr())) {
+      return maybeNewRangeBoundary.propagateErr();
+    }
+    RangeBoundary newRangeBoundary =
+        TextDirectiveUtil::MoveRangeBoundaryOneWord(
+            maybeNewRangeBoundary.unwrap(), expandDirection);
+    if (expandLimit.isSome()) {
+      // in the range-based matching case it needs to be ensured that start and
+      // end don't overlap.
+      if (auto compareResult =
+              nsContentUtils::ComparePoints(newRangeBoundary, *expandLimit)) {
+        if ((expandDirection == TextScanDirection::Right &&
+             *compareResult != 1) ||
+            (expandDirection == TextScanDirection::Left &&
+             *compareResult != -1)) {
+          newRangeBoundary = *expandLimit;
+        }
+      }
+    }
+    RefPtr<nsRange> newRange = thisFullRange->CloneRange();
+    if (expandDirection == TextScanDirection::Right) {
+      newRange->SetEnd(newRangeBoundary.AsRaw(), rv);
+      if (MOZ_UNLIKELY(rv.Failed())) {
+        return Err(std::move(rv));
+      }
+    } else {
+      newRange->SetStart(newRangeBoundary.AsRaw(), rv);
+      if (MOZ_UNLIKELY(rv.Failed())) {
+        return Err(std::move(rv));
+      }
+    }
+    return newRange;
+  };
+
+  auto createAndAddCandidate =
+      [candidate = this, &newCandidates, func = __FUNCTION__](
+          const char* contextTermName, RefPtr<nsRange>&& extendedPrefix,
+          RefPtr<nsRange>&& extendedStart, RefPtr<nsRange>&& extendedEnd,
+          RefPtr<nsRange>&& extendedSuffix) -> Result<Ok, ErrorResult> {
+    if (!extendedPrefix && !extendedStart && !extendedEnd && !extendedSuffix) {
+      TEXT_FRAGMENT_LOG_FN("Could not extend the %s because it is ambiguous.",
+                           func, contextTermName);
+      return Ok();
+    }
+    Result<TextDirectiveCandidate, ErrorResult> extendedCandidate =
+        candidate->CloneWith(std::move(extendedPrefix),
+                             std::move(extendedStart), std::move(extendedEnd),
+                             std::move(extendedSuffix));
+    if (MOZ_UNLIKELY(extendedCandidate.isErr())) {
+      return extendedCandidate.propagateErr();
+    }
+    newCandidates.AppendElement(extendedCandidate.unwrap());
+    TEXT_FRAGMENT_LOG_FN(
+        "Created candidate by extending the %s: %s", func, contextTermName,
+        newCandidates.LastElement().TextDirectiveString().Data());
+    return Ok();
+  };
+
+  MOZ_TRY(
+      createRangeExtendedUntilMismatch(
+          mFullPrefixRange, aOther.mFullPrefixRange, TextScanDirection::Left)
+          .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
+            return createAndAddCandidate("prefix", std::move(extendedRange),
+                                         nullptr, nullptr, nullptr);
+          }));
+  MOZ_TRY(
+      createRangeExtendedUntilMismatch(
+          mFullSuffixRange, aOther.mFullSuffixRange, TextScanDirection::Right)
+          .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
+            return createAndAddCandidate("suffix", nullptr, nullptr, nullptr,
+                                         std::move(extendedRange));
+          }));
+
+  MOZ_ASSERT(UseExactMatch() == aOther.UseExactMatch());
+  if (UseExactMatch()) {
+    return newCandidates;
+  }
+  MOZ_TRY(
+      createRangeExtendedUntilMismatch(mFullStartRange, aOther.mFullStartRange,
+                                       TextScanDirection::Right,
+                                       Some(mEndRange->StartRef()))
+          .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
+            return createAndAddCandidate(
+                "start", nullptr, std::move(extendedRange), nullptr, nullptr);
+          }));
+  MOZ_TRY(
+      createRangeExtendedUntilMismatch(mFullEndRange, aOther.mFullEndRange,
+                                       TextScanDirection::Left)
+          .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
+            return createAndAddCandidate("end", nullptr, nullptr,
+                                         std::move(extendedRange), nullptr);
+          }));
+  return newCandidates;
+}
+
+nsTArray<const TextDirectiveCandidate*>
+TextDirectiveCandidate::FilterNonMatchingCandidates(
+    const nsTArray<const TextDirectiveCandidate*>& aMatches,
+    RangeContentCache& aRangeContentCache) {
+  nsTArray<const TextDirectiveCandidate*> stillMatching(aMatches.Length() - 1);
+  for (const auto* match : aMatches) {
+    if (Result<bool, ErrorResult> matchesFoldCase =
+            ThisCandidateMatchesOther(*match, aRangeContentCache);
+        MOZ_LIKELY(matchesFoldCase.isOk()) && matchesFoldCase.unwrap()) {
+      stillMatching.AppendElement(match);
+    }
+  }
+  return stillMatching;
+}
+
 /* static */ Result<RefPtr<nsRange>, ErrorResult>
 TextDirectiveCandidate::MaybeCreateStartToBlockBoundaryRange(
     const nsRange& aRange) {
@@ -274,6 +542,61 @@ TextDirectiveCandidate::MaybeCreateEndToBlockBoundaryRange(
             return range;
           });
   return fullRange;
+}
+
+Result<bool, ErrorResult> TextDirectiveCandidate::ThisCandidateMatchesOther(
+    const TextDirectiveCandidate& aOther,
+    RangeContentCache& aRangeContentCache) const {
+  auto shortRangeIsSubsetOfFullRange =
+      [&aRangeContentCache](
+          nsRange* shortRange, nsRange* fullRange,
+          const std::function<uint32_t(const nsAString&, const nsAString&)>&
+              comparator) -> Result<bool, ErrorResult> {
+    auto contents = aRangeContentCache.Get(shortRange, fullRange);
+    if (MOZ_UNLIKELY(contents.isErr())) {
+      return contents.propagateErr();
+    }
+    const auto& [shortContent, fullContent] = contents.unwrap();
+    return comparator(shortContent, fullContent) == shortContent.Length();
+  };
+
+  Result<bool, ErrorResult> prefixIsSubset =
+      shortRangeIsSubsetOfFullRange(mPrefixRange, aOther.mFullPrefixRange,
+                                    TextDirectiveUtil::FindCommonSuffix);
+  if (MOZ_UNLIKELY(prefixIsSubset.isErr())) {
+    return prefixIsSubset.propagateErr();
+  }
+  if (!prefixIsSubset.unwrap()) {
+    return false;
+  }
+  Result<bool, ErrorResult> suffixIsSubset =
+      shortRangeIsSubsetOfFullRange(mSuffixRange, aOther.mFullSuffixRange,
+                                    TextDirectiveUtil::FindCommonPrefix);
+  if (MOZ_UNLIKELY(suffixIsSubset.isErr())) {
+    return suffixIsSubset.propagateErr();
+  }
+  if (!suffixIsSubset.unwrap()) {
+    return false;
+  }
+
+  MOZ_ASSERT(UseExactMatch() == aOther.UseExactMatch());
+  if (UseExactMatch()) {
+    return true;
+  }
+  Result<bool, ErrorResult> startIsSubset = shortRangeIsSubsetOfFullRange(
+      mStartRange, aOther.mFullStartRange, TextDirectiveUtil::FindCommonPrefix);
+  if (MOZ_UNLIKELY(startIsSubset.isErr())) {
+    return startIsSubset.propagateErr();
+  }
+  if (!startIsSubset.unwrap()) {
+    return false;
+  }
+  Result<bool, ErrorResult> endIsSubset = shortRangeIsSubsetOfFullRange(
+      mEndRange, aOther.mFullEndRange, TextDirectiveUtil::FindCommonSuffix);
+  if (MOZ_UNLIKELY(endIsSubset.isErr())) {
+    return endIsSubset.propagateErr();
+  }
+  return endIsSubset.unwrap();
 }
 
 /* static */
@@ -489,8 +812,9 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
   if (MOZ_UNLIKELY(maybeEndRangeMatches.isErr())) {
     return maybeEndRangeMatches.propagateErr();
   }
+  auto endRangeMatchesArray = maybeEndRangeMatches.unwrap();
   nsDeque<nsRange> endRangeMatches;
-  for (auto& element : maybeEndRangeMatches.unwrap()) {
+  for (auto& element : endRangeMatchesArray) {
     endRangeMatches.Push(element.get());
   }
   nsTArray<TextDirectiveCandidate> textDirectiveCandidates(
@@ -499,7 +823,7 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     for (auto* matchEndRange : endRangeMatches) {
       Maybe<int32_t> compare = nsContentUtils::ComparePoints(
           matchStartRange->EndRef(), matchEndRange->StartRef());
-      if (!compare || *compare == -1) {
+      if (!compare || *compare != -1) {
         endRangeMatches.PopFront();
         continue;
       }
@@ -565,7 +889,105 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
         currentCandidate.TextDirectiveString().Data());
     return currentCandidate.TextDirectiveString();
   }
-  return nsCString{};
+
+  TEXT_FRAGMENT_LOG("Found %zu text directive matches to eliminate",
+                    aTextDirectiveMatches.Length());
+  // To create a text directive string which points to the input range using a
+  // text directive candidate `currentCandidate` and a given set of
+  // fully-expanded text directive candidates `matches` representing other
+  // matches of input range, follow these steps:
+
+  // Implementation note:
+  // `aTextDirectiveMatches` keeps ownership of the `TextDirectiveCandidate`s
+  // during this algorithm and is const. `matches` doesn't have ownership and
+  // will change its content during the following loop.
+  nsTArray<const TextDirectiveCandidate*> matches(
+      aTextDirectiveMatches.Length());
+  for (const auto& match : aTextDirectiveMatches) {
+    matches.AppendElement(&match);
+  }
+  // 1. While `matches` is not empty:
+  size_t loopCounter = 0;
+  while (!matches.IsEmpty()) {
+    ++loopCounter;
+    TEXT_FRAGMENT_LOG(
+        "Entering loop %zu. %zu matches left. Current candidate state:\n",
+        loopCounter, matches.Length());
+    currentCandidate.LogCurrentState(__FUNCTION__);
+    if (TextDirectiveUtil::ShouldLog()) {
+      TEXT_FRAGMENT_LOG("State of remaining matches:");
+      for (const auto* match : matches) {
+        match->LogCurrentState(__FUNCTION__);
+      }
+    }
+    // 1.1 Let `newCandidates` be a list of text directive candidates, created
+    //     by running the Create New Candidates For Matches algorithm.
+    Result<nsTArray<TextDirectiveCandidate>, ErrorResult> maybeNewCandidates =
+        currentCandidate.CreateNewCandidatesForMatches(matches,
+                                                       mRangeContentCache);
+    if (MOZ_UNLIKELY(maybeNewCandidates.isErr())) {
+      return maybeNewCandidates.propagateErr();
+    }
+    nsTArray<TextDirectiveCandidate> newCandidates =
+        maybeNewCandidates.unwrap();
+    // 1.2 If `newCandidates` is empty:
+    if (newCandidates.IsEmpty()) {
+      TEXT_FRAGMENT_LOG(
+          "It is not possible to create a text directive that matches the "
+          "input string.");
+      // 1.2.1 Return an empty string.
+      return nsCString{};
+    }
+
+    // 1.3 Let `candidatesAndMatchesForNextIteration` be a list of tuple,
+    //     where the first element is a text directive candidate and the
+    //     second is a list of text directive candidates.
+    // Note: This will map all elements of `matches` which would still match
+    //       against the new candidate. These matches would need to be
+    //       examined further in the next iteration.
+    nsTArray<std::pair<TextDirectiveCandidate,
+                       nsTArray<const TextDirectiveCandidate*>>>
+        candidatesAndMatchesForNextIteration(newCandidates.Length());
+    // 1.4 For each element `newCandidate` in `newCandidates`:
+    for (auto& newCandidate : newCandidates) {
+      // 1.4.1 Insert a new element into
+      //       `candidatesAndMatchesForNextIteration`, consisting of
+      //       `newCandidate` and the result of running the Filter Non-matching
+      //       Candidates algorithm using `newCandidate` and `matches`.
+      candidatesAndMatchesForNextIteration.AppendElement(std::pair{
+          std::move(newCandidate), newCandidate.FilterNonMatchingCandidates(
+                                       matches, mRangeContentCache)});
+    }
+
+    // 1.5 Sort the elements of `candidatesAndMatchesForNextIteration`
+    //     ascending using the following criteria:
+    //      1. The number of remaining matches
+    //      2. If the number of remaining matches is equal, sort by the length
+    //         of the created text directive string.
+    candidatesAndMatchesForNextIteration.Sort(
+        [](const auto& a, const auto& b) -> int {
+          // sorting by the number of still matching  candidates which still
+          // exist has higher priority ...
+          const int difference = a.second.Length() - b.second.Length();
+          if (difference != 0) {
+            return difference;
+          }
+          // ... than sorting by the resulting text directive string for
+          // elements which have the same number of matching candidates.
+          return a.first.TextDirectiveString().Length() -
+                 b.first.TextDirectiveString().Length();
+        });
+    // 1.6 Let `currentCandidate` be the first element of the first element of
+    //     `candidatesAndMatchesForNextIteration`.
+    // 1.7. Let `matches` be the second element of the first element of
+    //     `candidatesAndMatchesForNextIteration`.
+    auto& [bestCandidate, matchesForCandidate] =
+        candidatesAndMatchesForNextIteration.ElementAt(0);
+    currentCandidate = std::move(bestCandidate);
+    matches = std::move(matchesForCandidate);
+  }
+  // 2. Return the text directive string of `currentCandidate`.
+  return currentCandidate.TextDirectiveString();
 }
 
 }  // namespace mozilla::dom
