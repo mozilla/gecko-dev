@@ -16,6 +16,39 @@
 
 namespace mozilla::dom {
 
+Result<std::tuple<const nsString&, const nsString&>, ErrorResult>
+RangeContentCache::Get(nsRange* aRange1, nsRange* aRange2) {
+  auto cachedContent1 = mCache.Lookup(aRange1);
+  auto cachedContent2 = mCache.Lookup(aRange2);
+  // intermediate bool flags are necessary because the `LookupResult` objects
+  // are invalidated after an insertion.
+  const bool needsToInsert1 = !cachedContent1;
+  const bool needsToInsert2 = !cachedContent2;
+  if (!needsToInsert1 && !needsToInsert2) {
+    return std::tuple<const nsString&, const nsString&>{*cachedContent1,
+                                                        *cachedContent2};
+  }
+
+  if (needsToInsert1) {
+    Result<nsString, ErrorResult> content1 =
+        TextDirectiveUtil::RangeContentAsFoldCase(aRange1);
+    if (MOZ_UNLIKELY(content1.isErr())) {
+      return content1.propagateErr();
+    }
+    mCache.InsertOrUpdate(aRange1, content1.unwrap());
+  }
+  if (needsToInsert2) {
+    Result<nsString, ErrorResult> content2 =
+        TextDirectiveUtil::RangeContentAsFoldCase(aRange2);
+    if (MOZ_UNLIKELY(content2.isErr())) {
+      return content2.propagateErr();
+    }
+    mCache.InsertOrUpdate(aRange2, content2.unwrap());
+  }
+  return std::tuple<const nsString&, const nsString&>{*mCache.Lookup(aRange1),
+                                                      *mCache.Lookup(aRange2)};
+}
+
 TextDirectiveCandidate::TextDirectiveCandidate(
     nsRange* aStartRange, nsRange* aFullStartRange, nsRange* aEndRange,
     nsRange* aFullEndRange, nsRange* aPrefixRange, nsRange* aFullPrefixRange,

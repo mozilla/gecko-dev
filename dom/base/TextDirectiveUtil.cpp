@@ -15,6 +15,7 @@
 #include "nsRange.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsUnicharUtils.h"
 #include "ContentIterator.h"
 #include "Document.h"
 #include "fragmentdirectives_ffi_generated.h"
@@ -40,6 +41,18 @@ Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
     return Err(std::move(rv));
   }
   content.CompressWhitespace();
+  return content;
+}
+
+/* static */ Result<nsString, ErrorResult>
+TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
+  Result<nsString, ErrorResult> contentResult = RangeContentAsString(aRange);
+  if (MOZ_UNLIKELY(contentResult.isErr())) {
+    return contentResult.propagateErr();
+  }
+  nsString content = contentResult.unwrap();
+  content.CompressWhitespace();
+  ToFoldedCase(content);
   return content;
 }
 

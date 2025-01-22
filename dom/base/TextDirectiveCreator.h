@@ -22,6 +22,28 @@ class ErrorResult;
 namespace mozilla::dom {
 class Document;
 
+class RangeContentCache {
+ public:
+  /** Get fold string representation of a pair of two ranges.
+   *
+   * If the fold case string for a range is not yet available in the cache, it
+   * is created using `TextDirectiveUtil::RangeContentAsFoldCase()` and inserted
+   * into the cache. Because inserting into the cache might reallocate the
+   * cache, the lifetime of the returned objects is bound by calls to `Get()`.
+   *
+   * Due to the nature of the current use cases, this method accepts two ranges
+   * and returns a tuple of two strings.
+   *
+   * This method is safe to be called with any of the input ranges being
+   * `nullptr`. In that case, the returned string will be empty.
+   */
+  Result<std::tuple<const nsString&, const nsString&>, ErrorResult> Get(
+      nsRange* aRange1, nsRange* aRange2);
+
+ private:
+  nsTHashMap<nsRange*, nsString> mCache;
+};
+
 /**
  * @brief Helper which represents a potential text directive using `nsRange`s.
  *
