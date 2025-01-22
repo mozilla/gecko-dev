@@ -1814,12 +1814,7 @@ class BrowsingContextModule extends RootBiDiModule {
         return;
       }
 
-      const browsingContextInfo = this.#getBrowsingContextInfo(
-        browsingContext,
-        {
-          maxDepth: 0,
-        }
-      );
+      const browsingContextInfo = this.#getBrowsingContextInfo(browsingContext);
 
       this._emitEventForBrowsingContext(
         browsingContext.id,
