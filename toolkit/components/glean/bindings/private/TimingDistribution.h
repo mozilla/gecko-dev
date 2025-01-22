@@ -91,6 +91,24 @@ class TimingDistributionMetric {
   Result<Maybe<DistributionData>, nsCString> TestGetValue(
       const nsACString& aPingName = nsCString()) const;
 
+  class MOZ_RAII AutoTimer {
+   public:
+    void Cancel();
+    ~AutoTimer();
+
+   private:
+    AutoTimer(uint32_t aMetricId, TimerId aTimerId)
+        : mMetricId(aMetricId), mTimerId(aTimerId) {}
+    AutoTimer(AutoTimer& aOther) = delete;
+
+    const uint32_t mMetricId;
+    TimerId mTimerId;
+
+    friend class TimingDistributionMetric;
+  };
+
+  AutoTimer Measure() const;
+
  private:
   const uint32_t mId;
 

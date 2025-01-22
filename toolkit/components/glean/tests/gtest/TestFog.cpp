@@ -289,6 +289,42 @@ TEST_F(FOGFixture, TestCppTimingDistNegativeDuration) {
             test_only::what_time_is_it.TestGetValue().unwrap());
 }
 
+TEST_F(FOGFixture, TestCppTimingDistMeasure) {
+  // Let's test Measure and its RAII AutoTimer
+  {
+    auto t1 = test_only::what_time_is_it.Measure();
+    auto t2 = test_only::what_time_is_it.Measure();
+    PR_Sleep(PR_MillisecondsToInterval(5));
+    {
+      auto t3 = test_only::what_time_is_it.Measure();
+      t1.Cancel();
+      PR_Sleep(PR_MillisecondsToInterval(5));
+    }
+  }
+  DistributionData data =
+      test_only::what_time_is_it.TestGetValue().unwrap().ref();
+
+  // Cancelled timers should not increase count.
+  ASSERT_EQ(data.count, 2UL);
+
+  const uint64_t NANOS_IN_MILLIS = 1e6;
+
+  // bug 1701847 - Sleeps don't necessarily round up as you'd expect.
+  // Give ourselves a 200000ns (0.2ms) window to be off on fast machines.
+  const uint64_t EPSILON = 200000;
+
+  // We don't know exactly how long those sleeps took, only that it was at
+  // least 15ms total.
+  ASSERT_GT(data.sum, (uint64_t)(15 * NANOS_IN_MILLIS) - EPSILON);
+
+  // We also can't guarantee the buckets, but we can guarantee two samples.
+  uint64_t sampleCount = 0;
+  for (const auto& value : data.values.Values()) {
+    sampleCount += value;
+  }
+  ASSERT_EQ(sampleCount, (uint64_t)2);
+}
+
 TEST_F(FOGFixture, TestLabeledBooleanWorks) {
   ASSERT_EQ(mozilla::Nothing(),
             test_only::mabels_like_balloons.Get("hot_air"_ns)

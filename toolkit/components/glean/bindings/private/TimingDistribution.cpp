@@ -348,6 +348,21 @@ TimingDistributionMetric::TestGetValue(const nsACString& aPingName) const {
   return Some(DistributionData(buckets, counts, sum, count));
 }
 
+TimingDistributionMetric::AutoTimer TimingDistributionMetric::Measure() const {
+  return AutoTimer(mId, this->Start());
+}
+
+void TimingDistributionMetric::AutoTimer::Cancel() {
+  fog_timing_distribution_cancel(mMetricId, std::move(mTimerId));
+  mTimerId = 0;
+}
+
+TimingDistributionMetric::AutoTimer::~AutoTimer() {
+  if (mTimerId) {
+    fog_timing_distribution_stop_and_accumulate(mMetricId, std::move(mTimerId));
+  }
+}
+
 }  // namespace impl
 
 /* virtual */
