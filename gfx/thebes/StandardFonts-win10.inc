@@ -28,7 +28,6 @@ static const char* kBaseFonts[] = {
   "Gabriola",
   "Gadugi",
   "Georgia",
-  "HoloLens MDL2 Assets",
   "Impact",
   "Javanese Text",
   "Leelawadee UI",
