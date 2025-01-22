@@ -108,33 +108,6 @@ RtpCodecCapability ToRtpCodecCapability(const cricket::Codec& cricket_codec) {
   return codec;
 }
 
-RtpCodecParameters ToRtpCodecParameters(const cricket::Codec& cricket_codec) {
-  RtpCodecParameters codec_param;
-  codec_param.name = cricket_codec.name;
-  codec_param.kind = cricket_codec.type == cricket::Codec::Type::kAudio
-                         ? cricket::MEDIA_TYPE_AUDIO
-                         : cricket::MEDIA_TYPE_VIDEO;
-  codec_param.clock_rate.emplace(cricket_codec.clockrate);
-  codec_param.payload_type = cricket_codec.id;
-  for (const cricket::FeedbackParam& cricket_feedback :
-       cricket_codec.feedback_params.params()) {
-    std::optional<RtcpFeedback> feedback = ToRtcpFeedback(cricket_feedback);
-    if (feedback) {
-      codec_param.rtcp_feedback.push_back(feedback.value());
-    }
-  }
-  switch (cricket_codec.type) {
-    case cricket::Codec::Type::kAudio:
-      codec_param.num_channels = static_cast<int>(cricket_codec.channels);
-      break;
-    case cricket::Codec::Type::kVideo:
-      // Nothing to do.
-      break;
-  }
-  codec_param.parameters = cricket_codec.params;
-  return codec_param;
-}
-
 RtpCapabilities ToRtpCapabilities(
     const std::vector<cricket::Codec>& cricket_codecs,
     const cricket::RtpHeaderExtensions& cricket_extensions) {
