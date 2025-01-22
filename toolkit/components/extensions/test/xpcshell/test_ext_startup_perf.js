@@ -58,9 +58,9 @@ add_task(async function test_loaded_scripts() {
     "No extra APIs should be loaded at startup for a simple extension"
   );
 
-  let loadedModules = Cu.loadedJSModules
-    .concat(Cu.loadedESModules)
-    .filter(url => url.startsWith("resource://gre/modules/Extension"));
+  let loadedModules = Cu.loadedESModules.filter(url =>
+    url.startsWith("resource://gre/modules/Extension")
+  );
 
   deepEqual(
     loadedModules.sort(),

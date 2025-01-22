@@ -200,7 +200,7 @@ add_task(async function test_xpcom_graph_wait() {
 
   function newMarkers() {
     return {
-      // The equivalent of `Cu.loadedJSModules` + `Cu.loadedESModules`.
+      // The equivalent of `Cu.loadedESModules`.
       modules: [],
       services: [],
     };

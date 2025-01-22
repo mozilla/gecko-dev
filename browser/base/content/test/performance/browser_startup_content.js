@@ -125,12 +125,6 @@ add_task(async function () {
         );
         let collectStacks = AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG;
         let modules = new Map();
-        for (let module of Cu.loadedJSModules) {
-          modules.set(
-            module,
-            collectStacks ? Cu.getModuleImportStack(module) : ""
-          );
-        }
         for (let module of Cu.loadedESModules) {
           modules.set(
             module,
