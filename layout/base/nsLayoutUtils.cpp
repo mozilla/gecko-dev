@@ -8174,9 +8174,9 @@ bool nsLayoutUtils::UpdateCompositionBoundsForRCDRSF(
   if (shouldSubtractDynamicToolbar == SubtractDynamicToolbar::Yes &&
       // In `overlays-content` mode with the software keyboard visible, avoid
       // flipping `shouldSubtractDynamicToolbar` below. We want to exclude
-      // the dynamic toolbar height from the visual viewport (composition bounds)
-      // height in this case to be consistent with the handling of the layout
-      // viewport height in ExpandHeightForDynamicToolbar(). Otherwise,
+      // the dynamic toolbar height from the visual viewport (composition
+      // bounds) height in this case to be consistent with the handling of the
+      // layout viewport height in ExpandHeightForDynamicToolbar(). Otherwise,
       // the visual viewport will be taller than the layout viewport which can
       // lead to rendering problems.
       !isKeyboardVisibleOnOverlaysContent) {

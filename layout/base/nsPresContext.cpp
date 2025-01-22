@@ -1773,7 +1773,7 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
 
   // Array of references to the member variable of each time stamp
   // for the different interaction types, keyed by InteractionType.
-  TimeStamp nsPresContext::*interactionTimes[] = {
+  TimeStamp nsPresContext::* interactionTimes[] = {
       &nsPresContext::mFirstClickTime, &nsPresContext::mFirstKeyTime,
       &nsPresContext::mFirstMouseMoveTime, &nsPresContext::mFirstScrollTime};
 
@@ -1809,7 +1809,7 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
 
   // Check if we are recording the first of any of the interaction types.
   bool isFirstInteraction = true;
-  for (TimeStamp nsPresContext::*memberPtr : interactionTimes) {
+  for (TimeStamp nsPresContext::* memberPtr : interactionTimes) {
     TimeStamp& timeStamp = this->*(memberPtr);
     if (!timeStamp.IsNull()) {
       isFirstInteraction = false;

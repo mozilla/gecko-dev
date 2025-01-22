@@ -11419,7 +11419,8 @@ void PresShell::MaybeRecreateMobileViewportManager(bool aAfterInitialization) {
            (int)*mvmType, uri ? uri->GetSpecOrDefault().get() : "(null)"));
     }
     if (BrowserChild* browserChild = BrowserChild::GetFrom(this)) {
-      mMobileViewportManager->UpdateKeyboardHeight(browserChild->GetKeyboardHeight());
+      mMobileViewportManager->UpdateKeyboardHeight(
+          browserChild->GetKeyboardHeight());
     }
   }
 
