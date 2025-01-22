@@ -134,26 +134,23 @@
               {
                 "type": "object",
                 "properties": {
-                  "page": { "$ref": "ExtensionURL" },
-                  "persistent": {
+                  "service_worker": {
                     "optional": true,
-                    "type": "boolean",
-                    "max_manifest_version": 2,
-                    "default": true
-                  }
-                },
-                "additionalProperties": { "$ref": "UnrecognizedProperty" }
-              },
-              {
-                "type": "object",
-                "properties": {
+                    "$ref": "ExtensionURL"
+                  },
+                  "page": {
+                    "optional": true,
+                    "$ref": "ExtensionURL"
+                  },
                   "scripts": {
+                    "optional": true,
                     "type": "array",
                     "items": { "$ref": "ExtensionURL" }
                   },
                   "type": {
                     "optional": true,
                     "type": "string",
+                    "description": "Only supported for page/scripts; not for service_worker yet, see bug 1775574",
                     "enum": ["module", "classic"]
                   },
                   "persistent": {
@@ -161,16 +158,19 @@
                     "type": "boolean",
                     "max_manifest_version": 2,
                     "default": true
+                  },
+                  "preferred_environment": {
+                    "optional": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["service_worker", "document"],
+                      "onError": "warn"
+                    }
                   }
                 },
-                "additionalProperties": { "$ref": "UnrecognizedProperty" }
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "service_worker": { "$ref": "ExtensionURL" }
-                },
-                "postprocess": "requireBackgroundServiceWorkerEnabled"
+                "additionalProperties": { "$ref": "UnrecognizedProperty" },
+                "postprocess": "checkRequiredManifestBackgroundKeys"
               }
             ],
             "optional": true

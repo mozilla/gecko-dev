@@ -126,7 +126,7 @@ add_task(async function test_background_scripts_type_invalid() {
   ExtensionTestUtils.failOnSchemaWarnings(false);
   await Assert.rejects(
     extension.startup(),
-    /Error processing background: .* \.type must be one of/,
+    /Error processing background.type: Invalid enumeration value "invalid"/,
     "Expected install to fail"
   );
   ExtensionTestUtils.failOnSchemaWarnings(true);

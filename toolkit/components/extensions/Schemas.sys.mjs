@@ -291,16 +291,30 @@ const POSTPROCESSORS = {
 
     return string;
   },
-  requireBackgroundServiceWorkerEnabled(value, context) {
-    if (WebExtensionPolicy.backgroundServiceWorkerEnabled) {
-      return value;
+  checkRequiredManifestBackgroundKeys(value, context) {
+    const serviceWorkerEnabled =
+      WebExtensionPolicy.backgroundServiceWorkerEnabled;
+
+    // At least one environment is required
+    if (!value.page && !value.scripts?.length) {
+      if (!value.service_worker) {
+        // Add an error to the manifest validations and throw the
+        // same error.
+        const msg = `background requires at least one of ${
+          serviceWorkerEnabled ? '"service_worker", ' : ""
+        }"scripts" or "page".`;
+        context.logError(context.makeError(msg));
+        throw new Error(msg);
+      } else if (!serviceWorkerEnabled) {
+        // throw if only service_worker is specified and not enabled
+        const msg =
+          "background.service_worker is currently disabled. Add background.scripts.";
+        context.logError(context.makeError(msg));
+        throw new Error(msg);
+      }
     }
 
-    // Add an error to the manifest validations and throw the
-    // same error.
-    const msg = "background.service_worker is currently disabled";
-    context.logError(context.makeError(msg));
-    throw new Error(msg);
+    return value;
   },
 
   manifestVersionCheck(value, context) {

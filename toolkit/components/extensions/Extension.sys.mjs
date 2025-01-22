@@ -1500,19 +1500,49 @@ export class ExtensionData {
     return this.manifest.manifest_version;
   }
 
+  get workerBackground() {
+    const background = this.manifest.background;
+
+    const hasServiceWorker =
+      background?.service_worker &&
+      WebExtensionPolicy.backgroundServiceWorkerEnabled;
+    if (!hasServiceWorker) {
+      return false;
+    }
+
+    const hasDocument = background.scripts || background.page;
+    if (!hasDocument) {
+      return true;
+    }
+
+    // assurance: both "document" and "service_worker" environment specified in manifest
+
+    for (let environment of background.preferred_environment || []) {
+      if (environment === "document") {
+        return false;
+      }
+      if (environment === "service_worker") {
+        return true;
+      }
+    }
+
+    // When not specified, prefer the the "document" environment
+    // aka event page by default. This is consistent with Safari 18.
+
+    return false;
+  }
+
   get persistentBackground() {
-    let { manifest } = this;
     if (
-      !manifest.background ||
-      (manifest.background.service_worker &&
-        WebExtensionPolicy.backgroundServiceWorkerEnabled) ||
-      this.manifestVersion > 2
+      !this.manifest.background ||
+      this.manifestVersion > 2 ||
+      this.workerBackground
     ) {
       return false;
     }
     // V2 addons can only use event pages if the pref is also flipped and
     // persistent is explicilty set to false.
-    return !this.eventPagesEnabled || manifest.background.persistent;
+    return !this.eventPagesEnabled || this.manifest.background.persistent;
   }
 
   /**
@@ -1786,13 +1816,34 @@ export class ExtensionData {
       );
     }
 
-    if (
-      this.manifestVersion < 3 &&
-      manifest.background &&
-      !this.eventPagesEnabled &&
-      !manifest.background.persistent
-    ) {
-      this.logWarning("Event pages are not currently supported.");
+    if (manifest.background) {
+      const background = manifest.background;
+
+      if (background.page && background.scripts) {
+        // both page and scripts are specified, educate the author on the deterministic behaviour
+        // Note: in Chrome and Safari, the precedence is inverted.
+        this.manifestWarning(
+          `Warning processing background: Both background.page and background.scripts specified. background.scripts will be ignored.`
+        );
+      }
+
+      // take the presence of preferred_environment as clue the author knows what it is doing
+      const hasPreference = Array.isArray(background.preferred_environment);
+      if (!hasPreference && WebExtensionPolicy.backgroundServiceWorkerEnabled) {
+        // both serviceWorker and document are specified, educate the author on the deterministic behaviour
+        const documentType = background.page ? "page" : "scripts";
+        this.manifestWarning(
+          `Warning processing background: with both background.service_worker and background.${documentType}, only background.${documentType} will be loaded. This can be changed with background.preferred_environment.`
+        );
+      }
+
+      if (
+        this.manifestVersion < 3 &&
+        !this.eventPagesEnabled &&
+        !background.persistent
+      ) {
+        this.logWarning("Event pages are not currently supported.");
+      }
     }
 
     if (
