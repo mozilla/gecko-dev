@@ -220,7 +220,7 @@ interface LanguageTranslationModelFiles {
   model: LanguageTranslationModelFile,
   // The lexical shortlist that limits possible output of the decoder and makes
   // inference faster.
-  lex: LanguageTranslationModelFile,
+  lex?: LanguageTranslationModelFile,
   // A model that can generate a translation quality estimation.
   qualityModel?: LanguageTranslationModelFile,
 

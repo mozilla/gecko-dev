@@ -33,6 +33,7 @@ const TOPIC_TRANSLATIONS_PREF_CHANGED = "translations:pref-changed";
 const TOPIC_MAYBE_UPDATE_USER_LANG_TAG =
   "translations:maybe-update-user-lang-tag";
 const TOPIC_APP_LOCALES_CHANGED = "intl:app-locales-changed";
+const USE_LEXICAL_SHORTLIST_PREF = "browser.translations.useLexicalShortlist";
 
 const lazy = {};
 
@@ -83,6 +84,23 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "translationsEnabledPref",
   "browser.translations.enable"
+);
+
+/**
+ * Returns whether Translations should utilize lexical shortlisting.
+ */
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "useLexicalShortlist",
+  USE_LEXICAL_SHORTLIST_PREF,
+  /* aDefaultValue */ false,
+  /* aOnUpdate */ () => {
+    Services.obs.notifyObservers(
+      null,
+      TOPIC_TRANSLATIONS_PREF_CHANGED,
+      USE_LEXICAL_SHORTLIST_PREF
+    );
+  }
 );
 
 /**
@@ -549,12 +567,16 @@ export class TranslationsParent extends JSWindowActorParent {
 
   /**
    * A guard to ensure that we initialize static pref observers only once.
+   *
+   * @type {boolean}
    */
   static #observingPrefs = false;
 
   /**
-   * A dedicated handle to this.observe.bind(this), which we need to register non-static
+   * A dedicated handle to this.#observe.bind(this), which we need to register non-static
    * per-instance observers when the actor is created as well as remove when it is destroyed.
+   *
+   * @type {Function | null}
    *
    * @see {TranslationsParent.actorCreated}
    * @see {TranslationsParent.didDestroy}
@@ -1111,6 +1133,19 @@ export class TranslationsParent extends JSWindowActorParent {
       }
       case TOPIC_TRANSLATIONS_PREF_CHANGED: {
         switch (data) {
+          case USE_LEXICAL_SHORTLIST_PREF: {
+            TranslationsParent.#invalidateTranslationModelRecords();
+
+            // This is an extreme edge case where someone would flip the useLexicalShortlist
+            // pref during an active translation. Most people will not be flipping this pref
+            // at all, much less during a translation. But if it does happen, we should destroy
+            // the current engine to be rebuilt with the new configuration.
+            lazy.EngineProcess.destroyTranslationsEngine().catch(error =>
+              lazy.console.error(error)
+            );
+
+            break;
+          }
           case MOST_RECENT_TARGET_LANGS_PREF: {
             TranslationsParent.#invalidateMostRecentTargetLanguages();
           }
@@ -1963,6 +1998,10 @@ export class TranslationsParent extends JSWindowActorParent {
     for (const record of TranslationsParent.#ensureLanguagePairsHavePivots(
       translationModelRecords
     )) {
+      if (record.fileType === "lex" && !lazy.useLexicalShortlist) {
+        // Do not include lexical shortlists if our config is set to not use them.
+        continue;
+      }
       records.set(record.id, record);
     }
 
@@ -2607,7 +2646,7 @@ export class TranslationsParent extends JSWindowActorParent {
       );
     }
 
-    if (!results.lex) {
+    if (!results.lex && lazy.useLexicalShortlist) {
       throw new Error(
         `No lex file was found for "${fromLanguage}" to "${toLanguage}."`
       );
@@ -2714,6 +2753,11 @@ export class TranslationsParent extends JSWindowActorParent {
       records.map(async record => {
         if (record.fileType === "qualityModel") {
           // Do not include the quality models. We do not use them.
+          return;
+        }
+
+        if (record.fileType === "lex" && !lazy.useLexicalShortlist) {
+          // The current configuration does not use lexical shortlists.
           return;
         }
 
