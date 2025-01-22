@@ -364,16 +364,8 @@ struct StreamDataCounters {
 };
 
 class RtpSendRates {
-  template <std::size_t... Is>
-  constexpr std::array<DataRate, sizeof...(Is)> make_zero_array(
-      std::index_sequence<Is...>) {
-    return {{(static_cast<void>(Is), DataRate::Zero())...}};
-  }
-
  public:
-  RtpSendRates()
-      : send_rates_(
-            make_zero_array(std::make_index_sequence<kNumMediaTypes>())) {}
+  constexpr RtpSendRates() = default;
   RtpSendRates(const RtpSendRates& rhs) = default;
   RtpSendRates& operator=(const RtpSendRates&) = default;
 

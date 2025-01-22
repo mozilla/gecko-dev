@@ -275,6 +275,7 @@ class RelativeUnit : public UnitBase<Unit_T> {
 
  protected:
   using UnitBase<Unit_T>::UnitBase;
+  constexpr RelativeUnit() : UnitBase<Unit_T>(0) {}
 };
 
 template <class Unit_T>
