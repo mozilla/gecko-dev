@@ -22,6 +22,8 @@ prefs = [
   "extensions.screenshots.disabled=false",
   # Need to keep the revamped sidebar off until Bug 1905212 is done
   "sidebar.revamp=false",
+  # TODO: Renable in Bug 1923381
+  "browser.urlbar.scotchBonnet.enableOverride=false",
 ]
 support-files = ["head.js"]
 
@@ -70,7 +72,6 @@ run-if = [
   "debug",
   "nightly_build", # Requires StartupRecorder.sys.mjs, which isn't shipped everywhere by default
 ]
-skip-if = ["nightly_build"] # Bug 1936557
 
 ["browser_tabclose.js"]
 skip-if = [
