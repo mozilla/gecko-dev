@@ -10,8 +10,14 @@
 
 #include "modules/rtp_rtcp/source/absolute_capture_time_interpolator.h"
 
+#include <cstdint>
+#include <optional>
+
+#include "api/rtp_headers.h"
+#include "api/units/time_delta.h"
+#include "system_wrappers/include/clock.h"
+#include "system_wrappers/include/metrics.h"
 #include "system_wrappers/include/ntp_time.h"
-#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -340,6 +346,38 @@ TEST(AbsoluteCaptureTimeInterpolatorTest, SkipInterpolateIsSticky) {
       interpolator.OnReceivePacket(kSource0, kRtpTimestamp2, kRtpClockFrequency,
                                    /*received_extension=*/std::nullopt),
       std::nullopt);
+}
+
+TEST(AbsoluteCaptureTimeInterpolatorTest, MetricsAreUpdated) {
+  constexpr uint32_t kRtpTimestamp0 = 102030000;
+  constexpr uint32_t kSource = 1234;
+  constexpr uint32_t kFrequency = 1000;
+  SimulatedClock clock(0);
+  AbsoluteCaptureTimeInterpolator interpolator(&clock);
+
+  metrics::Reset();
+  // First packet has no extension.
+  interpolator.OnReceivePacket(kSource, kRtpTimestamp0, kFrequency,
+                               std::nullopt);
+  EXPECT_METRIC_EQ(metrics::NumSamples("WebRTC.Call.AbsCapture.ExtensionWait"),
+                   0);
+
+  // Second packet has extension, but no offset.
+  clock.AdvanceTimeMilliseconds(10);
+  interpolator.OnReceivePacket(
+      kSource, kRtpTimestamp0 + 10, kFrequency,
+      AbsoluteCaptureTime{Int64MsToUQ32x32(5000), std::nullopt});
+  EXPECT_METRIC_EQ(metrics::NumSamples("WebRTC.Call.AbsCapture.ExtensionWait"),
+                   1);
+
+  // Third packet has extension with offset, value zero.
+  clock.AdvanceTimeMilliseconds(10);
+  interpolator.OnReceivePacket(
+      kSource, kRtpTimestamp0 + 20, kFrequency,
+      AbsoluteCaptureTime{Int64MsToUQ32x32(20), Int64MsToUQ32x32(0)});
+  EXPECT_METRIC_EQ(metrics::NumSamples("WebRTC.Call.AbsCapture.Delta"), 2);
+  EXPECT_METRIC_EQ(metrics::NumSamples("WebRTC.Call.AbsCapture.DeltaDeviation"),
+                   1);
 }
 
 }  // namespace webrtc

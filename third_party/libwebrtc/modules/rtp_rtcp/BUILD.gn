@@ -731,6 +731,7 @@ if (rtc_include_tests) {
       "../../rtc_base:timeutils",
       "../../rtc_base/network:ecn_marking",
       "../../system_wrappers",
+      "../../system_wrappers:metrics",
       "../../test:explicit_key_value_config",
       "../../test:mock_transport",
       "../../test:rtp_test_utils",

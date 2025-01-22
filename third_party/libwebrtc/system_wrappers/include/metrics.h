@@ -125,6 +125,12 @@ void NoOp(const Ts&...) {}
 #define RTC_HISTOGRAM_COUNTS_100000(name, sample) \
   RTC_HISTOGRAM_COUNTS(name, sample, 1, 100000, 50)
 
+#define RTC_HISTOGRAM_COUNTS_1M(name, sample) \
+  RTC_HISTOGRAM_COUNTS(name, sample, 1, 1'000'000, 50)
+
+#define RTC_HISTOGRAM_COUNTS_1G(name, sample) \
+  RTC_HISTOGRAM_COUNTS(name, sample, 1, 1'000'000'000, 50)
+
 #define RTC_HISTOGRAM_COUNTS(name, sample, min, max, bucket_count)       \
   RTC_HISTOGRAM_COMMON_BLOCK(name, sample,                               \
                              webrtc::metrics::HistogramFactoryGetCounts( \
@@ -298,6 +304,12 @@ void NoOp(const Ts&...) {}
   webrtc::metrics_impl::NoOp(name, sample)
 
 #define RTC_HISTOGRAM_COUNTS_100000(name, sample) \
+  webrtc::metrics_impl::NoOp(name, sample)
+
+#define RTC_HISTOGRAM_COUNTS_1M(name, sample) \
+  webrtc::metrics_impl::NoOp(name, sample)
+
+#define RTC_HISTOGRAM_COUNTS_1G(name, sample) \
   webrtc::metrics_impl::NoOp(name, sample)
 
 #define RTC_HISTOGRAM_COUNTS(name, sample, min, max, bucket_count) \
