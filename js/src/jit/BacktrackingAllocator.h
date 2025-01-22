@@ -441,7 +441,7 @@ class LiveBundle : public TempObject {
     ranges_.removeAndIncrement(iter);
   }
   void removeAllRangesFromVirtualRegisters();
-  void addRange(LiveRange* range);
+  void addRange(LiveRange* range, LiveRange* startAt = nullptr);
   void addRangeAtEnd(LiveRange* range);
   [[nodiscard]] bool addRangeAtEnd(TempAllocator& alloc, VirtualRegister* vreg,
                                    CodePosition from, CodePosition to);
