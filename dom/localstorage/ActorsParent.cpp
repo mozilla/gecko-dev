@@ -1666,6 +1666,12 @@ class PrivateDatastore {
 
     return *mDatastore;
   }
+
+  Datastore& MutableDatastoreRef() const {
+    AssertIsOnBackgroundThread();
+
+    return *mDatastore;
+  }
 };
 
 class PreparedDatastore {
@@ -8801,12 +8807,24 @@ void QuotaClient::AbortOperationsForLocks(
 
       // The PrivateDatastore::mDatastore member is not cleared until the
       // PrivateDatastore is destroyed.
-      const auto& datastore = privateDatastore->DatastoreRef();
+      auto& datastore = privateDatastore->MutableDatastoreRef();
 
       // If the PrivateDatastore exists then it must be registered in
       // Datastore::mHasLivePrivateDatastore as well. The Datastore must have
       // a DirectoryLock if there is a registered PrivateDatastore.
-      return IsLockForObjectContainedInLockTable(datastore, aDirectoryLockIds);
+      bool result =
+          IsLockForObjectContainedInLockTable(datastore, aDirectoryLockIds);
+
+      // The datastore should be closed after removing from gPrivateDatastores
+      // (and eventually unregistered from gDatastores, so a new private
+      // browsing session won't see any data from a previous private browsing
+      // session) but just in case something still keeps alive the datastore,
+      // let's explicitly clear it here.
+      if (result) {
+        datastore.Clear(nullptr);
+      }
+
+      return result;
     });
 
     if (!gPrivateDatastores->Count()) {
