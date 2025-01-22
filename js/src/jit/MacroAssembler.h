@@ -2074,7 +2074,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void branchTestValue(Condition cond, const ValueOperand& lhs,
                        const Value& rhs, Label* label) PER_ARCH;
 
-  inline void branchTestValue(Condition cond, const BaseIndex& lhs,
+  template <typename T>
+  inline void branchTestValue(Condition cond, const T& lhs,
                               const ValueOperand& rhs, Label* label) PER_ARCH;
 
   // Checks if given Value is evaluated to true or false in a condition.
