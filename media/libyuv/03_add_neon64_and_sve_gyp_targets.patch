@@ -1,4 +1,5 @@
 diff --git a/libyuv.gyp b/libyuv.gyp
+index 45df0d2e26192..e2aa2d7c69404 100644
 --- a/libyuv.gyp
 +++ b/libyuv.gyp
 @@ -71,9 +71,7 @@
@@ -12,7 +13,24 @@ diff --git a/libyuv.gyp b/libyuv.gyp
            ],
            'conditions': [
              # Disable LTO in libyuv_neon target due to gcc 4.9 compiler bug.
-@@ -162,12 +160,95 @@
+@@ -83,16 +81,6 @@
+                 '-ffat-lto-objects',
+               ],
+             }],
+-            # arm64 does not need -mfpu=neon option as neon is not optional
+-            ['target_arch != "arm64"', {
+-              'cflags': [
+-                '-mfpu=neon',
+-                # '-marm',  # arm32 not thumb
+-              ],
+-              'cflags_mozilla': [
+-                '-mfpu=neon',
+-              ],
+-            }],
+           ],
+         }],
+         ['build_msa != 0', {
+@@ -162,12 +150,105 @@
                '-Wl,--dynamic-linker,/system/bin/linker',
              ],
            }],
@@ -53,6 +71,16 @@ diff --git a/libyuv.gyp b/libyuv.gyp
 +        ['target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
 +          'cflags_mozilla': [
 +            '-march=armv8.2-a+dotprod+i8mm',
++          ],
++        }],
++        # arm64 does not need -mfpu=neon option as neon is not optional
++        ['target_arch != "arm64"', {
++          'cflags': [
++            '-mfpu=neon',
++            # '-marm',  # arm32 not thumb
++          ],
++          'cflags_mozilla': [
++            '-mfpu=neon',
 +          ],
 +        }],
 +        ['build_neon != 0', {
@@ -109,6 +137,7 @@ diff --git a/libyuv.gyp b/libyuv.gyp
  }
  
 diff --git a/libyuv.gypi b/libyuv.gypi
+index 74fa0fe63b57b..1fd1be71e3414 100644
 --- a/libyuv.gypi
 +++ b/libyuv.gypi
 @@ -8,6 +8,29 @@
@@ -141,7 +170,7 @@ diff --git a/libyuv.gypi b/libyuv.gypi
      'libyuv_sources': [
        # includes.
        'include/libyuv.h',
-@@ -38,8 +61,6 @@
+@@ -40,8 +63,6 @@
        'source/compare_common.cc',
        'source/compare_gcc.cc',
        'source/compare_msa.cc',
@@ -150,7 +179,7 @@ diff --git a/libyuv.gypi b/libyuv.gypi
        'source/compare_win.cc',
        'source/convert.cc',
        'source/convert_argb.cc',
-@@ -58,15 +79,11 @@
+@@ -60,15 +81,11 @@
        'source/rotate_common.cc',
        'source/rotate_gcc.cc',
        'source/rotate_msa.cc',
@@ -166,7 +195,7 @@ diff --git a/libyuv.gypi b/libyuv.gypi
        'source/row_win.cc',
        'source/scale.cc',
        'source/scale_any.cc',
-@@ -74,8 +91,6 @@
+@@ -76,8 +93,6 @@
        'source/scale_common.cc',
        'source/scale_gcc.cc',
        'source/scale_msa.cc',
