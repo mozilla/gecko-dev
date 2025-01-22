@@ -2397,14 +2397,9 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * @param {string} fromLanguage
    * @param {string} toLanguage
-   * @param {boolean} withQualityEstimation
    * @returns {null | TranslationModelPayload}
    */
-  static async getTranslationModelPayload(
-    fromLanguage,
-    toLanguage,
-    withQualityEstimation = false
-  ) {
+  static async getTranslationModelPayload(fromLanguage, toLanguage) {
     const client = TranslationsParent.#getTranslationModelsRemoteClient();
 
     lazy.console.log(
@@ -2421,8 +2416,8 @@ export class TranslationsParent extends JSWindowActorParent {
     // Use Promise.all to download (or retrieve from cache) the model files in parallel.
     await Promise.all(
       records.map(async record => {
-        if (record.fileType === "qualityModel" && !withQualityEstimation) {
-          // Do not include the quality models if they aren't needed.
+        if (record.fileType === "qualityModel") {
+          // Do not include the quality models. We do not use them.
           return;
         }
 
@@ -2486,12 +2481,6 @@ export class TranslationsParent extends JSWindowActorParent {
       );
     }
 
-    if (withQualityEstimation && !results.qualityModel) {
-      throw new Error(
-        `No quality file was found for "${fromLanguage}" to "${toLanguage}."`
-      );
-    }
-
     if (results.vocab) {
       if (results.srcvocab) {
         throw new Error(
@@ -2542,32 +2531,24 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * @param {string} fromLanguage
    * @param {string} toLanguage
-   * @param {boolean} withQualityEstimation
    * @returns {Promise<long>} Size in bytes of the expected download. A result of 0 indicates no download is expected for the request.
    */
-  static async getExpectedTranslationDownloadSize(
-    fromLanguage,
-    toLanguage,
-    withQualityEstimation = false
-  ) {
+  static async getExpectedTranslationDownloadSize(fromLanguage, toLanguage) {
     const directSize = await this.#getModelDownloadSize(
       fromLanguage,
-      toLanguage,
-      withQualityEstimation
+      toLanguage
     );
 
     // If a direct model is not found, then check pivots.
     if (directSize.downloadSize == 0 && !directSize.modelFound) {
       const indirectFrom = await TranslationsParent.#getModelDownloadSize(
         fromLanguage,
-        PIVOT_LANGUAGE,
-        withQualityEstimation
+        PIVOT_LANGUAGE
       );
 
       const indirectTo = await TranslationsParent.#getModelDownloadSize(
         PIVOT_LANGUAGE,
-        toLanguage,
-        withQualityEstimation
+        toLanguage
       );
 
       // Note, will also return 0 due to the models not being available as well.
@@ -2583,17 +2564,12 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * @param {string} fromLanguage
    * @param {string} toLanguage
-   * @param {boolean} withQualityEstimation
    * @returns {Promise<{downloadSize: long, modelFound: boolean}>} Download size is the
    *   size in bytes of the estimated download for display purposes. Model found indicates
    *   a model was found. e.g., a result of {size: 0, modelFound: false} indicates no
    *   bytes to download, because a model wasn't located.
    */
-  static async #getModelDownloadSize(
-    fromLanguage,
-    toLanguage,
-    withQualityEstimation = false
-  ) {
+  static async #getModelDownloadSize(fromLanguage, toLanguage) {
     const client = TranslationsParent.#getTranslationModelsRemoteClient();
     const records = [
       ...(await TranslationsParent.#getTranslationModelRecords()).values(),
@@ -2604,7 +2580,8 @@ export class TranslationsParent extends JSWindowActorParent {
 
     await Promise.all(
       records.map(async record => {
-        if (record.fileType === "qualityModel" && !withQualityEstimation) {
+        if (record.fileType === "qualityModel") {
+          // Do not include the quality models. We do not use them.
           return;
         }
 
