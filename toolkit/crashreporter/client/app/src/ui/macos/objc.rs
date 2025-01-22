@@ -200,22 +200,22 @@ macro_rules! objc_class {
                 $($(decl.add_protocol(runtime::Protocol::get(stringify!($protocol)).expect(concat!("failed to find ",stringify!($protocol)," protocol")));)+)?
                 decl.add_ivar::<usize>("rust_self");
                 $({
-                    extern fn method_impl(obj: &mut runtime::Object, _: runtime::Sel $(, $argname: $argtype )*) $(-> $rettype)? {
+                    extern "C" fn method_impl(obj: &mut runtime::Object, _: runtime::Sel $(, $argname: $argtype )*) $(-> $rettype)? {
                         Objc::<$name>::new(obj).$mname($($argname),*)
                     }
                     unsafe {
-                        decl.add_method(sel!($($sel)+), method_impl as extern fn(&mut runtime::Object, runtime::Sel $(, $argname: $argtype )*) $(-> $rettype)?);
+                        decl.add_method(sel!($($sel)+), method_impl as extern "C" fn(&mut runtime::Object, runtime::Sel $(, $argname: $argtype )*) $(-> $rettype)?);
                     }
                 })*
                 {
-                    extern fn dealloc_impl(obj: &runtime::Object, _: runtime::Sel) {
+                    extern "C" fn dealloc_impl(obj: &runtime::Object, _: runtime::Sel) {
                         drop(unsafe { Box::from_raw(*obj.get_ivar::<usize>("rust_self") as *mut $name) });
                         unsafe {
                             let _: () = msg_send![super(obj, class!(NSObject)), dealloc];
                         }
                     }
                     unsafe {
-                        decl.add_method(sel!(dealloc), dealloc_impl as extern fn(&runtime::Object, runtime::Sel));
+                        decl.add_method(sel!(dealloc), dealloc_impl as extern "C" fn(&runtime::Object, runtime::Sel));
                     }
                 }
                 decl.register();

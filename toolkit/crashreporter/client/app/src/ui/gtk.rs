@@ -759,7 +759,7 @@ fn render_element_type(element_type: &model::ElementType) -> Option<*mut gtk::Gt
                             gtk::gtk_progress_bar_pulse(progress_ptr as *mut _);
 
                             fn auto_pulse_progress_bar(progress: *mut gtk::GtkProgressBar) {
-                                unsafe extern fn pulse(progress: *mut std::ffi::c_void) -> gtk::gboolean {
+                                unsafe extern "C" fn pulse(progress: *mut std::ffi::c_void) -> gtk::gboolean {
                                     if gtk::gtk_widget_is_visible(progress as _) == 0 {
                                         false.into()
                                     } else {
@@ -768,7 +768,7 @@ fn render_element_type(element_type: &model::ElementType) -> Option<*mut gtk::Gt
                                     }
                                 }
                                 unsafe {
-                                    gtk::g_timeout_add(100, Some(pulse as unsafe extern fn(*mut std::ffi::c_void) -> gtk::gboolean), progress as _);
+                                    gtk::g_timeout_add(100, Some(pulse as unsafe extern "C" fn(*mut std::ffi::c_void) -> gtk::gboolean), progress as _);
                                 }
 
                             }

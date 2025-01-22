@@ -87,12 +87,12 @@ macro_rules! library_binding {
             $localname
             members[
                 $($members)*
-                $name: Symbol<'static, unsafe extern fn $args $(->$ret)?>,
+                $name: Symbol<'static, unsafe extern "C" fn $args $(->$ret)?>,
             ]
             load[
                 $($load)*
                 $name: unsafe {
-                    let symbol = $localname.get::<unsafe extern fn $args $(->$ret)?>(stringify!($name).as_bytes())
+                    let symbol = $localname.get::<unsafe extern "C" fn $args $(->$ret)?>(stringify!($name).as_bytes())
                     .map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
                     // All symbols refer to library, so `'static` lifetimes are safe (`library`
                     // will outlive them).
