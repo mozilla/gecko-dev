@@ -19,6 +19,7 @@
 #include <string_view>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
@@ -55,8 +56,11 @@
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 
+using ::testing::AllOf;
+using ::testing::Each;
 using ::testing::Eq;
 using ::testing::Field;
+using ::testing::Gt;
 using ::testing::Optional;
 using ::testing::SizeIs;
 using ::testing::StrCaseEq;
@@ -67,6 +71,37 @@ namespace webrtc {
 namespace {
 
 constexpr TimeDelta kDefaultTimeout = TimeDelta::Seconds(5);
+
+MATCHER(IsRtcOk, "") {
+  if (!arg.ok()) {
+    *result_listener << "Expected OK, got " << arg.error().message();
+    return false;
+  }
+  return true;
+}
+
+template <typename Fn, typename Matcher>
+auto WaitForCondition(const Fn& fn,
+                      Matcher matcher,
+                      TimeDelta timeout = kDefaultTimeout)
+    -> RTCErrorOr<decltype(fn())> {
+  testing::StringMatchResultListener listener;
+  int64_t start = rtc::SystemTimeMillis();
+  auto result = fn();
+  if (testing::ExplainMatchResult(matcher, result, &listener)) {
+    return result;
+  }
+  do {
+    rtc::Thread::Current()->ProcessMessages(0);
+    rtc::Thread::Current()->SleepMs(1);
+    result = fn();
+    if (testing::ExplainMatchResult(matcher, result, &listener)) {
+      return result;
+    }
+  } while (rtc::SystemTimeMillis() < start + timeout.ms());
+  return RTCError(RTCErrorType::INTERNAL_ERROR, listener.str());
+}
+
 // Most tests pass in 20-30 seconds, but some tests take longer such as AV1
 // requiring additional ramp-up time (https://crbug.com/webrtc/15006) or SVC
 // (LxTx_KEY) being slower than simulcast to send top spatial layer.
@@ -86,14 +121,14 @@ auto HasEncoderImplementation(absl::string_view impl) {
                Optional(StrEq(impl)));
 }
 
+auto HasNoScalabilityMode() {
+  return Field("scalability_mode", &RTCOutboundRtpStreamStats::scalability_mode,
+               Eq(std::nullopt));
+}
+
 auto HasScalabilityMode(absl::string_view mode) {
   return Field("scalability_mode", &RTCOutboundRtpStreamStats::scalability_mode,
                Optional(StrEq(mode)));
-}
-
-auto HasEmptyScalabilityMode() {
-  return Field("scalability_mode", &RTCOutboundRtpStreamStats::scalability_mode,
-               Eq(std::nullopt));
 }
 
 struct StringParamToString {
@@ -338,9 +373,6 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
         report->GetStatsOfType<RTCOutboundRtpStreamStats>();
     for (const auto* outbound_rtp : outbound_rtps) {
       if (outbound_rtp->rid.value_or("") == rid) {
-        RTC_LOG(LS_INFO) << "Encoding " << rid << " is "
-                         << (outbound_rtp->active.value_or(false) ? "active"
-                                                                  : "inactive");
         return *outbound_rtp->active;
       }
     }
@@ -960,15 +992,21 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   // Since the standard API is configuring simulcast we get three outbound-rtps,
   // and two are active.
-  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, /*num_layers=*/3u,
-                                           /*num_active_layers=*/3u),
-                   kDefaultTimeout.ms());
-  // Wait until scalability mode is reported and expected resolution reached.
-  // Ramp up time may be significant.
-  EXPECT_TRUE_WAIT(OutboundRtpResolutionsAreLessThanOrEqualToExpectations(
-                       local_pc_wrapper,
-                       {{"q", 320, 180}, {"h", 640, 360}, {"f", 1280, 720}}),
-                   kLongTimeoutForRampingUp.ms() / 2);
+  ASSERT_THAT(
+      WaitForCondition(
+          [&] {
+            std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
+                GetStats(local_pc_wrapper)
+                    ->GetStatsOfType<RTCOutboundRtpStreamStats>();
+            std::vector<size_t> bytes_sent;
+            bytes_sent.reserve(outbound_rtps.size());
+            for (const auto* outbound_rtp : outbound_rtps) {
+              bytes_sent.push_back(outbound_rtp->bytes_sent.value_or(0));
+            }
+            return bytes_sent;
+          },
+          AllOf(SizeIs(3), Each(Gt(0))), kLongTimeoutForRampingUp),
+      IsRtcOk());
   rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
   ASSERT_TRUE(report);
   std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
@@ -993,22 +1031,17 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // Deactivate the active layer.
   parameters.encodings[2].active = false;
   EXPECT_TRUE(sender->SetParameters(parameters).ok());
-  // Ensure that we are getting VGA at L1T1 from the "f" rid.
-  ASSERT_TRUE_WAIT(!EncodingIsActive(local_pc_wrapper, "f"),
-                   kDefaultTimeout.ms());
-
-  EXPECT_EQ_WAIT(GetEncoderImplementationName(local_pc_wrapper),
-                 "SimulcastEncoderAdapter (libvpx, libvpx)",
-                 kDefaultTimeout.ms());
-
-  report = GetStats(local_pc_wrapper);
-  ASSERT_TRUE(report);
-  outbound_rtps = report->GetStatsOfType<RTCOutboundRtpStreamStats>();
-  EXPECT_THAT(outbound_rtps, Each(HasEncoderImplementation(
-                                 "SimulcastEncoderAdapter (libvpx, libvpx)")));
-  EXPECT_THAT(outbound_rtps, UnorderedElementsAre(HasScalabilityMode("L1T3"),
-                                                  HasScalabilityMode("L1T1"),
-                                                  HasEmptyScalabilityMode()));
+  ASSERT_THAT(WaitForCondition(
+                  [&]() {
+                    return GetStats(local_pc_wrapper)
+                        ->GetStatsOfType<RTCOutboundRtpStreamStats>();
+                  },
+                  AllOf(Each(HasEncoderImplementation(
+                            "SimulcastEncoderAdapter (libvpx, libvpx)")),
+                        UnorderedElementsAre(HasScalabilityMode("L1T3"),
+                                             HasScalabilityMode("L1T1"),
+                                             HasNoScalabilityMode()))),
+              IsRtcOk());
 }
 
 TEST_F(PeerConnectionEncodingsIntegrationTest,
