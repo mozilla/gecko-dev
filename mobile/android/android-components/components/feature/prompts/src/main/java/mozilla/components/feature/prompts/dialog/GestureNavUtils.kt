@@ -27,16 +27,15 @@ object GestureNavUtils {
      * @param window The containing [Window] of the current `Activity`.
      * @return true if the device supports gesture navigation and gestures are enabled.
      */
-    fun isInGestureNavigationMode(window: Window): Boolean =
-        (
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                WindowInsetsCompat
-                    .toWindowInsetsCompat(
-                        window.decorView.rootWindowInsets,
-                    ).getInsets(WindowInsetsCompat.Type.systemGestures())
-                    .left
-            } else {
-                0
-            }
-            ) > 0
+    fun isInGestureNavigationMode(window: Window): Boolean {
+        val inset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val rootWindowInsets = window.decorView.rootWindowInsets ?: return false
+            WindowInsetsCompat.toWindowInsetsCompat(
+                rootWindowInsets,
+            ).getInsets(WindowInsetsCompat.Type.systemGestures()).left
+        } else {
+            0
+        }
+        return inset > 0
+    }
 }
