@@ -388,8 +388,6 @@ skip-if = [
 
 ["test_uninitialized_lexical.js"]
 
-["test_unload.js"]
-
 ["test_url.js"]
 
 ["test_want_components.js"]
