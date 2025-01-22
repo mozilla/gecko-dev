@@ -131,7 +131,10 @@ function createTargetsForWatcher(watcherDataObject, _isProcessActorStartup) {
   const sandboxes = lazy.ExtensionContent.getAllContentScriptGlobals();
   for (const contentScriptSandbox of sandboxes) {
     const metadata = Cu.getSandboxMetadata(contentScriptSandbox);
-    if (metadata["browser-id"] != browserId) {
+    // Ignore sandboxes without metadata which are related to the hack
+    // of bug 1214658, which spawns content script sandboxes in order
+    // to expose chrome/browser API to iframes loading extension documents.
+    if (!metadata || metadata["browser-id"] != browserId) {
       continue;
     }
     createContentScriptTargetActor(watcherDataObject, {

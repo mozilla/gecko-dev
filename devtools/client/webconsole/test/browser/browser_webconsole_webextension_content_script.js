@@ -23,9 +23,19 @@ add_task(async function () {
 
     files: {
       "content-script.js": function () {
+        /* global browser */
         console.log("def");
+
+        // Create an iframe with a privileged document of the extension
+        const iframe = document.createElement("iframe");
+        iframe.src = browser.runtime.getURL(`iframe.html`);
+        document.body.appendChild(iframe);
+
         Promise.reject("abc");
       },
+
+      "iframe.html": `<div>Extension iframe</div> <script src="iframe.js"></script>`,
+      "iframe.js": `console.log("iframe log"); throw new Error("iframe exception")`,
     },
   });
 
@@ -36,6 +46,13 @@ add_task(async function () {
   // For now, console messages and errors are shown without having to enable the content script targets
   await checkUniqueMessageExists(hud, "uncaught exception: abc", ".error");
   await checkUniqueMessageExists(hud, "def", ".console-api");
+
+  await checkUniqueMessageExists(hud, "iframe log", ".console-api");
+  await checkUniqueMessageExists(
+    hud,
+    "Uncaught Error: iframe exception",
+    ".error"
+  );
 
   // Enable the content script preference in order to see content scripts messages,
   // sources and target.
