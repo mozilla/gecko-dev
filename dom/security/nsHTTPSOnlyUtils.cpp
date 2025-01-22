@@ -724,8 +724,9 @@ void nsHTTPSOnlyUtils::TestSitePermissionAndPotentiallyAddExemption(
   bool isHttpsFirst = IsHttpsFirstModeEnabled(isPrivateWin);
   bool isSchemelessHttpsFirst =
       (loadInfo->GetSchemelessInput() ==
-           nsILoadInfo::SchemelessInputTypeSchemeless &&
-       mozilla::StaticPrefs::dom_security_https_first_schemeless());
+       nsILoadInfo::SchemelessInputTypeSchemeless) &&
+      mozilla::StaticPrefs::dom_security_https_first_schemeless() &&
+      !isHttpsOnly && !isHttpsFirst;
   if (!isHttpsOnly && !isHttpsFirst && !isSchemelessHttpsFirst) {
     return;
   }
