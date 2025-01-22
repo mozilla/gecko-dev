@@ -86,10 +86,10 @@ moz-radio-group-description =
 };
 
 const Template = ({
+  value = greetings[0],
   groupL10nId = "moz-radio-group",
   buttonLabels,
   groupName,
-  unchecked,
   showIcons,
   disabled,
   disabledButtons,
@@ -106,6 +106,7 @@ const Template = ({
     data-l10n-id=${groupL10nId}
     support-page=${ifDefined(groupSupportPage)}
     ?disabled=${disabled}
+    value=${value}
   >
     ${groupSlottedSupportLink
       ? html`<a href="/" slot="support-link">Slotted support link</a>`
@@ -113,7 +114,6 @@ const Template = ({
     ${greetings.map(
       (greeting, i) => html`
         <moz-radio
-          ?checked=${i == 0 && !unchecked}
           ?disabled=${disabledButtons.includes(greeting)}
           value=${greeting}
           data-l10n-id=${showDescriptions
@@ -155,7 +155,7 @@ Default.args = {
 export const AllUnchecked = Template.bind({});
 AllUnchecked.args = {
   ...Default.args,
-  unchecked: true,
+  value: "",
 };
 
 export const WithIcon = Template.bind({});

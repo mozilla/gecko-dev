@@ -51,7 +51,7 @@ const NAVIGATION_DIRECTIONS = {
  * @slot support-link - The radio group's support link intended for moz-radio elements.
  */
 export class MozRadioGroup extends MozLitElement {
-  #radioButtons = [];
+  #radioButtons;
   #value;
 
   static properties = {
@@ -60,16 +60,16 @@ export class MozRadioGroup extends MozLitElement {
     supportPage: { type: String, attribute: "support-page" },
     label: { type: String, fluent: true },
     name: { type: String },
+    value: { type: String },
   };
 
   static queries = {
-    defaultSlot: "slot:not([name])",
     fieldset: "moz-fieldset",
   };
 
   set value(newValue) {
     this.#value = newValue;
-    this.#radioButtons.forEach(button => {
+    this.radioButtons.forEach(button => {
       button.checked = this.value === button.value;
     });
     this.syncFocusState();
@@ -81,14 +81,28 @@ export class MozRadioGroup extends MozLitElement {
 
   get focusableIndex() {
     if (this.#value) {
-      let selectedIndex = this.#radioButtons.findIndex(
+      let selectedIndex = this.radioButtons.findIndex(
         button => button.value === this.#value && !button.disabled
       );
       if (selectedIndex !== -1) {
         return selectedIndex;
       }
     }
-    return this.#radioButtons.findIndex(button => !button.disabled);
+    return this.radioButtons.findIndex(button => !button.disabled);
+  }
+
+  // Query for moz-radio elements the first time they are needed + ensure they
+  // have been upgraded so we can access properties.
+  get radioButtons() {
+    if (!this.#radioButtons) {
+      this.#radioButtons = (
+        this.shadowRoot
+          ?.querySelector("slot:not([name])")
+          ?.assignedElements() || [...this.children]
+      )?.filter(el => el.localName === "moz-radio" && !el.slot);
+      this.#radioButtons.forEach(button => customElements.upgrade(button));
+    }
+    return this.#radioButtons;
   }
 
   constructor() {
@@ -103,15 +117,11 @@ export class MozRadioGroup extends MozLitElement {
 
   async getUpdateComplete() {
     await super.getUpdateComplete();
-    await Promise.all(this.#radioButtons.map(button => button.updateComplete));
+    await Promise.all(this.radioButtons.map(button => button.updateComplete));
   }
 
   syncStateToRadioButtons() {
-    this.#radioButtons = this.defaultSlot
-      ?.assignedElements()
-      .filter(el => el.localName === "moz-radio");
-
-    this.#radioButtons.forEach(button => {
+    this.radioButtons.forEach(button => {
       if (button.checked && this.value == undefined) {
         this.value = button.value;
       }
@@ -122,7 +132,7 @@ export class MozRadioGroup extends MozLitElement {
 
   syncFocusState() {
     let focusableIndex = this.focusableIndex;
-    this.#radioButtons.forEach((button, index) => {
+    this.radioButtons.forEach((button, index) => {
       button.inputTabIndex = focusableIndex === index ? 0 : -1;
     });
   }
@@ -167,13 +177,12 @@ export class MozRadioGroup extends MozLitElement {
 
   navigate(direction) {
     let currentIndex = this.focusableIndex;
-    let indexStep = this.#radioButtons.length + NAVIGATION_VALUE[direction];
+    let indexStep = this.radioButtons.length + NAVIGATION_VALUE[direction];
 
-    for (let i = 1; i < this.#radioButtons.length; i++) {
-      let nextIndex =
-        (currentIndex + indexStep * i) % this.#radioButtons.length;
-      if (!this.#radioButtons[nextIndex].disabled) {
-        this.#radioButtons[nextIndex].click();
+    for (let i = 1; i < this.radioButtons.length; i++) {
+      let nextIndex = (currentIndex + indexStep * i) % this.radioButtons.length;
+      if (!this.radioButtons[nextIndex].disabled) {
+        this.radioButtons[nextIndex].click();
         return;
       }
     }
@@ -184,14 +193,14 @@ export class MozRadioGroup extends MozLitElement {
       this.handleSetName();
     }
     if (changedProperties.has("disabled")) {
-      this.#radioButtons.forEach(button => {
+      this.radioButtons.forEach(button => {
         button.requestUpdate();
       });
     }
   }
 
   handleSetName() {
-    this.#radioButtons.forEach(button => {
+    this.radioButtons.forEach(button => {
       button.name = this.name;
     });
   }
@@ -200,6 +209,11 @@ export class MozRadioGroup extends MozLitElement {
   handleChange(event) {
     event.stopPropagation();
     this.dispatchEvent(new Event(event.type));
+  }
+
+  handleSlotChange() {
+    this.#radioButtons = null;
+    this.syncStateToRadioButtons();
   }
 
   render() {
@@ -217,7 +231,7 @@ export class MozRadioGroup extends MozLitElement {
           ? html`<slot slot="support-link" name="support-link"></slot>`
           : ""}
         <slot
-          @slotchange=${this.syncStateToRadioButtons}
+          @slotchange=${this.handleSlotChange}
           @change=${this.handleChange}
         ></slot>
       </moz-fieldset>
@@ -263,11 +277,13 @@ export class MozRadio extends MozBaseInputElement {
     }
 
     this.#controller = hostRadioGroup;
+    if (this.#controller.value) {
+      this.checked = this.value === this.#controller.value;
+    }
   }
 
   willUpdate(changedProperties) {
     super.willUpdate(changedProperties);
-
     // Handle setting checked directly via JS.
     if (
       changedProperties.has("checked") &&

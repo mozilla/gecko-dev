@@ -158,25 +158,100 @@
     // Verify that changing the radio group's value updates the checked state of
     // its moz-radio children.
     add_task(async function testChangeRadioGroupValue() {
-      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
-      let radioGroup = renderTarget.querySelector("moz-radio-group");
-      let [firstButton, , thirdButton] = renderTarget.querySelectorAll("moz-radio");
+      let noValueTemplate = html`
+        <moz-radio-group name="hello" label="Group label">
+          <moz-radio value="first" label="First"></moz-radio>
+          <moz-radio value="second" label="Second"></moz-radio>
+          <moz-radio value="third" label="Third"></moz-radio>
+        </moz-radio-group>
+      `;
+      testHelpers.render(html``, testHelpers.renderTarget);
+      testHelpers.render(noValueTemplate, testHelpers.renderTarget);
+      let radioGroup = testHelpers.renderTarget.querySelector("moz-radio-group");
+      let [firstButton, secondButton, thirdButton] =
+        testHelpers.renderTarget.querySelectorAll("moz-radio");
 
-      synthesizeMouseAtCenter(firstButton, {});
-      await radioGroup.updateComplete;
-
-      is(
-        radioGroup.value,
-        firstButton.value,
-        "Radio group value initially set to value of checked button."
-      );
-      ok(firstButton.checked, "The first radio button is checked initially.");
+      ok(!radioGroup.value, "The radio group does not have a value set.");
+      ok(!firstButton.checked, "The first button is not checked.");
+      ok(!secondButton.checked, "The second button is not checked.");
+      ok(!thirdButton.checked, "The third button is not checked.");
 
       radioGroup.value = "third";
       await radioGroup.updateComplete;
 
-      ok(!firstButton.checked, "The first radio button is no longer checked.");
+      ok(!firstButton.checked, "The first radio button is not checked.");
+      ok(!secondButton.checked, "The second button is not checked.");
       ok(thirdButton.checked, "Third button is checked after group value changed.");
+
+      synthesizeMouseAtCenter(firstButton, {});
+      await radioGroup.updateComplete;
+
+      ok(firstButton.checked, "The first radio button is checked after click.");
+      ok(!secondButton.checked, "The second button is not checked.");
+      ok(!thirdButton.checked, "The third button is not checked.");
+      is(
+        radioGroup.value,
+        firstButton.value,
+        "Radio group value is set to value of checked button."
+      );
+
+      radioGroup.value = "second";
+      await radioGroup.updateComplete;
+      ok(!firstButton.checked, "The first radio button is no longer checked.");
+      ok(secondButton.checked, "The second button is checked.");
+      ok(!thirdButton.checked, "The third button is not checked.");
+    });
+
+    // Verify that settings a value on the group works as expected creating the
+    // elements programmatically via document.createElement.
+    add_task(async function testChangeRadioGroupValueCreateElement() {
+      let radioGroup = document.createElement("moz-radio-group");
+      radioGroup.label = "Group";
+      radioGroup.value = "second";
+
+      let firstButton = document.createElement("moz-radio");
+      firstButton.value = "first";
+      firstButton.label = "first";
+
+      let secondButton = document.createElement("moz-radio");
+      secondButton.value = "second";
+      secondButton.label = "second";
+
+      let thirdButton = document.createElement("moz-radio");
+      thirdButton.value = "foo";
+      thirdButton.label = "foo";
+
+      radioGroup.append(firstButton, secondButton, thirdButton);
+
+      testHelpers.render(html``, testHelpers.renderTarget);
+      testHelpers.renderTarget.append(radioGroup);
+
+      await radioGroup.updateComplete;
+
+      ok(!firstButton.checked, "The first button is not checked.");
+      ok(secondButton.checked, "The second button is checked.");
+      ok(!thirdButton.checked, "The third button is not checked.");
+    });
+
+    // Verify that setting value as an attribute on moz-radio-group updates the
+    // checked state of its moz-radio children.
+    add_task(async function testRadioGroupValueAttribute() {
+      let valueAttrTemplate = html`
+        <moz-radio-group name="hello" label="Group label" value="second">
+          <moz-radio value="first" label="First"></moz-radio>
+          <moz-radio value="second" label="Second"></moz-radio>
+          <moz-radio value="third" label="Third"></moz-radio>
+        </moz-radio-group>
+      `;
+      let renderTarget = await testHelpers.renderInputElements(valueAttrTemplate);
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let [firstButton, secondButton, thirdButton] =
+        renderTarget.querySelectorAll("moz-radio");
+
+      is(radioGroup.value, "second", "Radio group has the expected value.");
+      ok(!firstButton.checked, "The first button is not checked.");
+      ok(secondButton.checked, "The second button is checked.");
+      ok(!thirdButton.checked, "The third button is not checked.");
     });
 
     // Verify that keyboard navigation works as expected.
