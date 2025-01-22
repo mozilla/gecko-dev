@@ -6,7 +6,6 @@
 // from https://docs.microsoft.com/en-us/typography/fonts/windows_10_font_list
 // TODO: check whether we need to list legacy styled family names like "... Light".
 static const char* kBaseFonts[] = {
-  "AlternateGothic2 BT",
   "Arial",
   "Arial Black",
   "Bahnschrift",
