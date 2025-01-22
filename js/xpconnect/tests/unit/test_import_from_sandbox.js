@@ -11,41 +11,6 @@ function makeSandbox() {
   );
 }
 
-// This test will fail (and should be removed) once the JSM shim is dropped.
-add_task(function test_import_from_sandbox_using_shim() {
-  let sandbox = makeSandbox();
-  Object.assign(sandbox, {
-    injected1: ChromeUtils.import("resource://test/esmified-1.jsm"),
-  });
-
-  Assert.equal(Cu.isModuleLoaded("resource://test/esmified-2.jsm"), false);
-
-  Services.scriptloader.loadSubScript(
-    `data:,
-      "use strict";
-
-      const shimmed1 = ChromeUtils.import("resource://test/esmified-1.jsm");
-      const shimmed2 = ChromeUtils.import("resource://test/esmified-2.jsm");
-
-      this.testResults = {
-        shimmed1: shimmed1.obj.value,
-        injected1: injected1.obj.value,
-        sameInstance1: injected1 === shimmed1,
-        shimmed2: shimmed2.obj.value,
-      };
-    `,
-    sandbox
-  );
-  let tr = sandbox.testResults;
-
-  Assert.equal(tr.injected1, 10, "Injected esmified-1.mjs has correct value.");
-  Assert.equal(tr.shimmed1, 10, "Shim-imported esmified-1.jsm correct value.");
-  Assert.ok(tr.sameInstance1, "Injected and imported are the same instance.");
-  Assert.equal(tr.shimmed2, 10, "Shim-imported esmified-2.jsm correct value.");
-
-  Assert.equal(Cu.isModuleLoaded("resource://test/esmified-2.jsm"), true);
-});
-
 // This tests the ESMification transition for extension API scripts.
 add_task(function test_import_from_sandbox_transition() {
   let sandbox = makeSandbox();

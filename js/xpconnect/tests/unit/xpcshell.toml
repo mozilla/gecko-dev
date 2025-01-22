@@ -71,9 +71,6 @@ support-files = [
   "es6module_absolute2.js",
   "envChain.jsm",
   "envChain_subscript.jsm",
-  "error_export.sys.mjs",
-  "error_import.sys.mjs",
-  "error_other.sys.mjs",
   "non_shared_1.mjs",
   "non_shared_2.mjs",
   "import_non_shared_1.mjs",
@@ -115,15 +112,9 @@ support-files = [
 
 ["test_attributes.js"]
 
-["test_blob.js"]
-
 ["test_blob2.js"]
 
-["test_bogus_files.js"]
-
 ["test_bug267645.js"]
-
-["test_bug408412.js"]
 
 ["test_bug451678.js"]
 
@@ -232,9 +223,6 @@ skip-if = ["os == 'android'"]
 
 ["test_exportFunction.js"]
 
-["test_file.js"]
-skip-if = ["os == 'android' && processor == 'x86_64'"]
-
 ["test_file2.js"]
 skip-if = ["os == 'android' && processor == 'x86_64'"]
 
@@ -248,13 +236,9 @@ skip-if = ["os == 'android' && processor == 'x86_64'"]
 
 ["test_getObjectPrincipal.js"]
 
-["test_import.js"]
-
 ["test_import_devtools_loader.js"]
 
 ["test_import_es6_modules.js"]
-
-["test_import_fail.js"]
 
 ["test_import_from_sandbox.js"]
 
@@ -278,8 +262,6 @@ skip-if = [
   "!nightly_build",
   "!debug",
 ]
-
-["test_import_syntax_error.js"]
 
 ["test_isModuleLoaded.js"]
 
@@ -333,8 +315,6 @@ head = "head_ongc.js"
 
 ["test_promise.js"]
 
-["test_recursive_import.js"]
-
 ["test_reflect_parse.js"]
 
 ["test_resistFingerprinting_date_now.js"]
@@ -375,8 +355,6 @@ skip-if = [
 ["test_textDecoder.js"]
 
 ["test_uawidget_scope.js"]
-
-["test_uninitialized_lexical.js"]
 
 ["test_url.js"]
 
