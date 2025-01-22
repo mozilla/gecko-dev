@@ -1038,8 +1038,10 @@
   }
 }
 
-#tabGroupEditor_deleteGroup {
-  color: var(--text-color-error);
+@media not (prefers-contrast) {
+  #tabGroupEditor_deleteGroup {
+    color: var(--text-color-error);
+  }
 }
 
 /* Tab Overflow */
