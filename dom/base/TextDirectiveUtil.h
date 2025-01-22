@@ -214,6 +214,7 @@ class TextDirectiveUtil final {
    */
   static Result<TextDirective, ErrorResult> CreateTextDirectiveFromRanges(
       nsRange* aPrefix, nsRange* aStart, nsRange* aEnd, nsRange* aSuffix);
+
 };
 }  // namespace mozilla::dom
 

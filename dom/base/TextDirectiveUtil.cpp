@@ -621,4 +621,44 @@ TextDirectiveUtil::ExtendRangeToWordBoundaries(nsRange& aRange) {
   return Ok();
 }
 
+/* static */
+Result<TextDirective, ErrorResult>
+TextDirectiveUtil::CreateTextDirectiveFromRanges(nsRange* aPrefix,
+                                                 nsRange* aStart, nsRange* aEnd,
+                                                 nsRange* aSuffix) {
+  MOZ_ASSERT(aStart && !aStart->Collapsed());
+
+  ErrorResult rv;
+  TextDirective textDirective;
+
+  aStart->ToString(textDirective.start, rv);
+  if (MOZ_UNLIKELY(rv.Failed())) {
+    return Err(std::move(rv));
+  }
+  textDirective.start.CompressWhitespace();
+
+  if (aPrefix && !aPrefix->Collapsed()) {
+    aPrefix->ToString(textDirective.prefix, rv);
+    if (MOZ_UNLIKELY(rv.Failed())) {
+      return Err(std::move(rv));
+    }
+    textDirective.prefix.CompressWhitespace();
+  }
+  if (aEnd && !aEnd->Collapsed()) {
+    aEnd->ToString(textDirective.end, rv);
+    if (MOZ_UNLIKELY(rv.Failed())) {
+      return Err(std::move(rv));
+    }
+    textDirective.end.CompressWhitespace();
+  }
+  if (aSuffix && !aSuffix->Collapsed()) {
+    aSuffix->ToString(textDirective.suffix, rv);
+    textDirective.suffix.CompressWhitespace();
+    if (MOZ_UNLIKELY(rv.Failed())) {
+      return Err(std::move(rv));
+    }
+  }
+  return textDirective;
+}
+
 }  // namespace mozilla::dom

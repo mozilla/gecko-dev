@@ -46,6 +46,13 @@ class TextDirectiveCandidate {
   static Result<TextDirectiveCandidate, ErrorResult> CreateFromInputRange(
       const nsRange* aInputRange);
 
+  /**
+   * @brief Returns a percent-encoded text directive string representation of
+   *        this candidate.
+   */
+  const nsCString& TextDirectiveString() const;
+
+
  private:
   TextDirectiveCandidate(nsRange* aStartRange, nsRange* aFullStartRange,
                          nsRange* aEndRange, nsRange* aFullEndRange,
@@ -97,6 +104,13 @@ class TextDirectiveCandidate {
    */
   static Result<std::tuple<RefPtr<nsRange>, RefPtr<nsRange>>, ErrorResult>
   CreateSuffixRanges(const RangeBoundary& aRangeBoundary);
+
+  /**
+   * @brief Creates a percent-encoded string representation of the candidate.
+   *
+   */
+  Result<Ok, ErrorResult> CreateTextDirectiveString();
+
   RefPtr<nsRange> mStartRange;
   RefPtr<nsRange> mFullStartRange;
   RefPtr<nsRange> mEndRange;
@@ -106,6 +120,8 @@ class TextDirectiveCandidate {
   RefPtr<nsRange> mFullPrefixRange;
   RefPtr<nsRange> mSuffixRange;
   RefPtr<nsRange> mFullSuffixRange;
+
+  nsCString mTextDirectiveString;
 };
 
 /**
