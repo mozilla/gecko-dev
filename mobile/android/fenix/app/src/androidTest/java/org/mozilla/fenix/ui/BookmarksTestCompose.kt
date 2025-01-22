@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.test.espresso.Espresso.pressBack
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -12,6 +13,7 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MockBrowserDataHelper.createBookmarkItem
 import org.mozilla.fenix.helpers.MockBrowserDataHelper.generateBookmarkFolder
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.composeBookmarksMenu
@@ -226,6 +228,48 @@ class BookmarksTestCompose : TestSetup() {
             typeSearch("Android")
             verifySuggestionsAreNotDisplayed(composeTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(composeTestRule, secondWebPage.url.toString())
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2833710
+    @Test
+    fun verifySearchBookmarksViewTest() {
+        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        createBookmarkItem(defaultWebPage.url.toString(), defaultWebPage.title, null)
+
+        homeScreen {
+        }.openThreeDotMenu {
+        }.openBookmarksMenu(composeTestRule) {
+        }.clickSearchButton {
+            verifySearchView()
+            verifySearchToolbar(true)
+            verifySearchSelectorButton()
+            verifySearchEngineIcon("Bookmarks")
+            verifySearchBarPlaceholder("Search bookmarks")
+            verifySearchBarPosition(true)
+            tapOutsideToDismissSearchBar()
+            verifySearchToolbar(false)
+        }
+        composeBookmarksMenu(composeTestRule) {
+        }.goBackToBrowserScreen {
+        }.openThreeDotMenu {
+        }.openSettings {
+        }.openCustomizeSubMenu {
+            clickTopToolbarToggle()
+        }
+
+        exitMenu()
+
+        browserScreen {
+        }.openThreeDotMenu {
+        }.openBookmarksMenu(composeTestRule) {
+        }.clickSearchButton {
+            verifySearchToolbar(true)
+            verifySearchEngineIcon("Bookmarks")
+            verifySearchBarPosition(false)
+            pressBack()
+            verifySearchToolbar(false)
         }
     }
 }

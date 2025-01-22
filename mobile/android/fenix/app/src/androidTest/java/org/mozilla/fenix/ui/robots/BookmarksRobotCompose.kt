@@ -196,6 +196,15 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
             SearchRobot().interact()
             return SearchRobot.Transition()
         }
+
+        fun goBackToBrowserScreen(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "goBackToBrowserScreen: Trying to click go back button")
+            composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description)).performClick()
+            Log.i(TAG, "goBackToBrowserScreen: Clicked go back button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
     }
 }
 
