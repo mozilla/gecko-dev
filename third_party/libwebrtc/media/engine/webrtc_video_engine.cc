@@ -1435,10 +1435,12 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
         !IsSameRtpCodec(send_codec_->codec, *parameters.encodings[0].codec)) {
       RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
                           << parameters.encodings[0].codec->name;
+      // Ignore level when matching negotiated codecs against the requested
+      // codec.
       auto matched_codec =
           absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-            return IsSameRtpCodec(negotiated_codec.codec,
-                                  *parameters.encodings[0].codec);
+            return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
+                                               *parameters.encodings[0].codec);
           });
       if (matched_codec == negotiated_codecs_.end()) {
         return webrtc::InvokeSetParametersCallback(

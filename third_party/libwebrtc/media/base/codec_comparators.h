@@ -43,6 +43,9 @@ std::optional<cricket::Codec> FindMatchingCodec(
 // Unspecified parameters are treated as default.
 bool IsSameRtpCodec(const cricket::Codec& codec, const RtpCodec& rtp_codec);
 
+// Similar to `IsSameRtpCodec` but ignoring the level related parameter.
+bool IsSameRtpCodecIgnoringLevel(const cricket::Codec& codec,
+                                 const RtpCodec& rtp_codec);
 }  // namespace webrtc
 
 #endif  // MEDIA_BASE_CODEC_COMPARATORS_H_

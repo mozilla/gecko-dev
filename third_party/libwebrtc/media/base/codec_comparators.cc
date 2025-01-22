@@ -377,4 +377,31 @@ bool IsSameRtpCodec(const Codec& codec, const RtpCodec& rtp_codec) {
              InsertDefaultParams(rtp_codec2.name, rtp_codec2.parameters);
 }
 
+bool IsSameRtpCodecIgnoringLevel(const Codec& codec,
+                                 const RtpCodec& rtp_codec) {
+  RtpCodecParameters rtp_codec2 = codec.ToCodecParameters();
+
+  if (!absl::EqualsIgnoreCase(rtp_codec.name, rtp_codec2.name) ||
+      rtp_codec.kind != rtp_codec2.kind ||
+      rtp_codec.num_channels != rtp_codec2.num_channels ||
+      rtp_codec.clock_rate != rtp_codec2.clock_rate) {
+    return false;
+  }
+
+  CodecParameterMap params1 =
+      InsertDefaultParams(rtp_codec.name, rtp_codec.parameters);
+  CodecParameterMap params2 =
+      InsertDefaultParams(rtp_codec2.name, rtp_codec2.parameters);
+
+  // Currently we only ignore H.265 level-id parameter.
+#ifdef RTC_ENABLE_H265
+  if (absl::EqualsIgnoreCase(rtp_codec.name, cricket::kH265CodecName)) {
+    params1.erase(cricket::kH265FmtpLevelId);
+    params2.erase(cricket::kH265FmtpLevelId);
+  }
+#endif
+
+  return params1 == params2;
+}
+
 }  // namespace webrtc
