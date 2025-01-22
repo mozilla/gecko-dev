@@ -201,3 +201,28 @@ function testFromObjectTooLargeLength() {
     assertThrowsInstanceOf(() => ta.set({length: 9 * gb}), RangeError);
 }
 testFromObjectTooLargeLength();
+
+function testStringKeys() {
+  for (var i = 0; i < 20; i++) {
+    assertEq(4 * gb - 1 in ta, true);
+    assertEq("4294967295" in ta, true);
+    assertEq(4 * gb in ta, true);
+    assertEq("4294967296" in ta, true);
+    assertEq(4 * gb + 10 in ta, false);
+    assertEq("4294967306" in ta, false);
+  }
+}
+testStringKeys();
+
+function testStringKeysFromProto() {
+  var obj = {__proto__: ta};
+  for (var i = 0; i < 20; i++) {
+    assertEq(4 * gb - 1 in obj, true);
+    assertEq("4294967295" in obj, true);
+    assertEq(4 * gb in obj, true);
+    assertEq("4294967296" in obj, true);
+    assertEq(4 * gb + 10 in obj, false);
+    assertEq("4294967306" in obj, false);
+  }
+}
+testStringKeysFromProto();

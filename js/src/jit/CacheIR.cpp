@@ -605,6 +605,9 @@ static bool CheckHasNoSuchOwnProperty(JSContext* cx, JSObject* obj, jsid id) {
   if (obj->as<NativeObject>().contains(cx, id)) {
     return false;
   }
+  if (obj->is<TypedArrayObject>() && ToTypedArrayIndex(id).isSome()) {
+    return false;
+  }
   return true;
 }
 
