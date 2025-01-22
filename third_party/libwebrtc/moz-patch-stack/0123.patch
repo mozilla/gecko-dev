@@ -1,48 +1,138 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 12 Sep 2024 22:36:00 +0000
-Subject: Bug 1918096 - In ScreenCapturerSck skip some processing when
- possible. r=webrtc-reviewers,ng
+Date: Fri, 13 Sep 2024 09:48:00 +0000
+Subject: Bug 1918096 - Make SckPickerHandle thread safe. r=padenot
 
-No need to update the last frame unless it has changed.
+We cannot guarantee that the thread it is used on is static, as both the
+VideoCapture and DesktopCapture threads can come and go.
 
-Differential Revision: https://phabricator.services.mozilla.com/D221942
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d52f2fd575479da72508033b3a2151906e2bf19
+Differential Revision: https://phabricator.services.mozilla.com/D222082
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/cfcdd5339805363c495841abc4b4f82cd287f712
 ---
- .../desktop_capture/mac/screen_capturer_sck.mm  | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ .../desktop_capture/mac/sck_picker_handle.mm  | 90 +++++++++++++------
+ 1 file changed, 62 insertions(+), 28 deletions(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 3d1751378c..d431ef0fc8 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -511,6 +511,7 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
-   CGRect contentRect = {};
-   CGRect boundingRect = {};
-   CGRect overlayRect = {};
-+  SCFrameStatus status = SCFrameStatusStopped;
-   const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
-   if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
-     scaleFactor = [factor floatValue];
-@@ -536,6 +537,22 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
-     }
-   }
+diff --git a/modules/desktop_capture/mac/sck_picker_handle.mm b/modules/desktop_capture/mac/sck_picker_handle.mm
+index 25e98b671f..0f26be79d1 100644
+--- a/modules/desktop_capture/mac/sck_picker_handle.mm
++++ b/modules/desktop_capture/mac/sck_picker_handle.mm
+@@ -12,57 +12,91 @@
  
-+  if (auto statusNr = (NSNumber *)attachment[SCStreamFrameInfoStatus]) {
-+    status = (SCFrameStatus)[statusNr integerValue];
+ #import <ScreenCaptureKit/ScreenCaptureKit.h>
+ 
+-#include "api/sequence_checker.h"
++#include "absl/base/attributes.h"
++#include "rtc_base/synchronization/mutex.h"
++
++#include <memory>
++#include <optional>
+ 
+ namespace webrtc {
+ 
+-class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++class SckPickerProxy;
++
++class API_AVAILABLE(macos(14.0)) SckPickerProxy {
+  public:
+-  explicit SckPickerHandle(DesktopCapturer::SourceId source) : source_(source) {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    RTC_CHECK_LE(sHandleCount, maximumStreamCount);
+-    if (sHandleCount++ == 0) {
++  static SckPickerProxy* Get() {
++    static SckPickerProxy* sPicker = new SckPickerProxy();
++    return sPicker;
 +  }
 +
-+  switch (status) {
-+    case SCFrameStatusBlank:
-+    case SCFrameStatusIdle:
-+    case SCFrameStatusSuspended:
-+    case SCFrameStatusStopped:
-+      // No new frame. Ignore.
-+      return;
-+    case SCFrameStatusComplete:
-+    case SCFrameStatusStarted:
-+      // New frame. Process it.
-+      break;
++  bool AtCapacity() const {
++    MutexLock lock(&mutex_);
++    return AtCapacityLocked();
 +  }
++
++  SCContentSharingPicker* GetPicker() const { return SCContentSharingPicker.sharedPicker; }
++
++  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId> AcquireSourceId() {
++    MutexLock lock(&mutex_);
++    if (AtCapacityLocked()) {
++      return std::nullopt;
++    }
++    if (handle_count_++ == 0) {
+       auto* picker = GetPicker();
+       picker.maximumStreamCount = [NSNumber numberWithUnsignedInt:maximumStreamCount];
+       picker.active = YES;
+     }
++    return ++unique_source_id_;
+   }
  
-   auto imgBoundingRect = CGRectMake(
-       scaleFactor * boundingRect.origin.x,
+-  ~SckPickerHandle() {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    if (--sHandleCount > 0) {
++  void RelinquishSourceId(DesktopCapturer::SourceId source) {
++    MutexLock lock(&mutex_);
++    if (--handle_count_ > 0) {
+       return;
+     }
+     GetPicker().active = NO;
+   }
+ 
+-  SCContentSharingPicker* GetPicker() const override {
+-    return SCContentSharingPicker.sharedPicker;
++ private:
++  bool AtCapacityLocked() const {
++    mutex_.AssertHeld();
++    return handle_count_ == maximumStreamCount;
+   }
+ 
+-  DesktopCapturer::SourceId Source() const override {
+-    return source_;
++  mutable Mutex mutex_;
++  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
++  // a reasonably low upper bound.
++  static constexpr size_t maximumStreamCount = 100;
++  size_t handle_count_ RTC_GUARDED_BY(mutex_) = 0;
++  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(mutex_) = 0;
++};
++
++class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++ public:
++  static std::unique_ptr<SckPickerHandle> Create(SckPickerProxy* proxy) {
++    std::optional<DesktopCapturer::SourceId> id = proxy->AcquireSourceId();
++    if (!id) {
++      return nullptr;
++    }
++    return std::unique_ptr<SckPickerHandle>(new SckPickerHandle(proxy, *id));
+   }
+ 
+-  static bool AtCapacity() { return sHandleCount == maximumStreamCount; }
++  ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
++
++  SCContentSharingPicker* GetPicker() const override { return proxy_->GetPicker(); }
++
++  DesktopCapturer::SourceId Source() const override { return source_; }
+ 
+  private:
+-  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
+-  // a reasonably low upper bound.
+-  static constexpr size_t maximumStreamCount = 100;
+-  static size_t sHandleCount;
+-  SequenceChecker checker_;
++  SckPickerHandle(SckPickerProxy* proxy, DesktopCapturer::SourceId source)
++      : proxy_(proxy), source_(source) {}
++
++  SckPickerProxy* const proxy_;
+   const DesktopCapturer::SourceId source_;
+ };
+ 
+-size_t SckPickerHandle::sHandleCount = 0;
+-
+-std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() API_AVAILABLE(macos(14.0)) {
+-  if (SckPickerHandle::AtCapacity()) {
+-    return nullptr;
+-  }
+-  static DesktopCapturer::SourceId unique_source_id = 0;
+-  return std::make_unique<SckPickerHandle>(++unique_source_id);
++std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() {
++  return SckPickerHandle::Create(SckPickerProxy::Get());
+ }
+ 
+-}  // namespace webrtc
+\ No newline at end of file
++}  // namespace webrtc
