@@ -11,7 +11,7 @@
 // split allows code to generate properly.
 
 [Func="mozilla::webgpu::Instance::PrefEnabled",
- Exposed=(Window, DedicatedWorker, SharedWorker), SecureContext]
+ Exposed=(Window, Worker), SecureContext]
 interface GPUUncapturedErrorEvent : Event {
     constructor(
         DOMString type,

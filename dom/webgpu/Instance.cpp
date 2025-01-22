@@ -15,6 +15,10 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/StaticPrefs_dom.h"
 
+#ifdef RELEASE_OR_BETA
+#  include "mozilla/dom/WorkerPrivate.h"
+#endif
+
 #include <optional>
 #include <string_view>
 
@@ -72,6 +76,20 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
 #ifdef RELEASE_OR_BETA
     if (true) {
       return "WebGPU is not yet available in Release or Beta builds.";
+    }
+
+    // NOTE: Deliberately left after the above check so that we only enter
+    // here if it's removed. Above is a more informative diagnostic, while the
+    // check is still present.
+    //
+    // Follow-up to remove this check:
+    // <https://bugzilla.mozilla.org/show_bug.cgi?id=1942431>
+    if (dom::WorkerPrivate* wp = dom::GetCurrentThreadWorkerPrivate()) {
+      if (wp->IsServiceWorker()) {
+        return "WebGPU in service workers is not yet available in Release or "
+               "Beta builds; see "
+               "<https://bugzilla.mozilla.org/show_bug.cgi?id=1942431>.";
+      }
     }
 #endif
     if (!gfx::gfxVars::AllowWebGPU()) {
