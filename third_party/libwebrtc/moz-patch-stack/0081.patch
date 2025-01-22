@@ -1,66 +1,165 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Thu, 20 Jul 2023 14:24:00 +0000
-Subject: Bug 1838080: Use the current TaskQueue, instead of the current
- thread, to init this. r=pehrsons,webrtc-reviewers
+From: Michael Froman <mjfroman@mac.com>
+Date: Thu, 27 Jul 2023 12:42:44 -0500
+Subject: Bug 1838080: Store the rid in TransformableVideoSenderFrame.
+ r=ng,webrtc-reviewers
 
-There are situations where the current thread is not set, but the current
-TaskQueue is (but not vice versa).
+This is necessary to reliably detect what rid a given keyframe is for, for the
+purposes of resolving promises from RTCRtpScriptTransformer.generateKeyFrame.
 
-Differential Revision: https://phabricator.services.mozilla.com/D180736
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/62e71a2f745c4b98d5ee7ce9e6386aa1b657be9b
+Differential Revision: https://phabricator.services.mozilla.com/D180737
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0bc4e77714b8a5276a70cc36
 ---
- .../rtp_video_stream_receiver_frame_transformer_delegate.cc  | 3 +--
- .../rtp_video_stream_receiver_frame_transformer_delegate.h   | 5 ++---
- video/rtp_video_stream_receiver2.cc                          | 2 +-
- 3 files changed, 4 insertions(+), 6 deletions(-)
+ api/frame_transformer_interface.h                 |  1 +
+ modules/rtp_rtcp/source/rtp_sender.h              |  4 ++++
+ modules/rtp_rtcp/source/rtp_sender_video.cc       |  1 +
+ ...rtp_sender_video_frame_transformer_delegate.cc | 15 +++++++++++----
+ .../rtp_sender_video_frame_transformer_delegate.h |  2 ++
+ ..._stream_receiver_frame_transformer_delegate.cc |  5 +++++
+ 6 files changed, 24 insertions(+), 4 deletions(-)
 
-diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-index 42402e79b8..7ab96263cf 100644
---- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-+++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-@@ -96,8 +96,7 @@ RtpVideoStreamReceiverFrameTransformerDelegate::
-         RtpVideoFrameReceiver* receiver,
-         Clock* clock,
-         rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--        rtc::Thread* network_thread,
--        uint32_t ssrc)
-+        TaskQueueBase* network_thread, uint32_t ssrc)
-     : receiver_(receiver),
+diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
+index 7133efaacc..f87b300640 100644
+--- a/api/frame_transformer_interface.h
++++ b/api/frame_transformer_interface.h
+@@ -83,6 +83,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
+   RTC_EXPORT explicit TransformableVideoFrameInterface(Passkey passkey);
+   virtual ~TransformableVideoFrameInterface() = default;
+   virtual bool IsKeyFrame() const = 0;
++  virtual const std::string& GetRid() const = 0;
+ 
+   virtual VideoFrameMetadata Metadata() const = 0;
+ 
+diff --git a/modules/rtp_rtcp/source/rtp_sender.h b/modules/rtp_rtcp/source/rtp_sender.h
+index 0a29968b0c..c23051401e 100644
+--- a/modules/rtp_rtcp/source/rtp_sender.h
++++ b/modules/rtp_rtcp/source/rtp_sender.h
+@@ -141,6 +141,10 @@ class RTPSender {
+ 
+   uint32_t SSRC() const RTC_LOCKS_EXCLUDED(send_mutex_) { return ssrc_; }
+ 
++  const std::string& Rid() const RTC_LOCKS_EXCLUDED(send_mutex_) {
++    return rid_;
++  }
++
+   std::optional<uint32_t> FlexfecSsrc() const RTC_LOCKS_EXCLUDED(send_mutex_) {
+     return flexfec_ssrc_;
+   }
+diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
+index 8a21d0523f..80964b30ee 100644
+--- a/modules/rtp_rtcp/source/rtp_sender_video.cc
++++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
+@@ -189,6 +189,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
+                     this,
+                     config.frame_transformer,
+                     rtp_sender_->SSRC(),
++                    rtp_sender_->Rid(),
+                     config.task_queue_factory)
+               : nullptr),
+       enable_av1_even_split_(
+diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
+index d119fdcecf..3ebfe1c742 100644
+--- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
++++ b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
+@@ -55,7 +55,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+                                 uint32_t rtp_timestamp,
+                                 TimeDelta expected_retransmission_time,
+                                 uint32_t ssrc,
+-                                std::vector<uint32_t> csrcs)
++                                std::vector<uint32_t> csrcs,
++                                const std::string& rid)
+       : TransformableVideoFrameInterface(Passkey()),
+         encoded_data_(encoded_image.GetEncodedData()),
+         pre_transform_payload_size_(encoded_image.size()),
+@@ -68,7 +69,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+         presentation_timestamp_(encoded_image.PresentationTimestamp()),
+         expected_retransmission_time_(expected_retransmission_time),
+         ssrc_(ssrc),
+-        csrcs_(csrcs) {
++        csrcs_(csrcs),
++        rid_(rid) {
+     RTC_DCHECK_GE(payload_type_, 0);
+     RTC_DCHECK_LE(payload_type_, 127);
+   }
+@@ -134,6 +136,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+     return mime_type + CodecTypeToPayloadString(*codec_type_);
+   }
+ 
++  const std::string& GetRid() const override { return rid_; }
++
+  private:
+   rtc::scoped_refptr<EncodedImageBufferInterface> encoded_data_;
+   const size_t pre_transform_payload_size_;
+@@ -148,16 +152,19 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+ 
+   uint32_t ssrc_;
+   std::vector<uint32_t> csrcs_;
++  const std::string rid_;
+ };
+ 
+ RTPSenderVideoFrameTransformerDelegate::RTPSenderVideoFrameTransformerDelegate(
+     RTPVideoFrameSenderInterface* sender,
+     rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+     uint32_t ssrc,
++    const std::string& rid,
+     TaskQueueFactory* task_queue_factory)
+     : sender_(sender),
        frame_transformer_(std::move(frame_transformer)),
-       network_thread_(network_thread),
-diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-index f08fc692dd..02f2e53923 100644
---- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-+++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.h
-@@ -41,8 +41,7 @@ class RtpVideoStreamReceiverFrameTransformerDelegate
-       RtpVideoFrameReceiver* receiver,
-       Clock* clock,
+       ssrc_(ssrc),
++      rid_(rid),
+       transformation_queue_(task_queue_factory->CreateTaskQueue(
+           "video_frame_transformer",
+           TaskQueueFactory::Priority::NORMAL)) {}
+@@ -188,7 +195,7 @@ bool RTPSenderVideoFrameTransformerDelegate::TransformFrame(
+   frame_transformer_->Transform(std::make_unique<TransformableVideoSenderFrame>(
+       encoded_image, video_header, payload_type, codec_type, rtp_timestamp,
+       expected_retransmission_time, ssrc_,
+-      /*csrcs=*/std::vector<uint32_t>()));
++      /*csrcs=*/std::vector<uint32_t>(), rid_));
+   return true;
+ }
+ 
+@@ -290,7 +297,7 @@ std::unique_ptr<TransformableVideoFrameInterface> CloneSenderVideoFrame(
+   return std::make_unique<TransformableVideoSenderFrame>(
+       encoded_image, new_header, original->GetPayloadType(), new_header.codec,
+       original->GetTimestamp(), kDefaultRetransmissionsTime,
+-      original->GetSsrc(), metadata.GetCsrcs());
++      original->GetSsrc(), metadata.GetCsrcs(), original->GetRid());
+ }
+ 
+ }  // namespace webrtc
+diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
+index 3580d84402..e4a75a9734 100644
+--- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
++++ b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
+@@ -60,6 +60,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
+       RTPVideoFrameSenderInterface* sender,
        rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--      rtc::Thread* network_thread,
--      uint32_t ssrc);
-+      TaskQueueBase* network_thread, uint32_t ssrc);
+       uint32_t ssrc,
++      const std::string& rid,
+       TaskQueueFactory* send_transport_queue);
  
    void Init();
-   void Reset();
-@@ -71,7 +70,7 @@ class RtpVideoStreamReceiverFrameTransformerDelegate
-   RtpVideoFrameReceiver* receiver_ RTC_GUARDED_BY(network_sequence_checker_);
-   rtc::scoped_refptr<FrameTransformerInterface> frame_transformer_
-       RTC_GUARDED_BY(network_sequence_checker_);
--  rtc::Thread* const network_thread_;
-+  TaskQueueBase* const network_thread_;
+@@ -108,6 +109,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
+   RTPVideoFrameSenderInterface* sender_ RTC_GUARDED_BY(sender_lock_);
+   rtc::scoped_refptr<FrameTransformerInterface> frame_transformer_;
    const uint32_t ssrc_;
-   Clock* const clock_;
-   bool short_circuit_ RTC_GUARDED_BY(network_sequence_checker_) = false;
-diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 483012c88d..c09c85a778 100644
---- a/video/rtp_video_stream_receiver2.cc
-+++ b/video/rtp_video_stream_receiver2.cc
-@@ -341,7 +341,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
-     frame_transformer_delegate_ =
-         rtc::make_ref_counted<RtpVideoStreamReceiverFrameTransformerDelegate>(
-             this, &env_.clock(), std::move(frame_transformer),
--            rtc::Thread::Current(), config_.rtp.remote_ssrc);
-+            TaskQueueBase::Current(), config_.rtp.remote_ssrc);
-     frame_transformer_delegate_->Init();
++  const std::string rid_;
+   // Used when the encoded frames arrives without a current task queue. This can
+   // happen if a hardware encoder was used.
+   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> transformation_queue_;
+diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
+index 7ab96263cf..9952828922 100644
+--- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
++++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
+@@ -59,6 +59,11 @@ class TransformableVideoReceiverFrame
+     return frame_->FrameType() == VideoFrameType::kVideoFrameKey;
    }
- }
+ 
++  const std::string& GetRid() const override {
++    static const std::string empty;
++    return empty;
++  }
++
+   VideoFrameMetadata Metadata() const override { return metadata_; }
+ 
+   void SetMetadata(const VideoFrameMetadata& metadata) override {

@@ -1,31 +1,25 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 29 Oct 2024 18:20:00 +0000
-Subject: Bug 1925119 - add dcsctp to libwebrtc build. r=bwc,webrtc-reviewers
+Date: Tue, 19 Nov 2024 16:05:00 -0600
+Subject: Bug 1928110 - (fix-b9c4c242d4) handle upstream last_arrival_timestamp
+ to last_arrival_ntp_timestamp
 
-Differential Revision: https://phabricator.services.mozilla.com/D225892
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a33b06e51017d25542a95c2a460bfed41c553b
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6918cf2d9126fa3e3676386349f6e383c298d8ab
 ---
- BUILD.gn | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ modules/rtp_rtcp/source/rtcp_receiver.cc | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 97227f0e03..f11d86d211 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -567,6 +567,7 @@ if (!build_with_chromium) {
-       "call",
-       "common_audio",
-       "common_video",
-+      ":dcsctp",
-       "logging:rtc_event_log_api",
-       "media",
-       "modules",
-@@ -886,7 +887,7 @@ if (rtc_include_tests && !build_with_chromium) {
- # Build target for standalone dcsctp
- rtc_static_library("dcsctp") {
-   # Only the root target should depend on this.
--  visibility = [ "//:default" ]
-+  visibility = [ "//:default", "//libwebrtc:webrtc" ]
-   sources = []
-   complete_static_lib = true
-   suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
+diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
+index 7149cbe388..625126bd0b 100644
+--- a/modules/rtp_rtcp/source/rtcp_receiver.cc
++++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
+@@ -394,8 +394,8 @@ void RTCPReceiver::RemoteRTCPSenderInfo(uint32_t* packet_count,
+   MutexLock lock(&rtcp_receiver_lock_);
+   *packet_count = remote_sender_.packets_sent;
+   *octet_count = remote_sender_.bytes_sent;
+-  *ntp_timestamp_ms = remote_sender_.last_arrival_timestamp.ToMs();
+-  *remote_ntp_timestamp_ms = remote_sender_.last_remote_timestamp.ToMs();
++  *ntp_timestamp_ms = remote_sender_.last_arrival_ntp_timestamp.ToMs();
++  *remote_ntp_timestamp_ms = remote_sender_.last_remote_ntp_timestamp.ToMs();
+ }
+ 
+ std::vector<ReportBlockData> RTCPReceiver::GetLatestReportBlockData() const {
