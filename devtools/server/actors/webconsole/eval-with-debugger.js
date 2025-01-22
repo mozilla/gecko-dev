@@ -323,9 +323,11 @@ function getEvalResult(
     // debuggees are removed because otherwise we risk them terminating
     // execution of later code in the case of unexpected exceptions.
     if (noSideEffectDebugger) {
-      noSideEffectDebugger.removeAllDebuggees();
       noSideEffectDebugger.onNativeCall = undefined;
       noSideEffectDebugger.shouldAvoidSideEffects = false;
+      // Ensure removing the debuggee only as the very last step as various
+      // cleanups within the Debugger API are done per still-registered debuggee.
+      noSideEffectDebugger.removeAllDebuggees();
     }
   }
 }
