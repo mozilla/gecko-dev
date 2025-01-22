@@ -111,9 +111,7 @@ def add_command_arguments(config, tasks):
             ]
             task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
 
-            worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
-                attributions, sort_keys=True
-            )
+            _build_attribution_config(task, task_platforms, attributions)
 
             yield task
 
@@ -168,3 +166,15 @@ def _get_upstream_task_label_and_artifact(platform, locale):
         )
 
     return upstream_label, upstream_artifact
+
+
+def _build_attribution_config(task, task_platforms, attributions):
+    if any(p.startswith("win") for p in task_platforms):
+        worker = task.get("worker", {})
+        worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
+            attributions, sort_keys=True
+        )
+    else:
+        raise NotImplementedError(
+            "Case for platforms {} is not implemented".format(task_platforms)
+        )
