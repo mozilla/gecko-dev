@@ -1430,7 +1430,7 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
 
     // Since we validate that all layers have the same value, we can just check
     // the first layer.
-    // TODO(orphis): Support mixed-codec simulcast
+    // TODO: https://issues.webrtc.org/362277533 - Support mixed-codec simulcast
     if (parameters.encodings[0].codec && send_codec_ &&
         !IsSameRtpCodec(send_codec_->codec, *parameters.encodings[0].codec)) {
       RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
