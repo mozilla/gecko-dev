@@ -89,7 +89,6 @@ add_task(async function testHardwareVideoDecoding() {
         expectedProcess: platformTest.process,
         expectedDecoder: test.decoder,
       });
-      await waitVideoPlayToEnd();
       // Reset ffvpx hw pref in order not to interfere next test case
       if (test.disableFFVPXHW !== undefined) {
         await SpecialPowers.pushPrefEnv({
@@ -102,10 +101,13 @@ add_task(async function testHardwareVideoDecoding() {
 
 // Following are helper functions
 async function createAndPlayVideo(fileUrl) {
-  const video = document.createElement("video");
-  document.body.appendChild(video);
+  let video = document.querySelector("video");
+  if (!video) {
+    video = document.createElement("video");
+    document.body.appendChild(video);
+  }
   video.src = fileUrl;
-  video.playbackRate = 8;
+  video.loop = true;
   ok(
     await video.play().then(
       () => true,
@@ -113,9 +115,6 @@ async function createAndPlayVideo(fileUrl) {
     ),
     "video started playing"
   );
-  // Waiting for timeupdate to ensure the video decoder has been created
-  // correctly.
-  await new Promise(r => (video.ontimeupdate = r));
 }
 
 async function assertRunningProcessAndDecoderName(
@@ -140,17 +139,6 @@ async function assertRunningProcessAndDecoderName(
     isExpectedProcess,
     `Playback running in process '${videoDecoderName}', expected '${expectedProcess}'`
   );
-}
-
-async function waitVideoPlayToEnd() {
-  const video = document.querySelector("video");
-  if (video.ended) {
-    ok(true, "video reached to end!");
-  } else {
-    await new Promise(r => (video.onended = r));
-  }
-  // Remove current video so that we can check next video later.
-  document.body.removeChild(video);
 }
 
 </script>
