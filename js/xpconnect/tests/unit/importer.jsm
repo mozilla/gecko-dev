@@ -1,1 +1,0 @@
-ChromeUtils.import("resource://test/syntax_error.jsm");
