@@ -865,6 +865,21 @@ bool IonCacheIRCompiler::emitGuardSpecificSymbol(SymbolOperandId symId,
   return true;
 }
 
+bool IonCacheIRCompiler::emitGuardSpecificValue(ValOperandId valId,
+                                                uint32_t expectedOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+  ValueOperand val = allocator.useValueRegister(masm, valId);
+  Value expected = valueStubField(expectedOffset);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.branchTestValue(Assembler::NotEqual, val, expected, failure->label());
+  return true;
+}
+
 bool IonCacheIRCompiler::emitLoadValueResult(uint32_t valOffset) {
   MOZ_CRASH("Baseline-specific op");
 }

@@ -1107,6 +1107,18 @@ bool WarpCacheIRTranspiler::emitGuardSpecificInt32(Int32OperandId numId,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitGuardSpecificValue(ValOperandId valId,
+                                                   uint32_t expectedOffset) {
+  MDefinition* val = getOperand(valId);
+  Value expected = valueStubField(expectedOffset);
+
+  auto* ins = MGuardValue::New(alloc(), val, expected);
+  add(ins);
+
+  setOperand(valId, ins);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitGuardSpecificObject(ObjOperandId objId,
                                                     uint32_t expectedOffset) {
   MDefinition* obj = getOperand(objId);

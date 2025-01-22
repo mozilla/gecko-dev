@@ -488,6 +488,21 @@ bool BaselineCacheIRCompiler::emitGuardSpecificSymbol(SymbolOperandId symId,
   return true;
 }
 
+bool BaselineCacheIRCompiler::emitGuardSpecificValue(ValOperandId valId,
+                                                     uint32_t expectedOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+  ValueOperand val = allocator.useValueRegister(masm, valId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  Address addr(stubAddress(expectedOffset));
+  masm.branchTestValue(Assembler::NotEqual, addr, val, failure->label());
+  return true;
+}
+
 bool BaselineCacheIRCompiler::emitLoadValueResult(uint32_t valOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   AutoOutputRegister output(*this);

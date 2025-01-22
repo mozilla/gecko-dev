@@ -564,6 +564,14 @@
     num: Int32Id
     expected: Int32Imm
 
+- name: GuardSpecificValue
+  shared: false
+  transpile: true
+  cost_estimate: 1
+  args:
+    val: ValId
+    expected: ValueField
+
 - name: GuardNoDenseElements
   shared: true
   transpile: true
