@@ -6,7 +6,6 @@
 
 /**
  * This file tests the methods on XPCOMUtils.sys.mjs.
- * Also on ComponentUtils.jsm. Which is deprecated.
  */
 
 const {AppConstants} = ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs");

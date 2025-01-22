@@ -32,7 +32,7 @@ add_task(async function testDevToolsModuleLoader() {
   Assert.equal(ns.x, 1);
   const nsGlobal = Cu.getGlobalForObject(ns);
   const nsPrincipal = Cu.getObjectPrincipal(nsGlobal);
-  Assert.equal(nsGlobal, sharedGlobal, "Without any parameter, importESModule load in the shared JSM global");
+  Assert.equal(nsGlobal, sharedGlobal, "Without any parameter, importESModule load in the shared system global");
   Assert.equal(nsPrincipal, sharedPrincipal);
   Assert.ok(nsPrincipal.isSystemPrincipal);
   info("Global of ESM loaded in the shared loader can be inspected by the Debugger");
@@ -40,7 +40,7 @@ add_task(async function testDevToolsModuleLoader() {
   Assert.ok(true, "The global is accepted by the Debugger API");
 
   const ns1 = ChromeUtils.importESModule(ESM_URL, { global: "shared" });
-  Assert.equal(ns1, ns, "Passing global: 'shared' from the shared JSM global is equivalent to regular importESModule");
+  Assert.equal(ns1, ns, "Passing global: 'shared' from the shared system global is equivalent to regular importESModule");
 
   info("Test importing in the devtools loader");
   const ns2 = ChromeUtils.importESModule(ESM_URL, { global: "devtools" });
@@ -86,7 +86,7 @@ add_task(async function testDevToolsModuleLoader() {
     Assert.ok(Cu.getModuleImportStack(ESM_URL).includes("testDevToolsModuleLoader"));
     Assert.ok(Cu.getModuleImportStack("resource://test/es6module_devtoolsLoader.js").includes("testDevToolsModuleLoader"));
     Assert.ok(Cu.getModuleImportStack("resource://test/es6module_devtoolsLoader.js").includes(ESM_URL));
-    // Previous import stack were for module loaded via the shared jsm loader.
+    // Previous import stack were for module loaded via the shared loader.
     // Let's also assert that we get stack traces for modules loaded via the devtools loader.
     Assert.ok(Cu.getModuleImportStack("resource://test/es6module_devtoolsLoader_only.js").includes("testDevToolsModuleLoader"));
   }
