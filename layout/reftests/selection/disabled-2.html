@@ -1,6 +1,6 @@
 <!doctype html>
-<input id="outside" style="position: absolute; left: 200vw;"> <!-- intentionally out of view -->
-<iframe srcdoc="<!doctype html>Something inside <input value='some input'>"></iframe>
+<input id="outside" style="position: absolute; left: 200vw;" inputmode="none"> <!-- intentionally out of view -->
+<iframe srcdoc="<!doctype html>Something inside <input value='some input' inputmode='none'>"></iframe>
 <script>
 onload = function() {
   document.querySelector("iframe").contentDocument.querySelector("input").select();

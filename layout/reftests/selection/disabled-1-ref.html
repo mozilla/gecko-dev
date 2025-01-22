@@ -1,6 +1,6 @@
 <!doctype html>
-<input id="outside" value="abc">
-<iframe srcdoc="<!doctype html>Something inside <input value='some input'>"></iframe>
+<input id="outside" value="abc" inputmode="none">
+<iframe srcdoc="<!doctype html>Something inside <input value='some input' inputmode='none'>"></iframe>
 <script>
 document.getElementById("outside").select();
 </script>
