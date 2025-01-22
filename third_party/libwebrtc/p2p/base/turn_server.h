@@ -73,14 +73,14 @@ class TurnServerConnection {
 // handles TURN messages (via HandleTurnMessage) and channel data messages
 // (via HandleChannelData) for this allocation when received by the server.
 // The object informs the server when its lifetime timer expires.
-class TurnServerAllocation {
+class TurnServerAllocation final {
  public:
   TurnServerAllocation(TurnServer* server_,
                        webrtc::TaskQueueBase* thread,
                        const TurnServerConnection& conn,
                        rtc::AsyncPacketSocket* server_socket,
                        absl::string_view key);
-  virtual ~TurnServerAllocation();
+  ~TurnServerAllocation();
 
   TurnServerConnection* conn() { return &conn_; }
   const std::string& key() const { return key_; }
@@ -99,8 +99,8 @@ class TurnServerAllocation {
  private:
   struct Channel {
     webrtc::ScopedTaskSafety pending_delete;
-    int id;
-    rtc::SocketAddress peer;
+    const uint16_t id;
+    const rtc::SocketAddress peer;
   };
   struct Permission {
     webrtc::ScopedTaskSafety pending_delete;
@@ -235,6 +235,11 @@ class TurnServer : public sigslot::has_slots<> {
     reject_private_addresses_ = filter;
   }
 
+  void set_reject_bind_requests(bool filter) {
+    RTC_DCHECK_RUN_ON(thread_);
+    reject_bind_requests_ = filter;
+  }
+
   void set_enable_permission_checks(bool enable) {
     RTC_DCHECK_RUN_ON(thread_);
     enable_permission_checks_ = enable;
@@ -341,7 +346,8 @@ class TurnServer : public sigslot::has_slots<> {
   // otu - one-time-use. Server will respond with 438 if it's
   // sees the same nonce in next transaction.
   bool enable_otu_nonce_ RTC_GUARDED_BY(thread_);
-  bool reject_private_addresses_ = false;
+  bool reject_private_addresses_ RTC_GUARDED_BY(thread_) = false;
+  bool reject_bind_requests_ RTC_GUARDED_BY(thread_) = false;
   // Check for permission when receiving an external packet.
   bool enable_permission_checks_ = true;
 

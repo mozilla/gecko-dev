@@ -1541,12 +1541,9 @@ TEST_F(TurnPortTest, TestChannelBindGetErrorResponse) {
   ASSERT_TRUE(conn2 != nullptr);
   conn1->Ping(0);
   EXPECT_TRUE_SIMULATED_WAIT(conn1->writable(), kSimulatedRtt * 2, fake_clock_);
-  // TODO(bugs.webrtc.org/345518625): SetEntryChannelIdForTesting should not be
-  // a public method. Instead we should set an option on the fake TURN server to
-  // force it to send a channel bind errors.
-  int illegal_channel_id = kMaxTurnChannelNumber + 1u;
-  ASSERT_TRUE(turn_port_->SetEntryChannelIdForTesting(
-      udp_port_->Candidates()[0].address(), illegal_channel_id));
+
+  // Tell the TURN server to reject all bind requests from now on.
+  turn_server_.server()->set_reject_bind_requests(true);
 
   std::string data = "ABC";
   conn1->Send(data.data(), data.length(), options);

@@ -135,6 +135,8 @@ void TurnServer::OnNewInternalConnection(rtc::Socket* socket) {
 }
 
 void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
+  RTC_DCHECK_RUN_ON(thread_);
+
   // Check if someone is trying to connect to us.
   rtc::SocketAddress accept_addr;
   rtc::Socket* accepted_socket = server_socket->Accept(&accept_addr);
@@ -192,6 +194,7 @@ void TurnServer::OnInternalPacket(rtc::AsyncPacketSocket* socket,
 
 void TurnServer::HandleStunMessage(TurnServerConnection* conn,
                                    rtc::ArrayView<const uint8_t> payload) {
+  RTC_DCHECK_RUN_ON(thread_);
   TurnMessage msg;
   rtc::ByteBufferReader buf(payload);
   if (!msg.Read(&buf) || (buf.Length() > 0)) {
@@ -577,6 +580,7 @@ std::string TurnServerAllocation::ToString() const {
 }
 
 void TurnServerAllocation::HandleTurnMessage(const TurnMessage* msg) {
+  RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(msg != NULL);
   switch (msg->type()) {
     case STUN_ALLOCATE_REQUEST:
@@ -680,6 +684,7 @@ void TurnServerAllocation::HandleSendIndication(const TurnMessage* msg) {
 
 void TurnServerAllocation::HandleCreatePermissionRequest(
     const TurnMessage* msg) {
+  RTC_DCHECK_RUN_ON(server_->thread_);
   // Check mandatory attributes.
   const StunAddressAttribute* peer_attr =
       msg->GetAddress(STUN_ATTR_XOR_PEER_ADDRESS);
@@ -707,6 +712,13 @@ void TurnServerAllocation::HandleCreatePermissionRequest(
 }
 
 void TurnServerAllocation::HandleChannelBindRequest(const TurnMessage* msg) {
+  RTC_DCHECK_RUN_ON(server_->thread_);
+  if (server_->reject_bind_requests_) {
+    RTC_LOG(LS_ERROR) << "HandleChannelBindRequest: Rejecting bind requests";
+    SendBadRequestResponse(msg);
+    return;
+  }
+
   // Check mandatory attributes.
   const StunUInt32Attribute* channel_attr =
       msg->GetUInt32(STUN_ATTR_CHANNEL_NUMBER);
@@ -718,7 +730,7 @@ void TurnServerAllocation::HandleChannelBindRequest(const TurnMessage* msg) {
   }
 
   // Check that channel id is valid.
-  int channel_id = channel_attr->value() >> 16;
+  uint16_t channel_id = static_cast<uint16_t>(channel_attr->value() >> 16);
   if (channel_id < kMinTurnChannelNumber ||
       channel_id > kMaxTurnChannelNumber) {
     SendBadRequestResponse(msg);
