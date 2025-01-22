@@ -1540,7 +1540,7 @@ impl LayerCompositor for WrLayerCompositor {
         assert!(self.visual_tree.is_empty());
 
         for request in input.layers {
-            let size = request.rect.size();
+            let size = request.clip_rect.size();
 
             let existing_index = self.surface_pool.iter().position(|layer| {
                 layer.is_opaque == request.is_opaque &&

@@ -1363,8 +1363,10 @@ pub trait Compositor {
 // implemention should prepare
 #[derive(Debug)]
 pub struct CompositorInputLayer {
-    // Device space location and size of the layer
-    pub rect: DeviceIntRect,
+    // Device space location of the layer (pre-clip)
+    pub offset: DeviceIntPoint,
+    // Device space clip-rect of the layer
+    pub clip_rect: DeviceIntRect,
     // Whether a content or external surface
     pub usage: CompositorSurfaceUsage,
     // If true, layer is opaque, blend can be disabled
