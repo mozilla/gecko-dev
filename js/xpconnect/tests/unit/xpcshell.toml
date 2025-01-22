@@ -95,8 +95,6 @@ support-files = [
   "lazy_shared_in_worker.js",
 ]
 
-["test_ComponentEnvironment.js"]
-
 ["test_Cu_reportError_column.js"]
 
 ["test_FrameScriptEnvironment.js"]
@@ -104,8 +102,6 @@ support-files = [
 ["test_ReadableStream_from.js"]
 
 ["test_SubscriptLoaderEnvironment.js"]
-
-["test_SubscriptLoaderJSMEnvironment.js"]
 
 ["test_SubscriptLoaderSandboxEnvironment.js"]
 
@@ -226,13 +222,9 @@ skip-if = ["os == 'android'"]
 
 ["test_defineModuleGetter.js"]
 
-["test_envChain_JSM.js"]
-
 ["test_envChain_frameScript.js"]
 
 ["test_envChain_subscript.js"]
-
-["test_envChain_subscript_in_JSM.js"]
 
 ["test_envChain_subscript_in_frameScript.js"]
 
