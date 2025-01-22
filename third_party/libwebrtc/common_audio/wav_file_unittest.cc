@@ -126,8 +126,8 @@ TEST(WavWriterTest, LargeFile) {
          {WavFile::SampleFormat::kInt16, WavFile::SampleFormat::kFloat}) {
       for (WavFile::SampleFormat read_format :
            {WavFile::SampleFormat::kInt16, WavFile::SampleFormat::kFloat}) {
-        std::string outfile =
-            test::OutputPathWithRandomDirectory() + "wavtest3.wav";
+        std::string outdir = test::OutputPathWithRandomDirectory();
+        std::string outfile = outdir + "wavtest3.wav";
         float samples[kNumSamples];
         for (size_t i = 0; i < kNumSamples; i += kNumChannels) {
           // A nice periodic beeping sound.
@@ -204,6 +204,8 @@ TEST(WavWriterTest, LargeFile) {
             EXPECT_EQ(0u, r.ReadSamples(kNumSamples, read_samples));
           }
         }
+        RTC_CHECK(test::RemoveFile(outfile));
+        RTC_CHECK(test::RemoveDir(outdir));
       }
     }
   }
