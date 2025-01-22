@@ -5,8 +5,6 @@
 package org.mozilla.fenix.webcompat.store
 
 import androidx.annotation.StringRes
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -15,7 +13,6 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.MenuItem
 
 /**
  * Value type that represents the state of the WebCompat Reporter.
@@ -56,27 +53,6 @@ data class WebCompatReporterState(
         Other(
             displayStringId = R.string.webcompat_reporter_reason_other,
         ),
-    }
-
-    /**
-     * Helper function used to obtain the list of dropdown menu items derived from [BrokenSiteReason].
-     *
-     * @param onDropdownItemClick Callback invoked when the particular dropdown item is selected.
-     * @return The list of [MenuItem] to display in the dropdown.
-     */
-    @Composable
-    fun toDropdownItems(
-        onDropdownItemClick: (BrokenSiteReason) -> Unit,
-    ): List<MenuItem> {
-        return BrokenSiteReason.entries.map { reason ->
-            MenuItem(
-                title = stringResource(id = reason.displayStringId),
-                isChecked = this.reason == reason,
-                onClick = {
-                    onDropdownItemClick(reason)
-                },
-            )
-        }
     }
 
     /**

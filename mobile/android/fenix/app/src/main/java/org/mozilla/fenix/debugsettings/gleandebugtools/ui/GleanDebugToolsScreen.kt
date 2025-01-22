@@ -26,11 +26,12 @@ import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Dropdown
-import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.list.TextListItem
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsAction
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
@@ -253,8 +254,8 @@ private fun getPingDropdownMenu(
     pings: List<String>,
     onClickItem: (String) -> Unit,
 ) = pings.map {
-    MenuItem(
-        title = it,
+    MenuItem.CheckableItem(
+        text = Text.String(it),
         isChecked = it == curPing,
     ) { onClickItem(it) }
 }

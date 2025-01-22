@@ -44,8 +44,9 @@ import org.mozilla.fenix.compose.InfoCard
 import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
-import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.compose.menu.MenuItem.CheckableItem
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 
@@ -586,23 +587,18 @@ private fun getContextMenuItems(
     translateLanguages: List<Language>,
     selectedLanguage: Language? = null,
     onClickItem: (Language) -> Unit,
-): List<MenuItem> {
-    val menuItems = mutableListOf<MenuItem>()
-    translateLanguages.map { item ->
+): List<CheckableItem> =
+    translateLanguages.mapNotNull { item ->
         item.localizedDisplayName?.let {
-            menuItems.add(
-                MenuItem(
-                    title = it,
-                    isChecked = item == selectedLanguage,
-                    onClick = {
-                        onClickItem(item)
-                    },
-                ),
+            CheckableItem(
+                text = Text.String(it),
+                isChecked = item == selectedLanguage,
+                onClick = {
+                    onClickItem(item)
+                },
             )
         }
     }
-    return menuItems
-}
 
 @Composable
 private fun TranslationsDialogActionButtons(

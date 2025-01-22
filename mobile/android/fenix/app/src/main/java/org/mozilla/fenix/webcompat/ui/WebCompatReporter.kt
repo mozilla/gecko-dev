@@ -44,9 +44,12 @@ import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.TextFieldColors
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.ext.thenConditional
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.text.Text.Resource
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
+import org.mozilla.fenix.webcompat.store.WebCompatReporterState.BrokenSiteReason
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
 
 private const val PROBLEM_DESCRIPTION_MAX_LINES = 6
@@ -185,6 +188,26 @@ fun WebCompatReporter(
                 }
             }
         }
+    }
+}
+
+/**
+ * Helper function used to obtain the list of dropdown menu items derived from [BrokenSiteReason].
+ *
+ * @param onDropdownItemClick Callback invoked when the particular dropdown item is selected.
+ * @return The list of [MenuItem.CheckableItem] to display in the dropdown.
+ */
+private fun WebCompatReporterState.toDropdownItems(
+    onDropdownItemClick: (BrokenSiteReason) -> Unit,
+): List<MenuItem.CheckableItem> {
+    return BrokenSiteReason.entries.map { reason ->
+        MenuItem.CheckableItem(
+            text = Resource(reason.displayStringId),
+            isChecked = this.reason == reason,
+            onClick = {
+                onDropdownItemClick(reason)
+            },
+        )
     }
 }
 
