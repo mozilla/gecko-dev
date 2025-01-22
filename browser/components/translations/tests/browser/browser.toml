@@ -26,7 +26,9 @@ support-files = [
 
 ["browser_translations_about_preferences_settings_ui_tab.js"]
 
-["browser_translations_e2e_full_page_translate.js"]
+["browser_translations_e2e_full_page_translate_with_lexical_shortlist.js"]
+
+["browser_translations_e2e_full_page_translate_without_lexical_shortlist.js"]
 
 ["browser_translations_full_page_move_tab_to_new_window.js"]
 
@@ -73,6 +75,8 @@ support-files = [
 ["browser_translations_full_page_panel_firstrun.js"]
 
 ["browser_translations_full_page_panel_firstrun_revisit.js"]
+
+["browser_translations_full_page_panel_flip_lexical_shortlist.js"]
 
 ["browser_translations_full_page_panel_fuzzing.js"]
 skip-if = ["true"]
@@ -172,6 +176,8 @@ skip-if = ["true"]
 ["browser_translations_select_panel_engine_cache.js"]
 
 ["browser_translations_select_panel_fallback_to_doc_language.js"]
+
+["browser_translations_select_panel_flip_lexical_shortlist.js"]
 
 ["browser_translations_select_panel_init_failure.js"]
 

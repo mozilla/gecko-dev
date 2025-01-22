@@ -4,109 +4,114 @@
 "use strict";
 
 add_task(async function test_translations_settings_download_languages() {
-  const {
-    cleanup,
-    remoteClients,
-    elements: { settingsButton },
-  } = await setupAboutPreferences(LANGUAGE_PAIRS, {
-    prefs: [["browser.translations.newSettingsUI.enable", true]],
-  });
+  await testWithAndWithoutLexicalShortlist(async lexicalShortlistPrefs => {
+    const {
+      cleanup,
+      remoteClients,
+      elements: { settingsButton },
+    } = await setupAboutPreferences(LANGUAGE_PAIRS, {
+      prefs: [
+        ["browser.translations.newSettingsUI.enable", true],
+        ...lexicalShortlistPrefs,
+      ],
+    });
 
-  assertVisibility({
-    message: "Expect paneGeneral elements to be visible.",
-    visible: { settingsButton },
-  });
+    assertVisibility({
+      message: "Expect paneGeneral elements to be visible.",
+      visible: { settingsButton },
+    });
 
-  info(
-    "Open translations settings page by clicking on translations settings button."
-  );
-  const { downloadLanguageList } =
-    await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
-      settingsButton
+    info(
+      "Open translations settings page by clicking on translations settings button."
+    );
+    const { downloadLanguageList } =
+      await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
+        settingsButton
+      );
+
+    info("Test French language model install and uninstall function.");
+
+    let langFr = Array.from(
+      downloadLanguageList.querySelectorAll("label")
+    ).find(el => el.getAttribute("value") === "fr");
+
+    let clickButton = BrowserTestUtils.waitForEvent(
+      langFr.parentNode.querySelector("moz-button"),
+      "click"
+    );
+    langFr.parentNode.querySelector("moz-button").click();
+    await clickButton;
+
+    const frenchModels = languageModelNames([
+      { fromLang: "fr", toLang: "en" },
+      { fromLang: "en", toLang: "fr" },
+    ]);
+
+    Assert.deepEqual(
+      await remoteClients.translationModels.resolvePendingDownloads(
+        frenchModels.length
+      ),
+      frenchModels,
+      "French models were downloaded."
     );
 
-  info("Test French language model install and uninstall function.");
+    await TranslationsSettingsTestUtils.downaloadButtonClick(
+      langFr,
+      "translations-settings-remove-icon",
+      "Delete icon is visible on French button."
+    );
 
-  let langFr = Array.from(downloadLanguageList.querySelectorAll("label")).find(
-    el => el.getAttribute("value") === "fr"
-  );
+    langFr.parentNode.querySelector("moz-button").click();
+    await clickButton;
 
-  let clickButton = BrowserTestUtils.waitForEvent(
-    langFr.parentNode.querySelector("moz-button"),
-    "click"
-  );
-  langFr.parentNode.querySelector("moz-button").click();
-  await clickButton;
+    await TranslationsSettingsTestUtils.downaloadButtonClick(
+      langFr,
+      "translations-settings-download-icon",
+      "Download icon is visible on French Button."
+    );
 
-  const frenchModels = languageModelNames([
-    { fromLang: "fr", toLang: "en" },
-    { fromLang: "en", toLang: "fr" },
-  ]);
+    info("Test 'All language' models install and uninstall function");
 
-  Assert.deepEqual(
-    await remoteClients.translationModels.resolvePendingDownloads(
-      frenchModels.length
-    ),
-    frenchModels,
-    "French models were downloaded."
-  );
+    // Download "All languages" is the first child
+    let langAll = downloadLanguageList.children[0];
 
-  await TranslationsSettingsTestUtils.downaloadButtonClick(
-    langFr,
-    "translations-settings-remove-icon",
-    "Delete icon is visible on French button."
-  );
+    let clickButtonAll = BrowserTestUtils.waitForEvent(
+      langAll.querySelector("moz-button"),
+      "click"
+    );
+    langAll.querySelector("moz-button").click();
+    await clickButtonAll;
 
-  langFr.parentNode.querySelector("moz-button").click();
-  await clickButton;
+    const allModels = languageModelNames(LANGUAGE_PAIRS);
 
-  await TranslationsSettingsTestUtils.downaloadButtonClick(
-    langFr,
-    "translations-settings-download-icon",
-    "Download icon is visible on French Button."
-  );
+    Assert.deepEqual(
+      await remoteClients.translationModels.resolvePendingDownloads(
+        allModels.length
+      ),
+      allModels,
+      "All models were downloaded."
+    );
+    Assert.deepEqual(
+      await remoteClients.translationsWasm.resolvePendingDownloads(1),
+      ["bergamot-translator"],
+      "Wasm was downloaded."
+    );
 
-  info("Test 'All language' models install and uninstall function");
+    await TranslationsSettingsTestUtils.downaloadButtonClick(
+      langAll,
+      "translations-settings-remove-icon",
+      "Delete icon is visible on 'All languages' button"
+    );
 
-  // Download "All languages" is the first child
-  let langAll = downloadLanguageList.children[0];
+    langAll.querySelector("moz-button").click();
+    await clickButton;
 
-  let clickButtonAll = BrowserTestUtils.waitForEvent(
-    langAll.querySelector("moz-button"),
-    "click"
-  );
-  langAll.querySelector("moz-button").click();
-  await clickButtonAll;
+    await TranslationsSettingsTestUtils.downaloadButtonClick(
+      langAll,
+      "translations-settings-download-icon",
+      "Download icon is visible on 'All Language' button."
+    );
 
-  const allModels = languageModelNames(LANGUAGE_PAIRS);
-
-  Assert.deepEqual(
-    await remoteClients.translationModels.resolvePendingDownloads(
-      allModels.length
-    ),
-    allModels,
-    "All models were downloaded."
-  );
-  Assert.deepEqual(
-    await remoteClients.translationsWasm.resolvePendingDownloads(1),
-    ["bergamot-translator"],
-    "Wasm was downloaded."
-  );
-
-  await TranslationsSettingsTestUtils.downaloadButtonClick(
-    langAll,
-    "translations-settings-remove-icon",
-    "Delete icon is visible on 'All languages' button"
-  );
-
-  langAll.querySelector("moz-button").click();
-  await clickButton;
-
-  await TranslationsSettingsTestUtils.downaloadButtonClick(
-    langAll,
-    "translations-settings-download-icon",
-    "Download icon is visible on 'All Language' button."
-  );
-
-  await cleanup();
+    await cleanup();
+  });
 });
