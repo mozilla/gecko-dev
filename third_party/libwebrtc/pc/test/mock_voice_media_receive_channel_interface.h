@@ -67,8 +67,9 @@ class MockVoiceMediaReceiveChannelInterface
               GetStats,
               (VoiceMediaReceiveInfo * stats, bool reset_legacy),
               (override));
-  MOCK_METHOD(void, SetReceiveNackEnabled, (bool enabled), (override));
+  MOCK_METHOD(webrtc::RtcpMode, RtcpMode, (), (const, override));
   MOCK_METHOD(void, SetRtcpMode, (webrtc::RtcpMode mode), (override));
+  MOCK_METHOD(void, SetReceiveNackEnabled, (bool enabled), (override));
   MOCK_METHOD(void, SetReceiveNonSenderRttEnabled, (bool enabled), (override));
 
   // MediaReceiveChannelInterface

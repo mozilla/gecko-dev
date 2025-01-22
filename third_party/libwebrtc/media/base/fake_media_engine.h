@@ -498,9 +498,10 @@ class FakeVoiceMediaReceiveChannel
   void SetDefaultRawAudioSink(
       std::unique_ptr<webrtc::AudioSinkInterface> sink) override;
 
+  webrtc::RtcpMode RtcpMode() const override { return recv_rtcp_mode_; }
+  void SetRtcpMode(webrtc::RtcpMode mode) override { recv_rtcp_mode_ = mode; }
   std::vector<webrtc::RtpSource> GetSources(uint32_t ssrc) const override;
   void SetReceiveNackEnabled(bool /* enabled */) override {}
-  void SetRtcpMode(webrtc::RtcpMode /* mode */) override {}
   void SetReceiveNonSenderRttEnabled(bool /* enabled */) override {}
 
  private:
@@ -534,6 +535,7 @@ class FakeVoiceMediaReceiveChannel
   std::map<uint32_t, std::unique_ptr<VoiceChannelAudioSink>> local_sinks_;
   std::unique_ptr<webrtc::AudioSinkInterface> sink_;
   int max_bps_;
+  webrtc::RtcpMode recv_rtcp_mode_ = webrtc::RtcpMode::kCompound;
 };
 
 class FakeVoiceMediaSendChannel

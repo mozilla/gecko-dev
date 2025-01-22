@@ -934,8 +934,9 @@ class VoiceMediaReceiveChannelInterface : public MediaReceiveChannelInterface {
   virtual void SetDefaultRawAudioSink(
       std::unique_ptr<webrtc::AudioSinkInterface> sink) = 0;
   virtual bool GetStats(VoiceMediaReceiveInfo* stats, bool reset_legacy) = 0;
-  virtual void SetReceiveNackEnabled(bool enabled) = 0;
+  virtual webrtc::RtcpMode RtcpMode() const = 0;
   virtual void SetRtcpMode(webrtc::RtcpMode mode) = 0;
+  virtual void SetReceiveNackEnabled(bool enabled) = 0;
   virtual void SetReceiveNonSenderRttEnabled(bool enabled) = 0;
 };
 

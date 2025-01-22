@@ -287,6 +287,7 @@ webrtc::AudioReceiveStreamInterface::Config BuildReceiveStreamConfig(
     uint32_t local_ssrc,
     bool use_nack,
     bool enable_non_sender_rtt,
+    webrtc::RtcpMode rtcp_mode,
     const std::vector<std::string>& stream_ids,
     const std::vector<webrtc::RtpExtension>& /* extensions */,
     webrtc::Transport* rtcp_send_transport,
@@ -303,7 +304,7 @@ webrtc::AudioReceiveStreamInterface::Config BuildReceiveStreamConfig(
   config.rtp.remote_ssrc = remote_ssrc;
   config.rtp.local_ssrc = local_ssrc;
   config.rtp.nack.rtp_history_ms = use_nack ? kNackRtpHistoryMs : 0;
-  config.rtp.rtcp_mode = webrtc::RtcpMode::kCompound;
+  config.rtp.rtcp_mode = rtcp_mode;
   if (!stream_ids.empty()) {
     config.sync_group = stream_ids[0];
   }
@@ -2133,8 +2134,10 @@ bool WebRtcVoiceReceiveChannel::SetReceiverParameters(
     recv_rtp_extension_map_ =
         webrtc::RtpHeaderExtensionMap(recv_rtp_extensions_);
   }
-  SetRtcpMode(params.rtcp.reduced_size ? webrtc::RtcpMode::kReducedSize
-                                       : webrtc::RtcpMode::kCompound);
+  // RTCP mode, NACK, and receive-side RTT are not configured here because they
+  // enable send functionality in the receive channels. This functionality is
+  // instead configured using the SetReceiveRtcpMode, SetReceiveNackEnabled, and
+  // SetReceiveNonSenderRttEnabled methods.
   return true;
 }
 
@@ -2281,18 +2284,6 @@ bool WebRtcVoiceReceiveChannel::SetRecvCodecs(
   return true;
 }
 
-void WebRtcVoiceReceiveChannel::SetReceiveNackEnabled(bool enabled) {
-  // Check if the NACK status has changed on the
-  // preferred send codec, and in that case reconfigure all receive streams.
-  if (recv_nack_enabled_ != enabled) {
-    RTC_LOG(LS_INFO) << "Changing NACK status on receive streams.";
-    recv_nack_enabled_ = enabled;
-    for (auto& kv : recv_streams_) {
-      kv.second->SetUseNack(recv_nack_enabled_);
-    }
-  }
-}
-
 void WebRtcVoiceReceiveChannel::SetRtcpMode(webrtc::RtcpMode mode) {
   // Check if the reduced size RTCP status changed on the
   // preferred send codec, and in that case reconfigure all receive streams.
@@ -2301,6 +2292,18 @@ void WebRtcVoiceReceiveChannel::SetRtcpMode(webrtc::RtcpMode mode) {
     recv_rtcp_mode_ = mode;
     for (auto& kv : recv_streams_) {
       kv.second->SetRtcpMode(recv_rtcp_mode_);
+    }
+  }
+}
+
+void WebRtcVoiceReceiveChannel::SetReceiveNackEnabled(bool enabled) {
+  // Check if the NACK status has changed on the
+  // preferred send codec, and in that case reconfigure all receive streams.
+  if (recv_nack_enabled_ != enabled) {
+    RTC_LOG(LS_INFO) << "Changing NACK status on receive streams.";
+    recv_nack_enabled_ = enabled;
+    for (auto& kv : recv_streams_) {
+      kv.second->SetUseNack(recv_nack_enabled_);
     }
   }
 }
@@ -2366,7 +2369,7 @@ bool WebRtcVoiceReceiveChannel::AddRecvStream(const StreamParams& sp) {
   // Create a new channel for receiving audio data.
   auto config = BuildReceiveStreamConfig(
       ssrc, receiver_reports_ssrc_, recv_nack_enabled_, enable_non_sender_rtt_,
-      sp.stream_ids(), recv_rtp_extensions_, transport(),
+      recv_rtcp_mode_, sp.stream_ids(), recv_rtp_extensions_, transport(),
       engine()->decoder_factory_, decoder_map_, codec_pair_id_,
       engine()->audio_jitter_buffer_max_packets_,
       engine()->audio_jitter_buffer_fast_accelerate_,

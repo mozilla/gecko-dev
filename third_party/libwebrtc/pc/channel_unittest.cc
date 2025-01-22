@@ -19,6 +19,7 @@
 #include "absl/functional/any_invocable.h"
 #include "api/array_view.h"
 #include "api/audio_options.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "media/base/codec.h"
@@ -688,6 +689,37 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     EXPECT_TRUE(channel2_->SetLocalContent(&content, SdpType::kOffer, err));
     content.set_rtcp_mux(false);
     EXPECT_TRUE(channel2_->SetRemoteContent(&content, SdpType::kAnswer, err));
+  }
+
+  // Test that SetLocalContent and SetRemoteContent properly set RTCP
+  // reduced_size.
+  void TestSetContentsRtcpReducedSize() {
+    CreateChannels(0, 0);
+    typename T::Content content;
+    CreateContent(0, kPcmuCodec, kH264Codec, &content);
+    // Both sides agree on reduced size.
+    content.set_rtcp_reduced_size(true);
+    std::string err;
+    // The RTCP mode is a send property and should be configured based on
+    // the remote content and not the local content.
+    EXPECT_TRUE(channel1_->SetLocalContent(&content, SdpType::kOffer, err));
+    EXPECT_EQ(media_receive_channel1_impl()->RtcpMode(),
+              webrtc::RtcpMode::kCompound);
+    EXPECT_TRUE(channel1_->SetRemoteContent(&content, SdpType::kAnswer, err));
+    EXPECT_EQ(media_receive_channel1_impl()->RtcpMode(),
+              webrtc::RtcpMode::kReducedSize);
+    // Only initiator supports reduced size.
+    EXPECT_TRUE(channel2_->SetLocalContent(&content, SdpType::kOffer, err));
+    EXPECT_EQ(media_receive_channel2_impl()->RtcpMode(),
+              webrtc::RtcpMode::kCompound);
+    content.set_rtcp_reduced_size(false);
+    EXPECT_TRUE(channel2_->SetRemoteContent(&content, SdpType::kAnswer, err));
+    EXPECT_EQ(media_receive_channel2_impl()->RtcpMode(),
+              webrtc::RtcpMode::kCompound);
+    // Peer renegotiates without reduced size.
+    EXPECT_TRUE(channel1_->SetRemoteContent(&content, SdpType::kAnswer, err));
+    EXPECT_EQ(media_receive_channel1_impl()->RtcpMode(),
+              webrtc::RtcpMode::kCompound);
   }
 
   // Test that SetLocalContent and SetRemoteContent properly
@@ -1729,6 +1761,10 @@ TEST_F(VoiceChannelSingleThreadTest, TestSetContentsRtcpMuxWithPrAnswer) {
   Base::TestSetContentsRtcpMux();
 }
 
+TEST_F(VoiceChannelSingleThreadTest, TestSetContentsRtcpReducedSize) {
+  Base::TestSetContentsRtcpReducedSize();
+}
+
 TEST_F(VoiceChannelSingleThreadTest, TestChangeStreamParamsInContent) {
   Base::TestChangeStreamParamsInContent();
 }
@@ -1864,6 +1900,10 @@ TEST_F(VoiceChannelDoubleThreadTest, TestSetContentsRtcpMux) {
 
 TEST_F(VoiceChannelDoubleThreadTest, TestSetContentsRtcpMuxWithPrAnswer) {
   Base::TestSetContentsRtcpMux();
+}
+
+TEST_F(VoiceChannelDoubleThreadTest, TestSetContentsRtcpReducedSize) {
+  Base::TestSetContentsRtcpReducedSize();
 }
 
 TEST_F(VoiceChannelDoubleThreadTest, TestChangeStreamParamsInContent) {
