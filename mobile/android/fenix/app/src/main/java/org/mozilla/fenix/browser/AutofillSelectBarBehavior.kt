@@ -14,14 +14,14 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 
 /**
- * Custom [CoordinatorLayout.Behavior] for ensuring login bars are shown on top of the bottom toolbar.
+ * Custom [CoordinatorLayout.Behavior] for ensuring autofill select bars are shown on top of the bottom toolbar.
  */
-class LoginSelectBarBehavior<V : View>(
+class AutofillSelectBarBehavior<V : View>(
     context: Context,
     toolbarPosition: ToolbarPosition,
 ) : CoordinatorLayout.Behavior<V>(context, null) {
 
-    // Priority list of possible anchors for the logins bars.
+    // Priority list of possible anchors for the autofill bars.
     private val dependenciesIds = buildList {
         add(R.id.toolbar_navbar_container)
         if (toolbarPosition == ToolbarPosition.BOTTOM) {
@@ -43,44 +43,44 @@ class LoginSelectBarBehavior<V : View>(
         // It is possible that previous anchor's visibility is changed.
         // We have to check here if a new anchor is available and reparent the logins bar.
         if (anchorId != currentAnchorId) {
-            positionLoginBar(child, parent.children.firstOrNull { it.id == anchorId })
+            positionAutofillBar(child, parent.children.firstOrNull { it.id == anchorId })
         }
 
         return false
     }
 
-    private fun positionLoginBar(loginBar: V, dependency: View?) {
+    private fun positionAutofillBar(autofillBar: V, dependency: View?) {
         currentAnchorId = dependency?.id ?: View.NO_ID
 
-        loginBar.post {
+        autofillBar.post {
             when (dependency == null) {
-                true -> placeAtBottom(loginBar)
-                false -> placeAboveAnchor(loginBar, dependency)
+                true -> placeAtBottom(autofillBar)
+                false -> placeAboveAnchor(autofillBar, dependency)
             }
         }
     }
 
     /**
-     * Place the login bar at the bottom of the screen.
+     * Place the autofill bar at the bottom of the screen.
      */
-    fun placeAtBottom(loginBar: View) {
-        val params = loginBar.layoutParams as CoordinatorLayout.LayoutParams
+    fun placeAtBottom(autofillBar: View) {
+        val params = autofillBar.layoutParams as CoordinatorLayout.LayoutParams
 
         params.anchorId = View.NO_ID
         params.anchorGravity = Gravity.NO_GRAVITY
         params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        loginBar.layoutParams = params
+        autofillBar.layoutParams = params
     }
 
     /**
-     * Place the login bar above the given anchor.
+     * Place the autofill bar above the given anchor.
      */
-    fun placeAboveAnchor(loginBar: View, anchor: View) {
-        val params = loginBar.layoutParams as CoordinatorLayout.LayoutParams
+    fun placeAboveAnchor(autofillBar: View, anchor: View) {
+        val params = autofillBar.layoutParams as CoordinatorLayout.LayoutParams
 
         params.anchorId = anchor.id
         params.anchorGravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        loginBar.layoutParams = params
+        autofillBar.layoutParams = params
     }
 }

@@ -6,29 +6,36 @@ package org.mozilla.fenix.components
 
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
+import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
 import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
-import org.mozilla.fenix.browser.LoginSelectBarBehavior
+import org.mozilla.fenix.browser.AutofillSelectBarBehavior
 import org.mozilla.fenix.utils.Settings
 
 /**
  * Helper for ensuring that
- * - login bars are always on top of the bottom toolbar
- * - callers are notified when login bars are shown/hidden.
+ * - Autofill bars are always on top of the bottom toolbar
+ * - Callers are notified when Autofill bars are shown/hidden.
  */
-class LoginBarsIntegration(
+@Suppress("LongParameterList")
+class AutofillBarsIntegration(
     loginsBar: LoginSelectBar,
     passwordBar: SuggestStrongPasswordBar,
+    addressBar: AddressSelectBar,
+    creditCardBar: CreditCardSelectBar,
     private val settings: Settings,
-    private val onLoginsBarShown: () -> Unit,
-    private val onLoginsBarHidden: () -> Unit,
+    private val onAutofillBarShown: () -> Unit,
+    private val onAutofillBarHidden: () -> Unit,
 ) {
     init {
         loginsBar.toggleablePromptListener = loginsBar.createToggleListener()
         loginsBar.expandablePromptListener = loginsBar.createExpandedListener()
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
+        addressBar.toggleablePromptListener = addressBar.createToggleListener()
+        creditCardBar.toggleablePromptListener = creditCardBar.createToggleListener()
     }
 
     var isVisible: Boolean = false
@@ -38,33 +45,33 @@ class LoginBarsIntegration(
 
     private fun LoginSelectBar.createExpandedListener() = object : ExpandablePrompt.Listener {
         override fun onExpanded() {
-            (behavior as? LoginSelectBarBehavior<*>)?.placeAtBottom(this@createExpandedListener)
-            // Remove the custom behavior to ensure the login bar stays fixed in place
+            (behavior as? AutofillSelectBarBehavior<*>)?.placeAtBottom(this@createExpandedListener)
+            // Remove the custom behavior to ensure the autofill bar stays fixed in place
             behavior = null
             isExpanded = true
         }
         override fun onCollapsed() {
-            behavior = createCustomLoginsBarBehavior()
+            behavior = createCustomAutofillBarBehavior()
             isExpanded = false
         }
     }
 
     private fun <T : View> T.createToggleListener() = object : ToggleablePrompt.Listener {
         override fun onShown() {
-            behavior = createCustomLoginsBarBehavior()
+            behavior = createCustomAutofillBarBehavior()
             isVisible = true
-            onLoginsBarShown()
+            onAutofillBarShown()
         }
 
         override fun onHidden() {
-            // Remove the custom behavior to prevent layout evaluations while login bars are hidden
+            // Remove the custom behavior to prevent layout evaluations while autofill bars are hidden
             behavior = null
             isVisible = false
-            onLoginsBarHidden()
+            onAutofillBarHidden()
         }
     }
 
-    private fun <T : View> T.createCustomLoginsBarBehavior() = LoginSelectBarBehavior<T>(
+    private fun <T : View> T.createCustomAutofillBarBehavior() = AutofillSelectBarBehavior<T>(
         context = context,
         toolbarPosition = settings.toolbarPosition,
     )

@@ -21,7 +21,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class)
-class LoginSelectBarBehaviorTest {
+class AutofillSelectBarBehaviorTest {
     private val loginsBar = mockk<FrameLayout>(relaxed = true)
     private var layoutParams = CoordinatorLayout.LayoutParams(0, 0)
     private val dependency = View(testContext)
@@ -41,7 +41,7 @@ class LoginSelectBarBehaviorTest {
 
     @Test
     fun `GIVEN no valid anchors are shown WHEN the login bar is shown THEN don't anchor it`() {
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, loginsBar, dependency)
 
@@ -51,7 +51,7 @@ class LoginSelectBarBehaviorTest {
     @Test
     fun `GIVEN only a toolbar shown at top WHEN the login bar is shown THEN don't anchor it`() {
         dependency.id = R.id.toolbar
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         behavior.layoutDependsOn(parent, loginsBar, dependency)
 
@@ -61,7 +61,7 @@ class LoginSelectBarBehaviorTest {
     @Test
     fun `GIVEN a toolbar shown at top and the navbar at the bottom WHEN the login bar is shown THEN anchor it to the navbar`() {
         dependency.id = R.id.toolbar_navbar_container
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         behavior.layoutDependsOn(parent, loginsBar, dependency)
 
@@ -71,7 +71,7 @@ class LoginSelectBarBehaviorTest {
     @Test
     fun `GIVEN only a toolbar shown at bottom WHEN the login bar is shown THEN anchor it to the toolbar`() {
         dependency.id = R.id.toolbar
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, loginsBar, dependency)
 
@@ -83,7 +83,7 @@ class LoginSelectBarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the toolbar is invisible.
         behavior.layoutDependsOn(parent, loginsBar, dependency)
@@ -106,7 +106,7 @@ class LoginSelectBarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         // Test the scenario where the toolbar is invisible.
         behavior.layoutDependsOn(parent, loginsBar, dependency)
@@ -129,7 +129,7 @@ class LoginSelectBarBehaviorTest {
         val navbar = View(testContext)
             .apply { id = R.id.toolbar_navbar_container }
             .also { parent.addView(it) }
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the toolbar is invisible.
         behavior.layoutDependsOn(parent, loginsBar, dependency)
@@ -149,7 +149,7 @@ class LoginSelectBarBehaviorTest {
 
     @Test
     fun `GIVEN a login bar WHEN asked to place it at bottom THEN anchor it to the bottom of the screen`() {
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.placeAtBottom(loginsBar)
 
@@ -158,7 +158,7 @@ class LoginSelectBarBehaviorTest {
 
     @Test
     fun `GIVEN a login bar WHEN asked to place it above a certain anchor THEN anchor it to the indicated view`() {
-        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = AutofillSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
         dependency.id = R.id.toolbar
 
         behavior.placeAboveAnchor(loginsBar, dependency)

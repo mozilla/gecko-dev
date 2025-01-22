@@ -157,9 +157,9 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.AutofillBarsIntegration
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FindInPageIntegration
-import org.mozilla.fenix.components.LoginBarsIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
 import org.mozilla.fenix.components.appstate.AppAction
@@ -298,7 +298,7 @@ abstract class BaseBrowserFragment :
     private val shareDownloadsFeature = ViewBoundFeatureWrapper<ShareDownloadFeature>()
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
-    private lateinit var loginBarsIntegration: LoginBarsIntegration
+    private lateinit var autofillBarsIntegration: AutofillBarsIntegration
 
     @VisibleForTesting
     internal val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
@@ -591,15 +591,17 @@ abstract class BaseBrowserFragment :
             },
         )
 
-        loginBarsIntegration = LoginBarsIntegration(
+        autofillBarsIntegration = AutofillBarsIntegration(
             loginsBar = binding.loginSelectBar,
             passwordBar = binding.suggestStrongPasswordBar,
+            addressBar = binding.addressSelectBar,
+            creditCardBar = binding.creditCardSelectBar,
             settings = requireContext().settings(),
-            onLoginsBarShown = {
+            onAutofillBarShown = {
                 removeBottomToolbarDivider(browserToolbarView.view)
                 updateNavbarDivider()
             },
-            onLoginsBarHidden = {
+            onAutofillBarHidden = {
                 restoreBottomToolbarDivider(browserToolbarView.view)
                 updateNavbarDivider()
             },
@@ -1493,7 +1495,7 @@ abstract class BaseBrowserFragment :
             parent = binding.browserLayout,
             hideOnScroll = isToolbarDynamic(context),
             content = {
-                val areLoginBarsShown by remember { mutableStateOf(loginBarsIntegration.isVisible) }
+                val areAutofillBarsShown by remember { mutableStateOf(autofillBarsIntegration.isVisible) }
 
                 FirefoxTheme {
                     Column(
@@ -1544,7 +1546,7 @@ abstract class BaseBrowserFragment :
                         NavigationButtonsCFR(
                             context = context,
                             activity = activity,
-                            showDivider = !isToolbarAtBottom && !areLoginBarsShown &&
+                            showDivider = !isToolbarAtBottom && !areAutofillBarsShown &&
                                 (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value),
                         )
                     }
