@@ -4174,7 +4174,8 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     }
   }
 
-  if ((aCacheDomain & (CacheDomain::Text | CacheDomain::ScrollPosition) ||
+  if ((aCacheDomain & (CacheDomain::Text | CacheDomain::ScrollPosition |
+                       CacheDomain::APZ) ||
        boundsChanged) &&
       mDoc) {
     mDoc->SetViewportCacheDirty(true);
