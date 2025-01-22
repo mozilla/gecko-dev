@@ -14,6 +14,7 @@
 #include "HTTPSRecordResolver.h"
 #include "NSSErrorsService.h"
 #include "base/basictypes.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"

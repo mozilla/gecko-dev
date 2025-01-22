@@ -21,15 +21,14 @@ EXPORTS.mozilla.glean += [
 ]
 
 EXPORTS.mozilla.glean.bindings += [
-    "!EventGIFFTMap.h",
     "!GleanJSMetricsLookup.h",
     "!GleanJSPingsLookup.h",
-    "!HistogramGIFFTMap.h",
-    "!ScalarGIFFTMap.h",
     "bindings/Category.h",
+    "bindings/EventGIFFTMap.h",
     "bindings/Glean.h",
     "bindings/GleanMetric.h",
     "bindings/GleanPings.h",
+    "bindings/HistogramGIFFTMap.h",
     "bindings/MetricTypes.h",
     "bindings/private/Boolean.h",
     "bindings/private/Common.h",
@@ -53,6 +52,7 @@ EXPORTS.mozilla.glean.bindings += [
     "bindings/private/TimingDistribution.h",
     "bindings/private/Url.h",
     "bindings/private/Uuid.h",
+    "bindings/ScalarGIFFTMap.h",
 ]
 
 EXPORTS.mozilla.glean.bindings.jog += [
@@ -105,8 +105,11 @@ UNIFIED_SOURCES += [
 ]
 
 SOURCES += [
+    "!EventGIFFTMap.cpp",
     "!GleanJSMetricsLookup.cpp",
     "!GleanJSPingsLookup.cpp",
+    "!HistogramGIFFTMap.cpp",
+    "!ScalarGIFFTMap.cpp",
 ]
 
 # Provides us the list of dependent metrics|pings.yaml.
@@ -198,7 +201,7 @@ GeneratedFile(
 # Glean Interface For Firefox Telemetry Maps from Glean MetricId to Telemetry ProbeId
 # We split it one map per header to avoid unused function warnings on build.
 GeneratedFile(
-    "EventGIFFTMap.h",
+    "EventGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
     flags=[CONFIG["MOZ_APP_VERSION"], "Event"],
@@ -206,7 +209,7 @@ GeneratedFile(
 )
 
 GeneratedFile(
-    "HistogramGIFFTMap.h",
+    "HistogramGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
     flags=[CONFIG["MOZ_APP_VERSION"], "Histogram"],
@@ -214,7 +217,7 @@ GeneratedFile(
 )
 
 GeneratedFile(
-    "ScalarGIFFTMap.h",
+    "ScalarGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
     flags=[CONFIG["MOZ_APP_VERSION"], "Scalar"],

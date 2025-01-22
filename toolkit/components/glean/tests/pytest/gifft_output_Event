@@ -4,17 +4,9 @@
    It is only for internal use by types in
    toolkit/components/glean/bindings/private */
 
-#include "mozilla/AppShutdown.h"
-#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/glean/bindings/EventGIFFTMap.h"
 #include "mozilla/glean/bindings/GleanJSMetricsLookup.h"
 #include "mozilla/glean/bindings/jog/JOG.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/Telemetry.h"
-#include "nsIThread.h"
-#include "nsThreadUtils.h"
-
-#ifndef mozilla_glean_EventGifftMap_h
-#define mozilla_glean_EventGifftMap_h
 
 #define DYNAMIC_METRIC_BIT (26)
 #define GLEAN_METRIC_ID(id) ((id) & ((1ULL << 27) - 1))
@@ -23,8 +15,7 @@ namespace mozilla::glean {
 
 using Telemetry::EventID;
 
-
-static inline Maybe<EventID> EventIdForMetric(uint32_t aId) {
+Maybe<EventID> EventIdForMetric(uint32_t aId) {
   switch(aId) {
     case 110940: { // test.nested.event_metric
       return Some(EventID::EventMetric_EnumNames_AreStrange);
@@ -63,5 +54,3 @@ static inline Maybe<EventID> EventIdForMetric(uint32_t aId) {
 
 #undef GLEAN_METRIC_ID
 #undef DYNAMIC_METRIC_BIT
-
-#endif  // mozilla_glean_EventGifftMaps_h

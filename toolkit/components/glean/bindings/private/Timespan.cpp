@@ -7,7 +7,9 @@
 #include "mozilla/glean/bindings/Timespan.h"
 
 #include "nsString.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Components.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"

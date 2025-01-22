@@ -7,6 +7,7 @@
 #include "SharedWorkerManager.h"
 #include "SharedWorkerParent.h"
 #include "SharedWorkerService.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/PSharedWorker.h"
 #include "mozilla/ipc/BackgroundParent.h"

@@ -11,6 +11,7 @@
 #include "NeckoCommon.h"
 #include "nsLoadGroup.h"
 #include "mozilla/AntiTrackingUtils.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/DynamicFpiNavigationHeuristic.h"
 #include "mozilla/Components.h"

@@ -4,17 +4,9 @@
    It is only for internal use by types in
    toolkit/components/glean/bindings/private */
 
-#include "mozilla/AppShutdown.h"
-#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/bindings/GleanJSMetricsLookup.h"
 #include "mozilla/glean/bindings/jog/JOG.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/Telemetry.h"
-#include "nsIThread.h"
-#include "nsThreadUtils.h"
-
-#ifndef mozilla_glean_ScalarGifftMap_h
-#define mozilla_glean_ScalarGifftMap_h
 
 #define DYNAMIC_METRIC_BIT (26)
 #define GLEAN_METRIC_ID(id) ((id) & ((1ULL << 27) - 1))
@@ -23,13 +15,7 @@ namespace mozilla::glean {
 
 using Telemetry::ScalarID;
 
-static inline bool IsSubmetricId(uint32_t aId) {
-  // Submetrics have the 2^25 bit set.
-  // (ID_BITS - ID_SIGNAL_BITS, keep it in sync with js.py).
-  return (aId & (1 << 25)) > 0;
-}
-
-static inline Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
+Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
   switch(aId) {
     case 22495729: { // test.boolean_metric
       return Some(ScalarID::SOME_BOOL_SCALAR);
@@ -98,5 +84,3 @@ static inline Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
 
 #undef GLEAN_METRIC_ID
 #undef DYNAMIC_METRIC_BIT
-
-#endif  // mozilla_glean_ScalarGifftMaps_h
