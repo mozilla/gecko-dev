@@ -418,7 +418,7 @@ class PresShell final : public nsStubDocumentObserver,
    * viewport. Will return null in situations where we don't have a mobile
    * viewport, and for documents that are not the root content document.
    */
-  RefPtr<MobileViewportManager> GetMobileViewportManager() const;
+  MobileViewportManager* GetMobileViewportManager() const;
 
   /**
    * Called when document load completes.
