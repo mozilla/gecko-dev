@@ -183,6 +183,22 @@ bool EnableLowresBitrateInterpolation(const webrtc::FieldTrialsView& trials) {
       trials.Lookup("WebRTC-LowresSimulcastBitrateInterpolation"), "Enabled");
 }
 
+int GetDefaultSimulcastTemporalLayers(webrtc::VideoCodecType codec) {
+  switch (codec) {
+    case webrtc::kVideoCodecVP8:
+    case webrtc::kVideoCodecVP9:
+    case webrtc::kVideoCodecAV1:
+    case webrtc::kVideoCodecH264:
+    case webrtc::kVideoCodecGeneric:
+      return kDefaultNumTemporalLayers;
+    // For codec type that has no software fallback, defaults to L1T1 for
+    // initial simulcast setup, as this is the only scalability mode secure to
+    // be supported.
+    case webrtc::kVideoCodecH265:
+      return 1;
+  }
+}
+
 std::vector<SimulcastFormat> GetSimulcastFormats(
     bool enable_lowres_bitrate_interpolation,
     webrtc::VideoCodecType codec) {
@@ -275,7 +291,7 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
   const bool enable_lowres_bitrate_interpolation =
       EnableLowresBitrateInterpolation(trials);
   const int num_temporal_layers =
-      temporal_layers_supported ? kDefaultNumTemporalLayers : 1;
+      temporal_layers_supported ? GetDefaultSimulcastTemporalLayers(codec) : 1;
   // Add simulcast streams, from highest resolution (`s` = num_simulcast_layers
   // -1) to lowest resolution at `s` = 0.
   std::vector<webrtc::VideoStream> layers(resolutions.size());

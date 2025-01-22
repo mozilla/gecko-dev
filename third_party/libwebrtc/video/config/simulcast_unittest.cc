@@ -440,6 +440,22 @@ TEST(SimulcastTest, BitratesForH265) {
   EXPECT_NEAR(streams[2].target_bitrate_bps, 1524000, 20000);
   EXPECT_NEAR(streams[2].min_bitrate_bps, 481000, 20000);
 }
+
+// Test that for H.265, the simulcast layers are created with the correct
+// default temporal layers, before that is overrided by application settings.
+TEST(SimulcastTest, GetConfigForH265) {
+  const ExplicitKeyValueConfig trials("");
+
+  const size_t kMaxLayers = 3;
+  std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
+      CreateResolutions(1280, 720, kMaxLayers), !kScreenshare, true, trials,
+      webrtc::kVideoCodecH265);
+
+  ASSERT_THAT(streams, SizeIs(kMaxLayers));
+  for (size_t i = 0; i < streams.size(); ++i) {
+    EXPECT_EQ(1ul, streams[i].num_temporal_layers);
+  }
+}
 #endif
 
 }  // namespace webrtc
