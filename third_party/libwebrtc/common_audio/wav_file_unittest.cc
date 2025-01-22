@@ -148,7 +148,7 @@ TEST(WavWriterTest, LargeFile) {
           EXPECT_EQ(kNumChannels, w.num_channels());
           EXPECT_EQ(0u, w.num_samples());
           if (write_format == WavFile::SampleFormat::kFloat) {
-            float truncated_samples[kNumSamples];
+            int16_t truncated_samples[kNumSamples];
             for (size_t k = 0; k < kNumSamples; ++k) {
               truncated_samples[k] = static_cast<int16_t>(samples[k]);
             }
