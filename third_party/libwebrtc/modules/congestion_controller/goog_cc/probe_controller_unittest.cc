@@ -217,9 +217,8 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateIncreaseOnlyWhenInAlr) {
 }
 
 TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
-  ProbeControllerFixture fixture(
-      "WebRTC-Bwe-ProbingConfiguration/"
-      "alloc_current_bwe_limit:1.5/");
+  ProbeControllerFixture fixture("");
+
   ASSERT_TRUE(kMaxBitrate > 1.5 * kStartBitrate);
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
@@ -242,7 +241,7 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
   probes = probe_controller->OnMaxTotalAllocatedBitrate(kMaxBitrate,
                                                         fixture.CurrentTime());
   EXPECT_EQ(probes.size(), 1u);
-  EXPECT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
+  EXPECT_EQ(probes.at(0).target_data_rate, 2.0 * kStartBitrate);
 
   // Continue probing if probe succeeds.
   probes = probe_controller->SetEstimatedBitrate(
@@ -766,7 +765,8 @@ TEST(ProbeControllerTest, ConfigurableProbingFieldTrial) {
   ProbeControllerFixture fixture(
       "WebRTC-Bwe-ProbingConfiguration/"
       "p1:2,p2:5,step_size:3,further_probe_threshold:0.8,"
-      "alloc_p1:2,alloc_p2,min_probe_packets_sent:2/");
+      "alloc_p1:2,alloc_current_bwe_limit:1000.0,alloc_p2,min_probe_packets_"
+      "sent:2/");
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
   ASSERT_THAT(

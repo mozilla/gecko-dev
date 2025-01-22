@@ -77,7 +77,7 @@ struct ProbeControllerConfig {
   FieldTrialParameter<bool> probe_on_max_allocated_bitrate_change;
   FieldTrialOptional<double> first_allocation_probe_scale;
   FieldTrialOptional<double> second_allocation_probe_scale;
-  FieldTrialOptional<double> allocation_probe_limit_by_current_scale;
+  FieldTrialParameter<double> allocation_probe_limit_by_current_scale;
 
   // The minimum number probing packets used.
   FieldTrialParameter<int> min_probe_packets_sent;

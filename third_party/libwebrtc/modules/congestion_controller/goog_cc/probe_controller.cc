@@ -111,7 +111,7 @@ ProbeControllerConfig::ProbeControllerConfig(
       probe_on_max_allocated_bitrate_change("probe_max_allocation", true),
       first_allocation_probe_scale("alloc_p1", 1),
       second_allocation_probe_scale("alloc_p2", 2),
-      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit"),
+      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit", 2),
       min_probe_packets_sent("min_probe_packets_sent", 5),
       min_probe_duration("min_probe_duration", TimeDelta::Millis(15)),
       min_probe_delta("min_probe_delta", TimeDelta::Millis(2)),
@@ -240,11 +240,9 @@ std::vector<ProbeClusterConfig> ProbeController::OnMaxTotalAllocatedBitrate(
 
     DataRate first_probe_rate = max_total_allocated_bitrate *
                                 config_.first_allocation_probe_scale.Value();
-    DataRate current_bwe_limit =
-        !config_.allocation_probe_limit_by_current_scale
-            ? DataRate::PlusInfinity()
-            : estimated_bitrate_ *
-                  config_.allocation_probe_limit_by_current_scale.Value();
+    const DataRate current_bwe_limit =
+        config_.allocation_probe_limit_by_current_scale.Get() *
+        estimated_bitrate_;
     bool limited_by_current_bwe = current_bwe_limit < first_probe_rate;
     if (limited_by_current_bwe) {
       first_probe_rate = current_bwe_limit;
