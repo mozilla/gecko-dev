@@ -30,80 +30,92 @@ transforms.add(apply_partner_priority)
 @transforms.add
 def add_command_arguments(config, tasks):
     enabled_partners = config.params.get("release_partners")
-    dependencies = {}
-    fetches = defaultdict(set)
-    attributions = []
-    release_artifacts = []
     attribution_config = get_partner_config_by_kind(config, config.kind)
 
-    for partner_config in attribution_config.get("configs", []):
-        # we might only be interested in a subset of all partners, eg for a respin
-        if enabled_partners and partner_config["campaign"] not in enabled_partners:
-            continue
-        attribution_code = generate_attribution_code(
-            attribution_config["defaults"], partner_config
-        )
-        for platform in partner_config["platforms"]:
-            stage_platform = platform.replace("-shippable", "")
-            for locale in partner_config["locales"]:
-                upstream_label, upstream_artifact = _get_upstream_task_label_and_artifact(platform, locale)
-                if upstream_label not in config.kind_dependencies_tasks:
-                    raise Exception(f"Can't find upstream task for {platform} {locale}")
-                upstream = config.kind_dependencies_tasks[upstream_label]
-
-                # set the dependencies to just what we need rather than all of l10n
-                dependencies.update({upstream.label: upstream.label})
-
-                fetches[upstream_label].add((upstream_artifact, stage_platform, locale))
-
-                output_artifact = _get_output_path(partner_config, platform, locale)
-                # config for script
-                # TODO - generalise input & output ??
-                #  add releng/partner prefix via get_artifact_prefix..()
-                attributions.append(
-                    {
-                        "input": _get_input_path(stage_platform, platform, locale),
-                        "output": "/builds/worker/artifacts/{}".format(output_artifact),
-                        "attribution": attribution_code,
-                    }
-                )
-                release_artifacts.append(output_artifact)
-
-    # bail-out early if we don't have any attributions to do
-    if not attributions:
-        return
-
     for task in tasks:
-        worker = task.get("worker", {})
-        worker["chain-of-trust"] = True
+        dependencies = {}
+        fetches = defaultdict(set)
+        attributions = []
+        release_artifacts = []
 
-        task.setdefault("dependencies", {}).update(dependencies)
-        task.setdefault("fetches", {})
-        for upstream_label, upstream_artifacts in fetches.items():
-            task["fetches"][upstream_label] = [
+        task_platforms = task.pop("platforms", [])
+
+        for partner_config in attribution_config.get("configs", []):
+            # we might only be interested in a subset of all partners, eg for a respin
+            if enabled_partners and partner_config["campaign"] not in enabled_partners:
+                continue
+            attribution_code = generate_attribution_code(
+                attribution_config["defaults"], partner_config
+            )
+            for platform in partner_config["platforms"]:
+                if platform not in task_platforms:
+                    continue
+
+                stage_platform = platform.replace("-shippable", "")
+                for locale in partner_config["locales"]:
+                    upstream_label, upstream_artifact = (
+                        _get_upstream_task_label_and_artifact(platform, locale)
+                    )
+                    if upstream_label not in config.kind_dependencies_tasks:
+                        raise Exception(
+                            f"Can't find upstream task for {platform} {locale}"
+                        )
+                    upstream = config.kind_dependencies_tasks[upstream_label]
+
+                    # set the dependencies to just what we need rather than all of l10n
+                    dependencies.update({upstream.label: upstream.label})
+
+                    fetches[upstream_label].add(
+                        (upstream_artifact, stage_platform, locale)
+                    )
+
+                    output_artifact = _get_output_path(partner_config, platform, locale)
+                    # config for script
+                    # TODO - generalise input & output ??
+                    #  add releng/partner prefix via get_artifact_prefix..()
+                    attributions.append(
+                        {
+                            "input": _get_input_path(stage_platform, platform, locale),
+                            "output": "/builds/worker/artifacts/{}".format(
+                                output_artifact
+                            ),
+                            "attribution": attribution_code,
+                        }
+                    )
+                    release_artifacts.append(output_artifact)
+
+        if attributions:
+            worker = task.get("worker", {})
+            worker["chain-of-trust"] = True
+
+            task.setdefault("dependencies", {}).update(dependencies)
+            task.setdefault("fetches", {})
+            for upstream_label, upstream_artifacts in fetches.items():
+                task["fetches"][upstream_label] = [
+                    {
+                        "artifact": upstream_artifact,
+                        "dest": "{platform}/{locale}".format(
+                            platform=platform, locale=locale
+                        ),
+                        "extract": False,
+                        "verify-hash": True,
+                    }
+                    for upstream_artifact, platform, locale in upstream_artifacts
+                ]
+            worker["artifacts"] = [
                 {
-                    "artifact": upstream_artifact,
-                    "dest": "{platform}/{locale}".format(
-                        platform=platform, locale=locale
-                    ),
-                    "extract": False,
-                    "verify-hash": True,
+                    "name": "releng/partner",
+                    "path": "/builds/worker/artifacts/releng/partner",
+                    "type": "directory",
                 }
-                for upstream_artifact, platform, locale in upstream_artifacts
             ]
-        worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
-            attributions, sort_keys=True
-        )
-        worker["artifacts"] = [
-            {
-                "name": "releng/partner",
-                "path": "/builds/worker/artifacts/releng/partner",
-                "type": "directory",
-            }
-        ]
-        task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
+            task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
 
-        yield task
+            worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
+                attributions, sort_keys=True
+            )
+
+            yield task
 
 
 def _get_input_path(stage_platform, platform, locale):
