@@ -6601,7 +6601,7 @@ class MGuardNumberToIntPtrIndex : public MUnaryInstruction,
 
   MGuardNumberToIntPtrIndex(MDefinition* def, bool supportOOB)
       : MUnaryInstruction(classOpcode, def), supportOOB_(supportOOB) {
-    MOZ_ASSERT(def->type() == MIRType::Double);
+    MOZ_ASSERT(IsNumberType(def->type()));
     setResultType(MIRType::IntPtr);
     setMovable();
     if (!supportOOB) {
