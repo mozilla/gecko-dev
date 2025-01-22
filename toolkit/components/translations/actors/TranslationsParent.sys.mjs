@@ -685,7 +685,12 @@ export class TranslationsParent extends JSWindowActorParent {
       return;
     }
 
-    if (detectedLanguages.docLangTag === detectedLanguages.userLangTag) {
+    if (
+      lazy.TranslationsUtils.langTagsMatch(
+        detectedLanguages.docLangTag,
+        detectedLanguages.userLangTag
+      )
+    ) {
       lazy.console.error(
         "maybeOfferTranslations - The document and user lang tag are the same, not offering a translation.",
         documentURI.spec
@@ -2090,12 +2095,9 @@ export class TranslationsParent extends JSWindowActorParent {
    * @param {string} language The BCP 47 language tag.
    */
   static async deleteLanguageFiles(language) {
-    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
-      Services.locale.appLocaleAsBCP47
-    );
     return TranslationsParent.deleteLanguageFilesToAndFromPair(
       language,
-      appLanguage,
+      Services.locale.appLocaleAsBCP47,
       /* deletePivots */ false
     );
   }
@@ -2371,13 +2373,9 @@ export class TranslationsParent extends JSWindowActorParent {
     requestedLanguage,
     includePivotRecords
   ) {
-    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
-      Services.locale.appLocaleAsBCP47
-    );
-
     return TranslationsParent.getRecordsForTranslatingToAndFromPair(
       requestedLanguage,
-      appLanguage,
+      Services.locale.appLocaleAsBCP47,
       includePivotRecords
     );
   }
@@ -2420,7 +2418,13 @@ export class TranslationsParent extends JSWindowActorParent {
           return;
         }
 
-        if (record.fromLang !== fromLanguage || record.toLang !== toLanguage) {
+        if (
+          !lazy.TranslationsUtils.langTagsMatch(
+            record.fromLang,
+            fromLanguage
+          ) ||
+          !lazy.TranslationsUtils.langTagsMatch(record.toLang, toLanguage)
+        ) {
           // Only use models that match.
           return;
         }
@@ -2513,7 +2517,10 @@ export class TranslationsParent extends JSWindowActorParent {
     let downloadSize = 0;
     await Promise.all(
       records.map(async record => {
-        if (record.fromLang !== language && record.toLang !== language) {
+        if (
+          !lazy.TranslationsUtils.langTagsMatch(record.fromLang, language) &&
+          !lazy.TranslationsUtils.langTagsMatch(record.toLang, language)
+        ) {
           return;
         }
         downloadSize += parseInt(record.attachment.size);
@@ -2593,7 +2600,13 @@ export class TranslationsParent extends JSWindowActorParent {
           return;
         }
 
-        if (record.fromLang !== fromLanguage || record.toLang !== toLanguage) {
+        if (
+          !lazy.TranslationsUtils.langTagsMatch(
+            record.fromLang,
+            fromLanguage
+          ) ||
+          !lazy.TranslationsUtils.langTagsMatch(record.toLang, toLanguage)
+        ) {
           return;
         }
 
@@ -2696,16 +2709,16 @@ export class TranslationsParent extends JSWindowActorParent {
    *   an auto-translate.
    */
   async translate(fromLanguage, toLanguage, reportAsAutoTranslate) {
-    if (fromLanguage === toLanguage) {
+    if (!fromLanguage || !toLanguage) {
       lazy.console.error(
-        "A translation was requested where the from and to language match.",
+        "A translation was requested but the fromLanguage or toLanguage was not set.",
         { fromLanguage, toLanguage, reportAsAutoTranslate }
       );
       return;
     }
-    if (!fromLanguage || !toLanguage) {
+    if (lazy.TranslationsUtils.langTagsMatch(fromLanguage, toLanguage)) {
       lazy.console.error(
-        "A translation was requested but the fromLanguage or toLanguage was not set.",
+        "A translation was requested where the from and to language match.",
         { fromLanguage, toLanguage, reportAsAutoTranslate }
       );
       return;
@@ -3150,7 +3163,10 @@ export class TranslationsParent extends JSWindowActorParent {
    */
   static shouldAlwaysTranslateLanguage(langTags) {
     const { docLangTag, userLangTag } = langTags;
-    if (docLangTag === userLangTag || !userLangTag) {
+    if (
+      !userLangTag ||
+      lazy.TranslationsUtils.langTagsMatch(docLangTag, userLangTag)
+    ) {
       // Do not auto-translate when the docLangTag matches the userLangTag, or when
       // the userLangTag is not set. The "always translate" is exposed via about:confg.
       // In case of users putting in non-sensical things here, we don't want to break
@@ -3158,7 +3174,12 @@ export class TranslationsParent extends JSWindowActorParent {
       // where we go from a source language -> pivot language -> source language.
       return false;
     }
-    return lazy.alwaysTranslateLangTags.has(docLangTag);
+    return (
+      lazy.alwaysTranslateLangTags.has(docLangTag) ||
+      [...lazy.alwaysTranslateLangTags.values()].some(alwaysTranslateLangTag =>
+        lazy.TranslationsUtils.langTagsMatch(alwaysTranslateLangTag, docLangTag)
+      )
+    );
   }
 
   /**
@@ -3169,7 +3190,12 @@ export class TranslationsParent extends JSWindowActorParent {
    * @returns {boolean}
    */
   static shouldNeverTranslateLanguage(langTag) {
-    return lazy.neverTranslateLangTags.has(langTag);
+    return (
+      lazy.neverTranslateLangTags.has(langTag) ||
+      [...lazy.neverTranslateLangTags.values()].some(neverTranslateLangTag =>
+        lazy.TranslationsUtils.langTagsMatch(neverTranslateLangTag, langTag)
+      )
+    );
   }
 
   /**
@@ -3252,7 +3278,12 @@ export class TranslationsParent extends JSWindowActorParent {
     const MAX_SIZE = 3;
     const mostRecentTargetLanguages = lazy.mostRecentTargetLanguages;
 
-    if (mostRecentTargetLanguages.has(langTag)) {
+    if (
+      mostRecentTargetLanguages.has(langTag) ||
+      [...mostRecentTargetLanguages.values()].some(recentLangTag =>
+        lazy.TranslationsUtils.langTagsMatch(recentLangTag, langTag)
+      )
+    ) {
       // The language tag is already present, so delete it to ensure that its order is updated when it gets re-added.
       mostRecentTargetLanguages.delete(langTag);
     } else if (mostRecentTargetLanguages.size === MAX_SIZE) {
@@ -3279,9 +3310,9 @@ export class TranslationsParent extends JSWindowActorParent {
    *  False if always-translate was disabled for this language.
    */
   static toggleAlwaysTranslateLanguagePref(langTags) {
-    const { docLangTag, appLangTag } = langTags;
+    const { appLangTag, docLangTag } = langTags;
 
-    if (appLangTag === docLangTag) {
+    if (lazy.TranslationsUtils.langTagsMatch(appLangTag, docLangTag)) {
       // In case somehow the user attempts to toggle this when the app and doc language
       // are the same, just remove the lang tag.
       this.removeLangTagFromPref(appLangTag, ALWAYS_TRANSLATE_LANGS_PREF);

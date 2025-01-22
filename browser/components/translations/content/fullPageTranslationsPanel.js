@@ -604,11 +604,17 @@ var FullPageTranslationsPanel = new (class {
 
       if (
         this.#manuallySelectedToLanguage &&
-        this.#manuallySelectedToLanguage !== docLangTag
+        !TranslationsUtils.langTagsMatch(
+          docLangTag,
+          this.#manuallySelectedToLanguage
+        )
       ) {
         // Use the manually selected language if available
         toMenuList.value = this.#manuallySelectedToLanguage;
-      } else if (userLangTag && userLangTag !== docLangTag) {
+      } else if (
+        userLangTag &&
+        !TranslationsUtils.langTagsMatch(userLangTag, docLangTag)
+      ) {
         // The userLangTag is specified and does not match the doc lang tag, so we should use it.
         toMenuList.value = userLangTag;
       } else {

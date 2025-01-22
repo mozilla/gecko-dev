@@ -134,7 +134,8 @@ export class LRUCache {
    */
   matches(fromLanguage, toLanguage) {
     return (
-      this.#fromLanguage === fromLanguage && this.#toLanguage === toLanguage
+      lazy.TranslationsUtils.langTagsMatch(this.#fromLanguage, fromLanguage) &&
+      lazy.TranslationsUtils.langTagsMatch(this.#toLanguage, toLanguage)
     );
   }
 

@@ -35,7 +35,7 @@ export class TranslationsUtils {
    * @param {string} langTag - A BCP-47 language tag.
    * @returns {string} - A BCP-47 language tag normalized for Translations.
    */
-  static normalizeLangTagForTranslations(langTag) {
+  static #normalizeLangTag(langTag) {
     let locale = new Intl.Locale(langTag);
 
     if (!locale.script) {
@@ -84,8 +84,8 @@ export class TranslationsUtils {
 
     try {
       return (
-        TranslationsUtils.normalizeLangTagForTranslations(lhsLangTag) ===
-        TranslationsUtils.normalizeLangTagForTranslations(rhsLangTag)
+        TranslationsUtils.#normalizeLangTag(lhsLangTag) ===
+        TranslationsUtils.#normalizeLangTag(rhsLangTag)
       );
     } catch {
       // One of the locales is not valid, just continue on to return false.
