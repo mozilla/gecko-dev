@@ -67,8 +67,13 @@ PeerConnectionDependencies::~PeerConnectionDependencies() = default;
 PeerConnectionFactoryDependencies::PeerConnectionFactoryDependencies() =
     default;
 
+// TODO: bugs.webrtc.org/369904700 - remove pragma once `audio_processing`
+// is removed from PeerConnectionFactoryDependencies.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 PeerConnectionFactoryDependencies::PeerConnectionFactoryDependencies(
     PeerConnectionFactoryDependencies&&) = default;
+#pragma clang diagnostic pop
 
 PeerConnectionFactoryDependencies::~PeerConnectionFactoryDependencies() =
     default;

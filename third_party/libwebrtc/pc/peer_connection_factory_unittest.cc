@@ -753,7 +753,10 @@ TEST(PeerConnectionFactoryDependenciesTest, UsesAudioProcessingWhenProvided) {
 
   PeerConnectionFactoryDependencies pcf_dependencies;
   pcf_dependencies.adm = FakeAudioCaptureModule::Create();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   pcf_dependencies.audio_processing = std::move(audio_processing);
+#pragma clang diagnostic pop
   EnableMediaWithDefaults(pcf_dependencies);
 
   scoped_refptr<PeerConnectionFactoryInterface> pcf =

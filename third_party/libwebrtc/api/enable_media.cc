@@ -49,7 +49,10 @@ class MediaFactoryImpl : public MediaFactory {
     absl::Nullable<scoped_refptr<AudioProcessing>> audio_processing =
         deps.audio_processing_builder != nullptr
             ? std::move(deps.audio_processing_builder)->Build(env)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
             : std::move(deps.audio_processing);
+#pragma clang diagnostic pop
 
     auto audio_engine = std::make_unique<WebRtcVoiceEngine>(
         &env.task_queue_factory(), deps.adm.get(),

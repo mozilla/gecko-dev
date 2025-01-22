@@ -34,7 +34,10 @@ void EnableMediaWithDefaults(PeerConnectionFactoryDependencies& deps) {
   if (deps.audio_decoder_factory == nullptr) {
     deps.audio_decoder_factory = CreateBuiltinAudioDecoderFactory();
   }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   if (deps.audio_processing == nullptr &&
+#pragma clang diagnostic pop
       deps.audio_processing_builder == nullptr) {
     deps.audio_processing_builder =
         std::make_unique<BuiltinAudioProcessingBuilder>();
