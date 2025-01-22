@@ -283,8 +283,6 @@ skip-if = ["os == 'android'"]
 ["test_import_global_worker.js"]
 skip-if = ["os == 'android'"]
 
-["test_import_shim.js"]
-
 ["test_import_stack.js"]
 skip-if = [
   "!nightly_build",
