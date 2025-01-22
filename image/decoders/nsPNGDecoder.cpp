@@ -431,7 +431,30 @@ static void PNGDoGammaCorrection(png_structp png_ptr, png_infop info_ptr) {
 // Adapted from http://www.littlecms.com/pngchrm.c example code
 uint32_t nsPNGDecoder::ReadColorProfile(png_structp png_ptr, png_infop info_ptr,
                                         int color_type, bool* sRGBTag) {
-  // First try to see if iCCP chunk is present
+  // Check if cICP chunk is present
+  if (png_get_valid(png_ptr, info_ptr, PNG_INFO_cICP)) {
+    png_byte primaries;
+    png_byte tc;
+    png_byte matrix_coefficients;
+    png_byte range;
+    if (png_get_cICP(png_ptr, info_ptr, &primaries, &tc, &matrix_coefficients,
+                     &range)) {
+      if (matrix_coefficients == 0 && range <= 1) {
+        if (range == 0) {
+          MOZ_LOG(sPNGLog, LogLevel::Warning,
+                  ("limited range specified in cicp chunk not properly "
+                   "supported\n"));
+        }
+
+        mInProfile = qcms_profile_create_cicp(primaries, tc);
+        if (mInProfile) {
+          return qcms_profile_get_rendering_intent(mInProfile);
+        }
+      }
+    }
+  }
+
+  // Check if iCCP chunk is present
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_iCCP)) {
     png_uint_32 profileLen;
     png_bytep profileData;
