@@ -1301,6 +1301,24 @@ Toolbox.prototype = {
     if (notification) {
       notification.close();
     }
+
+    // When reloading a Web Extension, the top level target isn't destroyed.
+    // Which prevents some panels (like console and netmonitor) from being correctly cleared.
+    const consolePanel = this.getPanel("webconsole");
+    if (consolePanel) {
+      // Navigation to a null URL will be translated into a reload message
+      // when persist log is enabled.
+      consolePanel.hud.ui.handleWillNavigate({
+        timeStamp: new Date(),
+        url: null,
+      });
+    }
+    const netPanel = this.getPanel("netmonitor");
+    if (netPanel) {
+      // Fake a navigation, which will clear the netmonitor, if persists is disabled.
+      netPanel.panelWin.connector.willNavigate();
+    }
+
     try {
       await this.commands.targetCommand.reloadTopLevelTarget(bypassCache);
     } catch (e) {

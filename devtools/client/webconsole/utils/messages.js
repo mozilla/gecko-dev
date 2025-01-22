@@ -310,7 +310,9 @@ function transformNavigationMessagePacket(packet) {
     source: MESSAGE_SOURCE.CONSOLE_FRONTEND,
     type: MESSAGE_TYPE.NAVIGATION_MARKER,
     level: MESSAGE_LEVEL.LOG,
-    messageText: l10n.getFormatStr("webconsole.navigated", [url]),
+    messageText: url
+      ? l10n.getFormatStr("webconsole.navigated", [url])
+      : l10n.getStr("webconsole.reloaded"),
     timeStamp: packet.timeStamp,
     allowRepeating: false,
   });
