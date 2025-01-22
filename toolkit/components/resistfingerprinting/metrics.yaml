@@ -3851,3 +3851,578 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  wgpu_missing_features:
+    type: string
+    description: >
+      Missing features of WebGPU as a bitset
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxtexturedimension1d:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxTextureDimension1D
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxtexturedimension2d:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxTextureDimension2D
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxtexturedimension3d:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxTextureDimension3D
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxtexturearraylayers:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxTextureArrayLayers
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxbindgroups:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxBindGroups
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxbindgroupsplusvertexbuffers:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxBindGroupsPlusVertexBuffers
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxbindingsperbindgroup:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxBindingsPerBindGroup
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxdynamicuniformbuffersperpipelinelayout:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxDynamicUniformBuffersPerPipelineLayout
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxdynamicstoragebuffersperpipelinelayout:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxDynamicStorageBuffersPerPipelineLayout
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxsampledtexturespershaderstage:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxSampledTexturesPerShaderStage
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxsamplerspershaderstage:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxSamplersPerShaderStage
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxstoragebufferspershaderstage:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxStorageBuffersPerShaderStage
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxstoragetexturespershaderstage:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxStorageTexturesPerShaderStage
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxuniformbufferspershaderstage:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxUniformBuffersPerShaderStage
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxuniformbufferbindingsize:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxUniformBufferBindingSize
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxstoragebufferbindingsize:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxStorageBufferBindingSize
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_minuniformbufferoffsetalignment:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit minUniformBufferOffsetAlignment
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_minstoragebufferoffsetalignment:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit minStorageBufferOffsetAlignment
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxvertexbuffers:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxVertexBuffers
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxbuffersize:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxBufferSize
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxvertexattributes:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxVertexAttributes
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxvertexbufferarraystride:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxVertexBufferArrayStride
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxinterstageshadervariables:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxInterStageShaderVariables
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcolorattachments:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxColorAttachments
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcolorattachmentbytespersample:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxColorAttachmentBytesPerSample
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeworkgroupstoragesize:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeWorkgroupStorageSize
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeinvocationsperworkgroup:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeInvocationsPerWorkgroup
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeworkgroupsizex:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeWorkgroupSizeX
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeworkgroupsizey:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeWorkgroupSizeY
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeworkgroupsizez:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeWorkgroupSizeZ
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  wgpu_maxcomputeworkgroupsperdimension:
+    type: quantity
+    unit: uint
+    description: >
+      WebGPU limit maxComputeWorkgroupsPerDimension
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1939903#c3
+    expires: never
+    data_sensitivity:
+      - technical
