@@ -52,7 +52,7 @@ class EmulatedNetworkOutgoingStatsBuilder {
   explicit EmulatedNetworkOutgoingStatsBuilder(
       EmulatedNetworkStatsGatheringMode stats_gathering_mode);
 
-  void OnPacketSent(Timestamp sent_time, DataSize packet_size);
+  void OnPacketSent(Timestamp sent_time, const EmulatedIpPacket& packet);
 
   void AddOutgoingStats(const EmulatedNetworkOutgoingStats& stats);
 
@@ -74,7 +74,8 @@ class EmulatedNetworkIncomingStatsBuilder {
 
   void OnPacketDropped(DataSize packet_size);
 
-  void OnPacketReceived(Timestamp received_time, DataSize packet_size);
+  void OnPacketReceived(Timestamp received_time,
+                        const EmulatedIpPacket& packet);
 
   // Adds stats collected from another endpoints to the builder.
   void AddIncomingStats(const EmulatedNetworkIncomingStats& stats);
@@ -98,16 +99,12 @@ class EmulatedNetworkStatsBuilder {
       rtc::IPAddress local_ip,
       EmulatedNetworkStatsGatheringMode stats_gathering_mode);
 
-  void OnPacketSent(Timestamp queued_time,
-                    Timestamp sent_time,
-                    rtc::IPAddress destination_ip,
-                    DataSize packet_size);
+  void OnPacketSent(Timestamp send_time, const EmulatedIpPacket& packet);
 
   void OnPacketDropped(rtc::IPAddress source_ip, DataSize packet_size);
 
   void OnPacketReceived(Timestamp received_time,
-                        rtc::IPAddress source_ip,
-                        DataSize packet_size);
+                        const EmulatedIpPacket& packet);
 
   void AddEmulatedNetworkStats(const EmulatedNetworkStats& stats);
 

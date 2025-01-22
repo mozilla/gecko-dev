@@ -423,6 +423,27 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
   EXPECT_EQ(r2.ReceivedCount(), 1);
   EXPECT_EQ(r2.LastEcnMarking(), webrtc::EcnMarking::kEct1);
 
+  std::atomic<int> received_stats_count{0};
+  nt1->GetStats([&](EmulatedNetworkStats st) {
+    EXPECT_EQ(st.overall_incoming_stats.packets_received, 0);
+    EXPECT_EQ(st.overall_outgoing_stats.packets_sent, 1);
+    EXPECT_EQ(st.overall_outgoing_stats.ecn_count.ect_1(), 1);
+    EXPECT_EQ(st.overall_outgoing_stats.ecn_count.ce(), 0);
+    EXPECT_EQ(st.overall_outgoing_stats.ecn_count.not_ect(), 0);
+    ++received_stats_count;
+  });
+  nt2->GetStats([&](EmulatedNetworkStats st) {
+    EXPECT_EQ(st.overall_incoming_stats.packets_received, 1);
+    EXPECT_EQ(st.overall_outgoing_stats.packets_sent, 0);
+    EXPECT_EQ(st.overall_incoming_stats.ecn_count.ect_1(), 1);
+    EXPECT_EQ(st.overall_incoming_stats.ecn_count.ce(), 0);
+    EXPECT_EQ(st.overall_incoming_stats.ecn_count.not_ect(), 0);
+    ++received_stats_count;
+  });
+  ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 2,
+                           kStatsWaitTimeout.ms(),
+                           *network_manager.time_controller());
+
   SendTask(t1, [&] { delete s1; });
   SendTask(t2, [&] { delete s2; });
 }

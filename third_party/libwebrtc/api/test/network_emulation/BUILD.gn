@@ -38,6 +38,8 @@ rtc_library("network_emulation") {
 
   sources = [
     "cross_traffic.h",
+    "ecn_marking_counter.cc",
+    "ecn_marking_counter.h",
     "network_emulation_interfaces.cc",
     "network_emulation_interfaces.h",
   ]
