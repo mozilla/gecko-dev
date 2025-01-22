@@ -1057,6 +1057,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Dalše informacije wo marketingowych datach</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping za wšědne wužiwanje</string>
+    <string name="preferences_daily_usage_ping_description">To Mozilla pomha, sej aktiwnych wužiwarjow wažić.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Zhońće wjace wo pingu za wšědne wužiwanje</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Spadowe rozprawy awtomatisce pósłać</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Spadowe rozprawy awtomatisce wotpósłać</string>
