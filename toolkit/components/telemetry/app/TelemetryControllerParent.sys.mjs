@@ -1114,25 +1114,20 @@ var Impl = {
     );
   },
 
-  QueryInterface: ChromeUtils.generateQI(["nsISupportsWeakReference"]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   _attachObservers() {
     if (TelemetryControllerBase.IS_UNIFIED_TELEMETRY) {
       // Watch the FHR upload setting to trigger "deletion-request" pings.
       Services.prefs.addObserver(
         TelemetryUtils.Preferences.FhrUploadEnabled,
-        this,
-        true
+        this
       );
     }
     if (AppConstants.MOZ_APP_NAME == "firefox") {
       // Firefox-only: watch the usage reporting setting to enable, disable, and
       // trigger "usage-deletion-request" pings.
-      Services.prefs.addObserver(
-        "datareporting.usage.uploadEnabled",
-        this,
-        true
-      );
+      Services.prefs.addObserver("datareporting.usage.uploadEnabled", this);
     }
   },
 
