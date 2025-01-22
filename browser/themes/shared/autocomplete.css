@@ -13,7 +13,7 @@
 /* Define the minimum width based on the style of result rows.
    The order of the min-width rules below must be in increasing order. */
 #PopupAutoComplete:is([resultstyles~="loginsFooter"], [resultstyles~="insecureWarning"])::part(content) {
-  min-width: 17em;
+  min-width: 22em;
 }
 
 #PopupAutoComplete:is([resultstyles~="importableLogins"], [resultstyles~="generatedPassword"])::part(content) {
