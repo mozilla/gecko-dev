@@ -36,8 +36,7 @@
 #if defined(__ANDROID__)
 #define ABSL_INTERNAL_USE_ANDROID_GETAUXVAL
 #define ABSL_INTERNAL_USE_GETAUXVAL
-#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL) && \
-    !defined(ABSL_ARCH_AARCH64)
+#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL)
 #define ABSL_INTERNAL_USE_LINUX_GETAUXVAL
 #define ABSL_INTERNAL_USE_GETAUXVAL
 #endif
@@ -64,6 +63,7 @@ static void __cpuid(int cpu_info[4], int info_type) {
 // On linux, just use the c-library getauxval call.
 #if defined(ABSL_INTERNAL_USE_LINUX_GETAUXVAL)
 
+__attribute__((visibility("default")))
 extern "C" unsigned long getauxval(unsigned long type);  // NOLINT(runtime/int)
 
 static uint32_t GetAuxval(uint32_t hwcap_type) {
