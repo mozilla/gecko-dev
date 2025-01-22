@@ -130,6 +130,7 @@
         }
         :host(.in-menulist) arrowscrollbox::part(scrollbox) {
           overflow: auto;
+          overscroll-behavior: none;
           margin: 0;
           padding: 0;
         }
