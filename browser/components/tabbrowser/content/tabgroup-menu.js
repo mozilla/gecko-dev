@@ -39,8 +39,7 @@
         <html:label for="tab-group-name" data-l10n-id="tab-group-editor-name-label"></html:label>
         <html:input id="tab-group-name" type="text" name="tab-group-name" value="" data-l10n-id="tab-group-editor-name-field" />
       </html:div>
-      <html:div class="panel-body tab-group-editor-swatches">
-      </html:div>
+      <html:div class="panel-body tab-group-editor-swatches" role="radiogroup" data-l10n-id="tab-group-editor-color-selector"/>
       <html:moz-button-group class="panel-body tab-group-create-actions tab-group-create-mode-only">
         <html:moz-button id="tab-group-editor-button-cancel" data-l10n-id="tab-group-editor-cancel"></html:moz-button>
         <html:moz-button type="primary" id="tab-group-editor-button-create" data-l10n-id="tab-group-editor-done"></html:moz-button>
@@ -155,9 +154,12 @@
         input.type = "radio";
         input.name = "tab-group-color";
         input.value = colorCode;
-        input.title = colorCode;
         let label = document.createElement("label");
         label.classList.add("tab-group-editor-swatch");
+        label.setAttribute(
+          "data-l10n-id",
+          `tab-group-editor-color-selector-${colorCode}`
+        );
         label.htmlFor = input.id;
         label.style.setProperty(
           "--tabgroup-swatch-color",

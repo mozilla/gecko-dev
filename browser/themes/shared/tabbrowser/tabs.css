@@ -1012,6 +1012,7 @@
   }
 
   .tab-group-editor-swatch {
+    font-size: 0;
     width: 16px;
     height: 16px;
     padding: var(--focus-outline-offset);
