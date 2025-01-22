@@ -3491,6 +3491,22 @@ MainAxisPositionTracker::MainAxisPositionTracker(
   // Subtract space required for row/col gap from the remaining packing space
   mPackingSpaceRemaining -= aLine->SumOfGaps();
 
+  // If packing space is negative or we only have one item, 'space-between'
+  // falls back to 'safe flex-start', and 'space-around' & 'space-evenly' fall
+  // back to 'safe center'. In those cases, it's simplest to just pretend we
+  // have a different 'justify-content' value and share code.
+  // https://drafts.csswg.org/css-align-3/#distribution-values
+  if (mPackingSpaceRemaining < 0 || aLine->NumItems() == 1) {
+    if (mJustifyContent.primary == StyleAlignFlags::SPACE_BETWEEN) {
+      justifyContentFlags = StyleAlignFlags::SAFE;
+      mJustifyContent.primary = StyleAlignFlags::FLEX_START;
+    } else if (mJustifyContent.primary == StyleAlignFlags::SPACE_AROUND ||
+               mJustifyContent.primary == StyleAlignFlags::SPACE_EVENLY) {
+      justifyContentFlags = StyleAlignFlags::SAFE;
+      mJustifyContent.primary = StyleAlignFlags::CENTER;
+    }
+  }
+
   if (mPackingSpaceRemaining <= 0) {
     // No available packing space to use for resolving auto margins.
     mNumAutoMarginsInMainAxis = 0;
@@ -3498,19 +3514,6 @@ MainAxisPositionTracker::MainAxisPositionTracker(
     // all justify options fall back to 'start'
     if (justifyContentFlags & StyleAlignFlags::SAFE) {
       mJustifyContent.primary = StyleAlignFlags::START;
-    }
-  }
-
-  // If packing space is negative or we only have one item, 'space-between'
-  // falls back to 'flex-start', and 'space-around' & 'space-evenly' fall back
-  // to 'center'. In those cases, it's simplest to just pretend we have a
-  // different 'justify-content' value and share code.
-  if (mPackingSpaceRemaining < 0 || aLine->NumItems() == 1) {
-    if (mJustifyContent.primary == StyleAlignFlags::SPACE_BETWEEN) {
-      mJustifyContent.primary = StyleAlignFlags::FLEX_START;
-    } else if (mJustifyContent.primary == StyleAlignFlags::SPACE_AROUND ||
-               mJustifyContent.primary == StyleAlignFlags::SPACE_EVENLY) {
-      mJustifyContent.primary = StyleAlignFlags::CENTER;
     }
   }
 
