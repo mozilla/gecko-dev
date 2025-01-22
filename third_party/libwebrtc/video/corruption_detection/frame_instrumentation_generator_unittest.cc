@@ -722,5 +722,37 @@ TEST(FrameInstrumentationGeneratorTest, QueuesAtMostThreeInputFrames) {
   EXPECT_THAT(frames_destroyed, ElementsAre(true, true, true, true));
 }
 
+TEST(FrameInstrumentationGeneratorTest,
+     UsesFilterSettingsFromFrameWhenAvailable) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP8);
+  VideoFrame frame = VideoFrame::Builder()
+                         .set_video_frame_buffer(MakeDefaultI420FrameBuffer())
+                         .set_rtp_timestamp(1)
+                         .build();
+  // No QP needed when frame provides filter settings.
+  EncodedImage encoded_image;
+  encoded_image.SetRtpTimestamp(1);
+  encoded_image.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image._encodedWidth = kDefaultScaledWidth;
+  encoded_image._encodedHeight = kDefaultScaledHeight;
+  encoded_image.set_corruption_detection_filter_settings(
+      CorruptionDetectionFilterSettings{.std_dev = 1.0,
+                                        .luma_error_threshold = 2,
+                                        .chroma_error_threshold = 3});
+
+  generator.OnCapturedFrame(frame);
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data = generator.OnEncodedImage(encoded_image);
+
+  ASSERT_TRUE(data.has_value());
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data));
+  FrameInstrumentationData frame_instrumentation_data =
+      absl::get<FrameInstrumentationData>(*data);
+  EXPECT_EQ(frame_instrumentation_data.std_dev, 1.0);
+  EXPECT_EQ(frame_instrumentation_data.luma_error_threshold, 2);
+  EXPECT_EQ(frame_instrumentation_data.chroma_error_threshold, 3);
+}
+
 }  // namespace
 }  // namespace webrtc

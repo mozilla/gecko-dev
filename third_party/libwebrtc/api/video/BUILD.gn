@@ -142,6 +142,11 @@ rtc_source_set("resolution") {
   deps = [ "../../rtc_base/system:rtc_export" ]
 }
 
+rtc_source_set("corruption_detection_filter_settings") {
+  visibility = [ "*" ]
+  public = [ "corruption_detection_filter_settings.h" ]
+}
+
 rtc_library("encoded_image") {
   visibility = [ "*" ]
   sources = [
@@ -149,6 +154,7 @@ rtc_library("encoded_image") {
     "encoded_image.h",
   ]
   deps = [
+    ":corruption_detection_filter_settings",
     ":video_codec_constants",
     ":video_frame",
     ":video_frame_type",

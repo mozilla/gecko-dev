@@ -47,6 +47,7 @@ rtc_library("frame_instrumentation_generator") {
     ":generic_mapping_functions",
     ":halton_frame_sampler",
     "../../api:scoped_refptr",
+    "../../api/video:corruption_detection_filter_settings",
     "../../api/video:encoded_image",
     "../../api/video:video_frame",
     "../../api/video:video_frame_type",
@@ -84,6 +85,7 @@ rtc_library("generic_mapping_functions") {
     "generic_mapping_functions.h",
   ]
   deps = [
+    "../../api/video:corruption_detection_filter_settings",
     "../../api/video:video_frame",
     "../../api/video_codecs:video_codecs_api",
     "../../rtc_base:checks",

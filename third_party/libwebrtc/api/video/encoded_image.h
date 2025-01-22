@@ -23,6 +23,7 @@
 #include "api/scoped_refptr.h"
 #include "api/units/timestamp.h"
 #include "api/video/color_space.h"
+#include "api/video/corruption_detection_filter_settings.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame_type.h"
@@ -228,6 +229,15 @@ class RTC_EXPORT EncodedImage {
   VideoContentType contentType() const { return content_type_; }
   VideoRotation rotation() const { return rotation_; }
 
+  std::optional<CorruptionDetectionFilterSettings>
+  corruption_detection_filter_settings() const {
+    return corruption_detection_filter_settings_;
+  }
+  void set_corruption_detection_filter_settings(
+      const CorruptionDetectionFilterSettings& settings) {
+    corruption_detection_filter_settings_ = settings;
+  }
+
   uint32_t _encodedWidth = 0;
   uint32_t _encodedHeight = 0;
   // NTP time of the capture time in local timebase in milliseconds.
@@ -283,6 +293,12 @@ class RTC_EXPORT EncodedImage {
   // True if the frame that was encoded is a steady-state refresh frame intended
   // to improve the visual quality.
   bool is_steady_state_refresh_frame_ = false;
+
+  // Filter settings for corruption detection suggested by the encoder
+  // implementation, if any. Otherwise generic per-codec-type settings will be
+  // used.
+  std::optional<CorruptionDetectionFilterSettings>
+      corruption_detection_filter_settings_;
 };
 
 }  // namespace webrtc

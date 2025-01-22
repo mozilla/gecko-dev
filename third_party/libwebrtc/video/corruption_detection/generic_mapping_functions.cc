@@ -73,10 +73,13 @@ double MapQpToOptimalStdDev(int qp, VideoCodecType codec_type) {
 
 }  // namespace
 
-FilterSettings GetCorruptionFilterSettings(int qp, VideoCodecType codec_type) {
-  return FilterSettings{.std_dev = MapQpToOptimalStdDev(qp, codec_type),
-                        .luma_error_threshold = LumaThreshold(codec_type),
-                        .chroma_error_threshold = ChromaThreshold(codec_type)};
+CorruptionDetectionFilterSettings GetCorruptionFilterSettings(
+    int qp,
+    VideoCodecType codec_type) {
+  return CorruptionDetectionFilterSettings{
+      .std_dev = MapQpToOptimalStdDev(qp, codec_type),
+      .luma_error_threshold = LumaThreshold(codec_type),
+      .chroma_error_threshold = ChromaThreshold(codec_type)};
 }
 
 }  // namespace webrtc
