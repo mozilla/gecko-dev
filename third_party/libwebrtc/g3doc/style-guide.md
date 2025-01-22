@@ -110,6 +110,13 @@ inline std::pony PonyPlz(const std::pony_spec& ps) {
   return DEPRECATED_PonyPlz(ps);
 }
 ```
+or wrap the test with
+```cpp
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  TEST_...
+#pragma clang diagnostic pop
+```
 
 In other words, rename the existing function, and provide an inline wrapper
 using the original name that calls it. That way, callers who are willing to
