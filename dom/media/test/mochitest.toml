@@ -788,6 +788,10 @@ skip-if = ["true"] # bug 1896932
 tags = "hls"
 
 ["test_hw_video_decoding.html"]
+run-if = [
+  "os == 'win'",
+  "os == 'mac' && os_version != '10.15'" # Bug 1942396
+]
 skip-if = ["!mda_gpu"]
 scheme = "https"
 tags = "os_integration"

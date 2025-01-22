@@ -813,11 +813,18 @@ skip-if = [
 ["test_fragment_play.html"]
 
 ["test_hevc_playback.html"]
-run-if = ["os == 'win'"]
+run-if = [
+  "os == 'win'",
+  "os == 'mac' && os_version != '10.15'" # Bug 1942396
+]
 skip-if = ["!mda_gpu"]
 scheme = "https"
 
 ["test_hevc_support.html"]
+run-if = [
+  "os == 'win'",
+  "os == 'mac' && os_version != '10.15'" # Bug 1942396
+]
 skip-if = ["!mda_gpu"]
 scheme = "https"
 

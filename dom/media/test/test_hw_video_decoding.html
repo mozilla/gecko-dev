@@ -53,7 +53,11 @@ const PLATFORMS = {
     process: "RDD",
     tests: [
       {
-        files: ["gizmo.mp4"],
+        files: ["gizmo.mp4"], // H264
+        decoder: "apple hardware VT decoder",
+      },
+      {
+        files: ["gizmo_hevc_8bit_420.mp4"],  // HEVC
         decoder: "apple hardware VT decoder",
       },
       // TODO : enable VP9 for MacOS. The current machine on CI doesn't support

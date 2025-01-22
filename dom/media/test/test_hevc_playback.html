@@ -28,6 +28,11 @@ add_task(async function testHEVCPlayback() {
 // This test video contains an inband SPS that is different from the SPS in the
 // extradata, so we would recreate a new decoder.
 add_task(async function testHEVCInbandConfigChange() {
+  // TODO : fix this test for MacOS in bug 1942404.
+  if (SpecialPowers.Services.appinfo.OS == "Darwin") {
+    ok(true, "No need to run this task, but please FIX THIS!");
+    return;
+  }
   let video = document.createElement('video');
   info(`try to play HEVC video`);
   video.src = "hevc_white_red_frames.mp4";
