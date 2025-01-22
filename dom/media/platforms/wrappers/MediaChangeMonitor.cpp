@@ -246,13 +246,15 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
   MediaResult PrepareSample(MediaDataDecoder::ConversionRequired aConversion,
                             MediaRawData* aSample,
                             bool aNeedKeyFrame) override {
-    MOZ_DIAGNOSTIC_ASSERT(aConversion ==
-                          MediaDataDecoder::ConversionRequired::kNeedAnnexB);
+    MOZ_DIAGNOSTIC_ASSERT(
+        aConversion == MediaDataDecoder::ConversionRequired::kNeedAnnexB ||
+        aConversion == MediaDataDecoder::ConversionRequired::kNeedHVCC);
+    MOZ_DIAGNOSTIC_ASSERT(AnnexB::IsHVCC(aSample));
 
     aSample->mExtraData = mCurrentConfig.mExtraData;
     aSample->mTrackInfo = mTrackInfo;
 
-    if (AnnexB::IsHVCC(aSample)) {
+    if (aConversion == MediaDataDecoder::ConversionRequired::kNeedAnnexB) {
       auto res = AnnexB::ConvertHVCCSampleToAnnexB(aSample, aNeedKeyFrame);
       if (res.isErr()) {
         return MediaResult(res.unwrapErr(),

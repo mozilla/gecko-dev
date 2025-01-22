@@ -278,8 +278,10 @@ bool RemoteDecoderManagerChild::Supports(
         }
         return aLocation == RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM ||
                aLocation == RemoteDecodeIn::GpuProcess;
+#elif defined(MOZ_APPLEMEDIA)
+        return trackSupport.contains(TrackSupport::Video);
 #else
-        // TODO : in the future, we need to add HEVC check on other platforms.
+        // TODO : still need to add support on Android and Linux.
         return false;
 #endif
       }

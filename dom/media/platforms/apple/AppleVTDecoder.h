@@ -71,7 +71,13 @@ class AppleVTDecoder final : public MediaDataDecoder,
   nsCString GetCodecName() const override;
 
   ConversionRequired NeedsConversion() const override {
-    return ConversionRequired::kNeedAVCC;
+    if (mStreamType == StreamType::H264) {
+      return ConversionRequired::kNeedAVCC;
+    }
+    if (mStreamType == StreamType::HEVC) {
+      return ConversionRequired::kNeedHVCC;
+    }
+    return ConversionRequired::kNeedNone;
   }
 
   // Access from the taskqueue and the decoder's thread.
@@ -113,7 +119,12 @@ class AppleVTDecoder final : public MediaDataDecoder,
   CFDictionaryRef CreateDecoderExtensions();
 
   MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(StreamType,
-                                                     (Unknown, H264, VP9, AV1));
+                                                     (Unknown, H264, VP9, AV1,
+                                                      HEVC));
+
+  StreamType GetStreamType(const nsCString& aMimeType) const;
+  uint32_t GetMaxRefFrames(bool aIsLowLatency) const;
+
   const StreamType mStreamType;
   const RefPtr<TaskQueue> mTaskQueue;
   const uint32_t mMaxRefFrames;

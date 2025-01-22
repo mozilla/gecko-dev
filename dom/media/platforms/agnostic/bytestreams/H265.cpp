@@ -1294,6 +1294,70 @@ bool H265::CompareExtraData(const mozilla::MediaByteBuffer* aExtraData1,
   return true;
 }
 
+/* static */
+uint32_t H265::ComputeMaxRefFrames(const mozilla::MediaByteBuffer* aExtraData) {
+  auto rv = DecodeSPSFromHVCCExtraData(aExtraData);
+  if (rv.isErr()) {
+    return 0;
+  }
+  return rv.unwrap().sps_max_dec_pic_buffering_minus1[0] + 1;
+}
+
+/* static */
+already_AddRefed<mozilla::MediaByteBuffer> H265::CreateFakeExtraData() {
+  // Create fake VPS, SPS, PPS and append them into HVCC box
+  static const uint8_t sFakeVPS[] = {
+      0x40, 0x01, 0x0C, 0x01, 0xFF, 0xFF, 0x01, 0x60, 0x00, 0x00, 0x03, 0x00,
+      0x90, 0x00, 0x00, 0x03, 0x00, 0x00, 0x03, 0x00, 0x3F, 0x95, 0x98, 0x09};
+  static const uint8_t sFakeSPS[] = {
+      0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03, 0x00, 0x90, 0x00,
+      0x00, 0x03, 0x00, 0x00, 0x03, 0x00, 0x3F, 0xA0, 0x05, 0x02, 0x01,
+      0x69, 0x65, 0x95, 0x9A, 0x49, 0x32, 0xBC, 0x04, 0x04, 0x00, 0x00,
+      0x03, 0x00, 0x04, 0x00, 0x00, 0x03, 0x00, 0x78, 0x20};
+  static const uint8_t sFakePPS[] = {0x44, 0x01, 0xC1, 0x72, 0xB4, 0x62, 0x40};
+  nsTArray<H265NALU> nalus;
+  nalus.AppendElement(H265NALU{sFakeVPS, sizeof(sFakeVPS)});
+  nalus.AppendElement(H265NALU{sFakeSPS, sizeof(sFakeSPS)});
+  nalus.AppendElement(H265NALU{sFakePPS, sizeof(sFakePPS)});
+
+  // HEVCDecoderConfigurationRecord (HVCC) is in ISO/IEC 14496-15 8.3.2.1.2
+  const uint8_t nalLenSize = 4;
+  auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+  BitWriter writer(extradata);
+  writer.WriteBits(1, 8);               // version
+  writer.WriteBits(0, 2);               // general_profile_space
+  writer.WriteBits(0, 1);               // general_tier_flag
+  writer.WriteBits(1 /* main */, 5);    // general_profile_idc
+  writer.WriteU32(0);                   // general_profile_compatibility_flags
+  writer.WriteBits(0, 48);              // general_constraint_indicator_flags
+  writer.WriteU8(1 /* level 1 */);      // general_level_idc
+  writer.WriteBits(0, 4);               // reserved
+  writer.WriteBits(0, 12);              // min_spatial_segmentation_idc
+  writer.WriteBits(0, 6);               // reserved
+  writer.WriteBits(0, 2);               // parallelismType
+  writer.WriteBits(0, 6);               // reserved
+  writer.WriteBits(0, 2);               // chroma_format_idc
+  writer.WriteBits(0, 5);               // reserved
+  writer.WriteBits(0, 3);               // bit_depth_luma_minus8
+  writer.WriteBits(0, 5);               // reserved
+  writer.WriteBits(0, 3);               // bit_depth_chroma_minus8
+  writer.WriteBits(0, 22);              // avgFrameRate + constantFrameRate +
+                                        // numTemporalLayers + temporalIdNested
+  writer.WriteBits(nalLenSize - 1, 2);  // lengthSizeMinusOne
+  writer.WriteU8(nalus.Length());       // numOfArrays
+  for (auto& nalu : nalus) {
+    writer.WriteBits(0, 2);                     // array_completeness + reserved
+    writer.WriteBits(nalu.mNalUnitType, 6);     // NAL_unit_type
+    writer.WriteBits(1, 16);                    // numNalus
+    writer.WriteBits(nalu.mNALU.Length(), 16);  // nalUnitLength
+    MOZ_ASSERT(writer.BitCount() % 8 == 0);
+    extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+    writer.AdvanceBytes(nalu.mNALU.Length());
+  }
+  MOZ_ASSERT(HVCCConfig::Parse(extradata).isOk());
+  return extradata.forget();
+}
+
 #undef LOG
 #undef LOGV
 

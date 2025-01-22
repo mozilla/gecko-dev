@@ -318,6 +318,15 @@ class H265 final {
   static bool CompareExtraData(const mozilla::MediaByteBuffer* aExtraData1,
                                const mozilla::MediaByteBuffer* aExtraData2);
 
+  // Return the value of sps_max_dec_pic_buffering_minus1[0] + 1 from a valid
+  // SPS in the extradata, otherwise return 0.
+  static uint32_t ComputeMaxRefFrames(
+      const mozilla::MediaByteBuffer* aExtraData);
+
+  // Create a dummy extradata, useful to create a decoder and test the
+  // capabilities of the decoder.
+  static already_AddRefed<mozilla::MediaByteBuffer> CreateFakeExtraData();
+
  private:
   // Return RAW BYTE SEQUENCE PAYLOAD (rbsp) from NAL content.
   static already_AddRefed<mozilla::MediaByteBuffer> DecodeNALUnit(

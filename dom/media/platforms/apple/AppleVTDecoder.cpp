@@ -15,6 +15,7 @@
 #include "AppleUtils.h"
 #include "CallbackThreadRegistry.h"
 #include "H264.h"
+#include "H265.h"
 #include "MP4Decoder.h"
 #include "MacIOSurfaceImage.h"
 #include "MediaData.h"
@@ -54,18 +55,12 @@ AppleVTDecoder::AppleVTDecoder(const VideoInfo& aConfig,
                             : gfx::TransferFunction::BT709),
       mColorRange(aConfig.mColorRange),
       mColorDepth(aConfig.mColorDepth),
-      mStreamType(MP4Decoder::IsH264(aConfig.mMimeType)  ? StreamType::H264
-                  : VPXDecoder::IsVP9(aConfig.mMimeType) ? StreamType::VP9
-                  : AOMDecoder::IsAV1(aConfig.mMimeType) ? StreamType::AV1
-                                                         : StreamType::Unknown),
+      mStreamType(AppleVTDecoder::GetStreamType(aConfig.mMimeType)),
       mTaskQueue(TaskQueue::Create(
           GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
           "AppleVTDecoder")),
-      mMaxRefFrames(
-          mStreamType != StreamType::H264 ||
-                  aOptions.contains(CreateDecoderParams::Option::LowLatency)
-              ? 0
-              : H264::ComputeMaxRefFrames(aConfig.mExtraData)),
+      mMaxRefFrames(GetMaxRefFrames(
+          aOptions.contains(CreateDecoderParams::Option::LowLatency))),
       mImageContainer(aImageContainer),
       mKnowsCompositor(aKnowsCompositor)
 #ifdef MOZ_WIDGET_UIKIT
@@ -89,9 +84,9 @@ AppleVTDecoder::AppleVTDecoder(const VideoInfo& aConfig,
       mIsHardwareAccelerated(false) {
   MOZ_COUNT_CTOR(AppleVTDecoder);
   MOZ_ASSERT(mStreamType != StreamType::Unknown);
-  // TODO: Verify aConfig.mime_type.
-  LOG("Creating AppleVTDecoder for %dx%d %s video", mDisplayWidth,
-      mDisplayHeight, EnumValueToString(mStreamType));
+  LOG("Creating AppleVTDecoder for %dx%d %s video, mMaxRefFrames=%u",
+      mDisplayWidth, mDisplayHeight, EnumValueToString(mStreamType),
+      mMaxRefFrames);
 }
 
 AppleVTDecoder::~AppleVTDecoder() { MOZ_COUNT_DTOR(AppleVTDecoder); }
@@ -181,6 +176,9 @@ void AppleVTDecoder::ProcessDecode(MediaRawData* aSample) {
         break;
       case StreamType::AV1:
         flag |= MediaInfoFlag::VIDEO_AV1;
+        break;
+      case StreamType::HEVC:
+        flag |= MediaInfoFlag::VIDEO_HEVC;
         break;
       default:
         break;
@@ -603,6 +601,8 @@ MediaResult AppleVTDecoder::InitializeSession() {
     streamType = kCMVideoCodecType_H264;
   } else if (mStreamType == StreamType::VP9) {
     streamType = CMVideoCodecType(AppleDecoderModule::kCMVideoCodecType_VP9);
+  } else if (mStreamType == StreamType::HEVC) {
+    streamType = kCMVideoCodecType_HEVC;
   } else {
     streamType = kCMVideoCodecType_AV1;
   }
@@ -661,10 +661,16 @@ CFDictionaryRef AppleVTDecoder::CreateDecoderExtensions() {
                    AssertedCast<CFIndex>(mExtraData->Length()));
 
   const void* atomsKey[1];
-  atomsKey[0] = mStreamType == StreamType::H264  ? CFSTR("avcC")
-                : mStreamType == StreamType::VP9 ? CFSTR("vpcC")
-                                                 : CFSTR("av1C");
-  ;
+  if (mStreamType == StreamType::H264) {
+    atomsKey[0] = CFSTR("avcC");
+  } else if (mStreamType == StreamType::VP9) {
+    atomsKey[0] = CFSTR("vpcC");
+  } else if (mStreamType == StreamType::HEVC) {
+    atomsKey[0] = CFSTR("hvcC");
+  } else {
+    atomsKey[0] = CFSTR("av1C");
+  }
+
   const void* atomsValue[] = {data};
   static_assert(std::size(atomsKey) == std::size(atomsValue),
                 "Non matching keys/values array size");
@@ -757,6 +763,33 @@ CFDictionaryRef AppleVTDecoder::CreateOutputConfiguration() {
   return CFDictionaryCreate(
       kCFAllocatorDefault, outputKeys, outputValues, std::size(outputKeys),
       &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+}
+
+AppleVTDecoder::StreamType AppleVTDecoder::GetStreamType(
+    const nsCString& aMimeType) const {
+  if (MP4Decoder::IsH264(aMimeType)) {
+    return StreamType::H264;
+  }
+  if (MP4Decoder::IsHEVC(aMimeType)) {
+    return StreamType::HEVC;
+  }
+  if (VPXDecoder::IsVP9(aMimeType)) {
+    return StreamType::VP9;
+  }
+  if (AOMDecoder::IsAV1(aMimeType)) {
+    return StreamType::AV1;
+  }
+  return StreamType::Unknown;
+}
+
+uint32_t AppleVTDecoder::GetMaxRefFrames(bool aIsLowLatency) const {
+  if (mStreamType == StreamType::H264 && !aIsLowLatency) {
+    return H264::ComputeMaxRefFrames(mExtraData);
+  }
+  if (mStreamType == StreamType::HEVC && !aIsLowLatency) {
+    return H265::ComputeMaxRefFrames(mExtraData);
+  }
+  return 0;
 }
 
 }  // namespace mozilla

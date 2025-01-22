@@ -621,6 +621,7 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
     kNeedNone = 0,
     kNeedAVCC = 1,
     kNeedAnnexB = 2,
+    kNeedHVCC = 3,
   };
 
   // Indicates that the decoder requires a specific format.

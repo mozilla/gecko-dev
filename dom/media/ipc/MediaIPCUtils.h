@@ -215,7 +215,7 @@ struct ParamTraits<mozilla::MediaDataDecoder::ConversionRequired>
           mozilla::MediaDataDecoder::ConversionRequired,
           mozilla::MediaDataDecoder::ConversionRequired(0),
           mozilla::MediaDataDecoder::ConversionRequired(
-              mozilla::MediaDataDecoder::ConversionRequired::kNeedAnnexB)> {};
+              mozilla::MediaDataDecoder::ConversionRequired::kNeedHVCC)> {};
 
 template <>
 struct ParamTraits<mozilla::media::TimeUnit> {
