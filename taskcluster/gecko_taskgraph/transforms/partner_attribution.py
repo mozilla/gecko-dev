@@ -45,21 +45,7 @@ def add_command_arguments(config, tasks):
         for platform in partner_config["platforms"]:
             stage_platform = platform.replace("-shippable", "")
             for locale in partner_config["locales"]:
-                # find the upstream, throw away locales we don't have, somehow. Skip ?
-                if locale == "en-US":
-                    upstream_label = "repackage-signing-{platform}/opt".format(
-                        platform=platform
-                    )
-                    upstream_artifact = "target.installer.exe"
-                else:
-                    upstream_label = (
-                        "repackage-signing-l10n-{locale}-{platform}/opt".format(
-                            locale=locale, platform=platform
-                        )
-                    )
-                    upstream_artifact = "{locale}/target.installer.exe".format(
-                        locale=locale
-                    )
+                upstream_label, upstream_artifact = _get_upstream_task_label_and_artifact(platform, locale)
                 if upstream_label not in config.kind_dependencies_tasks:
                     raise Exception(f"Can't find upstream task for {platform} {locale}")
                 upstream = config.kind_dependencies_tasks[upstream_label]
@@ -126,3 +112,24 @@ def add_command_arguments(config, tasks):
         task.setdefault("attributes", {})["release_artifacts"] = release_artifacts
 
         yield task
+
+
+def _get_upstream_task_label_and_artifact(platform, locale):
+    # find the upstream, throw away locales we don't have, somehow. Skip ?
+    if platform.startswith("win"):
+        if locale == "en-US":
+            upstream_label = "repackage-signing-{platform}/opt".format(
+                platform=platform
+            )
+            upstream_artifact = "target.installer.exe"
+        else:
+            upstream_label = "repackage-signing-l10n-{locale}-{platform}/opt".format(
+                locale=locale, platform=platform
+            )
+            upstream_artifact = "{locale}/target.installer.exe".format(locale=locale)
+    else:
+        raise NotImplementedError(
+            'Case for platform "{}" is not implemented'.format(platform)
+        )
+
+    return upstream_label, upstream_artifact
