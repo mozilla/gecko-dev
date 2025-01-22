@@ -452,6 +452,9 @@ AttachDecision GetPropIRGenerator::tryAttachStub() {
   if (val_.isObject()) {
     RootedObject obj(cx_, &val_.toObject());
     ObjOperandId objId = writer.guardToObject(valId);
+
+    TRY_ATTACH(tryAttachTypedArrayElement(obj, objId));
+
     if (nameOrSymbol) {
       TRY_ATTACH(tryAttachObjectLength(obj, objId, id));
       TRY_ATTACH(tryAttachTypedArray(obj, objId, id));
@@ -485,7 +488,6 @@ AttachDecision GetPropIRGenerator::tryAttachStub() {
                cacheKind_ == CacheKind::GetElemSuper);
 
     TRY_ATTACH(tryAttachProxyElement(obj, objId));
-    TRY_ATTACH(tryAttachTypedArrayElement(obj, objId));
 
     uint32_t index;
     Int32OperandId indexId;
@@ -4285,6 +4287,8 @@ AttachDecision HasPropIRGenerator::tryAttachStub() {
     return AttachDecision::NoAction;
   }
 
+  TRY_ATTACH(tryAttachTypedArray(obj, objId, keyId));
+
   if (nameOrSymbol) {
     TRY_ATTACH(tryAttachNamedProp(obj, objId, id, keyId));
     TRY_ATTACH(tryAttachDoesNotExist(obj, objId, id, keyId));
@@ -4292,8 +4296,6 @@ AttachDecision HasPropIRGenerator::tryAttachStub() {
     trackAttached(IRGenerator::NotAttached);
     return AttachDecision::NoAction;
   }
-
-  TRY_ATTACH(tryAttachTypedArray(obj, objId, keyId));
 
   uint32_t index;
   Int32OperandId indexId;
@@ -4459,6 +4461,7 @@ AttachDecision SetPropIRGenerator::tryAttachStub() {
     RootedObject obj(cx_, &lhsVal_.toObject());
 
     ObjOperandId objId = writer.guardToObject(objValId);
+    TRY_ATTACH(tryAttachSetTypedArrayElement(obj, objId, rhsValId));
     if (IsPropertySetOp(JSOp(*pc_))) {
       TRY_ATTACH(tryAttachMegamorphicSetElement(obj, objId, rhsValId));
     }
@@ -4483,8 +4486,6 @@ AttachDecision SetPropIRGenerator::tryAttachStub() {
     if (IsPropertySetOp(JSOp(*pc_))) {
       TRY_ATTACH(tryAttachProxyElement(obj, objId, rhsValId));
     }
-
-    TRY_ATTACH(tryAttachSetTypedArrayElement(obj, objId, rhsValId));
 
     uint32_t index;
     Int32OperandId indexId;
