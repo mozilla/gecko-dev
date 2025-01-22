@@ -1276,9 +1276,17 @@ export class TranslationsParent extends JSWindowActorParent {
    * Clears the cached list of language pairs, notifying observers that the
    * available language pairs have changed.
    */
-  static #clearCachedLanguagePairs() {
+  static #invalidateLanguagePairs() {
     TranslationsParent.#languagePairs = null;
     Services.obs.notifyObservers(null, "translations:language-pairs-changed");
+  }
+
+  /**
+   * Clears the cached promise to the translation model records. These will
+   * have to be re-fetched the next time they are queried.
+   */
+  static #invalidateTranslationModelRecords() {
+    TranslationsParent.#translationModelRecords = null;
   }
 
   /**
@@ -1301,7 +1309,7 @@ export class TranslationsParent extends JSWindowActorParent {
           return Array.from(languagePairMap.values());
         });
       TranslationsParent.#languagePairs.catch(() => {
-        TranslationsParent.#clearCachedLanguagePairs();
+        TranslationsParent.#invalidateLanguagePairs();
       });
     }
     return TranslationsParent.#languagePairs;
@@ -1569,8 +1577,8 @@ export class TranslationsParent extends JSWindowActorParent {
     }
 
     // Invalidate cached data.
-    TranslationsParent.#clearCachedLanguagePairs();
-    TranslationsParent.#translationModelRecords = null;
+    TranslationsParent.#invalidateLanguagePairs();
+    TranslationsParent.#invalidateTranslationModelRecords();
 
     // Language model attachments will only be downloaded when they are used.
     lazy.console.log(
@@ -1818,7 +1826,7 @@ export class TranslationsParent extends JSWindowActorParent {
           throw new Error("Unable to retrieve the translation models.");
         }
 
-        for (const record of TranslationsParent.ensureLanguagePairsHavePivots(
+        for (const record of TranslationsParent.#ensureLanguagePairsHavePivots(
           translationModelRecords
         )) {
           records.set(record.id, record);
@@ -1834,7 +1842,7 @@ export class TranslationsParent extends JSWindowActorParent {
       })();
 
       TranslationsParent.#translationModelRecords.catch(() => {
-        TranslationsParent.#translationModelRecords = null;
+        TranslationsParent.#invalidateTranslationModelRecords();
       });
     }
 
@@ -1850,7 +1858,7 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * @param {TranslationModelRecord[] | LanguagePair[]} records
    */
-  static ensureLanguagePairsHavePivots(records) {
+  static #ensureLanguagePairsHavePivots(records) {
     if (!AppConstants.DEBUG) {
       // Only run this check on debug builds as it's in the performance critical first
       // page load path.
@@ -2656,14 +2664,14 @@ export class TranslationsParent extends JSWindowActorParent {
   static clearCache() {
     // Records.
     TranslationsParent.#bergamotWasmRecord = null;
-    TranslationsParent.#translationModelRecords = null;
+    TranslationsParent.#invalidateTranslationModelRecords();
 
     // Clients.
     TranslationsParent.#translationModelsRemoteClient = null;
     TranslationsParent.#translationsWasmRemoteClient = null;
 
     // Derived data.
-    TranslationsParent.#clearCachedLanguagePairs();
+    TranslationsParent.#invalidateLanguagePairs();
     TranslationsParent.#mostRecentTargetLanguages = null;
     TranslationsParent.#userSettingsLanguages = null;
     TranslationsParent.#preferredLanguages = null;
