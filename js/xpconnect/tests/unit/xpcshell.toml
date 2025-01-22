@@ -261,8 +261,6 @@ skip-if = [
   "!debug",
 ]
 
-["test_isModuleLoaded.js"]
-
 ["test_isProxy.js"]
 
 ["test_js_memory_telemetry.js"]
