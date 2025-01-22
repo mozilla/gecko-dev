@@ -1840,8 +1840,8 @@ static bool ValueToAtomOrSymbolSlow(JSContext* cx, const Value& keyVal,
         NameToId(keyVal.toBoolean() ? cx->names().true_ : cx->names().false_);
     return true;
   }
-  if (keyVal.isInt32() && keyVal.toInt32() < 0) {
-    JSAtom* atom = Int32ToAtom(cx, keyVal.toInt32());
+  if (keyVal.isNumber() && !IsNumberIndex(keyVal)) {
+    JSAtom* atom = NumberToAtom(cx, keyVal.toNumber());
     if (!atom) {
       cx->recoverFromOutOfMemory();
       return false;
@@ -1849,6 +1849,7 @@ static bool ValueToAtomOrSymbolSlow(JSContext* cx, const Value& keyVal,
     *key = PropertyKey::NonIntAtom(atom);
     return true;
   }
+
   return false;
 }
 

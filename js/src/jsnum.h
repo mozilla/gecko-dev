@@ -307,6 +307,20 @@ template <typename CharT>
 
 [[nodiscard]] extern bool num_valueOf(JSContext* cx, unsigned argc, Value* vp);
 
+static inline bool IsNumberIndex(const Value& v) {
+  if (v.isInt32() && v.toInt32() >= 0) {
+    return true;
+  }
+
+  int64_t i;
+  if (v.isDouble() && mozilla::NumberEqualsInt64(v.toDouble(), &i) && i >= 0 &&
+      i <= MAX_ARRAY_INDEX) {
+    return true;
+  }
+
+  return false;
+}
+
 /*
  * Returns true if the given value is definitely an index: that is, the value
  * is a number that's an unsigned 32-bit integer.

@@ -395,14 +395,16 @@ static bool ValueToNameOrSymbolId(JSContext* cx, HandleValue idVal,
                                   MutableHandleId id, bool* nameOrSymbol) {
   *nameOrSymbol = false;
 
-  if (idVal.isObject() || idVal.isBigInt() || idVal.isDouble() ||
-      (idVal.isInt32() && idVal.toInt32() >= 0)) {
+  if (idVal.isObject() || idVal.isBigInt()) {
     return true;
   }
 
   MOZ_ASSERT(idVal.isString() || idVal.isSymbol() || idVal.isBoolean() ||
-             idVal.isUndefined() || idVal.isNull() ||
-             (idVal.isInt32() && idVal.toInt32() < 0));
+             idVal.isUndefined() || idVal.isNull() || idVal.isNumber());
+
+  if (IsNumberIndex(idVal)) {
+    return true;
+  }
 
   if (!PrimitiveValueToId<CanGC>(cx, idVal, id)) {
     return false;
@@ -3369,32 +3371,33 @@ void IRGenerator::emitIdGuard(ValOperandId valId, const Value& idVal, jsid id) {
   }
 
   MOZ_ASSERT(id.isAtom());
-
-  if (idVal.isString()) {
-    StringOperandId strId = writer.guardToString(valId);
-    writer.guardSpecificAtom(strId, id.toAtom());
-    return;
+  switch (idVal.type()) {
+    case ValueType::String: {
+      StringOperandId strId = writer.guardToString(valId);
+      writer.guardSpecificAtom(strId, id.toAtom());
+      break;
+    }
+    case ValueType::Null:
+      MOZ_ASSERT(id.isAtom(cx_->names().null));
+      writer.guardIsNull(valId);
+      break;
+    case ValueType::Undefined:
+      MOZ_ASSERT(id.isAtom(cx_->names().undefined));
+      writer.guardIsUndefined(valId);
+      break;
+    case ValueType::Boolean:
+      MOZ_ASSERT(id.isAtom(cx_->names().true_) ||
+                 id.isAtom(cx_->names().false_));
+      writer.guardSpecificValue(valId, idVal);
+      break;
+    case ValueType::Int32:
+    case ValueType::Double:
+      MOZ_ASSERT(!IsNumberIndex(idVal));
+      writer.guardSpecificValue(valId, idVal);
+      break;
+    default:
+      MOZ_CRASH("Unexpected type in emitIdGuard");
   }
-  if (idVal.isUndefined()) {
-    MOZ_ASSERT(id.isAtom(cx_->names().undefined));
-    writer.guardIsUndefined(valId);
-    return;
-  }
-  if (idVal.isNull()) {
-    MOZ_ASSERT(id.isAtom(cx_->names().null));
-    writer.guardIsNull(valId);
-    return;
-  }
-  if (idVal.isBoolean()) {
-    MOZ_ASSERT(id.isAtom(cx_->names().true_) || id.isAtom(cx_->names().false_));
-    Int32OperandId int32Id = writer.guardBooleanToInt32(valId);
-    writer.guardSpecificInt32(int32Id, int32_t(idVal.toBoolean()));
-    return;
-  }
-  MOZ_ASSERT(idVal.isInt32());
-  MOZ_ASSERT(idVal.toInt32() < 0);
-  Int32OperandId int32Id = writer.guardToInt32(valId);
-  writer.guardSpecificInt32(int32Id, idVal.toInt32());
 }
 
 void GetPropIRGenerator::maybeEmitIdGuard(jsid id) {
