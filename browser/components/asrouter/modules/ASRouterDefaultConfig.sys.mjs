@@ -20,7 +20,7 @@ const { SpecialMessageActions } = ChromeUtils.importESModule(
 
 import { ASRouterPreferences } from "resource:///modules/asrouter/ASRouterPreferences.sys.mjs";
 import { QueryCache } from "resource:///modules/asrouter/ASRouterTargeting.sys.mjs";
-import { ActivityStreamStorage } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
+import { ASRouterStorage } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 
 const createStorage = async telemetryFeed => {
   // "snippets" is the name of one storage space, but these days it is used
@@ -29,7 +29,7 @@ const createStorage = async telemetryFeed => {
   //
   // We keep the name "snippets" to avoid having to do an IndexedDB database
   // migration.
-  const dbStore = new ActivityStreamStorage({
+  const dbStore = new ASRouterStorage({
     storeNames: ["sectionPrefs", "snippets"],
     telemetry: {
       handleUndesiredEvent: e => telemetryFeed.SendASRouterUndesiredEvent(e),

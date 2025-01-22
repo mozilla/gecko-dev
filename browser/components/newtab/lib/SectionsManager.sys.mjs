@@ -16,7 +16,7 @@ import {
   actionCreators as ac,
   actionTypes as at,
 } from "resource://activity-stream/common/Actions.mjs";
-import { getDefaultOptions } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
+import { getDefaultOptions } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 
 const lazy = {};
 

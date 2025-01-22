@@ -16,7 +16,7 @@ import {
   shortURL,
   shortHostname,
 } from "resource://activity-stream/lib/ShortURL.sys.mjs";
-import { getDefaultOptions } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
+import { getDefaultOptions } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 
 import {
   CUSTOM_SEARCH_SHORTCUTS,

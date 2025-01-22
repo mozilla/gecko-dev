@@ -39,7 +39,7 @@ class BackupTest(MarionetteTestCase):
         self.add_test_saved_address()
         self.add_test_identity_credential()
         self.add_test_form_history()
-        self.add_test_activity_stream_snippets_data()
+        self.add_test_asrouter_snippets_data()
         self.add_test_protections_data()
         self.add_test_bookmarks()
         self.add_test_history()
@@ -239,7 +239,7 @@ class BackupTest(MarionetteTestCase):
         self.verify_recovered_saved_address()
         self.verify_recovered_identity_credential()
         self.verify_recovered_form_history()
-        self.verify_recovered_activity_stream_snippets_data()
+        self.verify_recovered_asrouter_snippets_data()
         self.verify_recovered_protections_data()
         self.verify_recovered_bookmarks()
         self.verify_recovered_history()
@@ -583,17 +583,17 @@ class BackupTest(MarionetteTestCase):
         )
         self.assertEqual(formHistoryResultsLength, 1)
 
-    def add_test_activity_stream_snippets_data(self):
+    def add_test_asrouter_snippets_data(self):
         self.marionette.execute_async_script(
             """
-          const { ActivityStreamStorage } = ChromeUtils.importESModule(
-            "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs",
+          const { ASRouterStorage } = ChromeUtils.importESModule(
+            "resource:///modules/asrouter/ASRouterStorage.sys.mjs",
           );
           const SNIPPETS_TABLE_NAME = "snippets";
 
           let [outerResolve] = arguments;
           (async () => {
-            let storage = new ActivityStreamStorage({
+            let storage = new ASRouterStorage({
               storeNames: [SNIPPETS_TABLE_NAME],
             });
             let snippetsTable = await storage.getDbTable(SNIPPETS_TABLE_NAME);
@@ -602,17 +602,17 @@ class BackupTest(MarionetteTestCase):
         """
         )
 
-    def verify_recovered_activity_stream_snippets_data(self):
+    def verify_recovered_asrouter_snippets_data(self):
         snippetsResult = self.marionette.execute_async_script(
             """
-          const { ActivityStreamStorage } = ChromeUtils.importESModule(
-            "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs",
+          const { ASRouterStorage } = ChromeUtils.importESModule(
+            "resource:///modules/asrouter/ASRouterStorage.sys.mjs",
           );
           const SNIPPETS_TABLE_NAME = "snippets";
 
           let [outerResolve] = arguments;
           (async () => {
-            let storage = new ActivityStreamStorage({
+            let storage = new ASRouterStorage({
               storeNames: [SNIPPETS_TABLE_NAME],
             });
             let snippetsTable = await storage.getDbTable(SNIPPETS_TABLE_NAME);

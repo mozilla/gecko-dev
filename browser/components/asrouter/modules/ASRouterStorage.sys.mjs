@@ -8,7 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   IndexedDB: "resource://gre/modules/IndexedDB.sys.mjs",
 });
 
-export class ActivityStreamStorage {
+export class ASRouterStorage {
   /**
    * @param storeNames Array of strings used to create all the required stores
    */

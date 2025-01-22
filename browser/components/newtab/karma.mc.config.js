@@ -97,12 +97,6 @@ module.exports = function (config) {
               functions: 100,
               branches: 100,
             },
-            "lib/ActivityStreamStorage.sys.mjs": {
-              statements: 100,
-              lines: 100,
-              functions: 100,
-              branches: 83,
-            },
             "lib/DownloadsManager.sys.mjs": {
               statements: 100,
               lines: 100,
@@ -303,6 +297,10 @@ module.exports = function (config) {
             [
               new RegExp("^resource://activity-stream/"),
               path.join(__dirname, "./"),
+            ],
+            [
+              new RegExp("^resource:///modules/asrouter/"),
+              path.join(__dirname, "../asrouter/modules/"),
             ],
           ],
         }),

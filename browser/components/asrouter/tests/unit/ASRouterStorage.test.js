@@ -1,9 +1,9 @@
-import { ActivityStreamStorage } from "lib/ActivityStreamStorage.sys.mjs";
-import { GlobalOverrider } from "test/unit/utils";
+import { ASRouterStorage } from "modules/ASRouterStorage.sys.mjs";
+import { GlobalOverrider } from "../../../newtab/test/unit/utils";
 
 let overrider = new GlobalOverrider();
 
-describe("ActivityStreamStorage", () => {
+describe("ASRouterStorage", () => {
   let sandbox;
   let indexedDB;
   let storage;
@@ -14,7 +14,7 @@ describe("ActivityStreamStorage", () => {
       deleteDatabase: sandbox.stub().resolves(),
     };
     overrider.set({ IndexedDB: indexedDB });
-    storage = new ActivityStreamStorage({
+    storage = new ASRouterStorage({
       storeNames: ["storage_test"],
       telemetry: { handleUndesiredEvent: sandbox.stub() },
     });
@@ -23,7 +23,7 @@ describe("ActivityStreamStorage", () => {
     sandbox.restore();
   });
   it("should throw if required arguments not provided", () => {
-    assert.throws(() => new ActivityStreamStorage({ telemetry: true }));
+    assert.throws(() => new ASRouterStorage({ telemetry: true }));
   });
   describe(".db", () => {
     it("should not throw an error when accessing db", async () => {
@@ -117,7 +117,7 @@ describe("ActivityStreamStorage", () => {
     assert.calledWithExactly(dbStub.createObjectStore, "storage_test");
   });
   it("should handle an array of object store names", async () => {
-    storage = new ActivityStreamStorage({
+    storage = new ASRouterStorage({
       storeNames: ["store1", "store2"],
       telemetry: {},
     });
@@ -135,7 +135,7 @@ describe("ActivityStreamStorage", () => {
     assert.calledWith(dbStub.createObjectStore, "store2");
   });
   it("should skip creating existing stores", async () => {
-    storage = new ActivityStreamStorage({
+    storage = new ASRouterStorage({
       storeNames: ["store1", "store2"],
       telemetry: {},
     });

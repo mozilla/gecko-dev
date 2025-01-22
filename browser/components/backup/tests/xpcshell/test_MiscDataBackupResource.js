@@ -7,8 +7,8 @@ const { MiscDataBackupResource } = ChromeUtils.importESModule(
   "resource:///modules/backup/MiscDataBackupResource.sys.mjs"
 );
 
-const { ActivityStreamStorage } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs"
+const { ASRouterStorage } = ChromeUtils.importESModule(
+  "resource:///modules/asrouter/ASRouterStorage.sys.mjs"
 );
 
 const { ProfileAge } = ChromeUtils.importESModule(
@@ -104,7 +104,7 @@ add_task(async function test_backup() {
   };
 
   sandbox
-    .stub(ActivityStreamStorage.prototype, "getDbTable")
+    .stub(ASRouterStorage.prototype, "getDbTable")
     .withArgs("snippets")
     .resolves(snippetsTableStub);
 
@@ -276,7 +276,7 @@ add_task(async function test_postRecovery() {
   };
 
   sandbox
-    .stub(ActivityStreamStorage.prototype, "getDbTable")
+    .stub(ASRouterStorage.prototype, "getDbTable")
     .withArgs("snippets")
     .resolves(snippetsTableStub);
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { ActivityStreamMessageChannel } from "resource://activity-stream/lib/ActivityStreamMessageChannel.sys.mjs";
-import { ActivityStreamStorage } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
+import { ASRouterStorage } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
 import { reducers } from "resource://activity-stream/common/Reducers.sys.mjs";
 import { redux } from "chrome://global/content/vendor/Redux.sys.mjs";
@@ -151,7 +151,7 @@ export class Store {
     //
     // We keep the name "snippets" to avoid having to do an IndexedDB database
     // migration.
-    this.dbStorage = new ActivityStreamStorage({
+    this.dbStorage = new ASRouterStorage({
       storeNames: ["sectionPrefs", "snippets"],
     });
     // Accessing the db causes the object stores to be created / migrated.

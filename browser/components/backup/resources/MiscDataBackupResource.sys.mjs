@@ -6,8 +6,7 @@ import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mj
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  ActivityStreamStorage:
-    "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs",
+  ASRouterStorage: "resource:///modules/asrouter/ASRouterStorage.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
 });
 
@@ -52,11 +51,11 @@ export class MiscDataBackupResource extends BackupResource {
     // Instead, we'll manually export any IndexedDB data we need to backup
     // to a separate JSON file.
 
-    // The first IndexedDB database we want to back up is the ActivityStream
+    // The first IndexedDB database we want to back up is the ASRouter
     // one - specifically, the "snippets" table, as this contains information
     // on ASRouter impressions, blocked messages, message group impressions,
     // etc.
-    let storage = new lazy.ActivityStreamStorage({
+    let storage = new lazy.ASRouterStorage({
       storeNames: [SNIPPETS_TABLE_NAME],
     });
     let snippetsTable = await storage.getDbTable(SNIPPETS_TABLE_NAME);
@@ -119,7 +118,7 @@ export class MiscDataBackupResource extends BackupResource {
     }
 
     let snippetsData = await IOUtils.readJSON(snippetsBackupFile);
-    let storage = new lazy.ActivityStreamStorage({
+    let storage = new lazy.ASRouterStorage({
       storeNames: [SNIPPETS_TABLE_NAME],
     });
     let snippetsTable = await storage.getDbTable(SNIPPETS_TABLE_NAME);
