@@ -746,7 +746,7 @@ const nativeLocaleNames = new Map(
     sl: "Slovenščina",
     son: "Soŋay",
     sq: "Shqip",
-    sr: "Cрпски",
+    sr: "Српски",
     "sv-SE": "Svenska",
     szl: "Ślōnsko",
     ta: "தமிழ்",
