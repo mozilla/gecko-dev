@@ -19,19 +19,16 @@
 #include "nsCOMPtr.h"
 #include "nsHashKeys.h"
 #include "nsIMemoryReporter.h"
-#include "nsIObserver.h"
 #include "nsString.h"
 
 class nsIIDNService;
 
 class nsEffectiveTLDService final : public nsIEffectiveTLDService,
-                                    public nsIObserver,
                                     public nsIMemoryReporter {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIEFFECTIVETLDSERVICE
   NS_DECL_NSIMEMORYREPORTER
-  NS_DECL_NSIOBSERVER
 
   nsEffectiveTLDService();
   nsresult Init();
@@ -47,13 +44,7 @@ class nsEffectiveTLDService final : public nsIEffectiveTLDService,
   ~nsEffectiveTLDService();
 
   // The DAFSA provides a compact encoding of the rather large eTLD list.
-  mozilla::Maybe<mozilla::Dafsa> mGraph MOZ_GUARDED_BY(mGraphLock);
-
-  // Memory map used for a new updated dafsa
-  mozilla::loader::AutoMemMap mDafsaMap MOZ_GUARDED_BY(mGraphLock);
-
-  // Lock for mGraph and mDafsaMap
-  mozilla::RWLock mGraphLock;
+  mozilla::Dafsa mGraph;
 
   // Note that the cache entries here can record entries that were cached
   // successfully or unsuccessfully.  mResult must be checked before using an

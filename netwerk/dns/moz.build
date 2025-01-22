@@ -7,8 +7,6 @@
 with Files("**"):
     BUG_COMPONENT = ("Core", "Networking: DNS")
 
-DIRS += ["tests"]
-
 XPIDL_SOURCES += [
     "nsIDNSAdditionalInfo.idl",
     "nsIDNSByTypeRecord.idl",
@@ -23,10 +21,6 @@ XPIDL_SOURCES += [
 ]
 
 XPIDL_MODULE = "necko_dns"
-
-EXTRA_JS_MODULES["netwerk-dns"] += [
-    "PublicSuffixList.sys.mjs",
-]
 
 XPCSHELL_TESTS_MANIFESTS += ["tests/unit/xpcshell.toml"]
 
