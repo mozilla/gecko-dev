@@ -1,59 +1,767 @@
-From: Philipp Hancke <phancke@meta.com>
-Date: Mon, 25 Nov 2024 10:14:35 -0800
-Subject: (cherry-pick-branch-heads/6834) [M132] h264: skip empty NAL units, do
- not reject them
+From: Michael Froman <mjfroman@mac.com>
+Date: Tue, 21 Jan 2025 23:18:48 -0600
+Subject: (tmp-cherry-pick) Revert "Add InsertPacket method that takes
+ RtpPacketInfo." (a08189b948)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-BUG=webrtc:380291923,chromium:381016774
+This reverts commit 38ddea5ee3320bf3441aeb3654e099b3695c9789.
 
-(cherry picked from commit b7cb8fe75a0b0f19a003e4f78f83fb7bd8fa84ef)
+Reason for revert: not backwards compatible
 
-Change-Id: If05268bde2ac0c600dcef479c88ca54dce708dcb
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/368893
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-Commit-Queue: Philipp Hancke <phancke@meta.com>
-Cr-Original-Commit-Position: refs/heads/main@{#43451}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/369480
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6834@{#3}
-Cr-Branched-From: a5d71009ac1dce7da23813dc9413c03073cfa8ca-refs/heads/main@{#43387}
+Original change's description:
+> Add InsertPacket method that takes RtpPacketInfo.
+>
+> The version which only passes receive_time will be removed (once migrated).
+> Keeping the version that only passes header and payload for convenience.
+>
+> This will allow us to attach more metadata on the worker thread before InsertPacket, instead of on the playout thread after GetAudio. Eventually, the plan is to split the RTP handling on the worker thread into a separate class.
+>
+> Bug: webrtc:42223109
+> Change-Id: I5399b53b9fc5c2f1c996e109054b1b0877ecca05
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/369000
+> Reviewed-by: Henrik Lundin <henrik.lundin@webrtc.org>
+> Commit-Queue: Jakob Ivarsson‎ <jakobi@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43445}
+
+Bug: webrtc:42223109
+Change-Id: Ie7cf397cfbe5dedca009f16e5e9e3af40adbe99b
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/369200
+Reviewed-by: Henrik Lundin <henrik.lundin@webrtc.org>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Jakob Ivarsson‎ <jakobi@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43450}
 ---
- modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc |  4 ++--
- .../source/video_rtp_depacketizer_h264_unittest.cc     | 10 ++++++++++
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ api/neteq/neteq.h                             |  18 +--
+ audio/BUILD.gn                                |   2 -
+ audio/channel_receive.cc                      |  41 +----
+ modules/audio_coding/BUILD.gn                 |   1 -
+ modules/audio_coding/neteq/neteq_impl.cc      |  25 +--
+ modules/audio_coding/neteq/neteq_impl.h       |  25 +--
+ .../audio_coding/neteq/neteq_impl_unittest.cc | 147 +++++++++++++-----
+ 7 files changed, 133 insertions(+), 126 deletions(-)
 
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-index 97bbe7db24..b9e74f5781 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-@@ -101,8 +101,8 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
-         nal_unit.subview(H264::kNaluTypeSize);
+diff --git a/api/neteq/neteq.h b/api/neteq/neteq.h
+index 16cf5f645d..f8062de8bd 100644
+--- a/api/neteq/neteq.h
++++ b/api/neteq/neteq.h
+@@ -23,7 +23,6 @@
+ #include "api/audio_codecs/audio_codec_pair_id.h"
+ #include "api/audio_codecs/audio_format.h"
+ #include "api/rtp_headers.h"
+-#include "api/rtp_packet_info.h"
+ #include "api/units/timestamp.h"
  
-     if (nalu_data.empty()) {
--      RTC_LOG(LS_ERROR) << "Empty NAL unit found.";
--      return std::nullopt;
-+      RTC_LOG(LS_WARNING) << "Skipping empty NAL unit.";
-+      continue;
-     }
+ namespace webrtc {
+@@ -187,25 +186,16 @@ class NetEq {
  
-     switch (nalu.type) {
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
-index 8f1d272b77..8330bf2d6b 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264_unittest.cc
-@@ -542,5 +542,15 @@ TEST(VideoRtpDepacketizerH264Test, SeiSetsFirstPacketInFrame) {
-   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+   virtual int InsertPacket(const RTPHeader& rtp_header,
+                            rtc::ArrayView<const uint8_t> payload) {
+-    return InsertPacket(
+-        rtp_header, payload,
+-        RtpPacketInfo(rtp_header, /*receive_time=*/Timestamp::MinusInfinity()));
+-  }
+-
+-  // TODO: webrtc:343501093 - removed unused method.
+-  virtual int InsertPacket(const RTPHeader& rtp_header,
+-                           rtc::ArrayView<const uint8_t> payload,
+-                           Timestamp receive_time) {
++    // TODO: webrtc:343501093 - removed unused method.
+     return InsertPacket(rtp_header, payload,
+-                        RtpPacketInfo(rtp_header, receive_time));
++                        /*receive_time=*/Timestamp::MinusInfinity());
+   }
+-
+   // Inserts a new packet into NetEq.
+   // Returns 0 on success, -1 on failure.
+-  // TODO: webrtc:343501093 - Make this method pure virtual.
+   virtual int InsertPacket(const RTPHeader& rtp_header,
+                            rtc::ArrayView<const uint8_t> payload,
+-                           const RtpPacketInfo& /* rtp_packet_info */) {
++                           Timestamp /* receive_time */) {
++    // TODO: webrtc:343501093 - Make this method pure virtual.
+     return InsertPacket(rtp_header, payload);
+   }
+ 
+diff --git a/audio/BUILD.gn b/audio/BUILD.gn
+index 4330d065ab..437883da54 100644
+--- a/audio/BUILD.gn
++++ b/audio/BUILD.gn
+@@ -43,9 +43,7 @@ rtc_library("audio") {
+     "../api:field_trials_view",
+     "../api:frame_transformer_interface",
+     "../api:function_view",
+-    "../api:make_ref_counted",
+     "../api:rtp_headers",
+-    "../api:rtp_packet_info",
+     "../api:rtp_parameters",
+     "../api:scoped_refptr",
+     "../api:sequence_checker",
+diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
+index db43d94822..43b7d3e4da 100644
+--- a/audio/channel_receive.cc
++++ b/audio/channel_receive.cc
+@@ -11,75 +11,49 @@
+ #include "audio/channel_receive.h"
+ 
+ #include <algorithm>
+-#include <cstddef>
+-#include <cstdint>
+ #include <map>
+ #include <memory>
+-#include <optional>
+ #include <string>
+ #include <utility>
+ #include <vector>
+ 
+-#include "api/array_view.h"
+ #include "api/audio/audio_device.h"
+-#include "api/audio/audio_mixer.h"
+-#include "api/audio_codecs/audio_codec_pair_id.h"
+-#include "api/audio_codecs/audio_decoder_factory.h"
+-#include "api/audio_codecs/audio_format.h"
+-#include "api/call/audio_sink.h"
+-#include "api/call/transport.h"
+-#include "api/crypto/crypto_options.h"
+ #include "api/crypto/frame_decryptor_interface.h"
+-#include "api/environment/environment.h"
+ #include "api/frame_transformer_interface.h"
+-#include "api/make_ref_counted.h"
+-#include "api/media_types.h"
+ #include "api/neteq/default_neteq_factory.h"
+ #include "api/neteq/neteq.h"
+-#include "api/neteq/neteq_factory.h"
+ #include "api/rtc_event_log/rtc_event_log.h"
+-#include "api/rtp_headers.h"
+-#include "api/rtp_packet_info.h"
+-#include "api/rtp_packet_infos.h"
+-#include "api/scoped_refptr.h"
+ #include "api/sequence_checker.h"
+ #include "api/task_queue/pending_task_safety_flag.h"
+ #include "api/task_queue/task_queue_base.h"
+-#include "api/transport/rtp/rtp_source.h"
+ #include "api/units/time_delta.h"
+ #include "api/units/timestamp.h"
+ #include "audio/audio_level.h"
+ #include "audio/channel_receive_frame_transformer_delegate.h"
+ #include "audio/channel_send.h"
+ #include "audio/utility/audio_frame_operations.h"
+-#include "call/syncable.h"
+ #include "logging/rtc_event_log/events/rtc_event_audio_playout.h"
+ #include "logging/rtc_event_log/events/rtc_event_neteq_set_minimum_delay.h"
+ #include "modules/audio_coding/acm2/acm_resampler.h"
+ #include "modules/audio_coding/acm2/call_statistics.h"
+-#include "modules/audio_coding/include/audio_coding_module_typedefs.h"
++#include "modules/audio_coding/audio_network_adaptor/include/audio_network_adaptor_config.h"
+ #include "modules/pacing/packet_router.h"
+ #include "modules/rtp_rtcp/include/receive_statistics.h"
+ #include "modules/rtp_rtcp/include/remote_ntp_time_estimator.h"
+-#include "modules/rtp_rtcp/include/rtcp_statistics.h"
+-#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+ #include "modules/rtp_rtcp/source/absolute_capture_time_interpolator.h"
+ #include "modules/rtp_rtcp/source/capture_clock_offset_updater.h"
++#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
+ #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+ #include "modules/rtp_rtcp/source/rtp_rtcp_config.h"
+ #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
+-#include "modules/rtp_rtcp/source/source_tracker.h"
+-#include "rtc_base/buffer.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/logging.h"
+-#include "rtc_base/numerics/safe_conversions.h"
+ #include "rtc_base/numerics/safe_minmax.h"
+ #include "rtc_base/numerics/sequence_number_unwrapper.h"
+ #include "rtc_base/race_checker.h"
+ #include "rtc_base/strings/string_builder.h"
+ #include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/system/no_unique_address.h"
+-#include "rtc_base/thread_annotations.h"
+ #include "rtc_base/time_utils.h"
+ #include "rtc_base/trace_event.h"
+ #include "system_wrappers/include/metrics.h"
+@@ -171,7 +145,7 @@ class ChannelReceive : public ChannelReceiveInterface,
+ 
+   // Audio+Video Sync.
+   uint32_t GetDelayEstimate() const override;
+-  bool SetMinimumPlayoutDelay(int delay_ms) override;
++  bool SetMinimumPlayoutDelay(int delayMs) override;
+   bool GetPlayoutRtpTimestamp(uint32_t* rtp_timestamp,
+                               int64_t* time_ms) const override;
+   void SetEstimatedPlayoutNtpTimestampMs(int64_t ntp_timestamp_ms,
+@@ -191,7 +165,7 @@ class ChannelReceive : public ChannelReceiveInterface,
+   void ResetReceiverCongestionControlObjects() override;
+ 
+   CallReceiveStatistics GetRTCPStatistics() const override;
+-  void SetNACKStatus(bool enable, int max_packets) override;
++  void SetNACKStatus(bool enable, int maxNumberOfPackets) override;
+   void SetRtcpMode(webrtc::RtcpMode mode) override;
+   void SetNonSenderRttMeasurement(bool enabled) override;
+ 
+@@ -376,8 +350,7 @@ void ChannelReceive::OnReceivedPayloadData(
+   // Push the incoming payload (parsed and ready for decoding) into NetEq.
+   if (payload.empty()) {
+     neteq_->InsertEmptyPacket(rtpHeader);
+-  } else if (neteq_->InsertPacket(rtpHeader, payload,
+-                                  RtpPacketInfo(rtpHeader, receive_time)) < 0) {
++  } else if (neteq_->InsertPacket(rtpHeader, payload, receive_time) < 0) {
+     RTC_DLOG(LS_ERROR) << "ChannelReceive::OnReceivedPayloadData() unable to "
+                           "insert packet into NetEq; PT = "
+                        << static_cast<int>(rtpHeader.payloadType);
+@@ -1202,11 +1175,11 @@ int ChannelReceive::GetRtpTimestampRateHz() const {
+   const auto decoder_format = neteq_->GetCurrentDecoderFormat();
+ 
+   // Default to the playout frequency if we've not gotten any packets yet.
+-  // TODO(ossu): Zero clock rate can only happen if we've added an external
++  // TODO(ossu): Zero clockrate can only happen if we've added an external
+   // decoder for a format we don't support internally. Remove once that way of
+   // adding decoders is gone!
+   // TODO(kwiberg): `decoder_format->sdp_format.clockrate_hz` is an RTP
+-  // clock rate as it should, but `neteq_->last_output_sample_rate_hz()` is a
++  // clockrate as it should, but `neteq_->last_output_sample_rate_hz()` is a
+   // codec sample rate, which is not always the same thing.
+   return (decoder_format && decoder_format->sdp_format.clockrate_hz != 0)
+              ? decoder_format->sdp_format.clockrate_hz
+diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
+index bdc4860716..78bdccfefe 100644
+--- a/modules/audio_coding/BUILD.gn
++++ b/modules/audio_coding/BUILD.gn
+@@ -527,7 +527,6 @@ rtc_library("neteq") {
+     "../../api/neteq:neteq_api",
+     "../../api/neteq:neteq_controller_api",
+     "../../api/neteq:tick_timer",
+-    "../../api/units:time_delta",
+     "../../api/units:timestamp",
+     "../../common_audio",
+     "../../common_audio:common_audio_c",
+diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
+index 5b58057463..6a9371c7f7 100644
+--- a/modules/audio_coding/neteq/neteq_impl.cc
++++ b/modules/audio_coding/neteq/neteq_impl.cc
+@@ -16,28 +16,18 @@
+ #include <list>
+ #include <map>
+ #include <memory>
+-#include <optional>
+ #include <utility>
+ #include <vector>
+ 
+-#include "api/array_view.h"
+ #include "api/audio_codecs/audio_decoder.h"
+-#include "api/audio_codecs/audio_decoder_factory.h"
+-#include "api/audio_codecs/audio_format.h"
+-#include "api/environment/environment.h"
+-#include "api/neteq/neteq.h"
+ #include "api/neteq/neteq_controller.h"
+-#include "api/neteq/neteq_controller_factory.h"
+ #include "api/neteq/tick_timer.h"
+-#include "api/rtp_headers.h"
+-#include "api/rtp_packet_info.h"
+-#include "api/rtp_packet_infos.h"
+-#include "api/scoped_refptr.h"
+-#include "api/units/time_delta.h"
++#include "common_audio/signal_processing/include/signal_processing_library.h"
+ #include "modules/audio_coding/codecs/cng/webrtc_cng.h"
+ #include "modules/audio_coding/neteq/accelerate.h"
+ #include "modules/audio_coding/neteq/background_noise.h"
+ #include "modules/audio_coding/neteq/comfort_noise.h"
++#include "modules/audio_coding/neteq/decision_logic.h"
+ #include "modules/audio_coding/neteq/decoder_database.h"
+ #include "modules/audio_coding/neteq/dtmf_buffer.h"
+ #include "modules/audio_coding/neteq/dtmf_tone_generator.h"
+@@ -58,7 +48,6 @@
+ #include "rtc_base/numerics/safe_conversions.h"
+ #include "rtc_base/sanitizer.h"
+ #include "rtc_base/strings/audio_format_to_string.h"
+-#include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/trace_event.h"
+ #include "system_wrappers/include/clock.h"
+ 
+@@ -184,11 +173,11 @@ NetEqImpl::~NetEqImpl() = default;
+ 
+ int NetEqImpl::InsertPacket(const RTPHeader& rtp_header,
+                             rtc::ArrayView<const uint8_t> payload,
+-                            const RtpPacketInfo& packet_info) {
++                            Timestamp receive_time) {
+   rtc::MsanCheckInitialized(payload);
+   TRACE_EVENT0("webrtc", "NetEqImpl::InsertPacket");
+   MutexLock lock(&mutex_);
+-  if (InsertPacketInternal(rtp_header, payload, packet_info) != 0) {
++  if (InsertPacketInternal(rtp_header, payload, receive_time) != 0) {
+     return kFail;
+   }
+   return kOK;
+@@ -455,7 +444,7 @@ NetEq::Operation NetEqImpl::last_operation_for_test() const {
+ 
+ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
+                                     rtc::ArrayView<const uint8_t> payload,
+-                                    const RtpPacketInfo& packet_info) {
++                                    Timestamp receive_time) {
+   if (payload.empty()) {
+     RTC_LOG_F(LS_ERROR) << "payload is empty";
+     return kInvalidPointer;
+@@ -596,8 +585,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
+         new_packet.priority.codec_level = result.priority;
+         new_packet.priority.red_level = original_priority.red_level;
+         // Only associate the header information with the primary packet.
+-        if (new_packet.timestamp == packet_info.rtp_timestamp()) {
+-          new_packet.packet_info = packet_info;
++        if (new_packet.timestamp == rtp_header.timestamp) {
++          new_packet.packet_info = RtpPacketInfo(rtp_header, receive_time);
+         }
+         new_packet.frame = std::move(result.frame);
+         return new_packet;
+diff --git a/modules/audio_coding/neteq/neteq_impl.h b/modules/audio_coding/neteq/neteq_impl.h
+index 1c356e3d55..86519e37a0 100644
+--- a/modules/audio_coding/neteq/neteq_impl.h
++++ b/modules/audio_coding/neteq/neteq_impl.h
+@@ -11,32 +11,26 @@
+ #ifndef MODULES_AUDIO_CODING_NETEQ_NETEQ_IMPL_H_
+ #define MODULES_AUDIO_CODING_NETEQ_NETEQ_IMPL_H_
+ 
+-#include <cstddef>
+-#include <cstdint>
+ #include <map>
+ #include <memory>
+ #include <optional>
++#include <string>
++#include <utility>
+ #include <vector>
+ 
+-#include "api/array_view.h"
+ #include "api/audio/audio_frame.h"
+-#include "api/audio_codecs/audio_decoder.h"
+-#include "api/audio_codecs/audio_decoder_factory.h"
+-#include "api/audio_codecs/audio_format.h"
+ #include "api/environment/environment.h"
+ #include "api/neteq/neteq.h"
+ #include "api/neteq/neteq_controller.h"
+ #include "api/neteq/neteq_controller_factory.h"
+ #include "api/neteq/tick_timer.h"
+-#include "api/rtp_headers.h"
+ #include "api/rtp_packet_info.h"
+-#include "api/scoped_refptr.h"
++#include "api/units/timestamp.h"
+ #include "modules/audio_coding/neteq/audio_multi_vector.h"
+ #include "modules/audio_coding/neteq/packet.h"
+ #include "modules/audio_coding/neteq/packet_buffer.h"
+ #include "modules/audio_coding/neteq/random_vector.h"
+ #include "modules/audio_coding/neteq/statistics_calculator.h"
+-#include "rtc_base/buffer.h"
+ #include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/thread_annotations.h"
+ 
+@@ -131,17 +125,10 @@ class NetEqImpl : public webrtc::NetEq {
+   NetEqImpl(const NetEqImpl&) = delete;
+   NetEqImpl& operator=(const NetEqImpl&) = delete;
+ 
+-  int InsertPacket(const RTPHeader& rtp_header,
+-                   rtc::ArrayView<const uint8_t> payload) override {
+-    return InsertPacket(
+-        rtp_header, payload,
+-        RtpPacketInfo(rtp_header, /*receive_time=*/Timestamp::MinusInfinity()));
+-  }
+-
+   // Inserts a new packet into NetEq. Returns 0 on success, -1 on failure.
+   int InsertPacket(const RTPHeader& rtp_header,
+                    rtc::ArrayView<const uint8_t> payload,
+-                   const RtpPacketInfo& packet_info) override;
++                   Timestamp receive_time) override;
+ 
+   void InsertEmptyPacket(const RTPHeader& rtp_header) override;
+ 
+@@ -218,7 +205,7 @@ class NetEqImpl : public webrtc::NetEq {
+   // TODO(hlundin): Merge this with InsertPacket above?
+   int InsertPacketInternal(const RTPHeader& rtp_header,
+                            rtc::ArrayView<const uint8_t> payload,
+-                           const RtpPacketInfo& packet_info)
++                           Timestamp receive_time)
+       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+ 
+   // Returns true if the payload type changed (this should be followed by
+@@ -297,7 +284,7 @@ class NetEqImpl : public webrtc::NetEq {
+                    bool fast_accelerate) RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+ 
+   // Sub-method which calls the PreemptiveExpand class to perform the
+-  // preemptive expand operation.
++  // preemtive expand operation.
+   int DoPreemptiveExpand(int16_t* decoded_buffer,
+                          size_t decoded_length,
+                          AudioDecoder::SpeechType speech_type,
+diff --git a/modules/audio_coding/neteq/neteq_impl_unittest.cc b/modules/audio_coding/neteq/neteq_impl_unittest.cc
+index 2d39b30adf..500e18501e 100644
+--- a/modules/audio_coding/neteq/neteq_impl_unittest.cc
++++ b/modules/audio_coding/neteq/neteq_impl_unittest.cc
+@@ -195,7 +195,9 @@ class NetEqImplTest : public ::testing::Test {
+         kPayloadType, SdpAudioFormat("telephone-event", sample_rate_hz, 1)));
+ 
+     // Insert first packet.
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+ 
+     // Pull audio once.
+     const size_t kMaxOutputSize =
+@@ -372,12 +374,14 @@ TEST_F(NetEqImplTest, InsertPacket) {
+   }
+ 
+   // Insert first packet.
+-  neteq_->InsertPacket(rtp_header, payload);
++  neteq_->InsertPacket(rtp_header, payload,
++                       /*receive_time=*/clock_.CurrentTime());
+ 
+   // Insert second packet.
+   rtp_header.timestamp += 160;
+   rtp_header.sequenceNumber += 1;
+-  neteq_->InsertPacket(rtp_header, payload);
++  neteq_->InsertPacket(rtp_header, payload,
++                       /*receive_time=*/clock_.CurrentTime());
  }
  
-+TEST(VideoRtpDepacketizerH264Test, EmptyNaluPayload) {
-+  const uint8_t kPayload[] = {
-+      0x10,  // End of sequence.
-+  };
-+  VideoRtpDepacketizerH264 depacketizer;
-+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
-+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
-+  ASSERT_TRUE(parsed);
-+}
-+
- }  // namespace
- }  // namespace webrtc
+ TEST_F(NetEqImplTest, CountStatsAfterFirstDecodedPacket) {
+@@ -402,7 +406,7 @@ TEST_F(NetEqImplTest, CountStatsAfterFirstDecodedPacket) {
+     EXPECT_EQ(neteq_->GetLifetimeStatistics().concealed_samples, 0u);
+     EXPECT_EQ(neteq_->GetLifetimeStatistics().total_samples_received, 0u);
+   }
+-  neteq_->InsertPacket(rtp_header, payload);
++  neteq_->InsertPacket(rtp_header, payload, clock_.CurrentTime());
+   neteq_->GetAudio(&frame);
+   EXPECT_EQ(neteq_->GetLifetimeStatistics().concealed_samples, 0u);
+   EXPECT_EQ(neteq_->GetLifetimeStatistics().total_samples_received,
+@@ -428,7 +432,9 @@ TEST_F(NetEqImplTest, InsertPacketsUntilBufferIsFull) {
+ 
+   // Insert packets. The buffer should not flush.
+   for (size_t i = 1; i <= config_.max_packets_in_buffer; ++i) {
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+     rtp_header.timestamp += kPayloadLengthSamples;
+     rtp_header.sequenceNumber += 1;
+     EXPECT_EQ(i, packet_buffer_->NumPacketsInBuffer());
+@@ -436,7 +442,9 @@ TEST_F(NetEqImplTest, InsertPacketsUntilBufferIsFull) {
+ 
+   // Insert one more packet and make sure the buffer got flushed. That is, it
+   // should only hold one single packet.
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+   EXPECT_EQ(1u, packet_buffer_->NumPacketsInBuffer());
+   const Packet* test_packet = packet_buffer_->PeekNextPacket();
+   EXPECT_EQ(rtp_header.timestamp, test_packet->timestamp);
+@@ -521,9 +529,9 @@ TEST_F(NetEqImplTest, VerifyTimestampPropagation) {
+ 
+   // Insert one packet.
+   clock_.AdvanceTimeMilliseconds(123456);
+-  RtpPacketInfo expected_packet_info(rtp_header, clock_.CurrentTime());
++  Timestamp expected_receive_time = clock_.CurrentTime();
+   EXPECT_EQ(NetEq::kOK,
+-            neteq_->InsertPacket(rtp_header, payload, expected_packet_info));
++            neteq_->InsertPacket(rtp_header, payload, expected_receive_time));
+ 
+   // Pull audio once.
+   const size_t kMaxOutputSize = static_cast<size_t>(10 * kSampleRateHz / 1000);
+@@ -537,7 +545,14 @@ TEST_F(NetEqImplTest, VerifyTimestampPropagation) {
+ 
+   // Verify `output.packet_infos_`.
+   ASSERT_THAT(output.packet_infos_, SizeIs(1));
+-  EXPECT_EQ(output.packet_infos_[0], expected_packet_info);
++  {
++    const auto& packet_info = output.packet_infos_[0];
++    EXPECT_EQ(packet_info.ssrc(), rtp_header.ssrc);
++    EXPECT_THAT(packet_info.csrcs(), ElementsAre(43, 65, 17));
++    EXPECT_EQ(packet_info.rtp_timestamp(), rtp_header.timestamp);
++    EXPECT_FALSE(packet_info.audio_level().has_value());
++    EXPECT_EQ(packet_info.receive_time(), expected_receive_time);
++  }
+ 
+   // Start with a simple check that the fake decoder is behaving as expected.
+   EXPECT_EQ(kPayloadLengthSamples,
+@@ -609,10 +624,10 @@ TEST_F(NetEqImplTest, ReorderedPacket) {
+ 
+   // Insert one packet.
+   clock_.AdvanceTimeMilliseconds(123456);
+-  RtpPacketInfo expected_packet_info =
+-      RtpPacketInfo(rtp_header, /*receive_time=*/clock_.CurrentTime());
++  Timestamp expected_receive_time = clock_.CurrentTime();
+   EXPECT_EQ(NetEq::kOK,
+-            neteq_->InsertPacket(rtp_header, payload, expected_packet_info));
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   // Pull audio once.
+   const size_t kMaxOutputSize = static_cast<size_t>(10 * kSampleRateHz / 1000);
+@@ -625,7 +640,15 @@ TEST_F(NetEqImplTest, ReorderedPacket) {
+ 
+   // Verify `output.packet_infos_`.
+   ASSERT_THAT(output.packet_infos_, SizeIs(1));
+-  EXPECT_EQ(output.packet_infos_[0], expected_packet_info);
++  {
++    const auto& packet_info = output.packet_infos_[0];
++    EXPECT_EQ(packet_info.ssrc(), rtp_header.ssrc);
++    EXPECT_THAT(packet_info.csrcs(), IsEmpty());
++    EXPECT_EQ(packet_info.rtp_timestamp(), rtp_header.timestamp);
++    EXPECT_EQ(packet_info.audio_level(),
++              rtp_header.extension.audio_level()->level());
++    EXPECT_EQ(packet_info.receive_time(), expected_receive_time);
++  }
+ 
+   // Insert two more packets. The first one is out of order, and is already too
+   // old, the second one is the expected next packet.
+@@ -634,16 +657,18 @@ TEST_F(NetEqImplTest, ReorderedPacket) {
+   rtp_header.extension.set_audio_level(AudioLevel(/*voice_activity=*/false, 1));
+   payload[0] = 1;
+   clock_.AdvanceTimeMilliseconds(1000);
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+   rtp_header.sequenceNumber += 2;
+   rtp_header.timestamp += 2 * kPayloadLengthSamples;
+   rtp_header.extension.set_audio_level(AudioLevel(/*voice_activity=*/false, 2));
+   payload[0] = 2;
+   clock_.AdvanceTimeMilliseconds(2000);
+-  expected_packet_info =
+-      RtpPacketInfo(rtp_header, /*receive_time=*/clock_.CurrentTime());
++  expected_receive_time = clock_.CurrentTime();
+   EXPECT_EQ(NetEq::kOK,
+-            neteq_->InsertPacket(rtp_header, payload, expected_packet_info));
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   // Expect only the second packet to be decoded (the one with "2" as the first
+   // payload byte).
+@@ -669,7 +694,15 @@ TEST_F(NetEqImplTest, ReorderedPacket) {
+ 
+   // Verify `output.packet_infos_`. Expect to only see the second packet.
+   ASSERT_THAT(output.packet_infos_, SizeIs(1));
+-  EXPECT_EQ(output.packet_infos_[0], expected_packet_info);
++  {
++    const auto& packet_info = output.packet_infos_[0];
++    EXPECT_EQ(packet_info.ssrc(), rtp_header.ssrc);
++    EXPECT_THAT(packet_info.csrcs(), IsEmpty());
++    EXPECT_EQ(packet_info.rtp_timestamp(), rtp_header.timestamp);
++    EXPECT_EQ(packet_info.audio_level(),
++              rtp_header.extension.audio_level()->level());
++    EXPECT_EQ(packet_info.receive_time(), expected_receive_time);
++  }
+ 
+   EXPECT_CALL(mock_decoder, Die());
+ }
+@@ -694,7 +727,9 @@ TEST_F(NetEqImplTest, FirstPacketUnknown) {
+ 
+   // Insert one packet. Note that we have not registered any payload type, so
+   // this packet will be rejected.
+-  EXPECT_EQ(NetEq::kFail, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kFail,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   // Pull audio once.
+   const size_t kMaxOutputSize = static_cast<size_t>(10 * kSampleRateHz / 1000);
+@@ -715,7 +750,9 @@ TEST_F(NetEqImplTest, FirstPacketUnknown) {
+   for (size_t i = 0; i < 10; ++i) {
+     rtp_header.sequenceNumber++;
+     rtp_header.timestamp += kPayloadLengthSamples;
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+     EXPECT_EQ(i + 1, packet_buffer_->NumPacketsInBuffer());
+   }
+ 
+@@ -787,7 +824,8 @@ TEST_F(NetEqImplTest, InsertRedPayload) {
+   header.extension.set_audio_level(AudioLevel(/*voice_activity=*/false, 12));
+   header.numCSRCs = 1;
+   header.arrOfCSRCs[0] = 123;
+-  neteq_->InsertPacket(header, payload);
++  neteq_->InsertPacket(header, payload,
++                       /*receive_time=*/clock_.CurrentTime());
+   AudioFrame frame;
+   bool muted;
+   neteq_->GetAudio(&frame, &muted);
+@@ -885,7 +923,9 @@ TEST_P(NetEqImplTestSampleRateParameter,
+   auto insert_packet = [&]() {
+     rtp_header.sequenceNumber++;
+     rtp_header.timestamp += kPayloadLengthSamples;
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+   };
+   // Insert 10 packets.
+   for (size_t i = 0; i < 10; ++i) {
+@@ -969,7 +1009,9 @@ TEST_P(NetEqImplTestSampleRateParameter, AudioInterruptionLogged) {
+   auto insert_packet = [&]() {
+     rtp_header.sequenceNumber++;
+     rtp_header.timestamp += kPayloadLengthSamples;
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+   };
+   // Insert 10 packets.
+   for (size_t i = 0; i < 10; ++i) {
+@@ -1043,7 +1085,9 @@ TEST_P(NetEqImplTestSdpFormatParameter, GetNackListScaledTimestamp) {
+     rtp_header.sequenceNumber++;
+     rtp_header.timestamp += kPayloadLengthSamples;
+     if (!lost)
+-      EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++      EXPECT_EQ(NetEq::kOK,
++                neteq_->InsertPacket(rtp_header, payload,
++                                     /*receive_time=*/clock_.CurrentTime()));
+   };
+ 
+   // Insert and decode 10 packets.
+@@ -1132,7 +1176,9 @@ TEST_F(NetEqImplTest, CodecInternalCng) {
+     rtp_header.sequenceNumber += packets[i].sequence_number_delta;
+     rtp_header.timestamp += packets[i].timestamp_delta;
+     payload[0] = i;
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+ 
+     // Pointee(x) verifies that first byte of the payload equals x, this makes
+     // it possible to verify that the correct payload is fed to Decode().
+@@ -1230,7 +1276,9 @@ TEST_F(NetEqImplTest, UnsupportedDecoder) {
+ 
+   // Insert one packet.
+   payload[0] = kFirstPayloadValue;  // This will make Decode() fail.
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   // Insert another packet.
+   payload[0] = kSecondPayloadValue;  // This will make Decode() successful.
+@@ -1238,7 +1286,9 @@ TEST_F(NetEqImplTest, UnsupportedDecoder) {
+   // The second timestamp needs to be at least 30 ms after the first to make
+   // the second packet get decoded.
+   rtp_header.timestamp += 3 * kPayloadLengthSamples;
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   AudioFrame output;
+   bool muted;
+@@ -1291,7 +1341,9 @@ TEST_F(NetEqImplTest, FloodBufferAndGetNetworkStats) {
+   // Insert packets until the buffer flushes.
+   for (size_t i = 0; i <= config_.max_packets_in_buffer; ++i) {
+     EXPECT_EQ(i, packet_buffer_->NumPacketsInBuffer());
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+     rtp_header.timestamp += rtc::checked_cast<uint32_t>(kPayloadLengthSamples);
+     ++rtp_header.sequenceNumber;
+   }
+@@ -1343,7 +1395,9 @@ TEST_F(NetEqImplTest, DecodedPayloadTooShort) {
+                                           SdpAudioFormat("L16", 8000, 1)));
+ 
+   // Insert one packet.
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ 
+   EXPECT_EQ(5u, neteq_->sync_buffer_for_test()->FutureLength());
+ 
+@@ -1435,7 +1489,9 @@ TEST_F(NetEqImplTest, DecodingError) {
+   for (int i = 0; i < 20; ++i) {
+     rtp_header.sequenceNumber += 1;
+     rtp_header.timestamp += kFrameLengthSamples;
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+   }
+ 
+   // Pull audio.
+@@ -1560,7 +1616,9 @@ TEST_F(NetEqImplTest, NotifyControllerOfReorderedPacket) {
+ 
+   EXPECT_TRUE(neteq_->RegisterPayloadType(kPayloadType,
+                                           SdpAudioFormat("l16", 8000, 1)));
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+   AudioFrame output;
+   bool muted;
+   EXPECT_EQ(NetEq::kOK, neteq_->GetAudio(&output, &muted));
+@@ -1582,7 +1640,9 @@ TEST_F(NetEqImplTest, NotifyControllerOfReorderedPacket) {
+               Field(&NetEqController::PacketArrivedInfo::main_timestamp,
+                     rtp_header.timestamp))));
+ 
+-  EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++  EXPECT_EQ(NetEq::kOK,
++            neteq_->InsertPacket(rtp_header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()));
+ }
+ 
+ // When using a codec with 1000 channels, there should be no crashes.
+@@ -1636,7 +1696,8 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
+       }));
+ 
+   // Insert first packet.
+-  neteq_->InsertPacket(rtp_header, payload);
++  neteq_->InsertPacket(rtp_header, payload,
++                       /*receive_time=*/clock_.CurrentTime());
+ 
+   AudioFrame audio_frame;
+   bool muted;
+@@ -1665,12 +1726,16 @@ TEST_F(NetEqImplTest, CngFirstThenSpeechWithNewSampleRate) {
+   header.payloadType = kCnPayloadType;
+   uint8_t payload[320] = {0};
+ 
+-  EXPECT_EQ(neteq_->InsertPacket(header, payload), NetEq::kOK);
++  EXPECT_EQ(neteq_->InsertPacket(header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()),
++            NetEq::kOK);
+   EXPECT_EQ(neteq_->GetLifetimeStatistics().packets_discarded, 0u);
+ 
+   header.payloadType = kSpeechPayloadType;
+   header.timestamp += 160;
+-  EXPECT_EQ(neteq_->InsertPacket(header, payload), NetEq::kOK);
++  EXPECT_EQ(neteq_->InsertPacket(header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()),
++            NetEq::kOK);
+   // CN packet should be discarded, since it does not match the
+   // new speech sample rate.
+   EXPECT_EQ(neteq_->GetLifetimeStatistics().packets_discarded, 1u);
+@@ -1702,7 +1767,9 @@ TEST_F(NetEqImplTest, InsertPacketChangePayloadType) {
+       neteq_->GetCurrentDecoderFormat();
+   EXPECT_FALSE(decoder.has_value());
+ 
+-  EXPECT_EQ(neteq_->InsertPacket(header, payload), NetEq::kOK);
++  EXPECT_EQ(neteq_->InsertPacket(header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()),
++            NetEq::kOK);
+   EXPECT_EQ(neteq_->GetLifetimeStatistics().packets_discarded, 0u);
+   decoder = neteq_->GetCurrentDecoderFormat();
+   ASSERT_TRUE(decoder.has_value());
+@@ -1711,7 +1778,9 @@ TEST_F(NetEqImplTest, InsertPacketChangePayloadType) {
+ 
+   header.payloadType = kPcmaPayloadType;
+   header.timestamp += 80;
+-  EXPECT_EQ(neteq_->InsertPacket(header, payload), NetEq::kOK);
++  EXPECT_EQ(neteq_->InsertPacket(header, payload,
++                                 /*receive_time=*/clock_.CurrentTime()),
++            NetEq::kOK);
+   decoder = neteq_->GetCurrentDecoderFormat();
+   ASSERT_TRUE(decoder.has_value());
+   EXPECT_EQ(decoder->payload_type, kPcmaPayloadType);
+@@ -1801,7 +1870,9 @@ class NetEqImplTest120ms : public NetEqImplTest {
+     rtp_header.ssrc = 15;
+     const size_t kPayloadLengthBytes = 1;  // This can be arbitrary.
+     uint8_t payload[kPayloadLengthBytes] = {0};
+-    EXPECT_EQ(NetEq::kOK, neteq_->InsertPacket(rtp_header, payload));
++    EXPECT_EQ(NetEq::kOK,
++              neteq_->InsertPacket(rtp_header, payload,
++                                   /*receive_time=*/clock_.CurrentTime()));
+     sequence_number_++;
+   }
+ 
