@@ -1264,21 +1264,23 @@ bool H265::CompareExtraData(const mozilla::MediaByteBuffer* aExtraData1,
     return true;
   }
 
-  auto config1 = HVCCConfig::Parse(aExtraData1);
-  auto config2 = HVCCConfig::Parse(aExtraData2);
-  if (config1.isErr() || config2.isErr()) {
+  auto rv1 = HVCCConfig::Parse(aExtraData1);
+  auto rv2 = HVCCConfig::Parse(aExtraData2);
+  if (rv1.isErr() || rv2.isErr()) {
     return false;
   }
 
-  uint8_t numSPS = config1.unwrap().NumSPS();
-  if (numSPS == 0 || numSPS != config2.unwrap().NumSPS()) {
+  const auto config1 = rv1.unwrap();
+  const auto config2 = rv2.unwrap();
+  uint8_t numSPS = config1.NumSPS();
+  if (numSPS == 0 || numSPS != config2.NumSPS()) {
     return false;
   }
 
   // We only compare if the SPS are the same as the various HEVC decoders can
   // deal with in-band change of PPS.
-  SPSIterator it1(config1.unwrap());
-  SPSIterator it2(config2.unwrap());
+  SPSIterator it1(config1);
+  SPSIterator it2(config2);
   while (it1 && it2) {
     const H265NALU* nalu1 = *it1;
     const H265NALU* nalu2 = *it2;
