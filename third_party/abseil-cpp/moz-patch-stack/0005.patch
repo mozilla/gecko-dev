@@ -31,7 +31,7 @@ index 00000000000..648423a128f
 +}
 +
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 93ea12cd7a5..8fbdcf0a8d1 100644
+index b19ac75675a..ff2ff91cfa4 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -34,8 +34,8 @@ template("absl_source_set") {
@@ -44,8 +44,8 @@ index 93ea12cd7a5..8fbdcf0a8d1 100644
 +        "//abseil-cpp:absl_define_config",
        ]
  
-       if (is_component_build) {
-@@ -49,7 +49,7 @@ template("absl_source_set") {
+       if (!defined(defines)) {
+@@ -52,7 +52,7 @@ template("absl_source_set") {
        if (!defined(public_configs)) {
          public_configs = []
        }
@@ -54,7 +54,7 @@ index 93ea12cd7a5..8fbdcf0a8d1 100644
  
        if (!defined(visibility)) {
          # Within Chromium builds, restrict direct visibility of Abseil sources, so
-@@ -87,6 +87,7 @@ template("absl_source_set") {
+@@ -80,6 +80,7 @@ template("absl_source_set") {
          }
        }
      }
@@ -62,7 +62,7 @@ index 93ea12cd7a5..8fbdcf0a8d1 100644
    }
  }
  
-@@ -100,15 +101,15 @@ template("absl_test") {
+@@ -93,15 +94,15 @@ template("absl_test") {
        configs -= [ "//build/config/compiler:chromium_code" ]
        configs += [
          "//build/config/compiler:no_chromium_code",
@@ -83,10 +83,10 @@ index 93ea12cd7a5..8fbdcf0a8d1 100644
        visibility = [ "//third_party/abseil-cpp/:*" ]
        deps += [
 diff --git a/abseil-cpp/absl/random/internal/BUILD.gn b/abseil-cpp/absl/random/internal/BUILD.gn
-index 21d28b97adb..1d202726bf0 100644
+index c30fbfd8943..85fd64e95b8 100644
 --- a/abseil-cpp/absl/random/internal/BUILD.gn
 +++ b/abseil-cpp/absl/random/internal/BUILD.gn
-@@ -242,6 +242,7 @@ absl_source_set("randen_hwaes_impl") {
+@@ -243,6 +243,7 @@ absl_source_set("randen_hwaes_impl") {
    visibility = [ "//third_party/abseil-cpp/absl/random/*" ]
  }
  
@@ -94,7 +94,7 @@ index 21d28b97adb..1d202726bf0 100644
  executable("gaussian_distribution_gentables") {
    sources = [ "gaussian_distribution_gentables.cc" ]
    deps = [
-@@ -250,6 +251,7 @@ executable("gaussian_distribution_gentables") {
+@@ -251,6 +252,7 @@ executable("gaussian_distribution_gentables") {
    ]
    visibility = [ "//third_party/abseil-cpp/absl/random/*" ]
  }

@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c4cbc65577ab4012d
  1 file changed, 1 insertion(+)
 
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index f7b547f0fc8..f514488f4ec 100644
+index 06515e0e805..f13ae7919ca 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
-@@ -97,6 +97,7 @@ template("absl_source_set") {
+@@ -90,6 +90,7 @@ template("absl_source_set") {
          modified_deps = []
          foreach (dep, deps) {
            newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")

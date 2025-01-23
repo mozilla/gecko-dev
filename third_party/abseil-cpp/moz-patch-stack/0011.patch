@@ -7,7 +7,7 @@ Subject: Bug 1942917 - Avoid trying to link getauxval as a hidden symbol.
  1 file changed, 1 insertion(+)
 
 diff --git a/abseil-cpp/absl/random/internal/randen_detect.cc b/abseil-cpp/absl/random/internal/randen_detect.cc
-index bdeab877b98e6..518026d65c9eb 100644
+index bdeab877b98..518026d65c9 100644
 --- a/abseil-cpp/absl/random/internal/randen_detect.cc
 +++ b/abseil-cpp/absl/random/internal/randen_detect.cc
 @@ -63,6 +63,7 @@ static void __cpuid(int cpu_info[4], int info_type) {
@@ -18,4 +18,3 @@ index bdeab877b98e6..518026d65c9eb 100644
  extern "C" unsigned long getauxval(unsigned long type);  // NOLINT(runtime/int)
  
  static uint32_t GetAuxval(uint32_t hwcap_type) {
-

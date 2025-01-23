@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9cf7afd94407318bb
  2 files changed, 18 insertions(+), 18 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 509010d3a45..e924e997604 100644
+index 2474ca7fd2e..90cb271d6cd 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,7 +56,6 @@ component("absl") {
@@ -66,10 +66,10 @@ index 509010d3a45..e924e997604 100644
  
  # Some third-party libraries use additional parts of absl that are banned in
 diff --git a/abseil-cpp/absl/random/internal/BUILD.gn b/abseil-cpp/absl/random/internal/BUILD.gn
-index 1d202726bf0..b4a56a9d595 100644
+index 85fd64e95b8..da8a22f486e 100644
 --- a/abseil-cpp/absl/random/internal/BUILD.gn
 +++ b/abseil-cpp/absl/random/internal/BUILD.gn
-@@ -187,6 +187,11 @@ absl_source_set("platform") {
+@@ -188,6 +188,11 @@ absl_source_set("platform") {
      "//third_party/abseil-cpp/absl/base:config",
    ]
    visibility = [ "//third_party/abseil-cpp/absl/random/*" ]

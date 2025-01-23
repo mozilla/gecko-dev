@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad
  2 files changed, 22 insertions(+), 3 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 9cd65d2f117..c90236b2668 100644
+index b1ada6e828c..2ac91cd9f07 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -26,7 +26,7 @@ component("absl") {
@@ -80,7 +80,7 @@ index 9cd65d2f117..c90236b2668 100644
    if (is_component_build) {
      public_deps += [ ":absl_full_deps" ]
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index d0833315101..93ea12cd7a5 100644
+index 48e1ce78384..b19ac75675a 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -21,6 +21,7 @@ import("//build_overrides/build.gni")

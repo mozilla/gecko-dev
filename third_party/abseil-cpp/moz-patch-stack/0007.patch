@@ -29,7 +29,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index c90236b2668..7404fb5e44d 100644
+index 2ac91cd9f07..d61c84ce559 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@
@@ -48,7 +48,7 @@ index c90236b2668..7404fb5e44d 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index e230d0a5cc0..f7b547f0fc8 100644
+index 1213d0e0bb0..06515e0e805 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -30,10 +30,10 @@ template("absl_source_set") {
@@ -65,9 +65,9 @@ index e230d0a5cc0..f7b547f0fc8 100644
          "//abseil-cpp:absl_default_cflags_cc",
          "//abseil-cpp:absl_define_config",
        ]
-@@ -41,8 +41,8 @@ template("absl_source_set") {
+@@ -44,8 +44,8 @@ template("absl_source_set") {
        if (is_component_build) {
-         defines = [ "ABSL_BUILD_DLL" ]
+         defines += [ "ABSL_BUILD_DLL" ]
          if (!is_win && current_os != "aix") {
 -          configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
 -          configs += [ "//build/config/gcc:symbol_visibility_default" ]
@@ -76,7 +76,7 @@ index e230d0a5cc0..f7b547f0fc8 100644
          }
        }
  
-@@ -135,9 +135,9 @@ template("absl_test") {
+@@ -128,9 +128,9 @@ template("absl_test") {
      } else {
        forward_variables_from(invoker, "*")
        testonly = true
@@ -89,7 +89,7 @@ index e230d0a5cc0..f7b547f0fc8 100644
          "//abseil-cpp:absl_define_config",
          "//abseil-cpp:absl_test_config",
 diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
-index 1d7f14442f2..3eb735f7472 100644
+index f568e092f79..d848aafc0bd 100644
 --- a/abseil-cpp/absl/debugging/BUILD.gn
 +++ b/abseil-cpp/absl/debugging/BUILD.gn
 @@ -2,7 +2,7 @@

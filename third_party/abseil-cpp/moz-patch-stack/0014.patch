@@ -12,7 +12,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/828151aa9455ccbfe
  2 files changed, 8 insertions(+)
 
 diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
-index 3eb735f7472..c54dd20c9ad 100644
+index d848aafc0bd..b920da6000d 100644
 --- a/abseil-cpp/absl/debugging/BUILD.gn
 +++ b/abseil-cpp/absl/debugging/BUILD.gn
 @@ -184,6 +184,9 @@ absl_test("decode_rust_punycode_test") {

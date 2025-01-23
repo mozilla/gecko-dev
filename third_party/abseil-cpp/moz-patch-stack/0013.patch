@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a248ecb7e0fa939cc
  1 file changed, 2 insertions(+)
 
 diff --git a/abseil-cpp/absl/base/config.h b/abseil-cpp/absl/base/config.h
-index ab1e9860a91..f57c18bb479 100644
+index 58077a2c58f..0e4c31cf0d3 100644
 --- a/abseil-cpp/absl/base/config.h
 +++ b/abseil-cpp/absl/base/config.h
 @@ -739,6 +739,7 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
