@@ -37,6 +37,13 @@ add_task(async function test_toggle_collapse_close_button() {
   );
   is(computedStyle.opacity, "1", "The active tab is showing the close button.");
 
+  // Move mouse away from tabstrip to ensure we don't show the close button.
+  EventUtils.synthesizeMouseAtCenter(
+    document.getElementById("tabbrowser-tabbox"),
+    { type: "mouseover" }
+  );
+  await TestUtils.waitForTick();
+
   computedStyle = window.getComputedStyle(
     firstTab.querySelector(".tab-close-button")
   );
