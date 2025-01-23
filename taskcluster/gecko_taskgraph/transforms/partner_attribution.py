@@ -107,40 +107,44 @@ def add_command_arguments(config, tasks):
 
 def _get_attributed_build_configuration(task, partner_config, platform, locale):
     stage_platform = platform.replace("-shippable", "")
+    artifact_file_name = _get_artifact_file_name(platform)
+
     output_artifact = _get_output_path(
-        get_artifact_prefix(task), partner_config, platform, locale
+        get_artifact_prefix(task), partner_config, platform, locale, artifact_file_name
     )
     return {
         "fetch_config": (
-            _get_upstream_artifact_path(platform, locale),
+            _get_upstream_artifact_path(artifact_file_name, locale),
             stage_platform,
             locale,
         ),
-        "input_path": _get_input_path(stage_platform, platform, locale),
+        "input_path": _get_input_path(stage_platform, locale, artifact_file_name),
         "output_path": "/builds/worker/artifacts/{}".format(output_artifact),
         "release_artifact": output_artifact,
         "upstream_label": _get_upstream_task_label(platform, locale),
     }
 
 
-def _get_input_path(stage_platform, platform, locale):
+def _get_input_path(stage_platform, locale, artifact_file_name):
     return (
         "/builds/worker/fetches/{stage_platform}/{locale}/{artifact_file_name}".format(
             stage_platform=stage_platform,
             locale=locale,
-            artifact_file_name=_get_artifact_file_name(platform),
+            artifact_file_name=artifact_file_name,
         )
     )
 
 
-def _get_output_path(artifact_prefix, partner_config, platform, locale):
+def _get_output_path(
+    artifact_prefix, partner_config, platform, locale, artifact_file_name
+):
     return "{artifact_prefix}/{partner}/{sub_partner}/{ftp_platform}/{locale}/{artifact_file_name}".format(
         artifact_prefix=artifact_prefix,
         partner=partner_config["campaign"],
         sub_partner=partner_config["content"],
         ftp_platform=get_ftp_platform(platform),
         locale=locale,
-        artifact_file_name=_get_artifact_file_name(platform),
+        artifact_file_name=artifact_file_name,
     )
 
 
@@ -180,8 +184,7 @@ def _get_upstream_task_label(platform, locale):
     return upstream_label
 
 
-def _get_upstream_artifact_path(platform, locale):
-    artifact_file_name = _get_artifact_file_name(platform)
+def _get_upstream_artifact_path(artifact_file_name, locale):
     return (
         artifact_file_name
         if locale == "en-US"
