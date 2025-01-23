@@ -595,23 +595,6 @@ void NotificationController::ProcessMutationEvents() {
       }
     }
 
-    // Fire menupopup end event before a hide event if a menu goes away.
-
-    // XXX: We don't look into children of hidden subtree to find hiding
-    // menupopup (as we did prior bug 570275) because we don't do that when
-    // menu is showing (and that's impossible until bug 606924 is fixed).
-    // Nevertheless we should do this at least because layout coalesces
-    // the changes before our processing and we may miss some menupopup
-    // events. Now we just want to be consistent in content insertion/removal
-    // handling.
-    if (event->mAccessible->ARIARole() == roles::MENUPOPUP) {
-      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                              event->mAccessible);
-      if (!mDocument) {
-        return;
-      }
-    }
-
     AccHideEvent* hideEvent = downcast_accEvent(event);
     if (hideEvent->NeedsShutdown()) {
       mDocument->ShutdownChildrenInSubtree(event->mAccessible);

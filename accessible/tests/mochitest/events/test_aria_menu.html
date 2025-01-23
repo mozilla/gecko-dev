@@ -72,8 +72,8 @@
       this.menu = null;
 
       this.eventSeq = [
-        new invokerChecker(EVENT_HIDE, getMenu, this),
         new invokerChecker(EVENT_MENUPOPUP_END, getMenu, this),
+        new invokerChecker(EVENT_HIDE, getMenu, this),
         new invokerChecker(EVENT_REORDER, getNode(aParentMenuID)),
       ];
 

@@ -2839,17 +2839,26 @@ void DocAccessible::CacheChildrenInSubtree(LocalAccessible* aRoot,
     return;
   }
 
-  // XXX: we should delay document load complete event if the ARIA document
-  // has aria-busy.
   roles::Role role = aRoot->ARIARole();
-  if (!aRoot->IsDoc() &&
-      (role == roles::DIALOG || role == roles::NON_NATIVE_DOCUMENT)) {
-    FireDelayedEvent(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE, aRoot);
+  if (!aRoot->IsDoc()) {
+    if (role == roles::DIALOG || role == roles::NON_NATIVE_DOCUMENT) {
+      // XXX: we should delay document load complete event if the ARIA document
+      // has aria-busy.
+      FireDelayedEvent(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE, aRoot);
+    } else if (role == roles::MENUPOPUP && HasLoadState(eCompletelyLoaded)) {
+      FireDelayedEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START, aRoot);
+    } else if (role == roles::ALERT && HasLoadState(eCompletelyLoaded)) {
+      FireDelayedEvent(nsIAccessibleEvent::EVENT_ALERT, aRoot);
+    }
   }
 }
 
 void DocAccessible::UncacheChildrenInSubtree(LocalAccessible* aRoot) {
   MaybeFireEventsForChangedPopover(aRoot);
+  if (aRoot->ARIARole() == roles::MENUPOPUP) {
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, aRoot);
+  }
+
   aRoot->mStateFlags |= eIsNotInDocument;
   RemoveDependentIDsFor(aRoot);
   RemoveDependentElementsFor(aRoot);
