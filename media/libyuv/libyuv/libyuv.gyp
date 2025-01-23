@@ -82,16 +82,6 @@
                 '-ffat-lto-objects',
               ],
             }],
-            # arm64 does not need -mfpu=neon option as neon is not optional
-            ['target_arch != "arm64"', {
-              'cflags': [
-                '-mfpu=neon',
-                # '-marm',  # arm32 not thumb
-              ],
-              'cflags_mozilla': [
-                '-mfpu=neon',
-              ],
-            }],
           ],
         }],
         ['build_msa != 0', {
@@ -207,6 +197,16 @@
         ['target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
           'cflags_mozilla': [
             '-march=armv8.2-a+dotprod+i8mm',
+          ],
+        }],
+        # arm64 does not need -mfpu=neon option as neon is not optional
+        ['target_arch != "arm64"', {
+          'cflags': [
+            '-mfpu=neon',
+            # '-marm',  # arm32 not thumb
+          ],
+          'cflags_mozilla': [
+            '-mfpu=neon',
           ],
         }],
         ['build_neon != 0', {
