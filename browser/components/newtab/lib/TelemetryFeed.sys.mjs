@@ -51,6 +51,7 @@ export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
 const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_SHOW_SPONSORED_STORIES = "showSponsored";
 const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
+const BLANK_HOMEPAGE_URL = "chrome://browser/content/blanktab.html";
 
 // This is a mapping table between the user preferences and its encoding code
 export const USER_PREFS_ENCODING = {
@@ -839,7 +840,9 @@ export class TelemetryFeed {
 
       const homePageURL = lazy.HomePage.get();
       if (
-        !["about:home", "about:blank"].includes(homePageURL) &&
+        !["about:home", "about:blank", BLANK_HOMEPAGE_URL].includes(
+          homePageURL
+        ) &&
         !homePageURL.startsWith("moz-extension://")
       ) {
         value.home_url_category = await this._classifySite(homePageURL);
