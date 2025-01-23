@@ -58,6 +58,10 @@ window.addEventListener(
     );
 
     document
+      .getElementById("key_close")
+      .addEventListener("command", event => Preferences.close(event));
+
+    document
       .getElementById("disableProxyExtension")
       .addEventListener(
         "command",
@@ -65,6 +69,14 @@ window.addEventListener(
           gConnectionsDialog
         )
       );
+    document
+      .getElementById("networkProxyAutoconfigURL")
+      .addEventListener("input", () => gConnectionsDialog.updateReloadButton());
+    document
+      .getElementById("autoReload")
+      .addEventListener("command", () => gConnectionsDialog.reloadPAC());
+
+    gConnectionsDialog.checkForSystemProxy();
     gConnectionsDialog.updateProxySettingsUI();
     initializeProxyUI(gConnectionsDialog);
     gConnectionsDialog.registerSyncPrefListeners();

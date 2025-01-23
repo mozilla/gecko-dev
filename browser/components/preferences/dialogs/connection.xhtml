@@ -11,7 +11,7 @@
   data-l10n-id="connection-window2"
   data-l10n-attrs="title, style"
   persist="lastSelected"
-  onload="gConnectionsDialog.checkForSystemProxy();"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     id="ConnectionsDialog"
@@ -40,9 +40,9 @@
 
     <keyset>
       <key
+        id="key_close"
         data-l10n-id="connection-close-key"
         modifiers="accel"
-        oncommand="Preferences.close(event)"
       />
     </keyset>
 
@@ -217,12 +217,10 @@
             type="text"
             style="flex: 1"
             preference="network.proxy.autoconfig_url"
-            oninput="gConnectionsDialog.updateReloadButton();"
           />
           <button
             id="autoReload"
             data-l10n-id="connection-proxy-reload"
-            oncommand="gConnectionsDialog.reloadPAC();"
             preference="pref.advanced.proxies.disable_button.reload"
           />
         </hbox>
