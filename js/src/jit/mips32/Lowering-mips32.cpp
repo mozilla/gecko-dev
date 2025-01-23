@@ -76,8 +76,8 @@ void LIRGenerator::visitUnbox(MUnbox* unbox) {
   ensureDefined(inner);
 
   if (IsFloatingPointType(unbox->type())) {
-    LUnboxFloatingPoint* lir =
-        new (alloc()) LUnboxFloatingPoint(useBox(inner), unbox->type());
+    MOZ_ASSERT(unbox->type() == MIRType::Double);
+    auto* lir = new (alloc()) LUnboxFloatingPoint(useBox(inner));
     if (unbox->fallible()) {
       assignSnapshot(lir, unbox->bailoutKind());
     }

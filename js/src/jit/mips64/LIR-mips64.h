@@ -31,15 +31,11 @@ class LUnbox : public LInstructionHelper<1, 1, 0> {
 };
 
 class LUnboxFloatingPoint : public LUnbox {
-  MIRType type_;
-
  public:
   LIR_HEADER(UnboxFloatingPoint);
 
-  LUnboxFloatingPoint(const LAllocation& input, MIRType type)
-      : LUnbox(classOpcode, input), type_(type) {}
-
-  MIRType type() const { return type_; }
+  explicit LUnboxFloatingPoint(const LAllocation& input)
+      : LUnbox(classOpcode, input) {}
 };
 
 class LDivOrModI64 : public LBinaryMath<1> {

@@ -40,21 +40,17 @@ class LUnbox : public LInstructionHelper<1, 2, 0> {
 };
 
 class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0> {
-  MIRType type_;
-
  public:
   LIR_HEADER(UnboxFloatingPoint);
 
   static const size_t Input = 0;
 
-  LUnboxFloatingPoint(const LBoxAllocation& input, MIRType type)
-      : LInstructionHelper(classOpcode), type_(type) {
+  explicit LUnboxFloatingPoint(const LBoxAllocation& input)
+      : LInstructionHelper(classOpcode) {
     setBoxOperand(Input, input);
   }
 
   MUnbox* mir() const { return mir_->toUnbox(); }
-  MIRType type() const { return type_; }
-  const char* extraName() const { return StringFromMIRType(type_); }
 };
 
 class LDivOrModI64

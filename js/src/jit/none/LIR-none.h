@@ -18,7 +18,6 @@ class LUnboxFloatingPoint : public LInstruction {
   MUnbox* mir() const { MOZ_CRASH(); }
 
   const LDefinition* output() const { MOZ_CRASH(); }
-  MIRType type() const { MOZ_CRASH(); }
 };
 
 class LTableSwitch : public LInstruction {

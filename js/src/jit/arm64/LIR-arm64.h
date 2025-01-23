@@ -32,16 +32,11 @@ class LUnbox : public LUnboxBase {
 };
 
 class LUnboxFloatingPoint : public LUnboxBase {
-  MIRType type_;
-
  public:
   LIR_HEADER(UnboxFloatingPoint);
 
-  LUnboxFloatingPoint(const LAllocation& input, MIRType type)
-      : LUnboxBase(classOpcode, input), type_(type) {}
-
-  MIRType type() const { return type_; }
-  const char* extraName() const { return StringFromMIRType(type_); }
+  explicit LUnboxFloatingPoint(const LAllocation& input)
+      : LUnboxBase(classOpcode, input) {}
 };
 
 // Convert a 32-bit unsigned integer to a double.
