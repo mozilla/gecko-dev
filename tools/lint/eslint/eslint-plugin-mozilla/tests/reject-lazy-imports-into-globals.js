@@ -40,7 +40,7 @@ ruleTester.run("reject-lazy-imports-into-globals", rule, {
     ),
     invalidCode(`XPCOMUtils.defineLazyGlobalGetters(globalThis, {});`),
     invalidCode(`XPCOMUtils.defineLazyGlobalGetters(window, {});`),
-    invalidCode(`XPCOMUtils.defineLazyModuleGetters(globalThis, {});`),
+    invalidCode(`ChromeUtils.defineESModuleGetters(globalThis, {});`),
     invalidCode(`ChromeUtils.defineESModuleGetters(window, {});`),
   ],
 });
