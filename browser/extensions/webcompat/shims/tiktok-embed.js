@@ -145,8 +145,11 @@ if (!window.smartblockTikTokShimInitialized) {
       // Wait for user to opt-in.
       shadowRoot
         .getElementById("smartblock-placeholder-button")
-        .addEventListener("click", () => {
-          // Send a message to the addon to allow loading Instagram tracking resources
+        .addEventListener("click", ({ isTrusted }) => {
+          if (!isTrusted) {
+            return;
+          }
+          // Send a message to the addon to allow loading TikTok tracking resources
           // needed by the embed.
           sendMessageToAddon("embedClicked");
         });

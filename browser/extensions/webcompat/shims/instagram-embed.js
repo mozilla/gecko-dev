@@ -144,7 +144,10 @@ if (!window.smartblockInstagramShimInitialized) {
       // Wait for user to opt-in.
       shadowRoot
         .getElementById("smartblock-placeholder-button")
-        .addEventListener("click", () => {
+        .addEventListener("click", ({ isTrusted }) => {
+          if (!isTrusted) {
+            return;
+          }
           // Send a message to the addon to allow loading Instagram tracking resources
           // needed by the embed.
           sendMessageToAddon("embedClicked");
