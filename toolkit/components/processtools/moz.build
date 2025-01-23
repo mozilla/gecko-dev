@@ -39,7 +39,7 @@ BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 # Platform-specific implementations of `ProcInfo`.
 toolkit = CONFIG["MOZ_WIDGET_TOOLKIT"]
 if toolkit == "gtk" or toolkit == "android":
-    if CONFIG["OS_TARGET"] == "OpenBSD":
+    if CONFIG["OS_TARGET"] in ("FreeBSD", "OpenBSD"):
         UNIFIED_SOURCES += ["ProcInfo_bsd.cpp"]
     elif CONFIG["OS_TARGET"] == "SunOS":
         UNIFIED_SOURCES += ["ProcInfo_solaris.cpp"]
