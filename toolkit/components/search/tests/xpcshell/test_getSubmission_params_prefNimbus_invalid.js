@@ -46,9 +46,12 @@ const CONFIG = [
 add_setup(async function () {
   consoleAllowList.push("Failed to load nimbus variables for extraParams");
 
-  updateStub = sinon.stub(NimbusFeatures.search, "onUpdate");
-  getVariableStub = sinon.stub(NimbusFeatures.search, "getVariable");
-  sinon.stub(NimbusFeatures.search, "ready").resolves();
+  updateStub = sinon.stub(NimbusFeatures.searchConfiguration, "onUpdate");
+  getVariableStub = sinon.stub(
+    NimbusFeatures.searchConfiguration,
+    "getVariable"
+  );
+  sinon.stub(NimbusFeatures.searchConfiguration, "ready").resolves();
 
   // The test engines used in this test need to be recognized as application
   // provided engines, or their MozParams will be ignored.
