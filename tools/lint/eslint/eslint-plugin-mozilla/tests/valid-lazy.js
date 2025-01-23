@@ -117,8 +117,8 @@ ruleTester.run("valid-lazy", rule, {
     invalidCode(
       `
          const lazy = {};
-         ChromeUtils.defineLazyGetter(lazy, "foo", "foo.jsm");
-         ChromeUtils.defineLazyGetter(lazy, "foo", "foo1.jsm");
+         ChromeUtils.defineLazyGetter(lazy, "foo", () => "foo");
+         ChromeUtils.defineLazyGetter(lazy, "foo", () => "foo1");
          if (x) { lazy.foo.bar(); }
        `,
       "foo",
@@ -127,8 +127,8 @@ ruleTester.run("valid-lazy", rule, {
     invalidCode(
       `
          const lazy = {};
-         XPCOMUtils.defineLazyModuleGetters(lazy, {
-           "foo-bar": "foo.jsm",
+         ChromeUtils.defineESModuleGetters(lazy, {
+           "foo-bar": "foo.sys.mjs",
          });
          if (x) { lazy["foo-bar"].bar(); }
        `,
@@ -137,7 +137,7 @@ ruleTester.run("valid-lazy", rule, {
     ),
     invalidCode(
       `const lazy = {};
-        ChromeUtils.defineLazyGetter(lazy, "foo", "foo.jsm");
+        ChromeUtils.defineLazyGetter(lazy, "foo", () => "foo");
        `,
       "foo",
       "unusedProperty"
