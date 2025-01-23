@@ -53,11 +53,11 @@ def add_command_arguments(config, tasks):
                 if platform not in task_platforms:
                     continue
 
-                stage_platform = platform.replace("-shippable", "")
                 for locale in partner_config["locales"]:
-                    upstream_label, upstream_artifact = (
-                        _get_upstream_task_label_and_artifact(platform, locale)
+                    attributed_build_config = _get_attributed_build_configuration(
+                        task, partner_config, platform, locale
                     )
+                    upstream_label = attributed_build_config["upstream_label"]
                     if upstream_label not in config.kind_dependencies_tasks:
                         raise Exception(
                             f"Can't find upstream task for {platform} {locale}"
@@ -67,25 +67,18 @@ def add_command_arguments(config, tasks):
                     # set the dependencies to just what we need rather than all of l10n
                     dependencies.update({upstream.label: upstream.label})
 
-                    fetches[upstream_label].add(
-                        (upstream_artifact, stage_platform, locale)
-                    )
+                    fetches[upstream_label].add(attributed_build_config["fetch_config"])
 
-                    output_artifact = _get_output_path(
-                        get_artifact_prefix(task), partner_config, platform, locale
-                    )
-                    # config for script
-                    # TODO - generalise input & output ??
                     attributions.append(
                         {
-                            "input": _get_input_path(stage_platform, platform, locale),
-                            "output": "/builds/worker/artifacts/{}".format(
-                                output_artifact
-                            ),
+                            "input": attributed_build_config["input_path"],
+                            "output": attributed_build_config["output_path"],
                             "attribution": attribution_code,
                         }
                     )
-                    release_artifacts.append(output_artifact)
+                    release_artifacts.append(
+                        attributed_build_config["release_artifact"]
+                    )
 
         if attributions:
             worker = task.get("worker", {})
@@ -110,6 +103,24 @@ def add_command_arguments(config, tasks):
             _build_attribution_config(task, task_platforms, attributions)
 
             yield task
+
+
+def _get_attributed_build_configuration(task, partner_config, platform, locale):
+    stage_platform = platform.replace("-shippable", "")
+    output_artifact = _get_output_path(
+        get_artifact_prefix(task), partner_config, platform, locale
+    )
+    return {
+        "fetch_config": (
+            _get_upstream_artifact_path(platform, locale),
+            stage_platform,
+            locale,
+        ),
+        "input_path": _get_input_path(stage_platform, platform, locale),
+        "output_path": "/builds/worker/artifacts/{}".format(output_artifact),
+        "release_artifact": output_artifact,
+        "upstream_label": _get_upstream_task_label(platform, locale),
+    }
 
 
 def _get_input_path(stage_platform, platform, locale):
@@ -144,7 +155,7 @@ def _get_artifact_file_name(platform):
         )
 
 
-def _get_upstream_task_label_and_artifact(platform, locale):
+def _get_upstream_task_label(platform, locale):
     if platform.startswith("win"):
         if locale == "en-US":
             upstream_label = "repackage-signing-{platform}/opt".format(
@@ -166,7 +177,7 @@ def _get_upstream_task_label_and_artifact(platform, locale):
             'Case for platform "{}" is not implemented'.format(platform)
         )
 
-    return upstream_label, _get_upstream_artifact_path(platform, locale)
+    return upstream_label
 
 
 def _get_upstream_artifact_path(platform, locale):
