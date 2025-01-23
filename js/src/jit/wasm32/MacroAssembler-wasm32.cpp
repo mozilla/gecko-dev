@@ -435,11 +435,6 @@ void MacroAssembler::loadStoreBuffer(Register ptr, Register buffer) {
   MOZ_CRASH();
 }
 
-void MacroAssembler::moveValue(const TypedOrValueRegister& src,
-                               const ValueOperand& dest) {
-  MOZ_CRASH();
-}
-
 void MacroAssembler::moveValue(const ValueOperand& src,
                                const ValueOperand& dest) {
   MOZ_CRASH();

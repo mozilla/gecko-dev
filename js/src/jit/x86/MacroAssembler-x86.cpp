@@ -824,33 +824,6 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun, ABIType result) {
 // ===============================================================
 // Move instructions
 
-void MacroAssembler::moveValue(const TypedOrValueRegister& src,
-                               const ValueOperand& dest) {
-  if (src.hasValue()) {
-    moveValue(src.valueReg(), dest);
-    return;
-  }
-
-  MIRType type = src.type();
-  AnyRegister reg = src.typedReg();
-
-  if (!IsFloatingPointType(type)) {
-    if (reg.gpr() != dest.payloadReg()) {
-      movl(reg.gpr(), dest.payloadReg());
-    }
-    mov(ImmWord(MIRTypeToTag(type)), dest.typeReg());
-    return;
-  }
-
-  ScratchDoubleScope scratch(*this);
-  FloatRegister freg = reg.fpu();
-  if (type == MIRType::Float32) {
-    convertFloat32ToDouble(freg, scratch);
-    freg = scratch;
-  }
-  boxDouble(freg, dest, scratch);
-}
-
 void MacroAssembler::moveValue(const ValueOperand& src,
                                const ValueOperand& dest) {
   Register s0 = src.typeReg();
