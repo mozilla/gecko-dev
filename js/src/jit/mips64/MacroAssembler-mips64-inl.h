@@ -835,7 +835,7 @@ void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
   //
   // Note: src and dest can be the same register
   ScratchRegisterScope scratch(asMasm());
-  mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+  mov(ImmShiftedTag(type), scratch);
   ma_xor(scratch, src.valueReg());
   ma_move(dest, scratch);
   ma_dsrl(scratch, scratch, Imm32(JSVAL_TAG_SHIFT));

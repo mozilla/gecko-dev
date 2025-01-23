@@ -763,7 +763,7 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     UseScratchRegisterScope temps(this);
     Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != src);
-    mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+    mov(ImmShiftedTag(type), scratch);
     xor_(dest, src, scratch);
   }
 

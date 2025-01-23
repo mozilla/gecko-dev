@@ -411,7 +411,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
       return;
     }
     MOZ_ASSERT(ScratchRegister != src);
-    mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), ScratchRegister);
+    mov(ImmShiftedTag(type), ScratchRegister);
     as_xor(dest, src, ScratchRegister);
   }
 

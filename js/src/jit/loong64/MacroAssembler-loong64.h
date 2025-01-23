@@ -607,7 +607,7 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
     }
     ScratchRegisterScope scratch(asMasm());
     MOZ_ASSERT(scratch != src);
-    mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+    mov(ImmShiftedTag(type), scratch);
     as_xor(dest, src, scratch);
   }
 
@@ -816,7 +816,7 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
       bind(&upper32BitsSignExtended);
     }
 #endif
-    ma_li(dest, ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)));
+    ma_li(dest, ImmShiftedTag(type));
     if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
       as_bstrins_d(dest, src, 31, 0);
     } else {

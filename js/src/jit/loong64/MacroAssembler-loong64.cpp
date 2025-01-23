@@ -5328,7 +5328,7 @@ void MacroAssemblerLOONG64Compat::tagValue(JSValueType type, Register payload,
     as_or(scratch, payload, zero);
     payload = scratch;
   }
-  ma_li(dest.valueReg(), ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)));
+  ma_li(dest.valueReg(), ImmShiftedTag(type));
   if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
     as_bstrins_d(dest.valueReg(), payload, 31, 0);
   } else {

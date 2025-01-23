@@ -1519,7 +1519,7 @@ void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   MOZ_ASSERT(src.valueReg() != scratch);
-  mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+  mov(ImmShiftedTag(type), scratch);
   xor_(dest, src.valueReg(), scratch);
   srli(scratch, dest, JSVAL_TAG_SHIFT);
   ma_b(scratch, Imm32(0), fail, Assembler::NotEqual);

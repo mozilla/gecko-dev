@@ -831,10 +831,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
     if (src.valueReg() == dest) {
       ScratchRegisterScope scratch(asMasm());
-      mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+      mov(ImmShiftedTag(type), scratch);
       xorq(scratch, dest);
     } else {
-      mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), dest);
+      mov(ImmShiftedTag(type), dest);
       xorq(src.valueReg(), dest);
     }
   }
@@ -848,7 +848,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     ScratchRegisterScope scratch(asMasm());
     MOZ_ASSERT(dest != scratch);
     if (src.containsReg(dest)) {
-      mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), scratch);
+      mov(ImmShiftedTag(type), scratch);
       // If src is already a register, then src and dest are the same
       // thing and we don't need to move anything into dest.
       if (src.kind() != Operand::REG) {
@@ -856,7 +856,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       }
       xorq(scratch, dest);
     } else {
-      mov(ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)), dest);
+      mov(ImmShiftedTag(type), dest);
       xorq(src, dest);
     }
   }
