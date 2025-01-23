@@ -312,10 +312,12 @@ addAccessibleTask(
  * Test caching of the editable state.
  */
 addAccessibleTask(
-  `<div id="div" contenteditable></div>`,
+  `<div id="div" contenteditable><p id="p">hello</p></div>`,
   async function (browser, docAcc) {
     const div = findAccessibleChildByID(docAcc, "div");
+    const p = findAccessibleChildByID(docAcc, "p");
     testStates(div, 0, EXT_STATE_EDITABLE, 0, 0);
+    testStates(p, 0, EXT_STATE_EDITABLE, 0, 0);
     // Ensure that a contentEditable descendant doesn't cause editable to be
     // exposed on the document.
     testStates(docAcc, STATE_READONLY, 0, 0, EXT_STATE_EDITABLE);
@@ -349,6 +351,7 @@ addAccessibleTask(
     });
     await stateChanged;
     testStates(div, 0, 0, 0, EXT_STATE_EDITABLE);
+    testStates(p, 0, 0, 0, EXT_STATE_EDITABLE);
 
     info("Setting contentEditable on div");
     stateChanged = waitForStateChange(div, EXT_STATE_EDITABLE, true, true);

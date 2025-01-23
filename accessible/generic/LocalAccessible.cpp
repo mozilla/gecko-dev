@@ -1298,6 +1298,7 @@ bool LocalAccessible::AttributeChangesState(nsAtom* aAttribute) {
          aAttribute == nsGkAtoms::aria_busy ||
          aAttribute == nsGkAtoms::aria_multiline ||
          aAttribute == nsGkAtoms::aria_multiselectable ||
+         // We track this for focusable state update
          aAttribute == nsGkAtoms::contenteditable ||
          aAttribute == nsGkAtoms::popovertarget;
 }
