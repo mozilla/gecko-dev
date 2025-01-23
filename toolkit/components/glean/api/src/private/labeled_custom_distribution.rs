@@ -28,10 +28,10 @@ pub enum LabeledCustomDistributionMetric {
 
 impl LabeledCustomDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> crate::private::MetricGetter {
         match self {
             LabeledCustomDistributionMetric::Parent(p) => p.metric_id(),
-            LabeledCustomDistributionMetric::Child { id, .. } => *id,
+            LabeledCustomDistributionMetric::Child { id, .. } => (*id).into(),
         }
     }
 }
@@ -47,7 +47,7 @@ impl CustomDistribution for LabeledCustomDistributionMetric {
                     "CustomDistribution::accumulate",
                     TelemetryProfilerCategory,
                     DistributionMetricMarker::new(
-                        *id,
+                        (*id).into(),
                         Some(label.clone()),
                         DistributionValues::Samples(truncate_vector_for_marker(&samples)),
                     )
@@ -79,7 +79,7 @@ impl CustomDistribution for LabeledCustomDistributionMetric {
                     "CustomDistribution::accumulate",
                     TelemetryProfilerCategory,
                     DistributionMetricMarker::new(
-                        *id,
+                        (*id).into(),
                         Some(label.clone()),
                         DistributionValues::Sample(sample),
                     )
@@ -164,7 +164,10 @@ mod test {
 
             let child_metric = parent_metric.get(label);
 
-            let metric_id = child_metric.metric_id();
+            let metric_id = child_metric
+                .metric_id()
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
 
             child_metric.accumulate_single_sample_signed(42);
 

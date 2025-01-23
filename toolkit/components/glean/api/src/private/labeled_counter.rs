@@ -9,7 +9,10 @@ use glean::traits::Counter;
 use super::CommonMetricData;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
+#[cfg(test)]
+use crate::private::MetricGetter;
 use crate::private::{CounterMetric, MetricId};
+
 use std::collections::HashMap;
 
 /// A counter metric that knows it's a labeled counter's submetric.
@@ -33,10 +36,10 @@ impl LabeledCounterMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> MetricGetter {
         match self {
             LabeledCounterMetric::Parent(p) => p.metric_id(),
-            LabeledCounterMetric::Child { id, .. } => *id,
+            LabeledCounterMetric::Child { id, .. } => (*id).into(),
         }
     }
 }
@@ -63,7 +66,7 @@ impl Counter for LabeledCounterMetric {
                         super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
                         super::profiler_utils::IntLikeMetricMarker::new(
-                            *id,
+                            (*id).into(),
                             Some(label.clone()),
                             amount,
                         ),
@@ -172,7 +175,10 @@ mod test {
 
             let child_metric = parent_metric.get(label);
 
-            let metric_id = child_metric.metric_id();
+            let metric_id = child_metric
+                .metric_id()
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
 
             child_metric.add(42);
 

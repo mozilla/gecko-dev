@@ -12,7 +12,9 @@ use std::convert::TryInto;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::private::{DistributionData, ErrorType, MetricId, TimerId, TimingDistributionMetric};
+use crate::private::{
+    DistributionData, ErrorType, MetricGetter, TimerId, TimingDistributionMetric,
+};
 
 use crate::ipc::with_ipc_payload;
 
@@ -25,7 +27,7 @@ use super::timing_distribution::{TDMPayload, TimingDistributionMetricMarker};
 #[derive(Clone)]
 pub struct LabeledTimingDistributionMetric {
     pub(crate) inner: Arc<TimingDistributionMetric>,
-    pub(crate) id: MetricId,
+    pub(crate) id: MetricGetter,
     pub(crate) label: String,
     pub(crate) kind: LabeledTimingDistributionMetricKind,
 }
@@ -37,7 +39,7 @@ pub enum LabeledTimingDistributionMetricKind {
 
 impl LabeledTimingDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> MetricGetter {
         self.id
     }
 }
@@ -55,10 +57,14 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     timer_id: u64,
                 );
             }
+            let id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStart(
-                    self.id.0,
+                    id.0,
                     &nsCString::from(&self.label),
                     timer_id.id,
                 );
@@ -89,8 +95,12 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             }
             LabeledTimingDistributionMetricKind::Child => {
                 if let Some(sample) = self.inner.child_stop(timer_id) {
+                    let id = &self
+                        .id
+                        .metric_id()
+                        .expect("Cannot perform IPC calls without a MetricId");
                     with_ipc_payload(move |payload| {
-                        if let Some(map) = payload.labeled_timing_samples.get_mut(&self.id) {
+                        if let Some(map) = payload.labeled_timing_samples.get_mut(id) {
                             if let Some(v) = map.get_mut(&self.label) {
                                 v.push(sample);
                             } else {
@@ -99,7 +109,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                         } else {
                             let mut map = HashMap::new();
                             map.insert(self.label.to_string(), vec![sample]);
-                            payload.labeled_timing_samples.insert(self.id, map);
+                            payload.labeled_timing_samples.insert(*id, map);
                         }
                     });
                 } else {
@@ -116,10 +126,14 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     timer_id: u64,
                 );
             }
+            let id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStopAndAccumulate(
-                    self.id.0,
+                    id.0,
                     &nsCString::from(&self.label),
                     timer_id.id,
                 );
@@ -153,10 +167,14 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     timer_id: u64,
                 );
             }
+            let metric_id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionCancel(
-                    self.id.0,
+                    metric_id.0,
                     &nsCString::from(&self.label),
                     id.id,
                 );
@@ -247,7 +265,11 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     u64::MAX
                 });
                 with_ipc_payload(move |payload| {
-                    if let Some(map) = payload.labeled_timing_samples.get_mut(&self.id) {
+                    let id = &self
+                        .id
+                        .metric_id()
+                        .expect("Cannot perform IPC calls without a MetricId");
+                    if let Some(map) = payload.labeled_timing_samples.get_mut(id) {
                         if let Some(v) = map.get_mut(&self.label) {
                             v.push(sample);
                         } else {
@@ -256,7 +278,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     } else {
                         let mut map = HashMap::new();
                         map.insert(self.label.to_string(), vec![sample]);
-                        payload.labeled_timing_samples.insert(self.id, map);
+                        payload.labeled_timing_samples.insert(*id, map);
                     }
                 });
             }
@@ -277,10 +299,14 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                     sample_ms: u32,
                 );
             }
+            let id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform IPC calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionAccumulateRawMillis(
-                    self.id.0,
+                    id.0,
                     &nsCString::from(&self.label),
                     sample_ms,
                 );
@@ -375,7 +401,12 @@ mod test {
                     1,
                     payload
                         .labeled_timing_samples
-                        .get(&child_metric.metric_id())
+                        .get(
+                            &child_metric
+                                .metric_id()
+                                .metric_id()
+                                .expect("Cannot perform IPC calls without a MetricId")
+                        )
                         .unwrap()
                         .get(label)
                         .unwrap()

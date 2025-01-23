@@ -23,7 +23,7 @@ CommonMetricData {
 {%- endmacro -%}
 
 {% macro metric_ctor(metric_type_name, metric_type, ctor='new') %}
-{{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}{{ ctor }}{% endif %}(metric_id.into(), meta
+{{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}{{ ctor }}{% endif %}(MetricId(metric_id), meta
 {%- for arg_name in metric_type.args if not metric_type_name.startswith('labeled_') and arg_name not in common_metric_data_args -%}
     , {{ arg_name }}.unwrap()
 {%- endfor -%}
@@ -43,6 +43,7 @@ use crate::private::{
     TimeUnit,
     Ping,
     LabeledMetric,
+    MetricId,
 {% for metric_type_name in metric_types.keys() if not metric_type_name.startswith('labeled_') %}
     {% if metric_type_name != "object" %}{# TODO(bug 1883857): Add JOG support #}
     {{ metric_type_name|Camelize }}Metric,
@@ -176,7 +177,7 @@ map of argument name to argument type. I may regret this if I need it again. #}
             {% endif %}
             let metric32: u32 = ({{metric_type.id}} << {{ID_BITS}}) | metric_id;
             assert!(
-                __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write()?.insert(metric_id.into(), metric).is_none(),
+                __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write()?.insert(MetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
             );
             metric32

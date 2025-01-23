@@ -19,9 +19,10 @@ use crate::private::MetricId;
 #[derive(Clone)]
 pub enum RateMetric {
     Parent {
-        /// The metric's ID.
-        ///
-        /// **TEST-ONLY** - Do not use unless gated with `#[cfg(test)]`.
+        /// The metric's ID. Used for testing and profiler markers. Rate
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::RateMetric,
     },
@@ -85,7 +86,7 @@ impl Rate for RateMetric {
                 "Rate::addToNumerator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
             );
         }
     }
@@ -115,7 +116,7 @@ impl Rate for RateMetric {
                 "Rate::addToDenominator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
             );
         }
     }

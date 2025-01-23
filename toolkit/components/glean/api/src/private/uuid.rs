@@ -15,6 +15,10 @@ use crate::ipc::need_ipc;
 /// Stores UUID values.
 pub enum UuidMetric {
     Parent {
+        /// The metric's ID. Used for testing and profiler markers. UUID
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::UuidMetric,
     },
@@ -62,7 +66,7 @@ impl glean::traits::Uuid for UuidMetric {
                 gecko_profiler::lazy_add_marker!(
                     "Uuid::set",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new(*id, &value)
+                    super::profiler_utils::StringLikeMetricMarker::new((*id).into(), &value)
                 );
                 inner.set(value)
             }
@@ -91,7 +95,7 @@ impl glean::traits::Uuid for UuidMetric {
                 gecko_profiler::lazy_add_marker!(
                     "Uuid::generateAndSet",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new(*id, &uuid)
+                    super::profiler_utils::StringLikeMetricMarker::new((*id).into(), &uuid)
                 );
                 Uuid::parse_str(&uuid).unwrap()
             }

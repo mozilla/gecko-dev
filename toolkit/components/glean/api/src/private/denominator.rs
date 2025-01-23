@@ -20,9 +20,10 @@ use crate::private::MetricId;
 #[derive(Clone)]
 pub enum DenominatorMetric {
     Parent {
-        /// The metric's ID.
-        ///
-        /// **TEST-ONLY** - Do not use unless gated with `#[cfg(test)]`.
+        /// The metric's ID. Used for testing and profiler markers.
+        /// Denominator metrics canot be labeled, so we only store a
+        /// MetricId. If this changes, this should be changed to a
+        /// MetricGetter to distinguish between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::DenominatorMetric,
     },
@@ -78,7 +79,7 @@ impl Counter for DenominatorMetric {
                         payload.denominators.insert(c.0, amount);
                     }
                 });
-                c.0
+                c.0.into()
             }
         };
 
@@ -88,7 +89,7 @@ impl Counter for DenominatorMetric {
                 "Counter::add",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
             );
         }
     }

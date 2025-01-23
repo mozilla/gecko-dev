@@ -13,7 +13,7 @@ use glean::traits::Timespan;
 use crate::ipc::need_ipc;
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError, TelemetryProfilerCategory};
+use super::profiler_utils::TelemetryProfilerCategory;
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -47,10 +47,8 @@ impl gecko_profiler::ProfilerMarker for TimespanMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.unique_string_property(
-            "id",
-            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-        );
+        let name = self.id.get_name();
+        json_writer.unique_string_property("id", &name);
         if let Some(v) = self.value {
             use std::convert::TryFrom;
             // We will always be writing values as nanoseconds, however,
@@ -77,6 +75,10 @@ impl gecko_profiler::ProfilerMarker for TimespanMetricMarker {
 /// Timespans are used to make a measurement of how much time is spent in a particular task.
 pub enum TimespanMetric {
     Parent {
+        /// The metric's ID. Used for testing and profiler markers. Time span
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::TimespanMetric,
         time_unit: TimeUnit,
@@ -91,7 +93,7 @@ impl TimespanMetric {
             TimespanMetric::Child
         } else {
             TimespanMetric::Parent {
-                id: id,
+                id,
                 inner: glean::private::TimespanMetric::new(meta, time_unit),
                 time_unit: time_unit,
             }
@@ -296,6 +298,7 @@ impl Timespan for TimespanMetric {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::private::MetricId;
     use crate::{common_test::*, ipc, metrics};
 
     #[test]
@@ -303,7 +306,7 @@ mod test {
         let _lock = lock_test();
 
         let metric = TimespanMetric::new(
-            0.into(),
+            MetricId(0),
             CommonMetricData {
                 name: "timespan_metric".into(),
                 category: "telemetry".into(),

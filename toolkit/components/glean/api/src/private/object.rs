@@ -9,10 +9,7 @@ use crate::ipc::need_ipc;
 use glean::traits::ObjectSerialize;
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{
-    lookup_canonical_metric_name, truncate_string_for_marker, LookupError,
-    TelemetryProfilerCategory,
-};
+use super::profiler_utils::{truncate_string_for_marker, TelemetryProfilerCategory};
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -43,10 +40,8 @@ impl gecko_profiler::ProfilerMarker for ObjectMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.unique_string_property(
-            "id",
-            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-        );
+        let name = self.id.get_name();
+        json_writer.unique_string_property("id", &name);
         json_writer.string_property("value", self.value.as_str());
     }
 }
@@ -54,6 +49,10 @@ impl gecko_profiler::ProfilerMarker for ObjectMetricMarker {
 /// An object metric.
 pub enum ObjectMetric<K> {
     Parent {
+        /// The metric's ID. Used for testing and profiler markers. Object
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::ObjectMetric<K>,
     },

@@ -13,8 +13,7 @@ use glean::traits::Datetime;
 
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
-    glean_to_chrono_datetime, local_now_with_offset, lookup_canonical_metric_name, LookupError,
-    TelemetryProfilerCategory,
+    glean_to_chrono_datetime, local_now_with_offset, TelemetryProfilerCategory,
 };
 
 #[cfg(feature = "with_gecko")]
@@ -48,10 +47,8 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.unique_string_property(
-            "id",
-            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-        );
+        let name = self.id.get_name();
+        json_writer.unique_string_property("id", &name);
         // We need to be careful formatting our datestring so that we can match
         // it to an equivalently formatted string in JavaScript when we're
         // testing these markers. JavaScript's `toISOString` *always* converts
@@ -81,9 +78,9 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
 #[derive(Clone)]
 pub enum DatetimeMetric {
     Parent {
-        /// The metric's ID.
-        ///
-        /// Only useful for emitting markers to the firefox profiler.
+        /// The metric's ID. Date time metrics canot be labeled, so we only
+        /// store a MetricId. If this changes, this should be changed to a
+        /// MetricGetter to distinguish between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::DatetimeMetric,
     },
@@ -99,7 +96,7 @@ impl DatetimeMetric {
             DatetimeMetric::Child(DatetimeMetricIpc)
         } else {
             DatetimeMetric::Parent {
-                id: id,
+                id,
                 inner: glean::private::DatetimeMetric::new(meta, time_unit),
             }
         }
@@ -177,18 +174,10 @@ impl DatetimeMetric {
                         // the metric's name here.
                         #[cfg(feature = "with_gecko")]
                         if gecko_profiler::can_accept_markers() {
+                            let name = id.get_name();
                             let payload = format!(
                                 "Conversion failed for metric {}: {} {} {} {} {} {} {} {}",
-                                lookup_canonical_metric_name(id)
-                                    .unwrap_or_else(LookupError::as_str),
-                                year,
-                                month,
-                                day,
-                                hour,
-                                minute,
-                                second,
-                                nano,
-                                offset_seconds
+                                &name, year, month, day, hour, minute, second, nano, offset_seconds
                             );
                             gecko_profiler::add_text_marker(
                                 "Datetime::set",

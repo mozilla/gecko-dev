@@ -28,10 +28,10 @@ pub enum LabeledMemoryDistributionMetric {
 
 impl LabeledMemoryDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> crate::private::MetricGetter {
         match self {
             LabeledMemoryDistributionMetric::Parent(p) => p.metric_id(),
-            LabeledMemoryDistributionMetric::Child { id, .. } => *id,
+            LabeledMemoryDistributionMetric::Child { id, .. } => (*id).into(),
         }
     }
 
@@ -46,7 +46,7 @@ impl LabeledMemoryDistributionMetric {
                         TelemetryProfilerCategory,
                         Default::default(),
                         DistributionMetricMarker::new(
-                            *id,
+                            (*id).into(),
                             Some(label.clone()),
                             DistributionValues::Samples(truncate_vector_for_marker(&samples)),
                         ),
@@ -83,7 +83,7 @@ impl MemoryDistribution for LabeledMemoryDistributionMetric {
                         TelemetryProfilerCategory,
                         Default::default(),
                         DistributionMetricMarker::new(
-                            *id,
+                            (*id).into(),
                             Some(label.clone()),
                             DistributionValues::Sample(sample),
                         ),
@@ -177,7 +177,12 @@ mod test {
                     vec![13 * 9],
                     *payload
                         .labeled_memory_samples
-                        .get(&child_metric.metric_id())
+                        .get(
+                            &child_metric
+                                .metric_id()
+                                .metric_id()
+                                .expect("Cannot perform IPC calls without a MetricId")
+                        )
                         .unwrap()
                         .get(label)
                         .unwrap(),

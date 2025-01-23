@@ -4,8 +4,6 @@
 
 //! The different metric types supported by the Glean SDK to handle data.
 
-use serde::{Deserialize, Serialize};
-
 // Re-export of `glean` types we can re-use.
 // That way a user only needs to depend on this crate, not on glean (and there can't be a
 // version mismatch).
@@ -27,6 +25,7 @@ mod labeled_custom_distribution;
 mod labeled_memory_distribution;
 mod labeled_timing_distribution;
 mod memory_distribution;
+mod metric_getter;
 mod numerator;
 mod object;
 mod ping;
@@ -53,6 +52,9 @@ pub use self::labeled_custom_distribution::LabeledCustomDistributionMetric;
 pub use self::labeled_memory_distribution::LabeledMemoryDistributionMetric;
 pub use self::labeled_timing_distribution::LabeledTimingDistributionMetric;
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
+pub use self::metric_getter::MetricGetter;
+pub use self::metric_getter::MetricId;
+pub use self::metric_getter::SubMetricId;
 pub use self::numerator::NumeratorMetric;
 pub use self::object::ObjectMetric;
 pub use self::ping::Ping;
@@ -67,23 +69,6 @@ pub use self::timespan::TimespanMetric;
 pub use self::timing_distribution::TimingDistributionMetric;
 pub use self::url::UrlMetric;
 pub use self::uuid::UuidMetric;
-
-/// Uniquely identifies a single metric within its metric type.
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Deserialize, Serialize)]
-#[repr(transparent)]
-pub struct MetricId(pub(crate) u32);
-
-impl MetricId {
-    pub fn new(id: u32) -> Self {
-        Self(id)
-    }
-}
-
-impl From<u32> for MetricId {
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-}
 
 // We only access the methods here when we're building with Gecko, as that's
 // when we have access to the profiler. We don't need alternative (i.e.
@@ -100,59 +85,6 @@ pub(crate) mod profiler_utils {
     #[allow(non_upper_case_globals)]
     pub const TelemetryProfilerCategory: gecko_profiler::ProfilingCategoryPair =
         gecko_profiler::ProfilingCategoryPair::Telemetry(None);
-
-    #[derive(Debug)]
-    pub(crate) enum LookupError {
-        NullPointer,
-        Utf8ParseError(std::str::Utf8Error),
-    }
-
-    impl LookupError {
-        pub fn as_str(self) -> &'static str {
-            match self {
-                LookupError::NullPointer => "id not found",
-                LookupError::Utf8ParseError(_) => "utf8 parse error",
-            }
-        }
-    }
-
-    impl std::fmt::Display for LookupError {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            match self {
-                LookupError::NullPointer => write!(f, "id not found"),
-                LookupError::Utf8ParseError(p) => write!(f, "utf8 parse error: {}", p),
-            }
-        }
-    }
-
-    pub(crate) fn lookup_canonical_metric_name(
-        id: &super::MetricId,
-    ) -> Result<&'static str, LookupError> {
-        #[allow(unused)]
-        use std::ffi::{c_char, CStr};
-        extern "C" {
-            fn FOG_GetMetricIdentifier(id: u32) -> *const c_char;
-        }
-        // SAFETY: We check to make sure that the returned pointer is not null
-        // before trying to construct a string from it. As the string array that
-        // `FOG_GetMetricIdentifier` references is statically defined and allocated,
-        // we know that any strings will be guaranteed to have a null terminator,
-        // and will have the same lifetime as the program, meaning we're safe to
-        // return a static lifetime, knowing that they won't be changed "underneath"
-        // us. Additionally, we surface any errors from parsing the string as utf8.
-        unsafe {
-            let raw_name_ptr = FOG_GetMetricIdentifier(id.0);
-            if raw_name_ptr.is_null() {
-                Err(LookupError::NullPointer)
-            } else {
-                let name = CStr::from_ptr(raw_name_ptr).to_str();
-                match name {
-                    Ok(s) => Ok(s),
-                    Err(ut8err) => Err(LookupError::Utf8ParseError(ut8err)),
-                }
-            }
-        }
-    }
 
     // Get the datetime *now*
     // From https://searchfox.org/mozilla-central/source/third_party/rust/glean-core/src/util.rs#51
@@ -245,19 +177,19 @@ pub(crate) mod profiler_utils {
 
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct StringLikeMetricMarker {
-        id: super::MetricId,
+        id: super::MetricGetter,
         val: String,
     }
 
     impl StringLikeMetricMarker {
-        pub fn new(id: super::MetricId, val: &String) -> StringLikeMetricMarker {
+        pub fn new(id: super::MetricGetter, val: &String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
                 val: truncate_string_for_marker(val.clone()),
             }
         }
 
-        pub fn new_owned(id: super::MetricId, val: String) -> StringLikeMetricMarker {
+        pub fn new_owned(id: super::MetricGetter, val: String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
                 val: truncate_string_for_marker(val),
@@ -286,11 +218,8 @@ pub(crate) mod profiler_utils {
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            json_writer.unique_string_property(
-                "id",
-                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-            );
-
+            let (name, _) = self.id.get_identifiers();
+            json_writer.unique_string_property("id", &name);
             debug_assert!(self.val.len() <= max_string_byte_length());
             json_writer.string_property("val", self.val.as_str());
         }
@@ -301,7 +230,7 @@ pub(crate) mod profiler_utils {
     where
         T: Into<i64>,
     {
-        id: super::MetricId,
+        id: super::MetricGetter,
         label: Option<String>,
         val: T,
     }
@@ -310,7 +239,11 @@ pub(crate) mod profiler_utils {
     where
         T: Into<i64>,
     {
-        pub fn new(id: super::MetricId, label: Option<String>, val: T) -> IntLikeMetricMarker<T> {
+        pub fn new(
+            id: super::MetricGetter,
+            label: Option<String>,
+            val: T,
+        ) -> IntLikeMetricMarker<T> {
             IntLikeMetricMarker { id, label, val }
         }
     }
@@ -347,10 +280,8 @@ pub(crate) mod profiler_utils {
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            json_writer.unique_string_property(
-                "id",
-                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-            );
+            let (name, _) = self.id.get_identifiers();
+            json_writer.unique_string_property("id", &name);
             json_writer.int_property("val", self.val.clone().into());
             if let Some(l) = &self.label {
                 json_writer.unique_string_property("label", &l);
@@ -373,14 +304,14 @@ pub(crate) mod profiler_utils {
 
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct DistributionMetricMarker<T> {
-        id: super::MetricId,
+        id: super::MetricGetter,
         label: Option<String>,
         value: DistributionValues<T>,
     }
 
     impl<T> DistributionMetricMarker<T> {
         pub fn new(
-            id: super::MetricId,
+            id: super::MetricGetter,
             label: Option<String>,
             value: DistributionValues<T>,
         ) -> DistributionMetricMarker<T> {
@@ -422,10 +353,8 @@ pub(crate) mod profiler_utils {
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            json_writer.unique_string_property(
-                "id",
-                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-            );
+            let (name, _) = self.id.get_identifiers();
+            json_writer.unique_string_property("id", &name);
 
             if let Some(l) = &self.label {
                 json_writer.unique_string_property("label", l.as_str());

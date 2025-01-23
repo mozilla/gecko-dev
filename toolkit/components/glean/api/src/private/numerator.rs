@@ -20,9 +20,10 @@ use crate::private::MetricId;
 #[derive(Clone)]
 pub enum NumeratorMetric {
     Parent {
-        /// The metric's ID.
-        ///
-        /// **TEST-ONLY** - Do not use unless gated with `#[cfg(test)]`.
+        /// The metric's ID. Used for testing and profiler markers. Numerator
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: glean::private::NumeratorMetric,
     },
@@ -86,7 +87,7 @@ impl Numerator for NumeratorMetric {
                 "Rate::addToNumerator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
             );
         }
     }

@@ -5,7 +5,7 @@
 use inherent::inherent;
 use std::sync::Arc;
 
-use super::{CommonMetricData, MetricId};
+use super::{CommonMetricData, MetricGetter, MetricId};
 use glean::{DistributionData, ErrorType, HistogramType};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
@@ -23,10 +23,10 @@ use super::profiler_utils::{
 #[derive(Clone)]
 pub enum CustomDistributionMetric {
     Parent {
-        /// The metric's ID.
-        ///
-        /// **TEST-ONLY** - Do not use unless gated with `#[cfg(test)]`.
-        id: MetricId,
+        /// The metric's ID. Used for testing and profiler markers. Custom
+        /// distribution metrics can be labeled, so we may have either a
+        /// metric ID or sub-metric ID.
+        id: MetricGetter,
         inner: Arc<glean::private::CustomDistributionMetric>,
     },
     Child(CustomDistributionMetricIpc),
@@ -55,26 +55,30 @@ impl CustomDistributionMetric {
                 histogram_type,
             );
             CustomDistributionMetric::Parent {
-                id,
+                id: id.into(),
                 inner: Arc::new(inner),
             }
         }
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> MetricGetter {
         match self {
             CustomDistributionMetric::Parent { id, .. } => *id,
-            CustomDistributionMetric::Child(c) => c.0,
+            CustomDistributionMetric::Child(c) => c.0.into(),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            CustomDistributionMetric::Parent { id, .. } => {
-                CustomDistributionMetric::Child(CustomDistributionMetricIpc(*id))
-            }
+            CustomDistributionMetric::Parent { id, .. } => CustomDistributionMetric::Child(
+                // SAFETY: We can unwrap here, as this code is only run in the
+                // context of a test. If this code is used elsewhere, the
+                // `unwrap` should be replaced with proper error handling of
+                // the `None` case.
+                CustomDistributionMetricIpc(id.metric_id().unwrap()),
+            ),
             CustomDistributionMetric::Child(_) => {
                 panic!("Can't get a child metric from a child metric")
             }
@@ -132,7 +136,7 @@ impl CustomDistribution for CustomDistributionMetric {
                         payload.custom_samples.insert(c.0, samples);
                     }
                 });
-                c.0
+                MetricGetter::Id(c.0)
             }
         };
 
@@ -159,7 +163,7 @@ impl CustomDistribution for CustomDistributionMetric {
                         payload.custom_samples.insert(c.0, vec![sample]);
                     }
                 });
-                c.0
+                MetricGetter::Id(c.0)
             }
         };
         #[cfg(feature = "with_gecko")]

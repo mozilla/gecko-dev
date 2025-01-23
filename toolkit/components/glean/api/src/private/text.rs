@@ -40,6 +40,10 @@ use crate::ipc::need_ipc;
 #[derive(Clone)]
 pub enum TextMetric {
     Parent {
+        /// The metric's ID. Used for testing and profiler markers. Text
+        /// metrics canot be labeled, so we only store a MetricId. If this
+        /// changes, this should be changed to a MetricGetter to distinguish
+        /// between metrics and sub-metrics.
         id: MetricId,
         inner: Arc<glean::private::TextMetric>,
     },
@@ -56,7 +60,7 @@ impl TextMetric {
             TextMetric::Child(TextMetricIpc)
         } else {
             TextMetric::Parent {
-                id: id,
+                id,
                 inner: Arc::new(glean::private::TextMetric::new(meta)),
             }
         }
@@ -87,7 +91,7 @@ impl glean::traits::Text for TextMetric {
                 gecko_profiler::lazy_add_marker!(
                     "Text::set",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new(*id, &value)
+                    super::profiler_utils::StringLikeMetricMarker::new((*id).into(), &value)
                 );
                 inner.set(value);
             }
