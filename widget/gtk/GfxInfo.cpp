@@ -1097,22 +1097,15 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
         V(0, 0, 0, 0), "FEATURE_HARDWARE_VIDEO_DECODING_NO_R600", "");
 
-    // Disable on AMD devices using broken Mesa (Bug 1832080).
+    // Disable on AMD devices using broken Mesa (Bug 1837140).
+    // https://gitlab.freedesktop.org/mesa/mesa/-/commit/0c024bbe641b092bbb
     APPEND_TO_DRIVER_BLOCKLIST_EXT(
         OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
         WindowProtocol::All, DriverVendor::MesaAll, DeviceFamily::AtiAll,
         nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN, V(23, 1, 1, 0),
-        "FEATURE_HARDWARE_VIDEO_DECODING_AMD_DISABLE", "Mesa 23.1.1.0");
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN, V(24, 2, 0, 0),
+        "FEATURE_HARDWARE_VIDEO_DECODING_AMD_DISABLE", "Mesa 24.2.0");
 
-    // Disable on Release/late Beta on AMD
-#if !defined(EARLY_BETA_OR_EARLIER)
-    APPEND_TO_DRIVER_BLOCKLIST(OperatingSystem::Linux, DeviceFamily::AtiAll,
-                               nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING,
-                               nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-                               DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0),
-                               "FEATURE_HARDWARE_VIDEO_DECODING_DISABLE", "");
-#endif
     ////////////////////////////////////
     // FEATURE_HW_DECODED_VIDEO_ZERO_COPY - ALLOWLIST
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Linux, DeviceFamily::All,
@@ -1126,8 +1119,8 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
         WindowProtocol::All, DriverVendor::MesaAll, DeviceFamily::AtiAll,
         nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN, V(23, 1, 1, 0),
-        "FEATURE_HARDWARE_VIDEO_ZERO_COPY_LINUX_AMD_DISABLE", "Mesa 23.1.1.0");
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN, V(24, 2, 0, 0),
+        "FEATURE_HARDWARE_VIDEO_ZERO_COPY_LINUX_AMD_DISABLE", "Mesa 24.2.0.0");
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER_PARTIAL_PRESENT
