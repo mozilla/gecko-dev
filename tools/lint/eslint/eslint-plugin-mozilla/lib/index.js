@@ -78,7 +78,6 @@ const plugin = {
     "use-cc-etc": require("./rules/use-cc-etc"),
     "use-chromeutils-definelazygetter": require("./rules/use-chromeutils-definelazygetter"),
     "use-chromeutils-generateqi": require("./rules/use-chromeutils-generateqi"),
-    "use-chromeutils-import": require("./rules/use-chromeutils-import"),
     "use-console-createInstance": require("./rules/use-console-createInstance"),
     "use-default-preference-values": require("./rules/use-default-preference-values"),
     "use-ownerGlobal": require("./rules/use-ownerGlobal"),
