@@ -4,7 +4,7 @@
 
 "use strict";
 
-async function testComboBox(browser, accDoc, suppressPopupInValueTodo = false) {
+async function testComboBox(browser, accDoc) {
   const box = getNativeInterface(accDoc, "box");
   is(box.getAttributeValue("AXRole"), "AXComboBox");
   is(box.getAttributeValue("AXValue"), "peach", "Initial value correct");
@@ -20,19 +20,9 @@ async function testComboBox(browser, accDoc, suppressPopupInValueTodo = false) {
   });
 
   await expandedChanged;
-  if (suppressPopupInValueTodo) {
-    todo(
-      !didBoxValueChange,
-      "Value of combobox did not change when it was opened"
-    );
-    todo_is(box.getAttributeValue("AXValue"), "peach");
-  } else {
-    ok(
-      !didBoxValueChange,
-      "Value of combobox did not change when it was opened"
-    );
-    is(box.getAttributeValue("AXValue"), "peach", "After popup value correct");
-  }
+
+  ok(!didBoxValueChange, "Value of combobox did not change when it was opened");
+  is(box.getAttributeValue("AXValue"), "peach", "After popup value correct");
 }
 
 addAccessibleTask(
@@ -74,8 +64,21 @@ addAccessibleTask(
 `,
   async (browser, accDoc) => {
     info("Test ARIA 1.0 style combobox (entry aria-owns list)");
-    // XXX: Bug 1912520
-    await testComboBox(browser, accDoc, true);
+
+    const box = getNativeInterface(accDoc, "box");
+    is(
+      box.getAttributeValue("AXChildren").length,
+      1,
+      "owned list is not relocated"
+    );
+    // XXX: Bug 1912520 - Remap from aria-owns to aria-controls
+    todo_is(
+      box.getAttributeValue("AXARIAControls").length,
+      1,
+      "box controls list"
+    );
+
+    await testComboBox(browser, accDoc);
   }
 );
 

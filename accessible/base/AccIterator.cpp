@@ -275,16 +275,16 @@ const nsDependentSubstring AssociatedElementsIterator::NextID() {
   return Substring(mIDs, idStartIdx, mCurrIdx++ - idStartIdx);
 }
 
-nsIContent* AssociatedElementsIterator::NextElem() {
+dom::Element* AssociatedElementsIterator::NextElem() {
   while (true) {
     const nsDependentSubstring id = NextID();
     if (id.IsEmpty()) break;
 
-    nsIContent* refContent = GetElem(id);
+    dom::Element* refContent = GetElem(id);
     if (refContent) return refContent;
   }
 
-  while (nsIContent* element = mElements.SafeElementAt(mElemIdx++)) {
+  while (dom::Element* element = mElements.SafeElementAt(mElemIdx++)) {
     if (nsCoreUtils::IsDescendantOfAnyShadowIncludingAncestor(element,
                                                               mContent)) {
       return element;
@@ -317,7 +317,7 @@ dom::Element* AssociatedElementsIterator::GetElem(
 }
 
 LocalAccessible* AssociatedElementsIterator::Next() {
-  nsIContent* nextEl = nullptr;
+  dom::Element* nextEl = nullptr;
   while ((nextEl = NextElem())) {
     LocalAccessible* acc = mDoc->GetAccessible(nextEl);
     if (acc) {

@@ -225,7 +225,7 @@ class AssociatedElementsIterator : public AccIterable {
   /**
    * Return next element.
    */
-  nsIContent* NextElem();
+  dom::Element* NextElem();
 
   /**
    * Return the element with the given ID.

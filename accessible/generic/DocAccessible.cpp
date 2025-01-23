@@ -1018,6 +1018,18 @@ void DocAccessible::ElementStateChanged(dom::Document* aDocument,
           new AccStateChangeEvent(accessible, states::READONLY, !isEditable);
       FireDelayedEvent(event);
     }
+
+    if (aElement->HasAttr(nsGkAtoms::aria_owns)) {
+      // If this has aria-owns, update children that are relocated into here.
+      // If we are becoming editable, put them back into their original
+      // containers, if we are becoming readonly, acquire them.
+      mNotificationController->ScheduleRelocation(accessible);
+    }
+
+    // If this is a node inside of a newly editable subtree, it needs to be
+    // un-aria-owned. And inversely, if the node becomes uneditable, allow the
+    // node to be aria-owned.
+    RelocateARIAOwnedIfNeeded(aElement);
   }
 
   if (aStateMask.HasState(dom::ElementState::CHECKED)) {
@@ -2460,9 +2472,24 @@ void DocAccessible::DoARIAOwnsRelocation(LocalAccessible* aOwner) {
   nsTArray<RefPtr<LocalAccessible>>* owned =
       mARIAOwnsHash.GetOrInsertNew(aOwner);
 
+  if (aOwner->Elm()->State().HasState(dom::ElementState::READWRITE)) {
+    // The container is editable.
+    PutChildrenBack(owned, 0);
+    return;
+  }
+
   AssociatedElementsIterator iter(this, aOwner->Elm(), nsGkAtoms::aria_owns);
   uint32_t idx = 0;
-  while (nsIContent* childEl = iter.NextElem()) {
+  while (dom::Element* childEl = iter.NextElem()) {
+    if (childEl->State().HasState(dom::ElementState::READWRITE)) {
+      nsINode* parentEl = childEl->GetFlattenedTreeParentNode();
+      if (parentEl->IsElement() && parentEl->AsElement()->State().HasState(
+                                       dom::ElementState::READWRITE)) {
+        // The child is inside of an editable subtree, don't relocate it.
+        continue;
+      }
+    }
+
     LocalAccessible* child = GetAccessible(childEl);
     auto insertIdx = aOwner->ChildCount() - owned->Length() + idx;
 
