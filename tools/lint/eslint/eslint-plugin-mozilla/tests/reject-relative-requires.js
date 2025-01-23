@@ -23,7 +23,7 @@ function invalidError() {
 ruleTester.run("reject-relative-requires", rule, {
   valid: [
     'require("devtools/absolute/path")',
-    'require("resource://gre/modules/SomeModule.jsm")',
+    'require("resource://gre/modules/SomeModule.sys.mjs")',
     'loader.lazyRequireGetter(this, "path", "devtools/absolute/path", true)',
     'loader.lazyRequireGetter(this, "Path", "devtools/absolute/path")',
   ],

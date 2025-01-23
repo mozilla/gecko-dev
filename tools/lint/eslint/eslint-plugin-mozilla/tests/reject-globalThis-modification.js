@@ -62,18 +62,8 @@ ruleTester.run("reject-globalThis-modification", rule, {
     Object.assign(globalThis, { foo: 10 });
 `),
     invalidCall(`
-    ChromeUtils.defineModuleGetter(
-      globalThis, "AppConstants", "resource://gre/modules/AppConstants.jsm"
-    );
-`),
-    invalidCall(`
     ChromeUtils.defineESMGetters(globalThis, {
       AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
-    });
-`),
-    invalidCall(`
-    XPCOMUtils.defineLazyModuleGetters(globalThis, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm",
     });
 `),
     invalidCall(`
