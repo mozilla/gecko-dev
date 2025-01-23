@@ -1878,7 +1878,7 @@ bool nsCSPPolicy::ShouldCreateViolationForNewTrustedTypesPolicy(
 
 bool nsCSPPolicy::AreTrustedTypesForSinkGroupRequired(
     const nsAString& aSinkGroup) const {
-  MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
+  MOZ_ASSERT(aSinkGroup == dom::kTrustedTypesOnlySinkGroup);
   return mHasRequireTrustedTypesForDirective;
 }
 
