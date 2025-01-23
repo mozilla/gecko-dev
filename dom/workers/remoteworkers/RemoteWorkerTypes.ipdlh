@@ -19,6 +19,7 @@ using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
 using mozilla::dom::WorkerOptions from "mozilla/dom/WorkerBinding.h";
 using mozilla::StorageAccess from "mozilla/StorageAccess.h";
 using mozilla::OriginTrials from "mozilla/OriginTrialsIPCUtils.h";
+using mozilla::RFPTargetSet from "nsRFPService.h";
 
 namespace mozilla {
 namespace dom {
@@ -85,7 +86,7 @@ struct RemoteWorkerData
 
   bool shouldResistFingerprinting;
 
-  uint64_t? overriddenFingerprintingSettings;
+  RFPTargetSet? overriddenFingerprintingSettings;
 
   bool isOn3PCBExceptionList;
 

@@ -67,28 +67,28 @@ class BitSetSuite {
 
   void testSetBit() {
     TestBitSet<kBitsPerWord + 2> bitset;
-    MOZ_RELEASE_ASSERT(!bitset.Test(3));
+    MOZ_RELEASE_ASSERT(!bitset.test(3));
     MOZ_RELEASE_ASSERT(!bitset[3]);
-    MOZ_RELEASE_ASSERT(!bitset.Test(kBitsPerWord + 1));
+    MOZ_RELEASE_ASSERT(!bitset.test(kBitsPerWord + 1));
     MOZ_RELEASE_ASSERT(!bitset[kBitsPerWord + 1]);
 
     bitset[3] = true;
-    MOZ_RELEASE_ASSERT(bitset.Test(3));
+    MOZ_RELEASE_ASSERT(bitset.test(3));
     MOZ_RELEASE_ASSERT(bitset[3]);
 
     bitset[kBitsPerWord + 1] = true;
-    MOZ_RELEASE_ASSERT(bitset.Test(3));
+    MOZ_RELEASE_ASSERT(bitset.test(3));
     MOZ_RELEASE_ASSERT(bitset[3]);
-    MOZ_RELEASE_ASSERT(bitset.Test(kBitsPerWord + 1));
+    MOZ_RELEASE_ASSERT(bitset.test(kBitsPerWord + 1));
     MOZ_RELEASE_ASSERT(bitset[kBitsPerWord + 1]);
 
     bitset.ResetAll();
-    for (size_t i = 0; i < decltype(bitset)::Size(); i++) {
+    for (size_t i = 0; i < decltype(bitset)::size(); i++) {
       MOZ_RELEASE_ASSERT(!bitset[i]);
     }
 
     bitset.SetAll();
-    for (size_t i = 0; i < decltype(bitset)::Size(); i++) {
+    for (size_t i = 0; i < decltype(bitset)::size(); i++) {
       MOZ_RELEASE_ASSERT(bitset[i]);
     }
 
@@ -96,14 +96,14 @@ class BitSetSuite {
     MOZ_RELEASE_ASSERT(bitset.Storage()[1] == 3);
 
     bitset.ResetAll();
-    for (size_t i = 0; i < decltype(bitset)::Size(); i++) {
+    for (size_t i = 0; i < decltype(bitset)::size(); i++) {
       MOZ_RELEASE_ASSERT(!bitset[i]);
     }
   }
 
   void testFindBits() {
     TestBitSet<kBitsPerWord * 5 + 2> bitset;
-    size_t size = bitset.Size();
+    size_t size = bitset.size();
     MOZ_RELEASE_ASSERT(bitset.IsEmpty());
     MOZ_RELEASE_ASSERT(bitset.FindFirst() == SIZE_MAX);
     MOZ_RELEASE_ASSERT(bitset.FindLast() == SIZE_MAX);

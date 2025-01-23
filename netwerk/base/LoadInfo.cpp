@@ -739,7 +739,7 @@ LoadInfo::LoadInfo(
     bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
     bool aIsInDevToolsContext, bool aParserCreatedScript,
     nsILoadInfo::StoragePermissionState aStoragePermission,
-    const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
+    const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
     bool aIsMetaRefresh, uint32_t aRequestBlockingReason,
     nsINode* aLoadingContext,
     nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
@@ -1227,7 +1227,7 @@ LoadInfo::SetStoragePermission(
   return NS_OK;
 }
 
-const Maybe<RFPTarget>& LoadInfo::GetOverriddenFingerprintingSettings() {
+const Maybe<RFPTargetSet>& LoadInfo::GetOverriddenFingerprintingSettings() {
 #ifdef DEBUG
   RefPtr<BrowsingContext> browsingContext;
   GetTargetBrowsingContext(getter_AddRefs(browsingContext));
@@ -1241,7 +1241,7 @@ const Maybe<RFPTarget>& LoadInfo::GetOverriddenFingerprintingSettings() {
   return mOverriddenFingerprintingSettings;
 }
 
-void LoadInfo::SetOverriddenFingerprintingSettings(RFPTarget aTargets) {
+void LoadInfo::SetOverriddenFingerprintingSettings(RFPTargetSet aTargets) {
   mOverriddenFingerprintingSettings.reset();
   mOverriddenFingerprintingSettings.emplace(aTargets);
 }

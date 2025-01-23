@@ -4647,7 +4647,7 @@ void ContentChild::ConfigureThreadPerformanceHints(
           cpu_set_t cpuset;
           CPU_ZERO(&cpuset);
           for (size_t i = 0; i < cpuInfo->mTotalNumCpus; i++) {
-            if (cpus.Test(i)) {
+            if (cpus.test(i)) {
               CPU_SET(i, &cpuset);
             }
           }

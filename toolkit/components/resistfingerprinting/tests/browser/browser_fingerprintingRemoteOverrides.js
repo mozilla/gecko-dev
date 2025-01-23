@@ -13,12 +13,12 @@ const COLLECTION_NAME = "fingerprinting-protection-overrides";
 // The javascript bitwise operator only support 32bits. So, we only test
 // RFPTargets that is under low 32 bits.
 const TARGET_DEFAULT = extractLow32Bits(
-  Services.rfp.enabledFingerprintingProtections
+  Services.rfp.enabledFingerprintingProtections.low
 );
-const TARGET_PointerEvents = 0x00000002;
-const TARGET_CanvasRandomization = 0x000000100;
-const TARGET_WindowOuterSize = 0x002000000;
-const TARGET_Gamepad = 0x00800000;
+const TARGET_PointerEvents = 1 << 2;
+const TARGET_CanvasRandomization = 1 << 9;
+const TARGET_WindowOuterSize = 1 << 26;
+const TARGET_Gamepad = 1 << 24;
 
 const TEST_PAGE =
   getRootDirectory(gTestPath).replace(
@@ -309,7 +309,7 @@ add_task(async function test_remote_settings() {
       // Get the addition and subtraction flags for the domain.
       try {
         let overrides = extractLow32Bits(
-          Services.rfp.getFingerprintingOverrides(expect.domain)
+          Services.rfp.getFingerprintingOverrides(expect.domain).low
         );
 
         // Verify if the flags are matching to expected values.
@@ -354,7 +354,7 @@ add_task(async function test_remote_settings_pref() {
     for (let expect of test.expects) {
       try {
         // Check for the existance of RFP overrides
-        Services.rfp.getFingerprintingOverrides(expect.domain);
+        Services.rfp.getFingerprintingOverrides(expect.domain).low;
         ok(
           false,
           "This line should never run as the override should not exist and the previous line would throw an exception"
@@ -392,7 +392,7 @@ add_task(async function test_pref() {
       try {
         // Get the addition and subtraction flags for the domain.
         let overrides = extractLow32Bits(
-          Services.rfp.getFingerprintingOverrides(expect.domain)
+          Services.rfp.getFingerprintingOverrides(expect.domain).low
         );
 
         // Verify if the flags are matching to expected values.
@@ -447,7 +447,7 @@ add_task(async function test_pref_override_remote_settings() {
 
   // Get the addition and subtraction flags for the domain.
   let overrides = extractLow32Bits(
-    Services.rfp.getFingerprintingOverrides("example.org")
+    Services.rfp.getFingerprintingOverrides("example.org").low
   );
 
   // Verify if the flags are matching to the pref settings.

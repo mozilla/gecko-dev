@@ -1028,7 +1028,7 @@ class WorkerPrivate final
 
   bool ShouldResistFingerprinting(RFPTarget aTarget) const;
 
-  const Maybe<RFPTarget>& GetOverriddenFingerprintingSettings() const {
+  const Maybe<RFPTargetSet>& GetOverriddenFingerprintingSettings() const {
     return mLoadInfo.mOverriddenFingerprintingSettings;
   }
 

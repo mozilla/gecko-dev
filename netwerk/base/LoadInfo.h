@@ -253,7 +253,7 @@ class LoadInfo final : public nsILoadInfo {
       bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
       bool aIsInDevToolsContext, bool aParserCreatedScript,
       nsILoadInfo::StoragePermissionState aStoragePermission,
-      const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
+      const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
       bool aIsMetaRefresh, uint32_t aRequestBlockingReason,
       nsINode* aLoadingContext,
       nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
@@ -381,7 +381,7 @@ class LoadInfo final : public nsILoadInfo {
   bool mParserCreatedScript = false;
   nsILoadInfo::StoragePermissionState mStoragePermission =
       nsILoadInfo::NoStoragePermission;
-  Maybe<RFPTarget> mOverriddenFingerprintingSettings;
+  Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
 #ifdef DEBUG
   // A boolean used to ensure the mOverriddenFingerprintingSettings is set
   // before use it.

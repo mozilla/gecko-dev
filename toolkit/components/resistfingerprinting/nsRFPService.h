@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <tuple>
+#include <bitset>
 #include "ErrorList.h"
 #include "PLDHashTable.h"
 #include "mozilla/BasicEvents.h"
@@ -202,7 +203,12 @@ enum class RFPTarget : uint64_t {
 
 #undef ITEM_VALUE
 
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RFPTarget);
+using RFPTargetSet = EnumSet<RFPTarget, std::bitset<128>>;
+
+template <>
+struct MaxEnumValue<RFPTarget> {
+  static constexpr unsigned int value = 127;
+};
 
 // ============================================================================
 
@@ -221,7 +227,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   static bool IsRFPEnabledFor(
       bool aIsPrivateMode, RFPTarget aTarget,
-      const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
+      const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
       bool aSkipChromePrincipalCheck = false);
 
   static bool IsSystemPrincipalOrAboutFingerprintingProtection(JSContext*,
@@ -349,7 +355,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // overrides to replace default enabled RFPTargets for the context of the
   // channel. The method will return Nothing() to indicate using the default
   // RFPTargets
-  static Maybe<RFPTarget> GetOverriddenFingerprintingSettingsForChannel(
+  static Maybe<RFPTargetSet> GetOverriddenFingerprintingSettingsForChannel(
       nsIChannel* aChannel);
 
   // The method for getting the granular fingerprinting protection override of
@@ -357,7 +363,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // overrides if there is one defined for the context of the first-party URI
   // and third-party URI. Otherwise, it will return Nothing() to indicate using
   // the default RFPTargets.
-  static Maybe<RFPTarget> GetOverriddenFingerprintingSettingsForURI(
+  static Maybe<RFPTargetSet> GetOverriddenFingerprintingSettingsForURI(
       nsIURI* aFirstPartyURI, nsIURI* aThirdPartyURI);
 
   // --------------------------------------------------------------------------
@@ -474,7 +480,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   nsTHashMap<nsCStringHashKey, nsID> mBrowsingSessionKeys;
 
   nsCOMPtr<nsIFingerprintingWebCompatService> mWebCompatService;
-  nsTHashMap<nsCStringHashKey, RFPTarget> mFingerprintingOverrides;
+  nsTHashMap<nsCStringHashKey, RFPTargetSet> mFingerprintingOverrides;
 
   // A helper function to create the domain key for the fingerprinting
   // overrides. The key can be in the following five formats.
@@ -493,8 +499,9 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // overrides text and the based overrides bitfield. The function will parse
   // the text and update the based overrides bitfield accordingly. Then, it will
   // return the updated bitfield.
-  static RFPTarget CreateOverridesFromText(
-      const nsString& aOverridesText, RFPTarget aBaseOverrides = RFPTarget(0));
+  static RFPTargetSet CreateOverridesFromText(
+      const nsString& aOverridesText,
+      RFPTargetSet aBaseOverrides = RFPTargetSet());
 };
 
 }  // namespace mozilla

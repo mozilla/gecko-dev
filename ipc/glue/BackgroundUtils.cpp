@@ -545,13 +545,13 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
         redirectChain, interceptionInfo->FromThirdParty()));
   }
 
-  Maybe<uint64_t> overriddenFingerprintingSettingsArg;
-  Maybe<RFPTarget> overriddenFingerprintingSettings =
+  Maybe<RFPTargetSet> overriddenFingerprintingSettingsArg;
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings =
       aLoadInfo->GetOverriddenFingerprintingSettings();
 
   if (overriddenFingerprintingSettings) {
     overriddenFingerprintingSettingsArg =
-        Some(uint64_t(overriddenFingerprintingSettings.ref()));
+        Some(overriddenFingerprintingSettings.ref());
   }
 
   *outLoadInfoArgs = LoadInfoArgs(
@@ -790,10 +790,10 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
   CookieJarSettings::Deserialize(loadInfoArgs.cookieJarSettings(),
                                  getter_AddRefs(cookieJarSettings));
 
-  Maybe<RFPTarget> overriddenFingerprintingSettings;
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings;
   if (loadInfoArgs.overriddenFingerprintingSettings().isSome()) {
     overriddenFingerprintingSettings.emplace(
-        RFPTarget(loadInfoArgs.overriddenFingerprintingSettings().ref()));
+        loadInfoArgs.overriddenFingerprintingSettings().ref());
   }
 
   nsCOMPtr<nsIContentSecurityPolicy> cspToInherit;
@@ -955,13 +955,13 @@ void LoadInfoToParentLoadInfoForwarder(
         aLoadInfo->GetIsThirdPartyContextToTopWindow());
   }
 
-  Maybe<uint64_t> overriddenFingerprintingSettingsArg;
-  Maybe<RFPTarget> overriddenFingerprintingSettings =
+  Maybe<RFPTargetSet> overriddenFingerprintingSettingsArg;
+  Maybe<RFPTargetSet> overriddenFingerprintingSettings =
       aLoadInfo->GetOverriddenFingerprintingSettings();
 
   if (overriddenFingerprintingSettings) {
     overriddenFingerprintingSettingsArg =
-        Some(uint64_t(overriddenFingerprintingSettings.ref()));
+        Some(overriddenFingerprintingSettings.ref());
   }
 
   *aForwarderArgsOut = ParentLoadInfoForwarderArgs(
@@ -1081,11 +1081,11 @@ nsresult MergeParentLoadInfoForwarder(
   rv = aLoadInfo->SetIsMetaRefresh(aForwarderArgs.isMetaRefresh());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  const Maybe<uint64_t> overriddenFingerprintingSettings =
+  const Maybe<RFPTargetSet> overriddenFingerprintingSettings =
       aForwarderArgs.overriddenFingerprintingSettings();
   if (overriddenFingerprintingSettings.isSome()) {
     aLoadInfo->SetOverriddenFingerprintingSettings(
-        RFPTarget(overriddenFingerprintingSettings.ref()));
+        overriddenFingerprintingSettings.ref());
   }
 
   static_cast<LoadInfo*>(aLoadInfo)->ClearIsThirdPartyContextToTopWindow();

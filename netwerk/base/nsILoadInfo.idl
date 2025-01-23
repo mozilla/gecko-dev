@@ -53,8 +53,8 @@ native OriginAttributes(mozilla::OriginAttributes);
 [ref] native const_MaybeClientInfoRef(const mozilla::Maybe<mozilla::dom::ClientInfo>);
 [ref] native const_ServiceWorkerDescriptorRef(const mozilla::dom::ServiceWorkerDescriptor);
 [ref] native const_MaybeServiceWorkerDescriptorRef(const mozilla::Maybe<mozilla::dom::ServiceWorkerDescriptor>);
-[ref] native const_MaybeRFPTarget(const mozilla::Maybe<mozilla::RFPTarget>);
-      native RFPTarget(mozilla::RFPTarget);
+[ref] native const_MaybeRFPTargetSet(const mozilla::Maybe<mozilla::RFPTargetSet>);
+      native RFPTargetSet(mozilla::RFPTargetSet);
 [ptr] native PerformanceStoragePtr(mozilla::dom::PerformanceStorage);
       native LoadTainting(mozilla::LoadTainting);
       native CSPRef(already_AddRefed<nsIContentSecurityPolicy>);
@@ -651,13 +651,13 @@ interface nsILoadInfo : nsISupports
    * The RFPTarget defined in the RFPTargets.inc.
    */
   [noscript, nostdcall, notxpcom]
-  const_MaybeRFPTarget GetOverriddenFingerprintingSettings();
+  const_MaybeRFPTargetSet GetOverriddenFingerprintingSettings();
 
   /**
    * Set the granular overrides of fingerprinting protections for the channel.
    */
   [noscript, nostdcall, notxpcom]
-  void SetOverriddenFingerprintingSettings(in RFPTarget aTargets);
+  void SetOverriddenFingerprintingSettings(in RFPTargetSet aTargets);
 
   /**
    * True if the load was triggered by a meta refresh.
