@@ -102,11 +102,10 @@ search:
 
         This is matched to a section in the search configuration:
 
-        "extraParams": [
+        "params": [
           {
             "name": "channel",
-            "pref": "google_channel_row",
-            "condition": "pref"
+            "experimentConfig": "google_channel_row"
           }
         ],
 
@@ -114,21 +113,11 @@ search:
         `&channel=foo` added to the URL when doing searches.
 
         If the key is not referenced in the search configuration, then no parameter
-        will be added. Only the search team can update the configuration.
-    logEnabled:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.search.log
-      description: >-
-        Whether or not enable search log in their console.
-    richSuggestionsFeatureGate:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.urlbar.richSuggestions.featureGate
-      description: >-
-        Feature gate that controls whether Rich Suggestions are enabled.
+        will be added. If the parameter is in the search configuration, but there
+        is no experiment, or the experiment does not set a value, then the
+        parameter will not be included in the search url.
+
+        Only the search team can update the configuration.
     scotchBonnetEnableOverride:
       type: boolean
       setPref:
@@ -142,18 +131,6 @@ search:
         * Search term persistence
         * Intuitive search keywords
         * HTTP swap
-    serpEventTelemetryCategorizationEnabled:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.search.serpEventTelemetryCategorization.enabled
-      description: Whether the Glean SERP event telemetry for SERP categorization is enabled.
-    trendingEnabled:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.urlbar.trending.featureGate
-      description: Feature gate that controls whether trending suggestions are enabled.
     trendingRequireSearchMode:
       type: boolean
       setPref:
@@ -166,21 +143,13 @@ search:
         branch: default
         pref: browser.urlbar.trending.maxResultsNoSearchMode
       description: The maximum number of trending results mode outside search mode.
-    newSearchConfigEnabled:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.search.newSearchConfig.enabled
-      description: >-
-        Whether search-config-v2 is enabled for the user. This will only take
-        effect when the user restarts.
-        Obsolete. This is kept until all multi-feature roll-outs using it are
-        ended to prevent un-enrollment.
     targetExperiment:
       type: string
       description: >-
-        The slug of the experiment someone is requesting enrollment and branch
-        information for. (Note that the featureId needs to be set to "search".)
+        Recorded in SERP telemetry, this is the slug of the experiment someone
+        is requesting enrollment and branch information for. (Note that the
+        featureId needs to be set to "search".)
+
 
 # `searchConfiguration` is for search experiment features for items that require
 # isEarlyStartup to be true. These items may require a reload of the search

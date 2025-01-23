@@ -3,7 +3,7 @@ tags = "search-telemetry"
 support-files = ["head.js", "head-spa.js"]
 prefs = ["browser.search.log=true"]
 
-["browser_search_glean_serp_event_telemetry_categorization_enabled_by_nimbus_variable.js"]
+["browser_search_glean_serp_event_telemetry_categorization_enabled_by_pref.js"]
 support-files = ["searchTelemetryDomainCategorizationReporting.html"]
 
 ["browser_search_telemetry_abandonment.js"]
