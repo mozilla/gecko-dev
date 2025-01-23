@@ -434,7 +434,10 @@ abstract class BaseBrowserFragment :
             observeRestoreComplete(requireComponents.core.store, findNavController())
         }
 
-        observeTabSelection(requireComponents.core.store)
+        observeTabSelection(
+            requireComponents.core.store,
+            isCustomTabSession = customTabSessionId != null,
+        )
 
         if (!requireComponents.fenixOnboarding.userHasBeenOnboarded()) {
             observeTabSource(requireComponents.core.store)
@@ -1951,7 +1954,7 @@ abstract class BaseBrowserFragment :
     }
 
     @VisibleForTesting
-    internal fun observeTabSelection(store: BrowserStore) {
+    internal fun observeTabSelection(store: BrowserStore, isCustomTabSession: Boolean) {
         consumeFlow(store) { flow ->
             flow.distinctUntilChangedBy {
                 it.selectedTabId
@@ -1961,7 +1964,7 @@ abstract class BaseBrowserFragment :
                 }
                 .collect {
                     currentStartDownloadDialog?.dismiss()
-                    handleTabSelected(it)
+                    handleTabSelected(it, isCustomTabSession)
                 }
         }
     }
@@ -1985,8 +1988,8 @@ abstract class BaseBrowserFragment :
         }
     }
 
-    private fun handleTabSelected(selectedTab: TabSessionState) {
-        if (!this.isRemoving) {
+    private fun handleTabSelected(selectedTab: TabSessionState, isCustomTabSession: Boolean) {
+        if (!this.isRemoving && !isCustomTabSession) {
             updateThemeForSession(selectedTab)
         }
 

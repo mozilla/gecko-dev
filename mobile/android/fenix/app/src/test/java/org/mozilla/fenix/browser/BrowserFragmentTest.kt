@@ -116,7 +116,7 @@ class BrowserFragmentTest {
 
     @Test
     fun `GIVEN fragment is added WHEN selected tab changes THEN theme is updated`() {
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
         verify(exactly = 0) { browserFragment.updateThemeForSession(testTab) }
 
         addAndSelectTab(testTab)
@@ -124,9 +124,18 @@ class BrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN fragment is added WHEN selected tab is customTab THEN theme is not updated`() {
+        browserFragment.observeTabSelection(store, true)
+        verify(exactly = 0) { browserFragment.updateThemeForSession(testTab) }
+
+        addAndSelectTab(testTab)
+        verify(exactly = 0) { browserFragment.updateThemeForSession(testTab) }
+    }
+
+    @Test
     fun `GIVEN fragment is removing WHEN selected tab changes THEN theme is not updated`() {
         every { browserFragment.isRemoving } returns true
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
 
         addAndSelectTab(testTab)
         verify(exactly = 0) { browserFragment.updateThemeForSession(testTab) }
@@ -134,7 +143,7 @@ class BrowserFragmentTest {
 
     @Test
     fun `GIVEN browser UI is not initialized WHEN selected tab changes THEN browser UI is initialized`() {
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
         verify(exactly = 0) { browserFragment.initializeUI(view, testTab) }
 
         addAndSelectTab(testTab)
@@ -144,7 +153,7 @@ class BrowserFragmentTest {
     @Test
     fun `GIVEN browser UI is initialized WHEN selected tab changes THEN toolbar is expanded`() {
         browserFragment.browserInitialized = true
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
 
         val toolbar: BrowserToolbarView = mockk(relaxed = true)
         every { browserFragment.browserToolbarView } returns toolbar
@@ -157,7 +166,7 @@ class BrowserFragmentTest {
     @Test
     fun `GIVEN browser UI is initialized WHEN selected tab changes THEN full screen mode is exited`() {
         browserFragment.browserInitialized = true
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
 
         val newSelectedTab = createTab("https://firefox.com")
         addAndSelectTab(newSelectedTab)
@@ -167,7 +176,7 @@ class BrowserFragmentTest {
     @Test
     fun `GIVEN browser UI is initialized WHEN selected tab changes THEN download dialog is resumed`() {
         browserFragment.browserInitialized = true
-        browserFragment.observeTabSelection(store)
+        browserFragment.observeTabSelection(store, false)
 
         val newSelectedTab = createTab("https://firefox.com")
         addAndSelectTab(newSelectedTab)
