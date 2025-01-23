@@ -48,7 +48,6 @@ function trimUrlQuery(url) {
 // Map suffix to content type.
 const contentMap = {
   js: "text/javascript",
-  jsm: "text/javascript",
   mjs: "text/javascript",
   ts: "text/typescript",
   tsx: "text/typescript-jsx",
