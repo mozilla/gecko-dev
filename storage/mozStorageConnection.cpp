@@ -642,6 +642,8 @@ class AsyncBackupDatabaseFile final : public Runnable, public nsITimerCallback {
 
     int srv = ::sqlite3_open(NS_ConvertUTF16toUTF8(path).get(), &mBackupFile);
     if (srv != SQLITE_OK) {
+      ::sqlite3_close(mBackupFile);
+      mBackupFile = nullptr;
       return Dispatch(NS_ERROR_FAILURE, nullptr);
     }
 
@@ -1053,6 +1055,7 @@ nsresult Connection::initialize(const nsACString& aStorageKey,
   int srv = ::sqlite3_open_v2(path.get(), &mDBConn, mFlags,
                               basevfs::GetVFSName(true));
   if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
     mDBConn = nullptr;
     nsresult rv = convertResultCode(srv);
     RecordOpenStatus(rv);
@@ -1101,6 +1104,7 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
     srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn, mFlags,
                             basevfs::GetVFSName(exclusive));
     if (exclusive && (srv == SQLITE_LOCKED || srv == SQLITE_BUSY)) {
+      ::sqlite3_close(mDBConn);
       // Retry without trying to get an exclusive lock.
       exclusive = false;
       srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn,
@@ -1108,6 +1112,7 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
     }
   }
   if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
     mDBConn = nullptr;
     rv = convertResultCode(srv);
     RecordOpenStatus(rv);
@@ -1125,6 +1130,9 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
                             basevfs::GetVFSName(false));
     if (srv == SQLITE_OK) {
       rv = initializeInternal();
+    } else {
+      ::sqlite3_close(mDBConn);
+      mDBConn = nullptr;
     }
   }
 
@@ -1184,6 +1192,7 @@ nsresult Connection::initialize(nsIFileURL* aFileURL) {
 
   int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, vfs);
   if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
     mDBConn = nullptr;
     rv = convertResultCode(srv);
     RecordOpenStatus(rv);

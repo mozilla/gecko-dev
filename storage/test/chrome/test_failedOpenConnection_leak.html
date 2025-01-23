@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Tests for the BackupSettings component</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <script>
+
+    const { Assert } = ChromeUtils.importESModule(
+      "resource://testing-common/Assert.sys.mjs"
+    );
+
+    /**
+     * Tests that failing to open a SQLite connection doesn't leak the SQLite
+     * structure. sqlite3_close() must always be invoked, even in case of failures.
+     * This will only fail on asan builds and requires shutdown leaks detection.
+     */
+
+    add_task(async function test_initWidget() {
+      let file = Services.dirsvc.get("ProfDS", Ci.nsIFile);
+      file.append("nonexisting.sqlite");
+
+      try {
+        file.remove(true);
+      } catch (ex) { }
+      await Assert.rejects(
+        new Promise((resolve, reject) => {
+          Services.storage.openAsyncDatabase(
+            file,
+            Ci.mozIStorageService.OPEN_READONLY,
+            Ci.mozIStorageService.CONNECTION_DEFAULT,
+            function (status, db) {
+              if (Components.isSuccessCode(status)) {
+                resolve(db.QueryInterface(Ci.mozIStorageAsyncConnection));
+              } else {
+                reject(new Components.Exception("Error opening database", status));
+              }
+            }
+          );
+        }),
+        /NS_ERROR_FILE_ACCESS_DENIED/,
+        "Should fail to open non existing database"
+      );
+    });
+
+    ok(true, "Must have at least one test");
+
+  </script>
+</head>
+
+<body>
+  <p id="display"></p>
+  <div id="content" style="display: none">
+  </div>
+  <pre id="test"></pre>
+</body>
+
+</html>
