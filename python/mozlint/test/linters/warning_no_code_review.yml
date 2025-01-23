@@ -7,6 +7,6 @@ WarningNoCodeReviewLinter:
     level: warning
     include: ['.']
     type: string
-    extensions: ['.js', 'jsm']
+    extensions: ['.js']
     payload: foobar
     code_review_warnings: false

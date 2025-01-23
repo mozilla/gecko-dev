@@ -4,5 +4,5 @@ StructuredLinter:
     include:
         - files
     type: structured_log
-    extensions: ['.js', '.jsm']
+    extensions: ['.js']
     payload: external:structured

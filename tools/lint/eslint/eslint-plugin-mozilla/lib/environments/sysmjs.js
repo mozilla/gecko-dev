@@ -12,7 +12,7 @@ module.exports = {
   globals: {
     // These globals are hard-coded and available in .sys.mjs scopes.
     // https://searchfox.org/mozilla-central/rev/dcb0cfb66e4ed3b9c7fbef1e80572426ff5f3c3a/js/xpconnect/loader/mozJSModuleLoader.cpp#222-223
-    // Although `debug` is allowed for jsm files, this is non-standard and something
+    // Although `debug` is allowed for system modules, this is non-standard and something
     // we don't want to allow in mjs files. Hence it is not included here.
     atob: false,
     btoa: false,

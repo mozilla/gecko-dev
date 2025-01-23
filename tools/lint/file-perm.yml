@@ -13,7 +13,6 @@ file-perm:
         - .html
         - .idl
         - .js
-        - .jsm
         - .json
         - .jsx
         - .m

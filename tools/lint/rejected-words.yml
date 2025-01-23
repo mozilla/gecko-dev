@@ -9,7 +9,6 @@ avoid-blacklist-and-whitelist:
     # Based on codespell with idl and webidl added.
     extensions:
         - js
-        - jsm
         - mjs
         - jxs
         - idl

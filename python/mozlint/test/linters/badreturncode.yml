@@ -4,5 +4,5 @@ BadReturnCodeLinter:
     include:
         - files
     type: external
-    extensions: ['.js', '.jsm']
+    extensions: ['.js']
     payload: external:badreturncode

@@ -5,6 +5,6 @@ ExcludesLinter:
         files because it is bad
     rule: no-foobar
     exclude: ['**/foobar.js']
-    extensions: ['.js', 'jsm']
+    extensions: ['.js']
     type: string
     payload: foobar

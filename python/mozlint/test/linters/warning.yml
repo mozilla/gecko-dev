@@ -7,5 +7,5 @@ WarningLinter:
     level: warning
     include: ['.']
     type: string
-    extensions: ['.js', 'jsm']
+    extensions: ['.js']
     payload: foobar

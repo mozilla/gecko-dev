@@ -38,7 +38,7 @@ def test_parse_valid_linter(parse):
     assert "extensions" in lintobj
     assert "include" in lintobj
     assert lintobj["include"] == ["."]
-    assert set(lintobj["extensions"]) == set(["js", "jsm"])
+    assert set(lintobj["extensions"]) == set(["js"])
 
 
 def test_parser_valid_multiple(parse):

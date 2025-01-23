@@ -4,6 +4,6 @@ SetupLinter:
     include:
         - files
     type: external
-    extensions: ['.js', '.jsm']
+    extensions: ['.js']
     payload: external:external
     setup: external:setup

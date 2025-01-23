@@ -5,6 +5,6 @@ RegexLinter:
         file because it is bad.
     rule: no-foobar
     include: ['.']
-    extensions: ['js', '.jsm']
+    extensions: ['js']
     type: regex
     payload: foobar

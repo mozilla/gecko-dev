@@ -38,7 +38,6 @@ codespell:
     when:
         files-changed:
             - '**/*.js'
-            - '**/*.jsm'
             - '**/*.jxs'
             - '**/*.mjs'
             - '**/*.xml'
@@ -67,7 +66,6 @@ rejected-words:
     when:
         files-changed:
             - '**/*.js'
-            - '**/*.jsm'
             - '**/*.jxs'
             - '**/*.mjs'
             - '**/*.xml'
@@ -103,7 +101,6 @@ eslint:
         files-changed:
             # Files that are likely audited.
             - '**/*.js'
-            - '**/*.jsm'
             - '**/*.json'
             - '**/*.jsx'
             - '**/*.mjs'
@@ -205,7 +202,6 @@ license:
             - '**/*.html'
             - '**/*.idl'
             - '**/*.js'
-            - '**/*.jsm'
             - '**/*.jsx'
             - '**/*.kt'
             - '**/*.m'
@@ -537,7 +533,6 @@ file-perm:
             - '**/*.html'
             - '**/*.idl'
             - '**/*.js'
-            - '**/*.jsm'
             - '**/*.json'
             - '**/*.jsx'
             - '**/*.m'

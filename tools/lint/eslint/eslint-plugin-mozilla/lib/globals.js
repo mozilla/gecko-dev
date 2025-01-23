@@ -45,7 +45,7 @@ const subScriptMatches = [
   /Services\.scriptloader\.loadSubScript\("(.*?)", this\)/,
 ];
 
-const workerImportFilenameMatch = /(.*\/)*((.*?)\.jsm?)/;
+const workerImportFilenameMatch = /(.*\/)*((.*?)\.js)/;
 
 /**
  * Parses a list of "name:boolean_value" or/and "name" options divided by comma

@@ -6,5 +6,5 @@ SupportFilesLinter:
     support-files:
         - '**/*.py'
     type: external
-    extensions: ['.js', '.jsm']
+    extensions: ['.js']
     payload: external:passes

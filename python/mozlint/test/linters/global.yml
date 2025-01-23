@@ -4,5 +4,5 @@ GlobalLinter:
     include:
         - files
     type: global
-    extensions: ['.js', '.jsm']
+    extensions: ['.js']
     payload: global_payload:global_payload

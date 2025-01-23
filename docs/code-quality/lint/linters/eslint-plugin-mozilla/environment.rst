@@ -32,10 +32,10 @@ frame-script
 
 Defines the environment for scripts loaded by ``Services.mm.loadFrameScript``.
 
-jsm
+sysmjs
 ---
 
-Defines the environment for jsm files (javascript modules).
+Defines the environment for system module files (.sys.mjs).
 
 privileged
 ----------
