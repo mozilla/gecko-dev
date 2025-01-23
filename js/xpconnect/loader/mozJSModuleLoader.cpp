@@ -1309,46 +1309,6 @@ nsresult mozJSModuleLoader::ImportInto(const nsACString& registryLocation,
   return rv;
 }
 
-nsresult mozJSModuleLoader::IsModuleLoaded(const nsACString& aLocation,
-                                           bool* retval) {
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
-
-  if (mIsUnloaded) {
-    *retval = false;
-    return NS_OK;
-  }
-
-  mInitialized = true;
-  ModuleLoaderInfo info(aLocation);
-  if (mImports.Get(info.Key())) {
-    *retval = true;
-    return NS_OK;
-  }
-
-  *retval = false;
-  return NS_OK;
-}
-
-nsresult mozJSModuleLoader::IsJSModuleLoaded(const nsACString& aLocation,
-                                             bool* retval) {
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
-
-  if (mIsUnloaded) {
-    *retval = false;
-    return NS_OK;
-  }
-
-  mInitialized = true;
-  ModuleLoaderInfo info(aLocation);
-  if (mImports.Get(info.Key())) {
-    *retval = true;
-    return NS_OK;
-  }
-
-  *retval = false;
-  return NS_OK;
-}
-
 nsresult mozJSModuleLoader::IsESModuleLoaded(const nsACString& aLocation,
                                              bool* retval) {
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());

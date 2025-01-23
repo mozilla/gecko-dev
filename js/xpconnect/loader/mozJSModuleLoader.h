@@ -113,8 +113,6 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 #endif
 
   nsresult Unload(const nsACString& aResourceURI);
-  nsresult IsModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
-  nsresult IsJSModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
   nsresult IsESModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
   bool IsLoaderGlobal(JSObject* aObj) { return mLoaderGlobal == aObj; }
   bool IsDevToolsLoader() const { return this == sDevToolsLoader; }

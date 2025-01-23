@@ -339,28 +339,6 @@ interface nsIXPCComponents_Utils : nsISupports
     jsval import(in AUTF8String aResourceURI, [optional] in jsval targetObj);
 
     /**
-     * Returns true if the JSM is loaded into the system global previously via
-     * the import method above, or corresponding ESM is loaded. Returns false
-     * otherwise.
-     *
-     * @param resourceURI A resource:// URI string representing the location of
-     *        the js file to be checked if it is already loaded or not.
-     * @returns boolean, true if the js file has been loaded via import. false
-     *          otherwise
-     */
-    boolean isModuleLoaded(in AUTF8String aResourceURI);
-
-
-    /**
-     * Returns true if the JSM is loaded into the system global previously via
-     * the import method above. Returns false otherwise.
-     *
-     * TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-     *       (bug 1776175, bug 1881888).
-     */
-    boolean isJSModuleLoaded(in AUTF8String aResourceURI);
-
-    /**
      * Returns true if the ESM is loaded into the system global previously via
      * the ChromeUtils.importESModule method etc. Returns false otherwise.
      */

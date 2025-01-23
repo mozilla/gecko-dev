@@ -1540,22 +1540,6 @@ nsXPCComponents_Utils::Import(const nsACString& registryLocation,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::IsModuleLoaded(const nsACString& aResourceURI,
-                                      bool* retval) {
-  RefPtr moduleloader = mozJSModuleLoader::Get();
-  MOZ_ASSERT(moduleloader);
-  return moduleloader->IsModuleLoaded(aResourceURI, retval);
-}
-
-NS_IMETHODIMP
-nsXPCComponents_Utils::IsJSModuleLoaded(const nsACString& aResourceURI,
-                                        bool* retval) {
-  RefPtr moduleloader = mozJSModuleLoader::Get();
-  MOZ_ASSERT(moduleloader);
-  return moduleloader->IsJSModuleLoaded(aResourceURI, retval);
-}
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::IsESModuleLoaded(const nsACString& aResourceURI,
                                         bool* retval) {
   RefPtr moduleloader = mozJSModuleLoader::Get();
@@ -2588,12 +2572,8 @@ NS_IMETHODIMP_(MozExternalRefCountType) ComponentsSH::Release(void) {
 
 NS_IMPL_QUERY_INTERFACE(ComponentsSH, nsIXPCScriptable)
 
-#define NSXPCCOMPONENTS_CID                          \
-  {                                                  \
-    0x3649f405, 0xf0ec, 0x4c28, {                    \
-      0xae, 0xb0, 0xaf, 0x9a, 0x51, 0xe4, 0x4c, 0x81 \
-    }                                                \
-  }
+#define NSXPCCOMPONENTS_CID \
+  {0x3649f405, 0xf0ec, 0x4c28, {0xae, 0xb0, 0xaf, 0x9a, 0x51, 0xe4, 0x4c, 0x81}}
 
 NS_IMPL_CLASSINFO(nsXPCComponents, &ComponentsSH::Get, 0, NSXPCCOMPONENTS_CID)
 NS_IMPL_ISUPPORTS_CI(nsXPCComponents, nsIXPCComponents)
