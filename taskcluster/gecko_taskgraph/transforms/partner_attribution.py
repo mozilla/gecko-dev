@@ -145,7 +145,6 @@ def _get_artifact_file_name(platform):
 
 
 def _get_upstream_task_label_and_artifact(platform, locale):
-    # find the upstream, throw away locales we don't have, somehow. Skip ?
     if platform.startswith("win"):
         if locale == "en-US":
             upstream_label = "repackage-signing-{platform}/opt".format(
