@@ -396,31 +396,19 @@ unpack_565_to_8888 (vector unsigned int lo)
 static force_inline int
 is_opaque (vector unsigned int x)
 {
-    uint32_t cmp_result;
-    vector bool int ffs = vec_cmpeq(x, x);
-
-    cmp_result = vec_all_eq(x, ffs);
-
-    return (cmp_result & 0x8888) == 0x8888;
+    return vec_all_eq (vec_and (x, mask_ff000000), mask_ff000000);
 }
 
 static force_inline int
 is_zero (vector unsigned int x)
 {
-    uint32_t cmp_result;
-
-    cmp_result = vec_all_eq(x, (vector unsigned int) AVV(0));
-
-    return cmp_result == 0xffff;
+    return vec_all_eq (x, (vector unsigned int) AVV (0));
 }
 
 static force_inline int
 is_transparent (vector unsigned int x)
 {
-    uint32_t cmp_result;
-
-    cmp_result = vec_all_eq(x, (vector unsigned int) AVV(0));
-    return (cmp_result & 0x8888) == 0x8888;
+    return vec_all_eq (vec_and (x, mask_ff000000), (vector unsigned int) AVV (0));
 }
 
 static force_inline uint32_t

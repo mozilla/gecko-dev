@@ -3541,6 +3541,7 @@ pixman_asm_function \fname
     ldp       x12, x13, [x29, -104]
     mov       sp, x29
     ldp       x29, x30, [sp], 16
+    VERIFY_LR
     ret
 
     .unreq    OUT

@@ -30,11 +30,10 @@ typedef enum
     ARM_V7		= (1 << 0),
     ARM_V6		= (1 << 1),
     ARM_VFP		= (1 << 2),
-    ARM_NEON		= (1 << 3),
-    ARM_IWMMXT		= (1 << 4)
+    ARM_NEON		= (1 << 3)
 } arm_cpu_features_t;
 
-#if defined(USE_ARM_SIMD) || defined(USE_ARM_NEON) || defined(USE_ARM_IWMMXT)
+#if defined(USE_ARM_SIMD) || defined(USE_ARM_NEON)
 
 #if defined(_MSC_VER)
 
@@ -154,8 +153,6 @@ detect_cpu_features (void)
 		 */
 		if ((hwcap & 64) != 0)
 		    features |= ARM_VFP;
-		if ((hwcap & 512) != 0)
-		    features |= ARM_IWMMXT;
 		/* this flag is only present on kernel 2.6.29 */
 		if ((hwcap & 4096) != 0)
 		    features |= ARM_NEON;
@@ -226,7 +223,7 @@ have_feature (arm_cpu_features_t feature)
     return (features & feature) == feature;
 }
 
-#endif /* USE_ARM_SIMD || USE_ARM_NEON || USE_ARM_IWMMXT */
+#endif /* USE_ARM_SIMD || USE_ARM_NEON */
 
 pixman_implementation_t *
 _pixman_arm_get_implementations (pixman_implementation_t *imp)
@@ -234,11 +231,6 @@ _pixman_arm_get_implementations (pixman_implementation_t *imp)
 #ifdef USE_ARM_SIMD
     if (!_pixman_disabled ("arm-simd") && have_feature (ARM_V6))
 	imp = _pixman_implementation_create_arm_simd (imp);
-#endif
-
-#ifdef USE_ARM_IWMMXT
-    if (!_pixman_disabled ("arm-iwmmxt") && have_feature (ARM_IWMMXT))
-	imp = _pixman_implementation_create_mmx (imp);
 #endif
 
 #ifdef USE_ARM_NEON

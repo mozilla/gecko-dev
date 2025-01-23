@@ -8,7 +8,7 @@ http://www.cairographics.org/.
 VERSIONS:
 
   cairo (1.18.0)
-  pixman (0.43.4)
+  pixman (0.44.2)
 
 ==== Local cairo patches ====
 

@@ -76,10 +76,8 @@ detect_cpu_features (void)
 
 #if defined (__GNUC__)
 #include <cpuid.h>
-#endif
-
-#ifdef _MSC_VER
-#include <intrin.h> /* for __cpuid */
+#elif defined(_MSC_VER)
+#include <intrin.h>
 #endif
 
 static void

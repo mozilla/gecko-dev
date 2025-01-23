@@ -34,6 +34,7 @@
 #include <float.h>
 
 #include "pixman-private.h"
+#include "pixman-combine-float.h"
 
 /* Workaround for http://gcc.gnu.org/PR54965 */
 /* GCC 4.6 has problems with force_inline, so just use normal inline instead */
@@ -148,23 +149,6 @@ combine_inner (pixman_bool_t component,
 /*
  * Porter/Duff operators
  */
-typedef enum
-{
-    ZERO,
-    ONE,
-    SRC_ALPHA,
-    DEST_ALPHA,
-    INV_SA,
-    INV_DA,
-    SA_OVER_DA,
-    DA_OVER_SA,
-    INV_SA_OVER_DA,
-    INV_DA_OVER_SA,
-    ONE_MINUS_SA_OVER_DA,
-    ONE_MINUS_DA_OVER_SA,
-    ONE_MINUS_INV_DA_OVER_SA,
-    ONE_MINUS_INV_SA_OVER_DA
-} combine_factor_t;
 
 #define CLAMP(f)					\
     (((f) < 0)? 0 : (((f) > 1.0) ? 1.0 : (f)))
@@ -261,7 +245,7 @@ get_factor (combine_factor_t factor, float sa, float da)
 }
 
 #define MAKE_PD_COMBINERS(name, a, b)					\
-    static float force_inline						\
+    static float							\
     pd_combine_ ## name (float sa, float s, float da, float d)		\
     {									\
 	const float fa = get_factor (a, sa, da);			\
@@ -360,13 +344,13 @@ MAKE_PD_COMBINERS (conjoint_xor,		ONE_MINUS_DA_OVER_SA,		ONE_MINUS_SA_OVER_DA)
  */
 
 #define MAKE_SEPARABLE_PDF_COMBINERS(name)				\
-    static force_inline float						\
+    static float							\
     combine_ ## name ## _a (float sa, float s, float da, float d)	\
     {									\
 	return da + sa - da * sa;					\
     }									\
     									\
-    static force_inline float						\
+    static float							\
     combine_ ## name ## _c (float sa, float s, float da, float d)	\
     {									\
 	float f = (1 - sa) * d + (1 - da) * s;				\
@@ -1011,7 +995,7 @@ blend_hsl_luminosity (rgb_t *res,
 		sa *= ma;						\
 		sc.r *= ma;						\
 		sc.g *= ma;						\
-		sc.g *= ma;						\
+		sc.b *= ma;						\
 	    }								\
 									\
 	    blend_ ## name (&rc, &dc, da, &sc, sa);			\

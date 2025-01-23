@@ -59,6 +59,19 @@ have_feature (const char *search_string)
     fclose (f);
 #endif
 
+#if defined (CI_HAS_ALL_MIPS_CPU_FEATURES)
+    /* Used to force feature discovery in CI where /proc/cpuinfo is unreliable.
+     * It can happen, e.g., if executed in qemu-user-static mode.
+     *
+     * For such a build, MIPS-specific features need to be manually disabled by
+     * using `PIXMAN_DISABLE` env variable
+     *
+     * SHOULD NOT BE USED IN RELEASE BUILD!
+     */
+    #warning "Building with disabled MIPS feature discovery. SHOULD NOT BE USED IN RELEASE BUILD!"
+    return TRUE;
+#endif
+
     /* Did not find string in the proc file, or not Linux ELF. */
     return FALSE;
 }

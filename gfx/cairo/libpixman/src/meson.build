@@ -27,7 +27,7 @@ version_h = configure_file(
   configuration : version_conf,
   input : 'pixman-version.h.in',
   output : 'pixman-version.h',
-  install_dir : join_paths(get_option('prefix'), get_option('includedir'), 'pixman-1')
+  install_dir : get_option('prefix') / get_option('includedir') / 'pixman-1'
 )
 
 libpixman_extra_cargs = []
@@ -38,15 +38,13 @@ endif
 
 pixman_simd_libs = []
 simds = [
-  # the mmx library can be compiled with mmx on x86/x86_64, iwmmxt on
-  # some arm cores, or loongson mmi on loongson mips systems. The
-  # libraries will all have the same name, "pixman-mmx", but there is
-  # no chance of more than one version being built in the same build
-  # because no system could have mmx, iwmmxt, and mmi, and it
-  # simplifies the build logic to give them the same name.
+  # the mmx library can be compiled with mmx on x86/x86_64 or loongson
+  # mmi on loongson mips systems. The libraries will all have the same
+  # name, "pixman-mmx", but there is no chance of more than one version
+  # being built in the same build because no system could have mmx and
+  # mmi, and it simplifies the build logic to give them the same name.
   ['mmx', have_mmx, mmx_flags, []],
   ['mmx', have_loongson_mmi, loongson_mmi_flags, []],
-  ['mmx', have_iwmmxt, iwmmxt_flags, []],
 
   ['sse2', have_sse2, sse2_flags, []],
   ['ssse3', have_ssse3, ssse3_flags, []],
@@ -59,6 +57,7 @@ simds = [
    ['pixman-arma64-neon-asm.S', 'pixman-arma64-neon-asm-bilinear.S']],
   ['mips-dspr2', have_mips_dspr2, mips_dspr2_flags,
    ['pixman-mips-dspr2-asm.S', 'pixman-mips-memcpy-asm.S']],
+   ['rvv', have_rvv, rvv_flags, []],
 ]
 
 foreach simd : simds
@@ -76,18 +75,15 @@ pixman_files = files(
   'pixman.c',
   'pixman-access.c',
   'pixman-access-accessors.c',
+  'pixman-arm.c',
   'pixman-bits-image.c',
   'pixman-combine32.c',
   'pixman-combine-float.c',
   'pixman-conical-gradient.c',
-  'pixman-filter.c',
-  'pixman-x86.c',
-  'pixman-mips.c',
-  'pixman-arm.c',
-  'pixman-ppc.c',
   'pixman-edge.c',
   'pixman-edge-accessors.c',
   'pixman-fast-path.c',
+  'pixman-filter.c',
   'pixman-glyph.c',
   'pixman-general.c',
   'pixman-gradient-walker.c',
@@ -95,14 +91,18 @@ pixman_files = files(
   'pixman-implementation.c',
   'pixman-linear-gradient.c',
   'pixman-matrix.c',
+  'pixman-mips.c',
   'pixman-noop.c',
+  'pixman-ppc.c',
   'pixman-radial-gradient.c',
   'pixman-region16.c',
   'pixman-region32.c',
+  'pixman-riscv.c',
   'pixman-solid-fill.c',
   'pixman-timer.c',
   'pixman-trap.c',
   'pixman-utils.c',
+  'pixman-x86.c',
 )
 
 # Android cpu-features
@@ -135,9 +135,6 @@ idep_pixman = declare_dependency(
   link_with: libpixman,
   include_directories : inc_pixman,
 )
-
-if meson.version().version_compare('>= 0.54.0')
-  meson.override_dependency('pixman-1', idep_pixman)
-endif
+meson.override_dependency('pixman-1', idep_pixman)
 
 install_headers('pixman.h', subdir : 'pixman-1')

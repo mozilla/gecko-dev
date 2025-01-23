@@ -47,6 +47,8 @@
  *  - maybe add an option to do reverse scanline processing
  */
 
+#include "pixman-arm-asm.h"
+
 /*
  * Bit flags for 'generate_composite_function' macro which are used
  * to tune generated functions behavior.
@@ -232,14 +234,16 @@
     asr     TMP1, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP1, \mem_operand, TMP1, lsl #1
     asr     TMP2, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP2, \mem_operand, TMP2, lsl #1
@@ -247,7 +251,8 @@
     asr     TMP1, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP1, \mem_operand, TMP1, lsl #1
@@ -255,7 +260,8 @@
     asr     TMP2, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP2, \mem_operand, TMP2, lsl #1
@@ -265,14 +271,16 @@
     asr     TMP1, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP1, \mem_operand, TMP1, lsl #2
     asr     TMP2, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP2, \mem_operand, TMP2, lsl #2
@@ -312,7 +320,8 @@
     asr     TMP1, VX, #16
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP1, \mem_operand, TMP1, lsl #1
@@ -322,7 +331,8 @@
     mov     TMP1, DUMMY
     adds    VX, VX, UNIT_X
     bmi     55f
-5:  subs    VX, VX, SRC_WIDTH_FIXED
+5:
+    subs    VX, VX, SRC_WIDTH_FIXED
     bpl     5b
 55:
     add     TMP1, \mem_operand, TMP1, lsl #2
@@ -917,6 +927,7 @@
     ldr         x28, [x29, -232]
     mov         sp, x29
     ldp         x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 /*
  * This is the start of the loop, designed to process images with small width
@@ -974,6 +985,7 @@
     ldr         x28, [x29, -232]
     mov         sp, x29
     ldp         x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 
     .purgem     fetch_src_pixblock
@@ -1155,6 +1167,7 @@
     ldr         x10, [x29, -96]
     mov         sp, x29
     ldp         x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 .else
     sub         x29, x29, 64
@@ -1162,6 +1175,7 @@
     ld1         {v12.8b, v13.8b, v14.8b, v15.8b}, [x29], 32
     mov         sp, x29
     ldp         x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 .endif
 800:
@@ -1180,6 +1194,7 @@
     ldr         x10, [x29, -88]
     mov         sp, x29
     ldp         x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 
     .unreq      DUMMY
@@ -1200,6 +1215,7 @@
     ld1         {v12.8b, v13.8b, v14.8b, v15.8b}, [x29], 32
     mov          sp, x29
     ldp          x29, x30, [sp], 16
+    VERIFY_LR
     ret  /* exit */
 
     .unreq      DUMMY

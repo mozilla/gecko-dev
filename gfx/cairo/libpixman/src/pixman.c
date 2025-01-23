@@ -40,6 +40,21 @@ pixman_constructor (void)
 }
 #endif
 
+#ifdef TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR
+static void __attribute__((destructor))
+pixman_destructor (void)
+{
+    pixman_implementation_t *imp = global_implementation;
+
+    while (imp)
+    {
+        pixman_implementation_t *cur = imp;
+        imp = imp->fallback;
+        free (cur);
+    }
+}
+#endif
+
 typedef struct operator_info_t operator_info_t;
 
 struct operator_info_t
