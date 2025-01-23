@@ -1,25 +1,23 @@
 diff --git a/gfx/cairo/libpixman/src/pixman-arm-asm.h b/gfx/cairo/libpixman/src/pixman-arm-asm.h
 --- a/gfx/cairo/libpixman/src/pixman-arm-asm.h
 +++ b/gfx/cairo/libpixman/src/pixman-arm-asm.h
-@@ -20,19 +20,19 @@
-  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
-  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-  * SOFTWARE.
+@@ -23,17 +23,19 @@
   *
   * Author:  Jeff Muizelaar (jeff@infidigm.net)
   *
   */
  
--
+ #ifndef PIXMAN_ARM_ASM_H
+ #define PIXMAN_ARM_ASM_H
+ 
 +#ifdef HAVE_CONFIG_H
  #include "pixman-config.h"
--
 +#endif
  
- /* Supplementary macro for setting function attributes */
- .macro pixman_asm_function_impl fname
- #ifdef ASM_HAVE_FUNC_DIRECTIVE
- 	.func \fname
- #endif
- 	.global \fname
- #ifdef __ELF__
+ /*
+  * References:
+  *  - https://developer.arm.com/documentation/101028/0012/5--Feature-test-macros
+  *  - https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst
+  */
+ #if defined(__ARM_FEATURE_BTI_DEFAULT) && __ARM_FEATURE_BTI_DEFAULT == 1
+   #define BTI_C hint 34  /* bti c: for calls, IE bl instructions */
