@@ -384,7 +384,16 @@ class RequestListContent extends Component {
       });
     }
 
-    this.contextMenu.open(evt, clickedRequest, displayedRequests, blockedUrls);
+    const filteredBlockedUrls = blockedUrls
+      .map(({ enabled, url }) => (enabled ? url : null))
+      .filter(Boolean);
+
+    this.contextMenu.open(
+      evt,
+      clickedRequest,
+      displayedRequests,
+      filteredBlockedUrls
+    );
   }
 
   render() {
@@ -471,9 +480,7 @@ class RequestListContent extends Component {
 
 module.exports = connect(
   state => ({
-    blockedUrls: state.requestBlocking.blockedUrls
-      .map(({ enabled, url }) => (enabled ? url : null))
-      .filter(Boolean),
+    blockedUrls: state.requestBlocking.blockedUrls,
     columns: getColumns(state),
     networkActionOpen: state.ui.networkActionOpen,
     networkDetailsOpen: state.ui.networkDetailsOpen,
