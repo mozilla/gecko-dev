@@ -229,11 +229,6 @@ class MOZ_STACK_CLASS ModuleLoaderInfo {
     return ResolveURI(mURI, getter_AddRefs(mResolvedURI));
   }
 
-  const nsACString& Key() {
-    MOZ_ASSERT(mLocation);
-    return *mLocation;
-  }
-
  private:
   const nsACString* mLocation;
   nsCOMPtr<nsIIOService> mIOService;
@@ -1009,8 +1004,7 @@ void mozJSModuleLoader::RecordImportStack(
     return;
   }
 
-  ModuleLoaderInfo importerInfo(importerSpec);
-  auto importerStack = mImportStacks.Lookup(importerInfo.Key());
+  auto importerStack = mImportStacks.Lookup(importerSpec);
   if (!importerStack) {
     // The importer's stack is not collected, possibly due to OOM.
     recordJSStackOnly();
@@ -1038,8 +1032,7 @@ nsresult mozJSModuleLoader::GetModuleImportStack(const nsACString& aLocation,
     return NS_ERROR_FAILURE;
   }
 
-  ModuleLoaderInfo info(aLocation);
-  auto str = mImportStacks.Lookup(info.Key());
+  auto str = mImportStacks.Lookup(aLocation);
   if (!str) {
     return NS_ERROR_FAILURE;
   }
