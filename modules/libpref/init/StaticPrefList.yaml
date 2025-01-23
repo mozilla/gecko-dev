@@ -679,6 +679,11 @@
   value: @IS_NOT_ANDROID@
   mirror: always
 
+- name: apz.keyboard.focus-optimization
+  type: bool
+  value: false
+  mirror: always
+
 - name: apz.max_tap_time
   type: RelaxedAtomicInt32
   value: 300
