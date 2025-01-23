@@ -3232,12 +3232,6 @@ wine = check_prog(
     bootstrap="wine/bin",
 )
 
-# DOM Streams
-# ==============================================================
-# Set this to true so the JS engine knows we're doing a browser build.
-set_config("MOZ_DOM_STREAMS", True)
-set_define("MOZ_DOM_STREAMS", True)
-
 # libevent
 # ==============================================================
 with only_when(compile_environment):
