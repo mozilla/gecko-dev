@@ -687,10 +687,6 @@ static inline bool IsTypeRepresentableAsDouble(MIRType type) {
          type == MIRType::Float32;
 }
 
-static inline bool IsFloatType(MIRType type) {
-  return type == MIRType::Int32 || type == MIRType::Float32;
-}
-
 static inline bool IsFloatingPointType(MIRType type) {
   return type == MIRType::Double || type == MIRType::Float32;
 }
