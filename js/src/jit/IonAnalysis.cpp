@@ -2276,7 +2276,7 @@ bool TypeAnalyzer::adjustPhiInputs(MPhi* phi) {
               MUnbox::New(alloc(), in, MIRType::Double, MUnbox::Fallible);
           unbox->setBailoutKind(BailoutKind::SpeculativePhi);
           predecessor->insertAtEnd(unbox);
-          replacement = MToFloat32::New(alloc(), in);
+          replacement = MToFloat32::New(alloc(), unbox);
         } else {
           replacement = MUnbox::New(alloc(), in, phiType, MUnbox::Fallible);
         }
