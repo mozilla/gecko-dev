@@ -49,39 +49,36 @@ function sortWithClones(requests, sorter, a, b) {
  * a clone, it's not filtered out.
  */
 const getFilterWithCloneFn = createSelector(
-  state => state.filters,
-  filters => r => {
-    const matchesType = Object.keys(filters.requestFilterTypes).some(filter => {
+  state => state.filters.requestFilterTypes,
+  state => state.filters.requestFilterText,
+  (requestFilterTypes, requestFilterText) => r => {
+    const matchesType = Object.keys(requestFilterTypes).some(filter => {
       if (r.id.endsWith("-clone")) {
         return true;
       }
       return (
-        filters.requestFilterTypes[filter] &&
-        Filters[filter] &&
-        Filters[filter](r)
+        requestFilterTypes[filter] && Filters[filter] && Filters[filter](r)
       );
     });
-    return matchesType && isFreetextMatch(r, filters.requestFilterText);
+    return matchesType && isFreetextMatch(r, requestFilterText);
   }
 );
 
 const getTypeFilterFn = createSelector(
-  state => state.filters,
-  filters => r => {
-    return Object.keys(filters.requestFilterTypes).some(filter => {
+  state => state.filters.requestFilterTypes,
+  requestFilterTypes => r => {
+    return Object.keys(requestFilterTypes).some(filter => {
       return (
-        filters.requestFilterTypes[filter] &&
-        Filters[filter] &&
-        Filters[filter](r)
+        requestFilterTypes[filter] && Filters[filter] && Filters[filter](r)
       );
     });
   }
 );
 
 const getSortFn = createSelector(
-  state => state.requests,
+  state => state.requests.requests,
   state => state.sort,
-  ({ requests }, sort) => {
+  (requests, sort) => {
     const sorter = Sorters[sort.type || "waterfall"];
     const ascending = sort.ascending ? +1 : -1;
     return (a, b) => ascending * sortWithClones(requests, sorter, a, b);
@@ -89,22 +86,22 @@ const getSortFn = createSelector(
 );
 
 const getSortedRequests = createSelector(
-  state => state.requests,
+  state => state.requests.requests,
   getSortFn,
-  ({ requests }, sortFn) => [...requests].sort(sortFn)
+  (requests, sortFn) => [...requests].sort(sortFn)
 );
 
 const getDisplayedRequests = createSelector(
-  state => state.requests,
+  state => state.requests.requests,
   getFilterWithCloneFn,
   getSortFn,
-  ({ requests }, filterFn, sortFn) => requests.filter(filterFn).sort(sortFn)
+  (requests, filterFn, sortFn) => requests.filter(filterFn).sort(sortFn)
 );
 
 const getTypeFilteredRequests = createSelector(
-  state => state.requests,
+  state => state.requests.requests,
   getTypeFilterFn,
-  ({ requests }, filterFn) => requests.filter(filterFn)
+  (requests, filterFn) => requests.filter(filterFn)
 );
 
 const getDisplayedRequestsSummary = createSelector(
@@ -143,15 +140,16 @@ const getDisplayedRequestsSummary = createSelector(
 );
 
 const getSelectedRequest = createSelector(
-  state => state.requests,
-  ({ selectedId, requests }) =>
+  state => state.requests.requests,
+  state => state.requests.selectedId,
+  (requests, selectedId) =>
     selectedId ? requests.find(item => item.id === selectedId) : undefined
 );
 
 const isSelectedRequestVisible = createSelector(
-  state => state.requests,
+  state => state.requests.selectedId,
   getDisplayedRequests,
-  ({ selectedId }, displayedRequests) =>
+  (selectedId, displayedRequests) =>
     displayedRequests.some(r => r.id === selectedId)
 );
 
@@ -178,8 +176,9 @@ function getRecordingState(state) {
 }
 
 const getClickedRequest = createSelector(
-  state => state.requests,
-  ({ requests, clickedRequestId }) =>
+  state => state.requests.requests,
+  state => state.requests.clickedRequestId,
+  (requests, clickedRequestId) =>
     requests.find(request => request.id == clickedRequestId)
 );
 
