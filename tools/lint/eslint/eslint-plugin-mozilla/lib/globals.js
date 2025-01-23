@@ -20,7 +20,6 @@ const callExpressionDefinitions = [
   /^loader\.lazyRequireGetter\((?:globalThis|this), "(\w+)"/,
   /^XPCOMUtils\.defineLazyGetter\((?:globalThis|this), "(\w+)"/,
   /^ChromeUtils\.defineLazyGetter\((?:globalThis|this), "(\w+)"/,
-  /^ChromeUtils\.defineModuleGetter\((?:globalThis|this), "(\w+)"/,
   /^XPCOMUtils\.defineLazyPreferenceGetter\((?:globalThis|this), "(\w+)"/,
   /^XPCOMUtils\.defineLazyScriptGetter\((?:globalThis|this), "(\w+)"/,
   /^XPCOMUtils\.defineLazyServiceGetter\((?:globalThis|this), "(\w+)"/,
@@ -34,8 +33,6 @@ const callExpressionDefinitions = [
 const callExpressionMultiDefinitions = [
   "XPCOMUtils.defineLazyGlobalGetters(this,",
   "XPCOMUtils.defineLazyGlobalGetters(globalThis,",
-  "XPCOMUtils.defineLazyModuleGetters(this,",
-  "XPCOMUtils.defineLazyModuleGetters(globalThis,",
   "XPCOMUtils.defineLazyServiceGetters(this,",
   "XPCOMUtils.defineLazyServiceGetters(globalThis,",
   "ChromeUtils.defineESModuleGetters(this,",
