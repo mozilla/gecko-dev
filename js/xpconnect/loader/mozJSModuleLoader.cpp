@@ -1831,25 +1831,6 @@ nsresult mozJSModuleLoader::ImportESModule(
   return NS_OK;
 }
 
-nsresult mozJSModuleLoader::Unload(const nsACString& aLocation) {
-  if (!mInitialized) {
-    return NS_OK;
-  }
-
-  ModuleLoaderInfo info(aLocation);
-
-  ModuleEntry* mod;
-  if (mImports.Get(info.Key(), &mod)) {
-    mLocations.Remove(mod->resolvedURL);
-    mImports.Remove(info.Key());
-  }
-
-  // If this is the last module to be unloaded, we will leak mLoaderGlobal
-  // until UnloadModules is called. So be it.
-
-  return NS_OK;
-}
-
 bool mozJSModuleLoader::CreateJSServices(JSContext* aCx) {
   JSObject* services = NewJSServices(aCx);
   if (!services) {

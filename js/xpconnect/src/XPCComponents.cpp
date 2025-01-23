@@ -1548,13 +1548,6 @@ nsXPCComponents_Utils::IsESModuleLoaded(const nsACString& aResourceURI,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::Unload(const nsACString& registryLocation) {
-  RefPtr moduleloader = mozJSModuleLoader::Get();
-  MOZ_ASSERT(moduleloader);
-  return moduleloader->Unload(registryLocation);
-}
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
                                               JSContext* cx) {
   // Ensure we're working in the scripted caller's realm. This is not guaranteed

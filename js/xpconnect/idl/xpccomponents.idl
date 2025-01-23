@@ -345,19 +345,6 @@ interface nsIXPCComponents_Utils : nsISupports
     boolean isESModuleLoaded(in AUTF8String aResourceURI);
 
     /*
-     * Unloads the JS module at 'registryLocation'. Existing references to the
-     * module will continue to work but any subsequent import of the module will
-     * reload it and give new reference. If the JS module hasn't yet been
-     * imported then this method will do nothing.
-     *
-     * @param resourceURI A resource:// URI string to unload the module from.
-     *
-     * TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-     *       (bug 1776175, bug 1881888).
-     */
-    void unload(in AUTF8String registryLocation);
-
-    /*
      * Imports global properties (like DOM constructors) into the scope, defining
      * them on the caller's global. aPropertyList should be an array of property
      * names.

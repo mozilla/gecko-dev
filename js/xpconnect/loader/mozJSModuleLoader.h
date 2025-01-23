@@ -106,7 +106,6 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
                          JS::loader::ModuleLoadRequest* aRequest);
 #endif
 
-  nsresult Unload(const nsACString& aResourceURI);
   nsresult IsESModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
   bool IsLoaderGlobal(JSObject* aObj) { return mLoaderGlobal == aObj; }
   bool IsDevToolsLoader() const { return this == sDevToolsLoader; }
