@@ -132,13 +132,13 @@ async def geckodriver(configuration):
     """Start a geckodriver instance directly."""
     driver = None
 
-    def _geckodriver(config=None, hostname=None, extra_args=None):
+    def _geckodriver(config=None, hostname=None, extra_args=None, extra_env=None):
         nonlocal driver
 
         if config is None:
             config = configuration
 
-        driver = Geckodriver(config, hostname, extra_args)
+        driver = Geckodriver(config, hostname, extra_args, extra_env)
         driver.start()
 
         return driver

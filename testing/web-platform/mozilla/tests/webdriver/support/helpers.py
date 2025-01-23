@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 from contextlib import suppress
+from copy import deepcopy
 from urllib.parse import urlparse
 
 import webdriver
@@ -148,12 +149,13 @@ class Browser:
 class Geckodriver:
     PORT_RE = re.compile(rb".*Listening on [^ :]*:(\d+)")
 
-    def __init__(self, configuration, hostname=None, extra_args=None):
+    def __init__(self, configuration, hostname=None, extra_args=None, extra_env=None):
         self.config = configuration["webdriver"]
         self.requested_capabilities = configuration["capabilities"]
         self.hostname = hostname or configuration["host"]
         self.extra_args = extra_args or []
         self.env = configuration["browser"]["env"]
+        self.extra_env = extra_env or {}
 
         self.command = None
         self.proc = None
@@ -178,7 +180,10 @@ class Geckodriver:
         )
 
         print(f"Running command: {' '.join(self.command)}")
-        self.proc = subprocess.Popen(self.command, env=self.env, stdout=subprocess.PIPE)
+        all_env = deepcopy(self.env)
+        all_env.update(self.extra_env)
+
+        self.proc = subprocess.Popen(self.command, env=all_env, stdout=subprocess.PIPE)
 
         self.reader_thread = threading.Thread(
             target=readOutputLine,
