@@ -85,6 +85,7 @@ queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
   ${extra_apt_opt:+--aptopt="$extra_apt_opt"} \
   --dpkgopt=path-exclude="*" \
   --dpkgopt=path-include="/lib/*" \
+  --dpkgopt=path-exclude="/lib/systemd/*" \
   --dpkgopt=path-include="/lib32/*" \
   --dpkgopt=path-include="/usr/include/*" \
   --dpkgopt=path-include="/usr/lib/*" \
@@ -92,6 +93,7 @@ queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
   --dpkgopt=path-exclude="/usr/lib/debug/*" \
   --dpkgopt=path-exclude="/usr/lib/python*" \
   --dpkgopt=path-exclude="/usr/lib/valgrind/*" \
+  --dpkgopt=path-exclude="/usr/lib/*/perl" \
   --dpkgopt=path-include="/usr/share/pkgconfig/*" \
   --keyring=/usr/share/keyrings/debian-archive-removed-keys.gpg \
   -v
