@@ -24,7 +24,13 @@ task-defaults:
                 - (macosx1400|linux|windows.*-64).*shippable.*
             default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
-    tier: 3
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 3
     virtualization: hardware
     mozharness:
         script: raptor_script.py
@@ -156,7 +162,10 @@ browsertime-tp6:
             - youtube
     tier:
         by-app:
-            firefox: 2
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
             default: 3
 
 browsertime-responsiveness:
@@ -191,10 +200,6 @@ browsertime-responsiveness:
                     .*64(?!.*nightlyasrelease).*shippable.*: [trunk]
                     default: []
             default: []
-    tier:
-        by-app:
-            firefox: 2
-            default: 3
 
 browsertime-tp6-essential:
     <<: *tp6-defaults
@@ -240,12 +245,12 @@ browsertime-tp6-essential:
                         default: []
                 default: []
         tier:
-            by-test-platform:
-                linux1804-64-clang-trunk-qr/opt: 2
-                default:
-                    by-app:
-                        firefox: 1
-                        default: 3
+            by-app:
+                firefox:
+                    by-test-platform:
+                        linux.*clang-trunk.*: 2
+                        default: 1
+                default: 3
 
 browsertime-tp6-bytecode:
     <<: *tp6-defaults
@@ -289,10 +294,6 @@ browsertime-tp6-bytecode:
                     - --conditioned-profile=settled
                     - --test-bytecode-cache
                     - --extra-profiler-run
-    tier:
-        by-app:
-            firefox: 2
-            default: 3
     treeherder-symbol: Btime-cache(tp6)
 
 browsertime-tp7:
@@ -337,7 +338,10 @@ browsertime-tp7:
             - docomo
     tier:
         by-app:
-            firefox: 3
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
             default: 3
 
 browsertime-benchmark:
@@ -439,18 +443,14 @@ browsertime-benchmark:
         by-app:
             firefox:
                 by-test-platform:
-                    windows.*-64-ccov.*/.*: 3
-                    linux64-ccov.*/.*: 3
-                    default: 2
+                    linux.*clang-trunk.*: 2
+                    default: 1
             default:
                 by-subtest:
                     unity-webgl: 3
                     jetstream2:
                         by-test-platform:
-                            macosx1400.*shippable.*:
-                                by-app:
-                                    firefox: 2
-                                    default: 3
+                            macosx1400.*shippable.*: 3
                             default: 2
                     default: 2
 
@@ -556,7 +556,13 @@ browsertime-benchmark-wasm:
                     - [wasm-misc, wm]
                     - [wasm-godot, godot]
     treeherder-symbol: Btime()
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     run-on-projects:
         by-app:
             firefox:
@@ -595,7 +601,13 @@ browsertime-youtube-playback:
             windows.*-32.*: []
             .*64(?!.*nightlyasrelease).*shippable.*/.*: [mozilla-central]
             default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     limit-platforms:
         by-subtest:
             youtube-playback-av1-sfr:
@@ -628,7 +640,13 @@ browsertime-youtube-playback-power:
         by-test-platform:
             macosx.*shippable.*: [mozilla-central]
             default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     max-run-time: 2700
 
 browsertime-tp6-live:
@@ -732,7 +750,6 @@ browsertime-tp6-live:
                     - yahoo-mail
                     - youtube
     run-on-projects: []
-    tier: 3
     treeherder-symbol: Btime-live(tp6)
 
 browsertime-tp6-live-sheriffed:
@@ -756,7 +773,13 @@ browsertime-tp6-live-sheriffed:
             (linux|windows.*-64|macos).*: []
             windows.*-32.*: []
             default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     treeherder-symbol: Btime-live(tp6)
 
 browsertime-tp6-profiling:
@@ -775,7 +798,13 @@ browsertime-tp6-profiling:
         by-test-platform:
             (linux|windows|macosx1470).*shippable.*: [mozilla-central]
             default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     treeherder-symbol: Btime-Prof(tp6)
 
 browsertime-custom:
@@ -830,7 +859,13 @@ browsertime-regression-tests:
             by-test-platform:
                 windows.*-64.*shippable.*: []
                 default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     treeherder-symbol: Btime(regressor)
 
 browsertime-upload:
@@ -849,7 +884,13 @@ browsertime-upload:
                     .*64.*shippable.*: [autoland, mozilla-central]
                     default: []
             default: []
-    tier: 3
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 3
     treeherder-symbol: Btime(upload)
     fetches:
         fetch:
@@ -899,6 +940,13 @@ browsertime-network-bench:
     description: Raptor (browsertime) networking download/upload performance test
     max-run-time: 15000
     run-on-projects: []
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 3
     treeherder-symbol: Btime(network-bench)
     fetches:
         fetch:
@@ -918,7 +966,13 @@ browsertime-pageload-benchmark:
             windows.*-32.*: []
             (linux|windows.*-64).*shippable.*: [autoland]
             default: []
-    tier: 3
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 3
     treeherder-symbol: Btime(tp6-bench)
 
 browsertime-video-playback-latency:
@@ -953,7 +1007,6 @@ browsertime-video-playback-latency:
                     (macosx1470|linux|windows10-64).*shippable.*: [autoland, mozilla-central]
                     default: []
             default: []
-    tier: 3
     treeherder-symbol: Btime(vpl)
 
 browsertime-speculative:
@@ -968,7 +1021,13 @@ browsertime-speculative:
             windows.*-32.*: []
             .*64.*shippable.*: [autoland]
             default: []
-    tier: 2
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 2
     treeherder-symbol: Btime(speculative)
 
 browsertime-throttled:
@@ -979,7 +1038,13 @@ browsertime-throttled:
     description: Raptor (browsertime) throttled network pageload tests
     max-run-time: 420
     run-on-projects: []
-    tier: 3
+    tier:
+        by-app:
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
+            default: 3
     treeherder-symbol: Btime(throttled)
 
 browsertime-tp6-webextensions:
@@ -1058,7 +1123,10 @@ browsertime-indexeddb:
             default: []
     tier:
         by-app:
-            firefox: 2
+            firefox:
+                by-test-platform:
+                    linux.*clang-trunk.*: 2
+                    default: 1
             default: 3
     mozharness:
         extra-options:

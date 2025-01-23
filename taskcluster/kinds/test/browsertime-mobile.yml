@@ -8,7 +8,10 @@ task-defaults:
     variants:
         - geckoview-no-fission
     run-on-projects: []
-    tier: 3
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
     test-manifest-loader: null  # don't load tests in the taskgraph
     target:
         by-app:
@@ -97,7 +100,7 @@ browsertime-tp6m:
         tier:
             by-app:
                 geckoview: 1
-                fenix: 2
+                fenix: 1
                 refbrow: 2
                 default: 3
         treeherder-symbol: Btime(tp6m)
@@ -164,6 +167,7 @@ browsertime-tp6m-essential:
     tier:
         by-app:
             geckoview: 1
+            fenix: 1
             refbrow: 2
             default: 3
 
@@ -249,6 +253,10 @@ browsertime-youtube-playback-mobile:
                     default: []
             geckoview: []
             default: []
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
     max-run-time: 3600
 
 browsertime-youtube-playback-power-mobile:
@@ -256,7 +264,7 @@ browsertime-youtube-playback-power-mobile:
     treeherder-symbol: Btime(ytp)
     tier:
         by-app:
-            fenix: 2
+            fenix: 1
             geckoview: 2
             default: 3
     raptor:
@@ -335,7 +343,10 @@ browsertime-tp6m-live:
                     geckoview: []
                     default: []
             default: []
-    tier: 3
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
     treeherder-symbol: Btime-live(tp6m)
 
 browsertime-tp6m-profiling:
@@ -356,6 +367,10 @@ browsertime-tp6m-profiling:
         by-test-platform:
             android-hw-a55.*shippable.*/opt: [mozilla-central]
             default: []
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
 
 browsertime-video-playback-latency-mobile:
     <<: *tp6m-defaults
@@ -382,7 +397,10 @@ browsertime-video-playback-latency-mobile:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [autoland, mozilla-central]
                     default: []
-    tier: 3
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
 
 browsertime-benchmark-speedometer-mobile:
     description: Browsertime Speedometer on Android
@@ -417,7 +435,7 @@ browsertime-benchmark-speedometer3-mobile:
         apps: [geckoview, fenix, chrome-m, cstm-car-m]
     tier:
         by-app:
-            fenix: 2
+            fenix: 1
             geckoview: 2
             cstm-car-m: 2
             default: 3
@@ -460,7 +478,7 @@ browsertime-benchmark-motionmark-1-3:
     treeherder-symbol: Btime()
     tier:
         by-app:
-            fenix: 2
+            fenix: 1
             geckoview: 2
             default: 3
 
@@ -480,7 +498,7 @@ browsertime-benchmark-jetstream2:
     treeherder-symbol: Btime()
     tier:
         by-app:
-            fenix: 2
+            fenix: 1
             default: 3
 
 browsertime-benchmark-unity-webgl-mobile:
@@ -489,6 +507,7 @@ browsertime-benchmark-unity-webgl-mobile:
         apps: [geckoview, refbrow, fenix, chrome-m]
     tier:
         by-app:
+            fenix: 1
             geckoview: 2
             default: 3
     treeherder-symbol: Btime(ugl)
@@ -513,7 +532,10 @@ browsertime-power:
             - idle
             - idle-bg
             - [speedometer, sp]
-    tier: 2
+    tier:
+        by-app:
+            fenix: 1
+            default: 2
     run-on-projects: []
     treeherder-symbol: Btime-P(power)
     mozharness:
