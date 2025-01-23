@@ -50,9 +50,23 @@ class RangeContentCache {
  * In addition to the _current_ context terms of the text directive, it also
  * contains the _fully expanded_ context terms, i.e. the ranges until the next
  * block boundary.
+ *
+ * `TextDirectiveCandidate`s are immutable.
+ * This allows sharing `nsRange`s across instances to save memory. Also, this
+ * allows to create the text directive string representation
+ * (`TextDirectiveString()`) once when the object is created.
+ * However, the `nsRange` members cannot be marked as `const`:
+ * - It's not possible to have the `nsRange` itself be const because
+ *   `nsRange::ToString()` is not const.
+ * - It's not possible to have the `RefPtr` be const because of move semantics.
  */
 class TextDirectiveCandidate {
  public:
+  TextDirectiveCandidate(TextDirectiveCandidate&&) = default;
+  TextDirectiveCandidate& operator=(TextDirectiveCandidate&&) = default;
+  TextDirectiveCandidate(const TextDirectiveCandidate&) = delete;
+  TextDirectiveCandidate& operator=(const TextDirectiveCandidate&) = delete;
+
   /**
    * @brief Creates a candidate from a given input range.
    *
@@ -70,6 +84,69 @@ class TextDirectiveCandidate {
 
   static Result<TextDirectiveCandidate, ErrorResult> CreateFromStartAndEndRange(
       const nsRange* aStartRange, const nsRange* aEndRange);
+
+  /**
+   * Creates new text directive candidates for each element of `aMatches`, which
+   * eliminate the element.
+   *
+   * @see CreateNewCandidatesForGivenMatch()
+   */
+  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+  CreateNewCandidatesForMatches(
+      const nsTArray<const TextDirectiveCandidate*>& aMatches,
+      RangeContentCache& aRangeContentCache);
+
+  /**
+   * Creates new text directive candidates which eliminate `aOther` by extending
+   * context terms in every direction.
+   *
+   * If exact matching is used, this function will create up to two new
+   * candidates, one where the prefix is extended until it is not matching with
+   * other, one where suffix is extended.
+   * If range based matching is used, there will be additional candidates
+   * created which extend the start and end term.
+   *
+   * If even a fully expanded context term is matching the context term of
+   * `other`, no candidate is created.
+   * Returning an empty array indicates that it is not possible to create a text
+   * directive for the given text in the current document, because it is not
+   * possible to create a text directive that would not match `other`.
+   */
+  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
+  CreateNewCandidatesForGivenMatch(const TextDirectiveCandidate& aOther,
+                                   RangeContentCache& aRangeContentCache) const;
+
+  /**
+   * Clones `this` and replaces ranges which are non-null.
+   * The parameter ranges are moved into the function to emphasize that the
+   * objects are not cloned. Therefore, the ranges must not be updated after
+   * this call.
+   */
+  Result<TextDirectiveCandidate, ErrorResult> CloneWith(
+      RefPtr<nsRange>&& aNewPrefixRange, RefPtr<nsRange>&& aNewStartRange,
+      RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange) const;
+
+  /**
+   * @brief Returns true if the text directive string in `this` would match the
+   *        other candidate.
+   *
+   * The candidate matches another candidate if the context terms are fully
+   * present in the fully-expanded context terms of the other candidate.
+   */
+  Result<bool, ErrorResult> ThisCandidateMatchesOther(
+      const TextDirectiveCandidate& aOther,
+      RangeContentCache& aRangeContentCache) const;
+
+  /**
+   * @brief Returns a filtered list of candidates, which still match against
+   *        `this`.
+   *
+   * This method uses `ThisCandidateMatchesOther()` to check whether a candidate
+   * is still matching against `this` or can be ruled out.
+   */
+  nsTArray<const TextDirectiveCandidate*> FilterNonMatchingCandidates(
+      const nsTArray<const TextDirectiveCandidate*>& aMatches,
+      RangeContentCache& aRangeContentCache);
 
   /** Returns true if the candidate uses exact matching (and not range-based) */
   bool UseExactMatch() const { return !mEndRange; }
@@ -218,6 +295,7 @@ class TextDirectiveCreator final {
   Document& mDocument;
   RefPtr<nsRange> mInputRange;
   TextDirectiveCandidate mTextDirective;
+  RangeContentCache mRangeContentCache;
 };
 }  // namespace mozilla::dom
 #endif

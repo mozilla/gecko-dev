@@ -721,4 +721,31 @@ uint32_t TextDirectiveUtil::FindCommonSuffix(const nsAString& aFoldedStr1,
   return commonLength;
 }
 
+RangeBoundary
+TextDirectiveUtil::CreateRangeBoundaryByMovingOffsetFromRangeStart(
+    nsRange* aRange, uint32_t aLogicalOffset) {
+  MOZ_ASSERT(!aRange->Collapsed());
+
+  nsINode* node = aRange->GetStartContainer();
+  uint32_t startOffset = aRange->StartOffset();
+
+  uint32_t remaining = startOffset + aLogicalOffset;
+  while (node && remaining) {
+    if (NodeIsPartOfNonSearchableSubTree(*node) ||
+        !NodeIsVisibleTextNode(*node)) {
+      node = node->GetNextNode();
+      continue;
+    }
+    MOZ_ASSERT_IF(node == aRange->GetEndContainer(),
+                  remaining <= node->Length());
+    if (node->Length() <= remaining) {
+      remaining -= node->Length();
+      node = node->GetNextNode();
+      continue;
+    }
+    return {node, remaining};
+  }
+  return {node, remaining};
+}
+
 }  // namespace mozilla::dom

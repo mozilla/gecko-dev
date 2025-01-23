@@ -7,9 +7,23 @@
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-  <div id="abc">abc def ghi</div>
+  <div id="abc">abc def ghi abc def ghi jkl abc. def <span>ghi</span></div>
+  <div id="foo">foo</div>
   <p id="block">p<span id="inlinespan">sp<span id="nestedinlinespan">a</span>n</span>p</p><span id="afterblockboundary">afterblockboundary</span>
   <div id="image"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAQAAAAnOwc2AAAAEUlEQVR42mNk+M+AARiHsiAAcCIKAYwFoQ8AAAAASUVORK5CYII="></div>
+  <p>placeholder with block boundary</p>
+  <p id="surroundedByBlockBoundaries">abc def ghi</p>
+  <p>placeholder with block boundary</p>
+  <ul>
+    <li>First element</li>
+    <li>Second element</li>
+  </ul>
+  <ul>
+    <li>First element, but different</li>
+    <li id="secondListElement">Second Element</li>
+  </ul>
+  <p id="textWithEmoji"><span>😍😍</span> abc def 😍😍</p>
+  <p id="textWithDifferentEmoji"><span>😍😏😍</span> abc def 😍😏</p>
   <script>
     SimpleTest.waitForExplicitFinish();
     function rAF() {
@@ -91,6 +105,33 @@
           textDirective: "text=abc%20def"
         },
         {
+          name: "Text directive is second occurrence of content",
+          startContainer: abc.firstChild,
+          startOffset: 12,
+          endContainer: abc.firstChild,
+          endOffset: 15,
+          content: "abc",
+          textDirective: "text=ghi-,abc"
+        },
+        {
+          name: "Text directive is second occurrence, suffix is shorter",
+          startContainer: abc.firstChild,
+          startOffset: 20,
+          endContainer: abc.firstChild,
+          endOffset: 23,
+          content: "ghi",
+          textDirective: "text=ghi,-jkl"
+        },
+        {
+          name: "Shortest text directive crosses block boundary",
+          startContainer: abc.lastChild.firstChild,
+          startOffset: 0,
+          endContainer: abc.lastChild.firstChild,
+          endOffset: 3,
+          content: "ghi",
+          textDirective: "text=ghi,-foo"
+        },
+        {
           name: "Text directive crosses block boundary",
           startContainer: block.firstChild,
           startOffset: 0,
@@ -99,7 +140,69 @@
           content: "pspanpafterblockboundary",
           textDirective: "text=pspanp,afterblockboundary",
         },
-
+        {
+          name: "Text directive crosses several block boundaries",
+          startContainer: foo.firstChild,
+          startOffset: 0,
+          endContainer: afterblockboundary.firstChild,
+          endOffset: 18,
+          content: "foo\n  pspanpafterblockboundary",
+          textDirective: "text=foo,afterblockboundary",
+        },
+        {
+          name: "Text directive needs to check before previous block boundary",
+          startContainer: secondListElement.firstChild,
+          startOffset: 0,
+          endContainer: secondListElement.firstChild,
+          endOffset: 6,
+          content: "Second",
+          textDirective: "text=different-,Second"
+        },
+        {
+          name: "Text directive contains emoji as start",
+          startContainer: textWithEmoji.firstChild.firstChild,
+          startOffset: 0,
+          endContainer: textWithEmoji.firstChild.firstChild,
+          endOffset: 2,
+          content: "😍",
+          textDirective: "text=%F0%9F%98%8D",
+        },
+        {
+          name: "Text directive contains emoji as start and prefix",
+          startContainer: textWithEmoji.firstChild.firstChild,
+          startOffset: 2,
+          endContainer: textWithEmoji.firstChild.firstChild,
+          endOffset: 4,
+          content: "😍",
+          textDirective: "text=%F0%9F%98%8D,-abc",
+        },
+        {
+          name: "Text directive contains emoji as prefix",
+          startContainer: textWithEmoji.firstChild.nextSibling,
+          startOffset: 1,
+          endContainer: textWithEmoji.firstChild.nextSibling,
+          endOffset: 4,
+          content: "abc",
+          textDirective: "text=%F0%9F%98%8D-,abc",
+        },
+        {
+          name: "Text directive contains slightly different emoji as prefix",
+          startContainer: textWithDifferentEmoji.firstChild.nextSibling,
+          startOffset: 1,
+          endContainer: textWithDifferentEmoji.firstChild.nextSibling,
+          endOffset: 4,
+          content: "abc",
+          textDirective: "text=%F0%9F%98%8F%F0%9F%98%8D-,abc",
+        },
+        {
+          name: "Text directive needs to compare emojis for suffix",
+          startContainer: textWithDifferentEmoji.firstChild.nextSibling,
+          startOffset: 5,
+          endContainer: textWithDifferentEmoji.firstChild.nextSibling,
+          endOffset: 8,
+          content: "def",
+          textDirective: "text=def,-%F0%9F%98%8D%F0%9F%98%8F"
+        }
       ]) {
         const range = document.createRange();
         range.setStart(testCase.startContainer, testCase.startOffset);
@@ -244,7 +347,7 @@
         range.setStart(testCase.startContainer, testCase.startOffset);
         range.setEnd(testCase.endContainer, testCase.endOffset);
         is(
-          range.toString(), testCase.content,
+          range.toString().trim(), testCase.content,
           `${testCase.name}: Precondition - Range has expected value`
         );
 
@@ -277,6 +380,16 @@
       }
     }
 
+    async function testNonUniqueTestSurroundedByBlockBoundaries() {
+      const testCase = "Creating a text directive which cannot be found"
+      const range = document.createRange();
+      range.setStart(surroundedByBlockBoundaries.firstChild, 4);
+      range.setEnd(surroundedByBlockBoundaries.firstChild, 7);
+      is(range.toString(), "def", `${testCase}: Range has expected value`);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      is(textDirective, null, `${testCase}: It's not possible to create a unique text directive`);
+    }
+
     async function runTests() {
       try {
         await SpecialPowers.pushPrefEnv({"set": [
@@ -287,6 +400,7 @@
         await basicTests();
         await testEmptyRange();
         await testExpandRangeToWordBoundaries();
+        await testNonUniqueTestSurroundedByBlockBoundaries();
 
     }
     finally {
