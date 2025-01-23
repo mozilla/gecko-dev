@@ -1051,6 +1051,7 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">بازارچىلىق سانلىق مەلۇماتى ھەققىدىكى تەپسىلات</string>
 
+    <string name="preferences_daily_usage_ping_description">بۇ سانلىق مەلۇمات Mozilla نىڭ ئاكتىپ ئىشلەتكۈچىنىڭ سانىنى مۆلچەرلىشىگە ياردەم بېرىدۇ.</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">يىمىرىلىش دوكلاتىنى ئۆزلۈكىدىن يوللايدۇ</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">يىمىرىلىش دوكلاتىنى ئۆزلۈكىدىن يوللايدۇ</string>

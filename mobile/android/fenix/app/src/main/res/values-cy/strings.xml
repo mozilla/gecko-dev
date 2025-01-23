@@ -1055,6 +1055,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Dysgwch fwy am ddata marchnata</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Defnydd dyddiol ping</string>
+    <string name="preferences_daily_usage_ping_description">Mae hyn yn helpu Mozilla amcangyfrif defnyddwyr gweithredol.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Dysgwch fwy am ping defnydd dyddiol</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Yn anfon adroddiadau chwalu\'n awtomatig</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Cyflwynwch adroddiadau chwalu\'n awtomatig</string>

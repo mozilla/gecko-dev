@@ -1269,6 +1269,9 @@
     <string name="tabs_header_private_tabs_counter_title"> ਖੁੱਲ੍ਹੀਆਂ ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ: %1$s। ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">ਖੁੱਲ੍ਹੀਆਂ ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ: %1$s। ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ਟੈਬ ਜੋੜੋ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1396,6 +1399,8 @@
     <string name="webcompat_reporter_send">ਭੇਜੋ</string>
 
 
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">ਤੁਹਾਡੀ ਰਿਪੋਰਟ ਨੂੰ ਭੇਜਿਆ ਗਿਆ ਸੀ</string>
     <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
     <string name="webcompat_reporter_dismiss_success_snackbar_text">ਬੰਦ ਕਰੋ</string>
 

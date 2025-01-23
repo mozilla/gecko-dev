@@ -1074,6 +1074,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">마케팅 데이터에 대해 더 알아보기</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">일일 사용량 핑</string>
+    <string name="preferences_daily_usage_ping_description">이 정보는 Mozilla가 활성 사용자를 예측하는 데 도움이 됩니다.</string>
+    <string name="preferences_daily_usage_ping_learn_more">일일 사용량 핑에 대해 더 알아보기</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">자동으로 충돌 보고서 보내기</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">자동으로 충돌 보고서 제출</string>

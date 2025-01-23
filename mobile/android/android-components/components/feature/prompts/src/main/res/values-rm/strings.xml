@@ -47,6 +47,8 @@
     <string name="mozac_feature_prompts_allow">Permetter</string>
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Refusar</string>
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">Permetter che questa website vegnia averta?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Es ti segir?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
