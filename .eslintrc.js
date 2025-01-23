@@ -310,7 +310,6 @@ module.exports = {
       rules: {
         "mozilla/lazy-getter-object-name": "error",
         "mozilla/reject-eager-module-in-lazy-getter": "error",
-        "mozilla/reject-global-this": "error",
         "mozilla/reject-globalThis-modification": "error",
         // For all system modules, we expect no properties to need importing,
         // hence reject everything.
