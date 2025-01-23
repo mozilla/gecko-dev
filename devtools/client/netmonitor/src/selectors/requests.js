@@ -44,35 +44,33 @@ function sortWithClones(requests, sorter, a, b) {
   return sorter ? sorter(a, b) : defaultSorter;
 }
 
+const getActiveFilters = createSelector(
+  state => state.filters.requestFilterTypes,
+  requestFilterTypes =>
+    Object.keys(requestFilterTypes)
+      .filter(type => requestFilterTypes[type] && Filters[type])
+      .map(type => Filters[type])
+);
+
 /**
  * Take clones into account when filtering. If a request is
  * a clone, it's not filtered out.
  */
 const getFilterWithCloneFn = createSelector(
-  state => state.filters.requestFilterTypes,
+  getActiveFilters,
   state => state.filters.requestFilterText,
-  (requestFilterTypes, requestFilterText) => r => {
-    const matchesType = Object.keys(requestFilterTypes).some(filter => {
-      if (r.id.endsWith("-clone")) {
-        return true;
-      }
-      return (
-        requestFilterTypes[filter] && Filters[filter] && Filters[filter](r)
-      );
-    });
-    return matchesType && isFreetextMatch(r, requestFilterText);
+  (activeFilters, requestFilterText) => {
+    return r => {
+      const isClone = r.id.endsWith("-clone");
+      const matchesType = activeFilters.some(filter => filter(r));
+      return (isClone || matchesType) && isFreetextMatch(r, requestFilterText);
+    };
   }
 );
 
 const getTypeFilterFn = createSelector(
-  state => state.filters.requestFilterTypes,
-  requestFilterTypes => r => {
-    return Object.keys(requestFilterTypes).some(filter => {
-      return (
-        requestFilterTypes[filter] && Filters[filter] && Filters[filter](r)
-      );
-    });
-  }
+  getActiveFilters,
+  activeFilters => r => activeFilters.some(filter => filter(r))
 );
 
 const getSortFn = createSelector(
