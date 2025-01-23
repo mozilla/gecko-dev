@@ -55,6 +55,8 @@ scheme = "http"
 
 ["test_queue_write_invalid_device.html"]
 
+["test_rfp_clamp_limits_off.html"]
+
 ["test_set_bind_group_null.html"]
 
 ["test_submit_compute_empty.html"]

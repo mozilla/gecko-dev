@@ -94,6 +94,7 @@ ITEM_VALUE(SiteSpecificZoom,            61)
 // (This may block the fonts selected in Preferences from actually being used.)
 ITEM_VALUE(FontVisibilityRestrictGenerics, 62)
 ITEM_VALUE(WebVTT,                      63)
+ITEM_VALUE(WebGPULimits,                64)
 
 // !!! Don't forget to update kDefaultFingerprintingProtections in nsRFPService.cpp
 // if necessary.
