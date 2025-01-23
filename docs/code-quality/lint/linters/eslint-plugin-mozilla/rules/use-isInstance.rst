@@ -8,7 +8,6 @@ is created from a different context.
 These files are covered:
 
 - ``*.sys.mjs``
-- ``*.jsm``
 - ``*.xhtml`` with ``there.is.only.xul``
 - ``*.js`` with a heuristic
 
