@@ -2474,9 +2474,6 @@ pref("privacy.webrtc.deviceGracePeriodTimeoutMs", 3600000);
 // the pref to hide the icons
 pref("privacy.webrtc.showIndicatorsOnMacos14AndAbove", true);
 
-// Enable Fingerprinting Protection in private windows..
-pref("privacy.fingerprintingProtection.pbmode", true);
-
 // Enable Smartblock embed placeholders
 #ifdef NIGHTLY_BUILD
   pref("extensions.webcompat.smartblockEmbeds.enabled", true);

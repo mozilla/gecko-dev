@@ -15291,7 +15291,7 @@
 
 - name: privacy.fingerprintingProtection.pbmode
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
   do_not_use_directly: true
 
