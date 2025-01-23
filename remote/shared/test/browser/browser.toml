@@ -1,7 +1,12 @@
 [DEFAULT]
 tags = "remote"
 subsuite = "remote"
-support-files = ["head.js"]
+support-files = [
+    "amosigned.xpi",
+    "head.js",
+]
+
+["browser_Addon.js"]
 
 ["browser_NavigationManager.js"]
 

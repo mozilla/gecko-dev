@@ -13,6 +13,7 @@ remote.jar:
   content/server/WebSocketTransport.sys.mjs (server/WebSocketTransport.sys.mjs)
 
   # shared modules (all protocols)
+  content/shared/Addon.sys.mjs (shared/Addon.sys.mjs)
   content/shared/AppInfo.sys.mjs (shared/AppInfo.sys.mjs)
   content/shared/AsyncQueue.sys.mjs (shared/AsyncQueue.sys.mjs)
   content/shared/Browser.sys.mjs (shared/Browser.sys.mjs)

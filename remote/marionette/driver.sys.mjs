@@ -6,7 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   actions: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
-  Addon: "chrome://remote/content/marionette/addon.sys.mjs",
+  Addon: "chrome://remote/content/shared/Addon.sys.mjs",
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",

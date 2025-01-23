@@ -208,3 +208,66 @@ async function loadURL(browser, url, options = {}) {
   BrowserTestUtils.startLoadingURIString(browser, url);
   return loaded;
 }
+
+/**
+ * For a support file resolve its relative path to the absolute path.
+ *
+ * @param {string} path
+ *     The path or a filename of a support file.
+ * @returns {string}
+ *     Absolute path of the support file.
+ */
+function getSupportFilePath(path) {
+  let absolutePath = getChromeDir(getResolvedURI(gTestPath));
+
+  for (const part of path.split("/")) {
+    if (part === "..") {
+      absolutePath = absolutePath.parent;
+    } else {
+      absolutePath.append(part);
+    }
+  }
+
+  if (!absolutePath.exists()) {
+    throw new Error(`${absolutePath.path} does not exist`);
+  }
+
+  return absolutePath.path;
+}
+
+/**
+ * Reads file from provided path and returns its contents encoded with base64
+ *
+ * @param {string} path
+ *     The Path to load.
+ * @returns {Promise}
+ *     Promise which will resolved when the file finished loading.
+ */
+async function readFileAsBase64(path) {
+  const file = new FileUtils.File(path);
+
+  const contents = await new Promise((resolve, reject) => {
+    NetUtil.asyncFetch(
+      {
+        uri: file,
+        loadUsingSystemPrincipal: true,
+      },
+      (inputStream, status) => {
+        if (!Components.isSuccessCode(status)) {
+          reject(new Error("Failed to read file; status = " + status));
+          return;
+        }
+
+        const fileContents = NetUtil.readInputStreamToString(
+          inputStream,
+          inputStream.available()
+        );
+        inputStream.close();
+
+        resolve(fileContents);
+      }
+    );
+  });
+
+  return btoa(contents);
+}

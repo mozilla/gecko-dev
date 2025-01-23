@@ -10,7 +10,6 @@ remote.jar:
   content/marionette/actors/MarionetteEventsParent.sys.mjs (actors/MarionetteEventsParent.sys.mjs)
   content/marionette/actors/MarionetteReftestChild.sys.mjs (actors/MarionetteReftestChild.sys.mjs)
   content/marionette/actors/MarionetteReftestParent.sys.mjs (actors/MarionetteReftestParent.sys.mjs)
-  content/marionette/addon.sys.mjs (addon.sys.mjs)
   content/marionette/atom.sys.mjs (atom.sys.mjs)
   content/marionette/browser.sys.mjs (browser.sys.mjs)
   content/marionette/cert.sys.mjs (cert.sys.mjs)
