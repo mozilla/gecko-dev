@@ -5553,8 +5553,18 @@ mozilla::ipc::IPCResult Database::RecvAllowToClose() {
     return IPC_FAIL(this, "mAllowedToClose already set!");
   }
 
-  glean::localstorage_database::request_allow_to_close_response_time
-      .StopAndAccumulate(std::move(mRequestAllowToCloseTimerId));
+  // AllowToClose can be sent from content without a prior request from the
+  // parent (RequestAllowToClose). Therefore, we need to check for this;
+  // otherwise, we would receive warnings from Glean about timing not running.
+  if (mRequestedAllowToClose) {
+    // mRequestAllowToCloseTimerId is initialized to zero in the constructor,
+    // and the Start() method always returns id that is greater than zero, so
+    // we can assert that here.
+    MOZ_ASSERT(mRequestAllowToCloseTimerId);
+
+    glean::localstorage_database::request_allow_to_close_response_time
+        .StopAndAccumulate(std::move(mRequestAllowToCloseTimerId));
+  }
 
   AllowToClose();
 
