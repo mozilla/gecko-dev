@@ -79,7 +79,7 @@ module.exports = [
   // The only file in browser/locales/ is pre-processed.
   "browser/locales/",
   // Generated data files
-  "browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.jsm",
+  "browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.sys.mjs",
 
   // Ignore devtools debugger files which aren't intended for linting.
   "devtools/client/debugger/bin/",
