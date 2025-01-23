@@ -5,10 +5,6 @@
 
 /* import-globals-from /toolkit/content/preferencesBindings.js */
 
-document
-  .getElementById("LanguagesDialog")
-  .addEventListener("dialoghelp", window.top.openPrefsHelp);
-
 Preferences.addAll([
   { id: "intl.accept_languages", type: "wstring" },
   { id: "pref.browser.language.disable_button.up", type: "bool" },
@@ -35,6 +31,14 @@ var gLanguagesDialog = {
     Preferences.get("intl.accept_languages").on("change", () =>
       this._readAcceptLanguages().catch(console.error)
     );
+
+    let addListener = (id, cmd) => {
+      document.getElementById(id).addEventListener(cmd, this);
+    };
+    addListener("LanguagesDialog", "command");
+    addListener("availableLanguages", "command");
+    addListener("LanguagesDialog", "dialoghelp");
+    addListener("activeLanguages", "select");
 
     if (!this._availableLanguagesList.length) {
       document.mozSubdialogReady = this._loadAvailableLanguages();
@@ -193,6 +197,45 @@ var gLanguagesDialog = {
     // Update states of accept-language list and buttons according to
     // privacy.resistFingerprinting and privacy.spoof_english.
     this.readSpoofEnglish();
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "command":
+        if (event.currentTarget.id == "availableLanguages") {
+          this.onAvailableLanguageSelect();
+          break;
+        }
+
+        switch (event.target.id) {
+          case "key_close":
+            Preferences.close(event);
+            break;
+
+          case "up":
+            this.moveUp();
+            break;
+          case "down":
+            this.moveDown();
+            break;
+          case "remove":
+            this.removeLanguage();
+            break;
+          case "addButton":
+            this.addLanguage();
+            break;
+        }
+        break;
+      case "dialoghelp":
+        window.top.openPrefsHelp();
+        break;
+      case "load":
+        this.onLoad();
+        break;
+      case "select":
+        this.onLanguageSelect();
+        break;
+    }
   },
 
   onAvailableLanguageSelect() {
@@ -385,3 +428,5 @@ var gLanguagesDialog = {
     return document.getElementById("spoofEnglish").checked ? 2 : 1;
   },
 };
+
+window.addEventListener("load", gLanguagesDialog);
