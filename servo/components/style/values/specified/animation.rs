@@ -311,7 +311,7 @@ impl AnimationPlayState {
             #[cfg(feature = "gecko")]
             return name.with_str(|n| Self::from_ident(n).is_ok());
             #[cfg(feature = "servo")]
-            return Self::from_ident(atom).is_ok();
+            return Self::from_ident(name).is_ok();
         }
         false
     }

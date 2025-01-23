@@ -598,7 +598,7 @@
     <%def name="inner_body(keyword, needs_conversion=False)">
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[cfg_attr(feature = "servo", derive(Deserialize, Hash, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
             pub enum T {
             % for variant in keyword.values_for(engine):

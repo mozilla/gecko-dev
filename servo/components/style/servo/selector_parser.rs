@@ -7,6 +7,7 @@
 //! Servo's selector parser.
 
 use crate::attr::{AttrIdentifier, AttrValue};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
@@ -49,27 +50,29 @@ pub enum PseudoElement {
     // them.  Also, make sure the UA sheet has the !important rules some of the
     // APPLIES_TO_PLACEHOLDER properties expect!
 
+    Backdrop,
+
     // Non-eager pseudos.
     DetailsSummary,
     DetailsContent,
-    ServoText,
-    ServoInputText,
-    ServoTableWrapper,
-    ServoAnonymousTableWrapper,
+    ServoAnonymousBox,
     ServoAnonymousTable,
-    ServoAnonymousTableRow,
     ServoAnonymousTableCell,
-    ServoAnonymousBlock,
-    ServoInlineBlockWrapper,
-    ServoInlineAbsolute,
+    ServoAnonymousTableRow,
+    ServoLegacyText,
+    ServoLegacyInputText,
+    ServoLegacyTableWrapper,
+    ServoLegacyAnonymousTableWrapper,
+    ServoLegacyAnonymousTable,
+    ServoLegacyAnonymousBlock,
+    ServoLegacyInlineBlockWrapper,
+    ServoLegacyInlineAbsolute,
+    ServoTableGrid,
+    ServoTableWrapper,
 }
 
 /// The count of all pseudo-elements.
-pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
-
-impl ::selectors::parser::PseudoElement for PseudoElement {
-    type Impl = SelectorImpl;
-}
+pub const PSEUDO_COUNT: usize = PseudoElement::ServoTableWrapper as usize + 1;
 
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
@@ -81,20 +84,29 @@ impl ToCss for PseudoElement {
             After => "::after",
             Before => "::before",
             Selection => "::selection",
+            Backdrop => "::backdrop",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
-            ServoText => "::-servo-text",
-            ServoInputText => "::-servo-input-text",
-            ServoTableWrapper => "::-servo-table-wrapper",
-            ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
+            ServoAnonymousBox => "::-servo-anonymous-box",
             ServoAnonymousTable => "::-servo-anonymous-table",
-            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
-            ServoAnonymousBlock => "::-servo-anonymous-block",
-            ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
-            ServoInlineAbsolute => "::-servo-inline-absolute",
+            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
+            ServoLegacyText => "::-servo-legacy-text",
+            ServoLegacyInputText => "::-servo-legacy-input-text",
+            ServoLegacyTableWrapper => "::-servo-legacy-table-wrapper",
+            ServoLegacyAnonymousTableWrapper => "::-servo-legacy-anonymous-table-wrapper",
+            ServoLegacyAnonymousTable => "::-servo-legacy-anonymous-table",
+            ServoLegacyAnonymousBlock => "::-servo-legacy-anonymous-block",
+            ServoLegacyInlineBlockWrapper => "::-servo-legacy-inline-block-wrapper",
+            ServoLegacyInlineAbsolute => "::-servo-legacy-inline-absolute",
+            ServoTableGrid => "::-servo-table-grid",
+            ServoTableWrapper => "::-servo-table-wrapper",
         })
     }
+}
+
+impl ::selectors::parser::PseudoElement for PseudoElement {
+    type Impl = SelectorImpl;
 }
 
 /// The number of eager pseudo-elements. Keep this in sync with cascade_type.
@@ -223,18 +235,22 @@ impl PseudoElement {
             PseudoElement::After | PseudoElement::Before | PseudoElement::Selection => {
                 PseudoElementCascadeType::Eager
             },
-            PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
+            PseudoElement::Backdrop | PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
-            PseudoElement::ServoText |
-            PseudoElement::ServoInputText |
-            PseudoElement::ServoTableWrapper |
-            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoAnonymousBox |
             PseudoElement::ServoAnonymousTable |
-            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousBlock |
-            PseudoElement::ServoInlineBlockWrapper |
-            PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoLegacyText |
+            PseudoElement::ServoLegacyInputText |
+            PseudoElement::ServoLegacyTableWrapper |
+            PseudoElement::ServoLegacyAnonymousTableWrapper |
+            PseudoElement::ServoLegacyAnonymousTable |
+            PseudoElement::ServoLegacyAnonymousBlock |
+            PseudoElement::ServoLegacyInlineBlockWrapper |
+            PseudoElement::ServoLegacyInlineAbsolute |
+            PseudoElement::ServoTableGrid |
+            PseudoElement::ServoTableWrapper => PseudoElementCascadeType::Precomputed,
         }
     }
 
@@ -273,6 +289,10 @@ impl PseudoElement {
 /// The type used for storing `:lang` arguments.
 pub type Lang = Box<str>;
 
+/// The type used to store the state argument to the `:state` pseudo-class.
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+pub struct CustomState(pub AtomIdent);
+
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
@@ -280,21 +300,37 @@ pub type Lang = Box<str>;
 pub enum NonTSPseudoClass {
     Active,
     AnyLink,
+    Autofill,
     Checked,
+    /// The :state` pseudo-class.
+    CustomState(CustomState),
+    Default,
     Defined,
     Disabled,
     Enabled,
     Focus,
+    FocusWithin,
+    FocusVisible,
     Fullscreen,
     Hover,
+    InRange,
     Indeterminate,
+    Invalid,
     Lang(Lang),
     Link,
+    Modal,
+    Optional,
+    OutOfRange,
     PlaceholderShown,
-    ReadWrite,
+    PopoverOpen,
     ReadOnly,
+    ReadWrite,
+    Required,
     ServoNonZeroBorder,
     Target,
+    UserInvalid,
+    UserValid,
+    Valid,
     Visited,
 }
 
@@ -335,24 +371,38 @@ impl ToCss for NonTSPseudoClass {
         }
 
         dest.write_str(match *self {
-            Active => ":active",
-            AnyLink => ":any-link",
-            Checked => ":checked",
-            Defined => ":defined",
-            Disabled => ":disabled",
-            Enabled => ":enabled",
-            Focus => ":focus",
-            Fullscreen => ":fullscreen",
-            Hover => ":hover",
-            Indeterminate => ":indeterminate",
-            Link => ":link",
-            PlaceholderShown => ":placeholder-shown",
-            ReadWrite => ":read-write",
-            ReadOnly => ":read-only",
-            ServoNonZeroBorder => ":-servo-nonzero-border",
-            Target => ":target",
-            Visited => ":visited",
-            Lang(_) => unreachable!(),
+            Self::Active => ":active",
+            Self::AnyLink => ":any-link",
+            Self::Autofill => ":autofill",
+            Self::Checked => ":checked",
+            Self::Default => ":default",
+            Self::Defined => ":defined",
+            Self::Disabled => ":disabled",
+            Self::Enabled => ":enabled",
+            Self::Focus => ":focus",
+            Self::FocusVisible => ":focus-visible",
+            Self::FocusWithin => ":focus-within",
+            Self::Fullscreen => ":fullscreen",
+            Self::Hover => ":hover",
+            Self::InRange => ":in-range",
+            Self::Indeterminate => ":indeterminate",
+            Self::Invalid => ":invalid",
+            Self::Link => ":link",
+            Self::Modal => ":modal",
+            Self::Optional => ":optional",
+            Self::OutOfRange => ":out-of-range",
+            Self::PlaceholderShown => ":placeholder-shown",
+            Self::PopoverOpen => ":popover-open",
+            Self::ReadOnly => ":read-only",
+            Self::ReadWrite => ":read-write",
+            Self::Required => ":required",
+            Self::ServoNonZeroBorder => ":-servo-nonzero-border",
+            Self::Target => ":target",
+            Self::UserInvalid => ":user-invalid",
+            Self::UserValid => ":user-valid",
+            Self::Valid => ":valid",
+            Self::Visited => ":visited",
+            Self::Lang(_) | Self::CustomState(_) => unreachable!(),
         })
     }
 }
@@ -361,22 +411,38 @@ impl NonTSPseudoClass {
     /// Gets a given state flag for this pseudo-class. This is used to do
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
-        use self::NonTSPseudoClass::*;
         match *self {
-            Active => ElementState::IN_ACTIVE_STATE,
-            Focus => ElementState::IN_FOCUS_STATE,
-            Fullscreen => ElementState::IN_FULLSCREEN_STATE,
-            Hover => ElementState::IN_HOVER_STATE,
-            Defined => ElementState::IN_DEFINED_STATE,
-            Enabled => ElementState::IN_ENABLED_STATE,
-            Disabled => ElementState::IN_DISABLED_STATE,
-            Checked => ElementState::IN_CHECKED_STATE,
-            Indeterminate => ElementState::IN_INDETERMINATE_STATE,
-            ReadOnly | ReadWrite => ElementState::IN_READWRITE_STATE,
-            PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
-            Target => ElementState::IN_TARGET_STATE,
-
-            AnyLink | Lang(_) | Link | Visited | ServoNonZeroBorder => ElementState::empty(),
+            Self::Active => ElementState::ACTIVE,
+            Self::AnyLink => ElementState::VISITED_OR_UNVISITED,
+            Self::Autofill => ElementState::AUTOFILL,
+            Self::Checked => ElementState::CHECKED,
+            Self::Default => ElementState::DEFAULT,
+            Self::Defined => ElementState::DEFINED,
+            Self::Disabled => ElementState::DISABLED,
+            Self::Enabled => ElementState::ENABLED,
+            Self::Focus => ElementState::FOCUS,
+            Self::FocusVisible => ElementState::FOCUSRING,
+            Self::FocusWithin => ElementState::FOCUS_WITHIN,
+            Self::Fullscreen => ElementState::FULLSCREEN,
+            Self::Hover => ElementState::HOVER,
+            Self::InRange => ElementState::INRANGE,
+            Self::Indeterminate => ElementState::INDETERMINATE,
+            Self::Invalid => ElementState::INVALID,
+            Self::Link => ElementState::UNVISITED,
+            Self::Modal => ElementState::MODAL,
+            Self::Optional => ElementState::OPTIONAL_,
+            Self::OutOfRange => ElementState::OUTOFRANGE,
+            Self::PlaceholderShown => ElementState::PLACEHOLDER_SHOWN,
+            Self::PopoverOpen => ElementState::POPOVER_OPEN,
+            Self::ReadOnly => ElementState::READONLY,
+            Self::ReadWrite => ElementState::READWRITE,
+            Self::Required => ElementState::REQUIRED,
+            Self::Target => ElementState::URLTARGET,
+            Self::UserInvalid => ElementState::USER_INVALID,
+            Self::UserValid => ElementState::USER_VALID,
+            Self::Valid => ElementState::VALID,
+            Self::Visited => ElementState::VISITED,
+            Self::CustomState(_) | Self::Lang(_) | Self::ServoNonZeroBorder => ElementState::empty(),
         }
     }
 
@@ -397,57 +463,106 @@ impl NonTSPseudoClass {
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SelectorImpl;
 
+/// A set of extra data to carry along with the matching context, either for
+/// selector-matching or invalidation.
+#[derive(Debug, Default)]
+pub struct ExtraMatchingData<'a> {
+    /// The invalidation data to invalidate doc-state pseudo-classes correctly.
+    pub invalidation_data: InvalidationMatchingData,
+
+    /// The invalidation bits from matching container queries. These are here
+    /// just for convenience mostly.
+    pub cascade_input_flags: ComputedValueFlags,
+
+    /// The style of the originating element in order to evaluate @container
+    /// size queries affecting pseudo-elements.
+    pub originating_element_style: Option<&'a ComputedValues>,
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
-    type ExtraMatchingData = InvalidationMatchingData;
-    type AttrValue = String;
-    type Identifier = Atom;
-    type ClassName = Atom;
-    type PartName = Atom;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
+    type AttrValue = AtomString;
+    type Identifier = AtomIdent;
     type LocalName = LocalName;
     type NamespacePrefix = Prefix;
     type NamespaceUrl = Namespace;
-    type BorrowedLocalName = LocalName;
-    type BorrowedNamespaceUrl = Namespace;
+    type BorrowedLocalName = markup5ever::LocalName;
+    type BorrowedNamespaceUrl = markup5ever::Namespace;
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
+    #[inline]
+    fn parse_nth_child_of(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn parse_is_and_where(&self) -> bool {
+        true
+    }
+
+    #[inline]
+    fn parse_has(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn parse_parent_selector(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn allow_forgiving_selectors(&self) -> bool {
+        !self.for_supports_rule
+    }
+
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
-        use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
-            "active" => Active,
-            "any-link" => AnyLink,
-            "checked" => Checked,
-            "defined" => Defined,
-            "disabled" => Disabled,
-            "enabled" => Enabled,
-            "focus" => Focus,
-            "fullscreen" => Fullscreen,
-            "hover" => Hover,
-            "indeterminate" => Indeterminate,
-            "-moz-inert" => MozInert,
-            "link" => Link,
-            "placeholder-shown" => PlaceholderShown,
-            "read-write" => ReadWrite,
-            "read-only" => ReadOnly,
-            "target" => Target,
-            "visited" => Visited,
+            "active" => NonTSPseudoClass::Active,
+            "any-link" => NonTSPseudoClass::AnyLink,
+            "autofill" => NonTSPseudoClass::Autofill,
+            "checked" => NonTSPseudoClass::Checked,
+            "default" => NonTSPseudoClass::Default,
+            "defined" => NonTSPseudoClass::Defined,
+            "disabled" => NonTSPseudoClass::Disabled,
+            "enabled" => NonTSPseudoClass::Enabled,
+            "focus" => NonTSPseudoClass::Focus,
+            "focus-visible" => NonTSPseudoClass::FocusVisible,
+            "focus-within" => NonTSPseudoClass::FocusWithin,
+            "fullscreen" => NonTSPseudoClass::Fullscreen,
+            "hover" => NonTSPseudoClass::Hover,
+            "indeterminate" => NonTSPseudoClass::Indeterminate,
+            "invalid" => NonTSPseudoClass::Invalid,
+            "link" => NonTSPseudoClass::Link,
+            "optional" => NonTSPseudoClass::Optional,
+            "out-of-range" => NonTSPseudoClass::OutOfRange,
+            "placeholder-shown" => NonTSPseudoClass::PlaceholderShown,
+            "popover-open" => NonTSPseudoClass::PopoverOpen,
+            "read-only" => NonTSPseudoClass::ReadOnly,
+            "read-write" => NonTSPseudoClass::ReadWrite,
+            "required" => NonTSPseudoClass::Required,
+            "target" => NonTSPseudoClass::Target,
+            "user-invalid" => NonTSPseudoClass::UserInvalid,
+            "user-valid" => NonTSPseudoClass::UserValid,
+            "valid" => NonTSPseudoClass::Valid,
+            "visited" => NonTSPseudoClass::Visited,
             "-servo-nonzero-border" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(
                         SelectorParseErrorKind::UnexpectedIdent("-servo-nonzero-border".into())
                     ))
                 }
-                ServoNonZeroBorder
+                NonTSPseudoClass::ServoNonZeroBorder
             },
             _ => return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
         };
@@ -459,10 +574,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         &self,
         name: CowRcStr<'i>,
         parser: &mut CssParser<'i, 't>,
+        after_part: bool,
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
-            "lang" => {
+            "lang" if !after_part => {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
             },
             _ => return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
@@ -481,6 +597,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             "before" => Before,
             "after" => After,
             "selection" => Selection,
+            "backdrop" => Backdrop,
             "-servo-details-summary" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
@@ -493,29 +610,41 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 }
                 DetailsContent
             },
-            "-servo-text" => {
+            "-servo-anonymous-box" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoText
+                ServoAnonymousBox
             },
-            "-servo-input-text" => {
+            "-servo-legacy-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInputText
+                ServoLegacyText
             },
-            "-servo-table-wrapper" => {
+            "-servo-legacy-input-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoTableWrapper
+                ServoLegacyInputText
             },
-            "-servo-anonymous-table-wrapper" => {
+            "-servo-legacy-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousTableWrapper
+                ServoLegacyTableWrapper
+            },
+            "-servo-legacy-anonymous-table-wrapper" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                }
+                ServoLegacyAnonymousTableWrapper
+            },
+            "-servo-legacy-anonymous-table" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                }
+                ServoLegacyAnonymousTable
             },
             "-servo-anonymous-table" => {
                 if !self.in_user_agent_stylesheet() {
@@ -535,23 +664,35 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 }
                 ServoAnonymousTableCell
             },
-            "-servo-anonymous-block" => {
+            "-servo-legacy-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousBlock
+                ServoLegacyAnonymousBlock
             },
-            "-servo-inline-block-wrapper" => {
+            "-servo-legacy-inline-block-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInlineBlockWrapper
+                ServoLegacyInlineBlockWrapper
             },
-            "-servo-inline-absolute" => {
+            "-servo-legacy-inline-absolute" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInlineAbsolute
+                ServoLegacyInlineAbsolute
+            },
+            "-servo-table-grid" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                }
+                ServoTableGrid
+            },
+            "-servo-table-wrapper" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                }
+                ServoTableWrapper
             },
             _ => return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
 
@@ -566,6 +707,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     fn namespace_for_prefix(&self, prefix: &Prefix) -> Option<Namespace> {
         self.namespaces.prefixes.get(prefix).cloned()
+    }
+
+    fn parse_host(&self) -> bool {
+        true
     }
 }
 
@@ -729,6 +874,25 @@ impl ElementSnapshot for ServoElementSnapshot {
         self.get_attr(&ns!(xml), &local_name!("lang"))
             .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
             .map(|v| SelectorAttrValue::from(v as &str))
+    }
+
+    /// Returns true if the snapshot has stored state for custom states
+    #[inline]
+    fn has_custom_states(&self) -> bool {
+        false
+    }
+
+    /// Returns true if the snapshot has a given CustomState
+    #[inline]
+    fn has_custom_state(&self, _state: &AtomIdent) -> bool {
+        false
+    }
+
+    #[inline]
+    fn each_custom_state<F>(&self, mut _callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
     }
 }
 
