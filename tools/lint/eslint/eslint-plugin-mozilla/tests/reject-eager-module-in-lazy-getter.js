@@ -23,38 +23,12 @@ function invalidCode(code, uri) {
 ruleTester.run("reject-eager-module-in-lazy-getter", rule, {
   valid: [
     `
-    ChromeUtils.defineModuleGetter(
-      lazy, "Integration", "resource://gre/modules/Integration.jsm"
-    );
-`,
-    `
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      Integration: "resource://gre/modules/Integration.jsm",
-    });
-`,
-    `
     ChromeUtils.defineESModuleGetters(lazy, {
       Integration: "resource://gre/modules/Integration.sys.mjs",
     });
 `,
   ],
   invalid: [
-    invalidCode(
-      `
-    ChromeUtils.defineModuleGetter(
-      lazy, "XPCOMUtils", "resource://gre/modules/XPCOMUtils.jsm"
-    );
-`,
-      "resource://gre/modules/XPCOMUtils.jsm"
-    ),
-    invalidCode(
-      `
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm",
-    });
-`,
-      "resource://gre/modules/AppConstants.jsm"
-    ),
     invalidCode(
       `
     ChromeUtils.defineESModuleGetters(lazy, {

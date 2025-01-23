@@ -12,9 +12,6 @@ Examples of incorrect code for this rule:
     ChromeUtils.defineESModuleGetters(lazy, {
       AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
     });
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      XPCOMUtils: "resource://gre/modules/XPCOMUtils.jsm",
-    });
 
 Examples of correct code for this rule:
 ---------------------------------------
@@ -22,9 +19,6 @@ Examples of correct code for this rule:
 .. code-block:: js
 
     import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-    const { XPCOMUtils } = ChromeUtils.import(
-      "resource://gre/modules/XPCOMUtils.jsm"
-    );
-    const { AppConstants } = ChromeUtils.import(
-      "resource://gre/modules/AppConstants.jsm"
+    const { AppConstants } = ChromeUtils.importESModule(
+      "resource://gre/modules/AppConstants.sys.mjs"
     );
