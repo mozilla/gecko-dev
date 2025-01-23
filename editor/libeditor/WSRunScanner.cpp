@@ -24,6 +24,87 @@ namespace mozilla {
 
 using namespace dom;
 
+/******************************************************************************
+ * mozilla::WSScanResult
+ ******************************************************************************/
+
+void WSScanResult::AssertIfInvalidData(const WSRunScanner& aScanner) const {
+#ifdef DEBUG
+  MOZ_ASSERT(mReason == WSType::UnexpectedError ||
+             mReason == WSType::InUncomposedDoc ||
+             mReason == WSType::NonCollapsibleCharacters ||
+             mReason == WSType::CollapsibleWhiteSpaces ||
+             mReason == WSType::BRElement ||
+             mReason == WSType::PreformattedLineBreak ||
+             mReason == WSType::SpecialContent ||
+             mReason == WSType::CurrentBlockBoundary ||
+             mReason == WSType::OtherBlockBoundary ||
+             mReason == WSType::InlineEditingHostBoundary);
+  MOZ_ASSERT_IF(mReason == WSType::UnexpectedError, !mContent);
+  MOZ_ASSERT_IF(mReason != WSType::UnexpectedError, mContent);
+  MOZ_ASSERT_IF(mReason == WSType::InUncomposedDoc,
+                !mContent->IsInComposedDoc());
+  MOZ_ASSERT_IF(mContent && !mContent->IsInComposedDoc(),
+                mReason == WSType::InUncomposedDoc);
+  MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
+                    mReason == WSType::CollapsibleWhiteSpaces ||
+                    mReason == WSType::PreformattedLineBreak,
+                mContent->IsText());
+  MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
+                    mReason == WSType::CollapsibleWhiteSpaces ||
+                    mReason == WSType::PreformattedLineBreak,
+                mOffset.isSome());
+  MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
+                    mReason == WSType::CollapsibleWhiteSpaces ||
+                    mReason == WSType::PreformattedLineBreak,
+                mContent->AsText()->TextDataLength() > 0);
+  MOZ_ASSERT_IF(mDirection == ScanDirection::Backward &&
+                    (mReason == WSType::NonCollapsibleCharacters ||
+                     mReason == WSType::CollapsibleWhiteSpaces ||
+                     mReason == WSType::PreformattedLineBreak),
+                *mOffset > 0);
+  MOZ_ASSERT_IF(mDirection == ScanDirection::Forward &&
+                    (mReason == WSType::NonCollapsibleCharacters ||
+                     mReason == WSType::CollapsibleWhiteSpaces ||
+                     mReason == WSType::PreformattedLineBreak),
+                *mOffset < mContent->AsText()->TextDataLength());
+  MOZ_ASSERT_IF(mReason == WSType::BRElement,
+                mContent->IsHTMLElement(nsGkAtoms::br));
+  MOZ_ASSERT_IF(mReason == WSType::PreformattedLineBreak,
+                EditorUtils::IsNewLinePreformatted(*mContent));
+  MOZ_ASSERT_IF(mReason == WSType::SpecialContent,
+                (mContent->IsText() && !mContent->IsEditable()) ||
+                    (!mContent->IsHTMLElement(nsGkAtoms::br) &&
+                     !HTMLEditUtils::IsBlockElement(
+                         *mContent, aScanner.mBlockInlineCheck)));
+  MOZ_ASSERT_IF(
+      mReason == WSType::OtherBlockBoundary,
+      HTMLEditUtils::IsBlockElement(*mContent, aScanner.mBlockInlineCheck));
+  MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary, mContent->IsElement());
+  MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary &&
+                    aScanner.mScanMode == WSRunScanner::Scan::EditableNodes,
+                mContent->IsEditable());
+  MOZ_ASSERT_IF(
+      mReason == WSType::CurrentBlockBoundary,
+      HTMLEditUtils::IsBlockElement(*mContent, aScanner.mBlockInlineCheck));
+  MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
+                mContent->IsElement());
+  MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary &&
+                    aScanner.mScanMode == WSRunScanner::Scan::EditableNodes,
+                mContent->IsEditable());
+  MOZ_ASSERT_IF(
+      mReason == WSType::InlineEditingHostBoundary,
+      !HTMLEditUtils::IsBlockElement(*mContent, aScanner.mBlockInlineCheck));
+  MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
+                !mContent->GetParentElement() ||
+                    !mContent->GetParentElement()->IsEditable());
+#endif  // #ifdef DEBUG
+}
+
+/******************************************************************************
+ * mozilla::WSRunScanner
+ ******************************************************************************/
+
 template WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
     const EditorDOMPoint& aPoint) const;
 template WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
@@ -68,9 +149,9 @@ WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
   // removed from the tree, they are not editable unless nested contenteditable
   // attribute is set to "true".
   if (MOZ_UNLIKELY(!aPoint.IsInComposedDoc())) {
-    return WSScanResult(WSScanResult::ScanDirection::Backward,
+    return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
                         *aPoint.template ContainerAs<nsIContent>(),
-                        WSType::InUncomposedDoc, mBlockInlineCheck);
+                        WSType::InUncomposedDoc);
   }
 
   if (!TextFragmentDataAtStartRef().IsInitialized()) {
@@ -88,23 +169,21 @@ WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
     // considered by the caller.
     if (mScanMode == Scan::EditableNodes && aPoint.GetChild() &&
         !HTMLEditUtils::IsSimplyEditableNode((*aPoint.GetChild()))) {
-      return WSScanResult(WSScanResult::ScanDirection::Backward,
-                          *aPoint.GetChild(), WSType::SpecialContent,
-                          mBlockInlineCheck);
+      return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
+                          *aPoint.GetChild(), WSType::SpecialContent);
     }
     const auto atPreviousChar =
         GetPreviousCharPoint<EditorRawDOMPointInText>(aPoint);
     // When it's a non-empty text node, return it.
     if (atPreviousChar.IsSet() && !atPreviousChar.IsContainerEmpty()) {
       MOZ_ASSERT(!atPreviousChar.IsEndOfContainer());
-      return WSScanResult(WSScanResult::ScanDirection::Backward,
+      return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
                           atPreviousChar.template NextPoint<EditorDOMPoint>(),
                           atPreviousChar.IsCharCollapsibleASCIISpaceOrNBSP()
                               ? WSType::CollapsibleWhiteSpaces
                           : atPreviousChar.IsCharPreformattedNewLine()
                               ? WSType::PreformattedLineBreak
-                              : WSType::NonCollapsibleCharacters,
-                          mBlockInlineCheck);
+                              : WSType::NonCollapsibleCharacters);
     }
   }
 
@@ -121,10 +200,9 @@ WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
       // XXX: If we find the character at last of a text node and we started
       // scanning from following text node of it, some callers may work with the
       // point in the following text node instead of end of the found text node.
-      return WSScanResult(WSScanResult::ScanDirection::Backward,
+      return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
                           TextFragmentDataAtStartRef().StartRef(),
-                          TextFragmentDataAtStartRef().StartRawReason(),
-                          mBlockInlineCheck);
+                          TextFragmentDataAtStartRef().StartRawReason());
     default:
       break;
   }
@@ -137,18 +215,16 @@ WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
     }
     // In this case, TextFragmentDataAtStartRef().StartRef().Offset() is not
     // meaningful.
-    return WSScanResult(WSScanResult::ScanDirection::Backward,
+    return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
                         *TextFragmentDataAtStartRef().GetStartReasonContent(),
-                        TextFragmentDataAtStartRef().StartRawReason(),
-                        mBlockInlineCheck);
+                        TextFragmentDataAtStartRef().StartRawReason());
   }
   if (NS_WARN_IF(!TextFragmentDataAtStartRef().StartRef().IsSet())) {
     return WSScanResult::Error();
   }
-  return WSScanResult(WSScanResult::ScanDirection::Backward,
+  return WSScanResult(*this, WSScanResult::ScanDirection::Backward,
                       TextFragmentDataAtStartRef().StartRef(),
-                      TextFragmentDataAtStartRef().StartRawReason(),
-                      mBlockInlineCheck);
+                      TextFragmentDataAtStartRef().StartRawReason());
 }
 
 template <typename PT, typename CT>
@@ -166,9 +242,9 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
   // removed from the tree, they are not editable unless nested contenteditable
   // attribute is set to "true".
   if (MOZ_UNLIKELY(!aPoint.IsInComposedDoc())) {
-    return WSScanResult(WSScanResult::ScanDirection::Forward,
+    return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
                         *aPoint.template ContainerAs<nsIContent>(),
-                        WSType::InUncomposedDoc, mBlockInlineCheck);
+                        WSType::InUncomposedDoc);
   }
 
   if (!TextFragmentDataAtStartRef().IsInitialized()) {
@@ -186,22 +262,21 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
     // considered by the caller.
     if (mScanMode == Scan::EditableNodes && aPoint.GetChild() &&
         !HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetChild())) {
-      return WSScanResult(WSScanResult::ScanDirection::Forward,
-                          *aPoint.GetChild(), WSType::SpecialContent,
-                          mBlockInlineCheck);
+      return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
+                          *aPoint.GetChild(), WSType::SpecialContent);
     }
     const auto atNextChar = GetInclusiveNextCharPoint<EditorDOMPoint>(aPoint);
     // When it's a non-empty text node, return it.
     if (atNextChar.IsSet() && !atNextChar.IsContainerEmpty()) {
-      return WSScanResult(WSScanResult::ScanDirection::Forward, atNextChar,
+      return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
+                          atNextChar,
                           !atNextChar.IsEndOfContainer() &&
                                   atNextChar.IsCharCollapsibleASCIISpaceOrNBSP()
                               ? WSType::CollapsibleWhiteSpaces
                           : !atNextChar.IsEndOfContainer() &&
                                   atNextChar.IsCharPreformattedNewLine()
                               ? WSType::PreformattedLineBreak
-                              : WSType::NonCollapsibleCharacters,
-                          mBlockInlineCheck);
+                              : WSType::NonCollapsibleCharacters);
     }
   }
 
@@ -219,10 +294,9 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
       // started scanning from preceding text node of it, some callers may want
       // to work with the point at end of the preceding text node instead of
       // start of the found text node.
-      return WSScanResult(WSScanResult::ScanDirection::Forward,
+      return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
                           TextFragmentDataAtStartRef().EndRef(),
-                          TextFragmentDataAtStartRef().EndRawReason(),
-                          mBlockInlineCheck);
+                          TextFragmentDataAtStartRef().EndRawReason());
     default:
       break;
   }
@@ -235,18 +309,16 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
     }
     // In this case, TextFragmentDataAtStartRef().EndRef().Offset() is not
     // meaningful.
-    return WSScanResult(WSScanResult::ScanDirection::Forward,
+    return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
                         *TextFragmentDataAtStartRef().GetEndReasonContent(),
-                        TextFragmentDataAtStartRef().EndRawReason(),
-                        mBlockInlineCheck);
+                        TextFragmentDataAtStartRef().EndRawReason());
   }
   if (NS_WARN_IF(!TextFragmentDataAtStartRef().EndRef().IsSet())) {
     return WSScanResult::Error();
   }
-  return WSScanResult(WSScanResult::ScanDirection::Forward,
+  return WSScanResult(*this, WSScanResult::ScanDirection::Forward,
                       TextFragmentDataAtStartRef().EndRef(),
-                      TextFragmentDataAtStartRef().EndRawReason(),
-                      mBlockInlineCheck);
+                      TextFragmentDataAtStartRef().EndRawReason());
 }
 
 // static
