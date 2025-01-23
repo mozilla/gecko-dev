@@ -7695,10 +7695,18 @@ main section {
   margin-inline: 0 var(--space-xxsmall);
   text-align: end;
 }
+.lightWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss {
+  color-scheme: light;
+}
+.darkWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss {
+  color-scheme: dark;
+}
 .ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss .icon-dismiss {
   background-size: var(--size-item-small);
   border: 0;
-  cursor: pointer;
+}
+.ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss .icon-dismiss:hover {
+  background-color: var(--newtab-button-hover-background);
 }
 .ad-banner-wrapper .ad-banner-inner.leaderboard {
   max-width: var(--leaderboard-width);
@@ -7737,6 +7745,12 @@ main section {
 }
 .ad-banner-wrapper .ad-banner-inner .ad-banner-sponsored {
   margin-block: var(--space-small) 0;
+}
+.lightWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-sponsored {
+  color-scheme: light;
+}
+.darkWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-sponsored {
+  color-scheme: dark;
 }
 .ad-banner-wrapper .ad-banner-inner .ad-banner-sponsored span {
   text-transform: uppercase;
