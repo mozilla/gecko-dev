@@ -85,13 +85,6 @@ using namespace JS;
 #define JS_CACHE_PREFIX(aScopeType, aCompilationTarget) \
   "jsloader/" aScopeType "/" aCompilationTarget
 
-/**
- * Buffer sizes for serialization and deserialization of scripts.
- * FIXME: bug #411579 (tune this macro!) Last updated: Jan 2008
- */
-#define XPC_SERIALIZATION_BUFFER_SIZE (64 * 1024)
-#define XPC_DESERIALIZATION_BUFFER_SIZE (12 * 8192)
-
 // MOZ_LOG=JSModuleLoader:5
 static LazyLogModule gJSCLLog("JSModuleLoader");
 
