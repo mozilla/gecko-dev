@@ -1068,6 +1068,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Μάθετε περισσότερα σχετικά με τα δεδομένα μάρκετινγκ</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ενημέρωση ημερήσιας χρήσης</string>
+    <string name="preferences_daily_usage_ping_description">Αυτό βοηθά τη Mozilla να εκτιμήσει τους ενεργούς χρήστες.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Μάθετε περισσότερα για την ενημέρωση ημερήσιας χρήσης</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Αυτόματη αποστολή αναφορών κατάρρευσης</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Αυτόματη υποβολή αναφορών κατάρρευσης</string>

@@ -1054,6 +1054,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Маркетинг деректері туралы көбірек білу</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Күнделікті пайдалану пингі</string>
+    <string name="preferences_daily_usage_ping_description">Бұл Mozilla-ға белсенді пайдаланушылар санын бағалауға көмектеседі.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Күнделікті пайдалану пингі туралы көбірек білу</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Құлау хабарламаларын автоматты түрде жіберу</string>

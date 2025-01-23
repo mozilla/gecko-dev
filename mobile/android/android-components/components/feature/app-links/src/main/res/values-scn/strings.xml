@@ -13,4 +13,4 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">Grapi</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">Sfai</string>
-</resources>
+    </resources>

@@ -13,4 +13,6 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">Открыть</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">Отмена</string>
+    <!-- The label of the checkbox that, depending of user's choice, can change the Open links in apps setting -->
+    <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">Всегда открывать ссылки в приложениях</string>
 </resources>
