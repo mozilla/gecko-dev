@@ -1121,8 +1121,6 @@
                     dropIndex++;
                   }
                 }
-
-                gBrowser.syncThrobberAnimations(tab);
               };
               if (gReduceMotion) {
                 postTransitionCleanup();
