@@ -112,6 +112,16 @@ nsFmtString str(FMT_STRING(u"{},{},{},{}"), 1, 1, 2, u"wide string");
 // use it as usual
 ```
 
+# Firefox Profiler marker integration
+
+```
+PROFILER_MARKER_FMT("Marker Name", MEDIA_PLAYBACK, {},
+                    "Three numbers: {} {} {}", 1, 2, 3);
+```
+
+Crucially, the formatting isn't executed if markers aren't being collected (e.g.
+the profiler isn't running).
+
 # Useful links
 
 - The syntax of `{fmt}` format string: <https://fmt.dev/latest/syntax/>

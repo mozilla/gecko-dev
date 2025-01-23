@@ -2344,14 +2344,11 @@ void TrackBuffersManager::InsertFrames(TrackBuffer& aSamples,
              aSamples.Length(), aTrackData.mInfo->mMimeType.get(),
              aIntervals.GetStart().ToMicroseconds(),
              aIntervals.GetEnd().ToMicroseconds());
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    nsPrintfCString markerString(
-        "Processing %zu %s frames(start:%" PRId64 " end:%" PRId64 ")",
-        aSamples.Length(), aTrackData.mInfo->mMimeType.get(),
-        aIntervals.GetStart().ToMicroseconds(),
-        aIntervals.GetEnd().ToMicroseconds());
-    PROFILER_MARKER_TEXT("InsertFrames", MEDIA_PLAYBACK, {}, markerString);
-  }
+  PROFILER_MARKER_FMT("InsertFrames", MEDIA_PLAYBACK, {},
+                      "Processing {} {}frames(start:{} end:{})",
+                      aSamples.Length(), aTrackData.mInfo->mMimeType.get(),
+                      aIntervals.GetStart().ToMicroseconds(),
+                      aIntervals.GetEnd().ToMicroseconds());
 
   // 11. Let spliced audio frame be an unset variable for holding audio splice
   // information

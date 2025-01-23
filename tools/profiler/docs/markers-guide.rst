@@ -260,6 +260,21 @@ access the information programmatically. It won't get the formatting benefits of
 built-in marker schema. Please consider using a custom marker type to separate and
 better present the data.
 
+{fmt} Markers
+^^^^^^^^^^^^^
+
+``{fmt}`` markers are similar to the text markers, but the string is formatted
+using the `{fmt} </xpcom/fmt-in-gecko.html>`_ library.
+
+.. code-block:: cpp
+
+  PROFILER_MARKER_FMT("Marker Name", MEDIA_PLAYBACK, {},
+                      "Three numbers: {} {} {}", 1, 2, 3);
+
+The same caveat as the Text Marker (described in the previous paragraph) apply
+here. The string formatting isn't performed if the marker wouldn't otherwise
+be recorded, the most typical instance being that the profiler isn't running.
+
 Other Typed Markers
 ^^^^^^^^^^^^^^^^^^^
 
