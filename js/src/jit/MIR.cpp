@@ -211,8 +211,7 @@ static MConstant* EvaluateInt64ConstantOperands(TempAllocator& alloc,
 }
 
 static MConstant* EvaluateConstantOperands(TempAllocator& alloc,
-                                           MBinaryInstruction* ins,
-                                           bool* ptypeChange = nullptr) {
+                                           MBinaryInstruction* ins) {
   MDefinition* left = ins->getOperand(0);
   MDefinition* right = ins->getOperand(1);
 
@@ -293,22 +292,15 @@ static MConstant* EvaluateConstantOperands(TempAllocator& alloc,
   if (ins->type() == MIRType::Double) {
     return MConstant::New(alloc, DoubleValue(ret));
   }
-
-  Value retVal;
-  retVal.setNumber(JS::CanonicalizeNaN(ret));
-
-  // If this was an int32 operation but the result isn't an int32 (for
-  // example, a division where the numerator isn't evenly divisible by the
-  // denominator), decline folding.
   MOZ_ASSERT(ins->type() == MIRType::Int32);
-  if (!retVal.isInt32()) {
-    if (ptypeChange) {
-      *ptypeChange = true;
-    }
+
+  // If the result isn't an int32 (for example, a division where the numerator
+  // isn't evenly divisible by the denominator), decline folding.
+  int32_t intRet;
+  if (!mozilla::NumberIsInt32(ret, &intRet)) {
     return nullptr;
   }
-
-  return MConstant::New(alloc, retVal);
+  return MConstant::New(alloc, Int32Value(intRet));
 }
 
 static MConstant* EvaluateConstantNaNOperand(MBinaryInstruction* ins) {
