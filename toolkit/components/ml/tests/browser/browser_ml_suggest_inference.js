@@ -154,11 +154,7 @@ const runInference2 = async () => {
   MLSuggest.INTENT_OPTIONS = CUSTOM_INTENT_OPTIONS;
   MLSuggest.NER_OPTIONS = CUSTOM_NER_OPTIONS;
 
-  const modelDirectory = normalizePathForOS(
-    `${Services.env.get("MOZ_FETCHES_DIR")}/onnx-models`
-  );
-  info(`Model Directory: ${modelDirectory}`);
-  const { baseUrl: modelHubRootUrl } = startHttpServer(modelDirectory);
+  const modelHubRootUrl = Services.env.get("MOZ_MODELS_HUB");
   info(`ModelHubRootUrl: ${modelHubRootUrl}`);
   const { cleanup } = await perfSetup({
     prefs: [

@@ -34,10 +34,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-const { HttpServer } = ChromeUtils.importESModule(
-  "resource://testing-common/httpd.sys.mjs"
-);
-
 /**
  * Sets up the stage for a test
  *
@@ -290,39 +286,19 @@ function fetchMetrics(metrics, isFirstRun) {
   };
 }
 
-function startHttpServer(directoryPath) {
-  // Create a new HTTP server
-  const server = new HttpServer();
-
-  // Set the base directory that the server will serve files from
-  const baseDirectory = new FileUtils.File(directoryPath);
-
-  // Register a path to serve files from the directory
-  server.registerDirectory("/", baseDirectory);
-
-  // Start the server on a random available port (-1)
-  server.start(-1);
-
-  // Ensure that the server is stopped regardless of uncaught exceptions.
-  registerCleanupFunction(async () => {
-    // Stop the server manually before moving to the next stage
-    await new Promise(resolve => server.stop(resolve));
-  });
-
-  // Get the primary port that the server is using
-  const port = server.identity.primaryPort;
-  const baseUrl = `http://localhost:${port}/`;
-
-  // Return the server instance and the base URL
-  return { server, baseUrl };
-}
-
 async function initializeEngine(pipelineOptions) {
   const modelDirectory = normalizePathForOS(
     `${Services.env.get("MOZ_FETCHES_DIR")}/onnx-models`
   );
   info(`Model Directory: ${modelDirectory}`);
-  const { baseUrl: modelHubRootUrl } = startHttpServer(modelDirectory);
+
+  const modelHubRootUrl = Services.env.get("MOZ_MODELS_HUB");
+  if (!modelHubRootUrl) {
+    throw new Error(
+      "MOZ_MODELS_HUB is not set, you need to run with --hooks toolkit/components/ml/tests/tools/hook_local_hub.py"
+    );
+  }
+
   info(`ModelHubRootUrl: ${modelHubRootUrl}`);
   const { cleanup } = await perfSetup({
     prefs: [["browser.ml.modelHubRootUrl", modelHubRootUrl]],
