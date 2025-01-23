@@ -38,7 +38,6 @@ class TextDirectiveUtil final {
   }
 
   static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);
-
   /**
    * @brief Return true if `aNode` is a visible Text node.
    *
