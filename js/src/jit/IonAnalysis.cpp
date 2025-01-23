@@ -2279,11 +2279,11 @@ bool TypeAnalyzer::adjustPhiInputs(MPhi* phi) {
           replacement = MToFloat32::New(alloc(), unbox);
         } else {
           replacement = MUnbox::New(alloc(), in, phiType, MUnbox::Fallible);
+          replacement->setBailoutKind(BailoutKind::SpeculativePhi);
         }
       }
       MOZ_ASSERT(replacement->type() == phiType);
 
-      replacement->setBailoutKind(BailoutKind::SpeculativePhi);
       predecessor->insertAtEnd(replacement);
       phi->replaceOperand(i, replacement);
     }
