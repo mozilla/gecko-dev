@@ -158,20 +158,27 @@ search:
 searchConfiguration:
   description: Search experimentation support for the engine configuration
   owner: search-and-suggest-program@mozilla.com
-  isEarlyStartup: true
   hasExposure: false
   variables:
     experiment:
       type: string
-      fallbackPref: browser.search.experiment
+      setPref:
+        branch: user
+        pref: browser.search.experiment
       description: >-
         Used to activate only matching configurations that contain the value in
         `experiment`
     seperatePrivateDefaultUIEnabled:
       type: boolean
+      setPref:
+        branch: user
+        pref: browser.search.separatePrivateDefault.ui.enabled
       description: Whether the UI for the separate private default feature is enabled.
     seperatePrivateDefaultUrlbarResultEnabled:
       type: boolean
+      setPref:
+        branch: user
+        pref: browser.search.separatePrivateDefault.urlbarResult.enabled
       description: Whether the urlbar result for the separate private default is shown.
 
 urlbar:

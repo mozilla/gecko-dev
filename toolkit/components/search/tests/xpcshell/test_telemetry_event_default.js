@@ -12,7 +12,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   AppProvidedSearchEngine:
     "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 const BASE_CONFIG = [
@@ -258,8 +257,6 @@ async function checkTelemetry(
   );
 }
 
-let getVariableStub;
-
 add_setup(async () => {
   Region._setHomeRegion("US", false);
   Services.locale.availableLocales = [
@@ -268,14 +265,6 @@ add_setup(async () => {
     "fr",
   ];
   Services.locale.requestedLocales = ["en"];
-
-  sinon.spy(NimbusFeatures.searchConfiguration, "onUpdate");
-  sinon.stub(NimbusFeatures.searchConfiguration, "ready").resolves();
-  getVariableStub = sinon.stub(
-    NimbusFeatures.searchConfiguration,
-    "getVariable"
-  );
-  getVariableStub.returns(null);
 
   Services.fog.initializeFOG();
   sinon.stub(
@@ -311,8 +300,7 @@ add_task(async function test_experiment_changes_default() {
 
   let reloadObserved =
     SearchTestUtils.promiseSearchNotification("engines-reloaded");
-  getVariableStub.callsFake(name => (name == "experiment" ? "test1" : null));
-  NimbusFeatures.searchConfiguration.onUpdate.firstCall.args[0]();
+  Services.prefs.setStringPref("browser.search.experiment", "test1");
   await reloadObserved;
 
   await checkTelemetry(
@@ -322,8 +310,11 @@ add_task(async function test_experiment_changes_default() {
     false
   );
 
-  // Reset the stub so that we are no longer in an experiment.
-  getVariableStub.returns(null);
+  // Clear the pref so that we are no longer in an experiment.
+  reloadObserved =
+    SearchTestUtils.promiseSearchNotification("engines-reloaded");
+  Services.prefs.clearUserPref("browser.search.experiment");
+  await reloadObserved;
 });
 
 add_task(async function test_locale_changes_default() {
@@ -336,7 +327,7 @@ add_task(async function test_locale_changes_default() {
 
   await checkTelemetry(
     "locale",
-    testDefaultForExperiment,
+    testNewDefaultEngine,
     testDefaultInLocaleFRNotRegionDEEngine,
     false
   );
@@ -392,11 +383,9 @@ add_task(async function test_user_changes_separate_private_pref() {
   );
 
   await checkTelemetry("user_private_split", testNewDefaultEngine, null, true);
-
-  getVariableStub.returns(null);
 });
 
-add_task(async function test_experiment_with_separate_default_notifies() {
+add_task(async function test_ui_enabled_with_separate_default_notifies() {
   Services.prefs.setBoolPref(
     SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
     false
@@ -408,20 +397,43 @@ add_task(async function test_experiment_with_separate_default_notifies() {
 
   clearTelemetry();
 
-  getVariableStub.callsFake(name =>
-    name == "seperatePrivateDefaultUIEnabled" ? true : null
+  let defaultChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
   );
-  NimbusFeatures.searchConfiguration.onUpdate.firstCall.args[0]();
 
-  await checkTelemetry("experiment", null, testNewDefaultEngine, true);
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
+    true
+  );
+  await defaultChanged;
+
+  await checkTelemetry(
+    "user_private_pref_enabled",
+    null,
+    testNewDefaultEngine,
+    true
+  );
 
   clearTelemetry();
 
-  // Reset the stub so that we are no longer in an experiment.
-  getVariableStub.returns(null);
-  NimbusFeatures.searchConfiguration.onUpdate.firstCall.args[0]();
+  // Reset the pref so that we are no longer in an experiment.
+  defaultChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
+    false
+  );
+  await defaultChanged;
 
-  await checkTelemetry("experiment", testNewDefaultEngine, null, true);
+  await checkTelemetry(
+    "user_private_pref_enabled",
+    testNewDefaultEngine,
+    null,
+    true
+  );
 });
 
 add_task(async function test_default_engine_update() {
