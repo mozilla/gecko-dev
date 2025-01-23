@@ -2091,7 +2091,7 @@ EditorDOMPointType HTMLEditUtils::GetPreviousEditablePoint(
     // There may be invisible trailing white-spaces which should be
     // ignored.  Let's scan its start.
     return WSRunScanner::GetAfterLastVisiblePoint<EditorDOMPointType>(
-        *textNode);
+        WSRunScanner::Scan::EditableNodes, *textNode);
   }
 
   // If it's a container element, return end of it.  Otherwise, return
@@ -2202,7 +2202,8 @@ EditorDOMPointType HTMLEditUtils::GetNextEditablePoint(
     }
     // There may be invisible leading white-spaces which should be
     // ignored.  Let's scan its start.
-    return WSRunScanner::GetFirstVisiblePoint<EditorDOMPointType>(*textNode);
+    return WSRunScanner::GetFirstVisiblePoint<EditorDOMPointType>(
+        WSRunScanner::Scan::EditableNodes, *textNode);
   }
 
   // If it's a container element, return start of it.  Otherwise, return

@@ -2255,7 +2255,8 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::
   EditorDOMRangeInTexts rangeToDelete;
   if (aDirectionAndAmount == nsIEditor::eNext) {
     Result<EditorDOMRangeInTexts, nsresult> result =
-        WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(caretPosition);
+        WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom(
+            WSRunScanner::Scan::EditableNodes, caretPosition);
     if (result.isErr()) {
       NS_WARNING(
           "WSRunScanner::GetRangeInTextNodesToForwardDeleteFrom() failed");
@@ -2267,7 +2268,8 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::
     }
   } else {
     Result<EditorDOMRangeInTexts, nsresult> result =
-        WSRunScanner::GetRangeInTextNodesToBackspaceFrom(caretPosition);
+        WSRunScanner::GetRangeInTextNodesToBackspaceFrom(
+            WSRunScanner::Scan::EditableNodes, caretPosition);
     if (result.isErr()) {
       NS_WARNING("WSRunScanner::GetRangeInTextNodesToBackspaceFrom() failed");
       return result.unwrapErr();
@@ -2702,7 +2704,8 @@ HTMLEditor::AutoDeleteRangesHandler::ComputeRangesToDeleteAtomicContent(
     const nsIContent& aAtomicContent,
     AutoClonedSelectionRangeArray& aRangesToDelete) const {
   EditorDOMRange rangeToDelete =
-      WSRunScanner::GetRangesForDeletingAtomicContent(aAtomicContent);
+      WSRunScanner::GetRangesForDeletingAtomicContent(
+          WSRunScanner::Scan::EditableNodes, aAtomicContent);
   if (!rangeToDelete.IsPositioned()) {
     NS_WARNING("WSRunScanner::GetRangeForDeleteAContentNode() failed");
     return NS_ERROR_FAILURE;
@@ -3895,6 +3898,7 @@ HTMLEditor::AutoDeleteRangesHandler::ComputeRangesToDeleteNonCollapsedRanges(
     EditorDOMRange firstRange(aRangesToDelete.FirstRangeRef());
     EditorDOMRange extendedRange =
         WSRunScanner::GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
+            WSRunScanner::Scan::EditableNodes,
             EditorDOMRange(aRangesToDelete.FirstRangeRef()));
     if (firstRange != extendedRange) {
       nsresult rv = aRangesToDelete.FirstRangeRef()->SetStartAndEnd(
@@ -6285,7 +6289,7 @@ Result<bool, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       mRightBlockElement) {
     mPrecedingInvisibleBRElement =
         WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-            aHTMLEditor.ComputeEditingHost(),
+            WSRunScanner::Scan::EditableNodes,
             EditorDOMPoint::AtEndOf(mLeftBlockElement),
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
     // `WhiteSpaceVisibilityKeeper::
@@ -6316,7 +6320,7 @@ Result<bool, nsresult> HTMLEditor::AutoDeleteRangesHandler::
              mLeftBlockElement) {
     mPrecedingInvisibleBRElement =
         WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-            aHTMLEditor.ComputeEditingHost(),
+            WSRunScanner::Scan::EditableNodes,
             mPointContainingTheOtherBlockElement,
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
     // `WhiteSpaceVisibilityKeeper::
@@ -6352,7 +6356,7 @@ Result<bool, nsresult> HTMLEditor::AutoDeleteRangesHandler::
   } else {
     mPrecedingInvisibleBRElement =
         WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-            aHTMLEditor.ComputeEditingHost(),
+            WSRunScanner::Scan::EditableNodes,
             EditorDOMPoint::AtEndOf(mLeftBlockElement),
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
     // `WhiteSpaceVisibilityKeeper::
@@ -6389,8 +6393,8 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   }
   EditorDOMRange range =
       WSRunScanner::GetRangeForDeletingBlockElementBoundaries(
-          aHTMLEditor, *mLeftBlockElement, *mRightBlockElement,
-          pointContainingTheOtherBlock);
+          WSRunScanner::Scan::EditableNodes, *mLeftBlockElement,
+          *mRightBlockElement, pointContainingTheOtherBlock);
   if (!range.IsPositioned()) {
     NS_WARNING(
         "WSRunScanner::GetRangeForDeletingBlockElementBoundaries() failed");
