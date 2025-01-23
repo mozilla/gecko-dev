@@ -1345,13 +1345,14 @@ main section {
   white-space: nowrap;
   min-height: 20px;
   width: 100px;
+  padding: 0 var(--space-xsmall);
 }
-.top-sites-list .top-site-outer:hover span[dir=auto], .top-sites-list .top-site-outer:focus-within span[dir=auto] {
-  overflow: unset;
-  text-overflow: clip;
-  white-space: normal;
-  text-wrap: balance;
-  contain: size;
+.top-sites-list .top-site-outer:hover .title:not(.sponsored) .sponsored-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .sponsored-label {
+  display: none;
+}
+.top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label {
+  -webkit-line-clamp: 2;
+  white-space: wrap;
   word-break: break-all;
 }
 

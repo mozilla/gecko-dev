@@ -8121,7 +8121,8 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       onKeyPress: this.onKeyPress,
       onClick: onClick,
       draggable: true,
-      "data-is-sponsored-link": !!link.sponsored_tile_id
+      "data-is-sponsored-link": !!link.sponsored_tile_id,
+      title: title
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "tile",
       "aria-hidden": true
@@ -8143,6 +8144,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: `title${link.isPinned ? " has-icon pinned" : ""}${link.type === SPOC_TYPE || link.show_sponsored_label ? " sponsored" : ""}`
     }, /*#__PURE__*/external_React_default().createElement("span", TopSite_extends({
+      className: "title-label",
       dir: "auto"
     }, isAddButton && {
       ...addButtonl10n
@@ -8321,7 +8323,7 @@ class TopSite extends (external_React_default()).PureComponent {
       link
     } = props;
     const isContextMenuOpen = props.activeIndex === props.index;
-    const title = link.label || link.hostname;
+    const title = link.label || link.title || link.hostname;
     let menuOptions;
     if (link.sponsored_position) {
       menuOptions = TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS;

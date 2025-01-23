@@ -718,17 +718,21 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       white-space: nowrap;
       min-height: 20px;
       width: 100px;
+      padding: 0 var(--space-xsmall);
     }
 
     &:hover,
     &:focus-within {
-      span[dir='auto'] {
-        overflow: unset;
-        text-overflow: clip;
-        white-space: normal;
-        text-wrap: balance;
-        contain: size;
-        word-break: break-all;
+      .title:not(.sponsored) {
+        .sponsored-label {
+          display: none;
+        }
+
+        .title-label {
+          -webkit-line-clamp: 2;
+          white-space: wrap;
+          word-break: break-all;
+        }
       }
     }
   }

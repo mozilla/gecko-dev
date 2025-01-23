@@ -360,6 +360,7 @@ export class TopSiteLink extends React.PureComponent {
             onClick={onClick}
             draggable={true}
             data-is-sponsored-link={!!link.sponsored_tile_id}
+            title={title}
           >
             <div className="tile" aria-hidden={true}>
               <div
@@ -391,7 +392,11 @@ export class TopSiteLink extends React.PureComponent {
                   : ""
               }`}
             >
-              <span dir="auto" {...(isAddButton && { ...addButtonl10n })}>
+              <span
+                className="title-label"
+                dir="auto"
+                {...(isAddButton && { ...addButtonl10n })}
+              >
                 {link.isPinned && <div className="icon icon-pin-small" />}
                 {title || <br />}
               </span>
@@ -583,7 +588,7 @@ export class TopSite extends React.PureComponent {
     const { props } = this;
     const { link } = props;
     const isContextMenuOpen = props.activeIndex === props.index;
-    const title = link.label || link.hostname;
+    const title = link.label || link.title || link.hostname;
     let menuOptions;
     if (link.sponsored_position) {
       menuOptions = TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS;
