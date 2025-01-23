@@ -435,14 +435,14 @@ class MOZ_STACK_CLASS WSRunScanner final {
   }
 
   template <typename EditorDOMPointType>
-  WSRunScanner(const Element* aEditingHost,
-               const EditorDOMPointType& aScanStartPoint,
-               BlockInlineCheck aBlockInlineCheck)
+  WSRunScanner(Scan aScanMode, const EditorDOMPointType& aScanStartPoint,
+               BlockInlineCheck aBlockInlineCheck,
+               const Element* aAncestorLimiter = nullptr)
       : mScanStartPoint(aScanStartPoint.template To<EditorDOMPoint>()),
-        mEditingHost(const_cast<Element*>(aEditingHost)),
-        mTextFragmentDataAtStart(Scan::EditableNodes, mScanStartPoint,
-                                 aBlockInlineCheck),
-        mBlockInlineCheck(aBlockInlineCheck) {}
+        mTextFragmentDataAtStart(aScanMode, mScanStartPoint, aBlockInlineCheck,
+                                 aAncestorLimiter),
+        mBlockInlineCheck(aBlockInlineCheck),
+        mScanMode(aScanMode) {}
 
   // ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom() returns the first visible
   // node at or after aPoint.  If there is no visible nodes after aPoint,
@@ -457,7 +457,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
   static WSScanResult ScanInclusiveNextVisibleNodeOrBlockBoundary(
       const Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
       BlockInlineCheck aBlockInlineCheck) {
-    return WSRunScanner(aEditingHost, aPoint, aBlockInlineCheck)
+    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
+                        aEditingHost)
         .ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(aPoint);
   }
 
@@ -474,7 +475,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
   static WSScanResult ScanPreviousVisibleNodeOrBlockBoundary(
       const Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
       BlockInlineCheck aBlockInlineCheck) {
-    return WSRunScanner(aEditingHost, aPoint, aBlockInlineCheck)
+    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
+                        aEditingHost)
         .ScanPreviousVisibleNodeOrBlockBoundaryFrom(aPoint);
   }
 
@@ -494,8 +496,9 @@ class MOZ_STACK_CLASS WSRunScanner final {
       return EditorDOMPointType(aPoint.template ContainerAs<Text>(),
                                 aPoint.Offset());
     }
-    return WSRunScanner(aEditingHost, aPoint, aBlockInlineCheck)
-        .GetInclusiveNextEditableCharPoint<EditorDOMPointType>(aPoint);
+    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
+                        aEditingHost)
+        .GetInclusiveNextCharPoint<EditorDOMPointType>(aPoint);
   }
 
   /**
@@ -513,8 +516,9 @@ class MOZ_STACK_CLASS WSRunScanner final {
       return EditorDOMPointType(aPoint.template ContainerAs<Text>(),
                                 aPoint.Offset() - 1);
     }
-    return WSRunScanner(aEditingHost, aPoint, aBlockInlineCheck)
-        .GetPreviousEditableCharPoint<EditorDOMPointType>(aPoint);
+    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
+                        aEditingHost)
+        .GetPreviousCharPoint<EditorDOMPointType>(aPoint);
   }
 
   /**
@@ -719,11 +723,6 @@ class MOZ_STACK_CLASS WSRunScanner final {
     return TextFragmentDataAtStartRef().EndReasonBRElementPtr();
   }
 
-  /**
-   * Active editing host when this instance is created.
-   */
-  Element* GetEditingHost() const { return mEditingHost; }
-
  protected:
   using EditorType = EditorBase::EditorType;
 
@@ -845,34 +844,36 @@ class MOZ_STACK_CLASS WSRunScanner final {
   using PointPosition = VisibleWhiteSpacesData::PointPosition;
 
   /**
-   * GetInclusiveNextEditableCharPoint() returns aPoint if it points a character
-   * in an editable text node, or start of next editable text node otherwise.
-   * FYI: For the performance, this does not check whether given container
-   *      is not after mStart.mReasonContent or not.
+   * Return aPoint if it points a character in a `Text` node, or start of next
+   * `Text` node otherwise.
+   * FYI: For the performance, this does not check whether given container is
+   * not after mStart.mReasonContent or not.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-            typename CT>
-  EditorDOMPointType GetInclusiveNextEditableCharPoint(
+  template <typename EditorDOMPointType, typename PT, typename CT>
+  EditorDOMPointType GetInclusiveNextCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
         .GetInclusiveNextCharPoint<EditorDOMPointType>(
-            aPoint, IgnoreNonEditableNodes::Yes);
+            aPoint, mScanMode == Scan::EditableNodes
+                        ? IgnoreNonEditableNodes::Yes
+                        : IgnoreNonEditableNodes::No);
   }
 
   /**
-   * GetPreviousEditableCharPoint() returns previous editable point in a
-   * text node.  Note that this returns last character point when it meets
-   * non-empty text node, otherwise, returns a point in an empty text node.
-   * FYI: For the performance, this does not check whether given container
-   *      is not before mEnd.mReasonContent or not.
+   * Return the previous editable point in a `Text` node.  Note that this
+   * returns the last character point when it meets non-empty text node,
+   * otherwise, returns a point in an empty text node.
+   * FYI: For the performance, this does not check whether given container is
+   * not before mEnd.mReasonContent or not.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-            typename CT>
-  EditorDOMPointType GetPreviousEditableCharPoint(
+  template <typename EditorDOMPointType, typename PT, typename CT>
+  EditorDOMPointType GetPreviousCharPoint(
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
-        .GetPreviousCharPoint<EditorDOMPointType>(aPoint,
-                                                  IgnoreNonEditableNodes::Yes);
+        .GetPreviousCharPoint<EditorDOMPointType>(
+            aPoint, mScanMode == Scan::EditableNodes
+                        ? IgnoreNonEditableNodes::Yes
+                        : IgnoreNonEditableNodes::No);
   }
 
   /**
@@ -882,7 +883,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * Note that this may return different text node from the container of
    * aPointAtASCIIWhiteSpace.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText>
+  template <typename EditorDOMPointType>
   EditorDOMPointType GetEndOfCollapsibleASCIIWhiteSpaces(
       const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
       nsIEditor::EDirection aDirectionToDelete) const {
@@ -902,7 +903,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * Note that this may return different text node from the container of
    * aPointAtASCIIWhiteSpace.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText>
+  template <typename EditorDOMPointType>
   EditorDOMPointType GetFirstASCIIWhiteSpacePointCollapsedTo(
       const EditorDOMPointInText& aPointAtASCIIWhiteSpace,
       nsIEditor::EDirection aDirectionToDelete) const {
@@ -913,11 +914,6 @@ class MOZ_STACK_CLASS WSRunScanner final {
         .GetFirstASCIIWhiteSpacePointCollapsedTo<EditorDOMPointType>(
             aPointAtASCIIWhiteSpace, aDirectionToDelete);
   }
-
-  EditorDOMPointInText GetPreviousCharPointFromPointInText(
-      const EditorDOMPointInText& aPoint) const;
-
-  char16_t GetCharAt(Text* aTextNode, uint32_t aOffset) const;
 
   /**
    * TextFragmentData stores the information of white-space sequence which
@@ -1524,9 +1520,6 @@ class MOZ_STACK_CLASS WSRunScanner final {
   // Together, the above represent the point at which we are building up ws
   // info.
 
-  // The editing host when the instance is created.
-  RefPtr<Element> mEditingHost;
-
  private:
   /**
    * ComputeRangeInTextNodesContainingInvisibleWhiteSpaces() returns range
@@ -1545,6 +1538,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
   TextFragmentData mTextFragmentDataAtStart;
 
   const BlockInlineCheck mBlockInlineCheck;
+  const Scan mScanMode;
 
   friend class WhiteSpaceVisibilityKeeper;
 };

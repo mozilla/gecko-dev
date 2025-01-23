@@ -2323,8 +2323,9 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
 
   const bool editingHostIsEmpty = HTMLEditUtils::IsEmptyNode(
       aEditingHost, {EmptyCheckOption::TreatNonEditableContentAsInvisible});
-  WSRunScanner wsRunScanner(&aEditingHost, aPointToBreak,
-                            BlockInlineCheck::UseComputedDisplayStyle);
+  const WSRunScanner wsRunScanner(WSRunScanner::Scan::EditableNodes,
+                                  aPointToBreak,
+                                  BlockInlineCheck::UseComputedDisplayStyle);
   const WSScanResult backwardScanResult =
       wsRunScanner.ScanPreviousVisibleNodeOrBlockBoundaryFrom(aPointToBreak);
   if (MOZ_UNLIKELY(backwardScanResult.Failed())) {
@@ -2619,8 +2620,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::HandleInsertLinefeed(
   // boundary.  Note that it should always be <br> for avoiding padding line
   // breaks appear in `.textContent` value.
   if (pointToPutCaret.IsInContentNode() && pointToPutCaret.IsEndOfContainer()) {
-    WSRunScanner wsScannerAtCaret(&aEditingHost, pointToPutCaret,
-                                  BlockInlineCheck::UseComputedDisplayStyle);
+    const WSRunScanner wsScannerAtCaret(
+        WSRunScanner::Scan::EditableNodes, pointToPutCaret,
+        BlockInlineCheck::UseComputedDisplayStyle);
     if (wsScannerAtCaret.StartsFromPreformattedLineBreak() &&
         (wsScannerAtCaret.EndsByBlockBoundary() ||
          wsScannerAtCaret.EndsByInlineEditingHostBoundary()) &&
@@ -7821,8 +7823,8 @@ HTMLEditor::GetRangeExtendedToHardLineEdgesForBlockEditAction(
 
   // Is there any intervening visible white-space?  If so we can't push
   // selection past that, it would visibly change meaning of users selection.
-  WSRunScanner wsScannerAtEnd(
-      &aEditingHost, endPoint,
+  const WSRunScanner wsScannerAtEnd(
+      WSRunScanner::Scan::EditableNodes, endPoint,
       // We should refer only the default style of HTML because we need to wrap
       // any elements with a specific HTML element.  So we should not refer
       // actual style.  For example, we want to reformat parent HTML block
@@ -7866,8 +7868,9 @@ HTMLEditor::GetRangeExtendedToHardLineEdgesForBlockEditAction(
 
   // Is there any intervening visible white-space?  If so we can't push
   // selection past that, it would visibly change meaning of users selection.
-  WSRunScanner wsScannerAtStart(&aEditingHost, startPoint,
-                                BlockInlineCheck::UseHTMLDefaultStyle);
+  const WSRunScanner wsScannerAtStart(WSRunScanner::Scan::EditableNodes,
+                                      startPoint,
+                                      BlockInlineCheck::UseHTMLDefaultStyle);
   const WSScanResult scanResultAtStart =
       wsScannerAtStart.ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
           startPoint);

@@ -2364,7 +2364,6 @@ class HTMLEditUtils final {
    *
    * @param aContentToInsert    The content to insert.
    * @param aPointToInsert      A candidate point to insert the node.
-   * @param aEditingHost        The editing host containing aPointToInsert.
    * @return                    Better insertion point if next visible node
    *                            is a <br> element and previous visible node
    *                            is neither none, another <br> element nor
@@ -2373,8 +2372,7 @@ class HTMLEditUtils final {
   template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
   static EditorDOMPointType GetBetterInsertionPointFor(
       const nsIContent& aContentToInsert,
-      const EditorDOMPointTypeInput& aPointToInsert,
-      const Element& aEditingHost);
+      const EditorDOMPointTypeInput& aPointToInsert);
 
   /**
    * GetBetterCaretPositionToInsertText() returns better point to put caret
