@@ -212,25 +212,45 @@ add_task(async function testRecentlyClosedRestoreAllTabs() {
     "https://example.com/",
     "https://example.org/",
   ];
+  const closedTabGroupUrls = ["about:logo", "about:mozilla"];
+  const closedTabGroupId = "1234567890-1";
   const windowState = {
     tabs: [
       {
         entries: [{ url: "about:mozilla", triggeringPrincipal_base64 }],
       },
     ],
-    _closedTabs: closedTabUrls.map(url => {
-      return {
-        title: url,
-        state: {
-          entries: [
-            {
-              url,
-              triggeringPrincipal_base64,
-            },
-          ],
-        },
-      };
-    }),
+    _closedTabs: closedTabUrls.map(url => ({
+      title: url,
+      state: {
+        entries: [
+          {
+            url,
+            triggeringPrincipal_base64,
+          },
+        ],
+      },
+    })),
+    closedGroups: [
+      {
+        collapsed: false,
+        color: "blue",
+        id: closedTabGroupId,
+        name: "",
+        tabs: closedTabGroupUrls.map(url => ({
+          title: url,
+          state: {
+            entries: [
+              {
+                url,
+                triggeringPrincipal_base64,
+              },
+            ],
+            groupId: closedTabGroupId,
+          },
+        })),
+      },
+    ],
   };
   await SessionStoreTestUtils.promiseBrowserState({
     windows: [windowState],
@@ -280,8 +300,18 @@ add_task(async function testRecentlyClosedRestoreAllTabs() {
 
   is(
     gBrowser.tabs.length,
-    initialTabCount + closedTabUrls.length,
+    initialTabCount + closedTabUrls.length + closedTabGroupUrls.length,
     "The expected number of closed tabs were restored"
+  );
+  is(
+    gBrowser.tabGroups.length,
+    1,
+    "The expected number of closed tab groups were restored"
+  );
+  is(
+    gBrowser.tabGroups[0].tabs.length,
+    2,
+    "The expected number of tabs were restored to the tab group"
   );
 
   // clean up extra tabs

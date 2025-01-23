@@ -185,9 +185,24 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
       ? lazy.SessionStore.getWindows(currentWindow)
       : [currentWindow];
     for (const sourceWindow of browserWindows) {
-      let count = lazy.SessionStore.getClosedTabCountForWindow(sourceWindow);
-      while (--count >= 0) {
-        lazy.SessionStore.undoCloseTab(sourceWindow, 0, currentWindow);
+      let tabData = lazy.SessionStore.getClosedTabDataForWindow(sourceWindow);
+      let closedTabGroupsById = getClosedTabGroupsById();
+
+      while (tabData.length) {
+        let currentTabGroupId = tabData[0].state.groupId;
+
+        if (currentTabGroupId && closedTabGroupsById.has(currentTabGroupId)) {
+          let currentTabGroup = closedTabGroupsById.get(currentTabGroupId);
+          tabData.splice(0, currentTabGroup.tabs.length);
+          lazy.SessionStore.undoCloseTabGroup(
+            sourceWindow,
+            currentTabGroupId,
+            currentWindow
+          );
+        } else {
+          tabData.splice(0, 1);
+          lazy.SessionStore.undoCloseTab(sourceWindow, 0, currentWindow);
+        }
       }
     }
     if (lazy.closedTabsFromClosedWindowsEnabled) {
