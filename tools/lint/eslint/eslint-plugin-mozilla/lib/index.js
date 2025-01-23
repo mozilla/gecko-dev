@@ -43,7 +43,6 @@ const plugin = {
     "import-globals": require("./rules/import-globals"),
     "import-headjs-globals": require("./rules/import-headjs-globals"),
     "lazy-getter-object-name": require("./rules/lazy-getter-object-name"),
-    "mark-exported-symbols-as-used": require("./rules/mark-exported-symbols-as-used"),
     "mark-test-function-used": require("./rules/mark-test-function-used"),
     "no-aArgs": require("./rules/no-aArgs"),
     "no-addtask-setup": require("./rules/no-addtask-setup"),
