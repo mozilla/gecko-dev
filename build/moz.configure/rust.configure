@@ -439,7 +439,7 @@ def assert_rust_compile(host_or_target, rustc_target, rustc):
         suffix=".rlib"
     ) as out_path:
         with open(in_path, "w") as fd:
-            source = b'pub extern fn hello() { println!("Hello world"); }'
+            source = b'pub extern "C" fn hello() { println!("Hello world"); }'
             log.debug("Creating `%s` with content:", in_path)
             with LineIO(lambda l: log.debug("| %s", l)) as out:
                 out.write(source)
