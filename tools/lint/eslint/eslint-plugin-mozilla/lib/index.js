@@ -62,7 +62,6 @@ const plugin = {
     "prefer-formatValues": require("./rules/prefer-formatValues"),
     "reject-addtask-only": require("./rules/reject-addtask-only"),
     "reject-chromeutils-import": require("./rules/reject-chromeutils-import"),
-    "reject-chromeutils-import-params": require("./rules/reject-chromeutils-import-params"),
     "reject-eager-module-in-lazy-getter": require("./rules/reject-eager-module-in-lazy-getter"),
     "reject-global-this": require("./rules/reject-global-this"),
     "reject-globalThis-modification": require("./rules/reject-globalThis-modification"),

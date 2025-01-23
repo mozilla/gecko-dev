@@ -71,7 +71,6 @@ const coreRules = {
     "mozilla/prefer-formatValues": "error",
     "mozilla/reject-addtask-only": "error",
     "mozilla/reject-chromeutils-import": "error",
-    "mozilla/reject-chromeutils-import-params": "error",
     "mozilla/reject-importGlobalProperties": ["error", "allownonwebidl"],
     "mozilla/reject-multiple-await": "error",
     "mozilla/reject-multiple-getters-calls": "error",
