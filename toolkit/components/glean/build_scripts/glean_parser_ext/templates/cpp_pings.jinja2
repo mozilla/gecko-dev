@@ -19,7 +19,7 @@ namespace mozilla::glean_pings {
 /*
  * Generated from {{ obj.name }}.
  *
- * {{ obj.description|wordwrap() | replace('\n', '\n * ') }}
+ * {{ obj.description|trim | replace('\n', '\n * ') }}
  */
 constexpr glean::impl::Ping {{ obj.name|Camelize }}({{ obj.name|ping_id }});
 

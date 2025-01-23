@@ -84,7 +84,7 @@ namespace {{ category_name|snake_case }} {
   {% endif %}
   /**
   {% endif %}
-   * {{ obj.description|wordwrap() | replace('\n', '\n   * ') }}
+   * {{ obj.description|trim | replace('\n', '\n   * ') }}
    */
   constexpr impl::{{ obj|type_name }} {{obj.name|snake_case }}({{obj|metric_id}});
   {% endif %}
