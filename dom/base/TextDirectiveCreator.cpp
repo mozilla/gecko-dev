@@ -8,6 +8,7 @@
 #include "TextDirectiveUtil.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/ResultVariant.h"
+#include "mozilla/dom/fragmentdirectives_ffi_generated.h"
 #include "nsRange.h"
 
 namespace mozilla::dom {
@@ -130,9 +131,11 @@ TextDirectiveCandidate::CreateFromInputRange(const nsRange* aInputRange) {
   // 13. Return a structure which contains `startRange`, `fullStartRange`,
   // `endRange`, `fullEndRange`, `prefixRange`, `fullPrefixRange`, `suffixRange`
   // and `fullSuffixRange`.
-  return TextDirectiveCandidate{startRange,   fullStartRange, endRange,
-                                fullEndRange, prefixRange,    fullPrefixRange,
-                                suffixRange,  fullSuffixRange};
+  auto instance = TextDirectiveCandidate{
+      startRange,  fullStartRange,  endRange,    fullEndRange,
+      prefixRange, fullPrefixRange, suffixRange, fullSuffixRange};
+  MOZ_TRY(instance.CreateTextDirectiveString());
+  return instance;
 }
 
 /* static */ Result<RefPtr<nsRange>, ErrorResult>
@@ -235,6 +238,22 @@ TextDirectiveCandidate::CreateSuffixRanges(
   return std::tuple{suffixRange, fullSuffixRange};
 }
 
+const nsCString& TextDirectiveCandidate::TextDirectiveString() const {
+  return mTextDirectiveString;
+}
+
+Result<Ok, ErrorResult> TextDirectiveCandidate::CreateTextDirectiveString() {
+  Result<TextDirective, ErrorResult> maybeTextDirective =
+      TextDirectiveUtil::CreateTextDirectiveFromRanges(
+          mPrefixRange, mStartRange, mEndRange, mSuffixRange);
+  if (MOZ_UNLIKELY(maybeTextDirective.isErr())) {
+    return maybeTextDirective.propagateErr();
+  }
+  TextDirective textDirective = maybeTextDirective.unwrap();
+  create_text_directive(&textDirective, &mTextDirectiveString);
+  return Ok();
+}
+
 /* static */
 mozilla::Result<nsCString, ErrorResult>
 TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
@@ -272,6 +291,15 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
   }
   auto textDirectiveCandidate = maybeTextDirectiveCandidate.unwrap();
 
-  return nsCString{};
+  Result<nsCString, ErrorResult> maybeTextDirectiveString =
+      textDirectiveCandidate.TextDirectiveString();
+  if (MOZ_UNLIKELY(maybeTextDirectiveString.isErr())) {
+    return maybeTextDirectiveString.propagateErr();
+  }
+  nsCString textDirectiveString = maybeTextDirectiveString.unwrap();
+  TEXT_FRAGMENT_LOG("Returning text directive '%s'.",
+                    textDirectiveString.Data());
+
+  return textDirectiveString;
 }
 }  // namespace mozilla::dom
