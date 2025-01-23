@@ -1193,7 +1193,6 @@ def app_system_headers(value):
 
 
 set_config("MOZ_APP_SYSTEM_HEADERS", app_system_headers)
-set_define("MOZ_APP_SYSTEM_HEADERS", app_system_headers)
 
 
 # Printing
