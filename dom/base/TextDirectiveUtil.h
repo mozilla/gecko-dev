@@ -158,6 +158,25 @@ class TextDirectiveUtil final {
    * https://wicg.github.io/scroll-to-text-fragment/#next-non-whitespace-position
    */
   static void AdvanceStartToNextNonWhitespacePosition(nsRange& aRange);
+
+  /**
+   * @brief Compares two range boundaries whether they are "normalized equal".
+   *
+   * Range boundaries are "normalized equal" if there is no visible text between
+   * them, for example here (range boundaries represented by `|`):
+   *
+   * ```html
+   * <span>foo |<p>|bar</p></span>
+   * ```
+   *
+   * In this case, comparing the boundaries for equality would return false.
+   * But, when calling this function, they would be considered normalized equal.
+   *
+   * @return true if the boundaries are normalized equal.
+   */
+  static bool NormalizedRangeBoundariesAreEqual(
+      const RangeBoundary& aRangeBoundary1,
+      const RangeBoundary& aRangeBoundary2);
 };
 }  // namespace mozilla::dom
 
