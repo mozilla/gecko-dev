@@ -632,6 +632,11 @@ MacAvailableMemorySysctl:
     Expected to be a percentage integer value.
   type: u32
 
+Marionette:
+  description: >
+    Set to 1 when Marionette (WebDriver Classic) is enabled.
+  type: boolean
+
 LinuxUnderMemoryPressure:
   description: >
     Set to true if the memory pressure watcher was under memory pressure when
@@ -787,6 +792,11 @@ ReleaseChannel:
     Application release channel (e.g. default, beta, ...)
   type: string
   ping: true
+
+RemoteAgent:
+  description: >
+    Set to 1 when the Remote Agent (WebDriver BiDi) is enabled.
+  type: boolean
 
 RemoteType:
   description: >

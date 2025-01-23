@@ -131,6 +131,10 @@ class MarionetteParentProcess {
         this.enabled = subject.handleFlag("marionette", false);
 
         if (this.enabled) {
+          // Add annotation to crash report to indicate whether
+          // Marionette was active.
+          Services.appinfo.annotateCrashReport("Marionette", true);
+
           // Marionette needs to be initialized before any window is shown.
           Services.obs.addObserver(this, "final-ui-startup");
 

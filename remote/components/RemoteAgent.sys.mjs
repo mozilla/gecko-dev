@@ -410,6 +410,10 @@ class RemoteAgentParentProcess {
         this.#enabled = this.#handleRemoteDebuggingPortFlag(subject);
 
         if (this.#enabled) {
+          // Add annotation to crash report to indicate whether the
+          // Remote Agent was active.
+          Services.appinfo.annotateCrashReport("RemoteAgent", true);
+
           this.#allowHosts = this.#handleAllowHostsFlag(subject);
           this.#allowOrigins = this.#handleAllowOriginsFlag(subject);
 
