@@ -9,9 +9,8 @@
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
   data-l10n-attrs="title, style"
-  onload="gContainersManager.onLoad();"
-  onunload="gContainersManager.uninit();"
   persist="width height"
+  csp="default-src chrome:; img-src resource: chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     buttons="accept"
@@ -33,9 +32,9 @@
 
     <keyset>
       <key
+        id="key_close"
         data-l10n-id="containers-window-close"
         modifiers="accel"
-        oncommand="window.close();"
       />
     </keyset>
 
@@ -47,12 +46,7 @@
           data-l10n-id="containers-name-label"
           data-l10n-attrs="style"
         />
-        <html:input
-          id="name"
-          type="text"
-          data-l10n-id="containers-name-text"
-          oninput="gContainersManager.checkForm();"
-        />
+        <html:input id="name" type="text" data-l10n-id="containers-name-text" />
       </hbox>
       <hbox align="center" id="colorWrapper">
         <label
