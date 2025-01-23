@@ -2434,18 +2434,6 @@ nsXPCComponents_Utils::CreateHTMLCopyEncoder(
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetLoadedModules(nsTArray<nsCString>& aLoadedModules) {
-  return mozJSModuleLoader::Get()->GetLoadedJSAndESModules(aLoadedModules);
-}
-
-NS_IMETHODIMP
-nsXPCComponents_Utils::GetLoadedJSModules(
-    nsTArray<nsCString>& aLoadedJSModules) {
-  mozJSModuleLoader::Get()->GetLoadedModules(aLoadedJSModules);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::GetLoadedESModules(
     nsTArray<nsCString>& aLoadedESModules) {
   return mozJSModuleLoader::Get()->GetLoadedESModules(aLoadedESModules);

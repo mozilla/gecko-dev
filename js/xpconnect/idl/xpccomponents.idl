@@ -814,18 +814,9 @@ interface nsIXPCComponents_Utils : nsISupports
     /* Create an HTML copy encoder object. */
     nsIDocumentEncoder createHTMLCopyEncoder();
 
-    // These attributes are for startup testing purposes. They are not expected
-    // to be used for production code.
-
-    // Array of the URI of JSM and ESM loaded, converting ESM URI into JSM URI.
-    readonly attribute Array<ACString> loadedModules;
-
-    // Array of the URI of JSM loaded.
-    readonly attribute Array<ACString> loadedJSModules;
-
-    // Array of the URI of ESM loaded.
+    // Array of the URI of ESM loaded. This attribute is for startup testing
+    // purposes. This is not expected to be used for production code.
     readonly attribute Array<ACString> loadedESModules;
-
 
     // This function will only return useful values if the
     // "browser.startup.record" preference was true at the time the JS file

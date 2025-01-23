@@ -1334,27 +1334,9 @@ nsresult mozJSModuleLoader::IsESModuleLoaded(const nsACString& aLocation,
   return NS_OK;
 }
 
-void mozJSModuleLoader::GetLoadedModules(nsTArray<nsCString>& aLoadedModules) {
-  aLoadedModules.SetCapacity(mImports.Count());
-  for (const auto& data : mImports.Values()) {
-    aLoadedModules.AppendElement(data->location);
-  }
-}
-
 nsresult mozJSModuleLoader::GetLoadedESModules(
     nsTArray<nsCString>& aLoadedModules) {
   return mModuleLoader->GetFetchedModuleURLs(aLoadedModules);
-}
-
-nsresult mozJSModuleLoader::GetLoadedJSAndESModules(
-    nsTArray<nsCString>& aLoadedModules) {
-  GetLoadedModules(aLoadedModules);
-
-  nsTArray<nsCString> modules;
-  nsresult rv = GetLoadedESModules(modules);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
 }
 
 #ifdef STARTUP_RECORDER_ENABLED
