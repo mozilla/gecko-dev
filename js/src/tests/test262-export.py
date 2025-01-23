@@ -127,6 +127,14 @@ UNSUPPORTED_FEATURES = [
     "record-tuple",
 ]
 
+UNSUPPORTED_PATHS = [
+    "Intl",
+    "ReadableStream",
+    "reflect-parse",
+    "extensions/empty.txt",
+    "extensions/file-mapped-arraybuffers.txt",
+]
+
 
 def convertTestFile(source: bytes, includes: "list[str]") -> Optional[bytes]:
     """
@@ -627,6 +635,7 @@ def exportTest262(
         os.makedirs(includeDir)
 
     skipped = 0
+    skippedDirs = 0
 
     # Go through each source path
     for providedSrc in providedSrcs:
@@ -638,7 +647,7 @@ def exportTest262(
         basename = os.path.basename(src)
 
         # Process all test directories recursively.
-        for dirPath, _, fileNames in os.walk(src):
+        for dirPath, dirNames, fileNames in os.walk(src):
             # we need to make and get the unique set of includes for this filepath
             includes = []
             if includeShell:
@@ -646,6 +655,13 @@ def exportTest262(
 
             relPath = os.path.relpath(dirPath, src)
             fullRelPath = os.path.join(basename, relPath)
+
+            if relPath in UNSUPPORTED_PATHS:
+                print("SKIPPED unsupported path %s" % relPath)
+                # Prevent recursing into subdirectories
+                del dirNames[:]
+                skippedDirs += 1
+                continue
 
             # Make new test subdirectory to seperate from includes
             currentOutDir = os.path.join(outDir, "tests", fullRelPath)
@@ -666,6 +682,13 @@ def exportTest262(
                 testName = os.path.join(
                     fullRelPath, fileName
                 )  # captures folder(s)+filename
+
+                # This is hacky, but we're unlikely to add anything new
+                # that needs to be skipped this way.
+                if relPath + "/" + fileName in UNSUPPORTED_PATHS:
+                    print("SKIPPED %s" % testName)
+                    skipped += 1
+                    continue
 
                 # Copy non-test files as is.
                 if "_FIXTURE" in fileName or os.path.splitext(fileName)[1] != ".js":
@@ -707,7 +730,7 @@ def exportTest262(
 
                 print("SAVED %s" % testName)
 
-    print(f"Skipped {skipped} tests")
+    print(f"Skipped {skipped} tests and {skippedDirs} test directories")
 
 
 if __name__ == "__main__":
