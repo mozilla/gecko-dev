@@ -208,17 +208,6 @@ const TEST_GLOBAL = {
         return {};
       },
     },
-    "@mozilla.org/security/hash;1": {
-      createInstance() {
-        return {
-          init() {},
-          updateFromStream() {},
-          finish() {
-            return "0";
-          },
-        };
-      },
-    },
     "@mozilla.org/updates/update-checker;1": { createInstance() {} },
     "@mozilla.org/widget/useridleservice;1": {
       getService() {

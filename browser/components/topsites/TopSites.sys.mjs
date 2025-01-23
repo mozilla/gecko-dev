@@ -23,7 +23,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   FaviconFeed: "resource://activity-stream/lib/FaviconFeed.sys.mjs",
-  FilterAdult: "resource://activity-stream/lib/FilterAdult.sys.mjs",
+  FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   LinksCache: "resource://activity-stream/lib/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",

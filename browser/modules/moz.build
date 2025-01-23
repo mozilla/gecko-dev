@@ -123,6 +123,7 @@ EXTRA_JS_MODULES += [
     "EveryWindow.sys.mjs",
     "ExtensionsUI.sys.mjs",
     "FaviconLoader.sys.mjs",
+    "FilterAdult.sys.mjs",
     "FirefoxBridgeExtensionUtils.sys.mjs",
     "HomePage.sys.mjs",
     "LaterRun.sys.mjs",

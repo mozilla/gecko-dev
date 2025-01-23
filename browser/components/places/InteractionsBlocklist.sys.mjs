@@ -5,7 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  FilterAdult: "resource://activity-stream/lib/FilterAdult.sys.mjs",
+  FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
