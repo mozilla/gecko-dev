@@ -20,6 +20,7 @@ import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.isActive
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.ktx.android.view.getRectWithViewLocation
@@ -31,6 +32,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.getRectWithScreenLocation
 import org.mozilla.fenix.ext.getWindowInsets
 import org.mozilla.fenix.ext.isKeyboardVisible
+import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.ext.settings
 import kotlin.math.abs
 import kotlin.math.max
@@ -155,15 +157,15 @@ class ToolbarGestureHandler(
     private fun getDestination(): Destination {
         val isLtr = activity.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_LTR
         val currentTab = store.state.selectedTab ?: return Destination.None
-        val currentIndex =
-            store.state.getNormalOrPrivateTabs(currentTab.content.private).indexOfFirst {
-                it.id == currentTab.id
-            }
+        val tabs = store.state.getNormalOrPrivateTabs(currentTab.content.private).filter {
+            it.isActive(maxActiveTime)
+        }
+
+        val currentIndex = tabs.indexOfFirst { it.id == currentTab.id }
 
         return if (currentIndex == -1) {
             Destination.None
         } else {
-            val tabs = store.state.getNormalOrPrivateTabs(currentTab.content.private)
             val index = when (gestureDirection) {
                 GestureDirection.RIGHT_TO_LEFT -> if (isLtr) {
                     currentIndex + 1
