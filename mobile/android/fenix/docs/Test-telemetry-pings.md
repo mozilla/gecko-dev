@@ -1,10 +1,15 @@
 # Test Telemetry Pings
 
 You can view your test pings [here](https://debug-ping-preview.firebaseapp.com/). Note that there is also a button within the Glean Debug Tools to access this link.
-For instructions on how to send test pings, use one of the methods below. Note that before version 132,
-you can only use method 2.
+Use one of the methods below to send test pings.
 
-***Method 1 (Debug Drawer)***
+***Method 1 (about:glean)***
+
+Since version 136, telemetry pings can be tested via about:glean.
+
+1. Type about:glean in the toolbar. This will open the Glean Debug Tools that is also accessible via Method 2.
+
+***Method 2 (Debug Drawer)***
 
 Since version 132, telemetry pings can be tested via the Glean Debug Tools feature.
 
@@ -18,7 +23,7 @@ Since version 132, telemetry pings can be tested via the Glean Debug Tools featu
 8. Click on the Bug FAB (Floating Action Button).
 9. Click on "Glean Debug Tools".
 
-***Method 2 (ADB with a computer)***
+***Method 3 (ADB with a computer)***
 
 Prior to version 132, telemetry pings must be tested by plugging your Android device into a computer
 and following these instructions:
