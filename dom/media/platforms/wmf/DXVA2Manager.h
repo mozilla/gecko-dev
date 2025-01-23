@@ -21,12 +21,15 @@ class ImageContainer;
 class KnowsCompositor;
 }  // namespace layers
 
+enum class DXVA2Usage { Playback, ColorConversionOnly };
+
 class DXVA2Manager {
  public:
   // Creates and initializes a DXVA2Manager. We can use DXVA2 via D3D11.
   static DXVA2Manager* CreateD3D11DXVA(
       layers::KnowsCompositor* aKnowsCompositor, nsACString& aFailureReason,
-      ID3D11Device* aDevice = nullptr);
+      ID3D11Device* aDevice = nullptr,
+      DXVA2Usage aUsage = DXVA2Usage::Playback);
 
   // Returns a pointer to the D3D device manager responsible for managing the
   // device we're using for hardware accelerated video decoding. For D3D11 this

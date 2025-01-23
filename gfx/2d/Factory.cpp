@@ -1233,8 +1233,8 @@ bool Factory::ConvertSourceAndRetryReadback(DestTextureT* aDestCpuTexture,
   }
 
   nsAutoCString error;
-  std::unique_ptr<DXVA2Manager> manager(
-      DXVA2Manager::CreateD3D11DXVA(nullptr, error, device));
+  std::unique_ptr<DXVA2Manager> manager(DXVA2Manager::CreateD3D11DXVA(
+      nullptr, error, device, DXVA2Usage::ColorConversionOnly));
   if (!manager) {
     gfxWarning() << "Failed to create DXVA2 manager!";
     return false;

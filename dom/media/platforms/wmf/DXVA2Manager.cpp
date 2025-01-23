@@ -1189,12 +1189,12 @@ bool D3D11DXVA2Manager::CanCreateDecoder(
 /* static */
 DXVA2Manager* DXVA2Manager::CreateD3D11DXVA(
     layers::KnowsCompositor* aKnowsCompositor, nsACString& aFailureReason,
-    ID3D11Device* aDevice) {
+    ID3D11Device* aDevice, DXVA2Usage aUsage) {
   // DXVA processing takes up a lot of GPU resources, so limit the number of
   // videos we use DXVA with at any one time.
   uint32_t dxvaLimit = StaticPrefs::media_wmf_dxva_max_videos();
 
-  if (sDXVAVideosCount == dxvaLimit) {
+  if (sDXVAVideosCount == dxvaLimit && aUsage == DXVA2Usage::Playback) {
     aFailureReason.AssignLiteral("Too many DXVA videos playing");
     return nullptr;
   }
