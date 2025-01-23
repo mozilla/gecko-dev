@@ -54,31 +54,35 @@ def add_command_arguments(config, tasks):
                     continue
 
                 for locale in partner_config["locales"]:
-                    attributed_build_config = _get_attributed_build_configuration(
+                    for (
+                        attributed_build_config
+                    ) in _get_all_attributed_builds_configuration(
                         task, partner_config, platform, locale
-                    )
-                    upstream_label = attributed_build_config["upstream_label"]
-                    if upstream_label not in config.kind_dependencies_tasks:
-                        raise Exception(
-                            f"Can't find upstream task for {platform} {locale}"
+                    ):
+                        upstream_label = attributed_build_config["upstream_label"]
+                        if upstream_label not in config.kind_dependencies_tasks:
+                            raise Exception(
+                                f"Can't find upstream task for {platform} {locale}"
+                            )
+                        upstream = config.kind_dependencies_tasks[upstream_label]
+
+                        # set the dependencies to just what we need rather than all of l10n
+                        dependencies.update({upstream.label: upstream.label})
+
+                        fetches[upstream_label].add(
+                            attributed_build_config["fetch_config"]
                         )
-                    upstream = config.kind_dependencies_tasks[upstream_label]
 
-                    # set the dependencies to just what we need rather than all of l10n
-                    dependencies.update({upstream.label: upstream.label})
-
-                    fetches[upstream_label].add(attributed_build_config["fetch_config"])
-
-                    attributions.append(
-                        {
-                            "input": attributed_build_config["input_path"],
-                            "output": attributed_build_config["output_path"],
-                            "attribution": attribution_code,
-                        }
-                    )
-                    release_artifacts.append(
-                        attributed_build_config["release_artifact"]
-                    )
+                        attributions.append(
+                            {
+                                "input": attributed_build_config["input_path"],
+                                "output": attributed_build_config["output_path"],
+                                "attribution": attribution_code,
+                            }
+                        )
+                        release_artifacts.append(
+                            attributed_build_config["release_artifact"]
+                        )
 
         if attributions:
             worker = task.get("worker", {})
@@ -105,10 +109,21 @@ def add_command_arguments(config, tasks):
             yield task
 
 
-def _get_attributed_build_configuration(task, partner_config, platform, locale):
-    stage_platform = platform.replace("-shippable", "")
-    artifact_file_name = _get_artifact_file_name(platform)
+def _get_all_attributed_builds_configuration(task, partner_config, platform, locale):
+    all_attributed_builds_configuration = []
+    for artifact_file_name in _get_artifact_file_names(platform):
+        all_attributed_builds_configuration.append(
+            _get_attributed_build_configuration(
+                task, partner_config, platform, locale, artifact_file_name
+            )
+        )
+    return all_attributed_builds_configuration
 
+
+def _get_attributed_build_configuration(
+    task, partner_config, platform, locale, artifact_file_name
+):
+    stage_platform = platform.replace("-shippable", "")
     output_artifact = _get_output_path(
         get_artifact_prefix(task), partner_config, platform, locale, artifact_file_name
     )
@@ -148,11 +163,11 @@ def _get_output_path(
     )
 
 
-def _get_artifact_file_name(platform):
+def _get_artifact_file_names(platform):
     if platform.startswith("win"):
-        return "target.installer.exe"
+        return ("target.installer.exe",)
     elif platform.startswith("macos"):
-        return "target.dmg"
+        return ("target.dmg",)
     else:
         raise NotImplementedError(
             'Case for platform "{}" is not implemented'.format(platform)
