@@ -974,10 +974,10 @@ add_proto qw/void vpx_sad4x4x4d/, "const uint8_t *src_ptr, int src_stride, const
 specialize qw/vpx_sad4x4x4d neon msa sse2 mmi/;
 
 add_proto qw/void vpx_sad_skip_64x64x4d/, "const uint8_t *src_ptr, int src_stride, const uint8_t *const ref_array[4], int ref_stride, uint32_t sad_array[4]";
-specialize qw/vpx_sad_skip_64x64x4d neon neon_dotprod avx2 sse2/;
+specialize qw/vpx_sad_skip_64x64x4d neon neon_dotprod avx512 avx2 sse2/;
 
 add_proto qw/void vpx_sad_skip_64x32x4d/, "const uint8_t *src_ptr, int src_stride, const uint8_t *const ref_array[4], int ref_stride, uint32_t sad_array[4]";
-specialize qw/vpx_sad_skip_64x32x4d neon neon_dotprod avx2 sse2/;
+specialize qw/vpx_sad_skip_64x32x4d neon neon_dotprod avx512 avx2 sse2/;
 
 add_proto qw/void vpx_sad_skip_32x64x4d/, "const uint8_t *src_ptr, int src_stride, const uint8_t *const ref_array[4], int ref_stride, uint32_t sad_array[4]";
 specialize qw/vpx_sad_skip_32x64x4d neon neon_dotprod avx2 sse2/;

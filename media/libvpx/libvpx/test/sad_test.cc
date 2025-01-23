@@ -1893,6 +1893,13 @@ const SadMxNx4Param x4d_avx512_tests[] = {
 };
 INSTANTIATE_TEST_SUITE_P(AVX512, SADx4Test,
                          ::testing::ValuesIn(x4d_avx512_tests));
+
+const SadSkipMxNx4Param skip_x4d_avx512_tests[] = {
+  SadSkipMxNx4Param(64, 64, &vpx_sad_skip_64x64x4d_avx512),
+  SadSkipMxNx4Param(64, 32, &vpx_sad_skip_64x32x4d_avx512),
+};
+INSTANTIATE_TEST_SUITE_P(AVX512, SADSkipx4Test,
+                         ::testing::ValuesIn(skip_x4d_avx512_tests));
 #endif  // HAVE_AVX512
 
 //------------------------------------------------------------------------------

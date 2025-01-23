@@ -507,7 +507,6 @@ static vpx_rational64_t get_g_timebase_in_ts(vpx_rational_t g_timebase) {
 static vpx_codec_err_t set_encoder_config(
     VP9EncoderConfig *oxcf, vpx_codec_enc_cfg_t *cfg,
     const struct vp9_extracfg *extra_cfg) {
-  const int is_vbr = cfg->rc_end_usage == VPX_VBR;
   int sl, tl;
   unsigned int raw_target_rate;
   oxcf->profile = cfg->g_profile;
@@ -570,9 +569,9 @@ static vpx_codec_err_t set_encoder_config(
     oxcf->resize_mode = RESIZE_NONE;
   }
 
-  oxcf->maximum_buffer_size_ms = is_vbr ? 240000 : cfg->rc_buf_sz;
-  oxcf->starting_buffer_level_ms = is_vbr ? 60000 : cfg->rc_buf_initial_sz;
-  oxcf->optimal_buffer_level_ms = is_vbr ? 60000 : cfg->rc_buf_optimal_sz;
+  oxcf->maximum_buffer_size_ms = cfg->rc_buf_sz;
+  oxcf->starting_buffer_level_ms = cfg->rc_buf_initial_sz;
+  oxcf->optimal_buffer_level_ms = cfg->rc_buf_optimal_sz;
 
   oxcf->drop_frames_water_mark = cfg->rc_dropframe_thresh;
 

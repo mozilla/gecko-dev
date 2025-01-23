@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 The WebM project authors. All Rights Reserved.
+ *  Copyright (c) 2025 The WebM project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -114,25 +114,20 @@ void vp9_scale_and_extend_frame_c(const struct yv12_buffer_config *src, struct y
 void vp9_scale_and_extend_frame_ssse3(const struct yv12_buffer_config *src, struct yv12_buffer_config *dst, INTERP_FILTER filter_type, int phase_scaler);
 RTCD_EXTERN void (*vp9_scale_and_extend_frame)(const struct yv12_buffer_config *src, struct yv12_buffer_config *dst, INTERP_FILTER filter_type, int phase_scaler);
 
-void vpx_convolve8_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve8_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve8_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-RTCD_EXTERN void (*vpx_convolve8_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+RTCD_EXTERN void (*vpx_convolve12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
-void vpx_convolve_copy_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_copy_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_copy_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-RTCD_EXTERN void (*vpx_convolve_copy_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_horiz_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_horiz_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_horiz_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+RTCD_EXTERN void (*vpx_convolve12_horiz)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
-void vpx_convolve_horiz_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_horiz_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_horiz_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-RTCD_EXTERN void (*vpx_convolve_horiz_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-
-void vpx_convolve_vert_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_vert_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-void vpx_convolve_vert_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
-RTCD_EXTERN void (*vpx_convolve_vert_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_vert_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_vert_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve12_vert_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+RTCD_EXTERN void (*vpx_convolve12_vert)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
 void vp9_rtcd(void);
 
@@ -158,18 +153,15 @@ static void setup_rtcd_internal(void)
     if (flags & HAS_AVX2) vp9_quantize_fp_32x32 = vp9_quantize_fp_32x32_avx2;
     vp9_scale_and_extend_frame = vp9_scale_and_extend_frame_c;
     if (flags & HAS_SSSE3) vp9_scale_and_extend_frame = vp9_scale_and_extend_frame_ssse3;
-    vpx_convolve8_12 = vpx_convolve8_12_c;
-    if (flags & HAS_SSSE3) vpx_convolve8_12 = vpx_convolve8_12_ssse3;
-    if (flags & HAS_AVX2) vpx_convolve8_12 = vpx_convolve8_12_avx2;
-    vpx_convolve_copy_12 = vpx_convolve_copy_12_c;
-    if (flags & HAS_SSSE3) vpx_convolve_copy_12 = vpx_convolve_copy_12_ssse3;
-    if (flags & HAS_AVX2) vpx_convolve_copy_12 = vpx_convolve_copy_12_avx2;
-    vpx_convolve_horiz_12 = vpx_convolve_horiz_12_c;
-    if (flags & HAS_SSSE3) vpx_convolve_horiz_12 = vpx_convolve_horiz_12_ssse3;
-    if (flags & HAS_AVX2) vpx_convolve_horiz_12 = vpx_convolve_horiz_12_avx2;
-    vpx_convolve_vert_12 = vpx_convolve_vert_12_c;
-    if (flags & HAS_SSSE3) vpx_convolve_vert_12 = vpx_convolve_vert_12_ssse3;
-    if (flags & HAS_AVX2) vpx_convolve_vert_12 = vpx_convolve_vert_12_avx2;
+    vpx_convolve12 = vpx_convolve12_c;
+    if (flags & HAS_SSSE3) vpx_convolve12 = vpx_convolve12_ssse3;
+    if (flags & HAS_AVX2) vpx_convolve12 = vpx_convolve12_avx2;
+    vpx_convolve12_horiz = vpx_convolve12_horiz_c;
+    if (flags & HAS_SSSE3) vpx_convolve12_horiz = vpx_convolve12_horiz_ssse3;
+    if (flags & HAS_AVX2) vpx_convolve12_horiz = vpx_convolve12_horiz_avx2;
+    vpx_convolve12_vert = vpx_convolve12_vert_c;
+    if (flags & HAS_SSSE3) vpx_convolve12_vert = vpx_convolve12_vert_ssse3;
+    if (flags & HAS_AVX2) vpx_convolve12_vert = vpx_convolve12_vert_avx2;
 }
 #endif
 
