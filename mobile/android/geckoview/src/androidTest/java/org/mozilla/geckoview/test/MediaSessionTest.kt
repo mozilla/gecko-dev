@@ -88,8 +88,11 @@ class MediaSessionTest : BaseSessionTest() {
             GeckoResult<Void>(),
             GeckoResult<Void>(),
             GeckoResult<Void>(),
+            GeckoResult<Void>(),
+            GeckoResult<Void>(),
         )
         val onPlayCalled = arrayOf(
+            GeckoResult<Void>(),
             GeckoResult<Void>(),
             GeckoResult<Void>(),
             GeckoResult<Void>(),
@@ -104,7 +107,9 @@ class MediaSessionTest : BaseSessionTest() {
             GeckoResult<Void>(),
             GeckoResult<Void>(),
             GeckoResult<Void>(),
+            GeckoResult<Void>(),
         )
+        val onStopCalled = arrayOf(GeckoResult<Void>())
 
         // Test:
         // 1. Load DOM Media Session page which contains 3 audio tracks.
@@ -175,6 +180,20 @@ class MediaSessionTest : BaseSessionTest() {
             onPauseCalled[4],
         )
 
+        // 10. Play track 2 again.
+        //    a. Ensure onMetadata (2) is called.
+        //    b. Ensure onPlay (2) is called.
+        val completedStep10 = GeckoResult.allOf(
+            onMetadataCalled[5],
+            onPlayCalled[5],
+        )
+
+        // 10. Stop current track (2).
+        //    a. Ensure onStop (2) is called.
+        val completedStep11 = GeckoResult.allOf(
+            onStopCalled[0],
+        )
+
         val path = MEDIA_SESSION_DOM1_PATH
         val session1 = sessionRule.createOpenSession()
 
@@ -192,7 +211,7 @@ class MediaSessionTest : BaseSessionTest() {
                 mediaSession1 = mediaSession
             }
 
-            @AssertCalled(false)
+            @AssertCalled(count = 1)
             override fun onDeactivated(
                 session: GeckoSession,
                 mediaSession: MediaSession,
@@ -218,7 +237,7 @@ class MediaSessionTest : BaseSessionTest() {
                 )
             }
 
-            @AssertCalled(count = 5, order = [2])
+            @AssertCalled(count = 7, order = [2])
             override fun onMetadata(
                 session: GeckoSession,
                 mediaSession: MediaSession,
@@ -234,6 +253,7 @@ class MediaSessionTest : BaseSessionTest() {
                             DOM_META[1].title,
                             DOM_META[2].title,
                             DOM_META[1].title,
+                            DOM_META[1].title,
                         ),
                     ),
                 )
@@ -247,6 +267,7 @@ class MediaSessionTest : BaseSessionTest() {
                             DOM_META[1].artist,
                             DOM_META[2].artist,
                             DOM_META[1].artist,
+                            DOM_META[1].artist,
                         ),
                     ),
                 )
@@ -259,6 +280,7 @@ class MediaSessionTest : BaseSessionTest() {
                             DOM_META[0].album,
                             DOM_META[1].album,
                             DOM_META[2].album,
+                            DOM_META[1].album,
                             DOM_META[1].album,
                         ),
                     ),
@@ -298,7 +320,7 @@ class MediaSessionTest : BaseSessionTest() {
                 )
             }
 
-            @AssertCalled(count = 5, order = [2])
+            @AssertCalled(count = 6, order = [2])
             override fun onPlay(
                 session: GeckoSession,
                 mediaSession: MediaSession,
@@ -314,6 +336,11 @@ class MediaSessionTest : BaseSessionTest() {
             ) {
                 onPauseCalled[sessionRule.currentCall.counter - 1]
                     .complete(null)
+            }
+
+            @AssertCalled(count = 1)
+            override fun onStop(session: GeckoSession, mediaSession: MediaSession) {
+                onStopCalled[0].complete(null)
             }
         })
 
@@ -343,6 +370,12 @@ class MediaSessionTest : BaseSessionTest() {
 
         sessionRule.waitForResult(completedStep8b)
         sessionRule.waitForResult(completedStep9)
+        mediaSession1!!.play()
+
+        sessionRule.waitForResult(completedStep10)
+        mediaSession1!!.stop()
+
+        sessionRule.waitForResult(completedStep11)
     }
 
     @Test
