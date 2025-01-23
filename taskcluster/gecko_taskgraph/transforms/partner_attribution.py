@@ -11,6 +11,7 @@ import logging
 from collections import defaultdict
 
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.taskcluster import get_artifact_prefix
 
 from gecko_taskgraph.util.partners import (
     apply_partner_priority,
@@ -70,10 +71,11 @@ def add_command_arguments(config, tasks):
                         (upstream_artifact, stage_platform, locale)
                     )
 
-                    output_artifact = _get_output_path(partner_config, platform, locale)
+                    output_artifact = _get_output_path(
+                        get_artifact_prefix(task), partner_config, platform, locale
+                    )
                     # config for script
                     # TODO - generalise input & output ??
-                    #  add releng/partner prefix via get_artifact_prefix..()
                     attributions.append(
                         {
                             "input": _get_input_path(stage_platform, platform, locale),
@@ -120,8 +122,9 @@ def _get_input_path(stage_platform, platform, locale):
     )
 
 
-def _get_output_path(partner_config, platform, locale):
-    return "releng/partner/{partner}/{sub_partner}/{ftp_platform}/{locale}/{artifact_file_name}".format(
+def _get_output_path(artifact_prefix, partner_config, platform, locale):
+    return "{artifact_prefix}/{partner}/{sub_partner}/{ftp_platform}/{locale}/{artifact_file_name}".format(
+        artifact_prefix=artifact_prefix,
         partner=partner_config["campaign"],
         sub_partner=partner_config["content"],
         ftp_platform=get_ftp_platform(platform),
