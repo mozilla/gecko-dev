@@ -93,7 +93,18 @@ add_task(async function test_fog_counter_markers() {
     Glean.testOnly.mabelsKitchenCounters["1".repeat(72)].add(1);
   });
 
-  Assert.deepEqual(markers, [
+  // We need to filter the markers to *just* the ones that we care about in
+  // this test, as otherwise we get a number of `javascriptGc` metric
+  // markers. As we can't really predict these, we therefore can't "write
+  // down" what they will be, and we therefore can't write down a "gold"
+  // value to compare against. See Bug 1943425 for more details.
+  let testMarkers = markers.filter(
+    marker =>
+      marker.id == "testOnly.badCode" ||
+      marker.id == "testOnly.mabelsKitchenCounters"
+  );
+
+  Assert.deepEqual(testMarkers, [
     {
       type: "IntLikeMetric",
       id: "testOnly.badCode",
