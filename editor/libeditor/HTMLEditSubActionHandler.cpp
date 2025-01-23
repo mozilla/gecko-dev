@@ -2933,8 +2933,8 @@ HTMLEditor::GetPreviousCharPointDataForNormalizingWhiteSpaces(
         HTMLEditor::GetPreviousCharPointType(aPoint));
   }
   const auto previousCharPoint =
-      WSRunScanner::GetPreviousEditableCharPoint<EditorRawDOMPointInText>(
-          ComputeEditingHost(), aPoint,
+      WSRunScanner::GetPreviousCharPoint<EditorRawDOMPointInText>(
+          WSRunScanner::Scan::EditableNodes, aPoint,
           BlockInlineCheck::UseComputedDisplayStyle);
   if (!previousCharPoint.IsSet()) {
     return CharPointData::InDifferentTextNode(CharPointType::TextEnd);
@@ -2952,8 +2952,8 @@ HTMLEditor::GetInclusiveNextCharPointDataForNormalizingWhiteSpaces(
     return CharPointData::InSameTextNode(HTMLEditor::GetCharPointType(aPoint));
   }
   const auto nextCharPoint =
-      WSRunScanner::GetInclusiveNextEditableCharPoint<EditorRawDOMPointInText>(
-          ComputeEditingHost(), aPoint,
+      WSRunScanner::GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+          WSRunScanner::Scan::EditableNodes, aPoint,
           BlockInlineCheck::UseComputedDisplayStyle);
   if (!nextCharPoint.IsSet()) {
     return CharPointData::InDifferentTextNode(CharPointType::TextEnd);
@@ -3051,14 +3051,14 @@ void HTMLEditor::ExtendRangeToDeleteWithNormalizingWhiteSpaces(
   // are, check whether they are collapsible or not.  Note that we shouldn't
   // touch white-spaces in different text nodes for performance, but we need
   // adjacent text node's first or last character information in some cases.
-  Element* editingHost = ComputeEditingHost();
-  const EditorDOMPointInText precedingCharPoint =
-      WSRunScanner::GetPreviousEditableCharPoint(
-          editingHost, aStartToDelete,
+  const auto precedingCharPoint =
+      WSRunScanner::GetPreviousCharPoint<EditorDOMPointInText>(
+          WSRunScanner::Scan::EditableNodes, aStartToDelete,
           BlockInlineCheck::UseComputedDisplayStyle);
-  const EditorDOMPointInText followingCharPoint =
-      WSRunScanner::GetInclusiveNextEditableCharPoint(
-          editingHost, aEndToDelete, BlockInlineCheck::UseComputedDisplayStyle);
+  const auto followingCharPoint =
+      WSRunScanner::GetInclusiveNextCharPoint<EditorDOMPointInText>(
+          WSRunScanner::Scan::EditableNodes, aEndToDelete,
+          BlockInlineCheck::UseComputedDisplayStyle);
   // Blink-compat: Normalize white-spaces in first node only when not removing
   //               its last character or no text nodes follow the first node.
   //               If removing last character of first node and there are
