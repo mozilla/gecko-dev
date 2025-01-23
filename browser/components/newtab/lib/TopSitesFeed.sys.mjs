@@ -16,7 +16,6 @@ import {
   shortURL,
   shortHostname,
 } from "resource://activity-stream/lib/ShortURL.sys.mjs";
-import { getDefaultOptions } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 
 import {
   CUSTOM_SEARCH_SHORTCUTS,
@@ -71,7 +70,7 @@ const PINNED_FAVICON_PROPS_TO_MIGRATE = [
   "faviconRef",
   "faviconSize",
 ];
-const SECTION_ID = "topsites";
+
 const CACHE_KEY = "contile";
 const ROWS_PREF = "topSitesRows";
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
@@ -746,7 +745,6 @@ export class TopSitesFeed {
   init() {
     // If the feed was previously disabled PREFS_INITIAL_VALUES was never received
     this._readDefaults({ isStartup: true });
-    this._storage = this.store.dbStorage.getDbTable("sectionPrefs");
     this._contile.refresh();
     Services.obs.addObserver(this, "browser-search-engine-modified");
     Services.obs.addObserver(this, "browser-region-updated");
@@ -1609,14 +1607,6 @@ export class TopSitesFeed {
       isStartup: options.isStartup,
     });
     const newAction = { type: at.TOP_SITES_UPDATED, data: { links } };
-    let storedPrefs;
-    try {
-      storedPrefs = (await this._storage.get(SECTION_ID)) || {};
-    } catch (e) {
-      storedPrefs = {};
-      console.error("Problem getting stored prefs for TopSites");
-    }
-    newAction.data.pref = getDefaultOptions(storedPrefs);
 
     if (options.isStartup) {
       newAction.meta = {
@@ -1792,15 +1782,6 @@ export class TopSitesFeed {
       type: at.RICH_ICON_MISSING,
       data: { url },
     });
-  }
-
-  updateSectionPrefs(collapsed) {
-    this.store.dispatch(
-      ac.BroadcastToContent({
-        type: at.TOP_SITES_PREFS_UPDATED,
-        data: { pref: collapsed },
-      })
-    );
   }
 
   /**
@@ -2105,11 +2086,6 @@ export class TopSitesFeed {
           case PREF_UNIFIED_ADS_ADSFEED_ENABLED:
             this._contile.refresh();
             break;
-        }
-        break;
-      case at.UPDATE_SECTION_PREFS:
-        if (action.data.id === SECTION_ID) {
-          this.updateSectionPrefs(action.data.value);
         }
         break;
       case at.PREFS_INITIAL_VALUES:

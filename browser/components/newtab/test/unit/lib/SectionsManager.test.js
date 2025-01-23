@@ -25,7 +25,6 @@ describe("SectionsManager", () => {
   let fakeServices;
   let fakePlacesUtils;
   let sandbox;
-  let storage;
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox();
@@ -50,10 +49,6 @@ describe("SectionsManager", () => {
     });
     // Redecorate SectionsManager to remove any listeners that have been added
     EventEmitter.decorate(SectionsManager);
-    storage = {
-      get: sandbox.stub().resolves(),
-      set: sandbox.stub().resolves(),
-    };
   });
 
   afterEach(() => {
@@ -65,7 +60,7 @@ describe("SectionsManager", () => {
     it("should initialise the sections map with the built in sections", async () => {
       SectionsManager.sections.clear();
       SectionsManager.initialized = false;
-      await SectionsManager.init({}, storage);
+      await SectionsManager.init({});
       assert.equal(SectionsManager.sections.size, 2);
       assert.ok(SectionsManager.sections.has("topstories"));
       assert.ok(SectionsManager.sections.has("highlights"));
@@ -73,23 +68,18 @@ describe("SectionsManager", () => {
     it("should set .initialized to true", async () => {
       SectionsManager.sections.clear();
       SectionsManager.initialized = false;
-      await SectionsManager.init({}, storage);
+      await SectionsManager.init({});
       assert.ok(SectionsManager.initialized);
     });
     it("should add observer for context menu prefs", async () => {
       SectionsManager.CONTEXT_MENU_PREFS = { MENU_ITEM: "MENU_ITEM_PREF" };
-      await SectionsManager.init({}, storage);
+      await SectionsManager.init({});
       assert.calledOnce(fakeServices.prefs.addObserver);
       assert.calledWith(
         fakeServices.prefs.addObserver,
         "MENU_ITEM_PREF",
         SectionsManager
       );
-    });
-    it("should save the reference to `storage` passed in", async () => {
-      await SectionsManager.init({}, storage);
-
-      assert.equal(SectionsManager._storage, storage);
     });
   });
   describe("#uninit", () => {
@@ -109,7 +99,6 @@ describe("SectionsManager", () => {
   describe("#addBuiltInSection", () => {
     it("should not report an error if options is undefined", async () => {
       globals.sandbox.spy(global.console, "error");
-      SectionsManager._storage.get = sandbox.stub().returns(Promise.resolve());
       await SectionsManager.addBuiltInSection(
         "feeds.section.topstories",
         undefined
@@ -119,47 +108,12 @@ describe("SectionsManager", () => {
     });
     it("should report an error if options is malformed", async () => {
       globals.sandbox.spy(global.console, "error");
-      SectionsManager._storage.get = sandbox.stub().returns(Promise.resolve());
       await SectionsManager.addBuiltInSection(
         "feeds.section.topstories",
         "invalid"
       );
 
       assert.calledOnce(console.error);
-    });
-    it("should not throw if the indexedDB operation fails", async () => {
-      globals.sandbox.spy(global.console, "error");
-      storage.get = sandbox.stub().throws();
-      SectionsManager._storage = storage;
-
-      try {
-        await SectionsManager.addBuiltInSection("feeds.section.topstories");
-      } catch (e) {
-        assert.fail();
-      }
-
-      assert.calledOnce(storage.get);
-      assert.calledOnce(console.error);
-    });
-  });
-  describe("#updateSectionPrefs", () => {
-    it("should update the collapsed value of the section", async () => {
-      sandbox.stub(SectionsManager, "updateSection");
-      let topstories = SectionsManager.sections.get("topstories");
-      assert.isFalse(topstories.pref.collapsed);
-
-      await SectionsManager.updateSectionPrefs("topstories", {
-        collapsed: true,
-      });
-      topstories = SectionsManager.sections.get("topstories");
-
-      assert.isTrue(SectionsManager.updateSection.args[0][1].pref.collapsed);
-    });
-    it("should ignore invalid ids", async () => {
-      sandbox.stub(SectionsManager, "updateSection");
-      await SectionsManager.updateSectionPrefs("foo", { collapsed: true });
-
-      assert.notCalled(SectionsManager.updateSection);
     });
   });
   describe("#addSection", () => {
@@ -295,7 +249,7 @@ describe("SectionsManager", () => {
 
       SectionsManager.updateSections = sinon.spy();
       SectionsManager.CONTEXT_MENU_PREFS = { MENU_ITEM: "MENU_ITEM_PREF" };
-      await SectionsManager.init({}, storage);
+      await SectionsManager.init({});
       observer.observe("", "nsPref:changed", "MENU_ITEM_PREF");
 
       assert.calledOnce(SectionsManager.updateSections);
@@ -518,7 +472,6 @@ describe("SectionsManager", () => {
 describe("SectionsFeed", () => {
   let feed;
   let sandbox;
-  let storage;
   let globals;
 
   beforeEach(() => {
@@ -530,10 +483,6 @@ describe("SectionsFeed", () => {
       newtab: { getAllVariables: sandbox.stub() },
       pocketNewtab: { getAllVariables: sandbox.stub() },
     });
-    storage = {
-      get: sandbox.stub().resolves(),
-      set: sandbox.stub().resolves(),
-    };
     feed = new SectionsFeed();
     feed.store = { dispatch: sinon.spy() };
     feed.store = {
@@ -550,7 +499,6 @@ describe("SectionsFeed", () => {
         },
         Sections: [{ initialized: false }],
       },
-      dbStorage: { getDbTable: sandbox.stub().returns(storage) },
     };
   });
   afterEach(() => {
@@ -575,7 +523,7 @@ describe("SectionsFeed", () => {
       }
     });
     it("should call onAddSection for any already added sections in SectionsManager", async () => {
-      await SectionsManager.init({}, storage);
+      await SectionsManager.init({});
       assert.ok(SectionsManager.sections.has("topstories"));
       assert.ok(SectionsManager.sections.has("highlights"));
       const topstories = SectionsManager.sections.get("topstories");
@@ -721,14 +669,6 @@ describe("SectionsFeed", () => {
       assert.calledOnce(SectionsManager.once);
       assert.calledWith(SectionsManager.once, SectionsManager.INIT, feed.init);
     });
-    it("should call SectionsManager.init on action PREFS_INITIAL_VALUES", () => {
-      sinon.spy(SectionsManager, "init");
-      feed.onAction({ type: "PREFS_INITIAL_VALUES", data: { foo: "bar" } });
-      assert.calledOnce(SectionsManager.init);
-      assert.calledWith(SectionsManager.init, { foo: "bar" });
-      assert.calledOnce(feed.store.dbStorage.getDbTable);
-      assert.calledWithExactly(feed.store.dbStorage.getDbTable, "sectionPrefs");
-    });
     it("should call SectionsManager.addBuiltInSection on suitable PREF_CHANGED events", () => {
       sinon.spy(SectionsManager, "addBuiltInSection");
       feed.onAction({
@@ -802,13 +742,6 @@ describe("SectionsFeed", () => {
 
       assert.calledOnce(stub);
     });
-    it("should call updateSectionPrefs on UPDATE_SECTION_PREFS", () => {
-      const stub = sinon.stub(SectionsManager, "updateSectionPrefs");
-
-      feed.onAction({ type: "UPDATE_SECTION_PREFS", data: {} });
-
-      assert.calledOnce(stub);
-    });
     it("should call SectionManager.removeSectionCard on WEBEXT_DISMISS", () => {
       const stub = sinon.stub(SectionsManager, "removeSectionCard");
 
@@ -818,80 +751,6 @@ describe("SectionsFeed", () => {
 
       assert.calledOnce(stub);
       assert.calledWith(stub, "Foo", "bar.com");
-    });
-    it("should call the feed's moveSection on SECTION_MOVE", () => {
-      sinon.stub(feed, "moveSection");
-      const id = "topsites";
-      const direction = +1;
-      feed.onAction({ type: "SECTION_MOVE", data: { id, direction } });
-
-      assert.calledOnce(feed.moveSection);
-      assert.calledWith(feed.moveSection, id, direction);
-    });
-  });
-  describe("#moveSection", () => {
-    it("should Move Down correctly", () => {
-      feed.store.state.Sections = [
-        { id: "topstories", enabled: true },
-        { id: "highlights", enabled: true },
-      ];
-      feed.moveSection("topsites", +1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "topstories,topsites,highlights" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
-      feed.store.dispatch.resetHistory();
-      feed.moveSection("topstories", +1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "topsites,highlights,topstories" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
-    });
-    it("should Move Up correctly", () => {
-      feed.store.state.Sections = [
-        { id: "topstories", enabled: true },
-        { id: "highlights", enabled: true },
-      ];
-      feed.moveSection("topstories", -1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "topstories,topsites,highlights" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
-      feed.store.dispatch.resetHistory();
-      feed.moveSection("highlights", -1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "topsites,highlights,topstories" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
-    });
-    it("should skip over sections that aren't enabled", () => {
-      feed.store.state.Sections = [
-        { id: "topstories", enabled: false },
-        { id: "highlights", enabled: true },
-      ];
-      feed.moveSection("highlights", -1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "highlights,topsites,topstories" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
-      feed.store.dispatch.resetHistory();
-      feed.moveSection("topsites", +1);
-      assert.calledOnce(feed.store.dispatch);
-      assert.calledWith(feed.store.dispatch, {
-        data: { name: "sectionOrder", value: "topstories,highlights,topsites" },
-        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
-        type: "SET_PREF",
-      });
     });
   });
 });

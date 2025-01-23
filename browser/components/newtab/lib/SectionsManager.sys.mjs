@@ -16,7 +16,6 @@ import {
   actionCreators as ac,
   actionTypes as at,
 } from "resource://activity-stream/common/Actions.mjs";
-import { getDefaultOptions } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 
 const lazy = {};
 
@@ -202,8 +201,7 @@ export const SectionsManager = {
   },
   initialized: false,
   sections: new Map(),
-  async init(prefs = {}, storage) {
-    this._storage = storage;
+  async init(prefs = {}) {
     const featureConfig = {
       newtab: lazy.NimbusFeatures.newtab.getAllVariables() || {},
       pocketNewtab: lazy.NimbusFeatures.pocketNewtab.getAllVariables() || {},
@@ -242,20 +240,8 @@ export const SectionsManager = {
         break;
     }
   },
-  updateSectionPrefs(id, collapsed) {
-    const section = this.sections.get(id);
-    if (!section) {
-      return;
-    }
-
-    const updatedSection = Object.assign({}, section, {
-      pref: Object.assign({}, section.pref, collapsed),
-    });
-    this.updateSection(id, updatedSection, true);
-  },
   async addBuiltInSection(feedPrefName, optionsPrefValue = "{}") {
     let options;
-    let storedPrefs;
     const featureConfig = {
       newtab: lazy.NimbusFeatures.newtab.getAllVariables() || {},
       pocketNewtab: lazy.NimbusFeatures.pocketNewtab.getAllVariables() || {},
@@ -266,20 +252,11 @@ export const SectionsManager = {
       options = {};
       console.error(`Problem parsing options pref for ${feedPrefName}`);
     }
-    try {
-      storedPrefs = (await this._storage.get(feedPrefName)) || {};
-    } catch (e) {
-      storedPrefs = {};
-      console.error(`Problem getting stored prefs for ${feedPrefName}`);
-    }
+
     const defaultSection =
       BUILT_IN_SECTIONS(featureConfig)[feedPrefName](options);
     const section = Object.assign({}, defaultSection, {
-      pref: Object.assign(
-        {},
-        defaultSection.pref,
-        getDefaultOptions(storedPrefs)
-      ),
+      pref: Object.assign({}, defaultSection.pref),
     });
     section.pref.feed = feedPrefName;
     this.addSection(section.id, Object.assign(section, { options }));
@@ -602,48 +579,6 @@ export class SectionsFeed {
     return this.store.getState().Prefs.values.sectionOrder.split(",");
   }
 
-  get enabledSectionIds() {
-    let sections = this.store
-      .getState()
-      .Sections.filter(section => section.enabled)
-      .map(s => s.id);
-    // Top Sites is a special case. Append if the feed is enabled.
-    if (this.store.getState().Prefs.values["feeds.topsites"]) {
-      sections.push("topsites");
-    }
-    return sections;
-  }
-
-  moveSection(id, direction) {
-    const orderedSections = this.orderedSectionIds;
-    const enabledSections = this.enabledSectionIds;
-    let index = orderedSections.indexOf(id);
-    orderedSections.splice(index, 1);
-    if (direction > 0) {
-      // "Move Down"
-      while (index < orderedSections.length) {
-        // If the section at the index is enabled/visible, insert moved section after.
-        // Otherwise, move on to the next spot and check it.
-        if (enabledSections.includes(orderedSections[index++])) {
-          break;
-        }
-      }
-    } else {
-      // "Move Up"
-      while (index > 0) {
-        // If the section at the previous index is enabled/visible, insert moved section there.
-        // Otherwise, move on to the previous spot and check it.
-        index--;
-        if (enabledSections.includes(orderedSections[index])) {
-          break;
-        }
-      }
-    }
-
-    orderedSections.splice(index, 0, id);
-    this.store.dispatch(ac.SetPref("sectionOrder", orderedSections.join(",")));
-  }
-
   async onAction(action) {
     switch (action.type) {
       case at.INIT:
@@ -651,10 +586,7 @@ export class SectionsFeed {
         break;
       // Wait for pref values, as some sections have options stored in prefs
       case at.PREFS_INITIAL_VALUES:
-        SectionsManager.init(
-          action.data,
-          this.store.dbStorage.getDbTable("sectionPrefs")
-        );
+        SectionsManager.init(action.data);
         break;
       case at.PREF_CHANGED: {
         if (action.data) {
@@ -674,9 +606,6 @@ export class SectionsFeed {
         }
         break;
       }
-      case at.UPDATE_SECTION_PREFS:
-        SectionsManager.updateSectionPrefs(action.data.id, action.data.value);
-        break;
       case at.PLACES_BOOKMARK_ADDED:
         SectionsManager.updateBookmarkMetadata(action.data);
         break;
@@ -693,9 +622,6 @@ export class SectionsFeed {
         break;
       case at.SECTION_ENABLE:
         SectionsManager.enableSection(action.data);
-        break;
-      case at.SECTION_MOVE:
-        this.moveSection(action.data.id, action.data.direction);
         break;
       case at.UNINIT:
         this.uninit();

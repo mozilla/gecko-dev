@@ -119,8 +119,6 @@ export class PrefsFeed {
     lazy.NimbusFeatures.newtab.onUpdate(this.onExperimentUpdated);
     lazy.NimbusFeatures.pocketNewtab.onUpdate(this.onPocketExperimentUpdated);
 
-    this._storage = this.store.dbStorage.getDbTable("sectionPrefs");
-
     // Get the initial value of each activity stream pref
     const values = {};
     for (const name of this._prefMap.keys()) {
@@ -229,15 +227,6 @@ export class PrefsFeed {
     }
   }
 
-  async _setIndexedDBPref(id, value) {
-    const name = id === "topsites" ? id : `feeds.section.${id}`;
-    try {
-      await this._storage.set(name, value);
-    } catch (e) {
-      console.error("Could not set section preferences.");
-    }
-  }
-
   observe(subject, topic) {
     switch (topic) {
       case lazy.Region.REGION_TOPIC:
@@ -264,9 +253,6 @@ export class PrefsFeed {
         break;
       case at.SET_PREF:
         this._prefs.set(action.data.name, action.data.value);
-        break;
-      case at.UPDATE_SECTION_PREFS:
-        this._setIndexedDBPref(action.data.id, action.data.value);
         break;
     }
   }

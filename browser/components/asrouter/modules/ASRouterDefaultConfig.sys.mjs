@@ -30,7 +30,7 @@ const createStorage = async telemetryFeed => {
   // We keep the name "snippets" to avoid having to do an IndexedDB database
   // migration.
   const dbStore = new ASRouterStorage({
-    storeNames: ["sectionPrefs", "snippets"],
+    storeNames: ["snippets"],
     telemetry: {
       handleUndesiredEvent: e => telemetryFeed.SendASRouterUndesiredEvent(e),
     },

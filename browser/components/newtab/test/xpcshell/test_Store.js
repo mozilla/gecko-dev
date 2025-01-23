@@ -9,9 +9,6 @@ const { Store } = ChromeUtils.importESModule(
 const { ActivityStreamMessageChannel } = ChromeUtils.importESModule(
   "resource://activity-stream/lib/ActivityStreamMessageChannel.sys.mjs"
 );
-const { ASRouterStorage } = ChromeUtils.importESModule(
-  "resource:///modules/asrouter/ASRouterStorage.sys.mjs"
-);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -126,54 +123,6 @@ add_task(async function test_initFeed_on_init() {
   );
   Assert.ok(store.initFeed.calledWith("foo"), "First test feed initted");
   Assert.ok(store.initFeed.calledWith("bar"), "Second test feed initted");
-  sandbox.restore();
-});
-
-add_task(async function test_initFeed_calls__initIndexedDB() {
-  info("Store should call _initIndexedDB");
-  let sandbox = sinon.createSandbox();
-  let store = new Store();
-
-  sandbox.spy(store, "_initIndexedDB");
-
-  let dbStub = sandbox.stub(ASRouterStorage.prototype, "db");
-  let dbAccessed = false;
-  dbStub.get(() => {
-    dbAccessed = true;
-    return {};
-  });
-
-  store._prefs.set("testfeed", true);
-  await store.init(
-    new Map([
-      [
-        "testfeed",
-        () => {
-          return {};
-        },
-      ],
-    ])
-  );
-
-  Assert.ok(store._initIndexedDB.calledOnce, "_initIndexedDB called once");
-  Assert.ok(
-    store._initIndexedDB.calledWithExactly("feeds.telemetry"),
-    "feeds.telemetry was passed"
-  );
-  // Due to what appears to be a bug in sinon when using calledOnce
-  // with a stubbed getter, we can't just use dbStub.calledOnce here.
-  Assert.ok(dbAccessed, "ASRouterStorage was accessed");
-
-  info("Store should reset ASRouterStorage telemetry if opening the db fails");
-  dbStub.rejects();
-  await store.init(new Map());
-
-  Assert.equal(
-    store.dbStorage.telemetry,
-    null,
-    "Telemetry on storage was cleared"
-  );
-
   sandbox.restore();
 });
 

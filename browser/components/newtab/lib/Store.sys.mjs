@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { ActivityStreamMessageChannel } from "resource://activity-stream/lib/ActivityStreamMessageChannel.sys.mjs";
-import { ASRouterStorage } from "resource:///modules/asrouter/ASRouterStorage.sys.mjs";
 import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
 import { reducers } from "resource://activity-stream/common/Reducers.sys.mjs";
 import { redux } from "chrome://global/content/vendor/Redux.sys.mjs";
@@ -36,7 +35,6 @@ export class Store {
       redux.combineReducers(reducers),
       redux.applyMiddleware(this._middleware, this._messageChannel.middleware)
     );
-    this.storage = null;
   }
 
   /**
@@ -125,8 +123,6 @@ export class Store {
       this.initFeed(telemetryKey);
     }
 
-    await this._initIndexedDB(telemetryKey);
-
     for (const pref of feedFactories.keys()) {
       if (pref !== telemetryKey && this._prefs.get(pref)) {
         this.initFeed(pref);
@@ -142,26 +138,6 @@ export class Store {
 
     // Dispatch NEW_TAB_INIT/NEW_TAB_LOAD events after INIT event.
     this._messageChannel.simulateMessagesForExistingTabs();
-  }
-
-  async _initIndexedDB() {
-    // "snippets" is the name of one storage space, but these days it is used
-    // not for snippet-related data (snippets were removed in bug 1715158),
-    // but storage for impression or session data for all ASRouter messages.
-    //
-    // We keep the name "snippets" to avoid having to do an IndexedDB database
-    // migration.
-    this.dbStorage = new ASRouterStorage({
-      storeNames: ["sectionPrefs", "snippets"],
-    });
-    // Accessing the db causes the object stores to be created / migrated.
-    // This needs to happen before other instances try to access the db, which
-    // would update only a subset of the stores to the latest version.
-    try {
-      await this.dbStorage.db; // eslint-disable-line no-unused-expressions
-    } catch (e) {
-      this.dbStorage.telemetry = null;
-    }
   }
 
   /**
