@@ -2203,7 +2203,9 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
   if (cond == Equal) {
     Label done;
     ma_b(lhs.payloadReg(), scratch, &done, NotEqual, ShortJump);
-    { ma_b(lhs.typeReg(), Imm32(getType(rhs)), label, Equal); }
+    {
+      ma_b(lhs.typeReg(), Imm32(getType(rhs)), label, Equal);
+    }
     bind(&done);
   } else {
     ma_b(lhs.payloadReg(), scratch, label, NotEqual);

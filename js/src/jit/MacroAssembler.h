@@ -1035,8 +1035,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // destination.
   inline void moveValue(const ConstantOrRegister& src,
                         const ValueOperand& dest);
-  void moveValue(const TypedOrValueRegister& src,
-                 const ValueOperand& dest);
+  void moveValue(const TypedOrValueRegister& src, const ValueOperand& dest);
   void moveValue(const ValueOperand& src, const ValueOperand& dest) PER_ARCH;
   void moveValue(const Value& src, const ValueOperand& dest) PER_ARCH;
 
