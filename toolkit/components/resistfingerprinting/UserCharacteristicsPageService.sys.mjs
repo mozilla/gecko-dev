@@ -173,6 +173,7 @@ export class UserCharacteristicsPageService {
         [browser.ownerGlobal, browser.ownerDocument, true],
       ],
       [this.populateCanvasData, []],
+      [this.populateWebGPUProperties, [browser.ownerGlobal]],
     ];
     // Bind them to the class and run them in parallel.
     // Timeout if any of them takes too long (5 minutes).
@@ -499,6 +500,106 @@ export class UserCharacteristicsPageService {
     for (const gamepad of gamepads) {
       Glean.characteristics.gamepads.add(gamepad);
     }
+  }
+
+  async populateWebGPUProperties(window) {
+    const adapter = await window.navigator.gpu.requestAdapter();
+    if (!adapter) {
+      return;
+    }
+
+    Glean.characteristics.wgpuMissingFeatures.set(
+      adapter.missingFeatures.toString()
+    );
+    Glean.characteristics.wgpuMaxtexturedimension1d.set(
+      adapter.limits.maxTextureDimension1D
+    );
+    Glean.characteristics.wgpuMaxtexturedimension2d.set(
+      adapter.limits.maxTextureDimension2D
+    );
+    Glean.characteristics.wgpuMaxtexturedimension3d.set(
+      adapter.limits.maxTextureDimension3D
+    );
+    Glean.characteristics.wgpuMaxtexturearraylayers.set(
+      adapter.limits.maxTextureArrayLayers
+    );
+    Glean.characteristics.wgpuMaxbindgroups.set(adapter.limits.maxBindGroups);
+    Glean.characteristics.wgpuMaxbindgroupsplusvertexbuffers.set(
+      adapter.limits.maxBindGroupsPlusVertexBuffers
+    );
+    Glean.characteristics.wgpuMaxbindingsperbindgroup.set(
+      adapter.limits.maxBindingsPerBindGroup
+    );
+    Glean.characteristics.wgpuMaxdynamicuniformbuffersperpipelinelayout.set(
+      adapter.limits.maxDynamicUniformBuffersPerPipelineLayout
+    );
+    Glean.characteristics.wgpuMaxdynamicstoragebuffersperpipelinelayout.set(
+      adapter.limits.maxDynamicStorageBuffersPerPipelineLayout
+    );
+    Glean.characteristics.wgpuMaxsampledtexturespershaderstage.set(
+      adapter.limits.maxSampledTexturesPerShaderStage
+    );
+    Glean.characteristics.wgpuMaxsamplerspershaderstage.set(
+      adapter.limits.maxSamplersPerShaderStage
+    );
+    Glean.characteristics.wgpuMaxstoragebufferspershaderstage.set(
+      adapter.limits.maxStorageBuffersPerShaderStage
+    );
+    Glean.characteristics.wgpuMaxstoragetexturespershaderstage.set(
+      adapter.limits.maxStorageTexturesPerShaderStage
+    );
+    Glean.characteristics.wgpuMaxuniformbufferspershaderstage.set(
+      adapter.limits.maxUniformBuffersPerShaderStage
+    );
+    Glean.characteristics.wgpuMaxuniformbufferbindingsize.set(
+      adapter.limits.maxUniformBufferBindingSize
+    );
+    Glean.characteristics.wgpuMaxstoragebufferbindingsize.set(
+      adapter.limits.maxStorageBufferBindingSize
+    );
+    Glean.characteristics.wgpuMinuniformbufferoffsetalignment.set(
+      adapter.limits.minUniformBufferOffsetAlignment
+    );
+    Glean.characteristics.wgpuMinstoragebufferoffsetalignment.set(
+      adapter.limits.minStorageBufferOffsetAlignment
+    );
+    Glean.characteristics.wgpuMaxvertexbuffers.set(
+      adapter.limits.maxVertexBuffers
+    );
+    Glean.characteristics.wgpuMaxbuffersize.set(adapter.limits.maxBufferSize);
+    Glean.characteristics.wgpuMaxvertexattributes.set(
+      adapter.limits.maxVertexAttributes
+    );
+    Glean.characteristics.wgpuMaxvertexbufferarraystride.set(
+      adapter.limits.maxVertexBufferArrayStride
+    );
+    Glean.characteristics.wgpuMaxinterstageshadervariables.set(
+      adapter.limits.maxInterStageShaderVariables
+    );
+    Glean.characteristics.wgpuMaxcolorattachments.set(
+      adapter.limits.maxColorAttachments
+    );
+    Glean.characteristics.wgpuMaxcolorattachmentbytespersample.set(
+      adapter.limits.maxColorAttachmentBytesPerSample
+    );
+    Glean.characteristics.wgpuMaxcomputeworkgroupstoragesize.set(
+      adapter.limits.maxComputeWorkgroupStorageSize
+    );
+    Glean.characteristics.wgpuMaxcomputeinvocationsperworkgroup.set(
+      adapter.limits.maxComputeInvocationsPerWorkgroup
+    );
+    Glean.characteristics.wgpuMaxcomputeworkgroupsizex.set(
+      adapter.limits.maxComputeWorkgroupSizeX
+    );
+    Glean.characteristics.wgpuMaxcomputeworkgroupsizey.set(
+      adapter.limits.maxComputeWorkgroupSizeY
+    );
+    Glean.characteristics.wgpuMaxcomputeworkgroupsizez.set(
+      adapter.limits.maxComputeWorkgroupSizeZ
+    );
+    Glean.characteristics.wgpuMaxcomputeworkgroupsperdimension.set(
+      adapter.limits.maxComputeWorkgroupsPerDimension
+    );
   }
 
   async populateMappableData(data) {
