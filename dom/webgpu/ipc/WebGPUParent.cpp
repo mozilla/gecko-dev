@@ -64,6 +64,16 @@ extern bool wgpu_server_ensure_external_texture_for_swap_chain(
       aSwapChainId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
 }
 
+extern void wgpu_server_ensure_external_texture_for_readback(
+    void* aParam, WGPUSwapChainId aSwapChainId, WGPUDeviceId aDeviceId,
+    WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
+    struct WGPUTextureFormat aFormat, WGPUTextureUsages aUsage) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  parent->EnsureExternalTextureForReadBackPresent(
+      aSwapChainId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
+}
+
 extern void* wgpu_server_get_external_texture_handle(void* aParam,
                                                      WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
@@ -260,6 +270,7 @@ class PresentationData {
   bool mUseExternalTextureInSwapChain;
   const RawId mDeviceId;
   const RawId mQueueId;
+  Maybe<RawId> mLastSubmittedTextureId;
   const layers::RGBDescriptor mDesc;
 
   uint64_t mSubmissionIndex = 0;
@@ -274,6 +285,8 @@ class PresentationData {
   std::vector<RawId> mUnassignedBufferIds;
   std::vector<RawId> mAvailableBufferIds;
   std::vector<RawId> mQueuedBufferIds;
+
+  bool mReadbackSnapshotCallbackCalled = false;
 
   PresentationData(WebGPUParent* aParent, bool aUseExternalTextureInSwapChain,
                    RawId aDeviceId, RawId aQueueId,
@@ -848,6 +861,13 @@ ipc::IPCResult WebGPUParent::RecvQueueSubmit(
         auto& externalTexture = it->second;
 
         externalTexture->SetSubmissionIndex(index);
+        // Update mLastSubmittedTextureId
+        auto ownerId = externalTexture->GetOwnerId();
+        const auto& lookup = mPresentationDataMap.find(ownerId);
+        if (lookup != mPresentationDataMap.end()) {
+          RefPtr<PresentationData> data = lookup->second.get();
+          data->mLastSubmittedTextureId = Some(textureId);
+        }
       }
     }
   }
@@ -1138,16 +1158,94 @@ static void ReadbackPresentCallback(uint8_t* userdata,
   }
 }
 
+struct ReadbackSnapshotRequest {
+  ReadbackSnapshotRequest(const ffi::WGPUGlobal* aContext,
+                          RefPtr<PresentationData>& aData,
+                          ffi::WGPUBufferId aBufferId,
+                          const ipc::Shmem& aDestShmem)
+      : mContext(aContext),
+        mData(aData),
+        mBufferId(aBufferId),
+        mDestShmem(aDestShmem) {}
+
+  const ffi::WGPUGlobal* mContext;
+  RefPtr<PresentationData> mData;
+  const ffi::WGPUBufferId mBufferId;
+  const ipc::Shmem& mDestShmem;
+};
+
+static void ReadbackSnapshotCallback(uint8_t* userdata,
+                                     ffi::WGPUBufferMapAsyncStatus status) {
+  UniquePtr<ReadbackSnapshotRequest> req(
+      reinterpret_cast<ReadbackSnapshotRequest*>(userdata));
+
+  RefPtr<PresentationData> data = req->mData;
+  data->mReadbackSnapshotCallbackCalled = true;
+
+  // Ensure we'll make the bufferId available for reuse
+  data->mAvailableBufferIds.push_back(req->mBufferId);
+
+  MOZ_LOG(sLogger, LogLevel::Info,
+          ("ReadbackSnapshotCallback for buffer %" PRIu64 " status=%d\n",
+           req->mBufferId, status));
+  if (status != ffi::WGPUBufferMapAsyncStatus_Success) {
+    return;
+  }
+  // copy the data
+  const auto bufferSize = data->mDesc.size().height * data->mSourcePitch;
+  ErrorBuffer getRangeError;
+  const auto mapped = ffi::wgpu_server_buffer_get_mapped_range(
+      req->mContext, req->mBufferId, 0, bufferSize, getRangeError.ToFFI());
+  getRangeError.CoerceValidationToInternal();
+  if (req->mData->mParent) {
+    req->mData->mParent->ForwardError(data->mDeviceId, getRangeError);
+  }
+  if (auto innerError = getRangeError.GetError()) {
+    MOZ_LOG(sLogger, LogLevel::Info,
+            ("WebGPU present: buffer get_mapped_range for internal "
+             "presentation readback failed: %s\n",
+             innerError->message.get()));
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(mapped.length >= bufferSize);
+
+  uint8_t* src = mapped.ptr;
+  uint8_t* dst = req->mDestShmem.get<uint8_t>();
+  const uint32_t stride = layers::ImageDataSerializer::ComputeRGBStride(
+      gfx::SurfaceFormat::B8G8R8A8, data->mDesc.size().width);
+
+  for (auto row = 0; row < data->mDesc.size().height; ++row) {
+    memcpy(dst, src, stride);
+    src += data->mSourcePitch;
+    dst += stride;
+  }
+
+  ErrorBuffer unmapError;
+  wgpu_server_buffer_unmap(req->mContext, req->mBufferId, unmapError.ToFFI());
+  unmapError.CoerceValidationToInternal();
+  if (req->mData->mParent) {
+    req->mData->mParent->ForwardError(data->mDeviceId, unmapError);
+  }
+  if (auto innerError = unmapError.GetError()) {
+    MOZ_LOG(sLogger, LogLevel::Info,
+            ("WebGPU snapshot: buffer unmap for internal presentation "
+             "readback failed: %s\n",
+             innerError->message.get()));
+  }
+}
+
 ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     IProtocol* aProtocol, const layers::RemoteTextureOwnerId& aOwnerId,
-    Maybe<Shmem>& aShmem, gfx::IntSize& aSize) {
+    const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem, gfx::IntSize& aSize) {
   const auto& lookup = mPresentationDataMap.find(aOwnerId);
-  if (lookup == mPresentationDataMap.end() || !mRemoteTextureOwner ||
-      !mRemoteTextureOwner->IsRegistered(aOwnerId)) {
+  if (lookup == mPresentationDataMap.end()) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return IPC_OK();
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
+  data->mReadbackSnapshotCallbackCalled = false;
   aSize = data->mDesc.size();
   uint32_t stride = layers::ImageDataSerializer::ComputeRGBStride(
       data->mDesc.format(), aSize.width);
@@ -1157,13 +1255,151 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     return IPC_OK();
   }
 
-  if (!data->mUseExternalTextureInSwapChain) {
-    ffi::wgpu_server_device_poll(mContext.get(), data->mDeviceId, true);
+  if (data->mLastSubmittedTextureId.isNothing()) {
+    return IPC_OK();
   }
 
-  mRemoteTextureOwner->GetLatestBufferSnapshot(aOwnerId, shmem, aSize);
-  aShmem.emplace(std::move(shmem));
+  auto it = mExternalTextures.find(data->mLastSubmittedTextureId.ref());
 
+  // ExternalTexture is still in use as no readback
+  if (data->mUseExternalTextureInSwapChain && it != mExternalTextures.end()) {
+    auto& externalTexture = it->second;
+    externalTexture->GetSnapshot(shmem, aSize);
+    return IPC_OK();
+  }
+
+  // External texture is already invalid and posted to RemoteTextureMap
+  if (it != mExternalTextures.end()) {
+    if (!mRemoteTextureOwner || !mRemoteTextureOwner->IsRegistered(aOwnerId)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      return IPC_OK();
+    }
+    if (!data->mUseExternalTextureInSwapChain) {
+      ffi::wgpu_server_device_poll(mContext.get(), data->mDeviceId, true);
+    }
+    mRemoteTextureOwner->GetLatestBufferSnapshot(aOwnerId, shmem, aSize);
+    aShmem.emplace(std::move(shmem));
+    return IPC_OK();
+  }
+
+  // Readback synchronously
+
+  RawId bufferId = 0;
+  const auto& size = data->mDesc.size();
+  const auto bufferSize = data->mDesc.size().height * data->mSourcePitch;
+
+  // step 1: find an available staging buffer, or create one
+  {
+    if (!data->mAvailableBufferIds.empty()) {
+      bufferId = data->mAvailableBufferIds.back();
+      data->mAvailableBufferIds.pop_back();
+    } else if (!data->mUnassignedBufferIds.empty()) {
+      bufferId = data->mUnassignedBufferIds.back();
+      data->mUnassignedBufferIds.pop_back();
+
+      ffi::WGPUBufferUsages usage =
+          WGPUBufferUsages_COPY_DST | WGPUBufferUsages_MAP_READ;
+
+      ErrorBuffer error;
+      ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
+                                            bufferId, nullptr, bufferSize,
+                                            usage, false, false, error.ToFFI());
+      if (ForwardError(data->mDeviceId, error)) {
+        return IPC_OK();
+      }
+    } else {
+      bufferId = 0;
+    }
+  }
+
+  MOZ_LOG(sLogger, LogLevel::Info,
+          ("GetFrontBufferSnapshot with buffer %" PRIu64 "\n", bufferId));
+  if (!bufferId) {
+    // TODO: add a warning - no buffer are available!
+    return IPC_OK();
+  }
+
+  // step 3: submit a copy command for the frame
+  ffi::WGPUCommandEncoderDescriptor encoderDesc = {};
+  {
+    ErrorBuffer error;
+    ffi::wgpu_server_device_create_encoder(mContext.get(), data->mDeviceId,
+                                           &encoderDesc, aCommandEncoderId,
+                                           error.ToFFI());
+    if (ForwardError(data->mDeviceId, error)) {
+      return IPC_OK();
+    }
+  }
+
+  if (data->mLastSubmittedTextureId.isNothing()) {
+    return IPC_OK();
+  }
+
+  const ffi::WGPUTexelCopyTextureInfo texView = {
+      data->mLastSubmittedTextureId.ref(),
+  };
+  const ffi::WGPUTexelCopyBufferLayout bufLayout = {
+      0,
+      &data->mSourcePitch,
+      nullptr,
+  };
+  const ffi::WGPUExtent3d extent = {
+      static_cast<uint32_t>(size.width),
+      static_cast<uint32_t>(size.height),
+      1,
+  };
+
+  {
+    ErrorBuffer error;
+    ffi::wgpu_server_encoder_copy_texture_to_buffer(
+        mContext.get(), aCommandEncoderId, &texView, bufferId, &bufLayout,
+        &extent, error.ToFFI());
+    if (ForwardError(data->mDeviceId, error)) {
+      return IPC_OK();
+    }
+  }
+  ffi::WGPUCommandBufferDescriptor commandDesc = {};
+  {
+    ErrorBuffer error;
+    ffi::wgpu_server_encoder_finish(mContext.get(), aCommandEncoderId,
+                                    &commandDesc, error.ToFFI());
+    if (ForwardError(data->mDeviceId, error)) {
+      ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
+      return IPC_OK();
+    }
+  }
+
+  {
+    ErrorBuffer error;
+    ffi::wgpu_server_queue_submit(mContext.get(), data->mQueueId,
+                                  &aCommandEncoderId, 1, error.ToFFI());
+    ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
+    if (ForwardError(data->mDeviceId, error)) {
+      return IPC_OK();
+    }
+  }
+
+  auto snapshotRequest = MakeUnique<ReadbackSnapshotRequest>(
+      mContext.get(), data, bufferId, shmem);
+
+  ffi::WGPUBufferMapClosure closure = {
+      &ReadbackSnapshotCallback,
+      reinterpret_cast<uint8_t*>(snapshotRequest.release())};
+
+  ErrorBuffer error;
+  ffi::wgpu_server_buffer_map(mContext.get(), bufferId, 0, bufferSize,
+                              ffi::WGPUHostMap_Read, closure, error.ToFFI());
+  if (ForwardError(data->mDeviceId, error)) {
+    return IPC_OK();
+  }
+
+  // Callback should be called during the poll.
+  ffi::wgpu_server_poll_all_devices(mContext.get(), true);
+
+  // Check if ReadbackSnapshotCallback is called.
+  MOZ_RELEASE_ASSERT(data->mReadbackSnapshotCallbackCalled == true);
+
+  aShmem.emplace(std::move(shmem));
   return IPC_OK();
 }
 
@@ -1230,6 +1466,8 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     }
     std::shared_ptr<ExternalTexture> externalTexture = it->second;
     mExternalTextures.erase(it);
+
+    MOZ_ASSERT(externalTexture->GetOwnerId() == aOwnerId);
 
     PostExternalTexture(std::move(externalTexture), aRemoteTextureId, aOwnerId);
     return IPC_OK();
@@ -1617,6 +1855,7 @@ bool WebGPUParent::EnsureExternalTextureForSwapChain(
     // Check if the texture is recyclable.
     if (texture->mWidth == aWidth && texture->mHeight == aHeight &&
         texture->mFormat.tag == aFormat.tag && texture->mUsage == aUsage) {
+      texture->SetOwnerId(ownerId);
       data->mRecycledExternalTextures.pop_front();
       mExternalTextures.emplace(aTextureId, texture);
       return true;
@@ -1624,14 +1863,44 @@ bool WebGPUParent::EnsureExternalTextureForSwapChain(
     data->mRecycledExternalTextures.clear();
   }
 
-  auto externalTexture = CreateExternalTexture(aDeviceId, aTextureId, aWidth,
-                                               aHeight, aFormat, aUsage);
+  auto externalTexture = CreateExternalTexture(
+      ownerId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
   return static_cast<bool>(externalTexture);
 }
 
+void WebGPUParent::EnsureExternalTextureForReadBackPresent(
+    ffi::WGPUSwapChainId aSwapChainId, ffi::WGPUDeviceId aDeviceId,
+    ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
+    struct ffi::WGPUTextureFormat aFormat, ffi::WGPUTextureUsages aUsage) {
+  auto ownerId = layers::RemoteTextureOwnerId{aSwapChainId._0};
+  const auto& lookup = mPresentationDataMap.find(ownerId);
+  if (lookup == mPresentationDataMap.end()) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return;
+  }
+
+  RefPtr<PresentationData> data = lookup->second.get();
+  if (data->mUseExternalTextureInSwapChain) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return;
+  }
+
+  UniquePtr<ExternalTexture> texture =
+      ExternalTextureReadBackPresent::Create(aWidth, aHeight, aFormat, aUsage);
+  if (!texture) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return;
+  }
+
+  texture->SetOwnerId(ownerId);
+  std::shared_ptr<ExternalTexture> shared(texture.release());
+  mExternalTextures[aTextureId] = shared;
+}
+
 std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
-    ffi::WGPUDeviceId aDeviceId, ffi::WGPUTextureId aTextureId, uint32_t aWidth,
-    uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
+    const layers::RemoteTextureOwnerId& aOwnerId, ffi::WGPUDeviceId aDeviceId,
+    ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
+    const struct ffi::WGPUTextureFormat aFormat,
     ffi::WGPUTextureUsages aUsage) {
   MOZ_RELEASE_ASSERT(mExternalTextures.find(aTextureId) ==
                      mExternalTextures.end());
@@ -1642,6 +1911,7 @@ std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
     return nullptr;
   }
 
+  texture->SetOwnerId(aOwnerId);
   std::shared_ptr<ExternalTexture> shared(texture.release());
   mExternalTextures.emplace(aTextureId, shared);
 

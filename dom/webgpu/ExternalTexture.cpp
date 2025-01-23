@@ -55,4 +55,21 @@ void ExternalTexture::SetSubmissionIndex(uint64_t aSubmissionIndex) {
   mSubmissionIndex = aSubmissionIndex;
 }
 
+UniquePtr<ExternalTextureReadBackPresent>
+ExternalTextureReadBackPresent::Create(
+    const uint32_t aWidth, const uint32_t aHeight,
+    const struct ffi::WGPUTextureFormat aFormat,
+    const ffi::WGPUTextureUsages aUsage) {
+  return MakeUnique<ExternalTextureReadBackPresent>(aWidth, aHeight, aFormat,
+                                                    aUsage);
+}
+
+ExternalTextureReadBackPresent::ExternalTextureReadBackPresent(
+    const uint32_t aWidth, const uint32_t aHeight,
+    const struct ffi::WGPUTextureFormat aFormat,
+    const ffi::WGPUTextureUsages aUsage)
+    : ExternalTexture(aWidth, aHeight, aFormat, aUsage) {}
+
+ExternalTextureReadBackPresent::~ExternalTextureReadBackPresent() {}
+
 }  // namespace mozilla::webgpu

@@ -135,7 +135,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   ipc::IPCResult GetFrontBufferSnapshot(
       IProtocol* aProtocol, const layers::RemoteTextureOwnerId& aOwnerId,
-      Maybe<Shmem>& aShmem, gfx::IntSize& aSize);
+      const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem,
+      gfx::IntSize& aSize);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -161,9 +162,14 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                          struct ffi::WGPUTextureFormat aFormat,
                                          ffi::WGPUTextureUsages aUsage);
 
+  void EnsureExternalTextureForReadBackPresent(
+      ffi::WGPUSwapChainId aSwapChainId, ffi::WGPUDeviceId aDeviceId,
+      ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
+      struct ffi::WGPUTextureFormat aFormat, ffi::WGPUTextureUsages aUsage);
+
   std::shared_ptr<ExternalTexture> CreateExternalTexture(
-      ffi::WGPUDeviceId aDeviceId, ffi::WGPUTextureId aTextureId,
-      uint32_t aWidth, uint32_t aHeight,
+      const layers::RemoteTextureOwnerId& aOwnerId, ffi::WGPUDeviceId aDeviceId,
+      ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       ffi::WGPUTextureUsages aUsage);
 

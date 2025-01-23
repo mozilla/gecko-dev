@@ -57,6 +57,14 @@ class ExternalTexture {
   void SetSubmissionIndex(uint64_t aSubmissionIndex);
   uint64_t GetSubmissionIndex() const { return mSubmissionIndex; }
 
+  void SetOwnerId(const layers::RemoteTextureOwnerId aOwnerId) {
+    mOwnerId = aOwnerId;
+  }
+  layers::RemoteTextureOwnerId GetOwnerId() const {
+    MOZ_ASSERT(mOwnerId.IsValid());
+    return mOwnerId;
+  }
+
   const uint32_t mWidth;
   const uint32_t mHeight;
   const struct ffi::WGPUTextureFormat mFormat;
@@ -64,6 +72,26 @@ class ExternalTexture {
 
  protected:
   uint64_t mSubmissionIndex = 0;
+  layers::RemoteTextureOwnerId mOwnerId;
+};
+
+// Dummy class
+class ExternalTextureReadBackPresent final : public ExternalTexture {
+ public:
+  static UniquePtr<ExternalTextureReadBackPresent> Create(
+      const uint32_t aWidth, const uint32_t aHeight,
+      const struct ffi::WGPUTextureFormat aFormat,
+      const ffi::WGPUTextureUsages aUsage);
+
+  ExternalTextureReadBackPresent(const uint32_t aWidth, const uint32_t aHeight,
+                                 const struct ffi::WGPUTextureFormat aFormat,
+                                 const ffi::WGPUTextureUsages aUsage);
+  virtual ~ExternalTextureReadBackPresent();
+
+  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor(
+      Maybe<gfx::FenceInfo>& aFenceInfo) override {
+    return Nothing();
+  }
 };
 
 }  // namespace webgpu

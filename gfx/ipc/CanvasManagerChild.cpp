@@ -230,14 +230,16 @@ layers::ActiveResourceTracker* CanvasManagerChild::GetActiveResourceTracker() {
 
 already_AddRefed<DataSourceSurface> CanvasManagerChild::GetSnapshot(
     uint32_t aManagerId, int32_t aProtocolId,
-    const Maybe<RemoteTextureOwnerId>& aOwnerId, SurfaceFormat aFormat,
+    const Maybe<RemoteTextureOwnerId>& aOwnerId,
+    const Maybe<RawId>& aCommandEncoderId, SurfaceFormat aFormat,
     bool aPremultiply, bool aYFlip) {
   if (!CanSend()) {
     return nullptr;
   }
 
   webgl::FrontBufferSnapshotIpc res;
-  if (!SendGetSnapshot(aManagerId, aProtocolId, aOwnerId, &res)) {
+  if (!SendGetSnapshot(aManagerId, aProtocolId, aOwnerId, aCommandEncoderId,
+                       &res)) {
     return nullptr;
   }
 

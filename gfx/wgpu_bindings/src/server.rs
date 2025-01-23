@@ -1414,6 +1414,17 @@ extern "C" {
         usage: wgt::TextureUsages,
     ) -> bool;
     #[allow(dead_code)]
+    fn wgpu_server_ensure_external_texture_for_readback(
+        param: *mut c_void,
+        swap_chain_id: SwapChainId,
+        device_id: id::DeviceId,
+        texture_id: id::TextureId,
+        width: u32,
+        height: u32,
+        format: wgt::TextureFormat,
+        usage: wgt::TextureUsages,
+    );
+    #[allow(dead_code)]
     fn wgpu_server_get_external_texture_handle(
         param: *mut c_void,
         id: id::TextureId,
@@ -2031,6 +2042,21 @@ impl Global {
                         wgpu_server_disable_external_texture_for_swap_chain(
                             self.owner,
                             swap_chain_id.unwrap(),
+                        )
+                    };
+                }
+
+                if let Some(swap_chain_id) = swap_chain_id {
+                    unsafe {
+                        wgpu_server_ensure_external_texture_for_readback(
+                            self.owner,
+                            swap_chain_id,
+                            self_id,
+                            id,
+                            desc.size.width,
+                            desc.size.height,
+                            desc.format,
+                            desc.usage,
                         )
                     };
                 }
