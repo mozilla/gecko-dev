@@ -19853,14 +19853,6 @@ void CodeGenerator::visitIsNullOrUndefinedAndBranch(
   }
 }
 
-void CodeGenerator::loadJSScriptForBlock(MBasicBlock* block, Register reg) {
-  // The current JSScript means the script for the current
-  // basic block. This may be an inlined script.
-
-  JSScript* script = block->info().script();
-  masm.movePtr(ImmGCPtr(script), reg);
-}
-
 void CodeGenerator::visitHasClass(LHasClass* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register output = ToRegister(ins->output());
