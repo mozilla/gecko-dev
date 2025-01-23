@@ -19853,16 +19853,6 @@ void CodeGenerator::visitIsNullOrUndefinedAndBranch(
   }
 }
 
-void CodeGenerator::loadOutermostJSScript(Register reg) {
-  // The "outermost" JSScript means the script that we are compiling
-  // basically; this is not always the script associated with the
-  // current basic block, which might be an inlined script.
-
-  MIRGraph& graph = current->mir()->graph();
-  MBasicBlock* entryBlock = graph.entryBlock();
-  masm.movePtr(ImmGCPtr(entryBlock->info().script()), reg);
-}
-
 void CodeGenerator::loadJSScriptForBlock(MBasicBlock* block, Register reg) {
   // The current JSScript means the script for the current
   // basic block. This may be an inlined script.

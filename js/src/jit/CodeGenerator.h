@@ -316,7 +316,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void emitInstanceOf(LInstruction* ins, Register protoReg);
 
   void loadJSScriptForBlock(MBasicBlock* block, Register reg);
-  void loadOutermostJSScript(Register reg);
 
 #ifdef DEBUG
   void emitAssertResultV(const ValueOperand output, const MDefinition* mir);
