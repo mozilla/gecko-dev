@@ -15,8 +15,6 @@ namespace js {
 namespace jit {
 
 struct ImmShiftedTag : public ImmWord {
-  explicit ImmShiftedTag(JSValueShiftedTag shtag) : ImmWord((uintptr_t)shtag) {}
-
   explicit ImmShiftedTag(JSValueType type)
       : ImmWord(uintptr_t(JSVAL_TYPE_TO_SHIFTED_TAG(type))) {}
 };
