@@ -14180,11 +14180,11 @@
   value: ""
   mirror: never
 
-# The maximum allowed length for a URL - 32MB default.
+# The maximum allowed length for a URL - 512MB default.
 # If 0 that means no limit.
 - name: network.url.max-length
   type: RelaxedAtomicUint32
-  value: 32 * 1024 * 1024
+  value: 512 * 1024 * 1024
   mirror: always
 
 # When true, if all the cyrillic characters in a label
