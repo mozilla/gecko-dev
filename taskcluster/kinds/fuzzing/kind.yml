@@ -44,7 +44,7 @@ tasks:
                 - target.jsshell.zip
                 - target.fuzztest.tests.tar.gz
         worker:
-            docker-image: {in-tree: debian12-amd64-build}
+            docker-image: {in-tree: ubuntu1804-test}
             env:
                 LD_LIBRARY_PATH: /builds/worker/fetches
                 JSSHELL: ./js
@@ -96,7 +96,7 @@ tasks:
         platform: linux64/asan
         worker-type: b-linux-gcp
         worker:
-            docker-image: {in-tree: debian12-amd64-build}
+            docker-image: {in-tree: ubuntu1804-test}
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
         require-build:
@@ -114,7 +114,7 @@ tasks:
         platform: linux64/debug
         worker-type: b-linux-gcp
         worker:
-            docker-image: {in-tree: debian12-amd64-build}
+            docker-image: {in-tree: ubuntu1804-test}
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
         require-build:
@@ -132,7 +132,7 @@ tasks:
         platform: linux64/tsan
         worker-type: b-linux-gcp
         worker:
-            docker-image: {in-tree: debian12-amd64-build}
+            docker-image: {in-tree: ubuntu1804-test}
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox"
         require-build:
