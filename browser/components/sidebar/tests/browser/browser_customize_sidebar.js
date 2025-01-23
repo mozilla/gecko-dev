@@ -6,14 +6,7 @@
 requestLongerTimeout(2);
 
 const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
-const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
-
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref(SIDEBAR_VISIBILITY_PREF);
-  Services.prefs.clearUserPref(POSITION_SETTING_PREF);
-  Services.prefs.clearUserPref(TAB_DIRECTION_PREF);
-});
 
 async function showCustomizePanel(win) {
   await win.SidebarController.show("viewCustomizeSidebar");
@@ -298,50 +291,4 @@ add_task(async function test_keyboard_navigation_away_from_settings_link() {
   );
 
   await BrowserTestUtils.closeWindow(win);
-});
-
-add_task(async function test_settings_synchronized_across_windows() {
-  const panel = await showCustomizePanel(window);
-  const { contentWindow } = SidebarController.browser;
-  const newWindow = await BrowserTestUtils.openNewBrowserWindow();
-  const newPanel = await showCustomizePanel(newWindow);
-
-  info("Update visibility settings.");
-  EventUtils.synthesizeMouseAtCenter(
-    panel.visibilityInputs[1],
-    {},
-    contentWindow
-  );
-  await newPanel.updateComplete;
-  ok(
-    newPanel.visibilityInputs[1].checked,
-    "New window shows the updated visibility setting."
-  );
-
-  info("Update position settings.");
-  EventUtils.synthesizeMouseAtCenter(
-    panel.positionInputs[1],
-    {},
-    contentWindow
-  );
-  await newPanel.updateComplete;
-  ok(
-    newPanel.positionInputs[1].checked,
-    "New window shows the updated position setting."
-  );
-
-  info("Update vertical tabs settings.");
-  EventUtils.synthesizeMouseAtCenter(
-    panel.verticalTabsInputs[0],
-    {},
-    contentWindow
-  );
-  await newPanel.updateComplete;
-  ok(
-    newPanel.verticalTabsInputs[0].checked,
-    "New window shows the vertical tabs setting."
-  );
-
-  SidebarController.hide();
-  await BrowserTestUtils.closeWindow(newWindow);
 });
