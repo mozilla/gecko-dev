@@ -12,3 +12,5 @@ head = ""
 ["test_https_only_https_first_prefs.js"]
 
 ["test_isOriginPotentiallyTrustworthy.js"]
+
+["test_get_trusted_types_compliant_string.js"]

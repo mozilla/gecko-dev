@@ -440,8 +440,10 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     }
     piDOMWindowInner = globalObject->GetAsInnerWindow();
     if (!piDOMWindowInner) {
-      aError.ThrowTypeError("globalObject isn't an inner window");
-      return nullptr;
+      // Global object is not a Window. This can happen when DOM APIs are used
+      // in some contexts where Trusted Types don't apply (e.g. bug 1942517),
+      // so just return the input string.
+      return GetAsString(aInput);
     }
     if (ownerDocLoadedAsData && piDOMWindowInner->GetExtantDoc() &&
         !piDOMWindowInner->GetExtantDoc()
@@ -482,8 +484,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     // HasPolicyWithRequireTrustedTypesForDirective.
     MOZ_ASSERT(requireTrustedTypesForDirectiveState !=
                RequireTrustedTypesForDirectiveState::NONE);
-  } else {
-    MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
+  } else if (IsWorkerGlobal(globalObject->GetGlobalJSObject())) {
     MOZ_ASSERT(!NS_IsMainThread());
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
@@ -493,6 +494,11 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
         RequireTrustedTypesForDirectiveState::NONE) {
       return GetAsString(aInput);
     }
+  } else {
+    // Global object is neither Window nor WorkerGlobalScope. This can happen
+    // when DOM APIs are used in some contexts where Trusted Types don't apply
+    // (e.g. bugs 1942517 and 1936219), so just return the input string.
+    return GetAsString(aInput);
   }
 
   RefPtr<ExpectedType> convertedInput;
@@ -746,6 +752,9 @@ bool AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
   } else {
     JSObject* globalJSObject = global->GetGlobalJSObject();
     if (!globalJSObject || !IsWorkerGlobal(globalJSObject)) {
+      // Global object is neither a Window not a WorkerGlobalScope, this can
+      // happen in some contexts where Trusted Types don't apply (chrome JS
+      // globals) so just treat arguments as trusted.
       return true;
     }
     MOZ_ASSERT(!NS_IsMainThread());
