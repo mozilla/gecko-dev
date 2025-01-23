@@ -116,6 +116,7 @@ add_task(async function test_allTabsView() {
  */
 async function getContextMenu(triggerNode, contextMenuId) {
   let win = triggerNode.ownerGlobal;
+  triggerNode.scrollIntoView();
   const contextMenu = win.document.getElementById(contextMenuId);
   Assert.equal(contextMenu.state, "closed", "context menu is initially closed");
   const contextMenuShown = BrowserTestUtils.waitForPopupEvent(
