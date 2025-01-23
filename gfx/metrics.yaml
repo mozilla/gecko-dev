@@ -25,7 +25,6 @@ paint:
       - gfx-telemetry-alerts@mozilla.com
       - mwoodrow@mozilla.com
     expires: never
-    telemetry_mirror: PAINT_BUILD_DISPLAYLIST_TIME
 
 gpu_process:
   feature_status:
@@ -107,7 +106,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_GPU_WAIT_TIME
+
   rasterize_glyphs_time:
     type: timing_distribution
     description: >
@@ -122,7 +121,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_RASTERIZE_GLYPHS_TIME
+
   rasterize_blobs_time:
     type: timing_distribution
     description: >
@@ -137,7 +136,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_RASTERIZE_BLOBS_TIME
+
   renderer_time:
     type: timing_distribution
     description: >
@@ -152,7 +151,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_RENDERER_TIME
+
   renderer_time_no_sc:
     type: timing_distribution
     description: >
@@ -168,7 +167,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_RENDERER_TIME_NO_SC_MS
+
   framebuild_time:
     type: timing_distribution
     description: >
@@ -186,7 +185,7 @@ wr:
       - gfx-telemetry-alerts@mozilla.com
       - jmuizelaar@mozilla.com
     expires: never
-    telemetry_mirror: WR_FRAMEBUILD_TIME
+
   scenebuild_time:
     type: timing_distribution
     description: >
@@ -202,7 +201,7 @@ wr:
       - gfx-telemetry-alerts@mozilla.com
       - jmuizelaar@mozilla.com
     expires: never
-    telemetry_mirror: WR_SCENEBUILD_TIME
+
   sceneswap_time:
     type: timing_distribution
     description: >
@@ -218,7 +217,7 @@ wr:
       - gfx-telemetry-alerts@mozilla.com
       - jmuizelaar@mozilla.com
     expires: never
-    telemetry_mirror: WR_SCENESWAP_TIME
+
   texture_cache_update_time:
     type: timing_distribution
     description: >
@@ -233,7 +232,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_TEXTURE_CACHE_UPDATE_TIME
+
   time_to_frame_build:
     type: timing_distribution
     description: >
@@ -249,7 +248,7 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_TIME_TO_FRAME_BUILD_MS
+
   time_to_render_start:
     type: timing_distribution
     description: >
@@ -265,7 +264,6 @@ wr:
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
-    telemetry_mirror: WR_TIME_TO_RENDER_START_MS
 
 gfx:
   composite_time:
