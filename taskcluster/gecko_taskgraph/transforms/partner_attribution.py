@@ -151,27 +151,32 @@ def _get_upstream_task_label_and_artifact(platform, locale):
             upstream_label = "repackage-signing-{platform}/opt".format(
                 platform=platform
             )
-            upstream_artifact = "target.installer.exe"
         else:
             upstream_label = "repackage-signing-l10n-{locale}-{platform}/opt".format(
                 locale=locale, platform=platform
             )
-            upstream_artifact = "{locale}/target.installer.exe".format(locale=locale)
     elif platform.startswith("macos"):
         if locale == "en-US":
             upstream_label = "repackage-{platform}/opt".format(platform=platform)
-            upstream_artifact = "target.dmg"
         else:
             upstream_label = "repackage-l10n-{locale}-{platform}/opt".format(
                 locale=locale, platform=platform
             )
-            upstream_artifact = "{locale}/target.dmg".format(locale=locale)
     else:
         raise NotImplementedError(
             'Case for platform "{}" is not implemented'.format(platform)
         )
 
-    return upstream_label, upstream_artifact
+    return upstream_label, _get_upstream_artifact_path(platform, locale)
+
+
+def _get_upstream_artifact_path(platform, locale):
+    artifact_file_name = _get_artifact_file_name(platform)
+    return (
+        artifact_file_name
+        if locale == "en-US"
+        else "{}/{}".format(locale, artifact_file_name)
+    )
 
 
 def _build_attribution_config(task, task_platforms, attributions):
