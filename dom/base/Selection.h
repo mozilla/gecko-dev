@@ -114,14 +114,6 @@ class MOZ_RAII SelectionNodeCache final {
   friend PresShell;
   explicit SelectionNodeCache(PresShell& aOwningPresShell);
   /**
-   * Collects all nodes from a given list of selections.
-   *
-   * This method assumes that the selections itself won't change during this
-   * object's lifetime. It's not possible to 'update' the cached selected ranges
-   * by calling this method again.
-   */
-  void MaybeCollect(const nsTArray<Selection*>& aSelections);
-  /**
    * Iterates all ranges in `aSelection` and collects its fully selected nodes
    * into a hash set, which is also returned.
    *
