@@ -111,24 +111,6 @@ static LazyLogModule gJSCLLog("JSModuleLoader");
 #define ERROR_UNINITIALIZED_SYMBOL \
   "%s - Symbol '%s' accessed before initialization. Cyclic import?"
 
-static constexpr char JSM_Suffix[] = ".jsm";
-static constexpr char MJS_Suffix[] = ".sys.mjs";
-static constexpr size_t MJS_SuffixLength = std::size(MJS_Suffix) - 1;
-
-static bool IsMJS(const nsACString& aLocation) {
-  if (aLocation.Length() < MJS_SuffixLength) {
-    return false;
-  }
-  const auto ext = Substring(aLocation, aLocation.Length() - MJS_SuffixLength);
-  return ext == MJS_Suffix;
-}
-
-static void MJSToJSM(const nsACString& aLocation, nsAutoCString& aOut) {
-  MOZ_ASSERT(IsMJS(aLocation));
-  aOut = Substring(aLocation, 0, aLocation.Length() - MJS_SuffixLength);
-  aOut += JSM_Suffix;
-}
-
 static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
   if (!nsJSUtils::DumpEnabled()) {
     return true;
@@ -1411,17 +1393,6 @@ nsresult mozJSModuleLoader::GetLoadedJSAndESModules(
   nsTArray<nsCString> modules;
   nsresult rv = GetLoadedESModules(modules);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  for (const auto& location : modules) {
-    if (IsMJS(location)) {
-      nsAutoCString jsmLocation;
-      // NOTE: Unconditionally convert to *.jsm.  This doesn't cover *.js case
-      //       but given `Cu.loadedModules` is rarely used for system modules,
-      //       this won't cause much compat issue.
-      MJSToJSM(location, jsmLocation);
-      aLoadedModules.AppendElement(jsmLocation);
-    }
-  }
 
   return NS_OK;
 }
