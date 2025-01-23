@@ -888,7 +888,6 @@ set_define("MOZ_JXL", jxl)
 set_config("MOZ_SAMPLE_TYPE_FLOAT32", True)
 set_define("MOZ_SAMPLE_TYPE_FLOAT32", True)
 
-set_define("MOZ_VORBIS", True)
 set_config("MOZ_VORBIS", True)
 
 option(
