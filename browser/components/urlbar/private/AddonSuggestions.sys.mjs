@@ -30,16 +30,12 @@ const RESULT_MENU_COMMAND = {
  * A feature that supports Addon suggestions.
  */
 export class AddonSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("addonsFeatureGate") &&
-      lazy.UrlbarPrefs.get("suggest.addons") &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-    );
-  }
-
   get enablingPreferences() {
-    return ["suggest.addons", "suggest.quicksuggest.nonsponsored"];
+    return [
+      "addonsFeatureGate",
+      "suggest.addons",
+      "suggest.quicksuggest.nonsponsored",
+    ];
   }
 
   get merinoProvider() {

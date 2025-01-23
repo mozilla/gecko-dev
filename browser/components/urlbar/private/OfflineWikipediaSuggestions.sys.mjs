@@ -8,7 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
@@ -19,10 +18,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * Instead they're handled directly by `UrlbarProviderQuickSuggest`.
  */
 export class OfflineWikipediaSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
-  }
-
   get enablingPreferences() {
     return ["suggest.quicksuggest.nonsponsored"];
   }

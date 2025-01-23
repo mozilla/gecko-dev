@@ -25,11 +25,11 @@ export class ImpressionCaps extends SuggestFeature {
     lazy.UrlbarPrefs.addObserver(this);
   }
 
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("quickSuggestImpressionCapsSponsoredEnabled") ||
-      lazy.UrlbarPrefs.get("quickSuggestImpressionCapsNonSponsoredEnabled")
-    );
+  get enablingPreferences() {
+    return [
+      "quickSuggestImpressionCapsSponsoredEnabled",
+      "quickSuggestImpressionCapsNonSponsoredEnabled",
+    ];
   }
 
   enable(enabled) {

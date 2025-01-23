@@ -24,33 +24,45 @@ export class SuggestFeature {
   // Methods designed for overriding below
 
   /**
-   * {boolean}
-   *   Whether the feature should be enabled. Typically the subclass will check
-   *   the values of one or more Nimbus variables or preferences. `QuickSuggest`
-   *   will access this getter only when Suggest is enabled. When Suggest is
-   *   disabled, the feature will be disabled automatically.
+   * @returns {Array}
+   *   If the feature is conditioned on any prefs or Nimbus variables, the
+   *   subclass should override this getter and return their names in this array
+   *   so that `update()` and `enable()` can be called when they change. Names
+   *   should be recognized by `UrlbarPrefs`, i.e., pref names should be
+   *   relative to the `browser.urlbar.` branch. For Nimbus variables with
+   *   fallback prefs, include only the variable name.
+   *
+   *   When Suggest determines whether the feature should be enabled, it will
+   *   call `UrlbarPrefs.get()` on each name in this array and disable the
+   *   feature if any are falsey. If any of the prefs or variables are not
+   *   booleans, the subclass may also need to override
+   *   `additionalEnablingPredicate` to perform additional checks on them.
    */
-  get shouldEnable() {
-    throw new Error("`shouldEnable` must be overridden");
+  get enablingPreferences() {
+    return [];
   }
 
   /**
-   * @returns {Array}
-   *   If the subclass's `shouldEnable` implementation depends on any prefs that
-   *   are not fallbacks for Nimbus variables, the subclass should override this
-   *   getter and return their names in this array so that `update()` can be
-   *   called when they change. Names should be recognized by `UrlbarPrefs`. It
-   *   doesn't hurt to include prefs that are fallbacks for Nimbus variables,
-   *   it's just not necessary because `QuickSuggest` will update all features
-   *   whenever a `urlbar` Nimbus variable or its fallback pref changes.
+   * @returns {boolean}
+   *   If the feature is conditioned on any predicate other than the prefs and
+   *   Nimbus variables in `enablingPreferences`, the subclass should override
+   *   this getter and return whether the feature should be enabled. It may also
+   *   need to override this getter if any of the prefs or variables in
+   *   `enablingPreferences` are not booleans so that it can perform additional
+   *   checks on them. (The predicate does not need to check prefs and variables
+   *   in `enablingPreferences` that are booleans.)
+   *
+   *   This getter will be called only when Suggest is enabled and all prefs and
+   *   variables in `enablingPreferences` are truthy.
    */
-  get enablingPreferences() {
-    return null;
+  get additionalEnablingPredicate() {
+    return true;
   }
 
   /**
    * This method should initialize or uninitialize any state related to the
-   * feature.
+   * feature. It will only be called when the enabled status changes, i.e., when
+   * it goes from false to true or true to false.
    *
    * @param {boolean} enabled
    *   Whether the feature should be enabled or not.
@@ -58,6 +70,17 @@ export class SuggestFeature {
   enable(enabled) {}
 
   // Methods not designed for overriding below
+
+  /**
+   * @returns {boolean}
+   *   Whether the feature should be enabled, assuming Suggest is enabled.
+   */
+  get shouldEnable() {
+    return (
+      this.enablingPreferences.every(p => lazy.UrlbarPrefs.get(p)) &&
+      this.additionalEnablingPredicate
+    );
+  }
 
   /**
    * @returns {Logger}
@@ -92,9 +115,7 @@ export class SuggestFeature {
   /**
    * Enables or disables the feature according to `shouldEnable` and whether
    * Suggest is enabled. If the feature's enabled status changes, `enable()` is
-   * called with the new status; otherwise `enable()` is not called. If the
-   * feature manages any Rust suggestion types that become enabled as a result,
-   * they will be ingested.
+   * called with the new status; otherwise `enable()` is not called.
    */
   update() {
     let enable =

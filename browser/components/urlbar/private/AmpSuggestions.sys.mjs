@@ -31,10 +31,6 @@ ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
  * A feature that manages AMP suggestions.
  */
 export class AmpSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
-  }
-
   get enablingPreferences() {
     return ["suggest.quicksuggest.sponsored"];
   }

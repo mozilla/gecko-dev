@@ -9,7 +9,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   MLSuggest: "resource:///modules/urlbar/private/MLSuggest.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 
 /**
@@ -18,15 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * query.
  */
 export class SuggestBackendMl extends SuggestBackend {
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("quickSuggestMlEnabled") &&
-      lazy.UrlbarPrefs.get("browser.ml.enable")
-    );
-  }
-
   get enablingPreferences() {
-    return ["browser.ml.enable"];
+    return ["quickSuggestMlEnabled", "browser.ml.enable"];
   }
 
   async enable(enabled) {

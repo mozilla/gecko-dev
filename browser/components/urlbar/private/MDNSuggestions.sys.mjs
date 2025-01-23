@@ -23,14 +23,6 @@ const RESULT_MENU_COMMAND = {
  * A feature that supports MDN suggestions.
  */
 export class MDNSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("mdn.featureGate") &&
-      lazy.UrlbarPrefs.get("suggest.mdn") &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-    );
-  }
-
   get enablingPreferences() {
     return [
       "mdn.featureGate",

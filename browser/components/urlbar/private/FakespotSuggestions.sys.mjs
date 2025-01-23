@@ -84,16 +84,12 @@ export class FakespotSuggestions extends SuggestProvider {
     lazy.UrlbarView.addDynamicViewTemplate("fakespot", VIEW_TEMPLATE);
   }
 
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") &&
-      lazy.UrlbarPrefs.get("fakespotFeatureGate") &&
-      lazy.UrlbarPrefs.get("suggest.fakespot")
-    );
-  }
-
   get enablingPreferences() {
-    return ["suggest.quicksuggest.sponsored", "suggest.fakespot"];
+    return [
+      "fakespotFeatureGate",
+      "suggest.fakespot",
+      "suggest.quicksuggest.sponsored",
+    ];
   }
 
   get rustSuggestionType() {

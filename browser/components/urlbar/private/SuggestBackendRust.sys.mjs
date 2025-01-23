@@ -112,10 +112,6 @@ export class SuggestBackendRust extends SuggestBackend {
     return ["quicksuggest.rustEnabled"];
   }
 
-  get shouldEnable() {
-    return lazy.UrlbarPrefs.get("quicksuggest.rustEnabled");
-  }
-
   /**
    * @returns {object}
    *   The global Suggest config from the Rust component as returned from

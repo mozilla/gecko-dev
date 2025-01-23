@@ -16,10 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * Merino, also called "online" Suggest.
  */
 export class SuggestBackendMerino extends SuggestBackend {
-  get shouldEnable() {
-    return lazy.UrlbarPrefs.get("quicksuggest.dataCollection.enabled");
-  }
-
   get enablingPreferences() {
     return ["quicksuggest.dataCollection.enabled"];
   }

@@ -29,16 +29,12 @@ const RESULT_MENU_COMMAND = {
  * A feature for Yelp suggestions.
  */
 export class YelpSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") &&
-      lazy.UrlbarPrefs.get("yelpFeatureGate") &&
-      lazy.UrlbarPrefs.get("suggest.yelp")
-    );
-  }
-
   get enablingPreferences() {
-    return ["suggest.quicksuggest.sponsored", "suggest.yelp"];
+    return [
+      "yelpFeatureGate",
+      "suggest.yelp",
+      "suggest.quicksuggest.sponsored",
+    ];
   }
 
   get rustSuggestionType() {

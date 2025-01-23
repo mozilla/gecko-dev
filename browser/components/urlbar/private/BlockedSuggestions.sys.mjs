@@ -12,21 +12,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
- * A set of blocked suggestions for quick suggest.
+ * A set of blocked suggestion URLs for Suggest. This feature is always enabled
+ * as long as Suggest is enabled.
  */
 export class BlockedSuggestions extends SuggestFeature {
   constructor() {
     super();
     this.#taskQueue = new lazy.TaskQueue();
     lazy.UrlbarPrefs.addObserver(this);
-  }
-
-  get shouldEnable() {
-    // Return true so that we'll always load blocked digests when quick suggest
-    // is enabled, even if blocking new suggestions is currently disabled.
-    // Blocking may have been enabled previously, and blocked suggestions should
-    // remain blocked as long as quick suggest as a whole remains enabled.
-    return true;
   }
 
   enable(enabled) {

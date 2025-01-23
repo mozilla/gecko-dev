@@ -149,16 +149,12 @@ export class WeatherSuggestions extends SuggestProvider {
     );
   }
 
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") &&
-      lazy.UrlbarPrefs.get("weatherFeatureGate") &&
-      lazy.UrlbarPrefs.get("suggest.weather")
-    );
-  }
-
   get enablingPreferences() {
-    return ["suggest.quicksuggest.sponsored", "suggest.weather"];
+    return [
+      "weatherFeatureGate",
+      "suggest.weather",
+      "suggest.quicksuggest.sponsored",
+    ];
   }
 
   get rustSuggestionType() {

@@ -24,16 +24,12 @@ const RESULT_MENU_COMMAND = {
  * A feature that manages Pocket suggestions in remote settings.
  */
 export class PocketSuggestions extends SuggestProvider {
-  get shouldEnable() {
-    return (
-      lazy.UrlbarPrefs.get("pocketFeatureGate") &&
-      lazy.UrlbarPrefs.get("suggest.pocket") &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-    );
-  }
-
   get enablingPreferences() {
-    return ["suggest.pocket", "suggest.quicksuggest.nonsponsored"];
+    return [
+      "pocketFeatureGate",
+      "suggest.pocket",
+      "suggest.quicksuggest.nonsponsored",
+    ];
   }
 
   get merinoProvider() {
