@@ -18,7 +18,7 @@
  */
 declare namespace MockedExports {
   /**
-   * This interface teaches ChromeUtils.import how to find modules.
+   * This interface teaches ChromeUtils.importESModule how to find modules.
    */
   interface KnownModules {
     Services: typeof import("Services");
@@ -41,12 +41,11 @@ declare namespace MockedExports {
      * This function reads the KnownModules and resolves which import to use.
      * If you are getting the TS2345 error:
      *
-     *  Argument of type '"resource:///.../file.jsm"' is not assignable to parameter
-     *  of type
+     *  Argument of type '"resource:///.../file.sys.mjs"' is not assignable to
+     *  parameter of type
      *
      * Then add the file path to the KnownModules above.
      */
-    import: <S extends keyof KnownModules>(module: S) => KnownModules[S];
     importESModule: <S extends keyof KnownModules>(
       module: S
     ) => KnownModules[S];

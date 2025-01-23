@@ -584,30 +584,6 @@ partial namespace ChromeUtils {
                          optional IdleRequestOptions options = {});
 
   /**
-   * Synchronously loads and evaluates the js file located at
-   * 'aResourceURI' with a new, fully privileged global object.
-   *
-   * If `aTargetObj` is specified all properties exported by the module are
-   * copied to that object. This is deprecated and should not be used in
-   * new code.
-   *
-   * @param aResourceURI A resource:// URI string to load the module from.
-   * @param aTargetObj the object to install the exported properties on or null.
-   * @returns the module code's global object.
-   *
-   * The implementation maintains a hash of aResourceURI->global obj.
-   * Subsequent invocations of import with 'aResourceURI' pointing to
-   * the same file will not cause the module to be re-evaluated, but
-   * the symbols in EXPORTED_SYMBOLS will be exported into the
-   * specified target object and the global object returned as above.
-   *
-   * TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-   *       (bug 1881888).
-   */
-  [Throws]
-  object import(UTF8String aResourceURI, optional object aTargetObj);
-
-  /**
    * Returns the scripted location of the first ancestor stack frame with a
    * principal which is subsumed by the given principal. If no such frame
    * exists on the call stack, returns null.

@@ -565,49 +565,6 @@ void ChromeUtils::IdleDispatch(const GlobalObject& aGlobal,
   }
 }
 
-/* static */
-void ChromeUtils::Import(const GlobalObject& aGlobal,
-                         const nsACString& aResourceURI,
-                         const Optional<JS::Handle<JSObject*>>& aTargetObj,
-                         JS::MutableHandle<JSObject*> aRetval,
-                         ErrorResult& aRv) {
-  RefPtr moduleloader = mozJSModuleLoader::Get();
-  MOZ_ASSERT(moduleloader);
-
-  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE("ChromeUtils::Import",
-                                                     OTHER, aResourceURI);
-
-  JSContext* cx = aGlobal.Context();
-
-  JS::Rooted<JSObject*> global(cx);
-  JS::Rooted<JSObject*> exports(cx);
-  nsresult rv = moduleloader->Import(cx, aResourceURI, &global, &exports);
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-    return;
-  }
-
-  // Import() on the component loader can return NS_OK while leaving an
-  // exception on the JSContext.  Check for that case.
-  if (JS_IsExceptionPending(cx)) {
-    aRv.NoteJSContextException(cx);
-    return;
-  }
-
-  if (aTargetObj.WasPassed()) {
-    if (!JS_AssignObject(cx, aTargetObj.Value(), exports)) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-  }
-
-  if (!JS_WrapObject(cx, &exports)) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-  aRetval.set(exports);
-}
-
 static mozJSModuleLoader* GetModuleLoaderForCurrentGlobal(
     JSContext* aCx, const GlobalObject& aGlobal,
     Maybe<loader::NonSharedGlobalSyncModuleLoaderScope>&
@@ -962,7 +919,7 @@ static bool ESModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
 
   JS::Rooted<JS::Value> value(aCx);
   EncodedOptions encodedOptions(
-    js::GetFunctionNativeReserved(callee, SLOT_OPTIONS).toInt32());
+      js::GetFunctionNativeReserved(callee, SLOT_OPTIONS).toInt32());
 
   ImportESModuleOptionsDictionary options;
   encodedOptions.DecodeInto(options);

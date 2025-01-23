@@ -153,9 +153,6 @@ const TEST_GLOBAL = {
     generateQI() {
       return {};
     },
-    import() {
-      return global;
-    },
     importESModule() {
       return global;
     },

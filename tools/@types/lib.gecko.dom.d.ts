@@ -24649,7 +24649,6 @@ declare namespace ChromeUtils {
     function getXPCOMErrorName(aErrorCode: number): string;
     function hasReportingHeaderForOrigin(aOrigin: string): boolean;
     function idleDispatch(callback: IdleRequestCallback, options?: IdleRequestOptions): void;
-    function import_(aResourceURI: string, aTargetObj?: any): any;
     function importESModule(aResourceURI: string, aOptions?: ImportESModuleOptionsDictionary): any;
     function isClassifierBlockingErrorCode(aError: number): boolean;
     function isDOMObject(obj: any, unwrap?: boolean): boolean;
