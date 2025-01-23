@@ -86,6 +86,10 @@ class MozTextLabel extends HTMLLabelElement {
   // MozHTMLElement.insertCssIfNeeded(style)
   #setStyles() {
     let root = this.getRootNode();
+    if (root.__mozLabelCssAdded) {
+      return;
+    }
+
     let container = root.head ?? root;
 
     for (let link of container.querySelectorAll("link")) {
@@ -98,6 +102,7 @@ class MozTextLabel extends HTMLLabelElement {
     style.rel = "stylesheet";
     style.href = this.constructor.stylesheetUrl;
     container.appendChild(style);
+    root.__mozLabelCssAdded = true;
   }
 
   set textContent(val) {
