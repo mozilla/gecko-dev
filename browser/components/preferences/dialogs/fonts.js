@@ -19,9 +19,6 @@ const kFontSizeFmtVariable = "font.size.variable.%LANG%";
 const kFontSizeFmtFixed = "font.size.monospace.%LANG%";
 const kFontMinSizeFmt = "font.minimum-size.%LANG%";
 
-document
-  .getElementById("FontsDialog")
-  .addEventListener("dialoghelp", window.top.openPrefsHelp);
 window.addEventListener("load", () => gFontsDialog.onLoad());
 
 Preferences.addAll([
@@ -33,6 +30,14 @@ var gFontsDialog = {
   _selectLanguageGroupPromise: Promise.resolve(),
 
   onLoad() {
+    document
+      .getElementById("FontsDialog")
+      .addEventListener("dialoghelp", window.top.openPrefsHelp);
+
+    document
+      .getElementById("key_close")
+      .addEventListener("command", event => Preferences.close(event));
+
     Preferences.addSyncFromPrefListener(
       document.getElementById("selectLangs"),
       () => this.readFontLanguageGroup()

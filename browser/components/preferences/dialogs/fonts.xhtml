@@ -12,6 +12,7 @@
   data-l10n-id="fonts-window"
   data-l10n-attrs="title"
   persist="lastSelected"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     id="FontsDialog"
@@ -32,11 +33,7 @@
     <script src="chrome://global/content/preferencesBindings.js" />
 
     <keyset>
-      <key
-        data-l10n-id="fonts-window-close"
-        modifiers="accel"
-        oncommand="Preferences.close(event)"
-      />
+      <key id="key_close" data-l10n-id="fonts-window-close" modifiers="accel" />
     </keyset>
 
     <!-- Fonts for: [ Language ] -->
