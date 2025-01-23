@@ -8,7 +8,6 @@ UNIFIED_SOURCES += [
     "AutoMemMap.cpp",
     "ChromeScriptLoader.cpp",
     "JSMEnvironmentProxy.cpp",
-    "ModuleEnvironmentProxy.cpp",
     "mozJSLoaderUtils.cpp",
     "mozJSSubScriptLoader.cpp",
     "nsImportModule.cpp",
