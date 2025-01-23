@@ -25,23 +25,10 @@ function invalidCode(code, uri) {
 ruleTester.run("reject-mixing-eager-and-lazy", rule, {
   valid: [
     `
-    ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
-`,
-    `
     ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs");
 `,
     `
     import{ AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-`,
-    `
-    ChromeUtils.defineModuleGetter(
-      lazy, "AppConstants", "resource://gre/modules/AppConstants.jsm"
-    );
-`,
-    `
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm",
-    });
 `,
     `
     ChromeUtils.defineESModuleGetters(lazy, {
@@ -50,38 +37,14 @@ ruleTester.run("reject-mixing-eager-and-lazy", rule, {
 `,
     `
     if (some_condition) {
-      ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+      ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs");
     }
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm"
-    });
-`,
-    `
-    ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
-    XPCOMUtils.defineLazyModuleGetters(sandbox, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm",
+    ChromeUtils.defineESModuleGetters(lazy, {
+      AppConstants: "resource://gre/modules/AppConstants.sys.mjs"
     });
 `,
   ],
   invalid: [
-    invalidCode(
-      `
-    ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
-    ChromeUtils.defineModuleGetter(
-      lazy, "AppConstants", "resource://gre/modules/AppConstants.jsm"
-    );
-`,
-      "resource://gre/modules/AppConstants.jsm"
-    ),
-    invalidCode(
-      `
-    ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
-    XPCOMUtils.defineLazyModuleGetters(lazy, {
-      AppConstants: "resource://gre/modules/AppConstants.jsm",
-    });
-`,
-      "resource://gre/modules/AppConstants.jsm"
-    ),
     invalidCode(
       `
     ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs");

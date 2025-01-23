@@ -68,8 +68,7 @@ module.exports = {
         }
 
         if (
-          (callerSource === "ChromeUtils.import" ||
-            callerSource === "ChromeUtils.importESModule") &&
+          callerSource === "ChromeUtils.importESModule" &&
           helpers.getIsTopLevelAndUnconditionallyExecuted(
             helpers.getAncestors(context, node)
           )
@@ -90,29 +89,7 @@ module.exports = {
           );
         }
 
-        if (callerSource === "ChromeUtils.defineModuleGetter") {
-          if (node.arguments.length < 3) {
-            return;
-          }
-          if (!isIdentifier(node.arguments[0], "lazy")) {
-            return;
-          }
-
-          const resourceURINode = node.arguments[2];
-          if (!isString(resourceURINode)) {
-            return;
-          }
-          checkMixed(
-            loadedModules,
-            context,
-            node,
-            "lazy",
-            resourceURINode.value
-          );
-        } else if (
-          callerSource === "XPCOMUtils.defineLazyModuleGetters" ||
-          callerSource === "ChromeUtils.defineESModuleGetters"
-        ) {
+        if (callerSource === "ChromeUtils.defineESModuleGetters") {
           if (node.arguments.length < 2) {
             return;
           }
