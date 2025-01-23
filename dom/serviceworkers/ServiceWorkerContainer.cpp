@@ -648,7 +648,7 @@ nsIGlobalObject* ServiceWorkerContainer::GetGlobalIfValid(
 
 void ServiceWorkerContainer::EnqueueReceivedMessageDispatch(
     RefPtr<ReceivedMessage> aMessage) {
-  NS_DispatchToMainThread(NewRunnableMethod<RefPtr<ReceivedMessage>>(
+  NS_DispatchToCurrentThread(NewRunnableMethod<RefPtr<ReceivedMessage>>(
       "ServiceWorkerContainer::DispatchMessage", this,
       &ServiceWorkerContainer::DispatchMessage, std::move(aMessage)));
 }
