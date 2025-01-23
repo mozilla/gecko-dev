@@ -562,6 +562,7 @@ support-files = [
 support-files = ["../../../search/test/browser/trendingSuggestionEngine.sjs"]
 skip-if = [
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1883249
+  "win11_2009 && opt",  # Bug 1883249
 ]
 
 ["browser_search_history_from_history_panel.js"]
