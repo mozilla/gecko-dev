@@ -89,6 +89,11 @@ prefs = [
 ["browser_103_assets_extension.js"]
 
 ["browser_103_cleanup.js"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1829935
+  "os == 'mac' && os_version == '11.00' && arch == 'aarch64' && opt", # Bug 1829935
+  "win11_2009 && processor == 'x86_64' && opt", # Bug 1829935
+]
 
 ["browser_103_csp.js"]
 support-files = ["early_hint_preload_test_helper.sys.mjs",]
