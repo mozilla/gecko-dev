@@ -55,13 +55,14 @@
   }
 
   .meta {
-    padding: var(--space-xsmall) 0;
+    padding: 0;
     align-self: flex-start;
+    min-height: 125px;
 
     .info-wrap .title {
       font-size: var(--font-size-small);
       margin-block: var(--space-xsmall) 0;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 4;
     }
 
     .info-wrap .excerpt {
@@ -69,7 +70,7 @@
     }
 
     .sections-card-footer {
-      margin-block-start: var(--space-small);
+      margin-block-start: var(--space-xxsmall);
     }
   }
 
