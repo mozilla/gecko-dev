@@ -465,7 +465,7 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
 
   MOZ_ASSERT(UseExactMatch() == aOther.UseExactMatch());
   if (UseExactMatch()) {
-    return newCandidates;
+    return std::move(newCandidates);
   }
   MOZ_TRY(
       createRangeExtendedUntilMismatch(mFullStartRange, aOther.mFullStartRange,
@@ -482,7 +482,7 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
             return createAndAddCandidate("end", nullptr, nullptr,
                                          std::move(extendedRange), nullptr);
           }));
-  return newCandidates;
+  return std::move(newCandidates);
 }
 
 nsTArray<const TextDirectiveCandidate*>
