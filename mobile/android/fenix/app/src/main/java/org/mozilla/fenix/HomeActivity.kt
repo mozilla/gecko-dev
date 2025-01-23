@@ -33,6 +33,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.doOnAttach
 import androidx.lifecycle.lifecycleScope
@@ -590,8 +591,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             collectOSNavigationTelemetry()
             GrowthDataWorker.sendActivatedSignalIfNeeded(applicationContext)
             FontEnumerationWorker.sendActivatedSignalIfNeeded(applicationContext)
-            ReEngagementNotificationWorker.setReEngagementNotificationIfNeeded(applicationContext)
-            MessageNotificationWorker.setMessageNotificationWorker(applicationContext)
+
+            if (NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
+                ReEngagementNotificationWorker.setReEngagementNotificationIfNeeded(applicationContext)
+                MessageNotificationWorker.setMessageNotificationWorker(applicationContext)
+            }
         }
 
         onBackPressedCallback.isEnabled = true
