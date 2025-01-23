@@ -74,6 +74,11 @@ function nativeTabKey() {
 async function test() {
   let utils = SpecialPowers.DOMWindowUtils;
 
+  if (!SpecialPowers.getBoolPref("apz.keyboard.focus-optimization")) {
+    ok(true, "Skip test if paints are not guaranteed on each focus changing event");
+    return;
+  }
+
   is(document.scrollingElement.scrollTop, 0, "No scroll should have occured yet");
 
   utils.advanceTimeAndRefresh(50);
