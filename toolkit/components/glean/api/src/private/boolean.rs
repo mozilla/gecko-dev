@@ -11,44 +11,6 @@ use super::{CommonMetricData, MetricGetter, MetricId};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
-#[cfg(feature = "with_gecko")]
-use super::profiler_utils::TelemetryProfilerCategory;
-
-#[cfg(feature = "with_gecko")]
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct BooleanMetricMarker {
-    id: MetricGetter,
-    val: bool,
-}
-
-#[cfg(feature = "with_gecko")]
-impl gecko_profiler::ProfilerMarker for BooleanMetricMarker {
-    fn marker_type_name() -> &'static str {
-        "BooleanMetric"
-    }
-
-    fn marker_type_display() -> gecko_profiler::MarkerSchema {
-        use gecko_profiler::schema::*;
-        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-        schema.set_tooltip_label("{marker.data.id} {marker.data.val}");
-        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.val}");
-        schema.add_key_label_format_searchable(
-            "id",
-            "Metric",
-            Format::UniqueString,
-            Searchable::Searchable,
-        );
-        schema.add_key_label_format("val", "Value", Format::String);
-        schema
-    }
-
-    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        let (name, _) = self.id.get_identifiers();
-        json_writer.unique_string_property("id", &name);
-        json_writer.bool_property("val", self.val);
-    }
-}
-
 /// A boolean metric.
 ///
 /// Records a simple true or false value.
@@ -120,12 +82,9 @@ impl Boolean for BooleanMetric {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Boolean::set",
-                    TelemetryProfilerCategory,
+                    super::profiler_utils::TelemetryProfilerCategory,
                     Default::default(),
-                    BooleanMetricMarker {
-                        id: *id,
-                        val: value,
-                    },
+                    super::profiler_utils::BooleanMetricMarker::new(*id, None, value),
                 );
                 inner.set(value);
             }
@@ -140,12 +99,9 @@ impl Boolean for BooleanMetric {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Boolean::set",
-                    TelemetryProfilerCategory,
+                    super::profiler_utils::TelemetryProfilerCategory,
                     Default::default(),
-                    BooleanMetricMarker {
-                        id: (*id).into(),
-                        val: value,
-                    },
+                    super::profiler_utils::BooleanMetricMarker::new((*id).into(), None, value),
                 );
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.booleans.get_mut(&id) {

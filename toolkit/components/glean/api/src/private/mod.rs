@@ -52,9 +52,7 @@ pub use self::labeled_custom_distribution::LabeledCustomDistributionMetric;
 pub use self::labeled_memory_distribution::LabeledMemoryDistributionMetric;
 pub use self::labeled_timing_distribution::LabeledTimingDistributionMetric;
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
-pub use self::metric_getter::MetricGetter;
-pub use self::metric_getter::MetricId;
-pub use self::metric_getter::SubMetricId;
+pub use self::metric_getter::{MetricGetter, MetricId, SubMetricId};
 pub use self::numerator::NumeratorMetric;
 pub use self::object::ObjectMetric;
 pub use self::ping::Ping;
@@ -213,13 +211,22 @@ pub(crate) mod profiler_utils {
                 Format::UniqueString,
                 Searchable::Searchable,
             );
+            schema.add_key_label_format_searchable(
+                "label",
+                "Label",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
             schema.add_key_label_format("val", "Value", Format::String);
             schema
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            let (name, _) = self.id.get_identifiers();
+            let (name, label) = self.id.get_identifiers();
             json_writer.unique_string_property("id", &name);
+            if let Some(l) = label {
+                json_writer.unique_string_property("label", &l);
+            };
             debug_assert!(self.val.len() <= max_string_byte_length());
             json_writer.string_property("val", self.val.as_str());
         }
@@ -269,23 +276,24 @@ pub(crate) mod profiler_utils {
                 Format::UniqueString,
                 Searchable::Searchable,
             );
-            schema.add_key_label_format("val", "Value", Format::Integer);
             schema.add_key_label_format_searchable(
                 "label",
                 "Label",
                 Format::UniqueString,
                 Searchable::Searchable,
             );
+            schema.add_key_label_format("val", "Value", Format::Integer);
+
             schema
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            let (name, _) = self.id.get_identifiers();
+            let (name, label) = self.id.get_identifiers();
             json_writer.unique_string_property("id", &name);
-            json_writer.int_property("val", self.val.clone().into());
-            if let Some(l) = &self.label {
+            if let Some(l) = self.label.as_ref().or(label.as_ref()) {
                 json_writer.unique_string_property("label", &l);
             };
+            json_writer.int_property("val", self.val.clone().into());
         }
     }
 
@@ -353,11 +361,11 @@ pub(crate) mod profiler_utils {
         }
 
         fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            let (name, _) = self.id.get_identifiers();
+            let (name, label) = self.id.get_identifiers();
             json_writer.unique_string_property("id", &name);
 
-            if let Some(l) = &self.label {
-                json_writer.unique_string_property("label", l.as_str());
+            if let Some(l) = self.label.as_ref().or(label.as_ref()) {
+                json_writer.unique_string_property("label", &l);
             };
 
             match &self.value {
@@ -376,6 +384,59 @@ pub(crate) mod profiler_utils {
                     json_writer.string_property("samples", s.as_str());
                 }
             };
+        }
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct BooleanMetricMarker {
+        id: super::MetricGetter,
+        label: Option<String>,
+        val: bool,
+    }
+
+    impl BooleanMetricMarker {
+        pub fn new(
+            id: super::MetricGetter,
+            label: Option<String>,
+            val: bool,
+        ) -> BooleanMetricMarker {
+            BooleanMetricMarker { id, label, val }
+        }
+    }
+
+    impl gecko_profiler::ProfilerMarker for BooleanMetricMarker {
+        fn marker_type_name() -> &'static str {
+            "BooleanMetric"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id} {marker.data.val}");
+            schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.val}");
+            schema.add_key_label_format_searchable(
+                "id",
+                "Metric",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format_searchable(
+                "label",
+                "Label",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format("val", "Value", Format::String);
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            let (name, label) = self.id.get_identifiers();
+            json_writer.unique_string_property("id", &name);
+            if let Some(l) = self.label.as_ref().or(label.as_ref()) {
+                json_writer.unique_string_property("label", &l);
+            };
+            json_writer.bool_property("val", self.val);
         }
     }
 }

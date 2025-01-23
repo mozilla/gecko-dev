@@ -104,11 +104,11 @@ impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        let (name, _) = self.id.get_identifiers();
+        let (name, label) = self.id.get_identifiers();
         json_writer.unique_string_property("id", &name);
 
-        if let Some(l) = &self.label {
-            json_writer.unique_string_property("label", l.as_str());
+        if let Some(l) = self.label.as_ref().or(label.as_ref()) {
+            json_writer.unique_string_property("label", &l);
         };
 
         if let Some(id) = &self.timer_id {
@@ -500,7 +500,14 @@ impl TimingDistribution for TimingDistributionMetric {
     pub fn accumulate_samples(&self, samples: Vec<i64>) {
         match self {
             #[allow(unused)]
-            TimingDistributionMetric::Parent { id, inner } => {
+            TimingDistributionMetric::Parent {
+                id: id @ MetricGetter::Id(_),
+                inner,
+            } => {
+                // Only record a marker if we are accumulating samples for an
+                // actual metric. Sub-metrics will record their own markers
+                // in their own variant of `accumulate_samples`, so if we
+                // also record a marker, there will be duplicates.
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
@@ -514,6 +521,7 @@ impl TimingDistribution for TimingDistributionMetric {
                 );
                 inner.accumulate_samples(samples)
             }
+            TimingDistributionMetric::Parent { inner, .. } => inner.accumulate_samples(samples),
             TimingDistributionMetric::Child(_c) => {
                 // TODO: Instrument this error
                 log::error!("Can't record samples for a timing distribution from a child metric");
@@ -534,7 +542,12 @@ impl TimingDistribution for TimingDistributionMetric {
     pub fn accumulate_raw_samples_nanos(&self, samples: Vec<u64>) {
         match self {
             #[allow(unused)]
-            TimingDistributionMetric::Parent { id, inner } => {
+            TimingDistributionMetric::Parent {
+                id: id @ MetricGetter::Id(_),
+                inner,
+            } => {
+                // Only record metric markers, not sub-metric markers. See
+                // `accumulate_samples` for details of why.
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
@@ -548,6 +561,9 @@ impl TimingDistribution for TimingDistributionMetric {
                 );
                 inner.accumulate_raw_samples_nanos(samples)
             }
+            TimingDistributionMetric::Parent { inner, .. } => {
+                inner.accumulate_raw_samples_nanos(samples)
+            }
             TimingDistributionMetric::Child(_c) => {
                 // TODO: Instrument this error
                 log::error!("Can't record samples for a timing distribution from a child metric");
@@ -558,7 +574,12 @@ impl TimingDistribution for TimingDistributionMetric {
     pub fn accumulate_single_sample(&self, sample: i64) {
         match self {
             #[allow(unused)]
-            TimingDistributionMetric::Parent { id, inner } => {
+            TimingDistributionMetric::Parent {
+                id: id @ MetricGetter::Id(_),
+                inner,
+            } => {
+                // Only record metric markers, not sub-metric markers. See
+                // `accumulate_samples` for details of why.
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
@@ -570,6 +591,9 @@ impl TimingDistribution for TimingDistributionMetric {
                         Some(TDMPayload::Sample(sample.clone())),
                     )
                 );
+                inner.accumulate_single_sample(sample)
+            }
+            TimingDistributionMetric::Parent { inner, .. } => {
                 inner.accumulate_single_sample(sample)
             }
             TimingDistributionMetric::Child(_c) => {

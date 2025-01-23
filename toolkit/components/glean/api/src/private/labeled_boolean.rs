@@ -50,6 +50,17 @@ impl Boolean for LabeledBooleanMetric {
                 // TODO: Record an error.
             }
             LabeledBooleanMetric::UnorderedChild { id, label } => {
+                #[cfg(feature = "with_gecko")]
+                gecko_profiler::add_marker(
+                    "Boolean::set",
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    Default::default(),
+                    super::profiler_utils::BooleanMetricMarker::new(
+                        (*id).into(),
+                        Some(label.clone()),
+                        value,
+                    ),
+                );
                 with_ipc_payload(move |payload| {
                     if let Some(map) = payload.labeled_booleans.get_mut(id) {
                         if let Some(v) = map.get_mut(label) {

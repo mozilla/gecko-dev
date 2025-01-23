@@ -60,7 +60,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             let id = &self
                 .id
                 .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .expect("Cannot perform GIFFT calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStart(
@@ -129,7 +129,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             let id = &self
                 .id
                 .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .expect("Cannot perform GIFFT calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStopAndAccumulate(
@@ -170,7 +170,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             let metric_id = &self
                 .id
                 .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .expect("Cannot perform GIFFT calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionCancel(
@@ -302,7 +302,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             let id = &self
                 .id
                 .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .expect("Cannot perform GIFFT calls without a MetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionAccumulateRawMillis(

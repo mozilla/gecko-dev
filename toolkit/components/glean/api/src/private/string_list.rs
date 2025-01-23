@@ -43,10 +43,6 @@ impl StringListMetric {
     pub(crate) fn child_metric(&self) -> Self {
         match self {
             StringListMetric::Parent { id, .. } => {
-                // SAFETY: We can unwrap here, as this code is only run in the
-                // context of a test. If this code is used elsewhere, the
-                // `unwrap` should be replaced with proper error handling of
-                // the `None` case.
                 StringListMetric::Child(StringListMetricIpc(*id))
             }
             StringListMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
