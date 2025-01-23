@@ -40,8 +40,13 @@ add_task(async function testHEVCInbandConfigChange() {
   video.controls = true;
   document.body.appendChild(video);
   ok(await video.play().then(_=>true, _=>false), "video started playing");
-  ok(await new Promise(r => video.onended = r).then(_=>true, _=>false),
-     "video played to end");
+  // This video contains two resolutions, so we should expect to receive a
+  // resize event during the playback.
+  await Promise.all([
+      new Promise(r => video.onended = r),
+      new Promise(r => video.onresize = r)
+  ]);
+  ok(true, "video played to end and got a resize");
   removeNodeAndSource(video);
 });
 
