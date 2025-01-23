@@ -78,13 +78,58 @@ prefFlips:
     path: toolkit/components/nimbus/schemas/PrefFlipsFeature.schema.json
 
 
-# `search` is for search engine experimentation features which do not require
-# isEarlyStartup to be set.
 search:
-  description: Search engine experimentation support and testing features.
+  description: Search service related features.
   owner: search-and-suggest-program@mozilla.com
   hasExposure: false
   variables:
+    scotchBonnetEnableOverride:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.urlbar.scotchBonnet.enableOverride
+      description: >-
+        Whether or not enabling scotch bonnet feature.
+        If this variable is true, the following features are available as default.
+        * Unified search button
+        * Secondary action buttons
+        * Search term persistence
+        * Intuitive search keywords
+        * HTTP swap
+    trendingRequireSearchMode:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.urlbar.trending.requireSearchMode
+      description: Controls whether trending suggestions are only shown in search mode or not.
+    trendingMaxResultsNoSearchMode:
+      type: int
+      setPref:
+        branch: default
+        pref: browser.urlbar.trending.maxResultsNoSearchMode
+      description: The maximum number of trending results mode outside search mode.
+    targetExperiment:
+      type: string
+      description: >-
+        Recorded in SERP telemetry, this is the slug of the experiment someone
+        is requesting enrollment and branch information for. (Note that the
+        featureId needs to be set to "search".)
+
+searchConfiguration:
+  description: >-
+    Search experimentation support for the engine configuration. Some of these
+    options may cause an additional reload to occur during the startup phase.
+  owner: search-and-suggest-program@mozilla.com
+  hasExposure: false
+  variables:
+    experiment:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.search.experiment
+      description: >-
+        Used to activate only matching configurations that contain the value in
+        `experiment`
     extraParams:
       type: json
       description: >-
@@ -118,56 +163,6 @@ search:
         parameter will not be included in the search url.
 
         Only the search team can update the configuration.
-    scotchBonnetEnableOverride:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.urlbar.scotchBonnet.enableOverride
-      description: >-
-        Whether or not enabling scotch bonnet feature.
-        If this variable is true, the following features are available as default.
-        * Unified search button
-        * Secondary action buttons
-        * Search term persistence
-        * Intuitive search keywords
-        * HTTP swap
-    trendingRequireSearchMode:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.urlbar.trending.requireSearchMode
-      description: Controls whether trending suggestions are only shown in search mode or not.
-    trendingMaxResultsNoSearchMode:
-      type: int
-      setPref:
-        branch: default
-        pref: browser.urlbar.trending.maxResultsNoSearchMode
-      description: The maximum number of trending results mode outside search mode.
-    targetExperiment:
-      type: string
-      description: >-
-        Recorded in SERP telemetry, this is the slug of the experiment someone
-        is requesting enrollment and branch information for. (Note that the
-        featureId needs to be set to "search".)
-
-
-# `searchConfiguration` is for search experiment features for items that require
-# isEarlyStartup to be true. These items may require a reload of the search
-# engine configuration, and an additional reload may happen during the startup
-# process.
-searchConfiguration:
-  description: Search experimentation support for the engine configuration
-  owner: search-and-suggest-program@mozilla.com
-  hasExposure: false
-  variables:
-    experiment:
-      type: string
-      setPref:
-        branch: user
-        pref: browser.search.experiment
-      description: >-
-        Used to activate only matching configurations that contain the value in
-        `experiment`
     seperatePrivateDefaultUIEnabled:
       type: boolean
       setPref:
