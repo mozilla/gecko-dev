@@ -86,6 +86,12 @@ class TextDirectiveCandidate {
    */
   const nsCString& TextDirectiveString() const;
 
+  /**
+   * Logging utility. This function outputs the current state, ie. the text
+   * directive string, the context term range contents, the fully expanded
+   * context terms, and a fully expanded text directive string.
+   */
+  void LogCurrentState(const char* aCallerFunc) const;
 
  private:
   TextDirectiveCandidate(nsRange* aStartRange, nsRange* aFullStartRange,
