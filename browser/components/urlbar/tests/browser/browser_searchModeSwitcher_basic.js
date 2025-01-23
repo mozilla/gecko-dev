@@ -630,29 +630,6 @@ add_task(async function nimbusScotchBonnetEnableOverride() {
   });
 });
 
-add_task(async function nimbusLogEnabled() {
-  info("Setup initial local pref");
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.log", false]],
-  });
-  await TestUtils.waitForCondition(() => {
-    return !Services.prefs.getBoolPref("browser.search.log");
-  });
-
-  info("Setup Numbus value");
-  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature(
-    { logEnabled: true },
-    "search"
-  );
-  await TestUtils.waitForCondition(() => {
-    return Services.prefs.getBoolPref("browser.search.log");
-  });
-  Assert.ok(true, "browser.search.log is changed properly");
-
-  await cleanUpNimbusEnable();
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function test_button_stuck() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
   let popup = win.document.getElementById("searchmode-switcher-popup");

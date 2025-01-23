@@ -9,8 +9,6 @@ const TELEMETRY_PREF =
   "browser.search.serpEventTelemetryCategorization.enabled";
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   SearchSERPDomainToCategoriesMap:
     "resource:///modules/SearchSERPTelemetry.sys.mjs",
 });
@@ -96,10 +94,8 @@ add_task(async function test_enable_experiment_when_pref_is_not_enabled() {
   let originalPrefValue = prefBranch.getBoolPref(TELEMETRY_PREF);
 
   // Ensure the build being tested has the preference value as false.
-  // Changing the preference in the test must be done on the default branch
-  // because in the telemetry code, we're referencing the preference directly
-  // instead of through NimbusFeatures. Enrolling in an experiment will change
-  // the default branch, and not overwrite the user branch.
+  // We do this on the default branch to simulate the value of the preference
+  // being changed by the user.
   prefBranch.setBoolPref(TELEMETRY_PREF, false);
 
   // If it was true, we should wait until the map is fully un-inited.
@@ -110,28 +106,18 @@ add_task(async function test_enable_experiment_when_pref_is_not_enabled() {
   Assert.equal(
     lazy.serpEventsCategorizationEnabled,
     false,
-    "serpEventsCategorizationEnabled should be false when not enrolled in experiment and the default value is false."
+    "serpEventsCategorizationEnabled should be false when the default value is false."
   );
 
-  await lazy.ExperimentAPI.ready();
-
-  info("Enroll in experiment.");
+  info("Turn pref on");
   let updateComplete = waitForDomainToCategoriesUpdate();
 
-  let doExperimentCleanup = await lazy.ExperimentFakes.enrollWithFeatureConfig(
-    {
-      featureId: NimbusFeatures.search.featureId,
-      value: {
-        serpEventTelemetryCategorizationEnabled: true,
-      },
-    },
-    { isRollout: true }
-  );
+  Services.prefs.setBoolPref(TELEMETRY_PREF, true);
 
   Assert.equal(
     lazy.serpEventsCategorizationEnabled,
     true,
-    "serpEventsCategorizationEnabled should be true when enrolled in experiment."
+    "serpEventsCategorizationEnabled should be true when the pref is true."
   );
 
   await updateComplete;
@@ -169,14 +155,14 @@ add_task(async function test_enable_experiment_when_pref_is_not_enabled() {
   ]);
   resetTelemetry();
 
-  info("End experiment.");
-  doExperimentCleanup();
+  info("Turn pref off");
+  Services.prefs.setBoolPref(TELEMETRY_PREF, false);
   await waitForDomainToCategoriesUninit();
 
   Assert.equal(
     lazy.serpEventsCategorizationEnabled,
     false,
-    "serpEventsCategorizationEnabled should be false after experiment."
+    "serpEventsCategorizationEnabled should be false when the pref is false."
   );
 
   Assert.ok(
