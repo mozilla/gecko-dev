@@ -24630,7 +24630,6 @@ declare namespace ChromeUtils {
     function dateNow(): number;
     function defineESModuleGetters(aTarget: any, aModules: any, aOptions?: ImportESModuleOptionsDictionary): void;
     function defineLazyGetter(aTarget: any, aName: any, aLambda: any): void;
-    function defineModuleGetter(target: any, id: string, resourceURI: string): void;
     function endWheelTransaction(): void;
     function ensureJSOracleStarted(): void;
     function fillNonDefaultOriginAttributes(originAttrs?: OriginAttributesDictionary): OriginAttributesDictionary;

@@ -50,7 +50,6 @@ declare namespace MockedExports {
     importESModule: <S extends keyof KnownModules>(
       module: S
     ) => KnownModules[S];
-    defineModuleGetter: (target: any, variable: string, path: string) => void;
     defineESModuleGetters: (target: any, mappings: any) => void;
   }
 

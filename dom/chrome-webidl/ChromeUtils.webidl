@@ -313,6 +313,16 @@ namespace ChromeUtils {
    * Defines a getter on a specified object that will be created upon first
    * use.
    *
+   * The first time the property is accessed, |aLambda| is called, and the
+   * property is replaced with the return value.
+   *
+   * The property is defined on `this` value used to access the getter. This
+   * means that if you define the lazy getter on a prototype, the lambda will
+   * be called every time the property is accessed on a new instance.
+   *
+   * The property doesn't have setter, and the property cannot be overwritten
+   * by simple assignment.
+   *
    * @param aTarget
    *        The object to define the lazy getter on.
    * @param aName
@@ -372,6 +382,13 @@ namespace ChromeUtils {
   /**
    * Defines properties on the given target which lazily imports a ES module
    * when accessed.
+   *
+   * See defineLazyGetter for the characteristics of the lazy getter.
+   *
+   * In contrast to defineLazyGetter, the properties defined by this API
+   * has setter, and the properties can be overwritten with simple assignment.
+   * The new property value is always defined on the `this` object that the
+   * setter is called with.
    *
    * @param aTarget The target object on which to define the property.
    * @param aModules An object with a property for each module property to be
@@ -589,39 +606,6 @@ partial namespace ChromeUtils {
    */
   [Throws]
   object import(UTF8String aResourceURI, optional object aTargetObj);
-
-  /**
-   * Defines a property on the given target which lazily imports a JavaScript
-   * module when accessed.
-   *
-   * The first time the property is accessed, the module at the given URL is
-   * imported, and the property is replaced with the module's exported symbol
-   * of the same name.
-   *
-   * Some points to note when using this utility:
-   *
-   * - The cached module export is always stored on the `this` object that was
-   *   used to access the getter. This means that if you define the lazy
-   *   getter on a prototype, the module will be re-imported every time the
-   *   property is accessed on a new instance.
-   *
-   * - The getter property may be overwritten by simple assignment, but as
-   *   with imports, the new property value is always defined on the `this`
-   *   object that the setter is called with.
-   *
-   * - If the module import fails, the getter will throw an error, and the
-   *   property will not be replaced. Each subsequent attempt to access the
-   *   getter will attempt to re-import the object, which will likely continue
-   *   to result in errors.
-   *
-   * @param target The target object on which to define the property.
-   * @param id The name of the property to define, and of the symbol to
-   *           import.
-   * @param resourceURI The resource URI of the module, as passed to
-   *                    ChromeUtils.import.
-   */
-  [Throws]
-  undefined defineModuleGetter(object target, DOMString id, DOMString resourceURI);
 
   /**
    * Returns the scripted location of the first ancestor stack frame with a
