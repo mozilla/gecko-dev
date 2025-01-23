@@ -209,7 +209,7 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
   // MoveNodeResult at last.
   const RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-          WSRunScanner::Scan::EditableNodes,
+          aHTMLEditor.ComputeEditingHost(),
           EditorDOMPoint::AtEndOf(aLeftBlockElement),
           BlockInlineCheck::UseComputedDisplayStyle);
   NS_ASSERTION(
@@ -434,7 +434,7 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
   // MoveNodeResult at last.
   const RefPtr<HTMLBRElement> invisibleBRElementBeforeLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-          WSRunScanner::Scan::EditableNodes, atLeftBlockChild,
+          aHTMLEditor.ComputeEditingHost(), atLeftBlockChild,
           BlockInlineCheck::UseComputedDisplayStyle);
   NS_ASSERTION(
       aPrecedingInvisibleBRElement == invisibleBRElementBeforeLeftBlockElement,
@@ -689,7 +689,7 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
   // MoveNodeResult at last.
   const RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
-          WSRunScanner::Scan::EditableNodes,
+          aHTMLEditor.ComputeEditingHost(),
           EditorDOMPoint::AtEndOf(aLeftBlockElement),
           BlockInlineCheck::UseComputedDisplayStyle);
   NS_ASSERTION(

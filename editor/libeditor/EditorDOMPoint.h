@@ -285,11 +285,6 @@ class EditorDOMPointBase final {
   bool IsContainerElement() const { return mParent && mParent->IsElement(); }
 
   /**
-   * Returns true if the container node is an editing host.
-   */
-  [[nodiscard]] bool IsContainerEditableRoot() const;
-
-  /**
    * IsContainerHTMLElement() returns true if the container node is an HTML
    * element node and its node name is aTag.
    */

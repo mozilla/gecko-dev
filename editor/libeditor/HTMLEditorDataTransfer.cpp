@@ -501,8 +501,8 @@ HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator final {
 HTMLBRElement*
 HTMLEditor::HTMLWithContextInserter::GetInvisibleBRElementAtPoint(
     const EditorDOMPoint& aPointToInsert) const {
-  const WSRunScanner wsRunScannerAtInsertionPoint(
-      WSRunScanner::Scan::EditableNodes, aPointToInsert,
+  WSRunScanner wsRunScannerAtInsertionPoint(
+      mHTMLEditor.ComputeEditingHost(), aPointToInsert,
       BlockInlineCheck::UseComputedDisplayStyle);
   if (wsRunScannerAtInsertionPoint.EndsByInvisibleBRElement()) {
     return wsRunScannerAtInsertionPoint.EndReasonBRElementPtr();
@@ -563,14 +563,14 @@ HTMLEditor::HTMLWithContextInserter::GetNewCaretPointAfterInsertingHTML(
 
   // Make sure we don't end up with selection collapsed after an invisible
   // `<br>` element.
-  const WSRunScanner wsRunScannerAtCaret(
-      WSRunScanner::Scan::EditableNodes, pointToPutCaret,
-      BlockInlineCheck::UseComputedDisplayStyle);
+  Element* editingHost = mHTMLEditor.ComputeEditingHost();
+  WSRunScanner wsRunScannerAtCaret(editingHost, pointToPutCaret,
+                                   BlockInlineCheck::UseComputedDisplayStyle);
   if (wsRunScannerAtCaret
           .ScanPreviousVisibleNodeOrBlockBoundaryFrom(pointToPutCaret)
           .ReachedInvisibleBRElement()) {
-    const WSRunScanner wsRunScannerAtStartReason(
-        WSRunScanner::Scan::EditableNodes,
+    WSRunScanner wsRunScannerAtStartReason(
+        editingHost,
         EditorDOMPoint(wsRunScannerAtCaret.GetStartReasonContent()),
         BlockInlineCheck::UseComputedDisplayStyle);
     const WSScanResult backwardScanFromPointToCaretResult =
@@ -830,18 +830,11 @@ Result<EditActionResult, nsresult> HTMLEditor::HTMLWithContextInserter::Run(
   }
 
   // Adjust position based on the first node we are going to insert.
-  const auto candidatePointToInsert =
-      mHTMLEditor.GetFirstSelectionStartPoint<EditorRawDOMPoint>();
-  if (NS_WARN_IF(!candidatePointToInsert.IsSet()) ||
-      NS_WARN_IF(
-          !candidatePointToInsert.GetContainer()->IsInclusiveDescendantOf(
-              &mEditingHost))) {
-    return Err(NS_ERROR_FAILURE);
-  }
   EditorDOMPoint pointToInsert =
       HTMLEditUtils::GetBetterInsertionPointFor<EditorDOMPoint>(
           arrayOfTopMostChildContents[0],
-          mHTMLEditor.GetFirstSelectionStartPoint<EditorRawDOMPoint>());
+          mHTMLEditor.GetFirstSelectionStartPoint<EditorRawDOMPoint>(),
+          mEditingHost);
   if (!pointToInsert.IsSet()) {
     NS_WARNING("HTMLEditor::GetBetterInsertionPointFor() failed");
     return Err(NS_ERROR_FAILURE);
@@ -903,7 +896,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HTMLWithContextInserter::Run(
         lastInsertedPoint.inspect().NextPointOrAfterContainer();
     if (MOZ_LIKELY(afterLastInsertedContent.IsInContentNode())) {
       nsresult rv = mHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
-          afterLastInsertedContent);
+          afterLastInsertedContent, mEditingHost);
       if (NS_FAILED(rv)) {
         NS_WARNING(
             "HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");

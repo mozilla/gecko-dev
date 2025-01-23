@@ -147,7 +147,7 @@ WSRunScanner::TextFragmentData::TextFragmentData(
     return;
   }
   mStart = BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-      aScanMode, mScanStartPoint, &mNBSPData, aBlockInlineCheck,
+      mScanStartPoint, &mNBSPData, aBlockInlineCheck,
       ShouldStopAtNonEditableNode(aScanMode),
       *editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
   MOZ_ASSERT_IF(mStart.IsNonCollapsibleCharacters(),
@@ -155,7 +155,7 @@ WSRunScanner::TextFragmentData::TextFragmentData(
   MOZ_ASSERT_IF(mStart.IsPreformattedLineBreak(),
                 mStart.PointRef().IsPreviousCharPreformattedNewLine());
   mEnd = BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-      aScanMode, mScanStartPoint, &mNBSPData, aBlockInlineCheck,
+      mScanStartPoint, &mNBSPData, aBlockInlineCheck,
       ShouldStopAtNonEditableNode(aScanMode),
       *editableBlockElementOrInlineEditingHostOrNonEditableRootElement);
   MOZ_ASSERT_IF(mEnd.IsNonCollapsibleCharacters(),
@@ -230,15 +230,13 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
 template <typename EditorDOMPointType>
 WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-        Scan aScanMode, const EditorDOMPointType& aPoint,
-        NoBreakingSpaceData* aNBSPData, BlockInlineCheck aBlockInlineCheck,
+        const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+        BlockInlineCheck aBlockInlineCheck,
         StopAtNonEditableNode aStopAtNonEditableNode,
         const Element& aAncestorLimiter) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
-  MOZ_ASSERT_IF(aScanMode == Scan::EditableNodes,
-                // FIXME: Both values should be true here.
-                HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetContainer()) ==
-                    HTMLEditUtils::IsSimplyEditableNode(aAncestorLimiter));
+  MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetContainer()) ==
+             HTMLEditUtils::IsSimplyEditableNode(aAncestorLimiter));
 
   if (aPoint.IsInTextNode() && !aPoint.IsStartOfContainer()) {
     Maybe<BoundaryData> startInTextNode =
@@ -250,8 +248,8 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     // The text node does not have visible character, let's keep scanning
     // preceding nodes.
     return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-        aScanMode, EditorDOMPoint(aPoint.template ContainerAs<Text>(), 0),
-        aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
+        EditorDOMPoint(aPoint.template ContainerAs<Text>(), 0), aNBSPData,
+        aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
   }
 
   // Then, we need to check previous leaf node.
@@ -294,7 +292,6 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     // Note that even if the empty text node is preformatted, we should keep
     // looking for the previous one.
     return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-        aScanMode,
         EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0),
         aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
   }
@@ -310,8 +307,8 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
   // The text node does not have visible character, let's keep scanning
   // preceding nodes.
   return BoundaryData::ScanCollapsibleWhiteSpaceStartFrom(
-      aScanMode, EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0),
-      aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
+      EditorDOMPointInText(previousLeafContentOrBlock->AsText(), 0), aNBSPData,
+      aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
 }
 
 // static
@@ -378,15 +375,13 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
 template <typename EditorDOMPointType>
 WSRunScanner::TextFragmentData::BoundaryData
 WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-    Scan aScanMode, const EditorDOMPointType& aPoint,
-    NoBreakingSpaceData* aNBSPData, BlockInlineCheck aBlockInlineCheck,
+    const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
+    BlockInlineCheck aBlockInlineCheck,
     StopAtNonEditableNode aStopAtNonEditableNode,
     const Element& aAncestorLimiter) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
-  MOZ_ASSERT_IF(aScanMode == Scan::EditableNodes,
-                // FIXME: Both values should be true here.
-                HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetContainer()) ==
-                    HTMLEditUtils::IsSimplyEditableNode(aAncestorLimiter));
+  MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetContainer()) ==
+             HTMLEditUtils::IsSimplyEditableNode(aAncestorLimiter));
 
   if (aPoint.IsInTextNode() && !aPoint.IsEndOfContainer()) {
     Maybe<BoundaryData> endInTextNode =
@@ -398,7 +393,6 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
     // The text node does not have visible character, let's keep scanning
     // following nodes.
     return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-        aScanMode,
         EditorDOMPointInText::AtEndOf(*aPoint.template ContainerAs<Text>()),
         aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
   }
@@ -446,8 +440,8 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
     // Note that even if the empty text node is preformatted, we should keep
     // looking for the next one.
     return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-        aScanMode, EditorDOMPointInText(nextLeafContentOrBlock->AsText(), 0),
-        aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
+        EditorDOMPointInText(nextLeafContentOrBlock->AsText(), 0), aNBSPData,
+        aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
   }
 
   Maybe<BoundaryData> endInTextNode =
@@ -461,7 +455,6 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
   // The text node does not have visible character, let's keep scanning
   // following nodes.
   return BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
-      aScanMode,
       EditorDOMPointInText::AtEndOf(*nextLeafContentOrBlock->AsText()),
       aNBSPData, aBlockInlineCheck, aStopAtNonEditableNode, aAncestorLimiter);
 }

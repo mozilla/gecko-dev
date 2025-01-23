@@ -77,14 +77,6 @@ class HTMLEditUtils final {
   }
 
   /**
-   * Return true if aElement is an editing host which is either:
-   * - the root element
-   * - parent is not editable
-   * - the <body> element of the document
-   */
-  [[nodiscard]] static bool ElementIsEditableRoot(const Element& aElement);
-
-  /**
    * Return true if inclusive flat tree ancestor has `inert` state.
    */
   static bool ContentIsInert(const nsIContent& aContent);
@@ -548,7 +540,8 @@ class HTMLEditUtils final {
   template <typename PT, typename CT>
   [[nodiscard]] static bool PointIsImmediatelyBeforeCurrentBlockBoundary(
       const EditorDOMPointBase<PT, CT>& aPoint,
-      IgnoreInvisibleLineBreak aIgnoreInvisibleLineBreak);
+      IgnoreInvisibleLineBreak aIgnoreInvisibleLineBreak,
+      const Element& aEditingHost);
 
   /**
    * Return true if aRange crosses the inclusive ancestor block element at
@@ -1645,8 +1638,6 @@ class HTMLEditUtils final {
       AncestorType::ClosestBlockElement};
   constexpr static AncestorTypes ClosestEditableBlockElement = {
       AncestorType::ClosestBlockElement, AncestorType::EditableElement};
-  constexpr static AncestorTypes ClosestBlockElementExceptHRElement = {
-      AncestorType::ClosestBlockElement, AncestorType::IgnoreHRElement};
   constexpr static AncestorTypes ClosestEditableBlockElementExceptHRElement = {
       AncestorType::ClosestBlockElement, AncestorType::IgnoreHRElement,
       AncestorType::EditableElement};
@@ -2078,7 +2069,8 @@ class HTMLEditUtils final {
    */
   template <typename EditorLineBreakType, typename EditorDOMPointType>
   [[nodiscard]] static Maybe<EditorLineBreakType>
-  GetFollowingUnnecessaryLineBreak(const EditorDOMPointType& aPoint);
+  GetFollowingUnnecessaryLineBreak(const EditorDOMPointType& aPoint,
+                                   const Element& aEditingHost);
 
   /**
    * IsInTableCellSelectionMode() returns true when Gecko's editor thinks that
@@ -2372,6 +2364,7 @@ class HTMLEditUtils final {
    *
    * @param aContentToInsert    The content to insert.
    * @param aPointToInsert      A candidate point to insert the node.
+   * @param aEditingHost        The editing host containing aPointToInsert.
    * @return                    Better insertion point if next visible node
    *                            is a <br> element and previous visible node
    *                            is neither none, another <br> element nor
@@ -2380,7 +2373,8 @@ class HTMLEditUtils final {
   template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
   static EditorDOMPointType GetBetterInsertionPointFor(
       const nsIContent& aContentToInsert,
-      const EditorDOMPointTypeInput& aPointToInsert);
+      const EditorDOMPointTypeInput& aPointToInsert,
+      const Element& aEditingHost);
 
   /**
    * GetBetterCaretPositionToInsertText() returns better point to put caret
@@ -2388,7 +2382,7 @@ class HTMLEditUtils final {
    */
   template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
   static EditorDOMPointType GetBetterCaretPositionToInsertText(
-      const EditorDOMPointTypeInput& aPoint);
+      const EditorDOMPointTypeInput& aPoint, const Element& aEditingHost);
 
   /**
    * ComputePointToPutCaretInElementIfOutside() returns a good point in aElement
