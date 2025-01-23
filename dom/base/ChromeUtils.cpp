@@ -60,7 +60,6 @@
 #include "mozilla/RemoteDecoderManagerChild.h"
 #include "mozilla/KeySystemConfig.h"
 #include "mozilla/WheelHandlingHelper.h"
-#include "nsIRFPTargetSetIDL.h"
 #include "nsContentSecurityUtils.h"
 #include "nsString.h"
 #include "nsNativeTheme.h"
@@ -2445,7 +2444,7 @@ void ChromeUtils::GetAllPossibleUtilityActorNames(GlobalObject& aGlobal,
 /* static */
 bool ChromeUtils::ShouldResistFingerprinting(
     GlobalObject& aGlobal, JSRFPTarget aTarget,
-    nsIRFPTargetSetIDL* aOverriddenFingerprintingSettings,
+    const Nullable<uint64_t>& aOverriddenFingerprintingSettings,
     const Optional<bool>& aIsPBM) {
   RFPTarget target;
   switch (aTarget) {
@@ -2479,16 +2478,10 @@ bool ChromeUtils::ShouldResistFingerprinting(
     }
   }
 
-  Maybe<RFPTargetSet> overriddenFingerprintingSettings;
-  if (aOverriddenFingerprintingSettings) {
-    uint64_t low, hi;
-    aOverriddenFingerprintingSettings->GetLow(&low);
-    aOverriddenFingerprintingSettings->GetHigh(&hi);
-    std::bitset<128> bitset;
-    bitset |= hi;
-    bitset <<= 64;
-    bitset |= low;
-    overriddenFingerprintingSettings.emplace(RFPTargetSet(bitset));
+  Maybe<RFPTarget> overriddenFingerprintingSettings;
+  if (!aOverriddenFingerprintingSettings.IsNull()) {
+    overriddenFingerprintingSettings.emplace(
+        RFPTarget(aOverriddenFingerprintingSettings.Value()));
   }
 
   // This global object appears to be the global window, not for individual

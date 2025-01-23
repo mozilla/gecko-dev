@@ -146,7 +146,7 @@ struct WorkerLoadInfoData {
   bool mUsingStorageAccess;
   bool mServiceWorkersTestingInWindow;
   bool mShouldResistFingerprinting;
-  Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
+  Maybe<RFPTarget> mOverriddenFingerprintingSettings;
   OriginAttributes mOriginAttributes;
   bool mIsThirdPartyContext;
   bool mIsOn3PCBExceptionList;

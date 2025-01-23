@@ -253,10 +253,10 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
     return nullptr;
   }
 
-  Maybe<RFPTargetSet> overriddenFingerprintingSettingsArg;
+  Maybe<uint64_t> overriddenFingerprintingSettingsArg;
   if (loadInfo.mOverriddenFingerprintingSettings.isSome()) {
     overriddenFingerprintingSettingsArg.emplace(
-        loadInfo.mOverriddenFingerprintingSettings.ref());
+        uint64_t(loadInfo.mOverriddenFingerprintingSettings.ref()));
   }
 
   RemoteWorkerData remoteWorkerData(

@@ -495,21 +495,14 @@ struct ParamTraits<mozilla::EnumSet<T, U>> {
     return false;
   }
 
-  static constexpr size_t kUnderlyingWidth = [] {
-    if constexpr (std::numeric_limits<serializedType>::is_specialized) {
-      return std::numeric_limits<serializedType>::digits;
-    } else {
-      return serializedType().size();  // for std::bitset<N>
-    }
-  }();
-
   static constexpr serializedType AllEnumBits() {
-    return ~serializedType(0) >>
-           (kUnderlyingWidth - (mozilla::MaxEnumValue<T>::value + 1));
+    return ~serializedType(0) >> (std::numeric_limits<serializedType>::digits -
+                                  (mozilla::MaxEnumValue<T>::value + 1));
   }
 
   static constexpr bool IsLegalValue(const serializedType value) {
-    static_assert(mozilla::MaxEnumValue<T>::value < kUnderlyingWidth,
+    static_assert(mozilla::MaxEnumValue<T>::value <
+                      std::numeric_limits<serializedType>::digits,
                   "Enum max value is not in the range!");
     static_assert(
         std::is_unsigned<decltype(mozilla::MaxEnumValue<T>::value)>::value,
@@ -852,29 +845,6 @@ template <>
 struct ParamTraits<gfxPlatform::GlobalReflowFlags>
     : public BitFlagsEnumSerializer<gfxPlatform::GlobalReflowFlags,
                                     gfxPlatform::GlobalReflowFlags::ALL_BITS> {
-};
-
-template <size_t N>
-struct ParamTraits<std::bitset<N>> {
-  typedef std::bitset<N> paramType;
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    paramType mask(UINT64_MAX);
-    for (size_t i = 0; i < N; i += 64) {
-      uint64_t value = ((aParam >> i) & mask).to_ullong();
-      WriteParam(aWriter, value);
-    }
-  }
-
-  static bool Read(MessageReader* aReader, paramType* aResult) {
-    for (size_t i = 0; i < N; i += 64) {
-      uint64_t value = 0;
-      if (!ReadParam(aReader, &value)) {
-        return false;
-      }
-      *aResult |= std::bitset<N>(value) << i;
-    }
-    return true;
-  }
 };
 
 } /* namespace IPC */

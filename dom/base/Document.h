@@ -4200,7 +4200,7 @@ class Document : public nsINode,
   bool ShouldResistFingerprinting(RFPTarget aTarget) const;
   bool IsInPrivateBrowsing() const;
 
-  const Maybe<RFPTargetSet>& GetOverriddenFingerprintingSettings() const {
+  const Maybe<RFPTarget>& GetOverriddenFingerprintingSettings() const {
     return mOverriddenFingerprintingSettings;
   }
 
@@ -4986,7 +4986,7 @@ class Document : public nsINode,
   // This will only get populated if these is one that comes from the local
   // fingerprinting protection override pref or WebCompat. Otherwise, a value of
   // Nothing() indicates no overrides are present for this document.
-  Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
+  Maybe<RFPTarget> mOverriddenFingerprintingSettings;
 
   uint8_t mXMLDeclarationBits;
 

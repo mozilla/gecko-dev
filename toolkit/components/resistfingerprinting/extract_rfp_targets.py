@@ -38,7 +38,8 @@ def parse_targets(path):
     targets = {}
     for match in pattern.finditer(contents):
         target = match.group(1)
-        value = match.group(2)
+        value = match.group(2).replace("llu", "").replace("'", "")
+        value = value.split(" << ")
         targets[target] = value
 
     return targets
@@ -48,7 +49,15 @@ def write_targets(output, targets):
     output.write("export const Targets = {\n")
     for target, value in targets.items():
         target_w_padding = f'\t"{target}":'.ljust(45)
-        output.write(f"{target_w_padding} {value},\n")
+        if len(value) == 2:
+            # value is in the format 1 << n = ["1", "n"]
+            output.write(
+                f"{target_w_padding} BigInt({value[0]}) << BigInt({value[1]}),\n"
+            )
+        else:
+            # value is in the format 0xFFFF... = ["0xffff"]
+            output.write(f'{target_w_padding} BigInt("{value[0]}"),\n')
+
     output.write("}\n")
 
 

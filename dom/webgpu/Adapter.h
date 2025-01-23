@@ -56,9 +56,6 @@ class AdapterInfo final : public nsWrapperCache, public ChildOf<Adapter> {
       const std::shared_ptr<ffi::WGPUAdapterInformation>& aAboutSupportInfo)
       : ChildOf(aParent), mAboutSupportInfo(aAboutSupportInfo) {}
 
-  /// Changing implementation in a way that increases fingerprinting
-  /// surface? Please create a bug in [Core::Privacy: Anti
-  /// Tracking](https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Privacy%3A%20Anti-Tracking)
   void GetVendor(nsString& s) const { s = nsString(); }
   void GetArchitecture(nsString& s) const { s = nsString(); }
   void GetDevice(nsString& s) const { s = nsString(); }
@@ -105,7 +102,6 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
   const RefPtr<AdapterInfo>& Info() const;
   bool IsFallbackAdapter() const;
   bool SupportExternalTextureInSwapChain() const;
-  uint64_t MissingFeatures() const;
 
   nsCString LabelOrId() const {
     nsCString ret = this->CLabel();

@@ -4,7 +4,6 @@
 
 #include "nsISupports.idl"
 #include "nsIFingerprintingWebCompatService.idl"
-#include "nsIRFPTargetSetIDL.idl"
 
 interface nsIPrincipal;
 interface nsIChannel;
@@ -33,7 +32,7 @@ interface nsIRFPService : nsISupports
    *         scope. 0 if the overridden scope doesn't exist.
    *
    */
-  nsIRFPTargetSetIDL getFingerprintingOverrides(in ACString aDomainKey);
+  uint64_t getFingerprintingOverrides(in ACString aDomainKey);
 
   /**
    * Clean all overrides. This is for testing purpose.
@@ -43,7 +42,7 @@ interface nsIRFPService : nsISupports
   /**
    * The bitfield of the default enabled RFP Targets.
    */
-  readonly attribute nsIRFPTargetSetIDL enabledFingerprintingProtections;
+  readonly attribute uint64_t enabledFingerprintingProtections;
 
   /**
    * Clean all fingerprinting randomization keys.

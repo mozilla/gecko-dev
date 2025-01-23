@@ -77,7 +77,6 @@
 #include "nsTStringRepr.h"
 #include "nsUserCharacteristics.h"
 #include "nsXPCOM.h"
-#include "nsRFPTargetSetIDL.h"
 
 #include "nsICookieJarSettings.h"
 #include "nsICryptoHash.h"
@@ -129,22 +128,22 @@ static constexpr uint32_t kVideoDroppedRatio = 1;
 
 // Fingerprinting protections that are enabled by default. This can be
 // overridden using the privacy.fingerprintingProtection.overrides pref.
-// NOLINTBEGIN(bugprone-macro-parentheses)
 #if defined(MOZ_WIDGET_ANDROID)
-#  define ANDROID_DEFAULT(name) RFPTarget::name,
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#  define ANDROID_DEFAULT(name) RFPTarget::name |
 #  define DESKTOP_DEFAULT(name)
 #else
 #  define ANDROID_DEFAULT(name)
-#  define DESKTOP_DEFAULT(name) RFPTarget::name,
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#  define DESKTOP_DEFAULT(name) RFPTarget::name |
 #endif
 
-MOZ_RUNINIT const RFPTargetSet kDefaultFingerprintingProtections = {
+const RFPTarget kDefaultFingerprintingProtections =
 #include "RFPTargetsDefault.inc"
-};
+    static_cast<RFPTarget>(0);
 
 #undef ANDROID_DEFAULT
 #undef DESKTOP_DEFAULT
-// NOLINTEND(bugprone-macro-parentheses)
 
 static constexpr uint32_t kSuspiciousFingerprintingActivityThreshold = 1;
 
@@ -159,9 +158,7 @@ static StaticRefPtr<nsRFPService> sRFPService;
 static bool sInitialized = false;
 
 // Actually enabled fingerprinting protections.
-static StaticMutex sEnabledFingerprintingProtectionsMutex;
-MOZ_CONSTINIT static RFPTargetSet sEnabledFingerprintingProtections
-    MOZ_GUARDED_BY(sEnabledFingerprintingProtectionsMutex);
+static Atomic<RFPTarget> sEnabledFingerprintingProtections;
 
 /* static */
 already_AddRefed<nsRFPService> nsRFPService::GetOrCreate() {
@@ -302,7 +299,7 @@ bool IsJSContextCurrentlyChromePrivileged() {
 /* static */
 bool nsRFPService::IsRFPEnabledFor(
     bool aIsPrivateMode, RFPTarget aTarget,
-    const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
+    const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
     bool aSkipChromePrincipalCheck /* = false */) {
   MOZ_ASSERT(aTarget != RFPTarget::AllTargets);
 
@@ -334,11 +331,10 @@ bool nsRFPService::IsRFPEnabledFor(
     }
 
     if (aOverriddenFingerprintingSettings) {
-      return aOverriddenFingerprintingSettings.ref().contains(aTarget);
+      return bool(aOverriddenFingerprintingSettings.ref() & aTarget);
     }
 
-    StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
-    return sEnabledFingerprintingProtections.contains(aTarget);
+    return bool(sEnabledFingerprintingProtections & aTarget);
   }
 
   return false;
@@ -354,10 +350,9 @@ void nsRFPService::UpdateFPPOverrideList() {
     return;
   }
 
-  RFPTargetSet enabled = CreateOverridesFromText(
+  RFPTarget enabled = CreateOverridesFromText(
       targetOverrides, kDefaultFingerprintingProtections);
 
-  StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
   sEnabledFingerprintingProtections = enabled;
 }
 
@@ -2085,50 +2080,44 @@ nsresult nsRFPService::CreateOverrideDomainKey(
 }
 
 /* static */
-RFPTargetSet nsRFPService::CreateOverridesFromText(
-    const nsString& aOverridesText, RFPTargetSet aBaseOverrides) {
-  RFPTargetSet result = aBaseOverrides;
+RFPTarget nsRFPService::CreateOverridesFromText(const nsString& aOverridesText,
+                                                RFPTarget aBaseOverrides) {
+  RFPTarget result = aBaseOverrides;
 
   for (const nsAString& each : aOverridesText.Split(',')) {
     Maybe<RFPTarget> mappedValue =
         nsRFPService::TextToRFPTarget(Substring(each, 1, each.Length() - 1));
-    if (mappedValue.isNothing()) {
+    if (mappedValue.isSome()) {
+      RFPTarget target = mappedValue.value();
+      if (target == RFPTarget::IsAlwaysEnabledForPrecompute) {
+        MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
+                ("RFPTarget::%s is not a valid value",
+                 NS_ConvertUTF16toUTF8(each).get()));
+      } else if (each[0] == '+') {
+        result |= target;
+        MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
+                ("Mapped value %s (0x%" PRIx64
+                 "), to an addition, now we have 0x%" PRIx64,
+                 NS_ConvertUTF16toUTF8(each).get(), uint64_t(target),
+                 uint64_t(result)));
+      } else if (each[0] == '-') {
+        result &= ~target;
+        MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
+                ("Mapped value %s (0x%" PRIx64
+                 ") to a subtraction, now we have 0x%" PRIx64,
+                 NS_ConvertUTF16toUTF8(each).get(), uint64_t(target),
+                 uint64_t(result)));
+      } else {
+        MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
+                ("Mapped value %s (0x%" PRIx64
+                 ") to an RFPTarget Enum, but the first "
+                 "character wasn't + or -",
+                 NS_ConvertUTF16toUTF8(each).get(), uint64_t(target)));
+      }
+    } else {
       MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
               ("Could not map the value %s to an RFPTarget Enum",
                NS_ConvertUTF16toUTF8(each).get()));
-      continue;
-    }
-    RFPTarget target = mappedValue.value();
-    RFPTargetSet targetSet = RFPTargetSet(target);
-    if (target == RFPTarget::AllTargets) {
-      std::bitset<128> allTargets;
-      allTargets.set();
-      targetSet = RFPTargetSet(allTargets);
-    }
-    if (target == RFPTarget::IsAlwaysEnabledForPrecompute) {
-      MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
-              ("RFPTarget::%s is not a valid value",
-               NS_ConvertUTF16toUTF8(each).get()));
-    } else if (each[0] == '+') {
-      result += targetSet;
-      MOZ_LOG(
-          gResistFingerprintingLog, LogLevel::Warning,
-          ("Mapped value %s (0x%" PRIx64 "), to an addition, now we have %s",
-           NS_ConvertUTF16toUTF8(each).get(), uint64_t(target),
-           result.serialize().to_string().c_str()));
-    } else if (each[0] == '-') {
-      result -= targetSet;
-      MOZ_LOG(
-          gResistFingerprintingLog, LogLevel::Warning,
-          ("Mapped value %s (0x%" PRIx64 ") to a subtraction, now we have %s",
-           NS_ConvertUTF16toUTF8(each).get(), uint64_t(target),
-           result.serialize().to_string().c_str()));
-    } else {
-      MOZ_LOG(gResistFingerprintingLog, LogLevel::Warning,
-              ("Mapped value %s (0x%" PRIx64
-               ") to an RFPTarget Enum, but the first "
-               "character wasn't + or -",
-               NS_ConvertUTF16toUTF8(each).get(), target));
     }
   }
 
@@ -2155,8 +2144,7 @@ nsRFPService::SetFingerprintingOverrides(
     rv = fpOverride->GetOverrides(overridesText);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
-    RFPTargetSet targets = nsRFPService::CreateOverridesFromText(
+    RFPTarget targets = nsRFPService::CreateOverridesFromText(
         NS_ConvertUTF8toUTF16(overridesText),
         mFingerprintingOverrides.Contains(domainKey)
             ? mFingerprintingOverrides.Get(domainKey)
@@ -2179,32 +2167,25 @@ nsRFPService::SetFingerprintingOverrides(
 }
 
 NS_IMETHODIMP
-nsRFPService::GetEnabledFingerprintingProtections(
-    nsIRFPTargetSetIDL** aProtections) {
-  StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
-  RFPTargetSet enabled = sEnabledFingerprintingProtections;
+nsRFPService::GetEnabledFingerprintingProtections(uint64_t* aProtections) {
+  RFPTarget enabled = sEnabledFingerprintingProtections;
 
-  nsCOMPtr<nsIRFPTargetSetIDL> protections = new nsRFPTargetSetIDL(enabled);
-  protections.forget(aProtections);
-
+  *aProtections = uint64_t(enabled);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsRFPService::GetFingerprintingOverrides(const nsACString& aDomainKey,
-                                         nsIRFPTargetSetIDL** aOverrides) {
+                                         uint64_t* aOverrides) {
   MOZ_ASSERT(XRE_IsParentProcess());
 
-  Maybe<RFPTargetSet> overrides = mFingerprintingOverrides.MaybeGet(aDomainKey);
+  Maybe<RFPTarget> overrides = mFingerprintingOverrides.MaybeGet(aDomainKey);
 
   if (!overrides) {
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsIRFPTargetSetIDL> protections =
-      new nsRFPTargetSetIDL(overrides.ref());
-  protections.forget(aOverrides);
-
+  *aOverrides = uint64_t(overrides.ref());
   return NS_OK;
 }
 
@@ -2216,7 +2197,7 @@ nsRFPService::CleanAllOverrides() {
 }
 
 /* static */
-Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForChannel(
+Maybe<RFPTarget> nsRFPService::GetOverriddenFingerprintingSettingsForChannel(
     nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel);
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -2348,7 +2329,7 @@ Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForChannel(
 }
 
 /* static */
-Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
+Maybe<RFPTarget> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
     nsIURI* aFirstPartyURI, nsIURI* aThirdPartyURI) {
   MOZ_ASSERT(aFirstPartyURI);
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -2364,8 +2345,7 @@ Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
   // scope.
 
   // First, we get the overrides that applies to every context.
-  Maybe<RFPTargetSet> result =
-      service->mFingerprintingOverrides.MaybeGet("*"_ns);
+  Maybe<RFPTarget> result = service->mFingerprintingOverrides.MaybeGet("*"_ns);
 
   RefPtr<nsEffectiveTLDService> eTLDService =
       nsEffectiveTLDService::GetInstance();
@@ -2393,7 +2373,7 @@ Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
     key.Append(FP_OVERRIDES_DOMAIN_KEY_DELIMITER);
     key.Append("*");
 
-    Maybe<RFPTargetSet> fpOverrides =
+    Maybe<RFPTarget> fpOverrides =
         service->mFingerprintingOverrides.MaybeGet(key);
     if (fpOverrides) {
       result = fpOverrides;
@@ -2428,7 +2408,7 @@ Maybe<RFPTargetSet> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
   key.Assign(firstPartyDomain);
   key.Append(FP_OVERRIDES_DOMAIN_KEY_DELIMITER);
   key.Append("*");
-  Maybe<RFPTargetSet> fpOverrides =
+  Maybe<RFPTarget> fpOverrides =
       service->mFingerprintingOverrides.MaybeGet(key);
   if (fpOverrides) {
     result = fpOverrides;

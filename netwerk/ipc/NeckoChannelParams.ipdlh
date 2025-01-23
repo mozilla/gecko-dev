@@ -44,7 +44,6 @@ using mozilla::dom::FeaturePolicyInfo from "mozilla/dom/FeaturePolicy.h";
 using nsILoadInfo::HTTPSUpgradeTelemetryType from "nsILoadInfo.h";
 using nsILoadInfo::SchemelessInputType from "nsILoadInfo.h";
 using mozilla::dom::UserNavigationInvolvement from "mozilla/dom/UserNavigationInvolvement.h";
-using mozilla::RFPTargetSet from "nsRFPService.h";
 
 namespace mozilla {
 namespace net {
@@ -196,7 +195,7 @@ struct LoadInfoArgs
   uint32_t                    requestBlockingReason;
   CSPInfo?                    cspToInheritInfo;
   StoragePermissionState      storagePermission;
-  RFPTargetSet?              overriddenFingerprintingSettings;
+  uint64_t?                   overriddenFingerprintingSettings;
   bool                        isMetaRefresh;
   CrossOriginEmbedderPolicy   loadingEmbedderPolicy;
   bool                        originTrialCoepCredentiallessEnabledForTopLevel;
@@ -287,7 +286,7 @@ struct ParentLoadInfoForwarderArgs
 
   StoragePermissionState storagePermission;
 
-  RFPTargetSet? overriddenFingerprintingSettings;
+  uint64_t? overriddenFingerprintingSettings;
 
   bool isMetaRefresh;
 

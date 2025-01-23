@@ -52,8 +52,6 @@ class EnumSet {
     }
   }
 
-  constexpr explicit EnumSet(Serialized aValue) : mBitField(aValue) {}
-
 #ifdef DEBUG
   constexpr EnumSet(const EnumSet& aEnumSet) : mBitField(aEnumSet.mBitField) {}
 
@@ -323,12 +321,7 @@ class EnumSet {
   }
 
   constexpr bool HasBitAt(size_t aPos) const {
-    if constexpr (std::is_unsigned_v<Serialized>) {
-      return mBitField & BitAt(aPos);
-    } else {
-      // for std::bitset and mozilla::BitSet
-      return mBitField.test(aPos);
-    }
+    return static_cast<bool>(mBitField & BitAt(aPos));
   }
 
   constexpr void IncVersion() {
@@ -341,7 +334,7 @@ class EnumSet {
     if constexpr (std::is_unsigned_v<Serialized>) {
       return sizeof(Serialized) * 8;
     } else {
-      return Serialized().size();
+      return Serialized::Size();
     }
   }
 

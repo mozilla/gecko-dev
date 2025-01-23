@@ -120,9 +120,6 @@ interface GPUAdapter {
 
     [Throws]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
-
-    [Func="nsRFPService::IsSystemPrincipalOrAboutFingerprintingProtection"]
-    readonly attribute unsigned long long missingFeatures;
 };
 
 dictionary GPUDeviceDescriptor
