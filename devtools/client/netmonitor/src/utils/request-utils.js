@@ -239,6 +239,12 @@ function getUrlQuery(url) {
  * @return {string} unicode basename and query portions of a url
  */
 function getUrlBaseNameWithQuery(url) {
+  if (url.startsWith("data:")) {
+    // For data URIs, no basename can be extracted from the URL so just reuse
+    // the full url.
+    return url;
+  }
+
   const basename = getUrlBaseName(url);
   const search = getUrlProperty(url, "search");
   return basename + getUnicodeUrlPath(search);
@@ -756,7 +762,6 @@ module.exports = {
   getResponseTime,
   getStartTime,
   getUrlBaseName,
-  getUrlBaseNameWithQuery,
   getUrlDetails,
   getUrlHost,
   getUrlHostName,

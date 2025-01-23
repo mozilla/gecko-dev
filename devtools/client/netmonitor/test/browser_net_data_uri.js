@@ -36,6 +36,11 @@ add_task(async function test_navigation_to_data_uri() {
     "data",
     "The scheme in the displayed request is correct"
   );
+  is(
+    firstItem.querySelector(".requests-list-file").innerText,
+    URL,
+    "The file in the displayed request is correct"
+  );
   ok(hasValidSize(firstItem), "The request shows a valid size");
 
   await teardown(monitor);
@@ -78,6 +83,11 @@ add_task(async function test_content_request_to_data_uri() {
     firstItem.querySelector(".requests-list-scheme").innerText,
     "data",
     "The scheme in the displayed request is correct"
+  );
+  is(
+    firstItem.querySelector(".requests-list-file").innerText,
+    IMAGE_URL,
+    "The file in the displayed request is correct"
   );
   ok(hasValidSize(firstItem), "The request shows a valid size");
 
