@@ -112,38 +112,8 @@ static LazyLogModule gJSCLLog("JSModuleLoader");
   "%s - Symbol '%s' accessed before initialization. Cyclic import?"
 
 static constexpr char JSM_Suffix[] = ".jsm";
-static constexpr size_t JSM_SuffixLength = std::size(JSM_Suffix) - 1;
-static constexpr char JSM_JS_Suffix[] = ".jsm.js";
-static constexpr size_t JSM_JS_SuffixLength = std::size(JSM_JS_Suffix) - 1;
-static constexpr char JS_Suffix[] = ".js";
-static constexpr size_t JS_SuffixLength = std::size(JS_Suffix) - 1;
 static constexpr char MJS_Suffix[] = ".sys.mjs";
 static constexpr size_t MJS_SuffixLength = std::size(MJS_Suffix) - 1;
-
-static bool IsJSM(const nsACString& aLocation) {
-  if (aLocation.Length() < JSM_SuffixLength) {
-    return false;
-  }
-  const auto ext = Substring(aLocation, aLocation.Length() - JSM_SuffixLength);
-  return ext == JSM_Suffix;
-}
-
-static bool IsJS(const nsACString& aLocation) {
-  if (aLocation.Length() < JS_SuffixLength) {
-    return false;
-  }
-  const auto ext = Substring(aLocation, aLocation.Length() - JS_SuffixLength);
-  return ext == JS_Suffix;
-}
-
-static bool IsJSM_JS(const nsACString& aLocation) {
-  if (aLocation.Length() < JSM_JS_SuffixLength) {
-    return false;
-  }
-  const auto ext =
-      Substring(aLocation, aLocation.Length() - JSM_JS_SuffixLength);
-  return ext == JSM_JS_Suffix;
-}
 
 static bool IsMJS(const nsACString& aLocation) {
   if (aLocation.Length() < MJS_SuffixLength) {
@@ -157,28 +127,6 @@ static void MJSToJSM(const nsACString& aLocation, nsAutoCString& aOut) {
   MOZ_ASSERT(IsMJS(aLocation));
   aOut = Substring(aLocation, 0, aLocation.Length() - MJS_SuffixLength);
   aOut += JSM_Suffix;
-}
-
-static bool TryToMJS(const nsACString& aLocation, nsAutoCString& aOut) {
-  if (IsJSM(aLocation)) {
-    aOut = Substring(aLocation, 0, aLocation.Length() - JSM_SuffixLength);
-    aOut += MJS_Suffix;
-    return true;
-  }
-
-  if (IsJSM_JS(aLocation)) {
-    aOut = Substring(aLocation, 0, aLocation.Length() - JSM_JS_SuffixLength);
-    aOut += MJS_Suffix;
-    return true;
-  }
-
-  if (IsJS(aLocation)) {
-    aOut = Substring(aLocation, 0, aLocation.Length() - JS_SuffixLength);
-    aOut += MJS_Suffix;
-    return true;
-  }
-
-  return false;
 }
 
 static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
@@ -1393,25 +1341,6 @@ nsresult mozJSModuleLoader::IsModuleLoaded(const nsACString& aLocation,
   if (mImports.Get(info.Key())) {
     *retval = true;
     return NS_OK;
-  }
-
-  if (mModuleLoader) {
-    nsAutoCString mjsLocation;
-    if (!TryToMJS(aLocation, mjsLocation)) {
-      *retval = false;
-      return NS_OK;
-    }
-
-    ModuleLoaderInfo mjsInfo(mjsLocation);
-
-    nsresult rv = mjsInfo.EnsureURI();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (mModuleLoader->IsModuleFetched(
-            JS::loader::ModuleMapKey(mjsInfo.URI(), ModuleType::JavaScript))) {
-      *retval = true;
-      return NS_OK;
-    }
   }
 
   *retval = false;
