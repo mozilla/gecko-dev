@@ -352,10 +352,13 @@ macro_rules! try_parse_one {
                 // https://drafts.csswg.org/css-animations-2/#animation-shorthand
                 //
                 // Note: animation-timeline is not serialized for now because it is always the
-                // initial value in this loop.
+                // initial value in this loop. Therefore, animation-duration is always resolved as
+                // 0s if it is auto because animation-timeline is the initial value, i.e.
+                // time-driven animations. In conclusion, we don't serialize animation-duration if
+                // it is auto (for specified value) or if it is 0s (for resolved value).
+                // https://drafts.csswg.org/css-animations-2/#animation-duration
                 let has_duration = !self.animation_duration.0[i].is_auto()
-                    && (static_prefs::pref!("layout.css.scroll-driven-animations.enabled")
-                        || !self.animation_duration.0[i].is_zero());
+                    && !self.animation_duration.0[i].is_zero();
                 let has_timing_function = !self.animation_timing_function.0[i].is_ease();
                 let has_delay = !self.animation_delay.0[i].is_zero();
                 let has_iteration_count = !self.animation_iteration_count.0[i].is_one();
