@@ -12,6 +12,10 @@ async function test_blankPage(
   responseStatus,
   responseStatusText
 ) {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.http.blank_page_with_error_response.enabled", false]],
+  });
+
   let browser;
   let pageLoaded;
   const uri = `${page}?status=${encodeURIComponent(
@@ -56,6 +60,7 @@ async function test_blankPage(
   );
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  await SpecialPowers.popPrefEnv();
 }
 
 add_task(async function test_blankPage_4xx() {
