@@ -308,6 +308,7 @@ class nsParser final : public nsIParser,
   nsCString mCommandStr;
 
   bool mProcessingNetworkData;
+  bool mOnStopPending;
   bool mIsAboutBlank;
 };
 
