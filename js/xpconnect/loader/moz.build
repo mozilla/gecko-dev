@@ -43,7 +43,6 @@ EXPORTS.mozilla.dom += [
 EXPORTS.mozilla.loader += [
     "AutoMemMap.h",
     "ScriptCacheActors.h",
-    "SkipCheckForBrokenURLOrZeroSized.h",
     "SyncModuleLoader.h",
 ]
 

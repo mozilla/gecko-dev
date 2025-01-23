@@ -823,19 +823,9 @@ nsJARChannel::SetContentLength(int64_t aContentLength) {
 }
 
 static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
-                                  nsresult aStatus, bool aCanceled,
-                                  nsILoadInfo* aLoadInfo) {
+                                  nsresult aStatus, bool aCanceled) {
   if (!StaticPrefs::network_jar_record_failure_reason()) {
     return;
-  }
-
-  if (aLoadInfo) {
-    bool shouldSkipCheckForBrokenURLOrZeroSized;
-    MOZ_ALWAYS_SUCCEEDS(aLoadInfo->GetShouldSkipCheckForBrokenURLOrZeroSized(
-        &shouldSkipCheckForBrokenURLOrZeroSized));
-    if (shouldSkipCheckForBrokenURLOrZeroSized) {
-      return;
-    }
   }
 
   // The Legacy Telemetry event can only hold 80 characters.
@@ -1081,7 +1071,7 @@ nsJARChannel::Open(nsIInputStream** aStream) {
 
   auto recordEvent = MakeScopeExit([&] {
     if (mContentLength <= 0 || NS_FAILED(rv)) {
-      RecordZeroLengthEvent(true, mSpec, rv, mCanceled, mLoadInfo);
+      RecordZeroLengthEvent(true, mSpec, rv, mCanceled);
     }
   });
 
@@ -1303,7 +1293,7 @@ nsJARChannel::OnStopRequest(nsIRequest* req, nsresult status) {
 
   if (mListener) {
     if (!mOnDataCalled || NS_FAILED(status)) {
-      RecordZeroLengthEvent(false, mSpec, status, mCanceled, mLoadInfo);
+      RecordZeroLengthEvent(false, mSpec, status, mCanceled);
     }
 
     mListener->OnStopRequest(this, status);

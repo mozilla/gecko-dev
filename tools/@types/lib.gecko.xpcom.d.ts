@@ -9985,7 +9985,6 @@ interface nsILoadInfo extends nsISupports, Enums<typeof nsILoadInfo.StoragePermi
   isMediaRequest: boolean;
   isMediaInitialRequest: boolean;
   isFromObjectOrEmbed: boolean;
-  readonly shouldSkipCheckForBrokenURLOrZeroSized: boolean;
   unstrippedURI: nsIURI;
   hasInjectedCookieForCookieBannerHandling: boolean;
   schemelessInput: nsILoadInfo.SchemelessInputType;

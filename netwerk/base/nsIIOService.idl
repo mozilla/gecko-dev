@@ -142,7 +142,6 @@ interface nsIIOService : nsISupports
                                                       in unsigned long aSecurityFlags,
                                                       in nsContentPolicyType aContentPolicyType,
                                                       in unsigned long aSandboxFlags,
-                                                      in boolean aSkipCheckForBrokenURLOrZeroSized,
                                                       out nsIChannel aResult);
 
     /**
