@@ -1213,14 +1213,12 @@ class HTMLEditor final : public EditorBase,
    *
    * @param aMailCiteElement    The mail-cite element which should be split.
    * @param aPointToSplit       The point to split.
-   * @param aEditingHost        The editing host.
    * @return                    Candidate caret position where is at inserted
    *                            <br> element into the split point.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
   HandleInsertParagraphInMailCiteElement(Element& aMailCiteElement,
-                                         const EditorDOMPoint& aPointToSplit,
-                                         const Element& aEditingHost);
+                                         const EditorDOMPoint& aPointToSplit);
 
   /**
    * HandleInsertBRElement() inserts a <br> element into aPointToBreak.
@@ -1657,7 +1655,7 @@ class HTMLEditor final : public EditorBase,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateLineBreakResult, nsresult>
   InsertPaddingBRElementToMakeEmptyLineVisibleIfNeeded(
-      const EditorDOMPoint& aPointToInsert, const Element& aEditingHost);
+      const EditorDOMPoint& aPointToInsert);
 
   /**
    * Insert a padding <br> if aPoint is in an empty block.
@@ -3400,12 +3398,10 @@ class HTMLEditor final : public EditorBase,
    *                                    content.
    *                                    If you deleted something, this should be
    *                                    end of the deleted range.
-   * @param aEditingHost                The editing host.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   EnsureNoFollowingUnnecessaryLineBreak(
-      const EditorDOMPoint& aNextOrAfterModifiedPoint,
-      const Element& aEditingHost);
+      const EditorDOMPoint& aNextOrAfterModifiedPoint);
 
   /**
    * IndentAsSubAction() indents the content around Selection.
@@ -3455,8 +3451,7 @@ class HTMLEditor final : public EditorBase,
   template <size_t N>
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SetInlinePropertiesAroundRanges(
       AutoClonedRangeArray& aRanges,
-      const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet,
-      const Element& aEditingHost);
+      const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet);
 
   /**
    * RemoveInlinePropertiesAsSubAction() removes specified styles from
