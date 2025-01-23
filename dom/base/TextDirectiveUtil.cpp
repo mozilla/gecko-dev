@@ -271,6 +271,150 @@ Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
   }
 }
 
+/* static */ RangeBoundary
+TextDirectiveUtil::MoveBoundaryToNextNonWhitespacePosition(
+    const RangeBoundary& aRangeBoundary) {
+  MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
+  nsINode* node = aRangeBoundary.Container();
+  uint32_t offset =
+      *aRangeBoundary.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+  while (node) {
+    if (TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree(*node) ||
+        !TextDirectiveUtil::NodeIsVisibleTextNode(*node) ||
+        offset == node->Length()) {
+      nsINode* newNode = node->GetNextNode();
+      if (!newNode) {
+        // jjaschke: I don't see a situation where this could happen. However,
+        // let's return the original range boundary as fallback.
+        return aRangeBoundary;
+      }
+      node = newNode;
+      offset = 0;
+      continue;
+    }
+    const Text* text = Text::FromNode(node);
+    MOZ_ASSERT(text);
+    if (TextDirectiveUtil::IsWhitespaceAtPosition(text, offset)) {
+      ++offset;
+      continue;
+    }
+    return {node, offset};
+  }
+  MOZ_ASSERT_UNREACHABLE("All code paths must return in the loop.");
+  return {};
+}
+
+/* static */ RangeBoundary
+TextDirectiveUtil::MoveBoundaryToPreviousNonWhitespacePosition(
+    const RangeBoundary& aRangeBoundary) {
+  MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
+  nsINode* node = aRangeBoundary.Container();
+  uint32_t offset =
+      *aRangeBoundary.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
+  // Decrement offset by one so that the actual previous character is used. This
+  // means that we need to increment the offset by 1 when we have found the
+  // non-whitespace character.
+  while (node) {
+    if (TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree(*node) ||
+        !TextDirectiveUtil::NodeIsVisibleTextNode(*node) || offset == 0) {
+      nsIContent* newNode = node->GetPrevNode();
+      if (!newNode) {
+        // jjaschke: I don't see a situation where this could happen. However,
+        // let's return the original range boundary as fallback.
+        return aRangeBoundary;
+      }
+      node = newNode;
+      offset = node->Length();
+      continue;
+    }
+    const Text* text = Text::FromNode(node);
+    MOZ_ASSERT(text);
+    if (TextDirectiveUtil::IsWhitespaceAtPosition(text, offset - 1)) {
+      --offset;
+      continue;
+    }
+    return {node, offset};
+  }
+  MOZ_ASSERT_UNREACHABLE("All code paths must return in the loop.");
+  return {};
+}
+
+/* static */ Result<RangeBoundary, ErrorResult>
+TextDirectiveUtil::FindNextBlockBoundary(const RangeBoundary& aRangeBoundary,
+                                         TextScanDirection aDirection) {
+  MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
+  auto findNextBlockBoundaryInternal =
+      [aDirection](const RangeBoundary& rangeBoundary)
+      -> Result<RangeBoundary, ErrorResult> {
+    PeekOffsetOptions options = {
+        PeekOffsetOption::JumpLines, PeekOffsetOption::StopAtScroller,
+        PeekOffsetOption::IsKeyboardSelect, PeekOffsetOption::Extend};
+    return SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+               rangeBoundary,
+               aDirection == TextScanDirection::Left ? nsDirection::eDirPrevious
+                                                     : nsDirection::eDirNext,
+               CaretAssociationHint::After,
+               intl::BidiEmbeddingLevel::DefaultLTR(),
+               nsSelectionAmount::eSelectParagraph, options)
+        .mapErr([](nsresult rv) { return ErrorResult(rv); });
+  };
+  auto maybeNewBoundary = findNextBlockBoundaryInternal(aRangeBoundary);
+  if (MOZ_UNLIKELY(maybeNewBoundary.isErr())) {
+    return maybeNewBoundary.propagateErr();
+  }
+  auto newBoundary = maybeNewBoundary.unwrap();
+  while (NormalizedRangeBoundariesAreEqual(aRangeBoundary, newBoundary)) {
+    maybeNewBoundary = findNextBlockBoundaryInternal(newBoundary);
+    if (MOZ_UNLIKELY(maybeNewBoundary.isErr())) {
+      return maybeNewBoundary.propagateErr();
+    }
+    if (maybeNewBoundary.inspect() == newBoundary) {
+      return newBoundary;  // we reached the end or so?
+    }
+    newBoundary = maybeNewBoundary.unwrap();
+  }
+  return newBoundary;
+}
+
+/* static */ Result<Maybe<RangeBoundary>, ErrorResult>
+TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
+                                            TextScanDirection aDirection) {
+  if (aRange.Collapsed()) {
+    return Result<Maybe<RangeBoundary>, ErrorResult>(Nothing{});
+  }
+  if (aDirection == TextScanDirection::Right) {
+    Result<RangeBoundary, ErrorResult> maybeBoundary =
+        FindNextBlockBoundary(aRange.StartRef(), TextScanDirection::Right);
+    if (MOZ_UNLIKELY(maybeBoundary.isErr())) {
+      return maybeBoundary.propagateErr();
+    }
+    RangeBoundary boundary = maybeBoundary.unwrap();
+
+    Maybe<int32_t> compare =
+        nsContentUtils::ComparePoints(boundary, aRange.EndRef());
+    if (!compare || *compare != -1) {
+      // *compare == -1 means that the found block boundary is after the range
+      // end, and therefore outside of the range.
+      return Result<Maybe<RangeBoundary>, ErrorResult>(Nothing{});
+    }
+
+    return Some(boundary);
+  }
+  Result<RangeBoundary, ErrorResult> maybeBoundary =
+      FindNextBlockBoundary(aRange.EndRef(), TextScanDirection::Left);
+  if (MOZ_UNLIKELY(maybeBoundary.isErr())) {
+    return maybeBoundary.propagateErr();
+  }
+  RangeBoundary boundary = maybeBoundary.unwrap();
+  auto compare = nsContentUtils::ComparePoints(aRange.StartRef(), boundary);
+  if (!compare || *compare != -1) {
+    // *compare == 1 means that the found block boundary is before the range
+    // start boundary, and therefore outside of the range.
+    return Result<Maybe<RangeBoundary>, ErrorResult>(Nothing{});
+  }
+  return Some(boundary);
+}
+
 /* static */ bool TextDirectiveUtil::NormalizedRangeBoundariesAreEqual(
     const RangeBoundary& aRangeBoundary1,
     const RangeBoundary& aRangeBoundary2) {
