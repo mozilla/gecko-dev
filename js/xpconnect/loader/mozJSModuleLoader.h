@@ -86,10 +86,6 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
   static mozJSModuleLoader* GetDevToolsLoader() { return sDevToolsLoader; }
   static mozJSModuleLoader* GetOrCreateDevToolsLoader(JSContext* aCx);
 
-  nsresult ImportInto(const nsACString& aResourceURI,
-                      JS::HandleValue aTargetObj, JSContext* aCx, uint8_t aArgc,
-                      JS::MutableHandleValue aRetval);
-
   // Load a JSM.
   nsresult Import(JSContext* aCx, const nsACString& aResourceURI,
                   JS::MutableHandleObject aModuleGlobal,
@@ -181,9 +177,6 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
       JS::SourceText<mozilla::Utf8Unit>& aSource, bool aIsModule);
   static JSScript* InstantiateStencil(JSContext* aCx, JS::Stencil* aStencil,
                                       bool aIsModule);
-
-  nsresult ImportInto(const nsACString& aLocation, JS::HandleObject targetObj,
-                      JSContext* callercx, JS::MutableHandleObject vp);
 
   class ModuleEntry {
    public:

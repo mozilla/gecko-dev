@@ -288,16 +288,6 @@ declare namespace MockedExports {
   }
 
   interface Cu {
-    /**
-     * This function reads the KnownModules and resolves which import to use.
-     * If you are getting the TS2345 error:
-     *
-     *  Argument of type '"resource:///.../file.jsm"' is not assignable to parameter
-     *  of type
-     *
-     * Then add the file path to the KnownModules above.
-     */
-    import: <S extends keyof KnownModules>(module: S) => KnownModules[S];
     exportFunction: (fn: Function, scope: object, options?: object) => void;
     cloneInto: (value: any, scope: object, options?: object) => void;
     isInAutomation: boolean;

@@ -304,40 +304,6 @@ interface nsIXPCComponents_Utils : nsISupports
     [implicit_jscontext]
     void setSandboxMetadata(in jsval sandbox, in jsval metadata);
 
-    /*
-     * import is designed to be called from JavaScript only.
-     *
-     * Synchronously loads and evaluates the js file located at
-     * 'registryLocation' with a new, fully privileged global object.
-     *
-     * If 'targetObj' is specified and equal to null, returns the
-     * module's global object. Otherwise (if 'targetObj' is not
-     * specified, or 'targetObj' is != null) looks for a property
-     * 'EXPORTED_SYMBOLS' on the new global object. 'EXPORTED_SYMBOLS'
-     * is expected to be an array of strings identifying properties on
-     * the global object.  These properties will be installed as
-     * properties on 'targetObj', or, if 'targetObj' is not specified,
-     * on the caller's global object. If 'EXPORTED_SYMBOLS' is not
-     * found, an error is thrown.
-     *
-     * @param resourceURI A resource:// URI string to load the module from.
-     * @param targetObj  the object to install the exported properties on.
-     *        If this parameter is a primitive value, this method throws
-     *        an exception.
-     * @returns the module code's global object.
-     *
-     * The implementation maintains a hash of registryLocation->global obj.
-     * Subsequent invocations of importModule with 'registryLocation'
-     * pointing to the same file will not cause the module to be re-evaluated,
-     * but the symbols in EXPORTED_SYMBOLS will be exported into the
-     * specified target object and the global object returned as above.
-     *
-     * TODO: Remove this once m-c, c-c, and out-of-tree code migrations finish
-     *       (bug 1776175, bug 1881888).
-     */
-    [implicit_jscontext,optional_argc]
-    jsval import(in AUTF8String aResourceURI, [optional] in jsval targetObj);
-
     /**
      * Returns true if the ESM is loaded into the system global previously via
      * the ChromeUtils.importESModule method etc. Returns false otherwise.

@@ -1526,20 +1526,6 @@ nsXPCComponents_Utils::SetSandboxMetadata(HandleValue sandboxVal,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::Import(const nsACString& registryLocation,
-                              HandleValue targetObj, JSContext* cx,
-                              uint8_t optionalArgc, MutableHandleValue retval) {
-  RefPtr moduleloader = mozJSModuleLoader::Get();
-  MOZ_ASSERT(moduleloader);
-
-  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("nsXPCComponents_Utils::Import", OTHER,
-                                        registryLocation);
-
-  return moduleloader->ImportInto(registryLocation, targetObj, cx, optionalArgc,
-                                  retval);
-}
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::IsESModuleLoaded(const nsACString& aResourceURI,
                                         bool* retval) {
   RefPtr moduleloader = mozJSModuleLoader::Get();

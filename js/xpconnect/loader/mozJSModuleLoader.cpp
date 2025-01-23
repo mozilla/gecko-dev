@@ -99,8 +99,6 @@ static LazyLogModule gJSCLLog("JSModuleLoader");
 #define LOG(args) MOZ_LOG(gJSCLLog, mozilla::LogLevel::Debug, args)
 
 // Components.utils.import error messages
-#define ERROR_SCOPE_OBJ "%s - Second argument must be an object."
-#define ERROR_NO_TARGET_OBJECT "%s - Couldn't find target object for import."
 #define ERROR_NOT_PRESENT "%s - EXPORTED_SYMBOLS is not present."
 #define ERROR_NOT_AN_ARRAY "%s - EXPORTED_SYMBOLS is not an array."
 #define ERROR_GETTING_ARRAY_LENGTH \
@@ -178,27 +176,6 @@ class MOZ_STACK_CLASS JSCLContextHelper {
   JSCLContextHelper(const JSCLContextHelper&) = delete;
   const JSCLContextHelper& operator=(const JSCLContextHelper&) = delete;
 };
-
-static nsresult MOZ_FORMAT_PRINTF(2, 3)
-    ReportOnCallerUTF8(JSContext* callerContext, const char* format, ...) {
-  if (!callerContext) {
-    return NS_ERROR_FAILURE;
-  }
-
-  va_list ap;
-  va_start(ap, format);
-
-  UniqueChars buf = JS_vsmprintf(format, ap);
-  if (!buf) {
-    va_end(ap);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  JS_ReportErrorUTF8(callerContext, "%s", buf.get());
-
-  va_end(ap);
-  return NS_OK;
-}
 
 NS_IMPL_ISUPPORTS(mozJSModuleLoader, nsIMemoryReporter)
 
@@ -1256,59 +1233,6 @@ JSScript* mozJSModuleLoader::InstantiateStencil(JSContext* aCx,
   return JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil);
 }
 
-nsresult mozJSModuleLoader::ImportInto(const nsACString& registryLocation,
-                                       HandleValue targetValArg, JSContext* cx,
-                                       uint8_t optionalArgc,
-                                       MutableHandleValue retval) {
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
-
-  RootedValue targetVal(cx, targetValArg);
-  RootedObject targetObject(cx, nullptr);
-
-  if (optionalArgc) {
-    // The caller passed in the optional second argument. Get it.
-    if (targetVal.isObject()) {
-      // If we're passing in something like a content DOM window, chances
-      // are the caller expects the properties to end up on the object
-      // proper and not on the Xray holder. This is dubious, but can be used
-      // during testing. Given that dumb callers can already leak JSMs into
-      // content by passing a raw content JS object (where Xrays aren't
-      // possible), we aim for consistency here. Waive xray.
-      if (WrapperFactory::IsXrayWrapper(&targetVal.toObject()) &&
-          !WrapperFactory::WaiveXrayAndWrap(cx, &targetVal)) {
-        return NS_ERROR_FAILURE;
-      }
-      targetObject = &targetVal.toObject();
-    } else if (!targetVal.isNull()) {
-      // If targetVal isNull(), we actually want to leave targetObject null.
-      // Not doing so breaks |make package|.
-      return ReportOnCallerUTF8(cx, ERROR_SCOPE_OBJ,
-                                PromiseFlatCString(registryLocation).get());
-    }
-  } else {
-    FindTargetObject(cx, &targetObject);
-    if (!targetObject) {
-      return ReportOnCallerUTF8(cx, ERROR_NO_TARGET_OBJECT,
-                                PromiseFlatCString(registryLocation).get());
-    }
-  }
-
-  js::AssertSameCompartment(cx, targetObject);
-
-  RootedObject global(cx);
-  nsresult rv = ImportInto(registryLocation, targetObject, cx, &global);
-
-  if (global) {
-    if (!JS_WrapObject(cx, &global)) {
-      NS_ERROR("can't wrap return value");
-      return NS_ERROR_FAILURE;
-    }
-
-    retval.setObject(*global);
-  }
-  return rv;
-}
-
 nsresult mozJSModuleLoader::IsESModuleLoaded(const nsACString& aLocation,
                                              bool* retval) {
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
@@ -1419,34 +1343,6 @@ nsresult mozJSModuleLoader::GetModuleImportStack(const nsACString& aLocation,
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
-}
-
-nsresult mozJSModuleLoader::ImportInto(const nsACString& aLocation,
-                                       HandleObject targetObj, JSContext* cx,
-                                       MutableHandleObject vp) {
-  vp.set(nullptr);
-
-  JS::RootedObject exports(cx);
-  MOZ_TRY(Import(cx, aLocation, vp, &exports, !targetObj));
-
-  if (targetObj) {
-    JS::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
-    if (!JS_Enumerate(cx, exports, &ids)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    JS::RootedValue value(cx);
-    JS::RootedId id(cx);
-    for (jsid idVal : ids) {
-      id = idVal;
-      if (!JS_GetPropertyById(cx, exports, id, &value) ||
-          !JS_SetPropertyById(cx, targetObj, id, value)) {
-        return NS_ERROR_FAILURE;
-      }
-    }
-  }
-
-  return NS_OK;
 }
 
 nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
