@@ -2509,7 +2509,7 @@ with only_when(compile_environment):
                 "--with-system-png and set any necessary pkg-config environment variable."
             )
 
-    png = pkg_check_modules("MOZ_PNG", "libpng >= 1.6.35", when="--with-system-png")
+    png = pkg_check_modules("MOZ_PNG", "libpng >= 1.6.45", when="--with-system-png")
 
     check_symbol(
         "png_get_acTL",
