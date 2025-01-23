@@ -10,32 +10,39 @@ import android.hardware.camera2.CameraManager
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assume
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
+import org.mozilla.fenix.helpers.AppAndSystemHelper.verifyKeyboardVisibility
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAssets
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 import org.mozilla.fenix.ui.robots.shareOverlay
 
-class RedesignedNavigationToolbarSmokeTest : TestSetup() {
+class NavigationToolbarComposeTest : TestSetup() {
     @get:Rule
     val composeTestRule =
         AndroidComposeTestRule(
@@ -356,6 +363,191 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
             verifyTabCounter("1")
             goForwardFromRedesignedToolbar()
             verifyUrl(nextWebPage.url.toString())
+        }
+    }
+
+    // To be replaced by Tab Tray tests when the nav redesign is enabled by default
+    @Test
+    fun verifyTabCounterUpdateInNavbarTest() {
+        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+            verifyTabCounter("1")
+        }
+    }
+
+    // To be replaced by Tab Tray tests when the nav redesign is enabled by default
+    @Test
+    fun verifyTabCounterClickFromNavbarInNormalModeTest() {
+        homeScreen {
+        }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
+            verifyNormalBrowsingButtonIsSelected()
+            verifyPrivateBrowsingButtonIsSelected(isSelected = false)
+            verifySyncedTabsButtonIsSelected(isSelected = false)
+        }
+    }
+
+    // To be replaced by Tab Tray tests when the nav redesign is enabled by default
+    @Test
+    fun verifyTabCounterClickFromNavbarInPrivateModeTest() {
+        homeScreen { }.togglePrivateBrowsingMode()
+
+        homeScreen {
+        }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
+            verifyNormalBrowsingButtonIsSelected(isSelected = false)
+            verifyPrivateBrowsingButtonIsSelected()
+            verifySyncedTabsButtonIsSelected(isSelected = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2767054
+    @Test
+    fun verifyTabsCounterShortcutMenuOptionFromNavbarInNormalModeTest() {
+        navigationToolbar {
+        }.openTabButtonShortcutsMenu {
+            verifyTabButtonShortcutMenuItemsForNormalHomescreen()
+        }.openNewPrivateTabFromShortcutsMenu {
+            verifySearchView()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2876118
+    @Test
+    fun verifyTabsCounterShortcutMenuOptionFromNavbarInPrivateModeTest() {
+        homeScreen { }.togglePrivateBrowsingMode()
+
+        navigationToolbar {
+        }.openTabButtonShortcutsMenu {
+            verifyTabButtonShortcutMenuItemsForPrivateHomescreen()
+        }.openNewTabFromShortcutsMenu {
+            verifySearchView()
+        }
+    }
+
+    @Test
+    fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
+        assertNull(NavigationBar.homeTabTrayLongTapped.testGetValue())
+        navigationToolbar {
+        }.openTabButtonShortcutsMenu { }
+        assertNotNull(NavigationBar.homeTabTrayLongTapped.testGetValue())
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2728827
+    @Test
+    fun openSearchWithTheSearchIconInNavbar() {
+        navigationToolbar {
+        }.clickHomeScreenSearchButton(composeTestRule) {
+            verifySearchView()
+            verifySearchToolbar(isDisplayed = true)
+            verifyKeyboardVisibility(isExpectedToBeVisible = true)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2728836
+    @Ignore("Fails to long-click the back/forward buttons: https://bugzilla.mozilla.org/show_bug.cgi?id=1942989")
+    @Test
+    fun accessRecentHistoryByLongTappingNavigationButtons() {
+        val testPages = getGenericAssets(mockWebServer)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPages[0].url) {
+            verifyTabCounter("1")
+            verifyPageContent(testPages[0].content)
+        }.openNavigationToolbar {
+        }.enterURLAndEnterToBrowser(testPages[1].url) {
+            verifyTabCounter("1")
+            verifyPageContent(testPages[1].content)
+        }.openNavigationToolbar {
+        }.enterURLAndEnterToBrowser(testPages[2].url) {
+            verifyTabCounter("1")
+            verifyPageContent(testPages[2].content)
+            goToPreviousPageFromRedesignedToolbar()
+        }
+        navigationToolbar {
+            longTapNavButton("Back")
+            verifyTabHistorySheetIsDisplayed(isDisplayed = true)
+            verifyTabHistoryContainsWebsite(testPages[0].title, isDisplayed = true)
+            clickPageObject(itemWithText(testPages[0].title))
+            browserScreen {
+                verifyPageContent(testPages[0].content)
+            }
+            longTapNavButton("Forward")
+            verifyTabHistorySheetIsDisplayed(isDisplayed = true)
+            verifyTabHistoryContainsWebsite(testPages[2].title, isDisplayed = true)
+            clickPageObject(itemWithText(testPages[2].title))
+            browserScreen {
+                verifyPageContent(testPages[2].content)
+            }
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2767066
+    @Test
+    fun verifyCustomTabToolbarWithAddressBarAtTheTopTest() {
+        val customTabPage = TestAssetHelper.getLoremIpsumAsset(mockWebServer)
+
+        intentReceiverActivityTestRule.launchActivity(
+            createCustomTabIntent(
+                customTabPage.url.toString(),
+            ),
+        )
+
+        customTabScreen {
+            navigationToolbar {
+                verifyAddressBarIsDisplayedSeparately(isSeparate = true, isAtTop = true)
+                verifyAddressBarPosition(isAtTop = true)
+                verifyNavBarBarPosition(isAtBottom = true)
+            }
+            verifyCustomTabCloseButton()
+            verifyCustomTabUrl(customTabPage.url.toString())
+            verifyCustomTabToolbarTitle(customTabPage.title)
+            verifyCustomTabsSiteInfoButton()
+            verifyCustomTabsShareButton()
+            verifyRefreshButtonExists()
+            verifyBackButtonExists()
+            verifyForwardButtonExists()
+            verifyOpenInBrowserComposeButtonExists()
+            verifyMainMenuComposeButton()
+
+            mDevice.setOrientationLandscape()
+            mDevice.waitForIdle()
+
+            navigationToolbar {
+                verifyAddressBarIsDisplayedSeparately(isSeparate = false, isAtTop = true)
+            }
+            verifyCustomTabCloseButton()
+            verifyCustomTabUrl(customTabPage.url.toString())
+            verifyCustomTabToolbarTitle(customTabPage.title)
+            verifyCustomTabsSiteInfoButton()
+            verifyCustomTabsShareButton()
+            verifyRefreshButtonExists()
+            verifyBackButtonExists()
+            verifyForwardButtonExists()
+            verifyOpenInBrowserComposeButtonExists()
+            verifyMainMenuComposeButton()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2767068
+    @Test
+    fun sharePageFromCustomTabTest() {
+        val customTabPage = TestAssetHelper.getLoremIpsumAsset(mockWebServer)
+
+        intentReceiverActivityTestRule.launchActivity(
+            createCustomTabIntent(
+                customTabPage.url.toString(),
+            ),
+        )
+
+        customTabScreen {
+        }.clickShareButton {
+            verifyShareTabLayout()
+            verifySharingWithSelectedApp(
+                appName = "Gmail",
+                content = customTabPage.url.toString(),
+                subject = customTabPage.title,
+            )
         }
     }
 }

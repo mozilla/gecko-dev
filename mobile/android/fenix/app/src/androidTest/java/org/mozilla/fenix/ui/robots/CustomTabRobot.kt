@@ -49,6 +49,8 @@ class CustomTabRobot {
 
     fun verifyMainMenuButton() = assertUIObjectExists(mainMenuButton())
 
+    fun verifyMainMenuComposeButton() = assertUIObjectExists(mainMenuButtonFromRedesignedToolbar())
+
     fun verifyDesktopSiteButtonExists() {
         Log.i(TAG, "verifyDesktopSiteButtonExists: Trying to verify that the request desktop site button is displayed")
         desktopSiteButton().check(matches(isDisplayed()))
@@ -74,6 +76,12 @@ class CustomTabRobot {
         Log.i(TAG, "verifyOpenInBrowserButtonExists: Trying to verify that the \"Open in Firefox\" button is displayed")
         openInBrowserButton().check(matches(isDisplayed()))
         Log.i(TAG, "verifyOpenInBrowserButtonExists: Verified that the \"Open in Firefox\" button is displayed")
+    }
+
+    fun verifyOpenInBrowserComposeButtonExists() {
+        Log.i(TAG, "verifyOpenInBrowserComposeButtonExists: Trying to verify that the \"Open in Firefox\" button is displayed")
+        assertUIObjectExists(openInBrowserButtonFromRedesignedToolbar())
+        Log.i(TAG, "verifyOpenInBrowserComposeButtonExists: Verified that the \"Open in Firefox\" button is displayed")
     }
 
     fun verifyBackButtonExists() = assertUIObjectExists(itemWithDescription("Back"))
@@ -220,6 +228,7 @@ class CustomTabRobot {
 
         fun clickShareButton(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
             Log.i(TAG, "clickShareButton: Trying to click the share button")
+            itemWithDescription(getStringResource(R.string.mozac_feature_customtabs_share_link)).waitForExists(waitingTime)
             itemWithDescription(getStringResource(R.string.mozac_feature_customtabs_share_link)).click()
             Log.i(TAG, "clickShareButton: Clicked the share button")
 

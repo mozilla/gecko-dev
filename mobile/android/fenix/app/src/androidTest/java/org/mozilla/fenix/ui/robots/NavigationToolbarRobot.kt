@@ -9,18 +9,25 @@ package org.mozilla.fenix.ui.robots
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.longClick
+import androidx.test.espresso.assertion.PositionAssertions.isCompletelyAbove
+import androidx.test.espresso.assertion.PositionAssertions.isPartiallyBelow
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.hasDescendant
+import androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -41,6 +48,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemTextEquals
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
@@ -222,6 +230,70 @@ class NavigationToolbarRobot {
         } else {
             assertUIObjectExists(itemWithDescription(getStringResource(R.string.browser_menu_read)))
         }
+    }
+
+    fun longTapNavButton(buttonDescription: String) {
+        Log.i(TAG, "longTapNavButton: Waiting to find the nav bar $buttonDescription button.")
+        mDevice.findObject(UiSelector().description("Back")).waitForExists(waitingTime)
+        Log.i(TAG, "longTapNavButton: Trying to long click the nav bar $buttonDescription button.")
+        mDevice.findObject(
+            By.desc(buttonDescription)
+                .enabled(true)
+                .hasAncestor(By.res("$packageName:id/toolbar_navbar_container")),
+        )
+            .click(LONG_CLICK_DURATION)
+        Log.i(TAG, "longTapNavButton: Long clicked the nav bar $buttonDescription button.")
+    }
+
+    fun verifyTabHistorySheetIsDisplayed(isDisplayed: Boolean) {
+        assertUIObjectExists(
+            itemWithResId("$packageName:id/tabHistoryRecyclerView"),
+            exists = isDisplayed,
+        )
+    }
+
+    fun verifyTabHistoryContainsWebsite(websiteUrl: String, isDisplayed: Boolean) {
+        assertUIObjectExists(
+            itemWithResIdAndText("$packageName:id/site_list_item", websiteUrl),
+            exists = isDisplayed,
+        )
+    }
+
+    // Verifies that the address bar is displayed separately, or merged with the navbar in landscape mode.
+    fun verifyAddressBarIsDisplayedSeparately(isSeparate: Boolean, isAtTop: Boolean) {
+        val addressBar = "$packageName:id/toolbar"
+        val navBar = "$packageName:id/toolbar_navbar_container"
+
+        if (isSeparate) {
+            assertUIObjectExists(itemWithResId(addressBar), itemWithResId(navBar))
+        } else {
+            assertUIObjectIsGone(itemWithResId(if (isAtTop) navBar else addressBar))
+            assertUIObjectExists(itemWithResId(if (isAtTop) addressBar else navBar))
+        }
+    }
+
+    fun verifyAddressBarPosition(isAtTop: Boolean) {
+        Log.i(TAG, "verifyAddressBarPosition: Trying to verify the toolbar address bar position is at the top: $isAtTop.")
+        onView(withId(R.id.toolbar)).check(
+            if (isAtTop) {
+                isCompletelyAbove(withId(R.id.engineView))
+            } else {
+                isPartiallyBelow(withId(R.id.engineView))
+            },
+        )
+        Log.i(TAG, "verifyAddressBarPosition: Verified the toolbar address bar position is at the top: $isAtTop.")
+    }
+
+    fun verifyNavBarBarPosition(isAtBottom: Boolean) {
+        Log.i(TAG, "verifyNavBarBarPosition: Trying to verify the toolbar navbar position is at the bottom: $isAtBottom.")
+        onView(allOf(withId(R.id.toolbar_navbar_container), isCompletelyDisplayed())).check(
+            if (isAtBottom) {
+                isPartiallyBelow(withId(R.id.engineView))
+            } else {
+                isCompletelyAbove(withId(R.id.engineView))
+            },
+        )
+        Log.i(TAG, "verifyNavBarBarPosition: Verified the toolbar navbar position is at the bottom: $isAtBottom.")
     }
 
     class Transition {
@@ -505,6 +577,20 @@ class NavigationToolbarRobot {
 
             TranslationsRobot(composeTestRule).interact()
             return TranslationsRobot.Transition(composeTestRule)
+        }
+
+        // New navbar design home screen search button
+        @OptIn(ExperimentalTestApi::class)
+        fun clickHomeScreenSearchButton(composeTestRule: ComposeTestRule, interact: SearchRobot.() -> Unit): SearchRobot.Transition {
+            Log.i(TAG, "clickHomeScreenSearchButton: Waiting for $waitingTime ms for the search button to exist.")
+            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription("Search or enter address"))
+            Log.i(TAG, "clickHomeScreenSearchButton: Waited for $waitingTime ms for the search button to exist.")
+            Log.i(TAG, "clickHomeScreenSearchButton: Trying to click the nav bar search button.")
+            composeTestRule.onNodeWithContentDescription("Search or enter address").performClick()
+            Log.i(TAG, "clickHomeScreenSearchButton: Clicked the nav bar search button.")
+
+            SearchRobot().interact()
+            return SearchRobot.Transition()
         }
     }
 }
