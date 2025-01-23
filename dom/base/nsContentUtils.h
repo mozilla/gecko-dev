@@ -2788,7 +2788,7 @@ class nsContentUtils {
    * Note that this method returns `nullptr` if `TextEditor` for the
    * `aAnonymousContent` hasn't been created yet.
    */
-  static mozilla::TextEditor* GetTextEditorFromAnonymousNodeWithoutCreation(
+  static mozilla::TextEditor* GetExtantTextEditorFromAnonymousNode(
       const nsIContent* aAnonymousContent);
 
   /**

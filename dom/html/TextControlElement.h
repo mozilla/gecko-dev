@@ -119,10 +119,10 @@ class TextControlElement : public nsGenericHTMLFormControlElementWithState {
    * (for example, if it is a checkbox.)
    * Note that GetTextEditor() creates editor if it hasn't been created yet.
    * If you need editor only when the editor is there, you should use
-   * GetTextEditorWithoutCreation().
+   * GetExtantTextEditor().
    */
   MOZ_CAN_RUN_SCRIPT virtual TextEditor* GetTextEditor() = 0;
-  virtual TextEditor* GetTextEditorWithoutCreation() const = 0;
+  virtual TextEditor* GetExtantTextEditor() const = 0;
 
   /**
    * Get the selection controller object associated with the text editor.

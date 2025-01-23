@@ -860,8 +860,8 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
                            "HTMLEditor::OnFocus() failed, but ignored");
     } else if (focusedTextControlElement &&
                focusedTextControlElement->IsSingleLineTextControlOrTextArea()) {
-      if (RefPtr<TextEditor> textEditor =
-              focusedTextControlElement->GetTextEditorWithoutCreation()) {
+      if (const RefPtr<TextEditor> textEditor =
+              focusedTextControlElement->GetExtantTextEditor()) {
         textEditor->OnFocus(*focusedElement);
       }
     }

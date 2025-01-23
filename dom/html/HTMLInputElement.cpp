@@ -2368,9 +2368,7 @@ nsIEditor* HTMLInputElement::GetEditorForBindings() {
   return GetTextEditorFromState();
 }
 
-bool HTMLInputElement::HasEditor() const {
-  return !!GetTextEditorWithoutCreation();
-}
+bool HTMLInputElement::HasEditor() const { return !!GetExtantTextEditor(); }
 
 TextEditor* HTMLInputElement::GetTextEditorFromState() {
   TextControlState* state = GetEditorState();
@@ -2384,12 +2382,12 @@ TextEditor* HTMLInputElement::GetTextEditor() {
   return GetTextEditorFromState();
 }
 
-TextEditor* HTMLInputElement::GetTextEditorWithoutCreation() const {
-  TextControlState* state = GetEditorState();
+TextEditor* HTMLInputElement::GetExtantTextEditor() const {
+  const TextControlState* const state = GetEditorState();
   if (!state) {
     return nullptr;
   }
-  return state->GetTextEditorWithoutCreation();
+  return state->GetExtantTextEditor();
 }
 
 nsISelectionController* HTMLInputElement::GetSelectionController() {
@@ -5689,7 +5687,7 @@ nsIControllers* HTMLInputElement::GetControllers(ErrorResult& aRv) {
     }
   }
 
-  return GetControllersWithoutCreation();
+  return GetExtantControllers();
 }
 
 nsresult HTMLInputElement::GetControllers(nsIControllers** aResult) {

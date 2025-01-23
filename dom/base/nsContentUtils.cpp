@@ -4821,14 +4821,14 @@ nsresult nsContentUtils::DispatchInputEvent(
   bool useInputEvent = false;
   if (aEditorBase) {
     useInputEvent = true;
-  } else if (HTMLTextAreaElement* textAreaElement =
+  } else if (const HTMLTextAreaElement* const textAreaElement =
                  HTMLTextAreaElement::FromNode(aEventTargetElement)) {
-    aEditorBase = textAreaElement->GetTextEditorWithoutCreation();
+    aEditorBase = textAreaElement->GetExtantTextEditor();
     useInputEvent = true;
-  } else if (HTMLInputElement* inputElement =
+  } else if (const HTMLInputElement* const inputElement =
                  HTMLInputElement::FromNode(aEventTargetElement)) {
     if (inputElement->IsInputEventTarget()) {
-      aEditorBase = inputElement->GetTextEditorWithoutCreation();
+      aEditorBase = inputElement->GetExtantTextEditor();
       useInputEvent = true;
     }
   }
@@ -7585,7 +7585,7 @@ EditorBase* nsContentUtils::GetActiveEditor(nsPIDOMWindowOuter* aWindow) {
 }
 
 // static
-TextEditor* nsContentUtils::GetTextEditorFromAnonymousNodeWithoutCreation(
+TextEditor* nsContentUtils::GetExtantTextEditorFromAnonymousNode(
     const nsIContent* aAnonymousContent) {
   if (!aAnonymousContent) {
     return nullptr;
@@ -7594,13 +7594,13 @@ TextEditor* nsContentUtils::GetTextEditorFromAnonymousNodeWithoutCreation(
   if (!parent || parent == aAnonymousContent) {
     return nullptr;
   }
-  if (HTMLInputElement* inputElement =
+  if (const HTMLInputElement* const inputElement =
           HTMLInputElement::FromNodeOrNull(parent)) {
-    return inputElement->GetTextEditorWithoutCreation();
+    return inputElement->GetExtantTextEditor();
   }
-  if (HTMLTextAreaElement* textareaElement =
+  if (const HTMLTextAreaElement* const textareaElement =
           HTMLTextAreaElement::FromNodeOrNull(parent)) {
-    return textareaElement->GetTextEditorWithoutCreation();
+    return textareaElement->GetExtantTextEditor();
   }
   return nullptr;
 }

@@ -887,7 +887,7 @@ void nsGenericHTMLElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
           IMEContentObserver* observer =
               IMEStateManager::GetActiveContentObserver();
           if (observer && observer->IsObserving(*presContext, this)) {
-            if (RefPtr<EditorBase> editorBase = GetEditorWithoutCreation()) {
+            if (const RefPtr<EditorBase> editorBase = GetExtantEditor()) {
               IMEState newState;
               editorBase->GetPreferredIMEState(&newState);
               OwningNonNull<nsGenericHTMLElement> kungFuDeathGrip(*this);

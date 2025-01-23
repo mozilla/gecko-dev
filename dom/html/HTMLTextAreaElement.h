@@ -86,7 +86,7 @@ class HTMLTextAreaElement final : public TextControlElement,
   bool ValueChanged() const override;
   void GetTextEditorValue(nsAString& aValue) const override;
   MOZ_CAN_RUN_SCRIPT TextEditor* GetTextEditor() override;
-  TextEditor* GetTextEditorWithoutCreation() const override;
+  TextEditor* GetExtantTextEditor() const override;
   nsISelectionController* GetSelectionController() override;
   nsFrameSelection* GetConstFrameSelection() override;
   TextControlState* GetTextControlState() const override { return mState; }
@@ -271,14 +271,14 @@ class HTMLTextAreaElement final : public TextControlElement,
       uint32_t aSelectionStart, uint32_t aSelectionEnd,
       const Optional<nsAString>& aDirecton, ErrorResult& aError);
   nsIControllers* GetControllers(ErrorResult& aError);
-  nsIControllers* GetControllersWithoutCreation() const { return mControllers; }
+  nsIControllers* GetExtantControllers() const { return mControllers; }
   // XPCOM adapter function widely used throughout code, leaving it as is.
   nsresult GetControllers(nsIControllers** aResult);
 
   MOZ_CAN_RUN_SCRIPT nsIEditor* GetEditorForBindings();
   bool HasEditor() const {
     MOZ_ASSERT(mState);
-    return !!mState->GetTextEditorWithoutCreation();
+    return !!mState->GetExtantTextEditor();
   }
 
   bool IsInputEventTarget() const { return true; }

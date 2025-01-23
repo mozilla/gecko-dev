@@ -973,11 +973,11 @@ nsresult nsTextControlFrame::AttributeChanged(int32_t aNameSpaceID,
 
 void nsTextControlFrame::HandleReadonlyOrDisabledChange() {
   RefPtr<TextControlElement> el = ControlElement();
-  RefPtr<TextEditor> editor = el->GetTextEditorWithoutCreation();
+  const RefPtr<TextEditor> editor = el->GetExtantTextEditor();
   if (!editor) {
     return;
   }
-  nsISelectionController* selCon = el->GetSelectionController();
+  nsISelectionController* const selCon = el->GetSelectionController();
   if (!selCon) {
     return;
   }
@@ -1180,8 +1180,8 @@ nsTextControlFrame::EditorInitializer::Run() {
       if (NS_SUCCEEDED(
               dragSession->GetSourceNode(getter_AddRefs(sourceNode))) &&
           mFrame->GetContent() == sourceNode) {
-        if (TextEditor* textEditor =
-                mFrame->ControlElement()->GetTextEditorWithoutCreation()) {
+        if (const TextEditor* const textEditor =
+                mFrame->ControlElement()->GetExtantTextEditor()) {
           if (Element* anonymousDivElement = textEditor->GetRoot()) {
             if (anonymousDivElement && anonymousDivElement->GetFirstChild()) {
               MOZ_ASSERT(anonymousDivElement->GetFirstChild()->IsText());
@@ -1198,8 +1198,8 @@ nsTextControlFrame::EditorInitializer::Run() {
     TextControlElement* textControlElement = mFrame->ControlElement();
     if (nsPresContext* presContext =
             textControlElement->GetPresContext(Element::eForComposedDoc)) {
-      if (TextEditor* textEditor =
-              textControlElement->GetTextEditorWithoutCreation()) {
+      if (const TextEditor* const textEditor =
+              textControlElement->GetExtantTextEditor()) {
         if (Element* anonymousDivElement = textEditor->GetRoot()) {
           presContext->EventStateManager()->TextControlRootAdded(
               *anonymousDivElement, *textControlElement);

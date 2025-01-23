@@ -1539,7 +1539,7 @@ TextEditor* TextControlState::GetTextEditor() {
   return mTextEditor;
 }
 
-TextEditor* TextControlState::GetTextEditorWithoutCreation() const {
+TextEditor* TextControlState::GetExtantTextEditor() const {
   return mTextEditor;
 }
 
@@ -2411,11 +2411,11 @@ void TextControlState::UnbindFromFrame(nsTextControlFrame* aFrame) {
     const nsCOMPtr<nsIControllers> controllers = [&]() -> nsIControllers* {
       if (const auto* const inputElement =
               HTMLInputElement::FromNode(mTextCtrlElement)) {
-        return inputElement->GetControllersWithoutCreation();
+        return inputElement->GetExtantControllers();
       }
       if (const auto* const textAreaElement =
               HTMLTextAreaElement::FromNode(mTextCtrlElement)) {
-        return textAreaElement->GetControllersWithoutCreation();
+        return textAreaElement->GetExtantControllers();
       }
       return nullptr;
     }();

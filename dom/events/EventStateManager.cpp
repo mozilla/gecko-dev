@@ -2665,9 +2665,8 @@ void EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       // to use drag and drop rather than copy and paste when web apps
       // request to input password twice for conforming new password but
       // they used password generator.
-      TextEditor* textEditor =
-          nsContentUtils::GetTextEditorFromAnonymousNodeWithoutCreation(
-              eventContent);
+      const TextEditor* const textEditor =
+          nsContentUtils::GetExtantTextEditorFromAnonymousNode(eventContent);
       if (!textEditor || !textEditor->IsCopyToClipboardAllowed()) {
         StopTrackingDragGesture(true);
         return;

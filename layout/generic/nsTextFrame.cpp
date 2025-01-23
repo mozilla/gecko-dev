@@ -2463,8 +2463,8 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
     uint32_t unmaskStart = 0, unmaskEnd = UINT32_MAX;
     if (needsToMaskPassword) {
       unmaskStart = unmaskEnd = UINT32_MAX;
-      TextEditor* passwordEditor =
-          nsContentUtils::GetTextEditorFromAnonymousNodeWithoutCreation(
+      const TextEditor* const passwordEditor =
+          nsContentUtils::GetExtantTextEditorFromAnonymousNode(
               firstFrame->GetContent());
       if (passwordEditor && !passwordEditor->IsAllMasked()) {
         unmaskStart = passwordEditor->UnmaskedStart();

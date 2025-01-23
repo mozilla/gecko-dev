@@ -878,8 +878,8 @@ void TextEditor::MaskString(nsString& aString, const Text& aTextNode,
   MOZ_ASSERT(aStartOffsetInString == 0 || aStartOffsetInText == 0);
 
   uint32_t unmaskStart = UINT32_MAX, unmaskLength = 0;
-  TextEditor* textEditor =
-      nsContentUtils::GetTextEditorFromAnonymousNodeWithoutCreation(&aTextNode);
+  const TextEditor* const textEditor =
+      nsContentUtils::GetExtantTextEditorFromAnonymousNode(&aTextNode);
   if (textEditor && textEditor->UnmaskedLength() > 0) {
     unmaskStart = textEditor->UnmaskedStart();
     unmaskLength = textEditor->UnmaskedLength();

@@ -238,12 +238,8 @@ class TrustedHTMLOrNullIsEmptyString;
 class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
 
 // IID for the dom::Element interface
-#define NS_ELEMENT_IID                               \
-  {                                                  \
-    0xc67ed254, 0xfd3b, 0x4b10, {                    \
-      0x96, 0xa2, 0xc5, 0x8b, 0x7b, 0x64, 0x97, 0xd1 \
-    }                                                \
-  }
+#define NS_ELEMENT_IID \
+  {0xc67ed254, 0xfd3b, 0x4b10, {0x96, 0xa2, 0xc5, 0x8b, 0x7b, 0x64, 0x97, 0xd1}}
 
 #define REFLECT_NULLABLE_DOMSTRING_ATTR(method, attr)            \
   void Get##method(nsAString& aValue) const {                    \
@@ -1397,13 +1393,13 @@ class Element : public FragmentOrElement {
 
   /**
    * Get an editor which handles user inputs when this element has focus.
-   * If this is a text control, return a TextEditor if it's already created.
-   * Otherwise, return nullptr.
-   * If this is not a text control but this is editable, return
-   * HTMLEditor which should've already been created.
+   * If this is a text control, return a TextEditor if it's already created and
+   * it's not in the design mode.
+   * If this is editable, return HTMLEditor which should've already been
+   * created.
    * Otherwise, return nullptr.
    */
-  EditorBase* GetEditorWithoutCreation() const;
+  EditorBase* GetExtantEditor() const;
 
  private:
   /**

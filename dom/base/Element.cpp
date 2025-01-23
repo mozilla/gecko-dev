@@ -5495,7 +5495,7 @@ bool Element::Translate() const {
   return true;
 }
 
-EditorBase* Element::GetEditorWithoutCreation() const {
+EditorBase* Element::GetExtantEditor() const {
   if (!IsInComposedDoc()) {
     return nullptr;
   }
@@ -5507,8 +5507,7 @@ EditorBase* Element::GetEditorWithoutCreation() const {
   if (!isInDesignMode) {
     if (const auto* textControlElement = TextControlElement::FromNode(this)) {
       if (textControlElement->IsSingleLineTextControlOrTextArea()) {
-        return static_cast<const TextControlElement*>(this)
-            ->GetTextEditorWithoutCreation();
+        return textControlElement->GetExtantTextEditor();
       }
     }
   }
@@ -5517,7 +5516,7 @@ EditorBase* Element::GetEditorWithoutCreation() const {
     return nullptr;
   }
   // FYI: This never creates HTMLEditor immediately.
-  nsDocShell* docShell = nsDocShell::Cast(OwnerDoc()->GetDocShell());
+  nsDocShell* const docShell = nsDocShell::Cast(OwnerDoc()->GetDocShell());
   return docShell ? docShell->GetHTMLEditorInternal() : nullptr;
 }
 

@@ -169,9 +169,9 @@ TextEditor* HTMLTextAreaElement::GetTextEditor() {
   return mState->GetTextEditor();
 }
 
-TextEditor* HTMLTextAreaElement::GetTextEditorWithoutCreation() const {
+TextEditor* HTMLTextAreaElement::GetExtantTextEditor() const {
   MOZ_ASSERT(mState);
-  return mState->GetTextEditorWithoutCreation();
+  return mState->GetExtantTextEditor();
 }
 
 nsISelectionController* HTMLTextAreaElement::GetSelectionController() {
@@ -524,7 +524,7 @@ nsIControllers* HTMLTextAreaElement::GetControllers(ErrorResult& aError) {
     mControllers->AppendController(commandController);
   }
 
-  return GetControllersWithoutCreation();
+  return GetExtantControllers();
 }
 
 nsresult HTMLTextAreaElement::GetControllers(nsIControllers** aResult) {
