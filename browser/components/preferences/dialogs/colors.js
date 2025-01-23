@@ -8,6 +8,10 @@ document
   .getElementById("ColorsDialog")
   .addEventListener("dialoghelp", window.top.openPrefsHelp);
 
+document
+  .getElementById("key_close")
+  .addEventListener("command", event => Preferences.close(event));
+
 Preferences.addAll([
   { id: "browser.display.document_color_use", type: "int" },
   { id: "browser.anchor_color", type: "string" },

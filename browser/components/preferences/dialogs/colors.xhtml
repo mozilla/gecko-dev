@@ -12,6 +12,7 @@
   data-l10n-id="colors-dialog2"
   data-l10n-attrs="title, style"
   persist="lastSelected"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     id="ColorsDialog"
@@ -32,11 +33,7 @@
     <script src="chrome://global/content/preferencesBindings.js" />
 
     <keyset>
-      <key
-        data-l10n-id="colors-close-key"
-        modifiers="accel"
-        oncommand="Preferences.close(event)"
-      />
+      <key id="key_close" data-l10n-id="colors-close-key" modifiers="accel" />
     </keyset>
 
     <hbox>
