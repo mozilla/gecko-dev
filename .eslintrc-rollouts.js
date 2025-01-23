@@ -1898,25 +1898,6 @@ const rollouts = [
     },
   },
   {
-    files: [
-      // Tests specific to JSM
-      "dom/encoding/test/test_stringencoding.xhtml",
-      "dom/url/tests/test_bug883784.xhtml",
-      "dom/url/tests/test_url.xhtml",
-      "dom/url/tests/test_worker_url.xhtml",
-      "dom/workers/test/test_chromeWorkerJSM.xhtml",
-      "js/xpconnect/tests/browser/browser_import_mapped_jsm.js",
-      "js/xpconnect/tests/chrome/test_chrometoSource.xhtml",
-      "js/xpconnect/tests/chrome/test_expandosharing.xhtml",
-      "js/xpconnect/tests/chrome/test_xrayic.xhtml",
-      // Code that can't be cleaned until we're ready to remove the old loader.
-      "js/xpconnect/loader/XPCOMUtils.sys.mjs",
-    ],
-    rules: {
-      "mozilla/reject-chromeutils-import": "off",
-    },
-  },
-  {
     files: ["toolkit/**"],
     excludedFiles: ["toolkit/**/test/**", "toolkit/**/tests/**"],
     rules: {
