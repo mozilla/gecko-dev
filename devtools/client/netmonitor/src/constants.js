@@ -610,6 +610,9 @@ const general = {
   AUTO_EXPAND_MAX_NODES: 50,
   CHANNEL_TYPE,
   WEB_SOCKET_OPCODE,
+  // Arbitrary limit for rendering strings in the netmonitor table.
+  // Useful for instance for very big data URIs.
+  MAX_UI_STRING_LENGTH: 10000,
 };
 
 // flatten constants

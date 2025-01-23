@@ -24,6 +24,11 @@ const {
 const SecurityState = createFactory(
   require("resource://devtools/client/netmonitor/src/components/SecurityState.js")
 );
+const { truncateString } = require("resource://devtools/shared/string.js");
+const {
+  MAX_UI_STRING_LENGTH,
+} = require("resource://devtools/client/netmonitor/src/constants.js");
+
 const UPDATED_FILE_PROPS = ["remoteAddress", "securityState", "urlDetails"];
 
 class RequestListColumnUrl extends Component {
@@ -78,10 +83,10 @@ class RequestListColumnUrl extends Component {
     return td(
       {
         className: "requests-list-column requests-list-url",
-        title: urlToolTip + title,
+        title: truncateString(urlToolTip, MAX_UI_STRING_LENGTH) + title,
       },
       SecurityState({ item, onSecurityIconMouseDown, isLocal }),
-      originalURL
+      truncateString(originalURL, MAX_UI_STRING_LENGTH)
     );
   }
 }
