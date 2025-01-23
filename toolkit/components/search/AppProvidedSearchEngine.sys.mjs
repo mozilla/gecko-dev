@@ -318,8 +318,8 @@ const ParamPreferenceCache = {
 
     this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
     this.onNimbusUpdate();
-    lazy.NimbusFeatures.searchConfiguration.onUpdate(this.onNimbusUpdate);
-    lazy.NimbusFeatures.searchConfiguration.ready().then(this.onNimbusUpdate);
+    lazy.NimbusFeatures.search.onUpdate(this.onNimbusUpdate);
+    lazy.NimbusFeatures.search.ready().then(this.onNimbusUpdate);
   },
 
   observe(subject, topic, data) {
@@ -328,7 +328,7 @@ const ParamPreferenceCache = {
 
   onNimbusUpdate() {
     let extraParams =
-      lazy.NimbusFeatures.searchConfiguration.getVariable("extraParams") || [];
+      lazy.NimbusFeatures.search.getVariable("extraParams") || [];
     this.nimbusCache.clear();
     // The try catch ensures that if the params were incorrect for some reason,
     // the search service can still startup properly.

@@ -101,10 +101,15 @@ async function switchExperiment(newExperiment) {
     SearchTestUtils.promiseSearchNotification("engines-reloaded");
   let promiseSaved = promiseAfterSettings();
 
-  if (newExperiment) {
-    Services.prefs.setStringPref("browser.search.experiment", newExperiment);
-  } else {
-    Services.prefs.clearUserPref("browser.search.experiment");
+  // Stub getVariable to populate the cache with our expected data
+  getVariableStub.callsFake(name => {
+    if (name == "experiment") {
+      return newExperiment;
+    }
+    return defaultGetVariable(name);
+  });
+  for (let call of NimbusFeatures.searchConfiguration.onUpdate.getCalls()) {
+    call.args[0]();
   }
 
   await promiseReloaded;

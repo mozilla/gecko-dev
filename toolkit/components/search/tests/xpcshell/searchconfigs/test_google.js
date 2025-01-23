@@ -62,8 +62,8 @@ const test = new SearchConfigTest({
 });
 
 add_setup(async function () {
-  sinon.spy(NimbusFeatures.searchConfiguration, "onUpdate");
-  sinon.stub(NimbusFeatures.searchConfiguration, "ready").resolves();
+  sinon.spy(NimbusFeatures.search, "onUpdate");
+  sinon.stub(NimbusFeatures.search, "ready").resolves();
   await test.setup();
 
   registerCleanupFunction(async () => {
@@ -139,16 +139,16 @@ add_task(async function test_searchConfig_google_with_nimbus() {
   ];
 
   Assert.ok(
-    NimbusFeatures.searchConfiguration.onUpdate.called,
+    NimbusFeatures.search.onUpdate.called,
     "Should register an update listener for Nimbus experiments"
   );
   // Stub getVariable to populate the cache with our expected data
-  sandbox.stub(NimbusFeatures.searchConfiguration, "getVariable").returns([
+  sandbox.stub(NimbusFeatures.search, "getVariable").returns([
     { key: "google_channel_us", value: "nimbus_us_param" },
     { key: "google_channel_row", value: "nimbus_row_param" },
   ]);
   // Set the pref cache with Nimbus values
-  NimbusFeatures.searchConfiguration.onUpdate.firstCall.args[0]();
+  NimbusFeatures.search.onUpdate.firstCall.args[0]();
 
   for (const testData of TEST_DATA) {
     info(`Checking region ${testData.region}, locale ${testData.locale}`);
@@ -162,12 +162,12 @@ add_task(async function test_searchConfig_google_with_nimbus() {
 
     const submission = engines[0].getSubmission("test", URLTYPE_SEARCH_HTML);
     Assert.ok(
-      NimbusFeatures.searchConfiguration.ready.called,
+      NimbusFeatures.search.ready.called,
       "Should wait for Nimbus to get ready"
     );
     Assert.ok(
-      NimbusFeatures.searchConfiguration.getVariable,
-      "Should call NimbusFeatures.searchConfiguration.getVariable to populate the cache"
+      NimbusFeatures.search.getVariable,
+      "Should call NimbusFeatures.search.getVariable to populate the cache"
     );
     Assert.ok(
       submission.uri.query.split("&").includes("channel=" + testData.expected),
