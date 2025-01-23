@@ -1046,6 +1046,8 @@ public class GeckoSession {
         }
       };
 
+  private CompositorScrollDelegate mCompositorScrollDelegate = null;
+
   private final GeckoSessionHandler<ContentBlocking.Delegate> mContentBlockingHandler =
       new GeckoSessionHandler<ContentBlocking.Delegate>(
           "GeckoViewContentBlocking", this, new String[] {"GeckoView:ContentBlockingEvent"}) {
@@ -3375,11 +3377,37 @@ public class GeckoSession {
     mScrollHandler.setDelegate(delegate, this);
   }
 
+  /**
+   * Get the current scroll callback handler.
+   *
+   * @return An implementation of ScrollDelegate.
+   */
   @UiThread
-  @SuppressWarnings("checkstyle:javadocmethod")
   public @Nullable ScrollDelegate getScrollDelegate() {
     ThreadUtils.assertOnUiThread();
     return mScrollHandler.getDelegate();
+  }
+
+  /**
+   * Set the compositor scroll callback handler. This will replace the current handler.
+   *
+   * @param delegate An implementation of CompositorScrollDelegate.
+   */
+  @UiThread
+  public void setCompositorScrollDelegate(final @Nullable CompositorScrollDelegate delegate) {
+    ThreadUtils.assertOnUiThread();
+    mCompositorScrollDelegate = delegate;
+  }
+
+  /**
+   * Get the current compositor scroll callback handler.
+   *
+   * @return An implementation of CompositorScrollDelegate.
+   */
+  @UiThread
+  public @Nullable CompositorScrollDelegate getCompositorScrollDelegate() {
+    ThreadUtils.assertOnUiThread();
+    return mCompositorScrollDelegate;
   }
 
   /**
@@ -6910,6 +6938,55 @@ public class GeckoSession {
         @NonNull final GeckoSession session, final int scrollX, final int scrollY) {}
   }
 
+  /** Information about an update to the content's scroll position. */
+  public class ScrollPositionUpdate {
+    // The scroll position changed as a direct result of user interaction.
+    public static final int SOURCE_USER_INTERACTION = 0;
+    // The scroll position changed progammatically. This can include
+    // changes caused by script on the page, and changes caused by
+    // the browser engine such as scrolling an element into view.
+    public static final int SOURCE_OTHER = 1;
+
+    // The new horizontal scroll position in CSS pixels.
+    public float scrollX;
+    // The new vertical scroll position in CSS pixels.
+    public float scrollY;
+    // The new zoom level.
+    // This is used to relate scrollX and scrollY, which are
+    // in CSS pixels, to quantities in screen pixels.
+    // Multiply scrollX/scrollY by zoom to get screen pixels.
+    public float zoom;
+    // The source of the scroll position change. One of
+    // SOURCE_USER_INTERACTION or SOURCE_OTHER.
+    public int source;
+  }
+
+  /**
+   * GeckoSession applications implement this interface to handle scroll events.
+   *
+   * <p>Differences from ScrollDelegate:
+   *
+   * <ul>
+   *   <li>onScrollChanged() is called as soon as the scroll change is composited visually. For
+   *       scrolling triggered by user interaction, this notification can have a lower latency than
+   *       ScrollDelegate.onScrollChanged().
+   *   <li>In addition to the scroll position in pixels, the notification contains auxiliary
+   *       information such as whether the scroll change was a result of user interaction. This can
+   *       be extended over time as needed.
+   * </ul>
+   */
+  public interface CompositorScrollDelegate {
+    /**
+     * The scroll position of the content has changed.
+     *
+     * @param session GeckoSession that initiated the callback.
+     * @param update Information about the scroll position change.
+     */
+    @UiThread
+    default void onScrollChanged(
+        @NonNull final GeckoSession session, @NonNull final ScrollPositionUpdate update) {}
+  }
+
   /**
    * Get the PanZoomController instance for this session.
    *
@@ -7915,6 +7992,18 @@ public class GeckoSession {
     mViewportLeft = scrollX;
     mViewportTop = scrollY;
     mViewportZoom = zoom;
+
+    final ScrollPositionUpdate update = new ScrollPositionUpdate();
+    // Tbe incoming scrollX and scrollY are in screen pixels.
+    // For ScrollPositionUpdate, convert them to CSS pixels.
+    update.scrollX = scrollX / zoom;
+    update.scrollY = scrollY / zoom;
+    update.zoom = zoom;
+    // TODO(bug 1940581): Plumb in an accurate source here
+    update.source = ScrollPositionUpdate.SOURCE_USER_INTERACTION;
+    if (mCompositorScrollDelegate != null) {
+      mCompositorScrollDelegate.onScrollChanged(this, update);
+    }
   }
 
   /* protected */ void onWindowBoundsChanged() {

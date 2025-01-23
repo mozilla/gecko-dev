@@ -8,6 +8,9 @@ import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSession.CompositorScrollDelegate
+import org.mozilla.geckoview.GeckoSession.ScrollPositionUpdate
 import org.mozilla.geckoview.PanZoomController
 import org.mozilla.geckoview.ScreenLength
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
@@ -642,6 +645,39 @@ class PanZoomControllerTest : BaseSessionTest() {
         return result
     }
 
+    private fun pan(startY: Float, endY: Float) {
+        val downTime = SystemClock.uptimeMillis()
+        val down = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_DOWN,
+            50f,
+            startY,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(down)
+
+        val move = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_MOVE,
+            50f,
+            endY,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(move)
+
+        val up = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_UP,
+            50f,
+            endY,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(up)
+    }
+
     @WithDisplay(width = 100, height = 100)
     @Test
     fun dontCrashDuringFastFling() {
@@ -679,5 +715,75 @@ class PanZoomControllerTest : BaseSessionTest() {
         // Touch handler with preventDefault
         val value = sessionRule.waitForResult(sendDownEvent(50f, 45f))
         assertThat("Value should match", value, equalTo(PanZoomController.INPUT_RESULT_HANDLED_CONTENT))
+    }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test
+    fun compositorScrollDelegate() {
+        // Reduce touch start tolerance to ensure our touch scroll
+        // gestures cause scrolling
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "apz.touch_start_tolerance" to "0.01",
+            ),
+        )
+
+        // Load a simple vertically scrollable page
+        // Query its maximum vertical scroll position for later use
+        setupDocument(SIMPLE_SCROLL_TEST_PATH)
+        val scrollMaxY = mainSession.evaluateJS("window.scrollMaxY") as Double
+
+        // Set up a CompositorScrollDelegate that appends all updates to
+        // a local list
+        val updates: MutableList<ScrollPositionUpdate> = mutableListOf()
+        mainSession.setCompositorScrollDelegate(object : CompositorScrollDelegate {
+            override fun onScrollChanged(session: GeckoSession, update: ScrollPositionUpdate) {
+                updates.add(update)
+            }
+        })
+
+        // Scroll down to the bottom using touch gestures, and check
+        // that the expected scroll updates are reported
+        while (updates.size == 0 || updates[updates.size - 1].scrollY < scrollMaxY) {
+            pan(25f, 15f)
+            mainSession.flushApzRepaints()
+        }
+        for (i in 0 until updates.size - 1) {
+            assertThat(
+                "scroll position is increasing",
+                updates[i].scrollY,
+                lessThanOrEqualTo(updates[i + 1].scrollY),
+            )
+            assertThat(
+                "scroll source is reported correctly for user scroll",
+                updates[i].source,
+                equalTo(ScrollPositionUpdate.SOURCE_USER_INTERACTION),
+            )
+        }
+
+        updates.clear()
+
+        // Scroll back up to the top using script, and check that
+        // the expected scroll updates are reported
+        while (updates.size == 0 || updates[updates.size - 1].scrollY > 0) {
+            mainSession.evaluateJS("window.scrollBy(0, -10)")
+            mainSession.flushApzRepaints()
+        }
+        for (i in 0 until updates.size - 1) {
+            assertThat(
+                "scroll position is decreasing",
+                updates[i].scrollY,
+                greaterThanOrEqualTo(updates[i + 1].scrollY),
+            )
+            // TODO(bug 1940581): We want SOURCE_OTHER reported in this case
+            assertThat(
+                "scroll source is reported correctly for script scroll",
+                updates[i].source,
+                equalTo(ScrollPositionUpdate.SOURCE_USER_INTERACTION),
+            )
+        }
+
+        // Clean up
+        mainSession.setCompositorScrollDelegate(null)
     }
 }

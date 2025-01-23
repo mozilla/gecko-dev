@@ -15,8 +15,10 @@ exclude: true
 
 ## v136
 - Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
+- Added [`GeckoSession.CompositorScrollDelegate`][136.2] interface, which allows reacting to scroll position changes as soon as they are composited
 
 [136.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCertificateTransparencyMode
+[136.2]: {{javadoc uri}}/GeckoSession.html#CompositorScrollDelegate
 
 ## v134
 - ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is removed see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374 for more details.
@@ -1656,4 +1658,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: c788c1f495510877da5f40f7e81942b07653d2cc
+[api-version]: dc265626066f5c9682b3fd7bc44aeaa37206b84d

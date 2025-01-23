@@ -1037,6 +1037,7 @@ package org.mozilla.geckoview {
     method @UiThread public void getClientToScreenMatrix(@NonNull Matrix);
     method @UiThread public void getClientToSurfaceMatrix(@NonNull Matrix);
     method @NonNull @UiThread public CompositorController getCompositorController();
+    method @Nullable @UiThread public GeckoSession.CompositorScrollDelegate getCompositorScrollDelegate();
     method @AnyThread @Nullable public ContentBlocking.Delegate getContentBlockingDelegate();
     method @Nullable @UiThread public GeckoSession.ContentDelegate getContentDelegate();
     method @AnyThread @NonNull public static String getDefaultUserAgent();
@@ -1094,6 +1095,7 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public GeckoResult<Boolean> sendPlacementAttributionEvent(@NonNull String);
     method @AnyThread public void setActive(boolean);
     method @UiThread public void setAutofillDelegate(@Nullable Autofill.Delegate);
+    method @UiThread public void setCompositorScrollDelegate(@Nullable GeckoSession.CompositorScrollDelegate);
     method @AnyThread public void setContentBlockingDelegate(@Nullable ContentBlocking.Delegate);
     method @UiThread public void setContentDelegate(@Nullable GeckoSession.ContentDelegate);
     method @AnyThread public void setExperimentDelegate(@Nullable ExperimentDelegate);
@@ -1150,6 +1152,10 @@ package org.mozilla.geckoview {
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoSession.ClipboardPermissionType {
+  }
+
+  public static interface GeckoSession.CompositorScrollDelegate {
+    method @UiThread default public void onScrollChanged(@NonNull GeckoSession, @NonNull GeckoSession.ScrollPositionUpdate);
   }
 
   public static interface GeckoSession.ContentDelegate {
@@ -1805,6 +1811,16 @@ package org.mozilla.geckoview {
 
   public static interface GeckoSession.ScrollDelegate {
     method @UiThread default public void onScrollChanged(@NonNull GeckoSession, int, int);
+  }
+
+  public class GeckoSession.ScrollPositionUpdate {
+    ctor public ScrollPositionUpdate();
+    field public static final int SOURCE_OTHER = 1;
+    field public static final int SOURCE_USER_INTERACTION = 0;
+    field public float scrollX;
+    field public float scrollY;
+    field public int source;
+    field public float zoom;
   }
 
   public static interface GeckoSession.SelectionActionDelegate {
