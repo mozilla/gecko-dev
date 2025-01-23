@@ -484,7 +484,7 @@ nsWindowWatcher::OpenWindowWithRemoteTab(
     float aOpenerFullZoom, nsIOpenWindowInfo* aOpenWindowInfo,
     nsIRemoteTab** aResult) {
 #ifdef MOZ_GECKOVIEW
-  MOZ_RELEASE_ASSERT(false, "GeckoView should use nsIBrowserDOMWindow instead");
+  MOZ_ASSERT(false, "GeckoView should use nsIBrowserDOMWindow instead");
   return NS_ERROR_NOT_IMPLEMENTED;
 #else
   MOZ_ASSERT(XRE_IsParentProcess());
