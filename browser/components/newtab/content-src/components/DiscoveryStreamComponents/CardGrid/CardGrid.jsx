@@ -498,16 +498,44 @@ export class _CardGrid extends React.PureComponent {
             ? prefs[PREF_LEADERBOARD_POSITION]
             : prefs[PREF_BILLBOARD_POSITION];
 
-        cards.push(
-          <AdBanner
-            spoc={spocToRender}
-            key={`dscard-${spocToRender.id}`}
-            dispatch={this.props.dispatch}
-            type={this.props.type}
-            firstVisibleTimestamp={this.props.firstVisibleTimestamp}
-            row={row}
-          />
-        );
+        function displayCardsPerRow() {
+          // Determines the number of cards per row based on the window width:
+          // width <= 1122px: 2 cards per row
+          // width 1123px to 1697px: 3 cards per row
+          // width >= 1698px: 4 cards per row
+          if (window.innerWidth <= 1122) {
+            return 2;
+          } else if (window.innerWidth > 1122 && window.innerWidth < 1698) {
+            return 3;
+          }
+          return 4;
+        }
+
+        const injectAdBanner = bannerIndex => {
+          // .splice() inserts the AdBanner at the desired index, ensuring correct DOM order for accessibility and keyboard navigation.
+          // .push() would place it at the end, which is visually incorrect even if adjusted with CSS.
+          cards.splice(
+            bannerIndex,
+            0,
+            <AdBanner
+              spoc={spocToRender}
+              key={`dscard-${spocToRender.id}`}
+              dispatch={this.props.dispatch}
+              type={this.props.type}
+              firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+              row={row}
+            />
+          );
+        };
+
+        const getBannerIndex = () => {
+          // Calculate the index for where the AdBanner should be added, depending on number of cards per row on the grid
+          const cardsPerRow = displayCardsPerRow();
+          let bannerIndex = (row - 1) * cardsPerRow;
+          return bannerIndex;
+        };
+
+        injectAdBanner(getBannerIndex());
       }
     }
 
