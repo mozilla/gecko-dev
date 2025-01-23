@@ -11,13 +11,10 @@
 #include "mozilla/Attributes.h"  // MOZ_STACK_CLASS
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/FileLocation.h"
-#include "mozilla/Maybe.h"  // mozilla::Maybe
-#include "mozilla/MemoryReporting.h"
+#include "mozilla/Maybe.h"   // mozilla::Maybe
 #include "mozilla/RefPtr.h"  // RefPtr, mozilla::StaticRefPtr
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ThreadLocal.h"  // MOZ_THREAD_LOCAL
-#include "nsIMemoryReporter.h"
-#include "nsISupports.h"
 #include "nsIURI.h"
 #include "nsClassHashtable.h"
 #include "jsapi.h"
@@ -47,10 +44,9 @@ class NonSharedGlobalSyncModuleLoaderScope;
 
 }  // namespace mozilla::loader
 
-class mozJSModuleLoader final : public nsIMemoryReporter {
+class mozJSModuleLoader final {
  public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIMEMORYREPORTER
+  NS_INLINE_DECL_REFCOUNTING(mozJSModuleLoader);
 
   // Returns the list of all ESMs.
   nsresult GetLoadedESModules(nsTArray<nsCString>& aLoadedModules);

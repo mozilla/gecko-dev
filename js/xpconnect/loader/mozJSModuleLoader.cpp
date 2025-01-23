@@ -149,8 +149,6 @@ static const JSFunctionSpec gGlobalFun[] = {
     JS_FN("dump", Dump, 1, 0), JS_FN("debug", Debug, 1, 0),
     JS_FN("atob", Atob, 1, 0), JS_FN("btoa", Btoa, 1, 0), JS_FS_END};
 
-NS_IMPL_ISUPPORTS(mozJSModuleLoader, nsIMemoryReporter)
-
 mozJSModuleLoader::mozJSModuleLoader()
     :
 #ifdef STARTUP_RECORDER_ENABLED
@@ -285,7 +283,6 @@ void mozJSModuleLoader::FindTargetObject(JSContext* aCx,
 void mozJSModuleLoader::InitStatics() {
   MOZ_ASSERT(!sSelf);
   sSelf = new mozJSModuleLoader();
-  RegisterWeakMemoryReporter(sSelf);
 
   dom::AutoJSAPI jsapi;
   jsapi.Init();
@@ -315,11 +312,9 @@ void mozJSModuleLoader::Unload() {
 
 void mozJSModuleLoader::ShutdownLoaders() {
   MOZ_ASSERT(sSelf);
-  UnregisterWeakMemoryReporter(sSelf);
   sSelf = nullptr;
 
   if (sDevToolsLoader) {
-    UnregisterWeakMemoryReporter(sDevToolsLoader);
     sDevToolsLoader = nullptr;
   }
 }
@@ -330,7 +325,6 @@ mozJSModuleLoader* mozJSModuleLoader::GetOrCreateDevToolsLoader(
     return sDevToolsLoader;
   }
   sDevToolsLoader = new mozJSModuleLoader();
-  RegisterWeakMemoryReporter(sDevToolsLoader);
 
   sDevToolsLoader->InitSharedGlobal(aCx);
 
@@ -386,12 +380,6 @@ size_t mozJSModuleLoader::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) {
   n += SizeOfStringTableExcludingThis(mImportStacks, aMallocSizeOf);
 #endif
   return n;
-}
-
-NS_IMETHODIMP
-mozJSModuleLoader::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                  nsISupports* aData, bool aAnonymize) {
-  return NS_OK;
 }
 
 void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
@@ -1230,7 +1218,6 @@ NonSharedGlobalSyncModuleLoaderScope::NonSharedGlobalSyncModuleLoaderScope(
              "loader");
 
   mLoader = new mozJSModuleLoader();
-  RegisterWeakMemoryReporter(mLoader);
   mLoader->InitSyncModuleLoaderForGlobal(aGlobal);
 
   mAsyncModuleLoader->CopyModulesTo(mLoader->mModuleLoader);
@@ -1246,7 +1233,6 @@ NonSharedGlobalSyncModuleLoaderScope::~NonSharedGlobalSyncModuleLoaderScope() {
   sTlsActiveLoader.set(nullptr);
 
   mLoader->DisconnectSyncModuleLoaderFromGlobal();
-  UnregisterWeakMemoryReporter(mLoader);
 }
 
 void NonSharedGlobalSyncModuleLoaderScope::Finish() {
