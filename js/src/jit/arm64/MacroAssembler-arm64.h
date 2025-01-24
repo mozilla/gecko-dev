@@ -249,10 +249,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 
   void setFramePushed(uint32_t framePushed) { framePushed_ = framePushed; }
 
-  void freeStack(Register amount) {
-    vixl::MacroAssembler::Drop(Operand(ARMRegister(amount, 64)));
-  }
-
   // Update sp with the value of the current active stack pointer, if necessary.
   void syncStackPtr() {
     if (!GetStackPointer64().Is(vixl::sp)) {

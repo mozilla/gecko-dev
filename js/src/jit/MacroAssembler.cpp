@@ -4686,8 +4686,6 @@ void MacroAssembler::freeStack(uint32_t amount) {
   framePushed_ -= amount;
 }
 
-void MacroAssembler::freeStack(Register amount) { addToStackPtr(amount); }
-
 void MacroAssembler::reserveVMFunctionOutParamSpace(const VMFunctionData& f) {
   switch (f.outParam) {
     case Type_Handle:
