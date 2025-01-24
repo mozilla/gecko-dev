@@ -22,6 +22,8 @@ support-files = [
 
 ["browser_bouncetracking_mode_prefs.js"]
 
+["browser_bouncetracking_nimbus.js"]
+
 ["browser_bouncetracking_oa_isolation.js"]
 
 ["browser_bouncetracking_popup.js"]
