@@ -7333,10 +7333,6 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
        !eventTargetData.GetFrameContent() ||
        !nsContentUtils::ContentIsCrossDocDescendantOf(
            eventTargetData.GetFrameContent(), capturingContent))) {
-    // A check was already done above to ensure that capturingContent is
-    // in this presshell.
-    NS_ASSERTION(capturingContent->OwnerDoc() == GetDocument(),
-                 "Unexpected document");
     nsIFrame* capturingFrame = capturingContent->GetPrimaryFrame();
     if (capturingFrame) {
       eventTargetData.SetFrameAndComputePresShell(capturingFrame);
@@ -8236,10 +8232,6 @@ PresShell::EventHandler::ComputeRootFrameToHandleEventWithCapturingContent(
     return aRootFrameToHandleEvent;
   }
 
-  // A check was already done above to ensure that aCapturingContent is
-  // in this presshell.
-  NS_ASSERTION(aCapturingContent->OwnerDoc() == GetDocument(),
-               "Unexpected document");
   nsIFrame* captureFrame = aCapturingContent->GetPrimaryFrame();
   if (!captureFrame) {
     return aRootFrameToHandleEvent;
