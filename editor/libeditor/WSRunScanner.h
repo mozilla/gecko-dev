@@ -106,97 +106,26 @@ class MOZ_STACK_CLASS WSScanResult final {
  public:
   WSScanResult() = delete;
   enum class ScanDirection : bool { Backward, Forward };
-  MOZ_NEVER_INLINE_DEBUG WSScanResult(ScanDirection aScanDirection,
-                                      nsIContent& aContent, WSType aReason,
-                                      BlockInlineCheck aBlockInlineCheck)
+  WSScanResult(const WSRunScanner& aScanner, ScanDirection aScanDirection,
+               nsIContent& aContent, WSType aReason)
       : mContent(&aContent), mReason(aReason), mDirection(aScanDirection) {
     MOZ_ASSERT(aReason != WSType::CollapsibleWhiteSpaces &&
                aReason != WSType::NonCollapsibleCharacters &&
                aReason != WSType::PreformattedLineBreak);
-    AssertIfInvalidData(aBlockInlineCheck);
+    AssertIfInvalidData(aScanner);
   }
-  MOZ_NEVER_INLINE_DEBUG WSScanResult(ScanDirection aScanDirection,
-                                      const EditorDOMPoint& aPoint,
-                                      WSType aReason,
-                                      BlockInlineCheck aBlockInlineCheck)
+  WSScanResult(const WSRunScanner& aScanner, ScanDirection aScanDirection,
+               const EditorDOMPoint& aPoint, WSType aReason)
       : mContent(aPoint.GetContainerAs<nsIContent>()),
         mOffset(Some(aPoint.Offset())),
         mReason(aReason),
         mDirection(aScanDirection) {
-    AssertIfInvalidData(aBlockInlineCheck);
+    AssertIfInvalidData(aScanner);
   }
 
   static WSScanResult Error() { return WSScanResult(WSType::UnexpectedError); }
 
-  MOZ_NEVER_INLINE_DEBUG void AssertIfInvalidData(
-      BlockInlineCheck aBlockInlineCheck) const {
-#ifdef DEBUG
-    MOZ_ASSERT(mReason == WSType::UnexpectedError ||
-               mReason == WSType::InUncomposedDoc ||
-               mReason == WSType::NonCollapsibleCharacters ||
-               mReason == WSType::CollapsibleWhiteSpaces ||
-               mReason == WSType::BRElement ||
-               mReason == WSType::PreformattedLineBreak ||
-               mReason == WSType::SpecialContent ||
-               mReason == WSType::CurrentBlockBoundary ||
-               mReason == WSType::OtherBlockBoundary ||
-               mReason == WSType::InlineEditingHostBoundary);
-    MOZ_ASSERT_IF(mReason == WSType::UnexpectedError, !mContent);
-    MOZ_ASSERT_IF(mReason != WSType::UnexpectedError, mContent);
-    MOZ_ASSERT_IF(mReason == WSType::InUncomposedDoc,
-                  !mContent->IsInComposedDoc());
-    MOZ_ASSERT_IF(mContent && !mContent->IsInComposedDoc(),
-                  mReason == WSType::InUncomposedDoc);
-    MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
-                      mReason == WSType::CollapsibleWhiteSpaces ||
-                      mReason == WSType::PreformattedLineBreak,
-                  mContent->IsText());
-    MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
-                      mReason == WSType::CollapsibleWhiteSpaces ||
-                      mReason == WSType::PreformattedLineBreak,
-                  mOffset.isSome());
-    MOZ_ASSERT_IF(mReason == WSType::NonCollapsibleCharacters ||
-                      mReason == WSType::CollapsibleWhiteSpaces ||
-                      mReason == WSType::PreformattedLineBreak,
-                  mContent->AsText()->TextDataLength() > 0);
-    MOZ_ASSERT_IF(mDirection == ScanDirection::Backward &&
-                      (mReason == WSType::NonCollapsibleCharacters ||
-                       mReason == WSType::CollapsibleWhiteSpaces ||
-                       mReason == WSType::PreformattedLineBreak),
-                  *mOffset > 0);
-    MOZ_ASSERT_IF(mDirection == ScanDirection::Forward &&
-                      (mReason == WSType::NonCollapsibleCharacters ||
-                       mReason == WSType::CollapsibleWhiteSpaces ||
-                       mReason == WSType::PreformattedLineBreak),
-                  *mOffset < mContent->AsText()->TextDataLength());
-    MOZ_ASSERT_IF(mReason == WSType::BRElement,
-                  mContent->IsHTMLElement(nsGkAtoms::br));
-    MOZ_ASSERT_IF(mReason == WSType::PreformattedLineBreak,
-                  EditorUtils::IsNewLinePreformatted(*mContent));
-    MOZ_ASSERT_IF(
-        mReason == WSType::SpecialContent,
-        (mContent->IsText() && !mContent->IsEditable()) ||
-            (!mContent->IsHTMLElement(nsGkAtoms::br) &&
-             !HTMLEditUtils::IsBlockElement(*mContent, aBlockInlineCheck)));
-    MOZ_ASSERT_IF(mReason == WSType::OtherBlockBoundary,
-                  HTMLEditUtils::IsBlockElement(*mContent, aBlockInlineCheck));
-    MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary,
-                  mContent->IsElement());
-    MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary,
-                  mContent->IsEditable());
-    MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary,
-                  HTMLEditUtils::IsBlockElement(*mContent, aBlockInlineCheck));
-    MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
-                  mContent->IsElement());
-    MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
-                  mContent->IsEditable());
-    MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
-                  !HTMLEditUtils::IsBlockElement(*mContent, aBlockInlineCheck));
-    MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
-                  !mContent->GetParentElement() ||
-                      !mContent->GetParentElement()->IsEditable());
-#endif  // #ifdef DEBUG
-  }
+  void AssertIfInvalidData(const WSRunScanner& aScanner) const;
 
   bool Failed() const {
     return mReason == WSType::NotInitialized ||
@@ -446,7 +375,6 @@ class MOZ_STACK_CLASS WSRunScanner final {
       : mScanStartPoint(aScanStartPoint.template To<EditorDOMPoint>()),
         mTextFragmentDataAtStart(aScanMode, mScanStartPoint, aBlockInlineCheck,
                                  aAncestorLimiter),
-        mBlockInlineCheck(aBlockInlineCheck),
         mScanMode(aScanMode) {}
 
   // ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom() returns the first visible
@@ -640,6 +568,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
     return textFragmentData.StartsFromBRElement()
                ? textFragmentData.StartReasonBRElementPtr()
                : nullptr;
+  }
+
+  constexpr BlockInlineCheck BlockInlineCheckMode() const {
+    return mTextFragmentDataAtStart.BlockInlineCheckMode();
   }
 
   const EditorDOMPoint& ScanStartRef() const { return mScanStartPoint; }
@@ -950,8 +882,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceStartFrom(
-          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck,
+          Scan aScanMode, const EditorDOMPointType& aPoint,
+          NoBreakingSpaceData* aNBSPData, BlockInlineCheck aBlockInlineCheck,
           StopAtNonEditableNode aStopAtNonEditableNode,
           const Element& aAncestorLimiter);
 
@@ -967,8 +899,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
        */
       template <typename EditorDOMPointType>
       static BoundaryData ScanCollapsibleWhiteSpaceEndFrom(
-          const EditorDOMPointType& aPoint, NoBreakingSpaceData* aNBSPData,
-          BlockInlineCheck aBlockInlineCheck,
+          Scan aScanMode, const EditorDOMPointType& aPoint,
+          NoBreakingSpaceData* aNBSPData, BlockInlineCheck aBlockInlineCheck,
           StopAtNonEditableNode aStopAtNonEditableNode,
           const Element& aAncestorLimiter);
 
@@ -1093,6 +1025,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
     }
 
     constexpr Scan ScanMode() const { return mScanMode; }
+
+    constexpr BlockInlineCheck BlockInlineCheckMode() const {
+      return mBlockInlineCheck;
+    }
 
     nsIContent* GetStartReasonContent() const {
       return mStart.GetReasonContent();
@@ -1550,10 +1486,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
 
   TextFragmentData mTextFragmentDataAtStart;
 
-  const BlockInlineCheck mBlockInlineCheck;
   const Scan mScanMode;
 
   friend class WhiteSpaceVisibilityKeeper;
+  friend class WSScanResult;
 };
 
 }  // namespace mozilla
