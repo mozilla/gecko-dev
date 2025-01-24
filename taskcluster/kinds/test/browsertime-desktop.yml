@@ -751,6 +751,7 @@ browsertime-tp6-live:
                     - youtube
     run-on-projects: []
     treeherder-symbol: Btime-live(tp6)
+    tier: 3
 
 browsertime-tp6-live-sheriffed:
     <<: *tp6-defaults
