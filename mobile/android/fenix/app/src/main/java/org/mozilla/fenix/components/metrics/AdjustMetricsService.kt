@@ -53,12 +53,12 @@ class AdjustMetricsService(
         )
         config.setPreinstallTrackingEnabled(true)
 
-        val firstSessionPing = FirstSessionPing(application, application.components.core.store)
+        val installationPing = FirstSessionPing(application, application.components.core.store)
 
         FirstSession.adjustAttributionTimespan.start()
         val timerId = FirstSession.adjustAttributionTime.start()
         config.setOnAttributionChangedListener {
-            if (!firstSessionPing.wasAlreadyTriggered()) {
+            if (!installationPing.wasAlreadyTriggered()) {
                 FirstSession.adjustAttributionTimespan.stop()
             }
 
@@ -80,8 +80,7 @@ class AdjustMetricsService(
                     it.campaign
             }
 
-            // Temporary solution to trigger first ping.  Please fix with Bug 1940777.
-            firstSessionPing.checkAndSend()
+            installationPing.checkAndSend()
         }
 
         config.setLogLevel(LogLevel.SUPRESS)
