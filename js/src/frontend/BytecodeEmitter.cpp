@@ -8411,7 +8411,17 @@ bool BytecodeEmitter::emitSelfHostedDisposeResources(CallNode* callNode,
   ParseNode* resourcesNode = argsList->head();
   ParseNode* countNode = resourcesNode->pn_next;
 
-  DisposalEmitter de(this, bool(kind), CompletionKind::Normal);
+  DisposalEmitter de(this, bool(kind));
+
+  if (!emit1(JSOp::False)) {
+    // [stack] THROWING
+    return false;
+  }
+
+  if (!emit1(JSOp::Undefined)) {
+    // [stack] THROWING UNDEF
+    return false;
+  }
 
   if (!de.prepareForDisposeCapability()) {
     // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING UNDEF

@@ -9,7 +9,6 @@
 #include "mozilla/Maybe.h"
 
 #include "frontend/TryEmitter.h"
-#include "vm/CompletionKind.h"
 #include "vm/UsingHint.h"
 
 namespace js::frontend {
@@ -44,7 +43,6 @@ class MOZ_STACK_CLASS DisposalEmitter {
  private:
   BytecodeEmitter* bce_;
   bool hasAsyncDisposables_;
-  CompletionKind initialCompletion_;
 
 #ifdef DEBUG
   // The state of this emitter.
@@ -75,11 +73,8 @@ class MOZ_STACK_CLASS DisposalEmitter {
                                                 unsigned resourcesFromTop = 1);
 
  public:
-  DisposalEmitter(BytecodeEmitter* bce, bool hasAsyncDisposables,
-                  CompletionKind initialCompletion)
-      : bce_(bce),
-        hasAsyncDisposables_(hasAsyncDisposables),
-        initialCompletion_(initialCompletion) {}
+  DisposalEmitter(BytecodeEmitter* bce, bool hasAsyncDisposables)
+      : bce_(bce), hasAsyncDisposables_(hasAsyncDisposables) {}
 
   [[nodiscard]] bool prepareForDisposeCapability();
 
@@ -152,9 +147,7 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool emitThrowIfException();
 
-  [[nodiscard]] bool emitDisposeResourcesForEnvironment(
-      EmitterScope& es,
-      CompletionKind initialCompletion = CompletionKind::Normal);
+  [[nodiscard]] bool emitDisposeResourcesForEnvironment(EmitterScope& es);
 
  public:
   explicit UsingEmitter(BytecodeEmitter* bce);
