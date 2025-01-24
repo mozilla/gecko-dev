@@ -68,17 +68,17 @@ removed-files
 #endif
 
 # Bug 1606928 - There's no reliable way to connect Top Sites favicons with the favicons in the Search Service
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/allegro-pl.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/allegro-pl.ico
 browser/defaults/settings/main/search-config-icons/96327a73-c433-5eb4-a16d-b090cadfb80b
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/amazon.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/amazon.ico
 browser/defaults/settings/main/search-config-icons/2e835b0e-9709-d1bb-9725-87f59f3445ca
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/ebay.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/ebay.ico
 browser/defaults/settings/main/search-config-icons/70fdd651-6c50-b7bb-09ec-7e85da259173
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/bing-com.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/bing-com.ico
 browser/defaults/settings/main/search-config-icons/cbf9e891-d079-2b28-5617-283450d463dd
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/duckduckgo-com.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/duckduckgo-com.ico
 browser/defaults/settings/main/search-config-icons/a06dc3fd-4bdb-41f3-2ebc-4cbed06a9bd3
-browser/chrome/browser/content/activity-stream/data/content/tippytop/favicons/google-com.ico
+browser/chrome/browser/content/browser/topsites/tippytop/favicons/google-com.ico
 browser/defaults/settings/main/search-config-icons/fa0fc42c-d91d-fca7-34eb-806ff46062dc
 
 # Bug 1720584 - De-duplicate theme and customize icons

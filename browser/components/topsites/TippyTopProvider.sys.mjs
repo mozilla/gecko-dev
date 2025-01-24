@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const TIPPYTOP_PATH = "chrome://activity-stream/content/data/content/tippytop/";
+const TIPPYTOP_PATH = "chrome://browser/content/topsites/tippytop/";
 const TIPPYTOP_JSON_PATH =
-  "chrome://activity-stream/content/data/content/tippytop/top_sites.json";
+  "chrome://browser/content/topsites/tippytop/top_sites.json";
 
 /*
  * Get a domain from a url optionally stripping subdomains.
@@ -34,7 +34,7 @@ export class TippyTopProvider {
     // Load the Tippy Top sites from the json manifest.
     try {
       for (const site of await (
-        await fetch(TIPPYTOP_JSON_PATH, {
+        await this.fetch(TIPPYTOP_JSON_PATH, {
           credentials: "omit",
         })
       ).json()) {
@@ -56,5 +56,13 @@ export class TippyTopProvider {
       site.backgroundColor = tippyTop.background_color;
     }
     return site;
+  }
+
+  /**
+   * This thin wrapper around global.fetch makes it easier for us to write
+   * automated tests that simulate responses from this fetch.
+   */
+  fetch(...args) {
+    return fetch(...args);
   }
 }

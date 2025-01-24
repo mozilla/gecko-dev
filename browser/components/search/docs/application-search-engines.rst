@@ -19,7 +19,7 @@ of image contained within the file:
   * 32 x 32 pixels
 
 Some engines also have icons in
-:searchfox:`browser/components/newtab/data/content/tippytop <browser/components/newtab/data/content/tippytop>`.
+:searchfox:`browser/components/topsites/content/tippytop <browser/components/topsites/content/tippytop>`.
 For these engines, there are two sizes depending on the subdirectory:
 
   * ``favicons/``: 32 x 32 pixels
@@ -38,4 +38,4 @@ To update icons for application search engines:
 
 To update icons for tippytop:
 
-  * Place the new icon file in :searchfox:`both the sub-folders within the tippytop directory <browser/components/newtab/data/content/tippytop>`.
+  * Place the new icon file in :searchfox:`both the sub-folders within the tippytop directory <browser/components/topsites/content/tippytop>`.

@@ -10,7 +10,7 @@ license:
         - browser/branding/
         # Trademarks
         - browser/components/pocket/content/panels/
-        - browser/components/newtab/data/content/tippytop/images/
+        - browser/components/topsites/content/tippytop/images/
         - toolkit/components/pdfjs/content/web/images/
         # We probably want a specific license
         - browser/extensions/webcompat/injections/

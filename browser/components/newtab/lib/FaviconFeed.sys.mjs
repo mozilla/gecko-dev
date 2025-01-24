@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { actionTypes as at } from "resource://activity-stream/common/Actions.mjs";
-import { getDomain } from "resource://activity-stream/lib/TippyTopProvider.sys.mjs";
+import { getDomain } from "resource:///modules/topsites/TippyTopProvider.sys.mjs";
 
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This

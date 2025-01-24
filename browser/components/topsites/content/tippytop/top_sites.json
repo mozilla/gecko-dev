@@ -15,7 +15,27 @@
     "favicon_url": "favicons/allegro-pl.ico"
   },
   {
-    "domains": ["amazon.ae", "amazon.ca", "amazon.cn", "amazon.co.jp", "amazon.co.uk", "amazon.com", "amazon.com.au", "amazon.com.br", "amazon.com.mx", "amazon.de", "amazon.es", "amazon.fr", "amazon.in", "amazon.it", "amazon.nl", "amazon.sa", "amazon.se", "amazon.sg", "amazon.com.tr"],
+    "domains": [
+      "amazon.ae",
+      "amazon.ca",
+      "amazon.cn",
+      "amazon.co.jp",
+      "amazon.co.uk",
+      "amazon.com",
+      "amazon.com.au",
+      "amazon.com.br",
+      "amazon.com.mx",
+      "amazon.de",
+      "amazon.es",
+      "amazon.fr",
+      "amazon.in",
+      "amazon.it",
+      "amazon.nl",
+      "amazon.sa",
+      "amazon.se",
+      "amazon.sg",
+      "amazon.com.tr"
+    ],
     "image_url": "images/amazon@2x.png",
     "favicon_url": "favicons/amazon.ico"
   },
@@ -50,7 +70,24 @@
     "favicon_url": "favicons/duckduckgo-com.ico"
   },
   {
-    "domains": ["mx.ebay.com", "benl.ebay.be", "befr.ebay.be", "ebay.ca", "ebay.ch", "ebay.co.jp", "ebay.co.uk", "ebay.com", "ebay.com.au", "ebay.de", "ebay.es", "ebay.fr", "ebay.ie", "ebay.in", "ebay.it", "ebay.nl"],
+    "domains": [
+      "mx.ebay.com",
+      "benl.ebay.be",
+      "befr.ebay.be",
+      "ebay.ca",
+      "ebay.ch",
+      "ebay.co.jp",
+      "ebay.co.uk",
+      "ebay.com",
+      "ebay.com.au",
+      "ebay.de",
+      "ebay.es",
+      "ebay.fr",
+      "ebay.ie",
+      "ebay.in",
+      "ebay.it",
+      "ebay.nl"
+    ],
     "image_url": "images/ebay@2x.png",
     "favicon_url": "favicons/ebay.ico"
   },
@@ -165,7 +202,13 @@
     "favicon_url": "favicons/yandex-com.png"
   },
   {
-    "domains": ["yandex.by", "yandex.kz", "yandex.ru", "yandex.ua", "yandex.uz"],
+    "domains": [
+      "yandex.by",
+      "yandex.kz",
+      "yandex.ru",
+      "yandex.ua",
+      "yandex.uz"
+    ],
     "image_url": "images/yandex-ru@2x.png",
     "favicon_url": "favicons/yandex-ru.png"
   },

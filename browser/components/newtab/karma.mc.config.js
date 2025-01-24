@@ -302,6 +302,10 @@ module.exports = function (config) {
               new RegExp("^resource:///modules/asrouter/"),
               path.join(__dirname, "../asrouter/modules/"),
             ],
+            [
+              new RegExp("^resource:///modules/topsites/"),
+              path.join(__dirname, "../topsites/"),
+            ],
           ],
         }),
         new webpack.DefinePlugin({

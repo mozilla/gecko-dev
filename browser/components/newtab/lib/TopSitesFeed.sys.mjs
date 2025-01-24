@@ -6,7 +6,7 @@ import {
   actionCreators as ac,
   actionTypes as at,
 } from "resource://activity-stream/common/Actions.mjs";
-import { TippyTopProvider } from "resource://activity-stream/lib/TippyTopProvider.sys.mjs";
+import { TippyTopProvider } from "resource:///modules/topsites/TippyTopProvider.sys.mjs";
 import {
   insertPinned,
   TOP_SITES_MAX_SITES_PER_ROW,

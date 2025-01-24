@@ -4,7 +4,7 @@
 "use strict";
 
 const { TopSites, DEFAULT_TOP_SITES } = ChromeUtils.importESModule(
-  "resource:///modules/TopSites.sys.mjs"
+  "resource:///modules/topsites/TopSites.sys.mjs"
 );
 
 const { actionTypes: at } = ChromeUtils.importESModule(
@@ -2242,9 +2242,9 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
         url: "https://google.com",
         backgroundColor: undefined,
         smallFavicon:
-          "chrome://activity-stream/content/data/content/tippytop/favicons/google-com.ico",
+          "chrome://browser/content/topsites/tippytop/favicons/google-com.ico",
         tippyTopIcon:
-          "chrome://activity-stream/content/data/content/tippytop/images/google-com@2x.png",
+          "chrome://browser/content/topsites/tippytop/images/google-com@2x.png",
       },
       {
         keyword: "@amazon",
@@ -2252,9 +2252,9 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
         url: "https://amazon.com",
         backgroundColor: undefined,
         smallFavicon:
-          "chrome://activity-stream/content/data/content/tippytop/favicons/amazon.ico",
+          "chrome://browser/content/topsites/tippytop/favicons/amazon.ico",
         tippyTopIcon:
-          "chrome://activity-stream/content/data/content/tippytop/images/amazon@2x.png",
+          "chrome://browser/content/topsites/tippytop/images/amazon@2x.png",
       },
     ]);
     await cleanup();

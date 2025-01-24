@@ -18,7 +18,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-  TopSites: "resource:///modules/TopSites.sys.mjs",
+  TopSites: "resource:///modules/topsites/TopSites.sys.mjs",
   TOP_SITES_DEFAULT_ROWS: "resource://activity-stream/common/Reducers.sys.mjs",
   TOP_SITES_MAX_SITES_PER_ROW:
     "resource://activity-stream/common/Reducers.sys.mjs",
