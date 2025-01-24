@@ -158,7 +158,7 @@
         label.classList.add("tab-group-editor-swatch");
         label.setAttribute(
           "data-l10n-id",
-          `tab-group-editor-color-selector-${colorCode}`
+          `tab-group-editor-color-selector2-${colorCode}`
         );
         label.htmlFor = input.id;
         label.style.setProperty(
