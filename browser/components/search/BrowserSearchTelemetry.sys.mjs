@@ -92,12 +92,6 @@ class BrowserSearchTelemetryHandler {
     if (source == "searchbar" && userSelectionBehavior != "none") {
       throw new Error("Did not expect a selection behavior for the searchbar.");
     }
-
-    let histogram = Services.telemetry.getHistogramById(
-      source == "urlbar"
-        ? "FX_URLBAR_SELECTED_RESULT_METHOD"
-        : "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
-    );
     // command events are from the one-off context menu.  Treat them as clicks.
     // Note that we only care about MouseEvent subclasses here when the
     // event type is "click", or else the subclasses are associated with
@@ -128,7 +122,15 @@ class BrowserSearchTelemetryHandler {
     } else {
       category = "enter";
     }
-    histogram.add(category);
+    if (source == "urlbar") {
+      Services.telemetry
+        .getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD")
+        .add(category);
+    } else {
+      Services.telemetry
+        .getHistogramById("FX_SEARCHBAR_SELECTED_RESULT_METHOD")
+        .add(category);
+    }
   }
 
   /**

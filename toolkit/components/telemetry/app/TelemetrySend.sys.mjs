@@ -1262,12 +1262,13 @@ export var TelemetrySendImpl = {
         isPersisted
     );
 
-    let sendId = success ? "TELEMETRY_SEND_SUCCESS" : "TELEMETRY_SEND_FAILURE";
-    let hsend = Services.telemetry.getHistogramById(sendId);
-    let hsuccess = Services.telemetry.getHistogramById("TELEMETRY_SUCCESS");
-
-    hsend.add(Utils.monotonicNow() - startTime);
-    hsuccess.add(success);
+    let time = Utils.monotonicNow() - startTime;
+    if (success) {
+      Services.telemetry.getHistogramById("TELEMETRY_SEND_SUCCESS").add(time);
+    } else {
+      Services.telemetry.getHistogramById("TELEMETRY_SEND_FAILURE").add(time);
+    }
+    Services.telemetry.getHistogramById("TELEMETRY_SUCCESS").add(success);
 
     if (!success) {
       // Let the scheduler know about send failures for triggering backoff timeouts.

@@ -229,12 +229,10 @@ PurgeTrackerService.prototype = {
     let lastPurge = Number(
       Services.prefs.getStringPref("privacy.purge_trackers.last_purge", now)
     );
-
-    let intervalHistogram = Services.telemetry.getHistogramById(
-      "COOKIE_PURGING_INTERVAL_HOURS"
-    );
     let hoursBetween = Math.floor((now - lastPurge) / 1000 / 60 / 60);
-    intervalHistogram.add(hoursBetween);
+    Services.telemetry
+      .getHistogramById("COOKIE_PURGING_INTERVAL_HOURS")
+      .add(hoursBetween);
 
     Services.prefs.setStringPref(
       "privacy.purge_trackers.last_purge",

@@ -40,23 +40,24 @@ export class BlockedSiteParent extends JSWindowActorParent {
       sendTelemetry = true;
       bucketName = "WARNING_HARMFUL_PAGE_";
     }
-    let secHistogram = Services.telemetry.getHistogramById(
-      "URLCLASSIFIER_UI_EVENTS"
-    );
     let nsISecTel = Ci.IUrlClassifierUITelemetry;
     bucketName += isTopFrame ? "TOP_" : "FRAME_";
 
     switch (elementId) {
       case "goBackButton":
         if (sendTelemetry) {
-          secHistogram.add(nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
+          Services.telemetry
+            .getHistogramById("URLCLASSIFIER_UI_EVENTS")
+            .add(nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
         }
         browser.ownerGlobal.getMeOutOfHere(this.browsingContext);
         break;
       case "ignore_warning_link":
         if (Services.prefs.getBoolPref("browser.safebrowsing.allowOverride")) {
           if (sendTelemetry) {
-            secHistogram.add(nsISecTel[bucketName + "IGNORE_WARNING"]);
+            Services.telemetry
+              .getHistogramById("URLCLASSIFIER_UI_EVENTS")
+              .add(nsISecTel[bucketName + "IGNORE_WARNING"]);
           }
           BrowserOnClick.ignoreWarningLink(
             reason,
