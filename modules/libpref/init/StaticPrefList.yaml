@@ -9527,6 +9527,13 @@
   mirror: always
   rust: true
 
+# Perform intrinsic sizing of flexible grid tracks based on grid items that
+# span more than one track.
+- name: layout.css.grid-flex-spanning-items-intrinsic-sizing.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Is support for :has() enabled?
 - name: layout.css.has-selector.enabled
   type: RelaxedAtomicBool

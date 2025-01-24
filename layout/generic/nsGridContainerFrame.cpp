@@ -6814,6 +6814,10 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
         // Set eIsFlexing on the item state here to speed up
         // FindUsedFlexFraction later.
         gridItem.mState[mAxis] |= ItemState::eIsFlexing;
+        if (!StaticPrefs::
+                layout_css_grid_flex_spanning_items_intrinsic_sizing_enabled()) {
+          continue;
+        }
         items = &flexSpanningItems;
       }
 
