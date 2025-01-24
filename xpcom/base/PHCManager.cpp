@@ -10,7 +10,7 @@
 #include "mozilla/Literals.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_memory.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "prsystem.h"
 
 namespace mozilla {
@@ -100,13 +100,14 @@ void ReportPHCTelemetry() {
   MemoryUsage usage;
   PHCMemoryUsage(usage);
 
-  Accumulate(Telemetry::MEMORY_PHC_SLOP, usage.mFragmentationBytes);
+  glean::memory_phc::slop.Accumulate(usage.mFragmentationBytes);
 
   PHCStats stats;
   GetPHCStats(stats);
 
-  Accumulate(Telemetry::MEMORY_PHC_SLOTS_ALLOCATED, stats.mSlotsAllocated);
-  Accumulate(Telemetry::MEMORY_PHC_SLOTS_FREED, stats.mSlotsFreed);
+  glean::memory_phc::slots_allocated.AccumulateSingleSample(
+      stats.mSlotsAllocated);
+  glean::memory_phc::slots_freed.AccumulateSingleSample(stats.mSlotsFreed);
   // There are also slots that are unused (neither free nor allocated) they
   // can be calculated by knowing the total number of slots.
 }
