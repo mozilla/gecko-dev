@@ -4697,8 +4697,15 @@ void EventStateManager::UpdateCursor(nsPresContext* aPresContext,
                                      WidgetMouseEvent* aEvent,
                                      nsIFrame* aTargetFrame,
                                      nsEventStatus* aStatus) {
-  if (aTargetFrame && IsRemoteTarget(aTargetFrame->GetContent())) {
-    return;
+  // XXX This is still not entirely correct, e.g. when mouse hover over the
+  // broder of a cross-origin iframe, we should show the cursor specified on the
+  // iframe (see bug 1943530).
+  if (nsSubDocumentFrame* f = do_QueryFrame(aTargetFrame)) {
+    if (auto* fl = f->FrameLoader();
+        fl && fl->IsRemoteFrame() && f->ContentReactsToPointerEvents()) {
+      // The sub-frame will update the cursor if needed.
+      return;
+    }
   }
 
   auto cursor = StyleCursorKind::Default;
