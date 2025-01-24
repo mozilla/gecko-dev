@@ -180,8 +180,30 @@ describe("<CardSections />", () => {
   it("should apply correct classNames and position from layout data", () => {
     const props = wrapper.find(DSCard).at(0).props();
     const thirdProps = wrapper.find(DSCard).at(2).props();
-    assert.equal(props.sectionsClassNames, "col-1-large col-1-position-0");
-    assert.equal(thirdProps.sectionsClassNames, "col-1-small col-1-position-1");
+    assert.equal(
+      props.sectionsClassNames,
+      "col-1-large col-1-position-0 col-1-show-excerpt"
+    );
+    assert.equal(
+      thirdProps.sectionsClassNames,
+      "col-1-small col-1-position-1 col-1-hide-excerpt"
+    );
+  });
+
+  it("should apply correct class names for cards with and without excerpts", () => {
+    wrapper.find(DSCard).forEach(card => {
+      const props = card.props();
+      // Small cards don't show excerpts according to the data in DEFAULT_PROPS for this test suite
+      if (props.sectionsClassNames.includes("small")) {
+        assert.include(props.sectionsClassNames, "hide-excerpt");
+        assert.notInclude(props.sectionsClassNames, "show-excerpt");
+      }
+      // The other cards should show excerpts though!
+      else {
+        assert.include(props.sectionsClassNames, "show-excerpt");
+        assert.notInclude(props.sectionsClassNames, "hide-excerpt");
+      }
+    });
   });
 
   it("should dispatch PREF_FOLLOWED_SECTIONS updates with follow and unfollow", () => {

@@ -10006,6 +10006,14 @@ function getLayoutData(responsiveLayouts, index) {
       if (tile.position === index) {
         layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
         layoutData.classNames.push(`col-${layout.columnCount}-position-${tileIndex}`);
+
+        // The API tells us whether the tile should show the excerpt or not.
+        // Apply extra styles accordingly.
+        if (tile.hasExcerpt) {
+          layoutData.classNames.push(`col-${layout.columnCount}-show-excerpt`);
+        } else {
+          layoutData.classNames.push(`col-${layout.columnCount}-hide-excerpt`);
+        }
       }
     });
   });
