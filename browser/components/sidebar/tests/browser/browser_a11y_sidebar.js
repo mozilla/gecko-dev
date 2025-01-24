@@ -5,6 +5,12 @@
 
 let win;
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  GenAI: "resource:///modules/GenAI.sys.mjs",
+});
+
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -116,6 +122,39 @@ add_task(async function test_menu_items_labeled() {
       `Expanded ${view} button has a label.`
     );
   }
+});
+
+add_task(async function test_genai_chat_sidebar_tooltip() {
+  const { document, SidebarController } = win;
+  const chatbotButton = document
+    .querySelector("sidebar-main")
+    .shadowRoot.querySelector("[view=viewGenaiChatSidebar]");
+
+  await SidebarController.initializeUIState({ launcherExpanded: false });
+
+  const view = chatbotButton.getAttribute("view");
+  ok(
+    chatbotButton.title,
+    `${view} chatbot button (${chatbotButton.title}) has a tooltip.`
+  );
+  const sandbox = sinon.createSandbox();
+
+  const mockTooltipName = "test-tooltip-name";
+
+  sandbox.stub(lazy.GenAI, "currentChatProviderInfo").value({
+    name: mockTooltipName,
+    iconUrl: "chrome://global/skin/icons/highlights.svg",
+  });
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.chat.provider", "https://localhost"]],
+  });
+
+  Assert.ok(
+    chatbotButton.title.includes(mockTooltipName),
+    `${chatbotButton.title} should include ${mockTooltipName}.`
+  );
+
+  sandbox.restore();
 });
 
 add_task(async function test_keyboard_navigation_vertical_tabs() {

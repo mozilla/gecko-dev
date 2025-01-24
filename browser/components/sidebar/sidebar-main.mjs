@@ -16,6 +16,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
+  GenAI: "resource:///modules/GenAI.sys.mjs",
 });
 
 const TOOLS_OVERFLOW_LIMIT = 5;
@@ -72,8 +73,11 @@ export default class SidebarMain extends MozLitElement {
       close10nId: "sidebar-menu-close-bookmarks-tooltip",
     },
     viewGenaiChatSidebar: {
-      openl10nId: "sidebar-menu-open-ai-chatbot-tooltip",
-      close10nId: "sidebar-menu-close-ai-chatbot-tooltip",
+      shortcutId: "viewGenaiChatSidebarKb",
+      openl10nId: "sidebar-menu-open-ai-chatbot-tooltip-generic",
+      close10nId: "sidebar-menu-close-ai-chatbot-tooltip-generic",
+      openProviderl10nId: "sidebar-menu-open-ai-chatbot-provider-tooltip",
+      closeProviderl10nId: "sidebar-menu-close-ai-chatbot-provider-tooltip",
     },
   };
 
@@ -318,6 +322,15 @@ export default class SidebarMain extends MozLitElement {
   }
 
   entrypointTemplate(action) {
+    let providerInfo;
+    if (action.view === "viewGenaiChatSidebar") {
+      providerInfo = lazy.GenAI.currentChatProviderInfo;
+      action.iconUrl = providerInfo.iconUrl;
+      // Sets the tooltip text for the action based on the chatbot provider's name.
+      // This tooltip text is also used to set the action label
+      action.tooltiptext = providerInfo.name;
+    }
+
     if (action.disabled || action.hidden) {
       return null;
     }
@@ -335,17 +348,28 @@ export default class SidebarMain extends MozLitElement {
     const tooltipInfo = this.tooltips[action.view];
     if (tooltipInfo) {
       const { shortcutId, openl10nId, close10nId } = tooltipInfo;
-      const l10nId = isActiveView ? close10nId : openl10nId;
+      let l10nId = isActiveView ? close10nId : openl10nId;
+      let tooltipData = {};
+
+      if (action.view === "viewGenaiChatSidebar") {
+        const provider = providerInfo?.name;
+
+        if (provider) {
+          tooltipData.provider = provider;
+          l10nId = isActiveView
+            ? tooltipInfo.closeProviderl10nId
+            : tooltipInfo.openProviderl10nId;
+        }
+      }
+
       if (shortcutId) {
         const shortcut = lazy.ShortcutUtils.prettifyShortcut(
           document.getElementById(shortcutId)
         );
-        tooltip = this.fluentStrings.formatValueSync(l10nId, {
-          shortcut,
-        });
-      } else {
-        tooltip = this.fluentStrings.formatValueSync(l10nId);
+        tooltipData.shortcut = shortcut;
       }
+
+      tooltip = this.fluentStrings.formatValueSync(l10nId, tooltipData);
     }
 
     let toolsOverflowing = this.isToolsOverflowing();

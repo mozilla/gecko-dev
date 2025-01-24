@@ -123,6 +123,7 @@ export const GenAI = {
           "genai-onboarding-claude-analyze",
           "genai-onboarding-claude-price",
         ],
+        iconUrl: "chrome://browser/content/genai/assets/brands/claude.svg",
         id: "claude",
         learnId: "genai-onboarding-claude-learn",
         learnLink: "https://www.anthropic.com/claude",
@@ -133,8 +134,8 @@ export const GenAI = {
         link3:
           "https://www.anthropic.com/legal/archive/628feec9-7df9-4d38-bc69-fbf104df47b0",
         linksId: "genai-settings-chat-claude-links",
-        name: "Anthropic Claude",
         maxLength: 15020,
+        name: "Anthropic Claude",
         tooltipId: "genai-onboarding-claude-tooltip",
       },
     ],
@@ -146,14 +147,15 @@ export const GenAI = {
           "genai-onboarding-chatgpt-analyze",
           "genai-onboarding-chatgpt-price",
         ],
+        iconUrl: "chrome://browser/content/genai/assets/brands/chatgpt.svg",
         id: "chatgpt",
         learnId: "genai-onboarding-chatgpt-learn",
         learnLink: "https://help.openai.com/articles/6783457-what-is-chatgpt",
         link1: "https://openai.com/terms",
         link2: "https://openai.com/privacy",
         linksId: "genai-settings-chat-chatgpt-links",
-        name: "ChatGPT",
         maxLength: 14140,
+        name: "ChatGPT",
         tooltipId: "genai-onboarding-chatgpt-tooltip",
       },
     ],
@@ -165,14 +167,15 @@ export const GenAI = {
           "genai-onboarding-copilot-analyze",
           "genai-onboarding-copilot-price",
         ],
+        iconUrl: "chrome://browser/content/genai/assets/brands/copilot.svg",
         id: "copilot",
         learnId: "genai-onboarding-copilot-learn",
         learnLink: "https://www.microsoft.com/microsoft-copilot/learn/",
         link1: "https://www.bing.com/new/termsofuse",
         link2: "https://go.microsoft.com/fwlink/?LinkId=521839",
         linksId: "genai-settings-chat-copilot-links",
-        name: "Copilot",
         maxLength: 3260,
+        name: "Copilot",
         tooltipId: "genai-onboarding-copilot-tooltip",
       },
     ],
@@ -185,6 +188,7 @@ export const GenAI = {
           "genai-onboarding-gemini-price",
         ],
         header: "X-Firefox-Gemini",
+        iconUrl: "chrome://browser/content/genai/assets/brands/gemini.svg",
         id: "gemini",
         learnId: "genai-onboarding-gemini-learn",
         learnLink: "https://gemini.google.com/faq",
@@ -192,10 +196,10 @@ export const GenAI = {
         link2: "https://policies.google.com/terms/generative-ai/use-policy",
         link3: "https://support.google.com/gemini?p=privacy_notice",
         linksId: "genai-settings-chat-gemini-links",
-        name: "Google Gemini",
         // Max header length is around 55000, but spaces are encoded with %20
         // for header instead of + for query parameter
         maxLength: 45000,
+        name: "Google Gemini",
         tooltipId: "genai-onboarding-gemini-tooltip",
       },
     ],
@@ -207,14 +211,15 @@ export const GenAI = {
           "genai-onboarding-huggingchat-switch",
           "genai-onboarding-huggingchat-price-2",
         ],
+        iconUrl: "chrome://browser/content/genai/assets/brands/huggingchat.svg",
         id: "huggingchat",
         learnId: "genai-onboarding-huggingchat-learn",
         learnLink: "https://huggingface.co/chat/privacy/",
         link1: "https://huggingface.co/chat/privacy",
         link2: "https://huggingface.co/privacy",
         linksId: "genai-settings-chat-huggingchat-links",
-        name: "HuggingChat",
         maxLength: 8192,
+        name: "HuggingChat",
         tooltipId: "genai-onboarding-huggingchat-tooltip",
       },
     ],
@@ -225,14 +230,15 @@ export const GenAI = {
           "genai-onboarding-lechat-generate",
           "genai-onboarding-lechat-price",
         ],
+        iconUrl: "chrome://browser/content/genai/assets/brands/lechat.svg",
         id: "lechat",
         learnId: "genai-onboarding-lechat-learn",
         learnLink: "https://help.mistral.ai/collections/272960-le-chat",
         link1: "https://mistral.ai/terms/#terms-of-service-le-chat",
         link2: "https://mistral.ai/terms/#privacy-policy",
         linksId: "genai-settings-chat-lechat-links",
-        name: "Le Chat Mistral",
         maxLength: 3680,
+        name: "Le Chat Mistral",
         tooltipId: "genai-onboarding-lechat-tooltip",
       },
     ],
@@ -242,11 +248,26 @@ export const GenAI = {
         id: "localhost",
         link1: "https://llamafile.ai",
         linksId: "genai-settings-chat-localhost-links",
-        name: "localhost",
         maxLength: 8192,
+        name: "localhost",
       },
     ],
   ]),
+
+  /**
+   * Retrieves the current chat provider information based on the
+   * preference setting
+   *
+   * @returns {object} An object containing the current chat provider's
+   *                   information, such as name, iconUrl, etc. If no
+   *                   provider is set, returns an empty object.
+   */
+  get currentChatProviderInfo() {
+    return {
+      iconUrl: "chrome://global/skin/icons/highlights.svg",
+      ...this.chatProviders.get(lazy.chatProvider),
+    };
+  },
 
   /**
    * Determine if chat entrypoints can be shown
@@ -963,6 +984,11 @@ function onChatProviderChange(value) {
 
   // Recalculate query limit on provider change
   GenAI.chatLastPrefix = null;
+
+  // Refreshes the sidebar icon and label for all open windows
+  lazy.EveryWindow.readyWindows.forEach(window => {
+    window.SidebarController.addOrUpdateExtension("viewGenaiChatSidebar", {});
+  });
 }
 
 /**
