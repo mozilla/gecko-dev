@@ -3678,17 +3678,6 @@ with only_when(target_has_linux_kernel & compile_environment):
         ),
     )
 
-# Gamepad support
-# ==============================================================
-check_header(
-    "linux/joystick.h",
-    onerror=lambda: die(
-        "Can't find header linux/joystick.h, needed for gamepad support."
-        " Please install Linux kernel headers."
-    ),
-    when=target_has_linux_kernel & compile_environment,
-)
-
 
 # Smart card support
 # ==============================================================
