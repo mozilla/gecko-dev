@@ -11,9 +11,13 @@ import os
 from voluptuous import Any, Optional, Required
 
 from taskgraph.transforms.run import run_task_using
-from taskgraph.transforms.run.common import support_vcs_checkout
+from taskgraph.transforms.run.common import (
+    support_caches,
+    support_vcs_checkout,
+)
 from taskgraph.transforms.task import taskref_or_string
 from taskgraph.util import path, taskcluster
+from taskgraph.util.caches import CACHES
 from taskgraph.util.schema import Schema
 
 EXEC_COMMANDS = {
@@ -24,12 +28,11 @@ EXEC_COMMANDS = {
 run_task_schema = Schema(
     {
         Required("using"): "run-task",
-        # if true, add a cache at ~worker/.cache, which is where things like pip
-        # tend to hide their caches.  This cache is never added for level-1 tasks.
-        # TODO Once bug 1526028 is fixed, this and 'use-caches' should be merged.
-        Required("cache-dotcache"): bool,
-        # Whether or not to use caches.
-        Optional("use-caches"): bool,
+        # Which caches to use. May take a boolean in which case either all
+        # (True) or no (False) caches will be used. Alternatively, it can
+        # accept a list of caches to enable. Defaults to only the checkout cache
+        # enabled.
+        Optional("use-caches", "caches"): Any(bool, list(CACHES.keys())),
         # if true (the default), perform a checkout on the worker
         Required("checkout"): Any(bool, {str: dict}),
         Optional(
@@ -70,7 +73,7 @@ def common_setup(config, task, taskdesc, command):
                 for (repo, config) in run["checkout"].items()
             }
 
-        support_vcs_checkout(
+        vcs_path = support_vcs_checkout(
             config,
             task,
             taskdesc,
@@ -78,7 +81,6 @@ def common_setup(config, task, taskdesc, command):
             sparse=bool(run["sparse-profile"]),
         )
 
-        vcs_path = taskdesc["worker"]["env"]["VCS_PATH"]
         for repo_config in repo_configs.values():
             checkout_path = path.join(vcs_path, repo_config.path)
             command.append(f"--{repo_config.prefix}-checkout={checkout_path}")
@@ -104,11 +106,11 @@ def common_setup(config, task, taskdesc, command):
     if "cwd" in run:
         command.extend(("--task-cwd", run["cwd"]))
 
+    support_caches(config, task, taskdesc)
     taskdesc["worker"].setdefault("env", {})["MOZ_SCM_LEVEL"] = config.params["level"]
 
 
 worker_defaults = {
-    "cache-dotcache": False,
     "checkout": True,
     "sparse-profile": None,
     "run-as-root": False,
@@ -134,16 +136,6 @@ def docker_worker_run_task(config, task, taskdesc):
     worker = taskdesc["worker"] = task["worker"]
     command = run.pop("run-task-command", ["/usr/local/bin/run-task"])
     common_setup(config, task, taskdesc, command)
-
-    if run.get("cache-dotcache"):
-        worker["caches"].append(
-            {
-                "type": "persistent",
-                "name": "{project}-dotcache".format(**config.params),
-                "mount-point": "{workdir}/.cache".format(**run),
-                "skip-untrusted": True,
-            }
-        )
 
     run_command = run["command"]
 
@@ -177,13 +169,6 @@ def generic_worker_run_task(config, task, taskdesc):
     common_setup(config, task, taskdesc, command)
 
     worker.setdefault("mounts", [])
-    if run.get("cache-dotcache"):
-        worker["mounts"].append(
-            {
-                "cache-name": "{project}-dotcache".format(**config.params),
-                "directory": "{workdir}/.cache".format(**run),
-            }
-        )
     worker["mounts"].append(
         {
             "content": {

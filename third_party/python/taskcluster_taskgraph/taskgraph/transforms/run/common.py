@@ -7,9 +7,12 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-import hashlib
 import json
+from typing import Any, Dict, List, Union
 
+from taskgraph.transforms.base import TransformConfig
+from taskgraph.util import path
+from taskgraph.util.caches import CACHES, get_checkout_dir
 from taskgraph.util.taskcluster import get_artifact_prefix
 
 
@@ -31,10 +34,10 @@ def add_cache(task, taskdesc, name, mount_point, skip_untrusted=False):
         skip_untrusted (bool): Whether cache is used in untrusted environments
             (default: False). Only applies to docker-worker.
     """
-    if not task["run"].get("use-caches", True):
-        return
-
     worker = task["worker"]
+    if worker["implementation"] not in ("docker-worker", "generic-worker"):
+        # caches support not implemented
+        return
 
     if worker["implementation"] == "docker-worker":
         taskdesc["worker"].setdefault("caches", []).append(
@@ -53,10 +56,6 @@ def add_cache(task, taskdesc, name, mount_point, skip_untrusted=False):
                 "directory": mount_point,
             }
         )
-
-    else:
-        # Caches not implemented
-        pass
 
 
 def add_artifacts(config, task, taskdesc, path):
@@ -91,46 +90,19 @@ def support_vcs_checkout(config, task, taskdesc, repo_configs, sparse=False):
     reserved for ``run-task`` tasks.
     """
     worker = task["worker"]
-    is_mac = worker["os"] == "macosx"
+    assert worker["os"] in ("linux", "macosx", "windows")
     is_win = worker["os"] == "windows"
-    is_linux = worker["os"] == "linux"
     is_docker = worker["implementation"] == "docker-worker"
-    assert is_mac or is_win or is_linux
 
+    checkoutdir = get_checkout_dir(task)
     if is_win:
-        checkoutdir = "./build"
         hgstore = "y:/hg-shared"
     elif is_docker:
-        checkoutdir = "{workdir}/checkouts".format(**task["run"])
         hgstore = f"{checkoutdir}/hg-store"
     else:
-        checkoutdir = "./checkouts"
         hgstore = f"{checkoutdir}/hg-shared"
 
-    vcsdir = checkoutdir + "/" + get_vcsdir_name(worker["os"])
-    cache_name = "checkouts"
-
-    # Robust checkout does not clean up subrepositories, so ensure  that tasks
-    # that checkout different sets of paths have separate caches.
-    # See https://bugzilla.mozilla.org/show_bug.cgi?id=1631610
-    if len(repo_configs) > 1:
-        checkout_paths = {
-            "\t".join([repo_config.path, repo_config.prefix])
-            for repo_config in sorted(
-                repo_configs.values(), key=lambda repo_config: repo_config.path
-            )
-        }
-        checkout_paths_str = "\n".join(checkout_paths).encode("utf-8")
-        digest = hashlib.sha256(checkout_paths_str).hexdigest()
-        cache_name += f"-repos-{digest}"
-
-    # Sparse checkouts need their own cache because they can interfere
-    # with clients that aren't sparse aware.
-    if sparse:
-        cache_name += "-sparse"
-
-    add_cache(task, taskdesc, cache_name, checkoutdir)
-
+    vcsdir = f"{checkoutdir}/{get_vcsdir_name(worker['os'])}"
     env = taskdesc["worker"].setdefault("env", {})
     env.update(
         {
@@ -138,7 +110,8 @@ def support_vcs_checkout(config, task, taskdesc, repo_configs, sparse=False):
             "REPOSITORIES": json.dumps(
                 {repo.prefix: repo.name for repo in repo_configs.values()}
             ),
-            "VCS_PATH": vcsdir,
+            # If vcsdir is already absolute this will return it unmodified.
+            "VCS_PATH": path.join("{task_workdir}", vcsdir),
         }
     )
     for repo_config in repo_configs.values():
@@ -162,3 +135,69 @@ def support_vcs_checkout(config, task, taskdesc, repo_configs, sparse=False):
     # only some worker platforms have taskcluster-proxy enabled
     if task["worker"]["implementation"] in ("docker-worker",):
         taskdesc["worker"]["taskcluster-proxy"] = True
+
+    return vcsdir
+
+
+def should_use_cache(
+    name: str,
+    use_caches: Union[bool, List[str]],
+    has_checkout: bool,
+) -> bool:
+    # Never enable the checkout cache if there's no clone. This allows
+    # 'checkout' to be specified as a default cache without impacting
+    # irrelevant tasks.
+    if name == "checkout" and not has_checkout:
+        return False
+
+    if isinstance(use_caches, bool):
+        return use_caches
+
+    return name in use_caches
+
+
+def support_caches(
+    config: TransformConfig, task: Dict[str, Any], taskdesc: Dict[str, Any]
+):
+    """Add caches for common tools."""
+    run = task["run"]
+    worker = task["worker"]
+    workdir = run.get("workdir")
+    base_cache_dir = ".task-cache"
+    if worker["implementation"] == "docker-worker":
+        workdir = workdir or "/builds/worker"
+        base_cache_dir = path.join(workdir, base_cache_dir)
+
+    use_caches = run.get("use-caches")
+    if use_caches is None:
+        # Use project default values for filtering caches, default to
+        # checkout cache if no selection is specified.
+        use_caches = (
+            config.graph_config.get("taskgraph", {})
+            .get("run", {})
+            .get("use-caches", ["checkout"])
+        )
+
+    for name, cache_cfg in CACHES.items():
+        if not should_use_cache(name, use_caches, run["checkout"]):
+            continue
+
+        if "cache_dir" in cache_cfg:
+            assert callable(cache_cfg["cache_dir"])
+            cache_dir = cache_cfg["cache_dir"](task)
+        else:
+            cache_dir = f"{base_cache_dir}/{name}"
+
+        if "cache_name" in cache_cfg:
+            assert callable(cache_cfg["cache_name"])
+            cache_name = cache_cfg["cache_name"](config, task)
+        else:
+            cache_name = name
+
+        if cache_cfg.get("env"):
+            env = taskdesc["worker"].setdefault("env", {})
+            # If cache_dir is already absolute, the `.join` call returns it as
+            # is. In that case, {task_workdir} will get interpolated by
+            # run-task.
+            env[cache_cfg["env"]] = path.join("{task_workdir}", cache_dir)
+        add_cache(task, taskdesc, cache_name, cache_dir)

@@ -160,43 +160,6 @@ def set_label(config, tasks):
         yield task
 
 
-@transforms.add
-def add_resource_monitor(config, tasks):
-    for task in tasks:
-        if task.get("attributes", {}).get("resource-monitor"):
-            worker_implementation, worker_os = worker_type_implementation(
-                config.graph_config, task["worker-type"]
-            )
-            # Normalise worker os so that linux-bitbar and similar use linux tools.
-            if worker_os:
-                worker_os = worker_os.split("-")[0]
-            if "win7" in task["worker-type"]:
-                arch = "32"
-            else:
-                arch = "64"
-            task.setdefault("fetches", {})
-            task["fetches"].setdefault("toolchain", [])
-            task["fetches"]["toolchain"].append(f"{worker_os}{arch}-resource-monitor")
-
-            if worker_implementation == "docker-worker":
-                artifact_source = "/builds/worker/monitoring/resource-monitor.json"
-            else:
-                artifact_source = "monitoring/resource-monitor.json"
-            task["worker"].setdefault("artifacts", [])
-            task["worker"]["artifacts"].append(
-                {
-                    "name": "public/monitoring/resource-monitor.json",
-                    "type": "file",
-                    "path": artifact_source,
-                }
-            )
-            # Set env for output file
-            task["worker"].setdefault("env", {})
-            task["worker"]["env"]["RESOURCE_MONITOR_OUTPUT"] = artifact_source
-
-        yield task
-
-
 def get_attribute(dict, key, attributes, attribute_name):
     """Get `attribute_name` from the given `attributes` dict, and if there
     is a corresponding value, set `key` in `dict` to that value."""
@@ -367,7 +330,7 @@ def use_fetches(config, tasks):
             "task-reference": json.dumps(task_fetches, sort_keys=True)
         }
 
-        env.setdefault("MOZ_FETCHES_DIR", "fetches")
+        env.setdefault("MOZ_FETCHES_DIR", "{task_workdir}/fetches")
 
         yield task
 

@@ -469,7 +469,7 @@ def _get_deps(task_ids, use_proxy):
                 continue
             raise e
 
-        upstream_tasks[task_def["metadata"]["name"]] = task_id
+        upstream_tasks[task_id] = task_def["metadata"]["name"]
 
         upstream_tasks.update(_get_deps(tuple(task_def["dependencies"]), use_proxy))
 
@@ -479,14 +479,14 @@ def _get_deps(task_ids, use_proxy):
 def get_ancestors(
     task_ids: Union[List[str], str], use_proxy: bool = False
 ) -> Dict[str, str]:
-    """Gets the ancestor tasks of the given task_ids as a dictionary of label -> taskid.
+    """Gets the ancestor tasks of the given task_ids as a dictionary of taskid -> label.
 
     Args:
         task_ids (str or [str]): A single task id or a list of task ids to find the ancestors of.
         use_proxy (bool): See get_root_url.
 
     Returns:
-        dict: A dict whose keys are task labels and values are task ids.
+        dict: A dict whose keys are task ids and values are task labels.
     """
     upstream_tasks: Dict[str, str] = {}
 

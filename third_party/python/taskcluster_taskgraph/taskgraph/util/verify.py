@@ -146,7 +146,7 @@ def verify_task_graph_symbol(task, taskgraph, scratch_pad, graph_config, paramet
             if key in scratch_pad:
                 raise Exception(
                     "Duplicate treeherder platform and symbol in tasks "
-                    "`{}`and `{}`: {} {}".format(
+                    "`{}` and `{}`: {} {}".format(
                         task.label,
                         scratch_pad[key],
                         f"{platform}/{collection_keys[0]}",
