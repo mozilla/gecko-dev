@@ -11,19 +11,17 @@ const { SidebarState } = ChromeUtils.importESModule(
   "resource:///modules/SidebarState.sys.mjs"
 );
 
-const mockElement = {
-  setAttribute(name, value) {
-    this[name] = value;
-  },
-  style: { width: "200px" },
-  toggleAttribute: sinon.stub(),
-};
+const mockElement = { toggleAttribute: sinon.stub() };
 const mockGlobal = {
   document: { getElementById: () => mockElement },
   gBrowser: { tabContainer: mockElement },
 };
+const mockPanel = {
+  setAttribute: (name, value) => (mockPanel[name] = value),
+  style: { width: "200px" },
+};
 const mockController = {
-  _box: mockElement,
+  _box: mockPanel,
   showInitially: sinon.stub(),
   sidebarContainer: { ownerGlobal: mockGlobal },
   sidebarMain: mockElement,

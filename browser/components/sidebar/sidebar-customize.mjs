@@ -9,10 +9,6 @@ import { SidebarPage } from "./sidebar-page.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-radio-group.mjs";
 
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 const l10nMap = new Map([
   ["viewGenaiChatSidebar", "sidebar-menu-genai-chat-label"],
   ["viewReviewCheckerSidebar", "sidebar-menu-review-checker-label"],
@@ -21,53 +17,22 @@ const l10nMap = new Map([
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
 ]);
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
-const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
     super();
     this.activeExtIndex = 0;
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this.#prefValues,
-      "visibility",
+    this.visibility = Services.prefs.getStringPref(
       VISIBILITY_SETTING_PREF,
-      "always-show",
-      (_aPreference, _previousValue, newValue) => {
-        this.visibility = newValue;
-      }
+      "always-show"
     );
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this.#prefValues,
-      "isPositionStart",
-      POSITION_SETTING_PREF,
-      true,
-      (_aPreference, _previousValue, newValue) => {
-        this.isPositionStart = newValue;
-      }
-    );
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this.#prefValues,
-      "isVerticalTabs",
-      TAB_DIRECTION_SETTING_PREF,
-      false,
-      (_aPreference, _previousValue, newValue) => {
-        this.isVerticalTabs = newValue;
-      }
-    );
-    this.visibility = this.#prefValues.visibility;
-    this.isPositionStart = this.#prefValues.isPositionStart;
-    this.isVerticalTabs = this.#prefValues.isVerticalTabs;
     this.boundObserve = (...args) => this.observe(...args);
   }
-
-  #prefValues = {};
 
   static properties = {
     activeExtIndex: { type: Number },
     visibility: { type: String },
-    isPositionStart: { type: Boolean },
-    isVerticalTabs: { type: Boolean },
   };
 
   static queries = {
@@ -83,6 +48,7 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().addEventListener("SidebarItemAdded", this);
     this.getWindow().addEventListener("SidebarItemChanged", this);
     this.getWindow().addEventListener("SidebarItemRemoved", this);
+    Services.prefs.addObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
   }
 
   disconnectedCallback() {
@@ -90,6 +56,26 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().removeEventListener("SidebarItemAdded", this);
     this.getWindow().removeEventListener("SidebarItemChanged", this);
     this.getWindow().removeEventListener("SidebarItemRemoved", this);
+    Services.prefs.removeObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
+  }
+
+  observe(subject, topic, prefName) {
+    switch (topic) {
+      case "nsPref:changed":
+        switch (prefName) {
+          case VISIBILITY_SETTING_PREF:
+            this.visibility = Services.prefs.getStringPref(
+              VISIBILITY_SETTING_PREF,
+              "always-show"
+            );
+            break;
+        }
+        break;
+    }
+  }
+
+  get sidebarLauncher() {
+    return this.getWindow().document.querySelector("sidebar-launcher");
   }
 
   getWindow() {
@@ -200,7 +186,9 @@ export class SidebarCustomize extends SidebarPage {
     SidebarController.reversePosition();
     Glean.sidebarCustomize.sidebarPosition.record({
       position:
-        this.isPositionStart !== this.getWindow().RTL_UI ? "left" : "right",
+        SidebarController._positionStart !== this.getWindow().RTL_UI
+          ? "left"
+          : "right",
     });
   }
 
@@ -257,7 +245,6 @@ export class SidebarCustomize extends SidebarPage {
           <moz-radio-group
             @change=${this.#handleVisibilityChange}
             name="visibility"
-            .value=${this.visibility}
             data-l10n-id="sidebar-customize-button-header"
           >
             <moz-radio
@@ -271,7 +258,7 @@ export class SidebarCustomize extends SidebarPage {
               class="visibility-setting"
               value="hide-sidebar"
               ?checked=${this.visibility === "hide-sidebar"}
-              iconsrc="chrome://browser/skin/sidebar-hidden.svg"
+            iconsrc="chrome://browser/skin/sidebar-hidden.svg"
               data-l10n-id="sidebar-visibility-setting-hide-sidebar"
             ></moz-radio>
           </moz-radio-group>
@@ -280,13 +267,16 @@ export class SidebarCustomize extends SidebarPage {
           <moz-radio-group
               @change=${this.reversePosition}
               name="position"
-              .value="${this.isPositionStart}"
               data-l10n-id="sidebar-customize-position-header">
             <moz-radio
               class="position-setting"
               id="position-left"
               value=${!this.getWindow().RTL_UI}
-              ?checked=${this.isPositionStart != this.getWindow().RTL_UI}
+              ?checked=${
+                this.getWindow().RTL_UI
+                  ? !this.getWindow().SidebarController._positionStart
+                  : this.getWindow().SidebarController._positionStart
+              }
               iconsrc="chrome://browser/skin/sidebar-expanded.svg"
               data-l10n-id="sidebar-position-left"
             ></moz-radio>
@@ -294,7 +284,11 @@ export class SidebarCustomize extends SidebarPage {
               class="position-setting"
               id="position-right"
               value=${this.getWindow().RTL_UI}
-              ?checked=${this.isPositionStart == this.getWindow().RTL_UI}
+              ?checked=${
+                this.getWindow().RTL_UI
+                  ? this.getWindow().SidebarController._positionStart
+                  : !this.getWindow().SidebarController._positionStart
+              }
               iconsrc="chrome://browser/skin/sidebar-expanded-right.svg"
               data-l10n-id="sidebar-position-right"
             ></moz-radio>
@@ -304,13 +298,14 @@ export class SidebarCustomize extends SidebarPage {
           <moz-radio-group
               @change=${this.#handleTabDirectionChange}
               name="tabDirection"
-              .value=${this.isVerticalTabs}
               data-l10n-id="sidebar-customize-tabs-header">
             <moz-radio
               class="vertical-tabs-setting"
               id="vertical-tabs"
               value=${true}
-              ?checked=${this.isVerticalTabs}
+              ?checked=${
+                this.getWindow().SidebarController.sidebarVerticalTabsEnabled
+              }
               iconsrc="chrome://browser/skin/sidebar-collapsed.svg"
               data-l10n-id="sidebar-vertical-tabs"
             ></moz-radio>
@@ -318,7 +313,10 @@ export class SidebarCustomize extends SidebarPage {
               class="vertical-tabs-setting"
               id="horizontal-tabs"
               value=${false}
-              ?checked=${!this.isVerticalTabs}
+              ?checked=${
+                this.getWindow().SidebarController
+                  .sidebarVerticalTabsEnabled === false
+              }
               iconsrc="chrome://browser/skin/sidebar-horizontal-tabs.svg"
               data-l10n-id="sidebar-horizontal-tabs"
             ></moz-radio>
