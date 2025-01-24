@@ -59,10 +59,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 
  protected:
   bool enoughMemory_;
-  uint32_t framePushed_;
 
-  MacroAssemblerCompat()
-      : vixl::MacroAssembler(), enoughMemory_(true), framePushed_(0) {}
+  MacroAssemblerCompat() : vixl::MacroAssembler(), enoughMemory_(true) {}
 
  protected:
   MoveResolver moveResolver_;
@@ -98,26 +96,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 
     Add(scratch64, base, Operand(index, vixl::LSL, scale));
     return LoadStoreMacro(rt, MemOperand(scratch64, addr.offset), op);
-  }
-  void Push(ARMRegister reg) {
-    push(reg);
-    adjustFrame(reg.size() / 8);
-  }
-  void Push(Register reg) {
-    vixl::MacroAssembler::Push(ARMRegister(reg, 64));
-    adjustFrame(8);
-  }
-  void Push(Imm32 imm) {
-    push(imm);
-    adjustFrame(8);
-  }
-  void Push(FloatRegister f) {
-    push(ARMFPRegister(f, 64));
-    adjustFrame(8);
-  }
-  void Push(ImmPtr imm) {
-    push(imm);
-    adjustFrame(sizeof(void*));
   }
   void push(FloatRegister f) {
     vixl::MacroAssembler::Push(ARMFPRegister(f, 64));
@@ -224,30 +202,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void pop(const FloatRegister& f) {
     vixl::MacroAssembler::Pop(ARMFPRegister(f, 64));
   }
-
-  void implicitPop(uint32_t args) {
-    MOZ_ASSERT(args % sizeof(intptr_t) == 0);
-    adjustFrame(0 - args);
-  }
-  void Pop(ARMRegister r) {
-    vixl::MacroAssembler::Pop(r);
-    adjustFrame(0 - r.size() / 8);
-  }
-  // FIXME: This is the same on every arch.
-  // FIXME: If we can share framePushed_, we can share this.
-  // FIXME: Or just make it at the highest level.
-  CodeOffset PushWithPatch(ImmWord word) {
-    framePushed_ += sizeof(word.value);
-    return pushWithPatch(word);
-  }
-  CodeOffset PushWithPatch(ImmPtr ptr) {
-    return PushWithPatch(ImmWord(uintptr_t(ptr.value)));
-  }
-
-  uint32_t framePushed() const { return framePushed_; }
-  void adjustFrame(int32_t diff) { setFramePushed(framePushed_ + diff); }
-
-  void setFramePushed(uint32_t framePushed) { framePushed_ = framePushed; }
 
   // Update sp with the value of the current active stack pointer, if necessary.
   void syncStackPtr() {
