@@ -528,23 +528,31 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * only invisible white-spaces and there is previous or next text node.
    */
   template <typename EditorDOMPointType>
-  static EditorDOMPointType GetAfterLastVisiblePoint(Text& aTextNode);
+  static EditorDOMPointType GetAfterLastVisiblePoint(
+      Scan aScanMode, Text& aTextNode,
+      const Element* aAncestorLimiter = nullptr);
   template <typename EditorDOMPointType>
-  static EditorDOMPointType GetFirstVisiblePoint(Text& aTextNode);
+  static EditorDOMPointType GetFirstVisiblePoint(
+      Scan aScanMode, Text& aTextNode,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetRangeInTextNodesToForwardDeleteFrom() returns the range to remove
    * text when caret is at aPoint.
    */
   static Result<EditorDOMRangeInTexts, nsresult>
-  GetRangeInTextNodesToForwardDeleteFrom(const EditorDOMPoint& aPoint);
+  GetRangeInTextNodesToForwardDeleteFrom(
+      Scan aScanMode, const EditorDOMPoint& aPoint,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetRangeInTextNodesToBackspaceFrom() returns the range to remove text
    * when caret is at aPoint.
    */
   static Result<EditorDOMRangeInTexts, nsresult>
-  GetRangeInTextNodesToBackspaceFrom(const EditorDOMPoint& aPoint);
+  GetRangeInTextNodesToBackspaceFrom(Scan aScanMode,
+                                     const EditorDOMPoint& aPoint,
+                                     const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetRangesForDeletingAtomicContent() returns the range to delete
@@ -552,14 +560,14 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * be included into the range.
    */
   static EditorDOMRange GetRangesForDeletingAtomicContent(
-      const nsIContent& aAtomicContent);
+      Scan aScanMode, const nsIContent& aAtomicContent,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetRangeForDeleteBlockElementBoundaries() returns a range starting from end
    * of aLeftBlockElement to start of aRightBlockElement and extend invisible
    * white-spaces around them.
    *
-   * @param aHTMLEditor         The HTML editor.
    * @param aLeftBlockElement   The block element which will be joined with
    *                            aRightBlockElement.
    * @param aRightBlockElement  The block element which will be joined with
@@ -575,9 +583,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
    *                            Otherwise, must not be set.
    */
   static EditorDOMRange GetRangeForDeletingBlockElementBoundaries(
-      const HTMLEditor& aHTMLEditor, const Element& aLeftBlockElement,
+      Scan aScanMode, const Element& aLeftBlockElement,
       const Element& aRightBlockElement,
-      const EditorDOMPoint& aPointContainingTheOtherBlock);
+      const EditorDOMPoint& aPointContainingTheOtherBlock,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * ShrinkRangeIfStartsFromOrEndsAfterAtomicContent() may shrink aRange if it
@@ -585,14 +594,16 @@ class MOZ_STACK_CLASS WSRunScanner final {
    * is in adjacent text nodes.  Returns true if this modifies the range.
    */
   static Result<bool, nsresult> ShrinkRangeIfStartsFromOrEndsAfterAtomicContent(
-      const HTMLEditor& aHTMLEditor, nsRange& aRange);
+      Scan aScanMode, nsRange& aRange,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries() returns
    * extended range if range boundaries of aRange are in invisible white-spaces.
    */
   static EditorDOMRange GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
-      const EditorDOMRange& aRange);
+      Scan aScanMode, const EditorDOMRange& aRange,
+      const Element* aAncestorLimiter = nullptr);
 
   /**
    * GetPrecedingBRElementUnlessVisibleContentFound() scans a `<br>` element
@@ -603,8 +614,9 @@ class MOZ_STACK_CLASS WSRunScanner final {
   template <typename EditorDOMPointType>
   MOZ_NEVER_INLINE_DEBUG static HTMLBRElement*
   GetPrecedingBRElementUnlessVisibleContentFound(
-      const Element* aEditingHost, const EditorDOMPointType& aPoint,
-      BlockInlineCheck aBlockInlineCheck) {
+      Scan aScanMode, const EditorDOMPointType& aPoint,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
     MOZ_ASSERT(aPoint.IsSetAndValid());
     // XXX This method behaves differently even in similar point.
     //     If aPoint is in a text node following `<br>` element, reaches the
@@ -618,8 +630,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
     }
     // TODO: Scan for end boundary is redundant in this case, we should optimize
     //       it.
-    TextFragmentData textFragmentData(Scan::EditableNodes, aPoint,
-                                      aBlockInlineCheck, aEditingHost);
+    TextFragmentData textFragmentData(aScanMode, aPoint, aBlockInlineCheck,
+                                      aAncestorLimiter);
     return textFragmentData.StartsFromBRElement()
                ? textFragmentData.StartReasonBRElementPtr()
                : nullptr;
@@ -1074,6 +1086,8 @@ class MOZ_STACK_CLASS WSRunScanner final {
     bool IsInitialized() const {
       return mStart.Initialized() && mEnd.Initialized();
     }
+
+    constexpr Scan ScanMode() const { return mScanMode; }
 
     nsIContent* GetStartReasonContent() const {
       return mStart.GetReasonContent();
