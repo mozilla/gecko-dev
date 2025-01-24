@@ -324,3 +324,114 @@ cycle_collector:
       - dev-telemetry-gc-alerts@mozilla.org
     expires: never
     telemetry_mirror: h#CYCLE_COLLECTOR_WORKER_NEED_GC
+
+  full:
+    type: timing_distribution
+    description: >
+      Full pause time for one cycle collection, including preparation (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_FULL.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_FULL
+
+  max_pause:
+    type: timing_distribution
+    description: >
+      Longest pause for an individual slice of one cycle collection, including
+      preparation (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_MAX_PAUSE.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364503
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364503
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_MAX_PAUSE
+
+  finish_igc:
+    type: labeled_counter
+    description: >
+      Cycle collection finished an incremental GC
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CYCLE_COLLECTOR_FINISH_IGC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: h#CYCLE_COLLECTOR_FINISH_IGC
+
+  sync_skippable:
+    type: labeled_counter
+    description: >
+      Cycle collection synchronously ran forget skippable
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CYCLE_COLLECTOR_SYNC_SKIPPABLE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: h#CYCLE_COLLECTOR_SYNC_SKIPPABLE
+
+  time_between:
+    type: timing_distribution
+    description: >
+      Time spent in between cycle collections (seconds)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_TIME_BETWEEN.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_TIME_BETWEEN
+
+  slice_during_idle:
+    type: custom_distribution
+    description: >
+      Percent of cycle collector slice done during idle time
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram CYCLE_COLLECTOR_SLICE_DURING_IDLE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_SLICE_DURING_IDLE

@@ -14,6 +14,7 @@
 #include "MainThreadUtils.h"
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 
@@ -119,8 +120,7 @@ void mozilla::CycleCollectorStats::AfterCycleCollectionSlice() {
 
     uint32_t percent =
         uint32_t(idleDuration.ToSeconds() / duration.ToSeconds() * 100);
-    Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SLICE_DURING_IDLE,
-                          percent);
+    glean::cycle_collector::slice_during_idle.AccumulateSingleSample(percent);
   }
 
   TimeDuration sliceTime = TimeBetween(mBeginSliceTime, mEndSliceTime);
@@ -180,18 +180,20 @@ void mozilla::CycleCollectorStats::SendTelemetry(TimeDuration aCCNowDuration,
   // other threads' measures.
   MOZ_ASSERT(NS_IsMainThread());
 
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FINISH_IGC, mAnyLockedOut);
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SYNC_SKIPPABLE,
-                        mRanSyncForgetSkippable);
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FULL,
-                        aCCNowDuration.ToMilliseconds());
-  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_MAX_PAUSE,
-                        mMaxSliceTime.ToMilliseconds());
+  glean::cycle_collector::finish_igc
+      .EnumGet(
+          static_cast<glean::cycle_collector::FinishIgcLabel>(mAnyLockedOut))
+      .Add();
+  glean::cycle_collector::sync_skippable
+      .EnumGet(static_cast<glean::cycle_collector::SyncSkippableLabel>(
+          mRanSyncForgetSkippable))
+      .Add();
+  glean::cycle_collector::full.AccumulateRawDuration(aCCNowDuration);
+  glean::cycle_collector::max_pause.AccumulateRawDuration(mMaxSliceTime);
 
   if (!aPrevCCEnd.IsNull()) {
     TimeDuration timeBetween = TimeBetween(aPrevCCEnd, mBeginTime);
-    Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_TIME_BETWEEN,
-                          timeBetween.ToSeconds());
+    glean::cycle_collector::time_between.AccumulateRawDuration(timeBetween);
   }
 
   Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_MAX,
