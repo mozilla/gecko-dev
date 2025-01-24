@@ -348,11 +348,10 @@ export class ExperimentStore extends SharedDataMap {
   }
 
   /**
-   * Remove inactive enrollments older than 6 months
+   * Remove inactive enrollments older than 12 months
    */
   _cleanupOldRecipes() {
-    // Roughly six months
-    const threshold = 15552000000;
+    const threshold = 365.25 * 24 * 3600 * 1000;
     const nowTimestamp = new Date().getTime();
     const recipesToRemove = this.getAll().filter(
       experiment =>

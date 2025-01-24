@@ -811,51 +811,65 @@ add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
 });
 
 add_task(async function test_cleanupOldRecipes() {
-  let store = ExperimentFakes.store();
-  let sandbox = sinon.createSandbox();
-  let stub = sandbox.stub(store, "_removeEntriesByKeys");
-  const experiment1 = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "variant",
-      features: [{ featureId: "purple" }],
-    },
+  const store = ExperimentFakes.store();
+  const sandbox = sinon.createSandbox();
+  const stub = sandbox.stub(store, "_removeEntriesByKeys");
+
+  const NOW = Date.now();
+  const SIX_HOURS = 6 * 3600 * 1000;
+  const ONE_DAY = 4 * SIX_HOURS;
+  const ONE_YEAR = 365.25 * 24 * 3600 * 1000;
+  const ONE_MONTH = Math.floor(ONE_YEAR / 12);
+
+  const active = ExperimentFakes.experiment("active-6hrs", {
+    active: true,
+    lastSeen: new Date(NOW - SIX_HOURS),
   });
-  const experiment2 = ExperimentFakes.experiment("bar", {
-    branch: {
-      slug: "variant",
-      features: [{ featureId: "purple" }],
-    },
+
+  const inactiveToday = ExperimentFakes.experiment("inactive-recent", {
+    active: false,
+    lastSeen: new Date(NOW - SIX_HOURS),
   });
-  const experiment3 = ExperimentFakes.experiment("baz", {
-    branch: {
-      slug: "variant",
-      features: [{ featureId: "purple" }],
-    },
+
+  const inactiveSixMonths = ExperimentFakes.experiment("inactive-6mo", {
+    active: false,
+    lastSeen: new Date(NOW - 6 * ONE_MONTH),
   });
-  const experiment4 = ExperimentFakes.experiment("faz", {
-    branch: {
-      slug: "variant",
-      features: [{ featureId: "purple" }],
-    },
+
+  const inactiveUnderTwelveMonths = ExperimentFakes.experiment(
+    "inactive-under-12mo",
+    {
+      active: false,
+      lastSeen: new Date(NOW - ONE_YEAR + ONE_DAY),
+    }
+  );
+
+  const inactiveOverTwelveMonths = ExperimentFakes.experiment(
+    "inactive-over-12mo",
+    {
+      active: false,
+      lastSeen: new Date(NOW - ONE_YEAR - ONE_DAY),
+    }
+  );
+
+  const inactiveNoLastSeen = ExperimentFakes.experiment("inactive-unknown", {
+    active: false,
   });
-  // Exp 2 is kept because it's recent (even though it's not active)
-  // Exp 4 is kept because it's active
-  experiment2.lastSeen = new Date().toISOString();
-  experiment2.active = false;
-  experiment1.lastSeen = new Date("2020-01-01").toISOString();
-  experiment1.active = false;
-  experiment3.active = false;
-  delete experiment3.lastSeen;
+  delete inactiveNoLastSeen.lastSeen;
+
   store._data = {
-    foo: experiment1,
-    bar: experiment2,
-    baz: experiment3,
-    faz: experiment4,
+    [active.slug]: active,
+    [inactiveToday.slug]: inactiveToday,
+    [inactiveSixMonths.slug]: inactiveSixMonths,
+    [inactiveUnderTwelveMonths.slug]: inactiveUnderTwelveMonths,
+    [inactiveOverTwelveMonths.slug]: inactiveOverTwelveMonths,
+    [inactiveNoLastSeen.slug]: inactiveNoLastSeen,
   };
 
   store._cleanupOldRecipes();
 
   Assert.ok(stub.calledOnce, "Recipe cleanup called");
+  dump(`!!! remove = ${JSON.stringify(stub.firstCall.args[0])}\n`);
   Assert.equal(
     stub.firstCall.args[0].length,
     2,
@@ -863,12 +877,12 @@ add_task(async function test_cleanupOldRecipes() {
   );
   Assert.equal(
     stub.firstCall.args[0][0],
-    experiment1.slug,
+    inactiveOverTwelveMonths.slug,
     "Should remove expired enrollment"
   );
   Assert.equal(
     stub.firstCall.args[0][1],
-    experiment3.slug,
+    inactiveNoLastSeen.slug,
     "Should remove invalid enrollment"
   );
 });
