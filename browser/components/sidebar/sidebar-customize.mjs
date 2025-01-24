@@ -116,6 +116,11 @@ export class SidebarCustomize extends SidebarPage {
           checked: e.target.checked,
         });
         break;
+      case "viewReviewCheckerSidebar":
+        Glean.sidebarCustomize.shoppingReviewCheckerEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
     }
   }
 

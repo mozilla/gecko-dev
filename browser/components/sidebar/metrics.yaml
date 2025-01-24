@@ -501,6 +501,26 @@ sidebar.customize:
       checked:
         type: boolean
         description: Whether the box was checked.
+  shopping_review_checker_enabled:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to Review Checker on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938428
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D235053
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
   extensions_clicked:
     type: event
     description: >

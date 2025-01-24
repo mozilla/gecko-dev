@@ -313,6 +313,17 @@ add_task(async function test_customize_bookmarks_enabled() {
   );
 });
 
+add_task(async function test_customize_review_checker_enabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.integratedSidebar", true]],
+  });
+  await testCustomizeToggle(
+    "viewReviewCheckerSidebar",
+    Glean.sidebarCustomize.shoppingReviewCheckerEnabled,
+    false
+  );
+});
+
 add_task(async function test_customize_extensions_clicked() {
   info("Load an extension.");
   const extension = ExtensionTestUtils.loadExtension({ ...extData });
