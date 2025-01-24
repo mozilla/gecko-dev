@@ -119,7 +119,8 @@ NS_IMPL_ISUPPORTS(WebTransportReceiveStreamStats,
 
 }  // namespace
 
-NS_IMPL_ISUPPORTS(Http3WebTransportStream, nsIInputStreamCallback)
+NS_IMPL_ISUPPORTS(Http3WebTransportStream, nsIInputStreamCallback,
+                  nsIOutputStreamCallback)
 
 Http3WebTransportStream::Http3WebTransportStream(
     Http3Session* aSession, uint64_t aSessionId, WebTransportStreamType aType,
@@ -171,6 +172,17 @@ NS_IMETHODIMP Http3WebTransportStream::OnInputStreamReady(
 
   mSendState = SENDING;
   mSession->StreamHasDataToWrite(this);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Http3WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOutStream) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  if (!mSession) {
+    return NS_OK;
+  }
+
+  mSession->ConnectSlowConsumer(this);
   return NS_OK;
 }
 
@@ -525,7 +537,14 @@ nsresult Http3WebTransportStream::WriteSegments() {
          static_cast<uint32_t>(mSocketInCondition), this));
     if (NS_FAILED(rv)) {
       if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-        rv = NS_OK;
+        nsCOMPtr<nsIEventTarget> target;
+        Unused << gHttpHandler->GetSocketThreadTarget(getter_AddRefs(target));
+        if (target) {
+          mReceiveStreamPipeOut->AsyncWait(this, 0, 0, target);
+          rv = NS_OK;
+        } else {
+          rv = NS_ERROR_UNEXPECTED;
+        }
       }
       if (rv == NS_BASE_STREAM_CLOSED) {
         mReceiveStreamPipeOut->Close();

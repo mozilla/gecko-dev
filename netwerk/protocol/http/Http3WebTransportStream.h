@@ -25,12 +25,14 @@ class Http3WebTransportSession;
 class Http3WebTransportStream final : public Http3StreamBase,
                                       public nsAHttpSegmentWriter,
                                       public nsAHttpSegmentReader,
-                                      public nsIInputStreamCallback {
+                                      public nsIInputStreamCallback,
+                                      public nsIOutputStreamCallback {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSAHTTPSEGMENTWRITER
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSIINPUTSTREAMCALLBACK
+  NS_DECL_NSIOUTPUTSTREAMCALLBACK
 
   explicit Http3WebTransportStream(
       Http3Session* aSession, uint64_t aSessionId, WebTransportStreamType aType,
@@ -132,5 +134,9 @@ class Http3WebTransportStream final : public Http3StreamBase,
 };
 
 }  // namespace mozilla::net
+
+inline nsISupports* ToSupports(mozilla::net::Http3WebTransportStream* aStream) {
+  return static_cast<nsIInputStreamCallback*>(aStream);
+}
 
 #endif  // mozilla_net_Http3WebTransportStream_h

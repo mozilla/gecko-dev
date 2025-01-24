@@ -168,3 +168,18 @@ add_task(async function test_wt_incoming_bidi_stream() {
 
   wt.close();
 });
+
+add_task(async function test_wt_incoming_bidi_stream_huge_data() {
+  let wt = new WebTransport(
+    "https://" + host + "/create_bidi_stream_and_large_data"
+  );
+  // await wt.ready; // causes occasional hang on release --verify
+
+  const stream_reader = wt.incomingBidirectionalStreams.getReader();
+  const { value: bidi_stream } = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  const str = await read_stream_as_string(bidi_stream.readable);
+  Assert.equal(str.length, 32 * 1024 * 1024);
+  wt.close();
+});

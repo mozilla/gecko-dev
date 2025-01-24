@@ -66,7 +66,7 @@ struct Http3TestServer {
     responses: HashMap<Http3OrWebTransportStream, Vec<u8>>,
     current_connection_hash: u64,
     sessions_to_close: HashMap<Instant, Vec<WebTransportRequest>>,
-    sessions_to_create_stream: Vec<(WebTransportRequest, StreamType, bool)>,
+    sessions_to_create_stream: Vec<(WebTransportRequest, StreamType, Option<Vec<u8>>)>,
     webtransport_bidi_stream: HashSet<Http3OrWebTransportStream>,
     wt_unidi_conn_to_stream: HashMap<ConnectionRef, Http3OrWebTransportStream>,
     wt_unidi_echo_back: HashMap<Http3OrWebTransportStream, Http3OrWebTransportStream>,
@@ -153,9 +153,8 @@ impl Http3TestServer {
         let session = tuple.0;
         let wt_server_stream = session.create_stream(tuple.1).unwrap();
         if tuple.1 == StreamType::UniDi {
-            if tuple.2 {
-                wt_server_stream.send_data(b"qwerty").unwrap();
-                wt_server_stream.stream_close_send().unwrap();
+            if let Some(data) = tuple.2 {
+                self.new_response(wt_server_stream, data);
             } else {
                 // relaying Http3ServerEvent::Data to uni streams
                 // slows down netwerk/test/unit/test_webtransport_simple.js
@@ -164,12 +163,8 @@ impl Http3TestServer {
                     .insert(wt_server_stream.conn.clone(), wt_server_stream);
             }
         } else {
-            if tuple.2 {
-                wt_server_stream.send_data(b"asdfg").unwrap();
-                wt_server_stream.stream_close_send().unwrap();
-                wt_server_stream
-                    .stream_stop_sending(Error::HttpNoError.code())
-                    .unwrap();
+            if let Some(data) = tuple.2 {
+                self.new_response(wt_server_stream, data);
             } else {
                 self.webtransport_bidi_stream.insert(wt_server_stream);
             }
@@ -534,7 +529,7 @@ impl HttpServer for Http3TestServer {
                                 self.sessions_to_create_stream.push((
                                     session,
                                     StreamType::UniDi,
-                                    false,
+                                    None,
                                 ));
                             } else if path == "/create_unidi_stream_and_hello" {
                                 session
@@ -543,7 +538,7 @@ impl HttpServer for Http3TestServer {
                                 self.sessions_to_create_stream.push((
                                     session,
                                     StreamType::UniDi,
-                                    true,
+                                    Some(Vec::from("qwerty")),
                                 ));
                             } else if path == "/create_bidi_stream" {
                                 session
@@ -552,7 +547,7 @@ impl HttpServer for Http3TestServer {
                                 self.sessions_to_create_stream.push((
                                     session,
                                     StreamType::BiDi,
-                                    false,
+                                    None,
                                 ));
                             } else if path == "/create_bidi_stream_and_hello" {
                                 self.webtransport_bidi_stream.clear();
@@ -562,7 +557,18 @@ impl HttpServer for Http3TestServer {
                                 self.sessions_to_create_stream.push((
                                     session,
                                     StreamType::BiDi,
-                                    true,
+                                    Some(Vec::from("asdfg")),
+                                ));
+                            } else if path == "/create_bidi_stream_and_large_data" {
+                                self.webtransport_bidi_stream.clear();
+                                let data: Vec<u8> = vec![1u8; 32 * 1024 * 1024];
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
+                                self.sessions_to_create_stream.push((
+                                    session,
+                                    StreamType::BiDi,
+                                    Some(data),
                                 ));
                             } else {
                                 session
