@@ -5,8 +5,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/TsanOptions.h"
-
-#ifndef _MSC_VER  // Not supported by clang-cl yet
+#include "mozilla/Types.h"
 
 //
 // When running with ThreadSanitizer, we sometimes need to suppress existing
@@ -31,7 +30,7 @@
 // show up intermittently.
 //
 // clang-format off
-extern "C" const char* __tsan_default_suppressions() {
+extern "C" MOZ_EXPORT const char* __tsan_default_suppressions() {
   return "# Add your suppressions below\n"
 
          // External uninstrumented libraries
@@ -323,4 +322,3 @@ extern "C" const char* __tsan_default_suppressions() {
       ;  // Please keep this semicolon.
 }
 // clang-format on
-#endif  // _MSC_VER

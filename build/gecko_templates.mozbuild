@@ -40,6 +40,8 @@ def GeckoBinary(linkage="dependent", mozglue=None):
     if mozglue:
         if mozglue == "program":
             USE_LIBS += ["mozglue"]
+            if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+                USE_LIBS += ["sanitizer-options"]
             DEFINES["MOZ_HAS_MOZGLUE"] = True
             if CONFIG["MOZ_GLUE_IN_PROGRAM"] and CONFIG["CC_TYPE"] in ("clang", "gcc"):
                 LDFLAGS += ["-rdynamic"]

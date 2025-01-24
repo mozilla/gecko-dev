@@ -50,6 +50,9 @@ if CONFIG["MOZ_ASAN"] and CONFIG["CC_TYPE"] == "clang-cl":
         "%" + CONFIG["MOZ_CLANG_RT_ASAN_LIB_PATH"].replace(".dll", ".pdb")
     ]
 
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    DIRS += ["sanitizers"]
+
 # Install the clang runtime library for ASAN next to the binaries we produce.
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android" and CONFIG["MOZ_ASAN"]:
     FINAL_TARGET_FILES += ["%" + CONFIG["MOZ_CLANG_RT_ASAN_LIB_PATH"]]

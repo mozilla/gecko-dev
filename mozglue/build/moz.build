@@ -20,21 +20,6 @@ if CONFIG["OS_TARGET"] == "Android":
         "BionicGlue.cpp",
     ]
 
-if CONFIG["MOZ_ASAN"]:
-    SOURCES += [
-        "AsanOptions.cpp",
-    ]
-
-if CONFIG["MOZ_UBSAN"]:
-    SOURCES += [
-        "UbsanOptions.cpp",
-    ]
-
-if CONFIG["MOZ_TSAN"]:
-    SOURCES += [
-        "TsanOptions.cpp",
-    ]
-
 if CONFIG["OS_TARGET"] == "WINNT":
     if CONFIG["MOZ_MEMORY"]:
         DEFFILE = "mozglue.def"
