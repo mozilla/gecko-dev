@@ -460,6 +460,43 @@ class BaseAboutNewTabService {
 }
 
 /**
+ * The parent-process implementation of nsIAboutNewTabService,
+ * which mainly delegates to the BaseAboutNewTabService implementation,
+ * except for doing some New Tab initialization work for the parent
+ * process.
+ */
+class AboutNewTabParentService extends BaseAboutNewTabService {
+  constructor() {
+    super();
+
+    ChromeUtils.registerWindowActor("AboutNewTab", {
+      parent: {
+        esModuleURI: "resource:///actors/AboutNewTabParent.sys.mjs",
+      },
+      child: {
+        esModuleURI: "resource:///actors/AboutNewTabChild.sys.mjs",
+        events: {
+          DOMDocElementInserted: {},
+          DOMContentLoaded: { capture: true },
+          load: { capture: true },
+          unload: { capture: true },
+          pageshow: {},
+          visibilitychange: {},
+        },
+      },
+      // The wildcard on about:newtab is for the # parameter
+      // that is used for the newtab devtools. The wildcard for about:home
+      // is similar, and also allows for falling back to loading the
+      // about:home document dynamically if an attempt is made to load
+      // about:home?jscache from the AboutHomeStartupCache as a top-level
+      // load.
+      matches: ["about:home*", "about:welcome", "about:newtab*"],
+      remoteTypes: ["privilegedabout"],
+    });
+  }
+}
+
+/**
  * The child-process implementation of nsIAboutNewTabService,
  * which also does the work of redirecting about:home loads to
  * the about:home startup cache if its available.
@@ -508,7 +545,7 @@ class AboutNewTabChildService extends BaseAboutNewTabService {
  */
 export function AboutNewTabStubService() {
   if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT) {
-    return new BaseAboutNewTabService();
+    return new AboutNewTabParentService();
   }
   return new AboutNewTabChildService();
 }
