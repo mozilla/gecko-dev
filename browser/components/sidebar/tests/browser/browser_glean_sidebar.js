@@ -204,6 +204,18 @@ add_task(async function test_extension_sidebar_toggle() {
   Assert.equal(events?.length, 2, "Two events were reported.");
 });
 
+add_task(async function test_review_checker_sidebar_toggle() {
+  const gleanEvent = Glean.shopping.sidebarToggle;
+  await testSidebarToggle("viewReviewCheckerSidebar", gleanEvent);
+  for (const { extra } of gleanEvent.testGetValue()) {
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
+  }
+});
+
 add_task(async function test_customize_panel_toggle() {
   await testSidebarToggle(
     "viewCustomizeSidebar",

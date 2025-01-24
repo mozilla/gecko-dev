@@ -166,6 +166,8 @@ var SidebarController = {
           menuL10nId: "menu-view-review-checker",
           revampL10nId: "sidebar-menu-review-checker-label",
           iconUrl: "chrome://browser/content/shopping/assets/shopping.svg",
+          gleanEvent: Glean.shopping.sidebarToggle,
+          recordSidebarVersion: true,
         }
       );
     }
