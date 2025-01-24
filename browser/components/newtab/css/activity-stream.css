@@ -481,7 +481,7 @@ main {
   padding: 0;
 }
 main.newtab-main {
-  align-items: center;
+  min-width: min-content;
 }
 main .vertical-center-wrapper {
   margin: auto 0;
