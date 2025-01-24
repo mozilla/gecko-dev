@@ -80,7 +80,8 @@ export class ContentSection extends React.PureComponent {
     }
 
     if (drawerRef) {
-      let drawerHeight = parseFloat(window.getComputedStyle(drawerRef));
+      let drawerHeight =
+        parseFloat(window.getComputedStyle(drawerRef)?.height) || 0;
 
       if (isOpen) {
         drawerRef.style.marginTop = "var(--space-large)";
