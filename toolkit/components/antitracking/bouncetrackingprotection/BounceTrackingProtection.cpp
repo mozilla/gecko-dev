@@ -42,6 +42,7 @@
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "nsIConsoleService.h"
 #include "mozilla/intl/Localization.h"
+#include "mozilla/browser/NimbusFeatures.h"
 
 #define TEST_OBSERVER_MSG_RECORD_BOUNCES_FINISHED "test-record-bounces-finished"
 
@@ -1010,10 +1011,19 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                           "Failed to record purged tracker in log.");
                     }
 
-                    // Record successful purges via nsITrackingDBService for
-                    // tracker stats.
                     if (purgedSites.Length() > 0) {
+                      // Record successful purges via nsITrackingDBService for
+                      // tracker stats.
                       ReportPurgedTrackersToAntiTrackingDB(purgedSites);
+
+                      // Record exposure of the feature for Nimbus
+                      // experimentation.
+                      // The error result returned by this method isn't very
+                      // useful, so we ignore it. Thee method will also return
+                      // errors if the client is not enrolled in an experiment
+                      // involving BTP which we don't consider a failure state.
+                      Unused << NimbusFeatures::RecordExposureEvent(
+                          "bounceTrackingProtection"_ns, false);
                     }
                   }
 

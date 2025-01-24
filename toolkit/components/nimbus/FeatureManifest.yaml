@@ -4048,7 +4048,12 @@ certCompression:
 bounceTrackingProtection:
   description: Controls the Bounce Tracking Protection feature.
   owner: emz@mozilla.com
-  hasExposure: false
+  isEarlyStartup: true
+  hasExposure: true
+  exposureDescription: >-
+    Exposure is recored after every purge run which purged at least one tracker.
+    Exposure is only recorded when the feature is fully enabled and not in
+    dry-run mode.
   variables:
     mode:
       type: int
