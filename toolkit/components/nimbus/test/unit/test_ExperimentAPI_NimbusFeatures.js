@@ -65,7 +65,7 @@ async function setupForExperimentFeature() {
 
   await manager.onStartup();
 
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   return { sandbox, manager };
 }

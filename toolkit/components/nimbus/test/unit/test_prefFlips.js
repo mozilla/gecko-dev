@@ -425,7 +425,7 @@ add_task(async function test_prefFlips() {
     } = testCase;
 
     const manager = ExperimentFakes.manager();
-    sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
 
@@ -1538,7 +1538,7 @@ add_task(async function test_prefFlips_unenrollment() {
     setPrefs(setPrefsBefore);
 
     const manager = ExperimentFakes.manager();
-    sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
 
@@ -1978,7 +1978,7 @@ add_task(async function test_prefFlip_setPref_restore() {
     setPrefs(setPrefsBefore);
 
     const manager = ExperimentFakes.manager();
-    sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
 
@@ -2084,6 +2084,7 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.enroll(recipe, "test");
@@ -2192,6 +2193,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
 
@@ -2228,6 +2230,7 @@ add_task(async function test_prefFlips_failed() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
 
@@ -2314,6 +2317,7 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   const setPrefSpy = sandbox.spy(PrefUtils, "setPref");
 
@@ -2464,6 +2468,7 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout() {
 
     const manager = ExperimentFakes.manager();
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
 
@@ -2523,6 +2528,7 @@ add_task(async function test_prefFlips_update_failure() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
 
@@ -2641,6 +2647,7 @@ add_task(async function test_prefFlips_restore_failure() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
 
@@ -2692,6 +2699,7 @@ add_task(
     });
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     PrefUtils.setPref(PREF, "default-value", { branch: DEFAULT });
 

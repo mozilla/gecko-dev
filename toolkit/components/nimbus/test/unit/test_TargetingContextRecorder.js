@@ -32,6 +32,7 @@ async function setupNimbusForTest() {
   const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
   await manager.onStartup();
   await manager.store.ready();

@@ -504,6 +504,7 @@ add_task(async function test_check_unseen_enrollments_telemetry_events() {
   const manager = ExperimentFakes.manager(store);
   const sandbox = sinon.createSandbox();
   sandbox.stub(manager, "unenroll").returns();
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   await manager.onStartup();
