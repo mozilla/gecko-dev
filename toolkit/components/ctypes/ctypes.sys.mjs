@@ -14,6 +14,6 @@
 
 // Initialize the ctypes object. You do not need to do this yourself.
 const init = Cc["@mozilla.org/jsctypes;1"].createInstance();
-init();
-
-export const ctypes = globalThis.ctypes;
+const scope = {};
+init(scope);
+export const ctypes = scope.ctypes;

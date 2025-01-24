@@ -4,13 +4,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ctypes.h"
-#include "jsapi.h"
+
+#include "js/CallArgs.h"     // JS::CallArgs
+#include "js/ErrorReport.h"  // JS_ReportErrorASCII
 #include "js/experimental/CTypes.h"  // JS::CTypesCallbacks, JS::InitCTypesClass, JS::SetCTypesCallbacks
-#include "js/MemoryFunctions.h"
+#include "js/MemoryFunctions.h"     // JS_malloc
 #include "js/PropertyAndElement.h"  // JS_GetProperty
-#include "nsString.h"
-#include "nsNativeCharsetUtils.h"
-#include "mozJSModuleLoader.h"
+#include "js/RootingAPI.h"          // JS::Rooted, JS::Handle
+#include "js/TypeDecls.h"           // JSContext, JSObject
+#include "js/Value.h"               // JS::Value
+#include "ErrorList.h"              // NS_OK, NS_ERROR_*
+#include "nsError.h"                // NS_FAILED
+#include "nsString.h"               // nsAutoCString, nsDependentSubstring
+#include "nsNativeCharsetUtils.h"   // NS_CopyUnicodeToNative
 #include "xpc_make_class.h"
 
 namespace mozilla::ctypes {
@@ -48,15 +54,15 @@ Module::~Module() = default;
 #include "xpc_map_end.h"
 
 static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
-                                           JS::Handle<JSObject*> global) {
+                                           JS::Handle<JSObject*> scope) {
   // Init the ctypes object.
-  if (!JS::InitCTypesClass(cx, global)) {
+  if (!JS::InitCTypesClass(cx, scope)) {
     return false;
   }
 
   // Set callbacks for charset conversion and such.
   JS::Rooted<JS::Value> ctypes(cx);
-  if (!JS_GetProperty(cx, global, "ctypes", &ctypes)) {
+  if (!JS_GetProperty(cx, scope, "ctypes", &ctypes)) {
     return false;
   }
 
@@ -67,12 +73,21 @@ static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
 
 NS_IMETHODIMP
 Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
-             const JS::CallArgs& args, bool* _retval) {
-  mozJSModuleLoader* loader = mozJSModuleLoader::Get();
-  JS::Rooted<JSObject*> targetObj(cx);
-  loader->FindTargetObject(cx, &targetObj);
+             const JS::CallArgs& args, bool* retval) {
+  if (!args.get(0).isObject()) {
+    JS_ReportErrorASCII(cx, "Argument must be an object");
+    return NS_ERROR_FAILURE;
+  }
 
-  *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);
+  JS::Rooted<JSObject*> scope(cx, &args.get(0).toObject());
+
+  if (!InitCTypesClassAndSetCallbacks(cx, scope)) {
+    *retval = false;
+    return NS_ERROR_FAILURE;
+  }
+
+  args.rval().setUndefined();
+  *retval = true;
   return NS_OK;
 }
 
