@@ -1,1 +1,150 @@
-{"provisionerId": "proj-autophone", "workerType": "gecko-t-bitbar-gw-perf-a51", "taskQueueId": "proj-autophone/gecko-t-bitbar-gw-perf-a51", "schedulerId": "gecko-level-3", "projectId": "none", "taskGroupId": "D7cwY_eKSn-CBRRNAfcwdg", "dependencies": ["LfCBOsg-Rk6pCcmXV0XHBA", "SBmNaWzCT12HuAmxI4zl8A", "Y5kee0EqT2GUaaNI4waFDw", "ZDuJvuulQB2xbe0hJNT_0Q", "duxvpnsSR0SecETm8j38yg"], "requires": "all-completed", "routes": ["tc-treeherder.v2.autoland.d3a707a207916cf30059807234445929c3b7cf3e"], "priority": "low", "retries": 5, "created": "2024-07-10T06:25:43.653Z", "deadline": "2024-07-11T06:25:43.653Z", "expires": "2025-07-10T06:25:43.653Z", "scopes": ["secrets:get:project/taskcluster/gecko/hgfingerprint", "secrets:get:project/taskcluster/gecko/hgmointernal", "generic-worker:cache:gecko-level-3-checkouts-sparse"], "payload": {"env": {"GECKO_PATH": "./checkouts/gecko", "PYTHONPATH": "testing/mozbase/mozdevice:third_party/python/six", "MOZ_FETCHES": "[{\"artifact\": \"public/build/browsertime.tar.zst\", \"extract\": true, \"task\": \"duxvpnsSR0SecETm8j38yg\"}, {\"artifact\": \"public/build/geckodriver.tar.gz\", \"extract\": true, \"task\": \"ZDuJvuulQB2xbe0hJNT_0Q\"}, {\"artifact\": \"public/build/node.tar.zst\", \"extract\": true, \"task\": \"LfCBOsg-Rk6pCcmXV0XHBA\"}, {\"artifact\": \"public/build/python.tar.zst\", \"extract\": true, \"task\": \"SBmNaWzCT12HuAmxI4zl8A\"}, {\"artifact\": \"public/build/target.arm64-v8a.apk\", \"extract\": false, \"task\": \"Y5kee0EqT2GUaaNI4waFDw\"}]", "USE_ARTIFACT": "1", "HG_STORE_PATH": "./checkouts/hg-shared", "MOZ_SCM_LEVEL": "3", "GECKO_HEAD_REV": "d3a707a207916cf30059807234445929c3b7cf3e", "MOZ_AUTOMATION": "1", "MOZ_FETCHES_DIR": "fetches", "MOZ_PYTHON_HOME": "fetches/python", "SCCACHE_DISABLE": "1", "PERFTEST_OPTIONS": "null", "GECKO_BASE_REPOSITORY": "https://hg.mozilla.org/mozilla-unified", "GECKO_HEAD_REPOSITORY": "https://hg.mozilla.org/integration/autoland", "HOSTUTILS_MANIFEST_PATH": "testing/config/tooltool-manifests/linux64/hostutils.manifest"}, "mounts": [{"cacheName": "gecko-level-3-checkouts-sparse", "directory": "./checkouts"}, {"file": "./run-task", "content": {"url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/D7cwY_eKSn-CBRRNAfcwdg/artifacts/public/run-task"}}, {"file": "./fetch-content", "content": {"url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/D7cwY_eKSn-CBRRNAfcwdg/artifacts/public/fetch-content"}}, {"file": "./robustcheckout.py", "content": {"url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/D7cwY_eKSn-CBRRNAfcwdg/artifacts/public/robustcheckout.py"}}], "command": [["chmod", "+x", "run-task"], ["./run-task", "--gecko-checkout=./checkouts/gecko", "--gecko-sparse-profile=build/sparse-profiles/perftest", "--user", "root", "--group", "root", "--task-cwd", "checkouts/gecko", "--", "/builds/taskcluster/script.py", "bash", "-cx", "mkdir -p $MOZ_FETCHES_DIR/../artifacts && cd $GECKO_PATH && python3 python/mozperftest/mozperftest/runner.py --flavor=mobile-browser --AndroidStartUp testing/performance/perftest_android_startup.js --browsertime-cycles=0 --AndroidStartUp-test-name=cold_main_first_frame --perfherder --AndroidStartUp-product=fenix"]], "features": {"taskclusterProxy": true}, "artifacts": [{"name": "public/build", "path": "artifacts", "type": "directory", "expires": "2025-07-10T06:25:43.653Z"}], "maxRunTime": 10800, "onExitStatus": {"retry": [137, 4]}}, "metadata": {"name": "perftest-android-hw-a51-startup-fenix-cold-main-first-frame", "owner": "arai_a@mac.com", "source": "https://hg.mozilla.org/integration/autoland/file/d3a707a207916cf30059807234445929c3b7cf3e/taskcluster/kinds/perftest", "description": "Run android startup perftest on Fenix on a Samsung A51 ([Treeherder job](https://treeherder.mozilla.org/#/jobs?repo=autoland&revision=d3a707a207916cf30059807234445929c3b7cf3e&selectedTaskRun=OyA3rHPmRX6HMim68tANAQ))"}, "tags": {"os": "linux-bitbar", "kind": "perftest", "label": "perftest-android-hw-a51-startup-fenix-cold-main-first-frame", "retrigger": "true", "createdForUser": "arai_a@mac.com", "worker-implementation": "generic-worker"}, "extra": {"index": {"rank": 0}, "parent": "D7cwY_eKSn-CBRRNAfcwdg", "treeherder": {"tier": 2, "symbol": "startup-fenix-cmff", "jobKind": "other", "machine": {"platform": "android-hw-a51-11-0-aarch64-shippable"}, "groupName": "Performance tests", "collection": {"opt": true}, "groupSymbol": "perftest"}, "treeherder-platform": "android-hw-a51-11-0-aarch64-shippable/opt"}}
+{
+  "provisionerId": "proj-autophone",
+  "workerType": "gecko-t-bitbar-gw-perf-a55",
+  "taskQueueId": "proj-autophone/gecko-t-bitbar-gw-perf-a55",
+  "schedulerId": "gecko-level-3",
+  "projectId": "none",
+  "taskGroupId": "N8QkJNUTTiehFsAYrdpzpA",
+  "dependencies": [
+    "CJ3b3Sd1R7m6bVSLELZ_hg",
+    "TYQEawQQSWu5PayjrxuCgw",
+    "TxHIf1OjSHS5uu27XERLwQ",
+    "XjL9AbfGRTmbJWfq9MegAw",
+    "ahdmiCwjRoyr9c-LBb5ocw"
+  ],
+  "requires": "all-completed",
+  "routes": [
+    "tc-treeherder.v2.autoland.71d2bf08d2da8edd6e390cf38eee723d8d4733d8"
+  ],
+  "priority": "low",
+  "retries": 5,
+  "created": "2025-01-21T14:35:31.573Z",
+  "deadline": "2025-01-22T14:35:31.573Z",
+  "expires": "2026-01-21T14:35:31.573Z",
+  "scopes": [
+    "secrets:get:project/taskcluster/gecko/hgfingerprint",
+    "secrets:get:project/taskcluster/gecko/hgmointernal",
+    "generic-worker:cache:gecko-level-3-checkouts-sparse"
+  ],
+  "payload": {
+    "env": {
+      "GECKO_PATH": "./checkouts/gecko",
+      "PYTHONPATH": "testing/mozbase/mozdevice:third_party/python/six",
+      "MOZ_FETCHES": "[{\"artifact\": \"public/build/browsertime.tar.zst\", \"extract\": true, \"task\": \"ahdmiCwjRoyr9c-LBb5ocw\"}, {\"artifact\": \"public/build/geckodriver.tar.gz\", \"extract\": true, \"task\": \"XjL9AbfGRTmbJWfq9MegAw\"}, {\"artifact\": \"public/build/geckoview_example.apk\", \"extract\": false, \"task\": \"TYQEawQQSWu5PayjrxuCgw\"}, {\"artifact\": \"public/build/node.tar.zst\", \"extract\": true, \"task\": \"TxHIf1OjSHS5uu27XERLwQ\"}, {\"artifact\": \"public/build/python.tar.zst\", \"extract\": true, \"task\": \"CJ3b3Sd1R7m6bVSLELZ_hg\"}]",
+      "USE_ARTIFACT": "1",
+      "HG_STORE_PATH": "./checkouts/hg-shared",
+      "MOZ_SCM_LEVEL": "3",
+      "GECKO_HEAD_REV": "71d2bf08d2da8edd6e390cf38eee723d8d4733d8",
+      "MOZ_AUTOMATION": "1",
+      "MOZ_FETCHES_DIR": "fetches",
+      "MOZ_PYTHON_HOME": "fetches/python",
+      "SCCACHE_DISABLE": "1",
+      "PERFTEST_OPTIONS": "null",
+      "GECKO_BASE_REPOSITORY": "https://hg.mozilla.org/mozilla-unified",
+      "GECKO_HEAD_REPOSITORY": "https://hg.mozilla.org/integration/autoland",
+      "HOSTUTILS_MANIFEST_PATH": "testing/config/tooltool-manifests/linux64/hostutils.manifest"
+    },
+    "mounts": [
+      {
+        "cacheName": "gecko-level-3-checkouts-sparse",
+        "directory": "./checkouts"
+      },
+      {
+        "file": "./run-task",
+        "content": {
+          "url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/N8QkJNUTTiehFsAYrdpzpA/artifacts/public/run-task"
+        }
+      },
+      {
+        "file": "./fetch-content",
+        "content": {
+          "url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/N8QkJNUTTiehFsAYrdpzpA/artifacts/public/fetch-content"
+        }
+      },
+      {
+        "file": "./robustcheckout.py",
+        "content": {
+          "url": "http://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/N8QkJNUTTiehFsAYrdpzpA/artifacts/public/robustcheckout.py"
+        }
+      }
+    ],
+    "command": [
+      [
+        "chmod",
+        "+x",
+        "run-task"
+      ],
+      [
+        "./run-task",
+        "--gecko-checkout=./checkouts/gecko",
+        "--gecko-sparse-profile=build/sparse-profiles/perftest",
+        "--user",
+        "root",
+        "--group",
+        "root",
+        "--task-cwd",
+        "checkouts/gecko",
+        "--",
+        "/builds/taskcluster/script.py",
+        "bash",
+        "-cx",
+        "mkdir -p $MOZ_FETCHES_DIR/../artifacts && cd $GECKO_PATH && python3 python/mozperftest/mozperftest/runner.py --flavor custom-script testing/performance/mobile-startup/cmff.sh --app geckoview --android-install-apk $MOZ_FETCHES_DIR/geckoview_example.apk --output $MOZ_FETCHES_DIR/../artifacts --perfherder"
+      ]
+    ],
+    "features": {
+      "taskclusterProxy": true
+    },
+    "artifacts": [
+      {
+        "name": "public/build",
+        "path": "artifacts",
+        "type": "directory",
+        "expires": "2026-01-21T14:35:31.573Z"
+      }
+    ],
+    "maxRunTime": 10800,
+    "onExitStatus": {
+      "retry": [
+        137,
+        4
+      ]
+    }
+  },
+  "metadata": {
+    "name": "perftest-android-hw-a55-aarch64-shippable-startup-geckoview-cold-main-first-frame",
+    "owner": "dpalmeiro@mozilla.com",
+    "source": "https://hg.mozilla.org/integration/autoland/file/71d2bf08d2da8edd6e390cf38eee723d8d4733d8/taskcluster/kinds/perftest",
+    "description": "Run android startup perftest on Geckoview on a Samsung A55 ([Treeherder job](https://treeherder.mozilla.org/#/jobs?repo=autoland&revision=71d2bf08d2da8edd6e390cf38eee723d8d4733d8&selectedTaskRun=cSYQnkOrRuyUtIhinkHD5w))"
+  },
+  "tags": {
+    "os": "linux-bitbar",
+    "kind": "perftest",
+    "label": "perftest-android-hw-a55-aarch64-shippable-startup-geckoview-cold-main-first-frame",
+    "project": "autoland",
+    "retrigger": "true",
+    "test-type": "mozperftest",
+    "trust-domain": "gecko",
+    "createdForUser": "dpalmeiro@mozilla.com",
+    "worker-implementation": "generic-worker"
+  },
+  "extra": {
+    "index": {
+      "rank": 1
+    },
+    "parent": "N8QkJNUTTiehFsAYrdpzpA",
+    "treeherder": {
+      "tier": 2,
+      "symbol": "startup-first-frame",
+      "jobKind": "other",
+      "machine": {
+        "platform": "android-hw-a55-14-0-aarch64-shippable"
+      },
+      "groupName": "Performance tests",
+      "collection": {
+        "opt": true
+      },
+      "groupSymbol": "perftest"
+    },
+    "treeherder-platform": "android-hw-a55-14-0-aarch64-shippable/opt"
+  }
+}

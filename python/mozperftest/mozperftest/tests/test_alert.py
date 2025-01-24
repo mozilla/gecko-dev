@@ -118,36 +118,6 @@ def test_alert_basic_command_test_specification(alert_json, tests, expected_comm
             mocked_mozprocess.run_and_wait.assert_not_called()
 
 
-def test_alert_basic_command_failed():
-    alert_json = "alert-summary-awsy.json"
-    expected_command = ["./mach", "awsy-test", "--base"]
-    args = {"flavor": "alert", "tests": ["9000"]}
-
-    mach_cmd, metadata, env = get_running_env(**args)
-    test = env.layers[TEST]
-    alert_layer = get_alert_layer(test.layers)
-    alert_layer.create_line_handler("a-test")
-
-    with mock.patch(
-        "mozperftest.test.alert.requests.get"
-    ) as mocked_request, mock.patch(
-        "mozperftest.test.alert.mozprocess"
-    ) as mocked_mozprocess, (
-        MOCK_DATA_DIR / alert_json
-    ).open() as f:
-        mocked_response = mock.MagicMock()
-        mocked_response.configure_mock(status_code=200)
-        mocked_response.json.return_value = json.load(f)
-        mocked_request.return_value = mocked_response
-
-        with test as layer, silence(test):
-            layer(metadata)
-
-        mocked_mozprocess.run_and_wait.assert_called_once()
-        assert mocked_mozprocess.run_and_wait.call_args[0][0] == expected_command
-        assert len(alert_layer.perfherder_data) == 0
-
-
 @pytest.mark.parametrize(
     "alert_json, task_info_json, expected_commands, mozprocess_call_count",
     (
@@ -245,15 +215,11 @@ def test_alert_basic_command_failed():
                     "./mach",
                     "perftest",
                     "--flavor",
-                    "mobile-browser",
-                    "testing/performance/perftest_android_startup.js",
-                    "--AndroidStartUp",
-                    "--AndroidStartUp-test-name",
-                    "cold_main_first_frame",
-                    "--AndroidStartUp-product",
-                    "fenix",
-                    "--browsertime-cycles",
-                    "0",
+                    "custom-script",
+                    "testing/performance/mobile-startup/cmff.sh",
+                    "--app",
+                    "geckoview",
+                    "--android",
                     "--perfherder",
                 ]
             ],
@@ -359,6 +325,36 @@ def test_alert_exact_command(
             assert expected_command in [
                 call[0][0] for call in mocked_mozprocess.run_and_wait.call_args_list
             ]
+
+
+def test_alert_basic_command_failed():
+    alert_json = "alert-summary-awsy.json"
+    expected_command = ["./mach", "awsy-test", "--base"]
+    args = {"flavor": "alert", "tests": ["9000"]}
+
+    mach_cmd, metadata, env = get_running_env(**args)
+    test = env.layers[TEST]
+    alert_layer = get_alert_layer(test.layers)
+    alert_layer.create_line_handler("a-test")
+
+    with mock.patch(
+        "mozperftest.test.alert.requests.get"
+    ) as mocked_request, mock.patch(
+        "mozperftest.test.alert.mozprocess"
+    ) as mocked_mozprocess, (
+        MOCK_DATA_DIR / alert_json
+    ).open() as f:
+        mocked_response = mock.MagicMock()
+        mocked_response.configure_mock(status_code=200)
+        mocked_response.json.return_value = json.load(f)
+        mocked_request.return_value = mocked_response
+
+        with test as layer, silence(test):
+            layer(metadata)
+
+        mocked_mozprocess.run_and_wait.assert_called_once()
+        assert mocked_mozprocess.run_and_wait.call_args[0][0] == expected_command
+        assert len(alert_layer.perfherder_data) == 0
 
 
 def test_alert_info_failure():

@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 from mozperftest.layers import Layers
 from mozperftest.system.android import AndroidDevice
-from mozperftest.system.android_startup import AndroidStartUp
 from mozperftest.system.binarysetup import BinarySetup
 from mozperftest.system.macos import MacosDevice
 from mozperftest.system.pingserver import PingServer
@@ -13,7 +12,7 @@ from mozperftest.system.versionproducer import VersionProducer
 
 
 def get_layers():
-    return PingServer, Profile, ProxyRunner, AndroidDevice, MacosDevice, AndroidStartUp
+    return PingServer, Profile, ProxyRunner, AndroidDevice, MacosDevice
 
 
 def pick_system(env, flavor, mach_cmd):
@@ -31,7 +30,6 @@ def pick_system(env, flavor, mach_cmd):
         BinarySetup,
         AndroidDevice,
         VersionProducer,
-        AndroidStartUp,
     ]
 
     if flavor in ("desktop-browser", "xpcshell", "mochitest"):
@@ -52,7 +50,6 @@ def pick_system(env, flavor, mach_cmd):
             BinarySetup,  # needs to come before macos
             AndroidDevice,
             MacosDevice,
-            AndroidStartUp,
             VersionProducer,
         ]
         return Layers(env, mach_cmd, layers)
