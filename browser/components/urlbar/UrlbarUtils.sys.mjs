@@ -209,14 +209,7 @@ export var UrlbarUtils = {
   ]),
 
   // The favicon service stores icons for URLs with the following protocols.
-  PROTOCOLS_WITH_ICONS: [
-    "chrome:",
-    "moz-extension:",
-    "about:",
-    "http:",
-    "https:",
-    "ftp:",
-  ],
+  PROTOCOLS_WITH_ICONS: ["about:", "http:", "https:", "file:"],
 
   // Valid URI schemes that are considered safe but don't contain
   // an authority component (e.g host:port). There are many URI schemes
