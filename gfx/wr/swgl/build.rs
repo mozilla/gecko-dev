@@ -13,19 +13,19 @@ use webrender_build::shader::{get_shader_features, ShaderFeatureFlags};
 // Shader key is in "name feature,feature" format.
 // File name needs to be formatted as "name_feature_feature".
 fn shader_file(shader_key: &str) -> String {
-    shader_key.replace(' ', "_").replace(',', "_")
+    shader_key.replace([' ', ','], "_")
 }
 
 fn write_load_shader(shader_keys: &[String]) {
     let mut load_shader = String::new();
     for s in shader_keys {
-        let _ = write!(load_shader, "#include \"{}.h\"\n", shader_file(s));
+        let _ = writeln!(load_shader, "#include \"{}.h\"", shader_file(s));
     }
     load_shader.push_str("ProgramLoader load_shader(const char* name) {\n");
     for s in shader_keys {
-        let _ = write!(
+        let _ = writeln!(
             load_shader,
-            "  if (!strcmp(name, \"{}\")) {{ return {}_program::loader; }}\n",
+            "  if (!strcmp(name, \"{}\")) {{ return {}_program::loader; }}",
             s,
             shader_file(s)
         );
@@ -50,8 +50,8 @@ fn process_imports(
     println!("cargo:rerun-if-changed={}/{}.glsl", shader_dir, shader);
     let source = std::fs::read_to_string(format!("{}/{}.glsl", shader_dir, shader)).unwrap();
     for line in source.lines() {
-        if line.starts_with("#include ") {
-            let imports = line["#include ".len()..].split(',');
+        if let Some(imports) = line.strip_prefix("#include ") {
+            let imports = imports.split(',');
             for import in imports {
                 process_imports(shader_dir, import, included, output);
             }
@@ -70,9 +70,9 @@ fn translate_shader(
     suppressed_env_vars: &mut Option<Vec<EnvVarGuard>>,
 ) {
     let mut imported = String::from("#define SWGL 1\n#define __VERSION__ 150\n");
-    let _ = write!(
+    let _ = writeln!(
         imported,
-        "#define WR_MAX_VERTEX_TEXTURE_WIDTH {}U\n",
+        "#define WR_MAX_VERTEX_TEXTURE_WIDTH {}U",
         webrender_build::MAX_VERTEX_TEXTURE_WIDTH
     );
 
@@ -80,7 +80,7 @@ fn translate_shader(
         shader_key.split_at(shader_key.find(' ').unwrap_or(shader_key.len()));
     if !features.is_empty() {
         for feature in features.trim().split(',') {
-            let _ = write!(imported, "#define WR_FEATURE_{}\n", feature);
+            let _ = writeln!(imported, "#define WR_FEATURE_{}", feature);
         }
     }
 
@@ -118,7 +118,7 @@ fn translate_shader(
     if let Ok(tool) = build.try_get_compiler() {
         if tool.is_like_msvc() {
             build.flag("/EP");
-            if tool.path().to_str().map_or(false, |p| p.contains("clang")) {
+            if tool.path().to_str().is_some_and(|p| p.contains("clang")) {
                 build.flag("/clang:-undef");
             } else {
                 build.flag("/u");
