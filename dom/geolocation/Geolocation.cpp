@@ -21,7 +21,6 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_geo.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/WeakPtr.h"
@@ -1130,9 +1129,6 @@ Geolocation::Update(nsIDOMGeoPosition* aSomewhere) {
     if (coords) {
       double accuracy = -1;
       coords->GetAccuracy(&accuracy);
-      mozilla::Telemetry::Accumulate(
-          mozilla::Telemetry::GEOLOCATION_ACCURACY_EXPONENTIAL,
-          static_cast<uint32_t>(accuracy));
       glean::geolocation::accuracy.AccumulateSingleSample(
           static_cast<uint64_t>(accuracy));
     }

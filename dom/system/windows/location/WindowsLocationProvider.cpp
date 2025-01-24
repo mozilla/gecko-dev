@@ -17,7 +17,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Logging.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/GeolocationPositionErrorBinding.h"
 
 namespace mozilla::dom {
@@ -50,7 +49,6 @@ MLSUpdate::Update(nsIDOMGeoPosition* aPosition) {
   if (!coords) {
     return NS_ERROR_FAILURE;
   }
-  Telemetry::Accumulate(Telemetry::GEOLOCATION_WIN8_SOURCE_IS_MLS, true);
   return mCallback->Update(aPosition);
 }
 NS_IMETHODIMP
@@ -218,7 +216,6 @@ void WindowsLocationProvider::RecvUpdate(
 
   mCallback->Update(aGeoPosition.get());
 
-  Telemetry::Accumulate(Telemetry::GEOLOCATION_WIN8_SOURCE_IS_MLS, false);
   if (!mEverUpdated) {
     mEverUpdated = true;
     // Saw signal without MLS fallback
