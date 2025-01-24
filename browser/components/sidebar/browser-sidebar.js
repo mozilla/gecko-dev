@@ -225,7 +225,6 @@ var SidebarController = {
   POSITION_START_PREF: "sidebar.position_start",
   DEFAULT_SIDEBAR_ID: "viewBookmarksSidebar",
   TOOLS_PREF: "sidebar.main.tools",
-  VISIBILITY_PREF: "sidebar.visibility",
 
   // lastOpenedId is set in show() but unlike currentID it's not cleared out on hide
   // and isn't persisted across windows
@@ -1087,11 +1086,7 @@ var SidebarController = {
       let sidebarToggleKey = document.getElementById("toggleSidebarKb");
       const shortcut = ShortcutUtils.prettifyShortcut(sidebarToggleKey);
       toolbarButton.dataset.l10nArgs = JSON.stringify({ shortcut });
-      if (this.sidebarVerticalTabsEnabled) {
-        toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
-      } else {
-        toolbarButton.toggleAttribute("expanded", false);
-      }
+      toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
       switch (this.sidebarRevampVisibility) {
         case "always-show":
           // Toolbar button controls expanded state.
@@ -1820,11 +1815,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
       SidebarController.updateToolbarButton();
       SidebarController.recordVisibilitySetting(newValue);
       SidebarController._state.revampVisibility = newValue;
-      SidebarController._state.updateVisibility(
-        (newValue != "hide-sidebar" &&
-          SidebarController.sidebarVerticalTabsEnabled) ||
-          !SidebarController.sidebarVerticalTabsEnabled
-      );
+      SidebarController._state.updateVisibility(newValue != "hide-sidebar");
     }
   }
 );
@@ -1835,10 +1826,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false,
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.uninitializing) {
-      Services.prefs.setStringPref(
-        SidebarController.VISIBILITY_PREF,
-        newValue ? "always-show" : "hide-sidebar"
-      );
       SidebarController.recordTabsLayoutSetting(newValue);
     }
   }
