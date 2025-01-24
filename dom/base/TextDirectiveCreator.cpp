@@ -489,7 +489,7 @@ nsTArray<const TextDirectiveCandidate*>
 TextDirectiveCandidate::FilterNonMatchingCandidates(
     const nsTArray<const TextDirectiveCandidate*>& aMatches,
     RangeContentCache& aRangeContentCache) {
-  nsTArray<const TextDirectiveCandidate*> stillMatching(aMatches.Length() - 1);
+  AutoTArray<const TextDirectiveCandidate*, 8> stillMatching;
   for (const auto* match : aMatches) {
     if (Result<bool, ErrorResult> matchesFoldCase =
             ThisCandidateMatchesOther(*match, aRangeContentCache);
