@@ -43,7 +43,7 @@ async function testExplicitNamedAreas(inspector, view) {
   const onPopupShown = once(editor.popup, "popup-opened");
   await gridLineNamesUpdated;
 
-  EventUtils.synthesizeKey("VK_DOWN", { shiftKey: true }, view.styleWindow);
+  EventUtils.synthesizeKey(" ", { ctrlKey: true }, view.styleWindow);
 
   await onPopupShown;
 
@@ -80,7 +80,7 @@ async function testImplicitNamedAreasWithExplicitGridLineNames(
   const onPopupShown = once(editor.popup, "popup-opened");
   await gridLineNamesUpdated;
 
-  EventUtils.synthesizeKey("VK_DOWN", { shiftKey: true }, view.styleWindow);
+  EventUtils.synthesizeKey(" ", { ctrlKey: true }, view.styleWindow);
 
   await onPopupShown;
 
@@ -107,7 +107,7 @@ async function testImplicitAreasWithImplicitGridLineNames(inspector, view) {
   const onPopupShown = once(editor.popup, "popup-opened");
   await gridLineNamesUpdated;
 
-  EventUtils.synthesizeKey("VK_DOWN", { shiftKey: true }, view.styleWindow);
+  EventUtils.synthesizeKey(" ", { ctrlKey: true }, view.styleWindow);
 
   await onPopupShown;
 
@@ -134,7 +134,7 @@ async function testImplicitNamedAreasWithReversedGridLineNames(
   const onPopupShown = once(editor.popup, "popup-opened");
   await gridLineNamesUpdated;
 
-  EventUtils.synthesizeKey("VK_DOWN", { shiftKey: true }, view.styleWindow);
+  EventUtils.synthesizeKey(" ", { ctrlKey: true }, view.styleWindow);
 
   await onPopupShown;
 

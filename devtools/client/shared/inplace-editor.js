@@ -1298,14 +1298,20 @@ class InplaceEditor extends EventEmitter {
     } else if (
       // We may show the suggestion completion if Ctrl+space is pressed, or if an
       // otherwise unhandled key is pressed and the user is not cycling through the
-      // options in the pop-up menu, it is not an expanded shorthand property, and no
-      // modifier key is pressed.
+      // options in the pop-up menu, it is not an expanded shorthand property, no
+      // modifier key is pressed, and the pressed key isn't Shift+Arrow(Up|Down).
       (event.key === " " && event.ctrlKey) ||
       (!cycling &&
         !multilineNavigation &&
         !event.metaKey &&
         !event.altKey &&
-        !event.ctrlKey)
+        !event.ctrlKey &&
+        // We only need to handle the case where the Shift key is pressed because maybeSuggestCompletion
+        // will trigger the completion because there are selected character here, and it
+        // will look like a "regular" completion with a suggested value. We don't need
+        // to care about other shift + key (e.g. LEFT, HOME, …), since we're not coming
+        // here for them.
+        !(isKeyIn(key, "UP", "DOWN") && event.shiftKey))
     ) {
       this.#maybeSuggestCompletion(true);
     }
