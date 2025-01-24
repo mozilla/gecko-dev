@@ -51,7 +51,11 @@ fn process_imports(shader_dir: &str, shader: &str, included: &mut HashSet<String
     }
 }
 
-fn translate_shader(shader_key: &str, shader_dir: &str) {
+fn translate_shader(
+    shader_key: &str,
+    shader_dir: &str,
+    suppressed_env_vars: &mut Option<Vec<EnvVarGuard>>,
+) {
     let mut imported = String::from("#define SWGL 1\n#define __VERSION__ 150\n");
     let _ = write!(imported, "#define WR_MAX_VERTEX_TEXTURE_WIDTH {}U\n",
                    webrender_build::MAX_VERTEX_TEXTURE_WIDTH);
@@ -72,6 +76,27 @@ fn translate_shader(shader_key: &str, shader_dir: &str) {
     let imp_name = format!("{}/{}.c", out_dir, shader);
     std::fs::write(&imp_name, imported).unwrap();
 
+    // We need to ensure that the C preprocessor does not pull compiler flags from the host or
+    // target environment. Set all `CFLAGS` or `CXXFLAGS` env. vars. to empty to work around this.
+    let _ = suppressed_env_vars.get_or_insert_with(|| {
+        let mut env_vars = Vec::new();
+        for (key, value) in std::env::vars_os() {
+            if let Some(key_utf8) = key.to_str() {
+                if ["CFLAGS", "CXXFLAGS"]
+                    .iter()
+                    .any(|opt_name| key_utf8.contains(opt_name))
+                {
+                    std::env::set_var(&key, "");
+                    env_vars.push(EnvVarGuard {
+                        key,
+                        old_value: Some(value),
+                    });
+                }
+            }
+        }
+        env_vars
+    });
+
     let mut build = cc::Build::new();
     build.no_default_flags(true);
     if let Ok(tool) = build.try_get_compiler() {
@@ -86,8 +111,6 @@ fn translate_shader(shader_key: &str, shader_dir: &str) {
             build.flag("-xc").flag("-P").flag("-undef");
         }
     }
-    // Use SWGLPP target to avoid pulling CFLAGS/CXXFLAGS.
-    build.target("SWGLPP");
     build.file(&imp_name);
     let vs = build.clone()
         .define("WR_VERTEX_SHADER", Some("1"))
@@ -126,20 +149,11 @@ fn main() {
 
     shaders.sort();
 
-    // We need to ensure that the C preprocessor does not pull compiler flags from
-    // the host or target environment. Set up a SWGLPP target with empty flags to
-    // work around this.
-    if let Ok(target) = std::env::var("TARGET") {
-        if let Ok(cc) = std::env::var(format!("CC_{}", target))
-                        .or(std::env::var(format!("CC_{}", target.replace("-", "_")))) {
-            std::env::set_var("CC_SWGLPP", cc);
-        }
-    }
-    std::env::set_var("CFLAGS_SWGLPP", "");
-
+    let mut suppressed_env_vars = None;
     for shader in &shaders {
-        translate_shader(shader, &shader_dir);
+        translate_shader(shader, &shader_dir, &mut suppressed_env_vars);
     }
+    drop(suppressed_env_vars); // Restore env. vars. for further compilation.
 
     write_load_shader(&shaders);
 
@@ -202,4 +216,20 @@ fn main() {
         .include("src")
         .include(std::env::var("OUT_DIR").unwrap())
         .compile("gl_cc");
+}
+
+struct EnvVarGuard {
+    key: std::ffi::OsString,
+    old_value: Option<std::ffi::OsString>,
+}
+
+impl Drop for EnvVarGuard {
+    fn drop(&mut self) {
+        let Self { key, old_value } = &*self;
+        if let Some(old_value) = old_value.as_ref() {
+            std::env::set_var(key, old_value);
+        } else {
+            std::env::remove_var(key);
+        }
+    }
 }
