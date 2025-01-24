@@ -210,6 +210,8 @@
     <string name="mozac_feature_addons_blocklisted_2">%1$s ລະເມີດນະໂຍບາຍຂອງ Mozilla ແລະ ບໍ່ສາມາດຕິດຕັ້ງຢູ່ໃນ %2$s ໄດ້.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">ບໍ່ສາມາດຕິດຕັ້ງ %1$s ໄດ້ ເນື່ອງຈາກຕ້ອງຕິດຕັ້ງໂດຍອົງກອນທີ່ໃຊ້ນະໂຍບາຍຂອງອົງກອນເທົ່ານັ້ນ, ເຊິ່ງບໍ່ຮອງຮັບໃນ platform ນີ້.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s ລະເມີດນະໂຍບາຍຂອງ Mozilla ແລະ ບໍ່ສາມາດຕິດຕັ້ງຢູ່ໃນ %2$s ໄດ້.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">ສຳເລັດການເປີດໃຊ້ງານ %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -258,6 +260,10 @@
     <string name="mozac_feature_addons_status_see_details">ເບິ່ງລາຍລະອຽດ</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">ສ່ວນຂະຫຍາຍນີ້ຖືກບລັອກເນື່ອງຈາກລະເມີດນະໂຍບາຍຂອງ Mozilla ແລະ ຖືກປິດໃຊ້ງານ.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">ສ່ວນຂະຫຍາຍນີ້ຖືກຈຳກັດສຳລັບການລະເມີດນະໂຍບາຍຂອງ Mozilla ແລະ ຖືກປິດການນຳໃຊ້. ທ່ານສາມາດເປີດໃຊ້ມັນໄດ້, ແຕ່ນີ້ອາດຈະມີຄວາມສ່ຽງ.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">ສ່ວນຂະຫຍາຍນີ້ລະເມີດນະໂຍບາຍຂອງ Mozilla. ການນໍາໃຊ້ມັນອາດຈະມີຄວາມສ່ຽງ.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s ບໍ່ສາມາດກວດສອບໄດ້ວ່າປອດໄພ ແລະ ຖືກປິດການນຳໃຊ້ແລ້ວ.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

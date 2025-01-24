@@ -1053,6 +1053,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Tìm hiểu thêm về dữ liệu tiếp thị</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping sử dụng hàng ngày</string>
+    <string name="preferences_daily_usage_ping_description">Điều này giúp Mozilla ước tính số người dùng đang hoạt động.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Tìm hiểu thêm về ping sử dụng hàng ngày</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Tự động gửi báo cáo sự cố</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Tự động gửi báo cáo sự cố</string>

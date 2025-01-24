@@ -974,7 +974,7 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s ncapu a %2$s %3$s</string>
     <!-- Preference for syncing payment methods -->
-    <string name="preferences_sync_credit_cards_2">Mètudi di pagamentu</string>
+    <string name="preferences_sync_credit_cards_2">Furmi di pagamentu</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Nnirizzi</string>
 
@@ -1024,6 +1024,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Cchiù nfurmazzioni supra ê dati di màrketing</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping d\'usu nnô jornu</string>
+    <string name="preferences_daily_usage_ping_description">Chistu ajuta Mozilla a fari na stima di l\'utenti attivi.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Cchiù nfurmazzioni supra ô ping d\'usu nnô jornu</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Manna \'n autumàticu i signalijazzioni di scasciu</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Manna \'n autumàticu i signalijazzioni di scasciu</string>
@@ -2125,11 +2129,11 @@
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">Nnirizzi</string>
     <!-- Preference and title for managing the settings for payment methods -->
-    <string name="preferences_credit_cards_2">Mètudi di pagamentu</string>
+    <string name="preferences_credit_cards_2">Furmi di pagamentu</string>
     <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_2">Sarba e jinchi i mètudi di pagamentu</string>
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">Sarba e jinchi i furmi di pagamentu</string>
     <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s cifra tutti i mètudi di pagamentu chi sarbi</string>
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s cifra tutti i furmi di pagamentu chi sarbi</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Sincrunizza i carti ntra i dispusitivi</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
@@ -2186,9 +2190,9 @@
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Sblocca pi taliari i to carti sarbati</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_title_2">Pruteggi i mètudi di pagamentu sarbati</string>
+    <string name="credit_cards_warning_dialog_title_2">Pruteggi i furmi di pagamentu sarbati</string>
     <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_message_3">Cunfijura nu schema di bloccu dû dispusitivu, un còdici PIN o na chiavi pi prutèggiri i to mètudi di pagamentu sarbati si quarchi autru àvi accessu ô to dispusitivu.</string>
+    <string name="credit_cards_warning_dialog_message_3">Cunfijura nu schema di bloccu dû dispusitivu, un còdici PIN o na chiavi pi prutèggiri i to furmi di pagamentu sarbati si quarchi autru àvi accessu ô to dispusitivu.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">Cunfijura ora</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2196,7 +2200,7 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Sblocca u to dispusitivu</string>
     <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
-    <string name="credit_cards_biometric_prompt_unlock_message_2">Sblocca p\'usari i mètudi di pagamentu sarbati</string>
+    <string name="credit_cards_biometric_prompt_unlock_message_2">Sblocca p\'usari i furmi di pagamentu sarbati</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">Junci nu nnirizzu</string>
     <!-- Title of the "Edit address" screen -->

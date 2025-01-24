@@ -1060,6 +1060,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Lue lisää markkinointitiedoista</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Päivittäinen käyttöilmoitus</string>
+    <string name="preferences_daily_usage_ping_description">Tämä auttaa Mozillaa arvioimaan aktiivisten käyttäjien määrää.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Lisätietoja päivittäisistä käyttöilmoituksista</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Lähetä kaatumisilmoitukset automaattisesti</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Lähetä kaatumisilmoitukset automaattisesti</string>
