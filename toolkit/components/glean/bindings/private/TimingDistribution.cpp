@@ -19,6 +19,9 @@
 #include "nsString.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
 
+using mozilla::TimeDuration;
+using mozilla::TimeStamp;
+
 namespace mozilla::glean {
 
 using MetricId = uint32_t;  // Same type as in api/src/private/mod.rs
@@ -200,7 +203,7 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionStart(uint32_t aMetricId,
 
 // Called from within FOG's Rust impl.
 extern "C" NS_EXPORT void GIFFT_TimingDistributionStopAndAccumulate(
-    uint32_t aMetricId, TimerId aTimerId) {
+    uint32_t aMetricId, TimerId aTimerId, int32_t aUnit) {
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
     mozilla::glean::GetTimerIdToStartsLock().apply([&](const auto& lock) {
@@ -209,18 +212,54 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionStopAndAccumulate(
       // The timer might not be in the map to be removed if it's already been
       // cancelled or stop_and_accumulate'd.
       if (!NS_WARN_IF(!optStart)) {
-        AccumulateTimeDelta(mirrorId.extract(), optStart.extract());
+        TimeDuration duration = TimeStamp::Now() - optStart.extract();
+        // Values are from Glean's `TimeUnit`
+        switch (aUnit) {
+          case 0:  // Nanos
+            Accumulate(mirrorId.extract(), duration.ToMicroseconds() * 1000);
+            break;
+          case 1:  // Micros
+            Accumulate(mirrorId.extract(), duration.ToMicroseconds());
+            break;
+          case 2:  // Millis
+            Accumulate(mirrorId.extract(), duration.ToMilliseconds());
+            break;
+          case 3:  // Seconds
+            Accumulate(mirrorId.extract(), duration.ToSeconds());
+            break;
+          case 4:  // Minutes
+            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60);
+            break;
+          case 5:  // Hours
+            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60 / 60);
+            break;
+          case 6:  // Days
+            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60 / 60 / 24);
+            break;
+          default:
+            MOZ_ASSERT_UNREACHABLE("Invalid/Unsupported time unit");
+            return;
+        }
       }
     });
   }
 }
 
 // Called from within FOG's Rust impl.
-extern "C" NS_EXPORT void GIFFT_TimingDistributionAccumulateRawMillis(
-    uint32_t aMetricId, uint32_t aMS) {
+extern "C" NS_EXPORT void GIFFT_TimingDistributionAccumulateRawSample(
+    uint32_t aMetricId, uint32_t aSample) {
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
-    Accumulate(mirrorId.extract(), aMS);
+    Accumulate(mirrorId.extract(), aSample);
+  }
+}
+
+// Called from within FOG's Rust impl.
+extern "C" NS_EXPORT void GIFFT_TimingDistributionAccumulateRawSamples(
+    uint32_t aMetricId, const nsTArray<uint32_t>& aSamples) {
+  auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
+  if (mirrorId) {
+    Accumulate(mirrorId.extract(), aSamples);
   }
 }
 

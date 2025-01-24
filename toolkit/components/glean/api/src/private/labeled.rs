@@ -26,7 +26,7 @@ mod private {
     };
     use crate::private::labeled_timing_distribution::LabeledTimingDistributionMetricKind;
     use crate::private::{
-        BooleanMetric, CounterMetric, CustomDistributionMetric, MemoryDistributionMetric,
+        BooleanMetric, CounterMetric, CustomDistributionMetric, MemoryDistributionMetric, TimeUnit,
         TimingDistributionMetric,
     };
     use std::sync::{atomic::Ordering, Arc};
@@ -246,7 +246,10 @@ mod private {
             let submetric = map.entry(submetric_id).or_insert_with(|| {
                 let submetric = if need_ipc() {
                     LabeledTimingDistributionMetric {
-                        inner: Arc::new(TimingDistributionMetric::new_child(id)),
+                        inner: Arc::new(TimingDistributionMetric::new_child(
+                            id,
+                            TimeUnit::Millisecond,
+                        )),
                         id: id.into(),
                         label: label.to_string(),
                         kind: LabeledTimingDistributionMetricKind::Child,
@@ -255,6 +258,7 @@ mod private {
                     LabeledTimingDistributionMetric {
                         inner: Arc::new(TimingDistributionMetric::Parent {
                             id: submetric_id.into(),
+                            gifft_time_unit: TimeUnit::Millisecond,
                             inner: metric.get(label),
                         }),
                         id: id.into(),

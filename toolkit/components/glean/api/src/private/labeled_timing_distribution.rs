@@ -212,7 +212,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                 ),
             );
         }
-        self.inner.accumulate_samples(samples);
+        self.inner.inner_accumulate_samples(samples);
     }
 
     pub fn accumulate_raw_samples_nanos(&self, samples: Vec<u64>) {
@@ -248,7 +248,7 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                 ),
             );
         }
-        self.inner.accumulate_single_sample(sample);
+        self.inner.inner_accumulate_single_sample(sample);
     }
 
     pub fn accumulate_raw_duration(&self, duration: Duration) {

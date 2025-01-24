@@ -199,12 +199,34 @@ add_task(async function test_gifft_timing_dist() {
   );
 
   data = Telemetry.getHistogramById("TELEMETRY_TEST_EXPONENTIAL").snapshot();
-  // Suffers from same cast truncation issue of 9.... and 4.... values
-  Assert.greaterOrEqual(data.sum, 13, "Histogram's in milliseconds");
+  Assert.greaterOrEqual(
+    data.sum,
+    13 * NANOS_IN_MILLIS - EPSILON,
+    "Histogram's in nanos"
+  );
   Assert.equal(
     2,
     Object.entries(data.values).reduce((acc, [, count]) => acc + count, 0),
     "Only two samples"
+  );
+
+  // How about those raw sample APIs?
+  Glean.testOnly.whatTimeIsIt.accumulateSingleSample(42);
+  Glean.testOnly.whatTimeIsIt.accumulateSamples([255, 2047]);
+  data = Glean.testOnly.whatTimeIsIt.testGetValue();
+  Assert.equal(
+    data.sum,
+    (42 + 255 + 2047) * 1000,
+    "test.only.what_time_is_it is in microseconds and testGetValue returns you nanos."
+  );
+
+  data = Telemetry.getHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_TIMING"
+  ).snapshot();
+  Assert.equal(
+    data.sum,
+    42 + 255 + 2047,
+    "Telemetry gives back exactly what's put in."
   );
 });
 
@@ -747,7 +769,6 @@ add_task(async function test_gifft_labeled_timing_dist() {
   data = Telemetry.getKeyedHistogramById(
     "TELEMETRY_TEST_MIRROR_FOR_LABELED_TIMING"
   ).snapshot();
-  info(JSON.stringify(data));
   Assert.ok("down the drain" in data, "Has the key");
   data = data["down the drain"];
   // Suffers from same cast truncation issue of 9.... and 4.... values
@@ -757,6 +778,22 @@ add_task(async function test_gifft_labeled_timing_dist() {
     Object.entries(data.values).reduce((acc, [, count]) => acc + count, 0),
     "Only two samples"
   );
+
+  // Note that `labeled_timing_distribution` does not mirror calls to
+  // * accumulateSamples
+  // * accumulateSingleSamples
+  // See bug 1943453 for more details.
+  Glean.testOnly.whereHasTheTimeGone["hourglass sands"].accumulateSamples([
+    1, 2, 3,
+  ]);
+  Glean.testOnly.whereHasTheTimeGone["hourglass sands"].accumulateSingleSample(
+    1
+  );
+
+  data = Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_LABELED_TIMING"
+  ).snapshot();
+  Assert.ok(!("hourglass sands" in data), "Doesn't have the key");
 });
 
 add_task(async function test_gifft_labeled_quantity() {

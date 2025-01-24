@@ -39,7 +39,7 @@ This compatibility table explains which Telemetry probe types can be mirrors for
 | [labeled_string](https://mozilla.github.io/glean/book/reference/metrics/labeled_strings.html) | *No Supported Telemetry Type* |
 | [string_list](https://mozilla.github.io/glean/book/reference/metrics/string_list.html) | [Keyed Scalar of kind: boolean](/toolkit/components/telemetry/collection/scalars.html). The keys are the strings. The values are all `true`. Calling `Set` on the labeled_string is not mirrored (since there's no way to remove keys from a keyed scalar of kind boolean). Doing so will log a warning. |
 | [timespan](https://mozilla.github.io/glean/book/reference/metrics/timespan.html) | [Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html). The value is in units of milliseconds. |
-| [timing_distribution](https://mozilla.github.io/glean/book/reference/metrics/timing_distribution.html) | [Histogram of kind "linear" or "exponential"](/toolkit/components/telemetry/collection/histograms.html#exponential). Samples will be in units of milliseconds. |
+| [timing_distribution](https://mozilla.github.io/glean/book/reference/metrics/timing_distribution.html) | [Histogram of kind "linear" or "exponential"](/toolkit/components/telemetry/collection/histograms.html#exponential). Samples will be in `timing_unit` units. |
 | [labeled_timing_distribution](https://mozilla.github.io/glean/book/reference/metrics/labeled_timing_distributions.html) | [Keyed Histogram of kind "linear" or "exponential"](/toolkit/components/telemetry/collection/histograms.html#exponential). Samples will be in units of milliseconds. |
 | [memory_distribution](https://mozilla.github.io/glean/book/reference/metrics/memory_distribution.html) | [Histogram of kind "linear" or "exponential"](/toolkit/components/telemetry/collection/histograms.html#exponential). Samples will be in `memory_unit` units. |
 | [labeled_memory_distribution](https://mozilla.github.io/glean/book/reference/metrics/labeled_memory_distributions.html) | [Keyed Histogram of kind "linear" or "exponential"](/toolkit/components/telemetry/collection/histograms.html#exponential). Samples will be in `memory_unit` units. |
@@ -223,10 +223,13 @@ This shouldn't affect analysis, but it can affect testing, so please
 [bear this difference in mind](./instrumentation_tests.md#general-things-to-bear-in-mind)
 in testing.
 
-#### `timing_distribution` mirrors: sample-based APIs are not recorded
+#### `labeled_timing_distribution` mirrors: sample-based APIs are not recorded
 
 Values stored with `accumulate_samples` and `accumulate_single_sample` are not
 passed to the Telemetry mirror histogram with GIFFT.
+
+See [bug 1943453](https://bugzilla.mozilla.org/show_bug.cgi?id=1943453)
+for more details.
 
 ### App Shutdown
 
