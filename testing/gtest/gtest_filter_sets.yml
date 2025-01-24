@@ -1,0 +1,7 @@
+# Filter sets defined here will be available to all users. Run them with:
+#   $ mach gtest --filter-set FILTER_SET
+#
+# Please keep this in alphabetical order.
+
+dom-storage:
+    gtest_filter: "*Quota*:*IndexedDB*:*LocalStorage*:*FileSystem*"

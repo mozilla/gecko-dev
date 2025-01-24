@@ -215,6 +215,8 @@ else
 endif
 	cp -RL $(DIST)/bin/gtest/*buildid.* $(PKG_STAGE)/gtest/gtest_bin/gtest
 	cp -RL $(DEPTH)/_tests/gtest $(PKG_STAGE)
+	cp $(topsrcdir)/testing/gtest/gtest_filter_sets.py $(PKG_STAGE)/gtest
+	cp $(topsrcdir)/testing/gtest/gtest_filter_sets.yml $(PKG_STAGE)/gtest
 	cp $(topsrcdir)/testing/gtest/rungtests.py $(PKG_STAGE)/gtest
 	cp $(topsrcdir)/testing/gtest/remotegtests.py $(PKG_STAGE)/gtest
 	cp $(topsrcdir)/testing/gtest/mach_test_package_commands.py $(PKG_STAGE)/gtest

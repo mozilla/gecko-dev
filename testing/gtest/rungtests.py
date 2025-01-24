@@ -12,7 +12,10 @@ import mozcrash
 import mozinfo
 import mozlog
 import mozprocess
+from mozfile import load_source
 from mozrunner.utils import get_stack_fixer_function
+
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 log = mozlog.unstructured.getLogger("gtest")
 
@@ -35,6 +38,7 @@ class GTests(object):
         cwd,
         symbols_path=None,
         utility_path=None,
+        filter_set=None,
     ):
         """
         Run a single C++ unit test program.
@@ -53,7 +57,7 @@ class GTests(object):
         Return True if the program exits with a zero status, False otherwise.
         """
         self.xre_path = xre_path
-        env = self.build_environment()
+        env = self.build_environment(filter_set)
         log.info("Running gtest")
 
         if cwd and not os.path.isdir(cwd):
@@ -134,7 +138,7 @@ class GTests(object):
 
         return env
 
-    def build_environment(self):
+    def build_environment(self, filter_set):
         """
         Create and return a dictionary of all the appropriate env variables
         and values. On a remote system, we overload this to set different
@@ -185,6 +189,19 @@ class GTests(object):
         env["MOZ_WEBRENDER"] = "1"
         env["MOZ_ACCELERATED"] = "1"
 
+        if filter_set is not None:
+            filter_sets_mod_path = os.path.join(HERE, "gtest_filter_sets.py")
+            load_source("gtest_filter_sets", filter_sets_mod_path)
+
+            import gtest_filter_sets
+
+            gtest_filter_for_filter_set = gtest_filter_sets.get(filter_set)
+            if gtest_filter_for_filter_set:
+                env["GTEST_FILTER"] = gtest_filter_for_filter_set
+                log.info("Using gtest filter for %s", filter_set)
+            else:
+                log.info("Failed to get gtest filter for %s", filter_set)
+
         return env
 
 
@@ -217,6 +234,12 @@ class gtestOptions(argparse.ArgumentParser):
             dest="utility_path",
             default=None,
             help="path to a directory containing utility program binaries",
+        )
+        self.add_argument(
+            "--filter-set",
+            dest="filter_set",
+            default=None,
+            help="predefined gtest filter",
         )
         self.add_argument("args", nargs=argparse.REMAINDER)
 
@@ -257,6 +280,7 @@ def main():
             options.cwd,
             symbols_path=options.symbols_path,
             utility_path=options.utility_path,
+            filter_set=options.filter_set,
         )
     except Exception as e:
         log.error(str(e))

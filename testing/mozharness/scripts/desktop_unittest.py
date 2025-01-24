@@ -204,6 +204,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 },
             ],
             [
+                ["--filter-set"],
+                {
+                    "action": "store",
+                    "dest": "filter_set",
+                    "default": "",
+                    "help": "Use a predefined filter.",
+                },
+            ],
+            [
                 ["--threads"],
                 {
                     "action": "store",
@@ -718,6 +727,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             if c["headless"]:
                 base_cmd.append("--headless")
+
+            if c["filter_set"]:
+                if suite_category == "gtest":
+                    base_cmd.append("--filter-set={}".format(c["filter_set"]))
+                else:
+                    self.warning(
+                        "--filter-set does not currently work with suites other then "
+                        "gtest."
+                    )
 
             if c.get("threads"):
                 base_cmd.extend(["--threads", c["threads"]])
