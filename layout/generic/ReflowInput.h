@@ -884,18 +884,6 @@ struct ReflowInput : public SizeComputationInput {
       nsPlaceholderFrame* aPlaceholderFrame, const ReflowInput* aCBReflowInput,
       nsHypotheticalPosition& aHypotheticalPos) const;
 
-  // Check if we can use the resolved auto block size (by insets) to compute
-  // the inline size through aspect-ratio on absolute-positioned elements.
-  // This is only needed for non-replaced elements.
-  // https://drafts.csswg.org/css-position/#abspos-auto-size
-  bool IsInlineSizeComputableByBlockSizeAndAspectRatio(
-      nscoord aBlockSize) const;
-
-  // This calculates the size by using the resolved auto block size (from
-  // non-auto block insets), according to the writing mode of current block.
-  LogicalSize CalculateAbsoluteSizeWithResolvedAutoBlockSize(
-      nscoord aAutoBSize, const LogicalSize& aTentativeComputedSize);
-
   void InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
                                const LogicalSize& aCBSize);
 
