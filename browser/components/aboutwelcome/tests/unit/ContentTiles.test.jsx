@@ -96,7 +96,7 @@ describe("ContentTiles component", () => {
     assert.equal(telemetrySpy.firstCall.args[1], tileId);
   });
 
-  it("should only expand on tiles at a time", () => {
+  it("should only expand one tile at a time", () => {
     const firstTileButton = wrapper.find(".tile-header").at(0);
     firstTileButton.simulate("click");
     const secondTileButton = wrapper.find(".tile-header").at(1);
@@ -106,6 +106,44 @@ describe("ContentTiles component", () => {
     assert.equal(
       wrapper.find(".tile-content").at(0).prop("id"),
       "tile-content-1"
+    );
+  });
+
+  it("should toggle all tiles and send telemetry when the tiles header is clicked", () => {
+    const TEST_CONTENT_HEADER = {
+      tiles: [CHECKLIST_TILE, MOBILE_TILE],
+      tiles_header: {
+        title: "Toggle Tiles Header",
+      },
+    };
+
+    wrapper = mount(
+      <ContentTiles content={TEST_CONTENT_HEADER} handleAction={handleAction} />
+    );
+
+    let telemetrySpy = sandbox.spy(AboutWelcomeUtils, "sendActionTelemetry");
+    const tilesHeaderButton = wrapper.find(".content-tiles-header");
+
+    assert.ok(tilesHeaderButton.exists(), "Tiles header button should exist");
+    tilesHeaderButton.simulate("click");
+
+    assert.equal(
+      wrapper.find("#content-tiles-container").exists(),
+      true,
+      "Content tiles container should be visible after toggle"
+    );
+    assert.calledOnce(telemetrySpy);
+    assert.equal(
+      telemetrySpy.firstCall.args[1],
+      "content_tiles_header",
+      "Telemetry should be sent for tiles header toggle"
+    );
+
+    tilesHeaderButton.simulate("click");
+    assert.equal(
+      wrapper.find("#content-tiles-container").exists(),
+      false,
+      "Content tiles container should not be visible after second toggle"
     );
   });
 

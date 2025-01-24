@@ -2026,6 +2026,8 @@ const ContentTiles = props => {
     content
   } = props;
   const [expandedTileIndex, setExpandedTileIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  // State for header that toggles showing and hiding all tiles, if applicable
+  const [tilesHeaderExpanded, setTilesHeaderExpanded] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const {
     tiles
   } = content;
@@ -2036,6 +2038,10 @@ const ContentTiles = props => {
     const tileId = `${tile.type}${tile.id ? "_" : ""}${tile.id ?? ""}_header`;
     setExpandedTileIndex(prevIndex => prevIndex === index ? null : index);
     _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_9__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, tileId);
+  };
+  const toggleTiles = () => {
+    setTilesHeaderExpanded(prev => !prev);
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_9__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, "content_tiles_header");
   };
   const renderContentTile = (tile, index = 0) => {
     const isExpanded = expandedTileIndex === index;
@@ -2106,13 +2112,30 @@ const ContentTiles = props => {
       style: tile.data.style
     })) : null);
   };
-  if (Array.isArray(content.tiles)) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: "content-tiles-container"
-    }, content.tiles.map((tile, index) => renderContentTile(tile, index)));
+  const renderContentTiles = () => {
+    if (Array.isArray(tiles)) {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+        id: "content-tiles-container"
+      }, tiles.map((tile, index) => renderContentTile(tile, index)));
+    }
+    // If tiles is not an array render the tile alone without a container
+    return renderContentTile(tiles, 0);
+  };
+  if (content.tiles_header) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+      className: "content-tiles-header",
+      onClick: toggleTiles,
+      "aria-expanded": tilesHeaderExpanded,
+      "aria-controls": `content-tiles-container`
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: content.tiles_header.title
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      className: "header-title"
+    })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "arrow-icon"
+    })), tilesHeaderExpanded && renderContentTiles());
   }
-  // If tiles is not an array render the tile alone without a container
-  return renderContentTile(tiles, 0);
+  return renderContentTiles(tiles);
 };
 
 /***/ }),

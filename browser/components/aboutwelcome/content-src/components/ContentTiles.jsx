@@ -32,6 +32,8 @@ const TILE_STYLES = [
 export const ContentTiles = props => {
   const { content } = props;
   const [expandedTileIndex, setExpandedTileIndex] = useState(null);
+  // State for header that toggles showing and hiding all tiles, if applicable
+  const [tilesHeaderExpanded, setTilesHeaderExpanded] = useState(false);
   const { tiles } = content;
   if (!tiles) {
     return null;
@@ -41,6 +43,14 @@ export const ContentTiles = props => {
     const tileId = `${tile.type}${tile.id ? "_" : ""}${tile.id ?? ""}_header`;
     setExpandedTileIndex(prevIndex => (prevIndex === index ? null : index));
     AboutWelcomeUtils.sendActionTelemetry(props.messageId, tileId);
+  };
+
+  const toggleTiles = () => {
+    setTilesHeaderExpanded(prev => !prev);
+    AboutWelcomeUtils.sendActionTelemetry(
+      props.messageId,
+      "content_tiles_header"
+    );
   };
 
   const renderContentTile = (tile, index = 0) => {
@@ -126,13 +136,35 @@ export const ContentTiles = props => {
     );
   };
 
-  if (Array.isArray(content.tiles)) {
+  const renderContentTiles = () => {
+    if (Array.isArray(tiles)) {
+      return (
+        <div id="content-tiles-container">
+          {tiles.map((tile, index) => renderContentTile(tile, index))}
+        </div>
+      );
+    }
+    // If tiles is not an array render the tile alone without a container
+    return renderContentTile(tiles, 0);
+  };
+
+  if (content.tiles_header) {
     return (
-      <div className="content-tiles-container">
-        {content.tiles.map((tile, index) => renderContentTile(tile, index))}
-      </div>
+      <React.Fragment>
+        <button
+          className="content-tiles-header"
+          onClick={toggleTiles}
+          aria-expanded={tilesHeaderExpanded}
+          aria-controls={`content-tiles-container`}
+        >
+          <Localized text={content.tiles_header.title}>
+            <span className="header-title" />
+          </Localized>
+          <div className="arrow-icon"></div>
+        </button>
+        {tilesHeaderExpanded && renderContentTiles()}
+      </React.Fragment>
     );
   }
-  // If tiles is not an array render the tile alone without a container
-  return renderContentTile(tiles, 0);
+  return renderContentTiles(tiles);
 };

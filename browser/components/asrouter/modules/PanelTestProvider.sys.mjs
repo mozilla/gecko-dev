@@ -88,6 +88,7 @@ const MESSAGES = () => [
               display: "block",
               padding: "20px 0 0 0",
               width: "560px",
+              overflow: "auto",
             },
             logo: {
               height: "40px",
@@ -100,6 +101,7 @@ const MESSAGES = () => [
               raw: "Review the content below before continuing.",
               fontSize: "15px",
             },
+            tiles_header: { title: "Click to toggle content tiles." },
             tiles: [
               {
                 type: "embedded_browser",
@@ -130,6 +132,7 @@ const MESSAGES = () => [
               },
               {
                 type: "multiselect",
+                style: { marginBlock: "18px" },
                 data: [
                   {
                     id: "checkbox-test-1",
