@@ -700,6 +700,87 @@ dom.contentprocess:
     expires: never
     telemetry_mirror: DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED
 
+  launch_mainthread:
+    type: timing_distribution
+    description: >
+      Time spent on the main thread during asynchronous content process launch.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CONTENT_PROCESS_LAUNCH_MAINTHREAD_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    notification_emails:
+      - jld@mozilla.com
+      - jimm@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENT_PROCESS_LAUNCH_MAINTHREAD_MS
+
+  launch_total:
+    type: timing_distribution
+    description: >
+      Total time elapsed during asynchronous content process launch, until the
+      process is usable for loading content.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CONTENT_PROCESS_LAUNCH_TOTAL_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    notification_emails:
+      - jld@mozilla.com
+      - jimm@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENT_PROCESS_LAUNCH_TOTAL_MS
+
+  sync_launch:
+    type: timing_distribution
+    description: >
+      Time elapsed during synchronous content process launch until the process
+      is usable for loading content.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CONTENT_PROCESS_SYNC_LAUNCH_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    notification_emails:
+      - jld@mozilla.com
+      - jimm@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENT_PROCESS_SYNC_LAUNCH_MS
+
+  launch_is_sync:
+    type: labeled_counter
+    description: >
+      Whether a content process was launched synchronously (unnecessarily
+      delaying UI response).
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CONTENT_PROCESS_LAUNCH_IS_SYNC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    notification_emails:
+      - jld@mozilla.com
+      - jimm@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: h#CONTENT_PROCESS_LAUNCH_IS_SYNC
+
 dom.parentprocess:
   private_window_used:
     type: boolean

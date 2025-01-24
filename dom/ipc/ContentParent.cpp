@@ -83,6 +83,7 @@
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/TaskController.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryIPC.h"
 #include "mozilla/ThreadSafety.h"
@@ -1050,7 +1051,9 @@ RefPtr<ContentParent::LaunchPromise> ContentParent::WaitForLaunchAsync(
   }
 
   // We've started an async content process launch.
-  Telemetry::Accumulate(Telemetry::CONTENT_PROCESS_LAUNCH_IS_SYNC, 0);
+  glean::dom_contentprocess::launch_is_sync
+      .EnumGet(glean::dom_contentprocess::LaunchIsSyncLabel::eFalse)
+      .Add();
 
   // We have located a process that hasn't finished initializing, then attempt
   // to finish initializing. Both `LaunchSubprocessResolve` and
@@ -1082,7 +1085,9 @@ bool ContentParent::WaitForLaunchSync(ProcessPriority aPriority) {
   }
 
   // We've started a sync content process launch.
-  Telemetry::Accumulate(Telemetry::CONTENT_PROCESS_LAUNCH_IS_SYNC, 1);
+  glean::dom_contentprocess::launch_is_sync
+      .EnumGet(glean::dom_contentprocess::LaunchIsSyncLabel::eTrue)
+      .Add();
 
   // We're a process which hasn't finished initializing. We may be racing
   // against whoever launched it (and whoever else is already racing). Since
@@ -2579,17 +2584,14 @@ bool ContentParent::LaunchSubprocessResolve(bool aIsSync,
   mLifecycleState = LifecycleState::INITIALIZED;
 
   if (aIsSync) {
-    Telemetry::AccumulateTimeDelta(Telemetry::CONTENT_PROCESS_SYNC_LAUNCH_MS,
-                                   mLaunchTS);
+    glean::dom_contentprocess::sync_launch.AccumulateRawDuration(
+        TimeStamp::Now() - mLaunchTS);
   } else {
-    Telemetry::AccumulateTimeDelta(Telemetry::CONTENT_PROCESS_LAUNCH_TOTAL_MS,
-                                   mLaunchTS);
+    glean::dom_contentprocess::launch_total.AccumulateRawDuration(
+        TimeStamp::Now() - mLaunchTS);
 
-    Telemetry::Accumulate(
-        Telemetry::CONTENT_PROCESS_LAUNCH_MAINTHREAD_MS,
-        static_cast<uint32_t>(
-            ((mLaunchYieldTS - mLaunchTS) + (TimeStamp::Now() - launchResumeTS))
-                .ToMilliseconds()));
+    glean::dom_contentprocess::launch_mainthread.AccumulateRawDuration(
+        (mLaunchYieldTS - mLaunchTS) + (TimeStamp::Now() - launchResumeTS));
   }
 
   mLaunchResolvedOk = true;
