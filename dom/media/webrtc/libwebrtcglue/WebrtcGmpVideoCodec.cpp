@@ -35,8 +35,7 @@ WebrtcGmpVideoEncoder::WebrtcGmpVideoEncoder(
       mFormatParams(aFormat.parameters),
       mCallbackMutex("WebrtcGmpVideoEncoder encoded callback mutex"),
       mCallback(nullptr),
-      mPCHandle(std::move(aPCHandle)),
-      mInputImageMap("WebrtcGmpVideoEncoder::mInputImageMap") {
+      mPCHandle(std::move(aPCHandle)) {
   mCodecParams.mCodecType = kGMPVideoCodecInvalid;
   mCodecParams.mMode = kGMPCodecModeInvalid;
   mCodecParams.mLogLevel = GetGMPLibraryLogLevel();
@@ -354,13 +353,10 @@ void WebrtcGmpVideoEncoder::Encode_g(
     gmp_frame_types.AppendElement(ft);
   }
 
-  {
-    auto inputImageMap = mInputImageMap.Lock();
-    DebugOnly<bool> inserted = false;
-    std::tie(std::ignore, inserted) = inputImageMap->insert(
-        {frame->Timestamp(), {aInputImage.timestamp_us()}});
-    MOZ_ASSERT(inserted, "Duplicate timestamp");
-  }
+  DebugOnly<bool> inserted = false;
+  std::tie(std::ignore, inserted) =
+      mInputImageMap.insert({frame->Timestamp(), {aInputImage.timestamp_us()}});
+  MOZ_ASSERT(inserted, "Duplicate timestamp");
 
   GMP_LOG_DEBUG("GMP Encode: %" PRIu64, (frame->Timestamp()));
   err = mGMP->Encode(std::move(frame), codecSpecificInfo, gmp_frame_types);
@@ -458,14 +454,12 @@ void WebrtcGmpVideoEncoder::Terminated() {
 void WebrtcGmpVideoEncoder::Encoded(
     GMPVideoEncodedFrame* aEncodedFrame,
     const nsTArray<uint8_t>& aCodecSpecificInfo) {
+  MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
   webrtc::Timestamp capture_time = webrtc::Timestamp::Micros(0);
-  {
-    auto inputImageMap = mInputImageMap.Lock();
-    auto handle = inputImageMap->extract(aEncodedFrame->TimeStamp());
-    MOZ_ASSERT(handle);
-    if (handle) {
-      capture_time = webrtc::Timestamp::Micros(handle.mapped().timestamp_us);
-    }
+  auto handle = mInputImageMap.extract(aEncodedFrame->TimeStamp());
+  MOZ_ASSERT(handle);
+  if (handle) {
+    capture_time = webrtc::Timestamp::Micros(handle.mapped().timestamp_us);
   }
 
   MutexAutoLock lock(mCallbackMutex);
