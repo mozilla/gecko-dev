@@ -161,6 +161,7 @@ const nsIDocShell = Ci.nsIDocShell;
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
+const kExpectInputBeforeCompositionEnd = SpecialPowers.getBoolPref("dom.input_events.dispatch_before_compositionend");
 
 function waitForTick() {
   return new Promise(resolve => { SimpleTest.executeSoon(resolve); });
@@ -839,45 +840,54 @@ function runCompositionCommitAsIsTest()
   textarea.addEventListener("text", handler, true);
 
   // compositioncommitasis with composing string.
-  textarea.value = "";
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitAsIsTest: textarea doesn't have composition string #1");
+  (() => {
+    textarea.value = "";
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitAsIsTest: textarea doesn't have composition string #1");
 
-  is(result.findIndex(value => value.type == "textInput"), -1,
-    "runCompositionCommitAsIsTest: no textInput event should be fired before commit #1");
+    is(result.findIndex(value => value.type == "textInput"), -1,
+      "runCompositionCommitAsIsTest: no textInput event should be fired before commit #1");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommitasis", key: { key: "Enter" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommitasis", key: { key: "Enter" } });
 
-  is(result.length, 5,
-     "runCompositionCommitAsIsTest: 5 events should be fired after dispatching compositioncommitasis #1");
-  is(result[0].type, "text",
-     "runCompositionCommitAsIsTest: text should be fired after dispatching compositioncommitasis because it's dispatched when there is composing string #1");
-  is(result[1].type, "beforeinput",
-     "runCompositionCommitAsIsTest: beforeinput should be fired after dispatching compositioncommitasis because it's dispatched when there is composing string #1");
-  checkInputEvent(result[1], true, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitAsIsTest: after dispatching compositioncommitasis #1");
-  is(result[2].type, "textInput",
-     "runCompositionCommitAsIsText: textInput should be fired after dispatching compositioncommitasis because it's after the last beforeinput for the composition #1");
-  checkTextInputEvent(result[2], "\u3042",
-                      "runCompositionCommitAsIsText: after dispatching compositioncommitasis #1");
-  is(result[3].type, "compositionend",
-     "runCompositionCommitAsIsTest: compositionend should be fired after dispatching compositioncommitasis #1");
-  is(result[4].type, "input",
-     "runCompositionCommitAsIsTest: input should be fired after dispatching compositioncommitasis #1");
-  checkInputEvent(result[4], false, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitAsIsTest: after dispatching compositioncommitasis #1");
-  is(textarea.value, "\u3042", "runCompositionCommitAsIsTest: textarea doesn't have committed string #1");
+    is(result.length, kExpectInputBeforeCompositionEnd ? 6 : 5,
+      `runCompositionCommitAsIsTest: ${kExpectInputBeforeCompositionEnd ? 6 : 5} events should be fired after dispatching compositioncommitasis #1`);
+    let index = -1;
+    is(result[++index].type, "text",
+      "runCompositionCommitAsIsTest: text should be fired after dispatching compositioncommitasis because it's dispatched when there is composing string #1");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitAsIsTest: beforeinput should be fired after dispatching compositioncommitasis because it's dispatched when there is composing string #1");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitAsIsTest: after dispatching compositioncommitasis #1");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitAsIsText: textInput should be fired after dispatching compositioncommitasis because it's after the last beforeinput for the composition #1");
+    checkTextInputEvent(result[index], "\u3042",
+                        "runCompositionCommitAsIsText: after dispatching compositioncommitasis #1");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitAsIsTest: input should be fired after dispatching compositioncommitasis #1");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
+                      "runCompositionCommitAsIsTest: after dispatching compositioncommitasis #1");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitAsIsTest: compositionend should be fired after dispatching compositioncommitasis #1");
+    is(result[++index].type, "input",
+      "runCompositionCommitAsIsTest: input should be fired after dispatching compositioncommitasis #1");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitAsIsTest: after dispatching compositioncommitasis #1");
+    is(textarea.value, "\u3042", "runCompositionCommitAsIsTest: textarea doesn't have committed string #1");
+  })();
 
   // compositioncommitasis with committed string.
   textarea.value = "";
@@ -996,351 +1006,434 @@ function runCompositionCommitTest()
   textarea.addEventListener("text", handler, true);
 
   // compositioncommit with different composing string.
-  textarea.value = "";
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a", type: "keydown" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #1");
-  is(result.findIndex(value => value.type == "textInput"), -1,
-    "runCompositionCommitTest: no textInput event should be fired before commit #1");
+  (() => {
+    textarea.value = "";
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a", type: "keydown" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #1");
+    is(result.findIndex(value => value.type == "textInput"), -1,
+      "runCompositionCommitTest: no textInput event should be fired before commit #1");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "a", type: "keyup" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "a", type: "keyup" } });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired after dispatching compositioncommit #1");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit because it's dispatched when there is composing string #1");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #1");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit because it's dispatched when there is composing string #1");
-  checkInputEvent(result[2], true, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #1");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit because the preceding beforeinput is last one for the composition #1");
-  checkTextInputEvent(result[3], "\u3043",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 7 : 6} events should be fired after dispatching compositioncommit #1`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit because it's dispatched when there is composing string #1");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #1");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit because it's dispatched when there is composing string #1");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #1");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit because the preceding beforeinput is last one for the composition #1");
+    checkTextInputEvent(result[index], "\u3043",
+                        "runCompositionCommitTest: after dispatching compositioncommit #1");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #1");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
                       "runCompositionCommitTest: after dispatching compositioncommit #1");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #1");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #1");
-  checkInputEvent(result[5], false, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #1");
-  is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #1");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #1");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #1");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #1");
+    is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #1");
+  })();
 
   // compositioncommit with different committed string when there is already committed string
-  textarea.value = "";
-  clearResult();
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #2");
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 0, "attr": 0 }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "KEY_Enter", type: "keydown" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have committed string #2");
-  is(result.findIndex(value => value.type == "textInput"), -1,
-     "runCompositionCommitTest: no textInput event should be fired before commit #2");
+  (() => {
+    textarea.value = "";
+    clearResult();
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #2");
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 0, "attr": 0 }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "KEY_Enter", type: "keydown" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have committed string #2");
+    is(result.findIndex(value => value.type == "textInput"), -1,
+      "runCompositionCommitTest: no textInput event should be fired before commit #2");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "KEY_Enter", type: "keyup" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "KEY_Enter", type: "keyup" } });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired after dispatching compositioncommit #2");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #2");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #2");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #2");
-  checkInputEvent(result[2], true, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #2");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #2");
-  checkTextInputEvent(result[3], "\u3043",
-                  "runCompositionCommitTest: after dispatching compositioncommit #2");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #2");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #2");
-  checkInputEvent(result[5], false, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #2");
-  is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #2");
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 7 : 6} events should be fired after dispatching compositioncommit #2`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #2");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #2");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #2");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #2");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #2");
+    checkTextInputEvent(result[index], "\u3043",
+                    "runCompositionCommitTest: after dispatching compositioncommit #2");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #2");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
+                      "runCompositionCommitTest: after dispatching compositioncommit #2");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #2");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #2");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #2");
+    is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #2");
+  })();
 
   // compositioncommit with empty composition string.
-  textarea.value = "";
-  clearResult();
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #3");
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "",
-        "clauses":
-        [
-          { "length": 0, "attr": 0 }
-        ]
-      },
-      "caret": { "start": 0, "length": 0 },
-      "key": { key: "KEY_Enter", type: "keydown" },
-    });
-  is(textarea.value, "", "runCompositionCommitTest: textarea has non-empty composition string #3");
-  is(result.findIndex(value => value.type == "textInput"), -1,
-     "runCompositionCommitTest: no textInput event should be fired before commit #3");
+  (() => {
+    textarea.value = "";
+    clearResult();
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #3");
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "",
+          "clauses":
+          [
+            { "length": 0, "attr": 0 }
+          ]
+        },
+        "caret": { "start": 0, "length": 0 },
+        "key": { key: "KEY_Enter", type: "keydown" },
+      });
+    is(textarea.value, "", "runCompositionCommitTest: textarea has non-empty composition string #3");
+    is(result.findIndex(value => value.type == "textInput"), -1,
+      "runCompositionCommitTest: no textInput event should be fired before commit #3");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "KEY_Enter", type: "keyup" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "\u3043", key: { key: "KEY_Enter", type: "keyup" } });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired after dispatching compositioncommit #3");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #3");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #3");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #3");
-  checkInputEvent(result[2], true, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #3");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #3");
-  checkTextInputEvent(result[3], "\u3043",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 7 : 6} events should be fired after dispatching compositioncommit #3`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #3");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #3");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #3");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #3");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #3");
+    checkTextInputEvent(result[index], "\u3043",
+                        "runCompositionCommitTest: after dispatching compositioncommit #3");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #3");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3043", [],
                       "runCompositionCommitTest: after dispatching compositioncommit #3");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #3");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #3");
-  checkInputEvent(result[5], false, "insertCompositionText", "\u3043", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #3");
-  is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #3");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #3");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #3");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3043", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #3");
+    is(textarea.value, "\u3043", "runCompositionCommitTest: textarea doesn't have committed string #3");
+  })();
 
   // inserting empty string with simple composition.
-  textarea.value = "abc";
-  textarea.setSelectionRange(3, 3);
-  synthesizeComposition({ type: "compositionstart" });
+  (() => {
+    textarea.value = "abc";
+    textarea.setSelectionRange(3, 3);
+    synthesizeComposition({ type: "compositionstart" });
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "" });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "" });
 
-  is(result.length, 5,
-     "runCompositionCommitTest: 5 events should be fired when inserting empty string with composition");
-  is(result[0].type, "text",
-     "runCompositionCommitTest: text should be fired when inserting empty string with composition");
-  is(result[1].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired when inserting empty string with composition");
-  checkInputEvent(result[1], true, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: when inserting empty string with composition");
-  is(result[2].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired when inserting empty string with composition");
-  checkTextInputEvent(result[2], "",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 6 : 5,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 6 : 5} events should be fired when inserting empty string with composition`);
+    let index = -1;
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired when inserting empty string with composition");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired when inserting empty string with composition");
+    checkInputEvent(result[index], true, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: when inserting empty string with composition");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired when inserting empty string with composition");
+    checkTextInputEvent(result[index], "",
+                        "runCompositionCommitTest: when inserting empty string with composition");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired when inserting empty string with composition");
+      checkInputEvent(result[index], true, "insertCompositionText", "", [],
                       "runCompositionCommitTest: when inserting empty string with composition");
-  is(result[3].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired when inserting empty string with composition");
-  is(result[4].type, "input",
-     "runCompositionCommitTest: input should be fired when inserting empty string with composition");
-  checkInputEvent(result[4], false, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: when inserting empty string with composition");
-  is(textarea.value, "abc",
-     "runCompositionCommitTest: textarea should keep original value when inserting empty string with composition");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired when inserting empty string with composition");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired when inserting empty string with composition");
+    checkInputEvent(result[index], false, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: when inserting empty string with composition");
+    is(textarea.value, "abc",
+      "runCompositionCommitTest: textarea should keep original value when inserting empty string with composition");
+  })();
 
   // replacing selection with empty string with simple composition.
-  textarea.value = "abc";
-  textarea.setSelectionRange(0, 3);
-  synthesizeComposition({ type: "compositionstart" });
+  (() => {
+    textarea.value = "abc";
+    textarea.setSelectionRange(0, 3);
+    synthesizeComposition({ type: "compositionstart" });
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "" });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "" });
 
-  is(result.length, 5,
-     "runCompositionCommitTest: 5 events should be fired when replacing with empty string with composition");
-  is(result[0].type, "text",
-     "runCompositionCommitTest: text should be fired when replacing with empty string with composition");
-  is(result[1].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired when replacing with empty string with composition");
-  checkInputEvent(result[1], true, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: when replacing with empty string with composition");
-  is(result[2].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired when replacing with empty string with composition");
-  checkTextInputEvent(result[2], "",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 6 : 5,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 6 : 5} events should be fired when replacing with empty string with composition`);
+    let index = -1;
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired when replacing with empty string with composition");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired when replacing with empty string with composition");
+    checkInputEvent(result[index], true, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: when replacing with empty string with composition");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired when replacing with empty string with composition");
+    checkTextInputEvent(result[index], "",
+                        "runCompositionCommitTest: when replacing with empty string with composition");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired when replacing with empty string with composition");
+      checkInputEvent(result[index], true, "insertCompositionText", "", [],
                       "runCompositionCommitTest: when replacing with empty string with composition");
-  is(result[3].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired when replacing with empty string with composition");
-  is(result[4].type, "input",
-     "runCompositionCommitTest: input should be fired when replacing with empty string with composition");
-  checkInputEvent(result[4], false, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: when replacing with empty string with composition");
-  is(textarea.value, "",
-     "runCompositionCommitTest: textarea should become empty when replacing selection with empty string with composition");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired when replacing with empty string with composition");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired when replacing with empty string with composition");
+    checkInputEvent(result[index], false, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: when replacing with empty string with composition");
+    is(textarea.value, "",
+      "runCompositionCommitTest: textarea should become empty when replacing selection with empty string with composition");
+  })();
 
   // replacing selection with same string with simple composition.
-  textarea.value = "abc";
-  textarea.setSelectionRange(0, 3);
-  synthesizeComposition({ type: "compositionstart" });
+  (() => {
+    textarea.value = "abc";
+    textarea.setSelectionRange(0, 3);
+    synthesizeComposition({ type: "compositionstart" });
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "abc" });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "abc" });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired when replacing selection with same string with composition");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired when replacing selection with same string with composition");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired when replacing selection with same string with composition");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired when replacing selection with same string with composition");
-  checkInputEvent(result[2], true, "insertCompositionText", "abc", [],
-                  "runCompositionCommitTest: when replacing selection with same string with composition");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired when replacing selection with same string with composition");
-  checkTextInputEvent(result[3], "abc",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${
+        kExpectInputBeforeCompositionEnd ? 7 : 6
+      } events should be fired when replacing selection with same string with composition`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired when replacing selection with same string with composition");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired when replacing selection with same string with composition");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired when replacing selection with same string with composition");
+    checkInputEvent(result[index], true, "insertCompositionText", "abc", [],
+                    "runCompositionCommitTest: when replacing selection with same string with composition");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired when replacing selection with same string with composition");
+    checkTextInputEvent(result[index], "abc",
+                        "runCompositionCommitTest: when replacing selection with same string with composition");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired when replacing selection with same string with composition");
+      checkInputEvent(result[index], true, "insertCompositionText", "abc", [],
                       "runCompositionCommitTest: when replacing selection with same string with composition");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired when replacing selection with same string with composition");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired when replacing selection with same string with composition");
-  checkInputEvent(result[5], false, "insertCompositionText", "abc", [],
-                  "runCompositionCommitTest: when replacing selection with same string with composition");
-  is(textarea.value, "abc",
-     "runCompositionCommitTest: textarea should keep same value when replacing selection with same string with composition");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired when replacing selection with same string with composition");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired when replacing selection with same string with composition");
+    checkInputEvent(result[index], false, "insertCompositionText", "abc", [],
+                    "runCompositionCommitTest: when replacing selection with same string with composition");
+    is(textarea.value, "abc",
+      "runCompositionCommitTest: textarea should keep same value when replacing selection with same string with composition");
+  })();
 
   // compositioncommit with non-empty composition string.
-  textarea.value = "";
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #4");
+  (() => {
+    textarea.value = "";
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #4");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "", key: { key: "KEY_Enter" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "", key: { key: "KEY_Enter" } });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired after dispatching compositioncommit #4");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #4");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #4");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #4");
-  checkInputEvent(result[2], true, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #4");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #4");
-  checkTextInputEvent(result[3], "",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 7 : 6} events should be fired after dispatching compositioncommit #4`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #4");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #4");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #4");
+    checkInputEvent(result[index], true, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #4");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #4");
+    checkTextInputEvent(result[index], "",
+                        "runCompositionCommitTest: after dispatching compositioncommit #4");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #4");
+      checkInputEvent(result[index], true, "insertCompositionText", "", [],
                       "runCompositionCommitTest: after dispatching compositioncommit #4");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #4");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #4");
-  checkInputEvent(result[5], false, "insertCompositionText", "", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #4");
-  is(textarea.value, "", "runCompositionCommitTest: textarea should be empty #4");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #4");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #4");
+    checkInputEvent(result[index], false, "insertCompositionText", "", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #4");
+    is(textarea.value, "", "runCompositionCommitTest: textarea should be empty #4");
+  })();
 
   // compositioncommit immediately without compositionstart
-  textarea.value = "";
+  (() => {
+    textarea.value = "";
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "\u3042", key: { key: "a" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "\u3042", key: { key: "a" } });
 
-  is(result.length, 6,
-     "runCompositionCommitTest: 6 events should be fired after dispatching compositioncommit #5");
-  is(result[0].type, "compositionupdate",
-     "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #5");
-  is(result[1].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #5");
-  is(result[2].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #5");
-  checkInputEvent(result[2], true, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #5");
-  is(result[3].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #5");
-  checkTextInputEvent(result[3], "\u3042",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 7 : 6,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 7 : 6} events should be fired after dispatching compositioncommit #5`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runCompositionCommitTest: compositionupdate should be fired after dispatching compositioncommit #5");
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #5");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #5");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #5");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #5");
+    checkTextInputEvent(result[index], "\u3042",
+                        "runCompositionCommitTest: after dispatching compositioncommit #5");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #5");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
                       "runCompositionCommitTest: after dispatching compositioncommit #5");
-  is(result[4].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #5");
-  is(result[5].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #5");
-  checkInputEvent(result[5], false, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #5");
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea should be empty #5");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #5");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #5");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #5");
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea should be empty #5");
+  })();
 
   // compositioncommit with same composition string.
-  textarea.value = "";
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 },
-      "key": { key: "a" },
-    });
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #5");
+  (() => {
+    textarea.value = "";
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
+      });
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea doesn't have composition string #5");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "\u3042", key: { key: "KEY_Enter" } });
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "\u3042", key: { key: "KEY_Enter" } });
 
-  is(result.length, 5,
-     "runCompositionCommitTest: 5 events should be fired after dispatching compositioncommit #6");
-  is(result[0].type, "text",
-     "runCompositionCommitTest: text should be fired after dispatching compositioncommit #6");
-  is(result[1].type, "beforeinput",
-     "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #6");
-  checkInputEvent(result[1], true, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #6");
-  is(result[2].type, "textInput",
-     "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #6");
-  checkTextInputEvent(result[2], "\u3042",
+    is(result.length, kExpectInputBeforeCompositionEnd ? 6 : 5,
+      `runCompositionCommitTest: ${kExpectInputBeforeCompositionEnd ? 6 : 5} events should be fired after dispatching compositioncommit #6`);
+    let index = -1;
+    is(result[++index].type, "text",
+      "runCompositionCommitTest: text should be fired after dispatching compositioncommit #6");
+    is(result[++index].type, "beforeinput",
+      "runCompositionCommitTest: beforeinput should be fired after dispatching compositioncommit #6");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #6");
+    is(result[++index].type, "textInput",
+      "runCompositionCommitTest: textInput should be fired after dispatching compositioncommit #6");
+    checkTextInputEvent(result[index], "\u3042",
+                        "runCompositionCommitTest: after dispatching compositioncommit #6");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runCompositionCommitTest: input should be fired after dispatching compositioncommit #6");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3042", [],
                       "runCompositionCommitTest: after dispatching compositioncommit #6");
-  is(result[3].type, "compositionend",
-     "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #6");
-  is(result[4].type, "input",
-     "runCompositionCommitTest: input should be fired after dispatching compositioncommit #6");
-  checkInputEvent(result[4], false, "insertCompositionText", "\u3042", [],
-                  "runCompositionCommitTest: after dispatching compositioncommit #6");
-  is(textarea.value, "\u3042", "runCompositionCommitTest: textarea should have committed string #6");
+    }
+    is(result[++index].type, "compositionend",
+      "runCompositionCommitTest: compositionend should be fired after dispatching compositioncommit #6");
+    is(result[++index].type, "input",
+      "runCompositionCommitTest: input should be fired after dispatching compositioncommit #6");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3042", [],
+                    "runCompositionCommitTest: after dispatching compositioncommit #6");
+    is(textarea.value, "\u3042", "runCompositionCommitTest: textarea should have committed string #6");
+  })();
 
   // compositioncommit with same composition string when there is committed string
   textarea.value = "";
@@ -2360,11 +2453,11 @@ function runCompositionEventTest()
   is(inputEventLocale.compositionend, "",
      kDescription + "locale of compositionend isn't empty (input) #3");
 
-  is(windowEventCounts.input, 3,
+  is(windowEventCounts.input, kExpectInputBeforeCompositionEnd ? 4 : 3,
      kDescription + "input hasn't been handled by window #3");
   is(windowEventData.input, "\u3089\u30FC",
      kDescription + "value of input element wasn't modified (window) #3");
-  is(inputEventCounts.input, 3,
+  is(inputEventCounts.input, kExpectInputBeforeCompositionEnd ? 4 : 3,
      kDescription + "input hasn't been handled by input #3");
   is(inputEventData.input, "\u3089\u30FC",
      kDescription + "value of input element wasn't modified (input) #3");
@@ -2427,11 +2520,11 @@ function runCompositionEventTest()
   is(inputEventLocale.compositionend, "",
      kDescription + "locale of compositionend isn't empty (input) #4");
 
-  is(windowEventCounts.input, 2,
+  is(windowEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by window #4");
   is(windowEventData.input, "\u3089\u3089",
      kDescription + "value of input element wasn't modified (window) #4");
-  is(inputEventCounts.input, 2,
+  is(inputEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by input #4");
   is(inputEventData.input, "\u3089\u3089",
      kDescription + "value of input element wasn't modified (input) #4");
@@ -2495,11 +2588,11 @@ function runCompositionEventTest()
   is(inputEventLocale.compositionend, "",
      kDescription + "locale of compositionend isn't empty (input) #5");
 
-  is(windowEventCounts.input, 2,
+  is(windowEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by window #5");
   is(windowEventData.input, "\u306D",
      kDescription + "value of input element wasn't modified (window) #5");
-  is(inputEventCounts.input, 2,
+  is(inputEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by input #5");
   is(inputEventData.input, "\u306D",
      kDescription + "value of input element wasn't modified (input) #5");
@@ -2553,11 +2646,11 @@ function runCompositionEventTest()
   is(inputEventCounts.compositionend, 0,
      kDescription + "compositionend has been handled by input #6");
 
-  is(windowEventCounts.input, 2,
+  is(windowEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by window #6");
   is(windowEventData.input, "\u306E",
      kDescription + "value of input element wasn't modified (window) #6");
-  is(inputEventCounts.input, 2,
+  is(inputEventCounts.input, kExpectInputBeforeCompositionEnd ? 3 : 2,
      kDescription + "input hasn't been handled by input #6");
   is(inputEventData.input, "\u306E",
      kDescription + "value of input element wasn't modified (input) #6");
@@ -7056,515 +7149,625 @@ function runForceCommitTest()
   checkInputEvent(events[4], true, "insertCompositionText", "\u306E", [],
                   "runForceCommitTest #1");
 
-  events = [];
-  synthesizeMouseAtCenter(textarea, {});
+  (() => {
+    events = [];
+    synthesizeMouseAtCenter(textarea, {});
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #2");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #2");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #2`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #2");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #2");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #2");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #2`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #2");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #2");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #2");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #2");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #2");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #2");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #2`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #2`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #2");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #2`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #2");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #2`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #2");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #2`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #2");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #2");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #2");
+  })();
 
   // Make the composition in textarea commit by click in another editor (input)
-  textarea.focus();
-  textarea.value = "";
-  input.value = "";
+  (() => {
+    textarea.focus();
+    textarea.value = "";
+    input.value = "";
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  synthesizeMouseAtCenter(input, {});
+    events = [];
+    synthesizeMouseAtCenter(input, {});
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #3");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #3");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #3`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #3");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #3`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #3");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #3");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #3`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #3");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #3");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #3`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #3");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #3");
-  ok(!getEditor(input).isComposing,
-     "runForceCommitTest: the input has composition #3");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #3");
-  is(input.value, "",
-     "runForceCommitTest: the input has the committed text? #3");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #3");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #3`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #3`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #3`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #3`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #3");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #3`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #3`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #3");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #3`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #3`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #3");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #3`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #3`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #3");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #3");
+    ok(!getEditor(input).isComposing,
+      "runForceCommitTest: the input has composition #3");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #3");
+    is(input.value, "",
+      "runForceCommitTest: the input has the committed text? #3");
+  })();
 
   // Make the composition in textarea commit by blur()
-  textarea.focus();
-  textarea.value = "";
+  (() => {
+    textarea.focus();
+    textarea.value = "";
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  textarea.blur();
+    events = [];
+    textarea.blur();
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #4");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #4");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #4`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #4");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #4`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #4");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #4");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #4`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #4");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #4");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #4`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #4");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #4");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #4");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #4");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #4`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #4`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #4`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #4`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #4");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #4`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #4`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #4");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #4`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #4`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #4");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #4`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #4`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #4");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #4");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #4");
+  })();
 
   // Make the composition in textarea commit by input.focus()
-  textarea.focus();
-  textarea.value = "";
-  input.value = "";
+  (() => {
+    textarea.focus();
+    textarea.value = "";
+    input.value = "";
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  input.focus();
+    events = [];
+    input.focus();
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #5");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #5");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #5`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #5");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #5`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #5");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #5");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #5`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #5");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #5");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #5`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #5");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #5");
-  ok(!getEditor(input).isComposing,
-     "runForceCommitTest: the input has composition #5");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #5");
-  is(input.value, "",
-     "runForceCommitTest: the input has the committed text? #5");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #5");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #5`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #5`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #5`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #5`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #5");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #5`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #5`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #5");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #5`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #5`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #5");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #5`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #5`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #5");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #5");
+    ok(!getEditor(input).isComposing,
+      "runForceCommitTest: the input has composition #5");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #5");
+    is(input.value, "",
+      "runForceCommitTest: the input has the committed text? #5");
+  })();
 
   // Make the composition in textarea commit by click in another document's editor
-  textarea.focus();
-  textarea.value = "";
-  textareaInFrame.value = "";
+  (() => {
+    textarea.focus();
+    textarea.value = "";
+    textareaInFrame.value = "";
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  synthesizeMouseAtCenter(textareaInFrame, {}, iframe.contentWindow);
+    events = [];
+    synthesizeMouseAtCenter(textareaInFrame, {}, iframe.contentWindow);
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #6");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #6");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #6`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #6");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #6`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #6");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #6");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #6`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #6");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #6");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #6`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #6");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #6");
-  ok(!getEditor(textareaInFrame).isComposing,
-     "runForceCommitTest: the textarea in frame has composition #6");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #6");
-  is(textareaInFrame.value, "",
-     "runForceCommitTest: the textarea in frame has the committed text? #6");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #6");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #6`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #6`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #6`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #6`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #6");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #6`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #6`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #6");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #6`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #6`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #6");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #6`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #6`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #6");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #6");
+    ok(!getEditor(textareaInFrame).isComposing,
+      "runForceCommitTest: the textarea in frame has composition #6");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #6");
+    is(textareaInFrame.value, "",
+      "runForceCommitTest: the textarea in frame has the committed text? #6");
+  })();
 
   // Make the composition in textarea commit by another document's editor's focus()
-  textarea.focus();
-  textarea.value = "";
-  textareaInFrame.value = "";
+  (() => {
+    textarea.focus();
+    textarea.value = "";
+    textareaInFrame.value = "";
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  textareaInFrame.focus();
+    events = [];
+    textareaInFrame.focus();
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #7");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #7");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #7`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #7");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #7`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #7");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #7");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #7`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #7");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #7");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #7`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #7");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #7");
-  ok(!getEditor(textareaInFrame).isComposing,
-     "runForceCommitTest: the textarea in frame has composition #7");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #7");
-  is(textareaInFrame.value, "",
-     "runForceCommitTest: the textarea in frame has the committed text? #7");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #7");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #7`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #7`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #7`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #7`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #7");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #7`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #7`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #7");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #7`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #7`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #7");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #7`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #7`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #7");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #7");
+    ok(!getEditor(textareaInFrame).isComposing,
+      "runForceCommitTest: the textarea in frame has composition #7");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #7");
+    is(textareaInFrame.value, "",
+      "runForceCommitTest: the textarea in frame has the committed text? #7");
+  })();
 
   // Make the composition in a textarea commit by click in another editable document
-  textarea.focus();
-  textarea.value = "";
-  iframe2.contentDocument.body.innerHTML = "Text in the Body";
-  let iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
+  (() => {
+    textarea.focus();
+    textarea.value = "";
+    iframe2.contentDocument.body.innerHTML = "Text in the Body";
+    const iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    });
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
 
-  events = [];
-  synthesizeMouseAtCenter(iframe2.contentDocument.body, {}, iframe2.contentWindow);
+    events = [];
+    synthesizeMouseAtCenter(iframe2.contentDocument.body, {}, iframe2.contentWindow);
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #8");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #8");
-  is(events[0].target, textarea,
-     `runForceCommitTest: The ${events[0].type} event was fired on wrong event target #8`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #8");
-  is(events[1].target, textarea,
-     `runForceCommitTest: The ${events[1].type} event was fired on wrong event target #8`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #8");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #8");
-  is(events[2].target, textarea,
-     `runForceCommitTest: The ${events[2].type} event was fired on wrong event target #8`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #8");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #8");
-  is(events[3].target, textarea,
-     `runForceCommitTest: The ${events[3].type} event was fired on wrong event target #8`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #8");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea still has composition #8");
-  ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
-     "runForceCommitTest: the editable document has composition #8");
-  is(textarea.value, "\u306E",
-     "runForceCommitTest: the textarea doesn't have the committed text #8");
-  is(iframe2.contentDocument.body.innerHTML, iframe2BodyInnerHTML,
-     "runForceCommitTest: the editable document has the committed text? #8");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #8");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #8`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #8`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #8`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #8`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #8");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #8`);
+      is(events[index].target, textarea,
+        `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #8`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #8");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #8`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #8`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #8");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #8`);
+    is(events[index].target, textarea,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #8`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #8");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea still has composition #8");
+    ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
+      "runForceCommitTest: the editable document has composition #8");
+    is(textarea.value, "\u306E",
+      "runForceCommitTest: the textarea doesn't have the committed text #8");
+    is(iframe2.contentDocument.body.innerHTML, iframe2BodyInnerHTML,
+      "runForceCommitTest: the editable document has the committed text? #8");
+  })();
 
   // Make the composition in an editable document commit by click in it
-  iframe2.contentWindow.focus();
-  iframe2.contentDocument.body.innerHTML = "Text in the Body";
-  iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
+  (() => {
+    iframe2.contentWindow.focus();
+    iframe2.contentDocument.body.innerHTML = "Text in the Body";
+    const iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    }, iframe2.contentWindow);
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      }, iframe2.contentWindow);
 
-  events = [];
-  synthesizeMouseAtCenter(iframe2.contentDocument.body, {}, iframe2.contentWindow);
+    events = [];
+    synthesizeMouseAtCenter(iframe2.contentDocument.body, {}, iframe2.contentWindow);
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #9");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #9");
-  is(events[0].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #9`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #9");
-  is(events[1].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #9`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E",
-                  [{startContainer: iframe2.contentDocument.body.firstChild,
-                    startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
-                    endContainer: iframe2.contentDocument.body.firstChild,
-                    endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
-                  "runForceCommitTest #9");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #9");
-  is(events[2].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #9`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #9");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #9");
-  is(events[3].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #9`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #9");
-  ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
-     "runForceCommitTest: the editable document still has composition #9");
-  ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
-     iframe2.contentDocument.body.innerHTML.includes("\u306E"),
-     "runForceCommitTest: the editable document doesn't have the committed text #9");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #9");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #9`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #9`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #9`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #9`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E",
+                    [{startContainer: iframe2.contentDocument.body.firstChild,
+                      startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
+                      endContainer: iframe2.contentDocument.body.firstChild,
+                      endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
+                    "runForceCommitTest #9");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #9`);
+      is(events[index].target, iframe2.contentDocument.body,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #9`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #9");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #9`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #9`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #9");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #9`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #9`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #9");
+    ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
+      "runForceCommitTest: the editable document still has composition #9");
+    ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
+      iframe2.contentDocument.body.innerHTML.includes("\u306E"),
+      "runForceCommitTest: the editable document doesn't have the committed text #9");
+  })();
 
   // Make the composition in an editable document commit by click in another document's editor
-  textarea.value = "";
-  iframe2.contentWindow.focus();
-  iframe2.contentDocument.body.innerHTML = "Text in the Body";
-  iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
+  (() => {
+    textarea.value = "";
+    iframe2.contentWindow.focus();
+    iframe2.contentDocument.body.innerHTML = "Text in the Body";
+    const iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    }, iframe2.contentWindow);
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      }, iframe2.contentWindow);
 
-  events = [];
-  synthesizeMouseAtCenter(textarea, {});
+    events = [];
+    synthesizeMouseAtCenter(textarea, {});
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #10");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #10");
-  is(events[0].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The ${events[0].type} event was fired on wrong event target #10`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #10");
-  is(events[1].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The ${events[1].type} event was fired on wrong event target #10`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E",
-                  [{startContainer: iframe2.contentDocument.body.firstChild,
-                    startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
-                    endContainer: iframe2.contentDocument.body.firstChild,
-                    endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
-                  "runForceCommitTest #10");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #10");
-  is(events[2].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The ${events[2].type} event was fired on wrong event target #10`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #10");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #10");
-  is(events[3].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The ${events[3].type} event was fired on wrong event target #10`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #10");
-  ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
-     "runForceCommitTest: the editable document still has composition #10");
-  ok(!getEditor(textarea).isComposing,
-     "runForceCommitTest: the textarea has composition #10");
-  ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
-     iframe2.contentDocument.body.innerHTML.includes("\u306E"),
-     "runForceCommitTest: the editable document doesn't have the committed text #10");
-  is(textarea.value, "",
-     "runForceCommitTest: the textarea has the committed text? #10");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #10");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #10`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #10`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #10`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #10`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E",
+                    [{startContainer: iframe2.contentDocument.body.firstChild,
+                      startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
+                      endContainer: iframe2.contentDocument.body.firstChild,
+                      endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
+                    "runForceCommitTest #10");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #10`);
+      is(events[index].target, iframe2.contentDocument.body,
+        `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #10`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #10");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #10`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #10`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #10");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #10`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The ${events[index].type} event was fired on wrong event target #10`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #10");
+    ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
+      "runForceCommitTest: the editable document still has composition #10");
+    ok(!getEditor(textarea).isComposing,
+      "runForceCommitTest: the textarea has composition #10");
+    ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
+      iframe2.contentDocument.body.innerHTML.includes("\u306E"),
+      "runForceCommitTest: the editable document doesn't have the committed text #10");
+    is(textarea.value, "",
+      "runForceCommitTest: the textarea has the committed text? #10");
+  })();
 
   // Make the composition in an editable document commit by click in the another editable document
-  iframe2.contentWindow.focus();
-  iframe2.contentDocument.body.innerHTML = "Text in the Body";
-  iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
-  iframe3.contentDocument.body.innerHTML = "Text in the Body";
-  let iframe3BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
+  (() => {
+    iframe2.contentWindow.focus();
+    iframe2.contentDocument.body.innerHTML = "Text in the Body";
+    const iframe2BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
+    iframe3.contentDocument.body.innerHTML = "Text in the Body";
+    const iframe3BodyInnerHTML = iframe2.contentDocument.body.innerHTML;
 
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u306E",
-        "clauses":
-        [
-          { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
-        ]
-      },
-      "caret": { "start": 1, "length": 0 }
-    }, iframe2.contentWindow);
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u306E",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      }, iframe2.contentWindow);
 
-  events = [];
-  synthesizeMouseAtCenter(iframe3.contentDocument.body, {}, iframe3.contentWindow);
+    events = [];
+    synthesizeMouseAtCenter(iframe3.contentDocument.body, {}, iframe3.contentWindow);
 
-  is(events.length, 4,
-     "runForceCommitTest: wrong event count #11");
-  is(events[0].type, "text",
-     "runForceCommitTest: the 1st event must be text #11");
-  is(events[0].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[0].type}" event was fired on wrong event target #11`);
-  is(events[1].type, "beforeinput",
-     "runForceCommitTest: the 2nd event must be beforeinput #11");
-  is(events[1].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[1].type}" event was fired on wrong event target #11`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E",
-                  [{startContainer: iframe2.contentDocument.body.firstChild,
-                    startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
-                    endContainer: iframe2.contentDocument.body.firstChild,
-                    endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
-                  "runForceCommitTest #11");
-  is(events[2].type, "compositionend",
-     "runForceCommitTest: the 3rd event must be compositionend #11");
-  is(events[2].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[2].type}" event was fired on wrong event target #11`);
-  is(events[2].data, "\u306E",
-     "runForceCommitTest: compositionend has wrong data #11");
-  is(events[3].type, "input",
-     "runForceCommitTest: the 4th event must be input #11");
-  is(events[3].target, iframe2.contentDocument.body,
-     `runForceCommitTest: The "${events[3].type}" event was fired on wrong event target #11`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runForceCommitTest #11");
-  ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
-     "runForceCommitTest: the editable document still has composition #11");
-  ok(!getHTMLEditorIMESupport(iframe3.contentWindow).isComposing,
-     "runForceCommitTest: the other editable document has composition #11");
-  ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
-     iframe2.contentDocument.body.innerHTML.includes("\u306E"),
-     "runForceCommitTest: the editable document doesn't have the committed text #11");
-  is(iframe3.contentDocument.body.innerHTML, iframe3BodyInnerHTML,
-     "runForceCommitTest: the other editable document has the committed text? #11");
+    is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      "runForceCommitTest: wrong event count #11");
+    let index = -1;
+    is(events[++index].type, "text",
+      `runForceCommitTest: events[${index}] must be text #11`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #11`);
+    is(events[++index].type, "beforeinput",
+      `runForceCommitTest: events[${index}] must be beforeinput #11`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #11`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E",
+                    [{startContainer: iframe2.contentDocument.body.firstChild,
+                      startOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E"),
+                      endContainer: iframe2.contentDocument.body.firstChild,
+                      endOffset: iframe2.contentDocument.body.firstChild.wholeText.indexOf("\u306E") + 1}],
+                    "runForceCommitTest #11");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(events[++index].type, "input",
+        `runForceCommitTest: events[${index}] must be input #11`);
+      is(events[index].target, iframe2.contentDocument.body,
+        `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #11`);
+      checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                      "runForceCommitTest #11");
+    }
+    is(events[++index].type, "compositionend",
+      `runForceCommitTest: events[${index}] must be compositionend #11`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #11`);
+    is(events[index].data, "\u306E",
+      "runForceCommitTest: compositionend has wrong data #11");
+    is(events[++index].type, "input",
+      `runForceCommitTest: events[${index}] must be input #11`);
+    is(events[index].target, iframe2.contentDocument.body,
+      `runForceCommitTest: The "${events[index].type}" event was fired on wrong event target #11`);
+    checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                    "runForceCommitTest #11");
+    ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
+      "runForceCommitTest: the editable document still has composition #11");
+    ok(!getHTMLEditorIMESupport(iframe3.contentWindow).isComposing,
+      "runForceCommitTest: the other editable document has composition #11");
+    ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
+      iframe2.contentDocument.body.innerHTML.includes("\u306E"),
+      "runForceCommitTest: the editable document doesn't have the committed text #11");
+    is(iframe3.contentDocument.body.innerHTML, iframe3BodyInnerHTML,
+      "runForceCommitTest: the other editable document has the committed text? #11");
+  })();
 
   input.focus();
   input.value = "";
@@ -8006,30 +8209,37 @@ async function runAsyncForceCommitTest()
 
   ok(commitRequested,
      "runAsyncForceCommitTest: \"request-to-commit\" should've been notified");
-  is(events.length, 4,
+  is(events.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
      "runAsyncForceCommitTest: wrong event count #2");
-  is(events[0].type, "text",
-     "runAsyncForceCommitTest: the 1st event must be text #2");
-  is(events[0].target, textarea,
-     `runAsyncForceCommitTest: The "${events[0].type}" event was fired on wrong event target #2`);
-  is(events[1].type, "beforeinput",
-     "runAsyncForceCommitTest: the 2nd event must be beforeinput #2");
-  is(events[1].target, textarea,
-     `runAsyncForceCommitTest: The "${events[1].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[1], true, "insertCompositionText", "\u306E", [],
+  let index = -1;
+  is(events[++index].type, "text",
+     `runAsyncForceCommitTest: events[${index}] must be text #2`);
+  is(events[index].target, textarea,
+     `runAsyncForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+  is(events[++index].type, "beforeinput",
+     `runAsyncForceCommitTest: events[${index}] must be beforeinput #2`);
+  is(events[index].target, textarea,
+     `runAsyncForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+  checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
                   "runAsyncForceCommitTest #2");
-  is(events[2].type, "compositionend",
-     "runAsyncForceCommitTest: the 3rd event must be compositionend #2");
-  is(events[2].target, textarea,
-     `runAsyncForceCommitTest: The "${events[2].type}" event was fired on wrong event target #2`);
-  is(events[2].data, "\u306E",
-     "runAsyncForceCommitTest: compositionend has wrong data #2");
-  is(events[3].type, "input",
-     "runAsyncForceCommitTest: the 4th event must be input #2");
-  is(events[3].target, textarea,
-     `runAsyncForceCommitTest: The "${events[3].type}" event was fired on wrong event target #2`);
-  checkInputEvent(events[3], false, "insertCompositionText", "\u306E", [],
-                  "runAsyncForceCommitTest #2");
+  if (kExpectInputBeforeCompositionEnd) {
+    is(events[++index].type, "input",
+      `runAsyncForceCommitTest: events[${index}] must be input #2`);
+    checkInputEvent(events[index], true, "insertCompositionText", "\u306E", [],
+                    `runAsyncForceCommitTest #2`);
+  }
+  is(events[++index].type, "compositionend",
+     `runAsyncForceCommitTest: events[${index}] must be compositionend #2`);
+  is(events[index].target, textarea,
+     `runAsyncForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+  is(events[index].data, "\u306E",
+     `runAsyncForceCommitTest: compositionend has wrong data #2`);
+  is(events[++index].type, "input",
+     `runAsyncForceCommitTest: events[${index}] must be input #2`);
+  is(events[index].target, textarea,
+     `runAsyncForceCommitTest: The "${events[index].type}" event was fired on wrong event target #2`);
+  checkInputEvent(events[index], false, "insertCompositionText", "\u306E", [],
+                  `runAsyncForceCommitTest #2`);
   ok(!getEditor(textarea).isComposing,
      "runAsyncForceCommitTest: the textarea still has composition #2");
   is(textarea.value, "\u306E",
@@ -8229,39 +8439,48 @@ function runRedundantChangeTest()
   is(textarea.value, "\u3042\u3044", "runRedundantChangeTest: textarea has uncommitted string #2");
 
   // synthesize same change event again
-  clearResult();
-  synthesizeCompositionChange(
-    { "composition":
-      { "string": "\u3042\u3044",
-        "clauses":
-        [
-          { "length": 2, "attr": COMPOSITION_ATTR_SELECTED_CLAUSE }
-        ]
-      },
-      "caret": { "start": 2, "length": 0 }
-    });
+  (() => {
+    clearResult();
+    synthesizeCompositionChange(
+      { "composition":
+        { "string": "\u3042\u3044",
+          "clauses":
+          [
+            { "length": 2, "attr": COMPOSITION_ATTR_SELECTED_CLAUSE }
+          ]
+        },
+        "caret": { "start": 2, "length": 0 }
+      });
 
-  is(result.length, 0, "runRedundantChangeTest: no events should be fired after synthesizing composition change again");
-  is(textarea.value, "\u3042\u3044", "runRedundantChangeTest: textarea has uncommitted string #3");
+    is(result.length, 0, "runRedundantChangeTest: no events should be fired after synthesizing composition change again");
+    is(textarea.value, "\u3042\u3044", "runRedundantChangeTest: textarea has uncommitted string #3");
 
-  // synthesize commit-as-is
-  clearResult();
-  synthesizeComposition({ type: "compositioncommitasis" });
-  is(result.length, 4,
-     "runRedundantChangeTest: 4 events should be fired after synthesizing composition commit-as-is");
-  is(result[0].type, "text",
-     "runRedundantChangeTest: text should be fired after synthesizing composition commit-as-is for removing the ranges");
-  is(result[1].type, "beforeinput",
-     "runRedundantChangeTest: beforeinput should be fired after synthesizing composition commit-as-is for removing the ranges");
-  checkInputEvent(result[1], true, "insertCompositionText", "\u3042\u3044", [],
-                  "runRedundantChangeTest: at synthesizing commit-as-is");
-  is(result[2].type, "compositionend",
-     "runRedundantChangeTest: compositionend should be fired after synthesizing composition commit-as-is");
-  is(result[3].type, "input",
-     "runRedundantChangeTest: input should be fired before compositionend at synthesizing commit-as-is");
-  checkInputEvent(result[3], false, "insertCompositionText", "\u3042\u3044", [],
-                  "runRedundantChangeTest: at synthesizing commit-as-is");
-  is(textarea.value, "\u3042\u3044", "runRedundantChangeTest: textarea has the commit string");
+    // synthesize commit-as-is
+    clearResult();
+    synthesizeComposition({ type: "compositioncommitasis" });
+    is(result.length, kExpectInputBeforeCompositionEnd ? 5 : 4,
+      `runRedundantChangeTest: ${kExpectInputBeforeCompositionEnd ? 5 : 4} events should be fired after synthesizing composition commit-as-is`);
+    let index = -1;
+    is(result[++index].type, "text",
+      "runRedundantChangeTest: text should be fired after synthesizing composition commit-as-is for removing the ranges");
+    is(result[++index].type, "beforeinput",
+      "runRedundantChangeTest: beforeinput should be fired after synthesizing composition commit-as-is for removing the ranges");
+    checkInputEvent(result[index], true, "insertCompositionText", "\u3042\u3044", [],
+                    "runRedundantChangeTest: at synthesizing commit-as-is");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runRedundantChangeTest: input should be fired before compositionend at synthesizing commit-as-is");
+      checkInputEvent(result[index], true, "insertCompositionText", "\u3042\u3044", [],
+                      "runRedundantChangeTest: at synthesizing commit-as-is");
+    }
+    is(result[++index].type, "compositionend",
+      "runRedundantChangeTest: compositionend should be fired after synthesizing composition commit-as-is");
+    is(result[++index].type, "input",
+      "runRedundantChangeTest: input should be fired before compositionend at synthesizing commit-as-is");
+    checkInputEvent(result[index], false, "insertCompositionText", "\u3042\u3044", [],
+                    "runRedundantChangeTest: at synthesizing commit-as-is");
+    is(textarea.value, "\u3042\u3044", "runRedundantChangeTest: textarea has the commit string");
+  })();
 
   textarea.removeEventListener("compositionupdate", handler, true);
   textarea.removeEventListener("compositionend", handler, true);
@@ -8430,26 +8649,37 @@ function runNotRedundantChangeTest()
                   "runNotRedundantChangeTest: after synthesizing composition change with non-null ranges after empty data and null ranges");
   is(textarea.value, "abcdeABCDE", "runNotRedundantChangeTest: textarea has uncommitted string #4");
 
-  clearResult();
-  synthesizeComposition({ type: "compositioncommit", data: "" });
+  (() => {
+    clearResult();
+    synthesizeComposition({ type: "compositioncommit", data: "" });
 
-  is(result.length, 5,
-     "runNotRedundantChangeTest: 5 events should be fired after synthesizing composition commit with empty data after non-empty data");
-  is(result[0].type, "compositionupdate",
-     "runNotRedundantChangeTest: compositionupdate should be fired after synthesizing composition commit with empty data after non-empty data");
-  is(result[1].type, "text",
-     "runNotRedundantChangeTest: text should be fired after synthesizing composition change because it's dispatched when there is composing string with empty data after non-empty data");
-  is(result[2].type, "beforeinput",
-     "runNotRedundantChangeTest: beforeinput should be fired after synthesizing composition commit with empty data after non-empty data");
-  checkInputEvent(result[2], true, "insertCompositionText", "", [],
-                  "runNotRedundantChangeTest: after synthesizing composition change with empty data after non-empty data");
-  is(result[3].type, "compositionend",
-     "runNotRedundantChangeTest: compositionend should be fired after synthesizing composition commit with empty data after non-empty data");
-  is(result[4].type, "input",
-     "runNotRedundantChangeTest: input should be fired after compositionend after synthesizing composition change with empty data after non-empty data");
-  checkInputEvent(result[4], false, "insertCompositionText", "", [],
-                  "runNotRedundantChangeTest: after synthesizing composition change with empty data after non-empty data");
-  is(textarea.value, "abcde", "runNotRedundantChangeTest: textarea doesn't have uncommitted string #2");
+    is(result.length, kExpectInputBeforeCompositionEnd ? 6 : 5,
+      `runNotRedundantChangeTest: ${
+        kExpectInputBeforeCompositionEnd ? 6 : 5
+      } events should be fired after synthesizing composition commit with empty data after non-empty data`);
+    let index = -1;
+    is(result[++index].type, "compositionupdate",
+      "runNotRedundantChangeTest: compositionupdate should be fired after synthesizing composition commit with empty data after non-empty data");
+    is(result[++index].type, "text",
+      "runNotRedundantChangeTest: text should be fired after synthesizing composition change because it's dispatched when there is composing string with empty data after non-empty data");
+    is(result[++index].type, "beforeinput",
+      "runNotRedundantChangeTest: beforeinput should be fired after synthesizing composition commit with empty data after non-empty data");
+    checkInputEvent(result[index], true, "insertCompositionText", "", [],
+                    "runNotRedundantChangeTest: after synthesizing composition change with empty data after non-empty data");
+    if (kExpectInputBeforeCompositionEnd) {
+      is(result[++index].type, "input",
+        "runNotRedundantChangeTest: input should be fired after compositionend after synthesizing composition change with empty data after non-empty data");
+      checkInputEvent(result[index], true, "insertCompositionText", "", [],
+                      "runNotRedundantChangeTest: after synthesizing composition change with empty data after non-empty data");
+    }
+    is(result[++index].type, "compositionend",
+      "runNotRedundantChangeTest: compositionend should be fired after synthesizing composition commit with empty data after non-empty data");
+    is(result[++index].type, "input",
+      "runNotRedundantChangeTest: input should be fired after compositionend after synthesizing composition change with empty data after non-empty data");
+    checkInputEvent(result[index], false, "insertCompositionText", "", [],
+                    "runNotRedundantChangeTest: after synthesizing composition change with empty data after non-empty data");
+    is(textarea.value, "abcde", "runNotRedundantChangeTest: textarea doesn't have uncommitted string #2");
+  })();
 
   textarea.removeEventListener("compositionupdate", handler, true);
   textarea.removeEventListener("compositionend", handler, true);

@@ -4121,7 +4121,7 @@ nsresult EditorBase::OnCompositionChange(
   // If still composing, we should fire input event via observer.
   // Note that if the composition will be committed by the following
   // compositionend event, we don't need to notify editor observes of this
-  // change.
+  // change even if it's preferred by the pref.
   // NOTE: We must notify after the auto batch will be gone.
   if (!aCompositionChangeEvent.IsFollowedByCompositionEnd()) {
     // If we're a TextEditor, we'll be initialized with a new anonymous subtree,
@@ -4131,6 +4131,13 @@ nsresult EditorBase::OnCompositionChange(
     // mComposition already has the latest information here.
     MOZ_ASSERT_IF(mComposition, mComposition->String() == data);
     NotifyEditorObservers(eNotifyEditorObserversOfEnd);
+  }
+  // NOTE: When the pref is enabled, the last `input` event which will be fired
+  // after `compositionend` won't be paired with corresponding `beforeinput`
+  // event.
+  else if (StaticPrefs::dom_input_events_dispatch_before_compositionend() &&
+           mDispatchInputEvent && !IsEditActionAborted()) {
+    DispatchInputEvent();
   }
 
   return EditorBase::ToGenericNSResult(rv);

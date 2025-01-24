@@ -90,6 +90,16 @@ function onEvent(aEvent) {
   if (gCallPreventDefault) {
     aEvent.preventDefault();
   }
+  if (
+    gEvent &&
+    gEvent.type == "input" &&
+    aEvent.type == "input" &&
+    gEvent.isComposing &&
+    !aEvent.isComposing &&
+    SpecialPowers.getBoolPref("dom.input_events.dispatch_before_compositionend")
+  ) {
+    return; // `input` may be fired twice at committing composition.  Ignore, the second one.
+  }
   ok(gEvent === null, gDescription + `: We should receive only one event to check per test: already got: ${gEvent ? gEvent.type : "null"}, got: ${aEvent.type}`);
   gEvent = aEvent;
   for (var attr in aEvent) {

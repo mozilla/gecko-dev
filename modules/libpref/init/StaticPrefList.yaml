@@ -3040,6 +3040,15 @@
   value: false
   mirror: always
 
+# Whether dispatch a redundant `input` event before `compositionend`.
+# Its `.isComposing` is `true`, but it might be useful to store the latest
+# composition string before `compositionend` event listeners (although,
+# `.data` of `compositionend` event contains the value.
+- name: dom.input_events.dispatch_before_compositionend
+  type: bool
+  value: true
+  mirror: always
+
 # The minimum number of ticks after page navigation
 # that need to occur before user input events are allowed to be handled.
 - name: dom.input_events.security.minNumTicks
