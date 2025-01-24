@@ -149,13 +149,24 @@ export class GroupsPanel {
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
 
+    let setName = tabGroupName => {
+      if (group.saved) {
+        doc.l10n.setAttributes(button, "tabbrowser-manager-closed-tab-group", {
+          tabGroupName,
+        });
+      } else {
+        button.setAttribute("label", tabGroupName);
+        button.setAttribute("tooltiptext", tabGroupName);
+      }
+    };
+
     if (group.name) {
-      button.setAttribute("label", group.name);
+      setName(group.name);
     } else {
       doc.l10n
         .formatValues([{ id: "tab-group-name-default" }])
         .then(([msg]) => {
-          button.setAttribute("label", msg);
+          setName(msg);
         });
     }
     row.appendChild(button);

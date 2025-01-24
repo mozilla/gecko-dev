@@ -191,6 +191,9 @@ tabbrowser-ctrl-tab-list-all-tabs =
         }
 
 ## Tab manager menu buttons
+## Variables:
+##  $tabGroupName (String): The name of the tab group. See also tab-group-name-default, which will be
+##                          used when the group's name is empty.
 
 tabbrowser-manager-mute-tab =
   .tooltiptext = Mute tab
@@ -198,6 +201,14 @@ tabbrowser-manager-unmute-tab =
   .tooltiptext = Unmute tab
 tabbrowser-manager-close-tab =
   .tooltiptext = Close tab
+# This is for tab groups that have been "saved and closed" (see tab-group-editor-action-save). It does
+# not include "deleted" tab groups (see tab-group-editor-action-delete).
+tabbrowser-manager-closed-tab-group =
+  .label = { $tabGroupName }
+  .tooltiptext = { $tabGroupName } — Closed
+tabbrowser-manager-current-window-tab-group =
+  .label = { $tabGroupName }
+  .tooltiptext = { $tabGroupName } — Current window
 
 ## Tab Groups
 
