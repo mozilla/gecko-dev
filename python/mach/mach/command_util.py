@@ -117,6 +117,9 @@ MACH_COMMANDS = {
     "gifft": MachCommandReference(
         "toolkit/components/telemetry/build_scripts/mach_commands.py"
     ),
+    "glean": MachCommandReference(
+        "toolkit/components/glean/build_scripts/mach_commands.py"
+    ),
     "gradle": MachCommandReference("mobile/android/mach_commands.py"),
     "gradle-install": MachCommandReference("mobile/android/mach_commands.py"),
     "gtest": MachCommandReference(

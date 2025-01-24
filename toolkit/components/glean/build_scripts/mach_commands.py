@@ -2,7 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from mach.decorators import Command, CommandArgument
+import re
+from pathlib import Path
+
+from mach.decorators import Command, CommandArgument, SubCommand
 
 LICENSE_HEADER = """# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -58,8 +61,6 @@ def data_review(command_context):
     ),
 )
 def update_glean_tags(command_context):
-    from pathlib import Path
-
     import yaml
     from mozbuild.backend.configenvironment import ConfigEnvironment
     from mozbuild.frontend.reader import BuildReader
@@ -145,7 +146,6 @@ def replace_in_file_or_die(path, pattern, replace):
 @CommandArgument("version", help="Glean version to upgrade to")
 def update_glean(command_context, version):
     import textwrap
-    from pathlib import Path
 
     topsrcdir = Path(command_context.topsrcdir)
 
@@ -234,8 +234,6 @@ def event_into_legacy(command_context, event=None, append=False):
 
     sys.path.append(path.dirname(__file__))
 
-    from pathlib import Path
-
     from translate_events import translate_event
 
     legacy_yaml_path = path.join(
@@ -251,4 +249,139 @@ def event_into_legacy(command_context, event=None, append=False):
         append,
         [Path(command_context.topsrcdir) / x for x in metrics_yamls],
         legacy_yaml_path,
+    )
+
+
+def is_glean_path(glean_path):
+    """
+    Check if the given path could be a Glean repository
+    by checking for the existence of the right manifest files.
+    """
+    main_cargo = Path(glean_path) / "Cargo.toml"
+    core_cargo = Path(glean_path) / "glean-core" / "Cargo.toml"
+    rlb_cargo = Path(glean_path) / "glean-core" / "rlb" / "Cargo.toml"
+
+    return main_cargo.is_file() and core_cargo.is_file() and rlb_cargo.is_file()
+
+
+GLEAN_PATCH_PATH = """
+glean-core = {{ path = "{core_path}" }}
+glean = {{ path = "{rlb_path}" }}
+""".strip()
+
+GLEAN_PATCH_GIT = """
+glean-core = {{ git = "{repo}", branch = "{branch}" }}
+glean = {{ git = "{repo}", branch = "{branch}" }}
+""".strip()
+
+TOML_GLEAN_PATCH_RE = re.compile(r"^glean(-core)? = {.+}\n?", re.MULTILINE)
+
+
+def patch_section(glean_path, branch):
+    """
+    Return the right patch section for a `Cargo.toml` based on the given Glean path.
+
+    A `https` URI will be used as a git location and the given branch inserted.
+    Otherwise it will be treated as a path dependency.
+    """
+    import urllib.parse
+
+    uri = urllib.parse.urlparse(glean_path)
+
+    if uri.scheme == "https":
+        section = GLEAN_PATCH_GIT.format(repo=glean_path, branch=branch)
+        return section
+    elif uri.scheme == "":
+        if not is_glean_path(uri.path):
+            raise Exception(
+                f"given path '{uri.path}' does not point to a Glean checkout"
+            )
+
+        core_path = Path(glean_path) / "glean-core"
+        rlb_path = Path(glean_path) / "glean-core" / "rlb"
+        section = GLEAN_PATCH_PATH.format(core_path=core_path, rlb_path=rlb_path)
+        return section
+    else:
+        raise Exception("unsupported format. Use a path or a https: URL")
+
+
+@Command(
+    "glean",
+    category="misc",
+    description="Glean utilities",
+)
+def glean(command_context):
+    print("Usage:")
+    print("  mach glean dev <path>  Use the given URL or path as the Glean source")
+    print("")
+    print("  mach glean prod        Switch back to the normal production use of Glean.")
+    print("                         Removes any patch overrides.")
+
+
+@SubCommand(
+    "glean",
+    "dev",
+    description="Use the given URL or path as the Glean source",
+)
+@CommandArgument(
+    "glean_path",
+    help="Path or URL to a Glean repository. A patch can be absolute or relative to the mozilla-central root.",
+)
+@CommandArgument(
+    "branch", default="main", nargs="?", help="branch to use for Glean repository"
+)
+def glean_dev(command_context, glean_path, branch):
+    cargo_toml = Path(command_context.topsrcdir) / "Cargo.toml"
+    content = open(cargo_toml).read()
+
+    if re.search(TOML_GLEAN_PATCH_RE, content):
+        content = re.sub(TOML_GLEAN_PATCH_RE, "", content)
+
+    patch = patch_section(glean_path, branch)
+    glean_source(command_context, cargo_toml, content, patch)
+
+
+@SubCommand(
+    "glean",
+    "prod",
+    description="Switch back to the normal production use of Glean. Removes any patch overrides.",
+)
+def glean_prod(command_context):
+    cargo_toml = Path(command_context.topsrcdir) / "Cargo.toml"
+    content = open(cargo_toml).read()
+
+    if re.search(TOML_GLEAN_PATCH_RE, content):
+        content = re.sub(TOML_GLEAN_PATCH_RE, "", content)
+
+    glean_source(command_context, cargo_toml, content)
+
+
+def glean_source(command_context, cargo_toml, content, patch=None):
+    if patch:
+        print(f"Adding Cargo patch for Glean in {cargo_toml}")
+    else:
+        print(f"Removing Cargo patch for Glean in {cargo_toml}")
+
+    with open(cargo_toml, "w") as fp:
+        fp.write(content)
+        if patch:
+            print("Adding these lines:")
+            print(patch)
+            print(patch, file=fp)
+
+    print("Vendoring it for you:\n")
+    print("  mach vendor rust --force --ignore-modified")
+    print("\nYou can commit the local changes afterwards:\n")
+    print("  git add Cargo.toml Cargo.lock vendor/rust")
+    print("  git commit -m 'Local Glean development'")
+    print("")
+
+    run_mach(
+        command_context, "vendor", subcommand="rust", force=True, ignore_modified=True
+    )
+
+
+def run_mach(command_context, cmd, **kwargs):
+    return command_context._mach_context.commands.dispatch(
+        cmd, command_context._mach_context, **kwargs
     )
