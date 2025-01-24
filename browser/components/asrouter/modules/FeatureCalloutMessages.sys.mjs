@@ -84,6 +84,271 @@ function add24HourImpressionJEXLTargeting(
 const MESSAGES = () => {
   let messages = [
     {
+      id: "TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: ["cfr"],
+      content: {
+        id: "TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "TAB_GROUP_ONBOARDING_CALLOUT_HORIZONTAL",
+            anchors: [
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+              {
+                selector: "#tabbrowser-tabs",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "333px",
+              padding: 16,
+              logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/hort-animated-light.svg",
+                darkModeImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/hort-animated-dark.svg",
+                reducedMotionImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/hort-static-light.svg",
+                darkModeReducedMotionImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/hort-static-dark.svg",
+                height: "172px",
+                width: "300px",
+              },
+              title: {
+                string_id: "tab-groups-onboarding-feature-callout-title",
+              },
+              subtitle: {
+                string_id: "tab-groups-onboarding-feature-callout-subtitle",
+              },
+              dismiss_button: {
+                action: {
+                  dismiss: true,
+                },
+                size: "small",
+                marginInline: "0 20px",
+                marginBlock: "20px 0",
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && (!'sidebar.verticalTabs' | preferenceValue)",
+      trigger: {
+        id: "nthTabClosed",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: ["cfr"],
+      content: {
+        id: "TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "TAB_GROUP_ONBOARDING_CALLOUT_VERTICAL",
+            anchors: [
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+              },
+              {
+                selector: "#tabbrowser-tabs",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "333px",
+              padding: 16,
+              logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/vert-animated-light.svg",
+                darkModeImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/vert-animated-dark.svg",
+                reducedMotionImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/vert-static-light.svg",
+                darkModeReducedMotionImageURL:
+                  "chrome://browser/content/asrouter/assets/tabgroups/vert-static-dark.svg",
+                height: "172px",
+                width: "300px",
+              },
+              title: {
+                string_id: "tab-groups-onboarding-feature-callout-title",
+              },
+              subtitle: {
+                string_id: "tab-groups-onboarding-feature-callout-subtitle",
+              },
+              dismiss_button: {
+                action: {
+                  dismiss: true,
+                },
+                size: "small",
+                marginInline: "0 20px",
+                marginBlock: "20px 0",
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && ('sidebar.revamp' | preferenceValue) && ('sidebar.verticalTabs' | preferenceValue)",
+      trigger: {
+        id: "nthTabClosed",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+            anchors: [
+              {
+                selector: "#alltabs-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id: "tab-groups-onboarding-saved-groups-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
+      trigger: {
+        id: "tabGroupClosed",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+            anchors: [
+              {
+                selector: "#alltabs-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id: "tab-groups-onboarding-saved-groups-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting: "'browser.tabs.groups.enabled' | preferenceValue",
+      trigger: {
+        id: "tabGroupCreated",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
       id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
       template: "feature_callout",
       content: {
