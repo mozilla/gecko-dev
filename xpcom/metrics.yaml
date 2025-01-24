@@ -125,3 +125,202 @@ memory_phc:
       - pbone@mozilla.com
     expires: 142
     telemetry_mirror: MEMORY_PHC_SLOTS_FREED
+
+cycle_collector:
+  time:
+    type: timing_distribution
+    description: >
+      Time spent on one cycle collection (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR
+
+  worker_time:
+    type: timing_distribution
+    description: >
+      Time spent on one cycle collection in a worker (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_WORKER.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_WORKER
+
+  visited_ref_counted:
+    type: custom_distribution
+    description: >
+      Number of ref counted objects visited by the cycle collector
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_VISITED_REF_COUNTED.
+    range_min: 1
+    range_max: 300000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: ref counted objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_VISITED_REF_COUNTED
+
+  worker_visited_ref_counted:
+    type: custom_distribution
+    description: >
+      Number of ref counted objects visited by the cycle collector in a worker
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_WORKER_VISITED_REF_COUNTED.
+    range_min: 1
+    range_max: 300000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: ref counted objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_WORKER_VISITED_REF_COUNTED
+
+  visited_gced:
+    type: custom_distribution
+    description: >
+      Number of JS objects visited by the cycle collector
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_VISITED_GCED.
+    range_min: 1
+    range_max: 300000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: JS objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_VISITED_GCED
+
+  worker_visited_gced:
+    type: custom_distribution
+    description: >
+      Number of JS objects visited by the cycle collector in a worker
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_WORKER_VISITED_GCED.
+    range_min: 1
+    range_max: 300000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: JS objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_WORKER_VISITED_GCED
+
+  collected:
+    type: custom_distribution
+    description: >
+      Number of objects collected by the cycle collector
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_COLLECTED.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: JS objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_COLLECTED
+
+  worker_collected:
+    type: custom_distribution
+    description: >
+      Number of objects collected by the cycle collector in a worker
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_WORKER_COLLECTED.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: JS objects
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_WORKER_COLLECTED
+
+  need_gc:
+    type: labeled_counter
+    description: >
+      Needed garbage collection before cycle collection.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CYCLE_COLLECTOR_NEED_GC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: h#CYCLE_COLLECTOR_NEED_GC
+
+  worker_need_gc:
+    type: labeled_counter
+    description: >
+      Needed garbage collection before cycle collection in a worker.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CYCLE_COLLECTOR_WORKER_NEED_GC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: h#CYCLE_COLLECTOR_WORKER_NEED_GC

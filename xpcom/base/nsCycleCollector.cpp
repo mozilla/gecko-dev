@@ -177,7 +177,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/SegmentedVector.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -561,15 +561,6 @@ class EdgePool {
 #else
 #  define CC_GRAPH_ASSERT(b)
 #endif
-
-#define CC_TELEMETRY(_name, _value)                                            \
-  do {                                                                         \
-    if (NS_IsMainThread()) {                                                   \
-      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR##_name, _value);        \
-    } else {                                                                   \
-      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_WORKER##_name, _value); \
-    }                                                                          \
-  } while (0)
 
 enum NodeColor { black, white, grey };
 
@@ -3464,7 +3455,17 @@ void nsCycleCollector::FixGrayBits(bool aIsShutdown, TimeLog& aTimeLog) {
 
     bool needGC = !mCCJSRuntime->AreGCGrayBitsValid();
     // Only do a telemetry ping for non-shutdown CCs.
-    CC_TELEMETRY(_NEED_GC, needGC);
+    if (NS_IsMainThread()) {
+      glean::cycle_collector::need_gc
+          .EnumGet(static_cast<glean::cycle_collector::NeedGcLabel>(needGC))
+          .Add();
+    } else {
+      glean::cycle_collector::worker_need_gc
+          .EnumGet(
+              static_cast<glean::cycle_collector::WorkerNeedGcLabel>(needGC))
+          .Add();
+    }
+
     if (!needGC) {
       return;
     }
@@ -3518,10 +3519,10 @@ void nsCycleCollector::CleanupAfterCollection() {
   timeLog.Checkpoint("Collect::FreeSnowWhite");
 
   TimeStamp endTime = TimeStamp::Now();
-  uint32_t interval = (uint32_t)((endTime - mCollectionStart).ToMilliseconds());
+  TimeDuration interval = endTime - mCollectionStart;
 #ifdef COLLECT_TIME_DEBUG
-  printf("cc: total cycle collector time was %ums in %u slices\n", interval,
-         mResults.mNumSlices);
+  printf("cc: total cycle collector time was %ums in %u slices\n",
+         (uint32_t)interval.ToMilliseconds(), mResults.mNumSlices);
   printf(
       "cc: visited %u ref counted and %u GCed objects, freed %d ref counted "
       "and %d GCed objects",
@@ -3535,10 +3536,23 @@ void nsCycleCollector::CleanupAfterCollection() {
   printf(".\ncc: \n");
 #endif
 
-  CC_TELEMETRY(, interval);
-  CC_TELEMETRY(_VISITED_REF_COUNTED, mResults.mVisitedRefCounted);
-  CC_TELEMETRY(_VISITED_GCED, mResults.mVisitedGCed);
-  CC_TELEMETRY(_COLLECTED, mWhiteNodeCount);
+  if (NS_IsMainThread()) {
+    glean::cycle_collector::time.AccumulateRawDuration(interval);
+    glean::cycle_collector::visited_ref_counted.AccumulateSingleSample(
+        mResults.mVisitedRefCounted);
+    glean::cycle_collector::visited_gced.AccumulateSingleSample(
+        mResults.mVisitedGCed);
+    glean::cycle_collector::collected.AccumulateSingleSample(mWhiteNodeCount);
+  } else {
+    glean::cycle_collector::worker_time.AccumulateRawDuration(interval);
+    glean::cycle_collector::worker_visited_ref_counted.AccumulateSingleSample(
+        mResults.mVisitedRefCounted);
+    glean::cycle_collector::worker_visited_gced.AccumulateSingleSample(
+        mResults.mVisitedGCed);
+    glean::cycle_collector::worker_collected.AccumulateSingleSample(
+        mWhiteNodeCount);
+  }
+
   timeLog.Checkpoint("CleanupAfterCollection::telemetry");
 
   PROFILER_MARKER(
