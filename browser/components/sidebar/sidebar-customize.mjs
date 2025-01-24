@@ -9,6 +9,12 @@ import { SidebarPage } from "./sidebar-page.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-radio-group.mjs";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
+});
+
 const l10nMap = new Map([
   ["viewGenaiChatSidebar", "sidebar-menu-genai-chat-label"],
   ["viewReviewCheckerSidebar", "sidebar-menu-review-checker-label"],
@@ -27,12 +33,14 @@ export class SidebarCustomize extends SidebarPage {
       VISIBILITY_SETTING_PREF,
       "always-show"
     );
+    this.verticalTabsEnabled = lazy.CustomizableUI.verticalTabsEnabled;
     this.boundObserve = (...args) => this.observe(...args);
   }
 
   static properties = {
     activeExtIndex: { type: Number },
     visibility: { type: String },
+    verticalTabsEnabled: { type: Boolean },
   };
 
   static queries = {
@@ -49,6 +57,7 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().addEventListener("SidebarItemChanged", this);
     this.getWindow().addEventListener("SidebarItemRemoved", this);
     Services.prefs.addObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
+    Services.obs.addObserver(this.boundObserve, "tabstrip-orientation-change");
   }
 
   disconnectedCallback() {
@@ -56,6 +65,10 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().removeEventListener("SidebarItemAdded", this);
     this.getWindow().removeEventListener("SidebarItemChanged", this);
     this.getWindow().removeEventListener("SidebarItemRemoved", this);
+    Services.obs.removeObserver(
+      this.boundObserve,
+      "tabstrip-orientation-change"
+    );
     Services.prefs.removeObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
   }
 
@@ -70,6 +83,9 @@ export class SidebarCustomize extends SidebarPage {
             );
             break;
         }
+        break;
+      case "tabstrip-orientation-change":
+        this.verticalTabsEnabled = lazy.CustomizableUI.verticalTabsEnabled;
         break;
     }
   }
@@ -246,28 +262,32 @@ export class SidebarCustomize extends SidebarPage {
               </div>
             </div>`
         )}
-        <div class="customize-group">
-          <moz-radio-group
-            @change=${this.#handleVisibilityChange}
-            name="visibility"
-            data-l10n-id="sidebar-customize-button-header"
-          >
-            <moz-radio
-              class="visibility-setting"
-              value="always-show"
-              ?checked=${this.visibility === "always-show"}
-              iconsrc="chrome://browser/skin/sidebar-expanded.svg"
-              data-l10n-id="sidebar-visibility-setting-always-show"
-            ></moz-radio>
-            <moz-radio
-              class="visibility-setting"
-              value="hide-sidebar"
-              ?checked=${this.visibility === "hide-sidebar"}
-            iconsrc="chrome://browser/skin/sidebar-hidden.svg"
-              data-l10n-id="sidebar-visibility-setting-hide-sidebar"
-            ></moz-radio>
-          </moz-radio-group>
-        </div>
+        ${when(
+          this.verticalTabsEnabled,
+          () =>
+            html`<div class="customize-group">
+              <moz-radio-group
+                @change=${this.#handleVisibilityChange}
+                name="visibility"
+                data-l10n-id="sidebar-customize-button-header"
+              >
+                <moz-radio
+                  class="visibility-setting"
+                  value="always-show"
+                  ?checked=${this.visibility === "always-show"}
+                  iconsrc="chrome://browser/skin/sidebar-expanded.svg"
+                  data-l10n-id="sidebar-visibility-setting-always-show"
+                ></moz-radio>
+                <moz-radio
+                  class="visibility-setting"
+                  value="hide-sidebar"
+                  ?checked=${this.visibility === "hide-sidebar"}
+                  iconsrc="chrome://browser/skin/sidebar-hidden.svg"
+                  data-l10n-id="sidebar-visibility-setting-hide-sidebar"
+                ></moz-radio>
+              </moz-radio-group>
+            </div>`
+        )}
         <div class="customize-group">
           <moz-radio-group
               @change=${this.reversePosition}

@@ -3,7 +3,12 @@
 
 "use strict";
 
+const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
+
 add_task(async function test_customize_sidebar_actions() {
+  SpecialPowers.pushPrefEnv({
+    set: [[TAB_DIRECTION_PREF, true]],
+  });
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
@@ -54,5 +59,6 @@ add_task(async function test_customize_sidebar_actions() {
     "The max-width of the sidebar is approximately 75% of the viewport width."
   );
 
+  SpecialPowers.popPrefEnv();
   await BrowserTestUtils.closeWindow(win);
 });
