@@ -75,12 +75,10 @@ template nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
 
 template nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
     AutoClonedRangeArray& aRanges,
-    const AutoTArray<EditorInlineStyleAndValue, 1>& aStylesToSet,
-    const Element& aEditingHost);
+    const AutoTArray<EditorInlineStyleAndValue, 1>& aStylesToSet);
 template nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
     AutoClonedRangeArray& aRanges,
-    const AutoTArray<EditorInlineStyleAndValue, 32>& aStylesToSet,
-    const Element& aEditingHost);
+    const AutoTArray<EditorInlineStyleAndValue, 32>& aStylesToSet);
 
 nsresult HTMLEditor::SetInlinePropertyAsAction(nsStaticAtom& aProperty,
                                                nsStaticAtom* aAttribute,
@@ -310,8 +308,7 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
   AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
-  nsresult rv = SetInlinePropertiesAroundRanges(selectionRanges, aStylesToSet,
-                                                aEditingHost);
+  nsresult rv = SetInlinePropertiesAroundRanges(selectionRanges, aStylesToSet);
   if (NS_FAILED(rv)) {
     NS_WARNING("HTMLEditor::SetInlinePropertiesAroundRanges() failed");
     return rv;
@@ -329,8 +326,7 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
 template <size_t N>
 nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
     AutoClonedRangeArray& aRanges,
-    const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet,
-    const Element& aEditingHost) {
+    const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet) {
   MOZ_ASSERT(!aRanges.HasSavedRanges());
   for (const EditorInlineStyleAndValue& styleToSet : aStylesToSet) {
     AutoInlineStyleSetter inlineStyleSetter(styleToSet);
@@ -371,8 +367,7 @@ nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
           }
         }
         Result<EditorRawDOMRange, nsresult> rangeOrError =
-            inlineStyleSetter.ExtendOrShrinkRangeToApplyTheStyle(*this, range,
-                                                                 aEditingHost);
+            inlineStyleSetter.ExtendOrShrinkRangeToApplyTheStyle(*this, range);
         if (MOZ_UNLIKELY(rangeOrError.isErr())) {
           NS_WARNING(
               "HTMLEditor::ExtendOrShrinkRangeToApplyTheStyle() failed, but "
@@ -394,7 +389,7 @@ nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
       if (range.Collapsed()) {
         Result<RefPtr<Text>, nsresult> emptyTextNodeOrError =
             AutoInlineStyleSetter::GetEmptyTextNodeToApplyNewStyle(
-                *this, range.StartRef(), aEditingHost);
+                *this, range.StartRef());
         if (MOZ_UNLIKELY(emptyTextNodeOrError.isErr())) {
           NS_WARNING(
               "AutoInlineStyleSetter::GetEmptyTextNodeToApplyNewStyle() "
@@ -579,11 +574,10 @@ nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
 // static
 Result<RefPtr<Text>, nsresult>
 HTMLEditor::AutoInlineStyleSetter::GetEmptyTextNodeToApplyNewStyle(
-    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aCandidatePointToInsert,
-    const Element& aEditingHost) {
+    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aCandidatePointToInsert) {
   auto pointToInsertNewText =
       HTMLEditUtils::GetBetterCaretPositionToInsertText<EditorDOMPoint>(
-          aCandidatePointToInsert, aEditingHost);
+          aCandidatePointToInsert);
   if (MOZ_UNLIKELY(!pointToInsertNewText.IsSet())) {
     return RefPtr<Text>();  // cannot insert text there
   }
@@ -1925,8 +1919,7 @@ EditorRawDOMRange HTMLEditor::AutoInlineStyleSetter::
 
 Result<EditorRawDOMRange, nsresult>
 HTMLEditor::AutoInlineStyleSetter::ExtendOrShrinkRangeToApplyTheStyle(
-    const HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
-    const Element& aEditingHost) const {
+    const HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange) const {
   if (NS_WARN_IF(!aRange.IsPositioned())) {
     return Err(NS_ERROR_FAILURE);
   }
@@ -1945,7 +1938,7 @@ HTMLEditor::AutoInlineStyleSetter::ExtendOrShrinkRangeToApplyTheStyle(
   if (range.EndRef().IsInContentNode()) {
     const WSScanResult nextContentData =
         WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-            &aEditingHost, range.EndRef(),
+            WSRunScanner::Scan::EditableNodes, range.EndRef(),
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
     if (nextContentData.ReachedInvisibleBRElement() &&
         nextContentData.BRElementPtr()->GetParentElement() &&

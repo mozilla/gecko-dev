@@ -238,6 +238,11 @@ class MOZ_STACK_CLASS WSScanResult final {
    */
   bool IsContentEditable() const { return mContent && mContent->IsEditable(); }
 
+  [[nodiscard]] bool IsContentEditableRoot() const {
+    return mContent && mContent->IsElement() &&
+           HTMLEditUtils::ElementIsEditableRoot(*mContent->AsElement());
+  }
+
   /**
    * Offset_Deprecated() returns meaningful value only when
    * InVisibleOrCollapsibleCharacters() returns true or the scanner reached to
@@ -455,10 +460,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
       const EditorDOMPointBase<PT, CT>& aPoint) const;
   template <typename PT, typename CT>
   static WSScanResult ScanInclusiveNextVisibleNodeOrBlockBoundary(
-      const Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
-      BlockInlineCheck aBlockInlineCheck) {
-    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
-                        aEditingHost)
+      Scan aScanMode, const EditorDOMPointBase<PT, CT>& aPoint,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
+    return WSRunScanner(aScanMode, aPoint, aBlockInlineCheck, aAncestorLimiter)
         .ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(aPoint);
   }
 
@@ -473,10 +478,10 @@ class MOZ_STACK_CLASS WSRunScanner final {
       const EditorDOMPointBase<PT, CT>& aPoint) const;
   template <typename PT, typename CT>
   static WSScanResult ScanPreviousVisibleNodeOrBlockBoundary(
-      const Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
-      BlockInlineCheck aBlockInlineCheck) {
-    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
-                        aEditingHost)
+      Scan aScanMode, const EditorDOMPointBase<PT, CT>& aPoint,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
+    return WSRunScanner(aScanMode, aPoint, aBlockInlineCheck, aAncestorLimiter)
         .ScanPreviousVisibleNodeOrBlockBoundaryFrom(aPoint);
   }
 

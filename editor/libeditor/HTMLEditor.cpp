@@ -1194,7 +1194,7 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
       // the visible character.
       const WSScanResult scanResultInTextNode =
           WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-              editingHost, EditorRawDOMPoint(text, 0),
+              WSRunScanner::Scan::EditableNodes, EditorRawDOMPoint(text, 0),
               BlockInlineCheck::UseComputedDisplayStyle);
       if ((scanResultInTextNode.InVisibleOrCollapsibleCharacters() ||
            scanResultInTextNode.ReachedPreformattedLineBreak()) &&
@@ -2295,8 +2295,7 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
     if (MOZ_LIKELY(aElement->IsInComposedDoc())) {
       const auto afterElement = EditorDOMPoint::After(*aElement);
       if (MOZ_LIKELY(afterElement.IsInContentNode())) {
-        nsresult rv =
-            EnsureNoFollowingUnnecessaryLineBreak(afterElement, *editingHost);
+        nsresult rv = EnsureNoFollowingUnnecessaryLineBreak(afterElement);
         if (NS_FAILED(rv)) {
           NS_WARNING(
               "HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
@@ -4519,8 +4518,7 @@ Result<CreateLineBreakResult, nsresult> HTMLEditor::InsertLineBreak(
 }
 
 nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
-    const EditorDOMPoint& aNextOrAfterModifiedPoint,
-    const Element& aEditingHost) {
+    const EditorDOMPoint& aNextOrAfterModifiedPoint) {
   MOZ_ASSERT(aNextOrAfterModifiedPoint.IsInContentNode());
 
   // If the point is in a mailcite in plaintext mail composer (it is a <span>
@@ -4548,7 +4546,7 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
 
   const Maybe<EditorLineBreak> unnecessaryLineBreak =
       HTMLEditUtils::GetFollowingUnnecessaryLineBreak<EditorLineBreak>(
-          aNextOrAfterModifiedPoint, aEditingHost);
+          aNextOrAfterModifiedPoint);
   if (MOZ_LIKELY(unnecessaryLineBreak.isNothing())) {
     return NS_OK;
   }
@@ -7847,7 +7845,7 @@ nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
         }
         const WSScanResult nextThing =
             WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-                editingHost,
+                WSRunScanner::Scan::EditableNodes,
                 atCollapsibleWhiteSpace.AfterContainer<EditorRawDOMPoint>(),
                 BlockInlineCheck::UseComputedDisplayStyle);
         if (!nextThing.ReachedBlockBoundary()) {
@@ -7909,21 +7907,18 @@ void HTMLEditor::DocumentModifiedEvent::MaybeAppendNewInvisibleWhiteSpace(
       !aContentWillBeRemoved->IsHTMLElement(nsGkAtoms::br)) {
     return;
   }
-  const Element* const editingHost =
-      const_cast<nsIContent*>(aContentWillBeRemoved)->GetEditingHost();
-  if (MOZ_UNLIKELY(!editingHost)) {
-    return;
-  }
   const WSScanResult nextThing =
       WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-          editingHost, EditorRawDOMPoint::After(*aContentWillBeRemoved),
+          WSRunScanner::Scan::EditableNodes,
+          EditorRawDOMPoint::After(*aContentWillBeRemoved),
           BlockInlineCheck::UseComputedDisplayStyle);
   if (!nextThing.ReachedBlockBoundary()) {
     return;
   }
   const WSScanResult previousThing =
       WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
-          editingHost, EditorRawDOMPoint(aContentWillBeRemoved),
+          WSRunScanner::Scan::EditableNodes,
+          EditorRawDOMPoint(aContentWillBeRemoved),
           BlockInlineCheck::UseComputedDisplayOutsideStyle);
   if (!previousThing.ContentIsText() || !previousThing.IsContentEditable()) {
     return;

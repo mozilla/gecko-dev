@@ -352,6 +352,15 @@ bool EditorDOMPointBase<
          EditorUtils::IsOnlyNewLinePreformatted(*ContainerAs<Text>());
 }
 
+template <typename PT, typename CT>
+bool EditorDOMPointBase<PT, CT>::IsContainerEditableRoot() const {
+  if (MOZ_UNLIKELY(!mParent) || MOZ_UNLIKELY(!mParent->IsEditable()) ||
+      NS_WARN_IF(mParent->IsInNativeAnonymousSubtree())) {
+    return false;
+  }
+  return HTMLEditUtils::ElementIsEditableRoot(*mParent);
+}
+
 /******************************************************************************
  * mozilla::EditorDOMRangeBase
  *****************************************************************************/
