@@ -70,6 +70,7 @@ gecko_metrics = [
     "toolkit/components/printing/metrics.yaml",
     "toolkit/components/processtools/metrics.yaml",
     "toolkit/components/reader/metrics.yaml",
+    "toolkit/components/reputationservice/metrics.yaml",
     "toolkit/components/resistfingerprinting/metrics.yaml",
     "toolkit/components/startup/metrics.yaml",
     "toolkit/components/translations/metrics.yaml",

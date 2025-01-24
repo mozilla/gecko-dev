@@ -6,6 +6,7 @@
 #ifndef ApplicationReputationTelemetryUtils_h__
 #define ApplicationReputationTelemetryUtils_h__
 
+#include "mozilla/glean/ReputationserviceMetrics.h"
 #include "mozilla/Telemetry.h"
 
 /**
@@ -27,13 +28,13 @@
  * NS_ERROR_DNS_LOOKUP_QUEUE_FULL
  * NS_ERROR_UNKNOWN_PROXY_HOST
  */
-mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_SERVER_2 NSErrorToLabel(
+mozilla::glean::application_reputation::Server2Label NSErrorToLabel(
     nsresult aRv);
 
 /**
  * Convert http response status to telemetry labels
  */
-mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_SERVER_2 HTTPStatusToLabel(
+mozilla::glean::application_reputation::Server2Label HTTPStatusToLabel(
     uint32_t aStatus);
 
 /**

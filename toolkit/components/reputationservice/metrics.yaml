@@ -1,0 +1,241 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Safe Browsing'
+
+application_reputation:
+  binary_type:
+    type: labeled_counter
+    description: >
+      Whether or not the file examined by download protection is a binary type
+      (or it's not possible to tell because the filename is missing).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram APPLICATION_REPUTATION_BINARY_TYPE.
+    labels:
+      - BinaryFile
+      - NonBinaryFile
+      - MozNonBinaryFile
+      - UnknownFile
+      - MissingFilename
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=156404
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=156404
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_BINARY_TYPE
+
+  binary_archive:
+    type: labeled_counter
+    description: >
+      Whether a binary file examined by download protection is one of the common
+      archive formats.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram APPLICATION_REPUTATION_BINARY_ARCHIVE.
+    labels:
+      - OtherBinaryFile
+      - DmgFile
+      - RarFile
+      - ZipFile
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1480639
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1480639
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_BINARY_ARCHIVE
+
+  should_block:
+    type: labeled_counter
+    description: >
+      Overall (local or remote) application reputation verdict
+      (shouldBlock=false is OK).
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram APPLICATION_REPUTATION_SHOULD_BLOCK.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_SHOULD_BLOCK
+
+  local:
+    type: custom_distribution
+    description: >
+      Application reputation local results (0=ALLOW, 1=BLOCK, 2=NONE)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram APPLICATION_REPUTATION_LOCAL.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: APPLICATION_REPUTATION_LOCAL
+
+  server:
+    type: custom_distribution
+    description: >
+      Status of the application reputation remote lookup (0=OK, 1=failed,
+      2=invalid protobuf response)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram APPLICATION_REPUTATION_SERVER.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: APPLICATION_REPUTATION_SERVER
+
+  server_2:
+    type: labeled_counter
+    description: >
+      Network status of the application reputation remote lookup
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram APPLICATION_REPUTATION_SERVER_2.
+    labels:
+      - ErrOthers
+      - ResponseValid
+      - FailGetChannel
+      - FailGetResponse
+      - HTTP1xx
+      - HTTP2xx
+      - HTTP204
+      - HTTP3xx
+      - HTTP400
+      - HTTP4xx
+      - HTTP403
+      - HTTP404
+      - HTTP408
+      - HTTP413
+      - HTTP5xx
+      - HTTP502_504_511
+      - HTTP503
+      - HTTP505
+      - HTTPOthers
+      - ErrAlreadyConnected
+      - ErrNotConnected
+      - ErrConnectionRefused
+      - ErrNetTimeout
+      - ErrOffline
+      - ErrPortAccess
+      - ErrNetReset
+      - ErrNetInterrupt
+      - ErrProxyConnection
+      - ErrNetPartial
+      - ErrNetInadequate
+      - ErrUnknownHost
+      - ErrDNSLookupQueue
+      - ErrUnknownProxyHost
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1479901
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1479901
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_SERVER_2
+
+  server_verdict:
+    type: custom_distribution
+    description: >
+      Application reputation remote verdict (0=SAFE, 1=DANGEROUS, 2=UNCOMMON,
+      3=POTENTIALLY_UNWANTED, 4=DANGEROUS_HOST, 5=UNKNOWN)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram APPLICATION_REPUTATION_SERVER_VERDICT.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272788
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272788
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: APPLICATION_REPUTATION_SERVER_VERDICT
+
+  remote_lookup_response_time:
+    type: timing_distribution
+    description: >
+      Server response time to remote lookup request (ms).
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram APPLICATION_REPUTATION_REMOTE_LOOKUP_RESPONSE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1479898
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1479898
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: APPLICATION_REPUTATION_REMOTE_LOOKUP_RESPONSE_TIME
+
+  remote_lookup_timeout:
+    type: labeled_counter
+    description: >
+      Recorded when application reputation remote lookup is performed, `true` is
+      recorded if the lookup times out.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram APPLICATION_REPUTATION_REMOTE_LOOKUP_TIMEOUT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1172689
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1172689
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_REMOTE_LOOKUP_TIMEOUT
