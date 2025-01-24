@@ -2530,6 +2530,11 @@ criteria = "safe-to-deploy"
 delta = "0.8.1 -> 0.9.1"
 notes = "New CursorMut struct and other relatively straight-forward changes."
 
+[[audits.hashlink]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.1 -> 0.10.0"
+
 [[audits.headers]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
