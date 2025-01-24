@@ -83,13 +83,14 @@ WSScanResult WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundaryFrom(
     // If the visible things are not editable, we shouldn't scan "editable"
     // things now.  Whether keep scanning editable things or not should be
     // considered by the caller.
-    if (aPoint.GetChild() && !aPoint.GetChild()->IsEditable()) {
+    if (mScanMode == Scan::EditableNodes && aPoint.GetChild() &&
+        !HTMLEditUtils::IsSimplyEditableNode((*aPoint.GetChild()))) {
       return WSScanResult(WSScanResult::ScanDirection::Backward,
                           *aPoint.GetChild(), WSType::SpecialContent,
                           mBlockInlineCheck);
     }
     const auto atPreviousChar =
-        GetPreviousEditableCharPoint<EditorRawDOMPointInText>(aPoint);
+        GetPreviousCharPoint<EditorRawDOMPointInText>(aPoint);
     // When it's a non-empty text node, return it.
     if (atPreviousChar.IsSet() && !atPreviousChar.IsContainerEmpty()) {
       MOZ_ASSERT(!atPreviousChar.IsEndOfContainer());
@@ -180,13 +181,13 @@ WSScanResult WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
     // If the visible things are not editable, we shouldn't scan "editable"
     // things now.  Whether keep scanning editable things or not should be
     // considered by the caller.
-    if (aPoint.GetChild() && !aPoint.GetChild()->IsEditable()) {
+    if (mScanMode == Scan::EditableNodes && aPoint.GetChild() &&
+        !HTMLEditUtils::IsSimplyEditableNode(*aPoint.GetChild())) {
       return WSScanResult(WSScanResult::ScanDirection::Forward,
                           *aPoint.GetChild(), WSType::SpecialContent,
                           mBlockInlineCheck);
     }
-    const auto atNextChar =
-        GetInclusiveNextEditableCharPoint<EditorDOMPoint>(aPoint);
+    const auto atNextChar = GetInclusiveNextCharPoint<EditorDOMPoint>(aPoint);
     // When it's a non-empty text node, return it.
     if (atNextChar.IsSet() && !atNextChar.IsContainerEmpty()) {
       return WSScanResult(WSScanResult::ScanDirection::Forward, atNextChar,
@@ -291,15 +292,6 @@ EditorDOMPointType WSRunScanner::GetFirstVisiblePoint(Text& aTextNode) {
     return atStartOfTextNode.To<EditorDOMPointType>();
   }
   return invisibleWhiteSpaceRange.EndRef().To<EditorDOMPointType>();
-}
-
-char16_t WSRunScanner::GetCharAt(Text* aTextNode, uint32_t aOffset) const {
-  // return 0 if we can't get a char, for whatever reason
-  if (NS_WARN_IF(!aTextNode) ||
-      NS_WARN_IF(aOffset >= aTextNode->TextDataLength())) {
-    return 0;
-  }
-  return aTextNode->TextFragment().CharAt(aOffset);
 }
 
 /*****************************************************************************

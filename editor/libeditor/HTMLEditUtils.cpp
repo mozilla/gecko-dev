@@ -114,17 +114,15 @@ template nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
     const EditorRawDOMPoint& aPoint, const Element& aEditingHost);
 
 template EditorDOMPoint HTMLEditUtils::GetBetterInsertionPointFor(
-    const nsIContent& aContentToInsert, const EditorDOMPoint& aPointToInsert,
-    const Element& aEditingHost);
+    const nsIContent& aContentToInsert, const EditorDOMPoint& aPointToInsert);
 template EditorRawDOMPoint HTMLEditUtils::GetBetterInsertionPointFor(
-    const nsIContent& aContentToInsert, const EditorRawDOMPoint& aPointToInsert,
-    const Element& aEditingHost);
+    const nsIContent& aContentToInsert,
+    const EditorRawDOMPoint& aPointToInsert);
 template EditorDOMPoint HTMLEditUtils::GetBetterInsertionPointFor(
-    const nsIContent& aContentToInsert, const EditorRawDOMPoint& aPointToInsert,
-    const Element& aEditingHost);
+    const nsIContent& aContentToInsert,
+    const EditorRawDOMPoint& aPointToInsert);
 template EditorRawDOMPoint HTMLEditUtils::GetBetterInsertionPointFor(
-    const nsIContent& aContentToInsert, const EditorDOMPoint& aPointToInsert,
-    const Element& aEditingHost);
+    const nsIContent& aContentToInsert, const EditorDOMPoint& aPointToInsert);
 
 template EditorDOMPoint HTMLEditUtils::GetBetterCaretPositionToInsertText(
     const EditorDOMPoint& aPoint, const Element& aEditingHost);
@@ -2546,6 +2544,9 @@ nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
     if (nextVisibleThing.InVisibleOrCollapsibleCharacters()) {
       return nextVisibleThing.TextPtr();
     }
+    if (nextVisibleThing.GetContent() == &aEditingHost) {
+      break;
+    }
     // Ignore empty inline container elements because it's not visible for
     // users so that using the style will appear suddenly from point of
     // view of users.
@@ -2566,18 +2567,16 @@ nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
 template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
 EditorDOMPointType HTMLEditUtils::GetBetterInsertionPointFor(
     const nsIContent& aContentToInsert,
-    const EditorDOMPointTypeInput& aPointToInsert,
-    const Element& aEditingHost) {
+    const EditorDOMPointTypeInput& aPointToInsert) {
   if (NS_WARN_IF(!aPointToInsert.IsSet())) {
     return EditorDOMPointType();
   }
 
   auto pointToInsert =
       aPointToInsert.template GetNonAnonymousSubtreePoint<EditorDOMPointType>();
-  if (MOZ_UNLIKELY(
-          NS_WARN_IF(!pointToInsert.IsSet()) ||
-          NS_WARN_IF(!pointToInsert.GetContainer()->IsInclusiveDescendantOf(
-              &aEditingHost)))) {
+  if (NS_WARN_IF(!pointToInsert.IsSet()) ||
+      NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(
+          *pointToInsert.GetContainer()))) {
     // Cannot insert aContentToInsert into this DOM tree.
     return EditorDOMPointType();
   }
@@ -2589,8 +2588,8 @@ EditorDOMPointType HTMLEditUtils::GetBetterInsertionPointFor(
     return pointToInsert;
   }
 
-  WSRunScanner wsScannerForPointToInsert(
-      const_cast<Element*>(&aEditingHost), pointToInsert,
+  const WSRunScanner wsScannerForPointToInsert(
+      WSRunScanner::Scan::EditableNodes, pointToInsert,
       BlockInlineCheck::UseComputedDisplayStyle);
 
   // If the insertion position is after the last visible item in a line,
@@ -2644,10 +2643,9 @@ EditorDOMPointType HTMLEditUtils::GetBetterCaretPositionToInsertText(
     return EditorDOMPointType(aPoint.GetChild(), 0u);
   }
   if (aPoint.IsEndOfContainer()) {
-    WSRunScanner scanner(&aEditingHost, aPoint,
-                         BlockInlineCheck::UseComputedDisplayStyle);
     const WSScanResult previousThing =
-        scanner.ScanPreviousVisibleNodeOrBlockBoundaryFrom(aPoint);
+        WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
+            &aEditingHost, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
     if (previousThing.InVisibleOrCollapsibleCharacters()) {
       return EditorDOMPointType::AtEndOf(*previousThing.TextPtr());
     }
