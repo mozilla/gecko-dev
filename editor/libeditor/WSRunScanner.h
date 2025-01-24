@@ -481,43 +481,41 @@ class MOZ_STACK_CLASS WSRunScanner final {
   }
 
   /**
-   * GetInclusiveNextEditableCharPoint() returns a point in a text node which
-   * is at current editable character or next editable character if aPoint
-   * does not points an editable character.
+   * Return a point in a `Text` node which is at current character or next
+   * character if aPoint does not points a character or end of a `Text` node.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-            typename CT>
-  static EditorDOMPointType GetInclusiveNextEditableCharPoint(
-      Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
-      BlockInlineCheck aBlockInlineCheck) {
+  template <typename EditorDOMPointType, typename PT, typename CT>
+  static EditorDOMPointType GetInclusiveNextCharPoint(
+      Scan aScanMode, const EditorDOMPointBase<PT, CT>& aPoint,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
     if (aPoint.IsInTextNode() && !aPoint.IsEndOfContainer() &&
-        HTMLEditUtils::IsSimplyEditableNode(
-            *aPoint.template ContainerAs<Text>())) {
+        (aScanMode != Scan::EditableNodes ||
+         HTMLEditUtils::IsSimplyEditableNode(
+             *aPoint.template ContainerAs<Text>()))) {
       return EditorDOMPointType(aPoint.template ContainerAs<Text>(),
                                 aPoint.Offset());
     }
-    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
-                        aEditingHost)
+    return WSRunScanner(aScanMode, aPoint, aBlockInlineCheck, aAncestorLimiter)
         .GetInclusiveNextCharPoint<EditorDOMPointType>(aPoint);
   }
 
   /**
-   * GetPreviousEditableCharPoint() returns a point in a text node which
-   * is at previous editable character.
+   * Return a point in a `Text` node which is before aPoint.
    */
-  template <typename EditorDOMPointType = EditorDOMPointInText, typename PT,
-            typename CT>
-  static EditorDOMPointType GetPreviousEditableCharPoint(
-      Element* aEditingHost, const EditorDOMPointBase<PT, CT>& aPoint,
-      BlockInlineCheck aBlockInlineCheck) {
+  template <typename EditorDOMPointType, typename PT, typename CT>
+  static EditorDOMPointType GetPreviousCharPoint(
+      Scan aScanMode, const EditorDOMPointBase<PT, CT>& aPoint,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
     if (aPoint.IsInTextNode() && !aPoint.IsStartOfContainer() &&
-        HTMLEditUtils::IsSimplyEditableNode(
-            *aPoint.template ContainerAs<Text>())) {
+        (aScanMode != Scan::EditableNodes ||
+         HTMLEditUtils::IsSimplyEditableNode(
+             *aPoint.template ContainerAs<Text>()))) {
       return EditorDOMPointType(aPoint.template ContainerAs<Text>(),
                                 aPoint.Offset() - 1);
     }
-    return WSRunScanner(Scan::EditableNodes, aPoint, aBlockInlineCheck,
-                        aEditingHost)
+    return WSRunScanner(aScanMode, aPoint, aBlockInlineCheck, aAncestorLimiter)
         .GetPreviousCharPoint<EditorDOMPointType>(aPoint);
   }
 
@@ -854,9 +852,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
         .GetInclusiveNextCharPoint<EditorDOMPointType>(
-            aPoint, mScanMode == Scan::EditableNodes
-                        ? IgnoreNonEditableNodes::Yes
-                        : IgnoreNonEditableNodes::No);
+            aPoint, ShouldIgnoreNonEditableSiblingsOrDescendants(mScanMode));
   }
 
   /**
@@ -871,9 +867,7 @@ class MOZ_STACK_CLASS WSRunScanner final {
       const EditorDOMPointBase<PT, CT>& aPoint) const {
     return TextFragmentDataAtStartRef()
         .GetPreviousCharPoint<EditorDOMPointType>(
-            aPoint, mScanMode == Scan::EditableNodes
-                        ? IgnoreNonEditableNodes::Yes
-                        : IgnoreNonEditableNodes::No);
+            aPoint, ShouldIgnoreNonEditableSiblingsOrDescendants(mScanMode));
   }
 
   /**
