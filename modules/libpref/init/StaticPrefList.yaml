@@ -709,6 +709,11 @@
   value: false
   mirror: always
 
+- name: apz.mousemove_hittest_optimization.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: apz.one_touch_pinch.enabled
   type: RelaxedAtomicBool
   value: @IS_ANDROID@
