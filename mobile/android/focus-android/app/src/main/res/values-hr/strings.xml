@@ -1027,12 +1027,18 @@
     <!-- Content description (not visible, for screen readers etc.): Button that closes a tab n the sessions list -->
     <string name="close_tab">Zatvori karticu</string>
 
+    <!-- Contextual Feature Recommendation Popups -->
+    <!-- CFR for Toolbar Shield Icon (Banner Info Message) -->
+    <string name="cfr_for_toolbar_shield_icon2">Uhvaćena! Zaustavili smo ovu stranicu da te špijunira. Dodirni štit bilo kada da vidiš što blokiramo.</string>
+
     <!-- Content description (not visible, for screen readers etc.): Button that closes the CFR popup -->
     <string name="cfr_close_button_description">Zatvori skočni prozor</string>
 
     <!-- Tool Tip for: Privacy and Security Settings Screen  task : https://github.com/mozilla-mobile/focus-android/issues/6211 -->
     <!-- Tool Tip Title -->
     <string name="tool_tip_title">Zaštićen/a si!</string>
+    <!-- Tool Tip Message -->
+    <string name="tool_tip_message">Ove standardne postavke nude snažnu zaštitu, ali ih možeš prilagoditi tvojim potrebama.</string>
     <!-- Tool Tip "X" button Content description (not visible, for screen readers etc.) :Button that closes the tool tip -->
     <string name="tool_tip_dismiss_button_content_description">Odbaci</string>
 
@@ -1059,6 +1065,13 @@
 
     !-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. &quot;Focus&quot;) --&gt;
+    <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->
+    <string name="cfr_for_start_browsing">Započni sesiju privatnog pregledavanja, a mi ćemo usput blokirati programe za praćenje i druge loše stvari.</string>
+
+    <!-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
+    of the app (e.g. "Focus") -->
+    <string name="promote_search_widget_dialog_subtitle">Prepustit ćemo te privatnom pregledavanju, ali sljedeći put započni brže s widgetom %1$s na početnom ekranu.</string>
+
     <!-- This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog. -->
     <string name="promote_search_widget_button_text">Dodaj programčić na početni ekran</string>

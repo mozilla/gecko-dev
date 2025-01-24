@@ -13,4 +13,4 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">열기</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">취소</string>
-</resources>
+    </resources>

@@ -13,4 +13,4 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">開啟</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">取消</string>
-</resources>
+    </resources>

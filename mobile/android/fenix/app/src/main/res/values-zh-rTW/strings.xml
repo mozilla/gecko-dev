@@ -1068,6 +1068,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">了解行銷資料的更多資訊</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">每日使用情況回報</string>
+    <string name="preferences_daily_usage_ping_description">此資訊可幫助 Mozilla 估算活躍使用者數。</string>
+    <string name="preferences_daily_usage_ping_learn_more">了解每日使用情況回報的更多資訊</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">自動傳送錯誤報告</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">自動送出錯誤報告</string>

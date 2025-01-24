@@ -8,4 +8,4 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">ખોલો</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">રદ કરો</string>
-</resources>
+    </resources>

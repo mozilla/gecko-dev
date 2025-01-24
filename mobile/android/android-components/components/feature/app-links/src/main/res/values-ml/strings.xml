@@ -13,4 +13,4 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">തുറക്കുക</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">റദ്ദാക്കുക</string>
-</resources>
+    </resources>

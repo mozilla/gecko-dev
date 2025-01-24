@@ -83,6 +83,12 @@
          sharing an URL. -->
     <string name="share_dialog_title">Bagikan via</string>
 
+    <string name="notification_erase_title_android_14">Hapus riwayat penjelajahan?</string>
+
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">Ketuk atau geser notifikasi ini untuk menghapus riwayat penjelajahan Anda dengan aman.</string>
+
     <string name="notification_erase_text">Hapus riwayat penjelajahan</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -599,6 +605,9 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Hapus riwayat penjelajahan</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Tutup tab lainnya</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
     <string name="download_firefox" tools:ignore="BrandUsage">Unduh Firefox</string>
@@ -1097,4 +1106,11 @@
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget ditambahkan ke layar beranda</string>
 
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Seret dari atas &amp; gunakan gestur kembali untuk keluar</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Seret dari atas &amp; tekan kembali untuk keluar</string>
+</resources>
