@@ -12,6 +12,7 @@ const {
   ENABLE_PERSISTENT_LOGS,
   DISABLE_BROWSER_CACHE,
   SET_COLUMNS_WIDTH,
+  SET_DEFAULT_RAW_RESPONSE,
   WS_TOGGLE_COLUMN,
   WS_RESET_COLUMNS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
@@ -56,6 +57,12 @@ function prefsMiddleware(store) {
         break;
       case SET_COLUMNS_WIDTH:
         persistColumnsData(store.getState());
+        break;
+      case SET_DEFAULT_RAW_RESPONSE:
+        Services.prefs.setBoolPref(
+          "devtools.netmonitor.ui.default-raw-response",
+          store.getState().ui.defaultRawResponse
+        );
         break;
       case WS_TOGGLE_COLUMN:
       case WS_RESET_COLUMNS:

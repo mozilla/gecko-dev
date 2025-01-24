@@ -214,6 +214,7 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.cache.disabled");
   Services.prefs.clearUserPref("devtools.netmonitor.columnsData");
   Services.prefs.clearUserPref("devtools.netmonitor.visibleColumns");
+  Services.prefs.clearUserPref("devtools.netmonitor.ui.default-raw-response");
   Services.cookies.removeAll();
 });
 

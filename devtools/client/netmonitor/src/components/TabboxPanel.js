@@ -78,6 +78,8 @@ class TabboxPanel extends Component {
       openNetworkDetails: PropTypes.func.isRequired,
       showMessagesView: PropTypes.bool,
       targetSearchResult: PropTypes.object,
+      defaultRawResponse: PropTypes.bool,
+      setDefaultRawResponse: PropTypes.func,
     };
   }
   static get defaultProps() {
@@ -108,8 +110,10 @@ class TabboxPanel extends Component {
       connector,
       hideToggleButton,
       openLink,
+      defaultRawResponse,
       request,
       selectTab,
+      setDefaultRawResponse,
       sourceMapURLService,
       toggleNetworkDetails,
       targetSearchResult,
@@ -193,6 +197,8 @@ class TabboxPanel extends Component {
           connector,
           showMessagesView,
           targetSearchResult,
+          defaultRawResponse,
+          setDefaultRawResponse,
         })
       ),
       (request.fromCache || request.status == "304") &&

@@ -413,6 +413,8 @@ skip-if = [
 
 ["browser_net_raw_headers.js"]
 
+["browser_net_raw_response.js"]
+
 ["browser_net_reload-button.js"]
 
 ["browser_net_req-resp-bodies.js"]

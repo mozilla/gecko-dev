@@ -45,6 +45,8 @@ function NetworkDetailsBar({
   openNetworkDetails,
   openLink,
   targetSearchResult,
+  defaultRawResponse,
+  setDefaultRawResponse,
 }) {
   if (!request) {
     return null;
@@ -72,6 +74,8 @@ function NetworkDetailsBar({
           toggleNetworkDetails,
           openNetworkDetails,
           targetSearchResult,
+          defaultRawResponse,
+          setDefaultRawResponse,
         })
   );
 }
@@ -90,11 +94,14 @@ NetworkDetailsBar.propTypes = {
   openLink: PropTypes.func,
   openNetworkDetails: PropTypes.func,
   targetSearchResult: PropTypes.object,
+  defaultRawResponse: PropTypes.bool,
+  setDefaultRawResponse: PropTypes.func,
 };
 
 module.exports = connect(
   state => ({
     activeTabId: state.ui.detailsPanelSelectedTab,
+    defaultRawResponse: state.ui.defaultRawResponse,
     request: getSelectedRequest(state),
     targetSearchResult: state.search.targetSearchResult,
   }),
@@ -103,5 +110,7 @@ module.exports = connect(
     selectTab: tabId => dispatch(Actions.selectDetailsPanelTab(tabId)),
     toggleNetworkDetails: () => dispatch(Actions.toggleNetworkDetails()),
     openNetworkDetails: open => dispatch(Actions.openNetworkDetails(open)),
+    setDefaultRawResponse: open =>
+      dispatch(Actions.setDefaultRawResponse(open)),
   })
 )(NetworkDetailsBar);

@@ -17,6 +17,7 @@ const {
   WATERFALL_RESIZE,
   SET_COLUMNS_WIDTH,
   SET_HEADERS_URL_PREVIEW_EXPANDED,
+  SET_DEFAULT_RAW_RESPONSE,
   OPEN_ACTION_BAR,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 
@@ -235,6 +236,13 @@ function setHeadersUrlPreviewExpanded(expanded) {
   };
 }
 
+function setDefaultRawResponse(enabled) {
+  return {
+    type: SET_DEFAULT_RAW_RESPONSE,
+    enabled,
+  };
+}
+
 module.exports = {
   openNetworkDetails,
   openNetworkActionBar,
@@ -254,4 +262,5 @@ module.exports = {
   toggleBrowserCache,
   toggleStatistics,
   setHeadersUrlPreviewExpanded,
+  setDefaultRawResponse,
 };

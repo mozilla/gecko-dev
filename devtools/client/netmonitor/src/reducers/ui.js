@@ -25,6 +25,7 @@ const {
   MIN_COLUMN_WIDTH,
   SET_COLUMNS_WIDTH,
   SET_HEADERS_URL_PREVIEW_EXPANDED,
+  SET_DEFAULT_RAW_RESPONSE,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 
 const cols = {
@@ -80,6 +81,10 @@ function UI(initialState = {}) {
     networkDetailsHeight: null,
     persistentLogsEnabled: Services.prefs.getBoolPref(
       "devtools.netmonitor.persistlog"
+    ),
+    defaultRawResponse: Services.prefs.getBoolPref(
+      "devtools.netmonitor.ui.default-raw-response",
+      false
     ),
     browserCacheDisabled: Services.prefs.getBoolPref("devtools.cache.disabled"),
     slowLimit: Services.prefs.getIntPref("devtools.netmonitor.audits.slow"),
@@ -211,6 +216,13 @@ function setColumnsWidth(state, action) {
   };
 }
 
+function setDefaultRawResponse(state, action) {
+  return {
+    ...state,
+    defaultRawResponse: action.enabled,
+  };
+}
+
 function ui(state = UI(), action) {
   switch (action.type) {
     case CLEAR_REQUESTS:
@@ -247,6 +259,8 @@ function ui(state = UI(), action) {
       return openNetworkAction(state, action);
     case SET_HEADERS_URL_PREVIEW_EXPANDED:
       return setHeadersUrlPreviewExpanded(state, action);
+    case SET_DEFAULT_RAW_RESPONSE:
+      return setDefaultRawResponse(state, action);
     default:
       return state;
   }
