@@ -1534,7 +1534,6 @@ template <typename T>
 void MacroAssembler::branchMul32(Condition cond, T src, Register dest,
                                  Label* label) {
   MOZ_ASSERT(cond == Assembler::Overflow);
-  vixl::UseScratchRegisterScope temps(this);
   mul32(src, dest, dest, label);
 }
 
@@ -2172,16 +2171,16 @@ void MacroAssembler::cmp32Load32(Condition cond, Register lhs, Register rhs,
 
 void MacroAssembler::cmp32Load32(Condition cond, Register lhs, Imm32 rhs,
                                  const Address& src, Register dest) {
-  // ARM64 does not support conditional loads, so we use a branch with a CSel
-  // (to prevent Spectre attacks).
-  vixl::UseScratchRegisterScope temps(this);
-  const ARMRegister scratch32 = temps.AcquireW();
-
   // Can't use branch32() here, because it may select Cbz/Cbnz which don't
   // affect condition flags.
   Label done;
   cmp32(lhs, rhs);
   B(&done, Assembler::InvertCondition(cond));
+
+  // ARM64 does not support conditional loads, so we use a branch with a CSel
+  // (to prevent Spectre attacks).
+  vixl::UseScratchRegisterScope temps(this);
+  const ARMRegister scratch32 = temps.AcquireW();
 
   load32(src, scratch32.asUnsized());
   Csel(ARMRegister(dest, 32), scratch32, ARMRegister(dest, 32), cond);
@@ -2198,16 +2197,16 @@ void MacroAssembler::cmp32MovePtr(Condition cond, Register lhs, Imm32 rhs,
 
 void MacroAssembler::cmp32LoadPtr(Condition cond, const Address& lhs, Imm32 rhs,
                                   const Address& src, Register dest) {
-  // ARM64 does not support conditional loads, so we use a branch with a CSel
-  // (to prevent Spectre attacks).
-  vixl::UseScratchRegisterScope temps(this);
-  const ARMRegister scratch64 = temps.AcquireX();
-
   // Can't use branch32() here, because it may select Cbz/Cbnz which don't
   // affect condition flags.
   Label done;
   cmp32(lhs, rhs);
   B(&done, Assembler::InvertCondition(cond));
+
+  // ARM64 does not support conditional loads, so we use a branch with a CSel
+  // (to prevent Spectre attacks).
+  vixl::UseScratchRegisterScope temps(this);
+  const ARMRegister scratch64 = temps.AcquireX();
 
   loadPtr(src, scratch64.asUnsized());
   Csel(ARMRegister(dest, 64), scratch64, ARMRegister(dest, 64), cond);
@@ -2219,12 +2218,14 @@ void MacroAssembler::test32LoadPtr(Condition cond, const Address& addr,
                                    Register dest) {
   MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
 
+  Label done;
+  branchTest32(Assembler::InvertCondition(cond), addr, mask, &done);
+
   // ARM64 does not support conditional loads, so we use a branch with a CSel
   // (to prevent Spectre attacks).
   vixl::UseScratchRegisterScope temps(this);
   const ARMRegister scratch64 = temps.AcquireX();
-  Label done;
-  branchTest32(Assembler::InvertCondition(cond), addr, mask, &done);
+
   loadPtr(src, scratch64.asUnsized());
   Csel(ARMRegister(dest, 64), scratch64, ARMRegister(dest, 64), cond);
   bind(&done);
