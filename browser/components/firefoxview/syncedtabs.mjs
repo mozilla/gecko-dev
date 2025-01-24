@@ -168,13 +168,12 @@ class SyncedTabsInView extends ViewPage {
     });
 
     if (this.controller.searchQuery) {
-      const searchesHistogram = Services.telemetry.getKeyedHistogramById(
-        "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
-      );
-      searchesHistogram.add(
-        this.recentBrowsing ? "recentbrowsing" : "syncedtabs",
-        this.cumulativeSearches
-      );
+      Services.telemetry
+        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
+        .add(
+          this.recentBrowsing ? "recentbrowsing" : "syncedtabs",
+          this.cumulativeSearches
+        );
       this.cumulativeSearches = 0;
     }
   }

@@ -225,13 +225,12 @@ class RecentlyClosedTabsInView extends ViewPage {
       page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
     });
     if (this.searchQuery) {
-      const searchesHistogram = Services.telemetry.getKeyedHistogramById(
-        "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
-      );
-      searchesHistogram.add(
-        this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
-        this.cumulativeSearches
-      );
+      Services.telemetry
+        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
+        .add(
+          this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
+          this.cumulativeSearches
+        );
       this.cumulativeSearches = 0;
     }
   }

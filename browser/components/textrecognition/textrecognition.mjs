@@ -118,10 +118,9 @@ class TextRecognitionModal {
    * @param {number} textLength
    */
   static recordTextLengthTelemetry(textLength) {
-    const histogram = Services.telemetry.getHistogramById(
-      "TEXT_RECOGNITION_TEXT_LENGTH"
-    );
-    histogram.add(textLength);
+    Services.telemetry
+      .getHistogramById("TEXT_RECOGNITION_TEXT_LENGTH")
+      .add(textLength);
   }
 
   setupCloseHandler() {

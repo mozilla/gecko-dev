@@ -47,8 +47,7 @@ function testPixel(ctx, x, y, r, g, b, a, fuzz) {
 
 function reportResult(val) {
   try {
-    let histogram = Services.telemetry.getHistogramById("GRAPHICS_SANITY_TEST");
-    histogram.add(val);
+    Services.telemetry.getHistogramById("GRAPHICS_SANITY_TEST").add(val);
   } catch (e) {}
 
   Services.prefs.setBoolPref(RUNNING_PREF, false);

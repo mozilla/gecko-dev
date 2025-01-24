@@ -450,8 +450,7 @@ Inspector.prototype = {
       if (this.toolbox && this.toolbox.currentToolId == "inspector") {
         const delay = this.panelWin.performance.now() - this._newRootStart;
         const telemetryKey = "DEVTOOLS_INSPECTOR_NEW_ROOT_TO_RELOAD_DELAY_MS";
-        const histogram = this.telemetry.getHistogramById(telemetryKey);
-        histogram.add(delay);
+        this.telemetry.getHistogramById(telemetryKey).add(delay);
       }
       delete this._newRootStart;
     }

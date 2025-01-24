@@ -543,10 +543,9 @@ var Impl = {
     const typeUuid = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
     if (!typeUuid.test(aType)) {
       this._log.error("submitExternalPing - invalid ping type: " + aType);
-      let histogram = Services.telemetry.getKeyedHistogramById(
-        "TELEMETRY_INVALID_PING_TYPE_SUBMITTED"
-      );
-      histogram.add(aType, 1);
+      Services.telemetry
+        .getKeyedHistogramById("TELEMETRY_INVALID_PING_TYPE_SUBMITTED")
+        .add(aType, 1);
       return Promise.reject(new Error("Invalid type string submitted."));
     }
     // Enforce that the payload is an object.
@@ -558,10 +557,9 @@ var Impl = {
       this._log.error(
         "submitExternalPing - invalid payload type: " + typeof aPayload
       );
-      let histogram = Services.telemetry.getHistogramById(
-        "TELEMETRY_INVALID_PAYLOAD_SUBMITTED"
-      );
-      histogram.add(1);
+      Services.telemetry
+        .getHistogramById("TELEMETRY_INVALID_PAYLOAD_SUBMITTED")
+        .add(1);
       return Promise.reject(new Error("Invalid payload type submitted."));
     }
 

@@ -285,10 +285,9 @@ let ShellServiceInternal = {
       throw ex;
     } finally {
       try {
-        const histogram = Services.telemetry.getHistogramById(
-          "BROWSER_SET_DEFAULT_USER_CHOICE_RESULT"
-        );
-        histogram.add(telemetryResult);
+        Services.telemetry
+          .getHistogramById("BROWSER_SET_DEFAULT_USER_CHOICE_RESULT")
+          .add(telemetryResult);
       } catch (ex) {}
     }
   },
@@ -320,10 +319,11 @@ let ShellServiceInternal = {
       throw ex;
     } finally {
       try {
-        const histogram = Services.telemetry.getHistogramById(
-          "BROWSER_SET_DEFAULT_PDF_HANDLER_USER_CHOICE_RESULT"
-        );
-        histogram.add(telemetryResult);
+        Services.telemetry
+          .getHistogramById(
+            "BROWSER_SET_DEFAULT_PDF_HANDLER_USER_CHOICE_RESULT"
+          )
+          .add(telemetryResult);
       } catch (ex) {}
     }
   },

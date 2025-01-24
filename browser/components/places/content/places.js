@@ -1069,10 +1069,9 @@ function updateTelemetry(urlsOpened) {
     link => !link.isBookmark && !PlacesUtils.nodeIsBookmark(link)
   );
   if (!historyLinks.length) {
-    let searchesHistogram = Services.telemetry.getHistogramById(
-      "PLACES_LIBRARY_CUMULATIVE_BOOKMARK_SEARCHES"
-    );
-    searchesHistogram.add(PlacesSearchBox.cumulativeBookmarkSearches);
+    Services.telemetry
+      .getHistogramById("PLACES_LIBRARY_CUMULATIVE_BOOKMARK_SEARCHES")
+      .add(PlacesSearchBox.cumulativeBookmarkSearches);
 
     // Clear cumulative search counter
     PlacesSearchBox.cumulativeBookmarkSearches = 0;
@@ -1082,10 +1081,9 @@ function updateTelemetry(urlsOpened) {
   }
 
   // Record cumulative search count before selecting History link from Library
-  let searchesHistogram = Services.telemetry.getHistogramById(
-    "PLACES_LIBRARY_CUMULATIVE_HISTORY_SEARCHES"
-  );
-  searchesHistogram.add(PlacesSearchBox.cumulativeHistorySearches);
+  Services.telemetry
+    .getHistogramById("PLACES_LIBRARY_CUMULATIVE_HISTORY_SEARCHES")
+    .add(PlacesSearchBox.cumulativeHistorySearches);
 
   // Clear cumulative search counter
   PlacesSearchBox.cumulativeHistorySearches = 0;

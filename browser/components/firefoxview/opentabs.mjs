@@ -497,13 +497,12 @@ class OpenTabsInViewCard extends ViewPageContent {
       window: this.title || "Window 1 (Current)",
     });
     if (this.searchQuery) {
-      const searchesHistogram = Services.telemetry.getKeyedHistogramById(
-        "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
-      );
-      searchesHistogram.add(
-        this.recentBrowsing ? "recentbrowsing" : "opentabs",
-        this.cumulativeSearches
-      );
+      Services.telemetry
+        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
+        .add(
+          this.recentBrowsing ? "recentbrowsing" : "opentabs",
+          this.cumulativeSearches
+        );
       this.cumulativeSearches = 0;
     }
   }

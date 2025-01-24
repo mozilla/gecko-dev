@@ -481,10 +481,9 @@ var gIdentityHandler = {
   disableMixedContentProtection() {
     // Use telemetry to measure how often unblocking happens
     const kMIXED_CONTENT_UNBLOCK_EVENT = 2;
-    let histogram = Services.telemetry.getHistogramById(
-      "MIXED_CONTENT_UNBLOCK_COUNTER"
-    );
-    histogram.add(kMIXED_CONTENT_UNBLOCK_EVENT);
+    Services.telemetry
+      .getHistogramById("MIXED_CONTENT_UNBLOCK_COUNTER")
+      .add(kMIXED_CONTENT_UNBLOCK_EVENT);
 
     SitePermissions.setForPrincipal(
       gBrowser.contentPrincipal,

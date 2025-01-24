@@ -142,10 +142,9 @@ class HistoryInView extends ViewPage {
     Glean.firefoxviewNext.historyVisits.record();
 
     if (this.controller.searchQuery) {
-      const searchesHistogram = Services.telemetry.getKeyedHistogramById(
-        "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
-      );
-      searchesHistogram.add("history", this.cumulativeSearches);
+      Services.telemetry
+        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
+        .add("history", this.cumulativeSearches);
       this.cumulativeSearches = 0;
     }
   }

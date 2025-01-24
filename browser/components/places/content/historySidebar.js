@@ -105,14 +105,12 @@ function GroupBy(groupingType) {
 }
 
 function updateTelemetry(urlsOpened = []) {
-  let searchesHistogram = Services.telemetry.getHistogramById(
-    "PLACES_SEARCHBAR_CUMULATIVE_SEARCHES"
-  );
-  searchesHistogram.add(gCumulativeSearches);
-  let filterCountHistogram = Services.telemetry.getHistogramById(
-    "PLACES_SEARCHBAR_CUMULATIVE_FILTER_COUNT"
-  );
-  filterCountHistogram.add(gCumulativeFilterCount);
+  Services.telemetry
+    .getHistogramById("PLACES_SEARCHBAR_CUMULATIVE_SEARCHES")
+    .add(gCumulativeSearches);
+  Services.telemetry
+    .getHistogramById("PLACES_SEARCHBAR_CUMULATIVE_FILTER_COUNT")
+    .add(gCumulativeFilterCount);
   clearCumulativeCounters();
 
   Glean.sidebar.link.history.add(urlsOpened.length);

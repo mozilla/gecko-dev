@@ -995,11 +995,9 @@ var gXPInstallObserver = {
 
         options.removeOnDismissal = true;
         options.persistent = false;
-
-        let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
-        secHistogram.add(
-          Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED
-        );
+        Services.telemetry
+          .getHistogramById("SECURITY_UI")
+          .add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
         let popup = PopupNotifications.show(
           browser,
           aTopic,
@@ -1090,11 +1088,9 @@ var gXPInstallObserver = {
           let learnMore = doc.getElementById("addon-install-blocked-info");
           learnMore.setAttribute("support-page", article);
         };
-
-        let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
-        secHistogram.add(
-          Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED
-        );
+        Services.telemetry
+          .getHistogramById("SECURITY_UI")
+          .add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
 
         const [
           installMsg,
@@ -1109,10 +1105,12 @@ var gXPInstallObserver = {
         ]);
 
         const action = buildNotificationAction(installMsg, () => {
-          secHistogram.add(
-            Ci.nsISecurityUITelemetry
-              .WARNING_ADDON_ASKING_PREVENTED_CLICK_THROUGH
-          );
+          Services.telemetry
+            .getHistogramById("SECURITY_UI")
+            .add(
+              Ci.nsISecurityUITelemetry
+                .WARNING_ADDON_ASKING_PREVENTED_CLICK_THROUGH
+            );
           installInfo.install();
         });
 
