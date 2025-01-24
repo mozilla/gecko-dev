@@ -1217,6 +1217,9 @@ class Code : public ShareableBase<Code> {
     }
     return block->lookupUnwindInfo(pc);
   }
+  // Search through this code to find which tier a code range is from. Returns
+  // false if this code range was not found.
+  bool lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const;
 
   // To save memory, profilingLabels_ are generated lazily when profiling mode
   // is enabled.

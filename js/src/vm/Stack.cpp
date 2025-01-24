@@ -646,11 +646,11 @@ JS::ProfilingFrameIterator::getPhysicalFrameAndEntry(
   if (isWasm()) {
     Frame frame;
     switch (wasmIter().category()) {
-      case wasm::ProfilingFrameIterator::Category::Baseline: {
+      case wasm::ProfilingFrameIterator::Baseline: {
         frame.kind = FrameKind::Frame_WasmBaseline;
         break;
       }
-      case wasm::ProfilingFrameIterator::Category::Ion: {
+      case wasm::ProfilingFrameIterator::Ion: {
         frame.kind = FrameKind::Frame_WasmIon;
         break;
       }
