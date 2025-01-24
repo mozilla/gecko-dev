@@ -310,6 +310,9 @@ skip-if = [
 ["test_bug1725766.js"]
 skip-if = ["os == 'android'"] # skip because of bug 1589327
 
+["test_bug1830022.js"]
+prefs = ["network.http.idempotencyKey.enabled=true"]
+
 ["test_bug1883496.js"]
 skip-if = [
   "os != 'android'",
@@ -605,9 +608,6 @@ run-if = ["os == 'linux'"]
 
 ["test_gre_resources.js"]
 
-["test_ip_space_glean.js"]
-skip-if = ["os == 'android'"]
-
 ["test_h2proxy_connection_limit.js"]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -820,9 +820,6 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 
 ["test_httpcancel.js"]
 
-["test_bug1830022.js"]
-prefs = ["network.http.idempotencyKey.enabled=true"]
-
 ["test_https_rr_ech_prefs.js"]
 skip-if = ["os == 'android'"]
 run-sequentially = "node server exceptions dont replay well"
@@ -883,6 +880,9 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_ioservice.js"]
 
+["test_ip_space_glean.js"]
+skip-if = ["os == 'android'"]
+
 ["test_large_port.js"]
 
 ["test_loadgroup_cancel.js"]
@@ -934,6 +934,10 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_no_cookies_after_last_pb_exit.js"]
 
 ["test_node_execute.js"]
+
+["test_node_execute_npm.js"]
+usesNPM = true
+skip-if = ["os == 'win'", "os == 'mac'"]
 
 ["test_nojsredir.js"]
 

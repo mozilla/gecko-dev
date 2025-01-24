@@ -80,6 +80,7 @@ browser/components/asrouter/node_modules/
 browser/components/newtab/node_modules/
 browser/components/aboutwelcome/node_modules/
 tools/ts/node_modules/
+testing/xpcshell/moz-http2/node_modules/
 
 # Ignore newtab component build assets
 browser/components/newtab/logs/

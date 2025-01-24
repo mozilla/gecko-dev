@@ -1,0 +1,12 @@
+{
+  "main": "moz-http2.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MPL2",
+  "description": "",
+  "dependencies": {
+    "left-pad": "=1.3.0"
+  }
+}
