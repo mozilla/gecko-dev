@@ -132,4 +132,41 @@ add_task(async function () {
       "Exponential number parsed value label has a title attribute"
     );
   });
+
+  info("Select the RawData tab");
+  await selectJsonViewContentTab("rawdata");
+
+  const text = await getElementText(".textPanelBox .data");
+  is(
+    text,
+    `{
+      "small": 12,
+      "negzero": -0,
+      "big": 1516340399466235648,
+      "precise": 3.141592653589793238462643383279,
+      "exp": 1e2
+    }`.replaceAll("\n", ""),
+    "Proper JSON must be displayed in DOM"
+  );
+
+  info("Click 'Pretty Print' button");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    ".textPanelBox .toolbar button.prettyprint",
+    {},
+    gBrowser.selectedBrowser
+  );
+
+  let prettyText = await getElementText(".textPanelBox .data");
+  prettyText = normalizeNewLines(prettyText);
+  is(
+    prettyText,
+    `{
+  "small": 12,
+  "negzero": -0,
+  "big": 1516340399466235648,
+  "precise": 3.141592653589793238462643383279,
+  "exp": 1e2
+}`,
+    "Pretty printed JSON must be displayed"
+  );
 });

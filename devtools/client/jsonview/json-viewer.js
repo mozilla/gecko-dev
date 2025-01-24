@@ -95,7 +95,24 @@ define(function (require) {
         theApp.setState({ jsonText: input.jsonText });
       } else {
         if (!input.jsonPretty) {
-          input.jsonPretty = new Text(JSON.stringify(input.json, null, "  "));
+          input.jsonPretty = new Text(
+            JSON.stringify(
+              input.json,
+              (key, value) => {
+                if (value?.type === JSON_NUMBER) {
+                  return JSON.rawJSON(value.source);
+                }
+
+                // By default, -0 will be stringified as `0`, so we need to handle it
+                if (Object.is(value, -0)) {
+                  return JSON.rawJSON("-0");
+                }
+
+                return value;
+              },
+              "  "
+            )
+          );
         }
         theApp.setState({ jsonText: input.jsonPretty });
       }
