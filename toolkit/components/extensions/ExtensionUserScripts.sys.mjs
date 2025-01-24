@@ -10,7 +10,7 @@ import { ExtensionTaskScheduler } from "resource://gre/modules/ExtensionTaskSche
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SQLiteKeyValueService: "resource://gre/modules/kvstore.sys.mjs",
+  KeyValueService: "resource://gre/modules/kvstore.sys.mjs",
 });
 
 /**
@@ -34,7 +34,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 /**
- * User scripts are stored in the following format in a SKV database. A SKV
+ * User scripts are stored in the following format in a RKV database. A RKV
  * database is a KeyValue store where the keys are ordered lexicographically.
  *
  * Common operations are querying/removing from extensions.
@@ -44,12 +44,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 class Store {
   async _init() {
-    const storePath = PathUtils.join(PathUtils.profileDir, "extension-store");
+    // NOTE: Ideally this would be the same location as other extension rkv
+    // databases, but we cannot due to bug 1807010. So the directory name
+    // chosen here differs from those that use rkv in other places, such as
+    // ExtensionPermissions.sys.mjs and ExtensionScriptingStore.sys.mjs.
+    const storePath = PathUtils.join(PathUtils.profileDir, "extension-scripts");
     await IOUtils.makeDirectory(storePath);
-    // TODO: Add recovery (rename) when implemented in skv (bug 1913238).
-    this._store = await lazy.SQLiteKeyValueService.getOrCreate(
+    this._store = await lazy.KeyValueService.getOrCreateWithOptions(
       storePath,
-      "userScripts"
+      "userScripts",
+      { strategy: lazy.KeyValueService.RecoveryStrategy.RENAME }
     );
   }
 
@@ -90,7 +94,7 @@ class Store {
    * Write all pairs. If the value is the null value, the key is deleted
    * Otherwise the values must be JSON-serializable and are written.
    *
-   * TODO: Drop when skv supports JSON (bug 1919618).
+   * TODO: Drop if we move from rkv to skv and skv supports JSON (bug 1919618).
    *
    * @param {Array<[string,*]>} pairs
    */
@@ -104,7 +108,17 @@ class Store {
 
   async deleteRange(fromKey, toKey) {
     await this.lazyInit();
-    return this._store.deleteRange(fromKey, toKey);
+    // skv supports deleteRange() with bug 1919674, but rkv does not. So as
+    // part of deletion, we have to query the values despite not needing it.
+    const enumerator = await this._store.enumerate(fromKey, toKey);
+    const pairs = [];
+    while (enumerator.hasMoreElements()) {
+      const { key } = enumerator.getNext();
+      pairs.push([key, null]);
+    }
+    return this._store.writeMany(pairs);
+    // TODO bug 1919530: Use efficient deleteRange if we switch to skv:
+    // return this._store.deleteRange(fromKey, toKey);
   }
 }
 
