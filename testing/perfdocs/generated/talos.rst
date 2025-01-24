@@ -7675,28 +7675,7 @@ For the sample commands found below, note that the capitalization used is import
    * xperf_user_providers: ['Mozilla Generic Provider', 'Microsoft-Windows-TCPIP']
    * **Test Task**:
 
-   .. list-table:: **test-windows11-64-2009-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **talos-xperf**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-xperf-swr**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-windows11-64-2009-shippable-qr/opt**
+   .. list-table:: **test-windows11-64-24h2-shippable/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -7713,6 +7692,27 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-xperf-swr**
         - ✅
         - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-24h2/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **talos-xperf**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **talos-xperf-swr**
+        - ❌
+        - ❌
         - ❌
         - ❌
 

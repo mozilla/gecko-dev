@@ -9,7 +9,7 @@ task-defaults:
     target:
         by-test-platform:
             android-em-7.*: geckoview-test_runner.apk
-            windows11-64-2009.*:
+            windows11-64-24h2.*:
                 by-variant:
                     msix: target.installer.msix
                     default: null
@@ -35,8 +35,8 @@ task-defaults:
         requires-signed-builds:
             by-test-platform:
                 macosx1100.*: true
-                windows.*-asan-qr/opt: false    # No XPCShell on ASAN yet
-                windows.*-mingwclang-qr/.*: false
+                windows.*-asan/opt: false    # No XPCShell on ASAN yet
+                windows.*-mingwclang/.*: false
                 windows.*: true
                 default: false
 
@@ -62,7 +62,7 @@ xpcshell:
                 by-test-platform:
                     .*asan.*: []
                     .*ccov.*: []
-                    (linux1804-64|windows11-64.*)(-shippable)?-qr/opt: ['trunk']
+                    (linux1804-64|windows11-64).*/opt: ['trunk']
                     default: []
             socketprocess_networking+no-fission:
                 by-test-platform:
@@ -72,7 +72,8 @@ xpcshell:
                 by-test-platform:
                     macosx1015.*: ['trunk']  # All Mac variants
                     macosx1470.*: ['trunk']  # All Mac variants
-                    ^(?!.*asan).*windows11.*: ['trunk']   # All Windows11 except ASAN
+                    windows.*asan.*: []
+                    windows11.*: ['trunk']   # All Windows11 except ASAN
                     default: []
             no-fission:
                 by-test-platform:
@@ -82,8 +83,8 @@ xpcshell:
                     default: []
             msix:
                 by-test-platform:
-                    windows11-64-2009(-shippable)?-qr/opt: built-projects
-                    windows11-64-2009-qr/debug: built-projects
+                    windows11-64-24h2(-shippable)?/opt: built-projects
+                    windows11-64-24h2/debug: built-projects
                     default: []
             geckoview-no-fission-ship:
                 by-test-platform:
@@ -94,14 +95,14 @@ xpcshell:
                 by-test-platform:
                     android.*: built-projects
                     .*wayland.*: []
-                    windows.*-asan-qr/opt: []  # No XPCShell on ASAN yet
+                    windows.*-asan/opt: []  # No XPCShell on ASAN yet
                     default: built-projects
     chunks:
         by-variant:
             os-integration: dynamic
             default:
                 by-test-platform:
-                    .*-asan-qr/opt: 4
+                    .*-asan.*/opt: 4
                     .*-ccov.*/.*: 8
                     .*-tsan-qr/opt: 10
                     (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
@@ -112,7 +113,7 @@ xpcshell:
             conditioned_profile: 7200
             default:
                 by-test-platform:
-                    .*-ccov(-qr)?/.*: 7200
+                    .*-ccov.*/.*: 7200
                     .*-tsan-qr/opt: 7200
                     default: 5400
     allow-software-gl-layers: false

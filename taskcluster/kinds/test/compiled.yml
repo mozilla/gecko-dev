@@ -49,7 +49,11 @@ gtest:
     description: "GTests run"
     suite: gtest
     treeherder-symbol: GTest
-    instance-size: large-noscratch
+    instance-size:
+        by-test-platform:
+            linux.*: large-noscratch
+            windows.*asan.*: large
+            default: default
     run-on-projects:
         by-variant:
             1proc:
@@ -81,7 +85,7 @@ jittest:
             default: []
     chunks:
         by-test-platform:
-            windows.*-ccov-qr/opt: 6
+            windows.*-ccov.*/opt: 6
             windows.*: 1
             macosx.*/opt: 1
             macosx.*/debug: 3

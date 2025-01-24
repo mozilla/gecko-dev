@@ -222,7 +222,7 @@ web-platform-tests-reftest:
     treeherder-symbol: W(Wr)
     virtualization:
         by-test-platform:
-            windows.*-64.*-qr/.*: virtual-with-gpu
+            windows.*-64.*/.*: virtual-with-gpu
             default: virtual
     chunks:
         by-test-platform:
@@ -231,7 +231,7 @@ web-platform-tests-reftest:
             linux1804-64(-asan)?-qr/.*: 6
             macosx.*-64/debug: 6
             macosx.*-64/opt: 3
-            windows.*-(32|64)(-qr)?/debug: 5
+            windows.*-(32|64).*/debug: 5
             android.*: 6
             default: 4
     variants:
@@ -244,7 +244,7 @@ web-platform-tests-reftest:
                 by-test-platform:
                     .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows.*-qr/debug: built-projects
+                    windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
@@ -624,7 +624,7 @@ web-platform-tests-crashtest:
                     linux.*64-qr/debug: built-projects
                     macosx1015.*64-qr/debug: built-projects
                     macosx1470.*64/debug: built-projects
-                    windows.*-qr/debug: built-projects
+                    windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
@@ -684,7 +684,7 @@ web-platform-tests-print-reftest:
                     android.*: []
                     .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows.*-qr/debug: built-projects
+                    windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:

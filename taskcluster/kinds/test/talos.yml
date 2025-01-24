@@ -671,7 +671,7 @@ talos-xperf:
     run-on-projects:
         by-test-platform:
             windows.*-32-shippable(?:-qr)?/.*: []
-            windows11.*-shippable-qr/.*: [trunk]
+            windows11.*-shippable(-qr)?/.*: [trunk]
             default: []
     mozharness:
         extra-options:

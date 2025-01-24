@@ -59,8 +59,8 @@ crashtest:
                     macosx.*64(-qr)?/debug: built-projects
                     linux.*-64-qr/debug: built-projects
                     linux.*-64(-tsan|-asan)-qr/opt: built-projects
-                    windows.*-asan-qr/opt: built-projects
-                    windows1.*-64.*-qr/debug: built-projects
+                    windows.*-asan.*/opt: built-projects
+                    windows1.*-64.*/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
@@ -111,14 +111,17 @@ jsreftest:
     description: "JS Reftest run"
     schedules-component: jsreftest
     treeherder-symbol: R(J)
-    instance-size: default
+    instance-size:
+        by-test-platform:
+            windows.*asan.*: large
+            default: default
     test-manifest-loader: null  # don't load tests in the taskgraph
     chunks:
         by-test-platform:
             android-hw.*\/debug: 12
             android-hw.*/(opt|pgo)?: 6
-            windows.*-asan-qr/opt: 6
-            windows.*-ccov-qr/opt: 5
+            windows.*-asan.*/opt: 6
+            windows.*-ccov.*/opt: 5
             windows.*\/opt: 2
             linux.*64-ccov.*/.*: 5
             linux1804-64-qr/opt: 4
@@ -169,7 +172,7 @@ reftest:
             macosx.*-64/debug: 6
             windows.*64.*/debug: 4
             windows.*32.*/debug: 6
-            windows.*-ccov-qr/opt: 9
+            windows.*-ccov.*/opt: 9
             windows10.*/opt: 2
             windows11.*/opt: 3
             default: 8
@@ -201,7 +204,7 @@ reftest:
                     linux1804-64-qr/debug: built-projects
                     linux1804-64(-asan|-tsan)-qr/opt: built-projects
                     macosx.*64(-qr)?/debug: built-projects
-                    windows.*-asan-qr/opt: built-projects
+                    windows.*-asan.*/opt: built-projects
                     default: []
             no-fission:
                 by-test-platform:
@@ -223,9 +226,9 @@ reftest:
                     default: built-projects
     max-run-time:
         by-test-platform:
-            windows.*-32-mingwclang-qr/debug: 5400
+            windows.*-32-mingwclang.*/debug: 5400
             windows.*-ccov.*/.*: 5400
-            windows.*-asan-qr/opt: 5400
+            windows.*-asan.*/opt: 5400
             default: 3600
     mozharness:
         chunked:

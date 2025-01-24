@@ -935,7 +935,7 @@ def set_test_setting(config, tasks):
 
         else:
             arch = parts.pop(0)
-            if parts and parts[0].isdigit():
+            if parts and (parts[0].isdigit() or parts[0] in ["24h2"]):
                 os_build = parts.pop(0)
 
             if parts and parts[0] == "hw-ref":

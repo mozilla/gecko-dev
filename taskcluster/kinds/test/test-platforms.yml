@@ -128,39 +128,57 @@ linux2204-64-wayland-shippable/opt:
 
 ##
 # Windows platforms (matching /windows.*/)
-
-# win11-32
+# win11-32-2009 - only around for reftest
 windows11-32-2009-shippable-qr/opt:
     build-platform: win32-shippable/opt
     build-signing-label: build-signing-win32-shippable/opt
     test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
         - windows32-2009-tests
 
 windows11-32-2009-qr/opt:
     build-platform: win32/opt
     build-signing-label: build-signing-win32/opt
     test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
         - windows32-2009-tests
 
 windows11-32-2009-qr/debug:
     build-platform: win32/debug
     build-signing-label: build-signing-win32/debug
     test-sets:
-        - web-platform-tests
         - windows32-2009-tests
 
-windows11-32-2009-mingwclang-qr/debug:
+##
+# Windows platforms (matching /windows.*/) 24h2 (no -qr)
+
+# win11-32-24h2
+windows11-32-24h2-shippable/opt:
+    build-platform: win32-shippable/opt
+    build-signing-label: build-signing-win32-shippable/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows32-tests
+
+windows11-32-24h2/opt:
+    build-platform: win32/opt
+    build-signing-label: build-signing-win32/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows32-tests
+
+windows11-32-24h2/debug:
+    build-platform: win32/debug
+    build-signing-label: build-signing-win32/debug
+    test-sets:
+        - windows32-tests
+
+windows11-32-24h2-mingwclang/debug:
     build-platform: win32-mingwclang/debug
     test-sets:
         - mingwclang-win32-tests-debug
 
-windows11-32-2009-mingwclang-qr/opt:
+windows11-32-24h2-mingwclang/opt:
     build-platform: win32-mingwclang/opt
     test-sets:
         - mingwclang-tests-opt
@@ -239,13 +257,11 @@ windows10-64-2009-shippable-qr/opt:
         - windows10-2009-tests
 
 # win11-64 2009
+# a few tests remain in win11-2009-tests set
 windows11-64-2009-ccov-qr/opt:
     build-platform: win64-ccov/opt
     build-signing-label: build-signing-win64-ccov/opt
     test-sets:
-        - desktop-screenshot-capture
-        - ccov-code-coverage-tests
-        - windows11-64-2009-ccov-tests
         - windows11-2009-tests
 
 windows11-64-2009-qr/debug:
@@ -255,7 +271,6 @@ windows11-64-2009-qr/debug:
             msix: repackage-signing-msix-win64/debug
             default: build-signing-win64/debug
     test-sets:
-        - web-platform-tests
         - webgpu
         - windows11-2009-tests
 
@@ -267,12 +282,8 @@ windows11-64-2009-qr/opt:
             default: build-signing-win64/opt
     test-sets:
         - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
-        - web-platform-tests-backlog
         - webgpu
         - windows11-2009-tests
-        - talos-xperf
 
 windows11-64-2009-shippable-qr/opt:
     build-platform: win64-shippable/opt
@@ -282,18 +293,12 @@ windows11-64-2009-shippable-qr/opt:
             default: build-signing-win64-shippable/opt
     test-sets:
         - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
-        - web-platform-tests-backlog
         - windows11-2009-tests
-        - talos-xperf
 
 windows11-64-2009-devedition-qr/opt:
     build-platform: win64-devedition/opt
     build-signing-label: build-signing-win64-devedition/opt
     test-sets:
-        - desktop-screenshot-capture
-        - web-platform-tests
         - windows11-2009-tests
 
 windows11-64-2009-asan-qr/opt:
@@ -304,13 +309,79 @@ windows11-64-2009-asan-qr/opt:
 windows11-64-2009-mingwclang-qr/debug:
     build-platform: win64-mingwclang/debug
     test-sets:
+        - mingwclang-win2009-tests
+
+# win64 24h2 (no -qr)
+# no perf right now
+windows11-64-24h2-ccov/opt:
+    build-platform: win64-ccov/opt
+    build-signing-label: build-signing-win64-ccov/opt
+    test-sets:
+        - desktop-screenshot-capture
+        - ccov-code-coverage-tests
+        - windows11-64-2009-ccov-tests
+        - windows11-24h2-tests
+
+windows11-64-24h2/debug:
+    build-platform: win64/debug
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-msix-win64/debug
+            default: build-signing-win64/debug
+    test-sets:
+        - web-platform-tests
+        - windows11-24h2-tests
+
+windows11-64-24h2/opt:
+    build-platform: win64/opt
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-msix-win64/opt
+            default: build-signing-win64/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - web-platform-tests-backlog
+        - windows11-24h2-tests
+        - talos-xperf
+
+windows11-64-24h2-shippable/opt:
+    build-platform: win64-shippable/opt
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-shippable-l10n-msix-win64-shippable/opt
+            default: build-signing-win64-shippable/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - web-platform-tests-backlog
+        - windows11-24h2-tests
+        - talos-xperf
+
+windows11-64-24h2-devedition/opt:
+    build-platform: win64-devedition/opt
+    build-signing-label: build-signing-win64-devedition/opt
+    test-sets:
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - windows11-24h2-tests
+
+windows11-64-24h2-asan/opt:
+    build-platform: win64-asan/opt
+    test-sets:
+        - windows11-24h2-tests
+
+windows11-64-24h2-mingwclang/debug:
+    build-platform: win64-mingwclang/debug
+    test-sets:
         - mingwclang-tests-debug
 
-windows11-64-2009-mingwclang-qr/opt:
+windows11-64-24h2-mingwclang/opt:
     build-platform: win64-mingwclang/opt
     test-sets:
         - mingwclang-tests-opt
-
 
 ##
 # MacOS X platforms (matching /macosx.*/)

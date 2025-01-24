@@ -8,7 +8,7 @@ task-defaults:
     instance-size: xlarge-noscratch
     virtualization:
         by-test-platform:
-            windows.*(?:-shippable)?-qr/.*: virtual-with-gpu
+            windows.*(?:-shippable)?.*/.*: virtual-with-gpu
             default: virtual
     allow-software-gl-layers: false
     mozharness:

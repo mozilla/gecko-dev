@@ -57,6 +57,18 @@ WINDOWS_WORKER_TYPES = {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
     },
+    "windows11-32-24h2-mingwclang": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
+    "windows11-32-24h2": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
+    "windows11-32-24h2-shippable": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
     "windows11-a64-2009-shippable": {
         "virtual": "win11-a64-24h2",
         "virtual-with-gpu": "win11-a64-24h2",
@@ -104,6 +116,33 @@ WINDOWS_WORKER_TYPES = {
     "windows11-64-2009-mingwclang-qr": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-24h2": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+        "hardware": "win11-64-2009-hw",
+    },
+    "windows11-64-24h2-ccov": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
+    "windows11-64-24h2-devedition": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
+    "windows11-64-24h2-shippable": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+        "hardware": "win11-64-2009-hw",
+    },
+    "windows11-64-24h2-asan": {
+        "virtual": "win11-64-24h2",
+        "large": "win11-64-24h2-large",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
+    },
+    "windows11-64-24h2-mingwclang": {
+        "virtual": "win11-64-24h2",
+        "virtual-with-gpu": "win11-64-24h2-gpu",
     },
 }
 
@@ -169,7 +208,10 @@ def set_worker_type(config, tasks):
                     task["mozharness"]["extra-options"].append("--requires-gpu")
 
             # now we have the right platform set the worker type accordingly
-            task["worker-type"] = win_worker_type_platform[task["virtualization"]]
+            if task["instance-size"].startswith("large"):
+                task["worker-type"] = "win11-64-24h2-large"
+            else:
+                task["worker-type"] = win_worker_type_platform[task["virtualization"]]
         elif test_platform.startswith("android-hw-p5"):
             if task["suite"] != "raptor":
                 task["worker-type"] = "t-bitbar-gw-unit-p5"
