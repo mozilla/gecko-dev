@@ -1,3 +1,4 @@
+use crate::FromEnvErrorInner;
 use std::ffi::CString;
 use std::io;
 use std::process::Command;
@@ -14,9 +15,13 @@ pub struct Client {
 #[derive(Debug)]
 pub struct Acquired;
 
+#[allow(clippy::upper_case_acronyms)]
 type BOOL = i32;
+#[allow(clippy::upper_case_acronyms)]
 type DWORD = u32;
+#[allow(clippy::upper_case_acronyms)]
 type HANDLE = *mut u8;
+#[allow(clippy::upper_case_acronyms)]
 type LONG = i32;
 
 const ERROR_ALREADY_EXISTS: DWORD = 183;
@@ -25,7 +30,11 @@ const INFINITE: DWORD = 0xffffffff;
 const SEMAPHORE_MODIFY_STATE: DWORD = 0x2;
 const SYNCHRONIZE: DWORD = 0x00100000;
 const TRUE: BOOL = 1;
-const WAIT_OBJECT_0: DWORD = 0;
+
+const WAIT_ABANDONED: DWORD = 128u32;
+const WAIT_FAILED: DWORD = 4294967295u32;
+const WAIT_OBJECT_0: DWORD = 0u32;
+const WAIT_TIMEOUT: DWORD = 258u32;
 
 extern "system" {
     fn CloseHandle(handle: HANDLE) -> BOOL;
@@ -66,7 +75,7 @@ extern "system" {
 // randomness.
 fn getrandom(dest: &mut [u8]) -> io::Result<()> {
     // Prevent overflow of u32
-    for chunk in dest.chunks_mut(u32::max_value() as usize) {
+    for chunk in dest.chunks_mut(u32::MAX as usize) {
         let ret = unsafe { RtlGenRandom(chunk.as_mut_ptr(), chunk.len() as u32) };
         if ret == 0 {
             return Err(io::Error::new(
@@ -110,10 +119,7 @@ impl Client {
                     continue;
                 }
                 name.pop(); // chop off the trailing nul
-                let client = Client {
-                    sem: handle,
-                    name: name,
-                };
+                let client = Client { sem: handle, name };
                 if create_limit != limit {
                     client.acquire()?;
                 }
@@ -127,17 +133,20 @@ impl Client {
         ))
     }
 
-    pub unsafe fn open(s: &str) -> Option<Client> {
+    pub(crate) unsafe fn open(s: &str, _check_pipe: bool) -> Result<Client, FromEnvErrorInner> {
         let name = match CString::new(s) {
             Ok(s) => s,
-            Err(_) => return None,
+            Err(e) => return Err(FromEnvErrorInner::CannotParse(e.to_string())),
         };
 
         let sem = OpenSemaphoreA(SYNCHRONIZE | SEMAPHORE_MODIFY_STATE, FALSE, name.as_ptr());
         if sem.is_null() {
-            None
+            Err(FromEnvErrorInner::CannotOpenPath(
+                s.to_string(),
+                io::Error::last_os_error(),
+            ))
         } else {
-            Some(Client {
+            Ok(Client {
                 sem: Handle(sem),
                 name: s.to_string(),
             })
@@ -152,6 +161,21 @@ impl Client {
             } else {
                 Err(io::Error::last_os_error())
             }
+        }
+    }
+
+    pub fn try_acquire(&self) -> io::Result<Option<Acquired>> {
+        match unsafe { WaitForSingleObject(self.sem.0, 0) } {
+            WAIT_OBJECT_0 => Ok(Some(Acquired)),
+            WAIT_TIMEOUT => Ok(None),
+            WAIT_FAILED => Err(io::Error::last_os_error()),
+            // We believe this should be impossible for a semaphore, but still
+            // check the error code just in case it happens.
+            WAIT_ABANDONED => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Wait on jobserver semaphore returned WAIT_ABANDONED",
+            )),
+            _ => unreachable!("Unexpected return value from WaitForSingleObject"),
         }
     }
 
@@ -236,7 +260,7 @@ pub(crate) fn spawn_helper(
         state.for_each_request(|_| {
             const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
             match unsafe { WaitForMultipleObjects(2, objects.as_ptr(), FALSE, INFINITE) } {
-                WAIT_OBJECT_0 => return,
+                WAIT_OBJECT_0 => {}
                 WAIT_OBJECT_1 => f(Ok(crate::Acquired {
                     client: client.inner.clone(),
                     data: Acquired,

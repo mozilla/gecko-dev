@@ -7,11 +7,7 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 
-use futures::future::{self, Future};
-use futures::stream::{self, Stream};
 use jobserver::Client;
-use tokio_core::reactor::Core;
-use tokio_process::CommandExt;
 
 macro_rules! t {
     ($e:expr) => {
@@ -24,9 +20,9 @@ macro_rules! t {
 
 struct Test {
     name: &'static str,
-    f: &'static dyn Fn(),
+    f: &'static (dyn Fn() + Send + Sync),
     make_args: &'static [&'static str],
-    rule: &'static dyn Fn(&str) -> String,
+    rule: &'static (dyn Fn(&str) -> String + Send + Sync),
 }
 
 const TESTS: &[Test] = &[
@@ -118,9 +114,7 @@ fn main() {
     let me = me.to_str().unwrap();
     let filter = env::args().nth(1);
 
-    let mut core = t!(Core::new());
-
-    let futures = TESTS
+    let join_handles = TESTS
         .iter()
         .filter(|test| match filter {
             Some(ref s) => test.name.contains(s),
@@ -138,33 +132,33 @@ all:
                 (test.rule)(me)
             );
             t!(t!(File::create(td.path().join("Makefile"))).write_all(makefile.as_bytes()));
-            let prog = env::var("MAKE").unwrap_or_else(|_| "make".to_string());
-            let mut cmd = Command::new(prog);
-            cmd.args(test.make_args);
-            cmd.current_dir(td.path());
-            future::lazy(move || {
-                cmd.output_async().map(move |e| {
-                    drop(td);
-                    (test, e)
-                })
+            thread::spawn(move || {
+                let prog = env::var("MAKE").unwrap_or_else(|_| "make".to_string());
+                let mut cmd = Command::new(prog);
+                cmd.args(test.make_args);
+                cmd.current_dir(td.path());
+
+                (test, cmd.output().unwrap())
             })
         })
         .collect::<Vec<_>>();
 
-    println!("\nrunning {} tests\n", futures.len());
+    println!("\nrunning {} tests\n", join_handles.len());
 
-    let stream = stream::iter(futures.into_iter().map(Ok)).buffer_unordered(num_cpus::get());
+    let failures = join_handles
+        .into_iter()
+        .filter_map(|join_handle| {
+            let (test, output) = join_handle.join().unwrap();
 
-    let mut failures = Vec::new();
-    t!(core.run(stream.for_each(|(test, output)| {
-        if output.status.success() {
-            println!("test {} ... ok", test.name);
-        } else {
-            println!("test {} ... FAIL", test.name);
-            failures.push((test, output));
-        }
-        Ok(())
-    })));
+            if output.status.success() {
+                println!("test {} ... ok", test.name);
+                None
+            } else {
+                println!("test {} ... FAIL", test.name);
+                Some((test, output))
+            }
+        })
+        .collect::<Vec<_>>();
 
     if failures.is_empty() {
         println!("\ntest result: ok\n");

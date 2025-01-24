@@ -11,7 +11,10 @@
 //! The jobserver implementation can be found in [detail online][docs] but
 //! basically boils down to a cross-process semaphore. On Unix this is
 //! implemented with the `pipe` syscall and read/write ends of a pipe and on
-//! Windows this is implemented literally with IPC semaphores.
+//! Windows this is implemented literally with IPC semaphores. Starting from
+//! GNU `make` version 4.4, named pipe becomes the default way in communication
+//! on Unix. This crate also supports that feature in the sense of inheriting
+//! and forwarding the correct environment.
 //!
 //! The jobserver protocol in `make` also dictates when tokens are acquired to
 //! run child work, and clients using this crate should take care to implement
@@ -73,16 +76,18 @@
 //! compatible with `make` on Windows. It is, however, compatible with
 //! `mingw32-make`.
 //!
-//! [docs]: http://make.mad-scientist.net/papers/jobserver-implementation/
+//! [docs]: https://make.mad-scientist.net/papers/jobserver-implementation/
 
 #![deny(missing_docs, missing_debug_implementations)]
 #![doc(html_root_url = "https://docs.rs/jobserver/0.1")]
 
 use std::env;
+use std::ffi::OsString;
 use std::io;
 use std::process::Command;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
+mod error;
 #[cfg(unix)]
 #[path = "unix.rs"]
 mod imp;
@@ -104,8 +109,8 @@ mod imp;
 /// Some usage examples can be found in the crate documentation for using a
 /// client.
 ///
-/// Note that a `Client` implements the `Clone` trait, and all instances of a
-/// `Client` refer to the same jobserver instance.
+/// Note that a [`Client`] implements the [`Clone`] trait, and all instances of
+/// a [`Client`] refer to the same jobserver instance.
 #[derive(Clone, Debug)]
 pub struct Client {
     inner: Arc<imp::Client>,
@@ -123,13 +128,13 @@ pub struct Acquired {
 }
 
 impl Acquired {
-    /// This drops the `Acquired` token without releasing the associated token.
+    /// This drops the [`Acquired`] token without releasing the associated token.
     ///
     /// This is not generally useful, but can be helpful if you do not have the
     /// ability to store an Acquired token but need to not yet release it.
     ///
-    /// You'll typically want to follow this up with a call to `release_raw` or
-    /// similar to actually release the token later on.
+    /// You'll typically want to follow this up with a call to
+    /// [`Client::release_raw`] or similar to actually release the token later on.
     pub fn drop_without_releasing(mut self) {
         self.disabled = true;
     }
@@ -148,17 +153,45 @@ struct HelperInner {
     consumer_done: bool,
 }
 
+use error::FromEnvErrorInner;
+pub use error::{FromEnvError, FromEnvErrorKind};
+
+/// Return type for [`Client::from_env_ext`] function.
+#[derive(Debug)]
+pub struct FromEnv {
+    /// Result of trying to get jobserver client from env.
+    pub client: Result<Client, FromEnvError>,
+    /// Name and value of the environment variable.
+    /// `None` if no relevant environment variable is found.
+    pub var: Option<(&'static str, OsString)>,
+}
+
+impl FromEnv {
+    fn new_ok(client: Client, var_name: &'static str, var_value: OsString) -> FromEnv {
+        FromEnv {
+            client: Ok(client),
+            var: Some((var_name, var_value)),
+        }
+    }
+    fn new_err(kind: FromEnvErrorInner, var_name: &'static str, var_value: OsString) -> FromEnv {
+        FromEnv {
+            client: Err(FromEnvError { inner: kind }),
+            var: Some((var_name, var_value)),
+        }
+    }
+}
+
 impl Client {
     /// Creates a new jobserver initialized with the given parallelism limit.
     ///
     /// A client to the jobserver created will be returned. This client will
     /// allow at most `limit` tokens to be acquired from it in parallel. More
-    /// calls to `acquire` will cause the calling thread to block.
+    /// calls to [`Client::acquire`] will cause the calling thread to block.
     ///
-    /// Note that the created `Client` is not automatically inherited into
+    /// Note that the created [`Client`] is not automatically inherited into
     /// spawned child processes from this program. Manual usage of the
-    /// `configure` function is required for a child process to have access to a
-    /// job server.
+    /// [`Client::configure`] function is required for a child process to have
+    /// access to a job server.
     ///
     /// # Examples
     ///
@@ -186,27 +219,24 @@ impl Client {
     /// it's passing down. This function will attempt to look for these details
     /// and connect to the jobserver.
     ///
-    /// Note that the created `Client` is not automatically inherited into
+    /// Note that the created [`Client`] is not automatically inherited into
     /// spawned child processes from this program. Manual usage of the
-    /// `configure` function is required for a child process to have access to a
-    /// job server.
+    /// [`Client::configure`] function is required for a child process to have
+    /// access to a job server.
     ///
     /// # Return value
     ///
+    /// [`FromEnv`] contains result and relevant environment variable.
     /// If a jobserver was found in the environment and it looks correct then
-    /// `Some` of the connected client will be returned. If no jobserver was
-    /// found then `None` will be returned.
-    ///
-    /// Note that on Unix the `Client` returned **takes ownership of the file
-    /// descriptors specified in the environment**. Jobservers on Unix are
-    /// implemented with `pipe` file descriptors, and they're inherited from
-    /// parent processes. This `Client` returned takes ownership of the file
-    /// descriptors for this process and will close the file descriptors after
-    /// this value is dropped.
+    /// result with the connected client will be returned. In other cases
+    /// result will contain `Err(FromEnvErr)`.
     ///
     /// Additionally on Unix this function will configure the file descriptors
     /// with `CLOEXEC` so they're not automatically inherited by spawned
     /// children.
+    ///
+    /// On unix if `check_pipe` enabled this function will check if provided
+    /// files are actually pipes.
     ///
     /// # Safety
     ///
@@ -219,33 +249,54 @@ impl Client {
     /// make sure to take ownership properly of the file descriptors passed
     /// down, if any.
     ///
-    /// It's generally unsafe to call this function twice in a program if the
-    /// previous invocation returned `Some`.
-    ///
-    /// Note, though, that on Windows it should be safe to call this function
-    /// any number of times.
-    pub unsafe fn from_env() -> Option<Client> {
-        let var = match env::var("CARGO_MAKEFLAGS")
-            .or_else(|_| env::var("MAKEFLAGS"))
-            .or_else(|_| env::var("MFLAGS"))
+    /// It is ok to call this function any number of times.
+    pub unsafe fn from_env_ext(check_pipe: bool) -> FromEnv {
+        let (env, var_os) = match ["CARGO_MAKEFLAGS", "MAKEFLAGS", "MFLAGS"]
+            .iter()
+            .map(|&env| env::var_os(env).map(|var| (env, var)))
+            .find_map(|p| p)
         {
-            Ok(s) => s,
-            Err(_) => return None,
+            Some((env, var_os)) => (env, var_os),
+            None => return FromEnv::new_err(FromEnvErrorInner::NoEnvVar, "", Default::default()),
         };
-        let mut arg = "--jobserver-fds=";
-        let pos = match var.find(arg) {
-            Some(i) => i,
+
+        let var = match var_os.to_str() {
+            Some(var) => var,
             None => {
-                arg = "--jobserver-auth=";
-                match var.find(arg) {
-                    Some(i) => i,
-                    None => return None,
-                }
+                let err = FromEnvErrorInner::CannotParse("not valid UTF-8".to_string());
+                return FromEnv::new_err(err, env, var_os);
             }
         };
 
-        let s = var[pos + arg.len()..].split(' ').next().unwrap();
-        imp::Client::open(s).map(|c| Client { inner: Arc::new(c) })
+        let s = match find_jobserver_auth(var) {
+            Some(s) => s,
+            None => return FromEnv::new_err(FromEnvErrorInner::NoJobserver, env, var_os),
+        };
+        match imp::Client::open(s, check_pipe) {
+            Ok(c) => FromEnv::new_ok(Client { inner: Arc::new(c) }, env, var_os),
+            Err(err) => FromEnv::new_err(err, env, var_os),
+        }
+    }
+
+    /// Attempts to connect to the jobserver specified in this process's
+    /// environment.
+    ///
+    /// Wraps [`Client::from_env_ext`] and discards error details.
+    ///
+    /// # Safety
+    ///
+    /// This function is `unsafe` to call on Unix specifically as it
+    /// transitively requires usage of the `from_raw_fd` function, which is
+    /// itself unsafe in some circumstances.
+    ///
+    /// It's recommended to call this function very early in the lifetime of a
+    /// program before any other file descriptors are opened. That way you can
+    /// make sure to take ownership properly of the file descriptors passed
+    /// down, if any.
+    ///
+    /// It is ok to call this function any number of times.
+    pub unsafe fn from_env() -> Option<Client> {
+        Self::from_env_ext(false).client.ok()
     }
 
     /// Acquires a token from this jobserver client.
@@ -255,7 +306,7 @@ impl Client {
     ///
     /// # Return value
     ///
-    /// On successful acquisition of a token an instance of `Acquired` is
+    /// On successful acquisition of a token an instance of [`Acquired`] is
     /// returned. This structure, when dropped, will release the token back to
     /// the jobserver. It's recommended to avoid leaking this value.
     ///
@@ -271,6 +322,32 @@ impl Client {
             data,
             disabled: false,
         })
+    }
+
+    /// Acquires a token from this jobserver client in a non-blocking way.
+    ///
+    /// # Return value
+    ///
+    /// On successful acquisition of a token an instance of [`Acquired`] is
+    /// returned. This structure, when dropped, will release the token back to
+    /// the jobserver. It's recommended to avoid leaking this value.
+    ///
+    /// # Errors
+    ///
+    /// If an I/O error happens while acquiring a token then this function will
+    /// return immediately with the error. If an error is returned then a token
+    /// was not acquired.
+    ///
+    /// If non-blocking acquire is not supported, the return error will have its `kind()`
+    /// set to [`io::ErrorKind::Unsupported`].
+    pub fn try_acquire(&self) -> io::Result<Option<Acquired>> {
+        let ret = self.inner.try_acquire()?;
+
+        Ok(ret.map(|data| Acquired {
+            client: self.inner.clone(),
+            data,
+            disabled: false,
+        }))
     }
 
     /// Returns amount of tokens in the read-side pipe.
@@ -291,9 +368,10 @@ impl Client {
     ///
     /// This function is required to be called to ensure that a jobserver is
     /// properly inherited to a child process. If this function is *not* called
-    /// then this `Client` will not be accessible in the child process. In other
-    /// words, if not called, then `Client::from_env` will return `None` in the
-    /// child process (or the equivalent of `Child::from_env` that `make` uses).
+    /// then this [`Client`] will not be accessible in the child process. In
+    /// other words, if not called, then [`Client::from_env`] will return `None`
+    /// in the child process (or the equivalent of [`Client::from_env`] that
+    /// `make` uses).
     ///
     /// ## Platform-specific behavior
     ///
@@ -312,9 +390,10 @@ impl Client {
     ///
     /// This function is required to be called to ensure that a jobserver is
     /// properly inherited to a child process. If this function is *not* called
-    /// then this `Client` will not be accessible in the child process. In other
-    /// words, if not called, then `Client::from_env` will return `None` in the
-    /// child process (or the equivalent of `Child::from_env` that `make` uses).
+    /// then this [`Client`] will not be accessible in the child process. In
+    /// other words, if not called, then [`Client::from_env`] will return `None`
+    /// in the child process (or the equivalent of [`Client::from_env`] that
+    /// `make` uses).
     ///
     /// ## Platform-specific behavior
     ///
@@ -340,19 +419,18 @@ impl Client {
         format!("-j --jobserver-fds={0} --jobserver-auth={0}", arg)
     }
 
-    /// Converts this `Client` into a helper thread to deal with a blocking
-    /// `acquire` function a little more easily.
+    /// Converts this [`Client`] into a helper thread to deal with a blocking
+    /// [`Client::acquire`] function a little more easily.
     ///
-    /// The fact that the `acquire` function on `Client` blocks isn't always
-    /// the easiest to work with. Typically you're using a jobserver to
-    /// manage running other events in parallel! This means that you need to
-    /// either (a) wait for an existing job to finish or (b) wait for a
-    /// new token to become available.
+    /// The fact that the [`Client::acquire`] isn't always the easiest to work
+    /// with. Typically you're using a jobserver to manage running other events
+    /// in parallel! This means that you need to either (a) wait for an existing
+    /// job to finish or (b) wait for a new token to become available.
     ///
-    /// Unfortunately the blocking in `acquire` happens at the implementation
-    /// layer of jobservers. On Unix this requires a blocking call to `read`
-    /// and on Windows this requires one of the `WaitFor*` functions. Both
-    /// of these situations aren't the easiest to deal with:
+    /// Unfortunately the blocking in [`Client::acquire`] happens at the
+    /// implementation layer of jobservers. On Unix this requires a blocking
+    /// call to `read` and on Windows this requires one of the `WaitFor*`
+    /// functions. Both of these situations aren't the easiest to deal with:
     ///
     /// * On Unix there's basically only one way to wake up a `read` early, and
     ///   that's through a signal. This is what the `make` implementation
@@ -368,7 +446,7 @@ impl Client {
     ///   unfortunately.
     ///
     /// This function essentially attempts to ease these limitations by
-    /// converting this `Client` into a helper thread spawned into this
+    /// converting this [`Client`] into a helper thread spawned into this
     /// process. The application can then request that the helper thread
     /// acquires tokens and the provided closure will be invoked for each token
     /// acquired.
@@ -378,23 +456,23 @@ impl Client {
     ///
     /// # Arguments
     ///
-    /// This function will consume the `Client` provided to be transferred to
+    /// This function will consume the [`Client`] provided to be transferred to
     /// the helper thread that is spawned. Additionally a closure `f` is
     /// provided to be invoked whenever a token is acquired.
     ///
     /// This closure is only invoked after calls to
-    /// `HelperThread::request_token` have been made and a token itself has
+    /// [`HelperThread::request_token`] have been made and a token itself has
     /// been acquired. If an error happens while acquiring the token then
     /// an error will be yielded to the closure as well.
     ///
     /// # Return Value
     ///
-    /// This function will return an instance of the `HelperThread` structure
+    /// This function will return an instance of the [`HelperThread`] structure
     /// which is used to manage the helper thread associated with this client.
-    /// Through the `HelperThread` you'll request that tokens are acquired.
+    /// Through the [`HelperThread`] you'll request that tokens are acquired.
     /// When acquired, the closure provided here is invoked.
     ///
-    /// When the `HelperThread` structure is returned it will be gracefully
+    /// When the [`HelperThread`] structure is returned it will be gracefully
     /// torn down, and the calling thread will be blocked until the thread is
     /// torn down (which should be prompt).
     ///
@@ -431,9 +509,9 @@ impl Client {
 
     /// Blocks the current thread until a token is acquired.
     ///
-    /// This is the same as `acquire`, except that it doesn't return an RAII
-    /// helper. If successful the process will need to guarantee that
-    /// `release_raw` is called in the future.
+    /// This is the same as [`Client::acquire`], except that it doesn't return
+    /// an RAII helper. If successful the process will need to guarantee that
+    /// [`Client::release_raw`] is called in the future.
     pub fn acquire_raw(&self) -> io::Result<()> {
         self.inner.acquire()?;
         Ok(())
@@ -441,9 +519,9 @@ impl Client {
 
     /// Releases a jobserver token back to the original jobserver.
     ///
-    /// This is intended to be paired with `acquire_raw` if it was called, but
-    /// in some situations it could also be called to relinquish a process's
-    /// implicit token temporarily which is then re-acquired later.
+    /// This is intended to be paired with [`Client::acquire_raw`] if it was
+    /// called, but in some situations it could also be called to relinquish a
+    /// process's implicit token temporarily which is then re-acquired later.
     pub fn release_raw(&self) -> io::Result<()> {
         self.inner.release(None)?;
         Ok(())
@@ -458,7 +536,7 @@ impl Drop for Acquired {
     }
 }
 
-/// Structure returned from `Client::into_helper_thread` to manage the lifetime
+/// Structure returned from [`Client::into_helper_thread`] to manage the lifetime
 /// of the helper thread returned, see those associated docs for more info.
 #[derive(Debug)]
 pub struct HelperThread {
@@ -470,7 +548,7 @@ impl HelperThread {
     /// Request that the helper thread acquires a token, eventually calling the
     /// original closure with a token when it's available.
     ///
-    /// For more information, see the docs on that function.
+    /// For more information, see the docs on [`Client::into_helper_thread`].
     pub fn request_token(&self) {
         // Indicate that there's one more request for a token and then wake up
         // the helper thread if it's sleeping.
@@ -527,15 +605,100 @@ impl HelperState {
         lock.consumer_done = true;
         self.cvar.notify_one();
     }
-
-    fn producer_done(&self) -> bool {
-        self.lock().producer_done
-    }
 }
 
-#[test]
-fn no_helper_deadlock() {
-    let x = crate::Client::new(32).unwrap();
-    let _y = x.clone();
-    std::mem::drop(x.into_helper_thread(|_| {}).unwrap());
+/// Finds and returns the value of `--jobserver-auth=<VALUE>` in the given
+/// environment variable.
+///
+/// Precedence rules:
+///
+/// * The last instance wins [^1].
+/// * `--jobserver-fds=` as a fallback when no `--jobserver-auth=` is present [^2].
+///
+/// [^1]: See ["GNU `make` manual: Sharing Job Slots with GNU `make`"](https://www.gnu.org/software/make/manual/make.html#Job-Slots)
+/// _"Be aware that the `MAKEFLAGS` variable may contain multiple instances of
+/// the `--jobserver-auth=` option. Only the last instance is relevant."_
+///
+/// [^2]: Refer to [the release announcement](https://git.savannah.gnu.org/cgit/make.git/tree/NEWS?h=4.2#n31)
+/// of GNU Make 4.2, which states that `--jobserver-fds` was initially an
+/// internal-only flag and was later renamed to `--jobserver-auth`.
+fn find_jobserver_auth(var: &str) -> Option<&str> {
+    ["--jobserver-auth=", "--jobserver-fds="]
+        .iter()
+        .find_map(|&arg| var.rsplit_once(arg).map(|(_, s)| s))
+        .and_then(|s| s.split(' ').next())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    pub(super) fn run_named_fifo_try_acquire_tests(client: &Client) {
+        assert!(client.try_acquire().unwrap().is_none());
+        client.release_raw().unwrap();
+
+        let acquired = client.try_acquire().unwrap().unwrap();
+        assert!(client.try_acquire().unwrap().is_none());
+
+        drop(acquired);
+        client.try_acquire().unwrap().unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_try_acquire() {
+        let client = Client::new(0).unwrap();
+
+        run_named_fifo_try_acquire_tests(&client);
+    }
+
+    #[test]
+    fn no_helper_deadlock() {
+        let x = crate::Client::new(32).unwrap();
+        let _y = x.clone();
+        std::mem::drop(x.into_helper_thread(|_| {}).unwrap());
+    }
+
+    #[test]
+    fn test_find_jobserver_auth() {
+        let cases = [
+            ("", None),
+            ("-j2", None),
+            ("-j2 --jobserver-auth=3,4", Some("3,4")),
+            ("--jobserver-auth=3,4 -j2", Some("3,4")),
+            ("--jobserver-auth=3,4", Some("3,4")),
+            ("--jobserver-auth=fifo:/myfifo", Some("fifo:/myfifo")),
+            ("--jobserver-auth=", Some("")),
+            ("--jobserver-auth", None),
+            ("--jobserver-fds=3,4", Some("3,4")),
+            ("--jobserver-fds=fifo:/myfifo", Some("fifo:/myfifo")),
+            ("--jobserver-fds=", Some("")),
+            ("--jobserver-fds", None),
+            (
+                "--jobserver-auth=auth-a --jobserver-auth=auth-b",
+                Some("auth-b"),
+            ),
+            (
+                "--jobserver-auth=auth-b --jobserver-auth=auth-a",
+                Some("auth-a"),
+            ),
+            ("--jobserver-fds=fds-a --jobserver-fds=fds-b", Some("fds-b")),
+            ("--jobserver-fds=fds-b --jobserver-fds=fds-a", Some("fds-a")),
+            (
+                "--jobserver-auth=auth-a --jobserver-fds=fds-a --jobserver-auth=auth-b",
+                Some("auth-b"),
+            ),
+            (
+                "--jobserver-fds=fds-a --jobserver-auth=auth-a --jobserver-fds=fds-b",
+                Some("auth-a"),
+            ),
+        ];
+        for (var, expected) in cases {
+            let actual = find_jobserver_auth(var);
+            assert_eq!(
+                actual, expected,
+                "expect {expected:?}, got {actual:?}, input `{var:?}`"
+            );
+        }
+    }
 }

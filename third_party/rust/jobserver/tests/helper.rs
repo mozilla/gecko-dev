@@ -1,6 +1,5 @@
 use jobserver::Client;
 use std::sync::atomic::*;
-use std::sync::mpsc;
 use std::sync::*;
 
 macro_rules! t {

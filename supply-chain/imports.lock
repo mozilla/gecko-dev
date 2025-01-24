@@ -1188,6 +1188,11 @@ crate is broadly used throughout the ecosystem and does not contain anything
 suspicious.
 """
 
+[[audits.bytecode-alliance.audits.jobserver]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.25 -> 0.1.32"
+
 [[audits.bytecode-alliance.audits.leb128]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
