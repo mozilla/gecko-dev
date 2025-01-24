@@ -32,7 +32,7 @@ main {
   padding: 0;
 
   &.newtab-main {
-    align-items: center;
+    min-width: min-content;
   }
 
   .vertical-center-wrapper {
