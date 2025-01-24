@@ -163,13 +163,13 @@ searchConfiguration:
         parameter will not be included in the search url.
 
         Only the search team can update the configuration.
-    seperatePrivateDefaultUIEnabled:
+    separatePrivateDefaultUIEnabled:
       type: boolean
       setPref:
         branch: user
         pref: browser.search.separatePrivateDefault.ui.enabled
       description: Whether the UI for the separate private default feature is enabled.
-    seperatePrivateDefaultUrlbarResultEnabled:
+    separatePrivateDefaultUrlbarResultEnabled:
       type: boolean
       setPref:
         branch: user

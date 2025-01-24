@@ -55,10 +55,10 @@ const CONFIG = [
 let getVariableStub;
 
 let defaultGetVariable = name => {
-  if (name == "seperatePrivateDefaultUIEnabled") {
+  if (name == "separatePrivateDefaultUIEnabled") {
     return true;
   }
-  if (name == "seperatePrivateDefaultUrlbarResultEnabled") {
+  if (name == "separatePrivateDefaultUrlbarResultEnabled") {
     return false;
   }
   return undefined;

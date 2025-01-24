@@ -84,8 +84,8 @@ add_task(async function test_nimbus_experiment() {
   let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
     featureId: "searchConfiguration",
     value: {
-      seperatePrivateDefaultUIEnabled: true,
-      seperatePrivateDefaultUrlbarResultEnabled: false,
+      separatePrivateDefaultUIEnabled: true,
+      separatePrivateDefaultUrlbarResultEnabled: false,
       experiment: "testing",
     },
   });
@@ -120,8 +120,8 @@ add_task(async function test_nimbus_experiment_urlbar_result_enabled() {
   let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
     featureId: "searchConfiguration",
     value: {
-      seperatePrivateDefaultUIEnabled: true,
-      seperatePrivateDefaultUrlbarResultEnabled: true,
+      separatePrivateDefaultUIEnabled: true,
+      separatePrivateDefaultUrlbarResultEnabled: true,
       experiment: "testing",
     },
   });
@@ -155,7 +155,7 @@ add_task(async function test_non_experiment_prefs() {
   let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
     featureId: "privatesearch",
     value: {
-      seperatePrivateDefaultUIEnabled: true,
+      separatePrivateDefaultUIEnabled: true,
     },
   });
   Assert.equal(uiPref(), false, "Pref did not change without experiment");
