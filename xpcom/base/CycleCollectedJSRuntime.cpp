@@ -79,7 +79,7 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_javascript.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/DOMJSClass.h"
@@ -1724,7 +1724,7 @@ IncrementalFinalizeRunnable::Run() {
   }
 
   MOZ_ASSERT(mRuntime->mFinalizeRunnable == this);
-  TimeStamp start = TimeStamp::Now();
+  auto timerId = glean::cycle_collector::deferred_finalize_async.Start();
   ReleaseNow(true);
 
   if (mDeferredFinalizeFunctions.Length()) {
@@ -1736,8 +1736,8 @@ IncrementalFinalizeRunnable::Run() {
     MOZ_ASSERT(!mRuntime);
   }
 
-  uint32_t duration = (uint32_t)((TimeStamp::Now() - start).ToMilliseconds());
-  Telemetry::Accumulate(Telemetry::DEFERRED_FINALIZE_ASYNC, duration);
+  glean::cycle_collector::deferred_finalize_async.StopAndAccumulate(
+      std::move(timerId));
 
   return NS_OK;
 }

@@ -435,3 +435,37 @@ cycle_collector:
       - dev-telemetry-gc-alerts@mozilla.org
     expires: never
     telemetry_mirror: CYCLE_COLLECTOR_SLICE_DURING_IDLE
+
+  async_snow_white_freeing:
+    type: timing_distribution
+    description: >
+      Time spent on one asynchronous SnowWhite freeing (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING
+
+  deferred_finalize_async:
+    type: timing_distribution
+    description: >
+      Pause time for asynchronous deferred finalization (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DEFERRED_FINALIZE_ASYNC.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: DEFERRED_FINALIZE_ASYNC

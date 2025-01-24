@@ -39,6 +39,7 @@
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/glean/JsXpconnectMetrics.h"
+#include "mozilla/glean/XpcomMetrics.h"
 
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"
@@ -157,14 +158,13 @@ class AsyncFreeSnowWhite : public Runnable {
     AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Incremental CC", GCCC);
     AUTO_PROFILER_LABEL("AsyncFreeSnowWhite::Run", GCCC_FreeSnowWhite);
 
-    TimeStamp start = TimeStamp::Now();
+    auto timerId = glean::cycle_collector::async_snow_white_freeing.Start();
     // 2 ms budget, given that kICCSliceBudget is only 3 ms
     SliceBudget budget = SliceBudget(TimeBudget(2));
     bool hadSnowWhiteObjects =
         nsCycleCollector_doDeferredDeletionWithBudget(budget);
-    Telemetry::Accumulate(
-        Telemetry::CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING,
-        uint32_t((TimeStamp::Now() - start).ToMilliseconds()));
+    glean::cycle_collector::async_snow_white_freeing.StopAndAccumulate(
+        std::move(timerId));
     if (hadSnowWhiteObjects && !mContinuation) {
       mContinuation = true;
       if (NS_FAILED(Dispatch())) {
