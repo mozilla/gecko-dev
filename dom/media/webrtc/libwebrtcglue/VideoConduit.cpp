@@ -749,8 +749,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
                 ? webrtc::VideoEncoderConfig::ContentType::kRealtimeVideo
                 : webrtc::VideoEncoderConfig::ContentType::kScreen;
 
-        mEncoderConfig.frame_drop_enabled =
-            mControl.mCodecMode.Ref() != webrtc::VideoCodecMode::kScreensharing;
+        mEncoderConfig.frame_drop_enabled = true;
 
         mEncoderConfig.min_transmit_bitrate_bps = mMinBitrate;
 
