@@ -105,13 +105,15 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
              "Simulcast not implemented for GMP-H264");
 
   GMPVideoCodec codecParams{};
-  codecParams.mGMPApiVersion = kGMPVersion34;
+  codecParams.mGMPApiVersion = kGMPVersion36;
   codecParams.mLogLevel = GetGMPLibraryLogLevel();
   codecParams.mStartBitrate = aCodecSettings->startBitrate;
   codecParams.mMinBitrate = aCodecSettings->minBitrate;
   codecParams.mMaxBitrate = aCodecSettings->maxBitrate;
   codecParams.mMaxFramerate = aCodecSettings->maxFramerate;
   codecParams.mFrameDroppingOn = aCodecSettings->GetFrameDropEnabled();
+  codecParams.mTemporalLayerNum =
+      aCodecSettings->simulcastStream[0].GetNumberOfTemporalLayers();
   if (aCodecSettings->mode == webrtc::VideoCodecMode::kScreensharing) {
     codecParams.mMode = kGMPScreensharing;
   } else {
@@ -510,6 +512,9 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit.capture_time_ms_ = capture_time.ms();
   unit._encodedWidth = aEncodedFrame->EncodedWidth();
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
+  if (int idx = aEncodedFrame->GetTemporalLayerId(); idx >= 0) {
+    unit.SetTemporalIndex(idx);
+  }
 
   // Parse QP.
   mH264BitstreamParser.ParseBitstream(unit);
