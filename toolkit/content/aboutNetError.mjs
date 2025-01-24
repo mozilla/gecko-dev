@@ -46,7 +46,6 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
   "unsafeContentType-title",
   "netReset-title",
   "netTimeout-title",
-  "httpErrorPage-title",
   "serverError-title",
   "unknownProtocolFound-title",
   "proxyConnectFailure-title",
@@ -769,7 +768,8 @@ function getNetErrorDescParts() {
     case "connectionFailure":
     case "netInterrupt":
     case "netReset":
-    case "netTimeout": {
+    case "netTimeout":
+    case "serverError": {
       let errorTags = [
         ["li", "neterror-load-error-try-again"],
         ["li", "neterror-load-error-connection"],
@@ -781,10 +781,6 @@ function getNetErrorDescParts() {
       return errorTags;
     }
 
-    case "httpErrorPage": // 4xx
-      return [["li", "neterror-http-error-page"]];
-    case "serverError": // 5xx
-      return [["li", "neterror-load-error-try-again"]];
     case "blockedByCOOP": {
       return [
         ["p", "certerror-blocked-by-corp-headers-description"],
