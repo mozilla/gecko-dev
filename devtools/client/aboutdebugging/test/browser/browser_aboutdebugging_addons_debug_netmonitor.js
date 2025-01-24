@@ -81,7 +81,10 @@ add_task(async function testWebExtensionsToolboxNetmonitor() {
   EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
   await waitForHeaders;
   EventUtils.sendMouseEvent({ type: "contextmenu" }, firstRequest);
-  await selectContextMenuItem(monitor, "request-list-context-edit-resend");
+  await selectNetmonitorContextMenuItem(
+    monitor,
+    "request-list-context-edit-resend"
+  );
 
   await waitUntil(
     () =>

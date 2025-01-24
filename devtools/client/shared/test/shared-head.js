@@ -2445,39 +2445,39 @@ async function toggleJsTracer(toolbox) {
 }
 
 /**
- * Retrieve the context menu element corresponding to the provided id, for the provided
- * netmonitor instance.
+ * Retrieve the context menu element corresponding to the provided id, for the
+ * provided netmonitor instance.
  * @param {Object} monitor
- *        The network monnitor object
+ *        The network monitor object
  * @param {String} id
  *        The id of the context menu item
  */
-function getContextMenuItem(monitor, id) {
+function getNetmonitorContextMenuItem(monitor, id) {
   const Menu = require("resource://devtools/client/framework/menu.js");
   return Menu.getMenuElementById(id, monitor.panelWin.document);
 }
 
 /*
- * Selects and clicks the context menu item, it should
+ * Selects and clicks the context menu item of the netmonitor, it should
  * also wait for the popup to close.
  * @param {Object} monitor
- *        The network monnitor object
+ *        The network monitor object
  * @param {String} id
  *        The id of the context menu item
  */
-async function selectContextMenuItem(monitor, id) {
-  const contextMenuItem = getContextMenuItem(monitor, id);
+async function selectNetmonitorContextMenuItem(monitor, id) {
+  const contextMenuItem = getNetmonitorContextMenuItem(monitor, id);
 
   const popup = contextMenuItem.parentNode;
-  await maybeOpenAncestorMenu(contextMenuItem);
+  await _maybeOpenAncestorMenu(contextMenuItem);
   const hidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
   popup.activateItem(contextMenuItem);
   await hidden;
 }
 
-async function maybeOpenAncestorMenu(menuItem) {
+async function _maybeOpenAncestorMenu(menuItem) {
   const parentPopup = menuItem.parentNode;
-  if (parentPopup.state == "shown") {
+  if (parentPopup.state == "open") {
     return;
   }
   const shown = BrowserTestUtils.waitForEvent(parentPopup, "popupshown");
@@ -2486,7 +2486,7 @@ async function maybeOpenAncestorMenu(menuItem) {
     return;
   }
   const parentMenu = parentPopup.parentNode;
-  await maybeOpenAncestorMenu(parentMenu);
+  await _maybeOpenAncestorMenu(parentMenu);
   parentMenu.openMenu(true);
   await shown;
 }
