@@ -187,8 +187,8 @@ const blackBoxLineMenuItem = (
   clickedLine = null,
   dispatch
 ) => {
-  const startLine = clickedLine ?? toSourceLine(selectedSource.id, from.line);
-  const endLine = clickedLine ?? toSourceLine(selectedSource.id, to.line);
+  const startLine = clickedLine ?? toSourceLine(selectedSource, from.line);
+  const endLine = clickedLine ?? toSourceLine(selectedSource, to.line);
 
   const blackboxRange = findBlackBoxRange(selectedSource, blackboxedRanges, {
     start: startLine,
@@ -253,8 +253,8 @@ const blackBoxLinesMenuItem = (
   clickedLine,
   dispatch
 ) => {
-  const startLine = toSourceLine(selectedSource.id, from.line);
-  const endLine = toSourceLine(selectedSource.id, to.line);
+  const startLine = toSourceLine(selectedSource, from.line);
+  const endLine = toSourceLine(selectedSource, to.line);
 
   const blackboxRange = findBlackBoxRange(selectedSource, blackboxedRanges, {
     start: startLine,
@@ -368,8 +368,8 @@ function editorMenuItems({
     blackBoxMenuItem(source, blackboxedRanges, isSourceOnIgnoreList, dispatch)
   );
 
-  const startLine = toSourceLine(source.id, lineObject.from.line);
-  const endLine = toSourceLine(source.id, lineObject.to.line);
+  const startLine = toSourceLine(source, lineObject.from.line);
+  const endLine = toSourceLine(source, lineObject.to.line);
 
   // Find any blackbox ranges that exist for the selected lines
   const blackboxRange = findBlackBoxRange(source, blackboxedRanges, {

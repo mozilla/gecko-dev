@@ -6,7 +6,6 @@ import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { Component } from "devtools/client/shared/vendor/react";
 import { toEditorLine, fromEditorLine } from "../../utils/editor/index";
 import { isLineBlackboxed } from "../../utils/source";
-import { isWasm } from "../../utils/wasm";
 
 // This renders blackbox line highlighting in the editor
 class BlackboxLines extends Component {
@@ -35,9 +34,9 @@ class BlackboxLines extends Component {
     } else {
       editor.codeMirror.operation(() => {
         blackboxedRangesForSelectedSource.forEach(range => {
-          const start = toEditorLine(selectedSource.id, range.start.line);
+          const start = toEditorLine(selectedSource, range.start.line);
           // CodeMirror.eachLine doesn't include `end` line offset, so bump by one
-          const end = toEditorLine(selectedSource.id, range.end.line) + 1;
+          const end = toEditorLine(selectedSource, range.end.line) + 1;
           editor.codeMirror.eachLine(start, end, lineHandle => {
             this.setBlackboxLine(editor, lineHandle);
           });
@@ -71,8 +70,6 @@ class BlackboxLines extends Component {
       return;
     }
 
-    const sourceIsWasm = isWasm(selectedSource.id);
-
     // TODO: Possible perf improvement. Instead of going
     // over all the lines each time get diffs of what has
     // changed and update those.
@@ -80,8 +77,7 @@ class BlackboxLines extends Component {
       editor.codeMirror.eachLine(lineHandle => {
         const line = fromEditorLine(
           selectedSource.id,
-          editor.codeMirror.getLineNumber(lineHandle),
-          sourceIsWasm
+          editor.codeMirror.getLineNumber(lineHandle)
         );
 
         if (

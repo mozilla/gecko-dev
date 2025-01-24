@@ -185,6 +185,7 @@ class Editor extends EventEmitter {
   #lineContentMarkers = new Map();
   #posContentMarkers = new Map();
   #editorDOMEventHandlers = {};
+  #gutterDOMEventHandlers = {};
   // A cache of all the scroll snapshots for the all the sources that
   // are currently open in the editor. The keys for the Map are the id's
   // for the source and the values are the scroll snapshots for the sources.
@@ -1118,6 +1119,7 @@ class Editor extends EventEmitter {
     } = this.#CodeMirror6;
 
     this.#editorDOMEventHandlers = {};
+    this.#gutterDOMEventHandlers = {};
     cm.dispatch({
       effects: this.#compartments.domEventHandlersCompartment.reconfigure(
         EditorView.domEventHandlers({})
@@ -1483,7 +1485,7 @@ class Editor extends EventEmitter {
 
     for (const eventName in domEventHandlers) {
       const handler = domEventHandlers[eventName];
-      domEventHandlers[eventName] = (view, line, event) => {
+      this.#gutterDOMEventHandlers[eventName] = (view, line, event) => {
         line = view.state.doc.lineAt(line.from);
         handler(event, view, line.number);
       };
@@ -1492,7 +1494,7 @@ class Editor extends EventEmitter {
     cm.dispatch({
       effects: [
         this.#compartments.lineNumberCompartment.reconfigure(
-          lineNumbers({ domEventHandlers })
+          lineNumbers({ domEventHandlers: this.#gutterDOMEventHandlers })
         ),
         this.#compartments.foldGutterCompartment.reconfigure(
           foldGutter({
@@ -1506,7 +1508,7 @@ class Editor extends EventEmitter {
               button.setAttribute("aria-expanded", open);
               return button;
             },
-            domEventHandlers,
+            domEventHandlers: this.#gutterDOMEventHandlers,
           })
         ),
       ],
@@ -2066,6 +2068,7 @@ class Editor extends EventEmitter {
     const cm = editors.get(this);
     if (this.config.cm6) {
       if (!this.#currentDocument) {
+        // A key for caching the WASM content in the WeakMap
         this.#currentDocument = { id: this.#currentDocumentId };
       }
       return this.#currentDocument;
@@ -2075,6 +2078,10 @@ class Editor extends EventEmitter {
 
   get isWasm() {
     return wasm.isWasm(this.getDoc());
+  }
+
+  getWasmLineNumberFormatter() {
+    return wasm.getWasmLineNumberFormatter(this.getDoc());
   }
 
   wasmOffsetToLine(offset) {
@@ -2092,6 +2099,10 @@ class Editor extends EventEmitter {
     return this.wasmOffsetToLine(maybeOffset);
   }
 
+  renderWasmText(content) {
+    return wasm.renderWasmText(this.getDoc(), content);
+  }
+
   /**
    * Gets details about the line
    *
@@ -2101,7 +2112,6 @@ class Editor extends EventEmitter {
   lineInfo(line) {
     const cm = editors.get(this);
     if (this.config.cm6) {
-      // cm6 lines are 1-based, while cm5 are 0-based
       const el = this.getElementAtLine(line);
       // Filter out SPAN which do not contain user-defined classes.
       // Classes currently are "debug-expression" and "debug-expression-error"
@@ -2133,10 +2143,6 @@ class Editor extends EventEmitter {
     }
 
     return cm.lineInfo(line);
-  }
-
-  getLineOrOffset(line) {
-    return this.isWasm ? this.lineToWasmOffset(line) : line;
   }
 
   /**
@@ -2226,8 +2232,13 @@ class Editor extends EventEmitter {
    */
   async setText(value, documentId) {
     const cm = editors.get(this);
+    const isWasm = typeof value !== "string" && "binary" in value;
 
-    if (typeof value !== "string" && "binary" in value) {
+    if (documentId) {
+      this.#currentDocumentId = documentId;
+    }
+
+    if (isWasm) {
       // wasm?
       // binary does not survive as Uint8Array, converting from string
       const binary = value.binary;
@@ -2235,6 +2246,7 @@ class Editor extends EventEmitter {
       for (let i = 0; i < data.length; i++) {
         data[i] = binary.charCodeAt(i);
       }
+
       const { lines, done } = wasm.getWasmText(this.getDoc(), data);
       const MAX_LINES = 10000000;
       if (lines.length > MAX_LINES) {
@@ -2244,8 +2256,13 @@ class Editor extends EventEmitter {
       if (!done) {
         lines.push(";; .... possible error during wast conversion");
       }
-      // cm will try to split into lines anyway, saving memory
-      value = { split: () => lines };
+
+      if (this.config.cm6) {
+        value = lines.join("\n");
+      } else {
+        // cm will try to split into lines anyway, saving memory
+        value = { split: () => lines };
+      }
     }
 
     if (this.config.cm6) {
@@ -2253,28 +2270,43 @@ class Editor extends EventEmitter {
         return;
       }
 
+      const {
+        codemirrorView: { EditorView, lineNumbers },
+      } = this.#CodeMirror6;
+
       await cm.dispatch({
         changes: { from: 0, to: cm.state.doc.length, insert: value },
         selection: { anchor: 0 },
       });
 
-      const {
-        codemirrorView: { EditorView },
-      } = this.#CodeMirror6;
+      const effects = [];
+      if (this.config?.lineNumbers) {
+        const lineNumbersConfig = {
+          domEventHandlers: this.#gutterDOMEventHandlers,
+        };
+        if (isWasm) {
+          lineNumbersConfig.formatNumber = this.getWasmLineNumberFormatter();
+        }
+        effects.push(
+          this.#compartments.lineNumberCompartment.reconfigure(
+            lineNumbers(lineNumbersConfig)
+          )
+        );
+      }
       // Get the cached scroll snapshot for this source and restore
       // the scroll position. Note: The scroll has to be done in a seperate dispatch
       // (after the previous dispatch has set the document), this is because
       // it is required that the document the scroll snapshot is applied to
       // is the exact document it was saved on.
       const scrollSnapshot = this.#scrollSnapshots.get(documentId);
-      await cm.dispatch({
-        effects: scrollSnapshot
-          ? [scrollSnapshot]
-          : [EditorView.scrollIntoView(0)],
-      });
 
-      if (documentId) {
-        this.#currentDocumentId = documentId;
+      effects.push(
+        scrollSnapshot ? scrollSnapshot : EditorView.scrollIntoView(0)
+      );
+
+      await cm.dispatch({ effects });
+
+      if (this.currentDocumentId) {
         // If there is no scroll snapshot explicitly cache the snapshot set as no scroll
         // is triggered.
         if (!scrollSnapshot) {

@@ -78,7 +78,7 @@ export class HighlightLine extends Component {
 
   shouldSetHighlightLine({ selectedLocation, selectedSourceTextContent }) {
     const editorLine = toEditorLine(
-      selectedLocation.source.id,
+      selectedLocation.source,
       selectedLocation.line
     );
 
@@ -125,7 +125,10 @@ export class HighlightLine extends Component {
 
     this.isStepping = false;
     const sourceId = selectedLocation.source.id;
-    const editorLine = toEditorLine(sourceId, selectedLocation.line);
+    const editorLine = toEditorLine(
+      selectedLocation.source,
+      selectedLocation.line
+    );
     this.previousEditorLine = editorLine;
 
     if (
@@ -139,7 +142,7 @@ export class HighlightLine extends Component {
       editor.setLineContentMarker({
         id: markerTypes.HIGHLIGHT_LINE_MARKER,
         lineClassName: "highlight-line",
-        lines: [{ line: selectedLocation.line }],
+        lines: [{ line: editorLine }],
       });
     } else {
       const doc = getDocument(sourceId);
@@ -183,7 +186,10 @@ export class HighlightLine extends Component {
     }
 
     const sourceId = selectedLocation.source.id;
-    const editorLine = toEditorLine(sourceId, selectedLocation.line);
+    const editorLine = toEditorLine(
+      selectedLocation.source,
+      selectedLocation.line
+    );
     const doc = getDocument(sourceId);
     doc.removeLineClass(editorLine, "wrap", "highlight-line");
   }

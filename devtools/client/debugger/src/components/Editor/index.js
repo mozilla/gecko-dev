@@ -12,7 +12,6 @@ import { connect } from "devtools/client/shared/vendor/react-redux";
 import { getLineText, isLineBlackboxed } from "./../../utils/source";
 import { createLocation } from "./../../utils/location";
 import { getIndentation } from "../../utils/indentation";
-import { isWasm } from "../../utils/wasm";
 import { features } from "../../utils/prefs";
 import { markerTypes } from "../../constants";
 import { asSettled, isFulfilled, isRejected } from "../../utils/async-value";
@@ -332,19 +331,13 @@ class Editor extends PureComponent {
         // Make sure we update after the editor has loaded
         (!prevState.editor && !!editor);
 
-      const isSourceWasm = isWasm(selectedSource.id);
-
       if (shouldUpdateBreakableLines) {
         editor.setLineGutterMarkers([
           {
             id: markerTypes.EMPTY_LINE_MARKER,
             lineClassName: "empty-line",
             condition: line => {
-              const lineNumber = fromEditorLine(
-                selectedSource.id,
-                line,
-                isSourceWasm
-              );
+              const lineNumber = fromEditorLine(selectedSource, line);
               return !breakableLines.has(lineNumber);
             },
           },
@@ -356,7 +349,7 @@ class Editor extends PureComponent {
           id: markerTypes.BLACKBOX_LINE_GUTTER_MARKER,
           lineClassName: "blackboxed-line",
           condition: line => {
-            const lineNumber = fromEditorLine(selectedSource.id, line);
+            const lineNumber = fromEditorLine(selectedSource, line);
             return isLineBlackboxed(
               blackboxedRanges[selectedSource.url],
               lineNumber,
@@ -427,10 +420,7 @@ class Editor extends PureComponent {
     // When no specific line has been selected, fallback to the current cursor posiiton
     if (line == 0) {
       const selectionCursor = editor.getSelectionCursor();
-      line = toSourceLine(
-        selectedLocation.source.id,
-        selectionCursor.from.line
-      );
+      line = toSourceLine(selectedLocation.source, selectionCursor.from.line);
       column = selectionCursor.from.ch + 1;
     }
     return { line, column };
@@ -535,7 +525,7 @@ class Editor extends PureComponent {
     const target = event.target;
     const { id: sourceId } = selectedSource;
     if (!features.codemirrorNext) {
-      line = line ?? lineAtHeight(editor, sourceId, event);
+      line = line ?? lineAtHeight(editor, selectedSource, event);
     }
 
     if (typeof line != "number") {
@@ -580,12 +570,8 @@ class Editor extends PureComponent {
     if (features.codemirrorNext) {
       location = createLocation({
         source: selectedSource,
-        line: fromEditorLine(
-          selectedSource.id,
-          line,
-          isWasm(selectedSource.id)
-        ),
-        column: isWasm(selectedSource.id) ? 0 : ch + 1,
+        line: fromEditorLine(selectedSource, line),
+        column: editor.isWasm ? 0 : ch + 1,
       });
     } else {
       location = getSourceLocationFromMouseEvent(editor, selectedSource, event);
@@ -601,12 +587,15 @@ class Editor extends PureComponent {
    */
   onCursorChange = () => {
     const { editor } = this.state;
+    if (!editor || !this.props.selectedSource) {
+      return;
+    }
     const selectionCursor = editor.getSelectionCursor();
     const { line, ch } = selectionCursor.to;
     this.props.selectLocation(
       createLocation({
         source: this.props.selectedSource,
-        line: toSourceLine(this.props.selectedSource.id, line),
+        line: toSourceLine(this.props.selectedSource, line),
         column: ch,
       }),
       {
@@ -649,7 +638,7 @@ class Editor extends PureComponent {
       return;
     }
 
-    const sourceLine = toSourceLine(selectedSource.id, line);
+    const sourceLine = toSourceLine(selectedSource, line);
     if (typeof sourceLine !== "number") {
       return;
     }
@@ -685,18 +674,15 @@ class Editor extends PureComponent {
   onClick(e, line, ch) {
     const { selectedSource, updateCursorPosition, jumpToMappedLocation } =
       this.props;
+    const { editor } = this.state;
 
     if (selectedSource) {
       let sourceLocation;
       if (features.codemirrorNext) {
         sourceLocation = createLocation({
           source: selectedSource,
-          line: fromEditorLine(
-            selectedSource.id,
-            line,
-            isWasm(selectedSource.id)
-          ),
-          column: isWasm(selectedSource.id) ? 0 : ch + 1,
+          line: fromEditorLine(selectedSource, line),
+          column: editor.isWasm ? 0 : ch + 1,
         });
       } else {
         sourceLocation = getSourceLocationFromMouseEvent(

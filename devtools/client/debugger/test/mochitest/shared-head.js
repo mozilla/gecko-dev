@@ -368,7 +368,7 @@ async function _assertDebugLine(dbg, line, column) {
   const source = dbg.selectors.getSelectedSource();
   // WASM lines are hex addresses which have to be mapped to decimal line number
   if (isWasmBinarySource(source)) {
-    line = dbg.wasmOffsetToLine(source.id, line) + 1;
+    line = wasmOffsetToLine(dbg, source.id, line);
   }
 
   // Check the debug line
@@ -1566,7 +1566,15 @@ async function getEditorLineGutter(dbg, line) {
 
 // Handles virtualization scenarios
 async function scrollAndGetEditorLineGutterElement(dbg, line) {
-  await scrollEditorIntoView(dbg, isCm6Enabled ? line : line - 1, 0);
+  const editor = getCMEditor(dbg);
+  await scrollEditorIntoView(dbg, line, 0);
+  const selectedSource = dbg.selectors.getSelectedSource();
+  // For WASM sources get the hexadecimal line number displayed in the gutter
+  if (editor.isWasm && !selectedSource.isOriginal) {
+    const wasmLineFormatter = editor.getWasmLineNumberFormatter();
+    line = wasmLineFormatter(line);
+  }
+
   const els = findAllElementsWithSelector(
     dbg,
     isCm6Enabled
@@ -1602,6 +1610,8 @@ async function getNodeAtEditorGutterLine(dbg, line) {
   if (isCm6Enabled) {
     return scrollAndGetEditorLineGutterElement(dbg, line);
   }
+  // Note: In CM5 both the line gutter elements and the
+  // line content elements are within the editor line.
   return getEditorLineGutter(dbg, line);
 }
 
@@ -2268,6 +2278,13 @@ function rightClickObjectInspectorNode(dbg, node) {
 // Gets the current source editor for CM6 tests
 function getCMEditor(dbg) {
   return dbg.win.codeMirrorSourceEditorTestInstance;
+}
+
+function wasmOffsetToLine(dbg, sourceId, offset) {
+  if (isCm6Enabled) {
+    return getCMEditor(dbg).wasmOffsetToLine(offset) + 1;
+  }
+  return dbg.wasmOffsetToLine(sourceId, offset) + 1;
 }
 
 // Gets the number of lines in the editor

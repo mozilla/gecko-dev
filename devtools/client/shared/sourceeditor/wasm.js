@@ -10,6 +10,10 @@ const wasmdis = require("resource://devtools/client/shared/vendor/WasmDis.js");
 const wasmStates = new WeakMap();
 
 function getWasmText(subject, data) {
+  if (wasmStates.has(subject)) {
+    const wasmState = wasmStates.get(subject);
+    return { lines: wasmState.result.lines, done: wasmState.result.done };
+  }
   const parser = new wasmparser.BinaryReader();
   parser.setData(data.buffer, 0, data.length);
   const dis = new wasmdis.WasmDisassembler();
@@ -19,18 +23,25 @@ function getWasmText(subject, data) {
   if (result.lines.length === 0) {
     result = { lines: ["No luck with wast conversion"], offsets: [0], done };
   }
-
+  // Cache mappings of WASM offsets to lines
   const offsets = result.offsets,
     lines = [];
-  for (let i = 0; i < offsets.length; i++) {
-    lines[offsets[i]] = i;
+  for (let line = 0; line < offsets.length; line++) {
+    const offset = offsets[line];
+    lines[offset] = line;
   }
-
-  wasmStates.set(subject, { offsets, lines });
+  wasmStates.set(subject, { offsets, lines, result });
 
   return { lines: result.lines, done: result.done };
 }
 
+/**
+ * Creates wasm formatter function used to generate the hexadecimal number
+ * displayed in the line gutter
+ *
+ * @param {Object} subject - An object which decribes the source, it is comprised of the sourceId
+ * @returns {Function}
+ */
 function getWasmLineNumberFormatter(subject) {
   const codeOf0 = 48,
     codeOfA = 65;
@@ -45,8 +56,8 @@ function getWasmLineNumberFormatter(subject) {
     codeOf0,
   ];
   let last0 = 7;
-  return function (number) {
-    const offset = lineToWasmOffset(subject, number - 1);
+  return function (line) {
+    const offset = lineToWasmOffset(subject, line - 1);
     if (offset === undefined) {
       return "";
     }
@@ -63,25 +74,80 @@ function getWasmLineNumberFormatter(subject) {
   };
 }
 
+/**
+ * Checks if the specified source exists in the cache.
+ * This is used to determine if the source is a WASM source
+ *
+ * @param {Object} subject
+ * @returns {Boolean}
+ */
 function isWasm(subject) {
   return wasmStates.has(subject);
 }
 
-function lineToWasmOffset(subject, number) {
+/**
+ * Converts the source (decimal) line to its WASM offset
+ *
+ * @param {Object} subject
+ * @param {Number} line
+ * @param {Boolean} findNextOffset
+ *        There are scenarios (e.g are empty lines) where we might want to find the next best offset match.
+ *        Every line will usually have offsets assigned except empty lines (which could be between functions
+ *        or some declarations).
+ * @returns {Number}
+ */
+function lineToWasmOffset(subject, line, findNextOffset = false) {
   const wasmState = wasmStates.get(subject);
   if (!wasmState) {
     return undefined;
   }
-  let offset = wasmState.offsets[number];
-  while (offset === undefined && number > 0) {
-    offset = wasmState.offsets[--number];
+
+  let offset = wasmState.offsets[line];
+  if (findNextOffset) {
+    while (offset === undefined && line > 0) {
+      offset = wasmState.offsets[--line];
+    }
   }
   return offset;
 }
 
+/**
+ * Converts the WASM offset to the source line
+ *
+ * @param {Object} subject
+ * @param {Number} offset
+ * @returns {Number}
+ */
 function wasmOffsetToLine(subject, offset) {
   const wasmState = wasmStates.get(subject);
   return wasmState.lines[offset];
+}
+
+// A cache of the wasm source text as an array of lines.
+// The lines are cached with the value object of the source content
+// as the key.
+const wasmLines = new WeakMap();
+
+function renderWasmText(subject, content) {
+  if (wasmLines.has(content)) {
+    return wasmLines.get(content) || [];
+  }
+
+  // binary does not survive as Uint8Array, converting from string
+  const { binary } = content.value;
+  const data = new Uint8Array(binary.length);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = binary.charCodeAt(i);
+  }
+  const { lines } = getWasmText(subject, data);
+  const MAX_LINES = 1000000;
+  if (lines.length > MAX_LINES) {
+    lines.splice(MAX_LINES, lines.length - MAX_LINES);
+    lines.push(";; .... text is truncated due to the size");
+  }
+
+  wasmLines.set(content, lines);
+  return lines;
 }
 
 module.exports = {
@@ -90,4 +156,5 @@ module.exports = {
   isWasm,
   lineToWasmOffset,
   wasmOffsetToLine,
+  renderWasmText,
 };

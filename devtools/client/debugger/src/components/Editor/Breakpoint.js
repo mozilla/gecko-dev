@@ -108,7 +108,7 @@ class Breakpoint extends PureComponent {
     }
 
     const selectedLocation = getSelectedLocation(breakpoint, selectedSource);
-    const line = toEditorLine(selectedSource.id, selectedLocation.line);
+    const line = toEditorLine(selectedSource, selectedLocation.line);
 
     doc.setGutterMarker(line, "breakpoints", this.makeMarker());
 
@@ -140,7 +140,7 @@ class Breakpoint extends PureComponent {
     }
 
     const selectedLocation = getSelectedLocation(breakpoint, selectedSource);
-    const line = toEditorLine(selectedSource.id, selectedLocation.line);
+    const line = toEditorLine(selectedSource, selectedLocation.line);
 
     doc.setGutterMarker(line, "breakpoints", null);
     doc.removeLineClass(line, "wrap", "new-breakpoint");

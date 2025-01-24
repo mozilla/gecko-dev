@@ -19,10 +19,6 @@
 "use strict";
 
 add_task(async function () {
-  // Disabled for CM6 until this is fixed
-  if (isCm6Enabled) {
-    return;
-  }
   // Load the test page before opening the debugger so that WASM are built
   // without debugging instructions. Opening the console still doesn't enable debugging instructions.
   const tab = await addTab(EXAMPLE_URL + "doc-wasm-sourcemaps.html");
@@ -110,10 +106,12 @@ add_task(async function () {
   is(
     "0x" + virtualBinaryLine.toString(16),
     "0x" + generatedLine.toString(16),
-    "The hardcoded binary line matches the mapped location when we set the breakpoint on the original line. If you rebuilt the binary, you may just need to update the virtualBinaryLine variable to the new location."
+    "The hardcoded binary line (0x" +
+      generatedLine.toString(16) +
+      ") matches the mapped location when we set the breakpoint on the original line. If you rebuilt the binary, you may just need to update the virtualBinaryLine variable to the new location."
   );
-  const binaryLine =
-    dbg.wasmOffsetToLine(binarySource.id, virtualBinaryLine) + 1;
+
+  const binaryLine = wasmOffsetToLine(dbg, binarySource.id, virtualBinaryLine);
 
   // We can't use selectSource here because binary source won't have symbols loaded
   // (getSymbols(source) selector will be false)
@@ -121,6 +119,8 @@ add_task(async function () {
     keepContext: false,
   });
 
+  // Make sure line is within viewport
+  await scrollEditorIntoView(dbg, binaryLine, 0);
   await assertLineIsBreakable(dbg, binarySource.url, binaryLine, true);
 
   await addBreakpoint(dbg, binarySource, virtualBinaryLine);

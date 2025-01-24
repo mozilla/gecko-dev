@@ -74,7 +74,7 @@ class ColumnBreakpoints extends Component {
       id: markerTypes.COLUMN_BREAKPOINT_MARKER,
       positions: columnBreakpoints.map(bp => bp.location),
       createPositionElementNode: (line, column) => {
-        const lineNumber = fromEditorLine(selectedSource.id, line);
+        const lineNumber = fromEditorLine(selectedSource, line);
         const columnBreakpoint = columnBreakpoints.find(
           bp => bp.location.line === lineNumber && bp.location.column === column
         );
@@ -96,7 +96,7 @@ class ColumnBreakpoints extends Component {
         return breakpointNode;
       },
       getMarkerEqualityValue: (line, column) => {
-        const lineNumber = fromEditorLine(selectedSource.id, line);
+        const lineNumber = fromEditorLine(selectedSource, line);
         const columnBreakpoint = columnBreakpoints.find(
           bp => bp.location.line === lineNumber && bp.location.column === column
         );

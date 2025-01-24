@@ -59,12 +59,14 @@ class Breakpoints extends Component {
       return;
     }
 
+    const isSourceWasm = editor.isWasm;
+    const wasmLineFormatter = editor.getWasmLineNumberFormatter();
     const markers = [
       {
         id: markerTypes.GUTTER_BREAKPOINT_MARKER,
         lineClassName: "cm6-gutter-breakpoint",
         condition: line => {
-          const lineNumber = fromEditorLine(selectedSource.id, line);
+          const lineNumber = fromEditorLine(selectedSource, line);
           const breakpoint = breakpoints.find(
             bp => getSelectedLocation(bp, selectedSource).line === lineNumber
           );
@@ -74,9 +76,16 @@ class Breakpoints extends Component {
           return breakpoint;
         },
         createLineElementNode: (line, breakpoint) => {
-          const lineNumber = fromEditorLine(selectedSource.id, line);
+          const lineNumber = fromEditorLine(selectedSource, line);
+          const displayLineNumber =
+            isSourceWasm && !selectedSource.isOriginal
+              ? wasmLineFormatter(line)
+              : lineNumber;
+
           const breakpointNode = document.createElement("div");
-          breakpointNode.appendChild(document.createTextNode(lineNumber));
+          breakpointNode.appendChild(
+            document.createTextNode(displayLineNumber)
+          );
           breakpointNode.className = classnames("breakpoint-marker", {
             "breakpoint-disabled": breakpoint.disabled,
             "has-condition": breakpoint?.options.condition,

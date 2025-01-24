@@ -10,7 +10,6 @@ import {
   getSelectedBreakableLines,
 } from "../../selectors/index";
 import { fromEditorLine } from "../../utils/editor/index";
-import { isWasm } from "../../utils/wasm";
 
 class EmptyLines extends Component {
   static get propTypes() {
@@ -60,12 +59,10 @@ class EmptyLines extends Component {
     }
 
     const { codeMirror } = editor;
-    const isSourceWasm = isWasm(selectedSource.id);
-
     codeMirror.operation(() => {
       const lineCount = codeMirror.lineCount();
       for (let i = 0; i < lineCount; i++) {
-        const line = fromEditorLine(selectedSource.id, i, isSourceWasm);
+        const line = fromEditorLine(selectedSource, i);
 
         if (breakableLines.has(line)) {
           codeMirror.removeLineClass(i, "wrap", "empty-line");
