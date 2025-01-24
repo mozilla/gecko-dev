@@ -239,3 +239,40 @@ application_reputation:
       - safebrowsing-telemetry@mozilla.org
     expires: never
     telemetry_mirror: h#APPLICATION_REPUTATION_REMOTE_LOOKUP_TIMEOUT
+
+  reason:
+    type: labeled_counter
+    description: >
+      The reason application reputation service blocks or allows the download.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram APPLICATION_REPUTATION_REASON.
+    labels:
+      - NotSet
+      - LocalWhitelist
+      - LocalBlocklist
+      - NonBinaryFile
+      - VerdictSafe
+      - VerdictUnknown
+      - VerdictDangerous
+      - VerdictDangerousHost
+      - VerdictUnwanted
+      - VerdictUncommon
+      - VerdictUnrecognized
+      - DangerousPrefOff
+      - DangerousHostPrefOff
+      - UnwantedPrefOff
+      - UncommonPrefOff
+      - NetworkError
+      - RemoteLookupDisabled
+      - InternalError
+      - DPDisabled
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1500360
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1500360
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#APPLICATION_REPUTATION_REASON

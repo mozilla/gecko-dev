@@ -66,7 +66,6 @@ using mozilla::OriginAttributes;
 using mozilla::Preferences;
 using mozilla::TimeStamp;
 using mozilla::intl::LocaleService;
-using mozilla::Telemetry::AccumulateCategorical;
 using safe_browsing::ClientDownloadRequest;
 using safe_browsing::ClientDownloadRequest_CertificateChain;
 using safe_browsing::ClientDownloadRequest_Resource;
@@ -591,7 +590,7 @@ enum class LookupType { AllowlistOnly, BlocklistOnly, BothLists };
 // Remote lookup is disabled or the remote lookup URL is empty InternalError :
 // An unexpected internal error DPDisabled           : Download protection is
 // disabled
-using Reason = mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_REASON;
+using Reason = mozilla::glean::application_reputation::ReasonLabel;
 
 class PendingDBLookup;
 
@@ -871,7 +870,7 @@ PendingDBLookup::HandleEvent(const nsACString& tables) {
     LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
     return mPendingLookup->OnComplete(
         nsIApplicationReputationService::VERDICT_DANGEROUS,
-        Reason::LocalBlocklist, NS_OK);
+        Reason::eLocalblocklist, NS_OK);
   }
 
   nsAutoCString allowList;
@@ -1041,7 +1040,7 @@ nsresult PendingLookup::LookupNext() {
   // go ahead and pass.
   if (mAllowlistCount > 0) {
     return OnComplete(nsIApplicationReputationService::VERDICT_SAFE,
-                      Reason::LocalWhitelist, NS_OK);
+                      Reason::eLocalwhitelist, NS_OK);
   }
 
   MOZ_ASSERT_IF(!mIsBinaryFile, mAllowlistSpecs.Length() == 0);
@@ -1115,13 +1114,13 @@ nsresult PendingLookup::LookupNext() {
   if (!mIsBinaryFile) {
     LOG(("Not eligible for remote lookups [this=%p]", this));
     return OnComplete(nsIApplicationReputationService::VERDICT_SAFE,
-                      Reason::NonBinaryFile, NS_OK);
+                      Reason::eNonbinaryfile, NS_OK);
   }
 
   nsresult rv = SendRemoteQuery();
   if (NS_FAILED(rv)) {
     return OnComplete(nsIApplicationReputationService::VERDICT_SAFE,
-                      Reason::InternalError, rv);
+                      Reason::eInternalerror, rv);
   }
   return NS_OK;
 }
@@ -1303,7 +1302,7 @@ nsresult PendingLookup::StartLookup() {
   nsresult rv = DoLookupInternal();
   if (NS_FAILED(rv)) {
     return OnComplete(nsIApplicationReputationService::VERDICT_SAFE,
-                      Reason::InternalError, NS_OK);
+                      Reason::eInternalerror, NS_OK);
   }
   return rv;
 }
@@ -1502,25 +1501,25 @@ nsresult PendingLookup::OnComplete(uint32_t aVerdict, Reason aReason,
     case nsIApplicationReputationService::VERDICT_DANGEROUS:
       if (!Preferences::GetBool(PREF_BLOCK_DANGEROUS, true)) {
         shouldBlock = false;
-        aReason = Reason::DangerousPrefOff;
+        aReason = Reason::eDangerousprefoff;
       }
       break;
     case nsIApplicationReputationService::VERDICT_UNCOMMON:
       if (!Preferences::GetBool(PREF_BLOCK_UNCOMMON, true)) {
         shouldBlock = false;
-        aReason = Reason::UncommonPrefOff;
+        aReason = Reason::eUncommonprefoff;
       }
       break;
     case nsIApplicationReputationService::VERDICT_POTENTIALLY_UNWANTED:
       if (!Preferences::GetBool(PREF_BLOCK_POTENTIALLY_UNWANTED, true)) {
         shouldBlock = false;
-        aReason = Reason::UnwantedPrefOff;
+        aReason = Reason::eUnwantedprefoff;
       }
       break;
     case nsIApplicationReputationService::VERDICT_DANGEROUS_HOST:
       if (!Preferences::GetBool(PREF_BLOCK_DANGEROUS_HOST, true)) {
         shouldBlock = false;
-        aReason = Reason::DangerousHostPrefOff;
+        aReason = Reason::eDangeroushostprefoff;
       }
       break;
     default:
@@ -1528,7 +1527,7 @@ nsresult PendingLookup::OnComplete(uint32_t aVerdict, Reason aReason,
       break;
   }
 
-  AccumulateCategorical(aReason);
+  mozilla::glean::application_reputation::reason.EnumGet(aReason).Add();
   mozilla::glean::application_reputation::should_block
       .EnumGet(
           static_cast<mozilla::glean::application_reputation::ShouldBlockLabel>(
@@ -1574,7 +1573,7 @@ nsresult PendingLookup::SendRemoteQuery() {
   MOZ_ASSERT(!IsFileType(
       mFileName, ApplicationReputationService::kNonBinaryExecutables,
       std::size(ApplicationReputationService::kNonBinaryExecutables)));
-  Reason reason = Reason::NotSet;
+  Reason reason = Reason::eNotset;
   nsresult rv = SendRemoteQueryInternal(reason);
   if (NS_FAILED(rv)) {
     return OnComplete(nsIApplicationReputationService::VERDICT_SAFE, reason,
@@ -1587,15 +1586,15 @@ nsresult PendingLookup::SendRemoteQuery() {
 
 nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
   auto scopeExit = mozilla::MakeScopeExit([&aReason]() {
-    if (aReason == Reason::NotSet) {
-      aReason = Reason::InternalError;
+    if (aReason == Reason::eNotset) {
+      aReason = Reason::eInternalerror;
     }
   });
 
   // If we aren't supposed to do remote lookups, bail.
   if (!Preferences::GetBool(PREF_SB_DOWNLOADS_REMOTE_ENABLED, false)) {
     LOG(("Remote lookups are disabled [this = %p]", this));
-    aReason = Reason::RemoteLookupDisabled;
+    aReason = Reason::eRemotelookupdisabled;
     return NS_ERROR_NOT_AVAILABLE;
   }
   // If the remote lookup URL is empty or absent, bail.
@@ -1607,7 +1606,7 @@ nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
           NS_ConvertASCIItoUTF16(PREF_SB_APP_REP_URL), serviceUrl)) ||
       serviceUrl.IsEmpty() || u"about:blank"_ns.Equals(serviceUrl)) {
     LOG(("Remote lookup URL is empty or absent [this = %p]", this));
-    aReason = Reason::RemoteLookupDisabled;
+    aReason = Reason::eRemotelookupdisabled;
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -1800,7 +1799,7 @@ PendingLookup::OnStopRequest(nsIRequest* aRequest, nsresult aResult) {
   }
 
   uint32_t verdict = nsIApplicationReputationService::VERDICT_SAFE;
-  Reason reason = Reason::NotSet;
+  Reason reason = Reason::eNotset;
   nsresult rv = OnStopRequestInternal(aRequest, aResult, verdict, reason);
   OnComplete(verdict, reason, rv);
   return rv;
@@ -1812,8 +1811,8 @@ nsresult PendingLookup::OnStopRequestInternal(nsIRequest* aRequest,
                                               Reason& aReason) {
   auto scopeExit = mozilla::MakeScopeExit([&aReason]() {
     // If |aReason| is not set while exiting, there must be an error.
-    if (aReason == Reason::NotSet) {
-      aReason = Reason::NetworkError;
+    if (aReason == Reason::eNotset) {
+      aReason = Reason::eNetworkerror;
     }
   });
 
@@ -1885,32 +1884,32 @@ nsresult PendingLookup::OnStopRequestInternal(nsIRequest* aRequest,
   switch (response.verdict()) {
     case safe_browsing::ClientDownloadResponse::DANGEROUS:
       aVerdict = nsIApplicationReputationService::VERDICT_DANGEROUS;
-      aReason = Reason::VerdictDangerous;
+      aReason = Reason::eVerdictdangerous;
       break;
     case safe_browsing::ClientDownloadResponse::DANGEROUS_HOST:
       aVerdict = nsIApplicationReputationService::VERDICT_DANGEROUS_HOST;
-      aReason = Reason::VerdictDangerousHost;
+      aReason = Reason::eVerdictdangeroushost;
       break;
     case safe_browsing::ClientDownloadResponse::POTENTIALLY_UNWANTED:
       aVerdict = nsIApplicationReputationService::VERDICT_POTENTIALLY_UNWANTED;
-      aReason = Reason::VerdictUnwanted;
+      aReason = Reason::eVerdictunwanted;
       break;
     case safe_browsing::ClientDownloadResponse::UNCOMMON:
       aVerdict = nsIApplicationReputationService::VERDICT_UNCOMMON;
-      aReason = Reason::VerdictUncommon;
+      aReason = Reason::eVerdictuncommon;
       break;
     case safe_browsing::ClientDownloadResponse::UNKNOWN:
       aVerdict = nsIApplicationReputationService::VERDICT_SAFE;
-      aReason = Reason::VerdictUnknown;
+      aReason = Reason::eVerdictunknown;
       break;
     case safe_browsing::ClientDownloadResponse::SAFE:
       aVerdict = nsIApplicationReputationService::VERDICT_SAFE;
-      aReason = Reason::VerdictSafe;
+      aReason = Reason::eVerdictsafe;
       break;
     default:
       // Treat everything else as safe
       aVerdict = nsIApplicationReputationService::VERDICT_SAFE;
-      aReason = Reason::VerdictUnrecognized;
+      aReason = Reason::eVerdictunrecognized;
       break;
   }
 
@@ -1951,10 +1950,10 @@ ApplicationReputationService::QueryReputation(
 
   nsresult rv = QueryReputationInternal(aQuery, aCallback);
   if (NS_FAILED(rv)) {
-    Reason reason = rv == NS_ERROR_NOT_AVAILABLE ? Reason::DPDisabled
-                                                 : Reason::InternalError;
+    Reason reason = rv == NS_ERROR_NOT_AVAILABLE ? Reason::eDpdisabled
+                                                 : Reason::eInternalerror;
 
-    AccumulateCategorical(reason);
+    mozilla::glean::application_reputation::reason.EnumGet(reason).Add();
     mozilla::glean::application_reputation::should_block
         .EnumGet(
             mozilla::glean::application_reputation::ShouldBlockLabel::eFalse)
