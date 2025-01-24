@@ -88,7 +88,6 @@ add_task(
     const manager = ExperimentFakes.manager();
 
     sinon.stub(ExperimentAPI, "_manager").get(() => manager);
-    sinon.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
     await manager.store.ready();
@@ -285,7 +284,6 @@ add_task(
     const manager = ExperimentFakes.manager();
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-    sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
 
     await manager.onStartup();
     await manager.store.ready();

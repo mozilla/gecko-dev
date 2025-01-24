@@ -52,9 +52,10 @@ add_task(async function test_load_from_disk_event() {
   await previousSession.finalize();
 
   // Create a store and expect to load data from previous session
-  const store = new ExperimentStore();
+  const manager = new ExperimentManager();
+  const store = manager.store;
 
-  let apiStoreStub = sinon.stub(ExperimentAPI, "_store").get(() => store);
+  let apiManagerStub = sinon.stub(ExperimentAPI, "_manager").get(() => manager);
 
   store._onFeatureUpdate("urlbar", stub);
 
@@ -85,6 +86,6 @@ add_task(async function test_load_from_disk_event() {
     fileStore.data = {};
     fileStore.saveSoon();
     await fileStore.finalize();
-    apiStoreStub.restore();
+    apiManagerStub.restore();
   });
 });

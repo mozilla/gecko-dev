@@ -11,7 +11,7 @@ async function setupForExperimentFeature() {
   const manager = ExperimentFakes.manager();
   await manager.onStartup();
 
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   return { sandbox, manager };
 }
@@ -87,7 +87,7 @@ add_task(async function test_record_exposure_event() {
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const exposureSpy = sandbox.spy(ExperimentAPI, "recordExposureEvent");
   const getExperimentSpy = sandbox.spy(ExperimentAPI, "getExperimentMetaData");
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -159,7 +159,7 @@ add_task(async function test_record_exposure_event_once() {
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const exposureSpy = sandbox.spy(ExperimentAPI, "recordExposureEvent");
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -238,7 +238,7 @@ add_task(async function test_onUpdate_before_store_ready() {
   const feature = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const stub = sandbox.stub();
   const manager = ExperimentFakes.manager();
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([
     ExperimentFakes.experiment("foo-experiment", {
       branch: {
@@ -303,10 +303,9 @@ add_task(async function test_ExperimentFeature_test_ready_late() {
   sandbox.stub(manager.store, "getAllActiveRollouts").returns([rollout]);
 
   await manager.onStartup();
+  await manager.store.ready();
 
   featureInstance.onUpdate(stub);
-
-  await featureInstance.ready();
 
   Assert.ok(stub.calledOnce, "Callback called");
   Assert.equal(stub.firstCall.args[0], "featureUpdate:test-feature");

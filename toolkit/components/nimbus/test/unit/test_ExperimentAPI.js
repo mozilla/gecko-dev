@@ -22,9 +22,12 @@ add_task(async function test_getExperiment_fromChild_slug() {
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.experiment("foo");
 
-  await manager.onStartup();
-
+  // NB: We are not setting ExperimentAPI._manager here to manager or
+  // manager.store to a child store because we are simulating synchronization
+  // between a parent store and child store.
   sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
+
+  await manager.onStartup();
 
   await manager.store.addEnrollment(expected);
 
@@ -54,8 +57,9 @@ add_task(async function test_getExperiment_fromParent_slug() {
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.experiment("foo");
 
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
   await manager.onStartup();
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
@@ -75,8 +79,9 @@ add_task(async function test_getExperimentMetaData() {
   const expected = ExperimentFakes.experiment("foo");
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
   await manager.onStartup();
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
@@ -105,8 +110,9 @@ add_task(async function test_getRolloutMetaData() {
   const expected = ExperimentFakes.rollout("foo");
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
   await manager.onStartup();
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
   await manager.store.addEnrollment(expected);
@@ -180,6 +186,9 @@ add_task(async function test_getExperiment_feature() {
 
   await manager.onStartup();
 
+  // NB: We are not setting ExperimentAPI._manager here to manager or
+  // manager.store to a child store because we are simulating synchronization
+  // between a parent store and child store.
   sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
@@ -399,11 +408,13 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "purple", value: null }],
+      ratio: 1,
+      features: [{ featureId: "purple", value: {} }],
     },
   });
-  const store = ExperimentFakes.store();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   await store.init();
   await ExperimentAPI.ready();
@@ -439,11 +450,13 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "purple", value: null }],
+      ratio: 1,
+      features: [{ featureId: "purple", value: {} }],
     },
   });
-  const store = ExperimentFakes.store();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   await store.init();
   await ExperimentAPI.ready();
@@ -477,11 +490,13 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "purple", value: null }],
+      ratio: 1,
+      features: [{ featureId: "purple", value: {} }],
     },
   });
-  const store = ExperimentFakes.store();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   await store.init();
   await ExperimentAPI.ready();
@@ -504,12 +519,15 @@ add_task(async function test_updateExperiment_eventEmit_off() {
 
 add_task(async function test_getActiveBranch() {
   const sandbox = sinon.createSandbox();
-  const store = ExperimentFakes.store();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
+
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "green", value: null }],
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
     },
   });
 
@@ -543,13 +561,15 @@ add_task(async function test_getActiveBranch_safe() {
 });
 
 add_task(async function test_getActiveBranch_storeFailure() {
-  const store = ExperimentFakes.store();
   const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "green" }],
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
     },
   });
 
@@ -570,13 +590,15 @@ add_task(async function test_getActiveBranch_storeFailure() {
 });
 
 add_task(async function test_getActiveBranch_noActivationEvent() {
-  const store = ExperimentFakes.store();
+  const manager = ExperimentFakes.manager();
+  const store = manager.store;
   const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      features: [{ featureId: "green" }],
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
     },
   });
 

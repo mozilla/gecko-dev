@@ -13,7 +13,7 @@ async function setupForExperimentFeature() {
   const manager = ExperimentFakes.manager();
   await manager.onStartup();
 
-  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   return { sandbox, manager };
 }
