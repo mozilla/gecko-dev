@@ -55,49 +55,29 @@
 
 namespace mozilla {
 
-class GmpInitDoneRunnable : public Runnable {
- public:
-  explicit GmpInitDoneRunnable(std::string aPCHandle)
-      : Runnable("GmpInitDoneRunnable"),
-        mResult(WEBRTC_VIDEO_CODEC_OK),
-        mPCHandle(std::move(aPCHandle)) {}
-
-  NS_IMETHOD Run() override {
-    Telemetry::Accumulate(Telemetry::WEBRTC_GMP_INIT_SUCCESS,
-                          mResult == WEBRTC_VIDEO_CODEC_OK);
-    if (mResult == WEBRTC_VIDEO_CODEC_OK) {
-      // Might be useful to notify the PeerConnection about successful init
-      // someday.
-      return NS_OK;
-    }
-
-    PeerConnectionWrapper wrapper(mPCHandle);
-    if (wrapper.impl()) {
-      wrapper.impl()->OnMediaError(mError);
-    }
-    return NS_OK;
+static void NotifyGmpInitDone(const std::string& aPCHandle, int32_t aResult,
+                              const std::string& aError = "") {
+  if (!NS_IsMainThread()) {
+    MOZ_ALWAYS_SUCCEEDS(GetMainThreadSerialEventTarget()->Dispatch(
+        NS_NewRunnableFunction(__func__, [aPCHandle, aResult, aError] {
+          NotifyGmpInitDone(aPCHandle, aResult, aError);
+        })));
+    return;
   }
 
-  void Dispatch(int32_t aResult, const std::string& aError = "") {
-    mResult = aResult;
-    mError = aError;
-    nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
-    if (mainThread) {
-      // For some reason, the compiler on CI is treating |this| as a const
-      // pointer, despite the fact that we're in a non-const function. And,
-      // interestingly enough, correcting this doesn't require a const_cast.
-      mainThread->Dispatch(do_AddRef(static_cast<nsIRunnable*>(this)),
-                           NS_DISPATCH_NORMAL);
-    }
+  Telemetry::Accumulate(Telemetry::WEBRTC_GMP_INIT_SUCCESS,
+                        aResult == WEBRTC_VIDEO_CODEC_OK);
+  if (aResult == WEBRTC_VIDEO_CODEC_OK) {
+    // Might be useful to notify the PeerConnection about successful init
+    // someday.
+    return;
   }
 
-  int32_t Result() { return mResult; }
-
- private:
-  int32_t mResult;
-  const std::string mPCHandle;
-  std::string mError;
-};
+  PeerConnectionWrapper wrapper(aPCHandle);
+  if (wrapper.impl()) {
+    wrapper.impl()->OnMediaError(aError);
+  }
+}
 
 // Hold a frame for later decode
 class GMPDecodeData {
@@ -199,8 +179,7 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   virtual ~WebrtcGmpVideoEncoder();
 
   void InitEncode_g(const GMPVideoCodec& aCodecParams, int32_t aNumberOfCores,
-                    uint32_t aMaxPayloadSize,
-                    const RefPtr<GmpInitDoneRunnable>& aInitDone);
+                    uint32_t aMaxPayloadSize);
   int32_t GmpInitDone_g(GMPVideoEncoderProxy* aGMP, GMPVideoHost* aHost,
                         const GMPVideoCodec& aCodecParams,
                         std::string* aErrorOut);
@@ -213,59 +192,47 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   class InitDoneCallback final : public GetGMPVideoEncoderCallback {
    public:
     InitDoneCallback(const RefPtr<WebrtcGmpVideoEncoder>& aEncoder,
-                     const RefPtr<GmpInitDoneRunnable>& aInitDone,
                      const GMPVideoCodec& aCodecParams)
-        : mEncoder(aEncoder),
-          mInitDone(aInitDone),
-          mCodecParams(aCodecParams) {}
+        : mEncoder(aEncoder), mCodecParams(aCodecParams) {}
 
     void Done(GMPVideoEncoderProxy* aGMP, GMPVideoHost* aHost) override {
       std::string errorOut;
       int32_t result =
           mEncoder->GmpInitDone_g(aGMP, aHost, mCodecParams, &errorOut);
-
-      mInitDone->Dispatch(result, errorOut);
+      NotifyGmpInitDone(mEncoder->mPCHandle, result, errorOut);
     }
 
    private:
     const RefPtr<WebrtcGmpVideoEncoder> mEncoder;
-    const RefPtr<GmpInitDoneRunnable> mInitDone;
     const GMPVideoCodec mCodecParams;
   };
 
   void Encode_g(const webrtc::VideoFrame& aInputImage,
                 std::vector<webrtc::VideoFrameType> aFrameTypes);
-  void RegetEncoderForResolutionChange(
-      uint32_t aWidth, uint32_t aHeight,
-      const RefPtr<GmpInitDoneRunnable>& aInitDone);
+  void RegetEncoderForResolutionChange(uint32_t aWidth, uint32_t aHeight);
 
   class InitDoneForResolutionChangeCallback final
       : public GetGMPVideoEncoderCallback {
    public:
     InitDoneForResolutionChangeCallback(
-        const RefPtr<WebrtcGmpVideoEncoder>& aEncoder,
-        const RefPtr<GmpInitDoneRunnable>& aInitDone, uint32_t aWidth,
+        const RefPtr<WebrtcGmpVideoEncoder>& aEncoder, uint32_t aWidth,
         uint32_t aHeight)
-        : mEncoder(aEncoder),
-          mInitDone(aInitDone),
-          mWidth(aWidth),
-          mHeight(aHeight) {}
+        : mEncoder(aEncoder), mWidth(aWidth), mHeight(aHeight) {}
 
     void Done(GMPVideoEncoderProxy* aGMP, GMPVideoHost* aHost) override {
       std::string errorOut;
       int32_t result = mEncoder->GmpInitDone_g(aGMP, aHost, &errorOut);
       if (result != WEBRTC_VIDEO_CODEC_OK) {
-        mInitDone->Dispatch(result, errorOut);
+        NotifyGmpInitDone(mEncoder->mPCHandle, result, errorOut);
         return;
       }
 
       result = mEncoder->InitEncoderForSize(mWidth, mHeight, &errorOut);
-      mInitDone->Dispatch(result, errorOut);
+      NotifyGmpInitDone(mEncoder->mPCHandle, result, errorOut);
     }
 
    private:
     const RefPtr<WebrtcGmpVideoEncoder> mEncoder;
-    const RefPtr<GmpInitDoneRunnable> mInitDone;
     const uint32_t mWidth;
     const uint32_t mHeight;
   };
@@ -394,28 +361,24 @@ class WebrtcGmpVideoDecoder final : public GMPVideoDecoderCallbackProxy {
  private:
   virtual ~WebrtcGmpVideoDecoder();
 
-  void Configure_g(const webrtc::VideoDecoder::Settings& settings,
-                   const RefPtr<GmpInitDoneRunnable>& aInitDone);
+  void Configure_g(const webrtc::VideoDecoder::Settings& settings);
   int32_t GmpInitDone_g(GMPVideoDecoderProxy* aGMP, GMPVideoHost* aHost,
                         std::string* aErrorOut);
   void Close_g();
 
   class InitDoneCallback final : public GetGMPVideoDecoderCallback {
    public:
-    explicit InitDoneCallback(const RefPtr<WebrtcGmpVideoDecoder>& aDecoder,
-                              const RefPtr<GmpInitDoneRunnable>& aInitDone)
-        : mDecoder(aDecoder), mInitDone(aInitDone) {}
+    explicit InitDoneCallback(const RefPtr<WebrtcGmpVideoDecoder>& aDecoder)
+        : mDecoder(aDecoder) {}
 
     void Done(GMPVideoDecoderProxy* aGMP, GMPVideoHost* aHost) override {
       std::string errorOut;
       int32_t result = mDecoder->GmpInitDone_g(aGMP, aHost, &errorOut);
-
-      mInitDone->Dispatch(result, errorOut);
+      NotifyGmpInitDone(mDecoder->mPCHandle, result, errorOut);
     }
 
    private:
     const RefPtr<WebrtcGmpVideoDecoder> mDecoder;
-    const RefPtr<GmpInitDoneRunnable> mInitDone;
   };
 
   void Decode_g(UniquePtr<GMPDecodeData>&& aDecodeData);

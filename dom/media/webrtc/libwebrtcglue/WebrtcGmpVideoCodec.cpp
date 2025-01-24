@@ -18,7 +18,6 @@
 #include "api/video/video_frame_type.h"
 #include "common_video/include/video_frame_buffer.h"
 #include "media/base/media_constants.h"
-// #include "rtc_base/bind.h"
 
 namespace mozilla {
 
@@ -135,12 +134,10 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
     maxPayloadSize = 0;  // No limit, use FUAs
   }
 
-  RefPtr<GmpInitDoneRunnable> initDone(new GmpInitDoneRunnable(mPCHandle));
   MOZ_ALWAYS_SUCCEEDS(
-      mGMPThread->Dispatch(NewRunnableMethod<GMPVideoCodec, int32_t, uint32_t,
-                                             RefPtr<GmpInitDoneRunnable>>(
+      mGMPThread->Dispatch(NewRunnableMethod<GMPVideoCodec, int32_t, uint32_t>(
           __func__, this, &WebrtcGmpVideoEncoder::InitEncode_g, codecParams,
-          aSettings.number_of_cores, maxPayloadSize, initDone)));
+          aSettings.number_of_cores, maxPayloadSize)));
 
   // Since init of the GMP encoder is a multi-step async dispatch (including
   // dispatches to main), and since this function is invoked on main, there's
@@ -149,13 +146,13 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
-void WebrtcGmpVideoEncoder::InitEncode_g(
-    const GMPVideoCodec& aCodecParams, int32_t aNumberOfCores,
-    uint32_t aMaxPayloadSize, const RefPtr<GmpInitDoneRunnable>& aInitDone) {
+void WebrtcGmpVideoEncoder::InitEncode_g(const GMPVideoCodec& aCodecParams,
+                                         int32_t aNumberOfCores,
+                                         uint32_t aMaxPayloadSize) {
   nsTArray<nsCString> tags;
   tags.AppendElement("h264"_ns);
   UniquePtr<GetGMPVideoEncoderCallback> callback(
-      new InitDoneCallback(this, aInitDone, aCodecParams));
+      new InitDoneCallback(this, aCodecParams));
   mInitting = true;
   mMaxPayloadSize = aMaxPayloadSize;
   nsresult rv =
@@ -163,8 +160,8 @@ void WebrtcGmpVideoEncoder::InitEncode_g(
   if (NS_WARN_IF(NS_FAILED(rv))) {
     GMP_LOG_DEBUG("GMP Encode: GetGMPVideoEncoder failed");
     Close_g();
-    aInitDone->Dispatch(WEBRTC_VIDEO_CODEC_ERROR,
-                        "GMP Encode: GetGMPVideoEncoder failed");
+    NotifyGmpInitDone(mPCHandle, WEBRTC_VIDEO_CODEC_ERROR,
+                      "GMP Encode: GetGMPVideoEncoder failed");
   }
 }
 
@@ -265,14 +262,12 @@ int32_t WebrtcGmpVideoEncoder::Encode(
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
-void WebrtcGmpVideoEncoder::RegetEncoderForResolutionChange(
-    uint32_t aWidth, uint32_t aHeight,
-    const RefPtr<GmpInitDoneRunnable>& aInitDone) {
+void WebrtcGmpVideoEncoder::RegetEncoderForResolutionChange(uint32_t aWidth,
+                                                            uint32_t aHeight) {
   Close_g();
 
   UniquePtr<GetGMPVideoEncoderCallback> callback(
-      new InitDoneForResolutionChangeCallback(this, aInitDone, aWidth,
-                                              aHeight));
+      new InitDoneForResolutionChangeCallback(this, aWidth, aHeight));
 
   // OpenH264 codec (at least) can't handle dynamic input resolution changes
   // re-init the plugin when the resolution changes
@@ -282,8 +277,8 @@ void WebrtcGmpVideoEncoder::RegetEncoderForResolutionChange(
   mInitting = true;
   if (NS_WARN_IF(NS_FAILED(mMPS->GetGMPVideoEncoder(nullptr, &tags, ""_ns,
                                                     std::move(callback))))) {
-    aInitDone->Dispatch(WEBRTC_VIDEO_CODEC_ERROR,
-                        "GMP Encode: GetGMPVideoEncoder failed");
+    NotifyGmpInitDone(mPCHandle, WEBRTC_VIDEO_CODEC_ERROR,
+                      "GMP Encode: GetGMPVideoEncoder failed");
   }
 }
 
@@ -303,9 +298,7 @@ void WebrtcGmpVideoEncoder::Encode_g(
                   mCodecParams.mWidth, mCodecParams.mHeight,
                   aInputImage.width(), aInputImage.height());
 
-    RefPtr<GmpInitDoneRunnable> initDone(new GmpInitDoneRunnable(mPCHandle));
-    RegetEncoderForResolutionChange(aInputImage.width(), aInputImage.height(),
-                                    initDone);
+    RegetEncoderForResolutionChange(aInputImage.width(), aInputImage.height());
     if (!mGMP) {
       // We needed to go async to re-get the encoder. Bail.
       return;
@@ -547,31 +540,26 @@ bool WebrtcGmpVideoDecoder::Configure(
     }
   }
 
-  RefPtr<GmpInitDoneRunnable> initDone(new GmpInitDoneRunnable(mPCHandle));
   MOZ_ALWAYS_SUCCEEDS(
-      mGMPThread->Dispatch(NewRunnableMethod<webrtc::VideoDecoder::Settings,
-                                             RefPtr<GmpInitDoneRunnable>>(
-          __func__, this, &WebrtcGmpVideoDecoder::Configure_g, settings,
-          initDone)));
+      mGMPThread->Dispatch(NewRunnableMethod<webrtc::VideoDecoder::Settings>(
+          __func__, this, &WebrtcGmpVideoDecoder::Configure_g, settings)));
 
   return true;
 }
 
 void WebrtcGmpVideoDecoder::Configure_g(
-    const webrtc::VideoDecoder::Settings& settings,  // unused
-    const RefPtr<GmpInitDoneRunnable>& aInitDone) {
+    const webrtc::VideoDecoder::Settings& settings) {
   nsTArray<nsCString> tags;
   tags.AppendElement("h264"_ns);
-  UniquePtr<GetGMPVideoDecoderCallback> callback(
-      new InitDoneCallback(this, aInitDone));
+  UniquePtr<GetGMPVideoDecoderCallback> callback(new InitDoneCallback(this));
   mInitting = true;
   nsresult rv =
       mMPS->GetGMPVideoDecoder(nullptr, &tags, ""_ns, std::move(callback));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     GMP_LOG_DEBUG("GMP Decode: GetGMPVideoDecoder failed");
     Close_g();
-    aInitDone->Dispatch(WEBRTC_VIDEO_CODEC_ERROR,
-                        "GMP Decode: GetGMPVideoDecoder failed.");
+    NotifyGmpInitDone(mPCHandle, WEBRTC_VIDEO_CODEC_ERROR,
+                      "GMP Decode: GetGMPVideoDecoder failed.");
   }
 }
 
