@@ -530,6 +530,13 @@ TEST(TestStandardURL, CoalescePath)
 
   testCoalescing("/coder/coder/edit/main/docs/./enterprise.md",
                  "/coder/coder/edit/main/docs/enterprise.md", 27, 41);
+
+  // bug 1942820
+  testCoalescing("/foo/bar/.%2e", "/foo/", 4, 5);
+  testCoalescing("/foo/bar/..", "/foo/", 4, 5);
+  testCoalescing("/foo/bar/%2e%2e", "/foo/", 4, 5);
+  testCoalescing("/foo/bar/%2e%2e#frag", "/foo/#frag", 4, 5);
+  testCoalescing("/foo/bar/%2e%2e?query", "/foo/?query", 4, 5);
 }
 
 TEST(TestStandardURL, bug1904582)
