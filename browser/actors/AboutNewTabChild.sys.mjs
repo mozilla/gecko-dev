@@ -39,15 +39,6 @@ export class AboutNewTabChild extends RemotePageChild {
         return; // about:newtab is a blank page
       }
 
-      // If the separate about:welcome page is enabled, we can skip all of this,
-      // since that mode doesn't load any of the Activity Stream bits.
-      if (
-        (lazy.NimbusFeatures.aboutwelcome.getVariable("enabled") ?? true) &&
-        this.contentWindow.location.pathname.includes("welcome")
-      ) {
-        return;
-      }
-
       const debug = !AppConstants.RELEASE_OR_BETA && lazy.ACTIVITY_STREAM_DEBUG;
       const debugString = debug ? "-dev" : "";
 
@@ -76,12 +67,7 @@ export class AboutNewTabChild extends RemotePageChild {
         // If the tab has been closed the frame message manager has already been
         // destroyed
       }
-    } else if (
-      (event.type == "pageshow" || event.type == "visibilitychange") &&
-      // The default browser notification shouldn't be shown on about:welcome
-      // since we don't want to distract from the onboarding wizard.
-      !this.contentWindow.location.pathname.includes("welcome")
-    ) {
+    } else if (event.type == "pageshow" || event.type == "visibilitychange") {
       // Don't show the notification in non-permanent private windows
       // since it is expected to have very little opt-in here.
       let contentWindowPrivate = PrivateBrowsingUtils.isContentWindowPrivate(

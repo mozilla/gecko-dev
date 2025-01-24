@@ -448,7 +448,8 @@ class BaseAboutNewTabService {
     if (lazy.NimbusFeatures.aboutwelcome.getVariable("enabled") ?? true) {
       return ABOUT_WELCOME_URL;
     }
-    return this.defaultURL;
+    // If about:welcome isn't enabled, fallback to showing about:home.
+    return "about:home";
   }
 
   aboutHomeChannel() {
@@ -490,7 +491,7 @@ class AboutNewTabParentService extends BaseAboutNewTabService {
       // about:home document dynamically if an attempt is made to load
       // about:home?jscache from the AboutHomeStartupCache as a top-level
       // load.
-      matches: ["about:home*", "about:welcome", "about:newtab*"],
+      matches: ["about:home*", "about:newtab*"],
       remoteTypes: ["privilegedabout"],
     });
   }

@@ -35,7 +35,8 @@ add_task(async function test_multistage_zeroOnboarding_experimentAPI() {
 
   await test_screen_content(
     browser,
-    "Opens new tab",
+    // When about:welcome is disabled, we should redirect to about:home
+    "home",
     // Expected selectors:
     ["div.search-wrapper", "body.activity-stream"],
     // Unexpected selectors:

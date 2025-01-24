@@ -290,28 +290,9 @@ addTestsWithPrivilegedContentProcessPref(async function test_welcome_url() {
   Services.prefs.setBoolPref(SIMPLIFIED_WELCOME_ENABLED_PREF, false);
   Assert.equal(
     aboutNewTabService.welcomeURL,
-    ACTIVITY_STREAM_URL,
-    "Newtab welcomeURL set to un-prerendered AS when debug disabled."
+    "about:home",
+    "Newtab welcomeURL set to about:home when debug disabled."
   );
-  Assert.equal(
-    aboutNewTabService.welcomeURL,
-    aboutNewTabService.defaultURL,
-    "Newtab welcomeURL is equal to defaultURL when prerendering disabled and debug disabled."
-  );
-
-  // Only debug variants aren't available on release/beta
-  if (!IS_RELEASE_OR_BETA) {
-    await setBoolPrefAndWaitForChange(
-      ACTIVITY_STREAM_DEBUG_PREF,
-      true,
-      "A notification occurs after changing the debug pref to true."
-    );
-    Assert.equal(
-      aboutNewTabService.welcomeURL,
-      ACTIVITY_STREAM_DEBUG_URL,
-      "Newtab welcomeURL set to un-prerendered debug AS when debug enabled"
-    );
-  }
 
   cleanup();
 });
