@@ -1012,8 +1012,14 @@ nsresult Http3Session::ProcessOutputAndEvents(nsIUDPSocket* socket) {
 
   MOZ_ASSERT(mTimerShouldTrigger);
 
-  Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_TIMER_DELAYED,
-                                 mTimerShouldTrigger, TimeStamp::Now());
+  auto now = TimeStamp::Now();
+  if (mTimerShouldTrigger > now) {
+    // See bug 1935459
+    Telemetry::Accumulate(Telemetry::HTTP3_TIMER_DELAYED, 0);
+  } else {
+    Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_TIMER_DELAYED,
+                                   mTimerShouldTrigger, now);
+  }
 
   mTimerShouldTrigger = TimeStamp();
 

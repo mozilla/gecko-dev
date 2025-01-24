@@ -85,19 +85,6 @@ telemetry:
     expires: never
     telemetry_mirror: TELEMETRY_DATA_UPLOAD_OPTIN
 
-  clamping_time_hgrams:
-    type: labeled_counter
-    description: >
-      How often do which histograms that use
-      `Telemetry::AccumulateTimeDelta` have clamped samples due to underflow?
-    bugs:
-      - https://bugzil.la/1935419
-    data_reviews:
-      - https://bugzil.la/1935419
-    notification_emails:
-      - chutten@mozilla.com
-    expires: 140
-
 usage:
   profile_id:
     type: uuid
