@@ -35,7 +35,7 @@ sealed interface OnboardingAction : Action {
     /**
      * Triggered when the store is initialized.
      */
-    data class Init(val addons: List<OnboardingAddOn> = emptyList()) : OnboardingAction
+    data object Init : OnboardingAction
 
     /**
      * [Action] implementation related to add-ons.
@@ -46,6 +46,11 @@ sealed interface OnboardingAction : Action {
          */
         data class UpdateStatus(val addOnId: String, val status: OnboardingAddonStatus) :
             OnboardingAddOnsAction
+
+        /**
+         * Updates the add-ons list
+         */
+        data class UpdateAddons(val addons: List<OnboardingAddOn> = emptyList()) : OnboardingAction
     }
 
     /**
@@ -89,7 +94,7 @@ class OnboardingStore(middleware: List<Middleware<OnboardingState, OnboardingAct
         middleware = middleware,
     ) {
     init {
-        dispatch(OnboardingAction.Init())
+        dispatch(OnboardingAction.Init)
     }
 }
 
@@ -98,7 +103,8 @@ private fun reducer(
     action: OnboardingAction,
 ): OnboardingState =
     when (action) {
-        is OnboardingAction.Init -> OnboardingState(addOns = action.addons)
+        is OnboardingAction.Init -> state
+
         is OnboardingAction.OnboardingAddOnsAction.UpdateStatus -> {
             val mutableAddonsList = state.addOns.toMutableList()
             val index = mutableAddonsList.indexOfFirst { it.id == action.addOnId }
@@ -117,6 +123,10 @@ private fun reducer(
                 state
             }
         }
+
+        is OnboardingAction.OnboardingAddOnsAction.UpdateAddons -> state.copy(
+            addOns = action.addons,
+        )
 
         is OnboardingAction.OnboardingToolbarAction.UpdateSelected -> state.copy(
             toolbarOptionSelected = action.selected,

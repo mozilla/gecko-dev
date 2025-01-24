@@ -16,7 +16,7 @@ class OnboardingStoreTest {
         val store = OnboardingStore()
         val addOns: List<OnboardingAddOn> = emptyList()
 
-        store.dispatch(OnboardingAction.Init(addOns)).joinBlocking()
+        store.dispatch(OnboardingAction.Init).joinBlocking()
 
         val expected = OnboardingState(
             addOns = addOns,
@@ -27,7 +27,7 @@ class OnboardingStoreTest {
     }
 
     @Test
-    fun `WHEN installation process action is dispatched THEN addOns and installationInProcess state is updated`() {
+    fun `WHEN the update addons action is dispatched THEN addOns and installationInProcess state is updated`() {
         val store = OnboardingStore()
         val addOns: List<OnboardingAddOn> = listOf(
             OnboardingAddOn(
@@ -52,7 +52,7 @@ class OnboardingStoreTest {
             ),
         )
 
-        store.dispatch(OnboardingAction.Init(addOns)).joinBlocking()
+        store.dispatch(OnboardingAction.OnboardingAddOnsAction.UpdateAddons(addOns)).joinBlocking()
 
         assertEquals(
             addOns,

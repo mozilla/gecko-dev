@@ -48,7 +48,7 @@ class OnboardingPreferencesMiddlewareTest {
     fun `GIVEN init action WHEN middleware is invoked THEN the repo is initialized`() =
         runTestOnMain {
             `when`(repository.onboardingPreferenceUpdates).thenReturn(emptyFlow())
-            middleware.invoke(context = context, next = {}, action = OnboardingAction.Init())
+            middleware.invoke(context = context, next = {}, action = OnboardingAction.Init)
 
             verify(repository).init()
             verify(repository).onboardingPreferenceUpdates
