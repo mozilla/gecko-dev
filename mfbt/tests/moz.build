@@ -116,3 +116,6 @@ if CONFIG["CC_TYPE"] == "clang-cl":
 USE_LIBS += [
     "mozglue",
 ]
+
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    USE_LIBS += ["sanitizer-options"]

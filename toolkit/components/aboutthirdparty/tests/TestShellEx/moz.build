@@ -20,6 +20,9 @@ USE_LIBS += [
     "mozglue",
 ]
 
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    USE_LIBS += ["sanitizer-options"]
+
 if CONFIG["OS_ARCH"] == "WINNT":
     OS_LIBS += [
         "advapi32",

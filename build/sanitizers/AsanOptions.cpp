@@ -4,8 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Attributes.h"
-
-#ifndef _MSC_VER  // Not supported by clang-cl yet
+#include "mozilla/Types.h"
 
 // When running with AddressSanitizer, we need to explicitly set some
 // options specific to our codebase to prevent errors during runtime.
@@ -64,14 +63,14 @@
 // These should be updated in:
 //   mobile/android/geckoview/src/asan/resources/lib/*/wrap.sh
 //
-extern "C" MOZ_ASAN_IGNORE const char* __asan_default_options() {
+extern "C" MOZ_ASAN_IGNORE MOZ_EXPORT const char* __asan_default_options() {
   return "allow_user_segv_handler=1:alloc_dealloc_mismatch=0:detect_leaks=0"
-#  ifdef MOZ_ASAN_REPORTER
+#ifdef MOZ_ASAN_REPORTER
          ":malloc_context_size=20"
-#  endif
-#  ifdef __ANDROID__
+#endif
+#ifdef __ANDROID__
          ":fast_unwind_on_check=1:fast_unwind_on_fatal=1"
-#  endif
+#endif
          ":max_free_fill_size=268435456:max_malloc_fill_size=268435456"
          ":malloc_fill_byte=228:free_fill_byte=229"
          ":handle_sigill=1:handle_abort=1:handle_sigtrap=1"
@@ -81,7 +80,7 @@ extern "C" MOZ_ASAN_IGNORE const char* __asan_default_options() {
 
 // !!! Please do not add suppressions for new leaks in Gecko code, unless they
 // are intentional !!!
-extern "C" const char* __lsan_default_suppressions() {
+extern "C" MOZ_EXPORT const char* __lsan_default_suppressions() {
   return "# Add your suppressions below\n"
 
          // LSan runs with a shallow stack depth and no debug symbols, so some
@@ -190,5 +189,3 @@ extern "C" const char* __lsan_default_suppressions() {
       // End of suppressions.
       ;  // Please keep this semicolon.
 }
-
-#endif  // _MSC_VER

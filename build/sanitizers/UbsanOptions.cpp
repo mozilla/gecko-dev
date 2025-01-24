@@ -4,13 +4,10 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Types.h"
 
-#ifndef _MSC_VER  // Not supported by clang-cl yet
-
-extern "C" const char* __ubsan_default_options() {
+extern "C" MOZ_EXPORT const char* __ubsan_default_options() {
   return "print_stacktrace=1:handle_sigill=1:handle_abort=1:handle_sigtrap=1";
 }
 
-extern "C" const char* __ubsan_default_suppressions() { return ""; }
-
-#endif
+extern "C" MOZ_EXPORT const char* __ubsan_default_suppressions() { return ""; }

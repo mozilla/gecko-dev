@@ -33,6 +33,9 @@ SimplePrograms(test_progs)
 
 USE_LIBS += ["mozglue"]
 
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    USE_LIBS += ["sanitizer-options"]
+
 XPCSHELL_TESTS_MANIFESTS += ["unit/xpcshell.toml"]
 
 if CONFIG["COMPILE_ENVIRONMENT"]:
