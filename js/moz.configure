@@ -679,22 +679,6 @@ def ctypes_and_compile_environment(ctypes, compile_environment):
 
 include("ffi.configure", when=ctypes_and_compile_environment)
 
-
-# Enable pipeline operator
-# ===================================================
-option("--enable-pipeline-operator", default=False, help="Enable pipeline operator")
-
-
-@depends("--enable-pipeline-operator")
-def enable_pipeline_operator(value):
-    if value:
-        return True
-
-
-set_config("ENABLE_PIPELINE_OPERATOR", enable_pipeline_operator)
-set_define("ENABLE_PIPELINE_OPERATOR", enable_pipeline_operator)
-
-
 # SIMD acceleration for encoding_rs
 # ==============================================================
 
