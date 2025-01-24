@@ -406,15 +406,15 @@
       @include section-card-large;
     }
 
-    .col-1-hide-excerpt {
-      .info-wrap .excerpt {
-        display: none;
+    .col-1-show-excerpt {
+      .meta .info-wrap .excerpt {
+        display: flex;
       }
     }
 
-    .col-1-show-excerpt {
-      .info-wrap .excerpt {
-        display: flex;
+    .col-1-hide-excerpt {
+      .meta .info-wrap .excerpt {
+        display: none;
       }
     }
   }
@@ -440,15 +440,15 @@
       @include section-card-large;
     }
 
-    .col-2-hide-excerpt {
-      .info-wrap .excerpt {
-        display: none;
+    .col-2-show-excerpt {
+      .meta .info-wrap .excerpt {
+        display: flex;
       }
     }
 
-    .col-2-show-excerpt {
-      .info-wrap .excerpt {
-        display: flex;
+    .col-2-hide-excerpt {
+      .meta .info-wrap .excerpt {
+        display: none;
       }
     }
   }
@@ -475,15 +475,15 @@
       @include section-card-large;
     }
 
-    .col-3-hide-excerpt {
-      .info-wrap .excerpt {
-        display: none;
+    .col-3-show-excerpt {
+      .meta .info-wrap .excerpt {
+        display: flex;
       }
     }
 
-    .col-3-show-excerpt {
-      .info-wrap .excerpt {
-        display: flex;
+    .col-3-hide-excerpt {
+      .meta .info-wrap .excerpt {
+        display: none;
       }
     }
   }
@@ -510,15 +510,15 @@
       @include section-card-large;
     }
 
-    .col-4-hide-excerpt {
-      .info-wrap .excerpt {
-        display: none;
+    .col-4-show-excerpt {
+      .meta .info-wrap .excerpt {
+        display: flex;
       }
     }
 
-    .col-4-show-excerpt {
-      .info-wrap .excerpt {
-        display: flex;
+    .col-4-hide-excerpt {
+      .meta .info-wrap .excerpt {
+        display: none;
       }
     }
   }
