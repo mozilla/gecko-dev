@@ -442,7 +442,7 @@ nsresult nsHttpHandler::Init() {
   mMisc.AssignLiteral("rv:" MOZILLA_UAVERSION);
 
   // Generate the spoofed User Agent for fingerprinting resistance.
-  nsRFPService::GetSpoofedUserAgent(mSpoofedUserAgent, true);
+  nsRFPService::GetSpoofedUserAgent(mSpoofedUserAgent);
 
   mSessionStartTime = NowInSeconds();
   mHandlerActive = true;

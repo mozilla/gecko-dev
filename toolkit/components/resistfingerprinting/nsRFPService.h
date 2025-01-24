@@ -61,14 +61,6 @@
 
 #define SPOOFED_POINTER_INTERFACE MouseEvent_Binding::MOZ_SOURCE_MOUSE
 
-// For the HTTP User-Agent header, we use a simpler set of spoofed values
-// that do not reveal the specific desktop platform.
-#if defined(MOZ_WIDGET_ANDROID)
-#  define SPOOFED_HTTP_UA_OS "Android 10; Mobile"
-#else
-#  define SPOOFED_HTTP_UA_OS "Windows NT 10.0; Win64; x64"
-#endif
-
 struct JSContext;
 
 class nsIChannel;
@@ -278,7 +270,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // --------------------------------------------------------------------------
 
   // This method generates the spoofed value of User Agent.
-  static void GetSpoofedUserAgent(nsACString& userAgent, bool isForHTTPHeader);
+  static void GetSpoofedUserAgent(nsACString& userAgent);
 
   // --------------------------------------------------------------------------
 
