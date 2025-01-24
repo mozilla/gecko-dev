@@ -28,11 +28,12 @@ add_task(async function test_tabGroupsUndo() {
   await Promise.all(
     groupedTabs.map(g => promiseBrowserLoaded(g.linkedBrowser))
   );
-  console.log("adding to tab group");
+
+  info("Adding to tab group");
   let tabGroup = gBrowser.addTabGroup(groupedTabs);
   let tabGroupId = tabGroup.id;
 
-  console.log("waiting for tab group removed");
+  info("Waiting for tab group removed");
   let removePromise = BrowserTestUtils.waitForEvent(
     tabGroup,
     "TabGroupRemoved"
@@ -40,11 +41,9 @@ add_task(async function test_tabGroupsUndo() {
   gBrowser.removeTabGroup(tabGroup);
   await removePromise;
 
-  console.log("flushing window");
   await TabStateFlusher.flushWindow(window);
 
-  // TODO there has to be a better way to await this...
-  console.log("waiting for getLastClosedTabGroupId");
+  info("Waiting for getLastClosedTabGroupId");
   await BrowserTestUtils.waitForCondition(
     () => SessionStore.getLastClosedTabGroupId(window) !== null
   );
@@ -88,10 +87,12 @@ add_task(async function test_tabGroupsUndo() {
   await Promise.all(
     savedGroupedTabs.map(g => promiseBrowserLoaded(g.linkedBrowser))
   );
+  info("Adding to tab group");
   let savedTabGroup = gBrowser.addTabGroup(savedGroupedTabs);
   let savedTabGroupId = savedTabGroup.id;
 
   savedTabGroup.save();
+  info("Waiting for tab group removed");
   removePromise = BrowserTestUtils.waitForEvent(
     savedTabGroup,
     "TabGroupRemoved"
@@ -101,10 +102,9 @@ add_task(async function test_tabGroupsUndo() {
 
   await TabStateFlusher.flushWindow(window);
 
-  // TODO there has to be a better way to await this...
+  info("Waiting for getLastClosedTabGroupId");
   await BrowserTestUtils.waitForCondition(
-    () => SessionStore.getLastClosedTabGroupId(window) !== null,
-    "testttt"
+    () => SessionStore.getLastClosedTabGroupId(window) !== null
   );
 
   Assert.equal(
