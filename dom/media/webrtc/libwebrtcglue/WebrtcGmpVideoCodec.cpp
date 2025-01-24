@@ -111,6 +111,7 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
   codecParams.mMinBitrate = aCodecSettings->minBitrate;
   codecParams.mMaxBitrate = aCodecSettings->maxBitrate;
   codecParams.mMaxFramerate = aCodecSettings->maxFramerate;
+  codecParams.mFrameDroppingOn = aCodecSettings->GetFrameDropEnabled();
   if (aCodecSettings->mode == webrtc::VideoCodecMode::kScreensharing) {
     codecParams.mMode = kGMPScreensharing;
   } else {
@@ -353,10 +354,11 @@ void WebrtcGmpVideoEncoder::Encode_g(
     gmp_frame_types.AppendElement(ft);
   }
 
-  DebugOnly<bool> inserted = false;
-  std::tie(std::ignore, inserted) =
-      mInputImageMap.insert({frame->Timestamp(), {aInputImage.timestamp_us()}});
-  MOZ_ASSERT(inserted, "Duplicate timestamp");
+  MOZ_RELEASE_ASSERT(mInputImageMap.IsEmpty() ||
+                     mInputImageMap.LastElement().rtp_timestamp <
+                         frame->Timestamp());
+  mInputImageMap.AppendElement(
+      InputImageData{frame->Timestamp(), aInputImage.timestamp_us()});
 
   GMP_LOG_DEBUG("GMP Encode: %" PRIu64, (frame->Timestamp()));
   err = mGMP->Encode(std::move(frame), codecSpecificInfo, gmp_frame_types);
@@ -456,15 +458,33 @@ void WebrtcGmpVideoEncoder::Encoded(
     const nsTArray<uint8_t>& aCodecSpecificInfo) {
   MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
   webrtc::Timestamp capture_time = webrtc::Timestamp::Micros(0);
-  auto handle = mInputImageMap.extract(aEncodedFrame->TimeStamp());
-  MOZ_ASSERT(handle);
-  if (handle) {
-    capture_time = webrtc::Timestamp::Micros(handle.mapped().timestamp_us);
+  auto rtp_comparator = [](const InputImageData& aA,
+                           const InputImageData& aB) -> int32_t {
+    const auto& a = aA.rtp_timestamp;
+    const auto& b = aB.rtp_timestamp;
+    return a < b ? -1 : a != b;
+  };
+  size_t nextIdx = mInputImageMap.IndexOfFirstElementGt(
+      InputImageData{aEncodedFrame->TimeStamp(), 0}, rtp_comparator);
+  const size_t numToRemove = nextIdx;
+  size_t numFramesDropped = numToRemove;
+  MOZ_ASSERT(nextIdx != 0);
+  if (nextIdx != 0 && mInputImageMap.ElementAt(nextIdx - 1).rtp_timestamp ==
+                          aEncodedFrame->TimeStamp()) {
+    --numFramesDropped;
+    capture_time = webrtc::Timestamp::Micros(
+        mInputImageMap.ElementAt(nextIdx - 1).timestamp_us);
   }
+  mInputImageMap.RemoveElementsAt(0, numToRemove);
 
   MutexAutoLock lock(mCallbackMutex);
   if (!mCallback) {
     return;
+  }
+
+  for (size_t i = 0; i < numFramesDropped; ++i) {
+    mCallback->OnDroppedFrame(
+        webrtc::EncodedImageCallback::DropReason::kDroppedByEncoder);
   }
 
   webrtc::VideoFrameType ft;

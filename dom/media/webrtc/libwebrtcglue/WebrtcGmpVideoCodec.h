@@ -256,10 +256,12 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   const std::string mPCHandle;
 
   struct InputImageData {
+    uint64_t rtp_timestamp;
     int64_t timestamp_us;
   };
+  static constexpr size_t kMaxImagesInFlight = 5;
   // Map rtp time -> input image data
-  std::map<uint64_t, InputImageData> mInputImageMap;
+  AutoTArray<InputImageData, kMaxImagesInFlight> mInputImageMap;
 
   MediaEventProducer<uint64_t> mInitPluginEvent;
   MediaEventProducer<uint64_t> mReleasePluginEvent;
