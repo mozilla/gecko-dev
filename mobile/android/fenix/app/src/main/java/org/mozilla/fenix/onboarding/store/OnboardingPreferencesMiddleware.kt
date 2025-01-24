@@ -62,6 +62,7 @@ class OnboardingPreferencesMiddleware(
 
             // no-ops
             is OnboardingAction.OnboardingAddOnsAction.UpdateStatus -> {}
+            is OnboardingAction.OnboardingAddOnsAction.UpdateAddons -> {}
         }
     }
 

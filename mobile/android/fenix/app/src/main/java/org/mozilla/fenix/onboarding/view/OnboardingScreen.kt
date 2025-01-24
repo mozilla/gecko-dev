@@ -363,7 +363,7 @@ private fun OnboardingPageForType(
         OnboardingPageUiData.Type.ADD_ONS,
         -> onboardingStore?.let { store ->
             state.addOns?.let { addOns ->
-                store.dispatch(OnboardingAction.Init(addOns))
+                store.dispatch(OnboardingAction.OnboardingAddOnsAction.UpdateAddons(addOns))
             }
             AddOnsOnboardingPage(store, state, onInstallAddOnButtonClick)
         }
