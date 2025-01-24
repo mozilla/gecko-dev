@@ -2179,7 +2179,7 @@ nsresult Selection::GetCachedFrameOffset(nsIFrame* aFrame, int32_t inOffset,
   return rv;
 }
 
-nsIContent* Selection::GetAncestorLimiter() const {
+Element* Selection::GetAncestorLimiter() const {
   MOZ_ASSERT(mSelectionType == SelectionType::eNormal);
 
   if (mFrameSelection) {
@@ -2188,7 +2188,7 @@ nsIContent* Selection::GetAncestorLimiter() const {
   return nullptr;
 }
 
-void Selection::SetAncestorLimiter(nsIContent* aLimiter) {
+void Selection::SetAncestorLimiter(Element* aLimiter) {
   if (NeedsToLogSelectionAPI(*this)) {
     LogSelectionAPI(this, __FUNCTION__, "aLimiter", aLimiter);
     LogStackForSelectionAPI();

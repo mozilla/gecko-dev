@@ -5702,7 +5702,7 @@ Element* EditorBase::FindSelectionRoot(const nsINode& aNode) const {
 }
 
 void EditorBase::InitializeSelectionAncestorLimit(
-    nsIContent& aAncestorLimit) const {
+    Element& aAncestorLimit) const {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   SelectionRef().SetAncestorLimiter(&aAncestorLimit);
@@ -5712,7 +5712,7 @@ nsresult EditorBase::InitializeSelection(
     const nsINode& aOriginalEventTargetNode) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  nsCOMPtr<nsIContent> selectionRootContent =
+  const RefPtr<Element> selectionRootContent =
       FindSelectionRoot(aOriginalEventTargetNode);
   if (!selectionRootContent) {
     return NS_OK;

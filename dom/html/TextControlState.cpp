@@ -339,7 +339,8 @@ class TextInputSelectionController final : public nsSupportsWeakReference,
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(TextInputSelectionController,
                                            nsISelectionController)
 
-  TextInputSelectionController(PresShell* aPresShell, nsIContent* aLimiter);
+  TextInputSelectionController(PresShell* aPresShell,
+                               Element& aEditorRootAnonymousDiv);
 
   void SetScrollContainerFrame(ScrollContainerFrame* aScrollContainerFrame);
   nsFrameSelection* GetConstFrameSelection() { return mFrameSelection; }
@@ -401,12 +402,12 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION_WEAK(TextInputSelectionController, mFrameSelection)
 
 TextInputSelectionController::TextInputSelectionController(
-    PresShell* aPresShell, nsIContent* aLimiter) {
+    PresShell* aPresShell, Element& aEditorRootAnonymousDiv) {
   if (aPresShell) {
-    bool accessibleCaretEnabled =
-        PresShell::AccessibleCaretEnabled(aLimiter->OwnerDoc()->GetDocShell());
-    mFrameSelection =
-        new nsFrameSelection(aPresShell, aLimiter, accessibleCaretEnabled);
+    const bool accessibleCaretEnabled = PresShell::AccessibleCaretEnabled(
+        aEditorRootAnonymousDiv.OwnerDoc()->GetDocShell());
+    mFrameSelection = new nsFrameSelection(aPresShell, accessibleCaretEnabled,
+                                           &aEditorRootAnonymousDiv);
     mPresShellWeak = do_GetWeakReference(aPresShell);
   }
 }
@@ -1608,14 +1609,14 @@ nsresult TextControlState::BindToFrame(nsTextControlFrame* aFrame) {
 
   mBoundFrame = aFrame;
 
-  Element* rootNode = aFrame->GetRootNode();
-  MOZ_ASSERT(rootNode);
+  MOZ_ASSERT(aFrame->GetRootNode());
+  Element& editorRootAnonymousDiv = *aFrame->GetRootNode();
 
   PresShell* presShell = aFrame->PresContext()->GetPresShell();
   MOZ_ASSERT(presShell);
 
   // Create a SelectionController
-  mSelCon = new TextInputSelectionController(presShell, rootNode);
+  mSelCon = new TextInputSelectionController(presShell, editorRootAnonymousDiv);
   MOZ_ASSERT(!mTextListener, "Should not overwrite the object");
   mTextListener = new TextInputListener(mTextCtrlElement);
 
@@ -1645,9 +1646,11 @@ nsresult TextControlState::BindToFrame(nsTextControlFrame* aFrame) {
 
     // Set the correct direction on the newly created root node
     if (mTextEditor->IsRightToLeft()) {
-      rootNode->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, u"rtl"_ns, false);
+      editorRootAnonymousDiv.SetAttr(kNameSpaceID_None, nsGkAtoms::dir,
+                                     u"rtl"_ns, false);
     } else if (mTextEditor->IsLeftToRight()) {
-      rootNode->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, u"ltr"_ns, false);
+      editorRootAnonymousDiv.SetAttr(kNameSpaceID_None, nsGkAtoms::dir,
+                                     u"ltr"_ns, false);
     } else {
       // otherwise, inherit the content node's direction
     }

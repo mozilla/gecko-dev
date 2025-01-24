@@ -783,8 +783,8 @@ class Selection final : public nsSupportsWeakReference,
                              const TextRangeStyle& aTextRangeStyle);
 
   // Methods to manipulate our mFrameSelection's ancestor limiter.
-  nsIContent* GetAncestorLimiter() const;
-  void SetAncestorLimiter(nsIContent* aLimiter);
+  Element* GetAncestorLimiter() const;
+  void SetAncestorLimiter(Element* aLimiter);
 
   /*
    * Frame Offset cache can be used just during calling

@@ -524,14 +524,14 @@ class MOZ_STACK_CLASS AutoClonedSelectionRangeArray final
    * Equivalent to nsFrameSelection::GetLimiter().
    * NOTE: This should be called only when IsForSelection() returns true.
    */
-  [[nodiscard]] nsIContent* GetLimiter() const {
+  [[nodiscard]] dom::Element* GetLimiter() const {
     return mLimitersAndCaretData.mLimiter;
   }
   /**
    * Equivalent to nsFrameSelection::GetAncestorLimiter()
    * NOTE: This should be called only when IsForSelection() returns true.
    */
-  [[nodiscard]] nsIContent* GetAncestorLimiter() const {
+  [[nodiscard]] dom::Element* GetAncestorLimiter() const {
     return mLimitersAndCaretData.mAncestorLimiter;
   }
   /**
@@ -553,12 +553,12 @@ class MOZ_STACK_CLASS AutoClonedSelectionRangeArray final
     return mLimitersAndCaretData.mCaretBidiLevel;
   }
 
-  void SetAncestorLimiter(const nsIContent* aSelectionAncestorLimiter) {
+  void SetAncestorLimiter(const dom::Element* aSelectionAncestorLimiter) {
     if (mLimitersAndCaretData.mAncestorLimiter == aSelectionAncestorLimiter) {
       return;
     }
     mLimitersAndCaretData.mAncestorLimiter =
-        const_cast<nsIContent*>(aSelectionAncestorLimiter);
+        const_cast<dom::Element*>(aSelectionAncestorLimiter);
     if (NodeIsInLimiters(GetFocusNode())) {
       return;
     }

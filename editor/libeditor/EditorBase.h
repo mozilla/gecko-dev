@@ -2517,8 +2517,7 @@ class EditorBase : public nsIEditor,
    *                            has parent node.  So, it's always safe to
    *                            call SetAncestorLimit() with this node.
    */
-  virtual void InitializeSelectionAncestorLimit(
-      nsIContent& aAncestorLimit) const;
+  virtual void InitializeSelectionAncestorLimit(Element& aAncestorLimit) const;
 
   /**
    * Initializes selection and caret for the editor at getting focus.  If

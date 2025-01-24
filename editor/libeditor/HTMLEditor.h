@@ -3505,7 +3505,7 @@ class HTMLEditor final : public EditorBase,
   SetHTMLBackgroundColorWithTransaction(const nsAString& aColor);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void InitializeSelectionAncestorLimit(
-      nsIContent& aAncestorLimit) const final;
+      Element& aAncestorLimit) const final;
 
   /**
    * Make the given selection span the entire document.

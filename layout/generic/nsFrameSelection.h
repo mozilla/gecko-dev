@@ -15,6 +15,7 @@
 #include "mozilla/CompactPair.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/Highlight.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/Result.h"
@@ -238,6 +239,7 @@ enum class TableSelectionMode : uint32_t {
 class nsFrameSelection final {
  public:
   using CaretAssociationHint = mozilla::CaretAssociationHint;
+  using Element = mozilla::dom::Element;
 
   /*interfaces for addref and release and queryinterface*/
 
@@ -520,8 +522,8 @@ class nsFrameSelection final {
   [[nodiscard]] bool NodeIsInLimiters(const nsINode* aContainerNode) const;
 
   [[nodiscard]] static bool NodeIsInLimiters(
-      const nsINode* aContainerNode, const nsIContent* aSelectionLimiter,
-      const nsIContent* aSelectionAncestorLimiter);
+      const nsINode* aContainerNode, const Element* aSelectionLimiter,
+      const Element* aSelectionAncestorLimiter);
 
   /**
    * GetFrameToPageSelect() returns a frame which is ancestor limit of
@@ -802,16 +804,26 @@ class nsFrameSelection final {
   }
 
   /**
-   * Get the content node that limits the selection
-   *
-   * When searching up a nodes for parents, as in a text edit field
-   * in an browser page, we must stop at this node else we reach into the
-   * parent page, which is very bad!
+   * GetLimiter() returns the selection limiter element which is currently
+   * non-nullptr only when this instance is for an independent selection of a
+   * text control.  Then, this returns the editor root anonymous <div> in the
+   * text control element.
    */
-  nsIContent* GetLimiter() const { return mLimiters.mLimiter; }
+  Element* GetLimiter() const { return mLimiters.mLimiter; }
 
-  nsIContent* GetAncestorLimiter() const { return mLimiters.mAncestorLimiter; }
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY void SetAncestorLimiter(nsIContent* aLimiter);
+  /**
+   * GetAncestorLimiter() returns the root of current selection ranges.  This is
+   * typically the focused editing host unless it's the root element of the
+   * document.
+   */
+  Element* GetAncestorLimiter() const { return mLimiters.mAncestorLimiter; }
+
+  /**
+   * Set ancestor limiter.  If aLimiter is not nullptr, this adjusts all
+   * selection ranges into the limiter element.  Thus, calling this may run
+   * the selection listeners.
+   */
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void SetAncestorLimiter(Element* aLimiter);
 
   /**
    * GetPrevNextBidiLevels will return the frames and associated Bidi levels of
@@ -855,13 +867,15 @@ class nsFrameSelection final {
    * @param aPresShell is the parameter to be used for most of the other calls
    * for callbacks etc
    *
-   * @param aLimiter limits the selection to nodes with aLimiter parents
-   *
    * @param aAccessibleCaretEnabled true if we should enable the accessible
    * caret.
+   *
+   * @param aEditorRootAnonymousDiv if this instance is for an independent
+   * selection for a text control, specify this to the anonymous <div> element
+   * of the text control which contains only an editable Text and/or a <br>.
    */
-  nsFrameSelection(mozilla::PresShell* aPresShell, nsIContent* aLimiter,
-                   bool aAccessibleCaretEnabled);
+  nsFrameSelection(mozilla::PresShell* aPresShell, bool aAccessibleCaretEnabled,
+                   Element* aEditorRootAnonymousDiv = nullptr);
 
   /**
    * @param aRequesterFuncName function name which wants to start the batch.
@@ -1005,7 +1019,7 @@ class nsFrameSelection final {
 
   enum class ForceEditableRegion : bool { No, Yes };
   static mozilla::Result<mozilla::PeekOffsetOptions, nsresult>
-  CreatePeekOffsetOptionsForCaretMove(const nsIContent* aSelectionLimiter,
+  CreatePeekOffsetOptionsForCaretMove(const Element* aSelectionLimiter,
                                       ForceEditableRegion aForceEditableRegion,
                                       ExtendSelection aExtendSelection,
                                       CaretMovementStyle aMovementStyle);
@@ -1019,8 +1033,8 @@ class nsFrameSelection final {
    * @param aSelection The selection object. Must be non-null
    * @return The ancestor limiter, or nullptr.
    */
-  mozilla::Result<mozilla::dom::Element*, nsresult>
-  GetAncestorLimiterForCaretMove(mozilla::dom::Selection* aSelection) const;
+  mozilla::Result<Element*, nsresult> GetAncestorLimiterForCaretMove(
+      mozilla::dom::Selection* aSelection) const;
 
   /**
    * CreateRangeExtendedToSomewhere() is common method to implement
@@ -1190,10 +1204,15 @@ class nsFrameSelection final {
   Batching mBatching;
 
   struct Limiters {
-    // Limit selection navigation to a child of this node.
-    nsCOMPtr<nsIContent> mLimiter;
-    // Limit selection navigation to a descendant of this node.
-    nsCOMPtr<nsIContent> mAncestorLimiter;
+    // Limit selection navigation to a child of this element.
+    // This is set only when the nsFrameSelection instance is for the
+    // independent selection for a text control.  If this is set, it's always
+    // the anonymous <div> of the text control element.
+    RefPtr<Element> mLimiter;
+    // Limit selection navigation to a descendant of this element.
+    // This is typically the focused editing host if set unless it's the root
+    // element of the document.
+    RefPtr<Element> mAncestorLimiter;
   };
 
   Limiters mLimiters;
@@ -1294,6 +1313,8 @@ namespace mozilla {
  * A struct for sharing nsFrameSelection outside of its instance.
  */
 struct LimitersAndCaretData {
+  using Element = dom::Element;
+
   LimitersAndCaretData() = default;
   explicit LimitersAndCaretData(const nsFrameSelection& aFrameSelection)
       : mLimiter(aFrameSelection.GetLimiter()),
@@ -1312,9 +1333,9 @@ struct LimitersAndCaretData {
   }
 
   // nsFrameSelection::GetLimiter
-  nsCOMPtr<nsIContent> mLimiter;
+  RefPtr<Element> mLimiter;
   // nsFrameSelection::GetAncestorLimiter
-  nsCOMPtr<nsIContent> mAncestorLimiter;
+  RefPtr<Element> mAncestorLimiter;
   // nsFrameSelection::GetHint
   CaretAssociationHint mCaretAssociationHint = CaretAssociationHint::Before;
   // nsFrameSelection::GetCaretBidiLevel
