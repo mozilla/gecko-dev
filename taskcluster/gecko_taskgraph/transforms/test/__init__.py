@@ -173,7 +173,9 @@ test_description_schema = Schema(
             Optional("actions"): [str],
             # additional command-line options for mozharness, beyond those
             # automatically added
-            Required("extra-options"): optionally_keyed_by("test-platform", [str]),
+            Required("extra-options"): optionally_keyed_by(
+                "test-platform", "variant", [str]
+            ),
             # the artifact name (including path) to test on the build task; this is
             # generally set in a per-kind transformation
             Optional("build-artifact-name"): str,
@@ -297,7 +299,6 @@ def handle_keyed_by_mozharness(config, tasks):
         "mozharness",
         "mozharness.chunked",
         "mozharness.config",
-        "mozharness.extra-options",
         "mozharness.script",
     ]
     for task in tasks:

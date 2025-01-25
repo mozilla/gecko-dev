@@ -175,6 +175,7 @@ def handle_keyed_by(config, tests):
         "run-on-projects",
         "target",
         "tier",
+        "mozharness.extra-options",
     ]
     for test in tests:
         for field in fields:

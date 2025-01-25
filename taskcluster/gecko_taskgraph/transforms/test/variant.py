@@ -6,7 +6,7 @@ import datetime
 import jsone
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.copy import deepcopy
-from taskgraph.util.schema import Schema, validate_schema
+from taskgraph.util.schema import Schema, resolve_keyed_by, validate_schema
 from taskgraph.util.templates import merge
 from taskgraph.util.treeherder import join_symbol, split_symbol
 from voluptuous import Any, Optional, Required
@@ -86,7 +86,7 @@ def split_variants(config, tasks):
                 task_key[item] = variant_key[item]
         return task_key
 
-    def apply_variant(variant, task):
+    def apply_variant(variant, task, name):
         task["description"] = variant["description"].format(**task)
 
         suffix = f"-{variant['suffix']}"
@@ -105,6 +105,15 @@ def split_variants(config, tasks):
 
         # we only want to update the leaf node, the the entire top level dict
         task = replace_task_items(task, variant.get("replace", {}))
+
+        resolve_keyed_by(
+            task,
+            "mozharness.extra-options",
+            item_name=task["test-name"],
+            enforce_single_match=False,
+            variant=name,
+        )
+
         return merge(task, variant.get("merge", {}))
 
     expired_variants = find_expired_variants(TEST_VARIANTS)
@@ -128,7 +137,7 @@ def split_variants(config, tasks):
                     if not jsone.render(variant["when"], context):
                         break
 
-                taskv = apply_variant(variant, taskv)
+                taskv = apply_variant(variant, taskv, name)
             else:
                 taskv["attributes"]["unittest_variant"] = name
                 yield taskv

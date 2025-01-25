@@ -65,6 +65,14 @@ def handle_suite_category(config, tasks):
             category_arg = f"--{category}-suite"
 
         if category_arg:
+            resolve_keyed_by(
+                task,
+                "mozharness.extra-options",
+                item_name=task["test-name"],
+                enforce_single_match=False,
+                variant=task["attributes"].get("unittest_variant"),
+            )
+
             task["mozharness"].setdefault("extra-options", [])
             extra = task["mozharness"]["extra-options"]
             if not any(arg.startswith(category_arg) for arg in extra):
@@ -90,6 +98,14 @@ def setup_talos(config, tasks):
         if task["suite"] != "talos":
             yield task
             continue
+
+        resolve_keyed_by(
+            task,
+            "mozharness.extra-options",
+            item_name=task["test-name"],
+            enforce_single_match=False,
+            variant=task["attributes"].get("unittest_variant"),
+        )
 
         extra_options = task.setdefault("mozharness", {}).setdefault(
             "extra-options", []
@@ -268,6 +284,7 @@ def handle_keyed_by(config, tasks):
         "fetches.toolchain",
         "target",
         "webrender-run-on-projects",
+        "mozharness.extra-options",
         "mozharness.requires-signed-builds",
         "build-signing-label",
         "dependencies",
@@ -543,6 +560,14 @@ def disable_wpt_timeouts_on_autoland(config, tasks):
             "web-platform-tests" in task["test-name"]
             and config.params["project"] == "autoland"
         ):
+            resolve_keyed_by(
+                task,
+                "mozharness.extra-options",
+                item_name=task["test-name"],
+                enforce_single_match=False,
+                variant=task["attributes"].get("unittest_variant"),
+            )
+
             task["mozharness"].setdefault("extra-options", []).append("--skip-timeout")
         yield task
 
