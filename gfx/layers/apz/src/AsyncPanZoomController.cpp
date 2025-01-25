@@ -6432,7 +6432,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
         *this, Metrics().GetVisualScrollOffset(), Metrics().GetZoom(),
         endZoomToMetrics.GetVisualScrollOffset(), endZoomToMetrics.GetZoom())));
 
-    RequestContentRepaint(RepaintUpdateType::eUserAction);
+    RequestContentRepaint();
   }
 }
 
