@@ -503,13 +503,13 @@
     <string name="onboarding_add_on_explore_more_extensions_2">Zêdetir pêvekan keşf bike</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Qediya</string>
+    <string name="onboarding_preferences_dialog_positive_button">Qediya</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Betal bike</string>
+    <string name="onboarding_preferences_dialog_negative_button">Betal bike</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Bi xêr hatî Firefox`ê</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Bi xêr hatî Firefox`ê</string>
     <!-- Terms of service onboarding page continue button label. -->
-    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Qebûl bike û dewam bike</string>
+    <string name="onboarding_term_of_service_agree_and_continue_button_label">Qebûl bike û dewam bike</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

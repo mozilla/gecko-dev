@@ -479,19 +479,19 @@
     <string name="onboarding_add_on_add_button_content_description">එක්කහුවේ බොත්තම</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">අහවරයි</string>
+    <string name="onboarding_preferences_dialog_positive_button">අහවරයි</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">අවලංගු</string>
+    <string name="onboarding_preferences_dialog_negative_button">අවලංගු</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">ෆයර්ෆොක්ස් වෙත පිළිගනිමු</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් වෙත පිළිගනිමු</string>
     <!-- Terms of service onboarding page continue button label. -->
-    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">එකඟ වී ඉදිරියට</string>
+    <string name="onboarding_term_of_service_agree_and_continue_button_label">එකඟ වී ඉදිරියට</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">සේවාවේ නියම</string>
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">සේවාවේ නියම</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
-    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">රහස්‍යතා දැන්වීම</string>
+    <string name="onboarding_term_of_service_line_two_link_text">රහස්‍යතා දැන්වීම</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
-    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">කළමනාකරණය</string>
+    <string name="onboarding_term_of_service_line_three_link_text">කළමනාකරණය</string>
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">සුරකින්න සහ ඉදිරියට</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -1193,8 +1193,8 @@
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
     <string name="webcompat_reporter_url_error_invalid">වලංගු ඒ.ස.නි. ලියන්න</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
-    <string name="webcompat_reporter_label_whats_broken">කැඩී ඇත්තේ කුමක්ද? (විකල්පයකි)</string>
-    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">කැඩී ඇත්තේ කුමක්ද? (විකල්පයකි)</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">හේතුව තෝරන්න</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">ගැටලුව විස්තර කරන්න (විකල්පයකි)</string>
