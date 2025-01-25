@@ -636,7 +636,8 @@ export class BaseContent extends React.PureComponent {
     const mayHaveTopicSections =
       topicLabelsEnabled &&
       sectionsEnabled &&
-      sectionsCustomizeMenuPanelEnabled;
+      sectionsCustomizeMenuPanelEnabled &&
+      DiscoveryStream.feeds.loaded;
 
     const featureClassName = [
       weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
