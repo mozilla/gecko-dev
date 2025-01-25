@@ -72,6 +72,12 @@ https_first_disabled = true
 skip-if = [
   "os == 'win' && os_version == '11.26100' && bits == 64 && opt", # Bug 1775616
   "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1775616
+  "os == 'win' && os_version == '11.2009' && bits == 32 && opt", # Bug 1775616
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1775616
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1775616
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1775616
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1775616
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1775616
 ]
 
 ["browser_attributes.js"]
