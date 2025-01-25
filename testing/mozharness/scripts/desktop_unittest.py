@@ -204,6 +204,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 },
             ],
             [
+                ["--enable-inc-origin-init"],
+                {
+                    "action": "store_true",
+                    "dest": "enable_inc_origin_init",
+                    "default": False,
+                    "help": "Enable the incremental origin initialization in Gecko.",
+                },
+            ],
+            [
                 ["--filter-set"],
                 {
                     "action": "store",
@@ -727,6 +736,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             if c["headless"]:
                 base_cmd.append("--headless")
+
+            if c["enable_inc_origin_init"]:
+                if suite_category == "gtest":
+                    base_cmd.append("--enable-inc-origin-init")
+                else:
+                    self.warning(
+                        "--enable-inc-origin-init does not currently work with "
+                        "suites other than gtest."
+                    )
 
             if c["filter_set"]:
                 if suite_category == "gtest":

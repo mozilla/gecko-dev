@@ -38,6 +38,7 @@ class GTests(object):
         cwd,
         symbols_path=None,
         utility_path=None,
+        enable_inc_origin_init=False,
         filter_set=None,
     ):
         """
@@ -57,7 +58,7 @@ class GTests(object):
         Return True if the program exits with a zero status, False otherwise.
         """
         self.xre_path = xre_path
-        env = self.build_environment(filter_set)
+        env = self.build_environment(enable_inc_origin_init, filter_set)
         log.info("Running gtest")
 
         if cwd and not os.path.isdir(cwd):
@@ -138,7 +139,7 @@ class GTests(object):
 
         return env
 
-    def build_environment(self, filter_set):
+    def build_environment(self, enable_inc_origin_init, filter_set):
         """
         Create and return a dictionary of all the appropriate env variables
         and values. On a remote system, we overload this to set different
@@ -189,6 +190,11 @@ class GTests(object):
         env["MOZ_WEBRENDER"] = "1"
         env["MOZ_ACCELERATED"] = "1"
 
+        if enable_inc_origin_init:
+            env["MOZ_ENABLE_INC_ORIGIN_INIT"] = "1"
+        else:
+            env["MOZ_ENABLE_INC_ORIGIN_INIT"] = "0"
+
         if filter_set is not None:
             filter_sets_mod_path = os.path.join(HERE, "gtest_filter_sets.py")
             load_source("gtest_filter_sets", filter_sets_mod_path)
@@ -236,6 +242,13 @@ class gtestOptions(argparse.ArgumentParser):
             help="path to a directory containing utility program binaries",
         )
         self.add_argument(
+            "--enable-inc-origin-init",
+            action="store_true",
+            dest="enable_inc_origin_init",
+            default=False,
+            help="enabling of incremental origin initialization in Gecko",
+        )
+        self.add_argument(
             "--filter-set",
             dest="filter_set",
             default=None,
@@ -280,6 +293,7 @@ def main():
             options.cwd,
             symbols_path=options.symbols_path,
             utility_path=options.utility_path,
+            enable_inc_origin_init=options.enable_inc_origin_init,
             filter_set=options.filter_set,
         )
     except Exception as e:

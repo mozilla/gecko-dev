@@ -880,6 +880,13 @@ def join_ensure_dir(dir1, dir2):
     dest="enable_webrender",
     help="Enable the WebRender compositor in Gecko.",
 )
+@CommandArgument(
+    "--enable-inc-origin-init",
+    action="store_true",
+    default=False,
+    dest="enable_inc_origin_init",
+    help="Enable the incremental origin initialization in Gecko.",
+)
 @CommandArgumentGroup("filter sets")
 @CommandArgument(
     "--filter-set",
@@ -962,6 +969,7 @@ def gtest(
     list_tests,
     tbpl_parser,
     enable_webrender,
+    enable_inc_origin_init,
     filter_set,
     list_filter_sets,
     package,
@@ -1001,6 +1009,11 @@ def gtest(
     if conditions.is_android(command_context):
         if jobs != 1:
             print("--jobs is not supported on Android and will be ignored")
+        if enable_inc_origin_init:
+            print(
+                "--enable-inc-origin-init is not supported on Android and will"
+                "be ignored"
+            )
         if filter_set:
             print("--filter-set is not supported on Android and will be ignored")
         if list_filter_sets:
