@@ -3028,7 +3028,8 @@ APZCTreeManager::HitTestResult APZCTreeManager::GetTargetAPZCForMouseInput(
     const MouseInput& aMouseInput) {
   // If the mouse input isn't move or we are in a wheel transaction,
   // we need to do hit testing anyway.
-  if (aMouseInput.mType != MouseInput::MOUSE_MOVE ||
+  if (!StaticPrefs::apz_mousemove_hittest_optimization_enabled() ||
+      aMouseInput.mType != MouseInput::MOUSE_MOVE ||
       mInputQueue->GetActiveWheelTransaction()) {
     return GetTargetAPZC(aMouseInput.mOrigin);
   }

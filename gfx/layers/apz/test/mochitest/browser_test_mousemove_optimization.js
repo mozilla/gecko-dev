@@ -13,6 +13,10 @@ Services.scriptloader.loadSubScript(
 );
 
 add_task(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["apz.mousemove_hittest_optimization.enabled", true]],
+  });
+
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "data:text/html,hello"
