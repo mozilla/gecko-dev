@@ -18,6 +18,8 @@ class QuotaPrefs {
   static bool LazyOriginInitializationEnabled();
 
   static bool TriggerOriginInitializationInBackgroundEnabled();
+
+  static bool IncrementalOriginInitializationEnabled();
 };
 
 }  // namespace mozilla::dom::quota

@@ -3689,6 +3689,10 @@
 # If there are other origins in the group, they are initialized all together.
 # This feature is currently still in development and experimental, not
 # recommended for normal use yet.
+#
+# Note: If dom.quotaManager.temporaryStorage.incrementalOriginInitialization
+# is set to true, this preference will be overridden, and the individual
+# setting will no longer take effect, regardless of its value.
 - name: dom.quotaManager.temporaryStorage.lazyOriginInitialization
   type: RelaxedAtomicBool
   value: false
@@ -3702,7 +3706,37 @@
 # origins to preserve consistency of quota checks related to the group limit.
 # This feature is currently still in development and experimental, not
 # recommended for normal use yet.
+#
+# Note: If dom.quotaManager.temporaryStorage.incrementalOriginInitialization
+# is set to true, this preference will be overridden, and the individual
+# setting will no longer take effect, regardless of its value.
 - name: dom.quotaManager.temporaryStorage.triggerOriginInitializationInBackground
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  do_not_use_directly: true
+
+# Should we enable incremental initialization of origins? (also known as
+# asynchronous temporary storage initialization)
+# When enabled, this preference acts as an override for the following
+# preferences:
+# - dom.quotaManager.temporaryStorage.lazyOriginInitialization
+# - dom.quotaManager.temporaryStorage.triggerOriginInitializationInBackground
+#
+# Enabling this preference ensures that:
+# 1. Origins for temporary storage are not initialized during temporary storage
+#    initialization but are instead initialized incrementally, either lazily or
+#    in the background, depending on which occurs first.
+# 2. Background initialization of temporary origins is triggered after the
+#    temporary storage initialization. The process is carried out in steps,
+#    with each step being responsible for initializing a group of origins.
+#
+# See also the documentation for those two preferences for more details on
+# their individual behaviors.
+#
+# This feature is currently in development and experimental, not recommended
+# for normal use yet.
+- name: dom.quotaManager.temporaryStorage.incrementalOriginInitialization
   type: RelaxedAtomicBool
   value: false
   mirror: always

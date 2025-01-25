@@ -18,14 +18,22 @@ namespace mozilla::dom::quota {
 
 // static
 bool QuotaPrefs::LazyOriginInitializationEnabled() {
-  return STATIC_PREF(dom, quotaManager, temporaryStorage,
+  return IncrementalOriginInitializationEnabled() ||
+         STATIC_PREF(dom, quotaManager, temporaryStorage,
                      lazyOriginInitialization)();
 }
 
 // static
 bool QuotaPrefs::TriggerOriginInitializationInBackgroundEnabled() {
-  return STATIC_PREF(dom, quotaManager, temporaryStorage,
+  return IncrementalOriginInitializationEnabled() ||
+         STATIC_PREF(dom, quotaManager, temporaryStorage,
                      triggerOriginInitializationInBackground)();
+}
+
+// static
+bool QuotaPrefs::IncrementalOriginInitializationEnabled() {
+  return STATIC_PREF(dom, quotaManager, temporaryStorage,
+                     incrementalOriginInitialization)();
 }
 
 }  // namespace mozilla::dom::quota
