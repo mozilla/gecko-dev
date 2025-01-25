@@ -53,6 +53,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WorkerNavigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebGpu)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocks)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPermissions)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mServiceWorkerContainer)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 WorkerNavigator::WorkerNavigator(const NavigatorProperties& aProperties,
@@ -92,6 +93,8 @@ void WorkerNavigator::Invalidate() {
   }
 
   mPermissions = nullptr;
+
+  mServiceWorkerContainer = nullptr;
 }
 
 JSObject* WorkerNavigator::WrapObject(JSContext* aCx,
