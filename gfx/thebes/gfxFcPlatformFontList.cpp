@@ -73,6 +73,9 @@ using namespace mozilla::intl;
 #ifndef FC_VARIABLE
 #  define FC_VARIABLE "variable" /* Bool */
 #endif
+#ifndef FC_NAMED_INSTANCE
+#  define FC_NAMED_INSTANCE "namedinstance" /* Bool */
+#endif
 
 #define PRINTING_FC_PROPERTY "gfx.printing"
 
@@ -1439,6 +1442,27 @@ void gfxFcPlatformFontList::AddFontSetFamilies(FcFontSet* aFontSet,
   }
 }
 
+// Check whether a pattern refers to a non-variable font, or a specific named
+// instance of a variable font. Only such patterns are eligible for src:local()
+// name lookups, as local() is defined to reference a specific face.
+static bool IsNonVariableOrNamedInstance(FcPattern* aPattern) {
+  FcBool value;
+  if (FcPatternGetBool(aPattern, FC_VARIABLE, 0, &value) == FcResultMatch &&
+      value) {
+    // It's a variable font resource; check if this is a named instance.
+    if (FcPatternGetBool(aPattern, FC_NAMED_INSTANCE, 0, &value) ==
+            FcResultMatch &&
+        value) {
+      // Yes, named instance: ok to use.
+      return true;
+    }
+    // It's a variable font; we don't want it.
+    return false;
+  }
+  // Non-variable: no problem.
+  return true;
+}
+
 void gfxFcPlatformFontList::AddPatternToFontList(
     FcPattern* aFont, FcChar8*& aLastFamilyName, nsACString& aFamilyName,
     RefPtr<gfxFontconfigFontFamily>& aFontFamily, bool aAppFonts) {
@@ -1502,21 +1526,23 @@ void gfxFcPlatformFontList::AddPatternToFontList(
   MOZ_ASSERT(aFontFamily, "font must belong to a font family");
   aFontFamily->AddFontPattern(aFont, singleName);
 
-  // map the psname, fullname ==> font family for local font lookups
-  nsAutoCString psname, fullname;
-  GetFaceNames(aFont, aFamilyName, psname, fullname);
-  if (!psname.IsEmpty()) {
-    ToLowerCase(psname);
-    mLocalNames.InsertOrUpdate(psname, RefPtr{aFont});
-  }
-  if (!fullname.IsEmpty()) {
-    ToLowerCase(fullname);
-    mLocalNames.WithEntryHandle(fullname, [&](auto&& entry) {
-      if (entry && !singleName) {
-        return;
-      }
-      entry.InsertOrUpdate(RefPtr{aFont});
-    });
+  if (IsNonVariableOrNamedInstance(aFont)) {
+    // map the psname, fullname ==> font family for local font lookups
+    nsAutoCString psname, fullname;
+    GetFaceNames(aFont, aFamilyName, psname, fullname);
+    if (!psname.IsEmpty()) {
+      ToLowerCase(psname);
+      mLocalNames.InsertOrUpdate(psname, RefPtr{aFont});
+    }
+    if (!fullname.IsEmpty()) {
+      ToLowerCase(fullname);
+      mLocalNames.WithEntryHandle(fullname, [&](auto&& entry) {
+        if (entry && !singleName) {
+          return;
+        }
+        entry.InsertOrUpdate(RefPtr{aFont});
+      });
+    }
   }
 }
 
@@ -1857,28 +1883,30 @@ void gfxFcPlatformFontList::InitSharedFontListForPlatform() {
     const bool singleName = n == 1;
     faceList->Add(std::move(initData), singleName);
 
-    // map the psname, fullname ==> font family for local font lookups
-    nsAutoCString psname, fullname;
-    GetFaceNames(aPattern, aFamilyName, psname, fullname);
-    MOZ_PUSH_IGNORE_THREAD_SAFETY
-    if (!psname.IsEmpty()) {
-      ToLowerCase(psname);
-      MaybeAddToLocalNameTable(
-          psname, fontlist::LocalFaceRec::InitData(keyName, descriptor));
-    }
-    if (!fullname.IsEmpty()) {
-      ToLowerCase(fullname);
-      if (fullname != psname) {
-        // We only consider overriding an existing entry if this is the only
-        // way to name this family. This prevents dubious aliases from
-        // clobbering the local name table.
-        if (singleName || !mLocalNameTable.Contains(fullname)) {
-          MaybeAddToLocalNameTable(
-              fullname, fontlist::LocalFaceRec::InitData(keyName, descriptor));
+    if (IsNonVariableOrNamedInstance(aPattern)) {
+      // map the psname, fullname ==> font family for local font lookups
+      nsAutoCString psname, fullname;
+      GetFaceNames(aPattern, aFamilyName, psname, fullname);
+      MOZ_PUSH_IGNORE_THREAD_SAFETY
+      if (!psname.IsEmpty()) {
+        ToLowerCase(psname);
+        MaybeAddToLocalNameTable(
+            psname, fontlist::LocalFaceRec::InitData(keyName, descriptor));
+      }
+      if (!fullname.IsEmpty()) {
+        ToLowerCase(fullname);
+        if (fullname != psname) {
+          // We only consider overriding an existing entry if this is the only
+          // way to name this family. This prevents dubious aliases from
+          // clobbering the local name table.
+          if (singleName || !mLocalNameTable.Contains(fullname)) {
+            MaybeAddToLocalNameTable(fullname, fontlist::LocalFaceRec::InitData(
+                                                   keyName, descriptor));
+          }
         }
       }
+      MOZ_POP_THREAD_SAFETY
     }
-    MOZ_POP_THREAD_SAFETY
 
     return visibility == FontVisibility::Base;
   };
