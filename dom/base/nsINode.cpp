@@ -841,9 +841,12 @@ std::ostream& operator<<(std::ostream& aStream, const nsINode& aNode) {
   nsAutoString elemDesc;
   const nsINode* curr = &aNode;
   while (curr) {
-    nsString id;
+    nsString id, cls;
     if (curr->IsElement()) {
       curr->AsElement()->GetId(id);
+      if (const nsAttrValue* attrValue = curr->AsElement()->GetClasses()) {
+        attrValue->ToString(cls);
+      }
     }
 
     if (!elemDesc.IsEmpty()) {
@@ -858,6 +861,8 @@ std::ostream& operator<<(std::ostream& aStream, const nsINode& aNode) {
 
     if (!id.IsEmpty()) {
       elemDesc = elemDesc + u"['"_ns + id + u"']"_ns;
+    } else if (!cls.IsEmpty()) {
+      elemDesc = elemDesc + u"[class=\""_ns + cls + u"\"]"_ns;
     }
 
     if (curr->IsElement() &&
