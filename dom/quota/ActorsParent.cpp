@@ -22,6 +22,7 @@
 #include "OriginInfo.h"
 #include "QuotaCommon.h"
 #include "QuotaManager.h"
+#include "QuotaPrefs.h"
 #include "ResolvableNormalOriginOp.h"
 #include "SanitizationUtils.h"
 #include "ScopedLogExtraInfo.h"
@@ -3998,8 +3999,7 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
   const bool trackQuota = aPersistenceType != PERSISTENCE_TYPE_PERSISTENT;
 
   if (trackQuota && !aForGroup &&
-      StaticPrefs::
-          dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+      QuotaPrefs::LazyOriginInitializationEnabled()) {
     QM_LOG(("Skipping origin initialization for: %s (it will be done lazily)",
             aOriginMetadata.mOrigin.get()));
 
@@ -6396,13 +6396,11 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage(
         self->mTemporaryStorageInitialized = true;
 
         if (aValue.ResolveValue() &&
-            StaticPrefs::
-                dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+            QuotaPrefs::LazyOriginInitializationEnabled()) {
           self->mBackgroundThreadAccessible.Access()->mUninitializedGroups =
               aValue.ResolveValue().extract();
 
-          if (StaticPrefs::
-                  dom_quotaManager_temporaryStorage_triggerOriginInitializationInBackground()) {
+          if (QuotaPrefs::TriggerOriginInitializationInBackgroundEnabled()) {
             self->InitializeAllTemporaryOrigins();
           }
         }
@@ -6443,8 +6441,7 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
     // partial quota information (origins accessed in a previous session
     // require full initialization). Given that, the cleanup can't be done
     // at this point yet.
-    if (!StaticPrefs::
-            dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+    if (!QuotaPrefs::LazyOriginInitializationEnabled()) {
       CleanupTemporaryStorage();
     }
 

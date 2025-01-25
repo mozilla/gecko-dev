@@ -3693,6 +3693,7 @@
   type: RelaxedAtomicBool
   value: false
   mirror: always
+  do_not_use_directly: true
 
 # Should we trigger initialization of all temporary origins in the background?
 # When enabled, temporary origins collected during temporary storage
@@ -3705,6 +3706,7 @@
   type: RelaxedAtomicBool
   value: false
   mirror: always
+  do_not_use_directly: true
 
 # A pref that is used to slow down origin operations for testing purposes.
 - name: dom.quotaManager.originOperations.pauseOnIOThreadMs
