@@ -1050,6 +1050,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Mësoni më tepër rreth të dhënash marketingu</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping i përditshëm përdorimi</string>
+    <string name="preferences_daily_usage_ping_description">Kjo e ndihmon Mozilla-n të hamendësojë numrin e përdoruesve aktivë.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Mësoni më tepër ping të përditshëm përdorimi</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Dërgo vetvetiu njoftime vithisjesh</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Parashtro vetvetiu njoftime vithisjesh</string>

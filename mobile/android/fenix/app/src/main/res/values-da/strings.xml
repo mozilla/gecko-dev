@@ -449,6 +449,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Søgetjeneste: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: søgetjenestevælger </string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkommen til et mere personligt internet</string>
@@ -1046,6 +1051,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Læs mere om markedsføringsdata</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping for dagligt brug</string>
+    <string name="preferences_daily_usage_ping_description">Dette hjælper Mozilla med at vurdere antallet af aktive brugere.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Læs mere om ping for dagligt brug</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Send automatisk fejlrapporter</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Indsend automatisk fejlrapporter</string>
@@ -1233,8 +1242,14 @@
     <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Åbn faneblade</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Private faneblade</string>
+    <!-- Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">Private åbne faneblade: %1$s. Tryk for at skifte faneblade.</string>
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synkroniserede faneblade</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">Synkroniserede åbne faneblade: %1$s. Tryk for at skifte faneblade.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Tilføj faneblad</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1358,6 +1373,11 @@
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Send</string>
 
+
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">Din rapport blev sendt</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Luk</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

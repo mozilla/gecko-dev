@@ -1057,6 +1057,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับข้อมูลการตลาด</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">พิงการใช้งานรายวัน</string>
+    <string name="preferences_daily_usage_ping_description">ตัวเลือกนี้ช่วยให้ Mozilla ประเมินจำนวนผู้ใช้ที่มีความเคลื่อนไหวได้</string>
+    <string name="preferences_daily_usage_ping_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับพิงการใช้งานรายวัน</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>

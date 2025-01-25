@@ -1041,6 +1041,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saznajte više o marketinškim podacima</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Dnevna upotreba pinga</string>
+    <string name="preferences_daily_usage_ping_description">Ovo pomaže Mozili da procijeni aktivne korisnike.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Saznajte više o svakodnevnoj upotrebi pinga</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Automatski šalji izvještaje o padu</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Automatski slati izvještaje o padu</string>

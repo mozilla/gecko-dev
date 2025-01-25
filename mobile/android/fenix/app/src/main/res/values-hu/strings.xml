@@ -1059,6 +1059,10 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Tudjon meg többet a marketingadatokról</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Napi használati ping</string>
+    <string name="preferences_daily_usage_ping_description">Ez segít a Mozillának az aktív felhasználók megbecslésében.</string>
+    <string name="preferences_daily_usage_ping_learn_more">További tudnivalók a napi használati pingről</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Összeomlás-jelentések automatikus elküldése</string>
