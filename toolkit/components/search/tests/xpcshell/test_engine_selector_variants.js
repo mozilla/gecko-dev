@@ -61,9 +61,9 @@ const CONFIG = [
                 value: "foo",
               },
             ],
+            searchTermParamName: "search-param",
           },
         },
-        searchTermParamName: "search-param",
       },
     ],
   },
@@ -97,6 +97,7 @@ async function assertActualEnginesEqualsExpected(
 
   if (expectedEngines.length) {
     let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
+
     Assert.deepEqual(engines, expectedEngines, message);
   } else {
     await Assert.rejects(
@@ -135,9 +136,9 @@ add_task(async function test_match_and_apply_last_variants() {
           search: {
             ...STATIC_SEARCH_URL_DATA,
             params: [{ name: "partner-code", value: "foo" }],
+            searchTermParamName: "search-param",
           },
         },
-        searchTermParamName: "search-param",
       },
     ],
     "Should match and apply last variant."
@@ -185,9 +186,9 @@ add_task(async function test_match_first_and_last_variant() {
           search: {
             ...STATIC_SEARCH_URL_DATA,
             params: [{ name: "partner-code", value: "foo" }],
+            searchTermParamName: "search-param",
           },
         },
-        searchTermParamName: "search-param",
       },
     ],
     "Should match first and last variant."
