@@ -7,6 +7,7 @@
 #include "QuotaPrefs.h"
 
 #include "mozilla/StaticPrefs_dom.h"
+#include "prenv.h"
 
 // The STATIC_PREF macro helps avoid lines exceeding 80 characters due to
 // long method names generated from StaticPrefList.yaml. It constructs
@@ -32,8 +33,13 @@ bool QuotaPrefs::TriggerOriginInitializationInBackgroundEnabled() {
 
 // static
 bool QuotaPrefs::IncrementalOriginInitializationEnabled() {
-  return STATIC_PREF(dom, quotaManager, temporaryStorage,
-                     incrementalOriginInitialization)();
+  if (STATIC_PREF(dom, quotaManager, temporaryStorage,
+                  incrementalOriginInitialization)()) {
+    return true;
+  }
+
+  const char* env = PR_GetEnv("MOZ_ENABLE_INC_ORIGIN_INIT");
+  return (env && *env == '1');
 }
 
 }  // namespace mozilla::dom::quota
