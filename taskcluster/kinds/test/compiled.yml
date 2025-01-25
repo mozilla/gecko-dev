@@ -132,7 +132,7 @@ jittest-all:
             by-test-platform:
                 android.*:
                     - --jittest-flags=all
-                default: []
+                default: None
     target:
         by-test-platform:
             android-.*: geckoview-test_runner.apk

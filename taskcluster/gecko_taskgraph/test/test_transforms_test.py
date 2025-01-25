@@ -26,7 +26,6 @@ def make_test_task():
             "mozharness": {"extra-options": []},
             "test-platform": "linux64",
             "treeherder-symbol": "g(t)",
-            "test-name": "task",
             "try-name": "task",
         }
         task.update(extra)
