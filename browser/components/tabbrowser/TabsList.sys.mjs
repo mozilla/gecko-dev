@@ -275,7 +275,10 @@ export class TabsPanel extends TabsListBase {
   constructor(opts) {
     super({
       ...opts,
-      containerNode: opts.containerNode || opts.view.firstElementChild,
+      containerNode:
+        opts.containerNode ||
+        opts.insertBefore?.parentNode ||
+        opts.view.firstElementChild,
     });
     this.view = opts.view;
     this.view.addEventListener(TABS_PANEL_EVENTS.show, this);

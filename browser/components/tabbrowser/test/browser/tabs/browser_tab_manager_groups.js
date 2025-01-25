@@ -11,12 +11,14 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.tabs.groups.enabled", true]],
   });
-
-  const tabGroups = SessionStore.getSavedTabGroups();
-  tabGroups.forEach(tabGroup => SessionStore.forgetSavedTabGroup(tabGroup.id));
-
+  forgetSavedTabGroups();
   window.gTabsPanel.init();
 });
+
+function forgetSavedTabGroups() {
+  const tabGroups = SessionStore.getSavedTabGroups();
+  tabGroups.forEach(tabGroup => SessionStore.forgetSavedTabGroup(tabGroup.id));
+}
 
 /**
  * @param {Window} win
@@ -406,4 +408,86 @@ add_task(async function test_tabGroupsView() {
   for (let tab of tabs) {
     BrowserTestUtils.removeTab(tab);
   }
+  forgetSavedTabGroups();
+});
+
+/**
+ * Tests that the groups view initially shows at most 6 closed groups, or 5
+ * plus a "show more" button.
+ */
+add_task(async function test_groupsViewShowMore() {
+  const savedGroupId = "test-saved-group";
+
+  let tabs = [];
+  let groups = [];
+  for (let i = 1; i <= 7; i++) {
+    let tab = await addTab(`data:text/plain,tab${i}`, {
+      skipAnimation: true,
+    });
+    await TabStateFlusher.flush(tab.linkedBrowser);
+    tabs.push(tab);
+    let group = gBrowser.addTabGroup([tab], {
+      id: savedGroupId + i,
+      label: "Test Saved Group " + i,
+    });
+    groups.push(group);
+  }
+
+  for (let i = 0; i < 5; i++) {
+    groups[i].save();
+    await removeTabGroup(groups[i]);
+  }
+  let allTabsMenu = await openTabsMenu(window);
+  Assert.equal(
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    5,
+    "5 groups should be shown in groups list"
+  );
+  Assert.ok(
+    !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
+    "Show more button should not be shown"
+  );
+  await closeTabsMenu(window);
+
+  groups[5].save();
+  await removeTabGroup(groups[5]);
+  allTabsMenu = await openTabsMenu(window);
+  Assert.equal(
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    6,
+    "6 groups should be shown in groups list"
+  );
+  Assert.ok(
+    !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
+    "Show more button should not be shown"
+  );
+  await closeTabsMenu(window);
+
+  groups[6].save();
+  await removeTabGroup(groups[6]);
+  allTabsMenu = await openTabsMenu(window);
+  Assert.equal(
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    5,
+    "5 groups should be shown in groups list"
+  );
+  let showMore = allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore");
+  Assert.ok(showMore, "Show more button should be shown");
+  showMore.click();
+  Assert.equal(
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    7,
+    "7 groups should be shown in groups list"
+  );
+  Assert.ok(
+    !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
+    "Show more button should not be shown"
+  );
+  await closeTabsMenu(window);
+
+  forgetSavedTabGroups();
 });
