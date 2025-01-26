@@ -7,7 +7,7 @@
     <!-- Text for context menu item to open the image in a new tab. -->
     <string name="mozac_feature_contextmenu_open_image_in_new_tab">ചിത്രം പുതിയ ടാബിൽ തുറക്കുക</string>
     <!-- Text for context menu item to save / download the link. -->
-    <string name="mozac_feature_contextmenu_download_link">കണ്ണി ഡൗൺലോഡ് ചെയ്യുക</string>
+    <string name="mozac_feature_contextmenu_download_link">കണ്ണി ഇറക്കിവയ്ക്കുക</string>
     <!-- Text for context menu item to share the link with an other app. -->
     <string name="mozac_feature_contextmenu_share_link">കണ്ണി പങ്കിടുക</string>
     <!-- Text for context menu item to share the image with an other app. -->
@@ -27,7 +27,7 @@
     <!-- Text for confirmation "snackbar" shown after opening a link in a new private tab.  -->
     <string name="mozac_feature_contextmenu_snackbar_new_private_tab_opened">പുതിയ സ്വകാര്യ ടാബ് തുറന്നു</string>
     <!-- Text for confirmation "snackbar" shown after copying a link or image URL to the clipboard. -->
-    <string name="mozac_feature_contextmenu_snackbar_link_copied">കണ്ണി ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തിയിരിക്കുന്നു</string>
+    <string name="mozac_feature_contextmenu_snackbar_link_copied">കണ്ണി പകർത്തൽപെട്ടിയിലോട്ടു് പകൎത്തി</string>
     <!-- Action shown in a "snacbkar" after opening a new/private tab. Clicking this action will switch to the newly opened tab. -->
     <string name="mozac_feature_contextmenu_snackbar_action_switch">മാറുക</string>
     <!-- Text for context menu item to open the link in an external app. -->

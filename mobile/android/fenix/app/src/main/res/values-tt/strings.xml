@@ -430,18 +430,18 @@
     <string name="onboarding_add_on_reviews_label">Бәяләмә: %1$s</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Әзер</string>
+    <string name="onboarding_preferences_dialog_positive_button">Әзер</string>
 
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Баш тарту</string>
+    <string name="onboarding_preferences_dialog_negative_button">Баш тарту</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Firefox-ка рәхим итегез</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Firefox-ка рәхим итегез</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Куллану шартлары</string>
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Куллану шартлары</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
-    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Хосусыйлык аңлатмасы</string>
+    <string name="onboarding_term_of_service_line_two_link_text">Хосусыйлык аңлатмасы</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
-    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Идарә итү</string>
+    <string name="onboarding_term_of_service_line_three_link_text">Идарә итү</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Кораллар панеленең урнашуын сайлагыз</string>
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->

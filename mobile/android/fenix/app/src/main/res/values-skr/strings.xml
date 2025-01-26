@@ -479,15 +479,15 @@
     <string name="onboarding_add_on_start_browsing_button_2">براؤزنگ شروع کرو</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">تھی ڳیا</string>
+    <string name="onboarding_preferences_dialog_positive_button">تھی ڳیا</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">منسوخ</string>
+    <string name="onboarding_preferences_dialog_negative_button">منسوخ</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">خدمت دیاں شرطاں</string>
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">خدمت دیاں شرطاں</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
-    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">رازداری نوٹس</string>
+    <string name="onboarding_term_of_service_line_two_link_text">رازداری نوٹس</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
-    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">بندوبست کرو</string>
+    <string name="onboarding_term_of_service_line_three_link_text">بندوبست کرو</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">چھوڑو</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
@@ -1203,7 +1203,7 @@
     <string name="webcompat_reporter_label_url">یوآرایل</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
     <string name="webcompat_reporter_url_error_invalid">براہ مہربانی ٹھیک URL درج کرو۔</string>
-    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">وجہ چݨو</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">مسئلہ دی وضاحت کرو (اختیاری)</string>

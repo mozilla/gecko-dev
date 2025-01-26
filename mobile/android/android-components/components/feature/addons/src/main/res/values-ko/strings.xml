@@ -191,9 +191,9 @@
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">%1$s 로케일 및 기본 언어 %2$s에 대한 번역을 찾을 수 없습니다.</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_installed">%1$s 부가 기능 설치에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_installed">%1$s 부가 기능을 설치함</string>
     <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_install">%1$s 부가 기능 설치에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_install">%1$s 부가 기능 설치에 실패함</string>
     <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">이 확장 기능 설치에 실패했습니다.</string>
     <!-- Text shown when installing an add-on has failed. -->
@@ -213,21 +213,21 @@
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s 확장 기능은 Mozilla 정책 위반으로 %2$s에 설치할 수 없습니다.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_enabled">%1$s 부가 기능 활성화에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_enabled">%1$s 부가 기능을 활성화함</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_enable">%1$s 부가 기능 활성화에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_enable">%1$s 부가 기능 활성화에 실패함</string>
     <!-- Text shown after successfully disabled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_disabled">%1$s 부가 기능 비활성화에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_disabled">%1$s 부가 기능을 비활성화함</string>
     <!-- Text shown after failed to disable an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_disable">%1$s 부가 기능 비활성화에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_disable">%1$s 부가 기능 비활성화에 실패함</string>
     <!-- Text shown after successfully uninstalled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_uninstalled">%1$s 제거에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_uninstalled">%1$s 부가 기능을 제거함</string>
     <!-- Text shown after failed to uninstall an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_uninstall">%1$s 제거에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_uninstall">%1$s 부가 기능 제거에 실패함</string>
     <!-- Text shown after successfully removed an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">%1$s 부가 기능 제거에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">%1$s 부가 기능을 제거함</string>
     <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s 부가 기능 제거에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s 부가 기능 제거에 실패함</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">이 부가 기능은 %1$s의 이전 버전에서 마이그레이션되었습니다</string>
     <!-- Text shown in not yet supported add-ons section. -->

@@ -498,17 +498,17 @@
     <string name="onboarding_add_on_star_rating_content_description">Ocijenjeno s %1$s od 5</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Gotovo</string>
+    <string name="onboarding_preferences_dialog_positive_button">Gotovo</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Odustani</string>
+    <string name="onboarding_preferences_dialog_negative_button">Odustani</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Dobro došli u Firefox</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Dobro došli u Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
-    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Prihvati i nastavi</string>
+    <string name="onboarding_term_of_service_agree_and_continue_button_label">Prihvati i nastavi</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Uvjeti usluge</string>
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Uvjeti usluge</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
-    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Upravljaj</string>
+    <string name="onboarding_term_of_service_line_three_link_text">Upravljaj</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Odaberi položaj alatne trake</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1233,8 +1233,8 @@
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
     <string name="webcompat_reporter_url_error_invalid">Upiši ispravan URL</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
-    <string name="webcompat_reporter_label_whats_broken">Što ne radi? (opcionalno)</string>
-    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">Što ne radi? (opcionalno)</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">Odaberi razlog</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">Opiši problem (opcionalno)</string>
@@ -2411,7 +2411,7 @@
     <string name="pocket_stories_sponsor_indication">Sponzorirano</string>
 
     <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off.-->
-    <string name="experiments_snackbar">Omogući telemetriju za slanje podataka.</string>
+    <string name="experiments_snackbar">Aktiviraj telemetriju za slanje podataka.</string>
     <!-- Snackbar button text to navigate to telemetry settings.-->
     <string name="experiments_snackbar_button">Idi u postavke</string>
 

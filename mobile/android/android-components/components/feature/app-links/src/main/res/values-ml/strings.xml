@@ -13,4 +13,6 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">തുറക്കുക</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">റദ്ദാക്കുക</string>
-    </resources>
+    <!-- The label of the checkbox that, depending of user's choice, can change the Open links in apps setting -->
+    <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">കണ്ണികൾ എപ്പോഴും പ്രയോഗങ്ങളിൽ തുറക്കുക</string>
+</resources>
