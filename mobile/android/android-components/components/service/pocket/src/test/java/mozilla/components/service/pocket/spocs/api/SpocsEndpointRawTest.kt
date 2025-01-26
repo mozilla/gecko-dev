@@ -9,7 +9,6 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Response
 import mozilla.components.service.pocket.PocketStoriesRequestConfig
-import mozilla.components.service.pocket.helpers.MockResponses
 import mozilla.components.service.pocket.helpers.assertClassVisibility
 import mozilla.components.service.pocket.helpers.assertRequestParams
 import mozilla.components.service.pocket.helpers.assertResponseIsClosed
@@ -17,6 +16,7 @@ import mozilla.components.service.pocket.helpers.assertSuccessfulRequestReturnsR
 import mozilla.components.service.pocket.stories.api.PocketEndpointRaw
 import mozilla.components.service.pocket.stories.api.PocketEndpointRaw.Companion
 import mozilla.components.support.test.any
+import mozilla.components.support.test.helpers.MockResponses
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.json.JSONObject

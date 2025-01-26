@@ -10,6 +10,7 @@ import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Response
 import mozilla.components.service.pocket.stories.api.PocketResponse
 import mozilla.components.support.test.any
+import mozilla.components.support.test.helpers.MockResponses
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.mockito.Mockito.mock

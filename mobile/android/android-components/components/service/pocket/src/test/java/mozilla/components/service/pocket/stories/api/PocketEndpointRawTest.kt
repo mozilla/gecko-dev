@@ -8,12 +8,12 @@ import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Response
-import mozilla.components.service.pocket.helpers.MockResponses
 import mozilla.components.service.pocket.helpers.assertClassVisibility
 import mozilla.components.service.pocket.helpers.assertRequestParams
 import mozilla.components.service.pocket.helpers.assertResponseIsClosed
 import mozilla.components.service.pocket.helpers.assertSuccessfulRequestReturnsResponseBody
 import mozilla.components.support.test.any
+import mozilla.components.support.test.helpers.MockResponses
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
