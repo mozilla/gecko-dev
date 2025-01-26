@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.top.sites.TopSite
-import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
@@ -63,7 +62,6 @@ import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
 import kotlin.math.ceil
-import org.mozilla.fenix.GleanMetrics.TopSites as TopSitesMetrics
 
 private const val TOP_SITES_PER_PAGE = 8
 private const val TOP_SITES_PER_ROW = 4
@@ -97,6 +95,7 @@ fun TopSites(
             )
         },
         onTopSiteLongClick = interactor::onTopSiteLongClicked,
+        onTopSiteImpression = interactor::onTopSiteImpression,
         onOpenInPrivateTabClicked = interactor::onOpenInPrivateTabClicked,
         onEditTopSiteClicked = interactor::onEditTopSiteClicked,
         onRemoveTopSiteClicked = interactor::onRemoveTopSiteClicked,
@@ -113,6 +112,7 @@ fun TopSites(
  * @param topSiteColors The color set defined by [TopSiteColors] used to style a top site.
  * @param onTopSiteClick Invoked when the user clicks on a top site.
  * @param onTopSiteLongClick Invoked when the user long clicks on a top site.
+ * @param onTopSiteImpression Invoked when the user sees a provided top site.
  * @param onOpenInPrivateTabClicked Invoked when the user clicks on the "Open in private tab"
  * menu item.
  * @param onEditTopSiteClicked Invoked when the user clicks on the "Edit" menu item.
@@ -130,6 +130,7 @@ fun TopSites(
     topSiteColors: TopSiteColors = TopSiteColors.colors(),
     onTopSiteClick: (TopSite) -> Unit,
     onTopSiteLongClick: (TopSite) -> Unit,
+    onTopSiteImpression: (TopSite.Provided, Int) -> Unit,
     onOpenInPrivateTabClicked: (topSite: TopSite) -> Unit,
     onEditTopSiteClicked: (topSite: TopSite) -> Unit,
     onRemoveTopSiteClicked: (topSite: TopSite) -> Unit,
@@ -186,6 +187,7 @@ fun TopSites(
                                     topSiteColors = topSiteColors,
                                     onTopSiteClick = { item -> onTopSiteClick(item) },
                                     onTopSiteLongClick = onTopSiteLongClick,
+                                    onTopSiteImpression = onTopSiteImpression,
                                     onTopSitesItemBound = onTopSitesItemBound,
                                 )
                             }
@@ -273,9 +275,10 @@ data class TopSiteColors(
  * @param topSiteColors The color set defined by [TopSiteColors] used to style a top site.
  * @param onTopSiteClick Invoked when the user clicks on a top site.
  * @param onTopSiteLongClick Invoked when the user long clicks on a top site.
+ * @param onTopSiteImpression Invoked when the user sees a provided top site.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
-@Suppress("LongMethod", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927713
+@Suppress("LongMethod", "LongParameterList", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927713
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun TopSiteItem(
@@ -285,6 +288,7 @@ private fun TopSiteItem(
     topSiteColors: TopSiteColors,
     onTopSiteClick: (TopSite) -> Unit,
     onTopSiteLongClick: (TopSite) -> Unit,
+    onTopSiteImpression: (TopSite.Provided, Int) -> Unit,
     onTopSitesItemBound: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -370,7 +374,7 @@ private fun TopSiteItem(
 
         if (topSite is TopSite.Provided) {
             LaunchedEffect(topSite) {
-                submitTopSitesImpressionPing(topSite = topSite, position = position)
+                onTopSiteImpression(topSite, position)
             }
         }
     }
@@ -507,20 +511,6 @@ private fun getMenuItems(
     return result
 }
 
-private fun submitTopSitesImpressionPing(topSite: TopSite.Provided, position: Int) {
-    TopSitesMetrics.contileImpression.record(
-        TopSitesMetrics.ContileImpressionExtra(
-            position = position + 1,
-            source = "newtab",
-        ),
-    )
-
-    topSite.id?.let { TopSitesMetrics.contileTileId.set(it) }
-    topSite.title?.let { TopSitesMetrics.contileAdvertiser.set(it.lowercase()) }
-    TopSitesMetrics.contileReportingUrl.set(topSite.impressionUrl)
-    Pings.topsitesImpression.submit()
-}
-
 @Composable
 @LightDarkPreview
 private fun TopSitesPreview() {
@@ -530,6 +520,7 @@ private fun TopSitesPreview() {
                 topSites = FakeHomepagePreview.topSites(),
                 onTopSiteClick = {},
                 onTopSiteLongClick = {},
+                onTopSiteImpression = { _, _ -> },
                 onOpenInPrivateTabClicked = {},
                 onEditTopSiteClicked = {},
                 onRemoveTopSiteClicked = {},

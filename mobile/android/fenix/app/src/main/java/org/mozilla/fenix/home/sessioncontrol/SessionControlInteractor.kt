@@ -164,6 +164,14 @@ interface TopSiteInteractor {
     fun onSelectTopSite(topSite: TopSite, position: Int)
 
     /**
+     * Called when a user sees a provided top site.
+     *
+     * @param topSite The provided top site that was seen by the user.
+     * @param position The position of the top site.
+     */
+    fun onTopSiteImpression(topSite: TopSite.Provided, position: Int)
+
+    /**
      * Navigates to the Homepage Settings. Called when an user clicks on the "Settings" top site
      * menu item.
      */
@@ -271,6 +279,10 @@ class SessionControlInteractor(
 
     override fun onSelectTopSite(topSite: TopSite, position: Int) {
         controller.handleSelectTopSite(topSite, position)
+    }
+
+    override fun onTopSiteImpression(topSite: TopSite.Provided, position: Int) {
+        controller.handleTopSiteImpression(topSite, position)
     }
 
     override fun onSettingsClicked() {

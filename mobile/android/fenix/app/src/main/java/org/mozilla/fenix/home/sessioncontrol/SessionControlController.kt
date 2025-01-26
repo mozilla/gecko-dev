@@ -130,6 +130,11 @@ interface SessionControlController {
     fun handleSelectTopSite(topSite: TopSite, position: Int)
 
     /**
+     * @see [TopSiteInteractor.onTopSiteImpression]
+     */
+    fun handleTopSiteImpression(topSite: TopSite.Provided, position: Int)
+
+    /**
      * @see [TopSiteInteractor.onSettingsClicked]
      */
     fun handleTopSiteSettingsClicked()
@@ -474,6 +479,20 @@ class DefaultSessionControlController(
         topSite.id?.let { TopSites.contileTileId.set(it) }
         topSite.title?.let { TopSites.contileAdvertiser.set(it.lowercase()) }
         TopSites.contileReportingUrl.set(topSite.clickUrl)
+        Pings.topsitesImpression.submit()
+    }
+
+    override fun handleTopSiteImpression(topSite: TopSite.Provided, position: Int) {
+        TopSites.contileImpression.record(
+            TopSites.ContileImpressionExtra(
+                position = position + 1,
+                source = "newtab",
+            ),
+        )
+
+        topSite.id?.let { TopSites.contileTileId.set(it) }
+        topSite.title?.let { TopSites.contileAdvertiser.set(it.lowercase()) }
+        TopSites.contileReportingUrl.set(topSite.impressionUrl)
         Pings.topsitesImpression.submit()
     }
 

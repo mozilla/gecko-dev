@@ -119,6 +119,10 @@ internal object FakeHomepagePreview {
 
             override fun onSelectTopSite(topSite: TopSite, position: Int) { /* no op */ }
 
+            override fun onTopSiteImpression(topSite: TopSite.Provided, position: Int) {
+                // no-op
+            }
+
             override fun onSettingsClicked() { /* no op */ }
 
             override fun onSponsorPrivacyClicked() { /* no op */ }

@@ -9,7 +9,6 @@ import android.content.res.ColorStateList
 import android.view.MotionEvent
 import android.view.View
 import android.widget.PopupWindow
-import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -27,8 +26,6 @@ import kotlinx.coroutines.withContext
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.android.content.getColorFromAttr
-import org.mozilla.fenix.GleanMetrics.Pings
-import org.mozilla.fenix.GleanMetrics.TopSites
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.databinding.TopSiteItemBinding
@@ -137,7 +134,7 @@ class TopSiteItemViewHolder(
                 itemView.context.components.core.client.bitmapForUrl(topSite.imageUrl)?.let { bitmap ->
                     withContext(Main) {
                         binding.faviconImage.setImageBitmap(bitmap)
-                        submitTopSitesImpressionPing(topSite, position)
+                        interactor.onTopSiteImpression(topSite, position)
                     }
                 }
             }
@@ -168,21 +165,6 @@ class TopSiteItemViewHolder(
         }
 
         this.topSite = topSite
-    }
-
-    @VisibleForTesting
-    internal fun submitTopSitesImpressionPing(topSite: TopSite.Provided, position: Int) {
-        TopSites.contileImpression.record(
-            TopSites.ContileImpressionExtra(
-                position = position + 1,
-                source = "newtab",
-            ),
-        )
-
-        topSite.id?.let { TopSites.contileTileId.set(it) }
-        topSite.title?.let { TopSites.contileAdvertiser.set(it.lowercase()) }
-        TopSites.contileReportingUrl.set(topSite.impressionUrl)
-        Pings.topsitesImpression.submit()
     }
 
     @SuppressLint("ClickableViewAccessibility")
