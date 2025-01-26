@@ -50,6 +50,9 @@ skip-if = [
 ["test_focus_canvas.html"]
 
 ["test_focus_contextmenu.xhtml"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && opt", # Bug 1865763
+]
 
 ["test_focus_controls.html"]
 
