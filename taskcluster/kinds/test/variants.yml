@@ -559,3 +559,7 @@ inc-origin-init:
     mozinfo: "inc_origin_init"
     replace:
         tier: 3
+    merge:
+        worker:
+            env:
+                MOZ_ENABLE_INC_ORIGIN_INIT: "1"

@@ -87,6 +87,8 @@ treeherder:
         'W-pb': 'Web platform tests with private browsing enabled'
         'X': 'Xpcshell tests'
         'X-f': 'Xpcshell tests that fail on a given config'
+        'X-ioi': 'Xpcshell tests tagged with inc-origin-init'
+        'X-ioi-cf': 'Xpcshell tests tagged with inc-origin-init for confirm failure'
         'L10n': 'Localised Repacks'
         'L10n-Rpk': 'Localized Repackaged Repacks'
         'deb-L10n': 'Localized Debian Repacks'

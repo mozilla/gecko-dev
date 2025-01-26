@@ -1,5 +1,6 @@
 [DEFAULT]
 head = "head.js"
+tags = "inc-origin-init"
 support-files = [
   "bug1425146_profile.zip",
   "schema_15_profile.zip",

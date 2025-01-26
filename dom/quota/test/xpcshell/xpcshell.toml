@@ -1,6 +1,6 @@
 [DEFAULT]
 head = "head.js"
-tags = "condprof"
+tags = "condprof inc-origin-init"
 support-files = [
   "basics_profile.zip",
   "clearStoragesForClient_profile.json",
@@ -90,6 +90,8 @@ skip-if = ["condprof"] # frequent perma fail, then goes away.
 ["test_initializeTemporaryOrigin.js"]
 
 ["test_initializeTemporaryOrigin_failure.js"]
+# bug 1942791
+skip-if = ["inc_origin_init"]
 
 ["test_listCachedOrigins.js"]
 
@@ -98,6 +100,8 @@ skip-if = ["condprof"] # frequent perma fail, then goes away.
 ["test_originEndsWithDot.js"]
 
 ["test_originMismatch.js"]
+# bug 1942793
+skip-if = ["inc_origin_init"]
 
 ["test_originWithCaret.js"]
 
@@ -122,7 +126,11 @@ skip-if = ["condprof"] # frequent perma fail, then goes away.
 ["test_specialOrigins.js"]
 
 ["test_storagePressure.js"]
-skip-if = ["condprof"]
+skip-if = [
+  "condprof",
+  # bug 1942794
+  "inc_origin_init",
+]
 
 ["test_tempMetadataCleanup.js"]
 

@@ -132,7 +132,7 @@ def test_query_tags(run_mach, capfd, tag):
         "--tag",
         tag,
         "-q",
-        "^test-linux '64-qr/debug- !http !spi !swr !nofis !headless !xorig !async",
+        "^test-linux '64-qr/debug- !http !spi !swr !nofis !headless !xorig !async !ioi",
     ]
     if tag == "not_a_valid_tag":
         assert run_mach(cmd) == 1

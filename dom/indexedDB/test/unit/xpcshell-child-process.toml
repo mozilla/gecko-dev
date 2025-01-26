@@ -1,6 +1,7 @@
 [DEFAULT]
 dupe-manifest = ""
 head = "xpcshell-head-child-process.js"
+tags = "inc-origin-init"
 tail =  ""
 skip-if = ["os == 'android'"]
 support-files = [

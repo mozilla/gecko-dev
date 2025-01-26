@@ -51,6 +51,7 @@ xpcshell:
         - msix
         - geckoview-no-fission-ship
         - os-integration
+        - inc-origin-init
     instance-size:
         by-variant:
             conditioned_profile: large
@@ -91,6 +92,12 @@ xpcshell:
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
+            inc-origin-init:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    default: []
             default:
                 by-test-platform:
                     android.*: built-projects
@@ -100,6 +107,7 @@ xpcshell:
     chunks:
         by-variant:
             os-integration: dynamic
+            inc-origin-init: dynamic
             default:
                 by-test-platform:
                     .*-asan.*/opt: 4
@@ -134,10 +142,14 @@ xpcshell:
                     default: default
     mozharness:
         extra-options:
-            by-test-platform:
-                windows1.*:
-                    - --threads=2
-                default: []
+            by-variant:
+                inc-origin-init:
+                    - "--tag=inc-origin-init"
+                default:
+                    by-test-platform:
+                        windows1.*:
+                            - --threads=2
+                        default: []
     fetches:
         toolchain:
             by-test-platform:

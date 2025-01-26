@@ -1,5 +1,6 @@
 [DEFAULT]
 head = "head.js"
+tags = "inc-origin-init"
 support-files = [
   "version0_0_make_it_unusable.zip",
   "version0_0_profile.zip",
@@ -17,7 +18,13 @@ support-files = [
 skip-if = [
   "os == 'android'",
   "appname == 'thunderbird'",
+  # bug 1942789
+  "inc_origin_init",
 ]
 
 ["test_qm_first_initialization_attempt.js"]
-skip-if = ["appname == 'thunderbird'"]
+skip-if = [
+  "appname == 'thunderbird'",
+  # bug 1942790
+  "inc_origin_init",
+]

@@ -1,6 +1,7 @@
 [DEFAULT]
 dupe-manifest = ""
 head = "xpcshell-head-parent-process.js"
+tags = "inc-origin-init"
 tail =  ""
 support-files = [
   "URLSearchParams_profile.zip",
@@ -107,8 +108,12 @@ skip-if = ["true"]
 ["test_storagePersistentUpgrade.js"]
 
 ["test_temporary_storage.js"]
-# bug 951017: intermittent failure on Android x86 emulator
-skip-if = ["os == 'android' && processor == 'x86'"]
+skip-if = [
+  # bug 951017: intermittent failure on Android x86 emulator
+  "os == 'android' && processor == 'x86'",
+  # bug 1942783
+  "inc_origin_init",
+]
 
 ["test_transaction_durability.js"]
 run-sequentially = "very high failure rate in parallel"

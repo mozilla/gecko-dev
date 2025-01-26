@@ -1,6 +1,6 @@
 [DEFAULT]
 head = "head.js"
-tags = "condprof"
+tags = "condprof inc-origin-init"
 support-files = [
   "archive_profile.zip",
   "corruptedDatabase_profile.zip",

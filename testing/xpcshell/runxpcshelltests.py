@@ -1588,6 +1588,10 @@ class XPCShellTests(object):
             "network.http.network_access_on_socket_process.enabled", False
         )
 
+        self.mozInfo["inc_origin_init"] = (
+            os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1"
+        )
+
         self.mozInfo["condprof"] = options.get("conditionedProfile", False)
         self.mozInfo["msix"] = options.get("variant", "") == "msix"
 

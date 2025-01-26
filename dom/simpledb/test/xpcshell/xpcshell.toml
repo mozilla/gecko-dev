@@ -1,5 +1,6 @@
 [DEFAULT]
 head = "head.js"
+tags = "inc-origin-init"
 
 ["test_databaseWorkStarted.js"]
 
