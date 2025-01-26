@@ -1090,6 +1090,11 @@ def gtest(
     else:
         gtest_env["MOZ_WEBRENDER"] = "0"
 
+    if enable_inc_origin_init:
+        gtest_env["MOZ_ENABLE_INC_ORIGIN_INIT"] = "1"
+    else:
+        gtest_env["MOZ_ENABLE_INC_ORIGIN_INIT"] = "0"
+
     if filter_set or list_filter_sets:
         filter_sets_mod_path = os.path.join("testing", "gtest", "gtest_filter_sets.py")
         load_source("gtest_filter_sets", filter_sets_mod_path)

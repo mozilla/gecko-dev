@@ -550,3 +550,12 @@ vertical-tabs:
         mozharness:
             extra-options:
                 - "--setpref=sidebar.verticalTabs=true"
+
+inc-origin-init:
+    description: "{description} limited to tests identified as being applicable to also run with incremental origin initialization enabled"
+    component: "Core::Storage: Quota Manager"
+    expiration: "2025-07-01"
+    suffix: "ioi"
+    mozinfo: "inc_origin_init"
+    replace:
+        tier: 3

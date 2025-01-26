@@ -7,6 +7,7 @@ task-defaults:
     run-without-variant: false
     variants:
         - 1proc
+        - inc-origin-init
     virtualization: virtual
     mozharness:
         script:
@@ -64,7 +65,21 @@ gtest:
                     linux1804-32-qr/debug: ['mozilla-central']  # try and m-c
                     linux1804-32-shippable-qr/opt: ['mozilla-central']  # try and m-c
                     default: built-projects
+            inc-origin-init:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    default: []
             default: []
+    mozharness:
+        extra-options:
+            by-variant:
+                inc-origin-init:
+                    - --disable-e10s
+                    - --enable-inc-origin-init
+                    - --filter-set=dom-storage
+                default: []
     target:
         by-test-platform:
             android-em-7.*: geckoview-test_runner.apk
