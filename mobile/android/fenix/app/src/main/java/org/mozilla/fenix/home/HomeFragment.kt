@@ -475,6 +475,7 @@ class HomeFragment : Fragment() {
                 selectTabUseCase = components.useCases.tabsUseCases.selectTab,
                 reloadUrlUseCase = components.useCases.sessionUseCases.reload,
                 topSitesUseCases = components.useCases.topSitesUseCase,
+                marsUseCases = components.useCases.marsUseCases,
                 appStore = components.appStore,
                 navController = findNavController(),
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,

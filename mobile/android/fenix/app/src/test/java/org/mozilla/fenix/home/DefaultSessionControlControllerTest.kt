@@ -64,6 +64,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.bookmarks.Bookmark
+import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.messaging.MessageController
@@ -95,6 +96,7 @@ class DefaultSessionControlControllerTest {
     private val reloadUrlUseCase: SessionUseCases = mockk(relaxed = true)
     private val selectTabUseCase: TabsUseCases = mockk(relaxed = true)
     private val topSitesUseCases: TopSitesUseCases = mockk(relaxed = true)
+    private val marsUseCases: MARSUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
     private val analytics: Analytics = mockk(relaxed = true)
     private val scope = coroutinesTestRule.scope
@@ -1034,6 +1036,50 @@ class DefaultSessionControlControllerTest {
     }
 
     @Test
+    fun `GIVEN MARS API integration is enabled WHEN the provided top site is clicked THEN send a click callback request`() {
+        val controller = spyk(createController())
+        val topSite = TopSite.Provided(
+            id = 3,
+            title = "Mozilla",
+            url = "https://mozilla.com",
+            clickUrl = "https://mozilla.com/click",
+            imageUrl = "https://test.com/image2.jpg",
+            impressionUrl = "https://mozilla.com/impression",
+            createdAt = 3,
+        )
+        val position = 0
+
+        every { controller.getAvailableSearchEngines() } returns listOf(searchEngine)
+        every { settings.marsAPIEnabled } returns true
+
+        controller.handleSelectTopSite(topSite, position)
+
+        verify { marsUseCases.recordInteraction(topSite.clickUrl) }
+    }
+
+    @Test
+    fun `GIVEN MARS API integration is enabled WHEN the provided top site is seen THEN send a impression callback request`() {
+        val controller = spyk(createController())
+        val topSite = TopSite.Provided(
+            id = 3,
+            title = "Mozilla",
+            url = "https://mozilla.com",
+            clickUrl = "https://mozilla.com/click",
+            imageUrl = "https://test.com/image2.jpg",
+            impressionUrl = "https://mozilla.com/impression",
+            createdAt = 3,
+        )
+        val position = 0
+
+        every { controller.getAvailableSearchEngines() } returns listOf(searchEngine)
+        every { settings.marsAPIEnabled } returns true
+
+        controller.handleTopSiteImpression(topSite, position)
+
+        verify { marsUseCases.recordInteraction(topSite.impressionUrl) }
+    }
+
+    @Test
     fun `GIVEN a provided top site WHEN the provided top site has an impression THEN submit a top site impression ping`() {
         val controller = spyk(createController())
         val topSite = TopSite.Provided(
@@ -1452,6 +1498,7 @@ class DefaultSessionControlControllerTest {
             selectTabUseCase = selectTabUseCase.selectTab,
             reloadUrlUseCase = reloadUrlUseCase.reload,
             topSitesUseCases = topSitesUseCases,
+            marsUseCases = marsUseCases,
             appStore = appStore,
             navController = navController,
             viewLifecycleScope = scope,
