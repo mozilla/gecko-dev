@@ -4384,19 +4384,19 @@ class HTMLEditor final : public EditorBase,
   /**
    * Returns an anonymous Element of type aTag,
    * child of aParentContent. If aIsCreatedHidden is true, the class
-   * "hidden" is added to the created element. If aAnonClass is not
-   * the empty string, it becomes the value of the attribute "_moz_anonclass"
+   * "hidden" is added to the created element. If aClass is not the empty
+   * string, it becomes the value of the class attribute
    * @return a Element
    * @param aTag             [IN] desired type of the element to create
    * @param aParentContent   [IN] the parent node of the created anonymous
    *                              element
-   * @param aAnonClass       [IN] contents of the _moz_anonclass attribute
+   * @param aClass       [IN] contents of the _moz_anonclass attribute
    * @param aIsCreatedHidden [IN] a boolean specifying if the class "hidden"
    *                              is to be added to the created anonymous
    *                              element
    */
   ManualNACPtr CreateAnonymousElement(nsAtom* aTag, nsIContent& aParentContent,
-                                      const nsAString& aAnonClass,
+                                      const nsAString& aClass,
                                       bool aIsCreatedHidden);
 
   /**

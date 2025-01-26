@@ -36,9 +36,10 @@ SimpleTest.waitForFocus(async function() {
   let promiseSelectionChangeEvent = waitForSelectionChange();
   synthesizeMouseAtCenter(img, {});
   await promiseSelectionChangeEvent;
-  ok(img.hasAttribute("_moz_resizing"), "resizers of the <img> should be visible");
-  getHTMLObjectResizer().hideResizers();
-  ok(!img.hasAttribute("_moz_resizing"), "resizers of the <img> should be hidden after a call of hideResizers()");
+  let resizer = getHTMLObjectResizer();
+  ok(resizer.isObjectResizingActive, "resizers of the <img> should be visible");
+  resizer.hideResizers();
+  ok(!resizer.isObjectResizingActive, "resizers of the <img> should be visible");
 
   SimpleTest.finish();
 });

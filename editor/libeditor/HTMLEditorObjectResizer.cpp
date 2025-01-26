@@ -20,13 +20,15 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/EventTarget.h"
+#include "nsAtom.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
+#include "nsDOMTokenList.h"
 #include "nsError.h"
 #include "nsGkAtoms.h"
-#include "nsAtom.h"
 #include "nsIContent.h"
+#include "nsICSSDeclaration.h"
 #include "nsID.h"
 #include "mozilla/dom/Document.h"
 #include "nsISupportsUtils.h"
@@ -73,7 +75,6 @@ ManualNACPtr HTMLEditor::CreateResizer(int16_t aLocation,
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
       "EventTarget::AddEventListener(mousedown) failed, but ignored");
-
   nsAutoString locationStr;
   switch (aLocation) {
     case nsIHTMLObjectResizer::eTopLeft:
@@ -107,6 +108,12 @@ ManualNACPtr HTMLEditor::CreateResizer(int16_t aLocation,
   if (NS_FAILED(resizer->SetAttr(kNameSpaceID_None, nsGkAtoms::anonlocation,
                                  locationStr, true))) {
     NS_WARNING("Element::SetAttr(nsGkAtoms::anonlocation) failed");
+    return nullptr;
+  }
+  nsAutoString cursor = u"cursor: "_ns + locationStr + u"-resize"_ns;
+  if (NS_FAILED(resizer->SetAttr(kNameSpaceID_None, nsGkAtoms::style, cursor,
+                                 true))) {
+    NS_WARNING("Element::SetAttr(nsGkAtoms::style) failed");
     return nullptr;
   }
   return resizer;
@@ -509,14 +516,6 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     }
 
     MOZ_ASSERT(mResizedObject == &aResizedElement);
-
-    // XXX Even when it failed to add event listener, should we need to set
-    //     _moz_resizing attribute?
-    DebugOnly<nsresult> rvIgnored = aResizedElement.SetAttr(
-        kNameSpaceID_None, nsGkAtoms::_moz_resizing, u"true"_ns, true);
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rvIgnored),
-        "Element::SetAttr(nsGkAtoms::_moz_resizing, true) failed, but ignored");
     return NS_OK;
   } while (true);
 
@@ -605,19 +604,8 @@ nsresult HTMLEditor::HideResizersInternal() {
 
   // Remove active state of a resizer.
   if (activatedHandle) {
-    DebugOnly<nsresult> rvIgnored = activatedHandle->UnsetAttr(
-        kNameSpaceID_None, nsGkAtoms::_moz_activated, true);
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rvIgnored),
-        "Element::UnsetAttr(nsGkAtoms::_moz_activated) failed, but ignored");
+    activatedHandle->ClassList()->Remove(u"active"_ns, IgnoreErrors());
   }
-
-  // Remove resizing state of the target element.
-  DebugOnly<nsresult> rvIgnored = resizedObject->UnsetAttr(
-      kNameSpaceID_None, nsGkAtoms::_moz_resizing, true);
-  NS_WARNING_ASSERTION(
-      NS_SUCCEEDED(rvIgnored),
-      "Element::UnsetAttr(nsGkAtoms::_moz_resizing) failed, but ignored");
 
   if (!mEventListener) {
     return NS_OK;
@@ -648,31 +636,27 @@ nsresult HTMLEditor::HideResizersInternal() {
 void HTMLEditor::HideShadowAndInfo() {
   if (mResizingShadow) {
     DebugOnly<nsresult> rvIgnored = mResizingShadow->SetAttr(
-        kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
+        kNameSpaceID_None, nsGkAtoms::hidden, u""_ns, true);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "Element::SetAttr(nsGkAtoms::_class, hidden) failed, but ignored");
+        "Element::SetAttr(nsGkAtoms::hidden) failed, but ignored");
   }
   if (mResizingInfo) {
     DebugOnly<nsresult> rvIgnored = mResizingInfo->SetAttr(
-        kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
+        kNameSpaceID_None, nsGkAtoms::hidden, u""_ns, true);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "Element::SetAttr(nsGkAtoms::_class, hidden) failed, but ignored");
+        "Element::SetAttr(nsGkAtoms::hidden, hidden) failed, but ignored");
   }
 }
 
 nsresult HTMLEditor::StartResizing(Element& aHandleElement) {
   mIsResizing = true;
   mActivatedHandle = &aHandleElement;
-  DebugOnly<nsresult> rvIgnored = mActivatedHandle->SetAttr(
-      kNameSpaceID_None, nsGkAtoms::_moz_activated, u"true"_ns, true);
+  mActivatedHandle->ClassList()->Add(u"active"_ns, IgnoreErrors());
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
-  NS_WARNING_ASSERTION(
-      NS_SUCCEEDED(rvIgnored),
-      "Element::SetAttr(nsGkAtoms::_moz_activated, true) failed");
 
   // do we want to preserve ratio or not?
   const bool preserveRatio = HTMLEditUtils::IsImage(mResizedObject);
@@ -700,13 +684,13 @@ nsresult HTMLEditor::StartResizing(Element& aHandleElement) {
   }
 
   // make the shadow appear
-  rvIgnored =
-      mResizingShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  DebugOnly<nsresult> rvIgnored =
+      mResizingShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden, true);
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                       "Element::UnsetAttr(nsGkAtoms::_class) failed");
+                       "Element::UnsetAttr(nsGkAtoms::hidden) failed");
 
   // position it
   if (RefPtr<nsStyledElement> resizingShadowStyledElement =
@@ -755,10 +739,9 @@ nsresult HTMLEditor::StartToDragResizerOrHandleDragGestureOnGrabber(
   MOZ_ASSERT(!aMouseDownEvent.DefaultPrevented());
   MOZ_ASSERT(aMouseDownEvent.WidgetEventPtr()->mMessage == eMouseDown);
 
-  nsAutoString anonclass;
-  aEventTargetElement.GetAttr(nsGkAtoms::_moz_anonclass, anonclass);
+  nsDOMTokenList& classList = *aEventTargetElement.ClassList();
 
-  if (anonclass.EqualsLiteral("mozResizer")) {
+  if (classList.Contains(u"mozResizer"_ns)) {
     AutoEditActionDataSetter editActionData(*this,
                                             EditAction::eResizingElement);
     if (NS_WARN_IF(!editActionData.CanHandle())) {
@@ -776,7 +759,7 @@ nsresult HTMLEditor::StartToDragResizerOrHandleDragGestureOnGrabber(
     return EditorBase::ToGenericNSResult(rv);
   }
 
-  if (anonclass.EqualsLiteral("mozGrabber")) {
+  if (classList.Contains(u"mozGrabber"_ns)) {
     AutoEditActionDataSetter editActionData(*this, EditAction::eMovingElement);
     if (NS_WARN_IF(!editActionData.CanHandle())) {
       return NS_ERROR_NOT_INITIALIZED;
@@ -838,10 +821,9 @@ nsresult HTMLEditor::StopDraggingResizerOrGrabberAt(
 
     if (mIsMoving) {
       DebugOnly<nsresult> rvIgnored = mPositioningShadow->SetAttr(
-          kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
-      NS_WARNING_ASSERTION(
-          NS_SUCCEEDED(rvIgnored),
-          "Element::SetAttr(nsGkAtoms::_class, hidden) failed");
+          kNameSpaceID_None, nsGkAtoms::hidden, u""_ns, true);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "Element::SetAttr(nsGkAtoms::hidden) failed");
       if (rv != NS_ERROR_EDITOR_ACTION_CANCELED) {
         SetFinalPosition(aClientPoint.x, aClientPoint.y);
       }
@@ -974,9 +956,9 @@ nsresult HTMLEditor::SetResizingInfoPosition(int32_t aX, int32_t aY, int32_t aW,
   }
 
   nsresult rv =
-      mResizingInfo->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+      mResizingInfo->UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden, true);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "Element::UnsetAttr(nsGkAtoms::_class) failed");
+                       "Element::UnsetAttr(nsGkAtoms::hidden) failed");
   return rv;
 }
 
@@ -1233,11 +1215,7 @@ nsresult HTMLEditor::SetFinalSizeWithTransaction(int32_t aX, int32_t aY) {
   }
 
   if (mActivatedHandle) {
-    DebugOnly<nsresult> rvIgnored = mActivatedHandle->UnsetAttr(
-        kNameSpaceID_None, nsGkAtoms::_moz_activated, true);
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rvIgnored),
-        "Element::UnsetAttr(nsGkAtoms::_moz_activated) failed, but ignored");
+    mActivatedHandle->ClassList()->Remove(u"active"_ns, IgnoreErrors());
     mActivatedHandle = nullptr;
   }
 

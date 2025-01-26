@@ -402,16 +402,6 @@ nsresult HTMLEditor::Init(Document& aDocument,
   // init the type-in state
   mPendingStylesToApplyToNewContent = new PendingStyles();
 
-  if (!IsInteractionAllowed()) {
-    nsCOMPtr<nsIURI> uaURI;
-    rv = NS_NewURI(getter_AddRefs(uaURI),
-                   "resource://gre/res/EditorOverride.css");
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = document->LoadAdditionalStyleSheet(Document::eAgentSheet, uaURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   AutoEditActionDataSetter editActionData(*this, EditAction::eInitializing);
   if (NS_WARN_IF(!editActionData.CanHandle())) {
     return NS_ERROR_FAILURE;
@@ -464,15 +454,6 @@ void HTMLEditor::PreDestroy() {
   RefPtr<Document> document = GetDocument();
   if (document) {
     document->RemoveMutationObserver(this);
-
-    if (!IsInteractionAllowed()) {
-      nsCOMPtr<nsIURI> uaURI;
-      nsresult rv = NS_NewURI(getter_AddRefs(uaURI),
-                              "resource://gre/res/EditorOverride.css");
-      if (NS_SUCCEEDED(rv)) {
-        document->RemoveAdditionalStyleSheet(Document::eAgentSheet, uaURI);
-      }
-    }
   }
 
   // Clean up after our anonymous content -- we don't want these nodes to

@@ -129,6 +129,7 @@ var allowlist = [
 
   // Intentionally unreferenced, see bug 1941134
   { file: "resource://gre/res/designmode.css" },
+  { file: "resource://gre/res/EditorOverride.css" },
 
   // The l10n build system can't package string files only for some platforms.
   // See bug 1339424 for why this is hard to fix.

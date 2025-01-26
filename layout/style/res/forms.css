@@ -312,6 +312,10 @@ option {
   word-wrap: normal !important;
 }
 
+option:read-write {
+  user-select: text;
+}
+
 select > option {
   padding-inline: 4px;
 }

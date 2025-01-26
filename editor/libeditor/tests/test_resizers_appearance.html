@@ -20,6 +20,12 @@
 <script class="testbody" type="application/javascript">
 "use strict";
 
+function resizingActive(win = window) {
+  let Ci = SpecialPowers.Ci;
+  let editor = SpecialPowers.wrap(win).docShell.editor;
+  return editor && editor.QueryInterface(Ci.nsIHTMLObjectResizer).isObjectResizingActive;
+}
+
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(async function() {
   async function waitForSelectionChange() {
@@ -72,9 +78,8 @@ SimpleTest.waitForFocus(async function() {
       let promiseSelectionChangeEvent1 = waitForSelectionChange();
       synthesizeMouseAtCenter(target, {});
       await promiseSelectionChangeEvent1;
-
-      ok(!target.hasAttribute("_moz_resizing"),
-         kDescription + ": While enableObjectResizing is disabled, resizers shouldn't appear");
+      ok(!resizingActive(),
+       kDescription + ": While enableObjectResizing is disabled, resizers shouldn't appear");
 
       document.execCommand("enableObjectResizing", false, true);
       ok(document.queryCommandState("enableObjectResizing"),
@@ -86,16 +91,15 @@ SimpleTest.waitForFocus(async function() {
       await promiseSelectionChangeEvent2;
 
       const kResizable = typeof kTest.resizable === "function" ? kTest.resizable() : kTest.resizable;
-      is(target.hasAttribute("_moz_resizing"), kResizable,
+      is(resizingActive(), kResizable,
          kDescription + (kResizable ? "While enableObjectResizing is enabled, resizers should appear" :
                                       "Even while enableObjectResizing is enabled, resizers shouldn't appear"));
-
       document.execCommand("enableObjectResizing", false, false);
-      ok(!target.hasAttribute("_moz_resizing"),
+      ok(!resizingActive(),
          kDescription + "enableObjectResizing is disabled even while resizers are visible, resizers should disappear");
 
       document.execCommand("enableObjectResizing", false, true);
-      is(target.hasAttribute("_moz_resizing"), kResizable,
+      is(resizingActive(), kResizable,
          kDescription + (kResizable ? "enableObjectResizing is enabled when resizable object is selected, resizers should appear" :
                                       "Even if enableObjectResizing is enabled when non-resizable object is selected, resizers shouldn't appear"));
     }

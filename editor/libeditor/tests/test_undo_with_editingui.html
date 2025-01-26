@@ -24,6 +24,12 @@
 <pre id="test">
 
 <script class="testbody" type="application/javascript">
+function resizingActive(win = window) {
+  let Ci = SpecialPowers.Ci;
+  let editor = SpecialPowers.wrap(win).docShell.editor;
+  return editor && editor.QueryInterface(Ci.nsIHTMLObjectResizer).isObjectResizingActive;
+}
+
 add_task(async function testAbsPosUI() {
   await new Promise((resolve) => {
     SimpleTest.waitForFocus(() => {
@@ -73,8 +79,7 @@ add_task(function testResizerUI() {
 
   let img1 = document.getElementById("img1");
   synthesizeMouseAtCenter(img1, {});
-  ok(img1.hasAttribute("_moz_resizing"),
-     "_moz_resizing attribute should be true");
+  ok(resizingActive(), "resizing should be active");
 
   synthesizeKey("z", { accelKey: true });
   is(edit1.firstChild.textContent, "test", "Text is restored by undo");
@@ -86,8 +91,7 @@ add_task(function testResizerUI() {
   isnot(edit1.firstChild.textContent, "test", "Text is modified");
 
   synthesizeMouseAtCenter(img1, {});
-  ok(img1.hasAttribute("_moz_resizing"),
-     "_moz_resizing attribute should be true");
+  ok(resizingActive(), "resizing should be active");
 
   // Emulate drag & drop
   let origWidth = img1.width;

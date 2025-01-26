@@ -1371,7 +1371,6 @@ Document::Document(const char* aContentType)
       mIsGoingAway(false),
       mStyleSetFilled(false),
       mQuirkSheetAdded(false),
-      mContentEditableSheetAdded(false),
       mMayHaveTitleElement(false),
       mDOMLoadingSet(false),
       mDOMInteractiveSet(false),
@@ -3302,41 +3301,6 @@ void Document::FillStyleSet() {
   FillStyleSetUserAndUASheets();
   FillStyleSetDocumentSheets();
   mStyleSetFilled = true;
-}
-
-void Document::RemoveContentEditableStyleSheet() {
-  MOZ_ASSERT(IsHTMLOrXHTML());
-
-  ServoStyleSet& styleSet = EnsureStyleSet();
-  auto* cache = GlobalStyleSheetCache::Singleton();
-  bool changed = false;
-  if (mContentEditableSheetAdded) {
-    styleSet.RemoveStyleSheet(*cache->ContentEditableSheet());
-    mContentEditableSheetAdded = false;
-    changed = true;
-  }
-  if (changed) {
-    MOZ_ASSERT(mStyleSetFilled);
-    ApplicableStylesChanged();
-  }
-}
-
-void Document::AddContentEditableStyleSheetToStyleSet() {
-  MOZ_ASSERT(IsHTMLOrXHTML());
-  MOZ_DIAGNOSTIC_ASSERT(mStyleSetFilled,
-                        "Caller should ensure we're being rendered");
-
-  ServoStyleSet& styleSet = EnsureStyleSet();
-  auto* cache = GlobalStyleSheetCache::Singleton();
-  bool changed = false;
-  if (!mContentEditableSheetAdded) {
-    styleSet.AppendStyleSheet(*cache->ContentEditableSheet());
-    mContentEditableSheetAdded = true;
-    changed = true;
-  }
-  if (changed) {
-    ApplicableStylesChanged();
-  }
 }
 
 void Document::FillStyleSetDocumentSheets() {
@@ -6070,9 +6034,6 @@ void Document::SetNotifyFormOrPasswordRemoved(bool aShouldNotify) {
 void Document::TearingDownEditor() {
   if (IsEditingOn()) {
     mEditingState = EditingState::eTearingDown;
-    if (IsHTMLOrXHTML()) {
-      RemoveContentEditableStyleSheet();
-    }
   }
 }
 
@@ -6277,13 +6238,6 @@ nsresult Document::EditingStateChanged() {
     }
 
     MOZ_ASSERT(mStyleSetFilled);
-
-    // Before making this window editable, we need to modify UA style sheet
-    // because new style may change whether focused element will be focusable
-    // or not.
-    if (IsHTMLOrXHTML()) {
-      AddContentEditableStyleSheetToStyleSet();
-    }
 
     if (designMode) {
       // designMode is being turned on (overrides contentEditable).
@@ -7450,7 +7404,6 @@ void Document::DeletePresShell() {
   mStyleSet->ShellDetachedFromDocument();
   mStyleSetFilled = false;
   mQuirkSheetAdded = false;
-  mContentEditableSheetAdded = false;
 }
 
 void Document::DisallowBFCaching(uint32_t aStatus) {

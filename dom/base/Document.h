@@ -4276,8 +4276,6 @@ class Document : public nsINode,
     // FIXME(emilio): Can SVG documents be in quirks mode anyway?
     return mCompatMode == eCompatibility_NavQuirks && !IsSVGDocument();
   }
-  void AddContentEditableStyleSheetToStyleSet();
-  void RemoveContentEditableStyleSheet();
   void AddStyleSheetToStyleSets(StyleSheet&);
   void RemoveStyleSheetFromStyleSets(StyleSheet&);
   void NotifyStyleSheetApplicableStateChanged();
@@ -4833,9 +4831,6 @@ class Document : public nsINode,
 
   // Whether we have a quirks mode stylesheet in the style set.
   bool mQuirkSheetAdded : 1;
-
-  // Whether we have a contenteditable.css stylesheet in the style set.
-  bool mContentEditableSheetAdded : 1;
 
   // True if this document has ever had an HTML or SVG <title> element
   // bound to it

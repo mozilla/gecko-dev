@@ -921,3 +921,142 @@ dialog:popover-open {
   pointer-events: none !important;
   background-color: transparent;
 }
+
+/* Editor support */
+
+.mozResizer:-moz-native-anonymous {
+  width: 5px;
+  height: 5px;
+  position: absolute;
+  border: 1px black solid;
+  background-color: white;
+  user-select: none;
+  z-index: 2147483646; /* max value -1 for this property */
+
+  /* we can't use :active below */
+  &.active,
+  &:hover {
+    background-color: black;
+  }
+}
+
+.mozGrabber:-moz-native-anonymous {
+  outline: ridge 2px silver;
+  padding: 2px;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-image: url("resource://gre/res/grabber.gif");
+  background-repeat: no-repeat;
+  background-position: center center;
+  user-select: none;
+  cursor: move;
+}
+
+.mozResizingShadow:-moz-native-anonymous {
+  outline: thin dashed black;
+  user-select: none;
+  opacity: 0.5;
+  position: absolute;
+  z-index: 2147483647; /* max value for this property */
+}
+
+.mozResizingInfo:-moz-native-anonymous {
+  font-family: sans-serif;
+  font-size: x-small;
+  color: black;
+  background-color: #d0d0d0;
+  border: ridge 2px #d0d0d0;
+  padding: 2px;
+  position: absolute;
+  z-index: 2147483647; /* max value for this property */
+}
+
+.mozTableAddColumnBefore:-moz-native-anonymous,
+.mozTableAddColumnAfter:-moz-native-anonymous,
+.mozTableAddRowBefore:-moz-native-anonymous,
+.mozTableAddRowAfter:-moz-native-anonymous,
+.mozTableRemoveColumn:-moz-native-anonymous,
+.mozTableRemoveRow:-moz-native-anonymous {
+  position: absolute;
+  z-index: 2147483647; /* max value for this property */
+  text-decoration: none !important;
+  border: none 0 !important;
+  width: 4px;
+  height: 8px;
+  background-repeat: no-repeat;
+  background-position: center center;
+  user-select: none;
+}
+
+.mozTableAddColumnBefore:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-add-column-before.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-add-column-before-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-add-column-before-active.gif");
+  }
+}
+
+.mozTableAddColumnAfter:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-add-column-after.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-add-column-after-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-add-column-after-active.gif");
+  }
+}
+
+.mozTableAddRowBefore:-moz-native-anonymous,
+.mozTableAddRowAfter:-moz-native-anonymous {
+  width: 8px;
+  height: 4px;
+}
+
+.mozTableAddRowBefore:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-add-row-before.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-add-row-before-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-add-row-before-active.gif");
+  }
+}
+
+.mozTableAddRowAfter:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-add-row-after.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-add-row-after-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-add-row-after-active.gif");
+  }
+}
+
+.mozTableRemoveColumn:-moz-native-anonymous,
+.mozTableRemoveRow:-moz-native-anonymous {
+  width: 8px;
+  height: 8px;
+}
+
+.mozTableRemoveColumn:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-remove-column.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-remove-column-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-remove-column-active.gif");
+  }
+}
+
+.mozTableRemoveRow:-moz-native-anonymous {
+  background-image: url("resource://gre/res/table-remove-row.gif");
+  &:hover {
+    background-image: url("resource://gre/res/table-remove-row-hover.gif");
+  }
+  &:active {
+    background-image: url("resource://gre/res/table-remove-row-active.gif");
+  }
+}

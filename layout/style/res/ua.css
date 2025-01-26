@@ -157,12 +157,16 @@
   color: LinkText;
 }
 
+:visited {
+  color: VisitedText;
+}
+
 :any-link:active {
   color: ActiveText;
 }
 
-:visited {
-  color: VisitedText;
+:any-link:read-write {
+  cursor: text;
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
@@ -452,4 +456,13 @@ parsererror|sourcetext {
   height: 100%;
   /* Initial direction depends on the document, make sure to reset it */
   direction: ltr;
+}
+
+/* contenteditable support */
+
+:read-write:focus,
+:root:read-write {
+  /* Scroll-anchoring shouldn't work in any editable and scrollable elements
+   * when user inserts something. */
+  overflow-anchor: none;
 }

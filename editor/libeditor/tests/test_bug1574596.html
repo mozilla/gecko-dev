@@ -10,6 +10,13 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1574596
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 
 <script>
+
+function resizingActive(win) {
+  let Ci = SpecialPowers.Ci;
+  let editor = SpecialPowers.wrap(win).docShell.editor;
+  return editor && editor.QueryInterface(Ci.nsIHTMLObjectResizer).isObjectResizingActive;
+}
+
 add_task(async function() {
   let iframe = document.getElementById("iframe1");
   iframe.focus();
@@ -31,15 +38,13 @@ add_task(async function() {
   synthesizeMouseAtCenter(target, {}, iframe.contentWindow);
   await promiseSelectionChangeEvent;
 
-  ok(target.hasAttribute("_moz_resizing"),
-     "resizers of the <img> should be visible");
+  ok(resizingActive(iframe.contentWindow), "Resizing should be active");
 
   iframe.style.display = "none";
   iframe.offsetHeight; // reflow
 
   await new Promise(SimpleTest.executeSoon);
-  ok(!target.hasAttribute("_moz_resizing"),
-     "resizers of the <img> should be hidden");
+  ok(!resizingActive(iframe.contentWindow), "Resizing should not be active");
 
   iframe.style.display = "";
   iframe.offsetHeight; // reflow
@@ -47,9 +52,7 @@ add_task(async function() {
   promiseSelectionChangeEvent = waitForSelectionChange();
   synthesizeMouseAtCenter(target, {}, iframe.contentWindow);
   await promiseSelectionChangeEvent;
-
-  ok(target.hasAttribute("_moz_resizing"),
-     "resizers of the <img> should be visible again");
+  ok(resizingActive(iframe.contentWindow), "Resizing should be active again");
 });
 </script>
 </head>
