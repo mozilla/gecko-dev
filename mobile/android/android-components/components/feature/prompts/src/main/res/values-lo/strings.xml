@@ -107,6 +107,9 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">ໃຊ້ລະຫັດຜ່ານທີ່ຄາດເດົາຍາກບໍ່?</string>
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ປົກປ້ອງບັນຊີຂອງທ່ານໂດຍໃຊ້ລະຫັດຜ່ານທີ່ເຂັ້ມແຂງ, ສ້າງຂຶ້ນແບບສຸ່ມ. ມັນຈະຖືກບັນທຶກໄວ້ໃນບັນຊີຂອງທ່ານເພື່ອໃຊ້ໃນອະນາຄົດ.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">ໃຊ້ລະຫັດຜ່ານ</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
