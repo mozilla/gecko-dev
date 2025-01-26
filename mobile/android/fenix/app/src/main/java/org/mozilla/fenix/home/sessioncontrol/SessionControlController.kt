@@ -407,7 +407,7 @@ class DefaultSessionControlController(
             is TopSite.Frecent -> TopSites.openFrecency.record(NoExtras())
             is TopSite.Pinned -> TopSites.openPinned.record(NoExtras())
             is TopSite.Provided -> TopSites.openContileTopSite.record(NoExtras()).also {
-                submitTopSitesImpressionPing(topSite, position)
+                recordTopSitesClickTelemetry(topSite, position)
             }
         }
 
@@ -463,7 +463,7 @@ class DefaultSessionControlController(
     }
 
     @VisibleForTesting
-    internal fun submitTopSitesImpressionPing(topSite: TopSite.Provided, position: Int) {
+    internal fun recordTopSitesClickTelemetry(topSite: TopSite.Provided, position: Int) {
         TopSites.contileClick.record(
             TopSites.ContileClickExtra(
                 position = position + 1,

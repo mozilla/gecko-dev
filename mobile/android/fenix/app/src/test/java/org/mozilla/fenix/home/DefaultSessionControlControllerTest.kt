@@ -579,7 +579,7 @@ class DefaultSessionControlControllerTest {
                 startLoading = true,
             )
         }
-        verify { controller.submitTopSitesImpressionPing(topSite, position) }
+        verify { controller.recordTopSitesClickTelemetry(topSite, position) }
         verify { navController.navigate(R.id.browserFragment) }
     }
 
@@ -985,7 +985,7 @@ class DefaultSessionControlControllerTest {
                 startLoading = true,
             )
         }
-        verify { controller.submitTopSitesImpressionPing(topSite, position) }
+        verify { controller.recordTopSitesClickTelemetry(topSite, position) }
         verify { navController.navigate(R.id.browserFragment) }
     }
 
@@ -1018,7 +1018,7 @@ class DefaultSessionControlControllerTest {
             topSiteImpressionPinged = true
         }
 
-        controller.submitTopSitesImpressionPing(topSite, position)
+        controller.recordTopSitesClickTelemetry(topSite, position)
 
         assertNotNull(TopSites.contileClick.testGetValue())
 
