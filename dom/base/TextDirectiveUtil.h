@@ -19,9 +19,9 @@ struct TextDirective;
 
 namespace mozilla::dom {
 
-extern LazyLogModule sFragmentDirectiveLog;
+extern LazyLogModule gFragmentDirectiveLog;
 #define TEXT_FRAGMENT_LOG_FN(msg, func, ...)                              \
-  MOZ_LOG_FMT(sFragmentDirectiveLog, LogLevel::Debug, "{}(): " msg, func, \
+  MOZ_LOG_FMT(gFragmentDirectiveLog, LogLevel::Debug, "{}(): " msg, func, \
               ##__VA_ARGS__)
 
 // Shortcut macro for logging, which includes the current function name.
@@ -34,7 +34,7 @@ enum class TextScanDirection { Left = -1, Right = 1 };
 class TextDirectiveUtil final {
  public:
   MOZ_ALWAYS_INLINE static bool ShouldLog() {
-    return MOZ_LOG_TEST(sFragmentDirectiveLog, LogLevel::Debug);
+    return MOZ_LOG_TEST(gFragmentDirectiveLog, LogLevel::Debug);
   }
 
   static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);

@@ -26,7 +26,7 @@
 #include "mozilla/SelectionMovementUtils.h"
 
 namespace mozilla::dom {
-LazyLogModule sFragmentDirectiveLog("FragmentDirective");
+LazyLogModule gFragmentDirectiveLog("FragmentDirective");
 
 /* static */
 Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
