@@ -194,6 +194,18 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 },
             ],
             [
+                ["--filter"],
+                {
+                    "action": "store",
+                    "dest": "filter",
+                    "default": "",
+                    "help": "Specify a regular expression (as could be passed "
+                    "to the JS RegExp constructor) to test against URLs in "
+                    "the manifest; only test items that have a matching test "
+                    "URL will be run.",
+                },
+            ],
+            [
                 ["--allow-software-gl-layers"],
                 {
                     "action": "store_true",
@@ -736,6 +748,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             if c["headless"]:
                 base_cmd.append("--headless")
+
+            if c["filter"]:
+                if suite_category == "reftest":
+                    base_cmd.append("--filter={}".format(c["filter"]))
+                else:
+                    self.warning(
+                        "--filter does not currently work with suites other than "
+                        "reftest."
+                    )
 
             if c["enable_inc_origin_init"]:
                 if suite_category == "gtest":
