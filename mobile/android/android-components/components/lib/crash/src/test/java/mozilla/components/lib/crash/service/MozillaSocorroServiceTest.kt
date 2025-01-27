@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.io.Resources.getResource
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
+import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.support.ktx.kotlin.toDate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.robolectric.testContext
@@ -19,7 +20,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
@@ -43,7 +43,7 @@ class MozillaSocorroServiceTest {
                 "Test App",
             ),
         )
-        doReturn("").`when`(service).sendReport(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean(), any())
+        doReturn("").`when`(service).sendReport(any(), any(), any(), any(), anyBoolean(), anyBoolean())
 
         val crash = Crash.NativeCodeCrash(
             123,
@@ -56,20 +56,21 @@ class MozillaSocorroServiceTest {
         service.report(crash)
 
         verify(service).report(crash)
-        verify(service).sendReport(123, null, crash.minidumpPath, crash.extrasPath, true, false, crash.breadcrumbs)
+        verify(service).sendReport(crash, null, crash.minidumpPath, crash.extrasPath, true, false)
     }
 
     @Test
     fun `MozillaSocorroService generated server URL have no spaces`() {
+        val versionName = "test version name"
         val service = MozillaSocorroService(
             testContext,
             "Test App",
-            versionName = "test version name",
+            versionName = versionName,
         )
 
-        assertFalse(service.serverUrl!!.contains(" "))
-        assertFalse(service.serverUrl!!.contains("}"))
-        assertFalse(service.serverUrl!!.contains("{"))
+        assertFalse(service.buildServerUrl(versionName).contains(" "))
+        assertFalse(service.buildServerUrl(versionName).contains("}"))
+        assertFalse(service.buildServerUrl(versionName).contains("{"))
     }
 
     @Test
@@ -80,13 +81,13 @@ class MozillaSocorroServiceTest {
                 "Test App",
             ),
         )
-        doReturn("").`when`(service).sendReport(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean(), any())
+        doReturn("").`when`(service).sendReport(any(), any(), any(), any(), anyBoolean(), anyBoolean())
 
         val crash = Crash.UncaughtExceptionCrash(123, RuntimeException("Test"), arrayListOf())
         service.report(crash)
 
         verify(service).report(crash)
-        verify(service).sendReport(123, crash.throwable, null, null, false, true, crash.breadcrumbs)
+        verify(service).sendReport(crash, crash.throwable, null, null, false, true)
     }
 
     @Test
@@ -97,13 +98,13 @@ class MozillaSocorroServiceTest {
                 "Test App",
             ),
         )
-        doReturn("").`when`(service).sendReport(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean(), any())
+        doReturn("").`when`(service).sendReport(any(), any(), any(), any(), anyBoolean(), anyBoolean())
         val throwable = RuntimeException("Test")
         val breadcrumbs: ArrayList<Breadcrumb> = arrayListOf()
         val id = service.report(throwable, breadcrumbs)
 
         verify(service).report(throwable, breadcrumbs)
-        verify(service, never()).sendReport(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean(), any())
+        verify(service, never()).sendReport(any(), any(), any(), any(), anyBoolean(), anyBoolean())
         assertNull(id)
     }
 
@@ -156,7 +157,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=Breadcrumbs\r\n\r\n[{\"timestamp\":\"2018-06-12T19:30:00\",\"message\":\"Hello World\",\"category\":\"\",\"level\":\"Debug\",\"type\":\"Default\",\"data\":{}}]"))
 
             verify(service).report(crash)
-            verify(service).sendReport(123456, null, "dump.path", "extras.path", true, true, crash.breadcrumbs)
+            verify(service).sendReport(crash, null, "dump.path", "extras.path", true, true)
         } finally {
             mockWebServer.shutdown()
         }
@@ -345,7 +346,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=DistributionID\r\n\r\ntest distribution id"))
 
             verify(service).report(crash)
-            verify(service).sendReport(123456, null, "dump.path", "extras.path", true, true, crash.breadcrumbs)
+            verify(service).sendReport(crash, null, "dump.path", "extras.path", true, true)
         } finally {
             mockWebServer.shutdown()
         }
@@ -401,7 +402,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=useragent_locale\r\n\r\nen-US"))
 
             verify(service).report(crash)
-            verify(service).sendReport(123456, null, "dump.path", "extras.path", true, false, crash.breadcrumbs)
+            verify(service).sendReport(crash, null, "dump.path", "extras.path", true, false)
         } finally {
             mockWebServer.shutdown()
         }
@@ -452,7 +453,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=useragent_locale\r\n\r\nen-US"))
 
             verify(service).report(crash)
-            verify(service).sendReport(123456, crash.throwable, null, null, false, true, crash.breadcrumbs)
+            verify(service).sendReport(crash, crash.throwable, null, null, false, true)
         } finally {
             mockWebServer.shutdown()
         }
@@ -482,7 +483,7 @@ class MozillaSocorroServiceTest {
 
             mockWebServer.shutdown()
             verify(service).report(crash)
-            verify(service).sendReport(123, crash.throwable, null, null, false, true, crash.breadcrumbs)
+            verify(service).sendReport(crash, crash.throwable, null, null, false, true)
         } finally {
             mockWebServer.shutdown()
         }
@@ -516,7 +517,7 @@ class MozillaSocorroServiceTest {
             mockWebServer.shutdown()
 
             verify(service).report(crash)
-            verify(service).sendReport(123, null, crash.minidumpPath, crash.extrasPath, true, false, crash.breadcrumbs)
+            verify(service).sendReport(crash, null, crash.minidumpPath, crash.extrasPath, true, false)
         } finally {
             mockWebServer.shutdown()
         }
@@ -679,6 +680,74 @@ class MozillaSocorroServiceTest {
             val id = service.report(crash)
 
             assertEquals("bp-924121d3-4de3-4b32-ab12-026fc0190928", id)
+        } finally {
+            mockWebServer.shutdown()
+        }
+    }
+
+    @Test
+    fun `GIVEN crash with release runtime tag WHEN reporting THEN version is updated correctly`() {
+        val mockWebServer = MockWebServer()
+
+        try {
+            mockWebServer.enqueue(
+                MockResponse().setResponseCode(200)
+                    .setBody("CrashID=bp-924121d3-4de3-4b32-ab12-026fc0190928"),
+            )
+            mockWebServer.start()
+            val serverUrl = mockWebServer.url("/")
+            val service = spy(
+                MozillaSocorroService(
+                    testContext,
+                    "Test App",
+                    appId = "{aa3c5121-dab2-40e2-81ca-7ea25febc110}",
+                    version = "test version",
+                    buildId = "test build id",
+                    vendor = "test vendor",
+                    serverUrl = serverUrl.toString(),
+                    versionName = "1.0.1",
+                    versionCode = "1000",
+                    releaseChannel = "test channel",
+                    distributionId = "test distribution id",
+                ),
+            )
+
+            val version = "136.0.1"
+            val crash = Crash.NativeCodeCrash(
+                123456,
+                "dump.path",
+                "extras.path",
+                processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+                breadcrumbs = arrayListOf(),
+                remoteType = null,
+                runtimeTags = mapOf(CrashReporter.RELEASE_RUNTIME_TAG to version),
+            )
+            service.report(crash)
+
+            val fileInputStream =
+                ByteArrayInputStream(mockWebServer.takeRequest().body.inputStream().readBytes())
+            val inputStream = GZIPInputStream(fileInputStream)
+            val reader = InputStreamReader(inputStream)
+            val bufferedReader = BufferedReader(reader)
+            val request = bufferedReader.readText()
+
+            assert(request.contains("name=Android_ProcessName\r\n\r\nmozilla.components.lib.crash.test"))
+            assert(request.contains("name=ProductID\r\n\r\n{aa3c5121-dab2-40e2-81ca-7ea25febc110}"))
+            assert(request.contains("name=Vendor\r\n\r\ntest vendor"))
+            assert(request.contains("name=ReleaseChannel\r\n\r\ntest channel"))
+            assert(request.contains("name=Android_PackageName\r\n\r\nmozilla.components.lib.crash.test"))
+            assert(request.contains("name=Android_Device\r\n\r\nrobolectric"))
+            assert(request.contains("name=CrashType\r\n\r\n$FATAL_NATIVE_CRASH_TYPE"))
+            assert(request.contains("name=CrashTime\r\n\r\n123"))
+            assert(request.contains("name=GeckoViewVersion\r\n\r\ntest version"))
+            assert(request.contains("name=BuildID\r\n\r\ntest build id"))
+            assert(request.contains("name=Version\r\n\r\n136.0.1"))
+            assert(request.contains("name=ApplicationBuildID\r\n\r\n1000"))
+            assert(request.contains("name=useragent_locale\r\n\r\nen-US"))
+            assert(request.contains("name=DistributionID\r\n\r\ntest distribution id"))
+
+            verify(service).report(crash)
+            verify(service).sendReport(crash, null, "dump.path", "extras.path", true, true)
         } finally {
             mockWebServer.shutdown()
         }

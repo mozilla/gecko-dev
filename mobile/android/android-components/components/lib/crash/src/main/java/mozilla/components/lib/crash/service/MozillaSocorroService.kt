@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
+import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.support.base.ext.getStacktraceAsJsonString
 import mozilla.components.support.base.ext.getStacktraceAsString
 import mozilla.components.support.base.log.logger.Logger
@@ -87,7 +88,7 @@ class MozillaSocorroService(
     private val buildId: String = DEFAULT_BUILD_ID,
     private val vendor: String = DEFAULT_VENDOR,
     @get:VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var serverUrl: String? = null,
+    internal val serverUrl: String? = null,
     private var versionName: String = DEFAULT_VERSION_NAME,
     private var versionCode: String = DEFAULT_VERSION_CODE,
     private val releaseChannel: String = DEFAULT_RELEASE_CHANNEL,
@@ -130,38 +131,27 @@ class MozillaSocorroService(
                 }
             }
         }
-
-        if (serverUrl == null) {
-            serverUrl = Uri.parse("https://crash-reports.mozilla.com/submit")
-                .buildUpon()
-                .appendQueryParameter("id", appId)
-                .appendQueryParameter("version", versionName)
-                .appendQueryParameter("android_component_version", AcBuild.version)
-                .build().toString()
-        }
     }
 
     override fun report(crash: Crash.UncaughtExceptionCrash): String? {
         return sendReport(
-            crash.timestamp,
+            crash = crash,
             crash.throwable,
             miniDumpFilePath = null,
             extrasFilePath = null,
             isNativeCodeCrash = false,
             isFatalCrash = true,
-            breadcrumbs = crash.breadcrumbs,
         )
     }
 
     override fun report(crash: Crash.NativeCodeCrash): String? {
         return sendReport(
-            crash.timestamp,
+            crash = crash,
             throwable = null,
             miniDumpFilePath = crash.minidumpPath,
             extrasFilePath = crash.extrasPath,
             isNativeCodeCrash = true,
             isFatalCrash = crash.isFatal,
-            breadcrumbs = crash.breadcrumbs,
         )
     }
 
@@ -172,20 +162,20 @@ class MozillaSocorroService(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun sendReport(
-        timestamp: Long,
+        crash: Crash,
         throwable: Throwable?,
         miniDumpFilePath: String?,
         extrasFilePath: String?,
         isNativeCodeCrash: Boolean,
         isFatalCrash: Boolean,
-        breadcrumbs: ArrayList<Breadcrumb>,
     ): String? {
-        val url = URL(serverUrl)
+        val crashVersionName = crash.runtimeTags[CrashReporter.RELEASE_RUNTIME_TAG] ?: versionName
+        val url = URL(serverUrl ?: buildServerUrl(crashVersionName))
         val boundary = generateBoundary()
         var conn: HttpURLConnection? = null
 
         val breadcrumbsJson = JSONArray()
-        for (breadcrumb in breadcrumbs) {
+        for (breadcrumb in crash.breadcrumbs) {
             breadcrumbsJson.put(breadcrumb.toJson())
         }
 
@@ -197,8 +187,8 @@ class MozillaSocorroService(
             conn.setRequestProperty("Content-Encoding", "gzip")
 
             sendCrashData(
-                conn.outputStream, boundary, timestamp, throwable, miniDumpFilePath, extrasFilePath,
-                isNativeCodeCrash, isFatalCrash, breadcrumbsJson.toString(),
+                conn.outputStream, boundary, crash.timestamp, throwable, miniDumpFilePath, extrasFilePath,
+                isNativeCodeCrash, isFatalCrash, breadcrumbsJson.toString(), crashVersionName,
             )
 
             BufferedReader(InputStreamReader(conn.inputStream)).use { reader ->
@@ -253,6 +243,7 @@ class MozillaSocorroService(
         isNativeCodeCrash: Boolean,
         isFatalCrash: Boolean,
         breadcrumbs: String,
+        versionName: String,
     ) {
         val nameSet = mutableSetOf<String>()
         val gzipOs = GZIPOutputStream(os)
@@ -563,4 +554,12 @@ class MozillaSocorroService(
             null
         }
     }
+
+    internal fun buildServerUrl(versionName: String): String =
+        Uri.parse("https://crash-reports.mozilla.com/submit")
+            .buildUpon()
+            .appendQueryParameter("id", appId)
+            .appendQueryParameter("version", versionName)
+            .appendQueryParameter("android_component_version", AcBuild.version)
+            .build().toString()
 }

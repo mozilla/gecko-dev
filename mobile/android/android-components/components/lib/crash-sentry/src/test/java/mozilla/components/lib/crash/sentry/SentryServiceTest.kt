@@ -66,9 +66,10 @@ class SentryServiceTest {
         val exception = RuntimeException("Hello World")
         val breadcrumbs = arrayListOf<Breadcrumb>()
 
-        service.report(Crash.UncaughtExceptionCrash(0, exception, breadcrumbs))
+        val crash = Crash.UncaughtExceptionCrash(0, exception, breadcrumbs)
+        service.report(crash)
 
-        verify(service).prepareReport(breadcrumbs, SentryLevel.FATAL)
+        verify(service).prepareReport(breadcrumbs, SentryLevel.FATAL, crash)
         verify(service).reportToSentry(exception)
     }
 
@@ -94,7 +95,7 @@ class SentryServiceTest {
 
         service.report(nativeCrash)
 
-        verify(service).prepareReport(breadcrumbs, SentryLevel.FATAL)
+        verify(service).prepareReport(breadcrumbs, SentryLevel.FATAL, nativeCrash)
         verify(service).reportToSentry(nativeCrash)
     }
 
@@ -120,7 +121,7 @@ class SentryServiceTest {
 
         service.report(nativeCrash)
 
-        verify(service).prepareReport(breadcrumbs, SentryLevel.ERROR)
+        verify(service).prepareReport(breadcrumbs, SentryLevel.ERROR, nativeCrash)
         verify(service).reportToSentry(nativeCrash)
     }
 
@@ -146,7 +147,7 @@ class SentryServiceTest {
 
         service.report(nativeCrash)
 
-        verify(service).prepareReport(breadcrumbs, SentryLevel.ERROR)
+        verify(service).prepareReport(breadcrumbs, SentryLevel.ERROR, nativeCrash)
         verify(service).reportToSentry(nativeCrash)
     }
 
@@ -172,7 +173,7 @@ class SentryServiceTest {
 
         val result = service.report(nativeCrash)
 
-        verify(service, times(0)).prepareReport(breadcrumbs, SentryLevel.ERROR)
+        verify(service, times(0)).prepareReport(breadcrumbs, SentryLevel.ERROR, nativeCrash)
         verify(service, times(0)).reportToSentry(nativeCrash)
         assertNull(result)
     }
@@ -245,8 +246,8 @@ class SentryServiceTest {
         val breadcrumbs = arrayListOf<Breadcrumb>()
 
         service.report(exception, breadcrumbs)
-        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.INFO)
-        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.FATAL)
+        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.INFO, null)
+        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.FATAL, null)
         verify(service, never()).reportToSentry(exception)
     }
 
@@ -265,7 +266,7 @@ class SentryServiceTest {
 
         service.report(exception, breadcrumbs)
 
-        verify(service).prepareReport(breadcrumbs, SentryLevel.INFO)
+        verify(service).prepareReport(breadcrumbs, SentryLevel.INFO, null)
         verify(service).reportToSentry(exception)
     }
 }

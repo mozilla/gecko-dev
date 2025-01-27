@@ -31,6 +31,7 @@ import org.mozilla.fenix.components.metrics.InstallReferrerMetricsService
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.components.metrics.MetricsStorage
 import org.mozilla.fenix.crashes.CrashFactCollector
+import org.mozilla.fenix.crashes.ReleaseRuntimeTagProvider
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.perf.lazyMonitored
@@ -126,6 +127,7 @@ class Analytics(
             notificationsDelegate = context.components.notificationsDelegate,
             useLegacyReporting = !context.settings().crashReportAlwaysSend &&
                 !context.settings().useNewCrashReporterDialog,
+            runtimeTagProviders = listOf(ReleaseRuntimeTagProvider()),
         )
     }
 
