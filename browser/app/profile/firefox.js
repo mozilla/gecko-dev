@@ -3142,11 +3142,11 @@ pref("devtools.debugger.features.async-live-stacks", false);
 pref("devtools.debugger.show-content-scripts", false);
 
 pref("devtools.debugger.hide-ignored-sources", false);
-#if defined(NIGHTLY_BUILD)
-  pref("devtools.debugger.features.codemirror-next", true);
-#else
-  pref("devtools.debugger.features.codemirror-next", false);
-#endif
+
+// When `true` the debugger editor uses Codemirror v6
+// and when `false` the debugger editor uses Codemirror v5
+// This should be removed once the CM5 code is cleaned up. See Bug 1943909
+pref("devtools.debugger.features.codemirror-next", true);
 
 // Disable autohide for DevTools popups and tooltips.
 // This is currently not exposed by any UI to avoid making
