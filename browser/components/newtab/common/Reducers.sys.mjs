@@ -5,8 +5,11 @@
 import { actionTypes as at } from "resource://activity-stream/common/Actions.mjs";
 import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
 
-export const TOP_SITES_DEFAULT_ROWS = 1;
-export const TOP_SITES_MAX_SITES_PER_ROW = 8;
+export {
+  TOP_SITES_DEFAULT_ROWS,
+  TOP_SITES_MAX_SITES_PER_ROW,
+} from "resource:///modules/topsites/constants.mjs";
+
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 
 const dedupe = new Dedupe(site => site && site.url);
@@ -172,43 +175,6 @@ function App(prevState = INITIAL_STATE.App, action) {
     default:
       return prevState;
   }
-}
-
-/**
- * insertPinned - Inserts pinned links in their specified slots
- *
- * @param {array} a list of links
- * @param {array} a list of pinned links
- * @return {array} resulting list of links with pinned links inserted
- */
-export function insertPinned(links, pinned) {
-  // Remove any pinned links
-  const pinnedUrls = pinned.map(link => link && link.url);
-  let newLinks = links.filter(link =>
-    link ? !pinnedUrls.includes(link.url) : false
-  );
-  newLinks = newLinks.map(link => {
-    if (link && link.isPinned) {
-      delete link.isPinned;
-      delete link.pinIndex;
-    }
-    return link;
-  });
-
-  // Then insert them in their specified location
-  pinned.forEach((val, index) => {
-    if (!val) {
-      return;
-    }
-    let link = Object.assign({}, val, { isPinned: true, pinIndex: index });
-    if (index > newLinks.length) {
-      newLinks[index] = link;
-    } else {
-      newLinks.splice(index, 0, link);
-    }
-  });
-
-  return newLinks;
 }
 
 function TopSites(prevState = INITIAL_STATE.TopSites, action) {

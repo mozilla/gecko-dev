@@ -19,9 +19,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   TopSites: "resource:///modules/topsites/TopSites.sys.mjs",
-  TOP_SITES_DEFAULT_ROWS: "resource://activity-stream/common/Reducers.sys.mjs",
-  TOP_SITES_MAX_SITES_PER_ROW:
-    "resource://activity-stream/common/Reducers.sys.mjs",
+  TOP_SITES_DEFAULT_ROWS: "resource:///modules/topsites/constants.mjs",
+  TOP_SITES_MAX_SITES_PER_ROW: "resource:///modules/topsites/constants.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
@@ -158,7 +157,7 @@ class ProviderTopSites extends UrlbarProvider {
     }
 
     // This is done here, rather than in the global scope, because
-    // TOP_SITES_DEFAULT_ROWS causes the import of Reducers.sys.mjs, and we want to
+    // TOP_SITES_DEFAULT_ROWS causes import of topsites constants.mjs, and we want to
     // do that only when actually querying for Top Sites.
     if (this.topSitesRows === undefined) {
       XPCOMUtils.defineLazyPreferenceGetter(

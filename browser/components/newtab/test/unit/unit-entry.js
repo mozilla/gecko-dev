@@ -551,6 +551,9 @@ const TEST_GLOBAL = {
     removeExpirationFilter() {},
   },
   Logger: FakeLogger,
+  LinksCache: class {},
+  FaviconFeed: class {},
+
   getFxAccountsSingleton() {},
   AboutNewTab: {},
   Glean: {

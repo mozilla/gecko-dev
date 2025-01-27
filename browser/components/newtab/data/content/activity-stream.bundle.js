@@ -6557,6 +6557,14 @@ class Dedupe {
   }
 }
 
+;// CONCATENATED MODULE: ../topsites/constants.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const TOP_SITES_DEFAULT_ROWS = 1;
+const TOP_SITES_MAX_SITES_PER_ROW = 8;
+
 ;// CONCATENATED MODULE: ./common/Reducers.sys.mjs
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6565,8 +6573,8 @@ class Dedupe {
 
 
 
-const TOP_SITES_DEFAULT_ROWS = 1;
-const TOP_SITES_MAX_SITES_PER_ROW = 8;
+
+
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 
 const dedupe = new Dedupe(site => site && site.url);
@@ -6732,43 +6740,6 @@ function App(prevState = INITIAL_STATE.App, action) {
     default:
       return prevState;
   }
-}
-
-/**
- * insertPinned - Inserts pinned links in their specified slots
- *
- * @param {array} a list of links
- * @param {array} a list of pinned links
- * @return {array} resulting list of links with pinned links inserted
- */
-function insertPinned(links, pinned) {
-  // Remove any pinned links
-  const pinnedUrls = pinned.map(link => link && link.url);
-  let newLinks = links.filter(link =>
-    link ? !pinnedUrls.includes(link.url) : false
-  );
-  newLinks = newLinks.map(link => {
-    if (link && link.isPinned) {
-      delete link.isPinned;
-      delete link.pinIndex;
-    }
-    return link;
-  });
-
-  // Then insert them in their specified location
-  pinned.forEach((val, index) => {
-    if (!val) {
-      return;
-    }
-    let link = Object.assign({}, val, { isPinned: true, pinIndex: index });
-    if (index > newLinks.length) {
-      newLinks[index] = link;
-    } else {
-      newLinks.splice(index, 0, link);
-    }
-  });
-
-  return newLinks;
 }
 
 function TopSites(prevState = INITIAL_STATE.TopSites, action) {

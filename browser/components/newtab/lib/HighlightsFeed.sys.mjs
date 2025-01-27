@@ -8,7 +8,7 @@ import { shortURL } from "resource://activity-stream/lib/ShortURL.sys.mjs";
 import {
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
-} from "resource://activity-stream/common/Reducers.sys.mjs";
+} from "resource:///modules/topsites/constants.mjs";
 import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
 
 const lazy = {};

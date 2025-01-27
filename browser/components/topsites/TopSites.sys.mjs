@@ -3,15 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { TippyTopProvider } from "resource:///modules/topsites/TippyTopProvider.sys.mjs";
-import {
-  insertPinned,
-  TOP_SITES_MAX_SITES_PER_ROW,
-} from "resource://activity-stream/common/Reducers.sys.mjs";
 import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
 import {
   shortURL,
   shortHostname,
 } from "resource://activity-stream/lib/ShortURL.sys.mjs";
+import { TOP_SITES_MAX_SITES_PER_ROW } from "resource:///modules/topsites/constants.mjs";
 
 import {
   CUSTOM_SEARCH_SHORTCUTS,
@@ -39,6 +36,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 export const DEFAULT_TOP_SITES = [];
+
 const FRECENCY_THRESHOLD = 100 + 1; // 1 visit (skip first-run/one-time pages)
 const MIN_FAVICON_SIZE = 96;
 const PINNED_FAVICON_PROPS_TO_MIGRATE = [
@@ -1086,6 +1084,43 @@ class _TopSites {
 
     this._broadcastPinnedSitesUpdated();
   }
+}
+
+/**
+ * insertPinned - Inserts pinned links in their specified slots
+ *
+ * @param {Array} links list of links
+ * @param {Array} pinned list of pinned links
+ * @returns {Array} resulting list of links with pinned links inserted
+ */
+export function insertPinned(links, pinned) {
+  // Remove any pinned links
+  const pinnedUrls = pinned.map(link => link && link.url);
+  let newLinks = links.filter(link =>
+    link ? !pinnedUrls.includes(link.url) : false
+  );
+  newLinks = newLinks.map(link => {
+    if (link && link.isPinned) {
+      delete link.isPinned;
+      delete link.pinIndex;
+    }
+    return link;
+  });
+
+  // Then insert them in their specified location
+  pinned.forEach((val, index) => {
+    if (!val) {
+      return;
+    }
+    let link = Object.assign({}, val, { isPinned: true, pinIndex: index });
+    if (index > newLinks.length) {
+      newLinks[index] = link;
+    } else {
+      newLinks.splice(index, 0, link);
+    }
+  });
+
+  return newLinks;
 }
 
 export const TopSites = new _TopSites();

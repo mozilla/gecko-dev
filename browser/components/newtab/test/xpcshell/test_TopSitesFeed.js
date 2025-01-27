@@ -22,9 +22,8 @@ ChromeUtils.defineESModuleGetters(this, {
   Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
-  TOP_SITES_DEFAULT_ROWS: "resource://activity-stream/common/Reducers.sys.mjs",
-  TOP_SITES_MAX_SITES_PER_ROW:
-    "resource://activity-stream/common/Reducers.sys.mjs",
+  TOP_SITES_DEFAULT_ROWS: "resource:///modules/topsites/constants.mjs",
+  TOP_SITES_MAX_SITES_PER_ROW: "resource:///modules/topsites/constants.mjs",
 });
 
 const FAKE_FAVICON = "data987";
