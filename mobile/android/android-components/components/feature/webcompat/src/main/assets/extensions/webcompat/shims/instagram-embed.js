@@ -23,18 +23,13 @@ if (!window.smartblockInstagramShimInitialized) {
   }
 
   function addonMessageHandler(message) {
-    let { topic, data, shimId } = message;
+    let { topic, shimId } = message;
     // Only react to messages which are targeting this shim.
     if (shimId != SHIM_ID) {
       return;
     }
 
     if (topic === "smartblock:unblock-embed") {
-      if (data != window.location.hostname) {
-        // host name does not match the original hostname, user must have navigated
-        // away, skip replacing embeds
-        return;
-      }
       // remove embed placeholders
       embedPlaceholders.forEach((p, idx) => {
         p.replaceWith(originalEmbedContainers[idx]);
@@ -155,6 +150,8 @@ if (!window.smartblockInstagramShimInitialized) {
 
       // Replace the embed with the placeholder
       originalEmbedContainer.replaceWith(placeholderDiv);
+
+      sendMessageToAddon("smartblockEmbedReplaced");
     });
   }
 

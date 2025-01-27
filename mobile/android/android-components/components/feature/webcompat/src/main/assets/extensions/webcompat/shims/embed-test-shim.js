@@ -4,18 +4,22 @@
 
 /* globals browser */
 
-if (!window.smartblockTikTokShimInitialized) {
+if (!window.smartblockTestShimInitialized) {
   // Guard against this script running multiple times
-  window.smartblockTikTokShimInitialized = true;
+  window.smartblockTestShimInitialized = true;
 
-  const SHIM_ID = "TiktokEmbed";
+  const SHIM_ID = "EmbedTestShim";
 
-  // Original URL of the TikTok embed script.
-  const ORIGINAL_URL = "https://www.tiktok.com/embed.js";
+  // Original URL of the test embed script.
+  const ORIGINAL_URL =
+    "https://itisatracker.org/browser/browser/extensions/webcompat/tests/browser/embed_test.js";
 
-  const LOGO_URL = "https://smartblock.firefox.etp/tiktok.svg";
+  // Use instagram logo as a test logo
+  const LOGO_URL = "https://smartblock.firefox.etp/instagram.svg";
 
-  let originalEmbedContainers = document.querySelectorAll(".tiktok-embed");
+  let originalEmbedContainers = document.querySelectorAll(
+    ".broken-embed-content"
+  );
   let embedPlaceholders = [];
 
   // Bug 1925582: this should be a common snippet for use in multiple shims.
@@ -126,6 +130,9 @@ if (!window.smartblockTikTokShimInitialized) {
       const placeholderDiv = document.createElement("div");
       embedPlaceholders.push(placeholderDiv);
 
+      // Tag the div with a class to make it easily detectable FOR THE TEST SHIM ONLY
+      placeholderDiv.classList.add("shimmed-embedded-content");
+
       const shadowRoot = placeholderDiv.attachShadow({ mode: "closed" });
 
       shadowRoot.innerHTML = SMARTBLOCK_PLACEHOLDER_HTML_STRING;
@@ -154,6 +161,13 @@ if (!window.smartblockTikTokShimInitialized) {
 
       sendMessageToAddon("smartblockEmbedReplaced");
     });
+
+    // Dispatch event to signal that the script is done replacing FOR TEST SHIM ONLY
+    const finishedEvent = new CustomEvent("smartblockEmbedScriptFinished", {
+      bubbles: true,
+      composed: true,
+    });
+    window.dispatchEvent(finishedEvent);
   }
 
   // Listen for messages from the background script.

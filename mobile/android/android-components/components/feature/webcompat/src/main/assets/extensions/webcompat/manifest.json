@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "136.3.0",
+  "version": "136.4.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -114,6 +114,7 @@
     "shims/cxense.js",
     "shims/doubleverify.js",
     "shims/eluminate.js",
+    "shims/embed-test-shim.js",
     "shims/empty-script.js",
     "shims/empty-shim.txt",
     "shims/everest.js",

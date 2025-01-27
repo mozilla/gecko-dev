@@ -44,13 +44,18 @@ class AllowList {
 class Manager {
   constructor() {
     this._allowLists = new Map();
+    this._PBModeAllowLists = new Map();
   }
 
-  _getAllowList(id) {
-    if (!this._allowLists.has(id)) {
-      this._allowLists.set(id, new AllowList(id));
+  _getAllowList(id, isPrivateMode) {
+    const activeAllowLists = isPrivateMode
+      ? this._PBModeAllowLists
+      : this._allowLists;
+
+    if (!activeAllowLists.has(id)) {
+      activeAllowLists.set(id, new AllowList(id));
     }
-    return this._allowLists.get(id);
+    return activeAllowLists.get(id);
   }
 
   _ensureStarted() {
@@ -59,6 +64,7 @@ class Manager {
     }
 
     this._unblockedChannelIds = new Set();
+    this._PBModeUnblockedChannelIds = new Set();
     this._channelClassifier = Cc[
       "@mozilla.org/url-classifier/channel-classifier-service;1"
     ].getService(Ci.nsIChannelClassifierService);
@@ -67,13 +73,21 @@ class Manager {
       switch (topic) {
         case "http-on-stop-request": {
           const { channelId } = subject.QueryInterface(Ci.nsIIdentChannel);
-          this._unblockedChannelIds.delete(channelId);
+          const isPrivateMode =
+            subject.loadInfo.browsingContext?.originAttributes
+              ?.privateBrowsingId;
+          if (isPrivateMode) {
+            this._PBModeUnblockedChannelIds.delete(channelId);
+          } else {
+            this._unblockedChannelIds.delete(channelId);
+          }
           break;
         }
         case "urlclassifier-before-block-channel": {
           const channel = subject.QueryInterface(
             Ci.nsIUrlClassifierBlockedChannel
           );
+          const isPrivateMode = subject.isPrivateBrowsing;
           const { channelId, url } = channel;
           let topHost;
           try {
@@ -81,22 +95,28 @@ class Manager {
           } catch (_) {
             return;
           }
+          const activeAllowLists = isPrivateMode
+            ? this._PBModeAllowLists
+            : this._allowLists;
+          const activeUnblockedChannelIds = isPrivateMode
+            ? this._PBModeUnblockedChannelIds
+            : this._unblockedChannelIds;
           // If anti-tracking webcompat is disabled, we only permit replacing
           // channels, not fully unblocking them.
           if (Manager.ENABLE_WEBCOMPAT) {
             // if any allowlist unblocks the request entirely, we allow it
-            for (const allowList of this._allowLists.values()) {
+            for (const allowList of activeAllowLists.values()) {
               if (allowList.allows(url, topHost)) {
-                this._unblockedChannelIds.add(channelId);
+                activeUnblockedChannelIds.add(channelId);
                 channel.allow();
                 return;
               }
             }
           }
           // otherwise, if any allowlist shims the request we say it's replaced
-          for (const allowList of this._allowLists.values()) {
+          for (const allowList of activeAllowLists.values()) {
             if (allowList.shims(url, topHost)) {
-              this._unblockedChannelIds.add(channelId);
+              activeUnblockedChannelIds.add(channelId);
               channel.replace();
               return;
             }
@@ -123,22 +143,26 @@ class Manager {
     delete this._classifierObserver;
   }
 
-  wasChannelIdUnblocked(channelId) {
-    return this._unblockedChannelIds?.has(channelId);
+  wasChannelIdUnblocked(channelId, isPrivateMode) {
+    const activeUnblockedChannelIds = isPrivateMode
+      ? this._PBModeUnblockedChannelIds
+      : this._unblockedChannelIds;
+    return activeUnblockedChannelIds?.has(channelId);
   }
 
-  allow(allowListId, patterns, hosts) {
+  allow(allowListId, patterns, isPrivateMode, hosts) {
     this._ensureStarted();
-    this._getAllowList(allowListId).setAllows(patterns, hosts);
+    this._getAllowList(allowListId, isPrivateMode).setAllows(patterns, hosts);
   }
 
-  shim(allowListId, patterns, notHosts) {
+  shim(allowListId, patterns, isPrivateMode, notHosts) {
     this._ensureStarted();
-    this._getAllowList(allowListId).setShims(patterns, notHosts);
+    this._getAllowList(allowListId, isPrivateMode).setShims(patterns, notHosts);
   }
 
   revoke(allowListId) {
     this._allowLists.delete(allowListId);
+    this._PBModeAllowLists.delete(allowListId);
   }
 }
 var manager = new Manager();
@@ -202,7 +226,7 @@ this.trackingProtection = class extends ExtensionAPI {
           context,
           name: "trackingProtection.onSmartBlockEmbedReblock",
           register: fire => {
-            const callback = (subject, topic, data) => {
+            const callback = (subject, _topic, data) => {
               // chrome tab id needs to be converted to extension tab id
               let hostname = subject.linkedBrowser.currentURI.host;
               let tabId = tabManager.convert(subject).id;
@@ -214,16 +238,31 @@ this.trackingProtection = class extends ExtensionAPI {
             };
           },
         }).api(),
+        onPrivateSessionEnd: new EventManager({
+          context,
+          name: "trackingProtection.onPrivateSessionEnd",
+          register: fire => {
+            const callback = (_subject, _topic) => {
+              fire.sync();
+            };
+            Services.obs.addObserver(callback, "last-pb-context-exited");
+            return () => {
+              Services.obs.removeObserver(callback, "last-pb-context-exited");
+            };
+          },
+        }).api(),
         async shim(allowListId, patterns, notHosts) {
-          manager.shim(allowListId, patterns, notHosts);
+          // shim for both PB and non-PB modes
+          manager.shim(allowListId, patterns, true, notHosts);
+          manager.shim(allowListId, patterns, false, notHosts);
         },
-        async allow(allowListId, patterns, hosts) {
-          manager.allow(allowListId, patterns, hosts);
+        async allow(allowListId, patterns, isPrivate, hosts) {
+          manager.allow(allowListId, patterns, isPrivate, hosts);
         },
         async revoke(allowListId) {
           manager.revoke(allowListId);
         },
-        async wasRequestUnblocked(requestId) {
+        async wasRequestUnblocked(requestId, isPrivate) {
           if (!manager) {
             return false;
           }
@@ -231,7 +270,7 @@ this.trackingProtection = class extends ExtensionAPI {
           if (!channelId) {
             return false;
           }
-          return manager.wasChannelIdUnblocked(channelId);
+          return manager.wasChannelIdUnblocked(channelId, isPrivate);
         },
         async isDFPIActive(isPrivate) {
           if (isPrivate) {
@@ -241,7 +280,7 @@ this.trackingProtection = class extends ExtensionAPI {
         },
         openProtectionsPanel(tabId) {
           let tab = tabManager.get(tabId);
-          if (!tab.active) {
+          if (!tab?.active) {
             // break if tab is not the active tab
             return;
           }
@@ -251,6 +290,9 @@ this.trackingProtection = class extends ExtensionAPI {
             win.gBrowser.selectedBrowser.browsingContext,
             "smartblock:open-protections-panel"
           );
+        },
+        incrementSmartblockEmbedShownTelemetry() {
+          Glean.securityUiProtectionspopup.smartblockembedsShown.add();
         },
         async getSmartBlockEmbedFluentString(tabId, shimId, websiteHost) {
           let win = tabManager.get(tabId).window;
