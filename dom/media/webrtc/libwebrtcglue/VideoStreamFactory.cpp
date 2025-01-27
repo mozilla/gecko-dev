@@ -75,7 +75,7 @@ auto VideoStreamFactory::GetLimitsFor(gfx::IntSize aSize, int aCapBps /* = 0 */)
   int fs = MB_OF(aSize.width, aSize.height);
 
   for (const auto& resAndLimits : kResolutionAndBitrateLimits) {
-    if (fs > resAndLimits.resolution_in_mb &&
+    if (fs >= resAndLimits.resolution_in_mb &&
         // pick the highest range where at least start rate is within cap
         // (or if we're at the end of the array).
         (aCapBps == 0 || resAndLimits.start_bitrate_bps <= aCapBps ||
@@ -150,6 +150,7 @@ void VideoStreamFactory::SelectResolutionAndMaxFramerate(
   newSize = CalculateScaledResolution(aSize, aEncoding.constraints.scaleDownBy);
 
   if (newSize.width == 0 || newSize.height == 0) {
+    aVideoStream.width = aVideoStream.height = 0;
     return;
   }
 
@@ -219,7 +220,6 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     if (video_stream.width == 0 || video_stream.height == 0) {
       CSFLogInfo(LOGTAG, "%s Stream with RID %s ignored: has no resolution.",
                  __FUNCTION__, encoding.rid.c_str());
-      continue;
     }
 
     CSFLogInfo(LOGTAG, "%s Stream with RID %s maxFps=%d (global max fps = %u)",
