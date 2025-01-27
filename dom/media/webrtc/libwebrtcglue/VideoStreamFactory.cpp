@@ -10,7 +10,6 @@
 #include "VideoConduit.h"
 
 #include <algorithm>
-#include "api/video_codecs/video_codec.h"
 #include <cmath>
 #include <limits>
 #include "mozilla/Assertions.h"
@@ -47,7 +46,7 @@ namespace mozilla {
 #define DEFAULT_VIDEO_MAX_FRAMERATE 30u
 
 #define MB_OF(w, h) \
-  ((unsigned int)((((w + 15) >> 4)) * ((unsigned int)((h + 15) >> 4))))
+  ((unsigned int)(((((w) + 15) >> 4)) * ((unsigned int)(((h) + 15) >> 4))))
 // For now, try to set the max rates well above the knee in the curve.
 // Chosen somewhat arbitrarily; it's hard to find good data oriented for
 // realtime interactive/talking-head recording.  These rates assume
@@ -227,8 +226,9 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
                (unsigned)mMaxFramerateForAllStreams);
 
     SelectBitrates({video_stream.width, video_stream.height}, mMinBitrate,
-                   mStartBitrate, encoding.constraints.maxBr, mPrefMaxBitrate,
-                   mNegotiatedMaxBitrate, video_stream);
+                   mStartBitrate,
+                   SaturatingCast<int>(encoding.constraints.maxBr),
+                   mPrefMaxBitrate, mNegotiatedMaxBitrate, video_stream);
 
     video_stream.bitrate_priority = aConfig.bitrate_priority;
     video_stream.max_qp = kQpMax;

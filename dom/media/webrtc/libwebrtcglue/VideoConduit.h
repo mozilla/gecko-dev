@@ -9,15 +9,12 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/SharedThreadPool.h"
 #include "mozilla/StateMirroring.h"
 #include "mozilla/UniquePtr.h"
-#include "nsITimer.h"
 
 #include "MediaConduitInterface.h"
 #include "RtpRtcpConfig.h"
 #include "RunningStat.h"
-#include "transport/runnable_utils.h"
 
 // conflicts with #include of scoped_ptr.h
 #undef FF
@@ -25,11 +22,7 @@
 #include "api/media_stream_interface.h"
 #include "api/video_codecs/video_decoder.h"
 #include "api/video_codecs/video_encoder.h"
-#include "api/video_codecs/sdp_video_format.h"
 #include "call/call_basic_stats.h"
-#include "common_video/include/video_frame_buffer_pool.h"
-#include <functional>
-#include <memory>
 /** This file hosts several structures identifying different aspects
  * of a RTP Session.
  */
@@ -37,7 +30,7 @@
 namespace mozilla {
 
 // Convert (SI) kilobits/sec to (SI) bits/sec
-#define KBPS(kbps) kbps * 1000
+#define KBPS(kbps) ((kbps) * 1000)
 
 const int kViEMinCodecBitrate_bps = KBPS(30);
 const unsigned int kVideoMtu = 1200;
