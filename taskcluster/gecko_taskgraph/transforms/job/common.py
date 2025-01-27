@@ -8,49 +8,11 @@ consistency.
 """
 
 
+from taskgraph.transforms.run.common import CACHES, add_cache
 from taskgraph.util.keyed_by import evaluate_keyed_by
 from taskgraph.util.taskcluster import get_artifact_prefix
 
 SECRET_SCOPE = "secrets:get:project/releng/{trust_domain}/{kind}/level-{level}/{secret}"
-
-
-def add_cache(job, taskdesc, name, mount_point, skip_untrusted=False):
-    """Adds a cache based on the worker's implementation.
-
-    Args:
-        job (dict): Task's job description.
-        taskdesc (dict): Target task description to modify.
-        name (str): Name of the cache.
-        mount_point (path): Path on the host to mount the cache.
-        skip_untrusted (bool): Whether cache is used in untrusted environments
-            (default: False). Only applies to docker-worker.
-    """
-    if not job["run"].get("use-caches", True):
-        return
-
-    worker = job["worker"]
-
-    if worker["implementation"] == "docker-worker":
-        taskdesc["worker"].setdefault("caches", []).append(
-            {
-                "type": "persistent",
-                "name": name,
-                "mount-point": mount_point,
-                "skip-untrusted": skip_untrusted,
-            }
-        )
-
-    elif worker["implementation"] == "generic-worker":
-        taskdesc["worker"].setdefault("mounts", []).append(
-            {
-                "cache-name": name,
-                "directory": mount_point,
-            }
-        )
-
-    else:
-        # Caches not implemented
-        pass
 
 
 def add_artifacts(config, job, taskdesc, path):
@@ -80,7 +42,24 @@ def generic_worker_add_artifacts(config, job, taskdesc):
     add_artifacts(config, job, taskdesc, path=path)
 
 
-def support_vcs_checkout(config, job, taskdesc, sparse=False):
+def get_cache_name(config, job):
+    cache_name = "checkouts"
+
+    # Sparse checkouts need their own cache because they can interfere
+    # with clients that aren't sparse aware.
+    if job["run"]["sparse-profile"]:
+        cache_name += "-sparse"
+
+    # Workers using Mercurial >= 5.8 will enable revlog-compression-zstd, which
+    # workers using older versions can't understand, so they can't share cache.
+    # At the moment, only docker workers use the newer version.
+    if job["worker"]["implementation"] == "docker-worker":
+        cache_name += "-hg58"
+
+    return cache_name
+
+
+def support_vcs_checkout(config, job, taskdesc):
     """Update a job/task with parameters to enable a VCS checkout.
 
     This can only be used with ``run-task`` tasks, as the cache name is
@@ -110,20 +89,8 @@ def support_vcs_checkout(config, job, taskdesc, sparse=False):
         geckodir = f"{checkoutdir}/gecko"
         hgstore = f"{checkoutdir}/hg-shared"
 
-    cache_name = "checkouts"
-
-    # Sparse checkouts need their own cache because they can interfere
-    # with clients that aren't sparse aware.
-    if sparse:
-        cache_name += "-sparse"
-
-    # Workers using Mercurial >= 5.8 will enable revlog-compression-zstd, which
-    # workers using older versions can't understand, so they can't share cache.
-    # At the moment, only docker workers use the newer version.
-    if is_docker:
-        cache_name += "-hg58"
-
-    add_cache(job, taskdesc, cache_name, checkoutdir)
+    # Use some Gecko specific logic to determine cache name.
+    CACHES["checkout"]["cache_name"] = get_cache_name
 
     taskdesc["worker"].setdefault("env", {}).update(
         {

@@ -8,7 +8,7 @@ from shlex import quote as shell_quote
 from gecko_taskgraph.transforms.job import configure_taskdesc_for_run, run_job_using
 from taskgraph.util import path
 from taskgraph.util.schema import Schema, taskref_or_string
-from voluptuous import Optional, Required
+from voluptuous import Any, Optional, Required
 
 secret_schema = {
     Required("name"): str,
@@ -32,7 +32,7 @@ gradlew_schema = Schema(
         Optional("post-gradlew"): [[str]],
         # Base work directory used to set up the task.
         Required("workdir"): str,
-        Optional("use-caches"): bool,
+        Optional("use-caches"): Any(bool, [str]),
         Optional("secrets"): [secret_schema],
         Optional("dummy-secrets"): [dummy_secret_schema],
     }
@@ -44,7 +44,7 @@ run_commands_schema = Schema(
         Optional("pre-commands"): [[str]],
         Required("commands"): [[taskref_or_string]],
         Required("workdir"): str,
-        Optional("use-caches"): bool,
+        Optional("use-caches"): Any(bool, [str]),
         Optional("secrets"): [secret_schema],
         Optional("dummy-secrets"): [dummy_secret_schema],
     }

@@ -10,7 +10,7 @@ from taskgraph.util.copy import deepcopy
 from taskgraph.util.dependencies import get_primary_dependency
 from taskgraph.util.schema import Schema, optionally_keyed_by, resolve_keyed_by
 from taskgraph.util.taskcluster import get_artifact_prefix
-from voluptuous import Extra, Optional, Required
+from voluptuous import Any, Extra, Optional, Required
 
 from gecko_taskgraph.transforms.job import job_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
@@ -91,7 +91,7 @@ packaging_description_schema = Schema(
             # gecko checkout
             Optional("comm-checkout"): bool,
             Optional("run-as-root"): bool,
-            Optional("use-caches"): bool,
+            Optional("use-caches"): Any(bool, [str]),
         },
         Optional("task-from"): job_description_schema["task-from"],
     }
@@ -574,7 +574,6 @@ def make_job_description(config, jobs):
                     "repackage_config": repackage_config,
                 },
                 "run-as-root": run.get("run-as-root", False),
-                "use-caches": run.get("use-caches", True),
             }
         )
 

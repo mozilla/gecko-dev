@@ -6,7 +6,9 @@
 import json
 import os
 import re
+from copy import deepcopy
 
+from taskgraph.transforms.run.common import support_caches
 from taskgraph.util.schema import Schema
 from taskgraph.util.taskcluster import get_artifact_path, get_artifact_url
 from voluptuous import Extra, Optional, Required
@@ -191,9 +193,22 @@ def mozharness_test_on_docker(config, job, taskdesc):
             "reboot: {} not supported on generic-worker".format(test["reboot"])
         )
 
-    # Support vcs checkouts regardless of whether the task runs from
-    # source or not in case it is needed on an interactive loaner.
-    support_vcs_checkout(config, job, taskdesc)
+    if not test["checkout"]:
+        # Support vcs checkouts regardless of whether the task runs from
+        # source or not in case it is needed on an interactive loaner.
+        support_vcs_checkout(config, job, taskdesc)
+
+        # TODO `support_vcs_checkout` no longer sets up the checkout cache
+        # (that is handled by `support_caches` now). This is here to
+        # temporarily preserve backwards compatibility by making the taskgraph
+        # diff identical. Since `support_vcs_checkout` is only being called on
+        # the off-chance an interactive task is needed, there's little benefit
+        # of caching the checkout and we can remove this.
+        temp_job = deepcopy(job)
+        temp_job["run"]["checkout"] = True
+        temp_job["run"]["use-caches"] = ["checkout"]
+        temp_job["run"]["sparse-profile"] = None
+        support_caches(config, temp_job, taskdesc)
 
     # If we have a source checkout, run mozharness from it instead of
     # downloading a zip file with the same content.

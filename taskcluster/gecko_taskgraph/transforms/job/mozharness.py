@@ -77,7 +77,7 @@ mozharness_run_schema = Schema(
         Optional("job-script"): str,
         Required("requires-signed-builds"): bool,
         # Whether or not to use caches.
-        Optional("use-caches"): bool,
+        Optional("use-caches"): Any(bool, [str]),
         # If false, don't set MOZ_SIMPLE_PACKAGE_NAME
         # Only disableable on windows
         Required("use-simple-package"): bool,
