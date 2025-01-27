@@ -7,7 +7,7 @@ features are used or to measure how often certain scenarios are encountered.
 
 Because use-counters are intended to find the frequency of a feature's use, a page
 reports only _if_ a feature was used, not how many times. E.g. if you used a feature
-a million times on a page, and loaded that page once, but you dwere the only person
+a million times on a page, and loaded that page once, but you were the only person
 who ever used that feature then telemetry would report only one use, not a million.
 
 To add a SpiderMonkey Use Counter we have a couple extra steps compared to the
