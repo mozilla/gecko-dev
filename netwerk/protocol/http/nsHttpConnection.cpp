@@ -2425,6 +2425,7 @@ void nsHttpConnection::HandshakeDoneInternal() {
        transactionNPN.get()));
   if (!transactionNPN.IsEmpty() && negotiatedNPN != transactionNPN) {
     LOG(("Resetting connection due to mismatched NPN token"));
+    mozilla::glean::network::alpn_mismatch_count.Get(negotiatedNPN).Add();
     DontReuse();
     if (mTransaction) {
       mTransaction->Close(NS_ERROR_NET_RESET);

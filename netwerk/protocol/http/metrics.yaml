@@ -865,6 +865,20 @@ network:
     description: >
      Counts the status of succeeded and failed requests to other mozilla.org domains
 
+  alpn_mismatch_count:
+    type: labeled_counter
+    description: >
+      Counts the number of times we encountered a mismatched ALPN token and needed to reset the connection.
+      Keyed by the negotiated NPN.
+    bugs:
+      - https://bugzil.la/1943911
+    data_reviews:
+      - https://bugzil.la/1943911
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+
+
 networking:
   http3_enabled:
     type: boolean
