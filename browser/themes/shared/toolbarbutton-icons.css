@@ -203,8 +203,11 @@
   @media (-moz-bool-pref: "sidebar.revamp") {
     list-style-image: url("chrome://browser/skin/sidebar-collapsed-right.svg");
 
-    &:hover {
-      list-style-image: url("chrome://browser/skin/sidebar-expanded-right.svg");
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media (-moz-bool-pref: "sidebar.verticalTabs") {
+      &:hover {
+        list-style-image: url("chrome://browser/skin/sidebar-expanded-right.svg");
+      }
     }
 
     &[expanded] {
@@ -219,8 +222,11 @@
     &:-moz-locale-dir(rtl)[positionend] {
       list-style-image: url("chrome://browser/skin/sidebar-collapsed.svg");
 
-      &:hover {
-        list-style-image: url("chrome://browser/skin/sidebar-expanded.svg");
+      /* stylelint-disable-next-line media-query-no-invalid */
+      @media (-moz-bool-pref: "sidebar.verticalTabs") {
+        &:hover {
+          list-style-image: url("chrome://browser/skin/sidebar-expanded.svg");
+        }
       }
 
       &[expanded] {

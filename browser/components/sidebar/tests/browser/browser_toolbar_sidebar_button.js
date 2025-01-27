@@ -11,10 +11,13 @@ let gAreas = CustomizableUI.getTestOnlyInternalProp("gAreas");
 const SIDEBAR_BUTTON_INTRODUCED_PREF =
   "browser.toolbarbuttons.introduced.sidebar-button";
 const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
+const SIDEBAR_TAB_DIRECTION_PREF = "sidebar.verticalTabs";
 
 add_setup(async () => {
+  // Only vertical tabs mode has expanded state
   await SpecialPowers.pushPrefEnv({
     set: [
+      [SIDEBAR_TAB_DIRECTION_PREF, true],
       [SIDEBAR_BUTTON_INTRODUCED_PREF, false],
       [SIDEBAR_VISIBILITY_PREF, "always-show"],
     ],
@@ -142,14 +145,10 @@ add_task(async function test_expanded_state_for_always_show() {
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkExpandedState(false);
 
-  info("Collapse the sidebar by loading a tool.");
+  info("Don't collapse the sidebar by loading a tool.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
   await sidebarMain.updateComplete;
   const toolButton = sidebarMain.toolButtons[0];
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
-  await checkExpandedState(false);
-
-  info("Restore the sidebar back to its previous state.");
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
   await checkExpandedState(true);
 
@@ -178,7 +177,82 @@ add_task(async function test_expanded_state_for_always_show() {
 
 add_task(async function test_states_for_hide_sidebar() {
   await SpecialPowers.pushPrefEnv({
-    set: [[SIDEBAR_VISIBILITY_PREF, "hide-sidebar"]],
+    set: [[SIDEBAR_TAB_DIRECTION_PREF, false]],
+  });
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const { SidebarController } = win;
+  const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
+
+  const checkStates = async (
+    { hidden },
+    container = sidebarContainer,
+    component = sidebarMain,
+    button = toolbarButton
+  ) => {
+    await TestUtils.waitForCondition(
+      () => container.hidden == hidden,
+      "Hidden state is correct."
+    );
+    await TestUtils.waitForCondition(
+      () => !component.expanded,
+      "Expanded state is correct."
+    );
+    await TestUtils.waitForCondition(
+      () => button.checked == !hidden,
+      "Toolbar button state is correct."
+    );
+    Assert.deepEqual(
+      document.l10n.getAttributes(button),
+      {
+        id: hidden
+          ? "sidebar-widget-show-sidebar2"
+          : "sidebar-widget-hide-sidebar2",
+        args:
+          AppConstants.platform === "macosx"
+            ? { shortcut: "⌃Z" }
+            : { shortcut: "Alt+Ctrl+Z" },
+      },
+      "Toolbar button has the correct tooltip."
+    );
+    await TestUtils.waitForCondition(
+      () => !button.hasAttribute("expanded"),
+      "Toolbar button expanded attribute is absent."
+    );
+  };
+
+  // Hide the sidebar
+  info("Check default hidden state.");
+  await checkStates({ hidden: false });
+  info("Hide sidebar using the toolbar button.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkStates({ hidden: true });
+
+  info("Show sidebar using the toolbar button.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkStates({ hidden: false });
+
+  info("Check states on a new window.");
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await checkStates({ hidden: true });
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  await checkStates(
+    { hidden: true },
+    newWin.SidebarController.sidebarContainer,
+    newWin.SidebarController.sidebarMain,
+    newWin.SidebarController.toolbarButton
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_states_for_hide_sidebar_vertical() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [SIDEBAR_TAB_DIRECTION_PREF, true],
+      [SIDEBAR_VISIBILITY_PREF, "hide-sidebar"],
+    ],
   });
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { SidebarController } = win;
@@ -224,29 +298,22 @@ add_task(async function test_states_for_hide_sidebar() {
   };
 
   // Hide the sidebar
-  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   info("Check default hidden state.");
   await checkStates({ hidden: true, expanded: false });
-
   info("Show expanded sidebar using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkStates({ hidden: false, expanded: true });
 
-  info("Collapse the sidebar by loading a tool.");
+  info("Don't collapse the sidebar by loading a tool.");
   const toolButton = sidebarMain.toolButtons[0];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
-  await checkStates({ hidden: false, expanded: false });
-
-  info("Restore the sidebar back to its previous state.");
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  ok(SidebarController.isOpen, "Panel is open.");
   await checkStates({ hidden: false, expanded: true });
 
   info("Close a panel using the toolbar button.");
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
-  ok(SidebarController.isOpen, "Panel is open.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   ok(!SidebarController.isOpen, "Panel is closed.");
-  await checkStates({ hidden: true, expanded: true });
+  await checkStates({ hidden: true, expanded: false });
 
   info("Check states on a new window.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
@@ -262,7 +329,7 @@ add_task(async function test_states_for_hide_sidebar() {
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();
-}).skip(); //bug 1896421
+});
 
 add_task(async function test_sidebar_button_runtime_pref_enabled() {
   await SpecialPowers.pushPrefEnv({

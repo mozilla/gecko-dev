@@ -6,6 +6,9 @@ const { DOMFullscreenTestUtils } = ChromeUtils.importESModule(
 let win;
 
 add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", true]],
+  });
   DOMFullscreenTestUtils.init(this, window);
   win = await BrowserTestUtils.openNewBrowserWindow();
   await waitForBrowserWindowActive(win);
