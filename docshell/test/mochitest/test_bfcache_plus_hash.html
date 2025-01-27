@@ -82,8 +82,8 @@ function executeTest() {
     bc1.postMessage("close");
   }
 
-  var bc1 = new BroadcastChannel("bug646641_1");
-  var bc2 = new BroadcastChannel("bug646641_2");
+  var bc1 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug646641_1");
+  var bc2 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug646641_2");
   bc1.onmessage = (msgEvent) => {
     var msg = msgEvent.data.message;
     var n = msgEvent.data.num;
@@ -126,25 +126,8 @@ function executeTest() {
     gGen.next();
   });
 }
-if (isXOrigin) {
-  // Bug 1746646: Make mochitests work with TCP enabled (cookieBehavior = 5)
-  // Acquire storage access permission here so that the BroadcastChannel used to
-  // communicate with the opened windows works in xorigin tests. Otherwise,
-  // the iframe containing this page is isolated from first-party storage access,
-  // which isolates BroadcastChannel communication.
-  SpecialPowers.wrap(document).notifyUserGestureActivation();
-  SpecialPowers.addPermission("storageAccessAPI", true, window.location.href).then(() => {
-    SpecialPowers.wrap(document).requestStorageAccess().then(() => {
-      SpecialPowers.pushPrefEnv({
-        set: [["privacy.partition.always_partition_third_party_non_cookie_storage", false]],
-      }).then(() => {
-        executeTest();
-      });
-    });
-  });
-} else {
-  executeTest();
-}
+
+executeTest();
 
 
 </script>

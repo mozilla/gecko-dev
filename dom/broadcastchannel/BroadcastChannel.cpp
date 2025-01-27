@@ -140,6 +140,121 @@ JSObject* BroadcastChannel::WrapObject(JSContext* aCx,
 }
 
 /* static */
+already_AddRefed<BroadcastChannel>
+BroadcastChannel::UnpartitionedTestingChannel(const GlobalObject& aGlobal,
+                                              const nsAString& aChannel,
+                                              ErrorResult& aRv) {
+  // This function must not be used outside of automation.
+  if (!xpc::IsInAutomation()) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  if (NS_WARN_IF(!global)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsID portUUID = {};
+  aRv = nsID::GenerateUUIDInPlace(portUUID);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  RefPtr<BroadcastChannel> bc =
+      new BroadcastChannel(global, aChannel, portUUID);
+
+  nsCOMPtr<nsIPrincipal> unpartitionedPrincipal;
+
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(global);
+    if (NS_WARN_IF(!window)) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
+    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(global);
+    if (NS_WARN_IF(!sop)) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
+    // We are *intentionally* getting the unpartitioned principal here for
+    // testing purposes, but the correct thing to do normally is to get the
+    // storage key/principal. Passerby, do not imitate this code.
+    unpartitionedPrincipal = sop->GetPrincipal();
+    if (!unpartitionedPrincipal) {
+      aRv.Throw(NS_ERROR_UNEXPECTED);
+      return nullptr;
+    }
+  } else {
+    JSContext* cx = aGlobal.Context();
+
+    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
+    MOZ_ASSERT(workerPrivate);
+
+    RefPtr<StrongWorkerRef> workerRef = StrongWorkerRef::Create(
+        workerPrivate, "BroadcastChannel", [bc]() { bc->Shutdown(); });
+    // We are already shutting down the worker. Let's return a non-active
+    // object.
+    if (NS_WARN_IF(!workerRef)) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
+    // We are *intentionally* getting the unpartitioned principal here for
+    // testing purposes, but the correct thing to do normally is to get the
+    // storage key/principal. Passerby, do not imitate this code.
+    unpartitionedPrincipal = workerPrivate->GetPrincipal();
+
+    bc->mWorkerRef = workerRef;
+  }
+
+  // Register this component to PBackground.
+  PBackgroundChild* actorChild = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    // Firefox is probably shutting down. Let's return a 'generic' error.
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsAutoCString origin;
+  aRv = unpartitionedPrincipal->GetOrigin(origin);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  nsString originForEvents;
+  aRv = nsContentUtils::GetWebExposedOriginSerialization(unpartitionedPrincipal,
+                                                         originForEvents);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  PrincipalInfo unpartitionedPrincipalInfo;
+  aRv = PrincipalToPrincipalInfo(unpartitionedPrincipal,
+                                 &unpartitionedPrincipalInfo);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  PBroadcastChannelChild* actor = actorChild->SendPBroadcastChannelConstructor(
+      unpartitionedPrincipalInfo, origin, nsString(aChannel));
+  if (!actor) {
+    // The PBackground actor is shutting down, return a 'generic' error.
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  bc->mActor = static_cast<BroadcastChannelChild*>(actor);
+  bc->mActor->SetParent(bc);
+  bc->mOriginForEvents = std::move(originForEvents);
+
+  return bc.forget();
+}
+
+/* static */
 already_AddRefed<BroadcastChannel> BroadcastChannel::Constructor(
     const GlobalObject& aGlobal, const nsAString& aChannel, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());

@@ -43,6 +43,9 @@ class BroadcastChannel final : public DOMEventTargetHelper {
   static already_AddRefed<BroadcastChannel> Constructor(
       const GlobalObject& aGlobal, const nsAString& aChannel, ErrorResult& aRv);
 
+  static already_AddRefed<BroadcastChannel> UnpartitionedTestingChannel(
+      const GlobalObject& aGlobal, const nsAString& aChannel, ErrorResult& aRv);
+
   void GetName(nsAString& aName) const { aName = mChannel; }
 
   void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
