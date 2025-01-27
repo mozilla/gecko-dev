@@ -1331,22 +1331,6 @@ void Code::clearLinkData() const {
   }
 }
 
-bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
-  // This logic only works if the codeRange is a function, and therefore only
-  // exists in metadata and not a lazy stub tier. Generalizing to access lazy
-  // stubs would require taking a lock, which is undesirable for the profiler.
-  MOZ_ASSERT(codeRange->isFunction());
-  for (Tier t : completeTiers()) {
-    const CodeBlock& code = completeTierCodeBlock(t);
-    if (codeRange >= code.codeRanges.begin() &&
-        codeRange < code.codeRanges.end()) {
-      *tier = t;
-      return true;
-    }
-  }
-  return false;
-}
-
 // When enabled, generate profiling labels for every name in funcNames_ that is
 // the name of some Function CodeRange. This involves malloc() so do it now
 // since, once we start sampling, we'll be in a signal-handing context where we

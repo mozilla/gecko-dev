@@ -1117,6 +1117,7 @@ void wasm::GenerateJitEntryEpilogue(MacroAssembler& masm,
 ProfilingFrameIterator::ProfilingFrameIterator()
     : code_(nullptr),
       codeRange_(nullptr),
+      category_(Category::Other),
       callerFP_(nullptr),
       callerPC_(nullptr),
       stackAddress_(nullptr),
@@ -1128,6 +1129,7 @@ ProfilingFrameIterator::ProfilingFrameIterator()
 ProfilingFrameIterator::ProfilingFrameIterator(const JitActivation& activation)
     : code_(nullptr),
       codeRange_(nullptr),
+      category_(Category::Other),
       callerFP_(nullptr),
       callerPC_(nullptr),
       stackAddress_(nullptr),
@@ -1139,6 +1141,7 @@ ProfilingFrameIterator::ProfilingFrameIterator(const JitActivation& activation)
 ProfilingFrameIterator::ProfilingFrameIterator(const Frame* fp)
     : code_(nullptr),
       codeRange_(nullptr),
+      category_(Category::Other),
       callerFP_(nullptr),
       callerPC_(nullptr),
       stackAddress_(nullptr),
@@ -1180,7 +1183,16 @@ void ProfilingFrameIterator::initFromExitFP(const Frame* fp) {
   MOZ_ASSERT(fp);
   stackAddress_ = (void*)fp;
   endStackAddress_ = stackAddress_;
-  code_ = LookupCode(fp->returnAddress(), &codeRange_);
+  const CodeBlock* codeBlock =
+      LookupCodeBlock(fp->returnAddress(), &codeRange_);
+
+  if (!codeBlock) {
+    category_ = Category::Other;
+    code_ = nullptr;
+  } else {
+    code_ = codeBlock->code;
+    category_ = categoryFromCodeBlock(codeBlock->kind);
+  }
 
   if (!code_) {
     // This is a direct call from the JIT, the caller FP is pointing to the JIT
@@ -1632,6 +1644,7 @@ ProfilingFrameIterator::ProfilingFrameIterator(const JitActivation& activation,
                                                const RegisterState& state)
     : code_(nullptr),
       codeRange_(nullptr),
+      category_(Category::Other),
       callerFP_(nullptr),
       callerPC_(nullptr),
       stackAddress_(nullptr),
@@ -1667,6 +1680,12 @@ ProfilingFrameIterator::ProfilingFrameIterator(const JitActivation& activation,
   codeRange_ = unwindState.codeRange;
   stackAddress_ = state.sp;
   endStackAddress_ = state.sp;
+
+  // Initialize the category if it's not already done.
+  if (const CodeBlock* codeBlock = LookupCodeBlock(callerPC_)) {
+    category_ = categoryFromCodeBlock(codeBlock->kind);
+  }
+
   MOZ_ASSERT(!done());
 }
 
@@ -1675,6 +1694,11 @@ void ProfilingFrameIterator::operator++() {
   MOZ_ASSERT(!unwoundJitCallerFP_);
 
   if (!exitReason_.isNone()) {
+    if (const CodeBlock* codeBlock = LookupCodeBlock(callerPC_)) {
+      category_ = categoryFromCodeBlock(codeBlock->kind);
+    } else {
+      category_ = Category::Other;
+    }
     exitReason_ = ExitReason::None();
     MOZ_ASSERT(codeRange_);
     MOZ_ASSERT(!done());
@@ -1682,12 +1706,14 @@ void ProfilingFrameIterator::operator++() {
   }
 
   if (codeRange_->isInterpEntry()) {
+    category_ = Category::Other;
     codeRange_ = nullptr;
     MOZ_ASSERT(done());
     return;
   }
 
   if (codeRange_->isJitEntry()) {
+    category_ = Category::Other;
     MOZ_ASSERT(callerFP_);
     unwoundJitCallerFP_ = callerFP_;
     callerPC_ = nullptr;
@@ -1699,9 +1725,11 @@ void ProfilingFrameIterator::operator++() {
 
   MOZ_RELEASE_ASSERT(callerPC_);
 
-  code_ = LookupCode(callerPC_, &codeRange_);
+  const CodeBlock* codeBlock = LookupCodeBlock(callerPC_, &codeRange_);
+  code_ = codeBlock ? codeBlock->code : nullptr;
 
   if (!code_) {
+    category_ = Category::Other;
     // The parent frame is an inlined wasm call, callerFP_ points to the fake
     // exit frame.
     MOZ_ASSERT(!codeRange_);
@@ -1714,6 +1742,7 @@ void ProfilingFrameIterator::operator++() {
   MOZ_ASSERT(codeRange_);
 
   if (codeRange_->isInterpEntry()) {
+    category_ = Category::Other;
     callerPC_ = nullptr;
     callerFP_ = nullptr;
     MOZ_ASSERT(!done());
@@ -1721,6 +1750,7 @@ void ProfilingFrameIterator::operator++() {
   }
 
   if (codeRange_->isJitEntry()) {
+    category_ = Category::Other;
     MOZ_ASSERT(!done());
     return;
   }
@@ -1728,6 +1758,8 @@ void ProfilingFrameIterator::operator++() {
   MOZ_ASSERT(code_ == &GetNearestEffectiveInstance(
                            Frame::fromUntaggedWasmExitFP(callerFP_))
                            ->code());
+
+  category_ = categoryFromCodeBlock(codeBlock->kind);
 
   switch (codeRange_->kind()) {
     case CodeRange::Function:
@@ -2041,14 +2073,6 @@ const char* ProfilingFrameIterator::label() const {
 }
 
 ProfilingFrameIterator::Category ProfilingFrameIterator::category() const {
-  if (!exitReason_.isFixed() || !exitReason_.isNone() ||
-      !codeRange_->isFunction()) {
-    return Category::Other;
-  }
-
-  Tier tier;
-  if (!code_->lookupFunctionTier(codeRange_, &tier)) {
-    return Category::Other;
-  }
-  return tier == Tier::Optimized ? Category::Ion : Category::Baseline;
+  MOZ_ASSERT(!done());
+  return category_;
 }
