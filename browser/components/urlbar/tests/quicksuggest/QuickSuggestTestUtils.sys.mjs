@@ -832,6 +832,7 @@ class _QuickSuggestTestUtils {
         originalUrl,
         icon,
         displayUrl: url.replace(/^https:\/\//, ""),
+        isSponsored: false,
         shouldShowUrl: true,
         bottomTextL10n: { id: "firefox-suggest-addons-recommended" },
         helpUrl: lazy.QuickSuggest.HELP_URL,
@@ -869,6 +870,7 @@ class _QuickSuggestTestUtils {
         url: finalUrl.href,
         originalUrl: url,
         displayUrl: finalUrl.href.replace(/^https:\/\//, ""),
+        isSponsored: false,
         description,
         icon: "chrome://global/skin/icons/mdn.svg",
         shouldShowUrl: true,
@@ -928,6 +930,7 @@ class _QuickSuggestTestUtils {
         },
         source,
         provider,
+        isSponsored: true,
         telemetryType: "weather",
       },
     };

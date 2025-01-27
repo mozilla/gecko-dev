@@ -529,6 +529,7 @@ function makeExpectedResult({
       icon: isTopPick
         ? "chrome://global/skin/icons/pocket.svg"
         : "chrome://global/skin/icons/pocket-favicon.ico",
+      isSponsored: false,
       helpUrl: QuickSuggest.HELP_URL,
       shouldShowUrl: true,
       bottomTextL10n: {

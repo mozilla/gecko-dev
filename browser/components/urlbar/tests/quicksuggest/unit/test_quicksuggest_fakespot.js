@@ -857,6 +857,7 @@ function makeExpectedResult({
       totalReviews,
       fakespotGrade,
       fakespotProvider,
+      isSponsored: true,
       dynamicType: "fakespot",
       icon: null,
     },

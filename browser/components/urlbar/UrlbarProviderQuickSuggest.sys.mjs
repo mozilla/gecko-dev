@@ -135,16 +135,16 @@ class ProviderQuickSuggest extends UrlbarProvider {
         break;
       }
 
-      let canAdd = await this.#canAddSuggestion(suggestion);
+      let result = await this.#makeResult(queryContext, suggestion);
       if (instance != this.queryInstance) {
         return;
       }
-      if (canAdd) {
-        let result = await this.#makeResult(queryContext, suggestion);
+      if (result) {
+        let canAdd = await this.#canAddResult(result);
         if (instance != this.queryInstance) {
           return;
         }
-        if (result) {
+        if (canAdd) {
           addCallback(this, result);
           if (!result.isHiddenExposure) {
             remainingCount--;
@@ -163,8 +163,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
     for (let i = 0; i < suggestions.length; i++) {
       let suggestion = suggestions[i];
 
-      // Discard suggestions that don't have the required keys, which are used
-      // to look up their features. Normally this shouldn't ever happen.
+      // Discard the suggestion if it doesn't have the properties required to
+      // get the feature that manages it. Each backend should set these, so this
+      // should never happen.
       if (!requiredKeys.every(key => suggestion[key])) {
         this.logger.error("Suggestion is missing one or more required keys", {
           requiredKeys,
@@ -173,14 +174,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
         continue;
       }
 
-      // Set `is_sponsored` before continuing because
-      // `#getSuggestionTelemetryType()` and other things depend on it.
-      let feature = this.#getFeature(suggestion);
-      if (!suggestion.hasOwnProperty("is_sponsored")) {
-        suggestion.is_sponsored = !!feature?.isSuggestionSponsored(suggestion);
-      }
-
-      // Ensure all suggestions have scores.
+      // Ensure the suggestion has a score.
       //
       // Step 1: Set a default score if the suggestion doesn't have one.
       if (typeof suggestion.score != "number" || isNaN(suggestion.score)) {
@@ -206,6 +200,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
       }
 
       // Save some state used below to build the final list of suggestions.
+      // `feature` will be null if the suggestion isn't managed by one.
+      let feature = this.#getFeature(suggestion);
       let featureSuggestions = suggestionsByFeature.get(feature);
       if (!featureSuggestions) {
         featureSuggestions = [];
@@ -216,7 +212,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     }
 
     // Let each feature filter its suggestions.
-    suggestions = (
+    let filteredSuggestions = (
       await Promise.all(
         [...suggestionsByFeature].map(([feature, featureSuggestions]) =>
           feature
@@ -228,14 +224,14 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
     // Sort the suggestions. When scores are equal, sort by original index to
     // ensure a stable sort.
-    suggestions.sort((a, b) => {
+    filteredSuggestions.sort((a, b) => {
       return (
         b.score - a.score ||
         indexesBySuggestion.get(a) - indexesBySuggestion.get(b)
       );
     });
 
-    return suggestions;
+    return filteredSuggestions;
   }
 
   onImpression(state, queryContext, controller, resultsAndIndexes, details) {
@@ -370,35 +366,32 @@ class ProviderQuickSuggest extends UrlbarProvider {
   }
 
   async #makeResult(queryContext, suggestion) {
-    let result;
+    let result = null;
     let feature = this.#getFeature(suggestion);
     if (!feature) {
-      // We specifically allow Merino to serve suggestion types that Firefox
-      // doesn't know about so that we can experiment with new types without
-      // requiring changes in Firefox. No other source should return unknown
-      // suggestion types with the possible exception of the ML backend: Its
-      // models are stored in remote settings and it may return newer intents
-      // that aren't recognized by older Firefoxes.
-      if (suggestion.source != "merino") {
-        return null;
-      }
-      result = this.#makeDefaultResult(queryContext, suggestion);
-    } else {
+      result = this.#makeUnmanagedResult(queryContext, suggestion);
+    } else if (feature.isEnabled) {
       result = await feature.makeResult(
         queryContext,
         suggestion,
         this._trimmedSearchString
       );
-      if (!result) {
-        // Feature might return null, if the feature is disabled and so on.
-        return null;
-      }
     }
 
-    // See `#getFeature()` for possible values of `source` and `provider`.
+    if (!result) {
+      return null;
+    }
+
+    // Set important properties that every Suggest result should have. See
+    // `#getFeature()` for possible values of `source` and `provider`. If the
+    // suggestion isn't managed by a feature, then it's from Merino and has
+    // `is_sponsored` set if it's sponsored. (Merino uses snake_case.)
     result.payload.source = suggestion.source;
     result.payload.provider = suggestion.provider;
     result.payload.telemetryType = this.#getSuggestionTelemetryType(suggestion);
+    result.payload.isSponsored = feature
+      ? feature.isSuggestionSponsored(suggestion)
+      : !!suggestion.is_sponsored;
 
     // Handle icons here so each feature doesn't have to do it, but use `||=` to
     // let them do it if they need to.
@@ -420,7 +413,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.suggestedIndex = suggestion.position;
       } else {
         result.isSuggestedIndexRelativeToGroup = true;
-        if (!suggestion.is_sponsored) {
+        if (!result.payload.isSponsored) {
           result.suggestedIndex = lazy.UrlbarPrefs.get(
             "quickSuggestNonSponsoredIndex"
           );
@@ -431,11 +424,12 @@ class ProviderQuickSuggest extends UrlbarProvider {
             queryContext.isPrivate
           ).supportsResponseType(lazy.SearchUtils.URL_TYPE.SUGGEST_JSON)
         ) {
-          // Show sponsored suggestions somewhere other than the bottom of the
-          // Suggest section only if search suggestions are shown first, the
-          // search suggestions provider is active for the current context (it
-          // will not be active if search suggestions are disabled, among other
-          // reasons), and the default engine supports suggestions.
+          // Allow sponsored suggestions to be shown somewhere other than the
+          // bottom of the Suggest section (-1, the `else` branch below) only if
+          // search suggestions are shown first, the search suggestions provider
+          // is active for the current context (it will not be active if search
+          // suggestions are disabled, among other reasons), and the default
+          // engine supports suggestions.
           result.suggestedIndex = lazy.UrlbarPrefs.get(
             "quickSuggestSponsoredIndex"
           );
@@ -448,10 +442,32 @@ class ProviderQuickSuggest extends UrlbarProvider {
     return result;
   }
 
-  #makeDefaultResult(queryContext, suggestion) {
+  /**
+   * Returns a new result for an unmanaged suggestion. An "unmanaged" suggestion
+   * is a suggestion without a feature.
+   *
+   * Merino is the only backend allowed to serve unmanaged suggestions, for a
+   * couple of reasons: (1) Some suggestion types aren't that complicated and
+   * can be handled in a default manner, for example dynamic Wikipedia
+   * suggestions. (2) It allows us to experiment with new suggestion types
+   * without requiring any changes to Firefox.
+   *
+   * @param {UrlbarQueryContext} queryContext
+   *   The query context.
+   * @param {object} suggestion
+   *   The suggestion.
+   * @returns {UrlbarResult|null}
+   *   A new result for the suggestion or null if the suggestion is not from
+   *   Merino.
+   */
+  #makeUnmanagedResult(queryContext, suggestion) {
+    if (suggestion.source != "merino") {
+      return null;
+    }
+
+    // Note that Merino uses snake_case keys.
     let payload = {
       url: suggestion.url,
-      isSponsored: suggestion.is_sponsored,
       isBlockable: true,
       blockL10n: {
         id: "urlbar-result-menu-dismiss-firefox-suggest",
@@ -554,62 +570,49 @@ class ProviderQuickSuggest extends UrlbarProvider {
   }
 
   /**
-   * Returns whether a given suggestion can be added for a query, assuming the
+   * Returns whether a given result can be added for a query, assuming the
    * provider itself should be active.
    *
-   * @param {object} suggestion
-   *   The suggestion to check.
+   * @param {UrlbarResult} result
+   *   The result to check.
    * @returns {boolean}
-   *   Whether the suggestion can be added.
+   *   Whether the result can be added.
    */
-  async #canAddSuggestion(suggestion) {
-    this.logger.debug("Checking if suggestion can be added", suggestion);
-
-    // Return false if suggestions are disabled. Always allow Rust exposure
-    // suggestions.
+  async #canAddResult(result) {
+    // Discard the result if it's not managed by a feature and its sponsored
+    // state isn't allowed.
+    //
+    // This isn't necessary when the result is managed because in that case: If
+    // its feature is disabled, we didn't create a result in the first place; if
+    // its feature is enabled, we delegate responsibility to it for either
+    // creating or not creating its results.
+    //
+    // Also note that it's possible for suggestion types to be considered
+    // neither sponsored nor nonsponsored. In other words, the decision to add
+    // them or not does not depend on the prefs in this conditional. Such types
+    // should always be managed. Exposure suggestions are an example.
+    let feature = this.#getFeatureByResult(result);
     if (
-      ((suggestion.is_sponsored &&
+      !feature &&
+      ((result.payload.isSponsored &&
         !lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored")) ||
-        (!suggestion.is_sponsored &&
-          !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored"))) &&
-      (suggestion.source != "rust" || suggestion.provider != "Exposure")
+        (!result.payload.isSponsored &&
+          !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")))
     ) {
-      this.logger.debug("Suggestions disabled, not adding suggestion");
       return false;
     }
 
-    // Return false if an impression cap has been hit.
-    if (
-      (suggestion.is_sponsored &&
-        lazy.UrlbarPrefs.get("quickSuggestImpressionCapsSponsoredEnabled")) ||
-      (!suggestion.is_sponsored &&
-        lazy.UrlbarPrefs.get("quickSuggestImpressionCapsNonSponsoredEnabled"))
-    ) {
-      let type = suggestion.is_sponsored ? "sponsored" : "nonsponsored";
-      let hitStats = lazy.QuickSuggest.impressionCaps.getHitStats(type);
-      if (hitStats) {
-        this.logger.debug("Impression cap(s) hit, not adding suggestion", {
-          type,
-          hitStats,
-        });
-        return false;
-      }
-    }
-
-    // Return false if the suggestion is blocked based on its URL. Suggestions
-    // from the JS backend define a single `url` property. Suggestions from the
-    // Rust backend are more complicated: Sponsored suggestions define `rawUrl`,
-    // which may contain timestamp templates, while non-sponsored suggestions
-    // define only `url`. Blocking should always be based on URLs with timestamp
-    // templates, where applicable, so check `rawUrl` and then `url`, in that
-    // order.
-    let { blockedSuggestions } = lazy.QuickSuggest;
-    if (await blockedSuggestions.has(suggestion.rawUrl ?? suggestion.url)) {
+    // Discard the result if its URL is blocked. For some Suggest results, `url`
+    // is a value that is modified at query time and that is potentially unique
+    // per query. For example, it might contain timestamps or query-related
+    // search params. Those results will also have an `originalUrl` that is the
+    // unmodified URL, and it should be used for blocking purposes.
+    let url = result.payload.originalUrl || result.payload.url;
+    if (await lazy.QuickSuggest.blockedSuggestions.has(url)) {
       this.logger.debug("Suggestion blocked, not adding suggestion");
       return false;
     }
 
-    this.logger.debug("Suggestion can be added");
     return true;
   }
 

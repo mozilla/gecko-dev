@@ -1128,6 +1128,7 @@ function makeExpectedResult({
       title,
       displayUrl,
       icon: null,
+      isSponsored: true,
     },
   };
 }

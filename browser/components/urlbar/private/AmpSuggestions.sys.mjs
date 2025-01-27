@@ -102,7 +102,6 @@ export class AmpSuggestions extends SuggestProvider {
       suggestion = {
         title: suggestion.title,
         url: suggestion.url,
-        is_sponsored: suggestion.is_sponsored,
         fullKeyword: suggestion.full_keyword,
         impressionUrl: suggestion.impression_url,
         clickUrl: suggestion.click_url,
@@ -117,7 +116,6 @@ export class AmpSuggestions extends SuggestProvider {
       originalUrl,
       url: suggestion.url,
       title: suggestion.title,
-      isSponsored: suggestion.is_sponsored,
       requestId: suggestion.requestId,
       urlTimestampIndex: suggestion.urlTimestampIndex,
       sponsoredImpressionUrl: suggestion.impressionUrl,

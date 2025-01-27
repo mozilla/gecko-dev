@@ -480,6 +480,7 @@ function makeExpectedResult(exposureSuggestionType) {
       dynamicType: "exposure",
       provider: "Exposure",
       telemetryType: "exposure",
+      isSponsored: false,
     },
   };
 }

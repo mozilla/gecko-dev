@@ -46,7 +46,6 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
           suggestion.fullKeyword,
           lazy.UrlbarUtils.HIGHLIGHT.SUGGESTED,
         ],
-        isSponsored: suggestion.is_sponsored,
         sponsoredAdvertiser: "Wikipedia",
         sponsoredIabCategory: "5 - Education",
         isBlockable: true,
