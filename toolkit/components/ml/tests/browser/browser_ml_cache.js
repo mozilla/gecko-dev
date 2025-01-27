@@ -13,6 +13,10 @@ const {
   removeFromOPFS,
 } = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
+const { URLChecker } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/Utils.sys.mjs"
+);
+
 // Root URL of the fake hub, see the `data` dir in the tests.
 const FAKE_HUB =
   "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data";
@@ -1551,4 +1555,79 @@ add_task(async function test_DeleteFileByEngines() {
     "The data for the deleted model should not exist."
   );
   await deleteCache(cache);
+});
+
+// tests allow deny list updating after model is cached
+add_task(async function test_update_allow_deny_after_model_cache() {
+  const cache = await initializeCache();
+  const file = "random_file.txt";
+  const taskName = FAKE_MODEL_ARGS.taskName;
+  const model = FAKE_MODEL_ARGS.model;
+  const revision = "v0.1";
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file,
+    data: createBlob(),
+    headers: null,
+  });
+
+  let exists = await cache.fileExists({
+    model,
+    revision,
+    file,
+  });
+  Assert.ok(exists, "The file should exist in the cache.");
+
+  let list = [
+    {
+      filter: "ALLOW",
+      urlPrefix:
+        "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/acme",
+    },
+  ];
+
+  let hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: FAKE_URL_TEMPLATE,
+    allowDenyList: list,
+  });
+  hub.cache = cache;
+  // should go through since model is allowed
+  await hub.getModelFileAsArrayBuffer({ ...FAKE_MODEL_ARGS, file, revision });
+
+  // put model in deny list
+  list = [
+    {
+      filter: "DENY",
+      urlPrefix:
+        "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/acme",
+    },
+  ];
+
+  hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: FAKE_URL_TEMPLATE,
+    allowDenyList: list,
+  });
+  hub.cache = cache;
+
+  // now ensure the model cannot be called after being put in the deny list
+  try {
+    await hub.getModelFileAsArrayBuffer({ ...FAKE_MODEL_ARGS, file, revision });
+  } catch (e) {
+    Assert.ok(e.name === "ForbiddenURLError");
+  }
+  // make sure that the model is deleted after
+  const dataAfterForbidden = await cache.getFile({
+    model,
+    revision,
+    file,
+  });
+  Assert.equal(
+    dataAfterForbidden,
+    null,
+    "The data for the deleted model should not exist."
+  );
 });

@@ -1488,6 +1488,12 @@ export class ModelHub {
     });
 
     if (useCached) {
+      // ensure that cached model is still in the allow list
+      const result = this.allowDenyList && this.allowDenyList.allowedURL(url);
+      if (result && !result.allowed) {
+        await this.cache.deleteModels({ model, revision });
+        throw new ForbiddenURLError(url, result.rejectionType);
+      }
       lazy.console.debug(`Cache Hit for ${url}`);
       progressCallback?.(
         new lazy.Progress.ProgressAndStatusCallbackParams({
