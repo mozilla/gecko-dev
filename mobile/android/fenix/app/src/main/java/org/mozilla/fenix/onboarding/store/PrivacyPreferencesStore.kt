@@ -60,6 +60,16 @@ sealed class PrivacyPreferencesAction : Action {
      * @property checked Flag to indicate whether the option is checked.
      */
     data class UsageDataUserChecked(val checked: Boolean) : PrivacyPreferencesAction()
+
+    /**
+     * [PrivacyPreferencesAction] indicates the crash reporting option "learn more" link was used.
+     */
+    data object CrashReportingLearnMore : PrivacyPreferencesAction()
+
+    /**
+     * [PrivacyPreferencesAction] indicates the usage data option "learn more" link was used.
+     */
+    data object UsageDataUserLearnMore : PrivacyPreferencesAction()
 }
 
 /**
@@ -71,7 +81,10 @@ internal object PrivacyPreferencesReducer {
         action: PrivacyPreferencesAction,
     ): PrivacyPreferencesState {
         return when (action) {
-            is PrivacyPreferencesAction.Init -> state
+            is PrivacyPreferencesAction.Init,
+            is PrivacyPreferencesAction.CrashReportingLearnMore,
+            is PrivacyPreferencesAction.UsageDataUserLearnMore,
+            -> state
 
             is PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo ->
                 state.copy(

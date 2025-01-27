@@ -120,4 +120,20 @@ class PrivacyPreferencesMiddlewareTest {
 
         verifyNoInteractions(repository)
     }
+
+    @Test
+    fun `GIVEN usage data learn more called WHEN middleware is invoked THEN the repo is unchanged`() {
+        val action = PrivacyPreferencesAction.UsageDataUserLearnMore
+        middleware.invoke(context, {}, action)
+
+        verifyNoInteractions(repository)
+    }
+
+    @Test
+    fun `GIVEN crash reporting learn more called WHEN middleware is invoked THEN the repo is unchanged`() {
+        val action = PrivacyPreferencesAction.CrashReportingLearnMore
+        middleware.invoke(context, {}, action)
+
+        verifyNoInteractions(repository)
+    }
 }

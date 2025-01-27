@@ -13,6 +13,7 @@ import androidx.fragment.app.DialogFragment
 import org.mozilla.fenix.components.lazyStore
 import org.mozilla.fenix.onboarding.ManagePrivacyPreferencesDialog
 import org.mozilla.fenix.onboarding.store.DefaultPrivacyPreferencesRepository
+import org.mozilla.fenix.onboarding.store.PrivacyPreferencesAction
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesMiddleware
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesStore
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesTelemetryMiddleware
@@ -53,9 +54,11 @@ class ManagePrivacyPreferencesDialogFragment : DialogFragment() {
                     store = store,
                     onDismissRequest = { dismiss() },
                     onCrashReportingLinkClick = {
+                        store.dispatch(PrivacyPreferencesAction.CrashReportingLearnMore)
                         launchSandboxCustomTab(requireContext(), crashReportingUrl)
                     },
                     onUsageDataLinkClick = {
+                        store.dispatch(PrivacyPreferencesAction.UsageDataUserLearnMore)
                         launchSandboxCustomTab(requireContext(), usageDataUrl)
                     },
                 )

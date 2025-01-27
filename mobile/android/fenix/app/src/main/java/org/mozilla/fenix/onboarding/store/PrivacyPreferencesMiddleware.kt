@@ -60,7 +60,11 @@ class PrivacyPreferencesMiddleware(
             }
 
             // no-ops
-            is PrivacyPreferencesAction.CrashReportingChecked, is PrivacyPreferencesAction.UsageDataUserChecked -> {}
+            is PrivacyPreferencesAction.CrashReportingChecked,
+            is PrivacyPreferencesAction.UsageDataUserChecked,
+            is PrivacyPreferencesAction.CrashReportingLearnMore,
+            is PrivacyPreferencesAction.UsageDataUserLearnMore,
+            -> {}
         }
     }
 

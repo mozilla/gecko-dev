@@ -41,6 +41,12 @@ class PrivacyPreferencesTelemetryMiddleware :
                     Onboarding.PrivacyPreferencesModalUsageDataCheckedExtra(action.checked),
                 )
 
+            is PrivacyPreferencesAction.CrashReportingLearnMore ->
+                Onboarding.privacyPreferencesModalCrashReportingLearnMore.record()
+
+            is PrivacyPreferencesAction.UsageDataUserLearnMore ->
+                Onboarding.privacyPreferencesModalUsageDataLearnMore.record()
+
             // no-ops
             is PrivacyPreferencesAction.Init -> {}
         }
