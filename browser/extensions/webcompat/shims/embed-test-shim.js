@@ -2,9 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/* globals browser */
+
 if (!window.smartblockTestShimInitialized) {
   // Guard against this script running multiple times
   window.smartblockTestShimInitialized = Object.freeze(true);
+
+  const SHIM_ID = "EmbedTestShim";
 
   // Original URL of the test embed script.
   const ORIGINAL_URL =
@@ -19,44 +23,17 @@ if (!window.smartblockTestShimInitialized) {
   let embedPlaceholders = [];
 
   // Bug 1925582: this should be a common snippet for use in multiple shims.
-  const sendMessageToAddon = (function () {
-    const shimId = "EmbedTestShim";
-    const pendingMessages = new Map();
-    const channel = new MessageChannel();
-    channel.port1.onerror = console.error;
-    channel.port1.onmessage = event => {
-      const { messageId, response, message } = event.data;
-      const resolve = pendingMessages.get(messageId);
-      if (resolve) {
-        // message is a response to a previous message
-        pendingMessages.delete(messageId);
-        resolve(response);
-      } else {
-        addonMessageHandler(message);
-      }
-    };
-    function reconnect() {
-      const detail = {
-        pendingMessages: [...pendingMessages.values()],
-        port: channel.port2,
-        shimId,
-      };
-      window.dispatchEvent(new CustomEvent("ShimConnects", { detail }));
-    }
-    window.addEventListener("ShimHelperReady", reconnect);
-    reconnect();
-    return function (message) {
-      const messageId = crypto.randomUUID();
-      return new Promise(resolve => {
-        const payload = { message, messageId, shimId };
-        pendingMessages.set(messageId, resolve);
-        channel.port1.postMessage(payload);
-      });
-    };
-  })();
+  function sendMessageToAddon(message) {
+    return browser.runtime.sendMessage({ message, shimId: SHIM_ID });
+  }
 
   function addonMessageHandler(message) {
-    let { topic, data } = message;
+    let { topic, data, shimId } = message;
+    // Only react to messages which are targeting this shim.
+    if (shimId != SHIM_ID) {
+      return;
+    }
+
     if (topic === "smartblock:unblock-embed") {
       if (data != window.location.hostname) {
         // host name does not match the original hostname, user must have navigated
@@ -67,6 +44,10 @@ if (!window.smartblockTestShimInitialized) {
       embedPlaceholders.forEach((p, idx) => {
         p.replaceWith(originalEmbedContainers[idx]);
       });
+
+      // Create the script element in the privilege scope of the website to
+      // ensure the tracker script doesn't gain extension privileges.
+      let document = window.document.wrappedJSObject;
 
       // recreate scripts
       let scriptElement = document.createElement("script");
@@ -83,74 +64,74 @@ if (!window.smartblockTestShimInitialized) {
       // this string has to be defined within this function to avoid linting errors
       // see: https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/259
       const SMARTBLOCK_PLACEHOLDER_HTML_STRING = `
-        <style>
-          #smartblock-placeholder-wrapper {
-            min-height: 225px;
-            width: 400px;
-            padding: 32px 24px;
-  
-            display: block;
-            align-content: center;
-            text-align: center;
-  
-            background-color: light-dark(rgb(255, 255, 255), rgb(28, 27, 34));
-            color: light-dark(rgb(43, 42, 51), rgb(251, 251, 254));
-  
-            border-radius: 8px;
-            border: 2px dashed #0250bb;
-  
-            font-size: 14px;
-            line-height: 1.2;
-            font-family: system-ui;
-          }
-  
-          #smartblock-placeholder-button {
-            min-height: 32px;
-            padding: 8px 14px;
-  
-            border-radius: 4px;
-            font-weight: 600;
-            border: 0;
-  
-            /* Colours match light/dark theme from
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
-            background-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
-            color: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
-          }
-  
-          #smartblock-placeholder-button:hover {
-            /* Colours match light/dark theme from
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
-            background-color: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
-          }
-  
-          #smartblock-placeholder-button:hover:active {
-            /* Colours match light/dark theme from
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
-              https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
-            background-color: light-dark(rgb(5, 62, 148), rgb(170, 242, 255));
-          }
-  
-          #smartblock-placeholder-title {
-            margin-block: 14px;
-            font-size: 16px;
-            font-weight: bold;
-          }
-  
-          #smartblock-placeholder-desc {
-            margin-block: 14px;
-          }
-        </style>
-        <div id="smartblock-placeholder-wrapper">
-          <img id="smartblock-placeholder-image" width="24" height="24" />
-          <p id="smartblock-placeholder-title"></p>
-          <p id="smartblock-placeholder-desc"></p>
-          <button id="smartblock-placeholder-button"></button>
-        </div>`;
+      <style>
+        #smartblock-placeholder-wrapper {
+          min-height: 225px;
+          width: 400px;
+          padding: 32px 24px;
 
-      // Create the placeholer inside a shadow dom
+          display: block;
+          align-content: center;
+          text-align: center;
+
+          background-color: light-dark(rgb(255, 255, 255), rgb(28, 27, 34));
+          color: light-dark(rgb(43, 42, 51), rgb(251, 251, 254));
+
+          border-radius: 8px;
+          border: 2px dashed #0250bb;
+
+          font-size: 14px;
+          line-height: 1.2;
+          font-family: system-ui;
+        }
+
+        #smartblock-placeholder-button {
+          min-height: 32px;
+          padding: 8px 14px;
+
+          border-radius: 4px;
+          font-weight: 600;
+          border: 0;
+
+          /* Colours match light/dark theme from
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
+          background-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
+          color: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
+        }
+
+        #smartblock-placeholder-button:hover {
+          /* Colours match light/dark theme from
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
+          background-color: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
+        }
+
+        #smartblock-placeholder-button:hover:active {
+          /* Colours match light/dark theme from
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
+            https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
+          background-color: light-dark(rgb(5, 62, 148), rgb(170, 242, 255));
+        }
+
+        #smartblock-placeholder-title {
+          margin-block: 14px;
+          font-size: 16px;
+          font-weight: bold;
+        }
+
+        #smartblock-placeholder-desc {
+          margin-block: 14px;
+        }
+      </style>
+      <div id="smartblock-placeholder-wrapper">
+        <img id="smartblock-placeholder-image" width="24" height="24" />
+        <p id="smartblock-placeholder-title"></p>
+        <p id="smartblock-placeholder-desc"></p>
+        <button id="smartblock-placeholder-button"></button>
+      </div>`;
+
+      // Create the placeholder inside a shadow dom
       const placeholderDiv = document.createElement("div");
       embedPlaceholders.push(placeholderDiv);
 
@@ -171,8 +152,11 @@ if (!window.smartblockTestShimInitialized) {
       // Wait for user to opt-in.
       shadowRoot
         .getElementById("smartblock-placeholder-button")
-        .addEventListener("click", () => {
-          // Send a message to the addon to allow loading Instagram tracking resources
+        .addEventListener("click", ({ isTrusted }) => {
+          if (!isTrusted) {
+            return;
+          }
+          // Send a message to the addon to allow loading TikTok tracking resources
           // needed by the embed.
           sendMessageToAddon("embedClicked");
         });
@@ -189,6 +173,11 @@ if (!window.smartblockTestShimInitialized) {
     });
     window.dispatchEvent(finishedEvent);
   }
+
+  // Listen for messages from the background script.
+  browser.runtime.onMessage.addListener(request => {
+    addonMessageHandler(request);
+  });
 
   createShimPlaceholders();
 }

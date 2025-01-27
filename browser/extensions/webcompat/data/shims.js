@@ -109,10 +109,14 @@ const AVAILABLE_SHIMS = [
     platform: "desktop",
     name: "Test shim for smartblock embed unblocking",
     bug: "1892175",
-    file: "embed-test-shim.js",
+    runFirst: "embed-test-shim.js",
+    // Blank stub file just so we run the script above when the matched script
+    // files get blocked.
+    file: "empty-script.js",
     matches: [
       "https://itisatracker.org/browser/browser/extensions/webcompat/tests/browser/embed_test.js",
     ],
+    // Use instagram logo as an example
     logos: ["instagram.svg"],
     needsShimHelpers: [
       "embedClicked",
