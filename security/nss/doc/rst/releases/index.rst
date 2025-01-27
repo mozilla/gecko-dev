@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_101_3.rst
    nss_3_107.rst
    nss_3_106.rst
    nss_3_105.rst
@@ -80,10 +81,10 @@ Releases
 .. note::
 
    **NSS 3.107** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_106_release_notes`
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_107_release_notes`
 
-   **NSS 3.101.2 (ESR)** is the latest ESR version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_1_release_notes`
+   **NSS 3.101.3 (ESR)** is the latest ESR version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_3_release_notes`
 
 .. container::
 
