@@ -355,17 +355,13 @@ export class MigratorBase {
       for (let resourceType of Object.keys(
         lazy.MigrationUtils._importQuantities
       )) {
-        let histogramId =
-          "FX_MIGRATION_" + resourceType.toUpperCase() + "_QUANTITY";
+        let metricName = resourceType + "Quantity";
         try {
-          Services.telemetry
-            .getKeyedHistogramById(histogramId)
-            .add(
-              browserKey,
-              lazy.MigrationUtils._importQuantities[resourceType]
-            );
+          Glean.browserMigration[metricName][browserKey].accumulateSingleSample(
+            lazy.MigrationUtils._importQuantities[resourceType]
+          );
         } catch (ex) {
-          console.error(histogramId, ": ", ex);
+          console.error(metricName, ": ", ex);
         }
       }
     };

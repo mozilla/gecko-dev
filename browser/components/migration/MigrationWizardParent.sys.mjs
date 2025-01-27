@@ -339,9 +339,9 @@ export class MigrationWizardParent extends JSWindowActorParent {
    *   updated.
    */
   async #doBrowserMigration(migrationDetails, extraArgs) {
-    Services.telemetry
-      .getHistogramById("FX_MIGRATION_SOURCE_BROWSER")
-      .add(MigrationUtils.getSourceIdForTelemetry(migrationDetails.key));
+    Glean.browserMigration.sourceBrowser.accumulateSingleSample(
+      MigrationUtils.getSourceIdForTelemetry(migrationDetails.key)
+    );
 
     let migrator = await MigrationUtils.getMigrator(migrationDetails.key);
     let availableResourceTypes = await migrator.getMigrateData(
@@ -349,8 +349,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
     );
     let resourceTypesToMigrate = 0;
     let progress = {};
-    let migrationUsageHist =
-      Services.telemetry.getKeyedHistogramById("FX_MIGRATION_USAGE");
+    let gleanMigrationUsage = Glean.browserMigration.usage;
 
     for (let resourceTypeName of migrationDetails.resourceTypes) {
       let resourceType = MigrationUtils.resourceTypes[resourceTypeName];
@@ -362,7 +361,9 @@ export class MigrationWizardParent extends JSWindowActorParent {
         };
 
         if (!migrationDetails.autoMigration) {
-          migrationUsageHist.add(migrationDetails.key, Math.log2(resourceType));
+          gleanMigrationUsage[migrationDetails.key].accumulateSingleSample(
+            Math.log2(resourceType)
+          );
         }
       }
     }
@@ -455,9 +456,9 @@ export class MigrationWizardParent extends JSWindowActorParent {
             );
           } else {
             if (!success) {
-              Services.telemetry
-                .getKeyedHistogramById("FX_MIGRATION_ERRORS")
-                .add(migrationDetails.key, Math.log2(resourceTypeNum));
+              Glean.browserMigration.errors[
+                migrationDetails.key
+              ].accumulateSingleSample(Math.log2(resourceTypeNum));
             }
             if (
               foundResourceTypeName ==

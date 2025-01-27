@@ -608,9 +608,7 @@ class MigrationUtils {
     );
 
     let entrypoint = aOptions.entrypoint || this.MIGRATION_ENTRYPOINTS.UNKNOWN;
-    Services.telemetry
-      .getHistogramById("FX_MIGRATION_ENTRY_POINT_CATEGORICAL")
-      .add(entrypoint);
+    Glean.browserMigration.entryPointCategorical[entrypoint].add(1);
 
     let openStandaloneWindow = blocking => {
       let features = "dialog,centerscreen,resizable=no";

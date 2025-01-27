@@ -340,6 +340,248 @@ browser.migration:
         type: quantity
     telemetry_mirror: BrowserMigration_MigrationFinished_Wizard
 
+  entry_point_categorical:
+    type: labeled_counter
+    description: >
+      Where the migration wizard was entered from.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram FX_MIGRATION_ENTRY_POINT_CATEGORICAL.
+    labels:
+      - unknown
+      - firstrun
+      - fxrefresh
+      - places
+      - passwords
+      - newtab
+      - file_menu
+      - help_menu
+      - bookmarks_toolbar
+      - preferences
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822692
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822692
+    notification_emails:
+      - mconley@mozilla.com
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_MIGRATION_ENTRY_POINT_CATEGORICAL
+
+  source_browser:
+    type: custom_distribution
+    description: >
+      The browser that data is pulled from. The values correspond to the
+      internal browser ID (see MigrationUtils.sys.mjs)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_MIGRATION_SOURCE_BROWSER.
+    range_min: 0
+    range_max: 15
+    bucket_count: 16
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1523179
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1523179
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_SOURCE_BROWSER
+
+  errors:
+    type: labeled_custom_distribution
+    description: >
+      Errors encountered during migration in buckets defined by the datatype,
+      keyed by the string description of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_MIGRATION_ERRORS.
+    range_min: 0
+    range_max: 12
+    bucket_count: 13
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_ERRORS
+
+  usage:
+    type: labeled_custom_distribution
+    description: >
+      Usage of migration for each datatype when migration is run through the
+      post-firstrun flow which allows individual datatypes, keyed by the string
+      description of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_MIGRATION_USAGE.
+    range_min: 0
+    range_max: 12
+    bucket_count: 13
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731025
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_USAGE
+
+  bookmarks_quantity:
+    type: labeled_custom_distribution
+    description: >
+      How many bookmarks we imported from another browser, keyed by the name of
+      the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_MIGRATION_BOOKMARKS_QUANTITY.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 20
+    histogram_type: exponential
+    unit: bookmarks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_BOOKMARKS_QUANTITY
+
+  history_quantity:
+    type: labeled_custom_distribution
+    description: >
+      How many history visits we imported from another browser, keyed by the
+      name of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_MIGRATION_HISTORY_QUANTITY.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 40
+    histogram_type: exponential
+    unit: history visits
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_HISTORY_QUANTITY
+
+  logins_quantity:
+    type: labeled_custom_distribution
+    description: >
+      How many logins (passwords) we imported from another browser, keyed by the
+      name of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_MIGRATION_LOGINS_QUANTITY.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 20
+    histogram_type: exponential
+    unit: passwords
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1279501
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584261
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643431
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678204
+    notification_emails:
+      - gijs@mozilla.com
+      - mak@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    telemetry_mirror: FX_MIGRATION_LOGINS_QUANTITY
+
+  cards_quantity:
+    type: labeled_custom_distribution
+    description: >
+      How many credit card entries we imported from another browser, keyed by
+      the name of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_MIGRATION_CARDS_QUANTITY.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 20
+    histogram_type: exponential
+    unit: credit card entries
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1834545
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1834545
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_CARDS_QUANTITY
+
+  extensions_quantity:
+    type: labeled_custom_distribution
+    description: >
+      How many extensions were matched to be imported from another browser,
+      keyed by the name of the browser.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_MIGRATION_EXTENSIONS_QUANTITY.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 20
+    histogram_type: exponential
+    unit: extensions
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1834545
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1834545
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_MIGRATION_EXTENSIONS_QUANTITY
+
 migration:
   uninstaller_profile_refresh:
     type: boolean
