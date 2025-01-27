@@ -30,8 +30,8 @@ login-form {
   padding-inline-start: var(--space-small);
   cursor: text;
   border-radius: var(--border-radius-small);
-  border: 1px solid var(--in-content-border-color);
-  box-sizing: border-box;
+  border: 1px solid var(--border-color-interactive);
+  background-color: var(--background-color-box);
   display: flex;
 
   &:focus-within {
@@ -46,14 +46,14 @@ login-form {
   -moz-context-properties: fill;
   fill: currentColor;
   width: var(--icon-size-default);
-  margin-inline-end: var(--space-xsmall);
   flex-shrink: 0;
 }
 
 .search {
   border: none;
-  background-color: transparent;
   outline: none;
+  margin-inline-start: var(--space-xsmall);
+  background: transparent;
   width: 100%;
 }
 
