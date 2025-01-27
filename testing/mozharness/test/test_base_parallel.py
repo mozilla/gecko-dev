@@ -1,5 +1,6 @@
 import unittest
 
+import mozunit
 from mozharness.base.parallel import ChunkingMixin
 
 
@@ -26,3 +27,7 @@ class TestChunkingMixin(unittest.TestCase):
         self.assertEqual(self.c.query_chunked_list(thing, 1, 3), [1, 3, 6])
         self.assertEqual(self.c.query_chunked_list(thing, 2, 3), [4, 3])
         self.assertEqual(self.c.query_chunked_list(thing, 3, 3), [2, 6])
+
+
+if __name__ == "__main__":
+    mozunit.main()
