@@ -10748,7 +10748,7 @@ function SectionsMgmtPanel({
       className: following ? "section-follow following" : "section-follow"
     }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: () => following ? onUnfollowClick(sectionKey, receivedRank) : onFollowClick(sectionKey, receivedRank),
-      type: following ? "destructive" : "default",
+      type: "default",
       index: receivedRank,
       section: sectionKey,
       id: `follow-topic-${sectionKey}`

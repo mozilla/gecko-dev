@@ -398,13 +398,12 @@
 
   // Typography
   h3 {
+    font-size: inherit;
     margin-block: 0 var(--space-small);
   }
 
   // List
   .topic-list {
-    @include wallpaper-contrast-fix;
-
     list-style: none;
     display: flex;
     flex-direction: column;
@@ -416,6 +415,7 @@
     li {
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
   }
 
@@ -453,8 +453,6 @@
   // Follow / Unfollow and Block / Unblock Buttons
   .section-block,
   .section-follow {
-    cursor: pointer;
-
     .section-button-blocked-text,
     .section-button-following-text {
       display: none;

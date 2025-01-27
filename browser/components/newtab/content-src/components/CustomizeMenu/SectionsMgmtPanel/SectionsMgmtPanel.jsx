@@ -209,7 +209,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
                   ? onUnfollowClick(sectionKey, receivedRank)
                   : onFollowClick(sectionKey, receivedRank)
               }
-              type={following ? "destructive" : "default"}
+              type={"default"}
               index={receivedRank}
               section={sectionKey}
               id={`follow-topic-${sectionKey}`}
