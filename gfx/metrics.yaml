@@ -1041,3 +1041,255 @@ gfx.hdr:
     telemetry_mirror: GFX_HDR_WINDOWS_DISPLAY_COLORSPACE_BITFIELD
     no_lint:
       - UNIT_IN_NAME
+
+fontlist:
+  initotherfamilynames:
+    type: timing_distribution
+    description: >
+      Time(ms) spent on reading other family names from all fonts
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FONTLIST_INITOTHERFAMILYNAMES.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FONTLIST_INITOTHERFAMILYNAMES
+
+  initotherfamilynames_no_deferring:
+    type: timing_distribution
+    description: >
+      Time(ms) spent on reading other family names from all fonts for no timeout
+      case
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FONTLIST_INITOTHERFAMILYNAMES_NO_DEFERRING.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FONTLIST_INITOTHERFAMILYNAMES_NO_DEFERRING
+
+  initfacenamelists:
+    type: timing_distribution
+    description: >
+      Time(ms) spent on reading family names from all fonts
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FONTLIST_INITFACENAMELISTS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FONTLIST_INITFACENAMELISTS
+
+  bundledfonts_activate:
+    type: timing_distribution
+    description: >
+      Time(ms) spent activating additional fonts bundled with the product
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FONTLIST_BUNDLEDFONTS_ACTIVATE.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1696162
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1696162
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FONTLIST_BUNDLEDFONTS_ACTIVATE
+
+  dwritefont_delayedinit_total:
+    type: timing_distribution
+    description: >
+      gfxDWriteFontList::DelayedInitFontList Total (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DWRITEFONT_DELAYEDINITFONTLIST_TOTAL.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: DWRITEFONT_DELAYEDINITFONTLIST_TOTAL
+
+  dwritefont_delayedinit_count:
+    type: custom_distribution
+    description: >
+      gfxDWriteFontList::DelayedInitFontList Font Family Count
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DWRITEFONT_DELAYEDINITFONTLIST_COUNT.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 10
+    histogram_type: exponential
+    unit: font family count
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: DWRITEFONT_DELAYEDINITFONTLIST_COUNT
+
+  dwritefont_delayedinit_collect:
+    type: timing_distribution
+    description: >
+      gfxDWriteFontList::DelayedInitFontList GetSystemFontCollection (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DWRITEFONT_DELAYEDINITFONTLIST_COLLECT.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: DWRITEFONT_DELAYEDINITFONTLIST_COLLECT
+
+  dwritefont_init_problem:
+    type: custom_distribution
+    description: >
+      DirectWrite system fontlist initialization problem (1=GDI interop,
+      2=system font collection, 3=no fonts)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram DWRITEFONT_INIT_PROBLEM.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: DWRITEFONT_INIT_PROBLEM
+
+  system_font_fallback:
+    type: timing_distribution
+    description: >
+      System font fallback (us)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SYSTEM_FONT_FALLBACK.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: SYSTEM_FONT_FALLBACK
+
+  system_font_fallback_first:
+    type: timing_distribution
+    description: >
+      System font fallback, first call (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SYSTEM_FONT_FALLBACK_FIRST.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: SYSTEM_FONT_FALLBACK_FIRST
+
+  font_cache_hit:
+    type: labeled_counter
+    description: >
+      font cache hit
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram FONT_CACHE_HIT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#FONT_CACHE_HIT
+
+  bad_fallback_font:
+    type: labeled_counter
+    description: >
+      system fallback font can't be used
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BAD_FALLBACK_FONT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BAD_FALLBACK_FONT
+
+  gdi_init_total:
+    type: timing_distribution
+    description: >
+      gfxGDIFontList::InitFontList Total (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram GDI_INITFONTLIST_TOTAL.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: GDI_INITFONTLIST_TOTAL
+
+  mac_init_total:
+    type: timing_distribution
+    description: >
+      gfxMacPlatformFontList::InitFontList Total (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MAC_INITFONTLIST_TOTAL.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MAC_INITFONTLIST_TOTAL

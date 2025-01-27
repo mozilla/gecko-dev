@@ -32,7 +32,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/ContentChild.h"
@@ -837,11 +837,9 @@ gfxFontEntry* gfxPlatformFontList::SearchFamiliesForFaceName(
 
   lookup = FindFaceName(aFaceName);
 
-  TimeStamp end = TimeStamp::Now();
-  Telemetry::AccumulateTimeDelta(Telemetry::FONTLIST_INITFACENAMELISTS, start,
-                                 end);
+  TimeDuration elapsed = TimeStamp::Now() - start;
+  glean::fontlist::initfacenamelists.AccumulateRawDuration(elapsed);
   if (LOG_FONTINIT_ENABLED()) {
-    TimeDuration elapsed = end - start;
     LOG_FONTINIT(("(fontinit) SearchFamiliesForFaceName took %8.2f ms %s %s",
                   elapsed.ToMilliseconds(), (lookup ? "found name" : ""),
                   (timedOut ? "timeout" : "")));
@@ -1168,17 +1166,11 @@ already_AddRefed<gfxFont> gfxPlatformFontList::SystemFindFontForChar(
 
   // track system fallback time
   static bool first = true;
-  int32_t intElapsed =
-      int32_t(first ? elapsed.ToMilliseconds() : elapsed.ToMicroseconds());
-  Telemetry::Accumulate((first ? Telemetry::SYSTEM_FONT_FALLBACK_FIRST
-                               : Telemetry::SYSTEM_FONT_FALLBACK),
-                        intElapsed);
+  if (first)
+    glean::fontlist::system_font_fallback_first.AccumulateRawDuration(elapsed);
+  else
+    glean::fontlist::system_font_fallback.AccumulateRawDuration(elapsed);
   first = false;
-
-  // track the script for which fallback occurred (incremented one make it
-  // 1-based)
-  Telemetry::Accumulate(Telemetry::SYSTEM_FONT_FALLBACK_SCRIPT,
-                        int(aRunScript) + 1);
 
   return font.forget();
 }
@@ -3050,12 +3042,10 @@ void gfxPlatformFontList::InitOtherFamilyNamesInternal(
       mOtherFamilyNamesInitialized = true;
       CancelInitOtherFamilyNamesTask();
     }
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::AccumulateTimeDelta(Telemetry::FONTLIST_INITOTHERFAMILYNAMES,
-                                   start, end);
+    TimeDuration elapsed = TimeStamp::Now() - start;
+    glean::fontlist::initotherfamilynames.AccumulateRawDuration(elapsed);
 
     if (LOG_FONTINIT_ENABLED()) {
-      TimeDuration elapsed = end - start;
       LOG_FONTINIT(("(fontinit) InitOtherFamilyNames took %8.2f ms %s",
                     elapsed.ToMilliseconds(), (timedOut ? "timeout" : "")));
     }
@@ -3077,12 +3067,11 @@ void gfxPlatformFontList::InitOtherFamilyNamesInternal(
     mOtherFamilyNamesInitialized = true;
     CancelInitOtherFamilyNamesTask();
 
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::FONTLIST_INITOTHERFAMILYNAMES_NO_DEFERRING, start, end);
+    TimeDuration elapsed = TimeStamp::Now() - start;
+    glean::fontlist::initotherfamilynames_no_deferring.AccumulateRawDuration(
+        elapsed);
 
     if (LOG_FONTINIT_ENABLED()) {
-      TimeDuration elapsed = end - start;
       LOG_FONTINIT(
           ("(fontinit) InitOtherFamilyNames without deferring took %8.2f ms",
            elapsed.ToMilliseconds()));

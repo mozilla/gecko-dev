@@ -21,7 +21,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsCharTraits.h"
@@ -1009,11 +1009,10 @@ CoreTextFontList::CoreTextFontList()
   // We activate bundled fonts if the pref is > 0 (on) or < 0 (auto), only an
   // explicit value of 0 (off) will disable them.
   if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() != 0) {
-    TimeStamp start = TimeStamp::Now();
+    auto timerId = glean::fontlist::bundledfonts_activate.Start();
     ActivateBundledFonts();
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::Accumulate(Telemetry::FONTLIST_BUNDLEDFONTS_ACTIVATE,
-                          (end - start).ToMilliseconds());
+    glean::fontlist::bundledfonts_activate.StopAndAccumulate(
+        std::move(timerId));
   }
 #endif
 
@@ -1161,7 +1160,7 @@ nsresult CoreTextFontList::InitFontListForPlatform() {
   // Here, we need to wait until it has finished its work.
   gfxPlatformMac::WaitForFontRegistration();
 
-  Telemetry::AutoTimer<Telemetry::MAC_INITFONTLIST_TOTAL> timer;
+  auto timer = glean::fontlist::mac_init_total.Measure();
 
   InitSystemFontNames();
 
@@ -1409,7 +1408,10 @@ gfxFontEntry* CoreTextFontList::PlatformGlobalFontFallback(
   }
 
   if (cantUseFallbackFont) {
-    Telemetry::Accumulate(Telemetry::BAD_FALLBACK_FONT, cantUseFallbackFont);
+    glean::fontlist::bad_fallback_font
+        .EnumGet(static_cast<glean::fontlist::BadFallbackFontLabel>(
+            cantUseFallbackFont))
+        .Add();
   }
 
   CFRelease(str);

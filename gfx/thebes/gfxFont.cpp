@@ -44,7 +44,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "gfxMathTable.h"
 #include "gfxSVGGlyphs.h"
 #include "gfx2DGlue.h"
@@ -235,7 +235,10 @@ already_AddRefed<gfxFont> gfxFontCache::Lookup(
   Key key(aFontEntry, aStyle, aUnicodeRangeMap);
   HashEntry* entry = mFonts.GetEntry(key);
 
-  Telemetry::Accumulate(Telemetry::FONT_CACHE_HIT, entry != nullptr);
+  glean::fontlist::font_cache_hit
+      .EnumGet(
+          static_cast<glean::fontlist::FontCacheHitLabel>(entry != nullptr))
+      .Add();
 
   if (!entry) {
     return nullptr;

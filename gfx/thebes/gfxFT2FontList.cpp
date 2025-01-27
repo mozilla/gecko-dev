@@ -53,7 +53,7 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/scache/StartupCache.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -1618,11 +1618,8 @@ void gfxFT2FontList::FindFonts() {
   if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() > 0 ||
       (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() < 0 &&
        !nsMemory::IsLowMemoryPlatform())) {
-    TimeStamp start = TimeStamp::Now();
+    auto timer = glean::fontlist::bundledfonts_activate.Measure();
     FindFontsInOmnijar(mFontNameCache.get());
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::Accumulate(Telemetry::FONTLIST_BUNDLEDFONTS_ACTIVATE,
-                          (end - start).ToMilliseconds());
   }
 
   // Look for downloaded fonts in a profile-agnostic "fonts" directory.

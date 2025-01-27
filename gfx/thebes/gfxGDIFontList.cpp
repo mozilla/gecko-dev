@@ -29,7 +29,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 
 #include <usp10.h>
 
@@ -511,11 +511,8 @@ void GDIFontFamily::FindStyleVariationsLocked(FontInfoData* aFontInfoData) {
 gfxGDIFontList::gfxGDIFontList() : mFontSubstitutes(32) {
 #ifdef MOZ_BUNDLED_FONTS
   if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() != 0) {
-    TimeStamp start = TimeStamp::Now();
+    auto timer = glean::fontlist::bundledfonts_activate.Measure();
     ActivateBundledFonts();
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::Accumulate(Telemetry::FONTLIST_BUNDLEDFONTS_ACTIVATE,
-                          (end - start).ToMilliseconds());
   }
 #endif
 }
@@ -595,7 +592,7 @@ nsresult gfxGDIFontList::GetFontSubstitutes() {
 }
 
 nsresult gfxGDIFontList::InitFontListForPlatform() {
-  Telemetry::AutoTimer<Telemetry::GDI_INITFONTLIST_TOTAL> timer;
+  auto timer = glean::fontlist::gdi_init_total.Measure();
 
   mFontSubstitutes.Clear();
   mNonExistingFonts.Clear();

@@ -20,7 +20,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/WindowsProcessMitigations.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsDirectoryServiceUtils.h"
@@ -1580,8 +1580,8 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
   RefPtr<IDWriteFactory> factory = Factory::GetDWriteFactory();
   HRESULT hr = factory->GetGdiInterop(getter_AddRefs(mGDIInterop));
   if (FAILED(hr)) {
-    Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
-                          uint32_t(errGDIInterop));
+    glean::fontlist::dwritefont_init_problem.AccumulateSingleSample(
+        uint32_t(errGDIInterop));
     mSharedFontList.reset(nullptr);
     return;
   }
@@ -1589,8 +1589,8 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
   mSystemFonts = Factory::GetDWriteSystemFonts(true);
   NS_ASSERTION(mSystemFonts != nullptr, "GetSystemFontCollection failed!");
   if (!mSystemFonts) {
-    Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
-                          uint32_t(errSystemFontCollection));
+    glean::fontlist::dwritefont_init_problem.AccumulateSingleSample(
+        uint32_t(errSystemFontCollection));
     mSharedFontList.reset(nullptr);
     return;
   }
@@ -1625,9 +1625,8 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
       TimeStamp start2 = TimeStamp::Now();
       AppendFamiliesFromCollection(mBundledFonts, families);
       TimeStamp end2 = TimeStamp::Now();
-      Telemetry::Accumulate(
-          Telemetry::FONTLIST_BUNDLEDFONTS_ACTIVATE,
-          (end1 - start1).ToMilliseconds() + (end2 - start2).ToMilliseconds());
+      glean::fontlist::bundledfonts_activate.AccumulateRawDuration(
+          (end1 - start1) + (end2 - start2));
     }
 #endif
     SharedFontList()->SetFamilyNames(families);
@@ -1668,8 +1667,8 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
 
   hr = factory->GetGdiInterop(getter_AddRefs(mGDIInterop));
   if (FAILED(hr)) {
-    Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
-                          uint32_t(errGDIInterop));
+    glean::fontlist::dwritefont_init_problem.AccumulateSingleSample(
+        uint32_t(errGDIInterop));
     return NS_ERROR_FAILURE;
   }
 
@@ -1679,8 +1678,8 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
   NS_ASSERTION(mSystemFonts != nullptr, "GetSystemFontCollection failed!");
 
   if (!mSystemFonts) {
-    Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
-                          uint32_t(errSystemFontCollection));
+    glean::fontlist::dwritefont_init_problem.AccumulateSingleSample(
+        uint32_t(errSystemFontCollection));
     return NS_ERROR_FAILURE;
   }
 
@@ -1691,14 +1690,13 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
   // We activate bundled fonts if the pref is > 0 (on) or < 0 (auto), only an
   // explicit value of 0 (off) will disable them.
   if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() != 0) {
-    TimeStamp start = TimeStamp::Now();
+    auto timerId = glean::fontlist::bundledfonts_activate.Start();
     mBundledFonts = CreateBundledFontsCollection(factory);
     if (mBundledFonts) {
       GetFontsFromCollection(mBundledFonts);
     }
-    TimeStamp end = TimeStamp::Now();
-    Telemetry::Accumulate(Telemetry::FONTLIST_BUNDLEDFONTS_ACTIVATE,
-                          (end - start).ToMilliseconds());
+    glean::fontlist::bundledfonts_activate.StopAndAccumulate(
+        std::move(timerId));
   }
 #endif
   const uint32_t kBundledCount = mFontFamilies.Count();
@@ -1711,8 +1709,8 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
   NS_ASSERTION(mFontFamilies.Count() > kBundledCount,
                "no fonts found in the system fontlist -- holy crap batman!");
   if (mFontFamilies.Count() == kBundledCount) {
-    Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
-                          uint32_t(errNoFonts));
+    glean::fontlist::dwritefont_init_problem.AccumulateSingleSample(
+        uint32_t(errNoFonts));
     return NS_ERROR_FAILURE;
   }
 
@@ -1820,10 +1818,10 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
   }
 
   elapsedTime = (t5.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
-  Telemetry::Accumulate(Telemetry::DWRITEFONT_DELAYEDINITFONTLIST_TOTAL,
-                        elapsedTime);
-  Telemetry::Accumulate(Telemetry::DWRITEFONT_DELAYEDINITFONTLIST_COUNT,
-                        mSystemFonts->GetFontFamilyCount());
+  glean::fontlist::dwritefont_delayedinit_total.AccumulateRawDuration(
+      TimeDuration::FromMilliseconds(elapsedTime));
+  glean::fontlist::dwritefont_delayedinit_count.AccumulateSingleSample(
+      mSystemFonts->GetFontFamilyCount());
   LOG_FONTINIT((
       "(fontinit) Total time in InitFontList:    %9.3f ms (families: %d, %s)\n",
       elapsedTime, mSystemFonts->GetFontFamilyCount(),
@@ -1835,8 +1833,8 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
        elapsedTime));
 
   elapsedTime = (t3.QuadPart - t2.QuadPart) * 1000.0 / frequency.QuadPart;
-  Telemetry::Accumulate(Telemetry::DWRITEFONT_DELAYEDINITFONTLIST_COLLECT,
-                        elapsedTime);
+  glean::fontlist::dwritefont_delayedinit_collect.AccumulateRawDuration(
+      TimeDuration::FromMilliseconds(elapsedTime));
   LOG_FONTINIT(
       ("(fontinit)  --- GetSystemFontCollection:  %9.3f ms\n", elapsedTime));
 
@@ -2285,7 +2283,9 @@ gfxFontEntry* gfxDWriteFontList::PlatformGlobalFontFallback(
       aMatchedFamily = family;
       return fontEntry;
     }
-    Telemetry::Accumulate(Telemetry::BAD_FALLBACK_FONT, true);
+    glean::fontlist::bad_fallback_font
+        .EnumGet(glean::fontlist::BadFallbackFontLabel::eTrue)
+        .Add();
   }
 
   return nullptr;
