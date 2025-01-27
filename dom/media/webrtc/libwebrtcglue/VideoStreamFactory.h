@@ -32,8 +32,7 @@ class VideoStreamFactory
     int max_bitrate_bps;
   };
 
-  static ResolutionAndBitrateLimits GetLimitsFor(unsigned int aWidth,
-                                                 unsigned int aHeight,
+  static ResolutionAndBitrateLimits GetLimitsFor(gfx::IntSize aSize,
                                                  int aCapBps = 0);
 
   VideoStreamFactory(VideoCodecConfig aConfig, int aMinBitrate,
@@ -56,42 +55,37 @@ class VideoStreamFactory
    * Called by CreateEncoderStreams and
    * WebrtcVideoConduit::OnControlConfigChange to set VideoStream.max_framerate.
    */
-  void SelectMaxFramerate(int aWidth, int aHeight,
-                          const VideoCodecConfig::Encoding& aEncoding,
-                          webrtc::VideoStream& aVideoStream);
+  void SelectResolutionAndMaxFramerate(
+      gfx::IntSize aSize, const VideoCodecConfig::Encoding& aEncoding,
+      webrtc::VideoStream& aVideoStream);
 
   /**
    * Function to select and change the encoding resolution based on incoming
    * frame size and current available bandwidth.
-   * @param width, height: dimensions of the frame
+   * @param aSize: dimensions of the frame
    */
-  void SelectMaxFramerateForAllStreams(unsigned short aWidth,
-                                       unsigned short aHeight);
+  void SelectMaxFramerateForAllStreams(gfx::IntSize aSize);
 
  private:
   /**
    * Function to calculate a scaled down width and height based on
    * scaleDownByResolution, maxFS, and max pixel count settings.
-   * @param aWidth current frame width
-   * @param aHeight current frame height
+   * @param aSize current frame size
    * @param aScaleDownByResolution value to scale width and height down by.
    * @return a gfx:IntSize containing  width and height to use. These may match
-   * the aWidth and aHeight passed in if no scaling was needed.
+   *         the aSize passed in if no scaling was needed.
    */
-  gfx::IntSize CalculateScaledResolution(int aWidth, int aHeight,
+  gfx::IntSize CalculateScaledResolution(gfx::IntSize aSize,
                                          double aScaleDownByResolution);
 
   /**
    * Function to select and change the encoding frame rate based on incoming
    * frame rate, current frame size and max-mbps setting.
    * @param aOldFramerate current framerate
-   * @param aSendingWidth width of frames being sent
-   * @param aSendingHeight height of frames being sent
+   * @param aSendingSize size of frames being sent
    * @return new framerate meeting max-mbps requriements based on frame size
    */
-  unsigned int SelectFrameRate(unsigned int aOldFramerate,
-                               unsigned short aSendingWidth,
-                               unsigned short aSendingHeight);
+  unsigned int SelectFrameRate(unsigned int aOldFramerate, gfx::IntSize aSize);
 
   // The framerate we're currently sending at.
   Atomic<unsigned int> mMaxFramerateForAllStreams;

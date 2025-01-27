@@ -68,12 +68,11 @@ static VideoStreamFactory::ResolutionAndBitrateLimits
         // clang-format on
 };
 
-auto VideoStreamFactory::GetLimitsFor(unsigned int aWidth, unsigned int aHeight,
-                                      int aCapBps /* = 0 */)
+auto VideoStreamFactory::GetLimitsFor(gfx::IntSize aSize, int aCapBps /* = 0 */)
     -> ResolutionAndBitrateLimits {
   // max bandwidth should be proportional (not linearly!) to resolution, and
   // proportional (perhaps linearly, or close) to current frame rate.
-  int fs = MB_OF(aWidth, aHeight);
+  int fs = MB_OF(aSize.width, aSize.height);
 
   for (const auto& resAndLimits : kResolutionAndBitrateLimits) {
     if (fs > resAndLimits.resolution_in_mb &&
@@ -91,7 +90,7 @@ auto VideoStreamFactory::GetLimitsFor(unsigned int aWidth, unsigned int aHeight,
 /**
  * Function to set the encoding bitrate limits based on incoming frame size and
  * rate
- * @param width, height: dimensions of the frame
+ * @param size: dimensions of the frame
  * @param min: minimum bitrate in bps
  * @param start: bitrate in bps that the encoder should start with
  * @param cap: user-enforced max bitrate, or 0
@@ -99,15 +98,15 @@ auto VideoStreamFactory::GetLimitsFor(unsigned int aWidth, unsigned int aHeight,
  * @param negotiated_cap: cap negotiated through SDP
  * @param aVideoStream stream to apply bitrates to
  */
-static void SelectBitrates(unsigned short width, unsigned short height, int min,
-                           int start, int cap, int pref_cap, int negotiated_cap,
+static void SelectBitrates(gfx::IntSize size, int min, int start, int cap,
+                           int pref_cap, int negotiated_cap,
                            webrtc::VideoStream& aVideoStream) {
   int& out_min = aVideoStream.min_bitrate_bps;
   int& out_start = aVideoStream.target_bitrate_bps;
   int& out_max = aVideoStream.max_bitrate_bps;
 
   VideoStreamFactory::ResolutionAndBitrateLimits resAndLimits =
-      VideoStreamFactory::GetLimitsFor(width, height);
+      VideoStreamFactory::GetLimitsFor(size);
   out_min = MinIgnoreZero(resAndLimits.min_bitrate_bps, cap);
   out_start = MinIgnoreZero(resAndLimits.start_bitrate_bps, cap);
   out_max = MinIgnoreZero(resAndLimits.max_bitrate_bps, cap);
@@ -140,14 +139,15 @@ static void SelectBitrates(unsigned short width, unsigned short height, int min,
   MOZ_ASSERT(pref_cap == 0 || out_max <= pref_cap);
 }
 
-void VideoStreamFactory::SelectMaxFramerate(
-    int aWidth, int aHeight, const VideoCodecConfig::Encoding& aEncoding,
+void VideoStreamFactory::SelectResolutionAndMaxFramerate(
+    gfx::IntSize aSize, const VideoCodecConfig::Encoding& aEncoding,
     webrtc::VideoStream& aVideoStream) {
+  MOZ_ASSERT(aSize.width > 0);
+  MOZ_ASSERT(aSize.height > 0);
   MOZ_ASSERT(aEncoding.constraints.scaleDownBy >= 1.0);
   gfx::IntSize newSize(0, 0);
 
-  newSize = CalculateScaledResolution(aWidth, aHeight,
-                                      aEncoding.constraints.scaleDownBy);
+  newSize = CalculateScaledResolution(aSize, aEncoding.constraints.scaleDownBy);
 
   if (newSize.width == 0 || newSize.height == 0) {
     return;
@@ -166,10 +166,10 @@ void VideoStreamFactory::SelectMaxFramerate(
   MOZ_ASSERT(newSize.height > 0);
   aVideoStream.width = newSize.width;
   aVideoStream.height = newSize.height;
-  SelectMaxFramerateForAllStreams(newSize.width, newSize.height);
+  SelectMaxFramerateForAllStreams(newSize);
 
   CSFLogInfo(LOGTAG, "%s Input frame %ux%u, RID %s scaling to %zux%zu",
-             __FUNCTION__, aWidth, aHeight, aEncoding.rid.c_str(),
+             __FUNCTION__, aSize.width, aSize.height, aEncoding.rid.c_str(),
              aVideoStream.width, aVideoStream.height);
 
   // mMaxFramerateForAllStreams is based on codec-wide stuff like fmtp, and
@@ -179,7 +179,7 @@ void VideoStreamFactory::SelectMaxFramerate(
   // incorporates those. Per-encoding max framerate is based on parameters
   // from JS, and maybe rid
   unsigned int max_framerate = SelectFrameRate(
-      mMaxFramerateForAllStreams, aVideoStream.width, aVideoStream.height);
+      mMaxFramerateForAllStreams, {aVideoStream.width, aVideoStream.height});
   max_framerate = std::min(
       WebrtcVideoConduit::ToLibwebrtcMaxFramerate(aEncoding.constraints.maxFps),
       max_framerate);
@@ -207,11 +207,17 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     const auto& encoding = mCodecConfig.mEncodings[idx];
     MOZ_ASSERT(video_stream.active == encoding.active);
 
-    SelectMaxFramerate(aWidth, aHeight, encoding, video_stream);
+    SelectResolutionAndMaxFramerate({aWidth, aHeight}, encoding, video_stream);
+
+    CSFLogInfo(
+        LOGTAG,
+        "%s Stream %zu with RID %s scaling %dx%d->%zux%zu; scaleDownBy=%.2f).",
+        __FUNCTION__, idx, encoding.rid.c_str(), aWidth, aHeight,
+        video_stream.width, video_stream.height,
+        encoding.constraints.scaleDownBy);
 
     if (video_stream.width == 0 || video_stream.height == 0) {
-      CSFLogInfo(LOGTAG,
-                 "%s Stream with RID %s ignored because of no resolution.",
+      CSFLogInfo(LOGTAG, "%s Stream with RID %s ignored: has no resolution.",
                  __FUNCTION__, encoding.rid.c_str());
       continue;
     }
@@ -220,7 +226,7 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
                __FUNCTION__, encoding.rid.c_str(), video_stream.max_framerate,
                (unsigned)mMaxFramerateForAllStreams);
 
-    SelectBitrates(video_stream.width, video_stream.height, mMinBitrate,
+    SelectBitrates({video_stream.width, video_stream.height}, mMinBitrate,
                    mStartBitrate, encoding.constraints.maxBr, mPrefMaxBitrate,
                    mNegotiatedMaxBitrate, video_stream);
 
@@ -248,16 +254,16 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
 }
 
 gfx::IntSize VideoStreamFactory::CalculateScaledResolution(
-    int aWidth, int aHeight, double aScaleDownByResolution) {
+    gfx::IntSize aSize, double aScaleDownByResolution) {
   // If any adjustments like scaleResolutionDownBy or maxFS are being given
   // we want to choose a height and width here to provide for more variety
   // in possible resolutions.
-  int width = aWidth;
-  int height = aHeight;
+  int width = aSize.width;
+  int height = aSize.height;
 
   if (aScaleDownByResolution > 1) {
-    width = static_cast<int>(aWidth / aScaleDownByResolution);
-    height = static_cast<int>(aHeight / aScaleDownByResolution);
+    width = static_cast<int>(aSize.width / aScaleDownByResolution);
+    height = static_cast<int>(aSize.height / aScaleDownByResolution);
   }
 
   // Check if we still need to adjust resolution down more due to other
@@ -270,13 +276,13 @@ gfx::IntSize VideoStreamFactory::CalculateScaledResolution(
     // that will get as close as possible to maxFs and try to maintain aspect
     // ratio.
     if (currentFs > maxFs) {
-      if (aWidth > aHeight) {  // Landscape
-        auto aspectRatio = static_cast<double>(aWidth) / aHeight;
+      if (aSize.width > aSize.height) {  // Landscape
+        auto aspectRatio = static_cast<double>(aSize.width) / aSize.height;
 
         height = static_cast<int>(std::sqrt(maxFs / aspectRatio));
         width = static_cast<int>(height * aspectRatio);
       } else {  // Portrait
-        auto aspectRatio = static_cast<double>(aHeight) / aWidth;
+        auto aspectRatio = static_cast<double>(aSize.height) / aSize.width;
 
         width = static_cast<int>(std::sqrt(maxFs / aspectRatio));
         height = static_cast<int>(width * aspectRatio);
@@ -287,10 +293,9 @@ gfx::IntSize VideoStreamFactory::CalculateScaledResolution(
   return gfx::IntSize(width, height);
 }
 
-void VideoStreamFactory::SelectMaxFramerateForAllStreams(
-    unsigned short aWidth, unsigned short aHeight) {
+void VideoStreamFactory::SelectMaxFramerateForAllStreams(gfx::IntSize aSize) {
   unsigned int framerate_all_streams =
-      SelectFrameRate(mMaxFramerateForAllStreams, aWidth, aHeight);
+      SelectFrameRate(mMaxFramerateForAllStreams, aSize);
   unsigned int maxFrameRate = mMaxFramerateForAllStreams;
   if (mMaxFramerateForAllStreams != framerate_all_streams) {
     CSFLogDebug(LOGTAG, "%s: framerate changing to %u (from %u)", __FUNCTION__,
@@ -299,17 +304,16 @@ void VideoStreamFactory::SelectMaxFramerateForAllStreams(
   }
 }
 
-unsigned int VideoStreamFactory::SelectFrameRate(
-    unsigned int aOldFramerate, unsigned short aSendingWidth,
-    unsigned short aSendingHeight) {
+unsigned int VideoStreamFactory::SelectFrameRate(unsigned int aOldFramerate,
+                                                 gfx::IntSize aSize) {
   unsigned int new_framerate = aOldFramerate;
 
   // Limit frame rate based on max-mbps
   if (mCodecConfig.mEncodingConstraints.maxMbps) {
     unsigned int cur_fs, mb_width, mb_height;
 
-    mb_width = (aSendingWidth + 15) >> 4;
-    mb_height = (aSendingHeight + 15) >> 4;
+    mb_width = (aSize.width + 15) >> 4;
+    mb_height = (aSize.height + 15) >> 4;
 
     cur_fs = mb_width * mb_height;
     if (cur_fs > 0) {  // in case no frames have been sent
