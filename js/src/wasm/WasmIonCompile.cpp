@@ -10442,7 +10442,7 @@ bool RootCompiler::generate() {
       guard->inliningBudget -=
           int64_t(inliningStats_.inlinedCallRefBytecodeSize);
       if (guard->inliningBudget < 0) {
-        JS_LOG(wasmPerf, Info,
+        JS_LOG(wasmPerf, mozilla::LogLevel::Info,
                "CM=..%06lx  RC::generate            "
                "Inlining budget for entire module exceeded",
                0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_));
@@ -10480,7 +10480,7 @@ CompileInfo* RootCompiler::startInlineCall(
     inliningBudget_ -= int64_t(inlineeBytecodeSize);
 #ifdef JS_JITSPEW
     if (inliningBudget_ <= 0) {
-      JS_LOG(wasmPerf, Info,
+      JS_LOG(wasmPerf, mozilla::LogLevel::Info,
              "CM=..%06lx  RC::startInlineCall     "
              "Inlining budget for fI=%u exceeded",
              0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_), callerFuncIndex);

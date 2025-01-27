@@ -2890,7 +2890,8 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
 
 #ifdef JS_JITSPEW
     if (!headerShown) {
-      JS_LOG(wasmPerf, Info, "CM=..%06lx  CallRefMetrics for I=..%06lx fI=%-4u",
+      JS_LOG(wasmPerf, mozilla::LogLevel::Info,
+             "CM=..%06lx  CallRefMetrics for I=..%06lx fI=%-4u",
              (unsigned long)(uintptr_t(&codeMeta()) & 0xFFFFFFL),
              (unsigned long)(uintptr_t(this) & 0xFFFFFFL), funcIndex);
       headerShown = true;
@@ -2912,7 +2913,7 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
                               i + 1 < hints.length() ? ", " : "");
       }
     }
-    JS_LOG(wasmPerf, Info, "CM=..%06lx    %sother:%u --> %s",
+    JS_LOG(wasmPerf, mozilla::LogLevel::Info, "CM=..%06lx    %sother:%u --> %s",
            (unsigned long)(uintptr_t(&codeMeta()) & 0xFFFFFFL), countsStr.get(),
            metrics.countOther, targetStr.get());
 #endif
