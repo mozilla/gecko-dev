@@ -515,21 +515,14 @@ uint32_t HashUTF8AsUTF16(const char* aUTF8, size_t aLength, bool* aErr) {
   return hash;
 }
 
-// The Korean Won currency sign has East Asian Width = HALFWIDTH, and
-// Script = COMMON (rather than HANGUL), but we don't want to treat it like
-// Chinese/Japanese half-width characters for segment break transformation,
-// so we exclude it individually in the two functions here.
-static constexpr uint32_t kWonCurrencySign = 0x20A9;
-
 bool IsSegmentBreakSkipChar(uint32_t u) {
   return intl::UnicodeProperties::IsEastAsianWidthFHWexcludingEmoji(u) &&
-         intl::UnicodeProperties::GetScriptCode(u) != intl::Script::HANGUL &&
-         u != kWonCurrencySign;
+         intl::UnicodeProperties::GetScriptCode(u) != intl::Script::HANGUL;
 }
 
 bool IsEastAsianPunctuation(uint32_t u) {
   return intl::UnicodeProperties::IsEastAsianWidthFHW(u) &&
-         intl::UnicodeProperties::IsPunctuation(u) && u != kWonCurrencySign;
+         intl::UnicodeProperties::IsPunctuation(u);
 }
 
 bool IsPunctuationForWordSelect(char16_t aCh) {
