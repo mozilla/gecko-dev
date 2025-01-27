@@ -1160,8 +1160,9 @@ bool CacheStorageService::IsForcedValidEntry(
   mForcedValidEntries.Remove(aContextEntryKey);
 
   if (!data.viewed) {
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::WaitedTooLong);
+    glean::predictor::prefetch_use_status
+        .EnumGet(glean::predictor::PrefetchUseStatusLabel::eWaitedtoolong)
+        .Add();
   }
   return false;
 }
@@ -1206,8 +1207,9 @@ void CacheStorageService::RemoveEntryForceValid(nsACString const& aContextKey,
   ForcedValidData data;
   bool ok = mForcedValidEntries.Get(aContextKey + aEntryKey, &data);
   if (ok && !data.viewed) {
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::WaitedTooLong);
+    glean::predictor::prefetch_use_status
+        .EnumGet(glean::predictor::PrefetchUseStatusLabel::eWaitedtoolong)
+        .Add();
   }
   mForcedValidEntries.Remove(aContextKey + aEntryKey);
 }
@@ -1221,8 +1223,9 @@ void CacheStorageService::ForcedValidEntriesPrune(TimeStamp& now) {
   for (auto iter = mForcedValidEntries.Iter(); !iter.Done(); iter.Next()) {
     if (iter.Data().validUntil < now) {
       if (!iter.Data().viewed) {
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::WaitedTooLong);
+        glean::predictor::prefetch_use_status
+            .EnumGet(glean::predictor::PrefetchUseStatusLabel::eWaitedtoolong)
+            .Add();
       }
       iter.Remove();
     }

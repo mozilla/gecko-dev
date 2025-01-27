@@ -2115,3 +2115,388 @@ network.sso:
     notification_emails:
       - necko@mozilla.com
     expires: never
+
+predictor:
+  learn_attempts:
+    type: custom_distribution
+    description: >
+      Number of times nsINetworkPredictor::Learn is called and attempts to learn
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_LEARN_ATTEMPTS.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_LEARN_ATTEMPTS
+
+  wait_time:
+    type: timing_distribution
+    description: >
+      Amount of time a predictor event waits in the queue (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_WAIT_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_WAIT_TIME
+
+  predict_work_time:
+    type: timing_distribution
+    description: >
+      Amount of time spent doing the work for predict (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_PREDICT_WORK_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREDICT_WORK_TIME
+
+  learn_work_time:
+    type: timing_distribution
+    description: >
+      Amount of time spent doing the work for learn (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_LEARN_WORK_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_LEARN_WORK_TIME
+
+  total_predictions:
+    type: custom_distribution
+    description: >
+      How many actual predictions (preresolves, preconnects, ...) happen
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_TOTAL_PREDICTIONS.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_TOTAL_PREDICTIONS
+
+  total_prefetches:
+    type: custom_distribution
+    description: >
+      How many actual prefetches happen
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_TOTAL_PREFETCHES.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_TOTAL_PREFETCHES
+
+  prefetch_use_status:
+    type: labeled_counter
+    description: >
+      If and why prefetches are used/unused.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram PREDICTOR_PREFETCH_USE_STATUS.
+    labels:
+      - Used
+      - Not200
+      - Expired
+      - WouldVary
+      - WaitedTooLong
+      - Etag
+      - Auth
+      - Redirect
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#PREDICTOR_PREFETCH_USE_STATUS
+
+  prefetch_time:
+    type: timing_distribution
+    description: >
+      How long it takes from OnStartRequest to OnStopRequest for a prefetch
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_PREFETCH_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1016628
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREFETCH_TIME
+
+  total_preconnects:
+    type: custom_distribution
+    description: >
+      How many actual preconnects happen
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_TOTAL_PRECONNECTS.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_TOTAL_PRECONNECTS
+
+  total_preresolves:
+    type: custom_distribution
+    description: >
+      How many actual preresolves happen
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_TOTAL_PRERESOLVES.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_TOTAL_PRERESOLVES
+
+  predictions_calculated:
+    type: custom_distribution
+    description: >
+      How many prediction calculations are performed
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_PREDICTIONS_CALCULATED.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: calculations
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREDICTIONS_CALCULATED
+
+  global_degradation:
+    type: custom_distribution
+    description: >
+      The global degradation calculated
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PREDICTOR_GLOBAL_DEGRADATION.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_GLOBAL_DEGRADATION
+
+  subresource_degradation:
+    type: custom_distribution
+    description: >
+      The degradation calculated for a subresource
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PREDICTOR_SUBRESOURCE_DEGRADATION.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_SUBRESOURCE_DEGRADATION
+
+  base_confidence:
+    type: custom_distribution
+    description: >
+      The base confidence calculated for a subresource
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PREDICTOR_BASE_CONFIDENCE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_BASE_CONFIDENCE
+
+  confidence:
+    type: custom_distribution
+    description: >
+      The final confidence calculated for a subresource
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PREDICTOR_CONFIDENCE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_CONFIDENCE
+
+  predict_time_to_action:
+    type: timing_distribution
+    description: >
+      How long it takes from the time Predict() is called to the time we take
+      action
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_PREDICT_TIME_TO_ACTION.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREDICT_TIME_TO_ACTION
+
+  predict_time_to_inaction:
+    type: timing_distribution
+    description: >
+      How long it takes from the time Predict() is called to the time we figure
+      out there's nothing to do
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PREDICTOR_PREDICT_TIME_TO_INACTION.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=881804
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREDICT_TIME_TO_INACTION
+
+  prefetch_decision_reason:
+    type: custom_distribution
+    description: >
+      Why the predictor determined a particular resource was eligible for future
+      prefetch (or not). See PrefetchDecisionReason in Predictor.cpp for value
+      meanings
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PREDICTOR_PREFETCH_DECISION_REASON.
+    range_min: 0
+    range_max: 15
+    bucket_count: 16
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1409542
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1430322
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1409542
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1430322
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREFETCH_DECISION_REASON
+
+  prefetch_ignore_reason:
+    type: custom_distribution
+    description: >
+      Why the predictor determined a particular resource that was marked
+      eligible for prefetch should not be prefetched. See PrefetchIgnoreReason
+      in Predictor.cpp for value meanings
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PREDICTOR_PREFETCH_IGNORE_REASON.
+    range_min: 0
+    range_max: 15
+    bucket_count: 16
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1409542
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1430322
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1409542
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1430322
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1312057
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: PREDICTOR_PREFETCH_IGNORE_REASON

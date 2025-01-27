@@ -4562,7 +4562,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
 
   bool isForcedValid = false;
   entry->GetIsForcedValid(&isForcedValid);
-  auto prefetchStatus = Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::Used;
+  auto prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eUsed;
 
   bool weaklyFramed, isImmutable;
   nsHttp::DetermineFramingAndImmutability(entry, mCachedResponseHead.get(),
@@ -4573,11 +4573,11 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
     LOG(("Validating based on Vary headers returning TRUE\n"));
     canAddImsHeader = false;
     doValidation = true;
-    prefetchStatus = Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::WouldVary;
+    prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eWouldvary;
   } else {
     if (mCachedResponseHead->ExpiresInPast() ||
         mCachedResponseHead->MustValidateIfExpired()) {
-      prefetchStatus = Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::Expired;
+      prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eExpired;
     }
     doValidation = nsHttp::ValidationRequired(
         isForcedValid, mCachedResponseHead.get(), mLoadFlags,
@@ -4621,7 +4621,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
         (fromPreviousSession && !buf.IsEmpty()) ||
         (buf.IsEmpty() && mRequestHead.HasHeader(nsHttp::Authorization));
     if (doValidation) {
-      prefetchStatus = Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::Auth;
+      prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eAuth;
     }
   }
 
@@ -4651,8 +4651,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
     if (!doValidation) {
       ref->AppendElement(cacheKey);
     } else {
-      prefetchStatus =
-          Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::Redirect;
+      prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eRedirect;
     }
   }
 
@@ -4664,11 +4663,11 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
     if (!doValidation) {
       // Could have gotten to a funky state with some of the if chain above
       // and in nsHttp::ValidationRequired. Make sure we get it right here.
-      prefetchStatus = Telemetry::LABELS_PREDICTOR_PREFETCH_USE_STATUS::Used;
+      prefetchStatus = glean::predictor::PrefetchUseStatusLabel::eUsed;
 
       entry->MarkForcedValidUse();
     }
-    Telemetry::AccumulateCategorical(prefetchStatus);
+    glean::predictor::prefetch_use_status.EnumGet(prefetchStatus).Add();
   }
 
   if (doValidation) {
