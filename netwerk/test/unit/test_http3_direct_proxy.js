@@ -14,7 +14,7 @@ registerCleanupFunction(async () => {
 });
 
 add_task(async function setup() {
-  await http3_setup_tests("h3-29");
+  await http3_setup_tests("h3");
 });
 
 function makeChan(url) {
@@ -50,5 +50,5 @@ add_task(async function testHttp3WithDirectProxy() {
   let chan = makeChan(`https://foo.example.com`);
   let [req] = await channelOpenPromise(chan, CL_ALLOW_UNKNOWN_CL);
   req.QueryInterface(Ci.nsIHttpChannel);
-  Assert.equal(req.protocolVersion, "h3-29");
+  Assert.equal(req.protocolVersion, "h3");
 });

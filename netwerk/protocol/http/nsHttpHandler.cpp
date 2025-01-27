@@ -2735,16 +2735,8 @@ bool nsHttpHandler::IsHttp3Enabled() {
 }
 
 bool nsHttpHandler::IsHttp3VersionSupported(const nsACString& version) {
-  if (!StaticPrefs::network_http_http3_support_version1() &&
-      version.EqualsLiteral("h3")) {
-    return false;
-  }
-  for (const auto& Http3Version : kHttp3Versions) {
-    if (version.Equals(Http3Version)) {
-      return true;
-    }
-  }
-  return false;
+  return (StaticPrefs::network_http_http3_support_version1() &&
+          version.EqualsLiteral("h3"));
 }
 
 bool nsHttpHandler::IsHttp3SupportedByServer(
@@ -2760,15 +2752,7 @@ bool nsHttpHandler::IsHttp3SupportedByServer(
     return false;
   }
 
-  for (const auto& Http3Version : kHttp3Versions) {
-    nsAutoCString value(Http3Version);
-    value.Append("="_ns);
-    if (strstr(altSvc.get(), value.get())) {
-      return true;
-    }
-  }
-
-  return false;
+  return altSvc.Find("h3=") != -1;
 }
 
 nsresult nsHttpHandler::InitiateTransaction(HttpTransactionShell* aTrans,

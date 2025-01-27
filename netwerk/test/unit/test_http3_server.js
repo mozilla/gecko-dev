@@ -90,7 +90,7 @@ add_task(async function testHttp3ServerAsReverseProxy() {
           priority: 1,
           name: "test.h3_example.com",
           values: [
-            { key: "alpn", value: "h3-29" },
+            { key: "alpn", value: "h3" },
             { key: "port", value: h3Port },
           ],
         },
@@ -143,7 +143,7 @@ add_task(async function testHttp3ServerAsReverseProxy() {
   // Test GET method.
   chan = makeChan(`https://test.h3_example.com/test`);
   let [req, buf] = await channelOpenPromise(chan, CL_ALLOW_UNKNOWN_CL);
-  Assert.equal(req.protocolVersion, "h3-29");
+  Assert.equal(req.protocolVersion, "h3");
   Assert.equal(buf, "got GET request");
 
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
@@ -159,7 +159,7 @@ add_task(async function testHttp3ServerAsReverseProxy() {
   chan.requestMethod = "POST";
 
   [req, buf] = await channelOpenPromise(chan, CL_ALLOW_UNKNOWN_CL);
-  Assert.equal(req.protocolVersion, "h3-29");
+  Assert.equal(req.protocolVersion, "h3");
   Assert.equal(buf, stream.data);
 
   await trrServer.stop();

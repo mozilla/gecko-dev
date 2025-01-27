@@ -42,12 +42,7 @@ enum class SupportedAlpnRank : uint8_t {
   NOT_SUPPORTED = 0,
   HTTP_1_1 = 1,
   HTTP_2 = 2,
-  // Note that the order here MUST be the same as the order in kHttp3Versions.
-  HTTP_3_DRAFT_29 = 3,
-  HTTP_3_DRAFT_30 = 4,
-  HTTP_3_DRAFT_31 = 5,
-  HTTP_3_DRAFT_32 = 6,
-  HTTP_3_VER_1 = 7,
+  HTTP_3_VER_1 = 3,
 };
 
 // IMPORTANT: when adding new values, always add them to the end, otherwise
@@ -80,11 +75,8 @@ enum class ConnectionCloseReason : uint32_t {
 ConnectionCloseReason ToCloseReason(nsresult aErrorCode);
 
 inline bool IsHttp3(SupportedAlpnRank aRank) {
-  return aRank >= SupportedAlpnRank::HTTP_3_DRAFT_29;
+  return aRank == SupportedAlpnRank::HTTP_3_VER_1;
 }
-
-constexpr nsLiteralCString kHttp3Versions[] = {"h3-29"_ns, "h3-30"_ns,
-                                               "h3-31"_ns, "h3-32"_ns, "h3"_ns};
 
 //-----------------------------------------------------------------------------
 // http connection capabilities

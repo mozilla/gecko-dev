@@ -105,7 +105,7 @@ WaitForHttp3Listener.prototype.onStopRequest = function testOnStopRequest(
   Http3Listener.prototype.onStopRequest.call(this, request, status);
 
   if (this.routed == h3Route) {
-    Assert.equal(this.httpVersion, "h3-29");
+    Assert.equal(this.httpVersion, "h3");
     run_next_test();
   } else {
     dump("poll later for alt svc mapping\n");
@@ -127,7 +127,7 @@ function doTest(uri) {
 }
 
 // Test Alt-Svc for http3.
-// H2 server returns alt-svc=h3-29=:h3port
+// H2 server returns alt-svc=h3=:h3port
 function test_https_alt_svc() {
   dump("test_https_alt_svc()\n");
 

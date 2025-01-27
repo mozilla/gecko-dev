@@ -136,7 +136,7 @@ function doTest(uri, expectedRoute, altSvc, expectedH3Version) {
 }
 
 // Test Alt-Svc for http3.
-// H2 server returns alt-svc=h2=foo2.example.com:8000,h3-29=:h3port
+// H2 server returns alt-svc=h2=foo2.example.com:8000,h3=:h3port
 function test_https_alt_svc() {
   dump("test_https_alt_svc()\n");
 
@@ -148,13 +148,13 @@ function test_https_alt_svc() {
     .then(() => {
       h3Port = server.port();
       setupAltSvc();
-      doTest(httpsOrigin + "http3-test2", h3Route, h3AltSvc, "h3-29");
+      doTest(httpsOrigin + "http3-test2", h3Route, h3AltSvc, "h3");
     })
     .catch(_ => {});
 }
 
 // Test if we use the latest version of HTTP/3.
-// H2 server returns alt-svc=h3-29=:h3port,h3=:h3port
+// H2 server returns alt-svc=h3=:h3port,h3=:h3port
 function test_https_alt_svc_1() {
   dump("test_https_alt_svc_1()\n");
   Services.obs.notifyObservers(null, "last-pb-context-exited");

@@ -25,7 +25,7 @@ if (!inChildProcess()) {
 add_task(async function setup() {
   // wrapper handles when testing as content process for pref change
   if (!inChildProcess()) {
-    await http3_setup_tests("h3-29");
+    await http3_setup_tests("h3");
   }
 });
 

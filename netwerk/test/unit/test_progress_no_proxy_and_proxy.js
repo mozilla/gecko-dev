@@ -195,11 +195,11 @@ add_task(async function test_http2_proxy() {
 });
 
 add_task(async function test_http3() {
-  await http3_setup_tests("h3-29");
+  await http3_setup_tests("h3");
   await chanPromise(
     "https://foo.example.com/" + RESPONSE_LENGTH,
     "foo.example.com",
-    "h3-29"
+    "h3"
   );
   http3_clear_prefs();
 });

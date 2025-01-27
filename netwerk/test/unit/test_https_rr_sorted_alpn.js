@@ -71,7 +71,7 @@ add_task(async function testSortedAlpnH3() {
         data: {
           priority: 1,
           name: "test.alpn.com",
-          values: [{ key: "alpn", value: ["h2", "http/1.1", "h3-30", "h3"] }],
+          values: [{ key: "alpn", value: ["h2", "http/1.1", "h3"] }],
         },
       },
     ],
@@ -106,7 +106,7 @@ add_task(async function testSortedAlpnH3() {
   checkResult(inRecord, false, false, {
     expectedPriority: 1,
     expectedName: "test.alpn.com",
-    expectedAlpn: "h3-30",
+    expectedAlpn: "h2",
   });
   checkResult(inRecord, false, true, {
     expectedPriority: 1,
@@ -116,7 +116,7 @@ add_task(async function testSortedAlpnH3() {
   checkResult(inRecord, true, false, {
     expectedPriority: 1,
     expectedName: "test.alpn.com",
-    expectedAlpn: "h3-30",
+    expectedAlpn: "http/1.1",
   });
   checkResult(inRecord, true, true, {
     expectedPriority: 1,

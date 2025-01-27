@@ -359,7 +359,7 @@ async function H3ECHTest(
 
   let portPrefixedName = `_${h3Port}._https.public.example.com`;
   let vals = [
-    { key: "alpn", value: "h3-29" },
+    { key: "alpn", value: "h3" },
     { key: "port", value: h3Port },
   ];
   if (advertiseECH) {
@@ -407,7 +407,7 @@ async function H3ECHTest(
   let chan = makeChan(`https://public.example.com:${h3Port}`);
   let [req] = await channelOpenPromise(chan, CL_ALLOW_UNKNOWN_CL);
   req.QueryInterface(Ci.nsIHttpChannel);
-  Assert.equal(req.protocolVersion, "h3-29");
+  Assert.equal(req.protocolVersion, "h3");
   checkSecurityInfo(chan, true, advertiseECH);
 
   await trrServer.stop();

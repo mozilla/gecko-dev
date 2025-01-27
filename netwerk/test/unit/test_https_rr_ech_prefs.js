@@ -74,7 +74,7 @@ add_task(async function testEchConfigEnabled() {
         data: {
           priority: 1,
           name: "test.bar_1.com",
-          values: [{ key: "alpn", value: ["h3-29"] }],
+          values: [{ key: "alpn", value: ["h3"] }],
         },
       },
       {
@@ -101,7 +101,7 @@ add_task(async function testEchConfigEnabled() {
   checkResult(inRecord, false, false, {
     expectedPriority: 1,
     expectedName: "test.bar_1.com",
-    expectedAlpn: "h3-29",
+    expectedAlpn: "h3",
   });
   checkResult(inRecord, false, true, {
     expectedPriority: 2,
@@ -111,7 +111,7 @@ add_task(async function testEchConfigEnabled() {
   checkResult(inRecord, true, false, {
     expectedPriority: 1,
     expectedName: "test.bar_1.com",
-    expectedAlpn: "h3-29",
+    expectedAlpn: "h3",
   });
   checkResult(inRecord, true, true);
 
@@ -135,7 +135,7 @@ add_task(async function testEchConfigEnabled() {
   checkResult(inRecord, true, false, {
     expectedPriority: 1,
     expectedName: "test.bar_1.com",
-    expectedAlpn: "h3-29",
+    expectedAlpn: "h3",
   });
   checkResult(inRecord, true, true);
 
