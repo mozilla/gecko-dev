@@ -5,7 +5,6 @@ MAINTAINER    Alexandre Lissy <alissy@mozilla.com>
 # We need to declare all potentially cache volumes as caches. Also,
 # making high I/O paths volumes increase I/O throughput because of
 # AUFS slowness.
-VOLUME  /builds/worker/.cache
 VOLUME  /builds/worker/checkouts
 VOLUME  /builds/worker/workspace
 

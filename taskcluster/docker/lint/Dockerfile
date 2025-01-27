@@ -1,7 +1,9 @@
 FROM          $DOCKER_IMAGE_PARENT
 MAINTAINER    Andrew Halberstadt <ahalberstadt@mozilla.com>
 
-VOLUME /builds/worker/.cache
+VOLUME /builds/worker/.task-cache/npm
+VOLUME /builds/worker/.task-cache/pip
+VOLUME /builds/worker/.task-cache/uv
 VOLUME /builds/worker/checkouts
 
 # We do want to install recommended packages.

@@ -22,10 +22,6 @@ from gecko_taskgraph.transforms.task import taskref_or_string
 run_task_schema = Schema(
     {
         Required("using"): "run-task",
-        # if true, add a cache at ~worker/.cache, which is where things like pip
-        # tend to hide their caches.  This cache is never added for level-1 jobs.
-        # TODO Once bug 1526028 is fixed, this and 'use-caches' should be merged.
-        Required("cache-dotcache"): bool,
         # Whether or not to use caches.
         Optional("use-caches"): Any(bool, [str]),
         # if true (the default), perform a checkout of gecko on the worker
@@ -83,7 +79,6 @@ def common_setup(config, job, taskdesc, command):
 
 
 worker_defaults = {
-    "cache-dotcache": False,
     "checkout": True,
     "comm-checkout": False,
     "sparse-profile": None,
@@ -115,16 +110,6 @@ def docker_worker_run_task(config, job, taskdesc):
     if run["tooltool-downloads"]:
         internal = run["tooltool-downloads"] == "internal"
         add_tooltool(config, job, taskdesc, internal=internal)
-
-    if run.get("cache-dotcache"):
-        worker["caches"].append(
-            {
-                "type": "persistent",
-                "name": "{project}-dotcache".format(**config.params),
-                "mount-point": "{workdir}/.cache".format(**run),
-                "skip-untrusted": True,
-            }
-        )
 
     run_command = run["command"]
 
@@ -181,13 +166,6 @@ def generic_worker_run_task(config, job, taskdesc):
     common_setup(config, job, taskdesc, command)
 
     worker.setdefault("mounts", [])
-    if run.get("cache-dotcache"):
-        worker["mounts"].append(
-            {
-                "cache-name": "{project}-dotcache".format(**config.params),
-                "directory": "{workdir}/.cache".format(**run),
-            }
-        )
     worker["mounts"].append(
         {
             "content": {

@@ -13,7 +13,6 @@ RUN dpkg --add-architecture i386 && apt-get -q update \
     # libgtk-3-0 is required to run the Firefox updater
     && apt-get -q --yes install p7zip-full wget libgtk-3-0 libgtk-3.0:i386 python3-cairo
 
-VOLUME /builds/worker/.cache
 VOLUME /builds/worker/checkouts
 
 RUN mkdir /build

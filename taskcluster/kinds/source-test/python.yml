@@ -180,7 +180,7 @@ mozharness:
         symbol: py3(mh)
     run:
         using: run-task
-        cache-dotcache: true
+        use-caches: [checkout, uv, pip]
         cwd: '{checkout}/testing/mozharness'
         command: >
             /usr/local/bin/tox -e py311-hg6.4

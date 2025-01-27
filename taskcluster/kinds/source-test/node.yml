@@ -14,7 +14,7 @@ task-defaults:
     run:
         using: run-task
         cwd: '{checkout}'
-        cache-dotcache: true
+        use-caches: [checkout, npm]
 
 newtab-unit-tests:
     description: newtab unit tests
