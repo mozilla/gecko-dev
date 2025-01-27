@@ -17,11 +17,6 @@
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef __APPLE__
-#include <sys/utsname.h>
-#endif
-
-#include "mozilla/gtest/MozHelpers.h"
 
 // #define ENABLE_NORMAL_LOG
 // #define ENABLE_VERBOSE_LOG
@@ -206,11 +201,6 @@ TEST(cubeb, duplex_collection_change)
   ASSERT_EQ(r, CUBEB_OK);
 }
 
-void CauseDeath(cubeb * p) {
-  mozilla::gtest::DisableCrashReporter();
-  cubeb_destroy(p);
-}
-
 #ifdef GTEST_HAS_DEATH_TEST
 TEST(cubeb, duplex_collection_change_no_unregister)
 {
@@ -228,17 +218,9 @@ TEST(cubeb, duplex_collection_change_no_unregister)
   }
 
   std::unique_ptr<cubeb, decltype(&cubeb_destroy)> cleanup_cubeb_at_exit(
-      ctx, [](cubeb * p) noexcept { EXPECT_DEATH(CauseDeath(p), ""); });
+      ctx, [](cubeb * p) noexcept { EXPECT_DEATH(cubeb_destroy(p), ""); });
 
   duplex_collection_change_impl(ctx);
-
-#  if defined(XP_MACOSX) && !defined(MOZ_DEBUG)
-  // For some reason this test hangs on macOS in non-debug builds when the child
-  // process (death test fork) crashes and the crash reporter is enabled in the
-  // parent process. There is not much left to do that can cause a crash in the
-  // parent process anyway, so disable the crash reporter where needed to pass.
-  mozilla::gtest::DisableCrashReporter();
-#  endif
 }
 #endif
 
@@ -312,17 +294,6 @@ TEST(cubeb, one_duplex_one_input)
   int r;
   user_state_duplex duplex_stream_state;
   uint32_t latency_frames = 0;
-
-  // Disabled on 10.15, see bug 1867183
-#ifdef __APPLE__
-  struct utsname uts;
-  uname(&uts);
-  // 10.15 correspond to Darwin 19
-  if (strncmp(uts.release, "19", 2) == 0) {
-    printf("Test disabled on macOS 10.15, exiting.\n");
-    return;
-  }
-#endif
 
   r = common_init(&ctx, "Cubeb duplex example");
   ASSERT_EQ(r, CUBEB_OK) << "Error initializing cubeb library";
