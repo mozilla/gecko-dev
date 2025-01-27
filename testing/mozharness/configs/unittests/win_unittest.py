@@ -277,6 +277,28 @@ config = {
             "enabled": True,
         },
         {
+            "name": "enable microphone access for msix (central)",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-Item -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\ -Name "Mozilla.MozillaFirefoxNightly_jag0gd4e3s9p2" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
+            "name": "enable microphone access for msix, add allow key (central)",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Mozilla.MozillaFirefoxNightly_jag0gd4e3s9p2 -Name "Value" -Value "Allow" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
             "name": "disable windows security and maintenance notifications",
             "cmd": [
                 "powershell",
