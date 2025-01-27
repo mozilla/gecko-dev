@@ -155,12 +155,15 @@ export class PasswordCard extends MozLitElement {
   }
 
   renderOriginField() {
+    const dataL10nId = this.origin.breached
+      ? "origin-login-line-with-alert"
+      : "origin-login-line";
     return html`
       <login-line
         tabindex="-1"
         role="option"
         class="line-item"
-        data-l10n-id="origin-login-line"
+        data-l10n-id=${dataL10nId}
         data-l10n-args="${JSON.stringify({ url: this.origin.value })}"
         inputType="text"
         lineType="origin"
@@ -178,12 +181,15 @@ export class PasswordCard extends MozLitElement {
   }
 
   renderUsernameField() {
+    const dataL10nId = !this.username.value.length
+      ? "username-login-line-with-alert"
+      : "username-login-line";
     return html`
       <login-line
         tabindex="-1"
         role="option"
         class="line-item"
-        data-l10n-id="username-login-line"
+        data-l10n-id=${dataL10nId}
         data-l10n-args="${JSON.stringify({ username: this.username.value })}"
         inputType="text"
         lineType="username"

@@ -192,6 +192,9 @@ class ConcealedLoginLine extends MozLitElement {
   }
 
   render() {
+    const dataL10nId = this.alert
+      ? "password-login-line-with-alert"
+      : "password-login-line";
     return html` <link
         rel="stylesheet"
         href="chrome://global/content/megalist/components/login-line/login-line.css"
@@ -199,7 +202,7 @@ class ConcealedLoginLine extends MozLitElement {
       <login-line
         role="option"
         tabindex="-1"
-        data-l10n-id="password-login-line"
+        data-l10n-id=${dataL10nId}
         lineType="password"
         inputType=${this.#inputType}
         labelL10nId=${this.labelL10nId}

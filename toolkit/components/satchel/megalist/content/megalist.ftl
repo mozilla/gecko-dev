@@ -303,14 +303,30 @@ alert-icon =
 origin-login-line =
   .aria-label = Visit { $url }
   .title = Visit { $url }
+# "(Warning)" indicates that a login's origin field has an alert icon.
+# Variables
+#   $url (string) - The url associated with the login
+origin-login-line-with-alert =
+  .aria-label = Visit { $url } (Warning)
+  .title = Visit { $url } (Warning)
 # Variables
 #   $username (string) - The username associated with the login
 username-login-line =
   .aria-label = Copy Username { $username }
   .title = Copy Username { $username }
+# "(Warning)" indicates that a login's username field has an alert icon.
+# Variables
+#   $username (string) - The username associated with the login
+username-login-line-with-alert =
+  .aria-label = Copy Username { $username } (Warning)
+  .title = Copy Username { $username } (Warning)
 password-login-line =
   .aria-label = Copy Password
   .title = Copy Password
+# "(Warning)" indicates that a login's password field has an alert icon.
+password-login-line-with-alert =
+  .aria-label = Copy Password (Warning)
+  .title = Copy Password (Warning)
 edit-login-button = Edit
   .tooltiptext = Edit Password
 view-alert-heading =
