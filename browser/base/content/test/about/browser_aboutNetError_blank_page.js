@@ -13,9 +13,7 @@ async function test_blankPage(
   responseStatusText
 ) {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.http.blank_page_with_error_response.enabled", false],
-    ],
+    set: [["browser.http.blank_page_with_error_response.enabled", false]],
   });
 
   let browser;
