@@ -3,7 +3,6 @@ import shutil
 import unittest
 
 import mozharness.base.log as log
-import mozunit
 
 tmp_dir = "test_log_dir"
 log_name = "test"
@@ -41,4 +40,4 @@ class TestLog(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    mozunit.main()
+    unittest.main()
