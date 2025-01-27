@@ -559,6 +559,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.topicSelection.enabled",
+    {
+      title: "Boolean flag to enable inline topic selection",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.spoc-positions",
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",

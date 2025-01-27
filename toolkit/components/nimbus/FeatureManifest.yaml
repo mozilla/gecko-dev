@@ -904,6 +904,21 @@ newtabAdSizingExperiment:
       description: >-
         Billboard row position.
 
+newtabInlineTopicSelection:
+  description: >-
+      Adds Inline topic selection to sections layout
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    TopicSelectionEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.topicSelection.enabled
+      description: >-
+        Enables inline topic selection
+
+
 newtabLayoutExperiment:
   description: >-
     Change the default layout of new tab by adjusting sizes and spacing of elements.
