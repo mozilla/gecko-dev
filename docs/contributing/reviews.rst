@@ -104,6 +104,9 @@ Review groups
    * - #devtools-reviewers
      - Firefox DevTools
      - `Member list <https://phabricator.services.mozilla.com/project/members/153/>`__
+   * - #dom-core
+     - `Core: DOM <https://firefox-source-docs.mozilla.org/mots/index.html#core-document-object-model>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/178/>`__
    * - #dom-worker-reviewers
      - DOM Workers
      - `Member list <https://phabricator.services.mozilla.com/project/members/146/>`__
@@ -137,6 +140,9 @@ Review groups
    * - #intermittent-reviewers
      - Test manifest changes
      - `Member list <https://phabricator.services.mozilla.com/project/members/110/>`__
+   * - #ipc-reviewers
+     - `Core: IPC <https://firefox-source-docs.mozilla.org/mots/index.html#core-ipc>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/145/>`__
    * - #layout-reviewers
      - Layout
      - `Member list <https://phabricator.services.mozilla.com/project/members/126/>`__
@@ -209,6 +215,9 @@ Review groups
    * - #theme or #desktop-theme-reviewers
      - `Firefox: Theme and Toolkit: Themes </mots/index.html#desktop-theme>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/141/>`__
+   * - #translations-reviewers
+     - `Firefox: Translation <https://firefox-source-docs.mozilla.org/mots/index.html#translation>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/192/>`__
    * - #urlbar-reviewers
      - `Urlbar (Address Bar) </mots/index.html#address-bar>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/211/>`__
