@@ -15,6 +15,9 @@ support-files = [
   "file_fullscreen-focus.html",
   "file_fullscreen-focus-inner.html",
   "file_fullscreen-hidden.html",
+  "file_fullscreen-iframe-inner.html",
+  "file_fullscreen-iframe-middle.html",
+  "file_fullscreen-iframe-top.html",
   "file_fullscreen-lenient-setters.html",
   "file_fullscreen_meta_viewport.html",
   "file_fullscreen-multiple-inner.html",
@@ -34,6 +37,7 @@ support-files = [
   "file_fullscreen-top-layer.html",
   "file_fullscreen-utils.js",
   "file_fullscreen-with-full-zoom.html",
+  "fullscreen_helpers.js",
 ]
 
 ["test_fullscreen-api-race.html"]
@@ -54,6 +58,8 @@ skip-if = [
   "http2",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929452
 ]
+
+["test_fullscreen_iframe.html"]
 
 ["test_fullscreen_meta_viewport.html"]
 

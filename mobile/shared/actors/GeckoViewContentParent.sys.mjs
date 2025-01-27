@@ -16,6 +16,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const { debug, warn } = GeckoViewUtils.initLogging("GeckoViewContentParent");
 
 export class GeckoViewContentParent extends GeckoViewActorParent {
+  didDestroy() {
+    this._didDestroy = true;
+  }
+
   async collectState() {
     return this.sendQuery("CollectSessionState");
   }
@@ -82,5 +86,22 @@ export class GeckoViewContentParent extends GeckoViewActorParent {
     progressFilter.addProgressListener(progressListener, flags);
     browser.addProgressListener(progressFilter, flags);
     return null;
+  }
+
+  // This is a copy of browser/actors/DOMFullscreenParent.sys.mjs
+  hasBeenDestroyed() {
+    if (this._didDestroy) {
+      return true;
+    }
+
+    // The 'didDestroy' callback is not always getting called.
+    // So we can't rely on it here. Instead, we will try to access
+    // the browsing context to judge wether the actor has
+    // been destroyed or not.
+    try {
+      return !this.browsingContext;
+    } catch {
+      return true;
+    }
   }
 }

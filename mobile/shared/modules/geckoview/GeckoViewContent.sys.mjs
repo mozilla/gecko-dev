@@ -135,37 +135,57 @@ export class GeckoViewContent extends GeckoViewModule {
     }
   }
 
-  #sendDOMFullScreenEventToAllChildren(aEvent) {
-    let { browsingContext } = this.actor;
+  #sendEnterDOMFullscreenEvent(aRequestOrigin) {
+    // Track the actors that are involved in the fullscreen request. And we will
+    // use them to send the exit message when the fullscreen is exited.
+    this._fullscreenRequest = { actors: [] };
 
-    while (browsingContext) {
-      if (!browsingContext.currentWindowGlobal) {
+    let currentBC = aRequestOrigin.browsingContext;
+    let currentPid = currentBC.currentWindowGlobal.osPid;
+    let parentBC = currentBC.parent;
+
+    while (parentBC) {
+      if (!parentBC.currentWindowGlobal) {
         break;
       }
 
-      const currentPid = browsingContext.currentWindowGlobal.osPid;
-      const parentPid = browsingContext.parent?.currentWindowGlobal.osPid;
-
+      const parentPid = parentBC.currentWindowGlobal.osPid;
       if (currentPid != parentPid) {
-        if (!browsingContext.parent) {
-          // Top level browsing context. Use origin actor (Bug 1505916).
-          const chromeBC = browsingContext.topChromeWindow?.browsingContext;
-          const requestOrigin = chromeBC?.fullscreenRequestOrigin?.get();
-          if (requestOrigin) {
-            requestOrigin.browsingContext.currentWindowGlobal
-              .getActor("GeckoViewContent")
-              .sendAsyncMessage(aEvent, {});
-            delete chromeBC.fullscreenRequestOrigin;
-            return;
-          }
-        }
-        const actor =
-          browsingContext.currentWindowGlobal.getActor("GeckoViewContent");
-        actor.sendAsyncMessage(aEvent, {});
+        const actor = parentBC.currentWindowGlobal.getActor("GeckoViewContent");
+        actor.sendAsyncMessage("GeckoView:DOMFullscreenEntered", {
+          remoteFrameBC: currentBC,
+        });
+        this._fullscreenRequest.actors.push(actor);
+        currentPid = parentPid;
       }
 
-      browsingContext = browsingContext.parent;
+      currentBC = parentBC;
+      parentBC = parentBC.parent;
     }
+
+    const actor =
+      aRequestOrigin.browsingContext.currentWindowGlobal.getActor(
+        "GeckoViewContent"
+      );
+    actor.sendAsyncMessage("GeckoView:DOMFullscreenEntered", {});
+    this._fullscreenRequest.actors.push(actor);
+  }
+
+  #sendExitDOMFullScreenEvent() {
+    if (!this._fullscreenRequest) {
+      return;
+    }
+
+    for (const actor of this._fullscreenRequest.actors) {
+      if (
+        !actor.hasBeenDestroyed() &&
+        actor.windowContext &&
+        !actor.windowContext.isInBFCache
+      ) {
+        actor.sendAsyncMessage("GeckoView:DOMFullscreenExited", {});
+      }
+    }
+    delete this._fullscreenRequest;
   }
 
   // Bundle event handler.
@@ -334,16 +354,20 @@ export class GeckoViewContent extends GeckoViewModule {
         break;
       case "MozDOMFullscreen:Entered":
         if (this.browser == aEvent.target) {
+          const chromeWindow = this.browser.ownerGlobal;
+          const requestOrigin =
+            chromeWindow.browsingContext?.fullscreenRequestOrigin?.get();
+          if (!requestOrigin) {
+            chromeWindow.document.exitFullscreen();
+            return;
+          }
+
           // Remote browser; dispatch to content process.
-          this.#sendDOMFullScreenEventToAllChildren(
-            "GeckoView:DOMFullscreenEntered"
-          );
+          this.#sendEnterDOMFullscreenEvent(requestOrigin);
         }
         break;
       case "MozDOMFullscreen:Exited":
-        this.#sendDOMFullScreenEventToAllChildren(
-          "GeckoView:DOMFullscreenExited"
-        );
+        this.#sendExitDOMFullScreenEvent();
         break;
       case "pagetitlechanged":
         this.eventDispatcher.sendRequest({

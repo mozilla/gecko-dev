@@ -18,6 +18,32 @@ const TEST_URLS = [
   `https://example.com/browser/dom/base/test/fullscreen/file_fullscreen-iframe-top.html`,
 ];
 
+function waitRemoteFullscreenEnterEvents(aBrowsingContexts) {
+  let promises = [];
+  aBrowsingContexts.forEach(([aBrowsingContext, aName]) => {
+    promises.push(
+      SpecialPowers.spawn(aBrowsingContext, [aName], async name => {
+        return new Promise(resolve => {
+          let document = content.document;
+          document.addEventListener(
+            "fullscreenchange",
+            function changeHandler() {
+              info(`received fullscreenchange event on ${name}`);
+              ok(
+                !!document.fullscreenElement,
+                `check remote DOM fullscreen event`
+              );
+              document.removeEventListener("fullscreenchange", changeHandler);
+              resolve();
+            }
+          );
+        });
+      })
+    );
+  });
+  return Promise.all(promises);
+}
+
 function waitRemoteFullscreenExitEvents(aBrowsingContexts) {
   let promises = [];
   aBrowsingContexts.forEach(([aBrowsingContext, aName]) => {
@@ -32,6 +58,7 @@ function waitRemoteFullscreenExitEvents(aBrowsingContexts) {
                 return;
               }
 
+              info(`received fullscreenchange event on ${name}`);
               ok(true, `check remote DOM fullscreen event (${name})`);
               document.removeEventListener("fullscreenchange", changeHandler);
               resolve();

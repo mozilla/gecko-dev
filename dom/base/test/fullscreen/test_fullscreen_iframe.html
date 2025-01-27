@@ -1,0 +1,64 @@
+<!doctype html>
+<title>Test for bug 1938966</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="fullscreen_helpers.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css">
+<script>
+
+let { ContentTaskUtils } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://testing-common/ContentTaskUtils.sys.mjs"
+);
+
+add_setup(async function () {
+  SpecialPowers.pushPrefEnv({ set: [
+    ["full-screen-api.transition-duration.enter", "0 0"],
+    ["full-screen-api.transition-duration.leave", "0 0"],
+    ["full-screen-api.allow-trusted-requests-only", false]],
+  });
+});
+
+TEST_URLS.forEach(url => {
+  add_task(async () => {
+    info(`Test url: ${url}`);
+
+    const iframe = document.createElement("iframe");
+    iframe.allowFullscreen = true;
+    iframe.src = url;
+
+    const loadPromise = ContentTaskUtils.waitForEvent(iframe, "load");
+    document.documentElement.appendChild(iframe);
+    await loadPromise;
+
+    const topBC = SpecialPowers.wrap(iframe.contentWindow).browsingContext;
+    const middleBC = topBC.children[0];
+    const innerBC = middleBC.children[0];
+    const browsingContexts = [
+      [topBC, "toplevel"],
+      [middleBC, "middle"],
+      [innerBC, "inner"]
+    ];
+
+    const enterPromise = waitRemoteFullscreenEnterEvents(browsingContexts);
+    // Trigger click event in inner most iframe
+    SpecialPowers.spawn(innerBC, [], function () {
+      content.setTimeout(() => {
+        content.document.getElementById("div").click();
+      }, 0);
+    });
+    await enterPromise;
+
+    const exitPromise = waitRemoteFullscreenExitEvents(browsingContexts);
+    // Trigger fullscreen exit in inner most iframe
+    SpecialPowers.spawn(innerBC, [], function () {
+      content.setTimeout(() => {
+        content.document.exitFullscreen();
+      }, 0);
+    });
+    await exitPromise;
+
+    iframe.remove();
+  });
+});
+
+</script>
