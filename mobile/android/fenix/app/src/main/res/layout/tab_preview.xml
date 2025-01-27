@@ -126,6 +126,7 @@
             android:id="@+id/fake_tab_counter"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_marginEnd="6dp"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/fake_menu_button"
@@ -138,6 +139,7 @@
             android:layout_height="48dp"
             android:paddingVertical="12dp"
             android:paddingHorizontal="4dp"
+            android:layout_marginEnd="6dp"
             app:srcCompat="@drawable/mozac_ic_ellipsis_vertical_24"
             app:tint="?attr/textPrimary"
             app:layout_constraintEnd_toEndOf="parent"
@@ -174,15 +176,20 @@
             android:id="@+id/tab_button"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:layout_marginEnd="6dp"
+            />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/menuButton"
             android:layout_width="36dp"
             android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:scaleType="center"
-            app:srcCompat="@drawable/ic_menu"
-            app:tint="?attr/textPrimary" />
+            android:layout_gravity="center_vertical"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="4dp"
+            android:layout_marginEnd="6dp"
+            app:srcCompat="@drawable/mozac_ic_ellipsis_vertical_24"
+            app:tint="?attr/textPrimary"
+            />
     </LinearLayout>
 </merge>
