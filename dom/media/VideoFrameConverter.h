@@ -11,15 +11,16 @@
 #include "Pacer.h"
 #include "PerformanceRecorder.h"
 #include "VideoSegment.h"
+#include "VideoUtils.h"
 #include "nsISupportsImpl.h"
 #include "nsThreadUtils.h"
 #include "jsapi/RTCStatsReport.h"
+#include "mozilla/TaskQueue.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "api/video/video_frame.h"
 #include "common_video/include/video_frame_buffer_pool.h"
 #include "common_video/include/video_frame_buffer.h"
-#include "media/base/adapted_video_track_source.h"
 
 // The number of frame buffers VideoFrameConverter may create before returning
 // errors.
@@ -44,47 +45,29 @@ enum class FrameDroppingPolicy {
 //
 // Input is typically a MediaTrackListener driven by MediaTrackGraph.
 //
-// Output is exposed through rtc::AdaptedVideoTrackSource, which implements
-// rtc::VideoSourceInterface<webrtc::VideoFrame>.
+// Output is passed through to VideoFrameConvertedEvent() whenever a frame is
+// converted.
 template <FrameDroppingPolicy DropPolicy = FrameDroppingPolicy::Allowed>
-class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
+class VideoFrameConverterImpl {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoFrameConverterImpl)
+
  protected:
   explicit VideoFrameConverterImpl(
-      already_AddRefed<nsISerialEventTarget> aTarget,
-      const dom::RTCStatsTimestampMaker& aTimestampMaker, bool aLockScaling)
+      const dom::RTCStatsTimestampMaker& aTimestampMaker)
       : mTimestampMaker(aTimestampMaker),
-        mTarget(aTarget),
-        mLockScaling(aLockScaling),
+        mTaskQueue(TaskQueue::Create(
+            GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
+            "VideoFrameConverter")),
         mPacer(MakeAndAddRef<Pacer<FrameToProcess>>(
-            do_AddRef(mTarget), mIdleFrameDuplicationInterval)),
-        mScalingPool(false, CONVERTER_BUFFER_POOL_SIZE),
-        mConversionPool(false, CONVERTER_BUFFER_POOL_SIZE) {
+            mTaskQueue, mIdleFrameDuplicationInterval)),
+        mBufferPool(false, CONVERTER_BUFFER_POOL_SIZE) {
     MOZ_COUNT_CTOR(VideoFrameConverterImpl);
-  }
-
-  // AdaptedVideoTrackSource impl -- we don't expect any of these to be called.
-  // They are in libwebrtc because they are used by blink to communicate
-  // properties from a video track source to their libwebrtc integration layer.
-  // We signal this elsewhere.
-  void GenerateKeyFrame() override {
-    MOZ_CRASH("Unexpected VideoFrameConverterImpl::GenerateKeyFrame");
-  }
-  SourceState state() const override {
-    MOZ_CRASH("Unexpected VideoFrameConverterImpl::state");
-  }
-  bool remote() const override {
-    MOZ_CRASH("Unexpected VideoFrameConverterImpl::remote");
-  }
-  bool is_screencast() const override {
-    MOZ_CRASH("Unexpected VideoFrameConverterImpl::is_screencast");
-  }
-  std::optional<bool> needs_denoising() const override {
-    MOZ_CRASH("Unexpected VideoFrameConverterImpl::needs_denoising");
   }
 
   void RegisterListener() {
     mPacingListener = mPacer->PacedItemEvent().Connect(
-        mTarget,
+        mTaskQueue,
         [self = RefPtr(this)](FrameToProcess&& aFrame, TimeStamp aTime) {
           self->QueueForProcessing(std::move(aFrame.mImage), aTime,
                                    aFrame.mSize, aFrame.mForceBlack);
@@ -92,9 +75,6 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   }
 
  public:
-  using rtc::VideoSourceInterface<webrtc::VideoFrame>::AddOrUpdateSink;
-  using rtc::VideoSourceInterface<webrtc::VideoFrame>::RemoveSink;
-
   void QueueVideoChunk(const VideoChunk& aChunk, bool aForceBlack) {
     gfx::IntSize size = aChunk.mFrame.GetIntrinsicSize();
     if (size.width == 0 || size.height == 0) {
@@ -114,7 +94,7 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
    * processing, so it can be immediately sent out once activated.
    */
   void SetActive(bool aActive) {
-    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__, [self = RefPtr<VideoFrameConverterImpl>(this), this, aActive,
                    time = TimeStamp::Now()] {
           if (mActive == aActive) {
@@ -138,7 +118,7 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   }
 
   void SetTrackEnabled(bool aTrackEnabled) {
-    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__, [self = RefPtr<VideoFrameConverterImpl>(this), this,
                    aTrackEnabled, time = TimeStamp::Now()] {
           if (mTrackEnabled == aTrackEnabled) {
@@ -163,7 +143,7 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   }
 
   void SetTrackingId(TrackingId aTrackingId) {
-    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__, [self = RefPtr<VideoFrameConverterImpl>(this), this,
                    id = std::move(aTrackingId)]() mutable {
           mTrackingId = Some(std::move(id));
@@ -171,7 +151,7 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   }
 
   void SetIdleFrameDuplicationInterval(TimeDuration aInterval) {
-    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__, [self = RefPtr(this), this, aInterval] {
           mIdleFrameDuplicationInterval = aInterval;
         })));
@@ -180,14 +160,17 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
 
   void Shutdown() {
     mPacer->Shutdown()->Then(
-        mTarget, __func__,
+        mTaskQueue, __func__,
         [self = RefPtr<VideoFrameConverterImpl>(this), this] {
           mPacingListener.DisconnectIfExists();
-          mScalingPool.Release();
-          mConversionPool.Release();
+          mBufferPool.Release();
           mLastFrameQueuedForProcessing = FrameToProcess();
           mLastFrameConverted = Nothing();
         });
+  }
+
+  MediaEventSourceExc<webrtc::VideoFrame>& VideoFrameConvertedEvent() {
+    return mVideoFrameConvertedEvent;
   }
 
  protected:
@@ -222,22 +205,17 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   };
 
   struct FrameConverted {
-    FrameConverted(webrtc::VideoFrame aFrame, gfx::IntSize aOriginalSize,
-                   int32_t aSerial)
-        : mFrame(std::move(aFrame)),
-          mOriginalSize(aOriginalSize),
-          mSerial(aSerial) {}
+    FrameConverted(webrtc::VideoFrame aFrame, int32_t aSerial)
+        : mFrame(std::move(aFrame)), mSerial(aSerial) {}
 
     webrtc::VideoFrame mFrame;
-    gfx::IntSize mOriginalSize;
     int32_t mSerial;
   };
 
   MOZ_COUNTED_DTOR_VIRTUAL(VideoFrameConverterImpl)
 
-  void VideoFrameConverted(const webrtc::VideoFrame& aVideoFrame,
-                           gfx::IntSize aOriginalSize, int32_t aSerial) {
-    MOZ_ASSERT(mTarget->IsOnCurrentThread());
+  void VideoFrameConverted(webrtc::VideoFrame aVideoFrame, int32_t aSerial) {
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
     LOG(LogLevel::Verbose,
         "VideoFrameConverterImpl %p: Converted a frame. Diff from last: %.3fms",
@@ -253,15 +231,14 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
                   aVideoFrame.timestamp_us() >
                       mLastFrameConverted->mFrame.timestamp_us());
 
-    mLastFrameConverted =
-        Some(FrameConverted(aVideoFrame, aOriginalSize, aSerial));
+    mLastFrameConverted = Some(FrameConverted(aVideoFrame, aSerial));
 
-    OnFrame(aVideoFrame);
+    mVideoFrameConvertedEvent.Notify(std::move(aVideoFrame));
   }
 
   void QueueForProcessing(RefPtr<layers::Image> aImage, TimeStamp aTime,
                           gfx::IntSize aSize, bool aForceBlack) {
-    MOZ_ASSERT(mTarget->IsOnCurrentThread());
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
     FrameToProcess frame{std::move(aImage), aTime, aSize,
                          aForceBlack || !mTrackEnabled};
@@ -303,7 +280,8 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
       } else {
         LOG(LogLevel::Verbose,
             "VideoFrameConverterImpl %p: Dropping a duplicate frame because "
-            "the duplication interval (%.3fs) hasn't passed (%.3fs)",
+            "the "
+            "duplication interval (%.3fs) hasn't passed (%.3fs)",
             this, mIdleFrameDuplicationInterval.ToSeconds(),
             (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds());
         return;
@@ -319,155 +297,43 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
       return;
     }
 
-    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NewRunnableMethod<FrameToProcess>(
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NewRunnableMethod<FrameToProcess>(
         "VideoFrameConverterImpl::ProcessVideoFrame", this,
         &VideoFrameConverterImpl::ProcessVideoFrame,
         mLastFrameQueuedForProcessing)));
   }
 
   void ProcessVideoFrame(const FrameToProcess& aFrame) {
-    MOZ_ASSERT(mTarget->IsOnCurrentThread());
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
-    auto convert = [this, &aFrame]() -> rtc::scoped_refptr<webrtc::I420Buffer> {
-      rtc::scoped_refptr<webrtc::I420Buffer> buffer =
-          mConversionPool.CreateI420Buffer(aFrame.mSize.width,
-                                           aFrame.mSize.height);
-      if (!buffer) {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-        ++mConversionFramesDropped;
-#endif
-        MOZ_DIAGNOSTIC_ASSERT(mConversionFramesDropped <= 100,
-                              "Conversion buffers must be leaking");
-        LOG(LogLevel::Warning,
-            "VideoFrameConverterImpl %p: Creating a conversion buffer failed",
-            this);
-        return nullptr;
+    if constexpr (DropPolicy == FrameDroppingPolicy::Allowed) {
+      if (aFrame.mTime < mLastFrameQueuedForProcessing.mTime) {
+        LOG(LogLevel::Debug,
+            "VideoFrameConverterImpl %p: Dropping a frame that is %.3f seconds "
+            "before latest",
+            this,
+            (mLastFrameQueuedForProcessing.mTime - aFrame.mTime).ToSeconds());
+        return;
       }
-
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-      mConversionFramesDropped = 0;
-#endif
-      PerformanceRecorder<CopyVideoStage> rec(
-          "VideoFrameConverterImpl::ConvertToI420"_ns, *mTrackingId,
-          buffer->width(), buffer->height());
-      nsresult rv = ConvertToI420(aFrame.mImage, buffer->MutableDataY(),
-                                  buffer->StrideY(), buffer->MutableDataU(),
-                                  buffer->StrideU(), buffer->MutableDataV(),
-                                  buffer->StrideV());
-
-      if (NS_FAILED(rv)) {
-        LOG(LogLevel::Warning,
-            "VideoFrameConverterImpl %p: Image conversion failed", this);
-        return nullptr;
-      }
-      rec.Record();
-      return buffer;
-    };
-
-    auto cropAndScale =
-        [this, &aFrame](
-            const rtc::scoped_refptr<webrtc::I420BufferInterface>& aSrc,
-            int aCrop_x, int aCrop_y, int aCrop_w, int aCrop_h, int aOut_width,
-            int aOut_height)
-        -> rtc::scoped_refptr<webrtc::I420BufferInterface> {
-      rtc::scoped_refptr<webrtc::I420Buffer> buffer =
-          mScalingPool.CreateI420Buffer(aOut_width, aOut_height);
-      if (!buffer) {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-        ++mScalingFramesDropped;
-        MOZ_DIAGNOSTIC_ASSERT(mScalingFramesDropped <= 100,
-                              "Scaling buffers must be leaking");
-#endif
-        LOG(LogLevel::Warning,
-            "VideoFrameConverterImpl %p: Creating a scaling buffer failed",
-            this);
-        return nullptr;
-      }
-
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-      mScalingFramesDropped = 0;
-#endif
-      PerformanceRecorder<CopyVideoStage> rec(
-          "VideoFrameConverterImpl::CropAndScale"_ns, *mTrackingId,
-          aSrc->width(), aSrc->height());
-      LOG(LogLevel::Verbose,
-          "VideoFrameConverterImpl %p: Scaling image %d, %dx%d -> %dx%d", this,
-          aFrame.Serial(), aFrame.mSize.Width(), aFrame.mSize.Height(),
-          aOut_width, aOut_height);
-      buffer->CropAndScaleFrom(*aSrc, aCrop_x, aCrop_y, aCrop_w, aCrop_h);
-      rec.Record();
-      return buffer;
-    };
+    }
 
     const webrtc::Timestamp time =
         dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, aFrame.mTime)
             .ToRealtime();
 
-    const bool sameAsLastConverted =
-        mLastFrameConverted && aFrame.Serial() == mLastFrameConverted->mSerial;
-    const gfx::IntSize inSize =
-        sameAsLastConverted ? mLastFrameConverted->mOriginalSize : aFrame.mSize;
-
-    int crop_x{}, crop_y{}, crop_width{}, crop_height{}, out_width{},
-        out_height{};
-    bool keep =
-        AdaptFrame(inSize.Width(), inSize.Height(), time.us(), &out_width,
-                   &out_height, &crop_width, &crop_height, &crop_x, &crop_y);
-
-    if (mLockScaling) {
-      crop_x = crop_y = 0;
-      crop_width = out_width = inSize.Width();
-      crop_height = out_height = inSize.Height();
-    }
-
-    if (out_width == 0 || out_height == 0) {
-      LOG(LogLevel::Verbose,
-          "VideoFrameConverterImpl %p: Skipping a frame because it has no "
-          "pixels",
-          this);
-      OnFrameDropped();
+    if (mLastFrameConverted &&
+        aFrame.Serial() == mLastFrameConverted->mSerial) {
+      // This is the same input frame as last time. Avoid a conversion.
+      webrtc::VideoFrame frame = mLastFrameConverted->mFrame;
+      frame.set_timestamp_us(time.us());
+      VideoFrameConverted(std::move(frame), mLastFrameConverted->mSerial);
       return;
-    }
-
-    if constexpr (DropPolicy == FrameDroppingPolicy::Allowed) {
-      if (!keep) {
-        LOG(LogLevel::Verbose,
-            "VideoFrameConverterImpl %p: Dropping a frame because of SinkWants",
-            this);
-        // AdaptFrame has already called OnFrameDropped.
-        return;
-      }
-      if (aFrame.mTime < mLastFrameQueuedForProcessing.mTime) {
-        LOG(LogLevel::Verbose,
-            "VideoFrameConverterImpl %p: Dropping a frame that is %.3f seconds "
-            "before latest",
-            this,
-            (mLastFrameQueuedForProcessing.mTime - aFrame.mTime).ToSeconds());
-        OnFrameDropped();
-        return;
-      }
-    }
-
-    if (sameAsLastConverted) {
-      if (out_width == mLastFrameConverted->mFrame.width() &&
-          out_height == mLastFrameConverted->mFrame.height()) {
-        // This is the same input frame as last time. Avoid a conversion.
-        LOG(LogLevel::Verbose,
-            "VideoFrameConverterImpl %p: Re-converting last frame %d. "
-            "Re-using with same resolution.",
-            this, aFrame.Serial());
-        webrtc::VideoFrame frame = mLastFrameConverted->mFrame;
-        frame.set_timestamp_us(time.us());
-        VideoFrameConverted(frame, mLastFrameConverted->mOriginalSize,
-                            mLastFrameConverted->mSerial);
-        return;
-      }
     }
 
     if (aFrame.mForceBlack) {
       // Send a black image.
       rtc::scoped_refptr<webrtc::I420Buffer> buffer =
-          mScalingPool.CreateI420Buffer(out_width, out_height);
+          mBufferPool.CreateI420Buffer(aFrame.mSize.width, aFrame.mSize.height);
       if (!buffer) {
         MOZ_DIAGNOSTIC_CRASH(
             "Buffers not leaving scope except for "
@@ -476,22 +342,18 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
             "VideoFrameConverterImpl %p: Creating a buffer for a black video "
             "frame failed",
             this);
-        OnFrameDropped();
         return;
       }
 
       LOG(LogLevel::Verbose,
-          "VideoFrameConverterImpl %p: Sending a black video frame. "
-          "CropAndScale: %dx%d -> %dx%d",
-          this, aFrame.mSize.Width(), aFrame.mSize.Height(), out_width,
-          out_height);
+          "VideoFrameConverterImpl %p: Sending a black video frame", this);
       webrtc::I420Buffer::SetBlack(buffer.get());
 
       VideoFrameConverted(webrtc::VideoFrame::Builder()
                               .set_video_frame_buffer(buffer)
                               .set_timestamp_us(time.us())
                               .build(),
-                          inSize, aFrame.Serial());
+                          aFrame.Serial());
       return;
     }
 
@@ -502,7 +364,6 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
 
     MOZ_ASSERT(aFrame.mImage->GetSize() == aFrame.mSize);
 
-    rtc::scoped_refptr<webrtc::I420BufferInterface> srcFrame;
     RefPtr<layers::PlanarYCbCrImage> image =
         aFrame.mImage->AsPlanarYCbCrImage();
     if (image) {
@@ -512,55 +373,65 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
           format.value() == dom::ImageBitmapFormat::YUV420P &&
           image->GetData()) {
         const layers::PlanarYCbCrData* data = image->GetData();
-        srcFrame = webrtc::WrapI420Buffer(
-            aFrame.mImage->GetSize().width, aFrame.mImage->GetSize().height,
-            data->mYChannel, data->mYStride, data->mCbChannel,
-            data->mCbCrStride, data->mCrChannel, data->mCbCrStride,
-            [image] { /* keep reference alive*/ });
+        rtc::scoped_refptr<webrtc::I420BufferInterface> video_frame_buffer =
+            webrtc::WrapI420Buffer(
+                aFrame.mImage->GetSize().width, aFrame.mImage->GetSize().height,
+                data->mYChannel, data->mYStride, data->mCbChannel,
+                data->mCbCrStride, data->mCrChannel, data->mCbCrStride,
+                [image] { /* keep reference alive*/ });
 
         LOG(LogLevel::Verbose,
-            "VideoFrameConverterImpl %p: Avoiding a conversion for image %d",
-            this, aFrame.Serial());
+            "VideoFrameConverterImpl %p: Sending an I420 video frame", this);
+        VideoFrameConverted(webrtc::VideoFrame::Builder()
+                                .set_video_frame_buffer(video_frame_buffer)
+                                .set_timestamp_us(time.us())
+                                .build(),
+                            aFrame.Serial());
+        return;
       }
     }
 
-    if (!srcFrame) {
-      srcFrame = convert();
-    }
-
-    if (!srcFrame) {
-      OnFrameDropped();
+    rtc::scoped_refptr<webrtc::I420Buffer> buffer =
+        mBufferPool.CreateI420Buffer(aFrame.mSize.width, aFrame.mSize.height);
+    if (!buffer) {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+      ++mFramesDropped;
+#endif
+      MOZ_DIAGNOSTIC_ASSERT(mFramesDropped <= 100, "Buffers must be leaking");
+      LOG(LogLevel::Warning,
+          "VideoFrameConverterImpl %p: Creating a buffer failed", this);
       return;
     }
 
-    if (srcFrame->width() == out_width && srcFrame->height() == out_height) {
-      LOG(LogLevel::Verbose,
-          "VideoFrameConverterImpl %p: Avoiding scaling for image %d, "
-          "Dimensions: %dx%d",
-          this, aFrame.Serial(), out_width, out_height);
-      VideoFrameConverted(webrtc::VideoFrame::Builder()
-                              .set_video_frame_buffer(srcFrame)
-                              .set_timestamp_us(time.us())
-                              .build(),
-                          inSize, aFrame.Serial());
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mFramesDropped = 0;
+#endif
+    PerformanceRecorder<CopyVideoStage> rec(
+        "VideoFrameConverterImpl::ConvertToI420"_ns, *mTrackingId,
+        buffer->width(), buffer->height());
+    nsresult rv =
+        ConvertToI420(aFrame.mImage, buffer->MutableDataY(), buffer->StrideY(),
+                      buffer->MutableDataU(), buffer->StrideU(),
+                      buffer->MutableDataV(), buffer->StrideV());
+
+    if (NS_FAILED(rv)) {
+      LOG(LogLevel::Warning,
+          "VideoFrameConverterImpl %p: Image conversion failed", this);
       return;
     }
+    rec.Record();
 
-    if (rtc::scoped_refptr<webrtc::I420BufferInterface> buffer =
-            cropAndScale(rtc::scoped_refptr(srcFrame), crop_x, crop_y,
-                         crop_width, crop_height, out_width, out_height)) {
-      VideoFrameConverted(webrtc::VideoFrame::Builder()
-                              .set_video_frame_buffer(buffer)
-                              .set_timestamp_us(time.us())
-                              .build(),
-                          inSize, aFrame.Serial());
-    }
+    VideoFrameConverted(webrtc::VideoFrame::Builder()
+                            .set_video_frame_buffer(buffer)
+                            .set_timestamp_us(time.us())
+                            .build(),
+                        aFrame.Serial());
   }
 
  public:
   const dom::RTCStatsTimestampMaker mTimestampMaker;
-  const nsCOMPtr<nsISerialEventTarget> mTarget;
-  const bool mLockScaling;
+
+  const RefPtr<TaskQueue> mTaskQueue;
 
  protected:
   TimeDuration mIdleFrameDuplicationInterval = TimeDuration::Forever();
@@ -568,37 +439,33 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
   // Used to pace future frames close to their rendering-time. Thread-safe.
   const RefPtr<Pacer<FrameToProcess>> mPacer;
 
-  // Accessed only from mTarget.
+  MediaEventProducerExc<webrtc::VideoFrame> mVideoFrameConvertedEvent;
+
+  // Accessed only from mTaskQueue.
   MediaEventListener mPacingListener;
-  webrtc::VideoFrameBufferPool mScalingPool;
-  webrtc::VideoFrameBufferPool mConversionPool;
+  webrtc::VideoFrameBufferPool mBufferPool;
   FrameToProcess mLastFrameQueuedForProcessing;
   Maybe<FrameConverted> mLastFrameConverted;
   bool mActive = false;
   bool mTrackEnabled = true;
   Maybe<TrackingId> mTrackingId;
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  size_t mConversionFramesDropped = 0;
-  size_t mScalingFramesDropped = 0;
+  size_t mFramesDropped = 0;
 #endif
 };
 
-class VideoFrameConverter
-    : public rtc::RefCountedObject<
-          VideoFrameConverterImpl<FrameDroppingPolicy::Allowed>> {
+class VideoFrameConverter final
+    : public VideoFrameConverterImpl<FrameDroppingPolicy::Allowed> {
  protected:
-  VideoFrameConverter(already_AddRefed<nsISerialEventTarget> aTarget,
-                      const dom::RTCStatsTimestampMaker& aTimestampMaker,
-                      bool aLockScaling)
-      : rtc::RefCountedObject<VideoFrameConverterImpl>(
-            std::move(aTarget), aTimestampMaker, aLockScaling) {}
+  explicit VideoFrameConverter(
+      const dom::RTCStatsTimestampMaker& aTimestampMaker)
+      : VideoFrameConverterImpl(aTimestampMaker) {}
 
  public:
   static already_AddRefed<VideoFrameConverter> Create(
-      already_AddRefed<nsISerialEventTarget> aTarget,
-      const dom::RTCStatsTimestampMaker& aTimestampMaker, bool aLockScaling) {
-    RefPtr<VideoFrameConverter> converter = new VideoFrameConverter(
-        std::move(aTarget), aTimestampMaker, aLockScaling);
+      const dom::RTCStatsTimestampMaker& aTimestampMaker) {
+    RefPtr<VideoFrameConverter> converter =
+        new VideoFrameConverter(aTimestampMaker);
     converter->RegisterListener();
     return converter.forget();
   }

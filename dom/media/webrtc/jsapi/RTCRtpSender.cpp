@@ -545,10 +545,11 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
             videoSourceStats.mFramesPerSecond.Construct(
                 videoStats->input_frame_rate);
             auto resolution = aConduit->GetLastResolution();
-            resolution.apply([&](const auto& aResolution) {
-              videoSourceStats.mWidth.Construct(aResolution.width);
-              videoSourceStats.mHeight.Construct(aResolution.height);
-            });
+            resolution.apply(
+                [&](const VideoSessionConduit::Resolution& aResolution) {
+                  videoSourceStats.mWidth.Construct(aResolution.width);
+                  videoSourceStats.mHeight.Construct(aResolution.height);
+                });
             if (!report->mVideoSourceStats.AppendElement(
                     std::move(videoSourceStats), fallible)) {
               mozalloc_handle_oom(0);

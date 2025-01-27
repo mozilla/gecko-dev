@@ -3,7 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <array>
 #include <iterator>
 #include <thread>
 
@@ -12,36 +11,24 @@
 #include "mozilla/gtest/WaitFor.h"
 #include "MediaEventSource.h"
 #include "VideoFrameConverter.h"
-#include "VideoUtils.h"
 #include "YUVBufferGenerator.h"
-#include "rtc_base/ref_counted_object.h"
 
 using namespace mozilla;
 using testing::Not;
 
 class VideoFrameConverterTest;
 
-class FrameListener : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
+class FrameListener {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FrameListener)
 
-  explicit FrameListener(webrtc::VideoTrackSourceInterface* aSource)
-      : mSource(aSource) {
-    mSource->AddOrUpdateSink(this, {});
+  explicit FrameListener(MediaEventSourceExc<webrtc::VideoFrame>& aSource) {
+    mListener = aSource.Connect(AbstractThread::GetCurrent(), this,
+                                &FrameListener::OnVideoFrameConverted);
   }
 
-  void OnFrame(const webrtc::VideoFrame& aVideoFrame) override {
-    mVideoFrameConvertedEvent.Notify(aVideoFrame, TimeStamp::Now());
-  }
-
-  void OnDiscardedFrame() override {
-    webrtc::VideoFrame frame(nullptr, webrtc::VideoRotation::kVideoRotation_0,
-                             0);
-    mVideoFrameConvertedEvent.Notify(frame, TimeStamp::Now());
-  }
-
-  void SetWants(const rtc::VideoSinkWants& aWants) {
-    mSource->AddOrUpdateSink(this, aWants);
+  void OnVideoFrameConverted(webrtc::VideoFrame aVideoFrame) {
+    mVideoFrameConvertedEvent.Notify(std::move(aVideoFrame), TimeStamp::Now());
   }
 
   MediaEventSource<webrtc::VideoFrame, TimeStamp>& VideoFrameConvertedEvent() {
@@ -49,21 +36,18 @@ class FrameListener : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   }
 
  private:
-  ~FrameListener() { mSource->RemoveSink(this); }
+  ~FrameListener() { mListener.Disconnect(); }
 
-  const RefPtr<webrtc::VideoTrackSourceInterface> mSource;
+  MediaEventListener mListener;
   MediaEventProducer<webrtc::VideoFrame, TimeStamp> mVideoFrameConvertedEvent;
 };
 
 class DebugVideoFrameConverter
-    : public rtc::RefCountedObject<
-          VideoFrameConverterImpl<FrameDroppingPolicy::Disabled>> {
+    : public VideoFrameConverterImpl<FrameDroppingPolicy::Disabled> {
  public:
   explicit DebugVideoFrameConverter(
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : rtc::RefCountedObject<VideoFrameConverterImpl>(
-            do_AddRef(GetMainThreadSerialEventTarget()), aTimestampMaker,
-            /* aLockScaling= */ false) {}
+      : VideoFrameConverterImpl(aTimestampMaker) {}
 
   using VideoFrameConverterImpl::mLastFrameQueuedForProcessing;
   using VideoFrameConverterImpl::ProcessVideoFrame;
@@ -80,9 +64,9 @@ class VideoFrameConverterTest : public ::testing::Test {
   VideoFrameConverterTest()
       : mTimestampMaker(dom::RTCStatsTimestampMaker::Create()),
         mConverter(MakeAndAddRef<DebugVideoFrameConverter>(mTimestampMaker)),
-        mListener(MakeAndAddRef<FrameListener>(mConverter)) {
+        mListener(MakeAndAddRef<FrameListener>(
+            mConverter->VideoFrameConvertedEvent())) {
     mConverter->RegisterListener();
-    mConverter->SetTrackingId({TrackingId::Source::Camera, 0});
   }
 
   void TearDown() override { mConverter->Shutdown(); }
@@ -573,7 +557,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   framesPromise = TakeNConvertedFrames(2);
 
   mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
-  Unused << WaitFor(InvokeAsync(mConverter->mTarget, __func__, [&] {
+  Unused << WaitFor(InvokeAsync(mConverter->mTaskQueue, __func__, [&] {
     // Time is now ~t1. This processes an extra frame similar to what
     // `SetActive(false); SetActive(true);` (using t=now()) would do.
     mConverter->mLastFrameQueuedForProcessing.mTime = now + d2;
@@ -672,31 +656,4 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
                                              frame1.timestamp_us()),
               IsDurationInMillisPositiveMultipleOf(duplicationInterval));
   EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
-}
-
-TEST_F(VideoFrameConverterTest, SinkWantsResolutionAlignment) {
-  const std::array<int, 5> alignments{2, 16, 39, 400, 1000};
-  const int width = 640;
-  const int height = 480;
-
-  TimeStamp now = TimeStamp::Now();
-  TimeDuration interval = TimeDuration::FromMilliseconds(1);
-  mConverter->SetActive(true);
-  rtc::VideoSinkWants wants;
-  for (uint32_t i = 0; i < alignments.size(); ++i) {
-    const TimeStamp t = now + interval * (i + 1);
-    // Test that requesting specific alignment always results in the expected
-    // number of layers and valid alignment.
-    wants.resolution_alignment = alignments[i];
-    mListener->SetWants(wants);
-    auto framesPromise = TakeNConvertedFrames(1);
-    mConverter->QueueVideoChunk(GenerateChunk(width, height, t), false);
-    const auto [frame, time] = WaitFor(framesPromise).unwrap()[0];
-
-    EXPECT_EQ(frame.width() % alignments[i], 0)
-        << " for width " << frame.width() << " and alignment " << alignments[i];
-    EXPECT_EQ(frame.height() % alignments[i], 0)
-        << " for height " << frame.height() << " and alignment "
-        << alignments[i];
-  }
 }

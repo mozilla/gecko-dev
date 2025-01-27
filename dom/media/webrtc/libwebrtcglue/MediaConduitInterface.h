@@ -25,7 +25,6 @@
 // libwebrtc includes
 #include "api/audio/audio_frame.h"
 #include "api/call/transport.h"
-#include "api/media_stream_interface.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/transport/rtp/rtp_source.h"
@@ -364,7 +363,15 @@ class VideoSessionConduit : public MediaSessionConduit {
       RefPtr<mozilla::VideoRenderer> aRenderer) = 0;
   virtual void DetachRenderer() = 0;
 
-  virtual void SetTrackSource(webrtc::VideoTrackSourceInterface* aSource) = 0;
+  /**
+   * Function to deliver a capture video frame for encoding and transport.
+   * If the frame's timestamp is 0, it will be automatcally generated.
+   *
+   * NOTE: ConfigureSendMediaCodec() must be called before this function can
+   *       be invoked. This ensures the inserted video-frames can be
+   *       transmitted by the conduit.
+   */
+  virtual MediaConduitErrorCode SendVideoFrame(webrtc::VideoFrame aFrame) = 0;
 
   /**
    * These methods allow unit tests to double-check that the
@@ -378,8 +385,6 @@ class VideoSessionConduit : public MediaSessionConduit {
 
   bool UsingFEC() const { return mUsingFEC; }
 
-  virtual bool LockScaling() const = 0;
-
   virtual Maybe<webrtc::VideoReceiveStreamInterface::Stats> GetReceiverStats()
       const = 0;
   virtual Maybe<webrtc::VideoSendStream::Stats> GetSenderStats() const = 0;
@@ -391,7 +396,11 @@ class VideoSessionConduit : public MediaSessionConduit {
 
   virtual Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const = 0;
 
-  virtual Maybe<gfx::IntSize> GetLastResolution() const = 0;
+  struct Resolution {
+    size_t width;
+    size_t height;
+  };
+  virtual Maybe<Resolution> GetLastResolution() const = 0;
 
   virtual void RequestKeyFrame(FrameTransformerProxy* aProxy) = 0;
   virtual void GenerateKeyFrame(const Maybe<std::string>& aRid,
