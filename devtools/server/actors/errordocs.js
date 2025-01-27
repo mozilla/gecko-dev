@@ -155,6 +155,7 @@ const ErrorCategories = {
   TLS: TLS_LEARN_MORE,
   requestStorageAccess: REQUEST_STORAGE_ACCESS_LEARN_MORE,
   HTTPSOnly: supportBaseURL + "https-only-prefs",
+  HTTPSFirst: supportBaseURL + "https-first",
   HTML_PARSER__DOCTYPE: DOCTYPE_MODES_LEARN_MORE,
   bounceTrackingProtection: BOUNCE_TRACKING_PROTECTION_LEARN_MORE,
 };
