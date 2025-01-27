@@ -266,7 +266,7 @@ export class YelpSuggestions extends SuggestProvider {
       // selType == "dismiss" when the user presses the dismiss key shortcut.
       case "dismiss":
       case RESULT_MENU_COMMAND.NOT_RELEVANT:
-        lazy.QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
+        lazy.QuickSuggest.blockedSuggestions.blockResult(result);
         result.acknowledgeDismissalL10n = {
           id: "firefox-suggest-dismissal-acknowledgment-one-yelp",
         };

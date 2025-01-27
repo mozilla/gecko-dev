@@ -669,7 +669,7 @@ async function doUnmanagedTest({ pref, suggestion }) {
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
   Assert.ok(
-    await QuickSuggest.blockedSuggestions.has(suggestion.url),
+    await QuickSuggest.blockedSuggestions.isResultBlocked(context.results[0]),
     "The suggestion URL should be blocked"
   );
 

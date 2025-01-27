@@ -500,7 +500,6 @@ class _QuickSuggestTestUtils {
     fullKeyword = keyword,
     title = "Wikipedia Suggestion",
     url = "https://example.com/wikipedia",
-    originalUrl = url,
     iconBlob = null,
     suggestedIndex = -1,
     isSuggestedIndexRelativeToGroup = true,
@@ -514,7 +513,6 @@ class _QuickSuggestTestUtils {
       payload: {
         title,
         url,
-        originalUrl,
         iconBlob,
         source,
         provider,

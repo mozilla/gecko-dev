@@ -29,10 +29,43 @@ export class BlockedSuggestions extends SuggestFeature {
   }
 
   /**
-   * Blocks a suggestion.
+   * Blocks a result's URL.
+   *
+   * @param {UrlbarResult} result
+   *   The URL of this result will be blocked.
+   */
+  async blockResult(result) {
+    // For some Suggest results, `url` is a value that is modified at query time
+    // and that is potentially unique per query. For example, it might contain
+    // timestamps or query-related search params. Those results will also have
+    // an `originalUrl` that is the unmodified URL, and it should be used for
+    // blocking purposes.
+    await this.add(result.payload.originalUrl || result.payload.url);
+  }
+
+  /**
+   * Returns true if a result's URL is blocked.
+   *
+   * @param {UrlbarResult} result
+   *   The result to check.
+   * @returns {boolean}
+   *   Whether the result's URL is blocked.
+   */
+  async isResultBlocked(result) {
+    // See `blockResult()` for a note on `originalUrl`.
+    let isBlocked = await this.has(
+      result.payload.originalUrl || result.payload.url
+    );
+    return isBlocked;
+  }
+
+  /**
+   * Blocks a URL. Callers should use `blockResult()` instead when they have a
+   * `UrlbarResult`.
    *
    * @param {string} originalUrl
-   *   The suggestion's original URL with its unreplaced timestamp template.
+   *   The URL to block. In cases where a URL is potentially unique to a query,
+   *   this value should be the original unmodified URL.
    */
   async add(originalUrl) {
     await this.#taskQueue.queue(async () => {
@@ -52,12 +85,14 @@ export class BlockedSuggestions extends SuggestFeature {
   }
 
   /**
-   * Gets whether a suggestion is blocked.
+   * Returns true if a URL is blocked. Callers should use `isResultBlocked()`
+   * instead when they have a `UrlbarResult`.
    *
    * @param {string} originalUrl
-   *   The suggestion's original URL with its unreplaced timestamp template.
+   *   The URL to check. In cases where a URL is potentially unique to a query,
+   *   this value should be the original unmodified URL.
    * @returns {boolean}
-   *   Whether the suggestion is blocked.
+   *   Whether the URL is blocked.
    */
   async has(originalUrl) {
     return this.#taskQueue.queue(async () => {
@@ -67,7 +102,7 @@ export class BlockedSuggestions extends SuggestFeature {
   }
 
   /**
-   * Unblocks all suggestions.
+   * Unblocks all URLs.
    */
   async clear() {
     await this.#taskQueue.queue(() => {
@@ -141,9 +176,12 @@ export class BlockedSuggestions extends SuggestFeature {
     return this.#getDigest(string);
   }
 
-  // Set of digests of the original URLs of blocked suggestions. A suggestion's
-  // "original URL" is its URL straight from the source with an unreplaced
-  // timestamp template. For details on the digests, see `#getDigest()`.
+  // Set of digests of the original URLs of blocked suggestions. For some
+  // Suggest results, `url` is a value that is modified at query time and that
+  // is potentially unique per query. For example, it might contain timestamps
+  // or query-related search params. Those results will also have an
+  // `originalUrl` that is the unmodified URL, and it should be used for
+  // blocking purposes. For details on the digests, see `#getDigest()`.
   //
   // The only reason we use URL digests is that suggestions currently do not
   // have persistent IDs. We could use the URLs themselves but SHA-1 digests are

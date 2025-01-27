@@ -572,7 +572,9 @@ async function doTest({
     let stub = sandbox
       .stub(feature, "makeResult")
       .callsFake((queryContext, suggestion, searchString) => {
-        if (suggestion.url == expectedResult.payload.originalUrl) {
+        let expectedUrl =
+          expectedResult.payload.originalUrl || expectedResult.payload.url;
+        if (suggestion.url == expectedUrl) {
           actualScore = suggestion.score;
         }
         return stub.wrappedMethod.call(
@@ -633,7 +635,6 @@ function makeExpectedWikipediaResult({ suggestion, keyword, source }) {
     source,
     title: suggestion.title,
     url: suggestion.url,
-    originalUrl: suggestion.url,
     impressionUrl: suggestion.impression_url,
     clickUrl: suggestion.click_url,
     blockId: suggestion.id,

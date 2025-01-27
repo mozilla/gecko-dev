@@ -387,7 +387,7 @@ add_task(async function resultMenu_not_relevant() {
     menu: "not_relevant",
     assert: resuilt => {
       Assert.ok(
-        QuickSuggest.blockedSuggestions.has(resuilt.payload.url),
+        QuickSuggest.blockedSuggestions.isResultBlocked(resuilt),
         "The URL should be register as blocked"
       );
     },

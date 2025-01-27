@@ -325,9 +325,7 @@ async function doDismissTest(command, allDismissed) {
     "suggest.addons should be true iff all suggestions weren't dismissed"
   );
   Assert.equal(
-    await QuickSuggest.blockedSuggestions.has(
-      details.result.payload.originalUrl
-    ),
+    await QuickSuggest.blockedSuggestions.isResultBlocked(details.result),
     !allDismissed,
     "Suggestion URL should be blocked iff all suggestions weren't dismissed"
   );

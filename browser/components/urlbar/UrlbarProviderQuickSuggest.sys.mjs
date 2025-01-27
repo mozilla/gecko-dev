@@ -602,13 +602,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
       return false;
     }
 
-    // Discard the result if its URL is blocked. For some Suggest results, `url`
-    // is a value that is modified at query time and that is potentially unique
-    // per query. For example, it might contain timestamps or query-related
-    // search params. Those results will also have an `originalUrl` that is the
-    // unmodified URL, and it should be used for blocking purposes.
-    let url = result.payload.originalUrl || result.payload.url;
-    if (await lazy.QuickSuggest.blockedSuggestions.has(url)) {
+    // Discard the result if its URL is blocked.
+    if (await lazy.QuickSuggest.blockedSuggestions.isResultBlocked(result)) {
       this.logger.debug("Suggestion blocked, not adding suggestion");
       return false;
     }

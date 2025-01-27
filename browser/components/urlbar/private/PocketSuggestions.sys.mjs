@@ -147,12 +147,7 @@ export class PocketSuggestions extends SuggestProvider {
       // selType == "dismiss" when the user presses the dismiss key shortcut.
       case "dismiss":
       case RESULT_MENU_COMMAND.NOT_RELEVANT:
-        // PocketSuggestions adds the UTM parameters to the original URL and
-        // returns it as payload.url in the result. However, as
-        // UrlbarProviderQuickSuggest filters suggestions with original URL of
-        // provided suggestions, need to use the original URL when adding to the
-        // block list.
-        lazy.QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
+        lazy.QuickSuggest.blockedSuggestions.blockResult(result);
         result.acknowledgeDismissalL10n = {
           id: "firefox-suggest-dismissal-acknowledgment-one",
         };

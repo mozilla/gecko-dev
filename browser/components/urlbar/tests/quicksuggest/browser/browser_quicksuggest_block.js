@@ -102,7 +102,8 @@ async function doOneBasicBlockTest({ result, block }) {
   await QuickSuggestTestUtils.assertIsQuickSuggest({
     window,
     isSponsored,
-    originalUrl: result.url,
+    url: isSponsored ? undefined : result.url,
+    originalUrl: isSponsored ? result.url : undefined,
   });
 
   // Block the suggestion.
@@ -134,15 +135,18 @@ async function doOneBasicBlockTest({ result, block }) {
 add_task(async function blockMultiple() {
   for (let i = 0; i < REMOTE_SETTINGS_RESULTS.length; i++) {
     // Do a search that triggers the i'th suggestion.
-    let { keywords, url } = REMOTE_SETTINGS_RESULTS[i];
+    let { keywords, url, iab_category } = REMOTE_SETTINGS_RESULTS[i];
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: keywords[0],
     });
+
+    let isSponsored = iab_category != "5 - Education";
     await QuickSuggestTestUtils.assertIsQuickSuggest({
       window,
-      originalUrl: url,
-      isSponsored: keywords[0] == "sponsored",
+      isSponsored,
+      url: isSponsored ? undefined : url,
+      originalUrl: isSponsored ? url : undefined,
     });
 
     // Block it.

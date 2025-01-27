@@ -1336,7 +1336,7 @@ add_task(async function block() {
     });
 
     // Block it.
-    await QuickSuggest.blockedSuggestions.add(context.results[0].payload.url);
+    await QuickSuggest.blockedSuggestions.blockResult(context.results[0]);
 
     // Do another search. The result shouldn't be added.
     await check_results({
@@ -1382,7 +1382,7 @@ add_task(async function block_timestamp() {
   );
 
   // Block the result.
-  await QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
+  await QuickSuggest.blockedSuggestions.blockResult(result);
 
   // Do another search. The result shouldn't be added.
   await check_results({
