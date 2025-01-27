@@ -725,11 +725,14 @@ void MediaPipelineTransmit::RegisterListener() {
   if (!IsVideo()) {
     return;
   }
-  mConverter = VideoFrameConverter::Create(GetTimestampMaker());
+  mConverter = VideoFrameConverter::Create(
+      TaskQueue::Create(GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
+                        "VideoFrameConverter")
+          .forget(),
+      GetTimestampMaker());
   mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
   mFrameListener = mConverter->VideoFrameConvertedEvent().Connect(
-      mConverter->mTaskQueue,
-      [listener = mListener](webrtc::VideoFrame aFrame) {
+      mConverter->mTarget, [listener = mListener](webrtc::VideoFrame aFrame) {
         listener->OnVideoFrameConverted(std::move(aFrame));
       });
   mListener->SetVideoFrameConverter(mConverter);

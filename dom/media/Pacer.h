@@ -6,7 +6,6 @@
 
 #include "MediaEventSource.h"
 #include "MediaTimer.h"
-#include "mozilla/TaskQueue.h"
 #include "nsDeque.h"
 
 #ifndef DOM_MEDIA_PACER_H_
@@ -35,8 +34,9 @@ class Pacer {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Pacer)
 
-  Pacer(RefPtr<TaskQueue> aTaskQueue, TimeDuration aDuplicationInterval)
-      : mTaskQueue(std::move(aTaskQueue)),
+  Pacer(already_AddRefed<nsISerialEventTarget> aTarget,
+        TimeDuration aDuplicationInterval)
+      : mTarget(aTarget),
         mDuplicationInterval(aDuplicationInterval),
         mTimer(MakeAndAddRef<MediaTimer<TimeStamp>>()) {
     LOG(LogLevel::Info, "Pacer %p constructed. Duplication interval is %.2fms",
@@ -50,7 +50,7 @@ class Pacer {
   void Enqueue(T aItem, TimeStamp aTime) {
     LOG(LogLevel::Verbose, "Pacer %p: Enqueue t=%.4fs now=%.4fs", this,
         (aTime - mStart).ToSeconds(), (TimeStamp::Now() - mStart).ToSeconds());
-    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
         __func__,
         [this, self = RefPtr<Pacer>(this), aItem = std::move(aItem), aTime] {
           MOZ_DIAGNOSTIC_ASSERT(!mIsShutdown);
@@ -71,7 +71,7 @@ class Pacer {
   void SetDuplicationInterval(TimeDuration aInterval) {
     LOG(LogLevel::Info, "Pacer %p: SetDuplicationInterval(%.3fs) now=%.4fs",
         this, aInterval.ToSeconds(), (TimeStamp::Now() - mStart).ToSeconds());
-    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
+    MOZ_ALWAYS_SUCCEEDS(mTarget->Dispatch(NS_NewRunnableFunction(
         __func__, [this, self = RefPtr(this), aInterval] {
           LOG(LogLevel::Debug,
               "Pacer %p: InnerSetDuplicationInterval(%.3fs) now=%.4fs",
@@ -91,16 +91,15 @@ class Pacer {
   RefPtr<GenericPromise> Shutdown() {
     LOG(LogLevel::Info, "Pacer %p: Shutdown, now=%.4fs", this,
         (TimeStamp::Now() - mStart).ToSeconds());
-    return InvokeAsync(
-        mTaskQueue, __func__, [this, self = RefPtr<Pacer>(this)] {
-          LOG(LogLevel::Debug, "Pacer %p: InnerShutdown, now=%.4fs", self.get(),
-              (TimeStamp::Now() - mStart).ToSeconds());
-          mIsShutdown = true;
-          mTimer->Cancel();
-          mQueue.Erase();
-          mCurrentTimerTarget = Nothing();
-          return GenericPromise::CreateAndResolve(true, "Pacer::Shutdown");
-        });
+    return InvokeAsync(mTarget, __func__, [this, self = RefPtr<Pacer>(this)] {
+      LOG(LogLevel::Debug, "Pacer %p: InnerShutdown, now=%.4fs", self.get(),
+          (TimeStamp::Now() - mStart).ToSeconds());
+      mIsShutdown = true;
+      mTimer->Cancel();
+      mQueue.Erase();
+      mCurrentTimerTarget = Nothing();
+      return GenericPromise::CreateAndResolve(true, "Pacer::Shutdown");
+    });
   }
 
   MediaEventSourceExc<T, TimeStamp>& PacedItemEvent() {
@@ -124,7 +123,7 @@ class Pacer {
         (aTime - mStart).ToSeconds());
     mTimer->WaitUntil(aTime, __func__)
         ->Then(
-            mTaskQueue, __func__,
+            mTarget, __func__,
             [this, self = RefPtr<Pacer>(this), aTime] {
               LOG(LogLevel::Verbose, "Pacer %p: OnTimerTick t=%.4fs, now=%.4fs",
                   self.get(), (aTime - mStart).ToSeconds(),
@@ -138,7 +137,7 @@ class Pacer {
   }
 
   void OnTimerTick() {
-    MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+    MOZ_ASSERT(mTarget->IsOnCurrentThread());
 
     mCurrentTimerTarget = Nothing();
 
@@ -173,7 +172,7 @@ class Pacer {
   }
 
  public:
-  const RefPtr<TaskQueue> mTaskQueue;
+  const nsCOMPtr<nsISerialEventTarget> mTarget;
 
 #  ifdef MOZ_LOGGING
   const TimeStamp mStart = TimeStamp::Now();
@@ -198,20 +197,20 @@ class Pacer {
     ~QueueItem() = default;
   };
 
-  // Accessed on mTaskQueue.
+  // Accessed on mTarget.
   nsRefPtrDeque<QueueItem> mQueue;
 
   // Maximum interval at which a frame should be issued, even if it means
   // duplicating the previous.
   TimeDuration mDuplicationInterval;
 
-  // Accessed on mTaskQueue.
+  // Accessed on mTarget.
   RefPtr<MediaTimer<TimeStamp>> mTimer;
 
-  // Accessed on mTaskQueue.
+  // Accessed on mTarget.
   Maybe<TimeStamp> mCurrentTimerTarget;
 
-  // Accessed on mTaskQueue.
+  // Accessed on mTarget.
   bool mIsShutdown = false;
 
   MediaEventProducerExc<T, TimeStamp> mPacedItemEvent;
