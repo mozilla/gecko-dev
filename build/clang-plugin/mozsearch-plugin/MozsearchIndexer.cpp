@@ -1271,6 +1271,7 @@ public:
     const ASTRecordLayout &Layout = C.getASTRecordLayout(decl);
 
     J.attribute("sizeBytes", Layout.getSize().getQuantity());
+    J.attribute("alignmentBytes", Layout.getAlignment().getQuantity());
 
     emitBindingAttributes(J, *decl);
 
