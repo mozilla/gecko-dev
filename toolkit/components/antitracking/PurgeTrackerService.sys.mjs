@@ -160,11 +160,9 @@ PurgeTrackerService.prototype = {
       let timeRemaining = Math.floor(
         (expireTimeMs - Date.now()) / 1000 / 60 / 60 / 24
       );
-      Services.telemetry
-        .getHistogramById(
-          "COOKIE_PURGING_TRACKERS_USER_INTERACTION_REMAINING_DAYS"
-        )
-        .add(timeRemaining);
+      Glean.cookiePurging.trackersUserInteractionRemainingDays.accumulateSingleSample(
+        timeRemaining
+      );
 
       this._telemetryData.notPurged.add(principal.baseDomain);
 
@@ -230,27 +228,21 @@ PurgeTrackerService.prototype = {
       Services.prefs.getStringPref("privacy.purge_trackers.last_purge", now)
     );
     let hoursBetween = Math.floor((now - lastPurge) / 1000 / 60 / 60);
-    Services.telemetry
-      .getHistogramById("COOKIE_PURGING_INTERVAL_HOURS")
-      .add(hoursBetween);
+    Glean.cookiePurging.intervalHours.accumulateSingleSample(hoursBetween);
 
     Services.prefs.setStringPref(
       "privacy.purge_trackers.last_purge",
       now.toString()
     );
-    Services.telemetry
-      .getHistogramById("COOKIE_PURGING_ORIGINS_PURGED")
-      .add(purged.size);
-    Services.telemetry
-      .getHistogramById("COOKIE_PURGING_TRACKERS_WITH_USER_INTERACTION")
-      .add(notPurged.size);
+    Glean.cookiePurging.originsPurged.accumulateSingleSample(purged.size);
+    Glean.cookiePurging.trackersWithUserInteraction.accumulateSingleSample(
+      notPurged.size
+    );
 
     let duration = durationIntervals
       .map(([start, end]) => end - start)
       .reduce((acc, cur) => acc + cur, 0);
-    Services.telemetry
-      .getHistogramById("COOKIE_PURGING_DURATION_MS")
-      .add(duration);
+    Glean.cookiePurging.duration.accumulateSingleSample(duration);
   },
 
   /*

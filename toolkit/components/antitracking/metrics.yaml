@@ -79,3 +79,121 @@ contentblocking:
       - privacy-team@mozilla.org
     expires: never
     telemetry_mirror: CONTENTBLOCKING_TRACKERS_BLOCKED_COUNT
+
+cookie_purging:
+  origins_purged:
+    type: custom_distribution
+    description: >
+      The number of origins that were purged during one run of cookie purging.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram COOKIE_PURGING_ORIGINS_PURGED.
+    range_min: 1
+    range_max: 500
+    bucket_count: 30
+    histogram_type: exponential
+    unit: origins
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_PURGING_ORIGINS_PURGED
+
+  trackers_with_user_interaction:
+    type: custom_distribution
+    description: >
+      The number of trackers that had user interaction at the time of purging.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram COOKIE_PURGING_TRACKERS_WITH_USER_INTERACTION.
+    range_min: 1
+    range_max: 500
+    bucket_count: 30
+    histogram_type: exponential
+    unit: trackers
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_PURGING_TRACKERS_WITH_USER_INTERACTION
+
+  trackers_user_interaction_remaining_days:
+    type: timing_distribution
+    description: >
+      The time remaining until expiration per user interaction permissions of
+      trackers at the time of purging, in days (one record per tracker, not
+      averaged).
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram COOKIE_PURGING_TRACKERS_USER_INTERACTION_REMAINING_DAYS.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_PURGING_TRACKERS_USER_INTERACTION_REMAINING_DAYS
+
+  duration:
+    type: timing_distribution
+    description: >
+      Time spent per daily cookie purging activity, in milliseconds. This
+      measures the time for all batch iterations of that day.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram COOKIE_PURGING_DURATION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_PURGING_DURATION_MS
+
+  interval_hours:
+    type: timing_distribution
+    description: >
+      How much time (in hours) passed between the current cookie purging
+      activity and the one before that (cookie purging is run on 'daily idle')
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram COOKIE_PURGING_INTERVAL_HOURS.
+    time_unit: hour
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1630053
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689271
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_PURGING_INTERVAL_HOURS
