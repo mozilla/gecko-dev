@@ -110,6 +110,10 @@ neterror-content-encoding-error = Please contact the website owners to inform th
 
 neterror-unsafe-content-type = Please contact the website owners to inform them of this problem.
 
+# Variables:
+# $hostname (String) - Hostname of the website to which the user was trying to connect.
+neterror-basic-http-auth = { -brand-short-name } doesn’t trust { $hostname } because the connection isn’t secure. Try changing the URL to HTTPS.
+
 neterror-nss-failure-not-verified = The page you are trying to view cannot be shown because the authenticity of the received data could not be verified.
 neterror-nss-failure-contact-website = Please contact the website owners to inform them of this problem.
 

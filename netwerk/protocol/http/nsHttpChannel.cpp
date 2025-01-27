@@ -3000,7 +3000,9 @@ nsresult nsHttpChannel::ContinueProcessResponse3(nsresult rv) {
         if (mTransaction && mTransaction->ProxyConnectFailed()) {
           return ProcessFailedProxyConnect(httpStatus);
         }
-        if (!mAuthRetryPending) {
+        if (rv == NS_ERROR_BASIC_HTTP_AUTH_DISABLED) {
+          mStatus = rv;
+        } else if (!mAuthRetryPending) {
           MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
           rv = mAuthProvider ? mAuthProvider->CheckForSuperfluousAuth()
                              : NS_ERROR_UNEXPECTED;

@@ -3630,7 +3630,9 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
         // HTTP/2 or HTTP/3 stack detected a protocol error
         error = "networkProtocolError";
         break;
-
+      case NS_ERROR_BASIC_HTTP_AUTH_DISABLED:
+        error = "basicHttpAuthDisabled";
+        break;
       default:
         break;
     }
@@ -6122,6 +6124,7 @@ nsresult nsDocShell::FilterStatusForErrorPage(
       aStatus == NS_ERROR_NET_INADEQUATE_SECURITY ||
       aStatus == NS_ERROR_NET_HTTP2_SENT_GOAWAY ||
       aStatus == NS_ERROR_NET_HTTP3_PROTOCOL_ERROR ||
+      aStatus == NS_ERROR_BASIC_HTTP_AUTH_DISABLED ||
       aStatus == NS_ERROR_DOM_BAD_URI || aStatus == NS_ERROR_FILE_NOT_FOUND ||
       aStatus == NS_ERROR_FILE_ACCESS_DENIED ||
       aStatus == NS_ERROR_CORRUPTED_CONTENT ||

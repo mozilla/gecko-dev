@@ -14778,6 +14778,11 @@
   value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
+- name: network.http.basic_http_auth.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
   # If true, HTTP response content-type headers will be parsed using the standards-compliant MimeType parser
 - name: network.standard_content_type_parsing.response_headers
   type: RelaxedAtomicBool

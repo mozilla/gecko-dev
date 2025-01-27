@@ -75,6 +75,7 @@ const ERROR_MESSAGES_FTL = "toolkit/neterror/nsserrors.ftl";
 const MDN_DOCS_HEADERS = "https://developer.mozilla.org/docs/Web/HTTP/Headers/";
 const COOP_MDN_DOCS = MDN_DOCS_HEADERS + "Cross-Origin-Opener-Policy";
 const COEP_MDN_DOCS = MDN_DOCS_HEADERS + "Cross-Origin-Embedder-Policy";
+const HTTPS_UPGRADES_MDN_DOCS = "https://support.mozilla.org/kb/https-upgrades";
 
 // If the location of the favicon changes, FAVICON_CERTERRORPAGE_URL and/or
 // FAVICON_ERRORPAGE_URL in toolkit/components/places/nsFaviconService.idl
@@ -311,6 +312,10 @@ function initTitleAndBodyIds(baseURL, isTRROnlyFailure) {
   let bodyTitleId = gErrorCode + "-title";
 
   switch (gErrorCode) {
+    case "basicHttpAuthDisabled":
+      bodyTitleId = "general-body-title";
+      tryAgain.hidden = true;
+      break;
     case "blockedByPolicy":
       pageTitleId = "neterror-blocked-by-policy-page-title";
       document.body.classList.add("blocked");
@@ -876,7 +881,11 @@ function getNetErrorDescParts() {
       ];
     case "unsafeContentType":
       return [["li", "neterror-unsafe-content-type"]];
-
+    case "basicHttpAuthDisabled":
+      return [
+        ["li", "neterror-basic-http-auth", { hostname: HOST_NAME }],
+        ["a", "neterror-learn-more-link", HTTPS_UPGRADES_MDN_DOCS],
+      ];
     default:
       return [["p", "neterror-generic-error"]];
   }
