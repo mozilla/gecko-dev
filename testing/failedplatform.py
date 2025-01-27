@@ -33,7 +33,8 @@ class FailedPlatform:
         return list(self.oop_permutations.keys())
 
     def get_possible_test_variants(self, build_type: str) -> list[str]:
-        return self.oop_permutations.get(build_type, [])
+        permutations = self.oop_permutations.get(build_type, {})
+        return [tv for tv in permutations]
 
     def is_full_fail(self) -> bool:
         """
