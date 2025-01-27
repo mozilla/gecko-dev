@@ -316,9 +316,9 @@ export var DownloadsCommon = {
       download.error?.becauseBlockedByReputationCheck &&
       download.hasBlockedData
     ) {
-      Services.telemetry
-        .getKeyedHistogramById("DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD")
-        .add(download.error.reputationCheckVerdict, 1); // confirm block
+      Glean.downloads.userActionOnBlockedDownload[
+        download.error.reputationCheckVerdict
+      ].accumulateSingleSample(1); // confirm block
     }
 
     // Remove the associated history element first, if any, so that the views

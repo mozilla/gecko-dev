@@ -52,3 +52,25 @@ downloads:
       - emalysz@mozilla.com
     expires: never
     telemetry_mirror: DOWNLOADS_FILE_OPENED
+
+  user_action_on_blocked_download:
+    type: labeled_custom_distribution
+    description: >
+      Users action on blocked download, keyed by verdict type (0=Number of
+      blocked downloads, 1=Confirm block, 2=Confirm unblock)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1722066
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1722066
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD

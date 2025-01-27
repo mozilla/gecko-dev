@@ -668,9 +668,9 @@ Download.prototype = {
     }
 
     if (this.error?.becauseBlockedByReputationCheck) {
-      Services.telemetry
-        .getKeyedHistogramById("DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD")
-        .add(this.error.reputationCheckVerdict, 2); // unblock
+      Glean.downloads.userActionOnBlockedDownload[
+        this.error.reputationCheckVerdict
+      ].accumulateSingleSample(2); // unblock
     }
 
     if (
@@ -759,9 +759,9 @@ Download.prototype = {
       // and confirmBlock here. The former is for cases where users click
       // "Remove file" in the download panel and the latter is when
       // users click "X" button in about:downloads.
-      Services.telemetry
-        .getKeyedHistogramById("DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD")
-        .add(this.error.reputationCheckVerdict, 1); // confirm block
+      Glean.downloads.userActionOnBlockedDownload[
+        this.error.reputationCheckVerdict
+      ].accumulateSingleSample(1); // confirm block
     }
 
     if (!this.hasBlockedData) {
@@ -2580,9 +2580,9 @@ DownloadCopySaver.prototype = {
     let { shouldBlock, verdict } =
       await lazy.DownloadIntegration.shouldBlockForReputationCheck(download);
     if (shouldBlock) {
-      Services.telemetry
-        .getKeyedHistogramById("DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD")
-        .add(verdict, 0);
+      Glean.downloads.userActionOnBlockedDownload[
+        verdict
+      ].accumulateSingleSample(0);
 
       let newProperties = { progress: 100, hasPartialData: false };
 
