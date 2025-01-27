@@ -61,11 +61,13 @@ const Template = ({
     panel-item[icon="settings"]::part(button) {
       background-image: url("chrome://global/skin/icons/settings.svg");
     }
-    button {
+    moz-button {
       position: absolute;
+    }
+    moz-button::part(button) {
       background-image: url("chrome://global/skin/icons/more.svg");
     }
-    button[wide] {
+    moz-button[wide] {
       width: 400px !important;
     }
     .end {
@@ -79,30 +81,33 @@ const Template = ({
   ${isOpen
     ? ""
     : html`
-        <button
-          class="ghost-button icon-button"
+        <moz-button
+          type="icon ghost"
           @click=${openMenu}
           @mousedown=${openMenu}
           ?wide="${wideAnchor}"
-        ></button>
-        <button
-          class="ghost-button icon-button end"
+        ></moz-button>
+        <moz-button
+          type="icon ghost"
+          class="end"
           @click=${openMenu}
           @mousedown=${openMenu}
           ?wide="${wideAnchor}"
-        ></button>
-        <button
-          class="ghost-button icon-button bottom"
+        ></moz-button>
+        <moz-button
+          type="icon ghost"
+          class="bottom"
           @click=${openMenu}
           @mousedown=${openMenu}
           ?wide="${wideAnchor}"
-        ></button>
-        <button
-          class="ghost-button icon-button bottom end"
+        ></moz-button>
+        <moz-button
+          type="icon ghost"
+          class="bottom end"
           @click=${openMenu}
           @mousedown=${openMenu}
           ?wide="${wideAnchor}"
-        ></button>
+        ></moz-button>
       `}
   <panel-list
     ?stay-open=${isOpen}
