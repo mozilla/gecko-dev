@@ -197,7 +197,7 @@ fun TextField(
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Icon(
-                                painter = painterResource(R.drawable.mozac_ic_warning_24),
+                                painter = painterResource(R.drawable.mozac_ic_warning_fill_24),
                                 contentDescription = null,
                                 tint = colors.errorTrailingIconColor,
                             )
