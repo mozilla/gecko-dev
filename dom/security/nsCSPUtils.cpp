@@ -1950,6 +1950,14 @@ void nsCSPPolicy::getReportGroup(nsAString& outReportGroup) const {
   }
 }
 
+void nsCSPPolicy::getDirectiveNames(nsTArray<nsString>& outDirectives) const {
+  for (uint32_t i = 0; i < mDirectives.Length(); i++) {
+    nsAutoString name;
+    mDirectives[i]->getDirName(name);
+    outDirectives.AppendElement(name);
+  }
+}
+
 bool nsCSPPolicy::visitDirectiveSrcs(CSPDirective aDir,
                                      nsCSPSrcVisitor* aVisitor) const {
   for (uint32_t i = 0; i < mDirectives.Length(); i++) {

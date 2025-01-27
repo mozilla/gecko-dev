@@ -735,6 +735,8 @@ class nsCSPPolicy {
 
   inline uint32_t getNumDirectives() const { return mDirectives.Length(); }
 
+  void getDirectiveNames(nsTArray<nsString>& outDirectives) const;
+
   bool visitDirectiveSrcs(CSPDirective aDir, nsCSPSrcVisitor* aVisitor) const;
 
   bool allowsAllInlineBehavior(CSPDirective aDir) const;
