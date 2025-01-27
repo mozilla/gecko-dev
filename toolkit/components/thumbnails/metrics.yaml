@@ -1,0 +1,142 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: New Tab Page'
+
+thumbnails:
+  capture_time:
+    type: timing_distribution
+    description: >
+      THUMBNAILS: Time (ms) it takes to capture a thumbnail
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_CAPTURE_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_CAPTURE_TIME_MS
+
+  store_time:
+    type: timing_distribution
+    description: >
+      THUMBNAILS: Time (ms) it takes to store a thumbnail in the cache
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_STORE_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_STORE_TIME_MS
+
+  queue_size_on_capture:
+    type: custom_distribution
+    description: >
+      BACKGROUND THUMBNAILS: Size of capture queue when a capture request is
+      received
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_BG_QUEUE_SIZE_ON_CAPTURE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 15
+    histogram_type: exponential
+    unit: queue length
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_BG_QUEUE_SIZE_ON_CAPTURE
+
+  capture_queue_time:
+    type: timing_distribution
+    description: >
+      BACKGROUND THUMBNAILS: Time the capture request spent in the queue before
+      being serviced (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_BG_CAPTURE_QUEUE_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_BG_CAPTURE_QUEUE_TIME_MS
+
+  capture_done_reason_2:
+    type: custom_distribution
+    description: >
+      BACKGROUND THUMBNAILS: Reason the capture completed (see
+      TEL_CAPTURE_DONE_* constants in BackgroundPageThumbs.sys.mjs)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_THUMBNAILS_BG_CAPTURE_DONE_REASON_2.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_BG_CAPTURE_DONE_REASON_2
+
+  capture_page_load_time:
+    type: timing_distribution
+    description: >
+      BACKGROUND THUMBNAILS: Time the capture's page load took (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_BG_CAPTURE_PAGE_LOAD_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_BG_CAPTURE_PAGE_LOAD_TIME_MS
+
+  capture_canvas_draw_time:
+    type: timing_distribution
+    description: >
+      BACKGROUND THUMBNAILS: Time it took to draw the capture's window to canvas
+      (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_THUMBNAILS_BG_CAPTURE_CANVAS_DRAW_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - sdowne@mozilla.com
+    expires: never
+    telemetry_mirror: FX_THUMBNAILS_BG_CAPTURE_CANVAS_DRAW_TIME_MS

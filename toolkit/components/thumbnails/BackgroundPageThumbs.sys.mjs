@@ -14,8 +14,6 @@ const SETTLE_WAIT_TIME = 2500;
 // For testing, the above timeout is excessive, and makes our tests overlong.
 const TESTING_SETTLE_WAIT_TIME = 0;
 
-const TELEMETRY_HISTOGRAM_ID_PREFIX = "FX_THUMBNAILS_BG_";
-
 const ABOUT_NEWTAB_SEGREGATION_PREF =
   "privacy.usercontext.about_newtab_segregation.enabled";
 
@@ -82,7 +80,9 @@ export const BackgroundPageThumbs = {
     this._captureQueue = this._captureQueue || [];
     this._capturesByURL = this._capturesByURL || new Map();
 
-    tel("QUEUE_SIZE_ON_CAPTURE", this._captureQueue.length);
+    Glean.thumbnails.queueSizeOnCapture.accumulateSingleSample(
+      this._captureQueue.length
+    );
 
     // We want to avoid duplicate captures for the same URL.  If there is an
     // existing one, we just add the callback to that one and we are done.
@@ -547,7 +547,9 @@ Capture.prototype = {
    */
   start(browser) {
     this.startDate = new Date();
-    tel("CAPTURE_QUEUE_TIME_MS", this.startDate - this.creationDate);
+    Glean.thumbnails.captureQueueTime.accumulateSingleSample(
+      this.startDate - this.creationDate
+    );
 
     let fallbackTimeout = Cu.isInAutomation
       ? TESTING_CAPTURE_TIMEOUT
@@ -677,8 +679,8 @@ Capture.prototype = {
     });
 
     this._done(aBrowser, imageData, TEL_CAPTURE_DONE_OK, {
-      CAPTURE_PAGE_LOAD_TIME_MS: pageLoadTime,
-      CAPTURE_CANVAS_DRAW_TIME_MS: canvasDrawTime,
+      pageLoadTime,
+      canvasDrawTime,
     });
   },
 
@@ -716,13 +718,16 @@ Capture.prototype = {
       throw new Error("A done reason must be given.");
     }
 
-    tel("CAPTURE_DONE_REASON_2", reason);
+    Glean.thumbnails.captureDoneReason2.accumulateSingleSample(reason);
 
     if (telemetry) {
       // Telemetry is currently disabled in the content process (bug 680508).
-      for (let id in telemetry) {
-        tel(id, telemetry[id]);
-      }
+      Glean.thumbnails.capturePageLoadTime.accumulateSingleSample(
+        telemetry.pageLoadTime
+      );
+      Glean.thumbnails.captureCanvasDrawTime.accumulateSingleSample(
+        telemetry.canvasDrawTime
+      );
     }
 
     let done = (info = null) => {
@@ -772,17 +777,6 @@ Capture.prototype = {
 };
 
 Capture.nextID = 0;
-
-/**
- * Adds a value to one of this module's telemetry histograms.
- *
- * @param histogramID  This is prefixed with this module's ID.
- * @param value        The value to add.
- */
-function tel(histogramID, value) {
-  let id = TELEMETRY_HISTOGRAM_ID_PREFIX + histogramID;
-  Services.telemetry.getHistogramById(id).add(value);
-}
 
 function schedule(callback) {
   Services.tm.dispatchToMainThread(callback);

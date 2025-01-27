@@ -236,9 +236,9 @@ export var PageThumbs = {
 
     return this._captureToCanvas(aBrowser, aCanvas, args).then(() => {
       if (!aSkipTelemetry) {
-        Services.telemetry
-          .getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
-          .add(new Date() - telemetryCaptureTime);
+        Glean.thumbnails.captureTime.accumulateSingleSample(
+          new Date() - telemetryCaptureTime
+        );
       }
       return aCanvas;
     });
@@ -565,9 +565,9 @@ export var PageThumbs = {
   ) {
     let telemetryStoreTime = new Date();
     await PageThumbsStorage.writeData(aFinalURL, aData, aNoOverwrite);
-    Services.telemetry
-      .getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
-      .add(new Date() - telemetryStoreTime);
+    Glean.thumbnails.storeTime.accumulateSingleSample(
+      new Date() - telemetryStoreTime
+    );
 
     Services.obs.notifyObservers(null, "page-thumbnail:create", aFinalURL);
     // We've been redirected. Create a copy of the current thumbnail for
