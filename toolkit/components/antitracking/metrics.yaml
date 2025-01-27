@@ -80,6 +80,443 @@ contentblocking:
     expires: never
     telemetry_mirror: CONTENTBLOCKING_TRACKERS_BLOCKED_COUNT
 
+  canvas_fingerprinting_per_tab:
+    type: labeled_custom_distribution
+    description: >
+      Type of canvas fingerprinter detected (keyed by known_fingerprinting_text
+      or unknown), 0 = none
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CANVAS_FINGERPRINTING_PER_TAB.
+    labels:
+      - "unknown"
+      - "known_text"
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: 138
+    telemetry_mirror: CANVAS_FINGERPRINTING_PER_TAB
+
+  font_fingerprinting_per_tab:
+    type: labeled_counter
+    description: >
+      Whether a probable font fingerprinting attempt was detected
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram FONT_FINGERPRINTING_PER_TAB.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: 138
+    telemetry_mirror: h#FONT_FINGERPRINTING_PER_TAB
+
+  storage_access_granted_count:
+    type: labeled_counter
+    description: >
+      A count of the granted storage access. ('StorageGranted' = There was a
+      storage access granted, 'StorageAccessAPI' = the storage access was
+      granted by the storage access API, 'OpenerAfterUserInteraction' = the
+      storage access was granted due to the heuristic
+      'OpenerAfterUserInteraction', 'Opener' = the storage access was granted
+      due to the heuristic 'Opener', 'Redirect' = the storage access was granted
+      due to the heuristic 'Redirect', 'RedirectTracker' = the storage access
+      was granted due to the heuristic 'RedirectTracker'.) Note, StorageGranted
+      is used as a baseline measurement, which should be the sum of all other
+      measurements.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram STORAGE_ACCESS_GRANTED_COUNT.
+    labels:
+      - StorageGranted
+      - StorageAccessAPI
+      - OpenerAfterUI
+      - Opener
+      - Redirect
+      - RedirectTracker
+      - Navigation
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: h#STORAGE_ACCESS_GRANTED_COUNT
+
+  storage_access_remaining_days:
+    type: custom_distribution
+    description: >
+      The time remaining until expiration per storage access permissions, in
+      days (one record per permission, not averaged).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram STORAGE_ACCESS_REMAINING_DAYS.
+    range_min: 0
+    range_max: 60
+    bucket_count: 61
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: STORAGE_ACCESS_REMAINING_DAYS
+
+  query_stripping_count:
+    type: labeled_counter
+    description: >
+      A count of the query stripping. ('Navigation' = There was a top-level
+      loading via navigation, 'Redirect' = There was a top-level loading via
+      redirect, 'StripForNavigation' = There was a stripping happened for a
+      top-level navigation, 'StripForRedirect' = There was a stripping happened
+      for a top-level redirect.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram QUERY_STRIPPING_COUNT.
+    labels:
+      - Navigation
+      - Redirect
+      - StripForNavigation
+      - StripForRedirect
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706616
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706616
+    notification_emails:
+      - tihuang@mozilla.com
+      - emz@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#QUERY_STRIPPING_COUNT
+
+  query_stripping_param_count:
+    type: custom_distribution
+    description: >
+      If query params get stripped, how many per navigation/redirect.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram QUERY_STRIPPING_PARAM_COUNT.
+    range_min: 1
+    range_max: 100
+    bucket_count: 25
+    histogram_type: exponential
+    unit: query params
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1762374
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1762374
+    notification_emails:
+      - tihuang@mozilla.com
+      - emz@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: QUERY_STRIPPING_PARAM_COUNT
+
+  query_stripping_count_by_param:
+    type: labeled_counter
+    description: >
+      Counts how often specific query parameters are stripped.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram QUERY_STRIPPING_COUNT_BY_PARAM.
+    labels:
+      - param_mc_eid
+      - param_oly_anon_id
+      - param_oly_enc_id
+      - param___s
+      - param_vero_id
+      - param__hsenc
+      - param_mkt_tok
+      - param_fbclid
+      - param_gclid
+      - param_dclid
+      - param_msclkid
+      - param__openstat
+      - param_yclid
+      - param_wickedid
+      - param_twclid
+      - param___hssc
+      - param___hstc
+      - param___hsfp
+      - param_hsctatracking
+      - param_wbraid
+      - param_gbraid
+      - param_ysclid
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1762374
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830058
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1762374
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830058
+    notification_emails:
+      - tihuang@mozilla.com
+      - emz@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#QUERY_STRIPPING_COUNT_BY_PARAM
+
+  email_tracker_count:
+    type: labeled_counter
+    description: >
+      A count of the classified email trackers. ('base_normal' = The classified
+      email tracker is in base category and loaded under a normal site,
+      'content_normal' = The classified email tracker is in content category and
+      loaded under a normal site, 'base_email_webapp' = The classified email
+      tracker is in base category and loaded under a known email webapp,
+      'content_email_webapp' = The classified email tracker is in content
+      category and loaded under a known email webapp.)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram EMAIL_TRACKER_COUNT.
+    labels:
+      - base_normal
+      - content_normal
+      - base_email_webapp
+      - content_email_webapp
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1773701
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1773701
+    notification_emails:
+      - tihuang@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#EMAIL_TRACKER_COUNT
+
+  email_tracker_embedded_per_tab:
+    type: labeled_custom_distribution
+    description: >
+      A count of the embedded third-party email trackers for known email web
+      apps. ('base_normal' = The count of loaded base email trackers under
+      normal sites, 'content_normal' = The count of loaded content email trackers
+      under normal sites, 'all_normal' = The count of all loaded email trackers
+      under normal sites, 'base_emailapp' = The count of loaded base email
+      trackers under email webapps, 'content_emailapp' = The count of loaded
+      content email trackers under email webapps, 'all_emailapp' = The count of
+      all loaded email trackers under email webapps.)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram EMAIL_TRACKER_EMBEDDED_PER_TAB.
+    labels:
+      - base_normal
+      - content_normal
+      - all_normal
+      - base_emailapp
+      - content_emailapp
+      - all_emailapp
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: third-party email trackers
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1781249
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1781249
+    notification_emails:
+      - tihuang@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: EMAIL_TRACKER_EMBEDDED_PER_TAB
+
+  strip_on_share_params_removed:
+    type: custom_distribution
+    description: >
+      The number of query parameters removed, if any, when strip on share is
+      used
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram STRIP_ON_SHARE_PARAMS_REMOVED.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: query parameters
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833105
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833105
+    notification_emails:
+      - emz@mozilla.com
+    expires: never
+    telemetry_mirror: STRIP_ON_SHARE_PARAMS_REMOVED
+
+  strip_on_share_length_decrease:
+    type: custom_distribution
+    description: >
+      The decrease in the length of the URL when strip on share is used, only if
+      at least one parameter is stripped
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram STRIP_ON_SHARE_LENGTH_DECREASE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: characters
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833105
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833105
+    notification_emails:
+      - emz@mozilla.com
+    expires: never
+    telemetry_mirror: STRIP_ON_SHARE_LENGTH_DECREASE
+
+  cookie_behavior:
+    type: custom_distribution
+    description: >
+      Records the cookie behavior pref at startup.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram COOKIE_BEHAVIOR.
+    range_min: 0
+    range_max: 15
+    bucket_count: 16
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1484251
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1561384
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1484251
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1561384
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: COOKIE_BEHAVIOR
+
+  tracking_protection_enabled:
+    type: labeled_counter
+    description: >
+      True if tracking protection is enabled globally at startup.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram TRACKING_PROTECTION_ENABLED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1058133
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1058133
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: h#TRACKING_PROTECTION_ENABLED
+
+  tracking_protection_pbm_disabled:
+    type: labeled_counter
+    description: >
+      True if tracking protection in Private Browsing mode is disabled at
+      startup.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram TRACKING_PROTECTION_PBM_DISABLED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1200944
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1200944
+    notification_emails:
+      - privacy-team@mozilla.org
+    expires: never
+    telemetry_mirror: h#TRACKING_PROTECTION_PBM_DISABLED
+
+  tracking_protection_shield:
+    type: custom_distribution
+    description: >
+      Status of the shield icon for each top-level pageload (outside of Private
+      Browsing mode) when tracking protection is enabled (0 = there was a page
+      load, this is used as a baseline, 1 = shield crossed out because CB was
+      disabled on this page by the user, 2 = shield shown because some content
+      was blocked)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram TRACKING_PROTECTION_SHIELD.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1058133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1659762
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1058133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1659762
+    notification_emails:
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: TRACKING_PROTECTION_SHIELD
+
+  fingerprinters_blocked_count:
+    type: labeled_counter
+    description: >
+      A count of the status of fingerprinter blocking per top level page load.
+      ('pageLoad' = There was a page load, 'blocked' = at least one
+      fingerprinter was blocked, 'allowed' = at least one fingerprinter was
+      detected and allowed.) Note, pageLoad is used as a baseline measurement.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram FINGERPRINTERS_BLOCKED_COUNT.
+    labels:
+      - pageLoad
+      - blocked
+      - allowed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1522919
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1522919
+    notification_emails:
+      - privacy-team@mozilla.org
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#FINGERPRINTERS_BLOCKED_COUNT
+
+  cryptominers_blocked_count:
+    type: labeled_counter
+    description: >
+      A count of the status of cryptominer blocking per top level page load.
+      ('pageLoad' = There was a page load, 'blocked' = at least one cryptominer
+      was blocked, 'allowed' = at least one cryptominer was detected and
+      allowed.) Note, pageLoad is used as a baseline measurement.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram CRYPTOMINERS_BLOCKED_COUNT.
+    labels:
+      - pageLoad
+      - blocked
+      - allowed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1522919
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1522919
+    notification_emails:
+      - privacy-team@mozilla.org
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#CRYPTOMINERS_BLOCKED_COUNT
+
 cookie_purging:
   origins_purged:
     type: custom_distribution

@@ -25,7 +25,7 @@
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPrefs_telemetry.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AntitrackingMetrics.h"
 #include "mozilla/XorShift128PlusRNG.h"
 
 namespace mozilla {
@@ -247,15 +247,20 @@ void ContentBlockingLog::ReportCanvasFingerprintingLog(
   }
 
   if (!hasCanvasFingerprinter) {
-    Telemetry::Accumulate(Telemetry::CANVAS_FINGERPRINTING_PER_TAB,
-                          "unknown"_ns, 0);
+    glean::contentblocking::canvas_fingerprinting_per_tab
+        .EnumGet(
+            glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknown)
+        .AccumulateSingleSample(0);
   } else {
     int32_t fingerprinter =
         canvasFingerprinter.isSome() ? (*canvasFingerprinter + 1) : 0;
-    Telemetry::Accumulate(
-        Telemetry::CANVAS_FINGERPRINTING_PER_TAB,
-        canvasFingerprinterKnownText ? "known_text"_ns : "unknown"_ns,
-        fingerprinter);
+    auto label =
+        canvasFingerprinterKnownText
+            ? glean::contentblocking::CanvasFingerprintingPerTabLabel::
+                  eKnownText
+            : glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknown;
+    glean::contentblocking::canvas_fingerprinting_per_tab.EnumGet(label)
+        .AccumulateSingleSample(fingerprinter);
   }
 }
 
@@ -290,8 +295,11 @@ void ContentBlockingLog::ReportFontFingerprintingLog(
     }
   }
 
-  Telemetry::Accumulate(Telemetry::FONT_FINGERPRINTING_PER_TAB,
-                        hasFontFingerprinter);
+  glean::contentblocking::font_fingerprinting_per_tab
+      .EnumGet(
+          static_cast<glean::contentblocking::FontFingerprintingPerTabLabel>(
+              hasFontFingerprinter))
+      .Add();
 }
 
 void ContentBlockingLog::ReportEmailTrackingLog(
@@ -384,16 +392,27 @@ void ContentBlockingLog::ReportEmailTrackingLog(
   uint32_t level1Count = level1SiteSet.Count();
   uint32_t level2Count = level2SiteSet.Count();
 
-  Telemetry::Accumulate(
-      Telemetry::EMAIL_TRACKER_EMBEDDED_PER_TAB,
-      isTopEmailWebApp ? "base_emailapp"_ns : "base_normal"_ns, level1Count);
-  Telemetry::Accumulate(
-      Telemetry::EMAIL_TRACKER_EMBEDDED_PER_TAB,
-      isTopEmailWebApp ? "content_emailapp"_ns : "content_normal"_ns,
-      level2Count);
-  Telemetry::Accumulate(Telemetry::EMAIL_TRACKER_EMBEDDED_PER_TAB,
-                        isTopEmailWebApp ? "all_emailapp"_ns : "all_normal"_ns,
-                        level1Count + level2Count);
+  glean::contentblocking::email_tracker_embedded_per_tab
+      .EnumGet(isTopEmailWebApp
+                   ? glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eBaseEmailapp
+                   : glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eBaseNormal)
+      .AccumulateSingleSample(level1Count);
+  glean::contentblocking::email_tracker_embedded_per_tab
+      .EnumGet(isTopEmailWebApp
+                   ? glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eContentEmailapp
+                   : glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eContentNormal)
+      .AccumulateSingleSample(level2Count);
+  glean::contentblocking::email_tracker_embedded_per_tab
+      .EnumGet(isTopEmailWebApp
+                   ? glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eAllEmailapp
+                   : glean::contentblocking::EmailTrackerEmbeddedPerTabLabel::
+                         eAllNormal)
+      .AccumulateSingleSample(level1Count + level2Count);
 }
 
 ContentBlockingLog::OriginEntry* ContentBlockingLog::RecordLogInternal(

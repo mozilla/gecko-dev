@@ -12,7 +12,7 @@
 #include "mozilla/BounceTrackingRecord.h"
 #include "mozilla/BounceTrackingState.h"
 #include "mozilla/Components.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AntitrackingMetrics.h"
 #include "nsISHistory.h"
 
 namespace mozilla {
@@ -117,10 +117,14 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
           StorageAccessAPIHelper::StorageAccessPromptChoices::eAllow, false,
           StaticPrefs::privacy_restrict3rdpartystorage_expiration_visited());
 
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::StorageGranted);
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::Navigation);
+      glean::contentblocking::storage_access_granted_count
+          .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
+                       eStoragegranted)
+          .Add();
+      glean::contentblocking::storage_access_granted_count
+          .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
+                       eNavigation)
+          .Add();
     }
   }
 }

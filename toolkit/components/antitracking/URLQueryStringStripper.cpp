@@ -9,7 +9,7 @@
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AntitrackingMetrics.h"
 
 #include "nsEffectiveTLDService.h"
 #include "nsISupportsImpl.h"
@@ -87,7 +87,8 @@ URLQueryStringStripper::StripForCopyOrShare(nsIURI* aURI,
                                             /* aStripNestedURIs = */ false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  Telemetry::Accumulate(Telemetry::STRIP_ON_SHARE_PARAMS_REMOVED, aStripCount);
+  glean::contentblocking::strip_on_share_params_removed.AccumulateSingleSample(
+      aStripCount);
 
   if (!aStripCount) {
     return NS_OK;
@@ -107,7 +108,8 @@ URLQueryStringStripper::StripForCopyOrShare(nsIURI* aURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t lengthDiff = specOriginalURI.Length() - specStrippedURI.Length();
-  Telemetry::Accumulate(Telemetry::STRIP_ON_SHARE_LENGTH_DECREASE, lengthDiff);
+  glean::contentblocking::strip_on_share_length_decrease.AccumulateSingleSample(
+      lengthDiff);
 
   return NS_OK;
 }
@@ -287,8 +289,8 @@ nsresult URLQueryStringStripper::StripQueryString(nsIURI* aURI,
       // Calls for any other query params will be discarded.
       nsAutoCString telemetryLabel("param_");
       telemetryLabel.Append(lowerCaseName);
-      Telemetry::AccumulateCategorical(
-          Telemetry::QUERY_STRIPPING_COUNT_BY_PARAM, telemetryLabel);
+      glean::contentblocking::query_stripping_count_by_param.Get(telemetryLabel)
+          .Add();
 
       return true;
     }

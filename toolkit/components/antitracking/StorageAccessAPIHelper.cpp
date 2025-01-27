@@ -26,7 +26,7 @@
 #include "mozilla/PermissionManager.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AntitrackingMetrics.h"
 #include "mozIThirdPartyUtil.h"
 #include "nsContentUtils.h"
 #include "nsIClassifiedChannel.h"
@@ -727,23 +727,31 @@ StorageAccessAPIHelper::CompleteAllowAccessForOnChildProcess(
     return;
   }
 
-  Telemetry::AccumulateCategorical(
-      Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::StorageGranted);
+  glean::contentblocking::storage_access_granted_count
+      .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
+                   eStoragegranted)
+      .Add();
 
   switch (aReason) {
     case ContentBlockingNotifier::StorageAccessPermissionGrantedReason::
         eStorageAccessAPI:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::StorageAccessAPI);
+      glean::contentblocking::storage_access_granted_count
+          .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
+                       eStorageaccessapi)
+          .Add();
       break;
     case ContentBlockingNotifier::StorageAccessPermissionGrantedReason::
         eOpenerAfterUserInteraction:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::OpenerAfterUI);
+      glean::contentblocking::storage_access_granted_count
+          .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
+                       eOpenerafterui)
+          .Add();
       break;
     case ContentBlockingNotifier::StorageAccessPermissionGrantedReason::eOpener:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_STORAGE_ACCESS_GRANTED_COUNT::Opener);
+      glean::contentblocking::storage_access_granted_count
+          .EnumGet(
+              glean::contentblocking::StorageAccessGrantedCountLabel::eOpener)
+          .Add();
       break;
     default:
       break;

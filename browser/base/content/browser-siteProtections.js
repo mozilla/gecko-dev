@@ -1771,21 +1771,17 @@ var gProtectionsHandler = {
     if (PrivateBrowsingUtils.isWindowPrivate(window)) {
       return;
     }
-    Services.telemetry
-      .getHistogramById("TRACKING_PROTECTION_SHIELD")
-      .add(value);
+    Glean.contentblocking.trackingProtectionShield.accumulateSingleSample(
+      value
+    );
   },
 
   cryptominersHistogramAdd(value) {
-    Services.telemetry
-      .getHistogramById("CRYPTOMINERS_BLOCKED_COUNT")
-      .add(value);
+    Glean.contentblocking.cryptominersBlockedCount[value].add(1);
   },
 
   fingerprintersHistogramAdd(value) {
-    Services.telemetry
-      .getHistogramById("FINGERPRINTERS_BLOCKED_COUNT")
-      .add(value);
+    Glean.contentblocking.fingerprintersBlockedCount[value].add(1);
   },
 
   handleProtectionsButtonEvent(event) {

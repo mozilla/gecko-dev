@@ -2060,21 +2060,21 @@ BrowserGlue.prototype = {
     let tpEnabled = Services.prefs.getBoolPref(
       "privacy.trackingprotection.enabled"
     );
-    Services.telemetry
-      .getHistogramById("TRACKING_PROTECTION_ENABLED")
-      .add(tpEnabled);
+    Glean.contentblocking.trackingProtectionEnabled[
+      tpEnabled ? "true" : "false"
+    ].add();
 
-    let tpPBDisabled = Services.prefs.getBoolPref(
+    let tpPBEnabled = Services.prefs.getBoolPref(
       "privacy.trackingprotection.pbmode.enabled"
     );
-    Services.telemetry
-      .getHistogramById("TRACKING_PROTECTION_PBM_DISABLED")
-      .add(!tpPBDisabled);
+    Glean.contentblocking.trackingProtectionPbmDisabled[
+      !tpPBEnabled ? "true" : "false"
+    ].add();
 
     let cookieBehavior = Services.prefs.getIntPref(
       "network.cookie.cookieBehavior"
     );
-    Services.telemetry.getHistogramById("COOKIE_BEHAVIOR").add(cookieBehavior);
+    Glean.contentblocking.cookieBehavior.accumulateSingleSample(cookieBehavior);
 
     let fpEnabled = Services.prefs.getBoolPref(
       "privacy.trackingprotection.fingerprinting.enabled"

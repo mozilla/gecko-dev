@@ -12,6 +12,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/glean/AntitrackingMetrics.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/StoragePrincipalHelper.h"
@@ -5979,8 +5980,8 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
           // Record telemetry, but only if we stripped any query params.
           Telemetry::AccumulateCategorical(
               Telemetry::LABELS_QUERY_STRIPPING_COUNT::StripForRedirect);
-          Telemetry::Accumulate(Telemetry::QUERY_STRIPPING_PARAM_COUNT,
-                                numStripped);
+          glean::contentblocking::query_stripping_param_count
+              .AccumulateSingleSample(numStripped);
         }
       }
     }
