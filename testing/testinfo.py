@@ -1206,7 +1206,9 @@ class TestInfoReport(TestInfo):
             self.build_matrix_cache()
 
         # for tasks with no MOZHARNESS_TEST_PATHS, provide basic data
-        if self.find_non_test_path_loader(runcount[target_manifest][0][0]):
+        if target_manifest in runcount and self.find_non_test_path_loader(
+            runcount[target_manifest][0][0]
+        ):
             suite = self.find_non_test_path_loader(runcount[target_manifest][0][0])
             self.matrix_map[target_manifest] = self.matrix_map[suite]
 
