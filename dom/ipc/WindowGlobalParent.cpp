@@ -33,6 +33,7 @@
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/glean/DomUseCounterMetrics.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/glean/GeckoviewMetrics.h"
 #include "mozilla/Components.h"
 #include "mozilla/IdentityCredentialRequestManager.h"
@@ -1523,8 +1524,11 @@ IPCResult WindowGlobalParent::RecvGetStorageAccessPermission(
 
 void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
   if (GetBrowsingContext()->IsTopContent()) {
-    Telemetry::Accumulate(Telemetry::ORB_DID_EVER_BLOCK_RESPONSE,
-                          mShouldReportHasBlockedOpaqueResponse);
+    glean::orb::did_ever_block_response
+        .EnumGet(mShouldReportHasBlockedOpaqueResponse
+                     ? glean::orb::DidEverBlockResponseLabel::eTrue
+                     : glean::orb::DidEverBlockResponseLabel::eFalse)
+        .Add();
   }
 
   if (mPageUseCountersWindow) {

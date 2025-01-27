@@ -1057,3 +1057,129 @@ opaque.response.blocking:
       - farre@mozilla.com
     expires: never
     telemetry_mirror: OPAQUE_RESPONSE_BLOCKING_CROSS_ORIGIN_OPAQUE_RESPONSE_COUNT
+
+orb:
+  javascript_validation:
+    type: labeled_timing_distribution
+    description: >
+      Time (in ms) that it takes for a ORB JavaScript validator to complete a
+      validation, including IPC to the validator actor.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram ORB_JAVASCRIPT_VALIDATION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
+    notification_emails:
+      - farre@mozilla.com
+    expires: never
+    telemetry_mirror: ORB_JAVASCRIPT_VALIDATION_MS
+
+  receive_data_for_validation:
+    type: labeled_timing_distribution
+    description: >
+      Time (in ms) that it takes to receive data for ORB JavaScript validation,
+      including IPC to the validator actor.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram ORB_RECEIVE_DATA_FOR_VALIDATION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
+    notification_emails:
+      - farre@mozilla.com
+    expires: never
+    telemetry_mirror: ORB_RECEIVE_DATA_FOR_VALIDATION_MS
+
+  did_ever_block_response:
+    type: labeled_counter
+    description: >
+      If any opaque response was blocked for a given top-level window context.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram ORB_DID_EVER_BLOCK_RESPONSE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1812051
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1812051
+    notification_emails:
+      - farre@mozilla.com
+    expires: never
+    telemetry_mirror: h#ORB_DID_EVER_BLOCK_RESPONSE
+
+  block_reason:
+    type: labeled_counter
+    description: >
+      The reason of why this request was blocked by ORB
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram ORB_BLOCK_REASON.
+    labels:
+      - MIME_NEVER_SNIFFED
+      - RESP_206_BLCLISTED
+      - NOSNIFF_BLC_OR_TEXTP
+      - RESP_206_NO_FIRST
+      - AFTER_SNIFF_MEDIA
+      - AFTER_SNIFF_NOSNIFF
+      - AFTER_SNIFF_STA_CODE
+      - AFTER_SNIFF_CT_FAIL
+      - MEDIA_NOT_INITIAL
+      - MEDIA_INCORRECT_RESP
+      - JS_VALIDATION_FAILED
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833216
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833216
+    notification_emails:
+      - sefeng@mozilla.com
+      - afarre@mozilla.com
+    expires: never
+    telemetry_mirror: h#ORB_BLOCK_REASON
+
+  block_initiator:
+    type: labeled_counter
+    description: >
+      The initiator of this ORB blocked request.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram ORB_BLOCK_INITIATOR.
+    labels:
+      - INVALID
+      - OTHER
+      - FILTERED_FETCH
+      - BLOCKED_FETCH
+      - JSON
+      - SCRIPT
+      - IMAGE
+      - STYLESHEET
+      - XMLHTTPREQUEST
+      - DTD
+      - FONT
+      - MEDIA
+      - CSP_REPORT
+      - XSLT
+      - IMAGESET
+      - WEB_MANIFEST
+      - SPECULATIVE
+      - UA_FONT
+      - PROXIED_WEBRTC_MEDIA
+      - PING
+      - BEACON
+      - WEB_TRANSPORT
+      - EXCLUDED
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833216
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1833216
+    notification_emails:
+      - sefeng@mozilla.com
+      - afarre@mozilla.com
+    expires: never
+    telemetry_mirror: h#ORB_BLOCK_INITIATOR

@@ -3306,8 +3306,9 @@ OpaqueResponse HttpBaseChannel::BlockOrFilterOpaqueResponse(
   }
 
   if (shouldFilter) {
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_ORB_BLOCK_INITIATOR::FILTERED_FETCH);
+    glean::orb::block_initiator
+        .EnumGet(glean::orb::BlockInitiatorLabel::eFilteredFetch)
+        .Add();
     // The existence of `mORB` depends on `BlockOrFilterOpaqueResponse` being
     // called before or after sniffing has completed.
     // Another requirement is that `OpaqueResponseFilter` must come after
@@ -3401,14 +3402,14 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
     case OpaqueResponseBlockedReason::BLOCKED_BLOCKLISTED_NEVER_SNIFFED:
       return BlockOrFilterOpaqueResponse(
           mORB, u"mimeType is an opaque-blocklisted-never-sniffed MIME type"_ns,
-          OpaqueResponseBlockedTelemetryReason::MIME_NEVER_SNIFFED,
+          OpaqueResponseBlockedTelemetryReason::eMimeNeverSniffed,
           "BLOCKED_BLOCKLISTED_NEVER_SNIFFED");
     case OpaqueResponseBlockedReason::BLOCKED_206_AND_BLOCKLISTED:
       // Step 3.3
       return BlockOrFilterOpaqueResponse(
           mORB,
           u"response's status is 206 and mimeType is an opaque-blocklisted MIME type"_ns,
-          OpaqueResponseBlockedTelemetryReason::RESP_206_BLCLISTED,
+          OpaqueResponseBlockedTelemetryReason::eResp206Blclisted,
           "BLOCKED_206_AND_BLOCKEDLISTED");
     case OpaqueResponseBlockedReason::
         BLOCKED_NOSNIFF_AND_EITHER_BLOCKLISTED_OR_TEXTPLAIN:
@@ -3416,7 +3417,7 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
       return BlockOrFilterOpaqueResponse(
           mORB,
           u"nosniff is true and mimeType is an opaque-blocklisted MIME type or its essence is 'text/plain'"_ns,
-          OpaqueResponseBlockedTelemetryReason::NOSNIFF_BLC_OR_TEXTP,
+          OpaqueResponseBlockedTelemetryReason::eNosniffBlcOrTextp,
           "BLOCKED_NOSNIFF_AND_EITHER_BLOCKLISTED_OR_TEXTPLAIN");
     default:
       break;
@@ -3440,7 +3441,7 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
       !IsFirstPartialResponse(*mResponseHead)) {
     return BlockOrFilterOpaqueResponse(
         mORB, u"response status is 206 and not first partial response"_ns,
-        OpaqueResponseBlockedTelemetryReason::RESP_206_BLCLISTED,
+        OpaqueResponseBlockedTelemetryReason::eResp206Blclisted,
         "Is not a valid partial response given 0");
   }
 
@@ -3498,7 +3499,7 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
   if (isMediaRequest) {
     return BlockOrFilterOpaqueResponse(
         mORB, u"after sniff: media request"_ns,
-        OpaqueResponseBlockedTelemetryReason::AFTER_SNIFF_MEDIA,
+        OpaqueResponseBlockedTelemetryReason::eAfterSniffMedia,
         "media request");
   }
 
@@ -3506,7 +3507,7 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
   if (aNoSniff) {
     return BlockOrFilterOpaqueResponse(
         mORB, u"after sniff: nosniff is true"_ns,
-        OpaqueResponseBlockedTelemetryReason::AFTER_SNIFF_NOSNIFF, "nosniff");
+        OpaqueResponseBlockedTelemetryReason::eAfterSniffNosniff, "nosniff");
   }
 
   // Step 12
@@ -3514,7 +3515,7 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
       (mResponseHead->Status() < 200 || mResponseHead->Status() > 299)) {
     return BlockOrFilterOpaqueResponse(
         mORB, u"after sniff: status code is not in allowed range"_ns,
-        OpaqueResponseBlockedTelemetryReason::AFTER_SNIFF_STA_CODE,
+        OpaqueResponseBlockedTelemetryReason::eAfterSniffStaCode,
         "status code (%d) is not allowed", mResponseHead->Status());
   }
 
@@ -3531,7 +3532,7 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
     return BlockOrFilterOpaqueResponse(
         mORB,
         u"after sniff: content-type declares image/video/audio, but sniffing fails"_ns,
-        OpaqueResponseBlockedTelemetryReason::AFTER_SNIFF_CT_FAIL,
+        OpaqueResponseBlockedTelemetryReason::eAfterSniffCtFail,
         "ContentType is image/video/audio");
   }
 
@@ -6544,99 +6545,118 @@ HttpBaseChannel::GetIsProxyUsed(bool* aIsProxyUsed) {
 static void CollectORBBlockTelemetry(
     const OpaqueResponseBlockedTelemetryReason aTelemetryReason,
     ExtContentPolicy aPolicy) {
-  Telemetry::LABELS_ORB_BLOCK_REASON label{
-      static_cast<uint32_t>(aTelemetryReason)};
-  Telemetry::AccumulateCategorical(label);
+  glean::orb::block_reason.EnumGet(aTelemetryReason).Add();
 
   switch (aPolicy) {
     case ExtContentPolicy::TYPE_INVALID:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::INVALID);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eInvalid)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_OTHER:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::OTHER);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eOther)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_FETCH:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::BLOCKED_FETCH);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eBlockedFetch)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_SCRIPT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::SCRIPT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eScript)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_JSON:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::JSON);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eJson)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_IMAGE:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::IMAGE);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eImage)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_STYLESHEET:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::STYLESHEET);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eStylesheet)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_XMLHTTPREQUEST:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::XMLHTTPREQUEST);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eXmlhttprequest)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_DTD:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::DTD);
+      glean::orb::block_initiator.EnumGet(glean::orb::BlockInitiatorLabel::eDtd)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_FONT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::FONT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eFont)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_MEDIA:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::MEDIA);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eMedia)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_CSP_REPORT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::CSP_REPORT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eCspReport)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_XSLT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::XSLT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eXslt)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_IMAGESET:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::IMAGESET);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eImageset)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_WEB_MANIFEST:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::WEB_MANIFEST);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eWebManifest)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_SPECULATIVE:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::SPECULATIVE);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eSpeculative)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_UA_FONT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::UA_FONT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eUaFont)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::PROXIED_WEBRTC_MEDIA);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eProxiedWebrtcMedia)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_PING:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::PING);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::ePing)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_BEACON:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::BEACON);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eBeacon)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_WEB_TRANSPORT:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::WEB_TRANSPORT);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eWebTransport)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_WEB_IDENTITY:
       // Don't bother extending the telemetry for this.
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::OTHER);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eOther)
+          .Add();
       break;
     case ExtContentPolicy::TYPE_DOCUMENT:
     case ExtContentPolicy::TYPE_SUBDOCUMENT:
@@ -6647,8 +6667,9 @@ static void CollectORBBlockTelemetry(
       MOZ_ASSERT_UNREACHABLE("Shouldn't block this type");
       // DOCUMENT, SUBDOCUMENT, OBJECT, OBJECT_SUBREQUEST,
       // WEBSOCKET and SAVEAS_DOWNLOAD are excluded from ORB
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ORB_BLOCK_INITIATOR::EXCLUDED);
+      glean::orb::block_initiator
+          .EnumGet(glean::orb::BlockInitiatorLabel::eExcluded)
+          .Add();
       break;
       // Do not add default: so that compilers can catch the missing case.
   }

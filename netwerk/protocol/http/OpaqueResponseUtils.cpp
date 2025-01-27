@@ -9,7 +9,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/JSValidatorParent.h"
-#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "ErrorList.h"
 #include "nsContentUtils.h"
 #include "nsHttpResponseHead.h"
@@ -465,7 +464,7 @@ OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterJavaScriptValidation(
 
   return aChannel->BlockOrFilterOpaqueResponse(
       this, u"Javascript validation failed"_ns,
-      OpaqueResponseBlockedTelemetryReason::JS_VALIDATION_FAILED,
+      OpaqueResponseBlockedTelemetryReason::eJsValidationFailed,
       "Javascript validation failed");
 }
 
@@ -501,12 +500,11 @@ static void RecordTelemetry(const TimeStamp& aStartOfValidation,
       MarkerTiming::Interval(aStartOfJavaScriptValidation, now),
       nsPrintfCString("JS Validation (%s)", key.get()));
 
-  Telemetry::AccumulateTimeDelta(Telemetry::ORB_RECEIVE_DATA_FOR_VALIDATION_MS,
-                                 key, aStartOfValidation,
-                                 aStartOfJavaScriptValidation);
+  glean::orb::receive_data_for_validation.Get(key).AccumulateRawDuration(
+      aStartOfJavaScriptValidation - aStartOfValidation);
 
-  Telemetry::AccumulateTimeDelta(Telemetry::ORB_JAVASCRIPT_VALIDATION_MS, key,
-                                 aStartOfJavaScriptValidation, now);
+  glean::orb::javascript_validation.Get(key).AccumulateRawDuration(
+      now - aStartOfJavaScriptValidation);
 }
 
 // The specification for ORB is currently being written:
