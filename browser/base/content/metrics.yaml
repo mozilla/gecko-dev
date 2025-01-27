@@ -103,8 +103,6 @@ security.ui.protectionspopup:
     type: event
     description: >
       How many times the protections panel was opened.
-      This event was generated to correspond to the Legacy Telemetry event
-      security.ui.protectionspopup.open#protections_popup.
     extra_keys:
       openingReason:
         description: >
@@ -135,7 +133,6 @@ security.ui.protectionspopup:
       - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
-    telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionsPopup
 
   close_protections_popup:
     type: event
@@ -166,8 +163,6 @@ security.ui.protectionspopup:
     type: event
     description: >
       How many times the protections panel was opened.
-      This event was generated to correspond to the Legacy Telemetry event
-      security.ui.protectionspopup.open#protectionspopup_cfr.
     bugs: *security_ui_protectionspopup_open_bugs
     data_reviews: *security_ui_protectionspopup_open_data_reviews
     notification_emails: *security_ui_protectionspopup_open_emails
@@ -183,7 +178,6 @@ security.ui.protectionspopup:
           For protectionspopup_cfr, the message ID.
 
         type: string
-    telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionspopupCfr
 
   click_etp_toggle_on:
     type: event

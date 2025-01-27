@@ -43,6 +43,8 @@ add_setup(async function () {
     Services.telemetry.canRecordExtended = oldCanRecord;
     Services.telemetry.clearEvents();
   });
+
+  Services.fog.testResetFOG();
 });
 
 async function clickToggle(toggle) {
@@ -63,16 +65,9 @@ add_task(async function testToggleSwitch() {
     return gProtectionsHandler._protectionsPopup.hasAttribute("blocking");
   });
 
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS
-  ).parent;
-  let buttonEvents = events.filter(
-    e =>
-      e[1] == "security.ui.protectionspopup" &&
-      e[2] == "open" &&
-      e[3] == "protections_popup"
-  );
-  console.log(buttonEvents);
+  let buttonEvents =
+    Glean.securityUiProtectionspopup.openProtectionsPopup.testGetValue();
+
   is(buttonEvents.length, 1, "recorded telemetry for opening the popup");
 
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);

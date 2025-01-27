@@ -34,6 +34,8 @@ add_setup(async function () {
     Services.telemetry.canRecordExtended = oldCanRecord;
     Services.telemetry.clearEvents();
   });
+
+  Services.fog.testResetFOG();
 });
 
 add_task(async function testPanelInfoMessage() {
@@ -68,17 +70,8 @@ add_task(async function testPanelInfoMessage() {
   ok(BrowserTestUtils.isVisible(learnMoreLink), "The link should be visible.");
 
   // Check telemetry for the info message
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    false
-  ).parent;
-  let messageEvents = events.filter(
-    e =>
-      e[1] == "security.ui.protectionspopup" &&
-      e[2] == "open" &&
-      e[3] == "protectionspopup_cfr" &&
-      e[4] == "impression"
-  );
+  let messageEvents =
+    Glean.securityUiProtectionspopup.openProtectionspopupCfr.testGetValue();
   is(
     messageEvents.length,
     1,
