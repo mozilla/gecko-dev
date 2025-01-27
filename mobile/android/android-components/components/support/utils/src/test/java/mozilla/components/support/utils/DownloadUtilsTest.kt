@@ -394,6 +394,27 @@ class DownloadUtilsTest {
         assertEquals("attachment; filename=${"a".repeat(251)}.pdf;", DownloadUtils.makePdfContentDisposition("a".repeat(260) + ".pdf"))
     }
 
+    @Test
+    fun truncateFileNameTest() {
+        val directoryPath = "/storage/emulated/0/Download"
+
+        assertEquals("foo", DownloadUtils.truncateFileName("foo", ".txt", directoryPath))
+        assertEquals("foo", DownloadUtils.truncateFileName("foo", "", directoryPath))
+        assertEquals("foo.txt", DownloadUtils.truncateFileName("foo.txt", ".txt", directoryPath))
+        assertEquals(
+            "a".repeat(218),
+            DownloadUtils.truncateFileName("a".repeat(300), ".txt", directoryPath),
+        )
+        assertEquals(
+            "a".repeat(222),
+            DownloadUtils.truncateFileName("a".repeat(300), "", directoryPath),
+        )
+        assertEquals(
+            "a".repeat(212),
+            DownloadUtils.truncateFileName("a".repeat(300), ".txt", "/storage/emulated/0/MyCustomFolder"),
+        )
+    }
+
     companion object {
         private val CONTENT_DISPOSITION_TYPES = listOf("attachment", "inline")
 

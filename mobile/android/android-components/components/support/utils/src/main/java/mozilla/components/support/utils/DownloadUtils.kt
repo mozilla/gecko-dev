@@ -151,6 +151,14 @@ object DownloadUtils {
     private const val MAX_FILE_NAME_LENGTH = 255
 
     /**
+     * The maximum allowable length for a file name, including the directory path,
+     * file extension, and a version suffix (e.g., "(1)").
+     * This value is set to 250 to reserve space for a version suffix up to "(999)"
+     * and ensure the total path length does not exceed the file system's limit of 255 characters.
+     */
+    private const val MAX_FILE_NAME_COPY_VERSION_LENGTH = 250
+
+    /**
      * The HTTP response code for a successful request.
      */
     const val RESPONSE_CODE_SUCCESS = 200
@@ -207,8 +215,8 @@ object DownloadUtils {
      * Checks if the file exists so as not to overwrite one already in the destination directory
      */
     fun uniqueFileName(directory: File, fileName: String): String {
+        val directoryPath = directory.absolutePath
         var potentialFileName = File(directory, fileName)
-        val baseFileName = potentialFileName.nameWithoutExtension
         val fileExtension = potentialFileName.extension.let {
             if (it.isNotEmpty()) {
                 ".$it"
@@ -216,6 +224,13 @@ object DownloadUtils {
                 it
             }
         }
+
+        val baseFileName = truncateFileName(
+            baseFileName = potentialFileName.nameWithoutExtension,
+            fileExtension = fileExtension,
+            directoryPath = directoryPath,
+        )
+        potentialFileName = File(directory, "$baseFileName$fileExtension")
 
         var copyVersionNumber = 1
 
@@ -225,6 +240,24 @@ object DownloadUtils {
         }
 
         return potentialFileName.name
+    }
+
+    /**
+     * Truncates the base file name if its length, combined with the directory path and file extension,
+     * exceeds the maximum allowable path length.
+     *
+     * @param baseFileName The base name of the file (excluding the extension).
+     * @param fileExtension The file extension, including the leading dot (e.g., ".txt").
+     * @param directoryPath The full path of the directory where the file will be created.
+     * @return A truncated base file name that fits within the maximum allowable length.
+     */
+    fun truncateFileName(baseFileName: String, fileExtension: String, directoryPath: String): String {
+        val maxBaseFileNameLength = MAX_FILE_NAME_COPY_VERSION_LENGTH - directoryPath.length - fileExtension.length
+        return if (baseFileName.length > maxBaseFileNameLength) {
+            baseFileName.take(maxBaseFileNameLength)
+        } else {
+            baseFileName
+        }
     }
 
     /**
