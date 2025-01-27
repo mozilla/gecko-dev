@@ -584,7 +584,6 @@ class Shims {
         await browser.tabs.sendMessage(tabId, {
           shimId,
           topic: "smartblock:unblock-embed",
-          data: hostname,
         });
       }
     );
