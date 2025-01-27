@@ -357,7 +357,7 @@ class OnboardingTelemetryRecorder {
      * Records when the terms of service link is clicked.
      */
     fun onTermsOfServiceLinkClick() {
-        Onboarding.termsOfServiceCard.record()
+        Onboarding.termsOfServiceLinkClicked.record()
     }
 
     /**
