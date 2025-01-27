@@ -73,6 +73,8 @@ treeherder:
         'MSIXs': 'Signing of Repack into MSIX package'
         'Pup': "Puppeteer tests"
         'R': 'Reftests'
+        'R-ioi': 'Reftests with incremental origin initialization enabled'
+        'R-ioi-cf': 'Reftests with incremental origin initialization enabled for confirm failure'
         'Rap': 'Raptor performance tests on Firefox'
         'Rap-live': 'Raptor performance tests on Firefox with live sites'
         'Rap-Prof': 'Raptor performance tests on Firefox with Gecko Profiling'

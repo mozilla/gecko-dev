@@ -46,6 +46,7 @@ crashtest:
         - no-fission
         - webrender-sw+no-fission
         - webrender-sw
+        - inc-origin-init
     run-on-projects:
         by-variant:
             webrender-sw+no-fission:
@@ -69,12 +70,24 @@ crashtest:
                     linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
+            inc-origin-init:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    default: []
             default:
                 by-test-platform:
                     android.*: []
                     .*wayland/debug.*: []
                     default: built-projects
     max-run-time: 3600
+    mozharness:
+        extra-options:
+            by-variant:
+                inc-origin-init:
+                    - "--filter=dom/(indexedDB|fs)"
+                default: []
     tier:
         by-variant:
             no-fission:
