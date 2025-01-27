@@ -498,7 +498,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
   ["deduplication.enabled", false],
 
   // How old history results have to be to be deduplicated.
-  ["deduplication.thresholdDays", 7],
+  ["deduplication.thresholdDays", 0],
 
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.

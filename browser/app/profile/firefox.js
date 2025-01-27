@@ -458,7 +458,7 @@ pref("browser.urlbar.suggest.recentsearches",       true);
 pref("browser.urlbar.suggest.quickactions",         true);
 
 pref("browser.urlbar.deduplication.enabled", false);
-pref("browser.urlbar.deduplication.thresholdDays", 7);
+pref("browser.urlbar.deduplication.thresholdDays", 0);
 
 #ifdef NIGHTLY_BUILD
 pref("browser.urlbar.scotchBonnet.enableOverride", true);
