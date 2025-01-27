@@ -1,0 +1,178 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    worker-type: win11-64-2009-hw
+    fetches:
+        build:
+            - artifact: target.condprof.tests.tar.gz
+            - artifact: target.common.tests.tar.gz
+            - artifact: target.mochitest.tests.tar.gz
+            - artifact: target.perftests.tests.tar.gz
+            - artifact: target.zip
+        toolchain:
+            - win64-node
+            - win64-geckodriver
+            - browsertime
+    platform: windows11-64-2009-hw-ref-shippable/opt
+    require-build:
+        windows11-64-2009-hw-ref-shippable/opt: build-win64-shippable/opt
+    scopes:
+        - secrets:get:project/releng/gecko/build/level-{level}/conditioned-profiles
+
+ml-perf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - xenova-all-minilm-l6-v2
+    description: Run ML Models Perf Tests
+    treeherder:
+        symbol: perftest(win-ml-perf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_engine_perf.js
+
+ml-summarizer-perf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - qwen2.5-0.5-instruct
+            - distilbart-cnn-12-6
+    description: Run ML Models Perf Tests
+    treeherder:
+        symbol: perftest(win-ml-sum-perf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_summarizer_perf.js
+
+ml-multi-perf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - xenova-all-minilm-l6-v2
+            - mozilla-ner
+            - mozilla-intent
+    description: Run ML Models Perf Tests
+    treeherder:
+        symbol: perftest(windows-ml-multi-perf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_engine_multi_perf.js
+
+ml-perf-suggest-ft:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - mozilla-ner
+            - mozilla-intent
+    description: Run ML Suggest Feature
+    treeherder:
+        symbol: perftest(win-ml-perf-suggest-ft)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_suggest_feature_perf.js
+
+ml-perf-suggest-inf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - mozilla-ner
+            - mozilla-intent
+    description: Run ML Suggest Inference Model
+    treeherder:
+        symbol: perftest(win-ml-perf-suggest-inf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: []
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_suggest_inference.js
+
+ml-perf-autofill:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - ort-training.wasm
+            - mozilla-autofill
+    description: Run ML Autofill Model
+    treeherder:
+        symbol: perftest(win-ml-perf-autofill)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_autofill_perf.js
