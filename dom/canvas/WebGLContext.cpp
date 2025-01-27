@@ -43,7 +43,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "mozilla/SVGObserverUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomCanvasMetrics.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsError.h"
@@ -561,10 +561,11 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
       for (const auto& cur : failReasons) {
         // Don't try to accumulate using an empty key if |cur.key| is empty.
         if (cur.key.IsEmpty()) {
-          Telemetry::Accumulate(Telemetry::CANVAS_WEBGL_FAILURE_ID,
-                                "FEATURE_FAILURE_REASON_UNKNOWN"_ns);
+          glean::canvas::webgl_failure_id
+              .Get("FEATURE_FAILURE_REASON_UNKNOWN"_ns)
+              .Add(1);
         } else {
-          Telemetry::Accumulate(Telemetry::CANVAS_WEBGL_FAILURE_ID, cur.key);
+          glean::canvas::webgl_failure_id.Get(cur.key).Add(1);
         }
 
         const auto str = nsPrintfCString("\n* %s (%s)", cur.info.BeginReading(),
@@ -608,7 +609,7 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
   if (res.isOk()) {
     failureId = "SUCCESS"_ns;
   }
-  Telemetry::Accumulate(Telemetry::CANVAS_WEBGL_FAILURE_ID, failureId);
+  glean::canvas::webgl_failure_id.Get(failureId).Add(1);
 
   if (!res.isOk()) {
     out->error = res.unwrapErr();
