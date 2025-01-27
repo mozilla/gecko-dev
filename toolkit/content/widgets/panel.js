@@ -9,7 +9,7 @@
 {
   class MozPanel extends MozElements.MozElementMixin(XULPopupElement) {
     static get markup() {
-      return `<html:slot part="content" style="display: none !important"/>`;
+      return `<html:slot part="content"/>`;
     }
     constructor() {
       super();
@@ -59,10 +59,12 @@
         return;
       }
 
-      this.shadowRoot.appendChild(this.constructor.fragment);
-      if (this.hasAttribute("neverhidden")) {
-        this.panelContent.style.display = "";
+      let fragment = this.constructor.fragment;
+      if (!this.hasAttribute("neverhidden")) {
+        let slot = fragment.querySelector("[part=content]");
+        slot.style.setProperty("display", "none", "important");
       }
+      this.shadowRoot.appendChild(fragment);
     }
 
     get panelContent() {
