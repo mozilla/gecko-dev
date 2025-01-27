@@ -27,3 +27,61 @@ performance.page:
       - perf-telemetry-alerts@mozilla.com
       - bdekoz@mozilla.com
     expires: never
+
+bfcache:
+  combo:
+    type: labeled_counter
+    description: >
+      The common combinations of BFCacheStatus when we determine whether the
+      page can be BFCached or not; If it's BFCached, we record BFCache_Success;
+      Success_Not_Toplevel represents the number of not the only top level
+      document in BrowsingContextGroup's documents that are BFCached, and
+      BFCache_Success includes Success_Not_Toplevel; If it's not and it falls
+      under common failure reasons combinations, we record the corresponding
+      combination; Otherwise, we record Other to indicate this is not a common
+      failure
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram BFCACHE_COMBO.
+    labels:
+      - BFCache_Success
+      - Success_Not_Toplevel
+      - Unload
+      - Unload_Req
+      - Req
+      - Unload_Req_Peer
+      - Unload_Req_Peer_MSE
+      - Unload_Req_MSE
+      - SPD_Unload_Req_Peer
+      - Remote_Subframes
+      - Beforeunload
+      - Other
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531917
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531917
+    notification_emails:
+      - sefeng@mozilla.com
+    expires: never
+    telemetry_mirror: h#BFCACHE_COMBO
+
+  page_restored:
+    type: labeled_counter
+    description: >
+      Whether bfcache is used when loading a page from session history
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BFCACHE_PAGE_RESTORED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531917
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1551935
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531917
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1551935
+    notification_emails:
+      - sefeng@mozilla.com
+    expires: never
+    telemetry_mirror: h#BFCACHE_PAGE_RESTORED

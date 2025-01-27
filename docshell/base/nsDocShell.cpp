@@ -6764,56 +6764,59 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint32_t aCombo) {
   }
   switch (aCombo) {
     case BFCACHE_SUCCESS:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::BFCache_Success);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eBfcacheSuccess)
+          .Add();
       break;
     case NOT_ONLY_TOPLEVEL:
       if (StaticPrefs::docshell_shistory_bfcache_require_no_opener()) {
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_BFCACHE_COMBO::Other);
+        glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eOther).Add();
         break;
       }
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::BFCache_Success);
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Success_Not_Toplevel);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eBfcacheSuccess)
+          .Add();
+      glean::bfcache::combo
+          .EnumGet(glean::bfcache::ComboLabel::eSuccessNotToplevel)
+          .Add();
       break;
     case UNLOAD:
-      Telemetry::AccumulateCategorical(Telemetry::LABELS_BFCACHE_COMBO::Unload);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eUnload).Add();
       break;
     case BEFOREUNLOAD:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Beforeunload);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eBeforeunload)
+          .Add();
       break;
     case UNLOAD_REQUEST:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Unload_Req);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eUnloadReq)
+          .Add();
       break;
     case REQUEST:
-      Telemetry::AccumulateCategorical(Telemetry::LABELS_BFCACHE_COMBO::Req);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eReq).Add();
       break;
     case UNLOAD_REQUEST_PEER:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Unload_Req_Peer);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eUnloadReqPeer)
+          .Add();
       break;
     case UNLOAD_REQUEST_PEER_MSE:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Unload_Req_Peer_MSE);
+      glean::bfcache::combo
+          .EnumGet(glean::bfcache::ComboLabel::eUnloadReqPeerMse)
+          .Add();
       break;
     case UNLOAD_REQUEST_MSE:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Unload_Req_MSE);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eUnloadReqMse)
+          .Add();
       break;
     case SUSPENDED_UNLOAD_REQUEST_PEER:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::SPD_Unload_Req_Peer);
+      glean::bfcache::combo
+          .EnumGet(glean::bfcache::ComboLabel::eSpdUnloadReqPeer)
+          .Add();
       break;
     case REMOTE_SUBFRAMES:
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_BFCACHE_COMBO::Remote_Subframes);
+      glean::bfcache::combo
+          .EnumGet(glean::bfcache::ComboLabel::eRemoteSubframes)
+          .Add();
       break;
     default:
-      Telemetry::AccumulateCategorical(Telemetry::LABELS_BFCACHE_COMBO::Other);
+      glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::eOther).Add();
       break;
   }
 };
@@ -9509,10 +9512,14 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
       bool restoring;
       rv = RestorePresentation(aLoadState->SHEntry(), &restoring);
       if (restoring) {
-        Telemetry::Accumulate(Telemetry::BFCACHE_PAGE_RESTORED, true);
+        glean::bfcache::page_restored
+            .EnumGet(glean::bfcache::PageRestoredLabel::eTrue)
+            .Add();
         return rv;
       }
-      Telemetry::Accumulate(Telemetry::BFCACHE_PAGE_RESTORED, false);
+      glean::bfcache::page_restored
+          .EnumGet(glean::bfcache::PageRestoredLabel::eFalse)
+          .Add();
 
       // We failed to restore the presentation, so clean up.
       // Both the old and new history entries could potentially be in
