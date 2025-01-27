@@ -11,7 +11,7 @@
 #include "nsProxyRelease.h"
 
 #include "jsapi.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomCryptoMetrics.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/dom/CryptoBuffer.h"
 #include "mozilla/dom/CryptoKey.h"
@@ -398,7 +398,8 @@ nsresult WebCryptoTask::Cancel() {
 
 void WebCryptoTask::FailWithError(nsresult aRv) {
   MOZ_ASSERT(IsOnOriginalThread());
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_RESOLVED, false);
+  glean::webcrypto::resolved.EnumGet(glean::webcrypto::ResolvedLabel::eFalse)
+      .Add();
 
   if (aRv == NS_ERROR_DOM_TYPE_MISMATCH_ERR) {
     mResultPromise->MaybeRejectWithTypeError(
@@ -434,7 +435,8 @@ void WebCryptoTask::CallCallback(nsresult rv) {
   }
 
   Resolve();
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_RESOLVED, true);
+  glean::webcrypto::resolved.EnumGet(glean::webcrypto::ResolvedLabel::eTrue)
+      .Add();
 
   // Manually release mResultPromise while we're on the main thread
   mResultPromise = nullptr;
@@ -586,7 +588,7 @@ class AesTask : public ReturnArrayBufferViewTask, public DeferredData {
       mEarlyRv = NS_ERROR_DOM_NOT_SUPPORTED_ERR;
       return;
     }
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, telemetryAlg);
+    glean::webcrypto::alg.AccumulateSingleSample(telemetryAlg);
   }
 
  private:
@@ -722,7 +724,7 @@ class AesKwTask : public ReturnArrayBufferViewTask, public DeferredData {
       return;
     }
 
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_AES_KW);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_AES_KW);
   }
 
  private:
@@ -830,7 +832,7 @@ class RsaOaepTask : public ReturnArrayBufferViewTask, public DeferredData {
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             bool aEncrypt) {
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_RSA_OAEP);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_RSA_OAEP);
 
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_RSA_OAEP);
 
@@ -978,7 +980,7 @@ class HmacTask : public WebCryptoTask {
       default:
         telemetryAlg = TA_UNKNOWN;
     }
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, telemetryAlg);
+    glean::webcrypto::alg.AccumulateSingleSample(telemetryAlg);
   }
 
  private:
@@ -1082,12 +1084,12 @@ class AsymmetricSignVerifyTask : public WebCryptoTask {
 
     if (algName.EqualsLiteral(WEBCRYPTO_ALG_RSASSA_PKCS1)) {
       mAlgorithm = Algorithm::RSA_PKCS1;
-      Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_RSASSA_PKCS1);
+      glean::webcrypto::alg.AccumulateSingleSample(TA_RSASSA_PKCS1);
       CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_RSASSA_PKCS1);
       hashAlgName = aKey.Algorithm().mRsa.mHash.mName;
     } else if (algName.EqualsLiteral(WEBCRYPTO_ALG_RSA_PSS)) {
       mAlgorithm = Algorithm::RSA_PSS;
-      Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_RSA_PSS);
+      glean::webcrypto::alg.AccumulateSingleSample(TA_RSA_PSS);
       CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_RSA_PSS);
 
       KeyAlgorithm& hashAlg = aKey.Algorithm().mRsa.mHash;
@@ -1112,7 +1114,7 @@ class AsymmetricSignVerifyTask : public WebCryptoTask {
       mSaltLength = params.mSaltLength;
     } else if (algName.EqualsLiteral(WEBCRYPTO_ALG_ECDSA)) {
       mAlgorithm = Algorithm::ECDSA;
-      Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_ECDSA);
+      glean::webcrypto::alg.AccumulateSingleSample(TA_ECDSA);
       CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_ECDSA);
 
       // For ECDSA, the hash name comes from the algorithm parameter
@@ -1130,7 +1132,7 @@ class AsymmetricSignVerifyTask : public WebCryptoTask {
       }
     } else if (algName.EqualsLiteral(WEBCRYPTO_ALG_ED25519)) {
       mAlgorithm = Algorithm::ED25519;
-      Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_ED25519);
+      glean::webcrypto::alg.AccumulateSingleSample(TA_ED25519);
       CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_ED25519);
     } else {
       // This shouldn't happen; CreateSignVerifyTask shouldn't create
@@ -1336,7 +1338,7 @@ class DigestTask : public ReturnArrayBufferViewTask {
       mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
       return;
     }
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, telemetryAlg);
+    glean::webcrypto::alg.AccumulateSingleSample(telemetryAlg);
     mOidTag = MapHashAlgorithmNameToOID(algName);
   }
 
@@ -2494,7 +2496,7 @@ class DeriveX25519BitsTask : public ReturnArrayBufferViewTask {
   }
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey) {
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_X25519);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_X25519);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_X25519);
 
     // Check that we have a private key.
@@ -2805,7 +2807,7 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             const Nullable<uint32_t>& aLength) {
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_HKDF);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_HKDF);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_HKDF);
 
     if (!mSymKey.Assign(aKey.GetSymKey())) {
@@ -2958,7 +2960,7 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             const Nullable<uint32_t>& aLength) {
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_PBKDF2);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_PBKDF2);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_PBKDF2);
 
     if (!mSymKey.Assign(aKey.GetSymKey())) {
@@ -3138,7 +3140,7 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
   }
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey) {
-    Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_ECDH);
+    glean::webcrypto::alg.AccumulateSingleSample(TA_ECDH);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_ECDH);
 
     // Check that we have a private key.
@@ -3306,9 +3308,11 @@ WebCryptoTask* WebCryptoTask::CreateEncryptDecryptTask(
     JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
     const CryptoOperationData& aData, bool aEncrypt) {
   TelemetryMethod method = (aEncrypt) ? TM_ENCRYPT : TM_DECRYPT;
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, method);
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_EXTRACTABLE_ENC,
-                        aKey.Extractable());
+  glean::webcrypto::method.AccumulateSingleSample(method);
+  glean::webcrypto::extractable_enc
+      .EnumGet(static_cast<glean::webcrypto::ExtractableEncLabel>(
+          aKey.Extractable()))
+      .Add();
 
   // Ensure key is usable for this operation
   if ((aEncrypt && !aKey.HasUsage(CryptoKey::ENCRYPT)) ||
@@ -3338,9 +3342,11 @@ WebCryptoTask* WebCryptoTask::CreateSignVerifyTask(
     const CryptoOperationData& aSignature, const CryptoOperationData& aData,
     bool aSign) {
   TelemetryMethod method = (aSign) ? TM_SIGN : TM_VERIFY;
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, method);
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_EXTRACTABLE_SIG,
-                        aKey.Extractable());
+  glean::webcrypto::method.AccumulateSingleSample(method);
+  glean::webcrypto::extractable_sig
+      .EnumGet(static_cast<glean::webcrypto::ExtractableSigLabel>(
+          aKey.Extractable()))
+      .Add();
 
   // Ensure key is usable for this operation
   if ((aSign && !aKey.HasUsage(CryptoKey::SIGN)) ||
@@ -3370,7 +3376,7 @@ WebCryptoTask* WebCryptoTask::CreateSignVerifyTask(
 WebCryptoTask* WebCryptoTask::CreateDigestTask(
     JSContext* aCx, const ObjectOrString& aAlgorithm,
     const CryptoOperationData& aData) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DIGEST);
+  glean::webcrypto::method.AccumulateSingleSample(TM_DIGEST);
 
   nsString algName;
   nsresult rv = GetAlgorithmName(aCx, aAlgorithm, algName);
@@ -3392,8 +3398,11 @@ WebCryptoTask* WebCryptoTask::CreateImportKeyTask(
     nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
     JS::Handle<JSObject*> aKeyData, const ObjectOrString& aAlgorithm,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_IMPORTKEY);
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_EXTRACTABLE_IMPORT, aExtractable);
+  glean::webcrypto::method.AccumulateSingleSample(TM_IMPORTKEY);
+  glean::webcrypto::extractable_import
+      .EnumGet(
+          static_cast<glean::webcrypto::ExtractableImportLabel>(aExtractable))
+      .Add();
 
   // Verify that the format is recognized
   if (!aFormat.EqualsLiteral(WEBCRYPTO_KEY_FORMAT_RAW) &&
@@ -3445,7 +3454,7 @@ WebCryptoTask* WebCryptoTask::CreateImportKeyTask(
 
 WebCryptoTask* WebCryptoTask::CreateExportKeyTask(const nsAString& aFormat,
                                                   CryptoKey& aKey) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_EXPORTKEY);
+  glean::webcrypto::method.AccumulateSingleSample(TM_EXPORTKEY);
 
   // Verify that the format is recognized
   if (!aFormat.EqualsLiteral(WEBCRYPTO_KEY_FORMAT_RAW) &&
@@ -3485,9 +3494,11 @@ WebCryptoTask* WebCryptoTask::CreateExportKeyTask(const nsAString& aFormat,
 WebCryptoTask* WebCryptoTask::CreateGenerateKeyTask(
     nsIGlobalObject* aGlobal, JSContext* aCx, const ObjectOrString& aAlgorithm,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_GENERATEKEY);
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_EXTRACTABLE_GENERATE,
-                        aExtractable);
+  glean::webcrypto::method.AccumulateSingleSample(TM_GENERATEKEY);
+  glean::webcrypto::extractable_generate
+      .EnumGet(
+          static_cast<glean::webcrypto::ExtractableGenerateLabel>(aExtractable))
+      .Add();
   if (!CryptoKey::AllUsagesRecognized(aKeyUsages)) {
     return new FailureTask(NS_ERROR_DOM_SYNTAX_ERR);
   }
@@ -3523,7 +3534,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveKeyTask(
     nsIGlobalObject* aGlobal, JSContext* aCx, const ObjectOrString& aAlgorithm,
     CryptoKey& aBaseKey, const ObjectOrString& aDerivedKeyType,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DERIVEKEY);
+  glean::webcrypto::method.AccumulateSingleSample(TM_DERIVEKEY);
 
   // Ensure baseKey is usable for this operation
   if (!aBaseKey.HasUsage(CryptoKey::DERIVEKEY)) {
@@ -3571,7 +3582,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveKeyTask(
 WebCryptoTask* WebCryptoTask::CreateDeriveBitsTask(
     JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
     const Nullable<uint32_t>& aLength) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DERIVEBITS);
+  glean::webcrypto::method.AccumulateSingleSample(TM_DERIVEBITS);
 
   // Ensure baseKey is usable for this operation
   if (!aKey.HasUsage(CryptoKey::DERIVEBITS)) {
@@ -3606,7 +3617,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveBitsTask(
 WebCryptoTask* WebCryptoTask::CreateWrapKeyTask(
     JSContext* aCx, const nsAString& aFormat, CryptoKey& aKey,
     CryptoKey& aWrappingKey, const ObjectOrString& aWrapAlgorithm) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_WRAPKEY);
+  glean::webcrypto::method.AccumulateSingleSample(TM_WRAPKEY);
 
   // Verify that the format is recognized
   if (!aFormat.EqualsLiteral(WEBCRYPTO_KEY_FORMAT_RAW) &&
@@ -3654,7 +3665,7 @@ WebCryptoTask* WebCryptoTask::CreateUnwrapKeyTask(
     const ObjectOrString& aUnwrapAlgorithm,
     const ObjectOrString& aUnwrappedKeyAlgorithm, bool aExtractable,
     const Sequence<nsString>& aKeyUsages) {
-  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_UNWRAPKEY);
+  glean::webcrypto::method.AccumulateSingleSample(TM_UNWRAPKEY);
 
   // Ensure key is usable for this operation
   if (!aUnwrappingKey.HasUsage(CryptoKey::UNWRAPKEY)) {

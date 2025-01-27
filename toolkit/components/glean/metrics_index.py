@@ -24,6 +24,7 @@ gecko_metrics = [
     "devtools/client/shared/metrics.yaml",
     "docshell/base/metrics.yaml",
     "dom/base/use_counter_metrics.yaml",
+    "dom/crypto/metrics.yaml",
     "dom/geolocation/metrics.yaml",
     "dom/localstorage/metrics.yaml",
     "dom/media/eme/metrics.yaml",

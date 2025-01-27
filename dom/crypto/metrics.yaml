@@ -1,0 +1,150 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Security'
+
+webcrypto:
+  extractable_import:
+    type: labeled_counter
+    description: >
+      Whether an imported key was marked as extractable
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBCRYPTO_EXTRACTABLE_IMPORT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBCRYPTO_EXTRACTABLE_IMPORT
+
+  extractable_generate:
+    type: labeled_counter
+    description: >
+      Whether a generated key was marked as extractable
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBCRYPTO_EXTRACTABLE_GENERATE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBCRYPTO_EXTRACTABLE_GENERATE
+
+  extractable_enc:
+    type: labeled_counter
+    description: >
+      Whether a key used in an encrypt/decrypt operation was marked as
+      extractable
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBCRYPTO_EXTRACTABLE_ENC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBCRYPTO_EXTRACTABLE_ENC
+
+  extractable_sig:
+    type: labeled_counter
+    description: >
+      Whether a key used in a sign/verify operation was marked as extractable
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBCRYPTO_EXTRACTABLE_SIG.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBCRYPTO_EXTRACTABLE_SIG
+
+  resolved:
+    type: labeled_counter
+    description: >
+      Whether a promise created by WebCrypto was resolved (vs rejected)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBCRYPTO_RESOLVED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBCRYPTO_RESOLVED
+
+  method:
+    type: custom_distribution
+    description: >
+      Methods invoked under window.crypto.subtle (0=encrypt, 1=decrypt, 2=sign,
+      3=verify, 4=digest, 5=generateKey, 6=deriveKey, 7=deriveBits, 8=importKey,
+      9=exportKey, 10=wrapKey, 11=unwrapKey)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBCRYPTO_METHOD.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: WEBCRYPTO_METHOD
+
+  alg:
+    type: custom_distribution
+    description: >
+      Algorithms used with WebCrypto (see table in WebCryptoTask.cpp)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBCRYPTO_ALG.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: WEBCRYPTO_ALG
