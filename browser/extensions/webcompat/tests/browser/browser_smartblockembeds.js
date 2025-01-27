@@ -14,6 +14,7 @@ add_setup(async function () {
 
 add_task(async function test_smartblock_embed_replaced() {
   Services.prefs.setBoolPref(TRACKING_PREF, true);
+  Services.fog.testResetFOG();
 
   let clickToggle = async toggle => {
     let changed = BrowserTestUtils.waitForEvent(toggle, "toggle");
@@ -121,6 +122,25 @@ add_task(async function test_smartblock_embed_replaced() {
   // If this await finished, then protections panel is open
   await popupShownPromise;
 
+  // Check telemetry is triggered
+  let protectionsPanelOpenEvents =
+    Glean.securityUiProtectionspopup.openProtectionsPopup.testGetValue();
+  is(
+    protectionsPanelOpenEvents.length,
+    1,
+    "Protections panel open telemetry has correct embeds shown value"
+  );
+  is(
+    protectionsPanelOpenEvents[0].extra.openingReason,
+    "embedPlaceholderButton",
+    "Protections panel open telemetry has correct opening reason"
+  );
+  is(
+    protectionsPanelOpenEvents[0].extra.smartblockEmbedTogglesShown,
+    "true",
+    "Protections panel open telemetry has correct toggles shown value"
+  );
+
   // Check smartblock section is unhidden
   ok(
     BrowserTestUtils.isVisible(
@@ -163,8 +183,42 @@ add_task(async function test_smartblock_embed_replaced() {
     ok(loadedEmbed, "Embed should now be on the page");
   });
 
+  // Check toggle telemetry is triggered
+  let toggleEvents =
+    Glean.securityUiProtectionspopup.clickSmartblockembedsToggle.testGetValue();
+  is(toggleEvents.length, 1, "Telemetry triggered for toggle press");
+  is(
+    toggleEvents[0].extra.isBlock,
+    "false",
+    "Toggle press telemetry is an unblock"
+  );
+  is(
+    toggleEvents[0].extra.openingReason,
+    "embedPlaceholderButton",
+    "Smartblock shown event has correct reason"
+  );
+
   // close and open protections panel
   await closeProtectionsPanel(window);
+
+  // Verify telemetry after close
+  let protectionsPanelClosedEvents =
+    Glean.securityUiProtectionspopup.closeProtectionsPopup.testGetValue();
+  is(
+    protectionsPanelClosedEvents.length,
+    1,
+    "Telemetry triggered for protections panel closed"
+  );
+  is(
+    protectionsPanelClosedEvents[0].extra.smartblockToggleClicked,
+    "true",
+    "Protections panel closed telemetry shows toggle was clicked"
+  );
+  is(
+    protectionsPanelClosedEvents[0].extra.openingReason,
+    "embedPlaceholderButton",
+    "Protections panel closed event has correct reason"
+  );
 
   await openProtectionsPanel(window);
 
@@ -183,6 +237,28 @@ add_task(async function test_smartblock_embed_replaced() {
   ok(blockedEmbedToggle, "Toggle exists in container");
   ok(BrowserTestUtils.isVisible(blockedEmbedToggle), "Toggle is visible");
   ok(blockedEmbedToggle.hasAttribute("pressed"), "Unblock toggle should be on");
+
+  // Check protections panel open telemetry
+  // Check telemetry is triggered
+  protectionsPanelOpenEvents =
+    Glean.securityUiProtectionspopup.openProtectionsPopup.testGetValue();
+  is(
+    protectionsPanelOpenEvents.length,
+    2,
+    "Protections panel open telemetry has correct embeds shown value"
+  );
+  // Note: the openingReason shows as undefined since the test opened the
+  // protections panel directly with a function call"
+  is(
+    protectionsPanelOpenEvents[1].extra.openingReason,
+    undefined,
+    "Protections panel open telemetry has correct opening reason"
+  );
+  is(
+    protectionsPanelOpenEvents[1].extra.smartblockEmbedTogglesShown,
+    "true",
+    "Protections panel open telemetry has correct toggles shown value"
+  );
 
   // Setup promise on custom event to wait for placeholders to finish replacing
   smartblockScriptFinished = BrowserTestUtils.waitForContentEvent(
@@ -207,6 +283,23 @@ add_task(async function test_smartblock_embed_replaced() {
 
     ok(placeholder, "Embed replaced with a placeholder after reblock");
   });
+
+  // Check toggle telemetry is triggered
+  toggleEvents =
+    Glean.securityUiProtectionspopup.clickSmartblockembedsToggle.testGetValue();
+  is(toggleEvents.length, 2, "Telemetry triggered for toggle press");
+  is(
+    toggleEvents[1].extra.isBlock,
+    "true",
+    "Toggle press telemetry is a block"
+  );
+  // Note: the openingReason shows as undefined since the test opened the
+  // protections panel directly with a function call"
+  is(
+    toggleEvents[1].extra.openingReason,
+    undefined,
+    "Smartblock shown event has correct reason"
+  );
 
   await BrowserTestUtils.removeTab(tab);
 });
