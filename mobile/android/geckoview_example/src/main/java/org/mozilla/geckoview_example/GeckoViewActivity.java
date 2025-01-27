@@ -2039,15 +2039,15 @@ public class GeckoViewActivity extends AppCompatActivity
 
     @Override
     public void onFullScreen(final GeckoSession session, final boolean fullScreen) {
-      getWindow()
-          .setFlags(
-              fullScreen ? WindowManager.LayoutParams.FLAG_FULLSCREEN : 0,
-              WindowManager.LayoutParams.FLAG_FULLSCREEN);
       mFullScreen = fullScreen;
       if (fullScreen) {
         getSupportActionBar().hide();
+        mGeckoView.setDynamicToolbarMaxHeight(0);
+        WindowUtils.enterImmersiveMode(getWindow());
       } else {
         getSupportActionBar().show();
+        mGeckoView.setDynamicToolbarMaxHeight(getSupportActionBar().getHeight());
+        WindowUtils.exitImmersiveMode(getWindow());
       }
     }
 
