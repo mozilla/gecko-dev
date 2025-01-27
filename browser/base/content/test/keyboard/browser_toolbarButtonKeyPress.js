@@ -187,7 +187,6 @@ add_task(async function testReloadButtonPress() {
 // Test activation of the Sidebars button from the keyboard.
 // This is a toolbarbutton with a command handler.
 add_task(async function testSidebarsButtonPress() {
-  const { SidebarController } = window;
   let sidebarRevampEnabled = Services.prefs.getBoolPref(
     "sidebar.revamp",
     false
@@ -195,12 +194,6 @@ add_task(async function testSidebarsButtonPress() {
   let sidebar, sidebarBox;
   if (!sidebarRevampEnabled) {
     CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
-  } else {
-    // Expanded is only available with vertical tabs enabled
-    await SpecialPowers.pushPrefEnv({
-      set: [["sidebar.verticalTabs", true]],
-    });
-    await SidebarController.initializeUIState({ launcherExpanded: false });
   }
   let button = document.getElementById("sidebar-button");
   ok(!button.checked, "Sidebars button not checked at start of test");
@@ -245,7 +238,6 @@ add_task(async function testSidebarsButtonPress() {
       "Sidebar not expanded after press"
     );
     ok(!sidebar.expanded, "Sidebar not expanded after press");
-    await SpecialPowers.popPrefEnv();
   }
 });
 
