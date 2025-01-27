@@ -34,12 +34,12 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/CanvasRenderThread.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/glean/GleanTestsTestMetrics.h"
 #include "mozilla/image/ImageMemoryReporter.h"
 #include "mozilla/ipc/CrashReporterClient.h"
@@ -434,8 +434,8 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
           }),
       nsIEventTarget::DISPATCH_NORMAL));
 
-  Telemetry::AccumulateTimeDelta(Telemetry::GPU_PROCESS_INITIALIZATION_TIME_MS,
-                                 mLaunchTime);
+  glean::gpu_process::initialization_time.AccumulateRawDuration(
+      TimeStamp::Now() - mLaunchTime);
   return IPC_OK();
 }
 

@@ -90,6 +90,51 @@ gpu_process:
       - jnicol@mozilla.com
     expires: never
 
+  launch_time:
+    type: timing_distribution
+    description: >
+      GPU process launch time in milliseconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram GPU_PROCESS_LAUNCH_TIME_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1297790
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1317796
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1297790
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1317796
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+      - dbolter@mozilla.com
+    expires: never
+    telemetry_mirror: GPU_PROCESS_LAUNCH_TIME_MS_2
+
+  initialization_time:
+    type: timing_distribution
+    description: >
+      GPU process initialization (excluding XPCOM and fork time) time in
+      milliseconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram GPU_PROCESS_INITIALIZATION_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1324095
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1324095
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+      - dbolter@mozilla.com
+    expires: never
+    telemetry_mirror: GPU_PROCESS_INITIALIZATION_TIME_MS
+
 wr:
   gpu_wait_time:
     type: timing_distribution

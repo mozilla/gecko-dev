@@ -17,6 +17,7 @@
 #include "mozilla/FOGIPC.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryIPC.h"
 #include "mozilla/dom/CheckerboardReportService.h"
@@ -100,8 +101,8 @@ bool GPUChild::EnsureGPUReady() {
   // Only import and collect telemetry for the initial GPU process launch.
   if (!mGPUReady) {
     gfxPlatform::GetPlatform()->ImportGPUDeviceData(data);
-    Telemetry::AccumulateTimeDelta(Telemetry::GPU_PROCESS_LAUNCH_TIME_MS_2,
-                                   mHost->GetLaunchTime());
+    glean::gpu_process::launch_time.AccumulateRawDuration(
+        TimeStamp::Now() - mHost->GetLaunchTime());
     mGPUReady = true;
   }
 
@@ -145,8 +146,8 @@ mozilla::ipc::IPCResult GPUChild::RecvInitComplete(const GPUDeviceData& aData) {
   }
 
   gfxPlatform::GetPlatform()->ImportGPUDeviceData(aData);
-  Telemetry::AccumulateTimeDelta(Telemetry::GPU_PROCESS_LAUNCH_TIME_MS_2,
-                                 mHost->GetLaunchTime());
+  glean::gpu_process::launch_time.AccumulateRawDuration(TimeStamp::Now() -
+                                                        mHost->GetLaunchTime());
   mGPUReady = true;
   return IPC_OK();
 }
