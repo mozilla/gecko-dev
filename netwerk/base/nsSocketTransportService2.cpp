@@ -1171,11 +1171,9 @@ nsSocketTransportService::Run() {
       DoPollIteration(&singlePollDuration);
 
       if (Telemetry::CanRecordPrereleaseData() && !pollCycleStart.IsNull()) {
-        Telemetry::Accumulate(Telemetry::STS_POLL_BLOCK_TIME,
-                              singlePollDuration.ToMilliseconds());
-        Telemetry::AccumulateTimeDelta(Telemetry::STS_POLL_CYCLE,
-                                       pollCycleStart + singlePollDuration,
-                                       TimeStamp::NowLoRes());
+        glean::sts::poll_block_time.AccumulateRawDuration(singlePollDuration);
+        glean::sts::poll_cycle.AccumulateRawDuration(
+            TimeStamp::NowLoRes() - (pollCycleStart + singlePollDuration));
         pollDuration += singlePollDuration;
       }
 
@@ -1217,9 +1215,8 @@ nsSocketTransportService::Run() {
 
         if (Telemetry::CanRecordPrereleaseData() && !mServingPendingQueue &&
             !startOfIteration.IsNull()) {
-          Telemetry::AccumulateTimeDelta(Telemetry::STS_POLL_AND_EVENTS_CYCLE,
-                                         startOfIteration + pollDuration,
-                                         TimeStamp::NowLoRes());
+          glean::sts::poll_and_events_cycle.AccumulateRawDuration(
+              TimeStamp::NowLoRes() - (startOfIteration + pollDuration));
           pollDuration = nullptr;
         }
       }
@@ -1230,9 +1227,8 @@ nsSocketTransportService::Run() {
     if (mShuttingDown) {
       if (Telemetry::CanRecordPrereleaseData() &&
           !startOfCycleForLastCycleCalc.IsNull()) {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::STS_POLL_AND_EVENT_THE_LAST_CYCLE,
-            startOfCycleForLastCycleCalc, TimeStamp::NowLoRes());
+        glean::sts::poll_and_event_the_last_cycle.AccumulateRawDuration(
+            TimeStamp::NowLoRes() - startOfCycleForLastCycleCalc);
       }
       break;
     }
