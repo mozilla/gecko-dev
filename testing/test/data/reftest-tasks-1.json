@@ -6,13 +6,13 @@
       "arch": "x86_64",
       "bits": "64",
       "build": "2009",
-      "build_types": ["debug"],
+      "build_type": "debug",
       "debug": true,
       "display": null,
       "opt": false,
       "os": "win",
       "os_version": "11",
-      "runtimes": []
+      "runtime": "no_variant"
     },
     "failure_types": {
       "dom/media/test/reftest/reftest.list": [
@@ -51,13 +51,13 @@
       "arch": "x86_64",
       "bits": "64",
       "build": "2009",
-      "build_types": ["debug"],
+      "build_type": "debug",
       "debug": true,
       "display": null,
       "opt": false,
       "os": "win",
       "os_version": "11",
-      "runtimes": []
+      "runtime": "no_variant"
     },
     "failure_types": {
       "dom/media/test/reftest/reftest.list": [
@@ -96,13 +96,13 @@
       "arch": "x86_64",
       "bits": "64",
       "build": "2009",
-      "build_types": ["debug"],
+      "build_type": "debug",
       "debug": true,
       "display": null,
       "opt": false,
       "os": "win",
       "os_version": "11",
-      "runtimes": []
+      "runtime": "no_variant"
     },
     "failure_types": {
       "dom/media/test/reftest/reftest.list": [
@@ -141,13 +141,13 @@
       "arch": "x86_64",
       "bits": "64",
       "build": "2009",
-      "build_types": ["debug"],
+      "build_type": "debug",
       "debug": true,
       "display": null,
       "opt": false,
       "os": "win",
       "os_version": "11",
-      "runtimes": []
+      "runtime": "no_variant"
     },
     "failure_types": {},
     "id": "NHVtrK9-QE2gGMEZtjPerQ",
