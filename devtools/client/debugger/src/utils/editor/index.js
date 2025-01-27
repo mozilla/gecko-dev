@@ -153,7 +153,7 @@ export function getSourceLocationFromMouseEvent({ codeMirror }, source, e) {
   });
   const isSourceWasm = features.codemirrorNext
     ? editor.isWasm
-    : isWasm(location.source.id);
+    : isWasm(source.id);
   return createLocation({
     source,
     line: fromEditorLine(source, line),
