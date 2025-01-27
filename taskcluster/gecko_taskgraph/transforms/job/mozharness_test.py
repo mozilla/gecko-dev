@@ -254,6 +254,7 @@ def mozharness_test_on_docker(config, job, taskdesc):
         "tooltool-downloads": mozharness["tooltool-downloads"],
         "checkout": test["checkout"],
         "command": command,
+        "use-caches": ["checkout", "pip", "uv"],
         "using": "run-task",
     }
     configure_taskdesc_for_run(config, job, taskdesc, worker["implementation"])
@@ -488,6 +489,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         "tooltool-downloads": mozharness["tooltool-downloads"],
         "checkout": test["checkout"],
         "command": mh_command,
+        "use-caches": ["checkout", "pip", "uv"],
         "using": "run-task",
     }
     if is_bitbar:
