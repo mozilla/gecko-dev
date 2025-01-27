@@ -388,7 +388,7 @@ customElements.define(
     }
 
     #createPrivateBrowsingCheckbox() {
-      const { onPrivateBrowsingAllowedChanged, grantPrivateBrowsingAllowed } =
+      const { grantPrivateBrowsingAllowed } =
         this.notification.options.customElementOptions;
 
       const doc = this.ownerDocument;
@@ -396,6 +396,12 @@ customElements.define(
       let checkboxEl = doc.createXULElement("checkbox");
       checkboxEl.checked = grantPrivateBrowsingAllowed;
       checkboxEl.addEventListener("CheckboxStateChange", () => {
+        // NOTE: the popupnotification instances will be reused
+        // and so the callback function is destructured here to
+        // avoid this custom element to prevent it from being
+        // garbage collected.
+        const { onPrivateBrowsingAllowedChanged } =
+          this.notification.options.customElementOptions;
         onPrivateBrowsingAllowedChanged?.(checkboxEl.checked);
       });
       doc.l10n.setAttributes(
