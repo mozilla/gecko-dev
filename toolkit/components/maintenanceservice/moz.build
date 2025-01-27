@@ -13,10 +13,6 @@ SOURCES += [
     "workmonitor.cpp",
 ]
 
-UNIFIED_SOURCES += [
-    "/mfbt/Poison.cpp",
-]
-
 USE_LIBS += [
     "updatecommon",
 ]
@@ -27,11 +23,9 @@ if CONFIG["DISABLE_UPDATER_AUTHENTICODE_CHECK"]:
 DEFINES["UNICODE"] = True
 DEFINES["_UNICODE"] = True
 DEFINES["NS_NO_XPCOM"] = True
-DEFINES["IMPL_MFBT"] = True
 
 # Pick up nsWindowsRestart.cpp
 LOCAL_INCLUDES += [
-    "/mfbt/",
     "/toolkit/mozapps/update/common",
     "/toolkit/xre",
 ]
