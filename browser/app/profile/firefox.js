@@ -1354,13 +1354,6 @@ pref("browser.backspace_action", 2);
 
 pref("intl.regional_prefs.use_os_locales", false);
 
-// this will automatically enable inline spellchecking (if it is available) for
-// editable elements in HTML
-// 0 = spellcheck nothing
-// 1 = check multi-line controls [default]
-// 2 = check multi/single line controls
-pref("layout.spellcheckDefault", 1);
-
 pref("browser.send_pings", false);
 
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");

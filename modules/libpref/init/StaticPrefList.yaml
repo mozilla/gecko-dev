@@ -10154,6 +10154,16 @@
   value: true
   mirror: always
 
+# This will automatically enable inline spellchecking (if it is available) for
+# editable elements in HTML.
+# 0 = spellcheck nothing
+# 1 = check multi-line controls [default]
+# 2 = check multi/single line controls
+- name: layout.spellcheckDefault
+  type: int32_t
+  value: 1
+  mirror: always
+
 # Treat top level pages as always-active for the purpose of refresh driver
 # throttling and such.
 #
