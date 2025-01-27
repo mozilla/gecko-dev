@@ -95,18 +95,23 @@ using JSAccumulateTelemetryDataCallback = void (*)(JSMetric, uint32_t);
 extern JS_PUBLIC_API void JS_SetAccumulateTelemetryCallback(
     JSContext* cx, JSAccumulateTelemetryDataCallback callback);
 
-#define FOR_EACH_JS_USE_COUNTER(_)                         \
-  _(ASMJS, AsmJS)                                          \
-  _(WASM, Wasm)                                            \
-  _(WASM_LEGACY_EXCEPTIONS, WasmLegacyExceptions)          \
-  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)                         \
-  _(OPTIMIZE_GET_ITERATOR_FUSE, OptimizeGetIteratorFuse)   \
-  _(THENABLE_USE, ThenableUse)                             \
-  _(THENABLE_USE_PROTO, ThenableUseProto)                  \
-  _(THENABLE_USE_STANDARD_PROTO, ThenableUseStandardProto) \
-  _(LEGACY_LANG_SUBTAG, LegacyLangSubtag)                  \
-  _(IC_STUB_TOO_LARGE, ICStubTooLarge)                     \
-  _(IC_STUB_OOM, ICStubOOM)
+#define FOR_EACH_JS_USE_COUNTER(_)                               \
+  _(ASMJS, AsmJS)                                                \
+  _(WASM, Wasm)                                                  \
+  _(WASM_LEGACY_EXCEPTIONS, WasmLegacyExceptions)                \
+  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)                               \
+  _(OPTIMIZE_GET_ITERATOR_FUSE, OptimizeGetIteratorFuse)         \
+  _(THENABLE_USE, ThenableUse)                                   \
+  _(THENABLE_USE_PROTO, ThenableUseProto)                        \
+  _(THENABLE_USE_STANDARD_PROTO, ThenableUseStandardProto)       \
+  _(LEGACY_LANG_SUBTAG, LegacyLangSubtag)                        \
+  _(IC_STUB_TOO_LARGE, ICStubTooLarge)                           \
+  _(IC_STUB_OOM, ICStubOOM)                                      \
+  _(ERRORSTACK_GETTER, ErrorStackGetter)                         \
+  _(ERRORSTACK_GETTER_NO_ERRORDATA, ErrorStackGetterNoErrorData) \
+  _(ERRORSTACK_SETTER, ErrorStackSetter)                         \
+  _(ERRORSTACK_SETTER_NONSTRING, ErrorStackSetterNonString)      \
+  _(ERRORSTACK_SETTER_NO_ERRORDATA, ErrorStackSetterNoErrorData)
 
 /*
  * Use counter names passed to the accumulate use counter callback.
