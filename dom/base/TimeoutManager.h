@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/Timeout.h"
 #include "nsTArray.h"
+#include "nsISerialEventTarget.h"
 
 class nsIEventTarget;
 class nsITimer;
@@ -27,15 +28,25 @@ class TimeoutManager final {
   struct Timeouts;
 
  public:
-  TimeoutManager(nsIGlobalObject& aHandle, uint32_t aMaxIdleDeferMS);
+  TimeoutManager(nsIGlobalObject& aHandle, uint32_t aMaxIdleDeferMS,
+                 nsISerialEventTarget* aEventTarget);
   ~TimeoutManager();
   TimeoutManager(const TimeoutManager& rhs) = delete;
   void operator=(const TimeoutManager& rhs) = delete;
 
   bool IsRunningTimeout() const;
 
-  static uint32_t GetNestingLevel() { return sNestingLevel; }
-  static void SetNestingLevel(uint32_t aLevel) { sNestingLevel = aLevel; }
+  uint32_t GetNestingLevel() {
+    return mGlobalObject.GetAsInnerWindow() ? sNestingLevel : mNestingLevel;
+  }
+
+  void SetNestingLevel(uint32_t aLevel) {
+    if (mGlobalObject.GetAsInnerWindow()) {
+      sNestingLevel = aLevel;
+    } else {
+      mNestingLevel = aLevel;
+    }
+  }
 
   bool HasTimeouts() const {
     return !mTimeouts.IsEmpty() || !mIdleTimeouts.IsEmpty();
@@ -247,7 +258,9 @@ class TimeoutManager final {
   bool mBudgetThrottleTimeouts;
 
   bool mIsLoading;
+  nsCOMPtr<nsISerialEventTarget> mEventTarget;
 
+  uint32_t mNestingLevel{0};
   static uint32_t sNestingLevel;
 };
 

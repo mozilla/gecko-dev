@@ -189,6 +189,26 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   // demands it.
   void WorkerPrivateSaysForbidScript() { StartForbiddingScript(); }
   void WorkerPrivateSaysAllowScript() { StopForbiddingScript(); }
+  bool IsBackgroundInternal() const override {
+    MOZ_ASSERT(mWorkerPrivate);
+    return mWorkerPrivate->IsRunningInBackground();
+  }
+
+  MOZ_CAN_RUN_SCRIPT bool RunTimeoutHandler(
+      mozilla::dom::Timeout* aTimeout) override;
+  bool IsFrozen() const override {
+    return mWorkerPrivate->IsFrozenForWorkerThread();
+  }
+
+  // workers don't support both frozen and suspended,
+  // either both are true, or both are false.
+  bool IsSuspended() const override {
+    return mWorkerPrivate->IsFrozenForWorkerThread();
+  }
+
+  static WorkerGlobalScopeBase* Cast(nsIGlobalObject* obj) {
+    return static_cast<WorkerGlobalScopeBase*>(obj);
+  }
 
  protected:
   ~WorkerGlobalScopeBase();

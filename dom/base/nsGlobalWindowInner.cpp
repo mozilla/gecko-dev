@@ -321,6 +321,7 @@
 #include "prtypes.h"
 #include "xpcprivate.h"
 #include "xpcpublic.h"
+#include "mozilla/ThrottledEventQueue.h"
 
 #include "nsIDOMXULControlElement.h"
 
@@ -949,7 +950,10 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
   PR_INSERT_AFTER(this, aOuterWindow);
 
   mTimeoutManager = MakeUnique<dom::TimeoutManager>(
-      *this, StaticPrefs::dom_timeout_max_idle_defer_ms());
+      *this, StaticPrefs::dom_timeout_max_idle_defer_ms(),
+      static_cast<nsISerialEventTarget*>(nsPIDOMWindowInner::From(this)
+                                             ->GetBrowsingContextGroup()
+                                             ->GetTimerEventQueue()));
 
   mObserver = new nsGlobalWindowObserver(this);
   if (nsCOMPtr<nsIObserverService> os = services::GetObserverService()) {
@@ -2746,7 +2750,7 @@ void nsPIDOMWindowInner::RemovePeerConnection() {
   }
 }
 
-bool nsPIDOMWindowInner::HasActivePeerConnections() {
+bool nsGlobalWindowInner::HasActivePeerConnections() {
   MOZ_ASSERT(NS_IsMainThread());
 
   WindowContext* topWindowContext = TopWindowContext(*this);
@@ -2774,7 +2778,7 @@ bool nsPIDOMWindowInner::HasActiveMediaKeysInstance() {
   return !mMediaKeysInstances.IsEmpty();
 }
 
-bool nsPIDOMWindowInner::IsPlayingAudio() {
+bool nsGlobalWindowInner::IsPlayingAudio() {
   for (uint32_t i = 0; i < mAudioContexts.Length(); i++) {
     if (mAudioContexts[i]->IsRunning()) {
       return true;
@@ -2838,7 +2842,7 @@ void nsPIDOMWindowInner::UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) {
   counter += aDelta;
 }
 
-bool nsPIDOMWindowInner::HasActiveIndexedDBDatabases() {
+bool nsGlobalWindowInner::HasActiveIndexedDBDatabases() {
   MOZ_ASSERT(NS_IsMainThread());
 
   return mTopInnerWindow ? mTopInnerWindow->mNumOfIndexedDBDatabases > 0
@@ -2862,7 +2866,7 @@ void nsPIDOMWindowInner::UpdateWebSocketCount(int32_t aDelta) {
   mNumOfOpenWebSockets += aDelta;
 }
 
-bool nsPIDOMWindowInner::HasOpenWebSockets() const {
+bool nsGlobalWindowInner::HasOpenWebSockets() const {
   MOZ_ASSERT(NS_IsMainThread());
 
   return mNumOfOpenWebSockets ||
@@ -6251,8 +6255,7 @@ static const char* GetTimeoutReasonString(Timeout* aTimeout) {
   return "";
 }
 
-bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
-                                            nsIScriptContext* aScx) {
+bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout) {
   // Hold on to the timeout in case mExpr or mFunObj releases its
   // doc.
   // XXXbz Our caller guarantees it'll hold on to the timeout (because
@@ -6271,8 +6274,8 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
   // timeouts from repeatedly opening poups.
   timeout->mPopupState = PopupBlocker::openAbused;
 
-  uint32_t nestingLevel = TimeoutManager::GetNestingLevel();
-  TimeoutManager::SetNestingLevel(timeout->mNestingLevel);
+  uint32_t nestingLevel = mTimeoutManager->GetNestingLevel();
+  mTimeoutManager->SetNestingLevel(timeout->mNestingLevel);
 
   const char* reason = GetTimeoutReasonString(timeout);
 
@@ -6323,7 +6326,7 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
   // point anyway, and the script context should have already reported
   // the script error in the usual way - so we just drop it.
 
-  TimeoutManager::SetNestingLevel(nestingLevel);
+  mTimeoutManager->SetNestingLevel(nestingLevel);
 
   mTimeoutManager->EndRunningTimeout(last_running_timeout);
   timeout->mRunning = false;

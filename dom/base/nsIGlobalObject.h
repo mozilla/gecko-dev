@@ -23,12 +23,8 @@
 #include "js/TypeDecls.h"
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_IGLOBALOBJECT_IID                         \
-  {                                                  \
-    0x11afa8be, 0xd997, 0x4e07, {                    \
-      0xa6, 0xa3, 0x6f, 0x87, 0x2e, 0xc3, 0xee, 0x7f \
-    }                                                \
-  }
+#define NS_IGLOBALOBJECT_IID \
+  {0x11afa8be, 0xd997, 0x4e07, {0xa6, 0xa3, 0x6f, 0x87, 0x2e, 0xc3, 0xee, 0x7f}}
 
 class nsCycleCollectionTraversalCallback;
 class nsICookieJarSettings;
@@ -44,6 +40,7 @@ template <typename V, typename E>
 class Result;
 enum class StorageAccess;
 namespace dom {
+class WorkerGlobalScopeBase;
 class VoidFunction;
 class DebuggerNotificationManager;
 class FontFaceSet;
@@ -316,6 +313,27 @@ class nsIGlobalObject : public nsISupports {
   virtual bool IsBackgroundInternal() const { return false; }
   virtual mozilla::dom::TimeoutManager* GetTimeoutManager() { return nullptr; }
   virtual bool IsRunningTimeout() { return false; }
+  virtual bool IsPlayingAudio() { return false; }
+  // Determine if the window is suspended or frozen.  Outer windows
+  // will forward this call to the inner window for convenience.  If
+  // there is no inner window then the outer window is considered
+  // suspended and frozen by default.
+  virtual bool IsSuspended() const { return false; }
+  virtual bool IsFrozen() const { return false; }
+  MOZ_CAN_RUN_SCRIPT
+  virtual bool RunTimeoutHandler(mozilla::dom::Timeout* aTimeout) {
+    return false;
+  }
+  // Return true if there is any active IndexedDB databases which could block
+  // timeout-throttling.
+  virtual bool HasActiveIndexedDBDatabases() { return false; }
+  /**
+   * Check whether the active peer connection count is non-zero.
+   */
+  virtual bool HasActivePeerConnections() { return false; }
+  // Return true if there are any open WebSockets that could block
+  // timeout-throttling.
+  virtual bool HasOpenWebSockets() const { return false; }
 
   virtual bool IsXPCSandbox() { return false; }
 

@@ -1808,12 +1808,8 @@ void nsGlobalWindowOuter::SetInitialPrincipal(
   }
 }
 
-#define WINDOWSTATEHOLDER_IID                        \
-  {                                                  \
-    0x0b917c3e, 0xbd50, 0x4683, {                    \
-      0xaf, 0xc9, 0xc7, 0x81, 0x07, 0xae, 0x33, 0x26 \
-    }                                                \
-  }
+#define WINDOWSTATEHOLDER_IID \
+  {0x0b917c3e, 0xbd50, 0x4683, {0xaf, 0xc9, 0xc7, 0x81, 0x07, 0xae, 0x33, 0x26}}
 
 class WindowStateHolder final : public nsISupports {
  public:
@@ -6650,7 +6646,7 @@ bool nsGlobalWindowOuter::IsSuspended() const {
   if (!mInnerWindow) {
     return true;
   }
-  return mInnerWindow->IsSuspended();
+  return nsGlobalWindowInner::Cast(mInnerWindow)->IsSuspended();
 }
 
 bool nsGlobalWindowOuter::IsFrozen() const {
@@ -6659,7 +6655,7 @@ bool nsGlobalWindowOuter::IsFrozen() const {
   if (!mInnerWindow) {
     return true;
   }
-  return mInnerWindow->IsFrozen();
+  return nsGlobalWindowInner::Cast(mInnerWindow)->IsFrozen();
 }
 
 nsresult nsGlobalWindowOuter::FireDelayedDOMEvents(bool aIncludeSubWindows) {

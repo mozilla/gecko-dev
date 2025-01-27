@@ -143,8 +143,8 @@ class Timeout final : protected LinkedListElement<RefPtr<Timeout>> {
   // is necessary as we migrate members to private while still trying to
   // keep decent binary packing.
 
-  // Window for which this timeout fires
-  RefPtr<nsGlobalWindowInner> mWindow;
+  // Global object for which this timeout fires
+  RefPtr<nsIGlobalObject> mGlobal;
 
   // The language-specific information about the callback.
   RefPtr<TimeoutHandler> mScriptHandler;

@@ -196,6 +196,26 @@ namespace workerinternals {
 void NamedWorkerGlobalScopeMixin::GetName(DOMString& aName) const {
   aName.AsAString() = mName;
 }
+static const char* GetTimeoutReasonString(Timeout* aTimeout) {
+  switch (aTimeout->mReason) {
+    case Timeout::Reason::eTimeoutOrInterval:
+      if (aTimeout->mIsInterval) {
+        return "setInterval handler";
+      }
+      return "setTimeout handler";
+    case Timeout::Reason::eIdleCallbackTimeout:
+      return "setIdleCallback handler (timed out)";
+    case Timeout::Reason::eAbortSignalTimeout:
+      return "AbortSignal timeout";
+    case Timeout::Reason::eDelayedWebTaskTimeout:
+      return "delayedWebTaskCallback handler (timed out)";
+    default:
+      MOZ_CRASH("Unexpected enum value");
+      return "";
+  }
+  MOZ_CRASH("Unexpected enum value");
+  return "";
+}
 }  // namespace workerinternals
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WorkerGlobalScopeBase)
@@ -249,9 +269,9 @@ WorkerGlobalScopeBase::WorkerGlobalScopeBase(
     : mWorkerPrivate(aWorkerPrivate),
       mClientSource(std::move(aClientSource)),
       mSerialEventTarget(aWorkerPrivate->HybridEventTarget()) {
-  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
-    mTimeoutManager =
-        MakeUnique<dom::TimeoutManager>(*this, /* not used on workers */ 0);
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
+    mTimeoutManager = MakeUnique<dom::TimeoutManager>(
+        *this, /* not used on workers */ 0, mSerialEventTarget);
   }
   LOG(("WorkerGlobalScopeBase::WorkerGlobalScopeBase [%p]", this));
   MOZ_ASSERT(mWorkerPrivate);
@@ -275,6 +295,60 @@ WorkerGlobalScopeBase::~WorkerGlobalScopeBase() = default;
 JSObject* WorkerGlobalScopeBase::GetGlobalJSObject() {
   AssertIsOnWorkerThread();
   return GetWrapper();
+}
+
+bool WorkerGlobalScopeBase::RunTimeoutHandler(mozilla::dom::Timeout* aTimeout) {
+  // this is almost a copy of nsGlobalWindowInner::RunTimeoutHandler
+
+  // Hold on to the timeout in case mExpr or mFunObj releases its
+  // doc.
+  // XXXbz Our caller guarantees it'll hold on to the timeout (because
+  // we're MOZ_CAN_RUN_SCRIPT), so we can probably stop doing that...
+  RefPtr<Timeout> timeout = aTimeout;
+  Timeout* last_running_timeout = mTimeoutManager->BeginRunningTimeout(timeout);
+  timeout->mRunning = true;
+
+  uint32_t nestingLevel = mTimeoutManager->GetNestingLevel();
+  mTimeoutManager->SetNestingLevel(timeout->mNestingLevel);
+
+  const char* reason = workerinternals::GetTimeoutReasonString(timeout);
+
+  bool abortIntervalHandler;
+  {
+    RefPtr<TimeoutHandler> handler(timeout->mScriptHandler);
+
+    CallbackDebuggerNotificationGuard guard(
+        this, timeout->mIsInterval
+                  ? DebuggerNotificationType::SetIntervalCallback
+                  : DebuggerNotificationType::SetTimeoutCallback);
+    abortIntervalHandler = !handler->Call(reason);
+  }
+
+  // If we received an uncatchable exception, do not schedule the timeout again.
+  // This allows the slow script dialog to break easy DoS attacks like
+  // setInterval(function() { while(1); }, 100);
+  if (abortIntervalHandler) {
+    // If it wasn't an interval timer to begin with, this does nothing.  If it
+    // was, we'll treat it as a timeout that we just ran and discard it when
+    // we return.
+    timeout->mIsInterval = false;
+  }
+
+  // We ignore any failures from calling EvaluateString() on the context or
+  // Call() on a Function here since we're in a loop
+  // where we're likely to be running timeouts whose OS timers
+  // didn't fire in time and we don't want to not fire those timers
+  // now just because execution of one timer failed. We can't
+  // propagate the error to anyone who cares about it from this
+  // point anyway, and the script context should have already reported
+  // the script error in the usual way - so we just drop it.
+
+  mTimeoutManager->SetNestingLevel(nestingLevel);
+
+  mTimeoutManager->EndRunningTimeout(last_running_timeout);
+  timeout->mRunning = false;
+
+  return timeout->mCleared;
 }
 
 JSObject* WorkerGlobalScopeBase::GetGlobalJSObjectPreserveColor() const {

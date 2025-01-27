@@ -1544,6 +1544,16 @@ nsresult WorkerPrivate::SetCSPFromHeaderValues(
   return NS_OK;
 }
 
+bool WorkerPrivate::IsFrozenForWorkerThread() const {
+  auto data = mWorkerThreadAccessible.Access();
+  return data->mFrozen;
+}
+
+bool WorkerPrivate::IsFrozen() const {
+  AssertIsOnParentThread();
+  return mParentFrozen;
+}
+
 void WorkerPrivate::StoreCSPOnClient() {
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(data->mScope);
@@ -2629,11 +2639,13 @@ WorkerPrivate::WorkerPrivate(
 
     // Our parent can get suspended after it initiates the async creation
     // of a new worker thread.  In this case suspend the new worker as well.
-    if (mLoadInfo.mWindow && mLoadInfo.mWindow->IsSuspended()) {
+    if (mLoadInfo.mWindow &&
+        nsGlobalWindowInner::Cast(mLoadInfo.mWindow)->IsSuspended()) {
       ParentWindowPaused();
     }
 
-    if (mLoadInfo.mWindow && mLoadInfo.mWindow->IsFrozen()) {
+    if (mLoadInfo.mWindow &&
+        nsGlobalWindowInner::Cast(mLoadInfo.mWindow)->IsFrozen()) {
       Freeze(mLoadInfo.mWindow);
     }
 
@@ -4402,6 +4414,14 @@ bool WorkerPrivate::FreezeInternal() {
     data->mChildWorkers[index]->Freeze(nullptr);
   }
 
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->Suspend();
+    }
+  }
+
   return true;
 }
 
@@ -4418,6 +4438,14 @@ bool WorkerPrivate::ThawInternal() {
   // The worker can thaw even if it failed to run (and doesn't have a global).
   if (data->mScope) {
     data->mScope->MutableClientSourceRef().Thaw();
+  }
+
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->Resume();
+    }
   }
 
   return true;
@@ -4761,6 +4789,15 @@ bool WorkerPrivate::IsEligibleForCC() {
 
 void WorkerPrivate::CancelAllTimeouts() {
   auto data = mWorkerThreadAccessible.Access();
+
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->ClearAllTimeouts();
+    }
+    return;
+  }
 
   LOG(TimeoutsLog(), ("Worker %p CancelAllTimeouts.\n", this));
 
@@ -5476,9 +5513,7 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(aHandler);
 
-  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
-    // todo(aiunusov): change the logic of setTimeout accordingly
-
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
     WorkerGlobalScope* globalScope = GlobalScope();
     auto* timeoutManager = globalScope->GetTimeoutManager();
     int32_t timerId = -1;
@@ -5570,7 +5605,7 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
 void WorkerPrivate::ClearTimeout(int32_t aId, Timeout::Reason aReason) {
   MOZ_ASSERT(aReason == Timeout::Reason::eTimeoutOrInterval,
              "This timeout reason doesn't support cancellation.");
-  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
+  if (StaticPrefs::dom_workers_timeoutmanager() && XRE_IsContentProcess()) {
     WorkerGlobalScope* globalScope = GlobalScope();
     auto* timeoutManager = globalScope->GetTimeoutManager();
     timeoutManager->ClearTimeout(aId, aReason);
@@ -5897,6 +5932,18 @@ void WorkerPrivate::SetLowMemoryStateInternal(JSContext* aCx, bool aState) {
 
 void WorkerPrivate::SetCCCollectedAnything(bool collectedAnything) {
   mWorkerThreadAccessible.Access()->mCCCollectedAnything = collectedAnything;
+}
+
+uint32_t WorkerPrivate::GetCurrentTimerNestingLevel() const {
+  auto data = mWorkerThreadAccessible.Access();
+
+  auto* timeoutManager =
+      data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+  if (timeoutManager) {
+    return timeoutManager->GetNestingLevel();
+  }
+
+  return data->mCurrentTimerNestingLevel;
 }
 
 bool WorkerPrivate::isLastCCCollectedAnything() {
