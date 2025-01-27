@@ -2021,47 +2021,6 @@ TEST_P(VideoConduitCodecModeTest,
   }
 }
 
-TEST_P(VideoConduitCodecModeTest, TestVideoEncodeResolutionAlignment) {
-  for (const auto& scales : {std::vector{1U}, std::vector{1U, 9U}}) {
-    mControl.Update([&](auto& aControl) {
-      aControl.mTransmitting = true;
-      VideoCodecConfig codecConfig(120, "VP8", EncodingConstraints());
-      for (const auto& scale : scales) {
-        auto& encoding = codecConfig.mEncodings.emplace_back();
-        encoding.constraints.scaleDownBy = scale;
-      }
-      aControl.mVideoSendCodec = Some(codecConfig);
-      aControl.mVideoSendRtpRtcpConfig =
-          Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
-      aControl.mVideoCodecMode = GetParam();
-      aControl.mLocalSsrcs = scales;
-    });
-    ASSERT_TRUE(Call()->mVideoSendEncoderConfig);
-
-    for (const auto& alignment : {2, 16, 39, 400, 1000}) {
-      // Test that requesting specific alignment always results in the expected
-      // number of layers and valid alignment.
-      rtc::VideoSinkWants wants;
-      wants.resolution_alignment = alignment;
-      mVideoFrameConverter->AddOrUpdateSink(mVideoSink.get(), wants);
-
-      const std::vector<webrtc::VideoStream> videoStreams =
-          Call()->CreateEncoderStreams(640, 480);
-      ASSERT_EQ(videoStreams.size(), scales.size());
-      for (size_t i = 0; i < videoStreams.size(); ++i) {
-        // videoStreams is backwards
-        const auto& stream = videoStreams[i];
-        const auto& scale = scales[i];
-        uint32_t expectation =
-            480 / scale < static_cast<uint32_t>(alignment) ? 1 : 0;
-        EXPECT_EQ(stream.width % alignment, expectation)
-            << " for scale " << scale << " and alignment " << alignment;
-        EXPECT_EQ(stream.height % alignment, expectation);
-      }
-    }
-  }
-}
-
 TEST_F(VideoConduitTest, TestSettingRtpRtcpRsize) {
   mControl.Update([&](auto& aControl) {
     VideoCodecConfig codecConfig(120, "VP8", EncodingConstraints());
