@@ -7,14 +7,14 @@
 #ifndef A11Y_STATISTICS_H_
 #define A11Y_STATISTICS_H_
 
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AccessibleMetrics.h"
 
 namespace mozilla {
 namespace a11y {
 namespace statistics {
 
 inline void A11yConsumers(uint32_t aConsumer) {
-  Telemetry::Accumulate(Telemetry::A11Y_CONSUMERS, aConsumer);
+  glean::a11y::consumers.AccumulateSingleSample(aConsumer);
 }
 
 }  // namespace statistics

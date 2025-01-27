@@ -21,7 +21,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "nsAccessibilityService.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/AccessibleMetrics.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -679,7 +679,7 @@ void NotificationController::ProcessMutationEvents() {
 void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
   AUTO_PROFILER_MARKER_TEXT("NotificationController::WillRefresh", A11Y, {},
                             ""_ns);
-  Telemetry::AutoTimer<Telemetry::A11Y_TREE_UPDATE_TIMING_MS> timer;
+  auto timer = glean::a11y::tree_update_timing.Measure();
   // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
 
   AUTO_PROFILER_LABEL("NotificationController::WillRefresh", A11Y);

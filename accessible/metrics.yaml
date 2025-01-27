@@ -154,3 +154,41 @@ a11y:
       - always
       - never
     telemetry_mirror: A11Y_THEME
+
+  consumers:
+    type: custom_distribution
+    description: |
+      A list of known accessibility clients that inject into Firefox process space (see https://searchfox.org/mozilla-central/source/accessible/windows/msaa/Compatibility.h).
+      This metric was generated to correspond to the Legacy Telemetry enumerated histogram A11Y_CONSUMERS.
+    range_min: 0
+    range_max: 11
+    bucket_count: 12
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1382820
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1462238
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1382820
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1462238
+    notification_emails:
+      - accessibility@mozilla.com
+      - jteh@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_CONSUMERS
+
+  tree_update_timing:
+    type: timing_distribution
+    description: >
+      The amount of time taken to update the accessibility tree (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram A11Y_TREE_UPDATE_TIMING_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1424768
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1424768
+    notification_emails:
+      - asurkov@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_TREE_UPDATE_TIMING_MS
