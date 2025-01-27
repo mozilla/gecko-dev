@@ -6,7 +6,7 @@
 
 if (!window.smartblockTestShimInitialized) {
   // Guard against this script running multiple times
-  window.smartblockTestShimInitialized = Object.freeze(true);
+  window.smartblockTestShimInitialized = true;
 
   const SHIM_ID = "EmbedTestShim";
 
@@ -28,30 +28,25 @@ if (!window.smartblockTestShimInitialized) {
   }
 
   function addonMessageHandler(message) {
-    let { topic, data, shimId } = message;
+    let { topic, shimId } = message;
     // Only react to messages which are targeting this shim.
     if (shimId != SHIM_ID) {
       return;
     }
 
     if (topic === "smartblock:unblock-embed") {
-      if (data != window.location.hostname) {
-        // host name does not match the original hostname, user must have navigated
-        // away, skip replacing embeds
-        return;
-      }
       // remove embed placeholders
       embedPlaceholders.forEach((p, idx) => {
         p.replaceWith(originalEmbedContainers[idx]);
       });
 
-      // Create the script element in the privilege scope of the website to
-      // ensure the tracker script doesn't gain extension privileges.
-      let document = window.document.wrappedJSObject;
-
       // recreate scripts
       let scriptElement = document.createElement("script");
-      scriptElement.src = ORIGINAL_URL;
+
+      // Set the script element's src with the website's principal instead of
+      // the content script principal to ensure the tracker script is not loaded
+      // via the content script's expanded principal.
+      scriptElement.wrappedJSObject.src = ORIGINAL_URL;
       document.body.appendChild(scriptElement);
     }
   }
@@ -167,6 +162,7 @@ if (!window.smartblockTestShimInitialized) {
       sendMessageToAddon("smartblockEmbedReplaced");
     });
 
+    // Dispatch event to signal that the script is done replacing FOR TEST SHIM ONLY
     const finishedEvent = new CustomEvent("smartblockEmbedScriptFinished", {
       bubbles: true,
       composed: true,
