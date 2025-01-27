@@ -56,6 +56,11 @@ skip-if = [
 
 ["browser_aboutNetError.js"]
 
+["browser_aboutNetError_basicHttpAuth.js"]
+support-files = [
+  "basic_auth_route.sjs",
+]
+
 ["browser_aboutNetError_csp_iframe.js"]
 https_first_disabled = true
 support-files = [
