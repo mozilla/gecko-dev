@@ -6,9 +6,9 @@
 <window
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="gAppManagerDialog.onLoad();"
   data-l10n-id="app-manager-window2"
   data-l10n-attrs="title, style"
+  csp="default-src chrome:; img-src chrome: moz-icon: http: https:; style-src chrome: 'unsafe-inline';"
 >
   <dialog id="appManager" buttons="accept,cancel">
     <linkset>
@@ -29,11 +29,7 @@
     <script src="chrome://browser/content/preferences/dialogs/applicationManager.js" />
 
     <commandset id="appManagerCommandSet">
-      <command
-        id="cmd_remove"
-        oncommand="gAppManagerDialog.remove();"
-        disabled="true"
-      />
+      <command id="cmd_remove" disabled="true" />
     </commandset>
 
     <keyset id="appManagerKeyset">
@@ -43,11 +39,7 @@
     <description id="appDescription" />
     <separator class="thin" />
     <hbox flex="1">
-      <richlistbox
-        id="appList"
-        onselect="gAppManagerDialog.onSelect();"
-        flex="1"
-      />
+      <richlistbox id="appList" flex="1" />
       <vbox>
         <button
           id="remove"

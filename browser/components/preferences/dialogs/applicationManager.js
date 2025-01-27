@@ -20,6 +20,10 @@ var gAppManagerDialog = {
 
     let gMainPane = window.parent.gMainPane;
 
+    document
+      .getElementById("cmd_remove")
+      .addEventListener("command", () => this.remove());
+
     const appDescElem = document.getElementById("appDescription");
     if (this.handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) {
       let { typeDescription } = this.handlerInfo;
@@ -43,6 +47,7 @@ var gAppManagerDialog = {
     }
 
     let list = document.getElementById("appList");
+    list.addEventListener("select", () => this.onSelect());
     let listFragment = document.createDocumentFragment();
     for (let app of this.handlerInfo.possibleApplicationHandlers.enumerate()) {
       if (!gMainPane.isValidHandlerApp(app)) {
@@ -127,3 +132,5 @@ var gAppManagerDialog = {
     document.l10n.setAttributes(appTypeElem, l10nId);
   },
 };
+
+window.addEventListener("load", () => gAppManagerDialog.onLoad());
