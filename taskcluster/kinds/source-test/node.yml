@@ -2,17 +2,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-newtab-unit-tests:
-    description: newtab unit tests
+task-defaults:
     platform: linux1804-64/opt
-    treeherder:
-        symbol: node(newtab)
-        kind: test
-        tier: 1
     worker-type: t-linux-xlarge-source
     worker:
         docker-image: {in-tree: "ubuntu1804-test"}
         max-run-time: 1800
+    treeherder:
+        kind: test
+        tier: 1
+    run:
+        using: run-task
+        cwd: '{checkout}'
+        cache-dotcache: true
+
+newtab-unit-tests:
+    description: newtab unit tests
+    treeherder:
+        symbol: node(newtab)
     require-build:
         by-project:
             autoland:
@@ -22,9 +29,6 @@ newtab-unit-tests:
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
@@ -39,15 +43,9 @@ newtab-unit-tests:
 
 newtab-unit-tests-ccov:
     description: newtab unit tests code coverage
-    platform: linux1804-64/opt
     treeherder:
         symbol: node(newtab-ccov)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
     worker:
-        docker-image: {in-tree: "ubuntu1804-test"}
-        max-run-time: 1800
         artifacts:
             - name: public/code-coverage-grcov.zip
               path: /builds/worker/checkouts/gecko/browser/components/newtab/logs/coverage/code-coverage-grcov.zip
@@ -59,9 +57,6 @@ newtab-unit-tests-ccov:
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
@@ -79,15 +74,8 @@ newtab-unit-tests-ccov:
 
 messagingsystem-unit-tests:
     description: messagingsystem unit tests
-    platform: linux1804-64/opt
     treeherder:
         symbol: node(messagingsystem)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
-    worker:
-        docker-image: {in-tree: "ubuntu1804-test"}
-        max-run-time: 1800
     require-build:
         by-project:
             autoland:
@@ -97,9 +85,6 @@ messagingsystem-unit-tests:
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
@@ -118,15 +103,9 @@ messagingsystem-unit-tests:
 
 messagingsystem-unit-tests-ccov:
     description: messaging system unit tests code coverage
-    platform: linux1804-64/opt
     treeherder:
         symbol: node(messagingsystem-ccov)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
     worker:
-        docker-image: {in-tree: "ubuntu1804-test"}
-        max-run-time: 1800
         artifacts:
             - name: public/code-coverage-grcov.zip
               path: /builds/worker/checkouts/gecko/browser/components/asrouter/logs/coverage/code-coverage-grcov.zip
@@ -138,9 +117,6 @@ messagingsystem-unit-tests-ccov:
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
@@ -161,25 +137,17 @@ messagingsystem-unit-tests-ccov:
 
 devtools-tests:
     description: devtools node-based tests (for instance jest)
-    platform: linux1804-64/opt
     attributes:
         code-review: true
     treeherder:
         symbol: node(devtools)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
     worker:
         docker-image: {in-tree: "lint"}
-        max-run-time: 1800
         artifacts:
             - type: file
               name: public/code-review/issues.json
               path: /builds/worker/issues.json
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd devtools/client/bin/ &&
             node devtools-node-test-runner.js --suite=all --artifact=/builds/worker/issues.json
@@ -190,14 +158,11 @@ devtools-tests:
 
 devtools-verify-bundle:
     description: devtools bundle checker
-    platform: linux1804-64/opt
     attributes:
         code-review: true
     treeherder:
         symbol: node(devtools-bundle)
-        kind: test
         tier: 2
-    worker-type: t-linux-xlarge-source
     worker:
         docker-image: {in-tree: "lint"}
         max-run-time: 1200
@@ -206,9 +171,6 @@ devtools-verify-bundle:
               name: public/code-review/issues.json
               path: /builds/worker/issues.json
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd devtools/client/debugger &&
             yarn &&
@@ -221,19 +183,11 @@ devtools-verify-bundle:
 
 eslint-plugin-mozilla:
     description: eslint-plugin-mozilla integration tests
-    platform: linux1804-64/opt
     treeherder:
         symbol: node(epm)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
     worker:
         docker-image: {in-tree: "lint"}
-        max-run-time: 1800
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cp -r $MOZ_FETCHES_DIR/eslint-plugin-mozilla/node_modules tools/lint/eslint/eslint-plugin-mozilla/node_modules &&
             ./mach configure --disable-compile-environment &&
@@ -249,15 +203,8 @@ eslint-plugin-mozilla:
 
 design-tokens-tests:
     description: design tokens unit tests
-    platform: linux1804-64/opt
     treeherder:
         symbol: node(design-tokens)
-        kind: test
-        tier: 1
-    worker-type: t-linux-xlarge-source
-    worker:
-        docker-image: {in-tree: "ubuntu1804-test"}
-        max-run-time: 1800
     require-build:
         by-project:
             autoland:
@@ -267,9 +214,6 @@ design-tokens-tests:
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
     run:
-        using: run-task
-        cache-dotcache: true
-        cwd: '{checkout}'
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
