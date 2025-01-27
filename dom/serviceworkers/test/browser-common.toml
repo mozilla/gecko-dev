@@ -20,6 +20,7 @@ support-files = [
   "network_with_utils.html",
   "page_post_controlled.html",
   "redirect.sjs",
+  "service_worker_etp.js",
   "simple_fetch_worker.js",
   "storage_recovery_worker.sjs",
   "sw_always_updating_inter_sw_postmessage.sjs",
@@ -40,6 +41,8 @@ skip-if = ["true"]
 
 ["browser_download_canceled.js"]
 skip-if = ["verify"]
+
+["browser_etp_permission.js"]
 
 ["browser_force_refresh.js"]
 skip-if = ["verify"] # Bug 1603340
