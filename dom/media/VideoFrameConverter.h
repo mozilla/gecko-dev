@@ -11,7 +11,6 @@
 #include "Pacer.h"
 #include "PerformanceRecorder.h"
 #include "VideoSegment.h"
-#include "VideoUtils.h"
 #include "nsISupportsImpl.h"
 #include "nsThreadUtils.h"
 #include "jsapi/RTCStatsReport.h"
@@ -20,6 +19,7 @@
 #include "api/video/video_frame.h"
 #include "common_video/include/video_frame_buffer_pool.h"
 #include "common_video/include/video_frame_buffer.h"
+#include "media/base/adapted_video_track_source.h"
 
 // The number of frame buffers VideoFrameConverter may create before returning
 // errors.
@@ -44,13 +44,10 @@ enum class FrameDroppingPolicy {
 //
 // Input is typically a MediaTrackListener driven by MediaTrackGraph.
 //
-// Output is passed through to VideoFrameConvertedEvent() whenever a frame is
-// converted.
+// Output is exposed through rtc::AdaptedVideoTrackSource, which implements
+// rtc::VideoSourceInterface<webrtc::VideoFrame>.
 template <FrameDroppingPolicy DropPolicy = FrameDroppingPolicy::Allowed>
-class VideoFrameConverterImpl {
- public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoFrameConverterImpl)
-
+class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
  protected:
   explicit VideoFrameConverterImpl(
       already_AddRefed<nsISerialEventTarget> aTarget,
@@ -63,6 +60,26 @@ class VideoFrameConverterImpl {
     MOZ_COUNT_CTOR(VideoFrameConverterImpl);
   }
 
+  // AdaptedVideoTrackSource impl -- we don't expect any of these to be called.
+  // They are in libwebrtc because they are used by blink to communicate
+  // properties from a video track source to their libwebrtc integration layer.
+  // We signal this elsewhere.
+  void GenerateKeyFrame() override {
+    MOZ_CRASH("Unexpected VideoFrameConverterImpl::GenerateKeyFrame");
+  }
+  SourceState state() const override {
+    MOZ_CRASH("Unexpected VideoFrameConverterImpl::state");
+  }
+  bool remote() const override {
+    MOZ_CRASH("Unexpected VideoFrameConverterImpl::remote");
+  }
+  bool is_screencast() const override {
+    MOZ_CRASH("Unexpected VideoFrameConverterImpl::is_screencast");
+  }
+  std::optional<bool> needs_denoising() const override {
+    MOZ_CRASH("Unexpected VideoFrameConverterImpl::needs_denoising");
+  }
+
   void RegisterListener() {
     mPacingListener = mPacer->PacedItemEvent().Connect(
         mTarget,
@@ -73,6 +90,9 @@ class VideoFrameConverterImpl {
   }
 
  public:
+  using rtc::VideoSourceInterface<webrtc::VideoFrame>::AddOrUpdateSink;
+  using rtc::VideoSourceInterface<webrtc::VideoFrame>::RemoveSink;
+
   void QueueVideoChunk(const VideoChunk& aChunk, bool aForceBlack) {
     gfx::IntSize size = aChunk.mFrame.GetIntrinsicSize();
     if (size.width == 0 || size.height == 0) {
@@ -167,10 +187,6 @@ class VideoFrameConverterImpl {
         });
   }
 
-  MediaEventSourceExc<webrtc::VideoFrame>& VideoFrameConvertedEvent() {
-    return mVideoFrameConvertedEvent;
-  }
-
  protected:
   struct FrameToProcess {
     FrameToProcess() = default;
@@ -231,7 +247,7 @@ class VideoFrameConverterImpl {
 
     mLastFrameConverted = Some(FrameConverted(aVideoFrame, aSerial));
 
-    mVideoFrameConvertedEvent.Notify(std::move(aVideoFrame));
+    OnFrame(aVideoFrame);
   }
 
   void QueueForProcessing(RefPtr<layers::Image> aImage, TimeStamp aTime,
@@ -278,8 +294,7 @@ class VideoFrameConverterImpl {
       } else {
         LOG(LogLevel::Verbose,
             "VideoFrameConverterImpl %p: Dropping a duplicate frame because "
-            "the "
-            "duplication interval (%.3fs) hasn't passed (%.3fs)",
+            "the duplication interval (%.3fs) hasn't passed (%.3fs)",
             this, mIdleFrameDuplicationInterval.ToSeconds(),
             (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds());
         return;
@@ -340,6 +355,7 @@ class VideoFrameConverterImpl {
             "VideoFrameConverterImpl %p: Creating a buffer for a black video "
             "frame failed",
             this);
+        OnFrameDropped();
         return;
       }
 
@@ -437,8 +453,6 @@ class VideoFrameConverterImpl {
   // Used to pace future frames close to their rendering-time. Thread-safe.
   const RefPtr<Pacer<FrameToProcess>> mPacer;
 
-  MediaEventProducerExc<webrtc::VideoFrame> mVideoFrameConvertedEvent;
-
   // Accessed only from mTarget.
   MediaEventListener mPacingListener;
   webrtc::VideoFrameBufferPool mBufferPool;
@@ -452,12 +466,14 @@ class VideoFrameConverterImpl {
 #endif
 };
 
-class VideoFrameConverter final
-    : public VideoFrameConverterImpl<FrameDroppingPolicy::Allowed> {
+class VideoFrameConverter
+    : public rtc::RefCountedObject<
+          VideoFrameConverterImpl<FrameDroppingPolicy::Allowed>> {
  protected:
   VideoFrameConverter(already_AddRefed<nsISerialEventTarget> aTarget,
                       const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : VideoFrameConverterImpl(std::move(aTarget), aTimestampMaker) {}
+      : rtc::RefCountedObject<VideoFrameConverterImpl>(std::move(aTarget),
+                                                       aTimestampMaker) {}
 
  public:
   static already_AddRefed<VideoFrameConverter> Create(

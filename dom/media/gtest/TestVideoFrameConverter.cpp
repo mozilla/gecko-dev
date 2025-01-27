@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <array>
 #include <iterator>
 #include <thread>
 
@@ -11,24 +12,36 @@
 #include "mozilla/gtest/WaitFor.h"
 #include "MediaEventSource.h"
 #include "VideoFrameConverter.h"
+#include "VideoUtils.h"
 #include "YUVBufferGenerator.h"
+#include "rtc_base/ref_counted_object.h"
 
 using namespace mozilla;
 using testing::Not;
 
 class VideoFrameConverterTest;
 
-class FrameListener {
+class FrameListener : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FrameListener)
 
-  explicit FrameListener(MediaEventSourceExc<webrtc::VideoFrame>& aSource) {
-    mListener = aSource.Connect(AbstractThread::GetCurrent(), this,
-                                &FrameListener::OnVideoFrameConverted);
+  explicit FrameListener(webrtc::VideoTrackSourceInterface* aSource)
+      : mSource(aSource) {
+    mSource->AddOrUpdateSink(this, {});
   }
 
-  void OnVideoFrameConverted(webrtc::VideoFrame aVideoFrame) {
-    mVideoFrameConvertedEvent.Notify(std::move(aVideoFrame), TimeStamp::Now());
+  void OnFrame(const webrtc::VideoFrame& aVideoFrame) override {
+    mVideoFrameConvertedEvent.Notify(aVideoFrame, TimeStamp::Now());
+  }
+
+  void OnDiscardedFrame() override {
+    webrtc::VideoFrame frame(nullptr, webrtc::VideoRotation::kVideoRotation_0,
+                             0);
+    mVideoFrameConvertedEvent.Notify(frame, TimeStamp::Now());
+  }
+
+  void SetWants(const rtc::VideoSinkWants& aWants) {
+    mSource->AddOrUpdateSink(this, aWants);
   }
 
   MediaEventSource<webrtc::VideoFrame, TimeStamp>& VideoFrameConvertedEvent() {
@@ -36,19 +49,20 @@ class FrameListener {
   }
 
  private:
-  ~FrameListener() { mListener.Disconnect(); }
+  ~FrameListener() { mSource->RemoveSink(this); }
 
-  MediaEventListener mListener;
+  const RefPtr<webrtc::VideoTrackSourceInterface> mSource;
   MediaEventProducer<webrtc::VideoFrame, TimeStamp> mVideoFrameConvertedEvent;
 };
 
 class DebugVideoFrameConverter
-    : public VideoFrameConverterImpl<FrameDroppingPolicy::Disabled> {
+    : public rtc::RefCountedObject<
+          VideoFrameConverterImpl<FrameDroppingPolicy::Disabled>> {
  public:
   explicit DebugVideoFrameConverter(
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : VideoFrameConverterImpl(do_AddRef(GetMainThreadSerialEventTarget()),
-                                aTimestampMaker) {}
+      : rtc::RefCountedObject<VideoFrameConverterImpl>(
+            do_AddRef(GetMainThreadSerialEventTarget()), aTimestampMaker) {}
 
   using VideoFrameConverterImpl::mLastFrameQueuedForProcessing;
   using VideoFrameConverterImpl::ProcessVideoFrame;
@@ -65,8 +79,7 @@ class VideoFrameConverterTest : public ::testing::Test {
   VideoFrameConverterTest()
       : mTimestampMaker(dom::RTCStatsTimestampMaker::Create()),
         mConverter(MakeAndAddRef<DebugVideoFrameConverter>(mTimestampMaker)),
-        mListener(MakeAndAddRef<FrameListener>(
-            mConverter->VideoFrameConvertedEvent())) {
+        mListener(MakeAndAddRef<FrameListener>(mConverter)) {
     mConverter->RegisterListener();
   }
 

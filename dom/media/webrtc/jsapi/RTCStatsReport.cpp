@@ -12,6 +12,14 @@
 
 namespace mozilla::dom {
 
+RTCStatsTimestampState::RTCStatsTimestampState(TimeStamp aStartDomRealtime,
+                                               webrtc::Timestamp aStartRealtime)
+    : mRandomTimelineSeed(0),
+      mStartDomRealtime(aStartDomRealtime),
+      mStartRealtime(webrtc::Timestamp::Micros(0)),
+      mRTPCallerType(RTPCallerType::Normal),
+      mStartWallClockRaw(0) {}
+
 RTCStatsTimestampState::RTCStatsTimestampState()
     : mRandomTimelineSeed(0),
       mStartDomRealtime(WebrtcSystemTimeBase()),
