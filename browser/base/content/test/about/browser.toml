@@ -61,6 +61,11 @@ support-files = [
   "basic_auth_route.sjs",
 ]
 
+["browser_aboutNetError_blank_page.js"]
+support-files = [
+  "blank_page.sjs",
+]
+
 ["browser_aboutNetError_csp_iframe.js"]
 https_first_disabled = true
 support-files = [
