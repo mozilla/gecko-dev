@@ -103,6 +103,11 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">ຊອກຫາໄດ້ໄວຂຶ້ນດ້ວຍການນຳທາງໃໝ່</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">ໃນເວັບໄຊທ໌ໃດຫນຶ່ງ, ແຖບນີ້ tucks ທັນທີທີ່ທ່ານເລື່ອນລົງສໍາລັບພື້ນທີ່ຄົ້ນຫາເພີ່ມເຕີມ.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">ແຕະລູກສອນຄ້າງໄວ້ເພື່ອໂດດໄປມາລະຫວ່າງໜ້າຕ່າງໆໃນປະຫວັດຂອງແຖບນີ້.</string>
+
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_title">ປັດແຖບເຄື່ອງມືເພື່ອສະຫຼັບແຖບ</string>
