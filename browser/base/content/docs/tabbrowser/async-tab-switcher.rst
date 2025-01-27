@@ -191,7 +191,7 @@ We use a few tricks and optimizations to help improve the perceived performance 
 
 2. When a tab hasn’t ever been seen before, and is still in the process of loading (right now, dubiously checked by looking for the “busy” attribute on the ``<xul:tab>``) we show a blank content area until its layers are finally ready. The idea here is to shift perceived lag from the async tab switcher to the network by showing the blank space instead of the tab switch spinner.
 
-3. “Warming” is a nascent optimization that will allow us to pre-emptively render and cache the layers for tabs that we think the user is likely to switch to soon. After a timeout (``browser.tabs.remote.warmup.unloadDelayMs``), “warmed” tabs that aren’t switched to have their layers unloaded and cleared from the cache.
+3. “Warming” is a nascent optimization that will allow us to preemptively render and cache the layers for tabs that we think the user is likely to switch to soon. After a timeout (``browser.tabs.remote.warmup.unloadDelayMs``), “warmed” tabs that aren’t switched to have their layers unloaded and cleared from the cache.
 
 4. On platforms that support ``occlusionstatechange`` events (as of this writing, only macOS) and ``sizemodechange`` events (Windows, macOS and Linux), we stop rendering the layers for the currently selected tab when the window is minimized or fully occluded by another window.
 

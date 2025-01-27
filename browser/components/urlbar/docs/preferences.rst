@@ -189,7 +189,7 @@ browser.urlbar.searchTips.test.ignoreShowLimits (boolean, default: false)
   This is useful for testing purposes.
 
 browser.urlbar.speculativeConnect.enabled (boolean, default: true)
-  Speculative connections allow to resolve domains pre-emptively when the user
+  Speculative connections allow to resolve domains preemptively when the user
   is likely to pick a result from the Address Bar. This allows for faster
   navigation.
 

@@ -53,8 +53,8 @@ Makefile/moz.build practices
    architecture rather than ``CONFIG['OS_TEST'] {=armv7}`` (re: bug 886689).
 
 
-Other advices
-~~~~~~~~~~~~~
+Other advice
+~~~~~~~~~~~~
 
 -  Install the
    `mozext <https://hg.mozilla.org/hgcustom/version-control-tools/file/default/hgext/mozext>`__

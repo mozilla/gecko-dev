@@ -55,7 +55,7 @@ Released chunk
 
 Recycled chunk
   This is a chunk that was previously written into, and full. When memory limits occur,
-  rather than freeing the memory, it is re-used as the next chunk.
+  rather than freeing the memory, it is reused as the next chunk.
 
 .. _ProfileChunkedBuffer: https://searchfox.org/mozilla-central/search?q=ProfileChunkedBuffer&path=&case=true&regexp=false
 .. _ProfileChunkManager: https://searchfox.org/mozilla-central/search?q=ProfileBufferChunkManager.h&path=&case=true&regexp=false

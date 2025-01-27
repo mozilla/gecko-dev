@@ -4,7 +4,7 @@ Ignorefile Lint
 Ignorefile lint is a linter for ``.gitignore`` and ``.hgignore`` files,
 to verify those files have equivalent entries.
 
-Each pattern is roughly compared, ignoring punctuations, to absorb the
+Each pattern is roughly compared, ignoring punctuation, to absorb the
 syntax difference.
 
 Run Locally

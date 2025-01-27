@@ -320,7 +320,7 @@ IPDLUnitTest
 
 :primary protocol: varies
 
-This test-only process type is intended for use when writing IPDL unit tests. However, it is currently broken, due to these tests having never been run in CI. The type may be removed or re-used when these unit tests are fixed.
+This test-only process type is intended for use when writing IPDL unit tests. However, it is currently broken, due to these tests having never been run in CI. The type may be removed or reused when these unit tests are fixed.
 
 .. _utility-process:
 

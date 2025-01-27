@@ -101,8 +101,8 @@ Prefixes
 
 
 
-Other advices
-~~~~~~~~~~~~~
+Other advice
+~~~~~~~~~~~~
 
 -  Do not compare ``x == true`` or ``x == false``. Use ``(x)`` or
    ``(!x)`` instead. ``x == true``, is certainly different from if
