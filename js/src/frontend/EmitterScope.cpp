@@ -383,10 +383,6 @@ bool EmitterScope::emitSwitchBlockEndForDisposableScopeBodyEnd(
 bool EmitterScope::emitDisposableScopeBodyEndForNonLocalJump(
     BytecodeEmitter* bce) {
   if (hasDisposables()) {
-    if (!usingEmitter_->emitNonLocalJump(this)) {
-      return false;
-    };
-
     if (!emitSwitchBlockEndForDisposableScopeBodyEnd(bce)) {
       return false;
     }

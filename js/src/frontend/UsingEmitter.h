@@ -160,8 +160,6 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool prepareForAssignment(UsingHint hint);
 
-  [[nodiscard]] bool emitNonLocalJump(EmitterScope* present);
-
   [[nodiscard]] bool emitEnd();
 };
 
