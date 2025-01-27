@@ -205,9 +205,6 @@ add_task(async function test_customize_position_setting() {
 });
 
 add_task(async function test_customize_visibility_setting() {
-  await SpecialPowers.pushPrefEnv({
-    set: [[TAB_DIRECTION_PREF, true]],
-  });
   const deferredPrefChange = Promise.withResolvers();
   const prefObserver = () => deferredPrefChange.resolve();
   Services.prefs.addObserver(SIDEBAR_VISIBILITY_PREF, prefObserver);
@@ -238,7 +235,6 @@ add_task(async function test_customize_visibility_setting() {
   await BrowserTestUtils.closeWindow(newWin);
 
   Services.prefs.clearUserPref(SIDEBAR_VISIBILITY_PREF);
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_vertical_tabs_setting() {
