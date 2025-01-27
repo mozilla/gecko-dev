@@ -3,7 +3,7 @@ requires-python:>=3.8
 pypi:Sphinx==7.1.2
 pypi:alabaster==0.7.13
 pypi:black==24.8.0
-pypi:codespell==2.3.0
+pypi:codespell==2.4.0
 pypi:dataclasses==0.6
 pypi:distlib==0.3.7
 pypi:docutils==0.18.1
