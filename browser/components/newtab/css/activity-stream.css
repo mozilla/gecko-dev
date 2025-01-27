@@ -1075,7 +1075,7 @@ main section {
   font-size: 0.9em;
 }
 .top-site-outer .title:not(.sponsored) .sponsored-label {
-  visibility: hidden;
+  display: none;
 }
 .top-site-outer.search-shortcut .rich-icon {
   background-color: #FFF;
@@ -1338,17 +1338,17 @@ main section {
   justify-content: center;
   align-items: center;
 }
-.top-sites-list .top-site-outer span[dir=auto] {
+.top-sites-list .top-site-outer .title .title-label {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-height: 20px;
+  min-height: 2lh;
   width: 100px;
   padding: 0 var(--space-xsmall);
 }
-.top-sites-list .top-site-outer:hover .title:not(.sponsored) .sponsored-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .sponsored-label {
-  display: none;
+.top-sites-list .top-site-outer .title.sponsored .title-label {
+  min-height: 1lh;
 }
 .top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label {
   -webkit-line-clamp: 2;
