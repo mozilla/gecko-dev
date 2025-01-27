@@ -331,6 +331,39 @@ class DownloadUtilsTest {
             ),
         )
 
+        // application/x-pdf with .pdf
+        assertEquals(
+            "file.pdf",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.pdf",
+                mimeType = "application/x-pdf",
+            ),
+        )
+
+        // application/x-pdf without extension
+        assertEquals(
+            "downloadfile.pdf",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/downloadfile",
+                mimeType = "application/x-pdf",
+            ),
+        )
+
+        // application/x-pdf with non-pdf extension
+        assertEquals(
+            "file.pdf",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.bin",
+                mimeType = "application/x-pdf",
+            ),
+        )
+
         Shadows.shadowOf(MimeTypeMap.getSingleton()).clearMappings()
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypeMapping("exe", "application/x-msdos-program")
 

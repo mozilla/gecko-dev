@@ -337,8 +337,7 @@ object DownloadUtils {
     private fun changeExtension(filename: String, providedMimeType: String?): String {
         val file = File(filename)
         val mimeTypeMap = MimeTypeMap.getSingleton()
-        val extensionFromMimeType =
-            mimeTypeMap.getExtensionFromMimeType(providedMimeType)
+        val extensionFromMimeType = getExtensionFromMimeType(providedMimeType)
         if (providedMimeType == null || extensionFromMimeType == null) return filename
 
         val mimeTypeFromFilename = mimeTypeMap.getMimeTypeFromExtension(file.extension) ?: ""
@@ -361,13 +360,30 @@ object DownloadUtils {
     }
 
     /**
+     * Get the file extension for a given MIME type.
+     * This function first checks the system mappings, if no extension is found,
+     * checks for custom mappings.
+     *
+     * @param mimeType The MIME type to map.
+     * @return The corresponding file extension or null if no mapping exists.
+     */
+    private fun getExtensionFromMimeType(mimeType: String?): String? {
+        val mimeTypeMap = MimeTypeMap.getSingleton()
+        return mimeTypeMap.getExtensionFromMimeType(mimeType)
+            ?: when (mimeType) {
+                "application/x-pdf" -> "pdf"
+                else -> null
+            }
+    }
+
+    /**
      * Guess the extension for a file using the mime type.
      */
     private fun createExtension(mimeType: String?): String {
         var extension: String? = null
 
         if (mimeType != null) {
-            extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)?.let { ".$it" }
+            extension = getExtensionFromMimeType(mimeType)?.let { ".$it" }
         }
         if (extension == null) {
             extension = if (mimeType?.startsWith("text/", ignoreCase = true) == true) {
