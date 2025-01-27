@@ -11,7 +11,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Components.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/Logging.h"
@@ -839,8 +839,8 @@ nsresult Classifier::ApplyUpdatesBackground(
   // Assume all TableUpdate objects should have the same provider.
   urlUtil->GetTelemetryProvider(aUpdates[0]->TableName(), provider);
 
-  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_KEYED_UPDATE_TIME>
-      keyedTimer(provider);
+  auto keyedTimer =
+      glean::urlclassifier::cl_keyed_update_time.Get(provider).Measure();
 
   PRIntervalTime clockStart = 0;
   if (LOG_ENABLED()) {
@@ -1717,8 +1717,10 @@ nsresult Classifier::LoadMetadata(nsIFile* aDirectory, nsACString& aResult,
 
     nsCString state, sha256;
     rv = lookupCacheV4->LoadMetadata(state, sha256);
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_VLPS_METADATA_CORRUPT,
-                          rv == NS_ERROR_FILE_CORRUPTED);
+    glean::urlclassifier::vlps_metadata_corrupt
+        .EnumGet(static_cast<glean::urlclassifier::VlpsMetadataCorruptLabel>(
+            rv == NS_ERROR_FILE_CORRUPTED))
+        .Add();
     if (NS_FAILED(rv)) {
       LOG(("Failed to get metadata for v4 table %s", table.get()));
       aFailedTableNames.AppendElement(table);

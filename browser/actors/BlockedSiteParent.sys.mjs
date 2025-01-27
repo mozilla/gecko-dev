@@ -46,18 +46,18 @@ export class BlockedSiteParent extends JSWindowActorParent {
     switch (elementId) {
       case "goBackButton":
         if (sendTelemetry) {
-          Services.telemetry
-            .getHistogramById("URLCLASSIFIER_UI_EVENTS")
-            .add(nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
+          Glean.urlclassifier.uiEvents.accumulateSingleSample(
+            nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]
+          );
         }
         browser.ownerGlobal.getMeOutOfHere(this.browsingContext);
         break;
       case "ignore_warning_link":
         if (Services.prefs.getBoolPref("browser.safebrowsing.allowOverride")) {
           if (sendTelemetry) {
-            Services.telemetry
-              .getHistogramById("URLCLASSIFIER_UI_EVENTS")
-              .add(nsISecTel[bucketName + "IGNORE_WARNING"]);
+            Glean.urlclassifier.uiEvents.accumulateSingleSample(
+              nsISecTel[bucketName + "IGNORE_WARNING"]
+            );
           }
           BrowserOnClick.ignoreWarningLink(
             reason,

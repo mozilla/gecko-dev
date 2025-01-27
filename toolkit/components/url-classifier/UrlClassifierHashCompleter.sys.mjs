@@ -865,9 +865,9 @@ HashCompleterRequest.prototype = {
 
     if (this.telemetryClockStart > 0) {
       let msecs = Date.now() - this.telemetryClockStart;
-      Services.telemetry
-        .getKeyedHistogramById("URLCLASSIFIER_COMPLETE_SERVER_RESPONSE_TIME")
-        .add(this.telemetryProvider, msecs);
+      Glean.urlclassifier.completeServerResponseTime[
+        this.telemetryProvider
+      ].accumulateSingleSample(msecs);
     }
   },
 
@@ -908,9 +908,9 @@ HashCompleterRequest.prototype = {
         btoa(this._response)
     );
 
-    Services.telemetry
-      .getKeyedHistogramById("URLCLASSIFIER_COMPLETE_REMOTE_STATUS2")
-      .add(this.telemetryProvider, httpStatusToBucket(httpStatus));
+    Glean.urlclassifier.completeRemoteStatus2[
+      this.telemetryProvider
+    ].accumulateSingleSample(httpStatusToBucket(httpStatus));
     if (httpStatus == 400) {
       dump(
         "Safe Browsing server returned a 400 during completion: request= " +

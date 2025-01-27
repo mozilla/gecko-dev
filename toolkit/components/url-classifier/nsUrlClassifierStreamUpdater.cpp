@@ -21,7 +21,7 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/Logging.h"
 #include "nsIInterfaceRequestor.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "mozilla/Try.h"
 #include "nsContentUtils.h"
 #include "nsIURLFormatter.h"
@@ -606,9 +606,9 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest* request) {
     if (mTelemetryClockStart > 0) {
       uint32_t msecs =
           PR_IntervalToMilliseconds(PR_IntervalNow() - mTelemetryClockStart);
-      mozilla::Telemetry::Accumulate(
-          mozilla::Telemetry::URLCLASSIFIER_UPDATE_SERVER_RESPONSE_TIME,
-          mTelemetryProvider, msecs);
+      mozilla::glean::urlclassifier::update_server_response_time
+          .Get(mTelemetryProvider)
+          .AccumulateRawDuration(TimeDuration::FromMilliseconds(msecs));
     }
 
     if (mResponseTimeoutTimer) {
@@ -617,9 +617,9 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest* request) {
     }
 
     uint8_t netErrCode = NS_FAILED(status) ? NetworkErrorToBucket(status) : 0;
-    mozilla::Telemetry::Accumulate(
-        mozilla::Telemetry::URLCLASSIFIER_UPDATE_REMOTE_NETWORK_ERROR,
-        mTelemetryProvider, netErrCode);
+    mozilla::glean::urlclassifier::update_remote_network_error
+        .Get(mTelemetryProvider)
+        .AccumulateSingleSample(netErrCode);
 
     if (NS_FAILED(status)) {
       // Assume we're overloading the server and trigger backoff.
@@ -632,9 +632,9 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest* request) {
       uint32_t requestStatus;
       rv = httpChannel->GetResponseStatus(&requestStatus);
       NS_ENSURE_SUCCESS(rv, rv);
-      mozilla::Telemetry::Accumulate(
-          mozilla::Telemetry::URLCLASSIFIER_UPDATE_REMOTE_STATUS2,
-          mTelemetryProvider, HTTPStatusToBucket(requestStatus));
+      mozilla::glean::urlclassifier::update_remote_status2
+          .Get(mTelemetryProvider)
+          .AccumulateSingleSample(HTTPStatusToBucket(requestStatus));
       if (requestStatus == 400) {
         printf_stderr(
             "Safe Browsing server returned a 400 during update:"
@@ -751,9 +751,8 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest* request,
   // mResponseTimeoutTimer may be cleared in OnStartRequest, so we check
   // mTimeoutTimer to see whether the update was has timed out
   if (mTimeoutTimer) {
-    mozilla::Telemetry::Accumulate(
-        mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT, mTelemetryProvider,
-        static_cast<uint8_t>(eNoTimeout));
+    mozilla::glean::urlclassifier::update_timeout.Get(mTelemetryProvider)
+        .AccumulateSingleSample(static_cast<uint8_t>(eNoTimeout));
     mTimeoutTimer->Cancel();
     mTimeoutTimer = nullptr;
   }
@@ -846,9 +845,8 @@ nsUrlClassifierStreamUpdater::Notify(nsITimer* timer) {
     MOZ_LOG(gUrlClassifierStreamUpdaterLog, mozilla::LogLevel::Error,
             ("Safe Browsing timed out while waiting for the update server to "
              "respond."));
-    mozilla::Telemetry::Accumulate(
-        mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT, mTelemetryProvider,
-        static_cast<uint8_t>(eResponseTimeout));
+    mozilla::glean::urlclassifier::update_timeout.Get(mTelemetryProvider)
+        .AccumulateSingleSample(static_cast<uint8_t>(eResponseTimeout));
   }
 
   if (timer == mTimeoutTimer) {
@@ -858,9 +856,8 @@ nsUrlClassifierStreamUpdater::Notify(nsITimer* timer) {
     MOZ_LOG(gUrlClassifierStreamUpdaterLog, mozilla::LogLevel::Error,
             ("Safe Browsing timed out while waiting for the update server to "
              "finish."));
-    mozilla::Telemetry::Accumulate(
-        mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT, mTelemetryProvider,
-        static_cast<uint8_t>(eDownloadTimeout));
+    mozilla::glean::urlclassifier::update_timeout.Get(mTelemetryProvider)
+        .AccumulateSingleSample(static_cast<uint8_t>(eDownloadTimeout));
   }
 
   if (updateFailed) {

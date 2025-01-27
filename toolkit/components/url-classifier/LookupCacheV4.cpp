@@ -5,7 +5,7 @@
 
 #include "LookupCacheV4.h"
 #include "HashStore.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "mozilla/Unused.h"
 #include "nsCheckSummedOutputStream.h"
 #include "nsUrlClassifierDBService.h"
@@ -127,7 +127,7 @@ nsresult LookupCacheV4::Has(const Completion& aCompletion, bool* aHas,
 }
 
 nsresult LookupCacheV4::Build(PrefixStringMap& aPrefixMap) {
-  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_VLPS_CONSTRUCT_TIME> timer;
+  auto timer = glean::urlclassifier::vlps_construct_time.Measure();
 
   nsresult rv = mVLPrefixSet->SetPrefixes(aPrefixMap);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -429,8 +429,7 @@ nsresult LookupCacheV4::ApplyUpdate(RefPtr<TableUpdateV4> aTableUpdate,
   crypto->Finish(false, sha256);
   if (aTableUpdate->SHA256().IsEmpty()) {
     LOG(("Update sha256 hash missing."));
-    Telemetry::Accumulate(
-        Telemetry::URLCLASSIFIER_UPDATE_ERROR, mProvider,
+    glean::urlclassifier::update_error.Get(mProvider).AccumulateSingleSample(
         NS_ERROR_GET_CODE(NS_ERROR_UC_UPDATE_MISSING_CHECKSUM));
 
     // Generate our own sha256 to tableUpdate to ensure there is always

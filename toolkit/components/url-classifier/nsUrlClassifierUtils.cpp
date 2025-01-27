@@ -25,7 +25,7 @@
 #include "mozilla/TextUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
 #include "nsIObserverService.h"
@@ -773,8 +773,8 @@ nsUrlClassifierUtils::ParseFindFullHashResponseV4(
   FindFullHashesResponse r;
   if (!r.ParseFromArray(aResponse.BeginReading(), aResponse.Length())) {
     NS_WARNING("Invalid response");
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_COMPLETION_ERROR,
-                          PARSING_FAILURE);
+    glean::urlclassifier::completion_error.AccumulateSingleSample(
+        PARSING_FAILURE);
     return NS_ERROR_FAILURE;
   }
 
@@ -799,8 +799,8 @@ nsUrlClassifierUtils::ParseFindFullHashResponseV4(
 
   aCallback->OnResponseParsed(minWaitDuration, negCacheDurationSec);
 
-  Telemetry::Accumulate(Telemetry::URLCLASSIFIER_COMPLETION_ERROR,
-                        hasUnknownThreatType ? UNKNOWN_THREAT_TYPE : SUCCESS);
+  glean::urlclassifier::completion_error.AccumulateSingleSample(
+      hasUnknownThreatType ? UNKNOWN_THREAT_TYPE : SUCCESS);
   return NS_OK;
 }
 

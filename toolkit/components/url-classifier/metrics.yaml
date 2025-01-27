@@ -1,0 +1,460 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Safe Browsing'
+
+urlclassifier:
+  lookup_time_2:
+    type: timing_distribution
+    description: >
+      Time spent per dbservice lookup (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_LOOKUP_TIME_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336376
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336376
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_LOOKUP_TIME_2
+
+  shutdown_time:
+    type: timing_distribution
+    description: >
+      Time spent per dbservice shutdown (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_SHUTDOWN_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1315140
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1315140
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_SHUTDOWN_TIME
+
+  cl_check_time:
+    type: timing_distribution
+    description: >
+      Time spent per classifier lookup (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_CL_CHECK_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_CL_CHECK_TIME
+
+  cl_keyed_update_time:
+    type: labeled_timing_distribution
+    description: >
+      Time spent per classifier update (ms), keyed by the name of the provider.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_CL_KEYED_UPDATE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1315893
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1315893
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_CL_KEYED_UPDATE_TIME
+
+  async_classifylocal_time:
+    type: timing_distribution
+    description: >
+      Time spent per AsyncClassifyLocalWithTables (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_ASYNC_CLASSIFYLOCAL_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341506
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341506
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_ASYNC_CLASSIFYLOCAL_TIME
+
+  vlps_fileload_time:
+    type: timing_distribution
+    description: >
+      Time spent loading Variable-Length PrefixSet from file (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_VLPS_FILELOAD_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1283007
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1283007
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_VLPS_FILELOAD_TIME
+
+  vlps_fallocate_time:
+    type: timing_distribution
+    description: >
+      Time spent fallocating Variable-Length PrefixSet (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_VLPS_FALLOCATE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1283007
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1283007
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_VLPS_FALLOCATE_TIME
+
+  vlps_construct_time:
+    type: timing_distribution
+    description: >
+      Time spent constructing Variable-Length PrefixSet from file (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_VLPS_CONSTRUCT_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336865
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336865
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_VLPS_CONSTRUCT_TIME
+
+  vlps_metadata_corrupt:
+    type: labeled_counter
+    description: >
+      Whether or not the metadata for a variable-length prefix set loaded from
+      disk is corrupted (true = file corrupted).
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram URLCLASSIFIER_VLPS_METADATA_CORRUPT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433636
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433636
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: h#URLCLASSIFIER_VLPS_METADATA_CORRUPT
+
+  update_remote_network_error:
+    type: labeled_custom_distribution
+    description: >
+      Network error from SafeBrowsing database updates. (0=sucess, 1=unknown
+      error, 2=already connected, 3=not connected, 4=connection refused,5=net
+      timeout, 6=offline, 7=port access not allowed, 8=net reset, 9=net
+      interrupt, 10=proxy connection refused,11=partial transfer,12=inadequate
+      security,13=unknown host,14=dns lookup queue full,15=unknown proxy host
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_UPDATE_REMOTE_NETWORK_ERROR.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1332780
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1332780
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UPDATE_REMOTE_NETWORK_ERROR
+
+  update_remote_status2:
+    type: labeled_custom_distribution
+    description: >
+      Server HTTP status code from SafeBrowsing database updates. (0=1xx, 1=200,
+      2=2xx, 3=204, 4=3xx, 5=400, 6=4xx, 7=403, 8=404, 9=408, 10=413, 11=5xx,
+      12=502|504|511, 13=503, 14=505, 15=Other). Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_UPDATE_REMOTE_STATUS2.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311910
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311910
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UPDATE_REMOTE_STATUS2
+
+  update_server_response_time:
+    type: labeled_timing_distribution
+    description: >
+      Server response time to update request (ms). Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_UPDATE_SERVER_RESPONSE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336903
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336903
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UPDATE_SERVER_RESPONSE_TIME
+
+  update_timeout:
+    type: labeled_custom_distribution
+    description: >2
+       Whether or not an update timed out (0 = no timeout, 1 = server respond
+      timeout, 2 = overall timeout). Keyed by provider
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_UPDATE_TIMEOUT.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336904
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336904
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UPDATE_TIMEOUT
+
+  complete_remote_status2:
+    type: labeled_custom_distribution
+    description: >
+      Server HTTP status code from remote SafeBrowsing gethash lookups. (0=1xx,
+      1=200, 2=2xx, 3=204, 4=3xx, 5=400, 6=4xx, 7=403, 8=404, 9=408, 10=413,
+      11=5xx, 12=502|504|511, 13=503, 14=505, 15=Other). Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_COMPLETE_REMOTE_STATUS2.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1150921
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1150921
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_COMPLETE_REMOTE_STATUS2
+
+  completion_error:
+    type: custom_distribution
+    description: >
+      SafeBrowsing v4 hash completion error (0 = success, 1 = parsing failure, 2
+      = unknown threat type)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_COMPLETION_ERROR.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1276826
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1276826
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_COMPLETION_ERROR
+
+  complete_server_response_time:
+    type: labeled_timing_distribution
+    description: >
+      Server response time to getHash request (ms). Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram URLCLASSIFIER_COMPLETE_SERVER_RESPONSE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336903
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1336903
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_COMPLETE_SERVER_RESPONSE_TIME
+
+  update_error:
+    type: labeled_custom_distribution
+    description: >
+      Whether or not an error was encountered while processing a Safe Browsing
+      update (0 = success, 1 = unspecified error, 2 = addition of an already
+      existing prefix, 3 = parser got into an infinite loop, 4 = removal index
+      out of bounds, 5 = checksum mismatch, 6 = missing checksum, 7 = update
+      while shutdown, 8 = cannot find table, 9 = build prefix failure, 10 =
+      write disk failure, 11 = protocol parser error). Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_UPDATE_ERROR.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311910
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311910
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UPDATE_ERROR
+
+  threathit_network_error:
+    type: custom_distribution
+    description: >
+      Whether or not an error was encountered while sending a Safe Browsing
+      ThreatHit report. (0=sucess, 1=unknown error, 2=already connected, 3=not
+      connected, 4=connection refused,5=net timeout, 6=offline, 7=port access
+      not allowed, 8=net reset, 9=net interrupt, 10=proxy connection refused,
+      11=partial transfer, 12=inadequate security, 13=unknown host, 14=dns
+      lookup queue full, 15=unknown proxy host)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_THREATHIT_NETWORK_ERROR.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1351147
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1351147
+    notification_emails:
+      - tnguyen@mozilla.com, safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_THREATHIT_NETWORK_ERROR
+
+  threathit_remote_status:
+    type: custom_distribution
+    description: >
+      Server HTTP status code from Safe Browsing ThreatHit report. (0=1xx,
+      1=200, 2=2xx, 3=204, 4=3xx, 5=400, 6=4xx, 7=403, 8=404, 9=408, 10=413,
+      11=5xx, 12=502|504|511, 13=503, 14=505, 15=Other)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_THREATHIT_REMOTE_STATUS.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1351147
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1351147
+    notification_emails:
+      - tnguyen@mozilla.com, safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_THREATHIT_REMOTE_STATUS
+
+  ui_events:
+    type: custom_distribution
+    description: >
+      URL CLassifier-related (aka Safe Browsing) UI events. See
+      nsIUrlClassifierUITelemetry.idl for the specific values.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram URLCLASSIFIER_UI_EVENTS.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1375277
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636962
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1375277
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636962
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dlee@mozilla.com
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_UI_EVENTS

@@ -9,7 +9,7 @@
 #include "nsIFileStreams.h"
 #include "nsISeekableStream.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "mozilla/Logging.h"
 #include "nsNetUtil.h"
 #include "nsCheckSummedOutputStream.h"
@@ -718,7 +718,7 @@ nsresult LookupCache::StoreToFile(nsCOMPtr<nsIFile>& aFile) {
   // Preallocate the file storage
   {
     nsCOMPtr<nsIFileOutputStream> fos(do_QueryInterface(localOutFile));
-    Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_VLPS_FALLOCATE_TIME> timer;
+    auto timer = glean::urlclassifier::vlps_fallocate_time.Measure();
 
     Unused << fos->Preallocate(fileSize);
   }
@@ -763,7 +763,7 @@ nsresult LookupCache::StoreToFile(nsCOMPtr<nsIFile>& aFile) {
 nsresult LookupCache::LoadFromFile(nsCOMPtr<nsIFile>& aFile) {
   NS_ENSURE_ARG_POINTER(aFile);
 
-  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_VLPS_FILELOAD_TIME> timer;
+  auto timer = glean::urlclassifier::vlps_fileload_time.Measure();
 
   nsCOMPtr<nsIInputStream> localInFile;
   nsresult rv = NS_NewLocalFileInputStream(getter_AddRefs(localInFile), aFile,

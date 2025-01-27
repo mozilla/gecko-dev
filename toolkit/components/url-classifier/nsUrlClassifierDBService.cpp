@@ -32,7 +32,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/UrlClassifierMetrics.h"
 #include "mozilla/Unused.h"
 #include "mozilla/Logging.h"
 #include "prnetdb.h"
@@ -160,9 +160,7 @@ class nsUrlClassifierDBService::FeatureHolder final {
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(aWorker);
 
-    mozilla::Telemetry::AutoTimer<
-        mozilla::Telemetry::URLCLASSIFIER_CL_CHECK_TIME>
-        timer;
+    auto timer = mozilla::glean::urlclassifier::cl_check_time.Measure();
 
     // Get the set of fragments based on the url. This is necessary because we
     // only look up at most 5 URLs per aSpec, even if aSpec has more than 5
@@ -477,9 +475,8 @@ nsresult nsUrlClassifierDBServiceWorker::HandlePendingLookups() {
       MutexAutoUnlock unlock(mPendingLookupLock);
       DoLookup(lookup.mKey, lookup.mFeatureHolder, lookup.mCallback);
     }
-    double lookupTime = (TimeStamp::Now() - lookup.mStartTime).ToMilliseconds();
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_LOOKUP_TIME_2,
-                          static_cast<uint32_t>(lookupTime));
+    glean::urlclassifier::lookup_time_2.AccumulateRawDuration(
+        TimeStamp::Now() - lookup.mStartTime);
   }
 
   return NS_OK;
@@ -841,8 +838,8 @@ nsresult nsUrlClassifierDBServiceWorker::NotifyUpdateObserver(
 
   // Do not record telemetry for testing tables.
   if (!provider.EqualsLiteral(TESTING_TABLE_PROVIDER_NAME)) {
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR, provider,
-                          NS_ERROR_GET_CODE(updateStatus));
+    glean::urlclassifier::update_error.Get(provider).AccumulateSingleSample(
+        NS_ERROR_GET_CODE(updateStatus));
   }
 
   MutexAutoLock lock(mUpdateObserverLock);
@@ -1909,14 +1906,13 @@ ThreatHitReportListener::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   uint8_t netErrCode =
       NS_FAILED(aStatus) ? mozilla::safebrowsing::NetworkErrorToBucket(aStatus)
                          : 0;
-  mozilla::Telemetry::Accumulate(
-      mozilla::Telemetry::URLCLASSIFIER_THREATHIT_NETWORK_ERROR, netErrCode);
+  mozilla::glean::urlclassifier::threathit_network_error.AccumulateSingleSample(
+      netErrCode);
 
   uint32_t requestStatus;
   nsresult rv = httpChannel->GetResponseStatus(&requestStatus);
   NS_ENSURE_SUCCESS(rv, aStatus);
-  mozilla::Telemetry::Accumulate(
-      mozilla::Telemetry::URLCLASSIFIER_THREATHIT_REMOTE_STATUS,
+  mozilla::glean::urlclassifier::threathit_remote_status.AccumulateSingleSample(
       mozilla::safebrowsing::HTTPStatusToBucket(requestStatus));
 
   if (LOG_ENABLED()) {
@@ -2359,7 +2355,7 @@ nsresult nsUrlClassifierDBService::Shutdown() {
     return NS_OK;
   }
 
-  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_SHUTDOWN_TIME> timer;
+  auto timer = glean::urlclassifier::shutdown_time.Measure();
 
   mCompleters.Clear();
 
@@ -2539,8 +2535,8 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
             "nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures",
             [callback, holder, startTime]() -> void {
               // Measure the time diff between calling and callback.
-              AccumulateTimeDelta(
-                  Telemetry::URLCLASSIFIER_ASYNC_CLASSIFYLOCAL_TIME, startTime);
+              glean::urlclassifier::async_classifylocal_time
+                  .AccumulateRawDuration(TimeStamp::Now() - startTime);
 
               nsTArray<RefPtr<nsIUrlClassifierFeatureResult>> results;
               holder->GetResults(results);
