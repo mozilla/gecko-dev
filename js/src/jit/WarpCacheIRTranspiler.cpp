@@ -202,6 +202,11 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
         static_cast<uint64_t>(stubInfo_->getStubRawInt64(stubData_, offset));
     return mozilla::BitwiseCast<double>(raw);
   }
+  // This regular Realm* should only actually be dereferenced on main-thread
+  const Realm* realmStubField(uint32_t offset) {
+    const void* raw = rawPointerField(offset);
+    return static_cast<const Realm*>(raw);
+  }
 
   // This must only be called when the caller knows the object is tenured and
   // not a nursery index.
@@ -6923,15 +6928,61 @@ bool WarpCacheIRTranspiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   return resumeAfterUnchecked(check);
 }
 
+class GenerationDependency final : public CompilationDependency {
+  const Realm* realm = nullptr;
+  const uint32_t* generationAddress = nullptr;
+  const uint32_t expectedGeneration = 0;
+
+ public:
+  GenerationDependency(const uint32_t* address, uint32_t expected,
+                       const Realm* realm)
+      : CompilationDependency(CompilationDependency::Type::GenerationCounter),
+        realm(realm),
+        generationAddress(address),
+        expectedGeneration(expected) {}
+
+  bool operator==(CompilationDependency& dep) override {
+    if (dep.type != type) {
+      return false;
+    }
+
+    GenerationDependency* other = static_cast<GenerationDependency*>(&dep);
+    return other->expectedGeneration == expectedGeneration &&
+           other->generationAddress == generationAddress &&
+           other->realm == realm;
+  }
+
+  bool checkDependency(JSContext* cx) override {
+    return *generationAddress == expectedGeneration;
+  }
+
+  bool registerDependency(JSContext* cx, HandleScript script) override {
+    // The actual realm isn't const, so drop the const qualifier here
+    Realm* mutableRealm = const_cast<Realm*>(realm);
+
+    auto& dependentScripts = mutableRealm->generationCounterDependentScripts;
+    Realm::WeakScriptSet::AddPtr p = dependentScripts.lookupForAdd(script);
+    MOZ_RELEASE_ASSERT(
+        p, "Should have registered a dependency during snapshoting");
+    return true;
+  }
+
+  UniquePtr<CompilationDependency> clone() override {
+    return MakeUnique<GenerationDependency>(generationAddress,
+                                            expectedGeneration, realm);
+  }
+};
+
 bool WarpCacheIRTranspiler::emitGuardGlobalGeneration(
-    uint32_t expectedOffset, uint32_t generationAddrOffset) {
+    uint32_t expectedOffset, uint32_t generationAddrOffset,
+    uint32_t realmOffset) {
   uint32_t expected = uint32StubField(expectedOffset);
   const void* generationAddr = rawPointerField(generationAddrOffset);
+  const Realm* realm = realmStubField(realmOffset);
 
-  auto guard = MGuardGlobalGeneration::New(alloc(), expected, generationAddr);
-  add(guard);
-
-  return true;
+  GenerationDependency dep(static_cast<const uint32_t*>(generationAddr),
+                           expected, realm);
+  return mirGen().tracker.addDependency(dep);
 }
 
 #ifdef FUZZING_JS_FUZZILLI

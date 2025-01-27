@@ -1292,6 +1292,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
       CACHEOP_CASE(GuardGlobalGeneration) {
         uint32_t expectedOffset = cacheIRReader.stubOffset();
         uint32_t generationAddrOffset = cacheIRReader.stubOffset();
+        // We don't use the realmAddr offset here, which is used only in Warp,
+        // so we can skip this.
+        (void)cacheIRReader.stubOffset();
         uint32_t expected = stubInfo->getStubRawInt32(cstub, expectedOffset);
         uint32_t* generationAddr = reinterpret_cast<uint32_t*>(
             stubInfo->getStubRawWord(cstub, generationAddrOffset));

@@ -7,10 +7,13 @@
 #ifndef jit_CompilationDependencyTracker_h
 #define jit_CompilationDependencyTracker_h
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Vector.h"
 
 #include "jstypes.h"
 #include "NamespaceImports.h"
+
+#include "vm/Logging.h"
 
 struct JSContext;
 
@@ -18,7 +21,20 @@ namespace js::jit {
 class MIRGenerator;
 
 struct CompilationDependency {
-  enum class Type { GetIterator, EmulatesUndefined, Limit };
+  enum class Type { GetIterator, EmulatesUndefined, GenerationCounter, Limit };
+
+  static const char* TypeToName(Type type) {
+    switch (type) {
+      case Type::GetIterator:
+        return "GetIterator";
+      case Type::EmulatesUndefined:
+        return "EmulatesUndefined";
+      case Type::GenerationCounter:
+        return "GenerationCounter";
+      default:
+        MOZ_CRASH("Unknown Type");
+    }
+  }
 
   Type type;
 
@@ -64,6 +80,9 @@ struct CompilationDependencyTracker {
   bool checkDependencies(JSContext* cx) {
     for (auto& dep : dependencies) {
       if (!dep->checkDependency(cx)) {
+        JS_LOG(compilationDependency, mozilla::LogLevel::Debug,
+               "Failed dependency check, type %s\n",
+               CompilationDependency::TypeToName(dep->type))
         return false;
       }
     }
