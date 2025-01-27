@@ -163,6 +163,9 @@ class CookieJarSettings final : public nsICookieJarSettings {
   bool HasBeenChanged() const { return mToBeMerged; }
 
   void UpdateIsOnContentBlockingAllowList(nsIChannel* aChannel);
+  void SetIsOnContentBlockingAllowList(bool aIsOnContentBlockingAllowList) {
+    mIsOnContentBlockingAllowList = aIsOnContentBlockingAllowList;
+  }
 
   void SetPartitionKey(nsIURI* aURI, bool aForeignByAncestorContext);
   void SetPartitionKey(const nsAString& aPartitionKey) {

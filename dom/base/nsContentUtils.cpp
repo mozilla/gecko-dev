@@ -2256,12 +2256,11 @@ inline already_AddRefed<nsICookieJarSettings> GetCookieJarSettings(
   return cookieJarSettings.forget();
 }
 
-bool ETPSaysShouldNotResistFingerprinting(nsIChannel* aChannel,
-                                          nsILoadInfo* aLoadInfo) {
+bool nsContentUtils::ETPSaysShouldNotResistFingerprinting(
+    nsICookieJarSettings* aCookieJarSettings, bool aIsPBM) {
   // A positive return from this function should always be obeyed.
   // A negative return means we should keep checking things.
 
-  bool isPBM = NS_UsePrivateBrowsing(aChannel);
   // We do not want this check to apply to RFP, only to FPP
   // There is one problematic combination of prefs; however:
   // If RFP is enabled in PBMode only and FPP is enabled globally
@@ -2271,12 +2270,12 @@ bool ETPSaysShouldNotResistFingerprinting(nsIChannel* aChannel,
   if (StaticPrefs::privacy_fingerprintingProtection_DoNotUseDirectly() &&
       !StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() &&
       StaticPrefs::privacy_resistFingerprinting_pbmode_DoNotUseDirectly()) {
-    if (isPBM) {
+    if (aIsPBM) {
       // In PBM (where RFP is enabled) do not exempt based on the ETP toggle
       return false;
     }
   } else if (StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() ||
-             (isPBM &&
+             (aIsPBM &&
               StaticPrefs::
                   privacy_resistFingerprinting_pbmode_DoNotUseDirectly())) {
     // In RFP, never use the ETP toggle to exempt.
@@ -2286,13 +2285,20 @@ bool ETPSaysShouldNotResistFingerprinting(nsIChannel* aChannel,
     return false;
   }
 
+  return ContentBlockingAllowList::Check(aCookieJarSettings);
+}
+
+bool nsContentUtils::ETPSaysShouldNotResistFingerprinting(
+    nsIChannel* aChannel, nsILoadInfo* aLoadInfo) {
+  bool isPBM = NS_UsePrivateBrowsing(aChannel);
+
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
       GetCookieJarSettings(aLoadInfo);
   if (!cookieJarSettings) {
     return false;
   }
 
-  return ContentBlockingAllowList::Check(cookieJarSettings);
+  return ETPSaysShouldNotResistFingerprinting(cookieJarSettings, isPBM);
 }
 
 inline bool CookieJarSettingsSaysShouldResistFingerprinting(

@@ -16,6 +16,7 @@
 #include "js/ErrorReport.h"
 #include "mozIThirdPartyUtil.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/CycleCollectedJSContext.h"  // for MicroTaskRunnable
 #include "mozilla/ErrorResult.h"
 #include "mozilla/JSObjectHolder.h"
@@ -646,16 +647,25 @@ nsresult ServiceWorkerPrivate::Initialize() {
     }
   }
 
+  // Firefox doesn't support service workers in PBM.
+  bool isPBM = principal->GetIsInPrivateBrowsing();
+  if (ContentBlockingAllowList::Check(principal, isPBM)) {
+    net::CookieJarSettings::Cast(cookieJarSettings)
+        ->SetIsOnContentBlockingAllowList(true);
+  }
+
   bool shouldResistFingerprinting =
       nsContentUtils::ShouldResistFingerprinting_dangerous(
           principal,
           "Service Workers exist outside a Document or Channel; as a property "
           "of the domain (and origin attributes). We don't have a "
-          "CookieJarSettings to perform the nested check, but we can rely on"
+          "CookieJarSettings to perform the *nested check*, but we can rely on"
           "the FPI/dFPI partition key check. The WorkerPrivate's "
           "ShouldResistFingerprinting function for the ServiceWorker depends "
           "on this boolean and will also consider an explicit RFPTarget.",
-          RFPTarget::IsAlwaysEnabledForPrecompute);
+          RFPTarget::IsAlwaysEnabledForPrecompute) &&
+      !nsContentUtils::ETPSaysShouldNotResistFingerprinting(cookieJarSettings,
+                                                            isPBM);
 
   if (shouldResistFingerprinting && NS_SUCCEEDED(rv) && firstPartyURI) {
     auto rfpKey = nsRFPService::GenerateKeyForServiceWorker(

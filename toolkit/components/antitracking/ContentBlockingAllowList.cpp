@@ -112,7 +112,7 @@ ContentBlockingAllowList::ComputeContentBlockingAllowListPrincipal(
 nsresult ContentBlockingAllowList::Check(
     nsIPrincipal* aContentBlockingAllowListPrincipal, bool aIsPrivateBrowsing,
     bool& aIsAllowListed) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
   aIsAllowListed = false;
 
   if (!aContentBlockingAllowListPrincipal) {
