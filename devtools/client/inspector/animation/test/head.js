@@ -775,17 +775,71 @@ function assertLinearGradient(linearGradientEl, offset, expectedColor) {
  *        ]
  */
 function assertPathSegments(pathEl, hasClosePath, expectedValues) {
+  const pathData = pathEl.getPathData({ normalize: true });
   ok(
-    isExpectedPath(pathEl, hasClosePath, expectedValues),
-    "All of path segments are correct"
+    expectedValues.every(value => isPassingThrough(pathData, value.x, value.y)),
+    "unexpected path segment vertices"
   );
+
+  if (hasClosePath) {
+    ok(pathData.length, "Close path expected but path is empty");
+    const closePathSeg = pathData.at(-1);
+    Assert.strictEqual(
+      closePathSeg.type.toLowerCase(),
+      "z",
+      "Close path not found"
+    );
+  }
 }
 
-function isExpectedPath(_pathEl, _hasClosePath, _expectedValues) {
-  // FIXME(bug 1903594): Probably re-implement with some other API, or manually parse it:
-  //  * https://github.com/progers/pathseg
-  //  * https://www.w3.org/TR/svg-paths/#InterfaceSVGPathData
-  return true;
+/**
+ * Check whether the given vertex is passing through on the path.
+ *
+ * @param {pathData} pathData - pathData of <path> element.
+ * @param {float} x - x of vertex.
+ * @param {float} y - y of vertex.
+ * @return {boolean} true: passing through, false: no on the path.
+ */
+function isPassingThrough(pathData, x, y) {
+  let previousX, previousY;
+  for (let i = 0; i < pathData.length; i++) {
+    const pathSeg = pathData[i];
+    if (!pathSeg.values.length) {
+      continue;
+    }
+    let currentX, currentY;
+    switch (pathSeg.type) {
+      case "M":
+      case "L":
+        currentX = pathSeg.values[0];
+        currentY = pathSeg.values[1];
+        break;
+      case "C":
+        currentX = pathSeg.values[4];
+        currentY = pathSeg.values[5];
+        break;
+    }
+    currentX = parseFloat(currentX.toFixed(3));
+    currentY = parseFloat(currentY.toFixed(3));
+    if (currentX === x && currentY === y) {
+      return true;
+    }
+    if (previousX === undefined && previousY === undefined) {
+      previousX = currentX;
+      previousY = currentY;
+    }
+    if (
+      previousX <= x &&
+      x <= currentX &&
+      Math.min(previousY, currentY) <= y &&
+      y <= Math.max(previousY, currentY)
+    ) {
+      return true;
+    }
+    previousX = currentX;
+    previousY = currentY;
+  }
+  return false;
 }
 
 /**

@@ -1,6 +1,7 @@
 [DEFAULT]
 prefs = [
- "layout.css.properties-and-values.enabled=true"
+ "layout.css.properties-and-values.enabled=true",
+ "dom.svg.pathSegment.enabled=true"
 ]
 tags = "devtools"
 subsuite = "devtools"
