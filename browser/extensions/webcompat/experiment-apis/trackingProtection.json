@@ -46,6 +46,12 @@
             "description": "Hostname of the website"
           }
         ]
+      },
+      {
+        "name": "onPrivateSessionEnd",
+        "type": "function",
+        "description": "Event used to notify webcompat extension that it's time to clear PB state",
+        "parameters": []
       }
     ],
     "functions": [
@@ -109,6 +115,10 @@
             }
           },
           {
+            "name": "isPrivate",
+            "type": "boolean"
+          },
+          {
             "name": "hosts",
             "description": "Hosts to allow the patterns on",
             "type": "array",
@@ -139,6 +149,10 @@
           {
             "name": "requestId",
             "type": "string"
+          },
+          {
+            "name": "isPrivate",
+            "type": "boolean"
           }
         ],
         "async": true
