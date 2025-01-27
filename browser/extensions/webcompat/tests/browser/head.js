@@ -14,6 +14,7 @@ const SHIMMABLE_TEST_PAGE = `${TEST_ROOT}shims_test.html`;
 const SHIMMABLE_TEST_PAGE_2 = `${TEST_ROOT}shims_test_2.html`;
 const SHIMMABLE_TEST_PAGE_3 = `${TEST_ROOT}shims_test_3.html`;
 const EMBEDDING_TEST_PAGE = `${THIRD_PARTY_ROOT}iframe_test.html`;
+const TEST_PAGE_WITH_SMARTBLOCK_COMPATIBLE_EMBED = `${TEST_ROOT}smartblock_embed_test.html`;
 
 const BLOCKED_TRACKER_URL =
   "//trackertest.org/tests/toolkit/components/url-classifier/tests/mochitest/evil.js";

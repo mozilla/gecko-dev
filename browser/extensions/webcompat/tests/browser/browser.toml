@@ -8,6 +8,8 @@ support-files = [
   "shims_test.html",
   "shims_test_2.html",
   "shims_test_3.html",
+  "smartblock_embed_test.html",
+  "embed_test.js",
 ]
 
 ["browser_aboutcompat.js"]
@@ -15,3 +17,5 @@ support-files = [
 ["browser_shims.js"]
 https_first_disabled = true
 skip-if = ["verify"]
+
+["browser_smartblockembeds.js"]

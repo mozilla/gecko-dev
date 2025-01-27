@@ -114,6 +114,7 @@
     "shims/cxense.js",
     "shims/doubleverify.js",
     "shims/eluminate.js",
+    "shims/embed-test-shim.js",
     "shims/empty-script.js",
     "shims/empty-shim.txt",
     "shims/everest.js",

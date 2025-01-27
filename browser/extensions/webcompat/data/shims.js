@@ -105,6 +105,21 @@ const AVAILABLE_SHIMS = [
     ],
   },
   {
+    id: "EmbedTestShim",
+    platform: "desktop",
+    name: "Test shim for smartblock embed unblocking",
+    bug: "1892175",
+    file: "embed-test-shim.js",
+    matches: [
+      "https://itisatracker.org/browser/browser/extensions/webcompat/tests/browser/embed_test.js",
+    ],
+    logos: ["instagram.svg"],
+    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: ["*://itisatracker.org/*"],
+  },
+  {
     id: "AddThis",
     platform: "all",
     name: "AddThis",

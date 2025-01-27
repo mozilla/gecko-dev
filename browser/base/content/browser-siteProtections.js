@@ -1383,6 +1383,11 @@ var gProtectionsHandler = {
    */
   smartblockEmbedInfo: [
     {
+      sites: ["https://itisatracker.org"],
+      shimId: "EmbedTestShim",
+      displayName: "Test",
+    },
+    {
       sites: ["https://www.instagram.com", "https://platform.instagram.com"],
       shimId: "InstagramEmbed",
       displayName: "Instagram",
