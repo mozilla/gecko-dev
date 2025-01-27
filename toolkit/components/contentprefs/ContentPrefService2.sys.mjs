@@ -1105,8 +1105,14 @@ ContentPrefService2.prototype = {
     if (!groupStr) {
       return null;
     }
+    if (groupStr.startsWith("data:")) {
+      return "___unique";
+    }
     try {
       var groupURI = Services.io.newURI(groupStr);
+      if (groupURI.scheme == "data") {
+        return "___unique";
+      }
       groupStr = HostnameGrouper_group(groupURI);
     } catch (err) {}
     return groupStr.substring(
