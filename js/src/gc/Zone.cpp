@@ -455,11 +455,6 @@ void Zone::forceDiscardJitCode(JS::GCContext* gcx,
 
         // Reset the active flag of each ICScript.
         jitScript->resetAllActiveFlags();
-
-        // Optionally trace weak edges in remaining JitScripts.
-        if (options.traceWeakJitScripts) {
-          jitScript->traceWeak(options.traceWeakJitScripts);
-        }
       });
 
   // Also clear references to jit code from RegExpShared cells at this point.

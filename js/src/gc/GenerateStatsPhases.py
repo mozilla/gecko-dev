@@ -178,7 +178,7 @@ PhaseKindGraphRoots = [
                 "Sweep Compartments",
                 20,
                 [
-                    addPhaseKind("SWEEP_DISCARD_CODE", "Sweep Discard Code", 21),
+                    addPhaseKind("SWEEP_JIT_SCRIPTS", "Sweep JitScripts", 21),
                     addPhaseKind("SWEEP_INNER_VIEWS", "Sweep Inner Views", 22),
                     addPhaseKind(
                         "SWEEP_CC_WRAPPER", "Sweep Cross Compartment Wrappers", 23

@@ -1423,24 +1423,16 @@ void GCRuntime::sweepJitDataOnMainThread(JS::GCContext* gcx) {
     jit::JitRuntime::TraceWeakJitcodeGlobalTable(rt, &trc);
   }
 
-  // Discard JIT code and trace weak edges in JitScripts to remove edges to
-  // dying GC things. The latter is carried out as part of discardJitCode if
-  // possible to avoid iterating all scripts in the zone twice.
+  // Trace weak edges in JitScripts to remove edges to dying GC things.
   {
-    gcstats::AutoPhase apdc(stats(), gcstats::PhaseKind::SWEEP_DISCARD_CODE);
-    Zone::DiscardOptions options;
-    options.traceWeakJitScripts = &trc;
+    gcstats::AutoPhase apdc(stats(), gcstats::PhaseKind::SWEEP_JIT_SCRIPTS);
     for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
-      if (!haveDiscardedJITCodeThisSlice && !zone->isPreservingCode()) {
-        zone->forceDiscardJitCode(gcx, options);
-      } else {
-        zone->traceWeakJitScripts(&trc);
-      }
+      zone->traceWeakJitScripts(&trc);
     }
   }
 
-  // JitZone must be swept *after* discarding JIT code, because
-  // Zone::discardJitCode might access CacheIRStubInfos deleted here.
+  // JitZone must be swept *after* sweeping JitScripts, because
+  // Zone::traceWeakJitScripts might access CacheIRStubInfos deleted here.
   {
     gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_JIT_DATA);
 
@@ -1598,12 +1590,6 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
   }
   cellsToAssertNotGray.ref().clearAndFree();
 #endif
-
-  // Cancel off thread compilation as soon as possible, unless this already
-  // happened in GCRuntime::discardJITCodeForGC.
-  if (!haveDiscardedJITCodeThisSlice) {
-    js::CancelOffThreadIonCompile(rt, JS::Zone::Sweep);
-  }
 
   // Updating the atom marking bitmaps. This marks atoms referenced by
   // uncollected zones so cannot be done in parallel with the other sweeping

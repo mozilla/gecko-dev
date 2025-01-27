@@ -1198,10 +1198,6 @@ class GCRuntime {
   // thread.
   MainThreadData<bool> useBackgroundThreads;
 
-  // Whether we have already discarded JIT code for all collected zones in this
-  // slice.
-  MainThreadData<bool> haveDiscardedJITCodeThisSlice;
-
 #ifdef DEBUG
   /* Shutdown has started. Further collections must be shutdown collections. */
   MainThreadData<bool> hadShutdownGC;

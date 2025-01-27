@@ -570,7 +570,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     bool discardJitScripts = false;
     bool resetNurseryAllocSites = false;
     bool resetPretenuredAllocSites = false;
-    JSTracer* traceWeakJitScripts = nullptr;
   };
 
   void discardJitCode(JS::GCContext* gcx,
