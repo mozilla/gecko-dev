@@ -1,0 +1,7 @@
+Permissions
+===========
+
+.. toctree::
+
+   manager
+   remote

@@ -47,3 +47,5 @@ FINAL_LIBRARY = "xul"
 
 with Files("**"):
     BUG_COMPONENT = ("Core", "Permission Manager")
+
+SPHINX_TREES["/permissions"] = "docs"

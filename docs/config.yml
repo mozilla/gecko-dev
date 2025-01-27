@@ -33,6 +33,7 @@ categories:
         - networking
         - remote
         - services
+        - permissions
         - uriloader
         - widget/cocoa
         - widget/windows
