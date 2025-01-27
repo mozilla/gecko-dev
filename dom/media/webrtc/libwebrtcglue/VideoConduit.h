@@ -384,10 +384,9 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   Maybe<gfx::IntSize> mLastSize;
 
   // Written on the frame feeding thread, the timestamp of the last frame on the
-  // send side, in microseconds. This is a local timestamp using the system
-  // clock with a unspecified epoch (Like mozilla::TimeStamp).
-  // Guarded by mMutex.
-  Maybe<uint64_t> mLastTimestampSendUs;
+  // send side. This is a local timestamp using the system clock with an
+  // unspecified epoch (Like mozilla::TimeStamp). Guarded by mMutex.
+  Maybe<webrtc::Timestamp> mLastTimestampSend;
 
   // Written on the frame receive thread, the rtp timestamp of the last frame
   // on the receive side, in 90kHz base. This comes from the RTP packet.

@@ -1467,14 +1467,17 @@ void WebrtcVideoConduit::OnSendFrame(const webrtc::VideoFrame& aFrame) {
       }
       ssrcsCommaSeparated.AppendInt(ssrc);
     }
+
+    const webrtc::Timestamp currentTimestamp =
+        webrtc::Timestamp::Micros(aFrame.timestamp_us());
     // The first frame has a delta of zero.
-    uint64_t timestampDelta =
-        mLastTimestampSendUs.isSome()
-            ? aFrame.timestamp_us() - mLastTimestampSendUs.value()
-            : 0;
-    mLastTimestampSendUs = Some(aFrame.timestamp_us());
+    webrtc::TimeDelta timestampDelta =
+        mLastTimestampSend.isSome()
+            ? currentTimestamp - mLastTimestampSend.value()
+            : webrtc::TimeDelta::Zero();
+    mLastTimestampSend = Some(currentTimestamp);
     TRACE_COMMENT("VideoConduit::OnSendFrame (async)",
-                  "t-delta=%.1fms, ssrcs=%s", timestampDelta / 1000.f,
+                  "t-delta=%.1fms, ssrcs=%s", timestampDelta.ms<double>(),
                   ssrcsCommaSeparated.get());
   }
 #endif
