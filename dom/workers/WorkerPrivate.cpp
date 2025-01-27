@@ -2407,6 +2407,81 @@ void WorkerPrivate::UpdateOverridenLoadGroup(nsILoadGroup* aBaseLoadGroup) {
   mLoadInfo.mInterfaceRequestor->MaybeAddBrowserChild(aBaseLoadGroup);
 }
 
+void WorkerPrivate::UpdateIsOnContentBlockingAllowList(
+    bool aOnContentBlockingAllowList) {
+  AssertIsOnWorkerThread();
+  MOZ_DIAGNOSTIC_ASSERT(IsServiceWorker());
+
+  RefPtr<StrongWorkerRef> strongRef = StrongWorkerRef::Create(
+      this, "WorkerPrivate::UpdateIsOnContentBlockingAllowList");
+  if (!strongRef) {
+    return;
+  }
+  RefPtr<ThreadSafeWorkerRef> ref = new ThreadSafeWorkerRef(strongRef);
+  DispatchToMainThread(NS_NewRunnableFunction(
+      "WorkerPrivate::UpdateIsOnContentBlockingAllowList",
+      [ref = std::move(ref), aOnContentBlockingAllowList] {
+        ref->Private()
+            ->mLoadInfo.mCookieJarSettingsArgs.isOnContentBlockingAllowList() =
+            aOnContentBlockingAllowList;
+
+        nsCOMPtr<nsICookieJarSettings> workerCookieJarSettings;
+        net::CookieJarSettings::Deserialize(
+            ref->Private()->mLoadInfo.mCookieJarSettingsArgs,
+            getter_AddRefs(workerCookieJarSettings));
+        bool shouldResistFingerprinting =
+            nsContentUtils::ShouldResistFingerprinting_dangerous(
+                ref->Private()->mLoadInfo.mPrincipal,
+                "Service Workers exist outside a Document or Channel; as a "
+                "property of the domain (and origin attributes). We don't have "
+                "a "
+                "CookieJarSettings to perform the *nested check*, but we can "
+                "rely "
+                "on the FPI/dFPI partition key check. The WorkerPrivate's "
+                "ShouldResistFingerprinting function for the ServiceWorker "
+                "depends "
+                "on this boolean and will also consider an explicit RFPTarget.",
+                RFPTarget::IsAlwaysEnabledForPrecompute) &&
+            !nsContentUtils::ETPSaysShouldNotResistFingerprinting(
+                workerCookieJarSettings, false);
+
+        ref->Private()
+            ->mLoadInfo.mCookieJarSettingsArgs.shouldResistFingerprinting() =
+            shouldResistFingerprinting;
+        ref->Private()->mLoadInfo.mShouldResistFingerprinting =
+            shouldResistFingerprinting;
+      }));
+
+  /* From:
+    https://searchfox.org/mozilla-central/rev/964b8aa226c68bbf83c9ffc38984804734bb0de2/js/public/RealmOptions.h#316-318
+    > RealmCreationOptions specify fundamental realm characteristics that must
+    be specified when the realm is created, that can't be changed after the
+    realm is created.
+  */
+  /*
+  nsCString locale;
+  if (aEnabled) {
+    locale = nsRFPService::GetSpoofedJSLocale();
+  }
+
+  MutexAutoLock lock(mMutex);
+  mJSSettings.chromeRealmOptions.creationOptions().setForceUTC(aEnabled);
+  mJSSettings.chromeRealmOptions.creationOptions().setAlwaysUseFdlibm(aEnabled);
+  if (aEnabled) {
+    mJSSettings.chromeRealmOptions.creationOptions().setLocaleCopyZ(
+        locale.get());
+  }
+
+  mJSSettings.contentRealmOptions.creationOptions().setForceUTC(aEnabled);
+  mJSSettings.contentRealmOptions.creationOptions().setAlwaysUseFdlibm(
+      aEnabled);
+  if (aEnabled) {
+    mJSSettings.contentRealmOptions.creationOptions().setLocaleCopyZ(
+        locale.get());
+  }
+  */
+}
+
 bool WorkerPrivate::IsOnParentThread() const {
   if (GetParent()) {
     return GetParent()->IsOnWorkerThread();

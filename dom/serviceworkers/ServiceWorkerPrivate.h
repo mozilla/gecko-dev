@@ -140,6 +140,8 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
 
   void UpdateState(ServiceWorkerState aState);
 
+  void UpdateIsOnContentBlockingAllowList(bool aOnContentBlockingAllowList);
+
   nsresult GetDebugger(nsIWorkerDebugger** aResult);
 
   nsresult AttachDebugger();

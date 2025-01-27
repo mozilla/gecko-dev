@@ -103,6 +103,10 @@ struct ParentToChildServiceWorkerFetchEventOpArgs {
   ResponseEndArgs? preloadResponseEndArgs;
 };
 
+struct ServiceWorkerUpdateIsOnContentBlockingAllowListOpArgs {
+  bool onContentBlockingAllowList;
+};
+
 union ServiceWorkerOpArgs {
   ServiceWorkerCheckScriptEvaluationOpArgs;
   ServiceWorkerUpdateStateOpArgs;
@@ -114,6 +118,7 @@ union ServiceWorkerOpArgs {
   ServiceWorkerMessageEventOpArgs;
   ServiceWorkerExtensionAPIEventOpArgs;
   ParentToChildServiceWorkerFetchEventOpArgs;
+  ServiceWorkerUpdateIsOnContentBlockingAllowListOpArgs;
 };
 
 /**

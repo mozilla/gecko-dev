@@ -72,6 +72,20 @@ class ServiceWorkerUpdateFinishCallback {
    0x46e8,                                    \
    {0xa6, 0x5d, 0x77, 0x57, 0x45, 0x53, 0x59, 0x90}}
 
+class ETPPermissionObserver final : public nsIObserver {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  ETPPermissionObserver();
+
+ private:
+  ~ETPPermissionObserver();
+
+  void RegisterObserverEvents();
+  void UnregisterObserverEvents();
+};
+
 /*
  * The ServiceWorkerManager is a per-process global that deals with the
  * installation, querying and event dispatch of ServiceWorkers for all the
@@ -291,6 +305,9 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   void EvictFromBFCache(ServiceWorkerRegistrationInfo* aRegistration);
 
+  nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo>
+  GetRegistrations(nsIPrincipal* aPrincipal);
+
  private:
   struct RegistrationDataPerPrincipal;
 
@@ -466,6 +483,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   const uint32_t mTelemetryPeriodMs = 5 * 1000;
   TimeStamp mTelemetryLastChange;
+  RefPtr<ETPPermissionObserver> mETPPermissionObserver;
 };
 
 }  // namespace dom

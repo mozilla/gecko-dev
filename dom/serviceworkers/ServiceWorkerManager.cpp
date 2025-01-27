@@ -27,6 +27,7 @@
 
 #include "mozilla/AppShutdown.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/LoadContext.h"
@@ -485,6 +486,8 @@ void ServiceWorkerManager::Init(ServiceWorkerRegistrar* aRegistrar) {
   LoadRegistrations(data);
 
   mTelemetryLastChange = TimeStamp::Now();
+
+  mETPPermissionObserver = new ETPPermissionObserver();
 }
 
 void ServiceWorkerManager::RecordTelemetry(uint32_t aNumber, uint32_t aFetch) {
@@ -690,6 +693,7 @@ void ServiceWorkerManager::MaybeFinishShutdown() {
   nsresult rv = NS_DispatchToMainThread(runnable);
   Unused << NS_WARN_IF(NS_FAILED(rv));
   mActor = nullptr;
+  mETPPermissionObserver = nullptr;
 
   // This also submits final telemetry
   ServiceWorkerPrivate::RunningShutdown();
@@ -3470,5 +3474,98 @@ void ServiceWorkerManager::ReportServiceWorkerShutdownProgress(
   MOZ_ASSERT(mShutdownBlocker);
   mShutdownBlocker->ReportShutdownProgress(aShutdownStateId, aProgress);
 }
+
+nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo>
+ServiceWorkerManager::GetRegistrations(nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(aPrincipal);
+
+  nsAutoCString scopeKey;
+  nsresult rv = PrincipalToScopeKey(aPrincipal, scopeKey);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo>();
+  }
+
+  RegistrationDataPerPrincipal* data;
+  if (!mRegistrationInfos.Get(scopeKey, &data)) {
+    return nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo>();
+  }
+
+  return data->mInfos.Clone();
+}
+
+// ETPPermissionObserver implementation
+ETPPermissionObserver::ETPPermissionObserver() { RegisterObserverEvents(); }
+ETPPermissionObserver::~ETPPermissionObserver() { UnregisterObserverEvents(); }
+
+NS_IMETHODIMP ETPPermissionObserver::Observe(nsISupports* aSubject,
+                                             const char* aTopic,
+                                             const char16_t* aSomeData) {
+  nsCOMPtr<nsIPermission> perm = nullptr;
+  perm = do_QueryInterface(aSubject);
+  if (!perm) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIPrincipal> principal = nullptr;
+  perm->GetPrincipal(getter_AddRefs(principal));
+  if (!principal) {
+    return NS_OK;
+  }
+
+  bool isContentPrincipal = false;
+  principal->GetIsContentPrincipal(&isContentPrincipal);
+  if (!isContentPrincipal) {
+    return NS_OK;
+  }
+
+  nsAutoCString type;
+  perm->GetType(type);
+  if (!type.EqualsLiteral("trackingprotection") &&
+      !type.EqualsLiteral("trackingprotection-pb")) {
+    return NS_OK;
+  }
+
+  RefPtr<dom::ServiceWorkerManager> swm =
+      dom::ServiceWorkerManager::GetInstance();
+  auto registrations = swm->GetRegistrations(principal);
+
+  for (const auto& registrationInfo : registrations.Values()) {
+    RefPtr<dom::ServiceWorkerInfo> swInfo =
+        registrationInfo->NewestIncludingEvaluating();
+    if (!swInfo) {
+      continue;
+    }
+
+    bool isOnContentBlockingAllowList = ContentBlockingAllowList::Check(
+        principal, principal->GetIsInPrivateBrowsing());
+
+    swInfo->WorkerPrivate()->UpdateIsOnContentBlockingAllowList(
+        isOnContentBlockingAllowList);
+  }
+
+  return NS_OK;
+}
+
+void ETPPermissionObserver::RegisterObserverEvents() {
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+
+  MOZ_ASSERT(observerService);
+
+  if (observerService) {
+    observerService->AddObserver(this, "perm-changed", false);
+  }
+}
+
+void ETPPermissionObserver::UnregisterObserverEvents() {
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+
+  if (observerService) {
+    observerService->RemoveObserver(this, "perm-changed");
+  }
+}
+
+NS_IMPL_ISUPPORTS(ETPPermissionObserver, nsIObserver, nsISupports)
 
 }  // namespace mozilla::dom

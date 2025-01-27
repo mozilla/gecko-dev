@@ -1336,6 +1336,23 @@ void ServiceWorkerPrivate::UpdateState(ServiceWorkerState aState) {
   mPendingFunctionalEvents.Clear();
 }
 
+void ServiceWorkerPrivate::UpdateIsOnContentBlockingAllowList(
+    bool aOnContentBlockingAllowList) {
+  AssertIsOnMainThread();
+
+  if (!mControllerChild) {
+    return;
+  }
+
+  ExecServiceWorkerOp(
+      ServiceWorkerUpdateIsOnContentBlockingAllowListOpArgs(
+          aOnContentBlockingAllowList),
+      ServiceWorkerLifetimeExtension(NoLifetimeExtension{}),
+      [](ServiceWorkerOpResult&& aResult) {
+        MOZ_ASSERT(aResult.type() == ServiceWorkerOpResult::Tnsresult);
+      });
+}
+
 nsresult ServiceWorkerPrivate::GetDebugger(nsIWorkerDebugger** aResult) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResult);

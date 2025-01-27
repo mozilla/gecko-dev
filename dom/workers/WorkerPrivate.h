@@ -851,6 +851,8 @@ class WorkerPrivate final
     return mLoadInfo.mServiceWorkerDescriptor.ref().SetState(aState);
   }
 
+  void UpdateIsOnContentBlockingAllowList(bool aOnContentBlockingAllowList);
+
   const Maybe<ServiceWorkerDescriptor>& GetParentController() const {
     return mLoadInfo.mParentController;
   }

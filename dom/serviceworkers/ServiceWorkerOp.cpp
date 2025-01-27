@@ -1126,6 +1126,32 @@ class MessageEventOp final : public ExtendableEventOp {
   RefPtr<ServiceWorkerCloneData> mData;
 };
 
+class UpdateIsOnContentBlockingAllowListOp final : public ExtendableEventOp {
+  using ExtendableEventOp::ExtendableEventOp;
+
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(UpdateIsOnContentBlockingAllowListOp,
+                                        override);
+
+ private:
+  ~UpdateIsOnContentBlockingAllowListOp() = default;
+
+  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
+    MOZ_ASSERT(!mPromiseHolder.IsEmpty());
+
+    bool onContentBlockingAllowList =
+        mArgs.get_ServiceWorkerUpdateIsOnContentBlockingAllowListOpArgs()
+            .onContentBlockingAllowList();
+    aWorkerPrivate->UpdateIsOnContentBlockingAllowList(
+        onContentBlockingAllowList);
+
+    return true;
+  }
+};
+
 /**
  * Used for ScopeExit-style network request cancelation in
  * `ResolvedCallback()` (e.g. if `FetchEvent::RespondWith()` is resolved with
@@ -1981,6 +2007,11 @@ class ExtensionAPIEventOp final : public ServiceWorkerOp {
     case ServiceWorkerOpArgs::TServiceWorkerExtensionAPIEventOpArgs:
       op = MakeRefPtr<ExtensionAPIEventOp>(std::move(aArgs),
                                            std::move(aCallback));
+      break;
+    case ServiceWorkerOpArgs::
+        TServiceWorkerUpdateIsOnContentBlockingAllowListOpArgs:
+      op = MakeRefPtr<UpdateIsOnContentBlockingAllowListOp>(
+          std::move(aArgs), std::move(aCallback));
       break;
     default:
       MOZ_CRASH("Unknown Service Worker operation!");
