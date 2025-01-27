@@ -816,11 +816,11 @@ int32_t Predictor::CalculateConfidence(uint32_t hitCount, uint32_t hitsPossible,
                                        int32_t globalDegradation) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_PREDICTIONS_CALCULATED>
-      predictionsCalculated;
-  ++predictionsCalculated;
+  uint32_t predictionsCalculated = 1;
 
   if (!hitsPossible) {
+    Telemetry::Accumulate(Telemetry::PREDICTOR_PREDICTIONS_CALCULATED,
+                          predictionsCalculated);
     return 0;
   }
 
@@ -870,6 +870,8 @@ int32_t Predictor::CalculateConfidence(uint32_t hitCount, uint32_t hitsPossible,
   Telemetry::Accumulate(Telemetry::PREDICTOR_SUBRESOURCE_DEGRADATION,
                         confidenceDegradation);
   Telemetry::Accumulate(Telemetry::PREDICTOR_CONFIDENCE, confidence);
+  Telemetry::Accumulate(Telemetry::PREDICTOR_PREDICTIONS_CALCULATED,
+                        predictionsCalculated);
   return confidence;
 }
 
@@ -1136,13 +1138,10 @@ bool Predictor::RunPredictions(nsIURI* referrer,
                              preconnects = std::move(mPreconnects),
                              preresolves = std::move(mPreresolves);
 
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PREDICTIONS>
-      totalPredictions;
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PREFETCHES> totalPrefetches;
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS>
-      totalPreconnects;
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRERESOLVES>
-      totalPreresolves;
+  uint32_t totalPredictions = 0;
+  uint32_t totalPrefetches = 0;
+  uint32_t totalPreconnects = 0;
+  uint32_t totalPreresolves = 0;
 
   len = prefetches.Length();
   for (i = 0; i < len; ++i) {
@@ -1204,6 +1203,14 @@ bool Predictor::RunPredictions(nsIURI* referrer,
       verifier->OnPredictDNS(uri);
     }
   }
+
+  Telemetry::Accumulate(Telemetry::PREDICTOR_TOTAL_PREDICTIONS,
+                        totalPredictions);
+  Telemetry::Accumulate(Telemetry::PREDICTOR_TOTAL_PREFETCHES, totalPrefetches);
+  Telemetry::Accumulate(Telemetry::PREDICTOR_TOTAL_PRECONNECTS,
+                        totalPreconnects);
+  Telemetry::Accumulate(Telemetry::PREDICTOR_TOTAL_PRERESOLVES,
+                        totalPreresolves);
 
   return predicted;
 }
@@ -1322,9 +1329,7 @@ Predictor::LearnNative(nsIURI* targetURI, nsIURI* sourceURI,
       return NS_ERROR_INVALID_ARG;
   }
 
-  Telemetry::AutoCounter<Telemetry::PREDICTOR_LEARN_ATTEMPTS> learnAttempts;
-  ++learnAttempts;
-
+  uint32_t learnAttempts = 1;
   Predictor::Reason argReason{};
   argReason.mLearn = reason;
 
@@ -1397,6 +1402,7 @@ Predictor::LearnNative(nsIURI* targetURI, nsIURI* sourceURI,
                                  nsLiteralCString(PREDICTOR_ORIGIN_EXTENSION),
                                  originOpenFlags, originAction);
 
+  Telemetry::Accumulate(Telemetry::PREDICTOR_LEARN_ATTEMPTS, learnAttempts);
   PREDICTOR_LOG(("Predictor::Learn returning"));
   return NS_OK;
 }

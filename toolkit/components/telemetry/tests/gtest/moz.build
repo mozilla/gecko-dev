@@ -18,7 +18,6 @@ UNIFIED_SOURCES = [
 if CONFIG["OS_TARGET"] != "Android":
     UNIFIED_SOURCES += [
         "TestCombinedStacks.cpp",
-        "TestCounters.cpp",
         "TestEvents.cpp",
         "TestHistograms.cpp",
         "TestScalars.cpp",
