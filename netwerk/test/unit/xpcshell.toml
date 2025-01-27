@@ -323,6 +323,8 @@ skip-if = ["os == 'win'"] # skip because 0.0.0.0 is invalid in windows platform
 
 ["test_bug1913022.js"]
 
+["test_bug1940663.js"]
+
 ["test_bug_1918928.js"]
 skip-if = [
   "socketprocess_networking", # confirmation state isn't passed cross-process

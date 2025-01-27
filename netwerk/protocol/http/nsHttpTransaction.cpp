@@ -1589,6 +1589,19 @@ void nsHttpTransaction::Close(nsresult reason) {
     mResponseIsComplete = true;
   }
 
+  if (reason == NS_ERROR_NET_RESET && mResponseIsComplete && isHttp2or3) {
+    // See bug 1940663. When using HTTP/2 or HTTP/3, receiving the
+    // NS_ERROR_NET_RESET error code indicates that the connection intends
+    // to restart this transaction. However, if the transaction has already
+    // completed and we've passed the point of restarting, we should avoid
+    // propagating the error code and overwrite it to NS_OK.
+    //
+    // TODO: Refactor the mechanism by which a connection instructs a
+    // transaction to restart. This will allow us to remove this hack.
+    LOG(("Transaction is already done, overriding error code to NS_OK"));
+    reason = NS_OK;
+  }
+
   if ((mChunkedDecoder || (mContentLength >= int64_t(0))) &&
       (NS_SUCCEEDED(reason) && !mResponseIsComplete)) {
     NS_WARNING("Partial transfer, incomplete HTTP response received");
