@@ -221,7 +221,8 @@ void WaylandBuffer::BufferDetachedCallbackHandler(wl_buffer* aBuffer) {
   LOGWAYLAND("WaylandBuffer::BufferDetachedCallbackHandler() [%p] aBuffer [%p]",
              (void*)this, aBuffer);
 
-  MOZ_DIAGNOSTIC_ASSERT(aBuffer == mWLBuffer, "Different buffer released?");
+  MOZ_DIAGNOSTIC_ASSERT(aBuffer == mWLBuffer || !mWLBuffer,
+                        "Different buffer released?");
 
   // BufferDetachedCallbackHandler() should be caled by Wayland compostor
   // on main thread only.
