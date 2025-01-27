@@ -70,8 +70,8 @@ TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
     nsRange* aSearchRange, const nsAString& aQuery, bool aWordStartBounded,
     bool aWordEndBounded) {
   MOZ_ASSERT(aSearchRange);
-  TEXT_FRAGMENT_LOG("query='%s', wordStartBounded='%d', wordEndBounded='%d'.\n",
-                    NS_ConvertUTF16toUTF8(aQuery).Data(), aWordStartBounded,
+  TEXT_FRAGMENT_LOG("query='{}', wordStartBounded='{}', wordEndBounded='{}'.\n",
+                    NS_ConvertUTF16toUTF8(aQuery), aWordStartBounded,
                     aWordEndBounded);
   RefPtr<nsFind> finder = new nsFind();
   finder->SetWordStartBounded(aWordStartBounded);
@@ -85,15 +85,14 @@ TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
   Unused << finder->Find(aQuery, aSearchRange, searchRangeStart, searchRangeEnd,
                          getter_AddRefs(result));
   if (!result || result->Collapsed()) {
-    TEXT_FRAGMENT_LOG("Did not find query '%s'",
-                      NS_ConvertUTF16toUTF8(aQuery).Data());
+    TEXT_FRAGMENT_LOG("Did not find query '{}'", NS_ConvertUTF16toUTF8(aQuery));
   } else {
     auto rangeToString = [](nsRange* range) -> nsCString {
       nsString rangeString;
       range->ToString(rangeString, IgnoreErrors());
       return NS_ConvertUTF16toUTF8(rangeString);
     };
-    TEXT_FRAGMENT_LOG("find returned '%s'", rangeToString(result).Data());
+    TEXT_FRAGMENT_LOG("find returned '{}'", rangeToString(result));
   }
   return result;
 }

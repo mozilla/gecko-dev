@@ -269,8 +269,8 @@ Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
 TextDirectiveCandidate::CreateNewCandidatesForMatches(
     const nsTArray<const TextDirectiveCandidate*>& aMatches,
     RangeContentCache& aRangeContentCache) {
-  TEXT_FRAGMENT_LOG("Creating new candidates for candidate %s",
-                    mTextDirectiveString.Data());
+  TEXT_FRAGMENT_LOG("Creating new candidates for candidate {}",
+                    mTextDirectiveString);
 
   // To Create a list of new candidates for a text directive candidate given a
   // set of text directive candidates `matches`, follow these steps:
@@ -430,7 +430,7 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
           RefPtr<nsRange>&& extendedStart, RefPtr<nsRange>&& extendedEnd,
           RefPtr<nsRange>&& extendedSuffix) -> Result<Ok, ErrorResult> {
     if (!extendedPrefix && !extendedStart && !extendedEnd && !extendedSuffix) {
-      TEXT_FRAGMENT_LOG_FN("Could not extend the %s because it is ambiguous.",
+      TEXT_FRAGMENT_LOG_FN("Could not extend the {} because it is ambiguous.",
                            func, contextTermName);
       return Ok();
     }
@@ -442,9 +442,9 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
       return extendedCandidate.propagateErr();
     }
     newCandidates.AppendElement(extendedCandidate.unwrap());
-    TEXT_FRAGMENT_LOG_FN(
-        "Created candidate by extending the %s: %s", func, contextTermName,
-        newCandidates.LastElement().TextDirectiveString().Data());
+    TEXT_FRAGMENT_LOG_FN("Created candidate by extending the {}: {}", func,
+                         contextTermName,
+                         newCandidates.LastElement().TextDirectiveString());
     return Ok();
   };
 
@@ -685,24 +685,23 @@ void TextDirectiveCandidate::LogCurrentState(const char* aCallerFunc) const {
       TextDirectiveUtil::CreateTextDirectiveFromRanges(
           mFullPrefixRange, mFullStartRange ? mFullStartRange : mStartRange,
           mFullEndRange, mFullSuffixRange)
-          .map([](auto textDirective) {
+          .map([](const auto& textDirective) {
             nsCString value;
             create_text_directive(&textDirective, &value);
             return value;
           })
           .unwrapOr("<creating text directive failed>"_ns);
   TEXT_FRAGMENT_LOG_FN(
-      "State of text directive candidate %p:\nPercent-encoded string: "
-      "%s\n\nCurrent context terms:\nPrefix: %s\nStart: %s\nEnd: %s\nSuffix: "
-      "%s\n\nMaximum expanded context terms:\nPercent-encoded string: "
-      "%s\nPrefix:\n%s\nStart:\n%s\nEnd:\n%s\nSuffix:\n%s",
-      aCallerFunc, this, mTextDirectiveString.Data(),
-      getRangeContent(mPrefixRange).Data(), getRangeContent(mStartRange).Data(),
-      getRangeContent(mEndRange).Data(), getRangeContent(mSuffixRange).Data(),
-      fullTextDirectiveString.Data(), getRangeContent(mFullPrefixRange).Data(),
-      getRangeContent(mFullStartRange).Data(),
-      getRangeContent(mFullEndRange).Data(),
-      getRangeContent(mFullSuffixRange).Data());
+      "State of text directive candidate {:p}:\nPercent-encoded string: "
+      "{}\n\nCurrent context terms:\nPrefix: {}\nStart: {}\nEnd: {}\nSuffix: "
+      "{}\n\nMaximum expanded context terms:\nPercent-encoded string: "
+      "{}\nPrefix:\n{}\nStart:\n{}\nEnd:\n{}\nSuffix:\n{}",
+      aCallerFunc, static_cast<const void*>(this), mTextDirectiveString,
+      getRangeContent(mPrefixRange), getRangeContent(mStartRange),
+      getRangeContent(mEndRange), getRangeContent(mSuffixRange),
+      fullTextDirectiveString, getRangeContent(mFullPrefixRange),
+      getRangeContent(mFullStartRange), getRangeContent(mFullEndRange),
+      getRangeContent(mFullSuffixRange));
 }
 
 TextDirectiveCreator::TextDirectiveCreator(
@@ -873,9 +872,9 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
   }
 
   TEXT_FRAGMENT_LOG(
-      "Found %zu matches for the input '%s' in the document until the end of "
+      "Found {} matches for the input '{}' in the document until the end of "
       "the input range.",
-      matchingRanges.Length(), NS_ConvertUTF16toUTF8(aSearchQuery).Data());
+      matchingRanges.Length(), NS_ConvertUTF16toUTF8(aSearchQuery));
   return matchingRanges;
 }
 
@@ -885,12 +884,12 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
   TextDirectiveCandidate currentCandidate = std::move(mTextDirective);
   if (aTextDirectiveMatches.IsEmpty()) {
     TEXT_FRAGMENT_LOG(
-        "There are no conflicting matches. Returning text directive '%s'.",
-        currentCandidate.TextDirectiveString().Data());
+        "There are no conflicting matches. Returning text directive '{}'.",
+        currentCandidate.TextDirectiveString());
     return currentCandidate.TextDirectiveString();
   }
 
-  TEXT_FRAGMENT_LOG("Found %zu text directive matches to eliminate",
+  TEXT_FRAGMENT_LOG("Found {} text directive matches to eliminate",
                     aTextDirectiveMatches.Length());
   // To create a text directive string which points to the input range using a
   // text directive candidate `currentCandidate` and a given set of
@@ -911,7 +910,7 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
   while (!matches.IsEmpty()) {
     ++loopCounter;
     TEXT_FRAGMENT_LOG(
-        "Entering loop %zu. %zu matches left. Current candidate state:\n",
+        "Entering loop {}. {} matches left. Current candidate state:\n",
         loopCounter, matches.Length());
     currentCandidate.LogCurrentState(__FUNCTION__);
     if (TextDirectiveUtil::ShouldLog()) {

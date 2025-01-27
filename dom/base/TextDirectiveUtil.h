@@ -20,9 +20,9 @@ struct TextDirective;
 namespace mozilla::dom {
 
 extern LazyLogModule sFragmentDirectiveLog;
-#define TEXT_FRAGMENT_LOG_FN(msg, func, ...)      \
-  MOZ_LOG(sFragmentDirectiveLog, LogLevel::Debug, \
-          ("%s(): " msg, func, ##__VA_ARGS__))
+#define TEXT_FRAGMENT_LOG_FN(msg, func, ...)                              \
+  MOZ_LOG_FMT(sFragmentDirectiveLog, LogLevel::Debug, "{}(): " msg, func, \
+              ##__VA_ARGS__)
 
 // Shortcut macro for logging, which includes the current function name.
 // To customize (eg. if in a lambda), use `TEXT_FRAGMENT_LOG_FN`.
