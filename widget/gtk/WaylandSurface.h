@@ -64,6 +64,9 @@ class WaylandSurface final {
       const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
       bool aEmulateFrameCallback = false);
 
+  // Enable/Disable any frame callback emission (includes emulated ones).
+  void SetFrameCallbackState(bool aEnabled);
+
   // Create and resize EGL window.
   // GetEGLWindow() takes unscaled window size as we derive size from GdkWindow.
   // It's scaled internally by WaylandSurface fractional scale.
@@ -315,6 +318,7 @@ class WaylandSurface final {
     bool mEmulated = false;
   };
 
+  bool mFrameCallbackEnabled = true;
   // Frame callback handlers called every frame
   std::vector<FrameCallback> mPersistentFrameCallbackHandlers;
   // Frame callback handlers called only once
