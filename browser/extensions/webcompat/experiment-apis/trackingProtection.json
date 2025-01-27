@@ -156,6 +156,12 @@
         ]
       },
       {
+        "name": "incrementSmartblockEmbedShownTelemetry",
+        "type": "function",
+        "description": "Sends an observer message to inform protections panel that a embed was replaced on the window specified by the tab id",
+        "parameters": []
+      },
+      {
         "name": "getSmartBlockEmbedFluentString",
         "type": "function",
         "description": "Gets the fluent strings used for the smartblock placeholder embed",

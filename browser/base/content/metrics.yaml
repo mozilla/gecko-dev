@@ -105,6 +105,16 @@ security.ui.protectionspopup:
       How many times the protections panel was opened.
       This event was generated to correspond to the Legacy Telemetry event
       security.ui.protectionspopup.open#protections_popup.
+    extra_keys:
+      openingReason:
+        description: >
+          string representing how the protections panel was opened,
+          one of ["shieldButtonClicked", "embedPlaceholderButton", "toastButtonClicked"]
+        type: string
+      smartblockEmbedTogglesShown:
+        description: >
+          boolean representing if smartblock toggles were shown to the user
+        type: boolean
     bugs: &security_ui_protectionspopup_open_bugs
       - https://bugzil.la/1560327
       - https://bugzil.la/1607488
@@ -112,6 +122,7 @@ security.ui.protectionspopup:
       - https://bugzil.la/1678201
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
+      - https://bugzil.la/1920735
     data_reviews: &security_ui_protectionspopup_open_data_reviews
       - https://bugzil.la/1560327
       - https://bugzil.la/1607488
@@ -119,11 +130,37 @@ security.ui.protectionspopup:
       - https://bugzil.la/1678201
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
+      - https://bugzil.la/1920735
     notification_emails: &security_ui_protectionspopup_open_emails
       - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionsPopup
+
+  close_protections_popup:
+    type: event
+    description: >
+      Triggered when the protections panel is closed. Records how the panel was opened and if
+      the SmartBlock section had any interactions
+    extra_keys:
+      openingReason:
+        description: >
+          string representing how the protections panel was opened,
+          one of ["shieldButtonClicked", "embedPlaceholderButton", "toastButtonClicked"]
+        type: string
+      smartblockToggleClicked:
+        description: >
+          boolean representing if the user interacted with the toggle anytime before it was closed
+        type: boolean
+    bugs:
+      - https://bugzil.la/1920735
+    data_reviews:
+      - https://bugzil.la/1920735
+    notification_emails:
+      - wwen@mozilla.com
+      - emz@mozilla.com
+    expires:
+      140
 
   open_protectionspopup_cfr:
     type: event
@@ -341,6 +378,44 @@ security.ui.protectionspopup:
     expires: never
     extra_keys: *security_ui_protectionspopup_open_extra
     telemetry_mirror: SecurityUiProtectionspopup_Click_ProtectionspopupCfr
+
+  click_smartblockembeds_toggle:
+    type: event
+    description: >
+      Triggered when SmartBlock embed toggles are clicked by the user
+    extra_keys:
+      isBlock:
+        description: >
+          boolean representing if this was a block or an unblock
+        type: boolean
+      openingReason:
+        description: >
+          string representing how the protections panel was opened,
+          one of ["shieldButtonClicked", "embedPlaceholderButton", "toastButtonClicked"]
+        type: string
+    bugs:
+      - https://bugzil.la/1920735
+    data_reviews:
+      - https://bugzil.la/1920735
+    notification_emails:
+      - wwen@mozilla.com
+      - emz@mozilla.com
+    expires:
+      140
+
+  smartblockembeds_shown:
+    type: counter
+    description: >
+      How many times the SmartBlock placeholders are shown on the page
+    bugs:
+      - https://bugzil.la/1920735
+    data_reviews:
+      - https://bugzil.la/1920735
+    notification_emails:
+      - wwen@mozilla.com
+      - emz@mozilla.com
+    expires:
+      140
 
 browser.engagement:
   bookmarks_toolbar_bookmark_added:

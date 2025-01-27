@@ -114,7 +114,11 @@ const AVAILABLE_SHIMS = [
       "https://itisatracker.org/browser/browser/extensions/webcompat/tests/browser/embed_test.js",
     ],
     logos: ["instagram.svg"],
-    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    needsShimHelpers: [
+      "embedClicked",
+      "smartblockEmbedReplaced",
+      "smartblockGetFluentString",
+    ],
     isSmartblockEmbedShim: true,
     onlyIfBlockedByETP: true,
     unblocksOnOptIn: ["*://itisatracker.org/*"],
@@ -923,7 +927,11 @@ const AVAILABLE_SHIMS = [
     ],
     logos: ["instagram.svg"],
     webExposedShimHelpers: [],
-    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    needsShimHelpers: [
+      "embedClicked",
+      "smartblockEmbedReplaced",
+      "smartblockGetFluentString",
+    ],
     isSmartblockEmbedShim: true,
     onlyIfBlockedByETP: true,
     unblocksOnOptIn: [
@@ -944,7 +952,11 @@ const AVAILABLE_SHIMS = [
     matches: ["https://www.tiktok.com/embed.js"],
     logos: ["tiktok.svg"],
     webExposedShimHelpers: [],
-    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    needsShimHelpers: [
+      "embedClicked",
+      "smartblockEmbedReplaced",
+      "smartblockGetFluentString",
+    ],
     isSmartblockEmbedShim: true,
     onlyIfBlockedByETP: true,
     unblocksOnOptIn: ["*://www.tiktok.com/*"],

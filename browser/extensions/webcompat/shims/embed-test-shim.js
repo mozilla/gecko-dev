@@ -179,7 +179,10 @@ if (!window.smartblockTestShimInitialized) {
 
       // Replace the embed with the placeholder
       originalEmbedContainer.replaceWith(placeholderDiv);
+
+      sendMessageToAddon("smartblockEmbedReplaced");
     });
+
     const finishedEvent = new CustomEvent("smartblockEmbedScriptFinished", {
       bubbles: true,
       composed: true,
