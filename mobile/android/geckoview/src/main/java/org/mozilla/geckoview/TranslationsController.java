@@ -571,7 +571,7 @@ public class TranslationsController {
         final List<Language> fromLanguages = new ArrayList<>();
         final List<Language> toLanguages = new ArrayList<>();
         try {
-          final GeckoBundle[] fromBundle = bundle.getBundleArray("fromLanguages");
+          final GeckoBundle[] fromBundle = bundle.getBundleArray("sourceLanguages");
           for (final var item : fromBundle) {
             final var result = Language.fromBundle(item);
             if (result != null) {
@@ -579,7 +579,7 @@ public class TranslationsController {
             }
           }
 
-          final GeckoBundle[] toBundle = bundle.getBundleArray("toLanguages");
+          final GeckoBundle[] toBundle = bundle.getBundleArray("targetLanguages");
           for (final var item : toBundle) {
             final var result = Language.fromBundle(item);
             if (result != null) {
@@ -798,19 +798,19 @@ public class TranslationsController {
      * This will complete a translation using defaults. Before translating, any required models will
      * be downloaded by the toolkit engine.
      *
-     * @param fromLanguage BCP 47 language tag that the page should be translated from. Usually will
-     *     be the suggested detected language or user specified.
-     * @param toLanguage BCP 47 language tag that the page should be translated to. Usually will be
-     *     the suggested preference language or user specified.
+     * @param sourceLanguage BCP 47 language tag that the page should be translated from. Usually
+     *     will be the suggested detected language or user specified.
+     * @param targetLanguage BCP 47 language tag that the page should be translated to. Usually will
+     *     be the suggested preference language or user specified.
      * @return Void if the translate process begins or exceptionally if an issue occurs.
      */
     @AnyThread
     private @NonNull GeckoResult<Void> baseTranslate(
-        @NonNull final String fromLanguage, @NonNull final String toLanguage) {
+        @NonNull final String sourceLanguage, @NonNull final String targetLanguage) {
 
       final GeckoBundle bundle = new GeckoBundle(2);
-      bundle.putString("fromLanguage", fromLanguage);
-      bundle.putString("toLanguage", toLanguage);
+      bundle.putString("sourceLanguage", sourceLanguage);
+      bundle.putString("targetLanguage", targetLanguage);
       return mSession
           .getEventDispatcher()
           .queryVoid(TRANSLATE_EVENT, bundle)
@@ -1288,6 +1288,11 @@ public class TranslationsController {
         return null;
       }
       try {
+        final String variant = bundle.getString("variant", "");
+        if (!variant.isEmpty()) {
+          // Variants are not currently supported in Android. Ignore this model. See Bug 1943444.
+          return null;
+        }
         final String code = bundle.getString("langTag", "");
         if (code.equals("")) {
           Log.w(LOGTAG, "Deserialized an empty language code.");

@@ -37,8 +37,8 @@ async function requestTranslate() {
             const dispatcher = navigator.window.WindowEventDispatcher;
             dispatcher.dispatch("GeckoView:Translations:Translate",
             {
-                fromLanguage: "en",
-                toLanguage: "es"
+                sourceLanguage: "en",
+                targetLanguage: "es"
             }, callback);
             return promise;
         });

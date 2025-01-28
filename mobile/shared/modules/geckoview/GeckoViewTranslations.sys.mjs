@@ -42,29 +42,31 @@ export class GeckoViewTranslations extends GeckoViewModule {
     debug`onEvent: event=${aEvent}, data=${aData}`;
     switch (aEvent) {
       case "GeckoView:Translations:Translate": {
-        const fromLangValid = lazy.TranslationsUtils.isLangTagValid(
-          aData.fromLanguage
-        );
-        const toLangValid = lazy.TranslationsUtils.isLangTagValid(
-          aData.toLanguage
-        );
-
-        if (!fromLangValid || !toLangValid) {
-          aCallback.onError(
-            `The language tag ${aData.fromLanguage} or ${aData.toLanguage} is not valid.`
-          );
-        }
-
         try {
-          this.getActor("Translations")
-            .translate(
-              aData.fromLanguage,
-              aData.toLanguage,
-              /* reportAsAutoTranslate */ false
-            )
-            .then(() => {
-              aCallback.onSuccess();
-            });
+          const { sourceLanguage, targetLanguage } = aData;
+
+          if (
+            lazy.TranslationsUtils.isLangTagValid(sourceLanguage) &&
+            lazy.TranslationsUtils.isLangTagValid(targetLanguage)
+          ) {
+            this.getActor("Translations")
+              .translate(
+                {
+                  sourceLanguage,
+                  targetLanguage,
+                  // Model variants are not currently supported. See Bug 1943444.
+                },
+                /* reportAsAutoTranslate */ false
+              )
+              .then(
+                () => aCallback.onSuccess(),
+                error => aCallback.onError(`Could not translate: ${error}`)
+              );
+          } else {
+            aCallback.onError(
+              `The language tag ${sourceLanguage} or ${targetLanguage} is not valid.`
+            );
+          }
         } catch (error) {
           aCallback.onError(`Could not translate: ${error}`);
         }
@@ -286,16 +288,17 @@ export const GeckoViewTranslationsSettings = {
         ) {
           const mockResult = {
             languagePairs: [
-              { fromLang: "en", toLang: "es" },
-              { fromLang: "es", toLang: "en" },
+              { sourceLanguage: "en", targetLanguage: "es" },
+              { sourceLanguage: "es", targetLanguage: "en" },
+              { sourceLanguage: "en", targetLanguage: "es", variant: "base" },
             ],
-            fromLanguages: [
-              { langTag: "en", displayName: "English" },
-              { langTag: "es", displayName: "Spanish" },
+            sourceLanguages: [
+              { langTag: "en", langTagKey: "en", displayName: "English" },
+              { langTag: "es", langTagKey: "es", displayName: "Spanish" },
             ],
-            toLanguages: [
-              { langTag: "en", displayName: "English" },
-              { langTag: "es", displayName: "Spanish" },
+            targetLanguages: [
+              { langTag: "en", langTagKey: "en", displayName: "English" },
+              { langTag: "es", langTagKey: "en", displayName: "Spanish" },
             ],
           };
           aCallback.onSuccess(mockResult);
