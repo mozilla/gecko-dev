@@ -37,9 +37,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * Handles content's interactions for the frame.
  */
 export class FormAutofillChild extends JSWindowActorChild {
-  /**
-   * Flag to indicate whethere there is an ongoing autofilling/clearing process.
-   */
+  // Flag to indicate whethere there is an ongoing autofilling process.
   #autofillInProgress = false;
 
   /**
@@ -391,9 +389,9 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   onFocusIn(element) {
-    // When autofilling and clearing a field, we focus on the element before modifying the value.
-    // (See FormAutofillHandler.fillFieldValue and FormAutofillHandler.clearFilledFields).
-    // We ignore the focus event for those case to avoid showing popup while autofilling or clearing.
+    // When autofilling, we focus on the element before setting the autofill value
+    // (See FormAutofillHandler.fillFieldValue). We ignore the focus event for this
+    // case to avoid showing popup while autofilling.
     if (
       !lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element) ||
       this.#autofillInProgress
@@ -465,8 +463,9 @@ export class FormAutofillChild extends JSWindowActorChild {
         return result;
       }
       case "FormAutofill:ClearFilledFields": {
-        const { focusedId, ids } = message.data;
-        this.clearFields(focusedId, ids);
+        const { ids, focusedId } = message.data;
+        const handler = this.#getHandlerByElementId(ids[0]);
+        handler?.clearFilledFields(focusedId, ids);
         break;
       }
       case "FormAutofill:PreviewFields": {
@@ -612,16 +611,6 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     this.#autofillInProgress = false;
     return result;
-  }
-
-  clearFields(focusedId, elementIds) {
-    this.#autofillInProgress = true;
-    try {
-      const handler = this.#getHandlerByElementId(elementIds[0]);
-      handler?.clearFilledFields(focusedId, elementIds);
-    } finally {
-      this.#autofillInProgress = false;
-    }
   }
 
   /**
