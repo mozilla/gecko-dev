@@ -239,11 +239,11 @@ add_task(async function test_cache_worker() {
   let root = doc.getElementById("root");
   ok(root.childElementCount, "There are children on the root node");
 
-  // There should be the 1 top story, and 20 placeholders.
+  // There should be the 1 top story, and 23 placeholders.
   equal(
     Array.from(root.querySelectorAll(".ds-card")).length,
-    21,
-    "There are 21 DSCards"
+    24,
+    "There are 24 DSCards"
   );
   let cardHostname = doc.querySelector(
     "[data-section-id='topstories'] .source"
@@ -251,7 +251,7 @@ add_task(async function test_cache_worker() {
   equal(cardHostname, "bbc.com", "Card hostname is bbc.com");
 
   let placeholders = doc.querySelectorAll(".ds-card.placeholder");
-  equal(placeholders.length, 20, "There should be 20 placeholders");
+  equal(placeholders.length, 23, "There should be 23 placeholders");
 });
 
 /**
