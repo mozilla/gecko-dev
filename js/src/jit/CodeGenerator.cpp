@@ -19112,7 +19112,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
 
   Register index = ToRegister(lir->index());
   const LAllocation* length = lir->length();
-  Register spectreTemp = ToTempRegisterOrInvalid(lir->temp());
+  Register spectreTemp = ToTempRegisterOrInvalid(lir->temp0());
 
   Label skip;
   if (length->isRegister()) {

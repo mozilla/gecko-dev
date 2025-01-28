@@ -2417,13 +2417,22 @@
   mir_op: true
 
 - name: LoadUnboxedInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+  mir_op: LoadUnboxedScalar
 
 - name: LoadDataViewElement
   gen_boilerplate: false
 
 - name: LoadDataViewElement64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+    littleEndian: WordSized
+  mir_op: LoadDataViewElement
 
 - name: LoadTypedArrayElementHole
   result_type: BoxedValue
@@ -2446,7 +2455,11 @@
   mir_op: true
 
 - name: StoreUnboxedInt64
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+  mir_op: StoreUnboxedScalar
 
 - name: StoreDataViewElement
   gen_boilerplate: false
@@ -2464,7 +2477,13 @@
   mir_op: true
 
 - name: StoreTypedArrayElementHoleInt64
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    length: WordSized
+    index: WordSized
+    value: Int64
+  num_temps: 1
+  mir_op: StoreTypedArrayElementHole
 
 - name: AtomicIsLockFree
   result_type: WordSized
