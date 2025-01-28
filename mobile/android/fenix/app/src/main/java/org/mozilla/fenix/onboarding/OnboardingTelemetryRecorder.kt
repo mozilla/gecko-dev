@@ -387,9 +387,22 @@ class OnboardingTelemetryRecorder {
      */
     fun onMarketingDataContinueClicked(optIn: Boolean) {
         Onboarding.marketingDataContinueClicked.record(
-            Onboarding.MarketingDataContinueClickedExtra(
-                optIn = optIn,
-            ),
+            Onboarding.MarketingDataContinueClickedExtra(optIn = optIn),
+        )
+    }
+
+    /**
+     * Records when the marketing data learn more link clicked.
+     */
+    fun onMarketingDataLearnMoreClick() = Onboarding.marketingDataLearnMore.record()
+
+    /**
+     * Records the marketing data opt-in toggle event.
+     * @param optIn True if the user chose to opt in to marketing data collection.
+     */
+    fun onMarketingDataOptInToggled(optIn: Boolean) {
+        Onboarding.marketingDataOptInToggled.record(
+            Onboarding.MarketingDataOptInToggledExtra(optIn = optIn),
         )
     }
 

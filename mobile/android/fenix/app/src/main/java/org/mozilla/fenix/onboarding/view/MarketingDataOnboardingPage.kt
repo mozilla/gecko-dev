@@ -43,15 +43,17 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * UI for an onboarding page that allows the user to opt out of marketing data analytics.
  *
  * @param state the UI state containing strings etc.
- * @param onMarketingDataContinueClick callback for when the user clicks the continue button.
  * @param onMarketingDataLearnMoreClick callback for when the user clicks the learn more text link.
+ * @param onMarketingOptInToggle callback for when the user toggles the opt-in checkbox.
+ * @param onMarketingDataContinueClick callback for when the user clicks the continue button.
  */
 @Suppress("LongMethod")
 @Composable
 fun MarketingDataOnboardingPage(
     state: OnboardingPageState,
-    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
     onMarketingDataLearnMoreClick: () -> Unit,
+    onMarketingOptInToggle: (optIn: Boolean) -> Unit,
+    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -105,7 +107,10 @@ fun MarketingDataOnboardingPage(
                             x = (-12).dp,
                         ),
                     checked = checkboxChecked,
-                    onCheckedChange = { checkboxChecked = !checkboxChecked },
+                    onCheckedChange = {
+                        checkboxChecked = !checkboxChecked
+                        onMarketingOptInToggle.invoke(checkboxChecked)
+                    },
                     colors = CheckboxDefaults.colors(
                         checkedColor = FirefoxTheme.colors.formSelected,
                         uncheckedColor = FirefoxTheme.colors.formDefault,
@@ -169,8 +174,9 @@ private fun MarketingDataOnboardingPagePreview() {
                         " improve our marketing campaigns.",
                 ),
             ),
-            onMarketingDataContinueClick = {},
             onMarketingDataLearnMoreClick = {},
+            onMarketingOptInToggle = {},
+            onMarketingDataContinueClick = {},
         )
     }
 }

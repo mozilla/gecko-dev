@@ -67,9 +67,10 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param termsOfServiceEventHandler Invoked when the primary button on the terms of service page is clicked.
  * @param onCustomizeToolbarClick Invoked when positive button customize toolbar page is clicked.
  * @param onCustomizeThemeClick Invoked when the primary button on the theme selection page is clicked.
+ * @param onMarketingDataLearnMoreClick callback for when the user clicks the learn more text link
+ * @param onMarketingOptInToggle callback for when the user toggles the opt-in checkbox
  * @param onMarketingDataContinueClick callback for when the user clicks the continue button on the
  * marketing data opt out screen.
- * @param onMarketingDataLearnMoreClick callback for when the user clicks the learn more text link
  * on the marketing data opt out screen.
  * @param onFinish Invoked when the onboarding is completed.
  * @param onImpression Invoked when a page in the pager is displayed.
@@ -92,8 +93,9 @@ fun OnboardingScreen(
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onCustomizeToolbarClick: () -> Unit,
     onCustomizeThemeClick: () -> Unit,
-    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
     onMarketingDataLearnMoreClick: () -> Unit,
+    onMarketingOptInToggle: (optIn: Boolean) -> Unit,
+    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
     onFinish: (pageType: OnboardingPageUiData) -> Unit,
     onImpression: (pageType: OnboardingPageUiData) -> Unit,
 ) {
@@ -207,11 +209,12 @@ fun OnboardingScreen(
             scrollToNextPageOrDismiss()
             termsOfServiceEventHandler.onAcceptTermsButtonClicked()
         },
+        onMarketingDataLearnMoreClick = onMarketingDataLearnMoreClick,
+        onMarketingOptInToggle = onMarketingOptInToggle,
         onMarketingDataContinueClick = { allowMarketingDataCollection ->
             onMarketingDataContinueClick(allowMarketingDataCollection)
             scrollToNextPageOrDismiss()
         },
-        onMarketingDataLearnMoreClick = onMarketingDataLearnMoreClick,
         onboardingStore = onboardingStore,
     )
 }
@@ -258,8 +261,9 @@ private fun OnboardingContent(
     onCustomizeThemeButtonClick: () -> Unit,
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onAgreeAndConfirmTermsOfService: () -> Unit,
-    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
+    onMarketingOptInToggle: (optIn: Boolean) -> Unit,
     onMarketingDataLearnMoreClick: () -> Unit,
+    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
 ) {
     val nestedScrollConnection = remember { DisableForwardSwipeNestedScrollConnection(pagerState) }
 
@@ -298,8 +302,9 @@ private fun OnboardingContent(
                 onboardingStore = onboardingStore,
                 termsOfServiceEventHandler = termsOfServiceEventHandler,
                 onInstallAddOnButtonClick = onInstallAddOnButtonClick,
-                onMarketingDataContinueClick = onMarketingDataContinueClick,
                 onMarketingDataLearnMoreClick = onMarketingDataLearnMoreClick,
+                onMarketingOptInToggle = onMarketingOptInToggle,
+                onMarketingDataContinueClick = onMarketingDataContinueClick,
             )
         }
 
@@ -322,8 +327,9 @@ private fun OnboardingPageForType(
     onboardingStore: OnboardingStore? = null,
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
-    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
     onMarketingDataLearnMoreClick: () -> Unit,
+    onMarketingOptInToggle: (optIn: Boolean) -> Unit,
+    onMarketingDataContinueClick: (allowMarketingDataCollection: Boolean) -> Unit,
 ) {
     when (type) {
         OnboardingPageUiData.Type.DEFAULT_BROWSER,
@@ -356,8 +362,9 @@ private fun OnboardingPageForType(
 
         OnboardingPageUiData.Type.MARKETING_DATA -> MarketingDataOnboardingPage(
             state = state,
-            onMarketingDataContinueClick = onMarketingDataContinueClick,
             onMarketingDataLearnMoreClick = onMarketingDataLearnMoreClick,
+            onMarketingOptInToggle = onMarketingOptInToggle,
+            onMarketingDataContinueClick = onMarketingDataContinueClick,
         )
 
         OnboardingPageUiData.Type.ADD_ONS,
@@ -421,6 +428,7 @@ private fun OnboardingScreenPreview() {
             onAgreeAndConfirmTermsOfService = {},
             termsOfServiceEventHandler = object : OnboardingTermsOfServiceEventHandler {},
             onMarketingDataLearnMoreClick = {},
+            onMarketingOptInToggle = {},
             onMarketingDataContinueClick = {},
         )
     }

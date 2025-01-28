@@ -256,11 +256,16 @@ class OnboardingFragment : Fragment() {
                 )
             },
             onMarketingDataLearnMoreClick = {
+                telemetryRecorder.onMarketingDataLearnMoreClick()
+
                 val url = SupportUtils.getSumoURLForTopic(
                     requireContext(),
                     SupportUtils.SumoTopic.MARKETING_DATA,
                 )
                 launchSandboxCustomTab(url)
+            },
+            onMarketingOptInToggle = { optIn ->
+                telemetryRecorder.onMarketingDataOptInToggled(optIn)
             },
             onMarketingDataContinueClick = { allowMarketingDataCollection ->
                 with(requireContext().settings()) {
