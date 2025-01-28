@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose
+package org.mozilla.fenix.compose.textfield
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,7 +21,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TextFieldDefaults.indicatorLine
@@ -49,10 +48,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ext.thenConditional
+import org.mozilla.fenix.compose.text.Text
+import org.mozilla.fenix.compose.text.value
 import org.mozilla.fenix.theme.FirefoxTheme
 
-private val FOCUSED_INDICATOR_LINE_THICKNESS_DP = 2.dp
-private val UNFOCUSED_INDICATOR_LINE_THICKNESS_DP = 1.dp
+private val FocusedIndicatorLineThickness = 2.dp
+private val UnfocusedIndicatorLineThickness = 1.dp
+
+private val TrailingIconHeight = 24.dp
 
 /**
  * UI for a text field.
@@ -70,11 +73,13 @@ private val UNFOCUSED_INDICATOR_LINE_THICKNESS_DP = 1.dp
  * the maxLines attribute will be automatically set to 1.
  * @param maxLines The maximum number of input lines visible to the user at once.
  * @param minLines The minimum number of input lines visible to the user at once.
- * @param trailingIcon The optional trailing icon to be displayed at the end of the text field
+ * @param minHeight The minimum height constraint for the input field.
+ * @param trailingIcons The optional composable for adding trailing icons at the end of the text field
  * container.
- * @param trailingIconHeight The trailing icon height.
  * @param colors [TextFieldColors] to use for styling text field colors.
  * @param style [TextFieldStyle] to use for styling text field.
+ * @param visualTransformation The visual transformation filter for changing the visual representation
+ * of the input. By default no visual transformation is applied.
  * @param keyboardOptions Software keyboard options that contains configuration such as [KeyboardType] and [ImeAction].
  * @param keyboardActions When the input service emits an IME action, the corresponding callback is
  * called. Note that this IME action may be different from what you specified in
@@ -94,10 +99,11 @@ fun TextField(
     singleLine: Boolean = true,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    trailingIconHeight: Dp = 24.dp,
+    minHeight: Dp = TrailingIconHeight,
+    trailingIcons: @Composable (TrailingIconScope.() -> Unit)? = null,
     colors: TextFieldColors = TextFieldColors.default(),
     style: TextFieldStyle = TextFieldStyle.default(),
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions(),
 ) {
@@ -128,8 +134,8 @@ fun TextField(
                     isError = isError,
                     interactionSource = interactionSource,
                     colors = indicatorLineColors,
-                    focusedIndicatorLineThickness = FOCUSED_INDICATOR_LINE_THICKNESS_DP,
-                    unfocusedIndicatorLineThickness = UNFOCUSED_INDICATOR_LINE_THICKNESS_DP,
+                    focusedIndicatorLineThickness = FocusedIndicatorLineThickness,
+                    unfocusedIndicatorLineThickness = UnfocusedIndicatorLineThickness,
                 )
                 .defaultMinSize(
                     minWidth = TextFieldDefaults.MinWidth,
@@ -139,7 +145,7 @@ fun TextField(
                 color = colors.inputColor,
             ),
             cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
-            visualTransformation = VisualTransformation.None,
+            visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             interactionSource = interactionSource,
@@ -168,7 +174,7 @@ fun TextField(
                             modifier = Modifier
                                 .weight(1f)
                                 // Ensures that the text field will remain the same height as the trailing icon
-                                .heightIn(min = trailingIconHeight),
+                                .heightIn(min = minHeight),
                             // The difference in alignment is to ensure that the placeholder text
                             // aligns with the cursor when more than 1 line is displayed
                             contentAlignment = if (singleLine || maxLines == 1) {
@@ -189,11 +195,7 @@ fun TextField(
                             }
                         }
 
-                        if (trailingIcon != null) {
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            trailingIcon.invoke()
-                        } else if (isError) {
+                        if (isError) {
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Icon(
@@ -201,6 +203,14 @@ fun TextField(
                                 contentDescription = null,
                                 tint = colors.errorTrailingIconColor,
                             )
+                        } else if (trailingIcons != null) {
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Row {
+                                with(TrailingIconScope(this)) {
+                                    trailingIcons.invoke(this)
+                                }
+                            }
                         }
                     }
 
@@ -340,8 +350,8 @@ private data class TextFieldPreviewState(
     val singleLine: Boolean = true,
     val maxLines: Int = Int.MAX_VALUE,
     val minLines: Int = 1,
-    val trailingIcon: @Composable (() -> Unit)? = null,
-    val trailingIconHeight: Dp = 24.dp,
+    val minHeight: Dp = TrailingIconHeight,
+    val trailingIcons: @Composable (TrailingIconScope.() -> Unit)? = null,
 )
 
 private class TextFieldParameterProvider : PreviewParameterProvider<TextFieldPreviewState> {
@@ -393,32 +403,28 @@ private class TextFieldParameterProvider : PreviewParameterProvider<TextFieldPre
             ),
             TextFieldPreviewState(
                 initialText = "Typed",
-                label = "Typed, Error, Trailing icon",
-                isError = true,
-                trailingIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.mozac_ic_cross_circle_fill_24),
-                            contentDescription = null,
-                            tint = FirefoxTheme.colors.textPrimary,
-                        )
-                    }
-                },
-                trailingIconHeight = 48.dp,
+                label = "Typed, No error, 1 trailing icon",
+                minHeight = 48.dp,
+                trailingIcons = { CrossTextFieldButton {} },
             ),
             TextFieldPreviewState(
-                initialText = "",
-                label = "Empty, No error, Trailing Icon",
-                trailingIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.mozac_ic_cross_circle_fill_24),
-                            contentDescription = null,
-                            tint = FirefoxTheme.colors.textPrimary,
-                        )
-                    }
+                initialText = "Typed",
+                label = "Typed, No error, 2 trailing icons",
+                minHeight = 48.dp,
+                trailingIcons = {
+                    EyeTextFieldButton {}
+                    CrossTextFieldButton {}
                 },
-                trailingIconHeight = 48.dp,
+            ),
+            TextFieldPreviewState(
+                initialText = "Typed",
+                label = "Typed, Error, 2 trailing icons",
+                isError = true,
+                minHeight = 48.dp,
+                trailingIcons = {
+                    EyeTextFieldButton {}
+                    CrossTextFieldButton {}
+                },
             ),
         )
 }
@@ -446,8 +452,8 @@ private fun TextFieldPreview(
                 singleLine = textFieldState.singleLine,
                 maxLines = textFieldState.maxLines,
                 minLines = textFieldState.minLines,
-                trailingIcon = textFieldState.trailingIcon,
-                trailingIconHeight = textFieldState.trailingIconHeight,
+                minHeight = textFieldState.minHeight,
+                trailingIcons = textFieldState.trailingIcons,
             )
         }
     }

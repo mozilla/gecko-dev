@@ -76,8 +76,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.MenuItem
-import org.mozilla.fenix.compose.TextField
-import org.mozilla.fenix.compose.TextFieldColors
 import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.list.IconListItem
@@ -86,11 +84,15 @@ import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
+import org.mozilla.fenix.compose.textfield.TextField
+import org.mozilla.fenix.compose.textfield.TextFieldColors
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.addBookmarkFolderNameTextField
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemTileTextField
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemURLTextField
 import org.mozilla.fenix.theme.FirefoxTheme
 import mozilla.components.ui.icons.R as iconsR
+
+private val IconButtonHeight = 48.dp
 
 /**
  * The UI host for the Bookmarks list screen and related subscreens.
@@ -1203,18 +1205,12 @@ private fun ClearableTextField(
             .onFocusChanged { isFocused = it.isFocused }
             .padding(0.dp)
             .paddingFromBaseline(0.dp),
-        trailingIcon = {
+        minHeight = IconButtonHeight,
+        trailingIcons = {
             if (isFocused && value.isNotEmpty()) {
-                IconButton(onClick = { onValueChange("") }) {
-                    Icon(
-                        painter = painterResource(id = iconsR.drawable.mozac_ic_cross_circle_fill_24),
-                        contentDescription = null,
-                        tint = FirefoxTheme.colors.textPrimary,
-                    )
-                }
+                CrossTextFieldButton { onValueChange("") }
             }
         },
-        trailingIconHeight = 48.dp,
         colors = TextFieldColors.default(
             placeholderColor = FirefoxTheme.colors.textPrimary,
         ),

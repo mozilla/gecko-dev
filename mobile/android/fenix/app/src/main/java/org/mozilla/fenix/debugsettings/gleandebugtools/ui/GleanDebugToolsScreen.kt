@@ -27,11 +27,11 @@ import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Dropdown
 import org.mozilla.fenix.compose.SwitchWithLabel
-import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.compose.text.Text
+import org.mozilla.fenix.compose.textfield.TextField
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsAction
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
