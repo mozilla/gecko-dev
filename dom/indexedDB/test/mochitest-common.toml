@@ -6,6 +6,7 @@
 prefs = [
   "extensions.blocklist.enabled=false",
 ]
+tags = "inc-origin-init"
 support-files = [
   "bfcache_page1.html",
   "bfcache_page2.html",

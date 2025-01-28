@@ -1,5 +1,5 @@
 [DEFAULT]
-tags = "condprof"
+tags = "condprof inc-origin-init"
 support-files = [
   "test_cache.js",
   "test_cache_add.js",

@@ -66,6 +66,8 @@ treeherder:
         'l10n-bump': 'L10n Bumper'
         'M': 'Mochitests'
         'M-f': 'Mochitest failures'
+        'M-ioi': 'Mochitests tagged with inc-origin-init'
+        'M-ioi-cf': 'Mochitests tagged with inc-origin-init for confirm failure'
         'Mn': 'Marionette tests'
         'MSI': 'Repack installers into MSIs'
         'MSIs': 'Signing of Repacked installers of MSIs'

@@ -1,4 +1,5 @@
 [DEFAULT]
+tags = "inc-origin-init"
 support-files = ["helpers.js"]
 
 ["test_simpledb.html"]

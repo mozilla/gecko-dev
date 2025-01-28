@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 [DEFAULT]
+tags = "inc-origin-init"
 skip-if = ["xorigin"]
 support-files = ["head.js"]
 
