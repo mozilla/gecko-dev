@@ -73,6 +73,7 @@ void BaselineCompileTask::FinishOffThreadTask(BaselineCompileTask* task) {
     script->jitScript()->clearIsBaselineCompiling(script);
   }
 
+  task->compiler_.reset();
   task->masm_.reset();
 
   // The task is allocated into its LifoAlloc, so destroying that will
