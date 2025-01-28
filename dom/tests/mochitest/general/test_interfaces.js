@@ -277,9 +277,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CountQueuingStrategy", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CookieChangeEvent", earlyBetaOrEarlier: true },
+  { name: "CookieChangeEvent" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CookieStore", earlyBetaOrEarlier: true },
+  { name: "CookieStore" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Credential" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1606,7 +1606,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "console", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "cookieStore", earlyBetaOrEarlier: true },
+  { name: "cookieStore" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "createImageBitmap", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

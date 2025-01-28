@@ -2458,7 +2458,7 @@
 # Disable cookie-store API
 - name: dom.cookieStore.enabled
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Is support for CSSPseudoElement enabled?
