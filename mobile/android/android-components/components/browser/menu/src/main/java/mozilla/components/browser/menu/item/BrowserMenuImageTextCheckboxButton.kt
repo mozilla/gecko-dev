@@ -97,6 +97,7 @@ class BrowserMenuImageTextCheckboxButton(
             text = buttonText
             setTextColor(tintColor)
             setCompoundDrawables(buttonDrawableIcon, null, null, null)
+            isChecked = !isInPrimaryState()
 
             setOnCheckedChangeListener { _, isChecked ->
                 onCheckedChangedListener(isChecked)
