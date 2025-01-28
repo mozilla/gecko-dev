@@ -23,13 +23,13 @@ add_task(async function test_TabGroupA11y() {
 
   Assert.equal(
     tabGroup.labelElement.getAttribute("aria-label"),
-    "unnamed",
+    "Unnamed Group",
     "tab group label aria-label should default to 'unnamed' if not set"
   );
 
   Assert.equal(
     tabGroup.labelElement.getAttribute("aria-description"),
-    "unnamed tab group",
+    "Unnamed Group — Tab Group",
     "tab group label aria-description should provide the name of the tab group plus more context"
   );
 
@@ -41,7 +41,10 @@ add_task(async function test_TabGroupA11y() {
 
   tabGroup.label = "test";
   tabGroup.collapsed = true;
-
+  await BrowserTestUtils.waitForCondition(
+    () => tabGroup.labelElement.getAttribute("aria-label") == "test",
+    "Tab group label was updated"
+  );
   Assert.equal(
     tabGroup.labelElement.getAttribute("aria-label"),
     "test",
@@ -50,7 +53,7 @@ add_task(async function test_TabGroupA11y() {
 
   Assert.equal(
     tabGroup.labelElement.getAttribute("aria-description"),
-    "test tab group",
+    "test — Tab Group",
     "tab group label aria-description should provide the name of the tab group plus more context"
   );
 
