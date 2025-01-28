@@ -301,7 +301,12 @@ class MockCall : public webrtc::Call {
   void SetClientBitratePreferences(
       const webrtc::BitrateSettings& preferences) override {}
 
+  void SetEncoderInfo(const webrtc::VideoEncoder::EncoderInfo& aInfo) {
+    mEncoderInfo = aInfo;
+  }
+
   std::vector<webrtc::VideoStream> CreateEncoderStreams(int width, int height) {
+    mVideoSendEncoderConfig->video_stream_factory->SetEncoderInfo(mEncoderInfo);
     return mVideoSendEncoderConfig->video_stream_factory->CreateEncoderStreams(
         mUnusedConfig, width, height, *mVideoSendEncoderConfig);
   }
@@ -330,6 +335,7 @@ class MockCall : public webrtc::Call {
   mozilla::Maybe<webrtc::VideoEncoderConfig> mVideoSendEncoderConfig;
   webrtc::Call::Stats mStats;
   webrtc::MozTrialsConfig mUnusedConfig;
+  webrtc::VideoEncoder::EncoderInfo mEncoderInfo;
 };
 
 class MockCallWrapper : public mozilla::WebrtcCallWrapper {

@@ -2062,6 +2062,8 @@ TEST_P(VideoConduitCodecModeTest,
 
 TEST_P(VideoConduitCodecModeTest, TestVideoEncodeResolutionAlignment) {
   UniquePtr<MockVideoSink> sink(new MockVideoSink());
+  rtc::VideoSinkWants wants;
+  mVideoConduit->AddOrUpdateSink(sink.get(), wants);
 
   for (const auto& scales : {std::vector{1U}, std::vector{1U, 9U}}) {
     mControl.Update([&](auto& aControl) {
@@ -2082,9 +2084,11 @@ TEST_P(VideoConduitCodecModeTest, TestVideoEncodeResolutionAlignment) {
     for (const auto& alignment : {2, 16, 39, 400, 1000}) {
       // Test that requesting specific alignment always results in the expected
       // number of layers and valid alignment.
-      rtc::VideoSinkWants wants;
-      wants.resolution_alignment = alignment;
-      mVideoConduit->AddOrUpdateSink(sink.get(), wants);
+
+      // Mimic what libwebrtc would do for a given alignment.
+      webrtc::VideoEncoder::EncoderInfo info;
+      info.requested_resolution_alignment = alignment;
+      Call()->SetEncoderInfo(info);
 
       const std::vector<webrtc::VideoStream> videoStreams =
           Call()->CreateEncoderStreams(640, 480);

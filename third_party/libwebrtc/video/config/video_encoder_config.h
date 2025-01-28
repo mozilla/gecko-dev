@@ -23,6 +23,7 @@
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
+#include "api/video_codecs/video_encoder.h"
 #include "rtc_base/ref_count.h"
 
 namespace webrtc {
@@ -150,6 +151,9 @@ class VideoEncoderConfig {
         int frame_width,
         int frame_height,
         const VideoEncoderConfig& encoder_config) = 0;
+
+    // Mozilla: Patching in necessary info our custom VideoStreamFactory will need to know.
+    virtual void SetEncoderInfo(const VideoEncoder::EncoderInfo& info) {}
 
    protected:
     ~VideoStreamFactoryInterface() override {}

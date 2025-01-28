@@ -1018,6 +1018,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   std::vector<VideoStream> streams;
   if (encoder_config_.video_stream_factory) {
     // Note: only tests set their own EncoderStreamFactory...
+    encoder_config_.video_stream_factory->SetEncoderInfo(encoder_->GetEncoderInfo());
     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
         encoder_config_);

@@ -198,6 +198,7 @@ void VideoStreamFactory::SelectMaxFramerate(
 std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     const webrtc::FieldTrialsView& field_trials, int aWidth, int aHeight,
     const webrtc::VideoEncoderConfig& aConfig) {
+  mEncodeQueue->AssertOnCurrentThread();
   const size_t streamCount = aConfig.number_of_streams;
 
   MOZ_RELEASE_ASSERT(streamCount >= 1, "Should request at least one stream");
@@ -249,9 +250,21 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
   return streams;
 }
 
+void VideoStreamFactory::SetEncoderInfo(
+    const webrtc::VideoEncoder::EncoderInfo& aInfo) {
+  if (!mEncodeQueue) {
+    mEncodeQueue = Nothing();
+    mEncodeQueue.emplace(GetCurrentSerialEventTarget());
+  }
+  mEncodeQueue->AssertOnCurrentThread();
+  mRequestedResolutionAlignment =
+      Some(SaturatingCast<int>(aInfo.requested_resolution_alignment));
+}
+
 gfx::IntSize VideoStreamFactory::CalculateScaledResolution(
     int aWidth, int aHeight, double aScaleDownByResolution,
     unsigned int aMaxPixelCount) {
+  mEncodeQueue->AssertOnCurrentThread();
   // If any adjustments like scaleResolutionDownBy or maxFS are being given
   // we want to choose a height and width here to provide for more variety
   // in possible resolutions.
@@ -293,8 +306,8 @@ gfx::IntSize VideoStreamFactory::CalculateScaledResolution(
   }
 
   // Simplest possible adaptation to resolution alignment.
-  width -= width % mWants.resolution_alignment;
-  height -= height % mWants.resolution_alignment;
+  width -= width % *mRequestedResolutionAlignment;
+  height -= height % *mRequestedResolutionAlignment;
 
   // Dont scale below our minimum value to prevent problems.
   const int minSize = 1;
