@@ -6406,7 +6406,9 @@ public class GeckoSession {
         for (int i = 0; i < paths.length; i++) {
           paths[i] = getFile(context, uris[i]);
           if (paths[i] == null) {
-            Log.e(LOGTAG, "Only file URIs are supported: " + uris[i]);
+            if (DEBUG) {
+              Log.e(LOGTAG, "Only file URIs are supported: " + uris[i]);
+            }
           }
         }
         ensureResult().putStringArray("files", paths);
