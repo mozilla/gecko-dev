@@ -1964,9 +1964,9 @@ class TestTranslationsTelemetry {
    * @param {object} expectations - The test expectations.
    * @param {number} expectations.expectedEventCount - The expected count of events.
    * @param {boolean} expectations.expectNewFlowId
-   * @param {Record<string, string | boolean | number | Function>} [expectations.assertForAllEvents]
+   * @param {Record<string, string | boolean | number>} [expectations.assertForAllEvents]
    * - A record of key-value pairs to assert against all events in this category.
-   * @param {Record<string, string | boolean | number | Function>} [expectations.assertForMostRecentEvent]
+   * @param {Record<string, string | boolean | number>} [expectations.assertForMostRecentEvent]
    * - A record of key-value pairs to assert against the most recently recorded event in this category.
    */
   static async assertEvent(
@@ -2026,20 +2026,15 @@ class TestTranslationsTelemetry {
         true,
         `Telemetry event ${name} should contain values if assertForMostRecentEvent are specified`
       );
-      for (const [key, expected] of Object.entries(assertForAllEvents)) {
+      for (const [key, expectedEntry] of Object.entries(
+        assertForMostRecentEvent
+      )) {
         for (const event of events) {
-          if (typeof expected === "function") {
-            ok(
-              expected(event.extra[key]),
-              `Telemetry event ${name} value for ${key} should match the expected predicate`
-            );
-          } else {
-            is(
-              event.extra[key],
-              String(expected),
-              `Telemetry event ${name} value for ${key} should match the expected entry`
-            );
-          }
+          is(
+            event.extra[key],
+            String(expectedEntry),
+            `Telemetry event ${name} value for ${key} should match the expected entry`
+          );
         }
       }
     }
@@ -2050,19 +2045,14 @@ class TestTranslationsTelemetry {
         true,
         `Telemetry event ${name} should contain values if assertForMostRecentEvent are specified`
       );
-      for (const [key, expected] of Object.entries(assertForMostRecentEvent)) {
-        if (typeof expected === "function") {
-          ok(
-            expected(events[eventCount - 1].extra[key]),
-            `Telemetry event ${name} value for ${key} should match the expected predicate`
-          );
-        } else {
-          is(
-            events[eventCount - 1].extra[key],
-            String(expected),
-            `Telemetry event ${name} value for ${key} should match the expected entry`
-          );
-        }
+      for (const [key, expectedEntry] of Object.entries(
+        assertForMostRecentEvent
+      )) {
+        is(
+          events[eventCount - 1].extra[key],
+          String(expectedEntry),
+          `Telemetry event ${name} value for ${key} should match the expected entry`
+        );
       }
     }
   }
@@ -2094,41 +2084,6 @@ class TestTranslationsTelemetry {
       denominator,
       expectedDenominator,
       `Telemetry rate ${name} should have expected denominator`
-    );
-  }
-
-  /**
-   * Asserts that all TranslationsEngine performance events are expected and have valid data.
-   *
-   * @param {object} expectations - The test expectations.
-   * @param {number} expectations.expectedEventCount - The expected count of engine performance events.
-   */
-  static async assertTranslationsEnginePerformance({ expectedEventCount }) {
-    info("Destroying the TranslationsEngine.");
-    await EngineProcess.destroyTranslationsEngine();
-
-    const isNotEmpty = entry => entry !== "";
-    const greaterThanZero = entry => parseFloat(entry) > 0;
-
-    const assertForAllEvents =
-      expectedEventCount === 0
-        ? {}
-        : {
-            from_language: isNotEmpty,
-            to_language: isNotEmpty,
-            average_words_per_request: greaterThanZero,
-            average_words_per_second: greaterThanZero,
-            total_completed_requests: greaterThanZero,
-            total_inference_seconds: greaterThanZero,
-            total_translated_words: greaterThanZero,
-          };
-
-    await TestTranslationsTelemetry.assertEvent(
-      Glean.translations.enginePerformance,
-      {
-        expectedEventCount,
-        assertForAllEvents,
-      }
     );
   }
 }

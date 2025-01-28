@@ -17,9 +17,5 @@ add_task(async function test_about_translations_telemetry_open() {
     }
   );
 
-  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
-    expectedEventCount: 0,
-  });
-
   await cleanup();
 });

@@ -226,7 +226,7 @@ function handleMessages(engine) {
             // back. The translation may never return if the translations are discarded
             // before it have time to be run. In this case this await is just never
             // resolved, and the postMessage is never run.
-            let { targetText, inferenceMilliseconds } = await engine.translate(
+            let targetText = await engine.translate(
               cleanedSourceText,
               isHTML,
               innerWindowId,
@@ -249,7 +249,6 @@ function handleMessages(engine) {
             postMessage({
               type: "translation-response",
               targetText,
-              inferenceMilliseconds,
               translationId,
               messageId,
             });
@@ -359,8 +358,7 @@ class Engine {
    * @param {number} innerWindowId - This is required
    * @param {number} translationId
    *
-   * @returns {Promise<{ targetText: string, inferenceMilliseconds: number }>}
-   *   Resolves with an object containing the translated text and the inference time in ms.
+   * @returns {Promise<string>}sourceText
    */
   translate(sourceText, isHTML, innerWindowId, translationId) {
     return this.#getWorkQueue(innerWindowId).runTask(translationId, () =>
@@ -426,8 +424,7 @@ class Engine {
    * @param {string} sourceText
    * @param {boolean} isHTML
    * @param {number} innerWindowId
-   * @returns {{ targetText: string, inferenceMilliseconds: number }}
-   *   An object containing the translated text and the inference time (in ms).
+   * @returns {string}
    */
   #syncTranslate(sourceText, isHTML, innerWindowId) {
     const startTime = performance.now();
@@ -471,9 +468,8 @@ class Engine {
         `Translated ${sourceText.length} code units.`
       );
 
-      const endTime = performance.now();
       const targetText = responses.get(0).getTranslatedText();
-      return { targetText, inferenceMilliseconds: endTime - startTime };
+      return targetText;
     } finally {
       // Free up any memory that was allocated. This will always run.
       messages?.delete();
@@ -673,7 +669,6 @@ class BergamotUtils {
    *
    * @param {Bergamot} bergamot
    * @param {string} sourceText
-   * @param {boolean} isHTML
    * @returns {{ messages: Bergamot["VectorString"], options: Bergamot["VectorResponseOptions"] }}
    */
   static getTranslationArgs(bergamot, sourceText, isHTML) {
@@ -712,23 +707,17 @@ class MockedEngine {
   }
 
   /**
-   * Create a fake translation of the text, returning a mock object
-   * with both the translated text and time spent.
+   * Create a fake translation of the text.
    *
    * @param {string} sourceText
-   * @param {boolean} isHTML
-   * @returns {{ targetText: string, inferenceMilliseconds: number }}
-   *   An object containing the "translated" text and a mock inference time in ms.
+   * @param {bool} isHTML
+   * @returns {string}
    */
   translate(sourceText, isHTML) {
-    const startTime = performance.now();
-
-    // Note when an HTML translation is requested.
+    // Note when an HTML translations is requested.
     let html = isHTML ? ", html" : "";
-    const targetText = `${sourceText.toUpperCase()} [${this.fromLanguage} to ${this.toLanguage}${html}]`;
-    const endTime = performance.now();
-
-    return { targetText, inferenceMilliseconds: endTime - startTime };
+    const targetText = sourceText.toUpperCase();
+    return `${targetText} [${this.fromLanguage} to ${this.toLanguage}${html}]`;
   }
 
   discardTranslations() {}

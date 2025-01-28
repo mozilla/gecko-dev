@@ -86,9 +86,5 @@ add_task(async function test_translations_telemetry_basics() {
     expectNewFlowId: false,
   });
 
-  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
-    expectedEventCount: 0,
-  });
-
   await cleanup();
 });
