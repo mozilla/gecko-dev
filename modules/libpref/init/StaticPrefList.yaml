@@ -711,7 +711,7 @@
 
 - name: apz.mousemove_hittest_optimization.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: apz.one_touch_pinch.enabled

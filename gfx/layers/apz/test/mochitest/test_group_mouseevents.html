@@ -78,7 +78,10 @@ var subtests = [
     "prefs": synthesizedMouseEventsTestPrefs},
   {"file": "helper_touch_synthesized_mouseevents.html?scrollable=false",
     "prefs": synthesizedMouseEventsTestPrefs},
-  {"file": "helper_mousemove_optimization.html"},
+  {"file": "helper_mousemove_optimization.html",
+   "prefs": [["apz.mousemove_hittest_optimization.enabled", true]]},
+  {"file": "helper_mousemove_optimization_on_oop_in_fixed_position.html",
+   "prefs": [["apz.mousemove_hittest_optimization.enabled", true]]},
 ];
 
 // Android, mac, and linux (at least in our automation) do not have scrollbar buttons.

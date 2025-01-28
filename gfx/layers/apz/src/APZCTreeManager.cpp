@@ -526,11 +526,6 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
             MOZ_ASSERT(aLayerMetrics.Metrics().GetFixedLayerMargins() ==
                            ScreenMargin(),
                        "fixed-layer-margins should be 0 on non-root layer");
-            if (currentRootContentLayersId.IsValid() &&
-                currentRootContentLayersId != layersId &&
-                mRootLayersId != layersId) {
-              mHaveOOPIframes = true;
-            }
           }
 
           // Note that this check happens after the potential increment of
@@ -606,6 +601,15 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
           if (Maybe<LayersId> newLayersId = aLayerMetrics.GetReferentId()) {
             layersId = *newLayersId;
             seenLayersIds.insert(layersId);
+
+            if (state.mOverrideFlags.size() > 1) {
+              // At this point, if `state.mOverrideFlags` has 2 or more
+              // elements, which means there's a node having a referent id
+              // corresponding to the top level content document and this node
+              // is an descendant of the node but for a different content
+              // process.
+              mHaveOOPIframes = true;
+            }
 
             // Propagate any event region override flags down into all
             // descendant nodes from the reflayer that has the flag. This is an
