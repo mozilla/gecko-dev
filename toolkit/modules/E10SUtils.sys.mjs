@@ -513,6 +513,7 @@ export var E10SUtils = {
       case "news":
       case "nntp":
       case "snews":
+      case "x-moz-ews":
         // Protocols used by Thunderbird to display email messages.
         return NOT_REMOTE;
 
