@@ -4186,7 +4186,7 @@
 # downgraded again if the request failed.
 - name: dom.security.https_first
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # If true, HTTPS-First will upgrade non-default ports
@@ -14982,7 +14982,7 @@
 # addition to importing them from browser/app/permissions.
 - name: permissions.manager.remote.enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
