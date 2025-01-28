@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
@@ -51,7 +52,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -243,12 +248,15 @@ private fun BookmarksList(
         LazyColumn(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp)
+                .semantics {
+                    collectionInfo = CollectionInfo(rowCount = state.bookmarkItems.size, columnCount = 1)
+                },
         ) {
-            items(state.bookmarkItems) { item ->
+            itemsIndexed(state.bookmarkItems) { index, item ->
                 var showMenu by remember { mutableStateOf(false) }
                 if (state.isGuidMarkedForDeletion(item.guid)) {
-                    return@items
+                    return@itemsIndexed
                 }
 
                 when (item) {
@@ -260,6 +268,14 @@ private fun BookmarksList(
                             description = item.url,
                             onClick = { store.dispatch(BookmarkClicked(item)) },
                             onLongClick = { store.dispatch(BookmarkLongClicked(item)) },
+                            modifier = Modifier.semantics {
+                                collectionItemInfo = CollectionItemInfo(
+                                    rowIndex = index,
+                                    rowSpan = 1,
+                                    columnSpan = 1,
+                                    columnIndex = 0,
+                                )
+                            },
                         ) {
                             Box {
                                 IconButton(
@@ -294,6 +310,14 @@ private fun BookmarksList(
                                     isSelected = item in state.selectedItems,
                                     onClick = { store.dispatch(FolderClicked(item)) },
                                     beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                                    modifier = Modifier.semantics {
+                                        collectionItemInfo = CollectionItemInfo(
+                                            rowIndex = index,
+                                            rowSpan = 1,
+                                            columnSpan = 1,
+                                            columnIndex = 0,
+                                        )
+                                    },
                                 )
                             } else {
                                 SelectableIconListItem(
@@ -302,6 +326,14 @@ private fun BookmarksList(
                                     onClick = { store.dispatch(FolderClicked(item)) },
                                     onLongClick = { store.dispatch(FolderLongClicked(item)) },
                                     beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                                    modifier = Modifier.semantics {
+                                        collectionItemInfo = CollectionItemInfo(
+                                            rowIndex = index,
+                                            rowSpan = 1,
+                                            columnSpan = 1,
+                                            columnIndex = 0,
+                                        )
+                                    },
                                 ) {
                                     Box {
                                         IconButton(
