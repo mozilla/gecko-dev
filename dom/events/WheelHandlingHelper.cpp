@@ -417,7 +417,7 @@ void WheelTransaction::SetTimeout() {
       OnTimeout, nullptr, StaticPrefs::mousewheel_transaction_timeout(),
       nsITimer::TYPE_ONE_SHOT, "WheelTransaction::SetTimeout");
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "nsITimer::InitWithFuncCallback failed");
+                       "nsITimer::InitWithNamedFuncCallback failed");
 }
 
 /* static */

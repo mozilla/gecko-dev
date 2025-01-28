@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
-#include  "nsINamed.idl"
+#include "nsINamed.idl"
 
 interface nsIObserver;
 interface nsIEventTarget;
@@ -15,15 +15,16 @@ interface nsIEventTarget;
 #include <functional>
 
 /**
- * The signature of the timer callback function passed to initWithFuncCallback.
- * This is the function that will get called when the timer expires if the
- * timer is initialized via initWithFuncCallback.
+ * The signature of the timer callback function passed to
+ * initWithNamedFuncCallback and similar functions. This is the function that
+ * will get called when the timer expires if the timer is initialized via
+ * initWithNamedFuncCallback.
  *
  * @param aTimer the timer which has expired
- * @param aClosure opaque parameter passed to initWithFuncCallback
+ * @param aClosure opaque parameter passed to initWithNamedFuncCallback
  */
 class nsITimer;
-typedef void (*nsTimerCallbackFunc) (nsITimer *aTimer, void *aClosure);
+typedef void (*nsTimerCallbackFunc) (nsITimer* aTimer, void* aClosure);
 %}
 
 native MallocSizeOf(mozilla::MallocSizeOf);
@@ -172,9 +173,8 @@ interface nsITimer : nsISupports
   void cancel();
 
   /**
-   * Like initWithFuncCallback, but also takes a name for the timer; the name
-   * will be used when timer profiling is enabled via the "TimerFirings" log
-   * module.
+   * Initialize a timer to fire after the given millisecond interval.
+   * This version takes a named function callback.
    *
    * @param aFunc      The function to invoke
    * @param aClosure   An opaque pointer to pass to that function
@@ -220,7 +220,7 @@ interface nsITimer : nsISupports
   attribute unsigned long type;
 
   /**
-   * The opaque pointer pass to initWithFuncCallback.
+   * The opaque pointer passed to initWithNamedFuncCallback.
    */
   [noscript] readonly attribute voidPtr closure;
 
