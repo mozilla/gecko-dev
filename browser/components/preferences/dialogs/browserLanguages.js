@@ -719,3 +719,5 @@ var gBrowserLanguagesDialog = {
     };
   },
 };
+
+window.addEventListener("load", () => gBrowserLanguagesDialog.onLoad());
