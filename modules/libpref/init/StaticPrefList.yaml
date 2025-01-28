@@ -12834,7 +12834,7 @@
   # in response to a Refresh header.
 - name: network.http.referer.sendFromRefresh
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # false=real referer, true=spoof referer (use target URI as referer).
