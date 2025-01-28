@@ -45,8 +45,8 @@ fun CfrTools(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(vertical = FirefoxTheme.space.small),
-        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
+            .padding(vertical = FirefoxTheme.layout.space.dynamic400),
+        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic400),
     ) {
         ResetCfrTool(
             cfrToolsStore = cfrToolsStore,
@@ -68,12 +68,12 @@ private fun ResetCfrTool(
     Column(
         modifier = Modifier
             .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
+        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic400),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = FirefoxTheme.space.small),
+                .padding(horizontal = FirefoxTheme.layout.space.dynamic400),
         ) {
             Text(
                 text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_title),
@@ -81,7 +81,7 @@ private fun ResetCfrTool(
                 style = FirefoxTheme.typography.headline5,
             )
 
-            Spacer(modifier = Modifier.height(height = FirefoxTheme.space.xxSmall))
+            Spacer(modifier = Modifier.height(height = FirefoxTheme.layout.space.dynamic100))
 
             Text(
                 text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_description),
@@ -89,7 +89,7 @@ private fun ResetCfrTool(
                 style = FirefoxTheme.typography.caption,
             )
 
-            Spacer(modifier = Modifier.height(height = FirefoxTheme.space.xSmall))
+            Spacer(modifier = Modifier.height(height = FirefoxTheme.layout.space.dynamic150))
 
             SecondaryButton(
                 text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_timestamp),
@@ -100,7 +100,7 @@ private fun ResetCfrTool(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
         ) {
             CfrSectionTitle(
                 text = stringResource(R.string.debug_drawer_cfr_tools_homepage_cfr_title),
@@ -149,7 +149,7 @@ private fun ResetCfrTool(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
         ) {
             CfrSectionTitle(
                 text = stringResource(R.string.debug_drawer_cfr_tools_tabs_tray_cfr_title),
@@ -176,7 +176,7 @@ private fun ResetCfrTool(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
         ) {
             CfrSectionTitle(
                 text = stringResource(R.string.debug_drawer_cfr_tools_toolbar_cfr_title),
@@ -197,7 +197,7 @@ private fun ResetCfrTool(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
         ) {
             CfrSectionTitle(
                 text = stringResource(R.string.debug_drawer_cfr_tools_other_cfr_title),
@@ -213,7 +213,7 @@ private fun ResetCfrTool(
             )
         }
 
-        Spacer(modifier = Modifier.height(FirefoxTheme.space.large))
+        Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic400))
     }
 }
 
@@ -237,7 +237,7 @@ private fun CfrToggle(
     SwitchWithLabel(
         label = title,
         checked = checked,
-        modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
+        modifier = Modifier.padding(horizontal = FirefoxTheme.layout.space.dynamic400),
         description = description,
         enabled = enabled,
     ) {
@@ -256,7 +256,7 @@ private fun CfrSectionTitle(
 ) {
     Text(
         text = text,
-        modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
+        modifier = Modifier.padding(horizontal = FirefoxTheme.layout.space.dynamic400),
         color = FirefoxTheme.colors.textAccent,
         style = FirefoxTheme.typography.headline6,
     )

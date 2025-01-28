@@ -369,8 +369,8 @@ private fun DropdownMenuPreview() {
             modifier = Modifier
                 .background(color = FirefoxTheme.colors.layer1)
                 .fillMaxSize()
-                .padding(FirefoxTheme.space.baseContentEqualPadding),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.baseContentEqualPadding),
+                .padding(FirefoxTheme.layout.space.dynamic400),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic400),
         ) {
             Text(
                 text = "Click buttons to expand dropdown menu",
@@ -402,7 +402,7 @@ private fun DropdownMenuPreview() {
                 }
             }
 
-            Spacer(modifier = Modifier.size(FirefoxTheme.space.baseContentEqualPadding))
+            Spacer(modifier = Modifier.size(FirefoxTheme.layout.space.dynamic400))
 
             Text(
                 text = "Dropdown menu items",
@@ -420,7 +420,7 @@ private fun DropdownMenuPreview() {
                 DropdownMenuContent(menuItems) { }
             }
 
-            Spacer(modifier = Modifier.size(FirefoxTheme.space.baseContentEqualPadding))
+            Spacer(modifier = Modifier.size(FirefoxTheme.layout.space.dynamic400))
 
             Text(
                 text = "Checkable menu item usage",

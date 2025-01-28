@@ -82,7 +82,7 @@ fun DownloadsScreen(
                 onDeleteClick = onItemDeleteClick,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .widthIn(max = FirefoxTheme.size.containerMaxWidth),
+                    .widthIn(max = FirefoxTheme.layout.size.containerMaxWidth),
             )
         }
     }

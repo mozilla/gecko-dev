@@ -96,8 +96,8 @@ private fun TabStripTabCounterButtonPreview() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(FirefoxTheme.colors.layer1)
-                .padding(FirefoxTheme.space.baseContentEqualPadding),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.baseContentEqualPadding),
+                .padding(FirefoxTheme.layout.space.dynamic400),
+            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic400),
         ) {
             Text(
                 text = "TabStripTabCounterButton",

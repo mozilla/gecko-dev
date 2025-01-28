@@ -240,7 +240,7 @@ private fun DropdownPreview() {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(FirefoxTheme.space.xSmall))
+            Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic150))
 
             Dropdown(
                 label = "Placeholder and item selected",

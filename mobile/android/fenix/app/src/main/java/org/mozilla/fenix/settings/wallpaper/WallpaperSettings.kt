@@ -80,9 +80,9 @@ fun WallpaperSettings(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(color = FirefoxTheme.colors.layer1)
-            .padding(horizontal = FirefoxTheme.space.baseContentHorizontalPadding),
+            .padding(horizontal = FirefoxTheme.layout.space.dynamic400),
     ) {
-        Spacer(modifier = Modifier.height(FirefoxTheme.space.baseContentVerticalPadding))
+        Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic400))
 
         wallpaperGroups.forEach { (collection, wallpapers) ->
             if (wallpapers.isNotEmpty()) {
@@ -91,7 +91,7 @@ fun WallpaperSettings(
                     onLearnMoreClick = onLearnMoreClick,
                 )
 
-                Spacer(modifier = Modifier.height(FirefoxTheme.space.small))
+                Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic400))
 
                 WallpaperThumbnails(
                     wallpapers = wallpapers,
@@ -101,7 +101,7 @@ fun WallpaperSettings(
                     onSelectWallpaper = onSelectWallpaper,
                 )
 
-                Spacer(modifier = Modifier.height(FirefoxTheme.space.large))
+                Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic400))
             }
         }
     }
@@ -194,8 +194,8 @@ fun WallpaperThumbnails(
     onSelectWallpaper: (Wallpaper) -> Unit,
 ) {
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
-        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+        horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
+        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic150),
     ) {
         wallpapers.forEach { wallpaper ->
             WallpaperThumbnailItem(
@@ -238,9 +238,9 @@ private fun WallpaperThumbnailItem(
         bitmap = loadWallpaperResource(wallpaper)
     }
     val border = if (isSelected) {
-        BorderStroke(width = FirefoxTheme.size.border.thick, color = FirefoxTheme.colors.borderAccent)
+        BorderStroke(width = FirefoxTheme.layout.border.thick, color = FirefoxTheme.colors.borderAccent)
     } else if (wallpaper.name == Wallpaper.defaultName) {
-        BorderStroke(width = FirefoxTheme.size.border.thick, color = FirefoxTheme.colors.borderPrimary)
+        BorderStroke(width = FirefoxTheme.layout.border.thick, color = FirefoxTheme.colors.borderPrimary)
     } else {
         null
     }
@@ -264,13 +264,13 @@ private fun WallpaperThumbnailItem(
 
         Surface(
             modifier = Modifier
-                .width(width = FirefoxTheme.size.xxLarge)
+                .width(width = FirefoxTheme.layout.size.static1200)
                 .aspectRatio(aspectRatio)
                 .debouncedClickable { onSelect(wallpaper) }
                 .then(contentDescriptionModifier),
-            shape = RoundedCornerShape(size = FirefoxTheme.size.corner.large),
+            shape = RoundedCornerShape(size = FirefoxTheme.layout.corner.large),
             border = border,
-            elevation = FirefoxTheme.size.elevation.medium,
+            elevation = FirefoxTheme.layout.elevation.medium,
         ) {
             if (bitmap == null) {
                 Spacer(
@@ -296,7 +296,7 @@ private fun WallpaperThumbnailItem(
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(FirefoxTheme.size.circularIndicatorDiameter),
+                        modifier = Modifier.size(FirefoxTheme.layout.size.circularIndicatorDiameter),
                         color = FirefoxTheme.colors.borderAccent,
                     )
                 }
