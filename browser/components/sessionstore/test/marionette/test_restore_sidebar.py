@@ -166,6 +166,8 @@ class TestSessionRestore(SessionStoreTestCase):
         self.marionette.execute_script(
             """
             Services.prefs.setBoolPref("sidebar.revamp", true);
+            // Always show is only available with vertical tabs
+            Services.prefs.setBoolPref("sidebar.verticalTabs", true);
             Services.prefs.setBoolPref("sidebar.animation.enabled", false);
             Services.prefs.setStringPref("sidebar.visibility", "always-show");
             """
@@ -182,7 +184,6 @@ class TestSessionRestore(SessionStoreTestCase):
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
-                window.SidebarController.toolbarButton.click();
                 return window.SidebarController.sidebarMain.expanded;
                 """
             ),
@@ -228,7 +229,6 @@ class TestSessionRestore(SessionStoreTestCase):
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
-                window.SidebarController.toolbarButton.click();
                 return window.SidebarController.sidebarContainer.hidden;
                 """
             ),

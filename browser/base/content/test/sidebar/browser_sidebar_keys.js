@@ -45,6 +45,10 @@ add_task(async function test_sidebar_in_customize_mode() {
     });
   }
 
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    Services.prefs.setBoolPref("sidebar.verticalTabs", true);
+  }
+
   let widgetIcon = CustomizableUI.getWidget("sidebar-button")
     .forWindow(window)
     .node?.querySelector(".toolbarbutton-icon");
@@ -109,4 +113,8 @@ add_task(async function test_sidebar_in_customize_mode() {
     0,
     "Sidebar widget background should appear unchecked"
   );
+
+  if (Services.prefs.getBoolPref("sidebar.verticalTabs", false)) {
+    Services.prefs.clearUserPref("sidebar.verticalTabs");
+  }
 });

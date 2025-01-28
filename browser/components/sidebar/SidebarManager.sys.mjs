@@ -6,6 +6,7 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const BACKUP_STATE_PREF = "sidebar.backupState";
+const VISIBILITY_SETTING_PREF = "sidebar.visibility";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -18,6 +19,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "sidebarBackupState",
   BACKUP_STATE_PREF
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "verticalTabsEnabled",
+  "sidebar.verticalTabs",
+  false
 );
 
 export const SidebarManager = {
@@ -66,6 +73,10 @@ export const SidebarManager = {
         setPref(pref, lazy.NimbusFeatures[featureId].getVariable(pref))
       );
     });
+
+    if (!lazy.verticalTabsEnabled) {
+      Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "hide-sidebar");
+    }
   },
 
   /**

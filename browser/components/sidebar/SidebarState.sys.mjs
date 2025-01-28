@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
+const lazy = {};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "verticalTabsEnabled",
+  "sidebar.verticalTabs"
+);
+
 /**
  * The properties that make up a sidebar's UI state.
  *
@@ -43,7 +53,6 @@ export class SidebarState {
     launcherDragActive: false,
     launcherHoverActive: false,
   };
-  #previousExpandedState = false;
   #previousLauncherVisible = undefined;
 
   /**
@@ -103,11 +112,7 @@ export class SidebarState {
     if (isPopup) {
       // Don't show launcher if we're in a popup window.
       this.launcherVisible = false;
-    } else if (this.revampVisibility === "hide-sidebar" && !this.panelOpen) {
-      // When using "Show and hide sidebar", launcher will start off hidden.
-      this.launcherVisible = false;
-    } else if (this.revampVisibility === "always-show") {
-      // When using "Expand and collapse sidebar", launcher must be visible.
+    } else {
       this.launcherVisible = true;
     }
     // Ensure that tab container has the updated value of `launcherExpanded`.
@@ -188,19 +193,11 @@ export class SidebarState {
       // Launcher must be visible to open a panel.
       this.#previousLauncherVisible = this.launcherVisible;
       this.launcherVisible = true;
-
-      // Whenever a panel is shown, the sidebar is collapsed. Upon hiding
-      // that panel afterwards, `expanded` reverts back to what it was prior
-      // to calling `show()`. Thus, we store the expanded state at this point.
-      this.#previousExpandedState = this.launcherExpanded;
-      this.launcherExpanded = false;
     } else if (this.revampVisibility === "hide-sidebar") {
-      // When visibility is set to "Hide Sidebar", revert back to an expanded state except
-      // when a panel was opened via keyboard shortcut and the launcher was previously hidden.
-      this.launcherExpanded = this.#previousLauncherVisible;
+      this.launcherExpanded = lazy.verticalTabsEnabled
+        ? this.#previousLauncherVisible
+        : false;
       this.launcherVisible = this.#previousLauncherVisible;
-    } else {
-      this.launcherExpanded = this.#previousExpandedState;
     }
   }
 
@@ -229,7 +226,7 @@ export class SidebarState {
           // If we are hiding the sidebar because we removed the toolbar button, close everything
           this.#previousLauncherVisible = false;
           this.launcherVisible = false;
-          this.launcherExpanded = true;
+          this.launcherExpanded = false;
 
           if (this.panelOpen) {
             this.#controller.hide();
@@ -241,8 +238,8 @@ export class SidebarState {
           // customize panel, we don't want to close anything on them.
           return;
         }
-        // we need this set to true to ensure it has the correct state when toggling the sidebar button
-        this.launcherExpanded = true;
+        // we need this set to verticalTabsEnabled to ensure it has the correct state when toggling the sidebar button
+        this.launcherExpanded = lazy.verticalTabsEnabled;
 
         if (!visible && this.panelOpen) {
           // Hiding the launcher should also close out any open panels and resets panelOpen
@@ -302,6 +299,8 @@ export class SidebarState {
     this.#props.launcherDragActive = active;
     if (active) {
       this.#launcherEl.toggleAttribute("customWidth", true);
+    } else if (!lazy.verticalTabsEnabled) {
+      this.launcherExpanded = false;
     } else if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
       // Snap back to collapsed state when the new width is too narrow.
       this.launcherExpanded = false;
@@ -327,7 +326,11 @@ export class SidebarState {
     ) {
       this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
       // Expand the launcher when it gets wide enough.
-      this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+      if (lazy.verticalTabsEnabled) {
+        this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+      } else {
+        this.launcherExpanded = false;
+      }
     }
   }
 
