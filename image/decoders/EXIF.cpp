@@ -260,10 +260,6 @@ bool EXIFParser::ReadRational(float& aOut) {
 
 bool EXIFParser::ParseResolution(uint16_t aType, uint32_t aCount,
                                  Maybe<float>& aOut) {
-  if (!StaticPrefs::image_exif_density_correction_enabled()) {
-    Advance(4);
-    return true;
-  }
   if (aType != RationalType || aCount != 1) {
     return false;
   }
@@ -280,11 +276,6 @@ bool EXIFParser::ParseResolution(uint16_t aType, uint32_t aCount,
 
 bool EXIFParser::ParseDimension(uint16_t aType, uint32_t aCount,
                                 Maybe<uint32_t>& aOut) {
-  if (!StaticPrefs::image_exif_density_correction_enabled()) {
-    Advance(4);
-    return true;
-  }
-
   if (aCount != 1) {
     return false;
   }
@@ -315,10 +306,6 @@ bool EXIFParser::ParseDimension(uint16_t aType, uint32_t aCount,
 
 bool EXIFParser::ParseResolutionUnit(uint16_t aType, uint32_t aCount,
                                      Maybe<ResolutionUnit>& aOut) {
-  if (!StaticPrefs::image_exif_density_correction_enabled()) {
-    Advance(4);
-    return true;
-  }
   if (aType != ShortType || aCount != 1) {
     return false;
   }
