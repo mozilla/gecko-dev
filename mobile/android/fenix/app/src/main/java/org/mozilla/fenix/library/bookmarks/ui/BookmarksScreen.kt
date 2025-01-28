@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ButtonDefaults
@@ -50,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -610,12 +613,18 @@ private fun SelectFolderScreen(
                         )
                     }
                 } else {
+                    val isSelected = folder.guid == state?.selectedGuid
                     SelectableIconListItem(
                         label = folder.title,
-                        isSelected = folder.guid == state?.selectedGuid,
-                        onClick = { store.dispatch(SelectFolderAction.ItemClicked(folder)) },
+                        isSelected = isSelected,
                         beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                        modifier = Modifier.padding(start = (40 * folder.indentation).dp),
+                        modifier = Modifier
+                            .padding(start = (40 * folder.indentation).dp)
+                            .toggleable(
+                                value = isSelected,
+                                role = Role.RadioButton,
+                                onValueChange = { _ -> store.dispatch(SelectFolderAction.ItemClicked(folder)) },
+                            ),
                     )
                 }
             }
