@@ -136,14 +136,19 @@ async function handleInitializationMessage({ data }) {
   }
 
   try {
-    const { fromLanguage, toLanguage, enginePayload, logLevel, innerWindowId } =
-      data;
+    const {
+      sourceLanguage,
+      targetLanguage,
+      enginePayload,
+      logLevel,
+      innerWindowId,
+    } = data;
 
-    if (!fromLanguage) {
-      throw new Error('Worker initialization missing "fromLanguage"');
+    if (!sourceLanguage) {
+      throw new Error('Worker initialization missing "sourceLanguage"');
     }
-    if (!toLanguage) {
-      throw new Error('Worker initialization missing "toLanguage"');
+    if (!targetLanguage) {
+      throw new Error('Worker initialization missing "targetLanguage"');
     }
 
     if (logLevel) {
@@ -154,7 +159,7 @@ async function handleInitializationMessage({ data }) {
     let engine;
     if (enginePayload.isMocked) {
       // The engine is testing mode, and no Bergamot wasm is available.
-      engine = new MockedEngine(fromLanguage, toLanguage);
+      engine = new MockedEngine(sourceLanguage, targetLanguage);
     } else {
       const { bergamotWasmArrayBuffer, translationModelPayloads } =
         enginePayload;
@@ -162,8 +167,8 @@ async function handleInitializationMessage({ data }) {
         bergamotWasmArrayBuffer
       );
       engine = new Engine(
-        fromLanguage,
-        toLanguage,
+        sourceLanguage,
+        targetLanguage,
         bergamot,
         translationModelPayloads
       );
@@ -220,7 +225,7 @@ function handleMessages(engine) {
           }
           try {
             const { whitespaceBefore, whitespaceAfter, cleanedSourceText } =
-              cleanText(engine.fromLanguage, sourceText);
+              cleanText(engine.sourceLanguage, sourceText);
 
             // Add a translation to the work queue, and when it returns, post the message
             // back. The translation may never return if the translations are discarded
@@ -318,16 +323,21 @@ function handleMessages(engine) {
  */
 class Engine {
   /**
-   * @param {string} fromLanguage
-   * @param {string} toLanguage
+   * @param {string} sourceLanguage
+   * @param {string} targetLanguage
    * @param {Bergamot} bergamot
    * @param {Array<TranslationModelPayload>} translationModelPayloads
    */
-  constructor(fromLanguage, toLanguage, bergamot, translationModelPayloads) {
+  constructor(
+    sourceLanguage,
+    targetLanguage,
+    bergamot,
+    translationModelPayloads
+  ) {
     /** @type {string} */
-    this.fromLanguage = fromLanguage;
+    this.sourceLanguage = sourceLanguage;
     /** @type {string} */
-    this.toLanguage = toLanguage;
+    this.targetLanguage = targetLanguage;
     /** @type {Bergamot} */
     this.bergamot = bergamot;
     /** @type {Bergamot["TranslationModel"][]} */
@@ -696,14 +706,14 @@ class BergamotUtils {
  */
 class MockedEngine {
   /**
-   * @param {string} fromLanguage
-   * @param {string} toLanguage
+   * @param {string} sourceLanguage
+   * @param {string} targetLanguage
    */
-  constructor(fromLanguage, toLanguage) {
+  constructor(sourceLanguage, targetLanguage) {
     /** @type {string} */
-    this.fromLanguage = fromLanguage;
+    this.sourceLanguage = sourceLanguage;
     /** @type {string} */
-    this.toLanguage = toLanguage;
+    this.targetLanguage = targetLanguage;
   }
 
   /**
@@ -717,7 +727,7 @@ class MockedEngine {
     // Note when an HTML translations is requested.
     let html = isHTML ? ", html" : "";
     const targetText = sourceText.toUpperCase();
-    return `${targetText} [${this.fromLanguage} to ${this.toLanguage}${html}]`;
+    return `${targetText} [${this.sourceLanguage} to ${this.targetLanguage}${html}]`;
   }
 
   discardTranslations() {}

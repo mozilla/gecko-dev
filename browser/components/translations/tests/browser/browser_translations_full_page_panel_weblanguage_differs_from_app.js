@@ -7,15 +7,12 @@
  * Tests what happens when the web languages differ from the app language.
  */
 add_task(async function test_weblanguage_differs_app_locale() {
-  const cleanupLocales = await mockLocales({
-    systemLocales: ["en"],
-    appLocales: ["en"],
-    webLanguages: ["fr"],
-  });
-
   const { cleanup } = await loadTestPage({
     page: ENGLISH_PAGE_URL,
     languagePairs: LANGUAGE_PAIRS,
+    systemLocales: ["en"],
+    appLocales: ["en"],
+    webLanguages: ["fr"],
   });
 
   await FullPageTranslationsTestUtils.assertTranslationsButton(
@@ -42,5 +39,4 @@ add_task(async function test_weblanguage_differs_app_locale() {
 
   await closeAllOpenPanelsAndMenus();
   await cleanup();
-  await cleanupLocales();
 });

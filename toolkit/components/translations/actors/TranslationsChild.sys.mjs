@@ -60,24 +60,20 @@ export class TranslationsChild extends JSWindowActorChild {
           return undefined;
         }
 
-        const { fromLanguage, toLanguage, port, translationsStart } = data;
+        const { languagePair, port, translationsStart } = data;
         if (
           !TranslationsChild.#translationsCache ||
-          !TranslationsChild.#translationsCache.matches(
-            fromLanguage,
-            toLanguage
-          )
+          !TranslationsChild.#translationsCache.matches(languagePair)
         ) {
           TranslationsChild.#translationsCache = new lazy.LRUCache(
-            fromLanguage,
-            toLanguage
+            languagePair
           );
         }
 
         this.#translatedDoc = new lazy.TranslationsDocument(
           this.document,
-          fromLanguage,
-          toLanguage,
+          languagePair.sourceLanguage,
+          languagePair.targetLanguage,
           this.contentWindow.windowGlobalChild.innerWindowId,
           port,
           () => this.sendAsyncMessage("Translations:RequestPort"),

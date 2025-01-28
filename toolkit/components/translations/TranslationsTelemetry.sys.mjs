@@ -110,8 +110,8 @@ export class TranslationsTelemetry {
    * @param {object} data
    * @param {boolean} data.autoTranslate
    * @param {string} data.docLangTag
-   * @param {string} data.fromLanguage
-   * @param {string} data.toLanguage
+   * @param {string} data.sourceLanguage
+   * @param {string} data.targetLanguage
    * @param {string} data.topPreferredLanguage
    * @param {string} data.requestTarget
    * @param {number} data.sourceTextCodeUnits
@@ -121,9 +121,9 @@ export class TranslationsTelemetry {
     const {
       autoTranslate,
       docLangTag,
-      fromLanguage,
+      sourceLanguage,
       requestTarget,
-      toLanguage,
+      targetLanguage,
       topPreferredLanguage,
       sourceTextCodeUnits,
       sourceTextWordCount,
@@ -132,8 +132,8 @@ export class TranslationsTelemetry {
     Glean.translations.requestCount[requestTarget ?? "full_page"].add(1);
     Glean.translations.translationRequest.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),
-      from_language: fromLanguage,
-      to_language: toLanguage,
+      from_language: sourceLanguage,
+      to_language: targetLanguage,
       auto_translate: autoTranslate,
       document_language: docLangTag,
       top_preferred_language: topPreferredLanguage,
@@ -415,8 +415,8 @@ class SelectTranslationsPanelTelemetry {
    * @param {object} data
    * @param {string} data.docLangTag
    * @param {boolean} data.maintainFlow
-   * @param {string} data.fromLanguage
-   * @param {string} data.toLanguage
+   * @param {string} data.sourceLanguage
+   * @param {string} data.targetLanguage
    * @param {string} data.topPreferredLanguage
    * @param {string} data.textSource
    */
@@ -426,8 +426,8 @@ class SelectTranslationsPanelTelemetry {
         ? TranslationsTelemetry.getOrCreateFlowId()
         : TranslationsTelemetry.createFlowId(),
       document_language: data.docLangTag,
-      from_language: data.fromLanguage,
-      to_language: data.toLanguage,
+      from_language: data.sourceLanguage,
+      to_language: data.targetLanguage,
       top_preferred_language: data.topPreferredLanguage,
       text_source: data.textSource,
     });
@@ -473,19 +473,23 @@ class SelectTranslationsPanelTelemetry {
     );
   }
 
-  static onTranslateButton({ detectedLanguage, fromLanguage, toLanguage }) {
+  static onTranslateButton({
+    detectedLanguage,
+    sourceLanguage,
+    targetLanguage,
+  }) {
     Glean.translationsSelectTranslationsPanel.translateButton.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),
       detected_language: detectedLanguage,
-      from_language: fromLanguage,
-      to_language: toLanguage,
+      from_language: sourceLanguage,
+      to_language: targetLanguage,
     });
     TranslationsTelemetry.logEventToConsole(
       SelectTranslationsPanelTelemetry.onTranslateButton,
       {
         detectedLanguage,
-        fromLanguage,
-        toLanguage,
+        sourceLanguage,
+        targetLanguage,
       }
     );
   }
@@ -574,14 +578,14 @@ class SelectTranslationsPanelTelemetry {
    * Records a telemetry event when the translation-failure message is displayed.
    *
    * @param {object} data
-   * @param {string} data.fromLanguage
-   * @param {string} data.toLanguage
+   * @param {string} data.sourceLanguage
+   * @param {string} data.targetLanguage
    */
   static onTranslationFailureMessage(data) {
     Glean.translationsSelectTranslationsPanel.translationFailureMessage.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),
-      from_language: data.fromLanguage,
-      to_language: data.toLanguage,
+      from_language: data.sourceLanguage,
+      to_language: data.targetLanguage,
     });
     TranslationsTelemetry.logEventToConsole(
       SelectTranslationsPanelTelemetry.onTranslationFailureMessage,

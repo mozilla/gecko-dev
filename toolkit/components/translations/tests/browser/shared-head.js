@@ -1004,6 +1004,9 @@ async function loadTestPage({
   prefs,
   autoOffer,
   permissionsUrls,
+  systemLocales = ["en"],
+  appLocales,
+  webLanguages,
   win = window,
 }) {
   info(`Loading test page starting at url: ${page}`);
@@ -1067,6 +1070,15 @@ async function loadTestPage({
 
   if (autoOffer) {
     TranslationsParent.testAutomaticPopup = true;
+  }
+
+  let cleanupLocales;
+  if (systemLocales || appLocales || webLanguages) {
+    cleanupLocales = await mockLocales({
+      systemLocales,
+      appLocales,
+      webLanguages,
+    });
   }
 
   // Start the tab at a blank page.
@@ -1175,6 +1187,9 @@ async function loadTestPage({
       await loadBlankPage();
       await EngineProcess.destroyTranslationsEngine();
       await removeMocks();
+      if (cleanupLocales) {
+        await cleanupLocales();
+      }
       restoreA11yUtils();
       Services.fog.testResetFOG();
       TranslationsParent.testAutomaticPopup = false;

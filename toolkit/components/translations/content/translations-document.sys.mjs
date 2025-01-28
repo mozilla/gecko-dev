@@ -53,10 +53,8 @@ export class LRUCache {
   #htmlCache = new Map();
   /** @type {Map<string, string>} */
   #textCache = new Map();
-  /** @type {string} */
-  #fromLanguage;
-  /** @type {string} */
-  #toLanguage;
+  /** @type {LanguagePair} */
+  #languagePair;
 
   /**
    * This limit is used twice, once for Text translations, and once for HTML translations.
@@ -69,12 +67,10 @@ export class LRUCache {
   #cacheExpirationMS = 10 * 60_000;
 
   /**
-   * @param {string} fromLanguage
-   * @param {string} toLanguage
+   * @param {LanguagePair} languagePair
    */
-  constructor(fromLanguage, toLanguage) {
-    this.#fromLanguage = fromLanguage;
-    this.#toLanguage = toLanguage;
+  constructor(languagePair) {
+    this.#languagePair = languagePair;
   }
 
   /**
@@ -129,13 +125,18 @@ export class LRUCache {
   }
 
   /**
-   * @param {string} fromLanguage
-   * @param {string} toLanguage
+   * @param {LanguagePair} languagePair
    */
-  matches(fromLanguage, toLanguage) {
+  matches(languagePair) {
     return (
-      lazy.TranslationsUtils.langTagsMatch(this.#fromLanguage, fromLanguage) &&
-      lazy.TranslationsUtils.langTagsMatch(this.#toLanguage, toLanguage)
+      lazy.TranslationsUtils.langTagsMatch(
+        this.#languagePair.sourceLanguage,
+        languagePair.sourceLanguage
+      ) &&
+      lazy.TranslationsUtils.langTagsMatch(
+        this.#languagePair.targetLanguage,
+        languagePair.targetLanguage
+      )
     );
   }
 
@@ -496,7 +497,7 @@ export class TranslationsDocument {
    *
    * @param {Document} document
    * @param {string} documentLanguage - The BCP 47 tag of the source language.
-   * @param {string} toLanguage - The BCP 47 tag of the destination language.
+   * @param {string} targetLanguage - The BCP 47 tag of the destination language.
    * @param {number} innerWindowId - This is used for better profiler marker reporting.
    * @param {MessagePort} port - The port to the translations engine.
    * @param {() => void} requestNewPort - Used when an engine times out and a new
@@ -510,7 +511,7 @@ export class TranslationsDocument {
   constructor(
     document,
     documentLanguage,
-    toLanguage,
+    targetLanguage,
     innerWindowId,
     port,
     requestNewPort,
@@ -660,7 +661,7 @@ export class TranslationsDocument {
       );
     });
 
-    document.documentElement.lang = toLanguage;
+    document.documentElement.lang = targetLanguage;
 
     lazy.console.log(
       "Beginning to translate.",
@@ -1140,7 +1141,7 @@ export class TranslationsDocument {
     }
 
     if (!this.matchesDocumentLanguage(node)) {
-      // Exclude nodes that don't match the fromLanguage.
+      // Exclude nodes that don't match the sourceLanguage.
       return true;
     }
 

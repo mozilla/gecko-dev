@@ -87,7 +87,7 @@ export class nsContextMenu {
    * A promise to retrieve the translations language pair
    * if the context menu was opened in a context relevant to
    * open the SelectTranslationsPanel.
-   * @type {Promise<{fromLanguage: string, toLanguage: string}>}
+   * @type {Promise<{sourceLanguage: string, targetLanguage: string}>}
    */
   #translationsLangPairPromise;
 
@@ -2570,22 +2570,22 @@ export class nsContextMenu {
    * @returns {Promise<void>}
    */
   async localizeTranslateSelectionItem(translateSelectionItem) {
-    const { toLanguage } = await this.#translationsLangPairPromise;
+    const { targetLanguage } = await this.#translationsLangPairPromise;
 
-    if (toLanguage) {
+    if (targetLanguage) {
       // A valid to-language exists, so localize the menuitem for that language.
       let displayName;
 
       try {
         const languageDisplayNames =
           lazy.TranslationsParent.createLanguageDisplayNames();
-        displayName = languageDisplayNames.of(toLanguage);
+        displayName = languageDisplayNames.of(targetLanguage);
       } catch {
         // languageDisplayNames.of threw, do nothing.
       }
 
       if (displayName) {
-        translateSelectionItem.setAttribute("target-language", toLanguage);
+        translateSelectionItem.setAttribute("target-language", targetLanguage);
         this.document.l10n.setAttributes(
           translateSelectionItem,
           this.isTextSelected

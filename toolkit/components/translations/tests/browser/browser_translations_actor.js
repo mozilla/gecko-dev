@@ -32,7 +32,9 @@ add_task(async function test_pivot_language_behavior() {
   // Sort the language pairs, as the order is not guaranteed.
   function sort(list) {
     return list.sort((a, b) =>
-      `${a.fromLang}-${a.toLang}`.localeCompare(`${b.fromLang}-${b.toLang}`)
+      `${a.fromLang ?? a.sourceLanguage}-${a.toLang ?? a.targetLanguage}`.localeCompare(
+        `${b.fromLang ?? b.sourceLanguage}-${b.toLang ?? b.targetLanguage}`
+      )
     );
   }
 
@@ -44,8 +46,12 @@ add_task(async function test_pivot_language_behavior() {
 
   // The pairs aren't guaranteed to be sorted.
   languagePairs.sort((a, b) =>
-    TranslationsParent.languagePairKey(a.fromLang, a.toLang).localeCompare(
-      TranslationsParent.languagePairKey(b.fromLang, b.toLang)
+    TranslationsParent.nonPivotKey(
+      a.fromLang,
+      a.toLang,
+      a.variant
+    ).localeCompare(
+      TranslationsParent.nonPivotKey(b.fromLang, b.toLang, b.variant)
     )
   );
 
@@ -53,18 +59,24 @@ add_task(async function test_pivot_language_behavior() {
     Assert.deepEqual(
       sort(languagePairs),
       sort([
-        { fromLang: "en", toLang: "es" },
-        { fromLang: "en", toLang: "yue" },
-        { fromLang: "es", toLang: "en" },
-        { fromLang: "is", toLang: "en" },
-        { fromLang: "yue", toLang: "en" },
+        { sourceLanguage: "en", targetLanguage: "es", variant: undefined },
+        { sourceLanguage: "en", targetLanguage: "yue", variant: undefined },
+        { sourceLanguage: "es", targetLanguage: "en", variant: undefined },
+        { sourceLanguage: "is", targetLanguage: "en", variant: undefined },
+        { sourceLanguage: "yue", targetLanguage: "en", variant: undefined },
       ]),
       "Non-pivot languages were removed on debug builds."
     );
   } else {
     Assert.deepEqual(
       sort(languagePairs),
-      sort(fromLanguagePairs),
+      sort(
+        fromLanguagePairs.map(({ fromLang, toLang }) => ({
+          sourceLanguage: fromLang,
+          targetLanguage: toLang,
+          varient: undefined,
+        }))
+      ),
       "Non-pivot languages are retained on non-debug builds."
     );
   }
@@ -93,29 +105,33 @@ add_task(async function test_language_support_checks() {
   });
 
   const { languagePairs } = await TranslationsParent.getSupportedLanguages();
-  for (const { fromLang, toLang } of languagePairs) {
+  for (const { sourceLanguage, targetLanguage } of languagePairs) {
     ok(
-      await TranslationsParent.findCompatibleSourceLangTag(fromLang),
+      await TranslationsParent.findCompatibleSourceLangTag(sourceLanguage),
       "Each from-language should be supported as a translation source language."
     );
 
     ok(
-      await TranslationsParent.findCompatibleTargetLangTag(toLang),
+      await TranslationsParent.findCompatibleTargetLangTag(targetLanguage),
       "Each to-language should be supported as a translation target language."
     );
 
     is(
-      Boolean(await TranslationsParent.findCompatibleTargetLangTag(fromLang)),
-      languagePairs.some(({ toLang }) =>
-        TranslationsUtils.langTagsMatch(toLang, fromLang)
+      Boolean(
+        await TranslationsParent.findCompatibleTargetLangTag(sourceLanguage)
+      ),
+      languagePairs.some(({ targetLanguage }) =>
+        TranslationsUtils.langTagsMatch(sourceLanguage, targetLanguage)
       ),
       "A from-language should be supported as a to-language if it also exists in the to-language list."
     );
 
     is(
-      Boolean(await TranslationsParent.findCompatibleSourceLangTag(toLang)),
-      languagePairs.some(({ fromLang }) =>
-        TranslationsUtils.langTagsMatch(fromLang, toLang)
+      Boolean(
+        await TranslationsParent.findCompatibleSourceLangTag(targetLanguage)
+      ),
+      languagePairs.some(({ sourceLanguage }) =>
+        TranslationsUtils.langTagsMatch(sourceLanguage, targetLanguage)
       ),
       "A to-language should be supported as a from-language if it also exists in the from-language list."
     );
@@ -212,8 +228,8 @@ add_task(async function test_translating_to_and_from_app_language() {
    */
   function getUniqueLanguagePairs(records) {
     const langPairs = new Set();
-    for (const { fromLang, toLang } of records) {
-      langPairs.add(TranslationsParent.languagePairKey(fromLang, toLang));
+    for (const { fromLang, toLang, variant } of records) {
+      langPairs.add(TranslationsParent.nonPivotKey(fromLang, toLang, variant));
     }
     return Array.from(langPairs)
       .sort()

@@ -9,6 +9,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * @typedef {import("../translations").LanguagePair} LanguagePair
+ */
+
+/**
  * The translations engine is in its own content process. This actor handles the
  * marshalling of the data such as the engine payload and port passing.
  */
@@ -31,12 +35,9 @@ export class TranslationsEngineParent extends JSWindowActorParent {
         lazy.EngineProcess.resolveTranslationsEngineParent(this);
         return undefined;
       case "TranslationsEngine:RequestEnginePayload": {
-        const { fromLanguage, toLanguage } = data;
+        const { languagePair } = data;
         const payloadPromise =
-          lazy.TranslationsParent.getTranslationsEnginePayload(
-            fromLanguage,
-            toLanguage
-          );
+          lazy.TranslationsParent.getTranslationsEnginePayload(languagePair);
         payloadPromise.catch(error => {
           lazy.TranslationsParent.telemetry().onError(String(error));
         });
@@ -73,12 +74,11 @@ export class TranslationsEngineParent extends JSWindowActorParent {
   }
 
   /**
-   * @param {string} fromLanguage
-   * @param {string} toLanguage
+   * @param {LanguagePair} languagePair
    * @param {MessagePort} port
    * @param {TranslationsParent} [translationsParent]
    */
-  startTranslation(fromLanguage, toLanguage, port, translationsParent) {
+  startTranslation(languagePair, port, translationsParent) {
     const innerWindowId = translationsParent?.innerWindowId;
     if (translationsParent) {
       this.#translationsParents.set(innerWindowId, translationsParent);
@@ -90,8 +90,7 @@ export class TranslationsEngineParent extends JSWindowActorParent {
     this.sendAsyncMessage(
       "TranslationsEngine:StartTranslation",
       {
-        fromLanguage,
-        toLanguage,
+        languagePair,
         innerWindowId,
         port,
       },

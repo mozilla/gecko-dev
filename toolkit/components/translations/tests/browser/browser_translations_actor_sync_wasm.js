@@ -17,7 +17,10 @@ add_task(async function test_translations_actor_sync_update_wasm() {
 
   const decoder = new TextDecoder();
   const { bergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(bergamotWasmArrayBuffer),
@@ -45,7 +48,10 @@ add_task(async function test_translations_actor_sync_update_wasm() {
   });
 
   const { bergamotWasmArrayBuffer: updatedBergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(updatedBergamotWasmArrayBuffer),
@@ -67,7 +73,10 @@ add_task(async function test_translations_actor_sync_delete_wasm() {
 
   const decoder = new TextDecoder();
   const { bergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(bergamotWasmArrayBuffer),
@@ -91,11 +100,12 @@ add_task(async function test_translations_actor_sync_delete_wasm() {
   });
 
   let errorMessage;
-  await TranslationsParent.getTranslationsEnginePayload("en", "es").catch(
-    error => {
-      errorMessage = error?.message;
-    }
-  );
+  await TranslationsParent.getTranslationsEnginePayload({
+    sourceLanguage: "en",
+    targetLanguage: "es",
+  }).catch(error => {
+    errorMessage = error?.message;
+  });
 
   is(
     errorMessage,
@@ -118,7 +128,10 @@ add_task(
 
     const decoder = new TextDecoder();
     const { bergamotWasmArrayBuffer } =
-      await TranslationsParent.getTranslationsEnginePayload("en", "es");
+      await TranslationsParent.getTranslationsEnginePayload({
+        sourceLanguage: "en",
+        targetLanguage: "es",
+      });
 
     is(
       decoder.decode(bergamotWasmArrayBuffer),
@@ -135,7 +148,10 @@ add_task(
     });
 
     const { bergamotWasmArrayBuffer: updatedBergamotWasmArrayBuffer } =
-      await TranslationsParent.getTranslationsEnginePayload("en", "es");
+      await TranslationsParent.getTranslationsEnginePayload({
+        sourceLanguage: "en",
+        targetLanguage: "es",
+      });
 
     is(
       decoder.decode(updatedBergamotWasmArrayBuffer),
@@ -159,7 +175,10 @@ add_task(
 
     const decoder = new TextDecoder();
     const { bergamotWasmArrayBuffer } =
-      await TranslationsParent.getTranslationsEnginePayload("en", "es");
+      await TranslationsParent.getTranslationsEnginePayload({
+        sourceLanguage: "en",
+        targetLanguage: "es",
+      });
 
     is(
       decoder.decode(bergamotWasmArrayBuffer),
@@ -178,7 +197,10 @@ add_task(
     });
 
     const { bergamotWasmArrayBuffer: updatedBergamotWasmArrayBuffer } =
-      await TranslationsParent.getTranslationsEnginePayload("en", "es");
+      await TranslationsParent.getTranslationsEnginePayload({
+        sourceLanguage: "en",
+        targetLanguage: "es",
+      });
 
     is(
       decoder.decode(updatedBergamotWasmArrayBuffer),
@@ -202,7 +224,10 @@ add_task(async function test_translations_actor_sync_rollback_wasm() {
 
   const decoder = new TextDecoder();
   const { bergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(bergamotWasmArrayBuffer),
@@ -219,7 +244,10 @@ add_task(async function test_translations_actor_sync_rollback_wasm() {
   });
 
   const { bergamotWasmArrayBuffer: updatedBergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(updatedBergamotWasmArrayBuffer),
@@ -233,7 +261,10 @@ add_task(async function test_translations_actor_sync_rollback_wasm() {
   });
 
   const { bergamotWasmArrayBuffer: rolledBackBergamotWasmArrayBuffer } =
-    await TranslationsParent.getTranslationsEnginePayload("en", "es");
+    await TranslationsParent.getTranslationsEnginePayload({
+      sourceLanguage: "en",
+      targetLanguage: "es",
+    });
 
   is(
     decoder.decode(rolledBackBergamotWasmArrayBuffer),

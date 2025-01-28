@@ -5,6 +5,10 @@
 /* import-globals-from preferences.js */
 
 /**
+ * @typedef {import("../../../toolkit/components/translations/translations").SupportedLanguages} SupportedLanguages
+ */
+
+/**
  * The permission type to give to Services.perms for Translations.
  */
 const TRANSLATIONS_PERMISSION = "translations";
@@ -53,9 +57,9 @@ let gTranslationsPane = {
   downloadPhases: new Map(),
 
   /**
-   * Object with details of languages supported by the browser namely
-   * languagePairs, fromLanguages, toLanguages
-   * @type {object} supportedLanguages
+   * Object with details of languages supported by the browser.
+   *
+   * @type {SupportedLanguages}
    */
   supportedLanguages: {},
 
@@ -167,10 +171,10 @@ let gTranslationsPane = {
    * Never translate settings list.
    */
   buildLanguageDropDowns() {
-    const { fromLanguages } = this.supportedLanguages;
+    const { sourceLanguages } = this.supportedLanguages;
     const { alwaysTranslateMenuPopup, neverTranslateMenuPopup } = this.elements;
 
-    for (const { langTag, displayName } of fromLanguages) {
+    for (const { langTag, displayName } of sourceLanguages) {
       const alwaysLang = document.createXULElement("menuitem");
       alwaysLang.setAttribute("value", langTag);
       alwaysLang.setAttribute("label", displayName);
