@@ -23,7 +23,7 @@ import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
-import mozilla.components.compose.base.theme.AcornWindowSize
+import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.feature.customtabs.CustomTabsColorsConfig
 import mozilla.components.feature.customtabs.CustomTabsToolbarButtonConfig
 import mozilla.components.feature.customtabs.CustomTabsToolbarFeature

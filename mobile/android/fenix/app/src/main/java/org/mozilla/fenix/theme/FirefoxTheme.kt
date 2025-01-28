@@ -12,8 +12,8 @@ import mozilla.components.compose.base.theme.AcornSize
 import mozilla.components.compose.base.theme.AcornSpace
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.theme.AcornTypography
-import mozilla.components.compose.base.theme.AcornWindowSize
 import mozilla.components.compose.base.theme.darkColorPalette
+import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.compose.base.theme.lightColorPalette
 import mozilla.components.compose.base.theme.privateColorPalette
 import mozilla.components.compose.base.utils.inComposePreview

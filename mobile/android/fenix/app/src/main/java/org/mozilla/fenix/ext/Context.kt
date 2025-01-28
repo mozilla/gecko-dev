@@ -15,7 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityManager
 import androidx.annotation.StringRes
-import mozilla.components.compose.base.theme.AcornWindowSize
+import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.support.locale.LocaleManager
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R

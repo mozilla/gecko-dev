@@ -22,7 +22,7 @@ import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
-import mozilla.components.compose.base.theme.AcornWindowSize
+import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
