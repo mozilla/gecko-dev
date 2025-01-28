@@ -773,25 +773,43 @@ void WebrtcVideoConduit::OnControlConfigChange() {
         // TODO this is for webrtc-priority, but needs plumbing bits
         mEncoderConfig.bitrate_priority = 1.0;
 
-        // Populate simulcast_layers with their config (not dimensions or
-        // dimensions-derived properties, as they're only known as a frame to
-        // be sent is known).
+        // Populate simulcast_layers with their config.
         mEncoderConfig.simulcast_layers.clear();
-        {
-          auto videoStreamFactory = mVideoStreamFactory.Lock();
-          auto& videoStreamFactoryRef = videoStreamFactory.ref();
-          for (size_t idx = 0; idx < streamCount; ++idx) {
-            webrtc::VideoStream video_stream;
-            auto& encoding = codecConfig->mEncodings[idx];
-            video_stream.active = encoding.active;
+        const auto& codecConstraints = codecConfig->mEncodingConstraints;
+        for (size_t idx = 0; idx < streamCount; ++idx) {
+          webrtc::VideoStream video_stream;
+          const auto& encoding = codecConfig->mEncodings[idx];
+          const auto& encodingConstraints = encoding.constraints;
 
-            if (videoStreamFactoryRef) {
-              videoStreamFactoryRef->SelectMaxFramerate(mLastWidth, mLastHeight,
-                                                        encoding, video_stream);
+          video_stream.active = encoding.active;
+
+          // Dimensions set here are used by libwebrtc to set the maximum to
+          // request from the source, to support scaleDownTo without another
+          // encoder reconfiguration on the first frame.
+          // We don't support scaleDownTo but use max-width and max-height if
+          // signaled.
+          video_stream.width = codecConfig->mEncodingConstraints.maxWidth;
+          video_stream.height = codecConfig->mEncodingConstraints.maxHeight;
+
+          // Max framerate is also used to cap the source, to avoid processing
+          // frames that will have to be dropped. Our signals here are both
+          // RTCRtpEncodingParameters.maxFramerate (per encoding) and max-fr
+          // for supported codecs.
+          video_stream.max_framerate = static_cast<int>(([&]() {
+            if (codecConstraints.maxFps && encodingConstraints.maxFps) {
+              return std::min(*codecConstraints.maxFps,
+                              *encodingConstraints.maxFps);
             }
+            return codecConstraints.maxFps
+                .orElse([&] { return encodingConstraints.maxFps; })
+                .valueOr(-1);
+          })());
 
-            mEncoderConfig.simulcast_layers.push_back(video_stream);
-          }
+          // At this time, other values are not used until after
+          // CreateEncoderStreams(). We fill these in directly from the codec
+          // config in VideoStreamFactory.
+
+          mEncoderConfig.simulcast_layers.push_back(video_stream);
         }
 
         // Expected max number of encodings
