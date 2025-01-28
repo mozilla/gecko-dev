@@ -29,6 +29,7 @@
         class="panel tab-group-editor-panel"
         orient="vertical"
         role="dialog"
+        ignorekeys="true"
         norolluponanchor="true">
       <html:div class="panel-header">
         <html:h1 id="tab-group-editor-title-create" class="tab-group-create-mode-only" data-l10n-id="tab-group-editor-title-create"></html:h1>
@@ -97,11 +98,11 @@
       this.#populateSwatches();
 
       this.#cancelButton.addEventListener("click", () => {
-        this.close();
+        this.close(false);
       });
 
       this.#createButton.addEventListener("click", () => {
-        this.close(true);
+        this.close();
       });
 
       this.#nameField.addEventListener("input", () => {
@@ -274,7 +275,7 @@
       });
     }
 
-    close(keepNewlyCreatedGroup = false) {
+    close(keepNewlyCreatedGroup = true) {
       if (this.createMode) {
         this.#keepNewlyCreatedGroup = keepNewlyCreatedGroup;
       }
@@ -283,7 +284,7 @@
 
     on_popupshown() {
       if (this.createMode) {
-        this.#keepNewlyCreatedGroup = false;
+        this.#keepNewlyCreatedGroup = true;
       }
       this.#nameField.focus();
     }
@@ -302,8 +303,18 @@
     }
 
     on_keypress(event) {
-      if (event.keyCode == KeyEvent.DOM_VK_RETURN) {
-        this.close(true);
+      if (event.defaultPrevented) {
+        // The event has already been consumed inside of the panel.
+        return;
+      }
+
+      switch (event.keyCode) {
+        case KeyEvent.DOM_VK_ESCAPE:
+          this.close(false);
+          break;
+        case KeyEvent.DOM_VK_RETURN:
+          this.close();
+          break;
       }
     }
 

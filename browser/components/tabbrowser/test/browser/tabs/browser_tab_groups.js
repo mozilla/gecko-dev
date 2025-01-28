@@ -1558,14 +1558,19 @@ add_task(async function test_tabGroupCreatePanel() {
   let tabgroupPanel = tabgroupEditor.panel;
   let nameField = tabgroupPanel.querySelector("#tab-group-name");
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let group;
 
-  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let group = gBrowser.addTabGroup([tab], {
-    color: "cyan",
-    label: "Food",
-    showCreateUI: true,
-  });
-  await panelShown;
+  let openCreatePanel = async () => {
+    let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+    group = gBrowser.addTabGroup([tab], {
+      color: "cyan",
+      label: "Food",
+      showCreateUI: true,
+    });
+    await panelShown;
+  };
+
+  await openCreatePanel();
   Assert.equal(tabgroupPanel.state, "open", "Create panel is visible");
   Assert.ok(tabgroupEditor.createMode, "Group editor is in create mode");
   // Edit panel should be populated with correct group details
@@ -1585,27 +1590,31 @@ add_task(async function test_tabGroupCreatePanel() {
     "Create panel's colorpicker has correct color pre-selected"
   );
 
-  // Group should be removed after hitting Cancel
+  info("New group should be removed after hitting Cancel");
   let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   tabgroupPanel.querySelector("#tab-group-editor-button-cancel").click();
   await panelHidden;
   Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
 
-  // Group should be removed after hitting Esc
+  info("New group should be removed after hitting Esc");
+  await openCreatePanel();
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   EventUtils.synthesizeKey("KEY_Escape");
   await panelHidden;
   Assert.ok(!tab.group, "Tab is ungrouped after hitting Esc");
 
-  panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  group = gBrowser.addTabGroup([tab], {
-    color: "cyan",
-    label: "Food",
-    showCreateUI: true,
-  });
-  await panelShown;
+  info("New group should remain when dismissing panel");
+  await openCreatePanel();
+  panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.hidePopup();
+  await panelHidden;
+  Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
+  Assert.equal(group.label, "Food");
+  Assert.equal(group.color, "cyan");
+  group.ungroupTabs();
 
-  // Panel inputs should work correctly
+  info("Panel inputs should work correctly");
+  await openCreatePanel();
   nameField.focus();
   nameField.value = "";
   EventUtils.sendString("Shopping");
@@ -1626,7 +1635,9 @@ add_task(async function test_tabGroupCreatePanel() {
     "Red swatch radio selected after clicking red swatch"
   );
 
-  // Panel dismissed after clicking Create and group remains
+  info(
+    "Panel should be dismissed after clicking Create and new group should remain"
+  );
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
   await panelHidden;
@@ -1635,8 +1646,8 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.equal(group.color, "red");
 
   let rightClickGroupLabel = async () => {
-    // right-clicking on the group label reopens the panel in edit mode
-    panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+    info("right-clicking on the group label should reopen panel in edit mode");
+    let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
     EventUtils.synthesizeMouseAtCenter(
       group.querySelector(".tab-group-label"),
       { type: "contextmenu", button: 2 },
@@ -1647,7 +1658,7 @@ add_task(async function test_tabGroupCreatePanel() {
     Assert.ok(!tabgroupEditor.createMode, "Group editor is not in create mode");
   };
 
-  // Panel dismissed after hitting Enter and group remains
+  info("Panel should be dismissed after hitting Enter and group should remain");
   await rightClickGroupLabel();
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   EventUtils.synthesizeKey("VK_RETURN");
