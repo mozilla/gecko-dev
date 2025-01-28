@@ -15,6 +15,7 @@
   persist="lastSelected screenX screenY"
   data-l10n-id="sanitize-dialog-title"
   data-l10n-attrs="style"
+  csp="default-src chrome:; img-src chrome: moz-icon:; style-src chrome: 'unsafe-inline';"
 >
   <dialog buttons="accept,cancel">
     <hbox>
@@ -52,7 +53,6 @@
       <menulist
         id="sanitizeDurationChoice"
         preference="privacy.sanitize.timeSpan"
-        onselect="gSanitizePromptDialog.selectByTimespan();"
         flex="1"
       >
         <menupopup id="sanitizeDurationPopup">

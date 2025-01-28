@@ -183,6 +183,10 @@ var gSanitizePromptDialog = {
       );
     }
 
+    document
+      .getElementById("sanitizeDurationChoice")
+      .addEventListener("select", () => this.selectByTimespan());
+
     document.addEventListener("dialogaccept", e => {
       if (this._inClearOnShutdownNewDialog) {
         this.updatePrefs();
