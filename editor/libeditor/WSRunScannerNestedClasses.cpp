@@ -266,7 +266,8 @@ WSRunScanner::TextFragmentData::BoundaryData WSRunScanner::TextFragmentData::
     // No previous content means that we reached the aAncestorLimiter boundary.
     return BoundaryData(
         aPoint, const_cast<Element&>(aAncestorLimiter),
-        HTMLEditUtils::IsBlockElement(aAncestorLimiter, aBlockInlineCheck)
+        HTMLEditUtils::IsBlockElement(
+            aAncestorLimiter, RespectParentBlockBoundary(aBlockInlineCheck))
             ? WSType::CurrentBlockBoundary
             : WSType::InlineEditingHostBoundary);
   }
@@ -416,7 +417,8 @@ WSRunScanner::TextFragmentData::BoundaryData::ScanCollapsibleWhiteSpaceEndFrom(
     return BoundaryData(
         aPoint.template To<EditorDOMPoint>(),
         const_cast<Element&>(aAncestorLimiter),
-        HTMLEditUtils::IsBlockElement(aAncestorLimiter, aBlockInlineCheck)
+        HTMLEditUtils::IsBlockElement(
+            aAncestorLimiter, RespectParentBlockBoundary(aBlockInlineCheck))
             ? WSType::CurrentBlockBoundary
             : WSType::InlineEditingHostBoundary);
   }

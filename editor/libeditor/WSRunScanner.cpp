@@ -85,8 +85,9 @@ void WSScanResult::AssertIfInvalidData(const WSRunScanner& aScanner) const {
                     aScanner.mScanMode == WSRunScanner::Scan::EditableNodes,
                 mContent->IsEditable());
   MOZ_ASSERT_IF(mReason == WSType::CurrentBlockBoundary,
-                HTMLEditUtils::IsBlockElement(*mContent,
-                                              aScanner.BlockInlineCheckMode()));
+                HTMLEditUtils::IsBlockElement(
+                    *mContent, RespectParentBlockBoundary(
+                                   aScanner.BlockInlineCheckMode())));
   MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary,
                 mContent->IsElement());
   MOZ_ASSERT_IF(mReason == WSType::InlineEditingHostBoundary &&

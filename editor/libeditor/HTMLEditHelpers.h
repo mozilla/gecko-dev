@@ -69,6 +69,18 @@ enum class BlockInlineCheck : uint8_t {
              : aBlockInlineCheck;
 }
 
+[[nodiscard]] inline BlockInlineCheck RespectChildBlockBoundary(
+    BlockInlineCheck aBlockInlineCheck) {
+  return IgnoreInsideBlockBoundary(aBlockInlineCheck);
+}
+
+[[nodiscard]] inline BlockInlineCheck RespectParentBlockBoundary(
+    BlockInlineCheck aBlockInlineCheck) {
+  return aBlockInlineCheck == BlockInlineCheck::UseComputedDisplayOutsideStyle
+             ? BlockInlineCheck::UseComputedDisplayStyle
+             : aBlockInlineCheck;
+}
+
 enum class WithTransaction { No, Yes };
 inline std::ostream& operator<<(std::ostream& aStream,
                                 WithTransaction aWithTransaction) {
