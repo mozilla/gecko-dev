@@ -401,11 +401,13 @@ export class ManageCreditCards extends ManageRecords {
     }
 
     let decryptedCCNumObj = {};
+    let errorMessage;
     if (creditCard && creditCard["cc-number-encrypted"]) {
       try {
         decryptedCCNumObj["cc-number"] = await lazy.OSKeyStore.decrypt(
           creditCard["cc-number-encrypted"]
         );
+        errorMessage = "NO_ERROR";
       } catch (ex) {
         if (ex.result == Cr.NS_ERROR_ABORT) {
           // User shouldn't be ask to reauth here, but it could happen.
@@ -417,6 +419,13 @@ export class ManageCreditCards extends ManageRecords {
         // unencrypted credit card number.
         decryptedCCNumObj["cc-number"] = "";
         console.error(ex);
+        errorMessage = ex.result;
+      } finally {
+        Glean.creditcard.osKeystoreDecrypt.record({
+          isDecryptSuccess: errorMessage === "NO_ERROR",
+          errorMessage,
+          trigger: "edit",
+        });
       }
     }
     let decryptedCreditCard = Object.assign({}, creditCard, decryptedCCNumObj);
@@ -446,7 +455,7 @@ export class ManageCreditCards extends ManageRecords {
     const typeL10nId = lazy.CreditCard.getNetworkL10nId(type);
     const typeName = typeL10nId
       ? await document.l10n.formatValue(typeL10nId)
-      : (type ?? ""); // Unknown card type
+      : type ?? ""; // Unknown card type
     return lazy.CreditCard.getLabelInfo({
       name: creditCard["cc-name"],
       number: creditCard["cc-number"],

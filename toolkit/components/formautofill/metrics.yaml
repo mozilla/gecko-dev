@@ -1507,6 +1507,36 @@ creditcard:
     extra_keys: *creditcard_detected_extra
     telemetry_mirror: Creditcard_Cleared_CcFormV2
 
+  os_keystore_decrypt:
+    type: event
+    description: >
+      Captures the result of the OS Keystore decryption, which user interaction triggered the OS Keystore, and any error messages upon failure.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1831049
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1831049
+    notification_emails:
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys:
+      isDecryptSuccess:
+        description: >
+          Records if the decryption was a success or failure.
+        type: boolean
+      error_message:
+        description: >
+          Records the error message.
+          Likely errors include "Cr.NS_ERROR_FAILURE" and "Cr.NS_ERROR_ABORT".
+          If no error then "NO_ERROR".
+        type: string
+      trigger:
+        description: >
+          What triggered the OS Keystore Popup.
+          "edit" - when editing credit cards
+          "autofill" - when autofilling credit cards
+        type: string
+
 formautofill.ml:
   field_infer_result:
     type: event
