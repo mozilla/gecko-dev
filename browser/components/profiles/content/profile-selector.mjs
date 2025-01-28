@@ -160,7 +160,12 @@ export class ProfileSelector extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/skin/in-content/common.css"
       />
-      <img class="logo" src="chrome://branding/content/about-logo.svg" />
+      <img
+        class="logo"
+        data-l10n-id="profile-window-logo"
+        data-l10n-attrs="alt"
+        src="chrome://branding/content/about-logo.svg"
+      />
       <h1 data-l10n-id="profile-window-heading"></h1>
       <p class="profiles-body-text" data-l10n-id="profile-window-body"></p>
       <div class="profile-list">

@@ -3,6 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 profile-window-title-2 = { -brand-short-name } - Choose a profile
+profile-window-logo =
+    .alt = { -brand-short-name } logo
 profile-window-heading = Choose a { -brand-short-name } profile
 profile-window-body = Keep your work and personal browsing, including things like passwords and bookmarks, totally separate. Or create profiles for everyone who uses this device.
 # This checkbox appears in the Choose profile window that appears when the browser is opened. "Show this" refers to this window, which is displayed when the checkbox is enabled.
