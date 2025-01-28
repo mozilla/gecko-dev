@@ -725,7 +725,9 @@ void LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(
   if (fixedOutput) {
     defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
   } else if (reuseInput) {
-    defineReuseInput(lir, ins, LAtomicTypedArrayElementBinop::valueOp);
+    constexpr size_t valueOp = 2;
+    MOZ_ASSERT(*lir->getOperand(valueOp) == value);
+    defineReuseInput(lir, ins, valueOp);
   } else {
     define(lir, ins);
   }

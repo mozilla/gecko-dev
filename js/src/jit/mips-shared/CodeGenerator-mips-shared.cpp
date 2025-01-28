@@ -1835,10 +1835,10 @@ void CodeGenerator::visitAtomicTypedArrayElementBinop(
 
   AnyRegister output = ToAnyRegister(lir->output());
   Register elements = ToRegister(lir->elements());
-  Register outTemp = ToTempRegisterOrInvalid(lir->temp2());
-  Register valueTemp = ToTempRegisterOrInvalid(lir->valueTemp());
-  Register offsetTemp = ToTempRegisterOrInvalid(lir->offsetTemp());
-  Register maskTemp = ToTempRegisterOrInvalid(lir->maskTemp());
+  Register outTemp = ToTempRegisterOrInvalid(lir->temp0());
+  Register valueTemp = ToTempRegisterOrInvalid(lir->temp1());
+  Register offsetTemp = ToTempRegisterOrInvalid(lir->temp2());
+  Register maskTemp = ToTempRegisterOrInvalid(lir->temp3());
   Register value = ToRegister(lir->value());
 
   Scalar::Type arrayType = lir->mir()->arrayType();
@@ -1862,9 +1862,9 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect(
   MOZ_ASSERT(lir->mir()->isForEffect());
 
   Register elements = ToRegister(lir->elements());
-  Register valueTemp = ToTempRegisterOrInvalid(lir->valueTemp());
-  Register offsetTemp = ToTempRegisterOrInvalid(lir->offsetTemp());
-  Register maskTemp = ToTempRegisterOrInvalid(lir->maskTemp());
+  Register valueTemp = ToTempRegisterOrInvalid(lir->temp0());
+  Register offsetTemp = ToTempRegisterOrInvalid(lir->temp1());
+  Register maskTemp = ToTempRegisterOrInvalid(lir->temp2());
   Register value = ToRegister(lir->value());
   Scalar::Type arrayType = lir->mir()->arrayType();
 
@@ -1886,13 +1886,13 @@ void CodeGenerator::visitCompareExchangeTypedArrayElement(
     LCompareExchangeTypedArrayElement* lir) {
   Register elements = ToRegister(lir->elements());
   AnyRegister output = ToAnyRegister(lir->output());
-  Register outTemp = ToTempRegisterOrInvalid(lir->temp());
+  Register outTemp = ToTempRegisterOrInvalid(lir->temp0());
 
   Register oldval = ToRegister(lir->oldval());
   Register newval = ToRegister(lir->newval());
-  Register valueTemp = ToTempRegisterOrInvalid(lir->valueTemp());
-  Register offsetTemp = ToTempRegisterOrInvalid(lir->offsetTemp());
-  Register maskTemp = ToTempRegisterOrInvalid(lir->maskTemp());
+  Register valueTemp = ToTempRegisterOrInvalid(lir->temp1());
+  Register offsetTemp = ToTempRegisterOrInvalid(lir->temp2());
+  Register maskTemp = ToTempRegisterOrInvalid(lir->temp3());
 
   Scalar::Type arrayType = lir->mir()->arrayType();
 
@@ -1914,12 +1914,12 @@ void CodeGenerator::visitAtomicExchangeTypedArrayElement(
     LAtomicExchangeTypedArrayElement* lir) {
   Register elements = ToRegister(lir->elements());
   AnyRegister output = ToAnyRegister(lir->output());
-  Register outTemp = ToTempRegisterOrInvalid(lir->temp());
+  Register outTemp = ToTempRegisterOrInvalid(lir->temp0());
 
   Register value = ToRegister(lir->value());
-  Register valueTemp = ToTempRegisterOrInvalid(lir->valueTemp());
-  Register offsetTemp = ToTempRegisterOrInvalid(lir->offsetTemp());
-  Register maskTemp = ToTempRegisterOrInvalid(lir->maskTemp());
+  Register valueTemp = ToTempRegisterOrInvalid(lir->temp1());
+  Register offsetTemp = ToTempRegisterOrInvalid(lir->temp2());
+  Register maskTemp = ToTempRegisterOrInvalid(lir->temp3());
 
   Scalar::Type arrayType = lir->mir()->arrayType();
 
@@ -1978,7 +1978,7 @@ void CodeGenerator::visitAtomicTypedArrayElementBinop64(
 
   Register elements = ToRegister(lir->elements());
   Register64 value = ToRegister64(lir->value());
-  Register64 temp = ToRegister64(lir->temp());
+  Register64 temp = ToRegister64(lir->temp0());
   Register64 out = ToOutRegister64(lir);
 
   Scalar::Type arrayType = lir->mir()->arrayType();
@@ -2002,7 +2002,7 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
 
   Register elements = ToRegister(lir->elements());
   Register64 value = ToRegister64(lir->value());
-  Register64 temp = ToRegister64(lir->temp());
+  Register64 temp = ToRegister64(lir->temp0());
 
   Scalar::Type arrayType = lir->mir()->arrayType();
   AtomicOp atomicOp = lir->mir()->operation();

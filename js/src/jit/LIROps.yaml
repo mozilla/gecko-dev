@@ -2549,22 +2549,82 @@
     value: WordSized
 
 - name: CompareExchangeTypedArrayElement
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    elements: WordSized
+    index: WordSized
+    oldval: WordSized
+    newval: WordSized
+  # Needs additional temps on LL/SC platforms to extract/insert bits of word.
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 4
+#else
+  num_temps: 1
+#endif
+  mir_op: true
 
 - name: AtomicExchangeTypedArrayElement
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: WordSized
+  # Needs additional temps on LL/SC platforms to extract/insert bits of word.
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 4
+#else
+  num_temps: 1
+#endif
+  mir_op: true
 
 - name: AtomicTypedArrayElementBinop
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: WordSized
+  # Needs additional temps on LL/SC platforms to extract/insert bits of word.
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 4
+#else
+  num_temps: 2
+#endif
+  mir_op: true
 
+# Atomic binary operation where the result is discarded.
 - name: AtomicTypedArrayElementBinopForEffect
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: WordSized
+  # Additional temp that may be used on LL/SC platforms for the flag result of the store.
+  # Needs additional temps on LL/SC platforms to extract/insert bits of word.
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+  num_temps: 1
+#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 3
+#endif
+  mir_op: AtomicTypedArrayElementBinop
 
 - name: AtomicLoad64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+#ifdef JS_CODEGEN_X86
+  num_temps64: 1
+#endif
+  mir_op: LoadUnboxedScalar
 
 - name: AtomicStore64
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM)
+  num_temps64: 1
+#endif
+  mir_op: StoreUnboxedScalar
 
 - name: CompareExchangeTypedArrayElement64
   result_type: Int64
@@ -2584,10 +2644,26 @@
   mir_op: AtomicExchangeTypedArrayElement
 
 - name: AtomicTypedArrayElementBinop64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+#ifndef JS_CODEGEN_X86
+  num_temps64: 1
+#endif
+  mir_op: AtomicTypedArrayElementBinop
 
+# Atomic binary operation where the result is discarded.
 - name: AtomicTypedArrayElementBinopForEffect64
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+#ifndef JS_CODEGEN_X64
+  num_temps64: 1
+#endif
+  mir_op: AtomicTypedArrayElementBinop
 
 - name: EffectiveAddress
   result_type: WordSized
