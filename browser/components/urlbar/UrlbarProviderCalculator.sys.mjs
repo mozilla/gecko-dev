@@ -201,14 +201,27 @@ class BaseCalculator {
     if (["*", "/"].includes(val)) {
       return 3;
     }
+    if ("^" === val) {
+      return 4;
+    }
+
+    return null;
+  }
+
+  isLeftAssociative(val) {
+    if (["-", "+", "*", "/"].includes(val)) {
+      return true;
+    }
+    if ("^" === val) {
+      return false;
+    }
 
     return null;
   }
 
   // This is a basic implementation of the shunting yard algorithm
   // described http://en.wikipedia.org/wiki/Shunting-yard_algorithm
-  // Currently functions are unimplemented and only operators with
-  // left association are used
+  // Currently functions are unimplemented
   infix2postfix(infix) {
     let parser = new Parser(infix, this);
     let tokens = parser.parse(infix);
@@ -225,7 +238,9 @@ class BaseCalculator {
         while (
           stack.length &&
           this.isOperator(stack[stack.length - 1]) &&
-          i(token.value) <= i(stack[stack.length - 1])
+          (i(token.value) < i(stack[stack.length - 1]) ||
+            (i(token.value) == i(stack[stack.length - 1]) &&
+              this.isLeftAssociative(token.value)))
         ) {
           output.push(stack.pop());
         }
@@ -256,6 +271,7 @@ class BaseCalculator {
     "+": (a, b) => a + b,
     "-": (a, b) => a - b,
     "/": (a, b) => a / b,
+    "^": (a, b) => a ** b,
   };
 
   evaluatePostfix(postfix) {
@@ -268,14 +284,14 @@ class BaseCalculator {
         let op2 = stack.pop();
         let op1 = stack.pop();
         let result = this.evaluate[token](op1, op2);
-        if (isNaN(result)) {
+        if (isNaN(result) || !isFinite(result)) {
           throw new Error("Value is " + result);
         }
         stack.push(result);
       }
     });
     let finalResult = stack.pop();
-    if (isNaN(finalResult)) {
+    if (isNaN(finalResult) || !isFinite(finalResult)) {
       throw new Error("Value is " + finalResult);
     }
     return finalResult;
@@ -433,7 +449,7 @@ Parser.prototype = {
 export let Calculator = new BaseCalculator();
 
 Calculator.addNumberSystem({
-  isOperator: char => ["÷", "×", "-", "+", "*", "/"].includes(char),
+  isOperator: char => ["÷", "×", "-", "+", "*", "/", "^"].includes(char),
   isNumericToken: char => /^[0-9\.,]/.test(char),
   // parseFloat will only handle numbers that use periods as decimal
   // seperators, various countries use commas. This function attempts

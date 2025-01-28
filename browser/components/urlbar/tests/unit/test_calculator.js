@@ -32,6 +32,10 @@ const FORMULAS = [
   ["1,500.5+2.5", 1503], // Ignore commas when using decimal seperators
   ["1,5+2,5", 4], // Support comma seperators
   ["1.500,5+2,5", 1503], // Ignore periods when using comma decimal seperators
+  ["3^3", 27],
+  ["2+3^3", 29],
+  ["4^0.5+4^-0.5", 2.5],
+  ["3+8*64/(1-3)^2^3", 5],
 ];
 
 add_task(function test() {
