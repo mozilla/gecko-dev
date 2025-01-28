@@ -945,9 +945,7 @@ abstract class AbstractFetchDownloadService : Service() {
 
         var copyVersionNumber = 1
 
-        while (isFileInDownloads(potentialFile.name) ||
-            potentialFile.exists() ||
-            fileNameExistsInCurrentDownloads(
+        while (potentialFile.exists() || fileNameExistsInCurrentDownloads(
                 potentialFile.name,
                 download,
                 downloadJobs,
@@ -959,36 +957,6 @@ abstract class AbstractFetchDownloadService : Service() {
         return download.copy(
             fileName = potentialFile.name,
         )
-    }
-
-    private fun isFileInDownloads(fileName: String): Boolean {
-        val uri: Uri
-        val projection: Array<String>
-        val selection: String
-        val selectionArgs = arrayOf(fileName)
-
-        if (SDK_INT >= Build.VERSION_CODES.Q) {
-            uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            projection = arrayOf(
-                MediaStore.Files.FileColumns.DISPLAY_NAME,
-            )
-            selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} = ?"
-        } else {
-            uri = MediaStore.Files.getContentUri("external")
-            projection = arrayOf(MediaStore.MediaColumns._ID)
-            selection = "${MediaStore.MediaColumns.DATA} = ?"
-        }
-
-        context.contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                // File exists
-                logger.debug("File $fileName exists in Downloads folder.")
-                return true
-            }
-        }
-        // File does not exist
-        logger.debug("File $fileName does not exist in Downloads folder.")
-        return false
     }
 
     private fun fileNameExistsInCurrentDownloads(
@@ -1017,11 +985,11 @@ abstract class AbstractFetchDownloadService : Service() {
 
         val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         val resolver = applicationContext.contentResolver
-        var downloadUri = queryDownloadMediaStore(applicationContext, download)
-
-        if (downloadUri == null) {
-            downloadUri = resolver.insert(collection, values)
-        }
+        val downloadUri =
+            queryDownloadMediaStore(applicationContext, download, true) ?: resolver.insert(
+                collection,
+                values,
+            )
 
         downloadUri?.let {
             val writingMode = if (append) "wa" else "w"
@@ -1081,7 +1049,7 @@ abstract class AbstractFetchDownloadService : Service() {
             val filePath = download.filePath
             val contentType = download.contentType
 
-            // For devices that support the scoped storage we can query the directly the download
+            // For devices that support the scoped storage we can query directly the download
             // media store otherwise we have to construct the uri based on the file path.
             val fileUri: Uri =
                 if (SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1104,9 +1072,13 @@ abstract class AbstractFetchDownloadService : Service() {
 
         @RequiresApi(Build.VERSION_CODES.Q)
         @VisibleForTesting
-        internal fun queryDownloadMediaStore(applicationContext: Context, download: DownloadState): Uri? {
+        internal fun queryDownloadMediaStore(
+            applicationContext: Context,
+            download: DownloadState,
+            limitToDownloadsFolder: Boolean = false,
+        ): Uri? {
             val resolver = applicationContext.contentResolver
-            val queryProjection = arrayOf(MediaStore.Downloads._ID)
+            val queryProjection = arrayOf(MediaStore.Downloads._ID, MediaStore.MediaColumns.RELATIVE_PATH)
             val querySelection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
             val querySelectionArgs = arrayOf("${download.fileName}")
 
@@ -1131,21 +1103,23 @@ abstract class AbstractFetchDownloadService : Service() {
                     setIncludePending(collection)
                 }
 
-            var downloadUri: Uri? = null
             resolver.query(
                 queryCollection,
                 queryProjection,
                 queryBundle,
                 null,
-            )?.use {
-                if (it.count > 0) {
-                    val idColumnIndex = it.getColumnIndex(MediaStore.Downloads._ID)
-                    it.moveToFirst()
-                    downloadUri = ContentUris.withAppendedId(collection, it.getLong(idColumnIndex))
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val relativePath =
+                        cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
+                    if (!limitToDownloadsFolder || relativePath == "Downloads/") {
+                        val idColumnIndex = cursor.getColumnIndex(MediaStore.Downloads._ID)
+                        return ContentUris.withAppendedId(collection, cursor.getLong(idColumnIndex))
+                    }
                 }
             }
 
-            return downloadUri
+            return null
         }
 
         @VisibleForTesting
