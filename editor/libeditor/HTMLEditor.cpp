@@ -3539,11 +3539,7 @@ already_AddRefed<Element> HTMLEditor::GetSelectedElement(const nsAtom* aTagName,
   }
 
   PostContentIterator postOrderIter;
-  nsresult rv = postOrderIter.Init(firstRange);
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-    return nullptr;
-  }
+  postOrderIter.Init(firstRange);
 
   RefPtr<Element> lastElementInRange;
   for (nsINode* lastNodeInRange = nullptr; !postOrderIter.IsDone();

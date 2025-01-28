@@ -346,10 +346,7 @@ const nsTHashSet<const nsINode*>& SelectionNodeCache::MaybeCollect(
       const nsINode* endContainer =
           endRef.IsEndOfContainer() ? nullptr : endRef.Container();
       UnsafePreContentIterator iter;
-      nsresult rv = iter.Init(range);
-      if (NS_FAILED(rv)) {
-        continue;
-      }
+      iter.Init(range);
       for (; !iter.IsDone(); iter.Next()) {
         if (const nsINode* node = iter.GetCurrentNode()) {
           // Only collect start and end container if they are fully
@@ -1947,10 +1944,7 @@ nsresult Selection::SelectFrames(nsPresContext* aPresContext,
   }
 
   ContentSubtreeIterator subtreeIter;
-  nsresult rv = subtreeIter.InitWithAllowCrossShadowBoundary(&aRange);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  subtreeIter.InitWithAllowCrossShadowBoundary(&aRange);
   if (isFirstContentTextNode && !subtreeIter.IsDone() &&
       subtreeIter.GetCurrentNode() == startContent) {
     subtreeIter.Next();  // first content has already been handled.
