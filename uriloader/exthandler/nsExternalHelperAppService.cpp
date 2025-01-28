@@ -476,7 +476,6 @@ static const nsDefaultMimeTypeEntry defaultMimeEntries[] = {
     {APPLICATION_XJAVASCRIPT, "js"},
     {APPLICATION_XJAVASCRIPT, "jsm"},
     {VIDEO_OGG, "ogv"},
-    {VIDEO_OGG, "ogg"},
     {APPLICATION_OGG, "ogg"},
     {AUDIO_OGG, "oga"},
     {AUDIO_OGG, "opus"},
