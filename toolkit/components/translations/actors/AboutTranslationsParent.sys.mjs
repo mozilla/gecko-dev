@@ -32,7 +32,10 @@ export class AboutTranslationsParent extends JSWindowActorParent {
 
   didDestroy() {
     if (this.#boundObserve) {
-      Services.obs.removeObserver(this.#boundObserve);
+      Services.obs.removeObserver(
+        this.#boundObserve,
+        "translations:pref-changed"
+      );
       this.#boundObserve = null;
     }
     this.#isDestroyed = true;
