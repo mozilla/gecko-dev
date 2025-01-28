@@ -12,6 +12,14 @@ android {
         targetSdkVersion config.targetSdkVersion
     }
 
+    sourceSets {
+        main {
+            assets {
+                srcDir layout.buildDirectory.dir("generated/assets/")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -20,6 +28,18 @@ android {
     }
 
     namespace 'mozilla.components.feature.webcompat'
+}
+
+// We copy the webcompat extension from `browser/extensions/webcompat/` to
+// `assets/extensions/webcompat/` by first copying the extension into the
+// build directory, which is registered as the assets source directory.
+//
+// There is an `extensions/` folder in between, which is needed to access
+// the extension at: `resource://android/assets/extensions/webcompat/`.
+tasks.register("syncWebcompatExtension", Sync) {
+    from "${rootProject.projectDir}/browser/extensions/webcompat"
+    into layout.buildDirectory.dir("generated/assets/extensions/webcompat/")
+    exclude "**/tests/**", "**/components.conf", "**/moz.build"
 }
 
 dependencies {
@@ -40,3 +60,4 @@ dependencies {
 apply from: '../../../android-lint.gradle'
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, project.name, project.ext.description)
+preBuild.dependsOn syncWebcompatExtension

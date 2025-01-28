@@ -152,7 +152,6 @@ avoid-blacklist-and-whitelist:
         - layout/tools/reftest/reftestcommandline.py
         - layout/tools/reftest/runreftest.py
         - layout/tools/reftest/selftest/conftest.py
-        - mobile/android/android-components/components/feature/webcompat/src/main/assets/extensions/webcompat/shims/nielsen.js
         - mobile/android/android-components/docs/changelog.md
         - mobile/android/app/geckoview-prefs.js
         - mobile/android/fenix/app/src/main/java/org/mozilla/fenix/ext/Bitmap.kt
