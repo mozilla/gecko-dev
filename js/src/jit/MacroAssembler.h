@@ -5373,6 +5373,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                const BaseIndex& dest);
   void storeToTypedBigIntArray(Scalar::Type arrayType, Register64 value,
                                const Address& dest);
+  void storeToTypedBigIntArray(Scalar::Type arrayType, Imm64 value,
+                               const BaseIndex& dest);
+  void storeToTypedBigIntArray(Scalar::Type arrayType, Imm64 value,
+                               const Address& dest);
 
   void memoryBarrierBefore(Synchronization sync);
   void memoryBarrierAfter(Synchronization sync);

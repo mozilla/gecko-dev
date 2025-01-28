@@ -134,6 +134,15 @@ void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
                                              const Address& dest) {
   StoreToTypedBigIntArray(*this, arrayType, value, dest);
 }
+void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
+                                             Imm64 value,
+                                             const BaseIndex& dest) {
+  StoreToTypedBigIntArray(*this, arrayType, value, dest);
+}
+void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
+                                             Imm64 value, const Address& dest) {
+  StoreToTypedBigIntArray(*this, arrayType, value, dest);
+}
 
 void MacroAssembler::boxUint32(Register source, ValueOperand dest,
                                Uint32Mode mode, Label* fail) {

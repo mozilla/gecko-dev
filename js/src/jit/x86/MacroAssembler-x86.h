@@ -744,6 +744,10 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
     movl(imm.low(), Operand(LowWord(address)));
     movl(imm.hi(), Operand(HighWord(address)));
   }
+  void store64(Imm64 imm, const BaseIndex& address) {
+    movl(imm.low(), Operand(LowWord(address)));
+    movl(imm.hi(), Operand(HighWord(address)));
+  }
   template <typename S, typename T>
   void store64Unaligned(const S& src, const T& dest) {
     store64(src, dest);
