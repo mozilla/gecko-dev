@@ -137,6 +137,17 @@ export class MegalistAlpha extends MozLitElement {
 
   #openMenu(e) {
     const panelList = this.shadowRoot.querySelector("panel-list");
+    const menuButton = this.shadowRoot.querySelector(
+      "#more-options-menubutton"
+    );
+    menuButton.setAttribute("aria-expanded", "true");
+
+    panelList.addEventListener(
+      "hidden",
+      () => menuButton.setAttribute("aria-expanded", "false"),
+      { once: true }
+    );
+
     panelList.toggle(e);
   }
 
