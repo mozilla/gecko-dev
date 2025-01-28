@@ -18891,8 +18891,7 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   Register temp = ToTempRegisterOrInvalid(lir->temp());
   Register64 temp64 = ToTempRegister64OrInvalid(lir->temp64());
 
-  const MStoreDataViewElement* mir = lir->mir();
-  Scalar::Type writeType = mir->writeType();
+  Scalar::Type writeType = lir->mir()->writeType();
 
   LiveRegisterSet volatileRegs;
   if (MacroAssembler::StoreRequiresCall(writeType)) {
@@ -19018,47 +19017,61 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
 
 void CodeGenerator::visitStoreDataViewElement64(LStoreDataViewElement64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register64 value = ToRegister64(lir->value());
+  LInt64Allocation value = lir->value();
   const LAllocation* littleEndian = lir->littleEndian();
   Register64 temp = ToTempRegister64OrInvalid(lir->temp());
 
-  MOZ_ASSERT(Scalar::isBigIntType(lir->mir()->writeType()));
+  Scalar::Type writeType = lir->mir()->writeType();
+  MOZ_ASSERT(Scalar::isBigIntType(writeType));
 
   BaseIndex dest(elements, ToRegister(lir->index()), TimesOne);
 
   bool noSwap = littleEndian->isConstant() &&
                 ToBoolean(littleEndian) == MOZ_LITTLE_ENDIAN();
 
-  if (!noSwap) {
+  // Directly store if no byte swap is needed and the platform supports
+  // unaligned accesses for the access.  (Such support is assumed for integer
+  // types.)
+  if (noSwap) {
+    StoreToTypedBigIntArray(masm, writeType, value, dest);
+    return;
+  }
+
+  Register64 valueReg = Register64::Invalid();
+  if (IsConstant(value)) {
+    MOZ_ASSERT(temp != Register64::Invalid());
+    masm.move64(Imm64(ToInt64(value)), temp);
+  } else {
+    valueReg = ToRegister64(value);
+
     // Preserve the input value.
     if (temp != Register64::Invalid()) {
-      masm.move64(value, temp);
-      value = temp;
+      masm.move64(valueReg, temp);
     } else {
-      masm.Push(value);
-    }
-
-    // Swap the bytes in the loaded value.
-    Label skip;
-    if (!littleEndian->isConstant()) {
-      masm.branch32(
-          MOZ_LITTLE_ENDIAN() ? Assembler::NotEqual : Assembler::Equal,
-          ToRegister(littleEndian), Imm32(0), &skip);
-    }
-
-    masm.byteSwap64(value);
-
-    if (skip.used()) {
-      masm.bind(&skip);
+      masm.Push(valueReg);
+      temp = valueReg;
     }
   }
 
+  // Swap the bytes in the loaded value.
+  Label skip;
+  if (!littleEndian->isConstant()) {
+    masm.branch32(MOZ_LITTLE_ENDIAN() ? Assembler::NotEqual : Assembler::Equal,
+                  ToRegister(littleEndian), Imm32(0), &skip);
+  }
+
+  masm.byteSwap64(temp);
+
+  if (skip.used()) {
+    masm.bind(&skip);
+  }
+
   // Store the value into the destination.
-  masm.store64Unaligned(value, dest);
+  masm.store64Unaligned(temp, dest);
 
   // Restore |value| if it was modified.
-  if (!noSwap && temp == Register64::Invalid()) {
-    masm.Pop(value);
+  if (valueReg == temp) {
+    masm.Pop(valueReg);
   }
 }
 

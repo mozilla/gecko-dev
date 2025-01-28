@@ -5178,13 +5178,14 @@ void LIRGenerator::visitStoreDataViewElement(MStoreDataViewElement* ins) {
   LAllocation littleEndian = useRegisterOrConstant(ins->littleEndian());
 
   if (ins->isBigIntWrite()) {
-    LInt64Allocation value = useInt64Register(ins->value());
 #ifdef JS_CODEGEN_X86
+    LInt64Allocation value = useInt64Register(ins->value());
     LInt64Definition temp = LInt64Definition::BogusTemp();
     if (littleEndian.isConstant()) {
       temp = tempInt64();
     }
 #else
+    LInt64Allocation value = useInt64RegisterOrConstant(ins->value());
     LInt64Definition temp = tempInt64();
 #endif
 
