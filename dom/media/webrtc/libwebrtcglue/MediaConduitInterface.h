@@ -25,6 +25,7 @@
 // libwebrtc includes
 #include "api/audio/audio_frame.h"
 #include "api/call/transport.h"
+#include "api/media_stream_interface.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/transport/rtp/rtp_source.h"
@@ -363,15 +364,7 @@ class VideoSessionConduit : public MediaSessionConduit {
       RefPtr<mozilla::VideoRenderer> aRenderer) = 0;
   virtual void DetachRenderer() = 0;
 
-  /**
-   * Function to deliver a capture video frame for encoding and transport.
-   * If the frame's timestamp is 0, it will be automatcally generated.
-   *
-   * NOTE: ConfigureSendMediaCodec() must be called before this function can
-   *       be invoked. This ensures the inserted video-frames can be
-   *       transmitted by the conduit.
-   */
-  virtual MediaConduitErrorCode SendVideoFrame(webrtc::VideoFrame aFrame) = 0;
+  virtual void SetTrackSource(webrtc::VideoTrackSourceInterface* aSource) = 0;
 
   /**
    * These methods allow unit tests to double-check that the
