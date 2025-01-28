@@ -31,6 +31,9 @@ appmenu-update-restart2 =
     .secondarybuttonaccesskey = m
 appmenu-update-restart-message2 = Get the latest version of { -brand-shorter-name }. Open tabs and windows will be restored.
 
+appmenu-theme-installed =
+    .secondarybuttonlabel = Undo
+    .secondarybuttonaccesskey = U
 appmenu-addon-post-install-message3 = Manage your add-ons and themes through the application menu.
 appmenu-addon-post-install-incognito-checkbox =
     .label = Allow this extension to run in Private Windows

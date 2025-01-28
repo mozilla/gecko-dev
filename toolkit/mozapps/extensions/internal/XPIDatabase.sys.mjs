@@ -990,6 +990,13 @@ AddonWrapper = class {
     );
   }
 
+  get previousActiveThemeID() {
+    if (this.type === "theme") {
+      return addonFor(this).previousActiveThemeID;
+    }
+    return null;
+  }
+
   get seen() {
     return addonFor(this).seen;
   }

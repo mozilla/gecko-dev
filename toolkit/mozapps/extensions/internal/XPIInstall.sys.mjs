@@ -1351,6 +1351,16 @@ class AddonInstall {
     this.addon = null;
     this.state = null;
 
+    // Backing up currently active theme id when a new install flow is about to start
+    // (this will then be propagated to the AddonInternal object if the new addon
+    // being installed is a static theme and it doesn't have the same addon id of
+    // the theme already active, and eventually used to rollback to the previously
+    // active theme through the Undo button available in the theme post-install dialog).
+    this.initialActiveThemeID = Services.prefs.getCharPref(
+      "extensions.activeThemeID",
+      lazy.AddonSettings.DEFAULT_THEME_ID
+    );
+
     XPIInstall.installs.add(this);
   }
 
@@ -1888,6 +1898,17 @@ class AddonInstall {
     logger.debug(
       "Starting install of " + this.addon.id + " from " + this.sourceURI.spec
     );
+
+    if (
+      this.addon.type === "theme" &&
+      this.addon.id !== this.initialActiveThemeID
+    ) {
+      // Propagate the theme ID that was active when a new theme install flow has
+      // started, in case we need to restore it (on user clicking Undo in the post-install
+      // theme dialog).
+      this.addon.previousActiveThemeID = this.initialActiveThemeID;
+    }
+
     AddonManagerPrivate.callAddonListeners(
       "onInstalling",
       this.addon.wrapper,

@@ -638,71 +638,125 @@ export var ExtensionsUI = {
     const hasIncognito = permissions.includes(permissionName);
 
     return new Promise(resolve => {
-      // Show or hide private permission ui based on the pref.
-      function setCheckbox(win) {
-        let checkbox = win.document.getElementById("addon-incognito-checkbox");
-        checkbox.checked = hasIncognito;
-        checkbox.hidden =
-          hideIncognitoCheckbox ||
-          !(
-            addon.permissions &
-            lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
-          );
-      }
-
-      async function actionResolve(win) {
-        let checkbox = win.document.getElementById("addon-incognito-checkbox");
-
-        if (hideIncognitoCheckbox || checkbox.checked == hasIncognito) {
-          resolve();
-          return;
-        }
-
-        let incognitoPermission = {
-          permissions: [permissionName],
-          origins: [],
-        };
-
-        // The checkbox has been changed at this point, otherwise we would
-        // have exited early above.
-        if (checkbox.checked) {
-          await lazy.ExtensionPermissions.add(addon.id, incognitoPermission);
-        } else if (hasIncognito) {
-          await lazy.ExtensionPermissions.remove(addon.id, incognitoPermission);
-        }
-        // Reload the extension if it is already enabled.  This ensures any change
-        // on the private browsing permission is properly handled.
-        if (addon.isActive) {
-          await addon.reload();
-        }
-
-        resolve();
-      }
-
-      let action = {
-        callback: actionResolve,
-      };
-
       let icon = addon.isWebExtension
         ? lazy.AddonManager.getPreferredIconURL(addon, 32, window) ||
           DEFAULT_EXTENSION_ICON
         : "chrome://browser/skin/addons/addon-install-installed.svg";
-      let options = {
-        name: addon.name,
-        message,
-        popupIconURL: icon,
-        onRefresh: setCheckbox,
-        onDismissed: win => {
-          lazy.AppMenuNotifications.removeNotification("addon-installed");
-          actionResolve(win);
-        },
-      };
-      lazy.AppMenuNotifications.showNotification(
-        "addon-installed",
-        action,
-        null,
-        options
-      );
+
+      if (addon.type == "theme") {
+        const { previousActiveThemeID } = addon;
+
+        async function themeActionUndo() {
+          try {
+            // Undoing a theme install means re-enabling the previous active theme
+            // ID, and uninstalling the theme that was just installed
+            const theme = await lazy.AddonManager.getAddonByID(
+              previousActiveThemeID
+            );
+
+            if (theme) {
+              await theme.enable();
+            }
+
+            // `addon` is the theme that was just installed
+            await addon.uninstall();
+          } finally {
+            resolve();
+          }
+        }
+
+        let themePrimaryAction = { callback: resolve };
+
+        // Show the undo button if previousActiveThemeID is set.
+        let themeSecondaryAction = previousActiveThemeID
+          ? { callback: themeActionUndo }
+          : null;
+
+        let options = {
+          name: addon.name,
+          message,
+          popupIconURL: icon,
+          onDismissed: () => {
+            lazy.AppMenuNotifications.removeNotification("theme-installed");
+            resolve();
+          },
+        };
+        lazy.AppMenuNotifications.showNotification(
+          "theme-installed",
+          themePrimaryAction,
+          themeSecondaryAction,
+          options
+        );
+      } else {
+        // Show or hide private permission ui based on the pref.
+        function setCheckbox(win) {
+          let checkbox = win.document.getElementById(
+            "addon-incognito-checkbox"
+          );
+          checkbox.checked = hasIncognito;
+          checkbox.hidden =
+            hideIncognitoCheckbox ||
+            !(
+              addon.permissions &
+              lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
+            );
+        }
+
+        async function actionResolve(win) {
+          let checkbox = win.document.getElementById(
+            "addon-incognito-checkbox"
+          );
+
+          if (hideIncognitoCheckbox || checkbox.checked == hasIncognito) {
+            resolve();
+            return;
+          }
+
+          let incognitoPermission = {
+            permissions: [permissionName],
+            origins: [],
+          };
+
+          // The checkbox has been changed at this point, otherwise we would
+          // have exited early above.
+          if (checkbox.checked) {
+            await lazy.ExtensionPermissions.add(addon.id, incognitoPermission);
+          } else if (hasIncognito) {
+            await lazy.ExtensionPermissions.remove(
+              addon.id,
+              incognitoPermission
+            );
+          }
+          // Reload the extension if it is already enabled.  This ensures any change
+          // on the private browsing permission is properly handled.
+          if (addon.isActive) {
+            await addon.reload();
+          }
+
+          resolve();
+        }
+
+        let action = {
+          callback: actionResolve,
+        };
+
+        let options = {
+          name: addon.name,
+          message,
+          popupIconURL: icon,
+          onRefresh: setCheckbox,
+          onDismissed: win => {
+            lazy.AppMenuNotifications.removeNotification("addon-installed");
+            actionResolve(win);
+          },
+        };
+        lazy.AppMenuNotifications.showNotification(
+          "addon-installed",
+          action,
+          null,
+          options
+        );
+      }
     });
   },
 

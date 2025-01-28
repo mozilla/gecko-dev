@@ -494,8 +494,12 @@ add_task(async function test_addon_postinstall_incognito_hidden_checkbox() {
     const xpi = AddonTestUtils.createTempWebExtensionFile(definition);
     let install = await AddonManager.getInstallForFile(xpi);
 
+    const notificationId = definition.manifest.theme
+      ? "theme-installed"
+      : "addon-installed";
+
     await Promise.all([
-      waitAppMenuNotificationShown("addon-installed", id, true),
+      waitAppMenuNotificationShown(notificationId, id, true),
       install.install().then(() => {
         Services.obs.notifyObservers(
           {

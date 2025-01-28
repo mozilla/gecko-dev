@@ -155,6 +155,8 @@ skip-if = ["a11y_checks"] # bug 1940773 - checkbox.click() somehow triggers a11y
 
 ["browser_task_next_test.js"]
 
+["browser_theme_undo.js"]
+
 ["browser_updateid.js"]
 
 ["browser_updatessl.js"]

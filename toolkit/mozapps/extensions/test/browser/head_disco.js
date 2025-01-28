@@ -95,7 +95,7 @@ async function promiseAddonInstall(
     extensionData.manifest?.browser_specific_settings?.gecko?.id ||
     extensionData.manifest?.applications?.gecko?.id;
   let installedPromise = waitAppMenuNotificationShown(
-    "addon-installed",
+    extensionData.manifest?.theme ? "theme-installed" : "addon-installed",
     addonId,
     true
   );
