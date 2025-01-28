@@ -2094,8 +2094,7 @@ class LWasmLoadBase : public LInstructionHelper<Defs, 2, Temp> {
 
 class LWasmLoad : public details::LWasmLoadBase<1, 1> {
  public:
-  explicit LWasmLoad(const LAllocation& ptr,
-                     const LAllocation& memoryBase = LAllocation())
+  explicit LWasmLoad(const LAllocation& ptr, const LAllocation& memoryBase)
       : LWasmLoadBase(classOpcode, ptr, memoryBase) {
     setTemp(0, LDefinition::BogusTemp());
   }
@@ -2107,8 +2106,7 @@ class LWasmLoad : public details::LWasmLoadBase<1, 1> {
 
 class LWasmLoadI64 : public details::LWasmLoadBase<INT64_PIECES, 2> {
  public:
-  explicit LWasmLoadI64(const LAllocation& ptr,
-                        const LAllocation& memoryBase = LAllocation())
+  explicit LWasmLoadI64(const LAllocation& ptr, const LAllocation& memoryBase)
       : LWasmLoadBase(classOpcode, ptr, memoryBase) {
     setTemp(0, LDefinition::BogusTemp());
     setTemp(1, LDefinition::BogusTemp());
@@ -2129,7 +2127,7 @@ class LWasmStore : public LInstructionHelper<0, 3, 1> {
   static const size_t MemoryBaseIndex = 2;
 
   LWasmStore(const LAllocation& ptr, const LAllocation& value,
-             const LAllocation& memoryBase = LAllocation())
+             const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(PtrIndex, ptr);
     setOperand(ValueIndex, value);
@@ -2152,7 +2150,7 @@ class LWasmStoreI64 : public LInstructionHelper<0, INT64_PIECES + 2, 1> {
   static const size_t ValueIndex = 2;
 
   LWasmStoreI64(const LAllocation& ptr, const LInt64Allocation& value,
-                const LAllocation& memoryBase = LAllocation())
+                const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(PtrIndex, ptr);
     setOperand(MemoryBaseIndex, memoryBase);
@@ -2173,7 +2171,7 @@ class LWasmCompareExchangeHeap : public LInstructionHelper<1, 4, 4> {
   // ARM, ARM64, x86, x64
   LWasmCompareExchangeHeap(const LAllocation& ptr, const LAllocation& oldValue,
                            const LAllocation& newValue,
-                           const LAllocation& memoryBase = LAllocation())
+                           const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, oldValue);
@@ -2187,7 +2185,7 @@ class LWasmCompareExchangeHeap : public LInstructionHelper<1, 4, 4> {
                            const LDefinition& valueTemp,
                            const LDefinition& offsetTemp,
                            const LDefinition& maskTemp,
-                           const LAllocation& memoryBase = LAllocation())
+                           const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, oldValue);
@@ -2223,7 +2221,7 @@ class LWasmAtomicExchangeHeap : public LInstructionHelper<1, 3, 4> {
 
   // ARM, ARM64, x86, x64
   LWasmAtomicExchangeHeap(const LAllocation& ptr, const LAllocation& value,
-                          const LAllocation& memoryBase = LAllocation())
+                          const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -2235,7 +2233,7 @@ class LWasmAtomicExchangeHeap : public LInstructionHelper<1, 3, 4> {
                           const LDefinition& valueTemp,
                           const LDefinition& offsetTemp,
                           const LDefinition& maskTemp,
-                          const LAllocation& memoryBase = LAllocation())
+                          const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -2271,9 +2269,8 @@ class LWasmAtomicBinopHeap : public LInstructionHelper<1, 3, 6> {
 
   // ARM, ARM64, x86, x64
   LWasmAtomicBinopHeap(const LAllocation& ptr, const LAllocation& value,
-                       const LDefinition& temp,
-                       const LDefinition& flagTemp = LDefinition::BogusTemp(),
-                       const LAllocation& memoryBase = LAllocation())
+                       const LDefinition& temp, const LDefinition& flagTemp,
+                       const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -2287,7 +2284,7 @@ class LWasmAtomicBinopHeap : public LInstructionHelper<1, 3, 6> {
                        const LDefinition& valueTemp,
                        const LDefinition& offsetTemp,
                        const LDefinition& maskTemp,
-                       const LAllocation& memoryBase = LAllocation())
+                       const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -2326,10 +2323,10 @@ class LWasmAtomicBinopHeapForEffect : public LInstructionHelper<0, 3, 5> {
  public:
   LIR_HEADER(WasmAtomicBinopHeapForEffect);
   // ARM, ARM64, x86, x64
-  LWasmAtomicBinopHeapForEffect(
-      const LAllocation& ptr, const LAllocation& value,
-      const LDefinition& flagTemp = LDefinition::BogusTemp(),
-      const LAllocation& memoryBase = LAllocation())
+  LWasmAtomicBinopHeapForEffect(const LAllocation& ptr,
+                                const LAllocation& value,
+                                const LDefinition& flagTemp,
+                                const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -2343,7 +2340,7 @@ class LWasmAtomicBinopHeapForEffect : public LInstructionHelper<0, 3, 5> {
                                 const LDefinition& valueTemp,
                                 const LDefinition& offsetTemp,
                                 const LDefinition& maskTemp,
-                                const LAllocation& memoryBase = LAllocation())
+                                const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, value);
@@ -3194,7 +3191,7 @@ class LWasmLoadLaneSimd128 : public LInstructionHelper<1, 3, 1> {
 
   explicit LWasmLoadLaneSimd128(const LAllocation& ptr, const LAllocation& src,
                                 const LDefinition& temp,
-                                const LAllocation& memoryBase = LAllocation())
+                                const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, memoryBase);
@@ -3223,7 +3220,7 @@ class LWasmStoreLaneSimd128 : public LInstructionHelper<1, 3, 1> {
 
   explicit LWasmStoreLaneSimd128(const LAllocation& ptr, const LAllocation& src,
                                  const LDefinition& temp,
-                                 const LAllocation& memoryBase = LAllocation())
+                                 const LAllocation& memoryBase)
       : LInstructionHelper(classOpcode) {
     setOperand(0, ptr);
     setOperand(1, memoryBase);
