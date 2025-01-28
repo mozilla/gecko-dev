@@ -844,7 +844,7 @@ bool FrameIter::matchCallee(JSContext* cx, JS::Handle<JSFunction*> fun) const {
   // group and Ion will not inline them interchangeably.
   //
   // See: js::jit::InlineFrameIterator::findNextFrame()
-  if (currentCallee->hasBaseScript()) {
+  if (currentCallee->hasBaseScript() && fun->hasBaseScript()) {
     if (currentCallee->baseScript() != fun->baseScript()) {
       return false;
     }
