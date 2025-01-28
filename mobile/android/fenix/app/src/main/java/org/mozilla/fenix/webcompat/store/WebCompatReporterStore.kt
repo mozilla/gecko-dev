@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.webcompat.store
 
+import android.webkit.URLUtil
 import androidx.annotation.StringRes
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -59,7 +60,7 @@ data class WebCompatReporterState(
      * Whether the URL text field has an error.
      */
     val hasUrlTextError: Boolean
-        get() = enteredUrl.isEmpty()
+        get() = !URLUtil.isNetworkUrl(enteredUrl)
 
     /**
      * Whether the reason dropdown has an error.

@@ -27,14 +27,44 @@ class WebCompatReporterStoreTest {
     }
 
     @Test
-    fun `WHEN the broken URL is updated with a valid URL THEN the state should not have an input error`() {
+    fun `WHEN the broken URL is updated with a valid URL that starts with https THEN the state should not have an input error`() {
         store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "https://www.mozilla.org/"))
         assertFalse(store.state.hasUrlTextError)
     }
 
     @Test
-    fun `WHEN the broken URL is updated with an invalid URL THEN the state should have an input error`() {
+    fun `WHEN the broken URL is updated with a valid URL that starts with http THEN the state should not have an input error`() {
+        store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "http://www.mozilla.org/"))
+        assertFalse(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the broken URL is updated with an empty URL THEN the state should have an input error`() {
         store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = ""))
+        assertTrue(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the broken URL is updated with a content URL THEN the state should have an input error`() {
+        store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "content://pdf.pdf"))
+        assertTrue(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the broken URL is updated with an about URI THEN the state should have an input error`() {
+        store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "about:about"))
+        assertTrue(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the broken URL is updated with an extension URL THEN the state should have an input error`() {
+        store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "moz-extension://test"))
+        assertTrue(store.state.hasUrlTextError)
+    }
+
+    @Test
+    fun `WHEN the broken URL is updated with a URL that starts with www THEN the state should have an input error`() {
+        store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = "www.mozilla.org"))
         assertTrue(store.state.hasUrlTextError)
     }
 
