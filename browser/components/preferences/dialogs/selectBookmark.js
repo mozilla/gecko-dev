@@ -40,8 +40,11 @@ XPCOMUtils.defineLazyScriptGetter(
  */
 var SelectBookmarkDialog = {
   init: function SBD_init() {
-    document.getElementById("bookmarks").place =
+    let bookmarks = document.getElementById("bookmarks");
+    bookmarks.place =
       "place:type=" + Ci.nsINavHistoryQueryOptions.RESULTS_AS_ROOTS_QUERY;
+    bookmarks.addEventListener("dblclick", () => this.onItemDblClick());
+    bookmarks.addEventListener("select", () => this.selectionChanged());
 
     // Initial update of the OK button.
     this.selectionChanged();
@@ -117,3 +120,5 @@ var SelectBookmarkDialog = {
     window.arguments[0].names = names;
   },
 };
+
+window.addEventListener("load", () => SelectBookmarkDialog.init());

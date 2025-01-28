@@ -9,7 +9,7 @@
   data-l10n-id="select-bookmark-window2"
   data-l10n-attrs="title, style"
   persist="width height"
-  onload="SelectBookmarkDialog.init();"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog id="selectBookmarkDialog">
     <linkset>
@@ -46,8 +46,6 @@
       style="height: 15em"
       hidecolumnpicker="true"
       seltype="single"
-      ondblclick="SelectBookmarkDialog.onItemDblClick();"
-      onselect="SelectBookmarkDialog.selectionChanged();"
       disableUserActions="true"
     >
       <treecols>
