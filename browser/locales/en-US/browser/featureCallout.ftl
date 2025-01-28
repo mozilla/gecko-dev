@@ -108,3 +108,24 @@ sidebar-genai-survey-satisfaction-question = How satisfied are you with having a
 sidebar-genai-survey-productive-question =
     To what extent do you agree or disagree with this statement:<br/>
     “The AI chatbot in the sidebar helps me be more productive”?
+
+# Unified Search Button callout strings
+
+unified-search-callout-title = Switch between search engines
+unified-search-callout-subtitle = Choose what works best for your specific search.
+unified-search-callout-primary-label = Next
+unified-search-callout-secondary-label = Dismiss
+
+unified-search-engines-callout-title = Search with a shortcut
+unified-search-engines-callout-subtitle = Type “@” followed by a keyword to search your history, bookmarks, tabs, or with another search engine.
+unified-search-engines-callout-primary-label = Got it
+
+actions-callout-title = Complete common tasks or access basic settings
+# The user can type "print" and "clear" and a button will appear in the
+# search bar (e.g. Print page) the user can click to initiate the action.
+# These example text inputs correlate to the the following strings
+# (either matching the whole string, or the first word of the string).
+# "print" - quickactions-cmd-print
+# "clear" - quickactions-cmd-clearhistory
+# When localizing, ensure the translations match to ensure the action button appears as expected.
+actions-callout-subtitle = Try typing an action like “print” to print a page, or “clear” to clear your history.
