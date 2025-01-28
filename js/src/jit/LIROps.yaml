@@ -31,6 +31,19 @@
 #     by this LIR instruction
 #   - result type: sets result type for this LIR instruction
 #
+# successors
+# ===========
+# Specifies the list of successor blocks for control instruction LIR nodes.
+# Control instruction nodes inherit from LControlInstructionHelper. The
+# "result_type" attribute can't be used when this attribute is present.
+#
+#   For example:
+#     successors: [ifTrue, ifFalse]
+#
+#   Will generate the following getters:
+#     MBasicBlock* ifTrue() const { return getSuccessor(0); }
+#     MBasicBlock* ifFalse() const { return getSuccessor(1); }
+#
 # operands
 # ========
 # A list of operands to the LIR node. Each operand will be
@@ -167,8 +180,9 @@
 - name: IsConstructing
   result_type: WordSized
 
+# Jumps to the start of a basic block.
 - name: Goto
-  gen_boilerplate: false
+  successors: [target]
 
 - name: NewArray
   gen_boilerplate: false
@@ -344,10 +358,23 @@
   num_temps: 1
 
 - name: WasmRefIsSubtypeOfConcreteAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    ref: WordSized
+    superSTV: WordSized
+  arguments:
+    sourceType: wasm::RefType
+    destType: wasm::RefType
+  num_temps: 2
 
 - name: WasmRefIsSubtypeOfAbstractAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    ref: WordSized
+  arguments:
+    sourceType: wasm::RefType
+    destType: wasm::RefType
+  num_temps: 1
 
 - name: WasmNewStructObject
   mir_op: true
@@ -715,29 +742,58 @@
 - name: ConstructArrayNative
   gen_boilerplate: false
 
+# Takes in either an integer or boolean input and tests it for truthiness.
 - name: TestIAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: WordSized
 
+# Takes in intptr input and tests it for truthiness.
 - name: TestIPtrAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: WordSized
 
+# Takes in an int64 input and tests it for truthiness.
 - name: TestI64AndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: Int64
 
+# Takes in a double input and tests it for truthiness.
 - name: TestDAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: WordSized
 
+# Takes in a float32 input and tests it for truthiness.
 - name: TestFAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: WordSized
 
+# Takes in a bigint input and tests it for truthiness.
 - name: TestBIAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: WordSized
 
+# Takes an object and tests it for truthiness. An object is falsy iff it
+# emulates |undefined|; see js::EmulatesUndefined.
 - name: TestOAndBranch
-  gen_boilerplate: false
+  successors: [ifTruthy, ifFalsy]
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: Test
 
+# Takes in a boxed value and tests it for truthiness.
 - name: TestVAndBranch
-  gen_boilerplate: false
+  successors: [ifTruthy, ifFalsy]
+  operands:
+    input: BoxedValue
+  num_temps: 3
+  mir_op: Test
 
 - name: Compare
   gen_boilerplate: false
@@ -766,10 +822,20 @@
   mir_op: Compare
 
 - name: CompareDAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    cmpMir: MCompare*
 
 - name: CompareFAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    cmpMir: MCompare*
 
 - name: CompareS
   result_type: WordSized
@@ -829,7 +895,13 @@
   mir_op: Compare
 
 - name: CompareBigIntInt32AndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    cmpMir: MCompare*
+  num_temps: 2
 
 - name: BitAndAndBranch
   gen_boilerplate: false
@@ -870,16 +942,36 @@
   mir_op: Compare
 
 - name: IsNullOrLikeUndefinedAndBranchV
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    value: BoxedValue
+  arguments:
+    cmpMir: MCompare*
+  num_temps: 2
+  mir_op: Test
 
 - name: IsNullOrLikeUndefinedAndBranchT
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    value: WordSized
+  arguments:
+    cmpMir: MCompare*
+  num_temps: 1
+  mir_op: Test
 
 - name: IsNullAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    value: BoxedValue
+  arguments:
+    cmpMir: MCompare*
 
 - name: IsUndefinedAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    value: BoxedValue
+  arguments:
+    cmpMir: MCompare*
 
 - name: SameValueDouble
   result_type: WordSized
@@ -3054,7 +3146,11 @@
   mir_op: ValueToIterator
 
 - name: IteratorHasIndicesAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    object: WordSized
+    iterator: WordSized
+  num_temps: 2
 
 - name: LoadSlotByIteratorIndex
   result_type: BoxedValue
@@ -3105,7 +3201,9 @@
   mir_op: true
 
 - name: IsNoIterAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: BoxedValue
 
 - name: IteratorEnd
   operands:
@@ -3648,7 +3746,9 @@
   mir_op: true
 
 - name: IsObjectAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: BoxedValue
 
 - name: IsNullOrUndefined
   result_type: WordSized
@@ -3657,7 +3757,9 @@
   mir_op: true
 
 - name: IsNullOrUndefinedAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    input: BoxedValue
 
 - name: HasClass
   result_type: WordSized
@@ -4614,8 +4716,13 @@
 - name: WasmReduceSimd128
   gen_boilerplate: false
 
+# (v128, onTrue, onFalse) test-and-branch operations.
 - name: WasmReduceAndBranchSimd128
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    src: WordSized
+  arguments:
+    simdOp: wasm::SimdOp
 
 - name: WasmReduceSimd128ToInt64
   gen_boilerplate: false

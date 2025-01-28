@@ -230,9 +230,30 @@ def gen_temps(num_temps, num_temps64):
     return (num_temps_total, params, setters, getters)
 
 
+def gen_successors(successors):
+    # Parameters for the class constructor.
+    params = []
+
+    # Setter instructions for constructor body.
+    setters = []
+
+    # Getter definitions.
+    getters = []
+
+    for index, successor in enumerate(successors):
+        params.append(f"MBasicBlock* {successor}")
+        setters.append(f"setSuccessor({index}, {successor});")
+        getters.append(
+            f"MBasicBlock* {successor}() const {{ return getSuccessor({index}); }}"
+        )
+
+    return (params, setters, getters)
+
+
 def gen_lir_class(
     name,
     result_type,
+    successors,
     operands,
     arguments,
     num_temps,
@@ -255,7 +276,16 @@ def gen_lir_class(
         num_temps, num_temps64
     )
 
-    num_defs = result_types[result_type] if result_type else "0"
+    succ_params, succ_setters, succ_getters = gen_successors(successors)
+
+    if successors:
+        if result_type:
+            raise Exception("Control instructions don't return a result")
+        num_defs = len(successors)
+        parent_class = "LControlInstructionHelper"
+    else:
+        num_defs = result_types[result_type] if result_type else "0"
+        parent_class = "LInstructionHelper"
 
     constructor_init = ""
     if call_instruction:
@@ -271,7 +301,7 @@ def gen_lir_class(
         return "\n" + ws
 
     code = f"""
-class {class_name} : public LInstructionHelper<{num_defs}, {num_operands}, {num_temps_total}> {{
+class {class_name} : public {parent_class}<{num_defs}, {num_operands}, {num_temps_total}> {{
   {nl("  ").join(args_members)}
 
  public:
@@ -279,12 +309,14 @@ class {class_name} : public LInstructionHelper<{num_defs}, {num_operands}, {num_
 
   {nl("  ").join(oper_indices)}
 
-  explicit {class_name}({", ".join(oper_params + temp_params + args_params)}) : LInstructionHelper(classOpcode){", ".join([""] + args_initializers)} {{
+  explicit {class_name}({", ".join(succ_params + oper_params + temp_params + args_params)}) : {parent_class}(classOpcode){", ".join([""] + args_initializers)} {{
     {constructor_init}
+    {nl("    ").join(succ_setters)}
     {nl("    ").join(oper_setters)}
     {nl("    ").join(temp_setters)}
   }}
 
+  {nl("  ").join(succ_getters)}
   {nl("  ").join(oper_getters)}
   {nl("  ").join(temp_getters)}
   {nl("  ").join(args_getters)}
@@ -321,6 +353,9 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
             result_type = op.get("result_type", None)
             assert result_type is None or result_type in result_types
 
+            successors = op.get("successors", [])
+            assert isinstance(successors, list)
+
             operands = op.get("operands") or {}
             assert isinstance(operands, dict)
 
@@ -346,6 +381,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 gen_lir_class(
                     name,
                     result_type,
+                    successors,
                     operands,
                     arguments,
                     num_temps,
@@ -374,6 +410,8 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 result_type = mir_type_to_lir_type(result_type)
                 assert result_type in result_types
 
+            successors = []
+
             operands_raw = op.get("operands", {})
             assert isinstance(operands_raw, dict)
 
@@ -396,6 +434,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 gen_lir_class(
                     name,
                     result_type,
+                    successors,
                     operands,
                     arguments,
                     num_temps,

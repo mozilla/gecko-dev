@@ -953,7 +953,7 @@ void LIRGenerator::visitTest(MTest* test) {
   // Objects are truthy, except if it might emulate undefined.
   if (opd->type() == MIRType::Object) {
     add(new (alloc())
-            LTestOAndBranch(useRegister(opd), ifTrue, ifFalse, temp()),
+            LTestOAndBranch(ifTrue, ifFalse, useRegister(opd), temp()),
         test);
     return;
   }
@@ -1059,27 +1059,27 @@ void LIRGenerator::visitTest(MTest* test) {
         comp->compareType() == MCompare::Compare_Undefined) {
       if (left->type() == MIRType::Object) {
         auto* lir = new (alloc()) LIsNullOrLikeUndefinedAndBranchT(
-            comp, useRegister(left), ifTrue, ifFalse, temp());
+            ifTrue, ifFalse, useRegister(left), temp(), comp);
         add(lir, test);
         return;
       }
 
       if (IsLooseEqualityOp(comp->jsop())) {
         auto* lir = new (alloc()) LIsNullOrLikeUndefinedAndBranchV(
-            comp, ifTrue, ifFalse, useBox(left), temp(), tempToUnbox());
+            ifTrue, ifFalse, useBox(left), temp(), tempToUnbox(), comp);
         add(lir, test);
         return;
       }
 
       if (comp->compareType() == MCompare::Compare_Null) {
         auto* lir =
-            new (alloc()) LIsNullAndBranch(comp, ifTrue, ifFalse, useBox(left));
+            new (alloc()) LIsNullAndBranch(ifTrue, ifFalse, useBox(left), comp);
         add(lir, test);
         return;
       }
 
       auto* lir = new (alloc())
-          LIsUndefinedAndBranch(comp, ifTrue, ifFalse, useBox(left));
+          LIsUndefinedAndBranch(ifTrue, ifFalse, useBox(left), comp);
       add(lir, test);
       return;
     }
@@ -1125,8 +1125,8 @@ void LIRGenerator::visitTest(MTest* test) {
     if (comp->isDoubleComparison()) {
       LAllocation lhs = useRegister(left);
       LAllocation rhs = useRegister(right);
-      LCompareDAndBranch* lir =
-          new (alloc()) LCompareDAndBranch(comp, lhs, rhs, ifTrue, ifFalse);
+      auto* lir =
+          new (alloc()) LCompareDAndBranch(ifTrue, ifFalse, lhs, rhs, comp);
       add(lir, test);
       return;
     }
@@ -1135,8 +1135,8 @@ void LIRGenerator::visitTest(MTest* test) {
     if (comp->isFloat32Comparison()) {
       LAllocation lhs = useRegister(left);
       LAllocation rhs = useRegister(right);
-      LCompareFAndBranch* lir =
-          new (alloc()) LCompareFAndBranch(comp, lhs, rhs, ifTrue, ifFalse);
+      auto* lir =
+          new (alloc()) LCompareFAndBranch(ifTrue, ifFalse, lhs, rhs, comp);
       add(lir, test);
       return;
     }
@@ -1148,7 +1148,7 @@ void LIRGenerator::visitTest(MTest* test) {
       LDefinition temp1 = temp();
       LDefinition temp2 = !rhs.isConstant() ? temp() : LDefinition::BogusTemp();
       auto* lir = new (alloc()) LCompareBigIntInt32AndBranch(
-          comp, lhs, rhs, temp1, temp2, ifTrue, ifFalse);
+          ifTrue, ifFalse, lhs, rhs, temp1, temp2, comp);
       add(lir, test);
       return;
     }
@@ -1183,7 +1183,7 @@ void LIRGenerator::visitTest(MTest* test) {
       js::wasm::ReportSimdAnalysis("simd128-to-scalar-and-branch -> folded");
 #  endif
       auto* lir = new (alloc()) LWasmReduceAndBranchSimd128(
-          useRegister(node->input()), node->simdOp(), ifTrue, ifFalse);
+          ifTrue, ifFalse, useRegister(node->input()), node->simdOp());
       add(lir, test);
       return;
     }
@@ -1208,8 +1208,8 @@ void LIRGenerator::visitTest(MTest* test) {
     WasmRefIsSubtypeDefs regs =
         useWasmRefIsSubtype(isSubTypeOf->destType(), /*superSTV=*/nullptr);
     add(new (alloc()) LWasmRefIsSubtypeOfAbstractAndBranch(
-            ifTrue, ifFalse, isSubTypeOf->sourceType(), isSubTypeOf->destType(),
-            ref, regs.scratch1),
+            ifTrue, ifFalse, ref, regs.scratch1, isSubTypeOf->sourceType(),
+            isSubTypeOf->destType()),
         test);
     return;
   }
@@ -1222,8 +1222,8 @@ void LIRGenerator::visitTest(MTest* test) {
     WasmRefIsSubtypeDefs regs =
         useWasmRefIsSubtype(isSubTypeOf->destType(), isSubTypeOf->superSTV());
     add(new (alloc()) LWasmRefIsSubtypeOfConcreteAndBranch(
-            ifTrue, ifFalse, isSubTypeOf->sourceType(), isSubTypeOf->destType(),
-            ref, regs.superSTV, regs.scratch1, regs.scratch2),
+            ifTrue, ifFalse, ref, regs.superSTV, regs.scratch1, regs.scratch2,
+            isSubTypeOf->sourceType(), isSubTypeOf->destType()),
         test);
     return;
   }
@@ -1233,8 +1233,8 @@ void LIRGenerator::visitTest(MTest* test) {
     MDefinition* input = isNullOrUndefined->value();
 
     if (input->type() == MIRType::Value) {
-      auto* lir = new (alloc()) LIsNullOrUndefinedAndBranch(
-          isNullOrUndefined, ifTrue, ifFalse, useBoxAtStart(input));
+      auto* lir = new (alloc())
+          LIsNullOrUndefinedAndBranch(ifTrue, ifFalse, useBoxAtStart(input));
       add(lir, test);
     } else {
       auto* target = IsNullOrUndefined(input->type()) ? ifTrue : ifFalse;
@@ -1269,24 +1269,24 @@ void LIRGenerator::visitTest(MTest* test) {
 
   switch (opd->type()) {
     case MIRType::Double:
-      add(new (alloc()) LTestDAndBranch(useRegister(opd), ifTrue, ifFalse));
+      add(new (alloc()) LTestDAndBranch(ifTrue, ifFalse, useRegister(opd)));
       break;
     case MIRType::Float32:
-      add(new (alloc()) LTestFAndBranch(useRegister(opd), ifTrue, ifFalse));
+      add(new (alloc()) LTestFAndBranch(ifTrue, ifFalse, useRegister(opd)));
       break;
     case MIRType::Int32:
     case MIRType::Boolean:
-      add(new (alloc()) LTestIAndBranch(useRegister(opd), ifTrue, ifFalse));
+      add(new (alloc()) LTestIAndBranch(ifTrue, ifFalse, useRegister(opd)));
       break;
     case MIRType::IntPtr:
-      add(new (alloc()) LTestIPtrAndBranch(useRegister(opd), ifTrue, ifFalse));
+      add(new (alloc()) LTestIPtrAndBranch(ifTrue, ifFalse, useRegister(opd)));
       break;
     case MIRType::Int64:
       add(new (alloc())
-              LTestI64AndBranch(useInt64Register(opd), ifTrue, ifFalse));
+              LTestI64AndBranch(ifTrue, ifFalse, useInt64Register(opd)));
       break;
     case MIRType::BigInt:
-      add(new (alloc()) LTestBIAndBranch(useRegister(opd), ifTrue, ifFalse));
+      add(new (alloc()) LTestBIAndBranch(ifTrue, ifFalse, useRegister(opd)));
       break;
     default:
       MOZ_CRASH("Bad type");

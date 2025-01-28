@@ -1228,6 +1228,25 @@ class LBinaryCallInstructionHelper
   const LAllocation* rhs() { return this->getOperand(1); }
 };
 
+// Base class for control instructions (goto, branch, etc.)
+template <size_t Succs, size_t Operands, size_t Temps>
+class LControlInstructionHelper
+    : public LInstructionHelper<0, Operands, Temps> {
+  mozilla::Array<MBasicBlock*, Succs> successors_;
+
+ protected:
+  explicit LControlInstructionHelper(LNode::Opcode opcode)
+      : LInstructionHelper<0, Operands, Temps>(opcode) {}
+
+ public:
+  size_t numSuccessors() const { return Succs; }
+  MBasicBlock* getSuccessor(size_t i) const { return successors_[i]; }
+
+  void setSuccessor(size_t i, MBasicBlock* successor) {
+    successors_[i] = successor;
+  }
+};
+
 class LRecoverInfo : public TempObject {
  public:
   using Instructions = Vector<MNode*, 2, JitAllocPolicy>;
