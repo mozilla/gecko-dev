@@ -7316,13 +7316,12 @@ bool CacheIRCompiler::emitLoadTypedArrayElementResult(
     Register64 temp(output.valueReg().typeReg(), obj);
 #endif
 
-    masm.loadFromTypedBigIntArray(elementType, source, *bigInt, temp);
+    masm.loadFromTypedBigIntArray(elementType, source, output.valueReg(),
+                                  *bigInt, temp);
 
 #ifndef JS_PUNBOX64
     masm.pop(obj);
 #endif
-
-    masm.tagValue(JSVAL_TYPE_BIGINT, *bigInt, output.valueReg());
   } else {
     MacroAssembler::Uint32Mode uint32Mode =
         forceDoubleForUint32 ? MacroAssembler::Uint32Mode::ForceDouble

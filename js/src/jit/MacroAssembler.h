@@ -5336,7 +5336,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                           LiveRegisterSet volatileLiveReg);
 
   void loadFromTypedBigIntArray(Scalar::Type arrayType, const BaseIndex& src,
-                                Register bigInt, Register64 temp);
+                                const ValueOperand& dest, Register bigInt,
+                                Register64 temp);
 
   template <typename S, typename T>
   void storeToTypedIntArray(Scalar::Type arrayType, const S& value,

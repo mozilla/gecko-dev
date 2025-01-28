@@ -253,12 +253,14 @@ void MacroAssembler::loadFromTypedArray(Scalar::Type arrayType,
 
 void MacroAssembler::loadFromTypedBigIntArray(Scalar::Type arrayType,
                                               const BaseIndex& src,
+                                              const ValueOperand& dest,
                                               Register bigInt,
                                               Register64 temp) {
   MOZ_ASSERT(Scalar::isBigIntType(arrayType));
 
   load64(src, temp);
   initializeBigInt64(arrayType, bigInt, temp);
+  tagValue(JSVAL_TYPE_BIGINT, bigInt, dest);
 }
 
 // Inlined version of gc::CheckAllocatorState that checks the bare essentials
