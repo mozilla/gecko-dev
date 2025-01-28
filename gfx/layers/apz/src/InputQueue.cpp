@@ -359,7 +359,6 @@ APZEventResult InputQueue::ReceiveScrollWheelInput(
 
     mActiveWheelBlock = block;
 
-    CancelAnimationsForNewBlock(block, ExcludeWheel);
     MaybeRequestContentResponse(aTarget, block);
   } else {
     INPQ_LOG("received new wheel event in block %p\n", block.get());

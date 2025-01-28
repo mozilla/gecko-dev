@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1.0">
+<title>Test that a custom scrolling implementation using scrollBy() is
+       not much slower than native wheel event handling</title>
+<script src="apz_test_utils.js"></script>
+<script src="apz_test_native_event_utils.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+  .spacer {
+    height: 2000vh;
+  }
+</style>
+<div class="spacer"></div>
+<script>
+  async function test() {
+    // The test will be sending 10 events and expecting each to
+    // accomplish a full 50 pixels of scrolling.
+    let wheelDelta = 50;
+    let eventCount = 10;
+    let finalDestination = eventCount * wheelDelta;
+
+    // Set up a custom scrolling mechanism which emulates the one in
+    // arrowscrollbox.js in important respects:
+    //   - Listen for wheel events but preventDefault() them and scroll
+    //     using scrollBy() instead.
+    //   - Track the scroll destination in script.
+    //   - Reset the destination when a `scrollend` is received.
+    let currentDestination = 0;
+    let isScrolling = false;
+    window.addEventListener("wheel", e => {
+      if (!isScrolling) {
+        currentDestination = window.scrollY;
+        isScrolling = true;
+      }
+      currentDestination += wheelDelta;
+      let delta = currentDestination - window.scrollY;
+      window.scrollBy(0, delta);
+      e.preventDefault();
+    }, { passive: false });
+    window.addEventListener("scrollend", () => {
+      isScrolling = false;
+    });
+
+    // Make sure APZ is aware of the active event listener.
+    await promiseApzFlushedRepaints();
+
+    // Set up a promise that is resolved when we reach the expected
+    // destination.
+    let destinationPromise = new Promise(resolve => {
+      window.addEventListener("scroll", () => {
+        info(`Scrolled to ${window.scrollY}`);
+        if (window.scrollY >= finalDestination) {
+          ok(true, "Scroll destination reached");
+          resolve();
+        }
+      });
+    });
+
+    // Send 10 wheel events in fairly quick succession (one frame between each).
+    for (var i = 0; i < eventCount; i++) {
+      await synthesizeNativeWheel(window, 50, 50, 0, -50);
+      await promiseFrame();
+    }
+
+    // Wait for us to reach the destination.
+    await destinationPromise;
+  }
+
+  waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+</script>

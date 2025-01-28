@@ -57,6 +57,10 @@ var subtests = [
   {"file": "helper_scroll_anchoring_on_wheel.html", prefs: smoothness_prefs},
   {"file": "helper_scroll_over_subframe.html?scroll=wheel", prefs: wheel_transaction_prefs},
   {"file": "helper_scroll_over_subframe.html?oop=true&scroll=wheel", prefs: wheel_transaction_prefs},
+  {"file": "helper_custom_scrolling_bug1932985.html", prefs: [
+    ["general.smoothScroll", true],
+    ...smoothness_prefs
+  ]}
 ];
 
 subtests.push(...buildRelativeScrollSmoothnessVariants("wheel", ["scrollBy", "scrollTo", "scrollTop"]));
