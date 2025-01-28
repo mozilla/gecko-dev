@@ -7,7 +7,8 @@ package mozilla.components.feature.autofill.ui.search
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.autofill.R
 
@@ -17,19 +18,7 @@ import mozilla.components.feature.autofill.R
 @SuppressLint("NotifyDataSetChanged")
 internal class LoginsAdapter(
     private val onLoginSelected: (Login) -> Unit,
-) : RecyclerView.Adapter<LoginViewHolder>() {
-    private var logins: List<Login> = emptyList()
-
-    fun update(logins: List<Login>) {
-        this.logins = logins
-        notifyDataSetChanged()
-    }
-
-    fun clear() {
-        this.logins = emptyList()
-        notifyDataSetChanged()
-    }
-
+) : ListAdapter<Login, LoginViewHolder>(LoginsDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoginViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val view = inflater.inflate(R.layout.mozac_feature_autofill_login, parent, false)
@@ -37,11 +26,16 @@ internal class LoginsAdapter(
     }
 
     override fun onBindViewHolder(holder: LoginViewHolder, position: Int) {
-        val login = logins[position]
+        val login = getItem(position)
         holder.bind(login)
     }
 
-    override fun getItemCount(): Int {
-        return logins.count()
+    internal object LoginsDiffCallback : DiffUtil.ItemCallback<Login>() {
+        override fun areItemsTheSame(oldItem: Login, newItem: Login) =
+            oldItem.guid == newItem.guid
+
+        override fun areContentsTheSame(oldItem: Login, newItem: Login) =
+            oldItem.username == newItem.username && oldItem.password == newItem.password &&
+                oldItem.origin == newItem.origin
     }
 }

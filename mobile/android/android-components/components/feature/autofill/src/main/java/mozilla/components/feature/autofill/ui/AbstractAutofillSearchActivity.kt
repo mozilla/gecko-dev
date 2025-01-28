@@ -128,12 +128,12 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
         }
 
         withContext(Dispatchers.Main) {
-            adapter.update(filteredLogins)
+            adapter.submitList(filteredLogins)
         }
     }
 
     private fun clearResults() {
-        adapter.clear()
+        adapter.submitList(emptyList())
     }
 
     private fun loadAsync(): Deferred<List<Login>> {
