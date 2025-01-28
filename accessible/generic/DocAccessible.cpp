@@ -49,6 +49,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/HTMLSelectElement.h"
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/UserActivation.h"
@@ -2482,9 +2483,9 @@ void DocAccessible::DoARIAOwnsRelocation(LocalAccessible* aOwner) {
   uint32_t idx = 0;
   while (dom::Element* childEl = iter.NextElem()) {
     if (childEl->State().HasState(dom::ElementState::READWRITE)) {
-      nsINode* parentEl = childEl->GetFlattenedTreeParentNode();
-      if (parentEl->IsElement() && parentEl->AsElement()->State().HasState(
-                                       dom::ElementState::READWRITE)) {
+      dom::Element* parentEl = childEl->GetFlattenedTreeParentElement();
+      if (parentEl &&
+          parentEl->State().HasState(dom::ElementState::READWRITE)) {
         // The child is inside of an editable subtree, don't relocate it.
         continue;
       }
