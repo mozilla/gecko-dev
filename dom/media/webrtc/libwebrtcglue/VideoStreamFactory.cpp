@@ -242,13 +242,6 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
       // simulcast.cc:GetSimulcastConfig() or our own algorithm to replace it
     }
 
-    if (mCodecConfig.mName == "H264") {
-      if (mCodecConfig.mEncodingConstraints.maxMbps > 0) {
-        // Not supported yet!
-        CSFLogError(LOGTAG, "%s H.264 max_mbps not supported yet",
-                    __FUNCTION__);
-      }
-    }
     streams.push_back(video_stream);
   }
 
