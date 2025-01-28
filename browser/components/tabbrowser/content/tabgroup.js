@@ -181,11 +181,22 @@
       return Math.max(...this.tabs.map(t => t.lastSeenActive));
     }
 
-    #updateLabelAriaAttributes() {
-      const ariaLabel = this.#label || "unnamed";
-      const ariaDescription = `${ariaLabel} tab group`;
-      this.#labelElement?.setAttribute("aria-label", ariaLabel);
-      this.#labelElement?.setAttribute("aria-description", ariaDescription);
+    async #updateLabelAriaAttributes() {
+      let tabGroupName = this.#label;
+      if (!tabGroupName) {
+        tabGroupName = await gBrowser.tabLocalization.formatValue(
+          "tab-group-name-default"
+        );
+      }
+
+      let tabGroupDescription = await gBrowser.tabLocalization.formatValue(
+        "tab-group-description",
+        {
+          tabGroupName,
+        }
+      );
+      this.#labelElement?.setAttribute("aria-label", tabGroupName);
+      this.#labelElement?.setAttribute("aria-description", tabGroupDescription);
     }
 
     #updateCollapsedAriaAttributes() {
