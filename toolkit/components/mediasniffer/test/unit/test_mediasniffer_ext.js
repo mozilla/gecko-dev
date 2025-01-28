@@ -132,4 +132,13 @@ function run_test() {
   } catch (e) {
     print("ERROR - " + e + "\n");
   }
+
+  // audio.ogg is empty but present. Check what mime type is deduced solely from
+  // its extension, when _not_ performing binary sniffing. `application/ogg` is
+  // prefered because the media isn't analyzed to understand if it's audio or
+  // video or both.
+  let mimeSvc = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
+  let file = do_get_file("data/audio.ogg");
+  let type = mimeSvc.getTypeFromFile(file);
+  Assert.equal(type, "application/ogg");
 }
