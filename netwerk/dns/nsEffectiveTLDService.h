@@ -33,7 +33,7 @@ class nsEffectiveTLDService final : public nsIEffectiveTLDService,
   nsEffectiveTLDService();
   nsresult Init();
 
-  static nsEffectiveTLDService* GetInstance();
+  static already_AddRefed<nsIEffectiveTLDService> GetXPCOMSingleton();
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 

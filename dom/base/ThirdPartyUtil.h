@@ -11,6 +11,7 @@
 #include "ErrorList.h"
 #include "mozIThirdPartyUtil.h"
 #include "mozilla/RefPtr.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsISupports.h"
 #include "nsString.h"
 
@@ -49,7 +50,7 @@ class ThirdPartyUtil final : public mozIThirdPartyUtil {
   nsresult IsThirdPartyInternal(const nsCString& aFirstDomain,
                                 nsIURI* aSecondURI, bool* aResult);
 
-  RefPtr<nsEffectiveTLDService> mTLDService;
+  RefPtr<nsIEffectiveTLDService> mTLDService;
 };
 
 #endif

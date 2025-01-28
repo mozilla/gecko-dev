@@ -17,8 +17,8 @@
 #include "mozilla/ExpandedPrincipal.h"
 #include "mozilla/IdentityCredentialRequestManager.h"
 #include "mozilla/NullPrincipal.h"
-#include "nsEffectiveTLDService.h"
 #include "nsICredentialChooserService.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIGlobalObject.h"
 #include "nsIIdentityCredentialPromptService.h"
 #include "nsIIdentityCredentialStorageService.h"
@@ -1200,7 +1200,8 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::ValidationPromise::CreateAndReject(rv, __func__);
   }
-  RefPtr<nsEffectiveTLDService> etld = nsEffectiveTLDService::GetInstance();
+  RefPtr<nsIEffectiveTLDService> etld =
+      mozilla::components::EffectiveTLD::Service();
   if (!etld) {
     return IdentityCredential::ValidationPromise::CreateAndReject(
         NS_ERROR_SERVICE_NOT_AVAILABLE, __func__);

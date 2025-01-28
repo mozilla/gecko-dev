@@ -5,13 +5,14 @@
 
 #include "URLQueryStringStripper.h"
 
+#include "mozilla/Components.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/AntitrackingMetrics.h"
 
-#include "nsEffectiveTLDService.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsISupportsImpl.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
@@ -316,8 +317,9 @@ bool URLQueryStringStripper::CheckAllowList(nsIURI* aURI) {
 
   // Get the site(eTLD+1) from the URI.
   nsAutoCString baseDomain;
-  nsresult rv =
-      nsEffectiveTLDService::GetInstance()->GetBaseDomain(aURI, 0, baseDomain);
+  nsCOMPtr<nsIEffectiveTLDService> tldService =
+      mozilla::components::EffectiveTLD::Service();
+  nsresult rv = tldService->GetBaseDomain(aURI, 0, baseDomain);
   if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
       rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
     return false;

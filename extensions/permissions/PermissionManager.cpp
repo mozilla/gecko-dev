@@ -11,6 +11,7 @@
 #endif
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Components.h"
 #include "mozilla/ContentPrincipal.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
@@ -36,8 +37,8 @@
 #include "nsContentUtils.h"
 #include "nsCRT.h"
 #include "nsDebug.h"
-#include "nsEffectiveTLDService.h"
 #include "nsIConsoleService.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIUserIdleService.h"
 #include "nsIInputStream.h"
 #include "nsINavHistoryService.h"
@@ -250,7 +251,8 @@ nsresult GetOriginFromPrincipal(nsIPrincipal* aPrincipal, bool aForceStripOA,
 nsresult GetSiteFromPrincipal(nsIPrincipal* aPrincipal, bool aForceStripOA,
                               nsACString& aSite) {
   nsCOMPtr<nsIURI> uri = aPrincipal->GetURI();
-  nsEffectiveTLDService* etld = nsEffectiveTLDService::GetInstance();
+  nsCOMPtr<nsIEffectiveTLDService> etld =
+      mozilla::components::EffectiveTLD::Service();
   NS_ENSURE_TRUE(etld, NS_ERROR_FAILURE);
   NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
   nsresult rv = etld->GetSite(uri, aSite);
@@ -321,8 +323,9 @@ nsresult GetPrincipal(nsIURI* aURI, nsIPrincipal** aPrincipal) {
 
 nsCString GetNextSubDomainForHost(const nsACString& aHost) {
   nsCString subDomain;
-  nsresult rv =
-      nsEffectiveTLDService::GetInstance()->GetNextSubDomain(aHost, subDomain);
+  nsCOMPtr<nsIEffectiveTLDService> etld =
+      mozilla::components::EffectiveTLD::Service();
+  nsresult rv = etld->GetNextSubDomain(aHost, subDomain);
   // We can fail if there is no more subdomain or if the host can't have a
   // subdomain.
   if (NS_FAILED(rv)) {
@@ -416,8 +419,9 @@ nsresult UpgradeHostToOriginAndInsert(
 
     // Get the eTLD+1 of the domain
     nsAutoCString eTLD1;
-    rv = nsEffectiveTLDService::GetInstance()->GetBaseDomainFromHost(aHost, 0,
-                                                                     eTLD1);
+    nsCOMPtr<nsIEffectiveTLDService> etld =
+        mozilla::components::EffectiveTLD::Service();
+    rv = etld->GetBaseDomainFromHost(aHost, 0, eTLD1);
 
     if (NS_FAILED(rv)) {
       // If the lookup on the tldService for the base domain for the host
@@ -1334,6 +1338,8 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
             id = idStmt->AsInt32(0) + 1;
           }
 
+          nsCOMPtr<nsIEffectiveTLDService> etld =
+              mozilla::components::EffectiveTLD::Service();
           while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
             MigrationEntry entry;
 
@@ -1344,8 +1350,7 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
             }
 
             nsAutoCString eTLD1;
-            rv = nsEffectiveTLDService::GetInstance()->GetBaseDomainFromHost(
-                entry.mHost, 0, eTLD1);
+            rv = etld->GetBaseDomainFromHost(entry.mHost, 0, eTLD1);
             if (NS_SUCCEEDED(rv)) {
               // We only care about entries which the tldService can't
               // handle
@@ -1458,6 +1463,8 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
 
         nsTHashSet<nsCStringHashKey> deduplicationSet;
         bool hasResult;
+        nsCOMPtr<nsIEffectiveTLDService> etld =
+            mozilla::components::EffectiveTLD::Service();
         while (NS_SUCCEEDED(selectStmt->ExecuteStep(&hasResult)) && hasResult) {
           int64_t id;
           rv = selectStmt->GetInt64(0, &id);
@@ -1477,7 +1484,7 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
             continue;
           }
           nsCString site;
-          rv = nsEffectiveTLDService::GetInstance()->GetSite(uri, site);
+          rv = etld->GetSite(uri, site);
           if (NS_WARN_IF(NS_FAILED(rv))) {
             continue;
           }
@@ -3559,7 +3566,9 @@ nsresult PermissionManager::GetKeyForOrigin(const nsACString& aOrigin,
     nsresult rv = NS_NewURI(getter_AddRefs(uri), aKey);
     if (!NS_WARN_IF(NS_FAILED(rv))) {
       nsCString site;
-      rv = nsEffectiveTLDService::GetInstance()->GetSite(uri, site);
+      nsCOMPtr<nsIEffectiveTLDService> etld =
+          mozilla::components::EffectiveTLD::Service();
+      rv = etld->GetSite(uri, site);
       if (!NS_WARN_IF(NS_FAILED(rv))) {
         aKey = site;
       }

@@ -13,6 +13,7 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/Logging.h"
 
+#include "nsIEffectiveTLDService.h"
 #include "nsIChannel.h"
 
 namespace mozilla {
@@ -100,8 +101,8 @@ bool ThirdPartyCookieBlockingExceptions::CheckExceptionForURIs(
     return false;
   }
 
-  RefPtr<nsEffectiveTLDService> eTLDService =
-      nsEffectiveTLDService::GetInstance();
+  nsCOMPtr<nsIEffectiveTLDService> eTLDService =
+      mozilla::components::EffectiveTLD::Service();
   NS_ENSURE_TRUE(eTLDService, false);
 
   nsAutoCString thirdPartySite;
@@ -130,8 +131,8 @@ bool ThirdPartyCookieBlockingExceptions::CheckExceptionForChannel(
     return false;
   }
 
-  RefPtr<nsEffectiveTLDService> eTLDService =
-      nsEffectiveTLDService::GetInstance();
+  nsCOMPtr<nsIEffectiveTLDService> eTLDService =
+      mozilla::components::EffectiveTLD::Service();
   NS_ENSURE_TRUE(eTLDService, false);
 
   nsCOMPtr<nsIURI> uri;

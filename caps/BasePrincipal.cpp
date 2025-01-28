@@ -30,8 +30,8 @@
 #include "mozilla/dom/StorageUtils.h"
 #include "mozilla/JSONStringWriteFuncs.h"
 #include "mozilla/JSONWriter.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIURL.h"
-#include "nsEffectiveTLDService.h"
 #include "nsIURIMutator.h"
 #include "mozilla/StaticPrefs_permissions.h"
 #include "nsIURIMutator.h"
@@ -538,7 +538,7 @@ BasePrincipal::EqualsForPermission(nsIPrincipal* aOther, bool aExactHost,
   }
 
   nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+      mozilla::components::EffectiveTLD::Service();
   if (!tldService) {
     NS_ERROR("Should have a tld service!");
     return NS_ERROR_FAILURE;
@@ -1416,8 +1416,8 @@ BasePrincipal::GetLocalStorageQuotaKey(nsACString& aKey) {
     rv = url->GetDirectory(baseDomain);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
-    nsCOMPtr<nsIEffectiveTLDService> eTLDService(
-        do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv));
+    nsCOMPtr<nsIEffectiveTLDService> eTLDService =
+        mozilla::components::EffectiveTLD::Service(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoCString eTLDplusOne;
@@ -1459,7 +1459,12 @@ BasePrincipal::GetNextSubDomainPrincipal(
   }
 
   nsCString subDomain;
-  rv = nsEffectiveTLDService::GetInstance()->GetNextSubDomain(host, subDomain);
+  nsCOMPtr<nsIEffectiveTLDService> eTLDService =
+      mozilla::components::EffectiveTLD::Service();
+  if (!eTLDService) {
+    return NS_OK;
+  }
+  rv = eTLDService->GetNextSubDomain(host, subDomain);
 
   if (NS_FAILED(rv) || subDomain.IsEmpty()) {
     return NS_OK;

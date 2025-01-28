@@ -310,7 +310,6 @@
 #include "nsDeviceContext.h"
 #include "nsDocShell.h"
 #include "nsDocShellLoadTypes.h"
-#include "nsEffectiveTLDService.h"
 #include "nsError.h"
 #include "nsEscape.h"
 #include "nsFocusManager.h"
@@ -2061,7 +2060,7 @@ void Document::RecordPageLoadEventTelemetry(
   }
 
   nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+      mozilla::components::EffectiveTLD::Service();
   if (tldService && mReferrerInfo &&
       (docshell->GetLoadType() & nsIDocShell::LOAD_CMD_NORMAL)) {
     nsAutoCString currentBaseDomain, referrerBaseDomain;
@@ -6786,7 +6785,7 @@ void Document::SetCookie(const nsAString& aCookieString, ErrorResult& aRv) {
   }
 
   nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+      mozilla::components::EffectiveTLD::Service();
   if (!tldService) {
     return;
   }
@@ -9363,7 +9362,7 @@ bool Document::IsValidDomain(nsIURI* aOrigHost, nsIURI* aNewURI) {
     // We're golden if the new domain is the current page's base domain or a
     // subdomain of it.
     nsCOMPtr<nsIEffectiveTLDService> tldService =
-        do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+        mozilla::components::EffectiveTLD::Service();
     if (!tldService) {
       return false;
     }
@@ -18810,8 +18809,8 @@ already_AddRefed<Promise> Document::RequestStorageAccessUnderSite(
             // Get a grant for the storage access permission that will be set
             // when this is completed in the embedding context
             nsCString serializedSite;
-            RefPtr<nsEffectiveTLDService> etld =
-                nsEffectiveTLDService::GetInstance();
+            nsCOMPtr<nsIEffectiveTLDService> etld =
+                mozilla::components::EffectiveTLD::Service();
             if (!etld) {
               return StorageAccessAPIHelper::
                   StorageAccessPermissionGrantPromise::CreateAndReject(

@@ -6,9 +6,10 @@
 
 #include "URLDecorationStripper.h"
 
+#include "mozilla/Components.h"
 #include "mozilla/Preferences.h"
 #include "nsCharSeparatedTokenizer.h"
-#include "nsEffectiveTLDService.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
 #include "nsURLHelper.h"
@@ -56,8 +57,8 @@ nsresult URLDecorationStripper::StripToRegistrableDomain(nsIURI* aURI,
   NS_MutateURI mutator(aURI);
   mutator.SetPathQueryRef(""_ns).SetUserPass(""_ns);
 
-  RefPtr<nsEffectiveTLDService> etldService =
-      nsEffectiveTLDService::GetInstance();
+  nsCOMPtr<nsIEffectiveTLDService> etldService =
+      mozilla::components::EffectiveTLD::Service();
   NS_ENSURE_TRUE(etldService, NS_ERROR_FAILURE);
   nsAutoCString baseDomain;
   nsresult rv = etldService->GetBaseDomain(aURI, 0, baseDomain);

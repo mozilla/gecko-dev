@@ -30,7 +30,6 @@
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
-#include "nsEffectiveTLDService.h"
 #include "nsError.h"
 #include "nsGlobalWindowOuter.h"
 #include "nsIChannel.h"
@@ -79,7 +78,7 @@ nsresult ThirdPartyUtil::Init() {
   gService = this;
   mozilla::ClearOnShutdown(&gService);
 
-  mTLDService = nsEffectiveTLDService::GetInstance();
+  mTLDService = mozilla::components::EffectiveTLD::Service();
   return mTLDService ? NS_OK : NS_ERROR_FAILURE;
 }
 

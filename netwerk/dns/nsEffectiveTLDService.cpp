@@ -10,6 +10,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Components.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ResultExtensions.h"
@@ -41,7 +42,7 @@ NS_IMPL_ISUPPORTS(nsEffectiveTLDService, nsIEffectiveTLDService,
 
 // ----------------------------------------------------------------------
 
-static nsEffectiveTLDService* gService = nullptr;
+static StaticRefPtr<nsEffectiveTLDService> gService;
 
 nsEffectiveTLDService::nsEffectiveTLDService() : mGraph(etld_dafsa::kDafsa) {}
 
@@ -52,7 +53,6 @@ nsresult nsEffectiveTLDService::Init() {
     return NS_ERROR_ALREADY_INITIALIZED;
   }
 
-  gService = this;
   RegisterWeakMemoryReporter(this);
 
   return NS_OK;
@@ -60,26 +60,22 @@ nsresult nsEffectiveTLDService::Init() {
 
 nsEffectiveTLDService::~nsEffectiveTLDService() {
   UnregisterWeakMemoryReporter(this);
-  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1786310#c15
-  if (gService == this) {
-    gService = nullptr;
-  }
 }
 
 // static
-nsEffectiveTLDService* nsEffectiveTLDService::GetInstance() {
+already_AddRefed<nsIEffectiveTLDService>
+nsEffectiveTLDService::GetXPCOMSingleton() {
   if (gService) {
-    return gService;
+    return do_AddRef(gService);
   }
-  nsCOMPtr<nsIEffectiveTLDService> tldService;
-  tldService = mozilla::components::EffectiveTLD::Service();
-  if (!tldService) {
+  RefPtr<nsEffectiveTLDService> instance = new nsEffectiveTLDService();
+  nsresult rv = instance->Init();
+  if (NS_FAILED(rv)) {
     return nullptr;
   }
-  MOZ_ASSERT(
-      gService,
-      "gService must have been initialized in nsEffectiveTLDService::Init");
-  return gService;
+  gService = instance;
+  ClearOnShutdown(&gService);
+  return instance.forget();
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(EffectiveTLDServiceMallocSizeOf)
