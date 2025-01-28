@@ -47,7 +47,8 @@ class DebugVideoFrameConverter
  public:
   explicit DebugVideoFrameConverter(
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : VideoFrameConverterImpl(aTimestampMaker) {}
+      : VideoFrameConverterImpl(do_AddRef(GetMainThreadSerialEventTarget()),
+                                aTimestampMaker) {}
 
   using VideoFrameConverterImpl::mLastFrameQueuedForProcessing;
   using VideoFrameConverterImpl::ProcessVideoFrame;
@@ -557,7 +558,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   framesPromise = TakeNConvertedFrames(2);
 
   mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
-  Unused << WaitFor(InvokeAsync(mConverter->mTaskQueue, __func__, [&] {
+  Unused << WaitFor(InvokeAsync(mConverter->mTarget, __func__, [&] {
     // Time is now ~t1. This processes an extra frame similar to what
     // `SetActive(false); SetActive(true);` (using t=now()) would do.
     mConverter->mLastFrameQueuedForProcessing.mTime = now + d2;

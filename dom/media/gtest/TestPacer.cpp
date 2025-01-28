@@ -19,7 +19,8 @@ class PacerTest {
   explicit PacerTest(TimeDuration aDuplicationInterval)
       : mTaskQueue(TaskQueue::Create(
             GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER), "PacerTest")),
-        mPacer(MakeRefPtr<Pacer<T>>(mTaskQueue, aDuplicationInterval)),
+        mPacer(
+            MakeRefPtr<Pacer<T>>(do_AddRef(mTaskQueue), aDuplicationInterval)),
         mInterval(aDuplicationInterval) {}
 
   // Helper for calling `mPacer->Enqueue(...)`. Dispatches an event to the
