@@ -11,8 +11,6 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/EventTargetCapability.h"
 #include "mozilla/gfx/Point.h"
-#include "mozilla/UniquePtr.h"
-#include "rtc_base/time_utils.h"
 #include "video/config/video_encoder_config.h"
 
 namespace webrtc {

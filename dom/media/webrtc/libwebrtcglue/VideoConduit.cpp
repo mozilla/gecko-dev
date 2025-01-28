@@ -34,7 +34,6 @@
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
 #include "media/base/media_constants.h"
-#include "media/engine/simulcast_encoder_adapter.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "rtc_base/ref_counted_object.h"
 
@@ -83,8 +82,6 @@
 #include "mozilla/StateWatching.h"
 #include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
-#include "mozilla/TelemetryScalarEnums.h"
-#include "mozilla/Types.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -129,18 +126,6 @@ using LocalDirection = MediaSessionConduitLocalDirection;
 
 const int kNullPayloadType = -1;
 const char kRtcpFbCcmParamTmmbr[] = "tmmbr";
-
-// The number of frame buffers WebrtcVideoConduit may create before returning
-// errors.
-// Sometimes these are released synchronously but they can be forwarded all the
-// way to the encoder for asynchronous encoding. With a pool size of 5,
-// we allow 1 buffer for the current conversion, and 4 buffers to be queued at
-// the encoder.
-#define SCALER_BUFFER_POOL_SIZE 5
-
-// The pixel alignment to use for the highest resolution layer when simulcast
-// is active and one or more layers are being scaled.
-#define SIMULCAST_RESOLUTION_ALIGNMENT 16
 
 template <class t>
 void ConstrainPreservingAspectRatioExact(uint32_t max_fs, t* width, t* height) {
