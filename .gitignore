@@ -215,6 +215,7 @@ mobile/android/gradle/.gradle
 mobile/android/**/.build-cache
 mobile/android/**/.gradle
 mobile/android/**/build
+mobile/android/**/.kotlin
 mobile/android/**/bin
 mobile/android/**/generated
 
