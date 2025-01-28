@@ -1222,27 +1222,46 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
 
 class SPSIterator final {
  public:
-  explicit SPSIterator(const HVCCConfig& aConfig) : mConfig(aConfig) {}
+  explicit SPSIterator(const HVCCConfig& aConfig)
+      : mCurrentIdx(0), mConfig(aConfig) {
+    FindSPS();
+  }
 
   SPSIterator& operator++() {
-    size_t idx = 0;
-    for (idx = mNextIdx; idx < mConfig.mNALUs.Length(); idx++) {
-      if (mConfig.mNALUs[idx].IsSPS()) {
-        mSPS = &mConfig.mNALUs[idx];
-        break;
-      }
-    }
-    mNextIdx = idx + 1;
+    mCurrentIdx++;
+    FindSPS();
     return *this;
   }
 
-  explicit operator bool() const { return mNextIdx < mConfig.mNALUs.Length(); }
+  explicit operator bool() const { return IsValid(); }
 
-  const H265NALU* operator*() const { return mSPS ? mSPS : nullptr; }
+  const H265NALU* operator*() const {
+    if (!IsValid()) {
+      return nullptr;
+    }
+    if (!mConfig.mNALUs[mCurrentIdx].IsSPS()) {
+      return nullptr;
+    }
+    return &mConfig.mNALUs[mCurrentIdx];
+  }
 
  private:
-  size_t mNextIdx = 0;
-  const H265NALU* mSPS = nullptr;
+  void FindSPS() {
+    Maybe<size_t> spsIdx;
+    for (auto idx = mCurrentIdx; idx < mConfig.mNALUs.Length(); idx++) {
+      if (mConfig.mNALUs[idx].IsSPS()) {
+        spsIdx = Some(idx);
+        break;
+      }
+    }
+    if (spsIdx) {
+      mCurrentIdx = *spsIdx;
+    }
+  }
+
+  bool IsValid() const { return mCurrentIdx < mConfig.mNALUs.Length(); }
+
+  size_t mCurrentIdx;
   const HVCCConfig& mConfig;
 };
 
