@@ -5330,14 +5330,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
                           AnyRegister dest, Register temp1, Register temp2,
                           Label* fail, LiveRegisterSet volatileLiveReg);
 
-  template <typename T>
-  void loadFromTypedArray(Scalar::Type arrayType, const T& src,
+  void loadFromTypedArray(Scalar::Type arrayType, const BaseIndex& src,
                           const ValueOperand& dest, Uint32Mode uint32Mode,
                           Register temp, Label* fail,
                           LiveRegisterSet volatileLiveReg);
 
-  template <typename T>
-  void loadFromTypedBigIntArray(Scalar::Type arrayType, const T& src,
+  void loadFromTypedBigIntArray(Scalar::Type arrayType, const BaseIndex& src,
                                 Register bigInt, Register64 temp);
 
   template <typename S, typename T>

@@ -198,8 +198,8 @@ template void MacroAssembler::loadFromTypedArray(
     Register temp1, Register temp2, Label* fail,
     LiveRegisterSet volatileLiveRegs);
 
-template <typename T>
-void MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src,
+void MacroAssembler::loadFromTypedArray(Scalar::Type arrayType,
+                                        const BaseIndex& src,
                                         const ValueOperand& dest,
                                         Uint32Mode uint32Mode, Register temp,
                                         Label* fail,
@@ -251,33 +251,15 @@ void MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src,
   }
 }
 
-template void MacroAssembler::loadFromTypedArray(
-    Scalar::Type arrayType, const Address& src, const ValueOperand& dest,
-    Uint32Mode uint32Mode, Register temp, Label* fail,
-    LiveRegisterSet volatileLiveRegs);
-template void MacroAssembler::loadFromTypedArray(
-    Scalar::Type arrayType, const BaseIndex& src, const ValueOperand& dest,
-    Uint32Mode uint32Mode, Register temp, Label* fail,
-    LiveRegisterSet volatileLiveRegs);
-
-template <typename T>
 void MacroAssembler::loadFromTypedBigIntArray(Scalar::Type arrayType,
-                                              const T& src, Register bigInt,
+                                              const BaseIndex& src,
+                                              Register bigInt,
                                               Register64 temp) {
   MOZ_ASSERT(Scalar::isBigIntType(arrayType));
 
   load64(src, temp);
   initializeBigInt64(arrayType, bigInt, temp);
 }
-
-template void MacroAssembler::loadFromTypedBigIntArray(Scalar::Type arrayType,
-                                                       const Address& src,
-                                                       Register bigInt,
-                                                       Register64 temp);
-template void MacroAssembler::loadFromTypedBigIntArray(Scalar::Type arrayType,
-                                                       const BaseIndex& src,
-                                                       Register bigInt,
-                                                       Register64 temp);
 
 // Inlined version of gc::CheckAllocatorState that checks the bare essentials
 // and bails for anything that cannot be handled with our jit allocators.
