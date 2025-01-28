@@ -1104,7 +1104,11 @@
     num: WordSized
 
 - name: Atan2D
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    y: WordSized
+    x: WordSized
+  call_instruction: true
 
 - name: Hypot
   gen_boilerplate: false
@@ -1199,7 +1203,12 @@
   gen_boilerplate: false
 
 - name: ModPowTwoD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+  arguments:
+    divisor: uint32_t
+  mir_op: Mod
 
 - name: WasmBuiltinModD
   result_type: WordSized
@@ -1916,8 +1925,12 @@
   num_temps: 1
   mir_op: ToString
 
+# Double raised to a half power.
 - name: PowHalfD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  mir_op: PowHalf
 
 - name: NaNToZero
   result_type: WordSized
@@ -2270,8 +2283,13 @@
     length: WordSized
   mir_op: true
 
+# Bailout if index + minimum < 0 or index + maximum >= length.
 - name: BoundsCheckRange
-  gen_boilerplate: false
+  operands:
+    index: WordSized
+    length: WordSized
+  num_temps: 1
+  mir_op: BoundsCheck
 
 # Bailout if index < minimum.
 - name: BoundsCheckLower
@@ -2286,8 +2304,14 @@
     length: WordSized
   mir_op: true
 
+# Load a value from a dense array's elements vector. Bail out if it's the hole
+# value.
 - name: LoadElementV
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    elements: WordSized
+    index: WordSized
+  mir_op: LoadElement
 
 - name: InArray
   result_type: WordSized
@@ -2302,8 +2326,15 @@
     elements: WordSized
     index: WordSized
 
+# Load a value from an array's elements vector, loading |undefined| if we hit a
+# hole. Bail out if we get a negative index.
 - name: LoadElementHole
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    elements: WordSized
+    index: WordSized
+    initLength: WordSized
+  mir_op: true
 
 - name: StoreElementV
   gen_boilerplate: false
@@ -2424,7 +2455,14 @@
   mir_op: LoadUnboxedScalar
 
 - name: LoadDataViewElement
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    elements: WordSized
+    index: WordSized
+    littleEndian: WordSized
+  num_temps: 2
+  num_temps64: 1
+  mir_op: true
 
 - name: LoadDataViewElement64
   result_type: Int64
@@ -2444,7 +2482,14 @@
   mir_op: true
 
 - name: LoadTypedArrayElementHoleBigInt
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    elements: WordSized
+    index: WordSized
+    length: WordSized
+  num_temps: 1
+  num_temps64: 1
+  mir_op: LoadTypedArrayElementHole
 
 - name: StoreUnboxedScalar
   operands:
@@ -2462,10 +2507,23 @@
   mir_op: StoreUnboxedScalar
 
 - name: StoreDataViewElement
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: WordSized
+    littleEndian: WordSized
+  num_temps: 1
+  num_temps64: 1
+  mir_op: true
 
 - name: StoreDataViewElement64
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+    littleEndian: WordSized
+  num_temps64: 1
+  mir_op: StoreDataViewElement
 
 - name: StoreTypedArrayElementHole
   operands:
@@ -2509,10 +2567,21 @@
   gen_boilerplate: false
 
 - name: CompareExchangeTypedArrayElement64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+    oldval: Int64
+    newval: Int64
+  mir_op: CompareExchangeTypedArrayElement
 
 - name: AtomicExchangeTypedArrayElement64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: Int64
+  mir_op: AtomicExchangeTypedArrayElement
 
 - name: AtomicTypedArrayElementBinop64
   gen_boilerplate: false
@@ -3050,7 +3119,10 @@
 
 # Create a new BigInt* from an unboxed int64.
 - name: Int64ToBigInt
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  num_temps64: 1
 
 # Create a new BigInt* from an unboxed uint64.
 - name: Uint64ToBigInt
@@ -3432,7 +3504,10 @@
   mir_op: InstanceOf
 
 - name: InstanceOfCache
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: BoxedValue
+    rhs: WordSized
 
 - name: IsCallableO
   result_type: WordSized
@@ -3941,8 +4016,12 @@
 - name: NewTarget
   result_type: BoxedValue
 
+# Math.random()
 - name: Random
-  gen_boilerplate: false
+  result_type: WordSized
+  num_temps: 1
+  num_temps64: 2
+  mir_op: true
 
 - name: CheckReturn
   result_type: BoxedValue
@@ -4774,13 +4853,24 @@
 
 #ifdef FUZZING_JS_FUZZILLI
 - name: FuzzilliHashT
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    value: WordSized
+  num_temps: 2
+  mir_op: FuzzilliHash
 
 - name: FuzzilliHashV
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    value: BoxedValue
+  num_temps: 2
+  mir_op: FuzzilliHash
 
 - name: FuzzilliHashStore
-  gen_boilerplate: false
+  operands:
+    value: WordSized
+  num_temps: 2
+  mir_op: FuzzilliHashStore
 #endif
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT

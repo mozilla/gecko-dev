@@ -5292,7 +5292,7 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
 
 void CodeGenerator::visitInt64ToBigInt(LInt64ToBigInt* lir) {
   Register64 input = ToRegister64(lir->input());
-  Register64 temp = ToRegister64(lir->temp());
+  Register64 temp = ToRegister64(lir->temp0());
   Register output = ToRegister(lir->output());
 
   emitCreateBigInt(lir, Scalar::BigInt64, input, output, temp.scratchReg(),
@@ -18550,9 +18550,9 @@ void CodeGenerator::visitLoadUnboxedInt64(LLoadUnboxedInt64* lir) {
 void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
   Register elements = ToRegister(lir->elements());
   const LAllocation* littleEndian = lir->littleEndian();
-  Register temp1 = ToTempRegisterOrInvalid(lir->temp1());
-  Register temp2 = ToTempRegisterOrInvalid(lir->temp2());
-  Register64 temp64 = ToTempRegister64OrInvalid(lir->temp64());
+  Register temp1 = ToTempRegisterOrInvalid(lir->temp0());
+  Register temp2 = ToTempRegisterOrInvalid(lir->temp1());
+  Register64 temp64 = ToTempRegister64OrInvalid(lir->temp2());
   AnyRegister out = ToAnyRegister(lir->output());
 
   const MLoadDataViewElement* mir = lir->mir();
@@ -18776,15 +18776,15 @@ void CodeGenerator::visitLoadTypedArrayElementHoleBigInt(
   Register length = ToRegister(lir->length());
   const ValueOperand out = ToOutValue(lir);
 
-  Register temp = ToRegister(lir->temp());
+  Register temp = ToRegister(lir->temp0());
 
   // On x86 there are not enough registers. In that case reuse the output
   // registers as temporaries.
 #ifdef JS_CODEGEN_X86
-  MOZ_ASSERT(lir->temp64().isBogusTemp());
+  MOZ_ASSERT(lir->temp1().isBogusTemp());
   Register64 temp64 = out.toRegister64();
 #else
-  Register64 temp64 = ToRegister64(lir->temp64());
+  Register64 temp64 = ToRegister64(lir->temp1());
 #endif
 
   // Load undefined if index >= length.
@@ -18887,8 +18887,8 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   Register elements = ToRegister(lir->elements());
   const LAllocation* value = lir->value();
   const LAllocation* littleEndian = lir->littleEndian();
-  Register temp = ToTempRegisterOrInvalid(lir->temp());
-  Register64 temp64 = ToTempRegister64OrInvalid(lir->temp64());
+  Register temp = ToTempRegisterOrInvalid(lir->temp0());
+  Register64 temp64 = ToTempRegister64OrInvalid(lir->temp1());
 
   Scalar::Type writeType = lir->mir()->writeType();
 
@@ -19018,7 +19018,7 @@ void CodeGenerator::visitStoreDataViewElement64(LStoreDataViewElement64* lir) {
   Register elements = ToRegister(lir->elements());
   LInt64Allocation value = lir->value();
   const LAllocation* littleEndian = lir->littleEndian();
-  Register64 temp = ToTempRegister64OrInvalid(lir->temp());
+  Register64 temp = ToTempRegister64OrInvalid(lir->temp0());
 
   MOZ_ASSERT(Scalar::isBigIntType(lir->mir()->writeType()));
 
@@ -19353,7 +19353,7 @@ void CodeGenerator::visitInstanceOfCache(LInstanceOfCache* ins) {
   // The Lowering ensures that RHS is an object, and that LHS is a value.
   LiveRegisterSet liveRegs = ins->safepoint()->liveRegs();
   TypedOrValueRegister lhs =
-      TypedOrValueRegister(ToValue(ins, LInstanceOfCache::LHS));
+      TypedOrValueRegister(ToValue(ins, LInstanceOfCache::LhsIndex));
   Register rhs = ToRegister(ins->rhs());
   Register output = ToRegister(ins->output());
 
