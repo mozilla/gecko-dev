@@ -5,6 +5,7 @@ from unittest import mock
 
 import mozharness.base.script as script
 import mozharness.mozilla.l10n.locales as locales
+import mozunit
 
 ALL_LOCALES = ["ar", "be", "de", "es-ES"]
 
@@ -13,7 +14,7 @@ MH_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def cleanup():
     if os.path.exists("test_logs"):
-        shutil.rmtree("test_logs")
+        shutil.rmtree("test_logs", ignore_errors=True)
 
 
 class LocalesTest(locales.LocalesMixin, script.BaseScript):
@@ -115,4 +116,4 @@ class TestLocalesMixin(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    mozunit.main()

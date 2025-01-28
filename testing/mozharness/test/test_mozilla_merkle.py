@@ -3,6 +3,7 @@ import hashlib
 import random
 import unittest
 
+import mozunit
 from mozharness.mozilla.merkle import InclusionProof, MerkleTree
 
 decode_hex = codecs.getdecoder("hex_codec")
@@ -132,3 +133,7 @@ class TestMerkleTree(unittest.TestCase):
             self.assertTrue(proof.verify(hash_fn, data[i], i, len(data), head))
             self.assertEqual(proof.leaf_index, i)
             self.assertEqual(proof.tree_size, tree.n)
+
+
+if __name__ == "__main__":
+    mozunit.main()

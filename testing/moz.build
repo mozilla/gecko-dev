@@ -8,7 +8,10 @@ with Files("*cppunittest*"):
 with Files("remote*"):
     BUG_COMPONENT = ("GeckoView", "General")
 
-PYTHON_UNITTEST_MANIFESTS += ["test/python.toml"]
+PYTHON_UNITTEST_MANIFESTS += [
+    "mozharness/test/python.toml",
+    "test/python.toml",
+]
 
 SPHINX_TREES["/testing"] = "docs"
 
