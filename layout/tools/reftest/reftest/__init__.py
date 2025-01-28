@@ -54,6 +54,7 @@ CONDITIONS_JS_TO_MP = {  # Manifestparser expression grammar
     "is64Bit": "(bits == 64)",
     "wayland": "(display == 'wayland')",
     "isCoverageBuild": "ccov",
+    "incOriginInit": "inc_origin_init",
     "&&": " && ",
     "||": " || ",
 }

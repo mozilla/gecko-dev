@@ -751,6 +751,9 @@ function BuildConditionSandbox(aURL) {
   // Running with a variant enabled?
   sandbox.fission = Services.appinfo.fissionAutostart;
 
+  sandbox.incOriginInit =
+    Services.env.get("MOZ_ENABLE_INC_ORIGIN_INIT") === "1";
+
   if (!g.dumpedConditionSandbox) {
     g.logger.info(
       "Dumping representation of sandbox which can be used for expectation annotations"
