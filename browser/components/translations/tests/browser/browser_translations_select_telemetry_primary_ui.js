@@ -295,6 +295,10 @@ add_task(
       runInPage,
     });
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 3,
+    });
+
     await cleanup();
   }
 );

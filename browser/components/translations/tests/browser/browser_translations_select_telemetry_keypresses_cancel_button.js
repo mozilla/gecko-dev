@@ -36,6 +36,10 @@ add_task(
       }
     );
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 0,
+    });
+
     await cleanup();
   }
 );
@@ -72,6 +76,10 @@ add_task(
         expectedEventCount: 1,
       }
     );
+
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 0,
+    });
 
     await cleanup();
   }
@@ -113,6 +121,10 @@ add_task(
       }
     );
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 0,
+    });
+
     await cleanup();
   }
 );
@@ -152,6 +164,10 @@ add_task(
         expectedEventCount: 1,
       }
     );
+
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 0,
+    });
 
     await cleanup();
   }

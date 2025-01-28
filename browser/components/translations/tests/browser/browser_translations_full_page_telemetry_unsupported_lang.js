@@ -205,5 +205,9 @@ add_task(async function test_translations_telemetry_unsupported_lang() {
     ]
   );
 
+  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+    expectedEventCount: 1,
+  });
+
   await cleanup();
 });
