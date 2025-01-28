@@ -729,7 +729,7 @@ bool WaylandSurface::EnableCeiledScaleLocked(
     return false;
   }
 
-  mScaleType = ScaleType::Disabled;
+  mScaleType = ScaleType::Ceiled;
 
   LOGWAYLAND("WaylandSurface::EnableCeiledScaleLocked()");
   return true;
