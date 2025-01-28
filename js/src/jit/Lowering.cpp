@@ -1020,7 +1020,7 @@ void LIRGenerator::visitTest(MTest* test) {
           auto lhs = useInt64RegisterAtStart(bitAndL);
           auto rhs = useInt64RegisterOrConstantAtStart(bitAndR);
           auto* lir = new (alloc())
-              LBitAnd64AndBranch(lhs, rhs, ifTrue, ifFalse, compCond);
+              LBitAnd64AndBranch(ifTrue, ifFalse, lhs, rhs, compCond);
           add(lir, test);
           return;
         }
@@ -1028,7 +1028,7 @@ void LIRGenerator::visitTest(MTest* test) {
         LAllocation lhs = useRegisterAtStart(bitAndL);
         LAllocation rhs = useRegisterOrConstantAtStart(bitAndR);
         auto* lir =
-            new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse, compCond);
+            new (alloc()) LBitAndAndBranch(ifTrue, ifFalse, lhs, rhs, compCond);
         add(lir, test);
         return;
       }
@@ -1164,7 +1164,8 @@ void LIRGenerator::visitTest(MTest* test) {
       ReorderCommutative(&left, &right, test);
       LAllocation lhs = useRegisterAtStart(left);
       LAllocation rhs = useRegisterOrConstantAtStart(right);
-      auto* lir = new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse);
+      auto* lir = new (alloc())
+          LBitAndAndBranch(ifTrue, ifFalse, lhs, rhs, Assembler::NonZero);
       add(lir, test);
       return;
     }

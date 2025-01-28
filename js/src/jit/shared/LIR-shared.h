@@ -893,62 +893,6 @@ class LCompareAndBranch : public LControlInstructionHelper<2, 2, 0> {
   const char* extraName() const { return CodeName(jsop_); }
 };
 
-class LBitAndAndBranch : public LControlInstructionHelper<2, 2, 0> {
-  Assembler::Condition cond_;
-
- public:
-  LIR_HEADER(BitAndAndBranch)
-  LBitAndAndBranch(const LAllocation& left, const LAllocation& right,
-                   MBasicBlock* ifTrue, MBasicBlock* ifFalse,
-                   Assembler::Condition cond = Assembler::NonZero)
-      : LControlInstructionHelper(classOpcode), cond_(cond) {
-    setOperand(0, left);
-    setOperand(1, right);
-    setSuccessor(0, ifTrue);
-    setSuccessor(1, ifFalse);
-  }
-
-  MBasicBlock* ifTrue() const { return getSuccessor(0); }
-  MBasicBlock* ifFalse() const { return getSuccessor(1); }
-  const LAllocation* left() { return getOperand(0); }
-  const LAllocation* right() { return getOperand(1); }
-  Assembler::Condition cond() const {
-    MOZ_ASSERT(cond_ == Assembler::Zero || cond_ == Assembler::NonZero);
-    return cond_;
-  }
-};
-
-class LBitAnd64AndBranch
-    : public LControlInstructionHelper<2, 2 * INT64_PIECES, 0> {
-  Assembler::Condition cond_;
-
- public:
-  LIR_HEADER(BitAnd64AndBranch)
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LBitAnd64AndBranch(const LInt64Allocation& left,
-                     const LInt64Allocation& right, MBasicBlock* ifTrue,
-                     MBasicBlock* ifFalse,
-                     Assembler::Condition cond = Assembler::NonZero)
-      : LControlInstructionHelper(classOpcode), cond_(cond) {
-    setInt64Operand(Lhs, left);
-    setInt64Operand(Rhs, right);
-    setSuccessor(0, ifTrue);
-    setSuccessor(1, ifFalse);
-  }
-
-  MBasicBlock* ifTrue() const { return getSuccessor(0); }
-  MBasicBlock* ifFalse() const { return getSuccessor(1); }
-  LInt64Allocation left() const { return getInt64Operand(LCompareI64::Lhs); }
-  LInt64Allocation right() const { return getInt64Operand(LCompareI64::Rhs); }
-  Assembler::Condition cond() const {
-    MOZ_ASSERT(cond_ == Assembler::Zero || cond_ == Assembler::NonZero);
-    return cond_;
-  }
-};
-
 // Bitwise not operation, takes a 32-bit integer as input and returning
 // a 32-bit integer result as an output.
 class LBitNotI : public LInstructionHelper<1, 1, 0> {

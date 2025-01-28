@@ -904,10 +904,20 @@
   num_temps: 2
 
 - name: BitAndAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    cond: Assembler::Condition
 
 - name: BitAnd64AndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: Int64
+    right: Int64
+  arguments:
+    cond: Assembler::Condition
 
 # Takes a value and tests whether it is null, undefined, or is an object that
 # emulates |undefined|, as determined by the JSCLASS_EMULATES_UNDEFINED class

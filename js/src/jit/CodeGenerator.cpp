@@ -1704,6 +1704,8 @@ void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
 
 void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
   Assembler::Condition cond = baab->cond();
+  MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+
   Register left = ToRegister(baab->left());
   const LAllocation* right = baab->right();
 
@@ -1732,6 +1734,8 @@ void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
 
 void CodeGenerator::visitBitAnd64AndBranch(LBitAnd64AndBranch* baab) {
   Assembler::Condition cond = baab->cond();
+  MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+
   Register64 left = ToRegister64(baab->left());
   LInt64Allocation right = baab->right();
 
