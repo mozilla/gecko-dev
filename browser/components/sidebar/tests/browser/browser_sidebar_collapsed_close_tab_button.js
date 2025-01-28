@@ -32,10 +32,46 @@ add_task(async function test_toggle_collapse_close_button() {
   is(gBrowser.tabs.length, 2, "Tabstrip now has two tabs");
 
   let firstTab = gBrowser.visibleTabs[0];
-  let computedStyle = window.getComputedStyle(
-    gBrowser.selectedTab.querySelector(".tab-close-button")
+  let selectedTab = gBrowser.selectedTab.querySelector(".tab-close-button");
+  let computedStyle = window.getComputedStyle(selectedTab);
+
+  is(
+    computedStyle.opacity,
+    "0",
+    "The selected tab is not showing the close button."
   );
-  is(computedStyle.opacity, "1", "The active tab is showing the close button.");
+
+  EventUtils.synthesizeMouse(gBrowser.selectedTab, 10, 10, {
+    type: "mouseover",
+  });
+  await TestUtils.waitForTick();
+
+  computedStyle = window.getComputedStyle(selectedTab);
+  is(
+    computedStyle.opacity,
+    "1",
+    "The selected tab is showing the close button on hover."
+  );
+
+  gBrowser.pinTab(gBrowser.selectedTab);
+  computedStyle = window.getComputedStyle(selectedTab);
+
+  is(
+    computedStyle.opacity,
+    "0",
+    "The active pinned tab is not showing the close button."
+  );
+
+  EventUtils.synthesizeMouse(gBrowser.selectedTab, 10, 10, {
+    type: "mouseover",
+  });
+  computedStyle = window.getComputedStyle(selectedTab);
+  is(
+    computedStyle.opacity,
+    "0",
+    "The inactive pinned tab is not showing the close button on hover."
+  );
+  gBrowser.unpinTab(gBrowser.selectedTab);
 
   // Move mouse away from tabstrip to ensure we don't show the close button.
   EventUtils.synthesizeMouseAtCenter(
@@ -67,7 +103,7 @@ add_task(async function test_toggle_collapse_close_button() {
   AccessibilityUtils.setEnv({ focusableRule: false });
   // Close the active tab
   EventUtils.synthesizeMouseAtCenter(
-    gBrowser.selectedTab.querySelector(".tab-close-button"),
+    firstTab.querySelector(".tab-close-button"),
     {}
   );
   AccessibilityUtils.resetEnv();
@@ -85,6 +121,6 @@ add_task(async function test_toggle_collapse_close_button() {
   is(
     computedStyle.position,
     "static",
-    "The active tab is  showing the collapsed close button when the sidebar is expanded."
+    "The active tab is showing the collapsed close button when the sidebar is expanded."
   );
 });

@@ -1317,7 +1317,12 @@
   &:not([expanded]) {
     .tabbrowser-tab {
       padding-inline: 0;
-      padding-block: 2px;
+      padding-block: 3px 2px;
+
+      /* prevent the shadow of the close button from being cutoff by the toolbar on the first tab */
+      &:nth-child(1 of :not([hidden])) {
+        padding-block-start: 5px;
+      }
 
       &[pinned] {
         width: var(--tab-collapsed-width);
@@ -1334,9 +1339,9 @@
 
     .tab-close-button {
       opacity: 0;
-      width: 16px;
-      height: 16px;
-      padding: 4px;
+      width: 15px;
+      height: 15px;
+      padding: 3.5px;
       margin: 0;
       fill: var(--tab-selected-textcolor);
       /* We want to make this look like the selected tab, but fully opaque. For that,
@@ -1362,7 +1367,7 @@
       display: block;
       position: absolute;
       inset: auto;
-      top: -1px;
+      top: -3px;
       inset-inline-start: 2px;
 
       &:-moz-window-inactive {
@@ -1379,7 +1384,7 @@
         --close-button-extra-background: var(--button-background-color-ghost-active);
       }
 
-      .tabbrowser-tab:is([selected], :hover) & {
+      .tabbrowser-tab:not([pinned]):hover & {
         opacity: 1;
       }
     }
