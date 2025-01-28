@@ -315,6 +315,69 @@ security:
           (Only for violations from chrome:)
         type: string
 
+  csp_violation_internal_page:
+    type: event
+    description: >
+      Information about Content-Security-Policy violations that happen in internal pages like chrome://
+    bugs:
+      - https://bugzil.la/1942622
+    data_reviews:
+      - https://bugzil.la/1942622
+    notification_emails:
+      - tschuster@mozilla.com
+      - freddy@mozilla.com
+    expires: never
+    extra_keys:
+      directive:
+        description: >
+          The same as SecurityPolicyViolationEvent's effectiveDirective.
+        type: string
+      selftype:
+        description: >
+          The sanitized type of the "self uri", which is roughly similar to the documentURI.
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      selfdetails:
+        description: >
+          A sanitized version of the "self uri", which is roughly similar to the documentURI,
+          e.g. the whole chrome:// URL in some cases.
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      sourcetype:
+        description: >
+          The sanitized type of SecurityPolicyViolationEvent's sourceFile,
+          e.g. "chromeuri".
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      sourcedetails:
+        description: >
+          A sanitized version of SecurityPolicyViolationEvent's sourceFile,
+          e.g. the whole chrome:// URL in some cases.
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      blockeduritype:
+        description: >
+          The sanitized type of SecurityPolicyViolationEvent's blockedURI.
+        type: string
+      blockeduridetails:
+        description: >
+          A sanitized version of SecurityPolicyViolationEvent's blockedURI.
+        type: string
+      linenumber:
+        description: >
+          The same as SecurityPolicyViolationEvent's lineNumber.
+        type: quantity
+      columnnumber:
+        description: >
+          The same as SecurityPolicyViolationEvent's columnNumber.
+        type: quantity
+      sample:
+        description: >
+          The same as SecurityPolicyViolationEvent's sample.
+          (Only for violations from chrome:)
+        type: string
+
+
   eval_usage_parent_process:
     type: event
     description: >
