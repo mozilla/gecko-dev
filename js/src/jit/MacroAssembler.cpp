@@ -116,32 +116,20 @@ void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
   StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
 }
 
-template <typename S, typename T>
-static void StoreToTypedBigIntArray(MacroAssembler& masm,
-                                    Scalar::Type arrayType, const S& value,
-                                    const T& dest) {
-  MOZ_ASSERT(Scalar::isBigIntType(arrayType));
+void MacroAssembler::storeToTypedBigIntArray(Register64 value,
+                                             const BaseIndex& dest) {
   masm.store64(value, dest);
 }
-
-void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
-                                             Register64 value,
-                                             const BaseIndex& dest) {
-  StoreToTypedBigIntArray(*this, arrayType, value, dest);
-}
-void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
-                                             Register64 value,
+void MacroAssembler::storeToTypedBigIntArray(Register64 value,
                                              const Address& dest) {
-  StoreToTypedBigIntArray(*this, arrayType, value, dest);
+  masm.store64(value, dest);
 }
-void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
-                                             Imm64 value,
+void MacroAssembler::storeToTypedBigIntArray(Imm64 value,
                                              const BaseIndex& dest) {
-  StoreToTypedBigIntArray(*this, arrayType, value, dest);
+  masm.store64(value, dest);
 }
-void MacroAssembler::storeToTypedBigIntArray(Scalar::Type arrayType,
-                                             Imm64 value, const Address& dest) {
-  StoreToTypedBigIntArray(*this, arrayType, value, dest);
+void MacroAssembler::storeToTypedBigIntArray(Imm64 value, const Address& dest) {
+  masm.store64(value, dest);
 }
 
 void MacroAssembler::boxUint32(Register source, ValueOperand dest,

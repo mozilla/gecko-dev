@@ -7188,7 +7188,7 @@ bool CacheIRCompiler::emitStoreTypedArrayElement(ObjOperandId objId,
 #endif
 
     masm.loadBigInt64(*valBigInt, temp);
-    masm.storeToTypedBigIntArray(elementType, temp, dest);
+    masm.storeToTypedBigIntArray(temp, dest);
 
 #ifndef JS_PUNBOX64
     masm.pop(obj);

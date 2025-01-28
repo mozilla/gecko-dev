@@ -18857,14 +18857,12 @@ void CodeGenerator::visitStoreUnboxedScalar(LStoreUnboxedScalar* lir) {
 
 template <typename T>
 static inline void StoreToTypedBigIntArray(MacroAssembler& masm,
-                                           Scalar::Type writeType,
                                            const LInt64Allocation& value,
                                            const T& dest) {
-  MOZ_ASSERT(Scalar::isBigIntType(writeType));
   if (IsConstant(value)) {
-    masm.storeToTypedBigIntArray(writeType, Imm64(ToInt64(value)), dest);
+    masm.storeToTypedBigIntArray(Imm64(ToInt64(value)), dest);
   } else {
-    masm.storeToTypedBigIntArray(writeType, ToRegister64(value), dest);
+    masm.storeToTypedBigIntArray(ToRegister64(value), dest);
   }
 }
 
@@ -18873,14 +18871,15 @@ void CodeGenerator::visitStoreUnboxedInt64(LStoreUnboxedInt64* lir) {
   LInt64Allocation value = lir->value();
 
   Scalar::Type writeType = lir->mir()->writeType();
+  MOZ_ASSERT(Scalar::isBigIntType(writeType));
 
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), writeType);
-    StoreToTypedBigIntArray(masm, writeType, value, dest);
+    StoreToTypedBigIntArray(masm, value, dest);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(writeType));
-    StoreToTypedBigIntArray(masm, writeType, value, dest);
+    StoreToTypedBigIntArray(masm, value, dest);
   }
 }
 
@@ -19021,8 +19020,7 @@ void CodeGenerator::visitStoreDataViewElement64(LStoreDataViewElement64* lir) {
   const LAllocation* littleEndian = lir->littleEndian();
   Register64 temp = ToTempRegister64OrInvalid(lir->temp());
 
-  Scalar::Type writeType = lir->mir()->writeType();
-  MOZ_ASSERT(Scalar::isBigIntType(writeType));
+  MOZ_ASSERT(Scalar::isBigIntType(lir->mir()->writeType()));
 
   BaseIndex dest(elements, ToRegister(lir->index()), TimesOne);
 
@@ -19033,7 +19031,7 @@ void CodeGenerator::visitStoreDataViewElement64(LStoreDataViewElement64* lir) {
   // unaligned accesses for the access.  (Such support is assumed for integer
   // types.)
   if (noSwap) {
-    StoreToTypedBigIntArray(masm, writeType, value, dest);
+    StoreToTypedBigIntArray(masm, value, dest);
     return;
   }
 
@@ -19110,6 +19108,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
   LInt64Allocation value = lir->value();
 
   Scalar::Type arrayType = lir->mir()->arrayType();
+  MOZ_ASSERT(Scalar::isBigIntType(arrayType));
 
   Register index = ToRegister(lir->index());
   const LAllocation* length = lir->length();
@@ -19123,7 +19122,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
   }
 
   BaseIndex dest(elements, index, ScaleFromScalarType(arrayType));
-  StoreToTypedBigIntArray(masm, arrayType, value, dest);
+  StoreToTypedBigIntArray(masm, value, dest);
 
   masm.bind(&skip);
 }
