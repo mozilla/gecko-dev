@@ -640,6 +640,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
         if (FxNimbus.features.alternativeAppLauncherIcon.value().enabled) {
             // User has been enrolled in alternative app icon experiment.
+            // Note: Updating the icon will subsequently trigger a call to onDestroy().
             with(applicationContext) {
                 changeAppLauncherIcon(
                     context = this,
