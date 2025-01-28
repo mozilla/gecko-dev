@@ -58,9 +58,9 @@ class TestRTCStatsTimestampMaker : public dom::RTCStatsTimestampMaker {
 
 class DirectVideoFrameConverter : public VideoFrameConverter {
  public:
-  explicit DirectVideoFrameConverter()
+  explicit DirectVideoFrameConverter(bool aLockScaling)
       : VideoFrameConverter(do_AddRef(GetMainThreadSerialEventTarget()),
-                            TestRTCStatsTimestampMaker()) {}
+                            TestRTCStatsTimestampMaker(), aLockScaling) {}
 
   void SendVideoFrame(PlanarYCbCrImage* aImage, TimeStamp aTime) {
     FrameToProcess frame(aImage, aTime, aImage->GetSize(), false);
@@ -77,7 +77,8 @@ class VideoConduitTest : public Test {
         mTrackingId(TrackingId::Source::Camera, ++sTrackingIdCounter),
         mImageContainer(MakeRefPtr<ImageContainer>(
             ImageUsageType::Webrtc, ImageContainer::SYNCHRONOUS)),
-        mVideoFrameConverter(MakeRefPtr<DirectVideoFrameConverter>()),
+        mVideoFrameConverter(
+            MakeRefPtr<DirectVideoFrameConverter>(aOptions.mLockScaling)),
         mVideoSink(MakeUnique<MockVideoSink>()),
         mVideoConduit(MakeRefPtr<WebrtcVideoConduit>(
             mCallWrapper, GetCurrentSerialEventTarget(), std::move(aOptions),
@@ -800,6 +801,60 @@ TEST_F(VideoConduitTest, TestOnSinkWantsChanged) {
     EXPECT_EQ(videoStreams[0].width, 320U);
     EXPECT_EQ(videoStreams[0].height, 180U);
     EXPECT_LE(videoStreams[0].width * videoStreams[0].height, 64000U);
+  }
+}
+
+class VideoConduitTestScalingLocked : public VideoConduitTest {
+ public:
+  static VideoSessionConduit::Options CreateOptions() {
+    VideoSessionConduit::Options options;
+    options.mLockScaling = true;
+    return options;
+  }
+  VideoConduitTestScalingLocked() : VideoConduitTest(CreateOptions()) {}
+};
+
+TEST_F(VideoConduitTestScalingLocked, TestOnSinkWantsChanged) {
+  mControl.Update([&](auto& aControl) {
+    aControl.mTransmitting = true;
+    VideoCodecConfig codecConfig(120, "VP8", EncodingConstraints());
+    codecConfig.mEncodingConstraints.maxFs = 0;
+    codecConfig.mEncodings.emplace_back();
+    aControl.mVideoSendCodec = Some(codecConfig);
+    aControl.mVideoSendRtpRtcpConfig =
+        Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
+  });
+  ASSERT_TRUE(Call()->mVideoSendEncoderConfig);
+  rtc::VideoSinkWants wants;
+  wants.max_pixel_count = 256000;
+  mVideoFrameConverter->AddOrUpdateSink(mVideoSink.get(), wants);
+  SendVideoFrame(1920, 1080, 1);
+  EXPECT_EQ(mVideoSink->mVideoFrame.width(), 1920);
+  EXPECT_EQ(mVideoSink->mVideoFrame.height(), 1080);
+  {
+    const std::vector<webrtc::VideoStream> videoStreams =
+        Call()->CreateEncoderStreams(mVideoSink->mVideoFrame.width(),
+                                     mVideoSink->mVideoFrame.height());
+    ASSERT_EQ(videoStreams.size(), 1U);
+    EXPECT_EQ(videoStreams[0].width, 1920U);
+    EXPECT_EQ(videoStreams[0].height, 1080U);
+  }
+
+  mControl.Update([&](auto& aControl) {
+    VideoCodecConfig codecConfig = *aControl.mVideoSendCodec.Ref();
+    codecConfig.mEncodingConstraints.maxFs = 500;
+    aControl.mVideoSendCodec = Some(codecConfig);
+  });
+  ASSERT_TRUE(Call()->mVideoSendEncoderConfig);
+  SendVideoFrame(1920, 1080, 2);
+  {
+    const std::vector<webrtc::VideoStream> videoStreams =
+        Call()->CreateEncoderStreams(mVideoSink->mVideoFrame.width(),
+                                     mVideoSink->mVideoFrame.height());
+    EXPECT_LE(videoStreams[0].width * videoStreams[0].height, 500U * 16U * 16U);
+    ASSERT_EQ(videoStreams.size(), 1U);
+    EXPECT_EQ(videoStreams[0].width, 476U);
+    EXPECT_EQ(videoStreams[0].height, 268U);
   }
 }
 

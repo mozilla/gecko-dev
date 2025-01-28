@@ -51,9 +51,10 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
  protected:
   explicit VideoFrameConverterImpl(
       already_AddRefed<nsISerialEventTarget> aTarget,
-      const dom::RTCStatsTimestampMaker& aTimestampMaker)
+      const dom::RTCStatsTimestampMaker& aTimestampMaker, bool aLockScaling)
       : mTimestampMaker(aTimestampMaker),
         mTarget(aTarget),
+        mLockScaling(aLockScaling),
         mPacer(MakeAndAddRef<Pacer<FrameToProcess>>(
             do_AddRef(mTarget), mIdleFrameDuplicationInterval)),
         mScalingPool(false, CONVERTER_BUFFER_POOL_SIZE),
@@ -413,6 +414,12 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
         AdaptFrame(inSize.Width(), inSize.Height(), time.us(), &out_width,
                    &out_height, &crop_width, &crop_height, &crop_x, &crop_y);
 
+    if (mLockScaling) {
+      crop_x = crop_y = 0;
+      crop_width = out_width = inSize.Width();
+      crop_height = out_height = inSize.Height();
+    }
+
     if (out_width == 0 || out_height == 0) {
       LOG(LogLevel::Verbose,
           "VideoFrameConverterImpl %p: Skipping a frame because it has no "
@@ -552,8 +559,8 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
 
  public:
   const dom::RTCStatsTimestampMaker mTimestampMaker;
-
   const nsCOMPtr<nsISerialEventTarget> mTarget;
+  const bool mLockScaling;
 
  protected:
   TimeDuration mIdleFrameDuplicationInterval = TimeDuration::Forever();
@@ -581,16 +588,17 @@ class VideoFrameConverter
           VideoFrameConverterImpl<FrameDroppingPolicy::Allowed>> {
  protected:
   VideoFrameConverter(already_AddRefed<nsISerialEventTarget> aTarget,
-                      const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : rtc::RefCountedObject<VideoFrameConverterImpl>(std::move(aTarget),
-                                                       aTimestampMaker) {}
+                      const dom::RTCStatsTimestampMaker& aTimestampMaker,
+                      bool aLockScaling)
+      : rtc::RefCountedObject<VideoFrameConverterImpl>(
+            std::move(aTarget), aTimestampMaker, aLockScaling) {}
 
  public:
   static already_AddRefed<VideoFrameConverter> Create(
       already_AddRefed<nsISerialEventTarget> aTarget,
-      const dom::RTCStatsTimestampMaker& aTimestampMaker) {
-    RefPtr<VideoFrameConverter> converter =
-        new VideoFrameConverter(std::move(aTarget), aTimestampMaker);
+      const dom::RTCStatsTimestampMaker& aTimestampMaker, bool aLockScaling) {
+    RefPtr<VideoFrameConverter> converter = new VideoFrameConverter(
+        std::move(aTarget), aTimestampMaker, aLockScaling);
     converter->RegisterListener();
     return converter.forget();
   }

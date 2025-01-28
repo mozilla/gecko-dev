@@ -1393,7 +1393,13 @@ webrtc::VideoCodecMode WebrtcVideoConduit::CodecMode() const {
 webrtc::DegradationPreference WebrtcVideoConduit::DegradationPreference()
     const {
   MOZ_ASSERT(mCallThread->IsOnCurrentThread());
-  return webrtc::DegradationPreference::BALANCED;
+  if (mLockScaling || CodecMode() == webrtc::VideoCodecMode::kScreensharing) {
+    return webrtc::DegradationPreference::MAINTAIN_RESOLUTION;
+  }
+  // Fall back to MAINTAIN_FRAMERATE by default. This is what libwebrtc/Chrome
+  // uses, because BALANCED hasn't been tuned yet. See
+  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/media/engine/webrtc_video_engine.cc;l=1939;drc=7c2b25f6a19cfeeea67f0f43ed33617840bab33d
+  return webrtc::DegradationPreference::MAINTAIN_FRAMERATE;
 }
 
 MediaConduitErrorCode WebrtcVideoConduit::AttachRenderer(

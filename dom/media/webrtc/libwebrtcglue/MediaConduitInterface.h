@@ -378,6 +378,8 @@ class VideoSessionConduit : public MediaSessionConduit {
 
   bool UsingFEC() const { return mUsingFEC; }
 
+  virtual bool LockScaling() const = 0;
+
   virtual Maybe<webrtc::VideoReceiveStreamInterface::Stats> GetReceiverStats()
       const = 0;
   virtual Maybe<webrtc::VideoSendStream::Stats> GetSenderStats() const = 0;

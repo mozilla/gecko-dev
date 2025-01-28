@@ -724,7 +724,7 @@ void MediaPipelineTransmit::RegisterListener() {
       TaskQueue::Create(GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
                         "VideoFrameConverter")
           .forget(),
-      GetTimestampMaker());
+      GetTimestampMaker(), videoConduit->LockScaling());
   mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
   videoConduit->SetTrackSource(mConverter);
   mListener->SetVideoFrameConverter(mConverter);

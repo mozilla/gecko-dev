@@ -116,6 +116,8 @@ class WebrtcVideoConduit : public VideoSessionConduit,
 
   void SetTrackSource(webrtc::VideoTrackSourceInterface* aSource) override;
 
+  bool LockScaling() const override { return mLockScaling; }
+
   bool SendRtp(const uint8_t* aData, size_t aLength,
                const webrtc::PacketOptions& aOptions) override;
   bool SendSenderRtcp(const uint8_t* aData, size_t aLength) override;
@@ -409,7 +411,8 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Set to true to force denoising on.
   const bool mDenoising;
 
-  // Set to true to ignore sink wants (scaling due to bwe and cpu usage).
+  // Set to true to ignore sink wants (scaling due to bwe and cpu usage) and
+  // degradation preference (always use MAINTAIN_RESOLUTION).
   const bool mLockScaling;
 
   const uint8_t mSpatialLayers;

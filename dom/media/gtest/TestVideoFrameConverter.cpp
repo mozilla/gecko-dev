@@ -62,7 +62,8 @@ class DebugVideoFrameConverter
   explicit DebugVideoFrameConverter(
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
       : rtc::RefCountedObject<VideoFrameConverterImpl>(
-            do_AddRef(GetMainThreadSerialEventTarget()), aTimestampMaker) {}
+            do_AddRef(GetMainThreadSerialEventTarget()), aTimestampMaker,
+            /* aLockScaling= */ false) {}
 
   using VideoFrameConverterImpl::mLastFrameQueuedForProcessing;
   using VideoFrameConverterImpl::ProcessVideoFrame;
