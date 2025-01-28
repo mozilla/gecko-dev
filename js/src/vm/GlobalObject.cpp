@@ -1143,7 +1143,7 @@ void GlobalObject::bumpGenerationCount(JSContext* cx) {
     auto script = r.front();
     if (script->hasBaselineScript() &&
         script->baselineScript()->hasPendingIonCompileTask()) {
-      JS_LOG(compilationDependency, mozilla::LogLevel::Debug,
+      JS_LOG(compilationDependency, Debug,
              "Cancelling pending ion compile, if it exists, for script %s:%d ",
              script->filename(), script->lineno());
       CancelOffThreadIonCompile(script);

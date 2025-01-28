@@ -582,12 +582,12 @@ void jit::JitSpew(JitSpewChannel channel, const char* fmt, ...) {
   JS::AutoSuppressGCAnalysis suppress;
 
   switch (channel) {
-#  define SpewChannel(x)                                                   \
-    case JitSpew_##x:                                                      \
-      if (x##Module.shouldLog(mozilla::LogLevel::Debug)) {                 \
-        x##Module.interface.logPrintVA(x##Module.logger,                   \
-                                       mozilla::LogLevel::Debug, fmt, ap); \
-      }                                                                    \
+#  define SpewChannel(x)                                                      \
+    case JitSpew_##x:                                                         \
+      if (x##Module.shouldLog(js::LogLevel::Debug)) {                         \
+        x##Module.interface.logPrintVA(x##Module.logger, js::LogLevel::Debug, \
+                                       fmt, ap);                              \
+      }                                                                       \
       break;
 
     JITSPEW_CHANNEL_LIST(SpewChannel)

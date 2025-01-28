@@ -1278,13 +1278,13 @@ void ReportThenable(JSContext* cx, bool isOnProto, bool isOnStandardProto) {
   if (isOnProto) {
     cx->runtime()->setUseCounter(cx->global(),
                                  JSUseCounter::THENABLE_USE_PROTO);
-    JS_LOG(thenable, mozilla::LogLevel::Debug, "Thenable on proto");
+    JS_LOG(thenable, Debug, "Thenable on proto");
   }
 
   if (isOnStandardProto) {
     cx->runtime()->setUseCounter(cx->global(),
                                  JSUseCounter::THENABLE_USE_STANDARD_PROTO);
-    JS_LOG(thenable, mozilla::LogLevel::Info, "Thenable on standard proto");
+    JS_LOG(thenable, Info, "Thenable on standard proto");
   }
 }
 

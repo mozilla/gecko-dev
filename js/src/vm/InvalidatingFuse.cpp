@@ -35,8 +35,7 @@ bool js::InvalidatingRuntimeFuse::addFuseDependency(JSContext* cx,
 void js::InvalidatingRuntimeFuse::popFuse(JSContext* cx) {
   // Pop the fuse in the base class
   GuardFuse::popFuse(cx);
-  JS_LOG(fuseInvalidation, mozilla::LogLevel::Verbose,
-         "Invalidating fuse popping: %s", name());
+  JS_LOG(fuseInvalidation, Verbose, "Invalidating fuse popping: %s", name());
   // do invalidation.
   for (AllZonesIter z(cx->runtime()); !z.done(); z.next()) {
     // There's one dependent script set per fuse; just iterate over them all to
@@ -74,7 +73,7 @@ void js::jit::InvalidateAndClearScriptSet(JSContext* cx,
     if (script->hasIonScript()) {
       JitSpew(jit::JitSpew_IonInvalidate, "Invalidating ion script %p for %s",
               script->ionScript(), reason);
-      JS_LOG(fuseInvalidation, mozilla::LogLevel::Debug,
+      JS_LOG(fuseInvalidation, Debug,
              "Invalidating ion script %s:%d for reason %s", script->filename(),
              script->lineno(), reason);
       js::jit::Invalidate(cx, script);

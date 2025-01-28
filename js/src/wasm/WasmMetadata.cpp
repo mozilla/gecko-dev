@@ -277,46 +277,45 @@ void CodeMetadata::dumpStats() const {
     auto guard = stats.readLock();
     statsCopy = guard.get();
   }
-  auto level = mozilla::LogLevel::Info;
-  JS_LOG(wasmPerf, level, "CM=..%06lx  CodeMetadata::~CodeMetadata() <<<<",
+  JS_LOG(wasmPerf, Info, "CM=..%06lx  CodeMetadata::~CodeMetadata() <<<<",
          0xFFFFFF & (unsigned long)uintptr_t(this));
-  JS_LOG(wasmPerf, level, "  ------ Heuristic Settings ------");
-  JS_LOG(wasmPerf, level, "     w_lazy_tiering_level  (1..9) = %u",
+  JS_LOG(wasmPerf, Info, "  ------ Heuristic Settings ------");
+  JS_LOG(wasmPerf, Info, "     w_lazy_tiering_level  (1..9) = %u",
          LazyTieringHeuristics::rawLevel());
-  JS_LOG(wasmPerf, level, "     w_inlining_level      (1..9) = %u",
+  JS_LOG(wasmPerf, Info, "     w_inlining_level      (1..9) = %u",
          InliningHeuristics::rawLevel());
-  JS_LOG(wasmPerf, level, "     w_direct_inlining   = %s",
+  JS_LOG(wasmPerf, Info, "     w_direct_inlining   = %s",
          InliningHeuristics::rawDirectAllowed() ? "true" : "false");
-  JS_LOG(wasmPerf, level, "     w_call_ref_inlining = %s",
+  JS_LOG(wasmPerf, Info, "     w_call_ref_inlining = %s",
          InliningHeuristics::rawCallRefAllowed() ? "true" : "false");
-  JS_LOG(wasmPerf, level, "     w_call_ref_inlining_percent (10..100) = %u",
+  JS_LOG(wasmPerf, Info, "     w_call_ref_inlining_percent (10..100) = %u",
          InliningHeuristics::rawCallRefPercent());
-  JS_LOG(wasmPerf, level, "  ------ Complete Tier ------");
-  JS_LOG(wasmPerf, level, "    %7zu functions in module",
+  JS_LOG(wasmPerf, Info, "  ------ Complete Tier ------");
+  JS_LOG(wasmPerf, Info, "    %7zu functions in module",
          statsCopy.completeNumFuncs);
-  JS_LOG(wasmPerf, level, "    %7zu bytecode bytes in module",
+  JS_LOG(wasmPerf, Info, "    %7zu bytecode bytes in module",
          statsCopy.completeBCSize);
   uint32_t nMetrics = numCallRefMetrics == UINT32_MAX ? 0 : numCallRefMetrics;
-  JS_LOG(wasmPerf, level, "    %7u CallRefMetrics in module (%zu bytes)",
+  JS_LOG(wasmPerf, Info, "    %7u CallRefMetrics in module (%zu bytes)",
          nMetrics, size_t(nMetrics) * sizeof(CallRefMetrics));
-  JS_LOG(wasmPerf, level, "  ------ Partial Tier ------");
-  JS_LOG(wasmPerf, level, "    %7zu functions tiered up",
+  JS_LOG(wasmPerf, Info, "  ------ Partial Tier ------");
+  JS_LOG(wasmPerf, Info, "    %7zu functions tiered up",
          statsCopy.partialNumFuncs);
-  JS_LOG(wasmPerf, level, "    %7zu bytecode bytes tiered up",
+  JS_LOG(wasmPerf, Info, "    %7zu bytecode bytes tiered up",
          statsCopy.partialBCSize);
-  JS_LOG(wasmPerf, level, "    %7zu direct-calls inlined",
+  JS_LOG(wasmPerf, Info, "    %7zu direct-calls inlined",
          statsCopy.partialNumFuncsInlinedDirect);
-  JS_LOG(wasmPerf, level, "    %7zu call_ref-calls inlined",
+  JS_LOG(wasmPerf, Info, "    %7zu call_ref-calls inlined",
          statsCopy.partialNumFuncsInlinedCallRef);
-  JS_LOG(wasmPerf, level, "    %7zu direct-call bytecodes inlined",
+  JS_LOG(wasmPerf, Info, "    %7zu direct-call bytecodes inlined",
          statsCopy.partialBCInlinedSizeDirect);
-  JS_LOG(wasmPerf, level, "    %7zu call_ref-call bytecodes inlined",
+  JS_LOG(wasmPerf, Info, "    %7zu call_ref-call bytecodes inlined",
          statsCopy.partialBCInlinedSizeCallRef);
-  JS_LOG(wasmPerf, level, "    %7zu functions overran inlining budget",
+  JS_LOG(wasmPerf, Info, "    %7zu functions overran inlining budget",
          statsCopy.partialInlineBudgetOverruns);
-  JS_LOG(wasmPerf, level, "    %7zu bytes mmap'd for p-t code storage",
+  JS_LOG(wasmPerf, Info, "    %7zu bytes mmap'd for p-t code storage",
          statsCopy.partialCodeBytesMapped);
-  JS_LOG(wasmPerf, level, "    %7zu bytes actually used for p-t code storage",
+  JS_LOG(wasmPerf, Info, "    %7zu bytes actually used for p-t code storage",
          statsCopy.partialCodeBytesUsed);
 
   // This value will be 0.0 if inlining did not cause any code expansion.  A
@@ -330,15 +329,14 @@ void CodeMetadata::dumpStats() const {
   float codeSpaceUseRatio = float(statsCopy.partialCodeBytesUsed) /
                             float(statsCopy.partialCodeBytesMapped);
 
-  JS_LOG(wasmPerf, level, "  ------ Derived Values ------");
-  JS_LOG(wasmPerf, level,
+  JS_LOG(wasmPerf, Info, "  ------ Derived Values ------");
+  JS_LOG(wasmPerf, Info,
          "     %5.1f%% p-t bytecode expansion caused by inlining",
          inliningExpansion * 100.0);
-  JS_LOG(wasmPerf, level,
-         "      %4.1f%% of partial tier mapped code space used",
+  JS_LOG(wasmPerf, Info, "      %4.1f%% of partial tier mapped code space used",
          codeSpaceUseRatio * 100.0);
-  JS_LOG(wasmPerf, level, "  ------");
-  JS_LOG(wasmPerf, level, ">>>>");
+  JS_LOG(wasmPerf, Info, "  ------");
+  JS_LOG(wasmPerf, Info, ">>>>");
 #endif
 }
 

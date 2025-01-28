@@ -80,7 +80,7 @@ struct CompilationDependencyTracker {
   bool checkDependencies(JSContext* cx) {
     for (auto& dep : dependencies) {
       if (!dep->checkDependency(cx)) {
-        JS_LOG(compilationDependency, mozilla::LogLevel::Debug,
+        JS_LOG(compilationDependency, Debug,
                "Failed dependency check, type %s\n",
                CompilationDependency::TypeToName(dep->type))
         return false;

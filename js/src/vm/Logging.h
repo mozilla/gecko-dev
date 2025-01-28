@@ -11,6 +11,7 @@
 #define _js_vm_Logging_h_
 
 #include "mozilla/Assertions.h"
+#include "mozilla/LoggingCore.h"
 
 #include "jit/JitSpewer.h"
 #include "js/experimental/LoggingInterface.h"
@@ -18,6 +19,8 @@
 struct JSContext;
 
 namespace js {
+
+using mozilla::LogLevel;
 
 // [SMDOC] js::LogModule
 //
@@ -102,12 +105,12 @@ FOR_EACH_JS_LOG_MODULE(DECLARE_MODULE);
 
 // The core logging macro for the JS Engine.
 #ifdef JS_LOGGING
-#  define JS_LOG(name, log_level, ...)                                  \
-    do {                                                                \
-      if (name##Module.shouldLog(log_level)) {                          \
-        name##Module.interface.logPrint(name##Module.logger, log_level, \
-                                        __VA_ARGS__);                   \
-      }                                                                 \
+#  define JS_LOG(name, log_level, ...)                                     \
+    do {                                                                   \
+      if (name##Module.shouldLog(LogLevel::log_level)) {                   \
+        name##Module.interface.logPrint(name##Module.logger,               \
+                                        LogLevel::log_level, __VA_ARGS__); \
+      }                                                                    \
     } while (0);
 #else
 #  define JS_LOG(module, log_level, ...)
