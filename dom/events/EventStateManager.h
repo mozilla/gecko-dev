@@ -518,6 +518,14 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   // tried to start a drag.
   void StopTrackingDragGesture(bool aClearInChildProcesses);
 
+  /**
+   * Return the last "mouseover" (or next "mouseout"), the last deepest
+   * "mouseenter" (or next deepest "mouseleave") targets.
+   */
+  const OverOutElementsWrapper* GetExtantMouseBoundaryEventTarget() const {
+    return mMouseEnterLeaveHelper;
+  }
+
  protected:
   /*
    * If aTargetFrame's widget has a cached cursor value, resets the cursor
