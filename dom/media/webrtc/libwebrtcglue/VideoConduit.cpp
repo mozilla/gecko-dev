@@ -843,8 +843,6 @@ void WebrtcVideoConduit::OnControlConfigChange() {
           mSendStreamConfig.rtp = newRtp;
           sendStreamRecreationNeeded = true;
         }
-
-        mEncoderConfig.video_stream_factory = CreateVideoStreamFactory();
       }
     }
 
@@ -859,7 +857,6 @@ void WebrtcVideoConduit::OnControlConfigChange() {
               : webrtc::VideoEncoderConfig::ContentType::kScreen;
 
       if (contentType != mEncoderConfig.content_type) {
-        mEncoderConfig.video_stream_factory = CreateVideoStreamFactory();
         encoderReconfigureNeeded = true;
       }
     }
@@ -934,6 +931,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
     MOZ_DIAGNOSTIC_ASSERT(
         mSendStreamConfig.rtp.ssrcs.size() == mEncoderConfig.number_of_streams,
         "Each video substream must have a corresponding ssrc.");
+    mEncoderConfig.video_stream_factory = CreateVideoStreamFactory();
     mSendStream->ReconfigureVideoEncoder(mEncoderConfig.Copy());
   }
 
@@ -1006,6 +1004,8 @@ void WebrtcVideoConduit::CreateSendStream() {
   glean::webrtc_video::send_codec_used
       .Get(nsDependentCString(mSendStreamConfig.rtp.payload_name.c_str()))
       .Add(1);
+
+  mEncoderConfig.video_stream_factory = CreateVideoStreamFactory();
 
   mSendStreamConfig.encoder_settings.encoder_factory = mEncoderFactory.get();
   mSendStreamConfig.encoder_settings.bitrate_allocator_factory =
