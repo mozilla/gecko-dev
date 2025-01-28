@@ -2705,7 +2705,8 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
     }
     auto encodeEnd = mozilla::TimeStamp::Now();
     xdrDuration = (encodeEnd - encodeStart);
-    JS_LOG(startup, Info, "Saved XDR Buffer. Took %f us", xdrDuration.ToMicroseconds());
+    JS_LOG(startup, Info, "Saved XDR Buffer. Took %f us",
+           xdrDuration.ToMicroseconds());
   }
 
   MOZ_ASSERT(input->atomCache.empty());
@@ -2717,7 +2718,8 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
 
   auto end = mozilla::TimeStamp::Now();
   JS_LOG(startup, Info,
-         "Used source text for process self-hosted startup. Took %f us (%f us XDR encode)",
+         "Used source text for process self-hosted startup. Took %f us (%f us "
+         "XDR encode)",
          (end - start).ToMicroseconds(), xdrDuration.ToMicroseconds());
   return true;
 }
