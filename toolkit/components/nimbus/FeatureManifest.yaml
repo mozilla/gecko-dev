@@ -4255,3 +4255,50 @@ selectableProfiles:
     enabled:
       type: boolean
       description: Enables the multiple profiles feature when true. Turning off this variable will not disable the feature.
+
+storageAccessHeuristics:
+  description: Heuristics that grant cookie access automatically for foreign resources
+  owner: bvandersloot@mozilla.com
+  hasExposure: false
+  variables:
+    popup_past_interaction:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.restrict3rdpartystorage.heuristic.window_open
+      description: >-
+        Do we grant cookie access to a third party when it is opened in a popup if it has
+        been interacted with in the recent past?
+    popup_interaction:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction
+      description: >-
+        Do we grant cookie access to a third party when it is opened in a popup if it has
+        the opener relationship and the user interacts with the popup?
+    navigation:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.restrict3rdpartystorage.heuristic.navigation
+      description: >-
+        Do we grant cookie access to a third party when it is interacted with earlier in this
+        tab's history, and the current first party is even further back in the history?
+    redirect:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.restrict3rdpartystorage.heuristic.recently_visited
+      description: >-
+        Do we grant cookie access to a third party when it has been interacted with in the recent
+        past, has been visited in the past few minutes, and redirects itself to another top level
+        site?
+    redirect_tracker:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.restrict3rdpartystorage.heuristic.redirect
+      description: >-
+        Do we grant cookie access to a tracker third party when it has been interacted with in the
+        recent past and redirects itself to another top level site?
