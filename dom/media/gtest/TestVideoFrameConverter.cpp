@@ -81,6 +81,7 @@ class VideoFrameConverterTest : public ::testing::Test {
         mConverter(MakeAndAddRef<DebugVideoFrameConverter>(mTimestampMaker)),
         mListener(MakeAndAddRef<FrameListener>(mConverter)) {
     mConverter->RegisterListener();
+    mConverter->SetTrackingId({TrackingId::Source::Camera, 0});
   }
 
   void TearDown() override { mConverter->Shutdown(); }
@@ -670,4 +671,31 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
                                              frame1.timestamp_us()),
               IsDurationInMillisPositiveMultipleOf(duplicationInterval));
   EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
+}
+
+TEST_F(VideoFrameConverterTest, SinkWantsResolutionAlignment) {
+  const std::array<int, 5> alignments{2, 16, 39, 400, 1000};
+  const int width = 640;
+  const int height = 480;
+
+  TimeStamp now = TimeStamp::Now();
+  TimeDuration interval = TimeDuration::FromMilliseconds(1);
+  mConverter->SetActive(true);
+  rtc::VideoSinkWants wants;
+  for (uint32_t i = 0; i < alignments.size(); ++i) {
+    const TimeStamp t = now + interval * (i + 1);
+    // Test that requesting specific alignment always results in the expected
+    // number of layers and valid alignment.
+    wants.resolution_alignment = alignments[i];
+    mListener->SetWants(wants);
+    auto framesPromise = TakeNConvertedFrames(1);
+    mConverter->QueueVideoChunk(GenerateChunk(width, height, t), false);
+    const auto [frame, time] = WaitFor(framesPromise).unwrap()[0];
+
+    EXPECT_EQ(frame.width() % alignments[i], 0)
+        << " for width " << frame.width() << " and alignment " << alignments[i];
+    EXPECT_EQ(frame.height() % alignments[i], 0)
+        << " for height " << frame.height() << " and alignment "
+        << alignments[i];
+  }
 }
