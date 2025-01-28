@@ -512,15 +512,6 @@ var gPrivacyPane = {
     let httpsOnlyExceptionButton = document.getElementById(
       "httpsOnlyExceptionButton"
     );
-    let httpsOnlyRadioEnabled = document.getElementById(
-      "httpsOnlyRadioEnabled"
-    );
-    let httpsOnlyRadioEnabledPBM = document.getElementById(
-      "httpsOnlyRadioEnabledPBM"
-    );
-    let httpsOnlyRadioDisabled = document.getElementById(
-      "httpsOnlyRadioDisabled"
-    );
 
     if (httpsOnlyOnPref) {
       httpsOnlyRadioGroup.value = "enabled";
@@ -542,23 +533,6 @@ var gPrivacyPane = {
     ) {
       httpsOnlyRadioGroup.disabled = true;
     }
-
-    document.l10n.setAttributes(
-      httpsOnlyRadioEnabled,
-      httpsFirstOnPref ? "httpsonly-radio-enabled2" : "httpsonly-radio-enabled"
-    );
-    document.l10n.setAttributes(
-      httpsOnlyRadioEnabledPBM,
-      httpsFirstOnPref
-        ? "httpsonly-radio-enabled-pbm2"
-        : "httpsonly-radio-enabled-pbm"
-    );
-    document.l10n.setAttributes(
-      httpsOnlyRadioDisabled,
-      httpsFirstOnPref
-        ? "httpsonly-radio-disabled2"
-        : "httpsonly-radio-disabled"
-    );
   },
 
   syncToHttpsOnlyPref() {
@@ -582,11 +556,7 @@ var gPrivacyPane = {
 
     // Create event listener for when the user clicks
     // on one of the radio buttons
-    setEventListener(
-      "httpsOnlyRadioGroup",
-      "command",
-      this.syncToHttpsOnlyPref
-    );
+    setEventListener("httpsOnlyRadioGroup", "change", this.syncToHttpsOnlyPref);
     // Update radio-value when the pref changes
     Preferences.get("dom.security.https_only_mode").on("change", () =>
       this.syncFromHttpsOnlyPref()
@@ -1602,7 +1572,7 @@ var gPrivacyPane = {
             document.querySelector(selector + " .cryptominers-option").hidden =
               true;
             break;
-          case "stp":
+          case "stp": {
             // Store social tracking cookies pref
             const STP_COOKIES_PREF =
               "privacy.socialtracking.block_cookies.enabled";
@@ -1613,6 +1583,7 @@ var gPrivacyPane = {
               ).hidden = false;
             }
             break;
+          }
           case "-stp":
             // Store social tracking cookies pref
             document.querySelector(selector + " .social-media-option").hidden =

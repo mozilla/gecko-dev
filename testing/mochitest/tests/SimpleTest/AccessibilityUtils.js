@@ -727,7 +727,7 @@ this.AccessibilityUtils = (function () {
           node.closest('[role="toolbar"]')) ||
         // <moz-radio-group> also uses a roving tabindex.
         (role === Ci.nsIAccessibleRole.ROLE_RADIOBUTTON &&
-          node.getRootNode().host?.tagName?.toLowerCase() === "moz-radio") ||
+          node.getRootNode().host?.localName === "moz-radio") ||
         shouldIgnoreTabIndex(node))
     );
   }

@@ -36,20 +36,28 @@ add_task(async function httpsOnlyRadioGroupIsWorking() {
   check(radioGroup, HTTPS_ONLY_DISABLED);
 
   // Check if prefs change if clicked on radio button
+  let changePromise = BrowserTestUtils.waitForEvent(radioGroup, "change");
   enableAllRadio.click();
+  await changePromise;
   check(radioGroup, HTTPS_ONLY_ENABLED);
 
   // Check if prefs stay the same if clicked on same
   // radio button again (see bug 1671122)
   enableAllRadio.click();
+  await TestUtils.waitForTick(); // There shouldn't be a change so we cannot
+  // await it. This is just waiting a bit instead.
   check(radioGroup, HTTPS_ONLY_ENABLED);
 
   // Check if prefs are set correctly for PBM-only mode.
+  changePromise = BrowserTestUtils.waitForEvent(radioGroup, "change");
   enablePbmRadio.click();
+  await changePromise;
   check(radioGroup, HTTPS_ONLY_PBM_ONLY);
 
   // Check if prefs are set correctly when disabled again.
+  changePromise = BrowserTestUtils.waitForEvent(radioGroup, "change");
   disableRadio.click();
+  await changePromise;
   check(radioGroup, HTTPS_ONLY_DISABLED);
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
@@ -93,24 +101,9 @@ add_task(async function httpsOnlyCorrectLabels() {
           );
         }
 
-        ensureL10nId(
-          "httpsOnlyRadioEnabled",
-          _httpsFirstEnabled
-            ? "httpsonly-radio-enabled2"
-            : "httpsonly-radio-enabled"
-        );
-        ensureL10nId(
-          "httpsOnlyRadioEnabledPBM",
-          _httpsFirstEnabled
-            ? "httpsonly-radio-enabled-pbm2"
-            : "httpsonly-radio-enabled-pbm"
-        );
-        ensureL10nId(
-          "httpsOnlyRadioDisabled",
-          _httpsFirstEnabled
-            ? "httpsonly-radio-disabled2"
-            : "httpsonly-radio-disabled"
-        );
+        ensureL10nId("httpsOnlyRadioEnabled", "httpsonly-radio-enabled");
+        ensureL10nId("httpsOnlyRadioEnabledPBM", "httpsonly-radio-enabled-pbm");
+        ensureL10nId("httpsOnlyRadioDisabled", "httpsonly-radio-disabled3");
       }
     );
   }

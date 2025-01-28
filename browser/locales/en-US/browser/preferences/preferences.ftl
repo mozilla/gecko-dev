@@ -1540,24 +1540,19 @@ space-alert-under-5gb-message2 = <strong>{ -brand-short-name } is running out of
 
 httpsonly-header = HTTPS-Only Mode
 
-httpsonly-description2 = { -brand-short-name } creates secure and encrypted connections to sites you visit. { -brand-short-name } will warn you if a connection isn’t secure when HTTPS-Only is on.
+httpsonly-description3 = Only allows secure connections to websites. { -brand-short-name } will ask before connecting insecurely.
 
-httpsonly-learn-more = Learn more
+httpsonly-learn-more2 = How HTTPS-Only works
 
 httpsonly-radio-enabled =
     .label = Enable HTTPS-Only Mode in all windows
-httpsonly-radio-enabled2 =
-    .label = Only use HTTPS in all windows
 
 httpsonly-radio-enabled-pbm =
     .label = Enable HTTPS-Only Mode in private windows only
-httpsonly-radio-enabled-pbm2 =
-    .label = Only use HTTPS in private windows
 
-httpsonly-radio-disabled =
+httpsonly-radio-disabled3 =
     .label = Don’t enable HTTPS-Only Mode
-httpsonly-radio-disabled2 =
-    .label = Try HTTPS first, but allow connections that are not secure
+    .description = { -brand-short-name } may still upgrade some connections
 
 ## DoH Section
 
