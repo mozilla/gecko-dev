@@ -15,7 +15,7 @@
  * The goal of the code in this file is to be as unprivileged as possible, which should
  * unlock Bug 1813789, which will make this file fully unprivileged.
  *
- * Each translation needs an engine for that specific translation pair. This engine is
+ * Each translation needs an engine for that specific language pair. This engine is
  * kept around as long as the CACHE_TIMEOUT_MS, after this if some keepAlive event does
  * not happen, the engine is destroyed. An engine may be destroyed even when a page is
  * still open and may need translations in the future. This is handled gracefully by
@@ -75,7 +75,7 @@ const CACHE_TIMEOUT_MS = 15_000;
 
 /**
  * The TranslationsEngine encapsulates the logic for translating messages. It can
- * only be set up for a single language translation pair. In order to change languages
+ * only be set up for a single language pair. In order to change languages
  * a new engine should be constructed.
  *
  * The actual work for the translations happens in a worker. This class manages

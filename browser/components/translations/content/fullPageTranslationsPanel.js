@@ -442,18 +442,18 @@ var FullPageTranslationsPanel = new (class {
   ) {
     const { translateButton, toMenuList, fromMenuList, header, cancelButton } =
       this.elements;
-    const { requestedTranslationPair, isEngineReady } = languageState;
+    const { requestedLanguagePair, isEngineReady } = languageState;
 
     if (
-      requestedTranslationPair &&
+      requestedLanguagePair &&
       !isEngineReady &&
       TranslationsUtils.langTagsMatch(
         fromMenuList.value,
-        requestedTranslationPair.fromLanguage
+        requestedLanguagePair.fromLanguage
       ) &&
       TranslationsUtils.langTagsMatch(
         toMenuList.value,
-        requestedTranslationPair.toLanguage
+        requestedLanguagePair.toLanguage
       )
     ) {
       // A translation has been requested, but is not ready yet.
@@ -476,20 +476,20 @@ var FullPageTranslationsPanel = new (class {
         !fromMenuList.value ||
         // The translation languages are the same, don't allow this translation.
         TranslationsUtils.langTagsMatch(toMenuList.value, fromMenuList.value) ||
-        // This is the requested translation pair.
-        (requestedTranslationPair &&
+        // This is the requested language pair.
+        (requestedLanguagePair &&
           TranslationsUtils.langTagsMatch(
-            requestedTranslationPair.fromLanguage,
+            requestedLanguagePair.fromLanguage,
             fromMenuList.value
           ) &&
           TranslationsUtils.langTagsMatch(
-            requestedTranslationPair.toLanguage,
+            requestedLanguagePair.toLanguage,
             toMenuList.value
           ));
     }
 
-    if (requestedTranslationPair && isEngineReady) {
-      const { fromLanguage, toLanguage } = requestedTranslationPair;
+    if (requestedLanguagePair && isEngineReady) {
+      const { fromLanguage, toLanguage } = requestedLanguagePair;
       const languageDisplayNames =
         TranslationsParent.createLanguageDisplayNames();
       cancelButton.hidden = true;
@@ -1183,15 +1183,14 @@ var FullPageTranslationsPanel = new (class {
 
     const { button } = this.buttonElements;
 
-    const { requestedTranslationPair } =
-      TranslationsParent.getTranslationsActor(
-        gBrowser.selectedBrowser
-      ).languageState;
+    const { requestedLanguagePair } = TranslationsParent.getTranslationsActor(
+      gBrowser.selectedBrowser
+    ).languageState;
 
     await this.#ensureLangListsBuilt();
 
-    if (requestedTranslationPair) {
-      await this.#showRevisitView(requestedTranslationPair).catch(error => {
+    if (requestedLanguagePair) {
+      await this.#showRevisitView(requestedLanguagePair).catch(error => {
         this.console?.error(error);
       });
     } else {
@@ -1215,7 +1214,7 @@ var FullPageTranslationsPanel = new (class {
     await this.#openPanelPopup(targetButton, {
       event,
       autoShow: reportAsAutoShow,
-      viewName: requestedTranslationPair ? "revisitView" : "defaultView",
+      viewName: requestedLanguagePair ? "revisitView" : "defaultView",
       maintainFlow: false,
     });
   }
@@ -1226,11 +1225,10 @@ var FullPageTranslationsPanel = new (class {
    * @returns {boolean}
    */
   #isTranslationsActive() {
-    const { requestedTranslationPair } =
-      TranslationsParent.getTranslationsActor(
-        gBrowser.selectedBrowser
-      ).languageState;
-    return requestedTranslationPair !== null;
+    const { requestedLanguagePair } = TranslationsParent.getTranslationsActor(
+      gBrowser.selectedBrowser
+    ).languageState;
+    return requestedLanguagePair !== null;
   }
 
   /**
@@ -1551,7 +1549,7 @@ var FullPageTranslationsPanel = new (class {
 
         const {
           detectedLanguages,
-          requestedTranslationPair,
+          requestedLanguagePair,
           error,
           isEngineReady,
         } = actor.languageState;
@@ -1581,7 +1579,7 @@ var FullPageTranslationsPanel = new (class {
 
         if (
           // We've already requested to translate this page, so always show the icon.
-          requestedTranslationPair ||
+          requestedLanguagePair ||
           // There was an error translating, so always show the icon. This can happen
           // when a user manually invokes the translation and we wouldn't normally show
           // the icon.
@@ -1594,7 +1592,7 @@ var FullPageTranslationsPanel = new (class {
           const wasButtonHidden = button.hidden;
 
           button.hidden = false;
-          if (requestedTranslationPair) {
+          if (requestedLanguagePair) {
             // The translation is active, update the urlbar button.
             button.setAttribute("translationsactive", true);
             if (isEngineReady) {
@@ -1606,10 +1604,10 @@ var FullPageTranslationsPanel = new (class {
                 "urlbar-translations-button-translated",
                 {
                   fromLanguage: languageDisplayNames.of(
-                    requestedTranslationPair.fromLanguage
+                    requestedLanguagePair.fromLanguage
                   ),
                   toLanguage: languageDisplayNames.of(
-                    requestedTranslationPair.toLanguage
+                    requestedLanguagePair.toLanguage
                   ),
                 }
               );
@@ -1617,7 +1615,7 @@ var FullPageTranslationsPanel = new (class {
               buttonLocale.hidden = false;
               buttonCircleArrows.hidden = true;
               buttonLocale.innerText =
-                requestedTranslationPair.toLanguage.split("-")[0];
+                requestedLanguagePair.toLanguage.split("-")[0];
             } else {
               document.l10n.setAttributes(
                 button,

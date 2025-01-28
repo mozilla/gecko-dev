@@ -624,11 +624,10 @@ var SelectTranslationsPanel = new (class {
    */
   #maybeGetActiveFullPageTranslationsTargetLanguage() {
     try {
-      const { requestedTranslationPair } =
-        TranslationsParent.getTranslationsActor(
-          gBrowser.selectedBrowser
-        ).languageState;
-      return requestedTranslationPair?.toLanguage;
+      const { requestedLanguagePair } = TranslationsParent.getTranslationsActor(
+        gBrowser.selectedBrowser
+      ).languageState;
+      return requestedLanguagePair?.toLanguage;
     } catch {
       this.console.warn("Failed to retrieve the TranslationsParent actor.");
     }

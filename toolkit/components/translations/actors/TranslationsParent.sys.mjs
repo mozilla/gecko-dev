@@ -240,7 +240,7 @@ class StatePerTopChromeWindow {
   static #states = new WeakMap();
 
   /**
-   * When reloading the page, store the translation pair that needs translating.
+   * When reloading the page, store the language pair that needs translating.
    *
    * @type {null | TranslationPair}
    */
@@ -1285,10 +1285,10 @@ export class TranslationsParent extends JSWindowActorParent {
         return undefined;
       }
       case "Translations:RequestPort": {
-        const { requestedTranslationPair } = this.languageState;
-        if (!requestedTranslationPair) {
+        const { requestedLanguagePair } = this.languageState;
+        if (!requestedLanguagePair) {
           lazy.console.error(
-            "A port was requested but no translation pair was previously requested"
+            "A port was requested but no language pair was previously requested"
           );
           return undefined;
         }
@@ -1304,7 +1304,7 @@ export class TranslationsParent extends JSWindowActorParent {
           );
         }
 
-        const { fromLanguage, toLanguage } = requestedTranslationPair;
+        const { fromLanguage, toLanguage } = requestedLanguagePair;
         const port = await TranslationsParent.requestTranslationsPort(
           fromLanguage,
           toLanguage,
@@ -1455,7 +1455,7 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Get the list of translation pairs supported by the translations engine.
+   * Get the list of language pairs supported by the translations engine.
    *
    * @returns {Promise<Array<LanguagePair>>}
    */
@@ -2363,7 +2363,7 @@ export class TranslationsParent extends JSWindowActorParent {
    * This will delete a downloaded model set when it is incomplete, for example en->es (downloaded) and es->en
    * (not-downloaded) will delete en->es to clear the lingering one-sided package.
    *
-   * @returns {Set<string>}  Directional language pairs in the form of "fromLang,toLang" that indicates translation pairs that were deleted.
+   * @returns {Set<string>}  Directional language pairs in the form of "fromLang,toLang" that indicates language pairs that were deleted.
    */
   static async deleteCachedLanguageFiles() {
     const languagePairs = await TranslationsParent.getLanguagePairs();
@@ -2884,7 +2884,7 @@ export class TranslationsParent extends JSWindowActorParent {
       );
       return;
     }
-    if (this.languageState.requestedTranslationPair) {
+    if (this.languageState.requestedLanguagePair) {
       // This page has already been translated, restore it and translate it
       // again once the actor has been recreated.
       const windowState = this.getWindowState();
@@ -2914,7 +2914,7 @@ export class TranslationsParent extends JSWindowActorParent {
         return;
       }
 
-      this.languageState.requestedTranslationPair = {
+      this.languageState.requestedLanguagePair = {
         fromLanguage,
         toLanguage,
       };
@@ -2959,7 +2959,7 @@ export class TranslationsParent extends JSWindowActorParent {
     const windowState = this.getWindowState();
     windowState.isPageRestored = true;
     this.languageState.hasVisibleChange = false;
-    this.languageState.requestedTranslationPair = null;
+    this.languageState.requestedLanguagePair = null;
     windowState.previousDetectedLanguages =
       this.languageState.detectedLanguages;
 
@@ -3296,7 +3296,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
     if (!langTags.userLangTag) {
       // No language pairs match.
-      const message = `No matching translation pairs were found for translating from "${langTags.docLangTag}".`;
+      const message = `No matching language pairs were found for translating from "${langTags.docLangTag}".`;
       ChromeUtils.addProfilerMarker(
         "TranslationsParent",
         { innerWindowId: this.innerWindowId },
@@ -3652,7 +3652,7 @@ export class TranslationsParent extends JSWindowActorParent {
       // If the engine fails to load, ignore it since we are ending translations.
       .catch(() => null)
       .then(actor => {
-        if (actor && this.languageState.requestedTranslationPair) {
+        if (actor && this.languageState.requestedLanguagePair) {
           actor.discardTranslations(this.innerWindowId);
         }
       })
@@ -3738,7 +3738,7 @@ class TranslationsLanguageState {
   #actor;
 
   /** @type {TranslationPair | null} */
-  #requestedTranslationPair = null;
+  #requestedLanguagePair = null;
 
   /** @type {LangTags | null} */
   #detectedLanguages = null;
@@ -3772,25 +3772,25 @@ class TranslationsLanguageState {
   }
 
   /**
-   * When a translation is requested, this contains the translation pair. This means
+   * When a translation is requested, this contains the language pair. This means
    * that the TranslationsChild should be creating a TranslationsDocument and keep
    * the page updated with the target language.
    *
    * @returns {TranslationPair | null}
    */
-  get requestedTranslationPair() {
-    return this.#requestedTranslationPair;
+  get requestedLanguagePair() {
+    return this.#requestedLanguagePair;
   }
 
-  set requestedTranslationPair(requestedTranslationPair) {
-    if (this.#requestedTranslationPair === requestedTranslationPair) {
+  set requestedLanguagePair(requestedLanguagePair) {
+    if (this.#requestedLanguagePair === requestedLanguagePair) {
       return;
     }
 
     this.#error = null;
     this.#isEngineReady = false;
-    this.#requestedTranslationPair = requestedTranslationPair;
-    this.dispatch({ reason: "requestedTranslationPair" });
+    this.#requestedLanguagePair = requestedLanguagePair;
+    this.dispatch({ reason: "requestedLanguagePair" });
   }
 
   /**
@@ -3877,8 +3877,8 @@ class TranslationsLanguageState {
       return;
     }
     this.#error = error;
-    // Setting an error invalidates the requested translation pair.
-    this.#requestedTranslationPair = null;
+    // Setting an error invalidates the requested language pair.
+    this.#requestedLanguagePair = null;
     this.#isEngineReady = false;
     this.dispatch({ reason: "error" });
   }
