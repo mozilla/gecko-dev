@@ -91,7 +91,7 @@ object FeatureFlags {
     /**
      * Enables native WebCompat Reporter.
      */
-    val webCompatReporter = Config.channel.isNightlyOrDebug
+    const val webCompatReporter = true
 
     /**
      * Enables the tab swipe to dismiss rewrite.
