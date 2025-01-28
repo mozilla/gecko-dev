@@ -109,3 +109,18 @@ profiles-dark-theme = Dark
 
 # The default system theme
 profiles-system-theme = System
+
+## Alternative text for default profile icons
+
+book-avatar-alt =
+    .alt = Book
+briefcase-avatar-alt =
+    .alt = Briefcase
+flower-avatar-alt =
+    .alt = Flower
+heart-avatar-alt =
+    .alt = Heart
+shopping-avatar-alt =
+    .alt = Shopping cart
+star-avatar-alt =
+    .alt = Star

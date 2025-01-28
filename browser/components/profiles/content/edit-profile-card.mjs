@@ -411,6 +411,7 @@ export class EditProfileCard extends MozLitElement {
         ><div id="edit-profile-card">
           <img
             id="header-avatar"
+            data-l10n-id=${this.profile.avatarL10nId}
             src="chrome://browser/content/profiles/assets/80_${this.profile
               .avatar}.svg"
           />

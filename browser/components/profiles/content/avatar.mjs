@@ -14,6 +14,25 @@ export class Avatar extends MozLitElement {
     selected: { type: Boolean, reflect: true },
   };
 
+  get imageL10nId() {
+    switch (this.value) {
+      case "book":
+        return "book-avatar-alt";
+      case "briefcase":
+        return "briefcase-avatar-alt";
+      case "flower":
+        return "flower-avatar-alt";
+      case "heart":
+        return "heart-avatar-alt";
+      case "shopping":
+        return "shopping-avatar-alt";
+      case "star":
+        return "star-avatar-alt";
+    }
+
+    return "";
+  }
+
   render() {
     return html`<link
         rel="stylesheet"
@@ -21,6 +40,7 @@ export class Avatar extends MozLitElement {
       />
       <button type="button" class="avatar">
         <img
+          data-l10n-id=${this.imageL10nId}
           src="chrome://browser/content/profiles/assets/48_${this.value}.svg"
         />
       </button>`;

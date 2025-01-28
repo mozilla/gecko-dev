@@ -135,6 +135,30 @@ export class SelectableProfile {
     this.saveUpdatesToDB();
   }
 
+  /**
+   * Get the l10n id for the current avatar.
+   *
+   * @returns {string} L10n id for the current avatar
+   */
+  get avatarL10nId() {
+    switch (this.avatar) {
+      case "book":
+        return "book-avatar-alt";
+      case "briefcase":
+        return "briefcase-avatar-alt";
+      case "flower":
+        return "flower-avatar-alt";
+      case "heart":
+        return "heart-avatar-alt";
+      case "shopping":
+        return "shopping-avatar-alt";
+      case "star":
+        return "star-avatar-alt";
+    }
+
+    return "";
+  }
+
   // Note, theme properties are set and returned as a group.
 
   /**
@@ -188,6 +212,7 @@ export class SelectableProfile {
       path: this.#path,
       name: this.name,
       avatar: this.avatar,
+      avatarL10nId: this.avatarL10nId,
       ...this.theme,
     };
 

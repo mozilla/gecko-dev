@@ -93,6 +93,7 @@ export class DeleteProfileCard extends MozLitElement {
             id="header-avatar"
             width="80"
             height="80"
+            data-l10n-id=${this.data.profile.avatarL10nId}
             src="chrome://browser/content/profiles/assets/80_${this.data.profile
               .avatar}.svg"
           />

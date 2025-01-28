@@ -1209,6 +1209,7 @@ class SelectableProfileServiceClass {
    */
   async updateProfile(aSelectableProfile) {
     let profileObj = aSelectableProfile.toObject();
+    delete profileObj.avatarL10nId;
 
     await this.#connection.execute(
       `UPDATE Profiles
