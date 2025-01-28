@@ -11,6 +11,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
+// Directly import moz-button here, otherwise, moz-button will be loaded and upgraded on DOMContentLoaded, after MegalistAlpha is first updated.
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-button.mjs";
+
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/components/password-card/password-card.mjs";
 // eslint-disable-next-line import/no-unassigned-import
@@ -78,6 +82,18 @@ export class MegalistAlpha extends MozLitElement {
       this.shadowRoot.querySelectorAll("password-card")
     );
     await Promise.all(passwordCards.map(el => el.updateComplete));
+  }
+
+  async updated(changedProperties) {
+    if (changedProperties.has("viewMode")) {
+      const mozButton = this.shadowRoot.querySelector("#create-login-button");
+      await mozButton.updateComplete;
+      // Need to set aria-expanded on the button element of the moz-button for screen readers to announce the change.
+      mozButton.buttonEl.setAttribute(
+        "aria-expanded",
+        this.viewMode === VIEW_MODES.ADD ? "true" : "false"
+      );
+    }
   }
 
   #onPasswordRevealClick(concealed, lineIndex) {
@@ -515,6 +531,7 @@ export class MegalistAlpha extends MozLitElement {
     return html`<div class="first-row">
       ${this.renderSearch()}
       <moz-button
+        id="create-login-button"
         @click=${this.#onAddButtonClick}
         data-l10n-id="create-login-button"
         type="icon"
