@@ -116,22 +116,6 @@ void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
   StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
 }
 
-void MacroAssembler::storeToTypedBigIntArray(Register64 value,
-                                             const BaseIndex& dest) {
-  masm.store64(value, dest);
-}
-void MacroAssembler::storeToTypedBigIntArray(Register64 value,
-                                             const Address& dest) {
-  masm.store64(value, dest);
-}
-void MacroAssembler::storeToTypedBigIntArray(Imm64 value,
-                                             const BaseIndex& dest) {
-  masm.store64(value, dest);
-}
-void MacroAssembler::storeToTypedBigIntArray(Imm64 value, const Address& dest) {
-  masm.store64(value, dest);
-}
-
 void MacroAssembler::boxUint32(Register source, ValueOperand dest,
                                Uint32Mode mode, Label* fail) {
   switch (mode) {

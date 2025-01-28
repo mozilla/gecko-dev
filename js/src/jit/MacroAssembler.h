@@ -5369,10 +5369,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               const Address& dest, Register temp,
                               LiveRegisterSet volatileLiveRegs);
 
-  void storeToTypedBigIntArray(Register64 value, const BaseIndex& dest);
-  void storeToTypedBigIntArray(Register64 value, const Address& dest);
-  void storeToTypedBigIntArray(Imm64 value, const BaseIndex& dest);
-  void storeToTypedBigIntArray(Imm64 value, const Address& dest);
+  template <typename S, typename T>
+  void storeToTypedBigIntArray(const S& value, const T& dest) {
+    store64(value, dest);
+  }
 
   void memoryBarrierBefore(Synchronization sync);
   void memoryBarrierAfter(Synchronization sync);
