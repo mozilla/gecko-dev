@@ -1302,51 +1302,6 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
   return extradata.forget();
 }
 
-class SPSIterator final {
- public:
-  explicit SPSIterator(const HVCCConfig& aConfig)
-      : mCurrentIdx(0), mConfig(aConfig) {
-    FindSPS();
-  }
-
-  SPSIterator& operator++() {
-    mCurrentIdx++;
-    FindSPS();
-    return *this;
-  }
-
-  explicit operator bool() const { return IsValid(); }
-
-  const H265NALU* operator*() const {
-    if (!IsValid()) {
-      return nullptr;
-    }
-    if (!mConfig.mNALUs[mCurrentIdx].IsSPS()) {
-      return nullptr;
-    }
-    return &mConfig.mNALUs[mCurrentIdx];
-  }
-
- private:
-  void FindSPS() {
-    Maybe<size_t> spsIdx;
-    for (auto idx = mCurrentIdx; idx < mConfig.mNALUs.Length(); idx++) {
-      if (mConfig.mNALUs[idx].IsSPS()) {
-        spsIdx = Some(idx);
-        break;
-      }
-    }
-    if (spsIdx) {
-      mCurrentIdx = *spsIdx;
-    }
-  }
-
-  bool IsValid() const { return mCurrentIdx < mConfig.mNALUs.Length(); }
-
-  size_t mCurrentIdx;
-  const HVCCConfig& mConfig;
-};
-
 /* static */
 bool AreTwoSPSIdentical(const H265NALU& aLhs, const H265NALU& aRhs) {
   MOZ_ASSERT(aLhs.IsSPS() && aRhs.IsSPS());

@@ -784,4 +784,49 @@ TEST(H265, DecodeSPSFromSPSNALU)
   EXPECT_EQ(sps.TransferFunction(), 2u);
 }
 
+TEST(H265, SPSIteratorAndCreateNewExtraData)
+{
+  // The fake extradata has 3 NALUs (1 vps, 1 sps and 1 pps).
+  RefPtr<MediaByteBuffer> extradata = H265::CreateFakeExtraData();
+  EXPECT_TRUE(extradata);
+  auto rv = HVCCConfig::Parse(extradata);
+  EXPECT_TRUE(rv.isOk());
+  auto hvcc = rv.unwrap();
+  EXPECT_EQ(hvcc.mNALUs.Length(), 3u);
+  EXPECT_EQ(hvcc.NumSPS(), 1u);
+
+  // SPSIterator should be able to access the SPS
+  SPSIterator it(hvcc);
+  auto* sps = *it;
+  EXPECT_TRUE(sps);
+
+  // This SPS should match the one retrieved from the HVCC.
+  auto spsMaybe = hvcc.GetFirstAvaiableNALU(H265NALU::NAL_TYPES::SPS_NUT);
+  EXPECT_TRUE(spsMaybe);
+  auto rv1 = H265::DecodeSPSFromSPSNALU(*sps);
+  auto rv2 = H265::DecodeSPSFromSPSNALU(spsMaybe.ref());
+  EXPECT_TRUE(rv1.isOk());
+  EXPECT_TRUE(rv2.isOk());
+  EXPECT_EQ(rv1.unwrap(), rv2.unwrap());
+
+  // The iterator becomes invalid after advancing, as there is only one SPS.
+  EXPECT_FALSE(*(++it));
+
+  // Retrieve other NALUs to test the creation of new extradata.
+  auto ppsMaybe = hvcc.GetFirstAvaiableNALU(H265NALU::NAL_TYPES::PPS_NUT);
+  EXPECT_TRUE(ppsMaybe);
+  auto vpsMaybe = hvcc.GetFirstAvaiableNALU(H265NALU::NAL_TYPES::VPS_NUT);
+  EXPECT_TRUE(vpsMaybe);
+  RefPtr<MediaByteBuffer> newExtradata =
+      H265::CreateNewExtraData(hvcc, spsMaybe, ppsMaybe, vpsMaybe);
+  EXPECT_TRUE(newExtradata);
+
+  // The new extradata should match the original extradata.
+  auto rv3 = HVCCConfig::Parse(extradata);
+  EXPECT_TRUE(rv3.isOk());
+  auto hvcc2 = rv3.unwrap();
+  EXPECT_EQ(hvcc.mNALUs.Length(), hvcc2.mNALUs.Length());
+  EXPECT_EQ(hvcc.NumSPS(), hvcc2.NumSPS());
+}
+
 }  // namespace mozilla
