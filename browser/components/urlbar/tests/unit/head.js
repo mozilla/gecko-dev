@@ -1044,6 +1044,20 @@ async function check_results({
       expected.payload.icon = SEARCH_GLASS_ICON;
     }
 
+    if (actual.payload?.url) {
+      try {
+        const payloadUrlProtocol = new URL(actual.payload.url).protocol;
+        if (
+          !UrlbarUtils.PROTOCOLS_WITH_ICONS.includes(payloadUrlProtocol) &&
+          actual.source != UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL
+        ) {
+          expected.payload.icon = UrlbarUtils.ICON.DEFAULT;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     if (expected.payload) {
       let expectedEntries = new Set(Object.keys(expected.payload));
       let actualEntries = new Set(Object.keys(actual.payload)).difference(

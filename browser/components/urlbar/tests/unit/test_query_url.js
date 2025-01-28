@@ -26,7 +26,6 @@ add_task(async function test_no_slash() {
       makeVisitResult(context, {
         uri: "file:///c:/test.html",
         title: "test visit for file:///c:/test.html",
-        iconUri: UrlbarUtils.ICON.DEFAULT,
         providerName: PLACES_PROVIDERNAME,
       }),
       makeVisitResult(context, {
@@ -114,7 +113,6 @@ add_task(async function test_nonhost() {
       makeVisitResult(context, {
         uri: "file:///c:/test.html",
         title: "test visit for file:///c:/test.html",
-        iconUri: UrlbarUtils.ICON.DEFAULT,
         providerName: PLACES_PROVIDERNAME,
       }),
     ],
