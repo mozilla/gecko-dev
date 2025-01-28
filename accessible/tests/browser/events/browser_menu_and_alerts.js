@@ -4,6 +4,17 @@
 
 "use strict";
 
+function matchHideParent(parent) {
+  return event => {
+    event.QueryInterface(Ci.nsIAccessibleHideEvent);
+    if (typeof parent == "string") {
+      return getAccessibleDOMNodeID(event.targetParent) == parent;
+    }
+
+    return event.targetParent == parent;
+  };
+}
+
 /**
  * Accessible menu popup start/end
  */
@@ -18,7 +29,7 @@ addAccessibleTask(
   async function (browser) {
     let expectedEvents = waitForEvents(
       [
-        [EVENT_SHOW],
+        [EVENT_SHOW, "menu"],
         [EVENT_REORDER, "container"],
         [EVENT_MENUPOPUP_START, "menu"],
       ],
@@ -33,7 +44,7 @@ addAccessibleTask(
     expectedEvents = waitForEvents(
       [
         [EVENT_MENUPOPUP_END, "menu"],
-        [EVENT_HIDE],
+        [EVENT_HIDE, matchHideParent("container")],
         [EVENT_REORDER, "container"],
       ],
       "Popup end sequence",
@@ -60,7 +71,11 @@ addAccessibleTask(
   `,
   async function (browser, accDoc) {
     let expectedEvents = waitForEvents(
-      [[EVENT_SHOW], [EVENT_REORDER, accDoc], [EVENT_MENUPOPUP_START, "menu"]],
+      [
+        [EVENT_SHOW, "container"],
+        [EVENT_REORDER, accDoc],
+        [EVENT_MENUPOPUP_START, "menu"],
+      ],
       "Embedded popup start sequence",
       true
     );
@@ -70,7 +85,11 @@ addAccessibleTask(
     await expectedEvents;
 
     expectedEvents = waitForEvents(
-      [[EVENT_MENUPOPUP_END, "menu"], [EVENT_HIDE], [EVENT_REORDER, accDoc]],
+      [
+        [EVENT_MENUPOPUP_END, "menu"],
+        [EVENT_HIDE, matchHideParent(accDoc)],
+        [EVENT_REORDER, accDoc],
+      ],
       "Embedded popup end sequence",
       true
     );
