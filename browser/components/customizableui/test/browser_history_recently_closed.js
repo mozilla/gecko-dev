@@ -599,3 +599,74 @@ add_task(async function testRecentlyClosedTabGroupOpensFromAnyWindow() {
 
   await BrowserTestUtils.closeWindow(newWin);
 });
+
+add_task(async function testRecentlyClosedTabsFromManyWindows() {
+  // Ensures that bug1943850 has a proper resolution.
+  info(
+    "Tabs must be indexed by individual window, even when multiple windows are open"
+  );
+
+  await resetClosedTabsAndWindows();
+  const ORIG_STATE = SessionStore.getBrowserState();
+
+  const _makeTab = function (url) {
+    return {
+      title: url,
+      state: {
+        entries: [
+          {
+            url,
+            triggeringPrincipal_base64,
+          },
+        ],
+      },
+    };
+  };
+  await SessionStoreTestUtils.promiseBrowserState({
+    windows: [
+      {
+        tabs: [_makeTab("about:mozilla")],
+        _closedTabs: [_makeTab("about:mozilla"), _makeTab("about:mozilla")],
+      },
+      {
+        tabs: [_makeTab("about:mozilla")],
+        _closedTabs: [_makeTab("about:robots")],
+      },
+    ],
+  });
+
+  Assert.equal(
+    SessionStore.getClosedTabCount(),
+    3,
+    "Sanity check number of closed tabs from closed windows"
+  );
+
+  prepareHistoryPanel();
+  let closeTabsPanel = await openRecentlyClosedTabsMenu();
+
+  info("make sure we can actually restore one of these closed tabs");
+  const closedTabItems = closeTabsPanel.querySelectorAll(
+    "toolbarbutton[targetURI]"
+  );
+  Assert.equal(
+    closedTabItems.length,
+    3,
+    "We have expected number of closed tab items"
+  );
+
+  const newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  const closedObjectsChangePromise = TestUtils.topicObserved(
+    "sessionstore-closed-objects-changed"
+  );
+  EventUtils.sendMouseEvent({ type: "click" }, closedTabItems[2], window);
+  await newTabPromise;
+  await closedObjectsChangePromise;
+
+  Assert.equal(
+    gBrowser.tabs[0].linkedBrowser.currentURI.spec,
+    "about:robots",
+    "Closed tab from the second window is opened"
+  );
+
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
+});

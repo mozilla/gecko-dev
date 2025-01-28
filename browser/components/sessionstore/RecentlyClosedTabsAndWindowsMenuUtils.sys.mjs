@@ -66,9 +66,9 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
       const browserWindows = lazy.closedTabsFromAllWindowsEnabled
         ? lazy.SessionStore.getWindows(aWindow)
         : [aWindow];
-      const closedTabs = [];
+      const closedTabSets = [];
       for (const win of browserWindows) {
-        closedTabs.push(...lazy.SessionStore.getClosedTabDataForWindow(win));
+        closedTabSets.push(lazy.SessionStore.getClosedTabDataForWindow(win));
       }
 
       if (
@@ -76,8 +76,8 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
         lazy.closedTabsFromClosedWindowsEnabled &&
         lazy.SessionStore.getClosedTabCountFromClosedWindows()
       ) {
-        closedTabs.push(
-          ...lazy.SessionStore.getClosedTabDataFromClosedWindows()
+        closedTabSets.push(
+          lazy.SessionStore.getClosedTabDataFromClosedWindows()
         );
       }
 
@@ -85,40 +85,42 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
 
       let currentGroupId = null;
 
-      closedTabs.forEach((tab, index) => {
-        let { groupId } = tab.state;
-        if (groupId && closedTabGroupsById.has(groupId)) {
-          if (groupId != currentGroupId) {
-            // This is the first tab in a new group. Push all the tabs into the menu.
-            // Note that the calls to the createTabGroup methods below use the
-            // tab itself as a closed data source, since it will always contain
-            // one of either sourceClosedId or sourceWindowId.
-            if (aTagName == "menuitem") {
-              createTabGroupSubmenu(
-                closedTabGroupsById.get(groupId),
-                index,
-                tab,
-                doc,
-                fragment
-              );
-            } else {
-              createTabGroupSubpanel(
-                closedTabGroupsById.get(groupId),
-                index,
-                tab,
-                doc,
-                fragment
-              );
-            }
+      closedTabSets.forEach(tabSet => {
+        tabSet.forEach((tab, index) => {
+          let { groupId } = tab.state;
+          if (groupId && closedTabGroupsById.has(groupId)) {
+            if (groupId != currentGroupId) {
+              // This is the first tab in a new group. Push all the tabs into the menu.
+              // Note that the calls to the createTabGroup methods below use the
+              // tab itself as a closed data source, since it will always contain
+              // one of either sourceClosedId or sourceWindowId.
+              if (aTagName == "menuitem") {
+                createTabGroupSubmenu(
+                  closedTabGroupsById.get(groupId),
+                  index,
+                  tab,
+                  doc,
+                  fragment
+                );
+              } else {
+                createTabGroupSubpanel(
+                  closedTabGroupsById.get(groupId),
+                  index,
+                  tab,
+                  doc,
+                  fragment
+                );
+              }
 
-            currentGroupId = groupId;
+              currentGroupId = groupId;
+            } else {
+              // We have already seen this group. Ignore.
+            }
           } else {
-            // We have already seen this group. Ignore.
+            createEntry(aTagName, false, index, tab, doc, tab.title, fragment);
+            currentGroupId = null;
           }
-        } else {
-          createEntry(aTagName, false, index, tab, doc, tab.title, fragment);
-          currentGroupId = null;
-        }
+        });
       });
     }
 
