@@ -199,6 +199,16 @@ bool HVCCConfig::HasSPS() const {
   return hasSPS;
 }
 
+Maybe<H265NALU> HVCCConfig::GetFirstAvaiableNALU(
+    H265NALU::NAL_TYPES aType) const {
+  for (const auto& nalu : mNALUs) {
+    if (nalu.mNalUnitType == aType) {
+      return Some(nalu);
+    }
+  }
+  return Nothing();
+}
+
 /* static */
 Result<H265SPS, nsresult> H265::DecodeSPSFromSPSNALU(const H265NALU& aSPSNALU) {
   MOZ_ASSERT(aSPSNALU.IsSPS());
@@ -1438,6 +1448,61 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::CreateFakeExtraData() {
                                         // numTemporalLayers + temporalIdNested
   writer.WriteBits(nalLenSize - 1, 2);  // lengthSizeMinusOne
   writer.WriteU8(nalus.Length());       // numOfArrays
+  for (auto& nalu : nalus) {
+    writer.WriteBits(0, 2);                     // array_completeness + reserved
+    writer.WriteBits(nalu.mNalUnitType, 6);     // NAL_unit_type
+    writer.WriteBits(1, 16);                    // numNalus
+    writer.WriteBits(nalu.mNALU.Length(), 16);  // nalUnitLength
+    MOZ_ASSERT(writer.BitCount() % 8 == 0);
+    extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+    writer.AdvanceBytes(nalu.mNALU.Length());
+  }
+  MOZ_ASSERT(HVCCConfig::Parse(extradata).isOk());
+  return extradata.forget();
+}
+
+/* static */
+already_AddRefed<mozilla::MediaByteBuffer> H265::CreateNewExtraData(
+    const HVCCConfig& aConfig, const Maybe<H265NALU>& aSPS,
+    const Maybe<H265NALU>& aPPS, const Maybe<H265NALU>& aVPS) {
+  // Append essential NALUs if they exist
+  nsTArray<H265NALU> nalus;
+  if (aSPS) {
+    nalus.AppendElement(*aSPS);
+  }
+  if (aPPS) {
+    nalus.AppendElement(*aPPS);
+  }
+  if (aVPS) {
+    nalus.AppendElement(*aVPS);
+  }
+
+  // HEVCDecoderConfigurationRecord (HVCC) is in ISO/IEC 14496-15 8.3.2.1.2
+  auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+  BitWriter writer(extradata);
+  writer.WriteBits(aConfig.configurationVersion, 8);
+  writer.WriteBits(aConfig.general_profile_space, 2);
+  writer.WriteBits(aConfig.general_tier_flag, 1);
+  writer.WriteBits(aConfig.general_profile_idc, 5);
+  writer.WriteU32(aConfig.general_profile_compatibility_flags);
+  writer.WriteBits(aConfig.general_constraint_indicator_flags, 48);
+  writer.WriteU8(aConfig.general_level_idc);
+  writer.WriteBits(0, 4);  // reserved
+  writer.WriteBits(aConfig.min_spatial_segmentation_idc, 12);
+  writer.WriteBits(0, 6);  // reserved
+  writer.WriteBits(aConfig.parallelismType, 2);
+  writer.WriteBits(0, 6);  // reserved
+  writer.WriteBits(aConfig.chroma_format_idc, 2);
+  writer.WriteBits(0, 5);  // reserved
+  writer.WriteBits(aConfig.bit_depth_luma_minus8, 3);
+  writer.WriteBits(0, 5);  // reserved
+  writer.WriteBits(aConfig.bit_depth_chroma_minus8, 3);
+  writer.WriteBits(aConfig.avgFrameRate, 16);
+  writer.WriteBits(aConfig.constantFrameRate, 2);
+  writer.WriteBits(aConfig.numTemporalLayers, 3);
+  writer.WriteBits(aConfig.temporalIdNested, 1);
+  writer.WriteBits(aConfig.lengthSizeMinusOne, 2);
+  writer.WriteU8(nalus.Length());  // numOfArrays
   for (auto& nalu : nalus) {
     writer.WriteBits(0, 2);                     // array_completeness + reserved
     writer.WriteBits(nalu.mNalUnitType, 6);     // NAL_unit_type

@@ -32,7 +32,9 @@ enum {
   kMaxSubLayers = 7,             // See [v/s]ps_max_sub_layers_minus1
 };
 
-// Spec 7.3.1 NAL unit syntax
+// H265NALU represents NALU data (Spec 7.3.1 NAL unit syntax) for convenient
+// access. In addition, this class does not own the raw RBSP data. Ensure that
+// the original data source remains valid when accessing `mNALU`.
 class H265NALU final {
  public:
   H265NALU(const uint8_t* aData, uint32_t aByteSize);
@@ -281,6 +283,10 @@ struct HVCCConfig final {
   uint32_t NumSPS() const;
   bool HasSPS() const;
 
+  // Returns the first available NALU of the specified type, or nothing if no
+  // such NALU is found.
+  Maybe<H265NALU> GetFirstAvaiableNALU(H265NALU::NAL_TYPES aType) const;
+
   uint8_t configurationVersion;
   uint8_t general_profile_space;
   bool general_tier_flag;
@@ -332,6 +338,13 @@ class H265 final {
   // Create a dummy extradata, useful to create a decoder and test the
   // capabilities of the decoder.
   static already_AddRefed<mozilla::MediaByteBuffer> CreateFakeExtraData();
+
+  // Create new extradata with the essential information from the given
+  // HVCCConfig, excluding its original NALUs. The NALUs will be replaced by the
+  // provided SPS, PPS, and VPS.
+  static already_AddRefed<mozilla::MediaByteBuffer> CreateNewExtraData(
+      const HVCCConfig& aConfig, const Maybe<H265NALU>& aSPS,
+      const Maybe<H265NALU>& aPPS, const Maybe<H265NALU>& aVPS);
 
  private:
   // Return RAW BYTE SEQUENCE PAYLOAD (rbsp) from NAL content.
