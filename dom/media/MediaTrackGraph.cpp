@@ -1033,7 +1033,8 @@ void MediaTrackGraphImpl::DeviceChanged() {
 
   // Dispatch to the bg thread to do the (potentially expensive) query of the
   // maximum channel count, and then dispatch back to the main thread, then to
-  // the graph, with the new info.
+  // the graph, with the new info. The "special case" above is to be handled
+  // back on the main thread as well for the same reasons.
   RefPtr<MediaTrackGraphImpl> self = this;
   NS_DispatchBackgroundTask(NS_NewRunnableFunction(
       "MaxChannelCountUpdateOnBgThread", [self{std::move(self)}]() {
@@ -1055,6 +1056,13 @@ void MediaTrackGraphImpl::DeviceChanged() {
                 MediaTrackGraphImpl* mGraphImpl;
                 uint32_t mMaxChannelCount;
               };
+
+              if (self->mMainThreadTrackCount == 0 &&
+                  self->mMainThreadPortCount == 0) {
+                // See comments above.
+                return;
+              }
+
               self->AppendMessage(
                   MakeUnique<MessageToGraph>(self, maxChannelCount));
             }));
@@ -1620,9 +1628,10 @@ bool MediaTrackGraphImpl::UpdateMainThreadState() {
   return false;
 }
 
-auto MediaTrackGraphImpl::OneIteration(
-    GraphTime aStateTime, GraphTime aIterationEnd,
-    MixerCallbackReceiver* aMixerReceiver) -> IterationResult {
+auto MediaTrackGraphImpl::OneIteration(GraphTime aStateTime,
+                                       GraphTime aIterationEnd,
+                                       MixerCallbackReceiver* aMixerReceiver)
+    -> IterationResult {
   if (mGraphRunner) {
     return mGraphRunner->OneIteration(aStateTime, aIterationEnd,
                                       aMixerReceiver);
