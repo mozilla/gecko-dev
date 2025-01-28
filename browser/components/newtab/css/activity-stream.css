@@ -1343,6 +1343,7 @@ main section {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
   min-height: 2lh;
   width: 100px;
   padding: 0 var(--space-xsmall);
