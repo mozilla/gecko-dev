@@ -6,6 +6,15 @@
 let bounceTrackingProtection;
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+      ],
+    ],
+  });
+
   bounceTrackingProtection = Cc[
     "@mozilla.org/bounce-tracking-protection;1"
   ].getService(Ci.nsIBounceTrackingProtection);

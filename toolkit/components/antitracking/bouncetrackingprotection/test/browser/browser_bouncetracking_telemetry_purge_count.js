@@ -74,6 +74,10 @@ async function testPurgeCount(isDryRunMode) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+      ],
       ["privacy.bounceTrackingProtection.requireStatefulBounces", true],
       ["privacy.bounceTrackingProtection.bounceTrackingGracePeriodSec", 0],
     ],

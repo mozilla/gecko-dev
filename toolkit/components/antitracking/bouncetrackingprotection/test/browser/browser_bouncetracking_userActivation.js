@@ -83,7 +83,15 @@ async function runIframeTest(useIframeSameSite) {
   bounceTrackingProtection.clearAll();
 }
 
-add_setup(function () {
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+      ],
+    ],
+  });
   bounceTrackingProtection.clearAll();
 });
 
