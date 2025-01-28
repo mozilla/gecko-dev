@@ -8,11 +8,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import mozilla.components.compose.base.theme.AcornColors
-import mozilla.components.compose.base.theme.AcornSize
-import mozilla.components.compose.base.theme.AcornSpace
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.theme.AcornTypography
 import mozilla.components.compose.base.theme.darkColorPalette
+import mozilla.components.compose.base.theme.layout.AcornLayout
 import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.compose.base.theme.lightColorPalette
 import mozilla.components.compose.base.theme.privateColorPalette
@@ -85,13 +84,9 @@ object FirefoxTheme {
     val typography: AcornTypography
         get() = AcornTheme.typography
 
-    val size: AcornSize
+    val layout: AcornLayout
         @Composable
-        get() = AcornTheme.size
-
-    val space: AcornSpace
-        @Composable
-        get() = AcornTheme.space
+        get() = AcornTheme.layout
 
     val windowSize: AcornWindowSize
         @Composable

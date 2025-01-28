@@ -17,26 +17,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import mozilla.components.compose.base.theme.layout.AcornLayout
+import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.ui.colors.PhotonColors
 
 /**
  * A top-level Composable wrapper used to access Acorn Theming tokens.
  *
  * @param colors The [AcornColors] theme to use.
- * @param size The palette of [AcornSize] tokens.
- * @param windowSize The [AcornWindowSize] of the app window.
  * @param content The children composables to be laid out.
  */
 @Composable
 fun AcornTheme(
     colors: AcornColors = getAcornColors(),
-    size: AcornSize = AcornSize(),
-    windowSize: AcornWindowSize = AcornWindowSize.getWindowSize(),
     content: @Composable () -> Unit,
 ) {
     ProvideAcornTokens(
-        size = size,
-        windowSize = windowSize,
         colors = colors,
     ) {
         MaterialTheme(
@@ -63,13 +59,9 @@ object AcornTheme {
     val typography: AcornTypography
         get() = defaultTypography
 
-    val size: AcornSize
+    val layout: AcornLayout
         @Composable
-        get() = localSize.current
-
-    val space: AcornSpace
-        @Composable
-        get() = localSpace.current
+        get() = localLayout.current
 
     val windowSize: AcornWindowSize
         @Composable
@@ -914,16 +906,17 @@ class AcornColors(
 
 /**
  * This function is used to set the current value of [localWindowSize],
- * [localSpace], [localSize], and [localAcornColors].
+ * [localLayout], and [localAcornColors].
  */
 @Composable
-fun ProvideAcornTokens(
-    size: AcornSize,
-    windowSize: AcornWindowSize,
+private fun ProvideAcornTokens(
+    windowSize: AcornWindowSize = AcornWindowSize.getWindowSize(),
     colors: AcornColors,
     content: @Composable () -> Unit,
 ) {
-    val space = AcornSpace.fromWindowSize(windowSize = windowSize)
+    val layout = remember(windowSize) {
+        AcornLayout.fromWindowSize(windowSize = windowSize)
+    }
     val colorPalette = remember {
         // Explicitly creating a new object here so we don't mutate the initial [colors]
         // provided, and overwrite the values set in it.
@@ -933,8 +926,7 @@ fun ProvideAcornTokens(
 
     CompositionLocalProvider(
         localWindowSize provides windowSize,
-        localSpace provides space,
-        localSize provides size,
+        localLayout provides layout,
         localAcornColors provides colorPalette,
         content = content,
     )
@@ -948,10 +940,6 @@ private val localWindowSize = staticCompositionLocalOf<AcornWindowSize> {
     error("No AcornWindowSize provided")
 }
 
-private val localSpace = staticCompositionLocalOf<AcornSpace> {
-    error("No AcornSpace provided")
-}
-
-private val localSize = staticCompositionLocalOf<AcornSize> {
-    error("No AcornSize provided")
+private val localLayout = staticCompositionLocalOf {
+    AcornLayout.fromWindowSize(windowSize = AcornWindowSize.Small)
 }
