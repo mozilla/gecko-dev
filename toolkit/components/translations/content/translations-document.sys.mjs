@@ -8,7 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   TranslationsUtils:
-    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
+    "chrome://global/content/translations/TranslationsUtils.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {

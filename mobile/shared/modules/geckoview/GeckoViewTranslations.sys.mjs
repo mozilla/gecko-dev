@@ -7,7 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   TranslationsUtils:
-    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
+    "chrome://global/content/translations/TranslationsUtils.mjs",
 });
 
 import { GeckoViewModule } from "resource://gre/modules/GeckoViewModule.sys.mjs";

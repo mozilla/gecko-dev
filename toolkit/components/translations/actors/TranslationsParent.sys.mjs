@@ -69,7 +69,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TranslationsTelemetry:
     "chrome://global/content/translations/TranslationsTelemetry.sys.mjs",
   TranslationsUtils:
-    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
+    "chrome://global/content/translations/TranslationsUtils.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
