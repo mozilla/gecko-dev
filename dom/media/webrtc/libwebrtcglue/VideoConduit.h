@@ -167,7 +167,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const override;
   Maybe<Ssrc> GetRemoteSSRC() const override;
 
-  Maybe<VideoSessionConduit::Resolution> GetLastResolution() const override;
+  Maybe<gfx::IntSize> GetLastResolution() const override;
 
   // Call thread.
   void UnsetRemoteSSRC(uint32_t aSsrc) override;
@@ -379,11 +379,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
 
   // Written on the frame feeding thread.
   // Guarded by mMutex, except for reads on the frame feeding thread.
-  unsigned short mLastWidth = 0;
-
-  // Written on the frame feeding thread.
-  // Guarded by mMutex, except for reads on the frame feeding thread.
-  unsigned short mLastHeight = 0;
+  Maybe<gfx::IntSize> mLastSize;
 
   // Written on the frame feeding thread, the timestamp of the last frame on the
   // send side, in microseconds. This is a local timestamp using the system

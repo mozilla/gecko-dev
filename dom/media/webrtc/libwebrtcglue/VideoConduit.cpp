@@ -718,7 +718,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
         MOZ_ASSERT(codecConfig->mTias < INT_MAX);
         mNegotiatedMaxBitrate = static_cast<int>(codecConfig->mTias);
 
-        if (mLastWidth == 0 && mMinBitrateEstimate != 0) {
+        if (!mLastSize && mMinBitrateEstimate != 0) {
           // Only do this at the start; use "have we sent a frame" as a
           // reasonable stand-in. min <= start <= max (but all three parameters
           // are optional)
@@ -990,14 +990,9 @@ Maybe<Ssrc> WebrtcVideoConduit::GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const {
   return Nothing();
 }
 
-Maybe<VideoSessionConduit::Resolution> WebrtcVideoConduit::GetLastResolution()
-    const {
+Maybe<gfx::IntSize> WebrtcVideoConduit::GetLastResolution() const {
   MutexAutoLock lock(mMutex);
-  if (mLastWidth || mLastHeight) {
-    return Some(VideoSessionConduit::Resolution{.width = mLastWidth,
-                                                .height = mLastHeight});
-  }
-  return Nothing();
+  return mLastSize;
 }
 
 void WebrtcVideoConduit::DeleteSendStream() {
@@ -1451,23 +1446,20 @@ void WebrtcVideoConduit::OnSendFrame(const webrtc::VideoFrame& aFrame) {
   // avoids sampling error when capturing frames, but google had to deal with
   // some broken cameras, include Logitech c920's IIRC.
 
-  {
-    MutexAutoLock lock(mMutex);
+  const gfx::IntSize size{aFrame.width(), aFrame.height()};
 
-    CSFLogVerbose(LOGTAG, "WebrtcVideoConduit %p %s (send SSRC %u (0x%x))",
-                  this, __FUNCTION__, mSendStreamConfig.rtp.ssrcs.front(),
-                  mSendStreamConfig.rtp.ssrcs.front());
+  CSFLogVerbose(LOGTAG, "WebrtcVideoConduit %p %s (send SSRC %u (0x%x))", this,
+                __FUNCTION__, mSendStreamConfig.rtp.ssrcs.front(),
+                mSendStreamConfig.rtp.ssrcs.front());
 
-    if (aFrame.width() != mLastWidth || aFrame.height() != mLastHeight) {
-      // See if we need to recalculate what we're sending.
-      CSFLogVerbose(LOGTAG, "%s: call SelectSendResolution with %ux%u",
-                    __FUNCTION__, aFrame.width(), aFrame.height());
-      MOZ_ASSERT(aFrame.width() != 0 && aFrame.height() != 0);
-      // Note coverity will flag this since it thinks they can be 0
-      MOZ_ASSERT(mCurSendCodecConfig);
+  if (Some(size) != mLastSize) {
+    MOZ_ASSERT(size != gfx::IntSize(0, 0));
+    // Note coverity will flag this since it thinks they can be 0
+    MOZ_ASSERT(mCurSendCodecConfig);
 
-      mLastWidth = aFrame.width();
-      mLastHeight = aFrame.height();
+    {
+      MutexAutoLock lock(mMutex);
+      mLastSize = Some(size);
     }
   }
 

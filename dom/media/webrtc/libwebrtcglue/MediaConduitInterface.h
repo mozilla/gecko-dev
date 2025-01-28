@@ -389,11 +389,7 @@ class VideoSessionConduit : public MediaSessionConduit {
 
   virtual Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const = 0;
 
-  struct Resolution {
-    size_t width;
-    size_t height;
-  };
-  virtual Maybe<Resolution> GetLastResolution() const = 0;
+  virtual Maybe<gfx::IntSize> GetLastResolution() const = 0;
 
   virtual void RequestKeyFrame(FrameTransformerProxy* aProxy) = 0;
   virtual void GenerateKeyFrame(const Maybe<std::string>& aRid,
