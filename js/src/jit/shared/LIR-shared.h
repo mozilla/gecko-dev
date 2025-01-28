@@ -45,16 +45,6 @@ class LBinaryMath : public LInstructionHelper<1, 2 + ExtraUses, Temps> {
   const LAllocation* rhs() { return this->getOperand(1); }
 };
 
-template <size_t Temps, size_t ExtraUses = 0>
-class LUnaryMath : public LInstructionHelper<1, 1 + ExtraUses, Temps> {
- protected:
-  explicit LUnaryMath(LNode::Opcode opcode)
-      : LInstructionHelper<1, 1 + ExtraUses, Temps>(opcode) {}
-
- public:
-  const LAllocation* input() { return this->getOperand(0); }
-};
-
 // An LOsiPoint captures a snapshot after a call and ensures enough space to
 // patch in a call to the invalidation mechanism.
 //
