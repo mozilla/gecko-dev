@@ -26,7 +26,7 @@ import androidx.fragment.app.FragmentManager
  * @param fragmentManager used to manage fragment transactions and navigation.
  * @param dispatcher responsible for managing back press callbacks within the activity lifecycle.
  */
-class UserInteractionOnBackPressedCallback(
+open class UserInteractionOnBackPressedCallback(
     private val fragmentManager: FragmentManager,
     private val dispatcher: OnBackPressedDispatcher,
 ) : OnBackPressedCallback(false) {
