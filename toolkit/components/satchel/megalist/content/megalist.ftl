@@ -344,7 +344,7 @@ hide-password-button =
 # The message displayed when the search text does not match any of the user's saved logins.
 passwords-no-passwords-found-header =
   .heading = No passwords found
-passwords-no-passwords-found-message = Try a different search term and try again.
+passwords-no-passwords-found-message = No passwords found. Search a different term and try again.
 
 ## When the user has no saved passwords, we display the following messages to inform the user they can save
 ## their passwords safely and securely in Firefox:
