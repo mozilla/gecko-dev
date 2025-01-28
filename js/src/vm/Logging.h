@@ -87,7 +87,6 @@ class LogModule {
   _(fuseInvalidation)      /* Invalidation triggered by a fuse  */            \
   _(thenable)              /* Thenable on standard proto*/                    \
   _(compilationDependency) /* compilation dependency */                       \
-  _(startup)               /* engine startup logging */                       \
   JITSPEW_CHANNEL_LIST(_)  /* A module for each JitSpew channel. */
 
 // Declare Log modules
