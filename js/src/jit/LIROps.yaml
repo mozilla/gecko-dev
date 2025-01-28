@@ -4017,16 +4017,27 @@
   gen_boilerplate: false
 
 - name: AssertRangeI
-  gen_boilerplate: false
+  operands:
+    input: WordSized
+  mir_op: AssertRange
 
 - name: AssertRangeD
-  gen_boilerplate: false
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: AssertRange
 
 - name: AssertRangeF
-  gen_boilerplate: false
+  operands:
+    input: WordSized
+  num_temps: 2
+  mir_op: AssertRange
 
 - name: AssertRangeV
-  gen_boilerplate: false
+  operands:
+    input: BoxedValue
+  num_temps: 3
+  mir_op: AssertRange
 
 - name: AssertClass
   operands:

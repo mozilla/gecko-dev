@@ -20139,33 +20139,33 @@ void CodeGenerator::visitAssertShape(LAssertShape* ins) {
 
 void CodeGenerator::visitAssertRangeI(LAssertRangeI* ins) {
   Register input = ToRegister(ins->input());
-  const Range* r = ins->range();
+  const Range* r = ins->mir()->assertedRange();
 
   emitAssertRangeI(ins->mir()->input()->type(), r, input);
 }
 
 void CodeGenerator::visitAssertRangeD(LAssertRangeD* ins) {
   FloatRegister input = ToFloatRegister(ins->input());
-  FloatRegister temp = ToFloatRegister(ins->temp());
-  const Range* r = ins->range();
+  FloatRegister temp = ToFloatRegister(ins->temp0());
+  const Range* r = ins->mir()->assertedRange();
 
   emitAssertRangeD(r, input, temp);
 }
 
 void CodeGenerator::visitAssertRangeF(LAssertRangeF* ins) {
   FloatRegister input = ToFloatRegister(ins->input());
-  FloatRegister temp = ToFloatRegister(ins->temp());
-  FloatRegister temp2 = ToFloatRegister(ins->temp2());
+  FloatRegister temp = ToFloatRegister(ins->temp0());
+  FloatRegister temp2 = ToFloatRegister(ins->temp1());
 
-  const Range* r = ins->range();
+  const Range* r = ins->mir()->assertedRange();
 
   masm.convertFloat32ToDouble(input, temp);
   emitAssertRangeD(r, temp, temp2);
 }
 
 void CodeGenerator::visitAssertRangeV(LAssertRangeV* ins) {
-  const Range* r = ins->range();
-  const ValueOperand value = ToValue(ins, LAssertRangeV::Input);
+  const Range* r = ins->mir()->assertedRange();
+  const ValueOperand value = ToValue(ins, LAssertRangeV::InputIndex);
   Label done;
 
   {
@@ -20177,7 +20177,7 @@ void CodeGenerator::visitAssertRangeV(LAssertRangeV* ins) {
       masm.branchTestInt32(Assembler::NotEqual, tag, &isNotInt32);
       {
         ScratchTagScopeRelease _(&tag);
-        Register unboxInt32 = ToTempUnboxRegister(ins->temp());
+        Register unboxInt32 = ToTempUnboxRegister(ins->temp0());
         Register input = masm.extractInt32(value, unboxInt32);
         emitAssertRangeI(MIRType::Int32, r, input);
         masm.jump(&done);
@@ -20190,8 +20190,8 @@ void CodeGenerator::visitAssertRangeV(LAssertRangeV* ins) {
       masm.branchTestDouble(Assembler::NotEqual, tag, &isNotDouble);
       {
         ScratchTagScopeRelease _(&tag);
-        FloatRegister input = ToFloatRegister(ins->floatTemp1());
-        FloatRegister temp = ToFloatRegister(ins->floatTemp2());
+        FloatRegister input = ToFloatRegister(ins->temp1());
+        FloatRegister temp = ToFloatRegister(ins->temp2());
         masm.unboxDouble(value, input);
         emitAssertRangeD(r, input, temp);
         masm.jump(&done);
