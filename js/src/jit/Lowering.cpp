@@ -7034,10 +7034,10 @@ void LIRGenerator::visitSetDOMProperty(MSetDOMProperty* ins) {
   mozilla::DebugOnly<bool> ok = GetTempRegForIntArg(5, 0, &tempReg2);
   MOZ_ASSERT(ok, "How can we not have six temp registers?");
 
-  LSetDOMProperty* lir = new (alloc())
-      LSetDOMProperty(tempFixed(cxReg), useFixedAtStart(ins->object(), objReg),
-                      useBoxFixedAtStart(val, tempReg1, tempReg2),
-                      tempFixed(privReg), tempFixed(valueReg));
+  auto* lir = new (alloc()) LSetDOMProperty(
+      useFixedAtStart(ins->object(), objReg),
+      useBoxFixedAtStart(val, tempReg1, tempReg2), tempFixed(cxReg),
+      tempFixed(privReg), tempFixed(valueReg));
   add(lir, ins);
   assignSafepoint(lir, ins);
 }
@@ -7049,8 +7049,8 @@ void LIRGenerator::visitGetDOMProperty(MGetDOMProperty* ins) {
   GetTempRegForIntArg(2, 0, &privReg);
   mozilla::DebugOnly<bool> ok = GetTempRegForIntArg(3, 0, &valueReg);
   MOZ_ASSERT(ok, "How can we not have four temp registers?");
-  LGetDOMProperty* lir = new (alloc())
-      LGetDOMProperty(tempFixed(cxReg), useFixedAtStart(ins->object(), objReg),
+  auto* lir = new (alloc())
+      LGetDOMProperty(useFixedAtStart(ins->object(), objReg), tempFixed(cxReg),
                       tempFixed(privReg), tempFixed(valueReg));
 
   defineReturn(lir, ins);

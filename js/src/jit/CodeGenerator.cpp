@@ -19362,10 +19362,10 @@ void CodeGenerator::visitInstanceOfCache(LInstanceOfCache* ins) {
 }
 
 void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
-  const Register JSContextReg = ToRegister(ins->getJSContextReg());
-  const Register ObjectReg = ToRegister(ins->getObjectReg());
-  const Register PrivateReg = ToRegister(ins->getPrivReg());
-  const Register ValueReg = ToRegister(ins->getValueReg());
+  const Register JSContextReg = ToRegister(ins->temp0());
+  const Register ObjectReg = ToRegister(ins->object());
+  const Register PrivateReg = ToRegister(ins->temp1());
+  const Register ValueReg = ToRegister(ins->temp2());
 
   Label haveValue;
   if (ins->mir()->valueMayBeInSlot()) {
@@ -19509,17 +19509,17 @@ void CodeGenerator::visitGetDOMMemberT(LGetDOMMemberT* ins) {
 }
 
 void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
-  const Register JSContextReg = ToRegister(ins->getJSContextReg());
-  const Register ObjectReg = ToRegister(ins->getObjectReg());
-  const Register PrivateReg = ToRegister(ins->getPrivReg());
-  const Register ValueReg = ToRegister(ins->getValueReg());
+  const Register JSContextReg = ToRegister(ins->temp0());
+  const Register ObjectReg = ToRegister(ins->object());
+  const Register PrivateReg = ToRegister(ins->temp1());
+  const Register ValueReg = ToRegister(ins->temp2());
 
   DebugOnly<uint32_t> initialStack = masm.framePushed();
 
   masm.checkStackAlignment();
 
   // Push the argument. Rooting will happen at GC time.
-  ValueOperand argVal = ToValue(ins, LSetDOMProperty::Value);
+  ValueOperand argVal = ToValue(ins, LSetDOMProperty::ValueIndex);
   masm.Push(argVal);
   // We pass the pointer to our out param as an instance of
   // JSJitGetterCallArgs, since on the binary level it's the same thing.

@@ -634,10 +634,18 @@
   result_type: WordSized
 
 - name: GetDOMProperty
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    object: WordSized
+  num_temps: 3
+  call_instruction: true
+  mir_op: true
 
 - name: GetDOMMemberV
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    object: WordSized
+  mir_op: GetDOMMember
 
 - name: GetDOMMemberT
   result_type: WordSized
@@ -646,7 +654,12 @@
   mir_op: GetDOMMember
 
 - name: SetDOMProperty
-  gen_boilerplate: false
+  operands:
+    object: WordSized
+    value: BoxedValue
+  num_temps: 3
+  call_instruction: true
+  mir_op: true
 
 - name: LoadDOMExpandoValue
   result_type: BoxedValue
