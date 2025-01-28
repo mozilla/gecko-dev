@@ -295,8 +295,7 @@
 
     <fragment
         android:id="@+id/recentlyClosedFragment"
-        android:name="org.mozilla.fenix.library.recentlyclosed.RecentlyClosedFragment"
-        android:label="@string/library_recently_closed_tabs" />
+        android:name="org.mozilla.fenix.library.recentlyclosed.RecentlyClosedFragment" />
 
     <fragment
         android:id="@+id/SitePermissionsManagePhoneFeature"
