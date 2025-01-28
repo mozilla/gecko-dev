@@ -155,6 +155,53 @@ export class TranslationsTelemetry {
       TranslationsTelemetry.onRestorePage
     );
   }
+
+  /**
+   * Records a telemetry event for measuring translation engine performance.
+   *
+   * @param {object} data
+   * @param {string} data.sourceLanguage
+   * @param {string} data.targetLanguage
+   * @param {number} data.totalCompletedRequests
+   * @param {number} data.totalInferenceSeconds
+   * @param {number} data.totalTranslatedWords
+   */
+  static onReportEnginePerformance(data) {
+    const {
+      sourceLanguage,
+      targetLanguage,
+      totalCompletedRequests,
+      totalInferenceSeconds,
+      totalTranslatedWords,
+    } = data;
+
+    const averageWordsPerRequest =
+      totalTranslatedWords / totalCompletedRequests;
+    const averageWordsPerSecond = totalTranslatedWords / totalInferenceSeconds;
+
+    Glean.translations.enginePerformance.record({
+      flow_id: TranslationsTelemetry.getOrCreateFlowId(),
+      from_language: sourceLanguage,
+      to_language: targetLanguage,
+      average_words_per_request: averageWordsPerRequest,
+      average_words_per_second: averageWordsPerSecond,
+      total_completed_requests: totalCompletedRequests,
+      total_inference_seconds: totalInferenceSeconds,
+      total_translated_words: totalTranslatedWords,
+    });
+    TranslationsTelemetry.logEventToConsole(
+      TranslationsTelemetry.onReportEnginePerformance,
+      {
+        sourceLanguage,
+        targetLanguage,
+        averageWordsPerSecond,
+        averageWordsPerRequest,
+        totalCompletedRequests,
+        totalInferenceSeconds,
+        totalTranslatedWords,
+      }
+    );
+  }
 }
 
 /**
