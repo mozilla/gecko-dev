@@ -18855,19 +18855,32 @@ void CodeGenerator::visitStoreUnboxedScalar(LStoreUnboxedScalar* lir) {
   }
 }
 
+template <typename T>
+static inline void StoreToTypedBigIntArray(MacroAssembler& masm,
+                                           Scalar::Type writeType,
+                                           const LInt64Allocation& value,
+                                           const T& dest) {
+  MOZ_ASSERT(Scalar::isBigIntType(writeType));
+  if (IsConstant(value)) {
+    masm.storeToTypedBigIntArray(writeType, Imm64(ToInt64(value)), dest);
+  } else {
+    masm.storeToTypedBigIntArray(writeType, ToRegister64(value), dest);
+  }
+}
+
 void CodeGenerator::visitStoreUnboxedInt64(LStoreUnboxedInt64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register64 value = ToRegister64(lir->value());
+  LInt64Allocation value = lir->value();
 
   Scalar::Type writeType = lir->mir()->writeType();
 
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), writeType);
-    masm.storeToTypedBigIntArray(writeType, value, dest);
+    StoreToTypedBigIntArray(masm, writeType, value, dest);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(writeType));
-    masm.storeToTypedBigIntArray(writeType, value, dest);
+    StoreToTypedBigIntArray(masm, writeType, value, dest);
   }
 }
 
@@ -19081,7 +19094,7 @@ void CodeGenerator::visitStoreTypedArrayElementHole(
 void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
     LStoreTypedArrayElementHoleInt64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register64 value = ToRegister64(lir->value());
+  LInt64Allocation value = lir->value();
 
   Scalar::Type arrayType = lir->mir()->arrayType();
 
@@ -19097,7 +19110,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
   }
 
   BaseIndex dest(elements, index, ScaleFromScalarType(arrayType));
-  masm.storeToTypedBigIntArray(arrayType, value, dest);
+  StoreToTypedBigIntArray(masm, arrayType, value, dest);
 
   masm.bind(&skip);
 }

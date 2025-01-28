@@ -5110,7 +5110,7 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
       useRegisterOrIndexConstant(ins->index(), ins->writeType());
 
   if (ins->isBigIntWrite()) {
-    LInt64Allocation value = useInt64Register(ins->value());
+    LInt64Allocation value = useInt64RegisterOrConstant(ins->value());
     add(new (alloc()) LStoreUnboxedInt64(elements, index, value), ins);
     return;
   }
@@ -5237,7 +5237,7 @@ void LIRGenerator::visitStoreTypedArrayElementHole(
   LAllocation index = useRegister(ins->index());
 
   if (ins->isBigIntWrite()) {
-    LInt64Allocation value = useInt64Register(ins->value());
+    LInt64Allocation value = useInt64RegisterOrConstant(ins->value());
     LDefinition spectreTemp =
         BoundsCheckNeedsSpectreTemp() ? temp() : LDefinition::BogusTemp();
 
