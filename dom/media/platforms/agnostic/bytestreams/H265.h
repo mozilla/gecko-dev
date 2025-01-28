@@ -130,6 +130,8 @@ class H265NALU final {
 struct H265ProfileTierLevel final {
   H265ProfileTierLevel() = default;
 
+  bool operator==(const H265ProfileTierLevel& aOther) const;
+
   enum H265ProfileIdc {
     kProfileIdcMain = 1,
     kProfileIdcMain10 = 2,
@@ -166,6 +168,8 @@ struct H265ProfileTierLevel final {
 struct H265StRefPicSet final {
   H265StRefPicSet() = default;
 
+  bool operator==(const H265StRefPicSet& aOther) const;
+
   // Syntax elements.
   uint32_t num_negative_pics = {};
   uint32_t num_positive_pics = {};
@@ -182,6 +186,8 @@ struct H265StRefPicSet final {
 // H265 spec, E.2.1 VUI parameters syntax
 struct H265VUIParameters {
   H265VUIParameters() = default;
+
+  bool operator==(const H265VUIParameters& aOther) const;
 
   // Syntax elements.
   uint32_t sar_width = {};

@@ -54,6 +54,11 @@ mozilla::LazyLogModule gH265("H265");
     }                                          \
   } while (0)
 
+// For the comparison, we intended to not use memcpy due to its unreliability.
+#define COMPARE_FIELD(field) ((field) == aOther.field)
+#define COMPARE_ARRAY(field) \
+  std::equal(std::begin(field), std::end(field), std::begin(aOther.field))
+
 namespace mozilla {
 
 H265NALU::H265NALU(const uint8_t* aData, uint32_t aByteSize)
@@ -502,6 +507,34 @@ uint32_t H265ProfileTierLevel::GetDpbMaxPicBuf() const {
              : 7;
 }
 
+bool H265ProfileTierLevel::operator==(
+    const H265ProfileTierLevel& aOther) const {
+  return COMPARE_FIELD(general_profile_space) &&
+         COMPARE_FIELD(general_tier_flag) &&
+         COMPARE_FIELD(general_profile_idc) &&
+         COMPARE_FIELD(general_profile_compatibility_flags) &&
+         COMPARE_FIELD(general_progressive_source_flag) &&
+         COMPARE_FIELD(general_interlaced_source_flag) &&
+         COMPARE_FIELD(general_non_packed_constraint_flag) &&
+         COMPARE_FIELD(general_frame_only_constraint_flag) &&
+         COMPARE_FIELD(general_level_idc);
+}
+
+bool H265StRefPicSet::operator==(const H265StRefPicSet& aOther) const {
+  return COMPARE_FIELD(num_negative_pics) && COMPARE_FIELD(num_positive_pics) &&
+         COMPARE_FIELD(numDeltaPocs) && COMPARE_ARRAY(usedByCurrPicS0) &&
+         COMPARE_ARRAY(usedByCurrPicS1) && COMPARE_ARRAY(deltaPocS0) &&
+         COMPARE_ARRAY(deltaPocS1);
+}
+
+bool H265VUIParameters::operator==(const H265VUIParameters& aOther) const {
+  return COMPARE_FIELD(sar_width) && COMPARE_FIELD(sar_height) &&
+         COMPARE_FIELD(video_full_range_flag) &&
+         COMPARE_FIELD(colour_primaries) &&
+         COMPARE_FIELD(transfer_characteristics) &&
+         COMPARE_FIELD(matrix_coeffs);
+}
+
 /* static */
 Result<Ok, nsresult> H265::ParseAndIgnoreScalingListData(BitReader& aReader) {
   // H265 spec, 7.3.4 Scaling list data syntax
@@ -862,7 +895,46 @@ Result<Ok, nsresult> H265::ParseAndIgnoreSubLayerHrdParameters(
 }
 
 bool H265SPS::operator==(const H265SPS& aOther) const {
-  return memcmp(this, &aOther, sizeof(H265SPS)) == 0;
+  return COMPARE_FIELD(sps_video_parameter_set_id) &&
+         COMPARE_FIELD(sps_max_sub_layers_minus1) &&
+         COMPARE_FIELD(sps_temporal_id_nesting_flag) &&
+         COMPARE_FIELD(profile_tier_level) &&
+         COMPARE_FIELD(sps_seq_parameter_set_id) &&
+         COMPARE_FIELD(chroma_format_idc) &&
+         COMPARE_FIELD(separate_colour_plane_flag) &&
+         COMPARE_FIELD(pic_width_in_luma_samples) &&
+         COMPARE_FIELD(pic_height_in_luma_samples) &&
+         COMPARE_FIELD(conformance_window_flag) &&
+         COMPARE_FIELD(conf_win_left_offset) &&
+         COMPARE_FIELD(conf_win_right_offset) &&
+         COMPARE_FIELD(conf_win_top_offset) &&
+         COMPARE_FIELD(conf_win_bottom_offset) &&
+         COMPARE_FIELD(bit_depth_luma_minus8) &&
+         COMPARE_FIELD(bit_depth_chroma_minus8) &&
+         COMPARE_FIELD(log2_max_pic_order_cnt_lsb_minus4) &&
+         COMPARE_FIELD(sps_sub_layer_ordering_info_present_flag) &&
+         COMPARE_ARRAY(sps_max_dec_pic_buffering_minus1) &&
+         COMPARE_ARRAY(sps_max_num_reorder_pics) &&
+         COMPARE_ARRAY(sps_max_latency_increase_plus1) &&
+         COMPARE_FIELD(log2_min_luma_coding_block_size_minus3) &&
+         COMPARE_FIELD(log2_diff_max_min_luma_coding_block_size) &&
+         COMPARE_FIELD(log2_min_luma_transform_block_size_minus2) &&
+         COMPARE_FIELD(log2_diff_max_min_luma_transform_block_size) &&
+         COMPARE_FIELD(max_transform_hierarchy_depth_inter) &&
+         COMPARE_FIELD(max_transform_hierarchy_depth_intra) &&
+         COMPARE_FIELD(pcm_enabled_flag) &&
+         COMPARE_FIELD(pcm_sample_bit_depth_luma_minus1) &&
+         COMPARE_FIELD(pcm_sample_bit_depth_chroma_minus1) &&
+         COMPARE_FIELD(log2_min_pcm_luma_coding_block_size_minus3) &&
+         COMPARE_FIELD(log2_diff_max_min_pcm_luma_coding_block_size) &&
+         COMPARE_FIELD(pcm_loop_filter_disabled_flag) &&
+         COMPARE_FIELD(num_short_term_ref_pic_sets) &&
+         COMPARE_ARRAY(st_ref_pic_set) &&
+         COMPARE_FIELD(sps_temporal_mvp_enabled_flag) &&
+         COMPARE_FIELD(strong_intra_smoothing_enabled_flag) &&
+         COMPARE_FIELD(vui_parameters) && COMPARE_FIELD(subWidthC) &&
+         COMPARE_FIELD(subHeightC) && COMPARE_FIELD(mDisplayWidth) &&
+         COMPARE_FIELD(mDisplayHeight) && COMPARE_FIELD(maxDpbSize);
 }
 
 bool H265SPS::operator!=(const H265SPS& aOther) const {
