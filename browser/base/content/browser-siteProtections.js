@@ -1638,6 +1638,13 @@ var gProtectionsHandler = {
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
+      "_protectionsPopupButtonDelay",
+      "security.notification_enable_delay",
+      500
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
       "milestoneListPref",
       "browser.contentblocking.cfr-milestone.milestones",
       "[]",
@@ -1694,6 +1701,11 @@ var gProtectionsHandler = {
     Services.obs.addObserver(this, "browser:purge-session-history");
     // Add an observer to listen to requests to open the protections panel
     Services.obs.addObserver(this, "smartblock:open-protections-panel");
+
+    // bind the reset toggle sec delay function to this so we can use it
+    // as an event listener without this becoming the event target inside
+    // the function
+    this._resetToggleSecDelay = this._resetToggleSecDelay.bind(this);
   },
 
   uninit() {
@@ -1835,6 +1847,16 @@ var gProtectionsHandler = {
         });
       }
 
+      // Disable the toggles for a short time after opening via SmartBlock placeholder button
+      // to prevent clickjacking.
+      if (this._protectionsPopupOpeningReason == "embedPlaceholderButton") {
+        this._disablePopupToggles();
+        this._protectionsPopupToggleDelayTimer = setTimeout(() => {
+          this._enablePopupToggles();
+          delete this._protectionsPopupToggleDelayTimer;
+        }, this._protectionsPopupButtonDelay);
+      }
+
       ReportBrokenSite.updateParentMenu(event);
     }
   },
@@ -1851,6 +1873,12 @@ var gProtectionsHandler = {
         openingReason: this._protectionsPopupOpeningReason,
         smartblockToggleClicked: this._hasClickedSmartBlockEmbedToggle,
       });
+    }
+
+    if (this._protectionsPopupToggleDelayTimer) {
+      clearTimeout(this._protectionsPopupToggleDelayTimer);
+      this._enablePopupToggles();
+      delete this._protectionsPopupToggleDelayTimer;
     }
 
     this._hasClickedSmartBlockEmbedToggle = false;
@@ -2999,5 +3027,30 @@ var gProtectionsHandler = {
     }
 
     return messageEl;
+  },
+
+  _resetToggleSecDelay() {
+    // Note: `this` is bound to gProtectionsHandler in init.
+    clearTimeout(this._protectionsPopupToggleDelayTimer);
+    this._protectionsPopupToggleDelayTimer = setTimeout(() => {
+      this._enablePopupToggles();
+      delete this._protectionsPopupToggleDelayTimer;
+    }, this._protectionsPopupButtonDelay);
+  },
+
+  _disablePopupToggles() {
+    // Disables all toggles in the protections panel
+    this._protectionsPopup.querySelectorAll("moz-toggle").forEach(toggle => {
+      toggle.setAttribute("disabled", true);
+      toggle.addEventListener("pointerdown", this._resetToggleSecDelay);
+    });
+  },
+
+  _enablePopupToggles() {
+    // Enables all toggles in the protections panel
+    this._protectionsPopup.querySelectorAll("moz-toggle").forEach(toggle => {
+      toggle.removeAttribute("disabled");
+      toggle.removeEventListener("pointerdown", this._resetToggleSecDelay);
+    });
   },
 };
