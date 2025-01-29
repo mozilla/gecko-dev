@@ -18286,10 +18286,13 @@ Document::CreatePermissionGrantPromise(
                 Telemetry::LABELS_STORAGE_ACCESS_API_UI::Request);
           }
 
+          bool isThirdPartyTracker =
+              nsContentUtils::IsThirdPartyTrackingResourceWindow(inner);
+
           // Try to auto-grant the storage access so the user doesn't see the
           // prompt.
           self->AutomaticStorageAccessPermissionCanBeGranted(
-                  aHasUserInteraction)
+                  aHasUserInteraction, isThirdPartyTracker)
               ->Then(
                   GetCurrentSerialEventTarget(), __func__,
                   // If the autogrant check didn't fail, call this function
@@ -19068,7 +19071,8 @@ void Document::UnlockAllWakeLocks(WakeLockType aType) {
 }
 
 RefPtr<Document::AutomaticStorageAccessPermissionGrantPromise>
-Document::AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation) {
+Document::AutomaticStorageAccessPermissionCanBeGranted(
+    bool hasUserActivation, bool isThirdPartyTracker) {
   // requestStorageAccessForOrigin may not require user activation. If we don't
   // have user activation at this point we should always show the prompt.
   if (!hasUserActivation ||
@@ -19076,6 +19080,14 @@ Document::AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation) {
     return AutomaticStorageAccessPermissionGrantPromise::CreateAndResolve(
         false, __func__);
   }
+
+  if (isThirdPartyTracker &&
+      !StaticPrefs::
+          privacy_restrict3rdpartystorage_heuristic_exclude_third_party_trackers()) {
+    return AutomaticStorageAccessPermissionGrantPromise::CreateAndResolve(
+        false, __func__);
+  }
+
   if (XRE_IsContentProcess()) {
     // In the content process, we need to ask the parent process to compute
     // this.  The reason is that nsIPermissionManager::GetAllWithTypePrefix()

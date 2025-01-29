@@ -4538,7 +4538,8 @@ class Document : public nsINode,
   using AutomaticStorageAccessPermissionGrantPromise =
       MozPromise<bool, bool, true>;
   [[nodiscard]] RefPtr<AutomaticStorageAccessPermissionGrantPromise>
-  AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation);
+  AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation,
+                                               bool aIsThirdPartyTracker);
 
   static void AddToplevelLoadingDocument(Document* aDoc);
   static void RemoveToplevelLoadingDocument(Document* aDoc);

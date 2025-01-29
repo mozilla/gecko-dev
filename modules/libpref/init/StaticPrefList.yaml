@@ -15556,6 +15556,12 @@
   value: 600    # 10 minutes
   mirror: always
 
+# Whether to exclude third-party trackers from the storage accessheuristic.
+- name: privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Recent visited pages redirection permission expiration.
 - name: privacy.restrict3rdpartystorage.expiration_visited
   type: uint32_t
