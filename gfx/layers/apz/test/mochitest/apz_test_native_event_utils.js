@@ -1938,7 +1938,7 @@ async function closeContextMenu() {
 // scroll animation is slowed down so the test can perform other actions
 // while it's still in progress.
 function getSmoothScrollPrefs(aInputType, aMsdPhysics) {
-  let result = [["apz.test.logging_enabled", true]];
+  let result = [];
   // Some callers just want the default and don't pass in aMsdPhysics.
   if (aMsdPhysics !== undefined) {
     result.push(["general.smoothScroll.msdPhysics.enabled", aMsdPhysics]);
@@ -1994,7 +1994,10 @@ function buildRelativeScrollSmoothnessVariants(aInputType, aScrollMethods) {
   for (let scrollMethod of aScrollMethods) {
     subtests.push({
       file: `helper_relative_scroll_smoothness.html?input-type=${aInputType}&scroll-method=${scrollMethod}&strict=true`,
-      prefs: getSmoothScrollPrefs(aInputType, /* Bezier physics */ false),
+      prefs: [
+        ["apz.test.logging_enabled", true],
+        ...getSmoothScrollPrefs(aInputType, /* Bezier physics */ false),
+      ],
     });
     // For MSD physics, run the test with strict=false. The shape of the
     // animation curve is highly timing dependent, and we can't guarantee
@@ -2002,7 +2005,10 @@ function buildRelativeScrollSmoothnessVariants(aInputType, aScrollMethods) {
     // arrives.
     subtests.push({
       file: `helper_relative_scroll_smoothness.html?input-type=${aInputType}&scroll-method=${scrollMethod}&strict=false`,
-      prefs: getSmoothScrollPrefs(aInputType, /* MSD physics */ true),
+      prefs: [
+        ["apz.test.logging_enabled", true],
+        ...getSmoothScrollPrefs(aInputType, /* MSD physics */ true),
+      ],
     });
   }
   return subtests;
