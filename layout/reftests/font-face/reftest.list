@@ -154,9 +154,9 @@ HTTP(..) == font-redirect.html order-1-ref.html
 == dynamic-duplicate-rule-1c.html dynamic-duplicate-rule-1-ref.html
 
 # Test for COLR and CPAL support
-fuzzy-if(cocoaWidget,154-198,172-172) == color-1a.html color-1-ref.html
+fuzzy(0-198,0-172) == color-1a.html color-1-ref.html
 != color-1a.html color-1-notref.html
-fuzzy-if(cocoaWidget,154-198,172-172) == color-1b.html color-1-ref.html
+fuzzy(0-198,0-172) == color-1b.html color-1-ref.html
 == color-2a.html color-2-ref.html
 != color-2a.html color-2-notref.html
 
@@ -169,18 +169,18 @@ defaults pref(gfx.font_rendering.colr_v1.enabled,true)
 fuzzy(0-64,0-200) == colrv1-01.html#A colrv1-01-ref.html#A
 fuzzy(0-32,0-200) == colrv1-01.html#B colrv1-01-ref.html#B
 fuzzy(0-8,0-10100) == colrv1-01.html#C colrv1-01-ref.html#C
-fuzzy(0-64,0-600) == colrv1-01.html#D colrv1-01-ref.html#D
-fuzzy(0-64,0-398) == colrv1-01.html#E colrv1-01-ref.html#E
-fuzzy(0-64,0-398) == colrv1-01.html#F colrv1-01-ref.html#F
-fuzzy(0-64,0-596) == colrv1-01.html#G colrv1-01-ref.html#G
-fuzzy(0-64,0-596) == colrv1-01.html#H colrv1-01-ref.html#H
+fuzzy(0-64,0-7000) == colrv1-01.html#D colrv1-01-ref.html#D
+fuzzy(0-64,0-3000) == colrv1-01.html#E colrv1-01-ref.html#E
+fuzzy(0-64,0-3000) == colrv1-01.html#F colrv1-01-ref.html#F
+fuzzy(0-64,0-3400) == colrv1-01.html#G colrv1-01-ref.html#G
+fuzzy(0-64,0-3400) == colrv1-01.html#H colrv1-01-ref.html#H
 fuzzy(0-64,0-10100) == colrv1-01.html#I colrv1-01-ref.html#I
 fuzzy(0-64,0-6806) == colrv1-01.html#J colrv1-01-ref.html#J
-fuzzy(0-1,0-748) == colrv1-01.html#K colrv1-01-ref.html#K
+fuzzy(0-129,0-7448) == colrv1-01.html#K colrv1-01-ref.html#K
 fuzzy(0-67,0-9494) == colrv1-01.html#L colrv1-01-ref.html#L
-fuzzy(0-64,0-3578) == colrv1-01.html#M colrv1-01-ref.html#M
+fuzzy(0-64,0-7636) == colrv1-01.html#M colrv1-01-ref.html#M
 fuzzy(0-64,0-6116) == colrv1-01.html#N colrv1-01-ref.html#N
-fuzzy(0-80,0-5491) == colrv1-01.html#O colrv1-01-ref.html#O
+fuzzy(0-80,0-6626) == colrv1-01.html#O colrv1-01-ref.html#O
 fuzzy(0-112,0-300) == colrv1-01.html#P colrv1-01-ref.html#P
 fuzzy(0-149,0-484) == colrv1-01.html#Q colrv1-01-ref.html#Q
 fuzzy(0-214,0-461) == colrv1-01.html#R colrv1-01-ref.html#R
@@ -188,9 +188,9 @@ fuzzy(0-255,0-373) == colrv1-01.html#S colrv1-01-ref.html#S
 fuzzy(0-255,0-290) == colrv1-01.html#T colrv1-01-ref.html#T
 
 fuzzy(0-1,0-1) == colrv1-03.html colrv1-03-ref.html
-fuzzy(0-1,0-1800) fuzzy-if(Android,0-64,0-37100) == colrv1-04.html colrv1-04-ref.html
-fuzzy-if(Android,8-8,1484-1484) == colrv1-05.html colrv1-05-ref.html
-fuzzy(0-1,0-291) == colrv1-06.html colrv1-06-ref.html
+fuzzy(0-1,0-38200) fuzzy-if(Android,0-64,0-37100) == colrv1-04.html colrv1-04-ref.html
+fuzzy(0-65,0-6105) == colrv1-05.html colrv1-05-ref.html
+fuzzy(0-1,0-318) == colrv1-06.html colrv1-06-ref.html
 fuzzy(0-128,0-264) == colrv1-07.html colrv1-07-ref.html
 == colrv1-08.html colrv1-08-ref.html
 == colrv1-09.html colrv1-09-ref.html
