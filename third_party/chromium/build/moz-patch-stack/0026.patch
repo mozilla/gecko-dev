@@ -1,0 +1,21 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 29 Jan 2025 16:33:00 -0600
+Subject: Bug xxx - cherry-pick chromium/build sha aa91e8eb2
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7e1a138772ce49bd7725ebdeecf16e13bad3b495
+---
+ vs_toolchain.py | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/vs_toolchain.py b/vs_toolchain.py
+index 55372ba3a..53e0f9bd3 100755
+--- a/vs_toolchain.py
++++ b/vs_toolchain.py
+@@ -9,7 +9,6 @@ import collections
+ import glob
+ import json
+ import os
+-import pipes
+ import platform
+ import re
+ import shutil
