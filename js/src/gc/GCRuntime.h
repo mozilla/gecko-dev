@@ -802,7 +802,7 @@ class GCRuntime {
                              const mozilla::TimeStamp& currentTime,
                              JS::GCReason reason, bool canAllocateMoreCode,
                              bool isActiveCompartment);
-  void discardJITCodeForGC();
+  void maybeDiscardJitCodeForGC();
   void startBackgroundFreeAfterMinorGC();
   void relazifyFunctionsForShrinkingGC();
   void purgePropMapTablesForShrinkingGC();

@@ -1591,6 +1591,7 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
   cellsToAssertNotGray.ref().clearAndFree();
 #endif
 
+
   // Updating the atom marking bitmaps. This marks atoms referenced by
   // uncollected zones so cannot be done in parallel with the other sweeping
   // work below.
