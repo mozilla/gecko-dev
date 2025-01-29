@@ -42,6 +42,7 @@ Services.scriptloader.loadSubScript(
 registerCleanupFunction(() => {
   info("finish() was called, cleaning up and clearing debugger preferences...");
   Services.prefs.clearUserPref("devtools.debugger.map-scopes-enabled");
+  Services.prefs.clearUserPref("devtools.debugger.show-content-scripts");
 });
 
 /**

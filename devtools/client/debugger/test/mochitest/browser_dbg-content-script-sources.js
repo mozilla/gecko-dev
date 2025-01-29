@@ -7,6 +7,8 @@
 "use strict";
 
 add_task(async function () {
+  await pushPref("devtools.debugger.show-content-scripts", false);
+
   const extension = await installAndStartContentScriptExtension();
 
   const otherExtension = ExtensionTestUtils.loadExtension({
