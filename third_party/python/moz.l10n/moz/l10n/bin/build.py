@@ -169,7 +169,7 @@ def write_target_file(
 
     msg = f"merge {name}"
     log.info(f"{msg} ({msg_delta:+d})" if msg_delta != 0 else msg)
-    with open(tgt_path, "w") as file:
+    with open(tgt_path, "w", encoding="utf-8") as file:
         for line in serialize_resource(l10n_res, trim_comments=True):
             file.write(line)
     return msg_delta

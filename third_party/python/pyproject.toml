@@ -32,7 +32,7 @@ dependencies = [
     "mako==1.1.2",
     # Not direct dependency - only needed to fix a constraint problem
     "markupsafe==2.0.1",
-    "moz-l10n~=0.5.5",
+    "moz-l10n~=0.5.7",
     "mozilla-repo-urls==0.1.1",
     "mozilla-version==3.1.0",
     "packaging==23.1",

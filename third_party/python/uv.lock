@@ -816,7 +816,7 @@ wheels = [
 
 [[package]]
 name = "moz-l10n"
-version = "0.5.6"
+version = "0.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fluent-syntax" },
@@ -825,9 +825,9 @@ dependencies = [
     { name = "polib" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/37/53e6f27a26323f7070d5f73b0c07c34ebaa1ad30c38b66fff4119fe50cf8/moz_l10n-0.5.6.tar.gz", hash = "sha256:13dbf9fc56b38ef78ccfd1e188308912bf9125bb4898e0de2ee35b65be5ea25c", size = 69167 }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/63/7036d277532b6e2d213eba0bb949746fcbbca6a89d36497233f1e1516279/moz_l10n-0.5.7.tar.gz", hash = "sha256:230d6d2289c66ce8481a4ef3c152025e524132fc4241b35f440d43105796a7c8", size = 68451 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/07/d38c159e533e0457519fe46d948a1b10474effc314b7456bf39eef36334f/moz.l10n-0.5.6-py3-none-any.whl", hash = "sha256:07b4d88df540e5facc2c9483b44cf33da3ea5c2ce45e5ccb72418680c62e42bb", size = 93347 },
+    { url = "https://files.pythonhosted.org/packages/2c/cb/fe7ae1e45b17e1c51462194702a8fabed6ab41e609745a14c835fec47a5b/moz.l10n-0.5.7-py3-none-any.whl", hash = "sha256:ce064640056a2bf659b24152b917452f733a0990e97a2c6c83cfc4bc3276c8d9", size = 89207 },
 ]
 
 [[package]]
@@ -934,7 +934,7 @@ requires-dist = [
     { name = "looseversion", specifier = "==1.0.1" },
     { name = "mako", specifier = "==1.1.2" },
     { name = "markupsafe", specifier = "==2.0.1" },
-    { name = "moz-l10n", specifier = "~=0.5.5" },
+    { name = "moz-l10n", specifier = "~=0.5.7" },
     { name = "mozilla-repo-urls", specifier = "==0.1.1" },
     { name = "mozilla-version", specifier = "==3.1.0" },
     { name = "packaging", specifier = "==23.1" },

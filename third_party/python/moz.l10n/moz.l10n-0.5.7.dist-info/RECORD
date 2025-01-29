@@ -2,7 +2,7 @@ moz/l10n/__init__.py,sha256=4B1l_B0GtUdbx4a8DzrLzQoPXeISbpBTpqJBZinzLi0,80
 moz/l10n/message.py,sha256=Af8UafBPaxV04l4sDIS56BhuvPYtl4rzoWqymO7l3oc,3494
 moz/l10n/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
 moz/l10n/bin/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-moz/l10n/bin/build.py,sha256=U5IPryUBH933AyO8KfKG_eC2T8wqDxZApfivy3_MOxY,6283
+moz/l10n/bin/build.py,sha256=2bXbV4DanTN01YHZNl3sxHnmcNYuPIOeSxwzxEwi2pY,6301
 moz/l10n/bin/build_file.py,sha256=Fc6ig3jbNj_uyQgvONcMYSBDLMxVd4zSjD00tnGLgNU,2577
 moz/l10n/bin/compare.py,sha256=zq96sPVC9sFhxcw9ZepF-GriKGquKAV6CEMY1q8MSXU,5938
 moz/l10n/bin/fix.py,sha256=YsJYYTpQ9lcKEoENKMUhbm_HqDXIZN6sBwEfISUZXFg,5791
@@ -52,9 +52,8 @@ moz/l10n/resource/xliff/parse_xcode.py,sha256=URmMpBwi1SzrhQKKYM5HKN6-e7eJbXdr8q
 moz/l10n/resource/xliff/serialize.py,sha256=aPWTu6N8K3-oU6bOIg1BIDPTDIYu6o9XPxjOMf3_WZo,13248
 moz/l10n/util/__init__.py,sha256=pOy5qLlt_9672xRi-kS6gKp2fBGoQaJW4_Rdnq852yk,68
 moz/l10n/util/walk_files.py,sha256=v6AcJtpc4Ob7DWRZLIJql1Ez5QE31ZUZKMCJks_ZlIY,2413
-moz.l10n-0.5.6.dist-info/LICENSE,sha256=z8d0m5b2O9McPEK1xHG_dWgUBT6EfBDz6wA0F7xSPTA,11358
-moz.l10n-0.5.6.dist-info/METADATA,sha256=1sJLACeECEf9VXsWHZPJnPuQpxEB4VwfV7pD-VAW0fk,7761
-moz.l10n-0.5.6.dist-info/WHEEL,sha256=PZUExdf71Ui_so67QXpySuHtCi3-J3wvF4ORK6k_S8U,91
-moz.l10n-0.5.6.dist-info/entry_points.txt,sha256=_oINhCdl88kDVU8BoEYJNJNcCJ_mJOMa-b5R3e0Wac8,172
-moz.l10n-0.5.6.dist-info/top_level.txt,sha256=UB_i1Kf-Sdrdhj4PU-iSAlSXxxkEW8hTT9okw5S1SNE,4
-moz.l10n-0.5.6.dist-info/RECORD,,
+moz.l10n-0.5.7.dist-info/METADATA,sha256=bx6VlHd15nSVb9ofvq9auR4chJNLIzo67NJtygzXmtc,7739
+moz.l10n-0.5.7.dist-info/WHEEL,sha256=In9FTNxeP60KnTkGw7wk6mJPYd_dQSjEZmXdBdMCI-8,91
+moz.l10n-0.5.7.dist-info/entry_points.txt,sha256=_oINhCdl88kDVU8BoEYJNJNcCJ_mJOMa-b5R3e0Wac8,172
+moz.l10n-0.5.7.dist-info/top_level.txt,sha256=UB_i1Kf-Sdrdhj4PU-iSAlSXxxkEW8hTT9okw5S1SNE,4
+moz.l10n-0.5.7.dist-info/RECORD,,

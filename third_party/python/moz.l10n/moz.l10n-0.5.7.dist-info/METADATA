@@ -1,6 +1,6 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.2
 Name: moz.l10n
-Version: 0.5.6
+Version: 0.5.7
 Summary: Mozilla tools for localization
 Author-email: Mozilla <l10n-drivers@mozilla.org>, Eemeli Aro <eemeli@mozilla.com>
 License: Apache-2.0
@@ -22,7 +22,6 @@ Classifier: Topic :: Software Development :: Localization
 Classifier: Topic :: Software Development :: Testing
 Requires-Python: ~=3.8
 Description-Content-Type: text/markdown
-License-File: LICENSE
 Requires-Dist: fluent.syntax~=0.19.0
 Requires-Dist: gitignorant~=0.3.1
 Requires-Dist: iniparse~=0.5
