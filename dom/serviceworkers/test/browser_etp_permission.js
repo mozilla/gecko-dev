@@ -185,7 +185,7 @@ add_task(async function test_permission_during_runtime() {
   PermissionTestUtils.add(
     SCOPE,
     "trackingprotection",
-    Services.perms.BLOCK_ACTION
+    Services.perms.DENY_ACTION
   );
 
   await checkAllowList(false);
