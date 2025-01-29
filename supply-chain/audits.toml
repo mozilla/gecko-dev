@@ -3455,6 +3455,16 @@ criteria = "safe-to-deploy"
 delta = "23.0.0 -> 23.0.0@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
+[[audits.naga]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 23.1.0"
+
+[[audits.naga]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "23.1.0 -> 24.0.0"
+
 [[audits.net2]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
@@ -5620,6 +5630,11 @@ criteria = "safe-to-deploy"
 delta = "23.0.1 -> 23.0.1@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
+[[audits.wgpu-core]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 24.0.0"
+
 [[audits.wgpu-hal]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
 criteria = "safe-to-deploy"
@@ -5703,6 +5718,11 @@ criteria = "safe-to-deploy"
 delta = "23.0.1 -> 23.0.1@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
 
+[[audits.wgpu-hal]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 24.0.0"
+
 [[audits.wgpu-types]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
 criteria = "safe-to-deploy"
@@ -5780,6 +5800,11 @@ who = [
 criteria = "safe-to-deploy"
 delta = "23.0.0 -> 23.0.0@git:aa7bec65b90028e4db6ec8def8589b52097d92f9"
 importable = false
+
+[[audits.wgpu-types]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 24.0.0"
 
 [[audits.whatsys]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
