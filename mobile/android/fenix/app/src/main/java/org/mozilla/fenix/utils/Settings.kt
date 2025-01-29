@@ -302,11 +302,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
-    var privateBrowsingBiometricsEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_private_browsing_biometrics_enabled),
-        default = false,
-    )
-
     var shouldReturnToBrowser by booleanPreference(
         appContext.getString(R.string.pref_key_return_to_browser),
         false,
