@@ -189,7 +189,7 @@ impl NeqoHttp3Conn {
                 };
                 neqo_udp::Socket::new(borrowed).map_err(|e| {
                     qerror!("failed to initialize socket {}: {}", socket, e);
-                    NS_ERROR_FAILURE
+                    into_nsresult(e)
                 })
             })
             .transpose()?;
@@ -588,7 +588,7 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
                 Err(e) => {
                     qwarn!("failed to receive datagrams: {}", e);
                     return ProcessInputResult {
-                        result: NS_ERROR_FAILURE,
+                        result: into_nsresult(e),
                         bytes_read: 0,
                     };
                 }
@@ -770,7 +770,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
                     Err(e) => {
                         qwarn!("failed to send datagram: {}", e);
                         return ProcessOutputAndSendResult {
-                            result: NS_ERROR_FAILURE,
+                            result: into_nsresult(e),
                             bytes_written: 0,
                         };
                     }
@@ -1902,5 +1902,110 @@ pub extern "C" fn neqo_http3conn_webtransport_set_sendorder(
             Ok(()) => NS_OK,
             Err(_) => NS_ERROR_UNEXPECTED,
         }
+    }
+}
+
+/// Convert a [`std::io::Error`] into a [`nsresult`].
+///
+/// Note that this conversion is specific to `neqo_glue`, i.e. does not aim to
+/// implement a general-purpose conversion.
+///
+/// Modeled after
+/// [`ErrorAccordingToNSPR`](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/netwerk/base/nsSocketTransport2.cpp#164-168).
+//
+// TODO: Use `non_exhaustive_omitted_patterns_lint` [once stablized](https://github.com/rust-lang/rust/issues/89554).
+fn into_nsresult(e: io::Error) -> nsresult {
+    match e.kind() {
+        io::ErrorKind::ConnectionRefused => NS_ERROR_CONNECTION_REFUSED,
+        io::ErrorKind::ConnectionReset => NS_ERROR_NET_RESET,
+
+        // > We lump the following NSPR codes in with PR_CONNECT_REFUSED_ERROR. We
+        // > could get better diagnostics by adding distinct XPCOM error codes for
+        // > each of these, but there are a lot of places in Gecko that check
+        // > specifically for NS_ERROR_CONNECTION_REFUSED, all of which would need to
+        // > be checked.
+        //
+        // <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/netwerk/base/nsSocketTransport2.cpp#164-168>
+        //
+        // TODO: `HostUnreachable` and `NetworkUnreachable` available since Rust
+        // v1.83.0 only <https://doc.rust-lang.org/std/io/enum.ErrorKind.html>.
+        // io::ErrorKind::HostUnreachable | io::ErrorKind::NetworkUnreachable |
+        io::ErrorKind::AddrNotAvailable => NS_ERROR_CONNECTION_REFUSED,
+
+        // <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/netwerk/base/nsSocketTransport2.cpp#156>
+        io::ErrorKind::ConnectionAborted => NS_ERROR_NET_RESET,
+
+        io::ErrorKind::NotConnected => NS_ERROR_NOT_CONNECTED,
+        io::ErrorKind::AddrInUse => NS_ERROR_SOCKET_ADDRESS_IN_USE,
+        io::ErrorKind::AlreadyExists => NS_ERROR_FILE_ALREADY_EXISTS,
+        io::ErrorKind::WouldBlock => NS_BASE_STREAM_WOULD_BLOCK,
+
+        // TODO: available since Rust v1.83.0 only
+        // <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.NotADirectory>
+        // io::ErrorKind::NotADirectory => NS_ERROR_FILE_NOT_DIRECTORY,
+
+        // TODO: available since Rust v1.83.0 only
+        // <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.IsADirectory>
+        // io::ErrorKind::IsADirectory => NS_ERROR_FILE_IS_DIRECTORY,
+
+        // TODO: available since Rust v1.83.0 only
+        // <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.DirectoryNotEmpty>
+        // io::ErrorKind::DirectoryNotEmpty => NS_ERROR_FILE_DIR_NOT_EMPTY,
+
+        // TODO: available since Rust v1.83.0 only
+        // <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.ReadOnlyFilesystem>
+        // io::ErrorKind::ReadOnlyFilesystem => NS_ERROR_FILE_READ_ONLY,
+
+        // TODO: nightly-only for now <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.FilesystemLoop>.
+        // io::ErrorKind::FilesystemLoop => NS_ERROR_FILE_UNRESOLVABLE_SYMLINK,
+
+        // > NSPR's socket code can return these, but they're not worth breaking out
+        // > into their own error codes, distinct from NS_ERROR_FAILURE:
+        // >
+        // > PR_BAD_DESCRIPTOR_ERROR
+        // > PR_INVALID_ARGUMENT_ERROR
+        //
+        // <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/netwerk/base/nsSocketTransport2.cpp#231>
+        io::ErrorKind::InvalidInput => NS_ERROR_FAILURE,
+
+        io::ErrorKind::TimedOut => NS_ERROR_NET_TIMEOUT,
+        io::ErrorKind::Interrupted => NS_ERROR_NET_INTERRUPT,
+
+        // <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/netwerk/base/nsSocketTransport2.cpp#160-161>
+        io::ErrorKind::UnexpectedEof => NS_ERROR_NET_INTERRUPT,
+
+        io::ErrorKind::OutOfMemory => NS_ERROR_OUT_OF_MEMORY,
+
+        // TODO: nightly-only for now <https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.InProgress>.
+        // io::ErrorKind::InProgress => NS_ERROR_IN_PROGRESS,
+
+        // The errors below are either not relevant for `neqo_glue`, or not
+        // defined as `nsresult`.
+        io::ErrorKind::NotFound
+        | io::ErrorKind::PermissionDenied
+        | io::ErrorKind::BrokenPipe
+        | io::ErrorKind::InvalidData
+        | io::ErrorKind::WriteZero
+        | io::ErrorKind::Unsupported
+        | io::ErrorKind::Other => NS_ERROR_FAILURE,
+
+        // TODO: available since Rust v1.83.0 only
+        // <https://doc.rust-lang.org/std/io/enum.ErrorKind.html>.
+        // io::ErrorKind::NotSeekable
+        // | io::ErrorKind::FilesystemQuotaExceeded
+        // | io::ErrorKind::FileTooLarge
+        // | io::ErrorKind::ResourceBusy
+        // | io::ErrorKind::ExecutableFileBusy
+        // | io::ErrorKind::Deadlock
+        // | io::ErrorKind::TooManyLinks
+        // | io::ErrorKind::ArgumentListTooLong
+        // | io::ErrorKind::NetworkDown
+        // | io::ErrorKind::StaleNetworkFileHandle
+        // | io::ErrorKind::StorageFull => NS_ERROR_FAILURE,
+
+        // TODO: nightly-only for now <https://doc.rust-lang.org/std/io/enum.ErrorKind.html>.
+        // io::ErrorKind::CrossesDevices | io::ErrorKind::InvalidFilename => NS_ERROR_FAILURE,
+
+        _ => NS_ERROR_FAILURE,
     }
 }
