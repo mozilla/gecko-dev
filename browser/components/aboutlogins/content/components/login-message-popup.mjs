@@ -11,8 +11,8 @@ const stylesTemplate = () =>
     href="chrome://browser/content/aboutlogins/components/login-message-popup.css"
   />`;
 
-export const MessagePopup = ({ l10nid, message, webTitle = "" }) => {
-  return html` <div class="tooltip-container">
+export const MessagePopup = ({ l10nid, message, webTitle = "", role }) => {
+  return html` <div class="tooltip-container" role=${ifDefined(role)}>
     <div class="arrow-box">
       <p
         class="tooltip-message"
@@ -32,6 +32,7 @@ export class PasswordWarning extends MozLitElement {
       webTitle: { type: String, reflect: true },
       arrowDirection: { type: String },
       message: { type: String },
+      role: { type: String },
     };
   }
 
@@ -45,6 +46,7 @@ export class PasswordWarning extends MozLitElement {
       return html`${stylesTemplate()}
       ${MessagePopup({
         message: this.message,
+        role: this.role,
       })}`;
     }
 
@@ -52,11 +54,13 @@ export class PasswordWarning extends MozLitElement {
       ? html`${stylesTemplate()}
         ${MessagePopup({
           l10nid: "about-logins-add-password-tooltip",
+          role: this.role,
         })}`
       : html`${stylesTemplate()}
         ${MessagePopup({
           l10nid: "about-logins-edit-password-tooltip",
           webTitle: this.webTitle,
+          role: this.role,
         })}`;
   }
 }
@@ -67,6 +71,7 @@ export class OriginWarning extends MozLitElement {
       l10nId: { type: String },
       message: { type: String },
       arrowDirection: { type: String },
+      role: { type: String },
     };
   }
 
@@ -77,7 +82,11 @@ export class OriginWarning extends MozLitElement {
 
   render() {
     return html`${stylesTemplate()}
-    ${MessagePopup({ l10nid: this.l10nId, message: this.message })}`;
+    ${MessagePopup({
+      l10nid: this.l10nId,
+      message: this.message,
+      role: this.role,
+    })}`;
   }
 }
 

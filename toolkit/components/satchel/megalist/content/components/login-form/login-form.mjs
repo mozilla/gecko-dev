@@ -183,7 +183,10 @@ export class LoginForm extends MozLitElement {
                 .onOriginClick=${this.onOriginClick}
               >
               </login-origin-field>
-              <origin-warning arrowdirection="down"></origin-warning>
+              <origin-warning
+                role="alert"
+                arrowdirection="down"
+              ></origin-warning>
             </div>
             <login-username-field
               name="username"
@@ -200,6 +203,7 @@ export class LoginForm extends MozLitElement {
                 @input=${e => this.onInput(e)}
               ></login-password-field>
               <password-warning
+                role="alert"
                 isNewLogin
                 arrowdirection="down"
               ></password-warning>
