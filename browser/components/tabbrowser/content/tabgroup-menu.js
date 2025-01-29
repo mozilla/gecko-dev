@@ -347,6 +347,9 @@
 
     #handleSaveAndClose() {
       this.activeGroup.save();
+      this.activeGroup.dispatchEvent(
+        new CustomEvent("TabGroupSaved", { bubbles: true })
+      );
       gBrowser.removeTabGroup(this.activeGroup);
     }
 

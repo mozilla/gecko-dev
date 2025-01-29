@@ -1870,6 +1870,7 @@ add_task(async function test_saveAndCloseGroup() {
 
   let events = [
     BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden"),
+    BrowserTestUtils.waitForEvent(group, "TabGroupSaved"),
     BrowserTestUtils.waitForEvent(group, "TabGroupRemoved"),
   ];
   saveAndCloseGroupButton.click();
