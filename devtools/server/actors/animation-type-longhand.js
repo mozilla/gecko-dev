@@ -322,6 +322,7 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "font-stretch",
       "font-variation-settings",
       "font-weight",
+      "hyphenate-limit-chars",
       "mask-position-x",
       "mask-position-y",
       "mask-size",

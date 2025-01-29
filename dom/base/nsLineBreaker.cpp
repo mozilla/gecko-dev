@@ -443,7 +443,7 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
     // do not count towards the minimum."
     // (https://drafts.csswg.org/css-text-4/#hyphenate-char-limits)
     // We also don't count Control or Format categories.
-    using intl::GeneralCategory;
+    using mozilla::intl::GeneralCategory;
     switch (UnicodeProperties::CharType(ch)) {
       case GeneralCategory::Nonspacing_Mark:
       case GeneralCategory::Dash_Punctuation:
