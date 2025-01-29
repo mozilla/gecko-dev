@@ -2106,3 +2106,106 @@ addUiaTask(
   // The IA2 -> UIA proxy doesn't support RemoveFromSelection correctly.
   { uiaEnabled: true, uiaDisabled: false }
 );
+
+/**
+ * Test the TextRange pattern's FindAttribute method.
+ */
+addUiaTask(
+  `
+<div id="font-weight-container">a <span tabindex="0"><b>bcd</b></span><b> ef</b> ghi</div>
+  `,
+  async function testTextRangeFindAttribute(_browser, _docAcc) {
+    info("Constructing range on bold text run");
+    await runPython(`
+      global doc, docText, range, fontWeightContainerAcc
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      fontWeightContainerAcc = findUiaByDomId(doc, "font-weight-container")
+      range = docText.RangeFromChild(fontWeightContainerAcc)
+    `);
+    is(
+      await runPython(`range.GetText(-1)`),
+      "a bcd ef ghi",
+      "range text correct"
+    );
+
+    info("Finding first font-weight 400 text range");
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 400, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "a ", "range text correct");
+
+    info("Finding first font-weight 700 text range");
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "bcd ef", "range text correct");
+
+    info("Finding last font-weight 700 text range");
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, True)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "bcd ef", "range text correct");
+
+    info("Finding last font-weight 400 text range");
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 400, True)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), " ghi", "range text correct");
+
+    // The IA2 -> UIA proxy gets things below this wrong.
+    if (!gIsUiaEnabled) {
+      return;
+    }
+    info("Moving range to the middle of a text attribute run");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, 4)`
+      ),
+      4,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "cd ef ghi", "range text correct");
+
+    info(
+      "Finding first font-weight 700 text range (range starts in middle of text attribute run)"
+    );
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "cd ef", "range text correct");
+
+    await runPython(`
+      global range
+      range = docText.RangeFromChild(fontWeightContainerAcc)
+    `);
+    is(
+      await runPython(`range.GetText(-1)`),
+      "a bcd ef ghi",
+      "range text correct"
+    );
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, -5)`
+      ),
+      -5,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "a bcd e", "range text correct");
+
+    info(
+      "Finding last font-weight 700 text range (range ends in middle of text attribute run)"
+    );
+    await runPython(`
+      global subrange
+      subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, True)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "bcd e", "range text correct");
+  },
+  { uiaEnabled: true, uiaDisabled: true }
+);

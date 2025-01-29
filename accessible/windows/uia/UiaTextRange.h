@@ -24,7 +24,7 @@ class TextLeafPoint;
  */
 class UiaTextRange : public ITextRangeProvider {
  public:
-  explicit UiaTextRange(TextLeafRange& aRange);
+  explicit UiaTextRange(const TextLeafRange& aRange);
   virtual ~UiaTextRange() = default;
 
   // IUnknown
