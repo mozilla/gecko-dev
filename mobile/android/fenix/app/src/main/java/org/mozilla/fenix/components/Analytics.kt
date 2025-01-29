@@ -124,7 +124,6 @@ class Analytics(
             ),
             enabled = true,
             nonFatalCrashIntent = pendingIntent,
-            notificationsDelegate = context.components.notificationsDelegate,
             useLegacyReporting = !context.settings().crashReportAlwaysSend &&
                 !context.settings().useNewCrashReporterDialog,
             runtimeTagProviders = listOf(ReleaseRuntimeTagProvider()),

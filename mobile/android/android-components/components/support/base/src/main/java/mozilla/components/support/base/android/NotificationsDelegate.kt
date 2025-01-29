@@ -12,6 +12,7 @@ import android.os.RemoteException
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
@@ -32,11 +33,14 @@ class NotificationsDelegate(
     var isRequestingPermission: Boolean = false
         private set
 
-    private var permissionRequestsCount: Int = 0
+    @VisibleForTesting
+    internal var permissionRequestsCount: Int = 0
 
     private var onPermissionGranted: OnPermissionGranted = { }
     private var onPermissionRejected: OnPermissionRejected = { }
-    private val notificationPermissionHandler: MutableMap<AppCompatActivity, ActivityResultLauncher<String>> =
+
+    @VisibleForTesting
+    internal val notificationPermissionHandler: MutableMap<AppCompatActivity, ActivityResultLauncher<String>> =
         mutableMapOf()
 
     /**
@@ -68,7 +72,8 @@ class NotificationsDelegate(
     /**
      * Checks if the post permission notification was previously granted.
      */
-    private fun hasPostNotificationsPermission(): Boolean {
+    @VisibleForTesting
+    internal fun hasPostNotificationsPermission(): Boolean {
         return try {
             notificationManagerCompat.areNotificationsEnabled()
         } catch (e: RemoteException) {
@@ -95,13 +100,12 @@ class NotificationsDelegate(
         onPermissionGranted: OnPermissionGranted = { },
         onPermissionRejected: OnPermissionRejected = { },
         showPermissionRationale: Boolean = false,
-        isCrashReportNotification: Boolean = false,
     ) {
         if (hasPostNotificationsPermission()) {
             notificationManagerCompat.notify(notificationTag, notificationId, notification)
             onPermissionGranted.invoke()
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isCrashReportNotification) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 requestNotificationPermission(
                     onPermissionGranted = {
                         notificationManagerCompat.notify(

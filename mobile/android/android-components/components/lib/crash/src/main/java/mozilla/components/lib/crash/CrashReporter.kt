@@ -33,7 +33,6 @@ import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.CrashTelemetryService
 import mozilla.components.lib.crash.service.SendCrashReportService
 import mozilla.components.lib.crash.service.SendCrashTelemetryService
-import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -105,7 +104,6 @@ class CrashReporter internal constructor(
     private val nonFatalCrashIntent: PendingIntent? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private val maxBreadCrumbs: Int = 30,
-    private val notificationsDelegate: NotificationsDelegate,
     private val runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
     databaseProvider: () -> CrashDatabase,
     private val useLegacyReporting: Boolean = true,
@@ -121,7 +119,6 @@ class CrashReporter internal constructor(
         nonFatalCrashIntent: PendingIntent? = null,
         scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
         maxBreadCrumbs: Int = 30,
-        notificationsDelegate: NotificationsDelegate,
         runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
         useLegacyReporting: Boolean = true,
     ) : this(
@@ -133,7 +130,6 @@ class CrashReporter internal constructor(
         nonFatalCrashIntent = nonFatalCrashIntent,
         scope = scope,
         maxBreadCrumbs = maxBreadCrumbs,
-        notificationsDelegate = notificationsDelegate,
         runtimeTagProviders = runtimeTagProviders,
         databaseProvider = { CrashDatabase.get(context) },
         useLegacyReporting = useLegacyReporting,
@@ -373,7 +369,7 @@ class CrashReporter internal constructor(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun showNotification(context: Context, crash: Crash) {
-        val notification = CrashNotification(context, crash, promptConfiguration, notificationsDelegate)
+        val notification = CrashNotification(context, crash, promptConfiguration)
         notification.show()
     }
 

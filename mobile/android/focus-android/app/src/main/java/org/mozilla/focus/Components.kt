@@ -101,9 +101,7 @@ class Components(
     private val notificationManagerCompat = NotificationManagerCompat.from(context)
 
     val notificationsDelegate: NotificationsDelegate by lazy {
-        NotificationsDelegate(
-            notificationManagerCompat,
-        )
+        NotificationsDelegate(notificationManagerCompat)
     }
 
     val appStartReasonProvider by lazy { AppStartReasonProvider() }
@@ -215,7 +213,7 @@ class Components(
 
     val customTabsUseCases: CustomTabsUseCases by lazy { CustomTabsUseCases(store, sessionUseCases.loadUrl) }
 
-    val crashReporter: CrashReporter by lazy { createCrashReporter(context, notificationsDelegate) }
+    val crashReporter: CrashReporter by lazy { createCrashReporter(context) }
 
     val metrics: GleanMetricsService by lazy { GleanMetricsService(context) }
 
@@ -244,7 +242,7 @@ class Components(
     }
 }
 
-private fun createCrashReporter(context: Context, notificationsDelegate: NotificationsDelegate): CrashReporter {
+private fun createCrashReporter(context: Context): CrashReporter {
     val services = mutableListOf<CrashReporterService>()
 
     if (BuildConfig.SENTRY_TOKEN.isNotEmpty()) {
@@ -300,7 +298,6 @@ private fun createCrashReporter(context: Context, notificationsDelegate: Notific
         shouldPrompt = CrashReporter.Prompt.ALWAYS,
         enabled = true,
         nonFatalCrashIntent = pendingIntent,
-        notificationsDelegate = notificationsDelegate,
     )
 }
 

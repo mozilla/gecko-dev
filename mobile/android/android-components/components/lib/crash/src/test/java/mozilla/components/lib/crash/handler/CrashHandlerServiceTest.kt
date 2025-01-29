@@ -47,7 +47,6 @@ class CrashHandlerServiceTest {
                 services = listOf(mock()),
                 nonFatalCrashIntent = mock(),
                 scope = scope,
-                notificationsDelegate = mock(),
             ),
         ).install(testContext)
 

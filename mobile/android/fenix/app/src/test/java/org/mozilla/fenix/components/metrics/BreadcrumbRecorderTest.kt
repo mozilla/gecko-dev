@@ -57,7 +57,6 @@ class BreadcrumbRecorderTest {
                 context = mockk(),
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
-                notificationsDelegate = mockk(),
             ),
         )
 

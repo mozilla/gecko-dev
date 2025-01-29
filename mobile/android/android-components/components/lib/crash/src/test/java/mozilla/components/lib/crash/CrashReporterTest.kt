@@ -77,7 +77,6 @@ class CrashReporterTest {
         CrashReporter(
             context = testContext,
             services = listOf(mock()),
-            notificationsDelegate = mock(),
         ).install(testContext)
 
         val newHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -91,7 +90,6 @@ class CrashReporterTest {
         CrashReporter(
             context = testContext,
             services = emptyList(),
-            notificationsDelegate = mock(),
         ).install(testContext)
     }
 
@@ -107,7 +105,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
                 scope = scope,
-                notificationsDelegate = mock(),
                 useLegacyReporting = false,
             ).install(testContext),
         )
@@ -133,7 +130,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
                 scope = scope,
-                notificationsDelegate = mock(),
                 useLegacyReporting = false,
             ).install(testContext),
         )
@@ -158,7 +154,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -184,7 +179,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -210,7 +204,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -236,7 +229,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -262,7 +254,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -297,7 +288,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -332,7 +322,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -357,7 +346,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -380,7 +368,6 @@ class CrashReporterTest {
                 context = testContext,
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -403,7 +390,6 @@ class CrashReporterTest {
                 context = testContext,
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -425,7 +411,6 @@ class CrashReporterTest {
                 context = testContext,
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -446,7 +431,6 @@ class CrashReporterTest {
             CrashReporter(
                 context = testContext,
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
-                notificationsDelegate = mock(),
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
             exceptionThrown = true
@@ -463,7 +447,6 @@ class CrashReporterTest {
             CrashReporter(
                 context = testContext,
                 services = listOf(mock()),
-                notificationsDelegate = mock(),
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
             exceptionThrown = true
@@ -474,7 +457,6 @@ class CrashReporterTest {
             CrashReporter(
                 context = testContext,
                 telemetryServices = listOf(mock()),
-                notificationsDelegate = mock(),
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
             exceptionThrown = true
@@ -489,7 +471,6 @@ class CrashReporterTest {
                 context = testContext,
                 services = listOf(mock()),
                 shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -506,7 +487,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.ALWAYS,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -533,7 +513,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -567,7 +546,6 @@ class CrashReporterTest {
                 context = testContext,
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -603,7 +581,6 @@ class CrashReporterTest {
                 context = testContext,
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -655,7 +632,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -712,7 +688,6 @@ class CrashReporterTest {
                 services = listOf(service),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -755,7 +730,6 @@ class CrashReporterTest {
                 context = testContext,
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -781,7 +755,6 @@ class CrashReporterTest {
         val reporter = CrashReporter(
             context = testContext,
             services = listOf(mock()),
-            notificationsDelegate = mock(),
         )
 
         expectException<IllegalStateException> {
@@ -805,7 +778,6 @@ class CrashReporterTest {
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(mock()),
             nonFatalCrashIntent = pendingIntent,
-            notificationsDelegate = mock(),
         ).install(testContext)
 
         val nativeCrash = Crash.NativeCodeCrash(
@@ -844,7 +816,6 @@ class CrashReporterTest {
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(mock()),
             nonFatalCrashIntent = pendingIntent,
-            notificationsDelegate = mock(),
         ).install(testContext)
 
         val nativeCrash = Crash.NativeCodeCrash(
@@ -872,7 +843,6 @@ class CrashReporterTest {
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(mock()),
             nonFatalCrashIntent = pendingIntent,
-            notificationsDelegate = mock(),
         ).install(context)
 
         val nativeCrash = Crash.NativeCodeCrash(
@@ -901,7 +871,6 @@ class CrashReporterTest {
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 nonFatalCrashIntent = mock(),
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -932,7 +901,6 @@ class CrashReporterTest {
                 telemetryServices = listOf(telemetryService),
                 shouldPrompt = CrashReporter.Prompt.NEVER,
                 scope = scope,
-                notificationsDelegate = mock(),
             ).install(testContext),
         )
 
@@ -970,7 +938,6 @@ class CrashReporterTest {
             services = listOf(mock()),
             maxBreadCrumbs = 5,
             scope = scope,
-            notificationsDelegate = mock(),
         )
 
         repeat(10) {
@@ -984,7 +951,6 @@ class CrashReporterTest {
             services = listOf(mock()),
             maxBreadCrumbs = 5,
             scope = scope,
-            notificationsDelegate = mock(),
         )
         repeat(15) {
             crashReporter.recordCrashBreadcrumb(Breadcrumb(testMessage, testData, testCategory, testLevel, testType))
@@ -1006,7 +972,6 @@ class CrashReporterTest {
             services = listOf(mock()),
             maxBreadCrumbs = maxNum,
             scope = scope,
-            notificationsDelegate = mock(),
         )
 
         repeat(maxNum) {
@@ -1059,7 +1024,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { database },
         )
 
@@ -1078,7 +1042,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { database },
         )
 
@@ -1097,7 +1060,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { database },
         )
 
@@ -1129,7 +1091,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { db },
         )
 
@@ -1179,7 +1140,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { db },
         )
 
@@ -1227,7 +1187,6 @@ class CrashReporterTest {
         val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
-            notificationsDelegate = mock(),
             databaseProvider = { db },
         )
 
@@ -1266,7 +1225,6 @@ class CrashReporterTest {
             services = listOf(mock()),
             maxBreadCrumbs = 5,
             scope = scope,
-            notificationsDelegate = mock(),
         )
 
         repeat(maxNum) {
