@@ -73,8 +73,6 @@ usage-reporting:
     - loines@mozilla.com
   metadata:
     include_info_sections: false
-    ping_schedule:
-      - baseline
   reasons:
     dirty_startup: |
       Defined to avoid error logging.

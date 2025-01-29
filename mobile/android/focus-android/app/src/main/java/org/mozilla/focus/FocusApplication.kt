@@ -36,6 +36,7 @@ import org.mozilla.focus.navigation.StoreLink
 import org.mozilla.focus.nimbus.FocusNimbus
 import org.mozilla.focus.session.VisibilityLifeCycleCallback
 import org.mozilla.focus.telemetry.FactsProcessor
+import org.mozilla.focus.telemetry.GleanMetricsService
 import org.mozilla.focus.telemetry.ProfilerMarkerFactProcessor
 import org.mozilla.focus.utils.AppConstants
 import kotlin.coroutines.CoroutineContext
@@ -123,6 +124,10 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
     protected open fun initializeTelemetry() {
         components.metrics.initialize(this)
         FactsProcessor.initialize()
+        val isTelemetryEnabled = GleanMetricsService.isTelemetryEnabled(this)
+        if (isTelemetryEnabled) { // behind the main switch for now - this will go behind a separate switch
+            components.usageReportingMetricsService.start()
+        }
     }
 
     /**
