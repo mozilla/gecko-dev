@@ -443,11 +443,6 @@ class Accessible {
   virtual nsAtom* TagName() const = 0;
 
   /**
-   * Return input `type` attribute
-   */
-  virtual already_AddRefed<nsAtom> InputType() const = 0;
-
-  /**
    * Return a landmark role if applied.
    */
   nsStaticAtom* LandmarkRole() const;

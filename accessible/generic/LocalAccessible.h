@@ -733,8 +733,6 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   virtual nsAtom* TagName() const override;
 
-  virtual already_AddRefed<nsAtom> InputType() const override;
-
   virtual already_AddRefed<nsAtom> DisplayStyle() const override;
 
   virtual float Opacity() const override;
