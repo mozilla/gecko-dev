@@ -70,10 +70,15 @@ std::unique_ptr<webrtc::VideoEncoder> WebrtcVideoEncoderFactory::Create(
   }
   auto type = webrtc::PayloadStringToCodecType(aFormat.name);
   switch (type) {
-    // Bug 1932065 - Add simulcast support for AV1
-    // e.g.: case webrtc::VideoCodecType::kVideoCodecAV1:
-    // XXX We might be able to use the simulcast proxy for more codecs, but
-    // that requires testing.
+    case webrtc::VideoCodecType::kVideoCodecGeneric:
+    case webrtc::VideoCodecType::kVideoCodecH265:
+      MOZ_CRASH("Unimplemented codec");
+    case webrtc::VideoCodecType::kVideoCodecAV1:
+      if (StaticPrefs::media_webrtc_simulcast_av1_enabled()) {
+        return std::make_unique<webrtc::SimulcastEncoderAdapter>(
+            aEnv, mInternalFactory.get(), nullptr, aFormat);
+      }
+      break;
     case webrtc::VideoCodecType::kVideoCodecH264:
       if (StaticPrefs::media_webrtc_simulcast_h264_enabled()) {
         return std::make_unique<webrtc::SimulcastEncoderAdapter>(
@@ -88,8 +93,6 @@ std::unique_ptr<webrtc::VideoEncoder> WebrtcVideoEncoderFactory::Create(
         return std::make_unique<webrtc::SimulcastEncoderAdapter>(
             aEnv, mInternalFactory.get(), nullptr, aFormat);
       }
-      break;
-    default:
       break;
   }
   return mInternalFactory->Create(aEnv, aFormat);

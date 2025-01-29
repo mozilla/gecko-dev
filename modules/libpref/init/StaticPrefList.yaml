@@ -12249,6 +12249,11 @@
   value: false
   mirror: always
 
+- name: media.webrtc.simulcast.av1.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 - name: media.webrtc.simulcast.h264.enabled
   type: RelaxedAtomicBool
   value: true
