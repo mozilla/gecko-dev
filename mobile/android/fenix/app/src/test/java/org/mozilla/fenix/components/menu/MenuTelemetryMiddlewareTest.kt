@@ -468,7 +468,7 @@ class MenuTelemetryMiddlewareTest {
         val store = createStore()
         assertNull(Menu.showCfr.testGetValue())
 
-        store.dispatch(MenuAction.ShowCFR).joinBlocking()
+        store.dispatch(MenuAction.OnCFRShown).joinBlocking()
 
         assertTelemetryRecorded(Menu.showCfr)
     }
@@ -478,7 +478,7 @@ class MenuTelemetryMiddlewareTest {
         val store = createStore()
         assertNull(Menu.dismissCfr.testGetValue())
 
-        store.dispatch(MenuAction.DismissCFR).joinBlocking()
+        store.dispatch(MenuAction.OnCFRDismiss).joinBlocking()
 
         assertTelemetryRecorded(Menu.dismissCfr)
     }

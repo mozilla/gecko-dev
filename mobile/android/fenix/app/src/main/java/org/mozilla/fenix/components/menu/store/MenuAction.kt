@@ -213,12 +213,12 @@ sealed class MenuAction : Action {
     /**
      * [MenuAction] dispatched to show the menu CFR.
      */
-    data object ShowCFR : MenuAction()
+    data object OnCFRShown : MenuAction()
 
     /**
      * [MenuAction] dispatched when the menu CFR is dismissed.
      */
-    data object DismissCFR : MenuAction()
+    data object OnCFRDismiss : MenuAction()
 
     /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.

@@ -1095,8 +1095,8 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
-    fun `WHEN CFR is dismissed THEN dismiss CFR action is dispatched`() = runTestOnMain {
-        var dismissWasCalled = false
+    fun `WHEN CFR is shown THEN on CFR shown action is dispatched`() = runTestOnMain {
+        var shownWasCalled = false
 
         val appStore = spy(AppStore())
         val store = createStore(
@@ -1104,14 +1104,14 @@ class MenuDialogMiddlewareTest {
             menuState = MenuState(
                 browserMenuState = null,
             ),
-            onDismiss = { dismissWasCalled = true },
+            onDismiss = { shownWasCalled = true },
         )
 
-        store.dispatch(MenuAction.DismissCFR)
+        store.dispatch(MenuAction.OnCFRShown)
         store.waitUntilIdle()
 
         assertFalse(settings.shouldShowMenuCFR)
-        assertFalse(dismissWasCalled)
+        assertFalse(shownWasCalled)
     }
 
     @Test

@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.ext.getUrl
-import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
@@ -115,7 +114,7 @@ class MenuDialogMiddleware(
             is MenuAction.CustomMenuItemAction -> customMenuItemAction(action.intent, action.url)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
-            is MenuAction.DismissCFR -> dismissMenuCFR()
+            is MenuAction.OnCFRShown -> onCFRShown()
             is MenuAction.OpenInRegularTab -> openInRegularTab(state = currentState)
             is MenuAction.RequestDesktopSite,
             is MenuAction.RequestMobileSite,
@@ -419,7 +418,7 @@ class MenuDialogMiddleware(
         onDismiss()
     }
 
-    private fun dismissMenuCFR() = scope.launch {
+    private fun onCFRShown() = scope.launch {
         settings.shouldShowMenuCFR = false
         settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
     }

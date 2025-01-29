@@ -270,9 +270,9 @@ class MenuTelemetryMiddleware(
                 )
             }
 
-            MenuAction.ShowCFR -> Menu.showCfr.record(NoExtras())
+            MenuAction.OnCFRShown -> Menu.showCfr.record(NoExtras())
 
-            MenuAction.DismissCFR -> Menu.dismissCfr.record(NoExtras())
+            MenuAction.OnCFRDismiss -> Menu.dismissCfr.record(NoExtras())
 
             MenuAction.InitAction,
             is MenuAction.CustomMenuItemAction,

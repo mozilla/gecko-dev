@@ -280,10 +280,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             messageRes = R.string.menu_cfr_body,
                             orientation = appStore.state.orientation,
                             onShown = {
-                                store.dispatch(MenuAction.ShowCFR)
+                                store.dispatch(MenuAction.OnCFRShown)
                             },
                             onDismiss = {
-                                store.dispatch(MenuAction.DismissCFR)
+                                store.dispatch(MenuAction.OnCFRDismiss)
                             },
                         )
                     } else {
