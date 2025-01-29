@@ -1651,6 +1651,18 @@ async function waitForSyncedRtcp(pc) {
   );
 }
 
+function checkSendCodecsMimeType(senderStats, mimeType, sdpFmtpLine = null) {
+  const codecReports = senderStats.values().filter(s => s.type == "codec");
+  isnot(codecReports.length, 0, "Should have send codecs");
+  for (const c of codecReports) {
+    is(c.codecType, "encode", "Send codec is always encode");
+    is(c.mimeType, mimeType, "Mime type as expected");
+    if (sdpFmtpLine) {
+      is(c.sdpFmtpLine, sdpFmtpLine, "Sdp fmtp line as expected");
+    }
+  }
+}
+
 function checkSenderStats(senderStats, streamCount) {
   const outboundRtpReports = [];
   const remoteInboundRtpReports = [];

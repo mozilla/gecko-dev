@@ -17,15 +17,47 @@
     visible: true
   });
 
-  runNetworkTest(async () => {
-    await pushPrefs(
-        // 400Kbps was determined empirically, set well-higher than
-        // the 140Kbps+overhead needed for the two restricted simulcast streams.
-        ['media.peerconnection.video.min_bitrate_estimate', 400*1000],
-        ["media.navigator.permission.disabled", true],
-        ["media.peerconnection.video.lock_scaling", true],
-      );
+  async function hasH264() {
+    const pc = new RTCPeerConnection();
+    const offer = await pc.createOffer({offerToReceiveVideo: true});
+    return offer.sdp.match(/a=rtpmap:[1-9][0-9]* H264/);
+  }
 
+  async function doTest(codec) {
+    const recvCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
+    isnot(recvCodecs, null, "Expected recv capabilities");
+    isnot(recvCodecs.length, 0, "Expected some recv codecs");
+    if (!recvCodecs || !recvCodecs.length) {
+      return;
+    }
+
+    const filteredRecvCodecs = recvCodecs.filter(recvCodec => {
+      if (recvCodec.mimeType != codec.mimeType) {
+        return false;
+      }
+      if (codec.sdpFmtpLineRegex && !recvCodec.sdpFmtpLine.match(codec.sdpFmtpLineRegex)) {
+        return false;
+      }
+      return true;
+    });
+    is(
+      filteredRecvCodecs.length,
+      1,
+      `Should match a single recv codec\nOriginal recv codecs:\n${JSON.stringify(
+        recvCodecs,
+        null,
+        2
+      )}\nFiltered recv codecs:\n${JSON.stringify(
+        filteredRecvCodecs,
+        null,
+        2
+      )}\nRequired codec: ${JSON.stringify(codec)}`
+    );
+    if (!filteredRecvCodecs.length) {
+      return;
+
+    }
+    const [recvCodec] = filteredRecvCodecs;
 
     const offerer = new RTCPeerConnection();
     const answerer = new RTCPeerConnection();
@@ -59,11 +91,16 @@
     await answerer.setRemoteDescription({type: 'offer', sdp: mungedOffer});
     await offerer.setLocalDescription(offer);
 
-    const rids = answerer.getTransceivers().map(({mid}) => mid);
+    const recvTransceivers = answerer.getTransceivers();
+    const rids = recvTransceivers.map(({mid}) => mid);
     is(rids.length, 3, 'Should have 3 mids in offer');
     isnot(rids[0], '', 'First mid should be non-empty');
     isnot(rids[1], '', 'Second mid should be non-empty');
     isnot(rids[2], '', 'Third mid should be non-empty');
+
+    for (const transceiver of recvTransceivers) {
+      transceiver.setCodecPreferences([recvCodec]);
+    }
 
     const answer = await answerer.createAnswer();
 
@@ -96,6 +133,7 @@
 
     await statsReady;
     const senderStats = await sender.getStats();
+    checkSendCodecsMimeType(senderStats, codec.mimeType, recvCodec.sdpFmtpLine);
     checkSenderStats(senderStats, 3);
     checkExpectedFields(senderStats);
     pedanticChecks(senderStats);
@@ -103,6 +141,42 @@
     videoStream.getVideoTracks()[0].stop();
     offerer.close();
     answerer.close();
+    for (const elem of videoElems) {
+      elem.remove();
+    }
+  }
+
+  runNetworkTest(async () => {
+    await pushPrefs(
+        // 400Kbps was determined empirically, set well-higher than
+        // the 140Kbps+overhead needed for the two restricted simulcast streams.
+        ['media.peerconnection.video.min_bitrate_estimate', 400*1000],
+        ["media.navigator.permission.disabled", true],
+        ["media.peerconnection.video.lock_scaling", true],
+      );
+
+    const isAndroid = navigator.userAgent.includes("Android");
+    const codecs = [
+      {mimeType: "video/VP8"},
+      /* VP9 simulcast not fully implemented
+      {mimeType: "video/VP9"},
+      */
+    ];
+    if (!isAndroid || await hasH264()) {
+      // Can't check for emulator explicitly, but that's where we expect no
+      // h264 support currently.
+      codecs.push(
+        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*packetization-mode=1/},
+        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*asymmetry-allowed=1$/},
+        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*packetization-mode=1/},
+        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*asymmetry-allowed=1$/},
+      );
+    }
+
+    for (const codec of codecs) {
+      info(`Testing codec ${codec.mimeType}`)
+      await doTest(codec);
+    }
   });
 </script>
 </pre>
