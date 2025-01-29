@@ -813,4 +813,9 @@ interface nsIAccessibleRole : nsISupports
    * elements in an HTML table element.
    */
   const unsigned long ROLE_ROWGROUP = 139;
+
+  /**
+   * A type of textbox intended for specifying search criteria.
+   */
+  const unsigned long ROLE_SEARCHBOX = 140;
 };
