@@ -163,7 +163,7 @@ CO01:
         # devtools/shared/locales/en-US/webconsole-commands.ftl
         - webconsole-commands-usage-block
         # toolkit/locales/en-US/toolkit/about/aboutAddons.ftl
-        - addon-badge-line3
+        - addon-badge-line4
         - recommended-theme-1
         - plugins-openh264-description
         - details-notification-hard-blocked-extension
