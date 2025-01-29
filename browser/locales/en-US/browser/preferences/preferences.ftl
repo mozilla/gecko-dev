@@ -251,6 +251,21 @@ settings-tabs-show-image-in-preview =
     .label = Show an image preview when you hover on a tab
     .accessKey = h
 
+
+browser-layout-header = Browser Layout
+
+browser-layout-horizontal-tabs =
+    .label = Horizontal tabs
+browser-layout-horizontal-tabs-desc = Display at top of browser
+
+browser-layout-vertical-tabs =
+    .label = Vertical tabs
+browser-layout-vertical-tabs-desc = Display on the side, in the sidebar
+
+browser-layout-show-sidebar =
+    .label = Show sidebar
+browser-layout-show-sidebar-desc = Quickly access bookmarks, tabs from your phone, AI chatbots, and more without leaving your main view.
+
 ## General Section - Language & Appearance
 
 language-and-appearance-header = Language and Appearance

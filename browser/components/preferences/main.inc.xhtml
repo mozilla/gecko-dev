@@ -161,6 +161,23 @@
     </vbox>
 </groupbox>
 
+<!-- Browser layout -->
+<groupbox data-category="paneGeneral"
+          hidden="true">
+  <label><html:h2 data-l10n-id="browser-layout-header"/></label>
+
+  <radiogroup id="browserLayoutRadioGroup" preference="sidebar.verticalTabs">
+    <radio id="browserLayoutHorizontalTabs" data-l10n-id="browser-layout-horizontal-tabs" value="false"/>
+    <description  class="indent" data-l10n-id="browser-layout-horizontal-tabs-desc"></description>
+
+    <radio id="browserLayoutVerticalTabs" data-l10n-id="browser-layout-vertical-tabs" value="true" />
+    <description class="indent" data-l10n-id="browser-layout-vertical-tabs-desc"></description>
+  </radiogroup>
+  <checkbox id="browserLayoutShowSidebar" data-l10n-id="browser-layout-show-sidebar"
+            preference="sidebar.revamp"/>
+  <description class="indent" data-l10n-id="browser-layout-show-sidebar-desc"></description>
+</groupbox>
+
 <hbox id="languageAndAppearanceCategory"
       class="subcategory"
       hidden="true"

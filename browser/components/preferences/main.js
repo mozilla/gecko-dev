@@ -90,6 +90,9 @@ Preferences.addAll([
   { id: "browser.tabs.hoverPreview.enabled", type: "bool" },
   { id: "browser.tabs.hoverPreview.showThumbnails", type: "bool" },
 
+  { id: "sidebar.verticalTabs", type: "bool" },
+  { id: "sidebar.revamp", type: "bool" },
+
   // CFR
   {
     id: "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons",
