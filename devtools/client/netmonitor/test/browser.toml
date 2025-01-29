@@ -563,6 +563,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_waterfall-click.js"]
 
+["browser_net_waterfall-resize.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+
 ["browser_net_websocket_stacks.js"]
 
 ["browser_net_worker_stacks.js"]
