@@ -12,6 +12,7 @@
 #include "mozilla/IntegerPrintfMacros.h"
 
 #include <gemmology_fwd.h>
+#include <MicroGeckoProfiler.h>
 
 #include "js/ErrorReport.h"
 #include "js/HeapAPI.h"
@@ -65,9 +66,13 @@
 // architectures.
 //
 // FIXME: Ideally we would not run the dispatch code at each function call.
-#define GEMMOLOGY_DISPATCH(FUNC)                                 \
-  xsimd::dispatch<SUPPORTED_ARCHS>([](auto arch, auto... args) { \
-    return gemmology::Engine<decltype(arch)>::FUNC(args...);     \
+#define GEMMOLOGY_DISPATCH(FUNC)                                            \
+  xsimd::dispatch<SUPPORTED_ARCHS>([](auto arch, auto... args) {            \
+    uprofiler_simple_event_marker("Gemmology " #FUNC, 'C', 'B', 0, nullptr, \
+                                  nullptr, nullptr);                        \
+    gemmology::Engine<decltype(arch)>::FUNC(args...);                       \
+    uprofiler_simple_event_marker("Gemmology " #FUNC, 'C', 'E', 0, nullptr, \
+                                  nullptr, nullptr);                        \
   })
 
 struct JSContext;
