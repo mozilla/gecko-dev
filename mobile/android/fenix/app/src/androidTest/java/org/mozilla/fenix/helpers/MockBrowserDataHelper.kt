@@ -21,7 +21,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.TestHelper.appContext
-import org.mozilla.fenix.search.SearchEngineSource.None.searchEngine
+import org.mozilla.fenix.helpers.TestHelper.restartApp
 
 object MockBrowserDataHelper {
     val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -144,7 +144,7 @@ object MockBrowserDataHelper {
     /**
      * Adds a new custom search engine to the apps Search Engines list.
      *
-     * @param searchEngine Use createCustomSearchEngine method to create one.
+     * @param searchEngineName Use createCustomSearchEngine method to create one.
      */
     fun addCustomSearchEngine(mockWebServer: MockWebServer, searchEngineName: String) {
         val searchEngine = createCustomSearchEngine(mockWebServer, searchEngineName)
@@ -156,7 +156,7 @@ object MockBrowserDataHelper {
     /**
      * Adds and selects as default a new custom search engine to the apps Search Engines list.
      *
-     * @param searchEngine Use createCustomSearchEngine method to create one.
+     * @param searchEngineName Use createCustomSearchEngine method to create one.
      */
     fun setCustomSearchEngine(mockWebServer: MockWebServer, searchEngineName: String) {
         val searchEngine = createCustomSearchEngine(mockWebServer, searchEngineName)
@@ -166,5 +166,20 @@ object MockBrowserDataHelper {
             selectSearchEngine(searchEngine)
         }
         Log.i(TAG, "setCustomSearchEngine: A custom search engine named: $searchEngineName was set")
+    }
+
+    /**
+     * Adds a new pinned site to the app home screen.
+     *
+     * @param websiteTitle The title of the website.
+     * @param websiteURL The URL of the website.
+     */
+    fun addPinnedSite(websiteTitle: String, websiteURL: String, activityTestRule: HomeActivityIntentTestRule) {
+        runBlocking {
+            Log.i(TAG, "addTopSite: Trying to add a pinned site to the home screen.")
+            appContext.components.useCases.topSitesUseCase.addPinnedSites(websiteTitle, websiteURL)
+            restartApp(activityTestRule)
+            Log.i(TAG, "addTopSite: Added a pinned site to the home screen.")
+        }
     }
 }

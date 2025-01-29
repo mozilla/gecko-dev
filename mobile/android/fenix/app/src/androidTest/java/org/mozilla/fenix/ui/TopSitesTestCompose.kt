@@ -11,7 +11,8 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.DataGenerationHelper.generateRandomString
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
-import org.mozilla.fenix.helpers.HomeActivityTestRule
+import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.helpers.MockBrowserDataHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -36,7 +37,7 @@ class TopSitesTestCompose : TestSetup() {
     @get:Rule
     val composeTestRule =
         AndroidComposeTestRule(
-            HomeActivityTestRule.withDefaultSettingsOverrides(
+            HomeActivityIntentTestRule.withDefaultSettingsOverrides(
                 composeTopSitesEnabled = true,
             ),
         ) { it.activity }
@@ -69,18 +70,13 @@ class TopSitesTestCompose : TestSetup() {
     fun openTopSiteInANewTabTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            verifyPageContent(defaultWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openTopSiteTabWithTitle(title = defaultWebPage.title) {
@@ -101,23 +97,18 @@ class TopSitesTestCompose : TestSetup() {
     fun openTopSiteInANewPrivateTabTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            verifyPageContent(defaultWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()
-        }.openTopSiteInPrivate() {
+        }.openTopSiteInPrivate {
             verifyCurrentPrivateSession(composeTestRule.activity.applicationContext)
         }
     }
@@ -129,18 +120,13 @@ class TopSitesTestCompose : TestSetup() {
         val genericWebPage = getGenericAsset(mockWebServer, 2)
         val newPageTitle = generateRandomString(5)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            waitForPageToLoad()
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
@@ -158,18 +144,13 @@ class TopSitesTestCompose : TestSetup() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
         val newPageTitle = generateRandomString(5)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            waitForPageToLoad()
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
@@ -184,18 +165,13 @@ class TopSitesTestCompose : TestSetup() {
     fun removeTopSiteUsingMenuButtonTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            verifyPageContent(defaultWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
@@ -215,18 +191,13 @@ class TopSitesTestCompose : TestSetup() {
     fun removeTopSiteFromMainMenuTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
+        MockBrowserDataHelper.addPinnedSite(
+            defaultWebPage.title,
+            defaultWebPage.url.toString(),
+            activityTestRule = composeTestRule.activityRule,
+        )
+
         homeScreenWithComposeTopSites(composeTestRule) {
-            verifyExistingTopSitesList()
-        }
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            verifyPageContent(defaultWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-            verifyAddToShortcutsButton(true)
-        }.addToFirefoxHome {
-            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreenWithComposeTopSites(composeTestRule) {
             verifyExistingTopSitesList()
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openTopSiteTabWithTitle(defaultWebPage.title) {
