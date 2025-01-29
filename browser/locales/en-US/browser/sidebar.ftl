@@ -48,24 +48,16 @@ sidebar-customize-extensions-header = Sidebar extensions
 sidebar-customize-firefox-tools-header =
   .label = { -brand-product-name } tools
 sidebar-customize-firefox-settings = Manage { -brand-short-name } settings
-sidebar-position-left =
-  .label = Show on the left
-sidebar-position-right =
-  .label = Show on the right
 sidebar-vertical-tabs =
   .label = Vertical tabs
-sidebar-horizontal-tabs =
-  .label = Horizontal tabs
-sidebar-customize-tabs-header =
-  .label = Tab settings
-sidebar-customize-button-header =
-  .label = Sidebar button
-sidebar-customize-position-header =
-  .label = Sidebar position
-sidebar-visibility-setting-always-show =
-  .label = Expand and collapse sidebar
-sidebar-visibility-setting-hide-sidebar =
-  .label = Show and hide sidebar
+sidebar-settings =
+    .label = Sidebar settings
+sidebar-hide-tabs-and-sidebar =
+    .label = Hide tabs and sidebar
+sidebar-show-on-the-right =
+    .label = Move sidebar to the right
+sidebar-show-on-the-left =
+    .label = Move sidebar to the left
 
 ## Labels for sidebar context menu items
 
@@ -198,3 +190,8 @@ sidebar-widget-show-sidebar2 =
 sidebar-widget-hide-sidebar2 =
   .tooltiptext = Hide sidebar ({ $shortcut })
   .label = Sidebars
+
+## Sidebar callout for switching to hide sidebar
+
+# Tabs is referring to the sidebar vertical tabstrip
+sidebar-vertical-tabs-callout = To show your tabs, select the sidebar button in the toolbar.
