@@ -38,8 +38,8 @@ class ChromiumCDMCompat final : public cdm::ContentDecryptionModule_11 {
                                        cdm::InitDataType aInitDataType,
                                        const uint8_t* aInitData,
                                        uint32_t aInitDataSize) override {
-    mCDM->CreateSessionAndGenerateRequest(aPromiseId, aSessionType,
-                                          aInitDataType, aInitData, aInitDataSize);
+    mCDM->CreateSessionAndGenerateRequest(
+        aPromiseId, aSessionType, aInitDataType, aInitData, aInitDataSize);
   };
 
   void LoadSession(uint32_t aPromiseId, cdm::SessionType aSessionType,
