@@ -84,16 +84,14 @@ class LogModule {
   mutable mozilla::AtomicLogLevel* levelPtr{};
 };
 
-
 #define FOR_EACH_JS_LOG_MODULE(_)                                             \
   _(debug)                 /* A predefined log module for casual debugging */ \
   _(wasmPerf)              /* Wasm performance statistics */                  \
   _(fuseInvalidation)      /* Invalidation triggered by a fuse  */            \
   _(thenable)              /* Thenable on standard proto*/                    \
   _(compilationDependency) /* compilation dependency */                       \
-  _(startup)              /* engine startup logging */                        \
+  _(startup)               /* engine startup logging */                       \
   JITSPEW_CHANNEL_LIST(_)  /* A module for each JitSpew channel. */
-
 
 // Declare Log modules
 #define DECLARE_MODULE(X) inline constexpr LogModule X##Module(#X);
