@@ -435,6 +435,10 @@ const JSFunctionSpec MapObject::methods[] = {
     JS_FN("values", values, 0, 0),
     JS_FN("clear", clear, 0, 0),
     JS_SELF_HOSTED_FN("forEach", "MapForEach", 2, 0),
+#ifdef NIGHTLY_BUILD
+    JS_SELF_HOSTED_FN("getOrInsert", "MapGetOrInsert", 2, 0),
+    JS_SELF_HOSTED_FN("getOrInsertComputed", "MapGetOrInsertComputed", 2, 0),
+#endif
     JS_FN("entries", entries, 0, 0),
     // @@iterator is re-defined in finishInit so that it has the
     // same identity as |entries|.

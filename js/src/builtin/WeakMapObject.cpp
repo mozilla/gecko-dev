@@ -358,5 +358,10 @@ const JSFunctionSpec WeakMapObject::methods[] = {
     JS_FN("get", get, 1, 0),
     JS_FN("delete", delete_, 1, 0),
     JS_FN("set", set, 2, 0),
+#ifdef NIGHTLY_BUILD
+    JS_SELF_HOSTED_FN("getOrInsert", "WeakMapGetOrInsert", 2, 0),
+    JS_SELF_HOSTED_FN("getOrInsertComputed", "WeakMapGetOrInsertComputed", 2,
+                      0),
+#endif
     JS_FS_END,
 };

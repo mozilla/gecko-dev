@@ -196,3 +196,90 @@ function MapGroupBy(items, callbackfn) {
   // Step 4.
   return map;
 }
+
+#ifdef NIGHTLY_BUILD
+/**
+ * Upsert proposal
+ * 
+ * Map.prototype.getOrInsert ( key, value )
+ *
+ * https://tc39.es/proposal-upsert/
+ */
+function MapGetOrInsert(key, value) {
+  // Step 1.  Let M be the this value.
+  var M = this;
+
+  // Step 2.  Perform ? RequireInternalSlot(M, [[MapData]]).
+  if (!IsObject(M) || (M = GuardToMapObject(M)) === null) {
+    return callFunction(
+      CallMapMethodIfWrapped,
+      this,
+      key,
+      value,
+      "MapGetOrInsert"
+    );
+  }
+
+  // Step 3.  Set key to CanonicalizeKeyedCollectionKey(key).
+  // Step 4.  For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
+  // Step 4.a.  If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true, return p.[[Value]].
+  if (callFunction(std_Map_has, M, key)) {
+    return callFunction(std_Map_get, M, key);
+  }
+
+  // Step 5.  Let p be the Record { [[Key]]: key, [[Value]]: value }.
+  // Step 6.  Append p to M.[[MapData]].
+  callFunction(std_Map_set, M, key, value);
+
+  // Step 7.  Return value.
+  return value;
+}
+
+/**
+ * Upsert proposal
+ * 
+ * Map.prototype.getOrInsertComputed ( key, callbackfn )
+ *
+ * https://tc39.es/proposal-upsert/
+ */
+function MapGetOrInsertComputed(key, callbackfn) {
+  // Step 1.  Let M be the this value.
+  var M = this;
+
+  // Step 2.  Perform ? RequireInternalSlot(M, [[MapData]]).
+  if (!IsObject(M) || (M = GuardToMapObject(M)) === null) {
+    return callFunction(
+      CallMapMethodIfWrapped,
+      this,
+      key,
+      callbackfn,
+      "MapGetOrInsertComputed"
+    );
+  }
+
+  // Step 3.  If IsCallable(callbackfn) is false, throw a TypeError exception.
+  if (!IsCallable(callbackfn)) {
+    ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
+  }
+
+  // Step 4.  Set key to CanonicalizeKeyedCollectionKey(key).
+  // Step 5.  For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
+  // Step 5.a.  If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true, return p.[[Value]].
+  if (callFunction(std_Map_has, M, key)) {
+    return callFunction(std_Map_get, M, key);
+  }
+
+  // Step 6.  Let value be ? Call(callbackfn, undefined, « key »).
+  var value = callContentFunction(callbackfn, undefined, key);
+
+  // Step 7.  For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
+  // Step 7.a.  If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true, then
+  // Step 7.a.i.  Set p.[[Value]] to value.
+  // Step 8.  Let p be the Record { [[Key]]: key, [[Value]]: value }.
+  // Step 9.  Append p to M.[[MapData]].
+  callFunction(std_Map_set, M, key, value);
+
+  // Step 7.a.ii, 10. Return value.
+  return value;
+}
+#endif  // #ifdef NIGHTLY_BUILD

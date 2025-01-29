@@ -253,6 +253,8 @@
   MACRO_(GetIterator, "GetIterator")                                           \
   MACRO_(GetModuleNamespace, "GetModuleNamespace")                             \
   MACRO_(getOffsetNanosecondsFor, "getOffsetNanosecondsFor")                   \
+  MACRO_(getOrInsert, "getOrInsert")                                           \
+  MACRO_(getOrInsertComputed, "getOrInsertComputed")                           \
   MACRO_(getOwnPropertyDescriptor, "getOwnPropertyDescriptor")                 \
   MACRO_(getOwnPropertyNames, "getOwnPropertyNames")                           \
   MACRO_(getPossibleInstantsFor, "getPossibleInstantsFor")                     \

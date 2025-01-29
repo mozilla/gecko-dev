@@ -182,6 +182,7 @@ class MapObject : public OrderedHashMapObject {
 
   [[nodiscard]] static bool get(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool set(JSContext* cx, unsigned argc, Value* vp);
+  [[nodiscard]] static bool has(JSContext* cx, unsigned argc, Value* vp);
 
   static bool isOriginalSizeGetter(Native native) {
     return native == static_cast<Native>(MapObject::size);
@@ -218,7 +219,6 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] static bool size(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool get_impl(JSContext* cx, const CallArgs& args);
   [[nodiscard]] static bool has_impl(JSContext* cx, const CallArgs& args);
-  [[nodiscard]] static bool has(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool set_impl(JSContext* cx, const CallArgs& args);
   [[nodiscard]] static bool delete_impl(JSContext* cx, const CallArgs& args);
   [[nodiscard]] static bool delete_(JSContext* cx, unsigned argc, Value* vp);

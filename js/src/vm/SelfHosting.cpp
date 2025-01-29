@@ -46,6 +46,7 @@
 #include "builtin/RegExp.h"
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/String.h"
+#include "builtin/WeakMapObject.h"
 #ifdef ENABLE_RECORD_TUPLE
 #  include "builtin/TupleObject.h"
 #endif
@@ -1974,6 +1975,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
           CallNonGenericSelfhostedMethod<Is<StringIteratorObject>>, 2, 0),
     JS_FN("CallTypedArrayMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<TypedArrayObject>>, 2, 0),
+    JS_FN("CallWeakMapMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<WeakMapObject>>, 2, 0),
     JS_FN("CallWrapForValidIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<WrapForValidIteratorObject>>, 2, 0),
     JS_FN("ConstructFunction", intrinsic_ConstructFunction, 2, 0),
@@ -2050,6 +2053,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("GuardToStringIterator",
                     intrinsic_GuardToBuiltin<StringIteratorObject>, 1, 0,
                     IntrinsicGuardToStringIterator),
+    JS_FN("GuardToWeakMapObject", intrinsic_GuardToBuiltin<WeakMapObject>, 1,
+          0),
     JS_INLINABLE_FN("GuardToWrapForValidIterator",
                     intrinsic_GuardToBuiltin<WrapForValidIteratorObject>, 1, 0,
                     IntrinsicGuardToWrapForValidIterator),
@@ -2342,6 +2347,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("std_Function_apply", fun_apply, 2, 0),
     JS_FN("std_Map_entries", MapObject::entries, 0, 0),
     JS_FN("std_Map_get", MapObject::get, 1, 0),
+    JS_FN("std_Map_has", MapObject::has, 1, 0),
     JS_FN("std_Map_set", MapObject::set, 2, 0),
     JS_INLINABLE_FN("std_Math_abs", math_abs, 1, 0, MathAbs),
     JS_INLINABLE_FN("std_Math_floor", math_floor, 1, 0, MathFloor),
@@ -2382,6 +2388,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
 #endif
     JS_TRAMPOLINE_FN("std_TypedArray_sort", TypedArrayObject::sort, 1, 0,
                      TypedArraySort),
+    JS_FN("std_WeakMap_get", WeakMapObject::get, 1, 0),
+    JS_FN("std_WeakMap_has", WeakMapObject::has, 1, 0),
+    JS_FN("std_WeakMap_set", WeakMapObject::set, 2, 0),
 
     JS_FS_END,
 };

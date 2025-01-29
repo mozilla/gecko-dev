@@ -8459,6 +8459,13 @@
     mirror: always
     set_spidermonkey_pref: startup
 
+  # Experimental support for upsert in JavaScript.
+-   name: javascript.options.experimental.upsert
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+
 #endif  // NIGHTLY_BUILD
 
 #ifdef JS_HAS_TEMPORAL_API
