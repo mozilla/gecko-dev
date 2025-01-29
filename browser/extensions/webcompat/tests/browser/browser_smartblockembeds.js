@@ -4,6 +4,8 @@
 "use strict";
 
 const SEC_DELAY_PREF = "security.notification_enable_delay";
+const SMARTBLOCK_EMBEDS_ENABLED_PREF =
+  "extensions.webcompat.smartblockEmbeds.enabled";
 
 async function closeProtectionsPanel(win = window) {
   let protectionsPopup = win.document.getElementById("protections-popup");
@@ -104,6 +106,7 @@ add_setup(async function () {
   // check the toggle is disabled (especially in chaos mode).
   Services.prefs.setIntPref(SEC_DELAY_PREF, 1000);
   Services.prefs.setBoolPref(TRACKING_PREF, true);
+  Services.prefs.setBoolPref(SMARTBLOCK_EMBEDS_ENABLED_PREF, true);
 
   registerCleanupFunction(() => {
     UrlClassifierTestUtils.cleanupTestTrackers();
