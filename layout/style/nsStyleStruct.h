@@ -1016,6 +1016,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleText {
 
   mozilla::StyleHyphenateCharacter mHyphenateCharacter =
       mozilla::StyleHyphenateCharacter::Auto();
+  mozilla::StyleHyphenateLimitChars mHyphenateLimitChars =
+      mozilla::StyleHyphenateLimitChars::Auto();
 
   mozilla::StyleTextSecurity mWebkitTextSecurity =
       mozilla::StyleTextSecurity::None;

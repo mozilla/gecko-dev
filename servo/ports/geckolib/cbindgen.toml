@@ -313,6 +313,8 @@ include = [
   "ScrollbarGutter",
   "ScrollDirection",
   "HyphenateCharacter",
+  "HyphenateLimitChars",
+  "NumberOrAuto",
   "ComputedLinearStop",
   "PiecewiseLinearFunction",
   "BeforeFlag",
@@ -762,6 +764,16 @@ renaming_overrides_prefixing = true
 
 "CustomIdent" = """
   inline nsAtom* AsAtom() const;
+"""
+
+"GenericHyphenateLimitChars" = """
+  static StyleGenericHyphenateLimitChars Auto() {
+    return StyleGenericHyphenateLimitChars{
+      StyleNumberOrAuto<Integer>::Auto(),
+      StyleNumberOrAuto<Integer>::Auto(),
+      StyleNumberOrAuto<Integer>::Auto(),
+    };
+  };
 """
 
 "Atom" = """

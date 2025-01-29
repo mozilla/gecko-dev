@@ -7,8 +7,9 @@
 #[cfg(feature = "servo")]
 use crate::properties::StyleBuilder;
 use crate::values::computed::length::LengthPercentage;
+use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
-    GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent,
+    GenericHyphenateLimitChars, GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent,
 };
 use crate::values::specified::text as specified;
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
@@ -34,6 +35,21 @@ pub type TextAlign = specified::TextAlignKeyword;
 
 /// The computed value of `text-indent`.
 pub type TextIndent = GenericTextIndent<LengthPercentage>;
+
+/// A computed value for the `hyphenate-character` property.
+pub type HyphenateLimitChars = GenericHyphenateLimitChars<CSSInteger>;
+
+impl HyphenateLimitChars {
+    /// Return the `auto` value, which has all three component values as `auto`.
+    #[inline]
+    pub fn auto() -> Self {
+        Self {
+            total_word_length: NumberOrAuto::Auto,
+            pre_hyphen_length: NumberOrAuto::Auto,
+            post_hyphen_length: NumberOrAuto::Auto,
+        }
+    }
+}
 
 /// A computed value for the `letter-spacing` property.
 #[repr(transparent)]

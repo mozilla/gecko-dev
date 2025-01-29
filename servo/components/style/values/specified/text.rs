@@ -9,8 +9,9 @@ use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWr
 use crate::values::computed;
 use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use crate::values::computed::{Context, ToComputedValue};
+use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
-    GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent,
+    GenericHyphenateLimitChars, GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent,
 };
 use crate::values::specified::length::LengthPercentage;
 use crate::values::specified::{AllowQuirks, Integer, Number};
@@ -111,6 +112,27 @@ pub enum HyphenateCharacter {
     Auto,
     /// `<string>`
     String(crate::OwnedStr),
+}
+
+/// A value for the `hyphenate-limit-chars` property.
+pub type HyphenateLimitChars = GenericHyphenateLimitChars<Integer>;
+
+impl Parse for HyphenateLimitChars {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        type IntegerOrAuto = NumberOrAuto<Integer>;
+
+        let total_word_length = IntegerOrAuto::parse(context, input)?;
+        let pre_hyphen_length = input.try_parse(|i| IntegerOrAuto::parse(context, i)).unwrap_or(IntegerOrAuto::Auto);
+        let post_hyphen_length = input.try_parse(|i| IntegerOrAuto::parse(context, i)).unwrap_or(pre_hyphen_length);
+        Ok(Self {
+            total_word_length,
+            pre_hyphen_length,
+            post_hyphen_length,
+        })
+    }
 }
 
 impl Parse for InitialLetter {

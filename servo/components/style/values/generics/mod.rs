@@ -192,6 +192,8 @@ impl<L> ClipRectOrAuto<L> {
 
 pub use page::PageSize;
 
+pub use text::NumberOrAuto;
+
 /// An optional value, much like `Option<T>`, but with a defined struct layout
 /// to be able to use it from C++ as well.
 ///

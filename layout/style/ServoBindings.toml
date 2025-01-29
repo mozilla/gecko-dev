@@ -589,6 +589,7 @@ cbindgen-types = [
     { gecko = "StyleForcedColors", servo = "crate::values::specified::color::ForcedColors" },
     { gecko = "StyleScrollbarGutter", servo = "crate::values::computed::ScrollbarGutter" },
     { gecko = "StyleHyphenateCharacter", servo = "crate::values::computed::HyphenateCharacter" },
+    { gecko = "StyleHyphenateLimitChars", servo = "crate::values::computed::HyphenateLimitChars" },
     { gecko = "StyleColumnCount", servo = "crate::values::computed::ColumnCount" },
     { gecko = "StyleContentVisibility", servo = "crate::values::computed::ContentVisibility" },
     { gecko = "StyleContainIntrinsicSize", servo = "crate::values::computed::ContainIntrinsicSize" },

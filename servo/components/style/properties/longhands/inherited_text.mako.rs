@@ -387,6 +387,19 @@ ${helpers.single_keyword(
     affects="layout",
 )}
 
+// hyphenation length thresholds
+${helpers.predefined_type(
+    "hyphenate-limit-chars",
+    "HyphenateLimitChars",
+    "computed::HyphenateLimitChars::auto()",
+    engines="gecko",
+    gecko_pref="layout.css.hyphenate-limit-chars.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    spec="https://drafts.csswg.org/css-text-4/#hyphenate-char-limits",
+    affects="layout",
+    boxed=True,
+)}
+
 ${helpers.single_keyword(
     "text-wrap-style",
     "auto stable balance",

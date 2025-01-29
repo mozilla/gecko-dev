@@ -8,6 +8,78 @@ use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
+/// A generic value that is either a number or `auto`.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum NumberOrAuto<N> {
+    /// `auto`
+    Auto,
+    /// `<number>`
+    Number(N),
+}
+
+/// A generic value for the `hyphenate-limit-chars` property.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct GenericHyphenateLimitChars<Integer> {
+    /// Required minimum number of characters in a hyphenated word.
+    pub total_word_length: NumberOrAuto<Integer>,
+    /// Required minumum number of characters before the hyphen.
+    pub pre_hyphen_length: NumberOrAuto<Integer>,
+    /// Required minumum number of characters after the hyphen.
+    pub post_hyphen_length: NumberOrAuto<Integer>,
+}
+
+impl<Integer: ToCss + PartialEq> ToCss for GenericHyphenateLimitChars<Integer> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.total_word_length.to_css(dest)?;
+
+        if self.pre_hyphen_length != NumberOrAuto::Auto ||
+           self.post_hyphen_length != self.pre_hyphen_length {
+            dest.write_char(' ')?;
+            self.pre_hyphen_length.to_css(dest)?;
+            if self.post_hyphen_length != self.pre_hyphen_length {
+                dest.write_char(' ')?;
+                self.post_hyphen_length.to_css(dest)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// A generic value for the `initial-letter` property.
 #[derive(
     Clone,
