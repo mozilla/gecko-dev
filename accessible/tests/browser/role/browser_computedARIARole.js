@@ -55,7 +55,8 @@ addAccessibleTask(
     testComputedARIARole("ariaUnnamedRegion", "navigation");
     // The directory ARIA role is an alias of list.
     testComputedARIARole("ariaDirectory", "list");
-    // alertdialog, feed and rowgroupmap to a Gecko role, but it isn't unique.
+    // alertdialog, feed, rowgroup and searchbox map to a Gecko role, but it
+    // isn't unique.
     testComputedARIARole("ariaAlertdialog", "alertdialog");
     testComputedARIARole("ariaFeed", "feed");
     testComputedARIARole("ariaRowgroup", "rowgroup");

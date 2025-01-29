@@ -113,6 +113,20 @@ inline NSString* ToNSString(id aValue) {
   return [super moxRole];
 }
 
+- (NSString*)moxSubrole {
+  MOZ_ASSERT(mGeckoAccessible);
+
+  if (mRole == roles::PASSWORD_TEXT) {
+    return NSAccessibilitySecureTextFieldSubrole;
+  }
+
+  if (mRole == roles::ENTRY && mGeckoAccessible->IsSearchbox()) {
+    return @"AXSearchField";
+  }
+
+  return nil;
+}
+
 - (NSNumber*)moxNumberOfCharacters {
   return @([self textLength]);
 }

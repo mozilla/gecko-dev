@@ -33,7 +33,7 @@ add_task(async function test_searchbar_a11y_tree() {
 
       // input element
       {
-        role: ROLE_SEARCHBOX,
+        role: ROLE_ENTRY,
         children: [],
       },
 
@@ -72,7 +72,7 @@ add_task(async function test_searchbar_a11y_tree() {
 
       // input element
       {
-        role: ROLE_SEARCHBOX,
+        role: ROLE_ENTRY,
         children: [],
       },
 
