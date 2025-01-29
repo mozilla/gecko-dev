@@ -28,4 +28,10 @@ interface nsIMLUtils : nsISupports {
       in unsigned long aThresholdPercentage,
       in unsigned long long aMinMemoryRequirement
   );
+
+
+  /**
+  * Returns the number of physical cores.
+  */
+  octet getNumPhysicalCores();
 };

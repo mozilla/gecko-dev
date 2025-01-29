@@ -656,7 +656,7 @@ add_task(async function test_ml_engine_get_status() {
         runtimeFilename: "ort-wasm-simd-threaded.jsep.wasm",
         device: null,
         dtype: "q8",
-        numThreads: null,
+        numThreads: "NOT_COMPARED",
         executionPriority: null,
         modelHub: null,
       },
@@ -666,6 +666,8 @@ add_task(async function test_ml_engine_get_status() {
 
   let status = await engineInstance.mlEngineParent.getStatus();
   status = JSON.parse(JSON.stringify(Object.fromEntries(status)));
+
+  status["default-engine"].options.numThreads = "NOT_COMPARED";
   Assert.deepEqual(status, expected);
 
   await ok(

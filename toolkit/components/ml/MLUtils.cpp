@@ -6,9 +6,12 @@
 
 #include "MLUtils.h"
 
+#include <algorithm>
+#include <cmath>
 #include "prsystem.h"
 #include "mozilla/Casting.h"
 #include <sys/types.h>
+#include "nsSystemInfo.h"
 
 #if defined(XP_WIN)
 #  include <sysinfoapi.h>
@@ -83,9 +86,7 @@ NS_IMETHODIMP MLUtils::HasEnoughMemoryToInfer(uint64_t aModelSizeInMemory,
 #endif
 
 #if defined(XP_LINUX)
-  struct sysinfo memInfo {
-    0
-  };
+  struct sysinfo memInfo{0};
   if (sysinfo(&memInfo) != 0) {
     *_retval = false;
     return NS_ERROR_FAILURE;
@@ -96,6 +97,16 @@ NS_IMETHODIMP MLUtils::HasEnoughMemoryToInfer(uint64_t aModelSizeInMemory,
   // Check if the modelSize fits within memory using the threshold
   *_retval = AssertedCast<double>(aModelSizeInMemory) <=
              AssertedCast<double>(availableResidentMemory) * threshold;
+  return NS_OK;
+}
+
+NS_IMETHODIMP MLUtils::GetNumPhysicalCores(uint8_t* _retval) {
+  ProcessInfo processInfo = {};
+  if (!NS_SUCCEEDED(CollectProcessInfo(processInfo))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *_retval = static_cast<uint8_t>(processInfo.cpuCores);
   return NS_OK;
 }
 
