@@ -413,11 +413,9 @@ int32_t WebrtcGmpVideoEncoder::SetRates(
     const webrtc::VideoEncoder::RateControlParameters& aParameters) {
   mEncodeQueue->AssertOnCurrentThread();
   MOZ_ASSERT(mGMPThread);
-  MOZ_ASSERT(!aParameters.bitrate.HasBitrate(0, 1),
-             "No simulcast support for H264");
   MOZ_ASSERT(!aParameters.bitrate.IsSpatialLayerUsed(1),
              "No simulcast support for H264");
-  mConfiguredBitrateKbps = aParameters.bitrate.GetBitrate(0, 0) / 1000;
+  mConfiguredBitrateKbps = aParameters.bitrate.GetSpatialLayerSum(0) / 1000;
   MOZ_ALWAYS_SUCCEEDS(
       mGMPThread->Dispatch(NewRunnableMethod<uint32_t, Maybe<double>>(
           __func__, this, &WebrtcGmpVideoEncoder::SetRates_g,
