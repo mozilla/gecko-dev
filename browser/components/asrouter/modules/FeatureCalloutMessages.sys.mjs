@@ -98,7 +98,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]",
+                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]:not([pinned])",
                 panel_position: {
                   anchor_attachment: "bottomcenter",
                   callout_attachment: "topright",
@@ -147,7 +147,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && (!'sidebar.verticalTabs' | preferenceValue)",
+        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && (!'sidebar.verticalTabs' | preferenceValue) && currentTabGroups == 0 && savedTabGroups == 0",
       trigger: {
         id: "nthTabClosed",
       },
@@ -221,7 +221,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && ('sidebar.revamp' | preferenceValue) && ('sidebar.verticalTabs' | preferenceValue)",
+        "tabsClosedCount >= 1 && currentTabsOpen >= 8 && ('browser.tabs.groups.enabled' | preferenceValue) && ('sidebar.revamp' | preferenceValue) && ('sidebar.verticalTabs' | preferenceValue) && currentTabGroups == 0 && savedTabGroups == 0",
       trigger: {
         id: "nthTabClosed",
       },
@@ -232,17 +232,17 @@ const MESSAGES = () => {
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
-      id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+      id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",
       groups: [],
       content: {
-        id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+        id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
         template: "multistage",
         backdrop: "transparent",
         transitions: false,
         screens: [
           {
-            id: "CLOSE_TAB_GROUP_ONBOARDING_CALLOUT",
+            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
             anchors: [
               {
                 selector: "#alltabs-button",
@@ -282,7 +282,7 @@ const MESSAGES = () => {
       targeting:
         "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
       trigger: {
-        id: "tabGroupClosed",
+        id: "tabGroupSaved",
       },
       frequency: {
         lifetime: 1,
@@ -338,7 +338,8 @@ const MESSAGES = () => {
           },
         ],
       },
-      targeting: "'browser.tabs.groups.enabled' | preferenceValue",
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
       trigger: {
         id: "tabGroupCreated",
       },

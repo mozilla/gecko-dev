@@ -43,13 +43,14 @@ const MESSAGES = () => [
           content: {
             position: "callout",
             padding: 16,
-            width: "412px",
+            width: "330px",
             title_logo: {
               imageURL:
                 "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
               width: "24px",
               height: "24px",
               marginInline: "0 16px",
+              alignment: "top",
             },
             title: {
               raw: "If you close a tab group, you can reopen it here anytime.",

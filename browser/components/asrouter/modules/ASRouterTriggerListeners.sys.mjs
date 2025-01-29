@@ -915,9 +915,9 @@ export const ASRouterTriggerListeners = new Map([
     },
   ],
   [
-    "tabGroupClosed",
+    "tabGroupSaved",
     {
-      id: "tabGroupClosed",
+      id: "tabGroupSaved",
       _initialized: false,
       _triggerHandler: null,
       // Number of tab groups the user saved and closed this session
@@ -948,7 +948,7 @@ export const ASRouterTriggerListeners = new Map([
           this._triggerHandler(gBrowser.selectedBrowser, {
             id: this.id,
             context: {
-              tabGroupsClosedCount: this._tabGroupsSaved,
+              tabGroupsSavedCount: this._tabGroupsSaved,
             },
           });
         }

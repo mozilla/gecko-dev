@@ -53,7 +53,7 @@ let patterns: string[];
 - [`nthTabClosed`](#nthtabclosed)
 - [`nthTabOpened`](#nthtabopened)
 - [`tabGroupCreated`](#tabgroupcreated)
-- [`tabGroupClosed`](#tabgroupclosed)
+- [`tabGroupSaved`](#tabgroupsaved)
 - [`activityAfterIdle`](#activityafteridle)
 - [`cookieBannerDetected`](#cookiebannerdetected)
 - [`cookieBannerHandled`](#cookiebannerhandled)
@@ -276,13 +276,13 @@ Happens whenever a user creates a tab group.
 }
 ```
 
-### `tabGroupClosed`
+### `tabGroupSaved`
 
 Happens whenever a user uses the "Save and Close" action on a tab group.
 
 ```js
 {
-  trigger: { id: "tabGroupClosed" }
+  trigger: { id: "tabGroupSaved" }
 }
 ```
 ```js
@@ -290,8 +290,8 @@ Happens whenever a user uses the "Save and Close" action on a tab group.
 // session, by including the tabGroupsClosedCount context variable in targeting.
 // Here, the message triggers once two tab groups have been saved and closed.
 {
-  trigger: { id: "tabGroupClosed" },
-  targeting: { "tabGroupsClosedCount >= 2" }
+  trigger: { id: "tabGroupSaved" },
+  targeting: { "tabGroupsSavedCount >= 2" }
 }
 ```
 
