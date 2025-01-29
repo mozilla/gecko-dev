@@ -64,15 +64,7 @@ static constexpr bool IsNonBreakableChar(T aChar, bool aLegacyBehavior) {
 }
 
 nsLineBreaker::nsLineBreaker()
-    : mCurrentWordLanguage(nullptr),
-      mCurrentWordContainsMixedLang(false),
-      mScriptIsChineseOrJapanese(false),
-      mAfterBreakableSpace(false),
-      mBreakHere(false),
-      mWordBreak(WordBreakRule::Normal),
-      mLineBreak(LineBreakRule::Auto),
-      mWordContinuation(false),
-      mLegacyBehavior(!mozilla::StaticPrefs::intl_icu4x_segmenter_enabled()) {}
+    : mLegacyBehavior(!mozilla::StaticPrefs::intl_icu4x_segmenter_enabled()) {}
 
 nsLineBreaker::~nsLineBreaker() {
   NS_ASSERTION(mCurrentWord.Length() == 0,
@@ -422,14 +414,88 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
                                           const char16_t* aTextStart,
                                           const char16_t* aTextLimit,
                                           uint8_t* aBreakState) {
+  // Early-return for words that are definitely too short to hyphenate.
+  if (aTextLimit - aTextStart < mHyphenateLimitWord) {
+    return;
+  }
+
   nsDependentSubstring string(aTextStart, aTextLimit);
   AutoTArray<bool, 200> hyphens;
-  if (NS_SUCCEEDED(aHyphenator->Hyphenate(string, hyphens))) {
-    for (uint32_t i = 0; i + 1 < string.Length(); ++i) {
-      if (hyphens[i]) {
-        aBreakState[i + 1] =
-            gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
+  if (NS_FAILED(aHyphenator->Hyphenate(string, hyphens))) {
+    return;
+  }
+
+  // Keep track of the length seen so far, in terms of characters that are
+  // countable for hyphenate-limit-chars purposes.
+  uint32_t length = 0;
+  AutoTArray<std::pair<uint32_t, uint32_t>, 16> positionAndLength;
+  for (uint32_t i = 0; i + 1 < string.Length(); ++i) {
+    // Get current character, converting surrogate pairs to UCS4 for char
+    // category lookup.
+    uint32_t ch = string[i];
+    if (NS_IS_HIGH_SURROGATE(ch) && i + 1 < string.Length() &&
+        NS_IS_LOW_SURROGATE(string[i + 1])) {
+      ch = SURROGATE_TO_UCS4(ch, string[i + 1]);
+    }
+
+    // According to CSS Text, "Nonspacing combining marks (Unicode General
+    // Category Mn) and intra-word punctuation (Unicode General Category P*)
+    // do not count towards the minimum."
+    // (https://drafts.csswg.org/css-text-4/#hyphenate-char-limits)
+    // We also don't count Control or Format categories.
+    using intl::GeneralCategory;
+    switch (UnicodeProperties::CharType(ch)) {
+      case GeneralCategory::Nonspacing_Mark:
+      case GeneralCategory::Dash_Punctuation:
+      case GeneralCategory::Open_Punctuation:
+      case GeneralCategory::Close_Punctuation:
+      case GeneralCategory::Connector_Punctuation:
+      case GeneralCategory::Other_Punctuation:
+      case GeneralCategory::Initial_Punctuation:
+      case GeneralCategory::Final_Punctuation:
+      case GeneralCategory::Control:
+      case GeneralCategory::Format:
+      case GeneralCategory::Surrogate:
+        break;
+      default:
+        ++length;
+        break;
+    }
+
+    // Don't accept any breaks until we're far enough into the word.
+    if (length >= mHyphenateLimitStart && hyphens[i]) {
+      MOZ_ASSERT(aBreakState[i + 1] ==
+                     gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE);
+      aBreakState[i + 1] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
+      // Keep track of hyphen position and "countable" length of the word.
+      positionAndLength.AppendElement(
+          std::pair<uint32_t, uint32_t>(i + 1, length));
+    }
+
+    // If the character was outside the BMP, skip past the low surrogate.
+    if (!IS_IN_BMP(ch)) {
+      ++i;
+    }
+  }
+  ++length;  // Account for the last character (not counted by the loop above).
+
+  if (length < mHyphenateLimitWord) {
+    // After discounting combining marks, punctuation, controls, etc., the word
+    // was too short for hyphenate-limit-chars. If we've set any hyphen breaks,
+    // forget them.
+    while (!positionAndLength.IsEmpty()) {
+      auto [lastPos, lastLen] = positionAndLength.PopLastElement();
+      aBreakState[lastPos] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
+    }
+  } else {
+    // Check if trailing fragment is too short; if so, remove the last hyphen
+    // break(s) that we set, until the fragment will be long enough.
+    while (!positionAndLength.IsEmpty()) {
+      auto [lastPos, lastLen] = positionAndLength.PopLastElement();
+      if (length - lastLen >= mHyphenateLimitEnd) {
+        break;
       }
+      aBreakState[lastPos] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
     }
   }
 }

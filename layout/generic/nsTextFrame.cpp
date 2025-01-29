@@ -1733,6 +1733,30 @@ void BuildTextRunsScanner::AccumulateRunInfo(nsTextFrame* aFrame) {
     mLineBreakBeforeFrames.AppendElement(aFrame);
     mStartOfLine = false;
   }
+
+  // Default limits used by `hyphenate-limit-chars` for `auto` components, as
+  // suggested by the CSS Text spec.
+  // TODO: consider making these sensitive to the context, e.g. increasing the
+  // values for long line lengths to reduce the tendency to hyphenate too much.
+  const uint32_t kDefaultHyphenateTotalWordLength = 5;
+  const uint32_t kDefaultHyphenatePreBreakLength = 2;
+  const uint32_t kDefaultHyphenatePostBreakLength = 2;
+
+  const auto& hyphenateLimitChars = aFrame->StyleText()->mHyphenateLimitChars;
+  uint32_t pre =
+      hyphenateLimitChars.pre_hyphen_length.IsAuto()
+          ? kDefaultHyphenatePreBreakLength
+          : std::max(0, hyphenateLimitChars.pre_hyphen_length.AsNumber());
+  uint32_t post =
+      hyphenateLimitChars.post_hyphen_length.IsAuto()
+          ? kDefaultHyphenatePostBreakLength
+          : std::max(0, hyphenateLimitChars.post_hyphen_length.AsNumber());
+  uint32_t total =
+      hyphenateLimitChars.total_word_length.IsAuto()
+          ? kDefaultHyphenateTotalWordLength
+          : std::max(0, hyphenateLimitChars.total_word_length.AsNumber());
+  total = std::max(total, pre + post);
+  mLineBreaker.SetHyphenateLimitChars(total, pre, post);
 }
 
 static bool HasTerminalNewline(const nsTextFrame* aFrame) {
