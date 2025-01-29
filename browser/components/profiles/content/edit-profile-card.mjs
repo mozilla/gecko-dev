@@ -335,6 +335,7 @@ export class EditProfileCard extends MozLitElement {
       avatar =>
         html`<profiles-avatar
           @click=${this.handleAvatarClick}
+          @keydown=${this.handleAvatarKeyDown}
           value=${avatar}
           ?selected=${avatar === this.profile.avatar}
         ></profiles-avatar>`
@@ -350,6 +351,34 @@ export class EditProfileCard extends MozLitElement {
     selectedAvatar.selected = true;
 
     this.updateAvatar(selectedAvatar.value);
+  }
+
+  /*
+   * Implements radiogroup arrow key behavior for the avatar picker.
+   *
+   * The Enter or Space keys are handled by handleAvatarClick.
+   */
+  handleAvatarKeyDown(event) {
+    let currentAvatar = event.target;
+
+    // Wrap around the ends of the list.
+    let nextAvatar = currentAvatar.nextElementSibling || this.avatars[0];
+    let previousAvatar =
+      currentAvatar.previousElementSibling ||
+      this.avatars[this.avatars.length - 1];
+
+    // To correctly style the button to match tab focus, we have to focus the
+    // button inside each profiles-avatar component's shadow DOM.
+    let nextButton = nextAvatar.shadowRoot.querySelector("button");
+    let previousButton = previousAvatar.shadowRoot.querySelector("button");
+
+    if (event.code == "ArrowUp" || event.code == "ArrowLeft") {
+      event.preventDefault();
+      previousButton.focus();
+    } else if (event.code == "ArrowDown" || event.code == "ArrowRight") {
+      event.preventDefault();
+      nextButton.focus();
+    }
   }
 
   onDeleteClick() {
@@ -429,7 +458,13 @@ export class EditProfileCard extends MozLitElement {
             ></a>
 
             <h3 data-l10n-id="edit-profile-page-avatar-header"></h3>
-            <div id="avatars">${this.avatarsTemplate()}</div>
+            <div
+              id="avatars"
+              role="radiogroup"
+              aria-labelledby="edit-profile-page-avatar-header"
+            >
+              ${this.avatarsTemplate()}
+            </div>
 
             <moz-button-group>${this.buttonsTemplate()}</moz-button-group>
           </div>

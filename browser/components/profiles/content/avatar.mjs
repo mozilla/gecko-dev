@@ -38,8 +38,15 @@ export class Avatar extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/profiles/avatar.css"
       />
-      <button type="button" class="avatar">
+      <button
+        type="button"
+        class="avatar"
+        role="radio"
+        aria-checked=${this.selected ? "true" : "false"}
+        aria-labelledby="avatar-img"
+      >
         <img
+          id="avatar-img"
           data-l10n-id=${this.imageL10nId}
           src="chrome://browser/content/profiles/assets/48_${this.value}.svg"
         />

@@ -382,3 +382,87 @@ add_task(async function test_edit_profile_displayed_closed_telemetry() {
     }
   );
 });
+
+add_task(async function test_avatar_picker_arrow_key_support() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        const EventUtils = ContentTaskUtils.getEventUtils(content);
+
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+        await editProfileCard.updateComplete;
+        let avatars = editProfileCard.avatars;
+
+        // Select and focus the book avatar to get started.
+        avatars[0].click();
+        avatars[0].shadowRoot.querySelector("button").focus();
+        let selectedAvatar = editProfileCard.shadowRoot.querySelector(
+          "profiles-avatar[selected]"
+        );
+        Assert.equal("book", selectedAvatar.value, "Book avatar was selected");
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedAvatar,
+          "The selected avatar has focus"
+        );
+
+        // Simulate a down arrow key and the focus should move, making the
+        // next element focused, but not selected.
+        let nextAvatar = selectedAvatar.nextElementSibling;
+        EventUtils.synthesizeKey("KEY_ArrowDown", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          nextAvatar,
+          "The next avatar has focus"
+        );
+        Assert.ok(!nextAvatar.selected, "The next avatar is not selected");
+
+        // Now, use the up arrow key to move focus back.
+        EventUtils.synthesizeKey("KEY_ArrowUp", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedAvatar,
+          "The selected avatar has focus"
+        );
+
+        // Same thing, this time using the right and left arrows:
+
+        EventUtils.synthesizeKey("KEY_ArrowRight", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          nextAvatar,
+          "The next avatar has focus"
+        );
+        Assert.ok(!nextAvatar.selected, "The next avatar is not selected");
+
+        EventUtils.synthesizeKey("KEY_ArrowLeft", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedAvatar,
+          "The selected avatar has focus"
+        );
+      });
+    }
+  );
+});
