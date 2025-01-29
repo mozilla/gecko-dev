@@ -37,6 +37,7 @@
 #include "mozilla/dom/Link.h"
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "nsLayoutUtils.h"
 #include "nsRange.h"
 
@@ -63,7 +64,6 @@ NS_IMPL_CYCLE_COLLECTION_WEAK(nsTypeAheadFind, mFoundLink, mFoundEditable,
 
 nsTypeAheadFind::nsTypeAheadFind()
     : mStartLinksOnlyPref(false),
-      mCaretBrowsingOn(false),
       mDidAddObservers(false),
       mCaseSensitive(false),
       mEntireWord(false),
@@ -74,7 +74,6 @@ nsTypeAheadFind::~nsTypeAheadFind() {
       do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (prefInternal) {
     prefInternal->RemoveObserver("accessibility.typeaheadfind", this);
-    prefInternal->RemoveObserver("accessibility.browsewithcaret", this);
   }
 }
 
@@ -93,9 +92,7 @@ nsresult nsTypeAheadFind::Init(nsIDocShell* aDocShell) {
     mDidAddObservers = true;
     // ----------- Listen to prefs ------------------
     nsresult rv =
-        prefInternal->AddObserver("accessibility.browsewithcaret", this, true);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = prefInternal->AddObserver("accessibility.typeaheadfind", this, true);
+        prefInternal->AddObserver("accessibility.typeaheadfind", this, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // ----------- Get initial preferences ----------
@@ -111,8 +108,6 @@ nsresult nsTypeAheadFind::PrefsReset() {
 
   prefBranch->GetBoolPref("accessibility.typeaheadfind.startlinksonly",
                           &mStartLinksOnlyPref);
-
-  prefBranch->GetBoolPref("accessibility.browsewithcaret", &mCaretBrowsingOn);
 
   return NS_OK;
 }
@@ -922,8 +917,9 @@ nsresult nsTypeAheadFind::FindInternal(uint32_t aMode,
 
     // If true, we will scan from top left of visible area
     // If false, we will scan from start of selection
-    isFirstVisiblePreferred =
-        !atEnd && !mCaretBrowsingOn && isSelectionCollapsed;
+    isFirstVisiblePreferred = !atEnd &&
+                              !StaticPrefs::accessibility_browsewithcaret() &&
+                              isSelectionCollapsed;
     if (isFirstVisiblePreferred) {
       // Get the focused content. If there is a focused node, ensure the
       // selection is at that point. Otherwise, we will just want to start

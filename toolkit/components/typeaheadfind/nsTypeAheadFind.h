@@ -89,7 +89,6 @@ class nsTypeAheadFind : public nsITypeAheadFind,
   // PRBools are used instead of PRPackedBools because the address of the
   // boolean variable is getting passed into a method.
   bool mStartLinksOnlyPref;
-  bool mCaretBrowsingOn;
   bool mDidAddObservers;
   nsCOMPtr<mozilla::dom::Element>
       mFoundLink;  // Most recent elem found, if a link

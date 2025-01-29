@@ -73,6 +73,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
 #include "mozilla/Unused.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_full_screen_api.h"
 #include "mozilla/Try.h"
 #include "mozilla/widget/IMEData.h"
@@ -3126,7 +3127,7 @@ void nsFocusManager::UpdateCaret(bool aMoveCaretToFocus, bool aUpdateVisibility,
     return;  // Never browse with caret in chrome
   }
 
-  bool browseWithCaret = Preferences::GetBool("accessibility.browsewithcaret");
+  bool browseWithCaret = StaticPrefs::accessibility_browsewithcaret();
 
   const RefPtr<PresShell> presShell = focusedDocShell->GetPresShell();
   if (!presShell) {

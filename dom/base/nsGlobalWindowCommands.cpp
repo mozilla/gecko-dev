@@ -12,8 +12,8 @@
 #include "nsCRT.h"
 #include "nsString.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 
 #include "nsControllerCommandTable.h"
 
@@ -255,7 +255,7 @@ static bool IsCaretOnInWindow(nsPIDOMWindowOuter* aWindow,
   bool caretOn = false;
   aSelCont->GetCaretEnabled(&caretOn);
   if (!caretOn) {
-    caretOn = Preferences::GetBool("accessibility.browsewithcaret");
+    caretOn = StaticPrefs::accessibility_browsewithcaret();
     if (caretOn) {
       nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
       if (docShell && docShell->ItemType() == nsIDocShellTreeItem::typeChrome) {
