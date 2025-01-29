@@ -4,8 +4,10 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
+  TranslationsTelemetry:
+    "chrome://global/content/translations/TranslationsTelemetry.sys.mjs",
 });
 
 /**
@@ -42,6 +44,23 @@ export class TranslationsEngineParent extends JSWindowActorParent {
           lazy.TranslationsParent.telemetry().onError(String(error));
         });
         return payloadPromise;
+      }
+      case "TranslationsEngine:ReportEnginePerformance": {
+        const {
+          sourceLanguage,
+          targetLanguage,
+          totalInferenceSeconds,
+          totalTranslatedWords,
+          totalCompletedRequests,
+        } = data;
+        lazy.TranslationsTelemetry.onReportEnginePerformance({
+          sourceLanguage,
+          targetLanguage,
+          totalInferenceSeconds,
+          totalTranslatedWords,
+          totalCompletedRequests,
+        });
+        return undefined;
       }
       case "TranslationsEngine:ReportEngineStatus": {
         const { innerWindowId, status } = data;

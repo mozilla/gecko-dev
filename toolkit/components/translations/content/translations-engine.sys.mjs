@@ -4,8 +4,8 @@
 
 /* eslint-env browser */
 /* globals TE_addProfilerMarker, TE_getLogLevel, TE_log, TE_logError, TE_getLogLevel,
-           TE_destroyEngineProcess, TE_requestEnginePayload, TE_reportEngineStatus,
-           TE_resolveForceShutdown */
+           TE_destroyEngineProcess, TE_reportEnginePerformance, TE_requestEnginePayload, 
+           TE_reportEngineStatus, TE_resolveForceShutdown */
 
 /**
  * This file lives in the translation engine's process and is in charge of managing the
@@ -102,17 +102,64 @@ export class TranslationsEngine {
    */
   static #cachedEngines = new Map();
 
-  /** @type {TimeoutID | null} */
+  /**
+   * A DOMParser instance used for parsing HTML strings into DOM objects.
+   *
+   * @type {DOMParser}
+   */
+  static #domParser = new DOMParser();
+
+  /**
+   * The ID of a timer that keeps the engine alive in the cache.
+   *
+   * @see {#cachedEngines}
+   *
+   * @type {TimeoutID | null}
+   */
   #keepAliveTimeout = null;
 
-  /** @type {Worker} */
+  /**
+   * The Web Worker instance used to handle translation requests.
+   *
+   * @type {Worker}
+   */
   #worker;
 
   /**
    * Multiple messages can be sent before a response is received. This ID is used to keep
    * track of the messages. It is incremented on every use.
+   *
+   * @type {number}
    */
   #messageId = 0;
+
+  /**
+   * The total count of completed translation requests.
+   *
+   * @type {number}
+   */
+  #totalCompletedRequests = 0;
+
+  /**
+   * The total count of words translated across all requests.
+   *
+   * @type {number}
+   */
+  #totalTranslatedWords = 0;
+
+  /**
+   * The total milliseconds spent in active translation inference.
+   *
+   * @type {number}
+   */
+  #totalInferenceMilliseconds = 0;
+
+  /**
+   * A word segmenter instance corresponding to the language of the source text.
+   *
+   * @type {Intl.Segmenter | null}
+   */
+  #wordSegmenter = null;
 
   /**
    * Returns a getter function that will create a translations engine on the first
@@ -219,6 +266,8 @@ export class TranslationsEngine {
    */
   terminate = (force = false) => {
     const message = `Terminating translations engine "${this.languagePairKey}".`;
+
+    this.#maybeReportEnginePerformance();
     TE_addProfilerMarker({ message });
     TE_log(message);
     this.#worker.terminate();
@@ -256,6 +305,28 @@ export class TranslationsEngine {
   }
 
   /**
+   * Reports this engine's performance metrics to telemetry if it
+   * has completed at least one successful translation request.
+   */
+  #maybeReportEnginePerformance() {
+    if (!this.#totalCompletedRequests) {
+      // This engine did not translate any requests to completion.
+      // There is nothing to report.
+      return;
+    }
+
+    const { sourceLanguage, targetLanguage } = this.languagePair;
+
+    TE_reportEnginePerformance({
+      sourceLanguage,
+      targetLanguage,
+      totalInferenceSeconds: this.#totalInferenceMilliseconds / 1000,
+      totalTranslatedWords: this.#totalTranslatedWords,
+      totalCompletedRequests: this.#totalCompletedRequests,
+    });
+  }
+
+  /**
    * Construct and initialize the worker.
    *
    * @param {LanguagePair} languagePair
@@ -283,6 +354,14 @@ export class TranslationsEngine {
         this.#worker.removeEventListener("message", onMessage);
       };
       this.#worker.addEventListener("message", onMessage);
+
+      try {
+        this.#wordSegmenter = new Intl.Segmenter(this.sourceLanguage, {
+          granularity: "word",
+        });
+      } catch (error) {
+        reject(error);
+      }
 
       // Schedule the first timeout for keeping the engine alive.
       this.keepAlive();
@@ -317,6 +396,31 @@ export class TranslationsEngine {
   }
 
   /**
+   * Counts the number of words in the given source text.
+   *
+   * @param {string} sourceText - The text to be counted.
+   * @param {boolean} isHTML - Whether to parse the text as HTML.
+   * @returns {number} - The total count of word-like segments in the text.
+   */
+  #countWords(sourceText, isHTML) {
+    if (isHTML) {
+      sourceText = TranslationsEngine.#domParser.parseFromString(
+        sourceText,
+        "text/html"
+      ).documentElement.textContent;
+    }
+
+    let wordCount = 0;
+    for (const { isWordLike } of this.#wordSegmenter.segment(sourceText)) {
+      if (isWordLike) {
+        wordCount += 1;
+      }
+    }
+
+    return wordCount;
+  }
+
+  /**
    * The implementation for translation. Use translateText or translateHTML for the
    * public API.
    *
@@ -324,7 +428,8 @@ export class TranslationsEngine {
    * @param {boolean} isHTML
    * @param {number} innerWindowId
    * @param {number} translationId
-   * @returns {Promise<string[]>}
+   * @returns {Promise<string>}
+   *   A promise that resolves with the translated text.
    */
   translate(sourceText, isHTML, innerWindowId, translationId) {
     this.keepAlive();
@@ -352,7 +457,15 @@ export class TranslationsEngine {
           // Also keep the translation alive after getting a result, as many translations
           // can queue up at once, and then it can take minutes to resolve them all.
           this.keepAlive();
-          resolve(data.targetText);
+
+          const { targetText, inferenceMilliseconds } = data;
+
+          resolve(targetText);
+
+          const sourceTextWordCount = this.#countWords(sourceText, isHTML);
+          this.#totalInferenceMilliseconds += inferenceMilliseconds;
+          this.#totalTranslatedWords += sourceTextWordCount;
+          this.#totalCompletedRequests += 1;
         }
         if (data.type === "translation-error") {
           reject(data.error);

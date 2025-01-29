@@ -162,6 +162,39 @@ translations:
       - translations-telemetry-alerts@mozilla.com
     expires: never
 
+  engine_performance:
+    type: event
+    description: >
+      Metrics related to the performance of the TranslationsEngine.
+    extra_keys:
+      flow_id: *flow_id
+      from_language: *from_language
+      to_language: *to_language
+      average_words_per_request:
+        type: quantity
+        description: The average count of words that this engine translated per request.
+      average_words_per_second:
+        type: quantity
+        description: The average words per second that this engine translated per request.
+      total_completed_requests:
+        type: quantity
+        description: The count of translation requests that were completed by this engine.
+      total_inference_seconds:
+        type: quantity
+        description: The total seconds this engine spent in active translation inference.
+      total_translated_words:
+        type: quantity
+        description: The total number of words translated by this engine.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943132
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943132
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: never
+
 # The following metrics pertain to the full-page translations panel, however the the name "panel"
 # is retained (instead of "fullPageTranslationsPanel") for legacy reasons dating back to when this
 # was first implemented and the full-page translations panel was the only translations panel.
