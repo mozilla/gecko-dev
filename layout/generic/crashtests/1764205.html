@@ -1,0 +1,30 @@
+<html class="reftest-wait">
+<style>
+.a {
+  position: absolute;
+}
+.a, .b {
+  content: url(data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7);
+}
+* {
+  columns: 1;
+  -webkit-transform: scaleY(1);
+}
+.c {
+  page-break-inside: avoid;
+  writing-mode: tb-rl;
+  max-height: 1vmin;
+}
+</style>
+<script>
+addEventListener("MozReftestInvalidate", () => {
+  pp = SpecialPowers.wrap(self).printPreview();
+  setTimeout(() => {
+    pp.close();
+    document.documentElement.className = "";
+  }, 400)
+});
+</script>
+<time class="c">
+<h6 class="b"></h6>
+<font class="a">a</font>
