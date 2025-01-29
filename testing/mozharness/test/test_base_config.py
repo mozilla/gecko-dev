@@ -2,8 +2,6 @@ import os
 import unittest
 from copy import deepcopy
 
-import mozunit
-
 JSON_TYPE = None
 try:
     import simplejson as json
@@ -375,4 +373,4 @@ class TestActions(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    mozunit.main()
+    unittest.main()
