@@ -263,7 +263,8 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                 logger = logger,
                 analytics = components.analytics,
                 isTelemetryEnabled = settings().isTelemetryEnabled,
-                isMarketingTelemetryEnabled = settings().isMarketingTelemetryEnabled,
+                isMarketingTelemetryEnabled = settings().isMarketingTelemetryEnabled &&
+                    settings().hasMadeMarketingTelemetrySelection,
                 isDailyUsagePingEnabled = settings().isDailyUsagePingEnabled,
             )
         }

@@ -20,9 +20,7 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.nimbus.FxNimbus
-import org.mozilla.fenix.nimbus.OnboardingCardData
-import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.utils.Settings
 
 /**
  * Lets the user toggle telemetry on/off.
@@ -90,8 +88,8 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
                 isChecked =
                     context.settings().isMarketingTelemetryEnabled && !Config.channel.isMozillaOnline
                 onPreferenceChangeListener = SharedPreferenceUpdater()
-                isVisible =
-                    !Config.channel.isMozillaOnline && shouldShowMarketingTelemetryPreference()
+                isVisible = !Config.channel.isMozillaOnline &&
+                    shouldShowMarketingTelemetryPreference(requireContext().settings())
             }
 
         requirePreference<Preference>(R.string.pref_key_learn_about_marketing_telemetry).apply {
@@ -110,12 +108,8 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
     }
 
     @VisibleForTesting
-    internal fun shouldShowMarketingTelemetryPreference(
-        cards: Collection<OnboardingCardData> = FxNimbus.features.junoOnboarding.value().cards.values,
-        hasValidTermsOfServiceData: (OnboardingCardData) -> Boolean = { it.hasValidTermsOfServiceData() },
-    ) = cards.any {
-        it.cardType == OnboardingCardType.TERMS_OF_SERVICE && hasValidTermsOfServiceData(it)
-    }
+    internal fun shouldShowMarketingTelemetryPreference(settings: Settings) =
+        settings.hasMadeMarketingTelemetrySelection
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         context?.also { context ->
@@ -162,6 +156,3 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
         }
     }
 }
-
-@VisibleForTesting
-internal fun OnboardingCardData.hasValidTermsOfServiceData() = extraData?.termOfServiceData != null

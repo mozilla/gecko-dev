@@ -4,96 +4,41 @@
 
 package org.mozilla.fenix.settings
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
-import org.mozilla.fenix.nimbus.ExtraCardData
-import org.mozilla.fenix.nimbus.OnboardingCardData
-import org.mozilla.fenix.nimbus.OnboardingCardType
-import org.mozilla.fenix.nimbus.TermsOfServiceData
+import org.junit.runner.RunWith
+import org.mozilla.fenix.utils.Settings
 
+@RunWith(AndroidJUnit4::class)
 class DataChoicesFragmentTest {
 
     private val fragment = DataChoicesFragment()
-    private val hasValidExtraData: (OnboardingCardData) -> Boolean = { true }
-    private val noValidExtraData: (OnboardingCardData) -> Boolean = { false }
+    private lateinit var settings: Settings
+
+    @Before
+    fun setup() {
+        settings = Settings(testContext)
+    }
 
     @Test
-    fun `GIVEN no cards WHEN shouldShowMarketingTelemetryPreference called THEN returns false`() {
-        val result = fragment.shouldShowMarketingTelemetryPreference(listOf())
+    fun `GIVEN the user has not seen the marketing telemetry screen WHEN shouldShowMarketingTelemetryPreference THEN returns false`() {
+        settings.hasMadeMarketingTelemetrySelection = false
+
+        val result = fragment.shouldShowMarketingTelemetryPreference(settings)
 
         assertFalse(result)
     }
 
     @Test
-    fun `GIVEN cards contains valid type, no valid extra data WHEN shouldShowMarketingTelemetryPreference THEN returns false`() {
-        val cardsWithAllCardTypes =
-            OnboardingCardType.entries.map { OnboardingCardData(cardType = it) }
+    fun `GIVEN the user has seen the marketing telemetry screen WHEN shouldShowMarketingTelemetryPreference THEN returns true`() {
+        settings.hasMadeMarketingTelemetrySelection = true
 
-        val result = fragment.shouldShowMarketingTelemetryPreference(
-            cards = cardsWithAllCardTypes,
-            hasValidTermsOfServiceData = noValidExtraData,
-        )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `GIVEN cards contains valid type, has valid extra data WHEN shouldShowMarketingTelemetryPreference THEN returns true`() {
-        val cardsWithAllCardTypes =
-            OnboardingCardType.entries.map { OnboardingCardData(cardType = it) }
-
-        val result = fragment.shouldShowMarketingTelemetryPreference(
-            cards = cardsWithAllCardTypes,
-            hasValidTermsOfServiceData = hasValidExtraData,
-        )
+        val result = fragment.shouldShowMarketingTelemetryPreference(settings)
 
         assertTrue(result)
-    }
-
-    @Test
-    fun `GIVEN cards does not contain valid type, no valid extra data WHEN shouldShowMarketingTelemetryPreference THEN returns false`() {
-        val cardsWithAllCardTypesNoTos = OnboardingCardType.entries
-            .filter { it != OnboardingCardType.TERMS_OF_SERVICE }
-            .map { OnboardingCardData(cardType = it) }
-
-        val result = fragment.shouldShowMarketingTelemetryPreference(
-            cards = cardsWithAllCardTypesNoTos,
-            hasValidTermsOfServiceData = noValidExtraData,
-        )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `GIVEN cards does not contain valid type, has valid extra data WHEN shouldShowMarketingTelemetryPreference THEN returns false`() {
-        val cardsWithAllCardTypesNoTos = OnboardingCardType.entries
-            .filter { it != OnboardingCardType.TERMS_OF_SERVICE }
-            .map { OnboardingCardData(cardType = it) }
-
-        val result = fragment.shouldShowMarketingTelemetryPreference(
-            cards = cardsWithAllCardTypesNoTos,
-            hasValidTermsOfServiceData = hasValidExtraData,
-        )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `GIVEN extra data is null WHEN hasValidTermsOfServiceData THEN returns false`() {
-        assertFalse(OnboardingCardData().hasValidTermsOfServiceData())
-    }
-
-    @Test
-    fun `GIVEN extra data does not have tos data WHEN hasValidTermsOfServiceData THEN returns false`() {
-        val card = OnboardingCardData(extraData = ExtraCardData())
-        assertFalse(card.hasValidTermsOfServiceData())
-    }
-
-    @Test
-    fun `GIVEN extra data has tos data WHEN hasValidTermsOfServiceData THEN returns true`() {
-        val card =
-            OnboardingCardData(extraData = ExtraCardData(termOfServiceData = TermsOfServiceData()))
-        assertTrue(card.hasValidTermsOfServiceData())
     }
 }
