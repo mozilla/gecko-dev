@@ -20,6 +20,10 @@ class GleanUsageReporting : GleanUsageReportingApi {
         Pings.usageReporting.setEnabled(enabled)
     }
 
+    override fun requestDataDeletion() {
+        Pings.usageDeletionRequest.submit()
+    }
+
     override fun setDuration(durationMillis: Long) {
         val duration = durationMillis.toDuration(DurationUnit.MILLISECONDS)
         Usage.duration.setRawNanos(duration.inWholeNanoseconds)

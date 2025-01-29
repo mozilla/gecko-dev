@@ -35,4 +35,9 @@ interface GleanUsageReportingApi {
      * This allows the ping to be switched on or off from the settings screen.
      */
     fun setEnabled(enabled: Boolean)
+
+    /**
+     * Allows the user to request that all collected usage reporting data be deleted.
+     */
+    fun requestDataDeletion()
 }

@@ -48,8 +48,9 @@ class GleanUsageReportingMetricsService(
     fun stop() {
         logger.debug("Stop GleanUsageReportingMetricsService")
         gleanUsageReporting.setEnabled(false)
-        unsetUsageProfileId()
         lifecycleOwner.lifecycle.removeObserver(gleanUsageReportingLifecycleObserver)
+        gleanUsageReporting.requestDataDeletion()
+        unsetUsageProfileId()
     }
 
     private fun checkAndSetUsageProfileId() {
