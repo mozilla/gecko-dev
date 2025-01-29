@@ -171,7 +171,6 @@ const UPDATED_REQ_PROPS = [
   "isSelected",
   "isVisible",
   "requestFilterTypes",
-  "waterfallScale",
 ];
 
 /**

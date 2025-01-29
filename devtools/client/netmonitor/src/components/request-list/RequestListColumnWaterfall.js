@@ -29,7 +29,7 @@ const UPDATED_WATERFALL_ITEM_PROPS = ["eventTimings", "totalTime"];
 const UPDATED_WATERFALL_PROPS = [
   "item",
   "firstRequestStartedMs",
-  "waterfallScale",
+  "scale",
   "isVisible",
 ];
 
