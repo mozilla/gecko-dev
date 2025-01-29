@@ -503,7 +503,7 @@ export class UserCharacteristicsPageService {
   }
 
   async populateWebGPUProperties(window) {
-    const adapter = await window.navigator.gpu.requestAdapter();
+    const adapter = await window.navigator.gpu?.requestAdapter();
     if (!adapter) {
       return;
     }
