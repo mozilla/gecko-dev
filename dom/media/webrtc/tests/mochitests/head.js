@@ -1276,7 +1276,7 @@ AudioStreamFlowingHelper.prototype = {
 };
 
 class VideoFrameEmitter {
-  constructor(color1, color2, width, height) {
+  constructor(color1, color2, width, height, { fillEntireFrame = false } = {}) {
     if (!width) {
       width = 64;
     }
@@ -1284,16 +1284,23 @@ class VideoFrameEmitter {
       height = width;
     }
     this._helper = new CaptureStreamTestHelper2D(width, height);
+    this._fillEntireFrame = fillEntireFrame;
     this._canvas = this._helper.createAndAppendElement(
       "canvas",
       "source_canvas"
     );
     this._canvas.width = width;
     this._canvas.height = height;
+    this._drawColorOptions = {
+      offsetX: 0,
+      offsetY: 0,
+      width: fillEntireFrame ? width : width / 2,
+      height: fillEntireFrame ? height : height / 2,
+    };
     this._color1 = color1 ? color1 : this._helper.green;
     this._color2 = color2 ? color2 : this._helper.red;
     // Make sure this is initted
-    this._helper.drawColor(this._canvas, this._color1);
+    this._helper.drawColor(this._canvas, this._color1, this._drawColorOptions);
     this._stream = this._canvas.captureStream();
     this._started = false;
   }
@@ -1310,7 +1317,11 @@ class VideoFrameEmitter {
     this._color1 = color1 ? color1 : this._helper.green;
     this._color2 = color2 ? color2 : this._helper.red;
     try {
-      this._helper.drawColor(this._canvas, this._color1);
+      this._helper.drawColor(
+        this._canvas,
+        this._color1,
+        this._drawColorOptions
+      );
     } catch (e) {
       // ignore; stream might have shut down
     }
@@ -1319,6 +1330,8 @@ class VideoFrameEmitter {
   size(width, height) {
     this._canvas.width = width;
     this._canvas.height = height;
+    this._drawColorOptions.width = this._fillEntireFrame ? width : width / 2;
+    this._drawColorOptions.height = this._fillEntireFrame ? height : height / 2;
   }
 
   start() {
@@ -1331,7 +1344,11 @@ class VideoFrameEmitter {
     this._started = true;
     this._intervalId = setInterval(() => {
       try {
-        this._helper.drawColor(this._canvas, i ? this._color1 : this._color2);
+        this._helper.drawColor(
+          this._canvas,
+          i ? this._color1 : this._color2,
+          this._drawColorOptions
+        );
         i = 1 - i;
       } catch (e) {
         // ignore; stream might have shut down, and we don't bother clearing
