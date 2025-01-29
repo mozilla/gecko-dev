@@ -25,7 +25,6 @@ EXPORTS += [
 
 EXPORTS.mozilla += [
     "AlertNotification.h",
-    "AlertNotificationIPCSerializer.h",
 ]
 
 UNIFIED_SOURCES += [
