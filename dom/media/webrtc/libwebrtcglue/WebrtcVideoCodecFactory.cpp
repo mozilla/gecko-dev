@@ -83,6 +83,12 @@ std::unique_ptr<webrtc::VideoEncoder> WebrtcVideoEncoderFactory::Create(
     case webrtc::VideoCodecType::kVideoCodecVP8:
       return std::make_unique<webrtc::SimulcastEncoderAdapter>(
           aEnv, mInternalFactory.get(), nullptr, aFormat);
+    case webrtc::VideoCodecType::kVideoCodecVP9:
+      if (StaticPrefs::media_webrtc_simulcast_vp9_enabled()) {
+        return std::make_unique<webrtc::SimulcastEncoderAdapter>(
+            aEnv, mInternalFactory.get(), nullptr, aFormat);
+      }
+      break;
     default:
       break;
   }

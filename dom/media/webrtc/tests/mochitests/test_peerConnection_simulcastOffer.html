@@ -159,7 +159,9 @@
         // 180Kbps was determined empirically, set well-higher than
         // the 80Kbps+overhead needed for the two simulcast streams.
         // 100Kbps was apparently too low.
-        ['media.peerconnection.video.min_bitrate_estimate', 180*1000]);
+        ['media.peerconnection.video.min_bitrate_estimate', 180*1000],
+        ["media.webrtc.simulcast.vp9.enabled", true],
+      );
 
     // [TODO] re-enable HW decoder after bug 1526207 is fixed.
     const isAndroid = navigator.userAgent.includes("Android");
@@ -170,9 +172,7 @@
 
     const codecs = [
       {mimeType: "video/VP8"},
-      /* VP9 simulcast not fully implemented
       {mimeType: "video/VP9"},
-      */
     ];
 
     if (!isAndroid || await hasH264()) {
