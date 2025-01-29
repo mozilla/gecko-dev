@@ -55,8 +55,8 @@
       // Load another OOP document in the parent OOP iframe.
       await SpecialPowers.spawn(parentIframe, [], async () => {
         const iframe = content.document.createElement("iframe");
-        iframe.src =
-          "https://example.org/browser/gfx/layers/apz/test/mochitest/helper_fission_plain.html";
+        const url = content.wrappedJSObject.SimpleTest.getTestFileURL("helper_fission_plain.html");
+        iframe.src = url.replace(content.window.location.origin, "https://example.org");
         iframe.style.width = "400px";
         iframe.style.height = "300px";
         iframe.style.border = "none";
