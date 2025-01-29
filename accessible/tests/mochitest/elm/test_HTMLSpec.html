@@ -765,10 +765,23 @@
         ],
       };
       testElm("input_email", obj);
-      testElm("input_search", obj);
       testElm("input_tel", obj);
       testElm("input_text", obj);
       testElm("input_url", obj);
+
+      // ////////////////////////////////////////////////////////////////////////
+      // HTML:input@type="search"
+
+      obj = {
+        role: ROLE_SEARCHBOX,
+        extraStates: EXT_STATE_EDITABLE | EXT_STATE_SINGLE_LINE,
+        actions: "activate",
+        interfaces: [ nsIAccessibleText, nsIAccessibleEditableText ],
+        children: [
+          { role: ROLE_TEXT_LEAF },
+        ],
+      };
+      testElm("input_search", obj);
 
       // ////////////////////////////////////////////////////////////////////////
       // input @type="text" with placeholder attribute

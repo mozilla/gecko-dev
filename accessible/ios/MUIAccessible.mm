@@ -374,6 +374,9 @@ static uint64_t GetAccessibilityTraits(Accessible* aAccessible) {
     case roles::PASSWORD_TEXT:
       traits |= Trait::SecureTextField;
       break;
+    case roles::SEARCHBOX:
+      traits |= Trait::SearchField;
+      break;
     default:
       break;
   }
@@ -403,10 +406,6 @@ static uint64_t GetAccessibilityTraits(Accessible* aAccessible) {
     if (state & states::FOCUSED) {
       // XXX: Also add "has text cursor" trait
       traits |= Trait::IsEditing | Trait::TextOperationsAvailable;
-    }
-
-    if (aAccessible->IsSearchbox()) {
-      traits |= Trait::SearchField;
     }
 
     if (state & states::MULTI_LINE) {

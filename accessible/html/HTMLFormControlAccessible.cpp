@@ -289,8 +289,15 @@ role HTMLTextFieldAccessible::NativeRole() const {
   if (mType == eHTMLTextPasswordFieldType) {
     return roles::PASSWORD_TEXT;
   }
-  if (mContent->AsElement()->HasAttr(nsGkAtoms::list_)) {
+  dom::Element* el = mContent->AsElement();
+  if (el->HasAttr(nsGkAtoms::list_)) {
     return roles::EDITCOMBOBOX;
+  }
+  if (const nsAttrValue* attr = el->GetParsedAttr(nsGkAtoms::type)) {
+    RefPtr<nsAtom> inputType = attr->GetAsAtom();
+    if (inputType == nsGkAtoms::search) {
+      return roles::SEARCHBOX;
+    }
   }
   return roles::ENTRY;
 }

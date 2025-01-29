@@ -646,8 +646,6 @@ class Accessible {
 
   bool IsDateTimeField() const { return mType == eHTMLDateTimeFieldType; }
 
-  bool IsSearchbox() const;
-
   virtual bool HasNumericValue() const = 0;
 
   /**
