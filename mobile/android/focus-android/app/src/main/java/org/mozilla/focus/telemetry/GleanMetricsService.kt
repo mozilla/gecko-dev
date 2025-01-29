@@ -76,9 +76,18 @@ class GleanMetricsService(context: Context) : MetricsService {
 
         /**
          * Determines whether or not telemetry is enabled.
+         * Currently, according to our lean data policy, general telemetry is disabled
          */
         @JvmStatic
-        fun isTelemetryEnabled(context: Context): Boolean {
+        @Suppress("FunctionOnlyReturningConstant", "UNUSED_PARAMETER")
+        fun isTelemetryEnabled(context: Context? = null): Boolean = false
+
+        /**
+         * Determines whether or not telemetry was enabled prior to the switch being removed.
+         * Currently, according to our lean data policy, general telemetry is disabled
+         */
+        @JvmStatic
+        fun wasTelemetryEnabled(context: Context): Boolean {
             if (isDeviceWithTelemetryDisabled()) { return false }
 
             // The first access to shared preferences will require a disk read.
