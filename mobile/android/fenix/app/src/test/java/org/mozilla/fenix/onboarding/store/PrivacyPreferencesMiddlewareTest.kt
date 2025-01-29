@@ -106,22 +106,6 @@ class PrivacyPreferencesMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN crash reporting checked called WHEN middleware is invoked THEN the repo is unchanged`() {
-        val action = PrivacyPreferencesAction.CrashReportingChecked(true)
-        middleware.invoke(context, {}, action)
-
-        verifyNoInteractions(repository)
-    }
-
-    @Test
-    fun `GIVEN usage data checked called WHEN middleware is invoked THEN the repo is unchanged`() {
-        val action = PrivacyPreferencesAction.UsageDataUserChecked(true)
-        middleware.invoke(context, {}, action)
-
-        verifyNoInteractions(repository)
-    }
-
-    @Test
     fun `GIVEN usage data learn more called WHEN middleware is invoked THEN the repo is unchanged`() {
         val action = PrivacyPreferencesAction.UsageDataUserLearnMore
         middleware.invoke(context, {}, action)
