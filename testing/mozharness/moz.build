@@ -6,3 +6,6 @@
 
 with Files("**"):
     BUG_COMPONENT = ("Release Engineering", "Applications: MozharnessCore")
+
+
+PYTHON_UNITTEST_MANIFESTS += ["test/python.toml"]

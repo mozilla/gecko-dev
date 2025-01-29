@@ -1,6 +1,7 @@
 import os
 import unittest
 
+import mozunit
 from mozharness.base.log import LogMixin
 from mozharness.base.script import ScriptMixin
 from mozharness.mozilla.building.buildbase import MozconfigPathError, get_mozconfig_path
@@ -144,3 +145,7 @@ class TestMozconfigPath(unittest.TestCase):
         for config in configs:
             with self.assertRaises(MozconfigPathError):
                 get_mozconfig_path(script, config=config, dirs={})
+
+
+if __name__ == "__main__":
+    mozunit.main()

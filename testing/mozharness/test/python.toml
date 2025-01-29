@@ -1,0 +1,24 @@
+[DEFAULT]
+subsuite = "mozharness"
+
+["test_base_config.py"]
+
+["test_base_diskutils.py"]
+
+["test_base_log.py"]
+
+["test_base_parallel.py"]
+
+["test_base_python.py"]
+
+["test_base_script.py"]
+
+["test_base_vcs_mercurial.py"]
+
+["test_l10n_locales.py"]
+
+["test_mozilla_building_buildbase.py"]
+
+["test_mozilla_merkle.py"]
+
+["test_mozilla_structured.py"]

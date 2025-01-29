@@ -12,7 +12,7 @@ PYTHON_UNITTEST_MANIFESTS += ["test/python.toml"]
 
 SPHINX_TREES["/testing"] = "docs"
 
-DIRS += ["mozbase"]
+DIRS += ["mozbase", "mozharness"]
 
 PERFTESTS_MANIFESTS += [
     "performance/perftest.toml",
