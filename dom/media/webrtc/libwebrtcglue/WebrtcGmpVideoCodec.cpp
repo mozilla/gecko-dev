@@ -107,8 +107,10 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
     }
   }
 
-  MOZ_ASSERT(aCodecSettings->numberOfSimulcastStreams == 1,
-             "Simulcast not implemented for GMP-H264");
+  if (aCodecSettings->numberOfSimulcastStreams > 1) {
+    // Simulcast not implemented for GMP-H264
+    return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
+  }
 
   GMPVideoCodec codecParams{};
   codecParams.mGMPApiVersion = kGMPVersion36;
@@ -411,7 +413,6 @@ int32_t WebrtcGmpVideoEncoder::SetRates(
     const webrtc::VideoEncoder::RateControlParameters& aParameters) {
   mEncodeQueue->AssertOnCurrentThread();
   MOZ_ASSERT(mGMPThread);
-  MOZ_ASSERT(aParameters.bitrate.IsSpatialLayerUsed(0));
   MOZ_ASSERT(!aParameters.bitrate.HasBitrate(0, 1),
              "No simulcast support for H264");
   MOZ_ASSERT(!aParameters.bitrate.IsSpatialLayerUsed(1),
