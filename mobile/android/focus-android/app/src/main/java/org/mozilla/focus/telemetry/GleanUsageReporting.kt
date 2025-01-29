@@ -16,6 +16,10 @@ import kotlin.time.toDuration
  */
 class GleanUsageReporting : GleanUsageReportingApi {
 
+    override fun setEnabled(enabled: Boolean) {
+        Pings.usageReporting.setEnabled(enabled)
+    }
+
     override fun setDuration(durationMillis: Long) {
         val duration = durationMillis.toDuration(DurationUnit.MILLISECONDS)
         Usage.duration.setRawNanos(duration.inWholeNanoseconds)

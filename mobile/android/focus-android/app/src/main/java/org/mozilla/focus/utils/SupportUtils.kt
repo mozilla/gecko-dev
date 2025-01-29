@@ -47,6 +47,7 @@ object SupportUtils {
         AUTOCOMPLETE("autofill-domain-android"),
         TRACKERS("trackers"),
         USAGE_DATA("usage-data"),
+        USAGE_PING_SETTINGS("usage-ping-settings-mobile"),
         SEARCH_SUGGESTIONS("search-suggestions-focus-android"),
         ALLOWLIST("focus-android-allowlist"),
         STUDIES("how-opt-out-studies-firefox-focus-android"),

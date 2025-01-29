@@ -502,6 +502,12 @@ class Settings(
         }
     }
 
+    var isDailyUsagePingEnabled by booleanPreference(
+        getPreferenceKey(R.string.pref_key_daily_usage_ping),
+        default = GleanMetricsService.isTelemetryEnabled(context),
+        persistDefaultIfNotExists = true,
+    )
+
     private fun getPreferenceKey(resourceId: Int): String =
         context.getString(resourceId)
 

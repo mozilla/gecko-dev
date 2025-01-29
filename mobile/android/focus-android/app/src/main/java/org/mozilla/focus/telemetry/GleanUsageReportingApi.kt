@@ -30,4 +30,9 @@ interface GleanUsageReportingApi {
      * Send the ping to Glean.
      */
     fun submitPing()
+
+    /**
+     * This allows the ping to be switched on or off from the settings screen.
+     */
+    fun setEnabled(enabled: Boolean)
 }

@@ -4,28 +4,12 @@ import androidx.lifecycle.Lifecycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.mozilla.focus.telemetry.fake.FakeGleanUsageReporting
 import org.mozilla.focus.telemetry.fake.FakeLifecycleOwner
 
 class GleanUsageReportingLifecycleObserverTest {
 
-    private val fakeGleanUsageReportingApi = object : GleanUsageReportingApi {
-        var pingSubmitCount: Int = 0
-        var lastUsageReason: String? = null
-        var lastDurationMillis: Long? = null
-
-        override fun setUsageReason(usageReason: GleanUsageReportingApi.UsageReason) {
-            this.lastUsageReason = usageReason.name.lowercase()
-        }
-
-        override fun submitPing() {
-            pingSubmitCount++
-        }
-
-        override fun setDuration(durationMillis: Long) {
-            lastDurationMillis = durationMillis
-        }
-    }
-
+    private val fakeGleanUsageReportingApi = FakeGleanUsageReporting()
     private var fakeCurrentTime = 0L
     private val fakeCurrentTimeProvider = { ++fakeCurrentTime }
 

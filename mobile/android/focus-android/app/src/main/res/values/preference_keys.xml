@@ -33,6 +33,8 @@
 
     <string name="pref_key_telemetry" translatable="false"><xliff:g id="preference_key">pref_telemetry</xliff:g></string>
     <string name="pref_key_glean_usage_profile_id" translatable="false"><xliff:g id="preference_key">pref_key_glean_usage_profile_id</xliff:g></string>
+    <string name="pref_key_daily_usage_ping" translatable="false"><xliff:g id="preference_key">pref_key_daily_usage_ping</xliff:g></string>
+    <string name="pref_key_learn_about_daily_usage_ping" translatable="false"><xliff:g id="preference_key">pref_key_learn_about_daily_usage_ping</xliff:g></string>
 
     <string name="pref_key_secure" translatable="false"><xliff:g id="preference_key">pref_secure</xliff:g></string>
 
