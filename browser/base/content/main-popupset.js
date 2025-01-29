@@ -104,6 +104,9 @@ document.addEventListener(
         case "context_fullscreenExit":
           BrowserCommands.fullScreen();
           break;
+        case "context_toggleVerticalTabs":
+          SidebarController.toggleVerticalTabs();
+          break;
 
         // == open-tab-group-context-menu ==
         case "open-tab-group-context-menu_moveToNewWindow":

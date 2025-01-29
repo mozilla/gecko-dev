@@ -522,6 +522,16 @@ var SidebarController = {
   },
 
   /**
+   * Toggle the vertical tabs preference.
+   */
+  toggleVerticalTabs() {
+    Services.prefs.setBoolPref(
+      "sidebar.verticalTabs",
+      !this.sidebarVerticalTabsEnabled
+    );
+  },
+
+  /**
    * The handler for Services.obs.addObserver.
    */
   observe(_subject, topic, _data) {
