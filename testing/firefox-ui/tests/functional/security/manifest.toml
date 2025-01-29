@@ -1,3 +1,6 @@
 [DEFAULT]
 
+["test_https_first.py"]
+https_first_disabled = true
+
 ["test_ssl_status_after_restart.py"]

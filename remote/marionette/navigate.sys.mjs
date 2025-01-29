@@ -161,9 +161,11 @@ navigate.isLoadEventExpected = function (current, options = {}) {
 navigate.navigateTo = async function (browsingContext, url) {
   const opts = {
     loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_IS_LINK,
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     // Fake user activation.
     hasValidUserGestureActivation: true,
+    // Prevent HTTPS-First upgrades.
+    schemelessInput: Ci.nsILoadInfo.SchemelessInputTypeSchemeful,
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
   };
   browsingContext.fixupAndLoadURIString(url, opts);
 };

@@ -1161,9 +1161,12 @@ class BrowsingContextModule extends RootBiDiModule {
       () => {
         context.loadURI(targetURI, {
           loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_IS_LINK,
+          // Fake user activation.
+          hasValidUserGestureActivation: true,
+          // Prevent HTTPS-First upgrades.
+          schemelessInput: Ci.nsILoadInfo.SchemelessInputTypeSchemeful,
           triggeringPrincipal:
             Services.scriptSecurityManager.getSystemPrincipal(),
-          hasValidUserGestureActivation: true,
         });
       },
       {

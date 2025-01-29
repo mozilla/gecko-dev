@@ -19,4 +19,5 @@ from marionette_driver import (
 )
 from marionette_driver.by import By
 from marionette_driver.date_time_value import DateTimeValue
+from marionette_driver.keys import Keys
 from marionette_driver.wait import Wait
