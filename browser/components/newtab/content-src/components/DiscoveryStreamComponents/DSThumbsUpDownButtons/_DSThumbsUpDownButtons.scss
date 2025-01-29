@@ -150,5 +150,9 @@
     .layout-variant-b & {
       margin-block-end: var(--space-medium);
     }
+
+    .shortcuts-refresh & {
+      margin-block-end: 0;
+    }
   }
 }

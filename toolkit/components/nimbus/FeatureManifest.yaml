@@ -940,6 +940,20 @@ newtabLayoutExperiment:
       description: >-
         Variant B in layouts experiment.
 
+newtabShortcutsExperiment:
+  description: >-
+    Adjusting sizes and spacing of new tab shortcuts.
+  owner: sdowne@mozilla.com
+  hasExposure: false
+  variables:
+    refresh:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabShortcuts.refresh
+      description: >-
+        Adjusting sizes and spacing of new tab shortcuts.
+
 newtabSponsoredContent:
   description: >-
     Change and control the sponsored content on newtab.

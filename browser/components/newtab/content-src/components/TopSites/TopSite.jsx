@@ -258,7 +258,9 @@ export class TopSiteLink extends React.PureComponent {
       onClick,
       title,
       isAddButton,
+      shortcutsRefresh,
     } = this.props;
+
     const topSiteOuterClassName = `top-site-outer${
       className ? ` ${className}` : ""
     }${link.isDragged ? " dragged" : ""}${
@@ -381,7 +383,10 @@ export class TopSiteLink extends React.PureComponent {
                   />
                 )}
               </div>
-              {link.searchTopSite && (
+              {shortcutsRefresh && link.isPinned && (
+                <div className="icon icon-pin-small" />
+              )}
+              {!shortcutsRefresh && link.searchTopSite && (
                 <div className="top-site-icon search-topsite" />
               )}
             </div>
@@ -397,7 +402,12 @@ export class TopSiteLink extends React.PureComponent {
                 dir="auto"
                 {...(isAddButton && { ...addButtonl10n })}
               >
-                {link.isPinned && <div className="icon icon-pin-small" />}
+                {!shortcutsRefresh && link.isPinned && (
+                  <div className="icon icon-pin-small" />
+                )}
+                {shortcutsRefresh && link.searchTopSite && (
+                  <div className="top-site-icon search-topsite" />
+                )}
                 {title || <br />}
               </span>
               <span
@@ -852,6 +862,8 @@ export class _TopSiteList extends React.PureComponent {
 
   render() {
     const { props } = this;
+    const prefs = props.Prefs.values;
+    const shortcutsRefresh = prefs["newtabShortcuts.refresh"];
     const topSites = this.state.topSitesPreview || this._getTopSites();
     const topSitesUI = [];
     const commonProps = {
@@ -909,6 +921,7 @@ export class _TopSiteList extends React.PureComponent {
             {...slotProps}
             {...commonProps}
             colors={props.colors}
+            shortcutsRefresh={shortcutsRefresh}
           />
         );
       }
@@ -931,4 +944,5 @@ export class _TopSiteList extends React.PureComponent {
 
 export const TopSiteList = connect(state => ({
   App: state.App,
+  Prefs: state.Prefs,
 }))(_TopSiteList);
