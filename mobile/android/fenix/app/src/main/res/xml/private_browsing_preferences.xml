@@ -15,4 +15,9 @@
         android:key="@string/pref_key_allow_screenshots_in_private_mode"
         android:summary="@string/preferences_screenshots_in_private_mode_disclaimer"
         android:title="@string/preferences_allow_screenshots_in_private_mode" />
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="pref_key_private_browsing_biometrics_enabled"
+        android:summary="Require biometrics to access private browsing"
+        android:title="Enable biometric authentication in private browsing mode"/>
 </PreferenceScreen>
