@@ -69,7 +69,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PublicSSL.h"
 #include "nsXULAppAPI.h"
@@ -237,14 +237,11 @@ void PeerConnectionAutoTimer::UnregisterConnection(bool aContainedAV) {
   mRefCnt--;
   mUsedAV |= aContainedAV;
   if (mRefCnt == 0) {
+    TimeDuration sample = TimeStamp::Now() - mStart;
     if (mUsedAV) {
-      Telemetry::Accumulate(
-          Telemetry::WEBRTC_AV_CALL_DURATION,
-          static_cast<uint32_t>((TimeStamp::Now() - mStart).ToSeconds()));
+      glean::webrtc::av_call_duration.AccumulateRawDuration(sample);
     }
-    Telemetry::Accumulate(
-        Telemetry::WEBRTC_CALL_DURATION,
-        static_cast<uint32_t>((TimeStamp::Now() - mStart).ToSeconds()));
+    glean::webrtc::call_duration.AccumulateRawDuration(sample);
   }
 }
 
@@ -651,17 +648,25 @@ class ConfigureCodec {
     mSoftwareH264Enabled = PeerConnectionCtx::GetInstance()->gmpHasH264();
 
     if (WebrtcVideoConduit::HasH264Hardware()) {
-      Telemetry::Accumulate(Telemetry::WEBRTC_HAS_H264_HARDWARE, true);
+      glean::webrtc::has_h264_hardware
+          .EnumGet(glean::webrtc::HasH264HardwareLabel::eTrue)
+          .Add();
       branch->GetBoolPref("media.webrtc.hw.h264.enabled",
                           &mHardwareH264Enabled);
     }
 
     mH264Enabled = mHardwareH264Enabled || mSoftwareH264Enabled;
-    Telemetry::Accumulate(Telemetry::WEBRTC_SOFTWARE_H264_ENABLED,
-                          mSoftwareH264Enabled);
-    Telemetry::Accumulate(Telemetry::WEBRTC_HARDWARE_H264_ENABLED,
-                          mHardwareH264Enabled);
-    Telemetry::Accumulate(Telemetry::WEBRTC_H264_ENABLED, mH264Enabled);
+    glean::webrtc::software_h264_enabled
+        .EnumGet(static_cast<glean::webrtc::SoftwareH264EnabledLabel>(
+            mSoftwareH264Enabled))
+        .Add();
+    glean::webrtc::hardware_h264_enabled
+        .EnumGet(static_cast<glean::webrtc::HardwareH264EnabledLabel>(
+            mHardwareH264Enabled))
+        .Add();
+    glean::webrtc::h264_enabled
+        .EnumGet(static_cast<glean::webrtc::H264EnabledLabel>(mH264Enabled))
+        .Add();
 
     branch->GetIntPref("media.navigator.video.h264.level", &mH264Level);
     mH264Level &= 0xFF;
@@ -2503,9 +2508,9 @@ void PeerConnectionImpl::StoreFinalStats(
         report->mCallDurationMs.WasPassed()) {
       double mins = report->mCallDurationMs.Value() / (1000 * 60);
       if (mins > 0) {
-        Accumulate(
-            WEBRTC_VIDEO_DECODER_DISCARDED_PACKETS_PER_CALL_PPM,
-            uint32_t(double(inboundRtpStats.mDiscardedPackets.Value()) / mins));
+        glean::webrtc::video_decoder_discarded_packets_per_call_ppm
+            .AccumulateSingleSample(uint32_t(
+                double(inboundRtpStats.mDiscardedPackets.Value()) / mins));
       }
     }
   }
@@ -2798,19 +2803,21 @@ void PeerConnectionImpl::RecordEndOfCallTelemetry() {
   static const uint32_t kDataChannelTypeMask = 4;
 
   // Report end-of-call Telemetry
-  Telemetry::Accumulate(Telemetry::WEBRTC_RENEGOTIATIONS,
-                        mJsepSession->GetNegotiations() - 1);
-  Telemetry::Accumulate(Telemetry::WEBRTC_MAX_VIDEO_SEND_TRACK,
-                        mMaxSending[SdpMediaSection::MediaType::kVideo]);
-  Telemetry::Accumulate(Telemetry::WEBRTC_MAX_VIDEO_RECEIVE_TRACK,
-                        mMaxReceiving[SdpMediaSection::MediaType::kVideo]);
-  Telemetry::Accumulate(Telemetry::WEBRTC_MAX_AUDIO_SEND_TRACK,
-                        mMaxSending[SdpMediaSection::MediaType::kAudio]);
-  Telemetry::Accumulate(Telemetry::WEBRTC_MAX_AUDIO_RECEIVE_TRACK,
-                        mMaxReceiving[SdpMediaSection::MediaType::kAudio]);
+  glean::webrtc::renegotiations.AccumulateSingleSample(
+      mJsepSession->GetNegotiations() - 1);
+  glean::webrtc::max_video_send_track.AccumulateSingleSample(
+      mMaxSending[SdpMediaSection::MediaType::kVideo]);
+  glean::webrtc::max_video_receive_track.AccumulateSingleSample(
+      mMaxReceiving[SdpMediaSection::MediaType::kVideo]);
+  glean::webrtc::max_audio_send_track.AccumulateSingleSample(
+      mMaxSending[SdpMediaSection::MediaType::kAudio]);
+  glean::webrtc::max_audio_receive_track.AccumulateSingleSample(
+      mMaxReceiving[SdpMediaSection::MediaType::kAudio]);
   // DataChannels appear in both Sending and Receiving
-  Telemetry::Accumulate(Telemetry::WEBRTC_DATACHANNEL_NEGOTIATED,
-                        mMaxSending[SdpMediaSection::MediaType::kApplication]);
+  glean::webrtc::datachannel_negotiated
+      .EnumGet(static_cast<glean::webrtc::DatachannelNegotiatedLabel>(
+          mMaxSending[SdpMediaSection::MediaType::kApplication]))
+      .Add();
   // Enumerated/bitmask: 1 = Audio, 2 = Video, 4 = DataChannel
   // A/V = 3, A/V/D = 7, etc
   uint32_t type = 0;
@@ -2825,7 +2832,7 @@ void PeerConnectionImpl::RecordEndOfCallTelemetry() {
   if (mMaxSending[SdpMediaSection::MediaType::kApplication]) {
     type |= kDataChannelTypeMask;
   }
-  Telemetry::Accumulate(Telemetry::WEBRTC_CALL_TYPE, type);
+  glean::webrtc::call_type.AccumulateSingleSample(type);
 
   MOZ_RELEASE_ASSERT(mWindow);
   auto found = sCallDurationTimers.find(mWindow->WindowID());
@@ -4043,7 +4050,7 @@ void PeerConnectionImpl::StartCallTelem() {
   // NOTE: As of bug 1654248 landing we are no longer counting renegotiations
   // as separate calls. Expect numbers to drop compared to
   // WEBRTC_CALL_COUNT_2.
-  Telemetry::Accumulate(Telemetry::WEBRTC_CALL_COUNT_3, 1);
+  glean::webrtc::call_count_3.Add(1);
 }
 
 void PeerConnectionImpl::StunAddrsHandler::OnMDNSQueryComplete(

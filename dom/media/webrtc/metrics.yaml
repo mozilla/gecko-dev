@@ -524,3 +524,753 @@ webrtc.video:
       - nohlmeier@mozilla.com
     expires: never
     telemetry_mirror: WEBRTC_VIDEO_SEND_CODEC_USED
+
+webrtc:
+  video_quality_inbound_bandwidth_kbits:
+    type: custom_distribution
+    description: >
+      Locally measured data rate of inbound video (kbit/s). Computed every
+      second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 1000
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS
+
+  audio_quality_inbound_bandwidth_kbits:
+    type: custom_distribution
+    description: >
+      Locally measured data rate on inbound audio (kbit/s). Computed every
+      second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS.
+    range_min: 1
+    range_max: 1000000
+    bucket_count: 1000
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS
+
+  video_quality_inbound_packetloss_rate:
+    type: custom_distribution
+    description: >
+      Locally measured packet loss on inbound video (permille). Sampled every
+      second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_INBOUND_PACKETLOSS_RATE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: permille
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_INBOUND_PACKETLOSS_RATE
+
+  audio_quality_inbound_packetloss_rate:
+    type: custom_distribution
+    description: >
+      Locally measured packet loss on inbound audio (permille). Sampled every
+      second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_INBOUND_PACKETLOSS_RATE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: permille
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_INBOUND_PACKETLOSS_RATE
+
+  video_quality_outbound_packetloss_rate:
+    type: custom_distribution
+    description: >
+      RTCP-reported packet loss by remote recipient of outbound video
+      (permille). Sampled every second of a call (for easy comparison).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_OUTBOUND_PACKETLOSS_RATE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: permille
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_OUTBOUND_PACKETLOSS_RATE
+
+  audio_quality_outbound_packetloss_rate:
+    type: custom_distribution
+    description: >
+      RTCP-reported packet loss by remote recipient of outbound audio
+      (permille). Sampled every second of a call (for easy comparison).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_OUTBOUND_PACKETLOSS_RATE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: permille
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_OUTBOUND_PACKETLOSS_RATE
+
+  video_quality_inbound_jitter:
+    type: timing_distribution
+    description: >
+      Locally measured jitter on inbound video (ms). Sampled every second of a
+      call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_INBOUND_JITTER.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_INBOUND_JITTER
+
+  audio_quality_inbound_jitter:
+    type: timing_distribution
+    description: >
+      Locally measured jitter on inbound audio (ms). Sampled every second of a
+      call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_INBOUND_JITTER.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_INBOUND_JITTER
+
+  video_quality_outbound_jitter:
+    type: timing_distribution
+    description: >
+      RTCP-reported jitter by remote recipient of outbound video (ms). Sampled
+      every second of a call (for easy comparison).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_OUTBOUND_JITTER.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_OUTBOUND_JITTER
+
+  audio_quality_outbound_jitter:
+    type: timing_distribution
+    description: >
+      RTCP-reported jitter by remote recipient of outbound audio (ms). Sampled
+      every second of a call (for easy comparison).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_OUTBOUND_JITTER.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_OUTBOUND_JITTER
+
+  video_quality_outbound_rtt:
+    type: timing_distribution
+    description: >
+      Roundtrip time of outbound video (ms). Sampled every second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_QUALITY_OUTBOUND_RTT.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_QUALITY_OUTBOUND_RTT
+
+  audio_quality_outbound_rtt:
+    type: timing_distribution
+    description: >
+      Roundtrip time of outbound audio (ms). Sampled every second of a call.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AUDIO_QUALITY_OUTBOUND_RTT.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AUDIO_QUALITY_OUTBOUND_RTT
+
+  video_encoder_bitrate_avg_per_call_kbps:
+    type: custom_distribution
+    description: >
+      Video encoder's average bitrate (in kbits/s) over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_ENCODER_BITRATE_AVG_PER_CALL_KBPS.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_ENCODER_BITRATE_AVG_PER_CALL_KBPS
+
+  video_encoder_bitrate_std_dev_per_call_kbps:
+    type: custom_distribution
+    description: >
+      Standard deviation from video encoder's average bitrate (in kbits/s) over
+      an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_ENCODER_BITRATE_STD_DEV_PER_CALL_KBPS.
+    range_min: 1
+    range_max: 5000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_ENCODER_BITRATE_STD_DEV_PER_CALL_KBPS
+
+  video_encoder_framerate_avg_per_call:
+    type: custom_distribution
+    description: >
+      Video encoder's average framerate (in fps) over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_ENCODER_FRAMERATE_AVG_PER_CALL.
+    range_min: 1
+    range_max: 200
+    bucket_count: 50
+    histogram_type: exponential
+    unit: frames per second (fps)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_ENCODER_FRAMERATE_AVG_PER_CALL
+
+  video_encoder_framerate_10x_std_dev_per_call:
+    type: custom_distribution
+    description: >
+      Standard deviation from video encoder's average framerate (in 1/10 fps)
+      over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_ENCODER_FRAMERATE_10X_STD_DEV_PER_CALL.
+    range_min: 1
+    range_max: 200
+    bucket_count: 50
+    histogram_type: exponential
+    unit: 1/10 fps
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_ENCODER_FRAMERATE_10X_STD_DEV_PER_CALL
+
+  video_decoder_bitrate_avg_per_call_kbps:
+    type: custom_distribution
+    description: >
+      Video decoder's average bitrate (in kbits/s) over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_DECODER_BITRATE_AVG_PER_CALL_KBPS.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_DECODER_BITRATE_AVG_PER_CALL_KBPS
+
+  video_decoder_bitrate_std_dev_per_call_kbps:
+    type: custom_distribution
+    description: >
+      Standard deviation from video decoder's average bitrate (in kbits/s) over
+      an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_DECODER_BITRATE_STD_DEV_PER_CALL_KBPS.
+    range_min: 1
+    range_max: 5000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: kilobits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_DECODER_BITRATE_STD_DEV_PER_CALL_KBPS
+
+  video_decoder_framerate_avg_per_call:
+    type: custom_distribution
+    description: >
+      Video decoder's average framerate (in fps) over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_DECODER_FRAMERATE_AVG_PER_CALL.
+    range_min: 1
+    range_max: 200
+    bucket_count: 50
+    histogram_type: exponential
+    unit: frames per second (fps)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_DECODER_FRAMERATE_AVG_PER_CALL
+
+  video_decoder_framerate_10x_std_dev_per_call:
+    type: custom_distribution
+    description: >
+      Standard deviation from video decoder's average framerate (in 1/10 fps)
+      over an entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_DECODER_FRAMERATE_10X_STD_DEV_PER_CALL.
+    range_min: 1
+    range_max: 200
+    bucket_count: 50
+    histogram_type: exponential
+    unit: 1/10 fps
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_DECODER_FRAMERATE_10X_STD_DEV_PER_CALL
+
+  video_decoder_discarded_packets_per_call_ppm:
+    type: custom_distribution
+    description: >
+      Video decoder's number of discarded packets (in packets/min) over an
+      entire call
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_VIDEO_DECODER_DISCARDED_PACKETS_PER_CALL_PPM.
+    range_min: 1
+    range_max: 50000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: packets per minute
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_DECODER_DISCARDED_PACKETS_PER_CALL_PPM
+
+  call_duration:
+    type: timing_distribution
+    description: >
+      The length of time (in seconds) that a call lasted.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_CALL_DURATION.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1571015
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1586271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1571015
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1586271
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_CALL_DURATION
+
+  av_call_duration:
+    type: timing_distribution
+    description: >
+      The length of time (in seconds) that a call with audio or video in it
+      lasted.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBRTC_AV_CALL_DURATION.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1695378
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1695378
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_AV_CALL_DURATION
+
+  call_count_3:
+    type: counter
+    description: >
+      The number of successfully connected calls made during a session
+      (discounting re-negotiations).
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram WEBRTC_CALL_COUNT_3.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=875097
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1261063
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654248
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=875097
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1261063
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654248
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_CALL_COUNT_3
+
+  get_user_media_type:
+    type: custom_distribution
+    description: >
+      Type for media in getUserMedia calls (0=Camera, 1=Screen, 2=Application,
+      3=Window, 4=Browser, 5=Microphone, 6=AudioCapture, 7=Other)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBRTC_GET_USER_MEDIA_TYPE.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_GET_USER_MEDIA_TYPE
+
+  renegotiations:
+    type: custom_distribution
+    description: >
+      Number of Renegotiations during each call
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram WEBRTC_RENEGOTIATIONS.
+    range_min: 1
+    range_max: 21
+    bucket_count: 20
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_RENEGOTIATIONS
+
+  max_video_send_track:
+    type: custom_distribution
+    description: >
+      Number of Video tracks sent simultaneously
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram WEBRTC_MAX_VIDEO_SEND_TRACK.
+    range_min: 1
+    range_max: 10
+    bucket_count: 9
+    histogram_type: linear
+    unit: video tracks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_MAX_VIDEO_SEND_TRACK
+
+  max_video_receive_track:
+    type: custom_distribution
+    description: >
+      Number of Video tracks received simultaneously
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram WEBRTC_MAX_VIDEO_RECEIVE_TRACK.
+    range_min: 1
+    range_max: 20
+    bucket_count: 19
+    histogram_type: linear
+    unit: video tracks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_MAX_VIDEO_RECEIVE_TRACK
+
+  max_audio_send_track:
+    type: custom_distribution
+    description: >
+      Number of Audio tracks sent simultaneously
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram WEBRTC_MAX_AUDIO_SEND_TRACK.
+    range_min: 1
+    range_max: 20
+    bucket_count: 19
+    histogram_type: linear
+    unit: audio tracks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_MAX_AUDIO_SEND_TRACK
+
+  max_audio_receive_track:
+    type: custom_distribution
+    description: >
+      Number of Audio tracks received simultaneously
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram WEBRTC_MAX_AUDIO_RECEIVE_TRACK.
+    range_min: 1
+    range_max: 30
+    bucket_count: 29
+    histogram_type: linear
+    unit: audio tracks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_MAX_AUDIO_RECEIVE_TRACK
+
+  datachannel_negotiated:
+    type: labeled_counter
+    description: >
+      Was DataChannels negotiated
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_DATACHANNEL_NEGOTIATED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_DATACHANNEL_NEGOTIATED
+
+  call_type:
+    type: custom_distribution
+    description: >
+      Type of call: (Bitmask) Audio = 1, Video = 2, DataChannels = 4
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBRTC_CALL_TYPE.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_CALL_TYPE
+
+  software_h264_enabled:
+    type: labeled_counter
+    description: >
+      Whether hardware H264 is enabled
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_SOFTWARE_H264_ENABLED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_SOFTWARE_H264_ENABLED
+
+  has_h264_hardware:
+    type: labeled_counter
+    description: >
+      Whether the user has H264 hardware
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_HAS_H264_HARDWARE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_HAS_H264_HARDWARE
+
+  hardware_h264_enabled:
+    type: labeled_counter
+    description: >
+      Whether software H264 is enabled
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_HARDWARE_H264_ENABLED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_HARDWARE_H264_ENABLED
+
+  h264_enabled:
+    type: labeled_counter
+    description: >
+      Whether any kind of H264 is enabled
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_H264_ENABLED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766509
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_H264_ENABLED
+
+  gmp_init_success:
+    type: labeled_counter
+    description: >
+      Counts of GMP codec initialization success and failure
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBRTC_GMP_INIT_SUCCESS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1774222
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1774222
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBRTC_GMP_INIT_SUCCESS

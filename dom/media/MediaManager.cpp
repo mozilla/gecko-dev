@@ -26,7 +26,7 @@
 #include "mozilla/PermissionDelegateHandler.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/Types.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Document.h"
@@ -2928,8 +2928,8 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
     }
     videoType = dom::StringToEnum<MediaSourceEnum>(vc.mMediaSource.Value())
                     .valueOr(MediaSourceEnum::Other);
-    Telemetry::Accumulate(Telemetry::WEBRTC_GET_USER_MEDIA_TYPE,
-                          (uint32_t)videoType);
+    glean::webrtc::get_user_media_type.AccumulateSingleSample(
+        (uint32_t)videoType);
     switch (videoType) {
       case MediaSourceEnum::Camera:
         break;
@@ -3008,8 +3008,8 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
     }
   } else if (IsOn(c.mVideo)) {
     videoType = MediaSourceEnum::Camera;
-    Telemetry::Accumulate(Telemetry::WEBRTC_GET_USER_MEDIA_TYPE,
-                          (uint32_t)videoType);
+    glean::webrtc::get_user_media_type.AccumulateSingleSample(
+        (uint32_t)videoType);
   }
 
   if (c.mAudio.IsMediaTrackConstraints()) {
@@ -3020,8 +3020,8 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
     }
     audioType = dom::StringToEnum<MediaSourceEnum>(ac.mMediaSource.Value())
                     .valueOr(MediaSourceEnum::Other);
-    Telemetry::Accumulate(Telemetry::WEBRTC_GET_USER_MEDIA_TYPE,
-                          (uint32_t)audioType);
+    glean::webrtc::get_user_media_type.AccumulateSingleSample(
+        (uint32_t)audioType);
 
     switch (audioType) {
       case MediaSourceEnum::Microphone:
@@ -3047,8 +3047,8 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
     }
   } else if (IsOn(c.mAudio)) {
     audioType = MediaSourceEnum::Microphone;
-    Telemetry::Accumulate(Telemetry::WEBRTC_GET_USER_MEDIA_TYPE,
-                          (uint32_t)audioType);
+    glean::webrtc::get_user_media_type.AccumulateSingleSample(
+        (uint32_t)audioType);
   }
 
   // Create a window listener if it doesn't already exist.

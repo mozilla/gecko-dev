@@ -12,8 +12,6 @@
 #include "sdp/Sdp.h"
 #include "sdp/SdpLog.h"
 
-#include "mozilla/Telemetry.h"
-
 namespace mozilla {
 
 class SdpParser {

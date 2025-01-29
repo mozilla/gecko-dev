@@ -34,7 +34,6 @@
 #include "transport/runnable_utils.h"
 
 #include "mozilla/Algorithm.h"
-#include "mozilla/Telemetry.h"
 
 #include "mozilla/dom/RTCStatsReportBinding.h"
 

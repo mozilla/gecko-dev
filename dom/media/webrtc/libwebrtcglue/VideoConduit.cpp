@@ -81,7 +81,6 @@
 #include "mozilla/ReverseIterator.h"
 #include "mozilla/StateWatching.h"
 #include "mozilla/glean/DomMediaWebrtcMetrics.h"
-#include "mozilla/TelemetryHistogramEnums.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -1298,38 +1297,41 @@ RefPtr<GenericPromise> WebrtcVideoConduit::Shutdown() {
 
   return InvokeAsync(
       mCallThread, __func__, [this, self = RefPtr<WebrtcVideoConduit>(this)] {
-        using namespace Telemetry;
         if (mSendBitrate.NumDataValues() > 0) {
-          Accumulate(WEBRTC_VIDEO_ENCODER_BITRATE_AVG_PER_CALL_KBPS,
-                     static_cast<unsigned>(mSendBitrate.Mean() / 1000));
-          Accumulate(
-              WEBRTC_VIDEO_ENCODER_BITRATE_STD_DEV_PER_CALL_KBPS,
-              static_cast<unsigned>(mSendBitrate.StandardDeviation() / 1000));
+          glean::webrtc::video_encoder_bitrate_avg_per_call_kbps
+              .AccumulateSingleSample(
+                  static_cast<unsigned>(mSendBitrate.Mean() / 1000));
+          glean::webrtc::video_encoder_bitrate_std_dev_per_call_kbps
+              .AccumulateSingleSample(static_cast<unsigned>(
+                  mSendBitrate.StandardDeviation() / 1000));
           mSendBitrate.Clear();
         }
         if (mSendFramerate.NumDataValues() > 0) {
-          Accumulate(WEBRTC_VIDEO_ENCODER_FRAMERATE_AVG_PER_CALL,
-                     static_cast<unsigned>(mSendFramerate.Mean()));
-          Accumulate(
-              WEBRTC_VIDEO_ENCODER_FRAMERATE_10X_STD_DEV_PER_CALL,
-              static_cast<unsigned>(mSendFramerate.StandardDeviation() * 10));
+          glean::webrtc::video_encoder_framerate_avg_per_call
+              .AccumulateSingleSample(
+                  static_cast<unsigned>(mSendFramerate.Mean()));
+          glean::webrtc::video_encoder_framerate_10x_std_dev_per_call
+              .AccumulateSingleSample(static_cast<unsigned>(
+                  mSendFramerate.StandardDeviation() * 10));
           mSendFramerate.Clear();
         }
 
         if (mRecvBitrate.NumDataValues() > 0) {
-          Accumulate(WEBRTC_VIDEO_DECODER_BITRATE_AVG_PER_CALL_KBPS,
-                     static_cast<unsigned>(mRecvBitrate.Mean() / 1000));
-          Accumulate(
-              WEBRTC_VIDEO_DECODER_BITRATE_STD_DEV_PER_CALL_KBPS,
-              static_cast<unsigned>(mRecvBitrate.StandardDeviation() / 1000));
+          glean::webrtc::video_decoder_bitrate_avg_per_call_kbps
+              .AccumulateSingleSample(
+                  static_cast<unsigned>(mRecvBitrate.Mean() / 1000));
+          glean::webrtc::video_decoder_bitrate_std_dev_per_call_kbps
+              .AccumulateSingleSample(static_cast<unsigned>(
+                  mRecvBitrate.StandardDeviation() / 1000));
           mRecvBitrate.Clear();
         }
         if (mRecvFramerate.NumDataValues() > 0) {
-          Accumulate(WEBRTC_VIDEO_DECODER_FRAMERATE_AVG_PER_CALL,
-                     static_cast<unsigned>(mRecvFramerate.Mean()));
-          Accumulate(
-              WEBRTC_VIDEO_DECODER_FRAMERATE_10X_STD_DEV_PER_CALL,
-              static_cast<unsigned>(mRecvFramerate.StandardDeviation() * 10));
+          glean::webrtc::video_decoder_framerate_avg_per_call
+              .AccumulateSingleSample(
+                  static_cast<unsigned>(mRecvFramerate.Mean()));
+          glean::webrtc::video_decoder_framerate_10x_std_dev_per_call
+              .AccumulateSingleSample(static_cast<unsigned>(
+                  mRecvFramerate.StandardDeviation() * 10));
           mRecvFramerate.Clear();
         }
 

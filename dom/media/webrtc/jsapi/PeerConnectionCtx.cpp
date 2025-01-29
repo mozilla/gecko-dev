@@ -20,7 +20,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "nsCRTGlue.h"
 #include "nsIIOService.h"
@@ -292,29 +292,53 @@ void PeerConnectionCtx::Destroy() {
 template <typename T>
 static void RecordCommonRtpTelemetry(const T& list, const T& lastList,
                                      const bool isRemote) {
-  using namespace Telemetry;
   for (const auto& s : list) {
     const bool isAudio = s.mKind.Find(u"audio") != -1;
     if (s.mPacketsLost.WasPassed() && s.mPacketsReceived.WasPassed()) {
       if (const uint64_t total =
               s.mPacketsLost.Value() + s.mPacketsReceived.Value()) {
-        HistogramID id =
-            isRemote ? (isAudio ? WEBRTC_AUDIO_QUALITY_OUTBOUND_PACKETLOSS_RATE
-                                : WEBRTC_VIDEO_QUALITY_OUTBOUND_PACKETLOSS_RATE)
-                     : (isAudio ? WEBRTC_AUDIO_QUALITY_INBOUND_PACKETLOSS_RATE
-                                : WEBRTC_VIDEO_QUALITY_INBOUND_PACKETLOSS_RATE);
         // Because this is an integer and we would like some extra precision
         // the unit is per mille (1/1000) instead of percent (1/100).
-        Accumulate(id, (s.mPacketsLost.Value() * 1000) / total);
+        uint32_t sample = (s.mPacketsLost.Value() * 1000) / total;
+        if (isRemote) {
+          if (isAudio) {
+            glean::webrtc::audio_quality_outbound_packetloss_rate
+                .AccumulateSingleSample(sample);
+          } else {
+            glean::webrtc::video_quality_outbound_packetloss_rate
+                .AccumulateSingleSample(sample);
+          }
+        } else {
+          if (isAudio) {
+            glean::webrtc::audio_quality_inbound_packetloss_rate
+                .AccumulateSingleSample(sample);
+          } else {
+            glean::webrtc::video_quality_inbound_packetloss_rate
+                .AccumulateSingleSample(sample);
+          }
+        }
       }
     }
     if (s.mJitter.WasPassed()) {
-      HistogramID id = isRemote
-                           ? (isAudio ? WEBRTC_AUDIO_QUALITY_OUTBOUND_JITTER
-                                      : WEBRTC_VIDEO_QUALITY_OUTBOUND_JITTER)
-                           : (isAudio ? WEBRTC_AUDIO_QUALITY_INBOUND_JITTER
-                                      : WEBRTC_VIDEO_QUALITY_INBOUND_JITTER);
-      Accumulate(id, s.mJitter.Value() * 1000);
+      TimeDuration sample =
+          TimeDuration::FromMilliseconds(s.mJitter.Value() * 1000);
+      if (isRemote) {
+        if (isAudio) {
+          glean::webrtc::audio_quality_outbound_jitter.AccumulateRawDuration(
+              sample);
+        } else {
+          glean::webrtc::video_quality_outbound_jitter.AccumulateRawDuration(
+              sample);
+        }
+      } else {
+        if (isAudio) {
+          glean::webrtc::audio_quality_inbound_jitter.AccumulateRawDuration(
+              sample);
+        } else {
+          glean::webrtc::video_quality_inbound_jitter.AccumulateRawDuration(
+              sample);
+        }
+      }
     }
   }
 }
@@ -328,8 +352,6 @@ static void RecordCommonRtpTelemetry(const T& list, const T& lastList,
 
 void PeerConnectionCtx::DeliverStats(
     UniquePtr<dom::RTCStatsReportInternal>&& aReport) {
-  using namespace Telemetry;
-
   // First, get reports from a second ago, if any, for calculations below
   UniquePtr<dom::RTCStatsReportInternal> lastReport;
   {
@@ -356,15 +378,18 @@ void PeerConnectionCtx::DeliverStats(
               !lastS.mBytesReceived.WasPassed()) {
             break;
           }
-          HistogramID id = isAudio
-                               ? WEBRTC_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS
-                               : WEBRTC_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS;
           // We could accumulate values until enough time has passed
           // and then Accumulate() but this isn't that important
-          Accumulate(
-              id,
+          uint32_t sample =
               ((s.mBytesReceived.Value() - lastS.mBytesReceived.Value()) * 8) /
-                  deltaMs);
+              deltaMs;
+          if (isAudio) {
+            glean::webrtc::audio_quality_inbound_bandwidth_kbits
+                .AccumulateSingleSample(sample);
+          } else {
+            glean::webrtc::video_quality_inbound_bandwidth_kbits
+                .AccumulateSingleSample(sample);
+          }
           break;
         }
       }
@@ -375,9 +400,13 @@ void PeerConnectionCtx::DeliverStats(
   for (const auto& s : aReport->mRemoteInboundRtpStreamStats) {
     if (s.mRoundTripTime.WasPassed()) {
       const bool isAudio = s.mKind.Find(u"audio") != -1;
-      HistogramID id = isAudio ? WEBRTC_AUDIO_QUALITY_OUTBOUND_RTT
-                               : WEBRTC_VIDEO_QUALITY_OUTBOUND_RTT;
-      Accumulate(id, s.mRoundTripTime.Value() * 1000);
+      TimeDuration sample =
+          TimeDuration::FromMilliseconds(s.mRoundTripTime.Value() * 1000);
+      if (isAudio) {
+        glean::webrtc::audio_quality_outbound_rtt.AccumulateRawDuration(sample);
+      } else {
+        glean::webrtc::video_quality_outbound_rtt.AccumulateRawDuration(sample);
+      }
     }
   }
 
