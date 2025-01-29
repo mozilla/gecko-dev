@@ -57,6 +57,9 @@ function search(state = new Search(), action) {
 }
 
 function onAddSearchQuery(state, action) {
+  if (state.query == action.query) {
+    return state;
+  }
   return {
     ...state,
     query: action.query,
@@ -78,6 +81,9 @@ function onAddSearchResult(state, action) {
 }
 
 function onClearSearchResults(state) {
+  if (!state.results.length) {
+    return state;
+  }
   return {
     ...state,
     results: [],
@@ -85,6 +91,9 @@ function onClearSearchResults(state) {
 }
 
 function onAddOngoingSearch(state, action) {
+  if (state.ongoingSearch == action.ongoingSearch) {
+    return state;
+  }
   return {
     ...state,
     ongoingSearch: action.ongoingSearch,
@@ -99,6 +108,9 @@ function onToggleCaseSensitiveSearch(state) {
 }
 
 function onUpdateSearchStatus(state, action) {
+  if (state.status == action.status) {
+    return state;
+  }
   return {
     ...state,
     status: action.status,
@@ -106,6 +118,9 @@ function onUpdateSearchStatus(state, action) {
 }
 
 function onSetTargetSearchResult(state, action) {
+  if (state.targetSearchResult == action.searchResult) {
+    return state;
+  }
   return {
     ...state,
     targetSearchResult: action.searchResult,

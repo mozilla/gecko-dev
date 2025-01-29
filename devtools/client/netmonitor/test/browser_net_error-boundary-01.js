@@ -17,7 +17,7 @@ add_task(async function () {
 
   // Intentionally damage the store to cause a child component error
   const state = store.getState();
-  state.ui.columns = null;
+  state.ui = "foo";
 
   await reloadBrowser();
 

@@ -53,6 +53,9 @@ function requestBlockingReducer(state = RequestBlocking(), action) {
 }
 
 function syncedBlockedUrls(state, action) {
+  if (state.blockingSynced == action.synced) {
+    return state;
+  }
   // Indicates whether the blocked url has been synced
   // with the server once. We don't need to do it once netmonitor is open.
   return {

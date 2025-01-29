@@ -51,6 +51,7 @@ function Requests() {
  * This reducer is responsible for maintaining list of request
  * within the Network panel.
  */
+// eslint-disable-next-line complexity
 function requestsReducer(state = Requests(), action) {
   switch (action.type) {
     // Appending new request into the list/map.
@@ -79,6 +80,12 @@ function requestsReducer(state = Requests(), action) {
 
     // Select specific request.
     case SELECT_REQUEST: {
+      if (
+        state.clickedRequestId == action.id &&
+        state.selectedId == action.id
+      ) {
+        return state;
+      }
       return {
         ...state,
         clickedRequestId: action.id,
@@ -96,6 +103,9 @@ function requestsReducer(state = Requests(), action) {
     }
 
     case RIGHT_CLICK_REQUEST: {
+      if (state.clickedRequestId == action.id) {
+        return state;
+      }
       return {
         ...state,
         clickedRequestId: action.id,
@@ -103,6 +113,9 @@ function requestsReducer(state = Requests(), action) {
     }
 
     case PRESELECT_REQUEST: {
+      if (state.preselectedId == action.id) {
+        return state;
+      }
       return {
         ...state,
         preselectedId: action.id,
@@ -124,6 +137,9 @@ function requestsReducer(state = Requests(), action) {
 
     // Pause/resume button clicked.
     case SET_RECORDING_STATE: {
+      if (state.recording == action.recording) {
+        return state;
+      }
       return {
         ...state,
         recording: action.recording,
@@ -132,15 +148,21 @@ function requestsReducer(state = Requests(), action) {
 
     // Side bar with request details opened.
     case OPEN_NETWORK_DETAILS: {
-      const nextState = { ...state };
       if (!action.open) {
-        nextState.selectedId = null;
-        return nextState;
+        if (state.selectedId == null) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedId: null,
+        };
       }
 
-      if (!state.selectedId && action.defaultSelectedId) {
-        nextState.selectedId = action.defaultSelectedId;
-        return nextState;
+      if (!state.selectedId && action.defaultSelectedId != state.selectedId) {
+        return {
+          ...state,
+          selectedId: action.defaultSelectedId,
+        };
       }
 
       return state;

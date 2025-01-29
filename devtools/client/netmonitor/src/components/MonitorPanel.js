@@ -107,8 +107,10 @@ class MonitorPanel extends Component {
   }
 
   componentDidUpdate() {
-    const { selectedRequestVisible, openNetworkDetails } = this.props;
-    if (!selectedRequestVisible) {
+    const { selectedRequestVisible, openNetworkDetails, networkDetailsOpen } =
+      this.props;
+    // Close the side panel if it was open and there is no more selected request
+    if (!selectedRequestVisible && networkDetailsOpen) {
       openNetworkDetails(false);
     }
   }

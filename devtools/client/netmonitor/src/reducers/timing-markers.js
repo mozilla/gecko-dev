@@ -20,32 +20,36 @@ function TimingMarkers() {
 }
 
 function addRequest(state, action) {
-  const nextState = { ...state };
   const { startedMs } = action.data;
   if (startedMs < state.firstDocumentRequestStartTimestamp) {
-    nextState.firstDocumentRequestStartTimestamp = startedMs;
+    return {
+      ...state,
+      firstDocumentRequestStartTimestamp: startedMs,
+    };
   }
 
-  return nextState;
+  return state;
 }
 
 function addTimingMarker(state, action) {
-  state = { ...state };
-
   if (
     action.marker.name === "dom-interactive" &&
     state.firstDocumentDOMContentLoadedTimestamp === -1
   ) {
-    state.firstDocumentDOMContentLoadedTimestamp = action.marker.time;
-    return state;
+    return {
+      ...state,
+      firstDocumentDOMContentLoadedTimestamp: action.marker.time,
+    };
   }
 
   if (
     action.marker.name === "dom-complete" &&
     state.firstDocumentLoadTimestamp === -1
   ) {
-    state.firstDocumentLoadTimestamp = action.marker.time;
-    return state;
+    return {
+      ...state,
+      firstDocumentLoadTimestamp: action.marker.time,
+    };
   }
 
   return state;

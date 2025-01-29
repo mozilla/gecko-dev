@@ -72,23 +72,31 @@ function enableRequestFilterTypeOnly(state, action) {
 }
 
 function filters(state = new Filters(), action) {
-  state = { ...state };
   switch (action.type) {
     case ENABLE_REQUEST_FILTER_TYPE_ONLY:
-      state.requestFilterTypes = enableRequestFilterTypeOnly(
-        state.requestFilterTypes,
-        action
-      );
-      break;
+      return {
+        ...state,
+        requestFilterTypes: enableRequestFilterTypeOnly(
+          state.requestFilterTypes,
+          action
+        ),
+      };
     case TOGGLE_REQUEST_FILTER_TYPE:
-      state.requestFilterTypes = toggleRequestFilterType(
-        state.requestFilterTypes,
-        action
-      );
-      break;
+      return {
+        ...state,
+        requestFilterTypes: toggleRequestFilterType(
+          state.requestFilterTypes,
+          action
+        ),
+      };
     case SET_REQUEST_FILTER_TEXT:
-      state.requestFilterText = action.text;
-      break;
+      if (state.requestFilterText == action.text) {
+        return state;
+      }
+      return {
+        ...state,
+        requestFilterText: action.text,
+      };
     default:
       break;
   }

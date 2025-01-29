@@ -20,21 +20,31 @@ function Sort() {
 function sortReducer(state = new Sort(), action) {
   switch (action.type) {
     case SORT_BY: {
-      state = { ...state };
       if (action.sortType != null && action.sortType == state.type) {
-        state.ascending = !state.ascending;
-      } else {
-        state.type = action.sortType;
-        state.ascending = true;
+        return {
+          ...state,
+          ascending: !state.ascending,
+        };
       }
-      return state;
+      if (state.type == action.sortType && state.ascending) {
+        return state;
+      }
+      return {
+        ...state,
+        type: action.sortType,
+        ascending: true,
+      };
     }
 
     case RESET_COLUMNS: {
-      state = { ...state };
-      state.type = null;
-      state.ascending = true;
-      return state;
+      if (state.type == null && state.ascending === true) {
+        return state;
+      }
+      return {
+        ...state,
+        type: null,
+        ascending: true,
+      };
     }
 
     default:
