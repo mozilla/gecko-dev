@@ -58,6 +58,13 @@ vendoring:
    - sdk/src/trace/samplers/always_on_factory.cc
    - sdk/src/version/*.cc
 
+  keep:
+   - opentelemetry-config.mozbuild
+
+  patches:
+   - patches/fix-ambiguous-holds_alternative.patch # Maybe we should upstream this
+   - patches/remove-non-vendored-context_value-variant.patch
+
 updatebot:
   maintainer-phab: mvanstraten
   maintainer-bz: mvanstraten@mozilla.com

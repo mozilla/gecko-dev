@@ -1,0 +1,25 @@
+diff --git a/api/include/opentelemetry/context/context_value.h b/api/include/opentelemetry/context/context_value.h
+index 27bd40fb057a1..655effe0a1daa 100644
+--- a/api/include/opentelemetry/context/context_value.h
++++ b/api/include/opentelemetry/context/context_value.h
+@@ -10,11 +10,6 @@
+ #include "opentelemetry/version.h"
+ 
+ OPENTELEMETRY_BEGIN_NAMESPACE
+-namespace baggage
+-{
+-class Baggage;
+-}  // namespace baggage
+-
+ namespace trace
+ {
+ class Span;
+@@ -29,7 +24,6 @@ using ContextValue = nostd::variant<nostd::monostate,
+                                     uint64_t,
+                                     double,
+                                     nostd::shared_ptr<trace::Span>,
+-                                    nostd::shared_ptr<trace::SpanContext>,
+-                                    nostd::shared_ptr<baggage::Baggage>>;
++                                    nostd::shared_ptr<trace::SpanContext>>;
+ }  // namespace context
+ OPENTELEMETRY_END_NAMESPACE
