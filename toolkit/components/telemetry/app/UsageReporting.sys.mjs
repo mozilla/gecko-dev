@@ -11,7 +11,10 @@ const LOGGER_PREFIX = "UsageReporting::";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ClientEnvironmentBase:
+    "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
 });
 
@@ -64,6 +67,22 @@ export var UsageReporting = {
         // identifier to include in pings, if enabled.
         this._log.trace(`${SLUG}: No usage profile identifier action taken.`);
       }
+
+      // Collect additional usage-reporting metrics
+      let os = lazy.ClientEnvironmentBase.os;
+      Glean.usage.os.set(Services.appinfo.OS);
+      Glean.usage.osVersion.set(os.version);
+      if (os.isWindows) {
+        Glean.usage.windowsBuildNumber.set(os.windowsBuildNumber);
+      }
+      Glean.usage.appBuild.set(Services.appinfo.appBuildID);
+      Glean.usage.appDisplayVersion.set(lazy.ClientEnvironmentBase.version);
+      Glean.usage.appChannel.set(lazy.ClientEnvironmentBase.channel);
+      Glean.usage.isDefaultBrowser.set(
+        lazy.ClientEnvironmentBase.isDefaultBrowser
+      );
+      Glean.usage.distributionId.set(lazy.ClientEnvironmentBase.distribution);
+      Glean.usage.firstRunDate.set(lazy.ProfileAge.firstUse);
     })();
     return this._initPromise;
   },

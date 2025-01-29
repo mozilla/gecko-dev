@@ -66,6 +66,26 @@ add_task(async function test_prefs() {
   // Enable the pref: we should witness a rising edge.
   Services.prefs.setBoolPref("datareporting.usage.uploadEnabled", true);
 
+  // Set some values for additional metrics to check within the ping.
+  const testOs = "test-os";
+  Glean.usage.os.set(testOs);
+  const testOsVersion = "v1.2.3-test";
+  Glean.usage.osVersion.set(testOsVersion);
+  const testWindowsBuildNumber = 8675309;
+  Glean.usage.windowsBuildNumber.set(testWindowsBuildNumber);
+  const testAppBuild = "test-appBuild";
+  Glean.usage.appBuild.set(testAppBuild);
+  const testAppDisplayVersion = "v136.0.0";
+  Glean.usage.appDisplayVersion.set(testAppDisplayVersion);
+  const testChannel = "test";
+  Glean.usage.appChannel.set(testChannel);
+  const testIsDefault = true;
+  Glean.usage.isDefaultBrowser.set(testIsDefault);
+  const testDistributionId = "test-distribution";
+  Glean.usage.distributionId.set(testDistributionId);
+  const testFirstRunDate = new Date("2020-06-11T00:00:00");
+  Glean.usage.firstRunDate.set(testFirstRunDate.getTime() * 1000);
+
   let usageReportingSubmitted = false;
   GleanPings.usageReporting.testBeforeNextSubmit(_reason => {
     usageReportingSubmitted = true;
@@ -81,6 +101,41 @@ add_task(async function test_prefs() {
     Assert.notEqual(
       kTestUuid,
       Glean.usage.profileId.testGetValue("usage-reporting")
+    );
+
+    // Check additional metrics
+    Assert.equal(testOs, Glean.usage.os.testGetValue("usage-reporting"));
+    Assert.equal(
+      testOsVersion,
+      Glean.usage.osVersion.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testWindowsBuildNumber,
+      Glean.usage.windowsBuildNumber.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testAppBuild,
+      Glean.usage.appBuild.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testAppDisplayVersion,
+      Glean.usage.appDisplayVersion.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testChannel,
+      Glean.usage.appChannel.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testIsDefault,
+      Glean.usage.isDefaultBrowser.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testDistributionId,
+      Glean.usage.distributionId.testGetValue("usage-reporting")
+    );
+    Assert.equal(
+      testFirstRunDate.getTime(),
+      Glean.usage.firstRunDate.testGetValue("usage-reporting").getTime()
     );
   });
 
