@@ -68,9 +68,6 @@
     const answer = await answerer.createAnswer();
 
     let mungedAnswer = midToRid(answer);
-    // Allow sending up to 4k without having to account for max-fs defaults
-    // when checking sizes below.  3840*2160/(16*16)=34560
-    mungedAnswer = mungedAnswer.replace(/max-fs=\d+/g, "max-fs=34560");
     info(`Transformed recv answer to simulcast: ${answer.sdp} to ${mungedAnswer}`);
     await offerer.setRemoteDescription({type: 'answer', sdp: mungedAnswer});
     await answerer.setLocalDescription(answer);
