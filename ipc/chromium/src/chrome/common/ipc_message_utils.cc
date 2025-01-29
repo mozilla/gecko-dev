@@ -9,14 +9,13 @@
 
 namespace IPC {
 
-static uint32_t kShmemThreshold = 64 * 1024;
-
 MessageBufferWriter::MessageBufferWriter(MessageWriter* writer,
                                          uint32_t full_len)
     : writer_(writer) {
-  // NOTE: We only write out the `shmem_ok` bool if we're over kShmemThreshold
-  // to avoid bloating the size of messages with small buffers.
-  if (full_len > kShmemThreshold) {
+  // NOTE: We only write out the `shmem_ok` bool if we're over
+  // kMessageBufferShmemThreshold to avoid bloating the size of messages with
+  // small buffers.
+  if (full_len > kMessageBufferShmemThreshold) {
     shmem_ = new mozilla::ipc::SharedMemory();
     bool shmem_ok = shmem_->Create(full_len) && shmem_->Map(full_len);
     writer->WriteBool(shmem_ok);
@@ -65,9 +64,10 @@ bool MessageBufferWriter::WriteBytes(const void* data, uint32_t len) {
 MessageBufferReader::MessageBufferReader(MessageReader* reader,
                                          uint32_t full_len)
     : reader_(reader) {
-  // NOTE: We only write out the `shmem_ok` bool if we're over kShmemThreshold
-  // to avoid bloating the size of messages with small buffers.
-  if (full_len > kShmemThreshold) {
+  // NOTE: We only write out the `shmem_ok` bool if we're over
+  // kMessageBufferShmemThreshold to avoid bloating the size of messages with
+  // small buffers.
+  if (full_len > kMessageBufferShmemThreshold) {
     bool shmem_ok = false;
     if (!reader->ReadBool(&shmem_ok)) {
       reader->FatalError("MessageReader::ReadBool failed!");

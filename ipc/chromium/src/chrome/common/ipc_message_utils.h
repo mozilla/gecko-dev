@@ -41,6 +41,16 @@ MOZ_NEVER_INLINE void PickleFatalError(const char* aMsg, IProtocol* aActor);
 namespace IPC {
 
 /**
+ * This constant determines the threshold size (in bytes) for deciding whether
+ * shared memory should be used during serialization/deserialization handled
+ * by the MessageBufferWriter class.
+ *
+ * NOTE: Even above this threshold, if MessageBufferWriter fails to allocate a
+ * shared memory region, it may still fall-back to sending the message inline.
+ */
+constexpr uint32_t kMessageBufferShmemThreshold = 64 * 1024;  // 64 KB
+
+/**
  * Context used to serialize into an IPC::Message. Provides relevant context
  * used when serializing.
  */
