@@ -288,7 +288,7 @@ interface nsIMemoryReporterManager : nsISupports
    * then write a DMD report to a file in the usual temporary directory (see
    * |dumpMemoryInfoToTempDir| in |nsIMemoryInfoDumper|.)
    */
-  [noscript] void
+  void
     getReportsExtended(in nsIHandleReportCallback handleReport,
                        in nsISupports handleReportData,
                        in nsIFinishReportingCallback finishReporting,

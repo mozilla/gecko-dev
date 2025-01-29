@@ -430,7 +430,15 @@ async function getTotalMemoryUsage() {
   };
 
   await new Promise(r =>
-    mgr.getReports(handleReport, null, r, null, /* anonymized = */ false)
+    mgr.getReportsExtended(
+      handleReport,
+      null,
+      r,
+      null,
+      /* anonymized = */ false,
+      /* minimizeMemoryUsage = */ true,
+      null
+    )
   );
 
   return Math.round(total / 1024 / 1024);
