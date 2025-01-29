@@ -1195,19 +1195,15 @@ var gSync = {
       "PanelUI-signedin-panel"
     );
 
-    function resetElementsToDefault() {
-      cadButtonEl.setAttribute("disabled", true);
-      cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
-      syncNowButtonEl.hidden = true;
-      signedInContainer.hidden = true;
-      fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
-      fxaMenuAccountButtonEl.removeAttribute("closemenu");
-      syncSetupEl.removeAttribute("hidden");
-      mainWindowEl.style.removeProperty("--avatar-image-url");
-      menuHeaderDescriptionEl.hidden = false;
-    }
     // Reset UI elements to default state
-    resetElementsToDefault();
+    cadButtonEl.setAttribute("disabled", true);
+    cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
+    syncNowButtonEl.hidden = true;
+    signedInContainer.hidden = true;
+    fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
+    fxaMenuAccountButtonEl.removeAttribute("closemenu");
+    syncSetupEl.removeAttribute("hidden");
+    menuHeaderDescriptionEl.hidden = false;
 
     // The Firefox Account toolbar currently handles 3 different states for
     // users. The default `not_configured` state shows an empty avatar, `unverified`
@@ -1220,6 +1216,7 @@ var gSync = {
 
     switch (state.status) {
       case UIState.STATUS_NOT_CONFIGURED:
+        mainWindowEl.style.removeProperty("--avatar-image-url");
         headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
           ? "synced-tabs-fxa-sign-in"
           : "appmenuitem-sign-in-account";
@@ -1241,6 +1238,7 @@ var gSync = {
         stateValue = "login-failed";
         headerTitleL10nId = "account-disconnected2";
         headerDescription = state.displayName || state.email;
+        mainWindowEl.style.removeProperty("--avatar-image-url");
         break;
 
       case UIState.STATUS_NOT_VERIFIED:
