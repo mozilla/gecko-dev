@@ -2296,8 +2296,9 @@ void nsAVIFDecoder::RecordDecodeResultTelemetry(
   }
 }
 
-Maybe<Telemetry::HistogramID> nsAVIFDecoder::SpeedHistogram() const {
-  return Some(Telemetry::IMAGE_DECODE_SPEED_AVIF);
+Maybe<glean::impl::MemoryDistributionMetric> nsAVIFDecoder::SpeedMetric()
+    const {
+  return Some(glean::image_decode::speed_avif);
 }
 
 }  // namespace image

@@ -1046,8 +1046,8 @@ void nsPNGDecoder::warning_callback(png_structp png_ptr,
   MOZ_LOG(sPNGLog, LogLevel::Warning, ("libpng warning: %s\n", warning_msg));
 }
 
-Maybe<Telemetry::HistogramID> nsPNGDecoder::SpeedHistogram() const {
-  return Some(Telemetry::IMAGE_DECODE_SPEED_PNG);
+Maybe<glean::impl::MemoryDistributionMetric> nsPNGDecoder::SpeedMetric() const {
+  return Some(glean::image_decode::speed_png);
 }
 
 bool nsPNGDecoder::IsValidICOResource() const {

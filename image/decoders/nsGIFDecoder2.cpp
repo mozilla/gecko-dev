@@ -1125,8 +1125,9 @@ LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::SkipSubBlocks(
                                   nextSubBlockLength);
 }
 
-Maybe<Telemetry::HistogramID> nsGIFDecoder2::SpeedHistogram() const {
-  return Some(Telemetry::IMAGE_DECODE_SPEED_GIF);
+Maybe<glean::impl::MemoryDistributionMetric> nsGIFDecoder2::SpeedMetric()
+    const {
+  return Some(glean::image_decode::speed_gif);
 }
 
 }  // namespace image

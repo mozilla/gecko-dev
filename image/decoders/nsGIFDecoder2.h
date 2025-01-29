@@ -32,7 +32,7 @@ class nsGIFDecoder2 final : public Decoder {
   nsresult FinishWithErrorInternal() override;
   nsresult FinishInternal() override;
 
-  Maybe<Telemetry::HistogramID> SpeedHistogram() const override;
+  Maybe<glean::impl::MemoryDistributionMetric> SpeedMetric() const override;
 
  private:
   friend class DecoderFactory;

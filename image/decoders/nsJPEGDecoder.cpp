@@ -129,8 +129,9 @@ nsJPEGDecoder::~nsJPEGDecoder() {
           ("nsJPEGDecoder::~nsJPEGDecoder: Destroying JPEG decoder %p", this));
 }
 
-Maybe<Telemetry::HistogramID> nsJPEGDecoder::SpeedHistogram() const {
-  return Some(Telemetry::IMAGE_DECODE_SPEED_JPEG);
+Maybe<glean::impl::MemoryDistributionMetric> nsJPEGDecoder::SpeedMetric()
+    const {
+  return Some(glean::image_decode::speed_jpeg);
 }
 
 nsresult nsJPEGDecoder::InitInternal() {

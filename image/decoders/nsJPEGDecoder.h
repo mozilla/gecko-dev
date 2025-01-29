@@ -59,7 +59,7 @@ class nsJPEGDecoder : public Decoder {
                        IResumable* aOnResume) override;
   nsresult FinishInternal() override;
 
-  Maybe<Telemetry::HistogramID> SpeedHistogram() const override;
+  Maybe<glean::impl::MemoryDistributionMetric> SpeedMetric() const override;
 
  protected:
   EXIFData ReadExifData() const;
