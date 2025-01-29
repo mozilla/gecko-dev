@@ -78,7 +78,7 @@ class FontSize extends PureComponent {
       onChange: this.props.onChange,
       step: getStepForUnit(unit),
       unit,
-      unitOptions: ["em", "rem", "%", "px", "vh", "vw"],
+      unitOptions: ["em", "rem", "%", "px", "pt", "vh", "vw"],
       value,
     });
   }

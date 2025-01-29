@@ -26,6 +26,7 @@ add_task(async function () {
   const property = "letter-spacing";
   const UNITS = {
     px: 32,
+    pt: 24,
     rem: 2,
     em: 1,
   };
