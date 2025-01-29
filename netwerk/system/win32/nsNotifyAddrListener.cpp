@@ -491,7 +491,10 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
          adapter = adapter->Next) {
       if (adapter->OperStatus != IfOperStatusUp ||
           !adapter->FirstUnicastAddress ||
-          adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+          adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
+          nsDependentString(adapter->FriendlyName).Find(u"VMnet") !=
+              kNotFound ||
+          nsDependentString(adapter->Description).Find(u"VMnet") != kNotFound) {
         continue;
       }
 
