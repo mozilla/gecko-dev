@@ -8050,7 +8050,11 @@ fn get_surface_rects(
         }
     };
 
+    // We need to put the clipped, unclipped and source rects in the chosen
+    // raster spatial node if possible, so that it will be rendered at the
+    // proper pixel scale with antialiasing, otherwise it would be blurry.
     let (mut clipped, mut unclipped, mut source) = if surface.raster_spatial_node_index != surface.surface_spatial_node_index {
+        // Transform surface into the chosen raster spatial node
         assert_eq!(surface.device_pixel_scale.0, 1.0);
 
         let local_to_world = SpaceMapper::new_with_target(
@@ -8060,21 +8064,32 @@ fn get_surface_rects(
             spatial_tree,
         );
 
-        let clipped = (local_to_world.map(&clipped_local.cast_unit()).unwrap() * surface.device_pixel_scale).round_out();
+        let clipped = local_to_world.map(&clipped_local.cast_unit()).unwrap() * surface.device_pixel_scale;
         let unclipped = local_to_world.map(&unclipped_local).unwrap() * surface.device_pixel_scale;
-        let source = (local_to_world.map(&source_local.cast_unit()).unwrap() * surface.device_pixel_scale).round_out();
+        let source = local_to_world.map(&source_local.cast_unit()).unwrap() * surface.device_pixel_scale;
 
         (clipped, unclipped, source)
     } else {
-        let clipped = (clipped_local.cast_unit() * surface.device_pixel_scale).round_out();
+        // Surface is already in the chosen raster spatial node
+        let clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
         let unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
-        let source = (source_local.cast_unit() * surface.device_pixel_scale).round_out();
+        let source = source_local.cast_unit() * surface.device_pixel_scale;
 
         (clipped, unclipped, source)
     };
 
-    // Limit rendering extremely large pictures to something the hardware can
-    // handle, considering both clipped (target subregion) and source subregion.
+    // We need to make sure the surface size does not exceed max_surface_size,
+    // if it would exceed it we actually want to keep the surface in its local
+    // space and stop worrying about it being a little blurry.
+    //
+    // Use slightly less than max_surface_size to be safe as we're not using the
+    // rounded rect (which depending on subpixel alignment could add 1 or 2 to
+    // width), and leave room for SVGFEGraph to add a 1 pixel inflate border on
+    // all sides, so that it is less likely to have to do its own scaling on
+    // intermediates which would just add more layers of blurriness.
+    //
+    // Since both clipped and source are subject to the same limit, we can just
+    // pick the largest axis from all rects involved.
     //
     // If you change this, test with:
     // ./mach crashtest layout/svg/crashtests/387290-1.svg
@@ -8084,7 +8099,9 @@ fn get_surface_rects(
                 source.width().max(
                     source.height()
                 ))).ceil();
-    if max_dimension > max_surface_size {
+    let max_allowed_dimension = max_surface_size - 4.0;
+    if max_dimension > max_allowed_dimension {
+        // We have to recalculate max_dimension for the local space we'll be using
         let max_dimension =
             clipped_local.width().max(
                 clipped_local.height().max(
@@ -8092,20 +8109,26 @@ fn get_surface_rects(
                         source_local.height()
                     ))).ceil();
         surface.raster_spatial_node_index = surface.surface_spatial_node_index;
-        surface.device_pixel_scale = Scale::new(max_surface_size / max_dimension);
+        surface.device_pixel_scale = Scale::new(max_allowed_dimension / max_dimension);
         surface.local_scale = (1.0, 1.0);
 
-        clipped = (clipped_local.cast_unit() * surface.device_pixel_scale).round();
+        clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
         unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
-        source = (source_local.cast_unit() * surface.device_pixel_scale).round();
+        source = source_local.cast_unit() * surface.device_pixel_scale;
     }
 
-    let task_size = clipped.size().to_i32();
-    debug_assert!(task_size.width <= max_surface_size as i32);
-    debug_assert!(task_size.height <= max_surface_size as i32);
+    let source = source.round_out();
+    let clipped_snapped = clipped.round_out();
+    let task_size = clipped_snapped.size().to_i32();
+    assert!(
+        task_size.width <= max_surface_size as i32 &&
+        task_size.height <= max_surface_size as i32,
+        "task_size {:?} must be within max_surface_size {}",
+        task_size,
+        max_surface_size);
 
     let uv_rect_kind = calculate_uv_rect_kind(
-        clipped,
+        clipped_snapped,
         unclipped,
     );
 
@@ -8125,7 +8148,7 @@ fn get_surface_rects(
     Some(SurfaceAllocInfo {
         task_size,
         needs_scissor_rect,
-        clipped,
+        clipped: clipped_snapped,
         unclipped,
         source,
         clipped_local,
