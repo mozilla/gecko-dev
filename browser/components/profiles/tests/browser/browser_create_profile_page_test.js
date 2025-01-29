@@ -119,7 +119,13 @@ add_task(async function test_create_profile_name() {
             "Waiting for new-profile-card to be initialized"
           );
 
-          await newProfileCard.updateComplete;
+          await newProfileCard.getUpdateComplete();
+
+          Assert.equal(
+            Services.focus.focusedElement.id,
+            newProfileCard.nameInput.id,
+            "Name input is focused"
+          );
 
           let nameInput = newProfileCard.nameInput;
           Assert.equal(nameInput.value, "", "Profile name is empty to start");

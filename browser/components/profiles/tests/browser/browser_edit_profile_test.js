@@ -102,7 +102,13 @@ add_task(async function test_edit_profile_name() {
             "Waiting for edit-profile-card to be initialized"
           );
 
-          await editProfileCard.updateComplete;
+          await editProfileCard.getUpdateComplete();
+
+          Assert.equal(
+            Services.focus.focusedElement.id,
+            editProfileCard.nameInput.id,
+            "Name input is focused"
+          );
 
           let nameInput = editProfileCard.nameInput;
           nameInput.value = newProfileName;

@@ -55,11 +55,12 @@ export class NewProfileCard extends EditProfileCard {
   }
 
   async setInitialInput() {
+    await super.focusInput();
     if (RPMGetBoolPref("browser.profiles.profile-name.updated", false)) {
       return;
     }
 
-    await this.updateComplete;
+    await this.getUpdateComplete();
 
     this.nameInput.value = "";
   }

@@ -130,6 +130,7 @@ export class EditProfileCard extends MozLitElement {
     this.themes = themes;
 
     this.setFavicon();
+    this.focusInput();
   }
 
   async getUpdateComplete() {
@@ -142,6 +143,13 @@ export class EditProfileCard extends MozLitElement {
     await this.mozCard.updateComplete;
 
     return result;
+  }
+
+  async focusInput() {
+    await this.getUpdateComplete();
+    this.nameInput.focus();
+    this.nameInput.value = "";
+    this.nameInput.value = this.profile.name;
   }
 
   setFavicon() {
