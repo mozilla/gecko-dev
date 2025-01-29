@@ -2473,11 +2473,7 @@ pref("privacy.webrtc.deviceGracePeriodTimeoutMs", 3600000);
 pref("privacy.webrtc.showIndicatorsOnMacos14AndAbove", true);
 
 // Enable Smartblock embed placeholders
-#ifdef NIGHTLY_BUILD
-  pref("extensions.webcompat.smartblockEmbeds.enabled", true);
-#else
-  pref("extensions.webcompat.smartblockEmbeds.enabled", false);
-#endif
+pref("extensions.webcompat.smartblockEmbeds.enabled", true);
 
 // Enable including the content in the window title.
 // PBM users might want to disable this to avoid a possible source of disk
