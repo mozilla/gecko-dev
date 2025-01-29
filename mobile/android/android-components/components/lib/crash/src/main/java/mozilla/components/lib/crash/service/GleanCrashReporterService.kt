@@ -51,6 +51,8 @@ import mozilla.components.lib.crash.GleanMetrics.Crash as GleanCrash
 import mozilla.components.lib.crash.GleanMetrics.Environment as GleanEnvironment
 import mozilla.components.lib.crash.GleanMetrics.Memory as GleanMemory
 
+private val logger = Logger("glean/GleanCrashReporterService")
+
 /**
  * A [CrashReporterService] implementation for recording metrics with Glean.  The purpose of this
  * crash reporter is to collect crash count metrics by capturing [Crash.UncaughtExceptionCrash],
@@ -269,28 +271,36 @@ class GleanCrashReporterService(
                 private fun ObjectMetricType<StackTracesObject>.setStackTracesIfNonNull(
                     element: JsonElement?,
                 ) {
-                    element?.jsonObject?.let { obj ->
-                        // The Glean metric has a slightly different layout. We
-                        // explicitly set/filter to the values we support, in
-                        // case there are new values in the object.
-                        val m = obj.mapNotNull { (key, value) ->
-                            when (key) {
-                                "status" -> if (value.jsonPrimitive.content != "OK") {
-                                    listOf("error" to value)
-                                } else {
-                                    null
-                                }
+                    // No matter what happens, if an exception occurs we need to catch it to prevent
+                    // it from stopping the ping from being sent. Stack traces are optional data, so
+                    // we'd rather send a ping without it than not send the ping at all.
+                    @Suppress("TooGenericExceptionCaught")
+                    try {
+                        element?.jsonObject?.let { obj ->
+                            // The Glean metric has a slightly different layout. We
+                            // explicitly set/filter to the values we support, in
+                            // case there are new values in the object.
+                            val m = obj.mapNotNull { (key, value) ->
+                                when (key) {
+                                    "status" -> if (value.jsonPrimitive.content != "OK") {
+                                        listOf("error" to value)
+                                    } else {
+                                        null
+                                    }
 
-                                "crash_info" -> (value as? JsonObject)?.let(::crashInfoEntries)
-                                "modules" -> (value as? JsonArray)?.let(::modulesEntries)
-                                "threads" -> (value as? JsonArray)?.let(::threadsEntries)
-                                "main_module" -> listOf("mainModule" to value)
-                                else -> null
+                                    "crash_info" -> (value as? JsonObject)?.let(::crashInfoEntries)
+                                    "modules" -> (value as? JsonArray)?.let(::modulesEntries)
+                                    "threads" -> (value as? JsonArray)?.let(::threadsEntries)
+                                    "main_module" -> listOf("mainModule" to value)
+                                    else -> null
+                                }
                             }
+                                .flatten()
+                                .toMap()
+                            set(Json.decodeFromJsonElement(JsonObject(m)))
                         }
-                            .flatten()
-                            .toMap()
-                        set(Json.decodeFromJsonElement(JsonObject(m)))
+                    } catch (e: Exception) {
+                        logger.error("failed to populate stackTraces field: bad JSON input", e)
                     }
                 }
             }
@@ -363,7 +373,6 @@ class GleanCrashReporterService(
         }
     }
 
-    private val logger = Logger("glean/GleanCrashReporterService")
     private val creationTime = SystemClock.elapsedRealtimeNanos()
 
     init {
