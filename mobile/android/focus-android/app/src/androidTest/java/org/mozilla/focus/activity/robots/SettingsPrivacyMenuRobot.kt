@@ -31,7 +31,6 @@ import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.packageName
 import org.mozilla.focus.helpers.TestHelper.waitingTime
 import org.mozilla.focus.helpers.TestHelper.waitingTimeShort
-import org.mozilla.focus.telemetry.GleanMetricsService
 
 class SettingsPrivacyMenuRobot {
 
@@ -62,14 +61,12 @@ class SettingsPrivacyMenuRobot {
         assertSafeBrowsingSwitchState()
         httpsOnlyModeSwitch().check(matches(isDisplayed()))
         assertHttpsOnlyModeSwitchState()
-        sendDataSwitch().check(matches(isDisplayed()))
+        sendDailyUsagePingSwitch().check(matches(isDisplayed()))
         if (packageName != "org.mozilla.focus.debug") {
             assertSendDataSwitchState(true)
         } else {
             assertSendDataSwitchState()
         }
-        studiesOption().check(matches(isDisplayed()))
-        studiesDefaultOption().check(matches(isDisplayed()))
     }
 
     fun verifyCookiesAndSiteDataSection() {
@@ -647,15 +644,15 @@ private fun assertHttpsOnlyModeSwitchState(enabled: Boolean = true) {
     }
 }
 
-private fun sendDataSwitch(): ViewInteraction {
-    val sendDataSwitchSummary = getStringResource(R.string.preference_mozilla_telemetry_summary2)
+private fun sendDailyUsagePingSwitch(): ViewInteraction {
+    val sendDataSwitchSummary = getStringResource(R.string.preference_daily_usage_ping_description)
     privacySettingsList.scrollTextIntoView(sendDataSwitchSummary)
     return onView(withText(sendDataSwitchSummary))
 }
 
 private fun assertSendDataSwitchState(enabled: Boolean = false) {
     if (enabled) {
-        sendDataSwitch()
+        sendDailyUsagePingSwitch()
             .check(
                 matches(
                     hasCousin(
@@ -667,7 +664,7 @@ private fun assertSendDataSwitchState(enabled: Boolean = false) {
                 ),
             )
     } else {
-        sendDataSwitch()
+        sendDailyUsagePingSwitch()
             .check(
                 matches(
                     hasCousin(
@@ -679,23 +676,6 @@ private fun assertSendDataSwitchState(enabled: Boolean = false) {
                 ),
             )
     }
-}
-
-private fun studiesOption(): ViewInteraction {
-    val studies = getStringResource(R.string.preference_studies)
-    privacySettingsList.scrollTextIntoView(studies)
-    return onView(withText(R.string.preference_studies))
-}
-
-private fun studiesDefaultOption(): ViewInteraction {
-    privacySettingsList.scrollToEnd(3)
-
-    val defaultStringId = if (GleanMetricsService.isTelemetryEnabled(getTargetContext)) {
-        R.string.preference_state_on
-    } else {
-        R.string.preference_state_off
-    }
-    return onView(withText(defaultStringId))
 }
 
 private fun exceptionsList(): ViewInteraction {
