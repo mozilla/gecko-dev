@@ -18,7 +18,6 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UnderrunHandler.h"
 #if defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxSettings.h"
@@ -70,8 +69,7 @@ namespace mozilla {
 
 namespace {
 
-using Telemetry::LABELS_MEDIA_AUDIO_BACKEND;
-using Telemetry::LABELS_MEDIA_AUDIO_INIT_FAILURE;
+using glean::media_audio::BackendLabel;
 
 LazyLogModule gCubebLog("cubeb");
 
@@ -124,21 +122,21 @@ int sInCommunicationCount = 0;
 
 const char kBrandBundleURL[] = "chrome://branding/locale/brand.properties";
 
-MOZ_RUNINIT std::unordered_map<std::string, LABELS_MEDIA_AUDIO_BACKEND>
+MOZ_RUNINIT std::unordered_map<std::string, BackendLabel>
     kTelemetryBackendLabel = {
-        {"audiounit", LABELS_MEDIA_AUDIO_BACKEND::audiounit},
-        {"audiounit-rust", LABELS_MEDIA_AUDIO_BACKEND::audiounit_rust},
-        {"aaudio", LABELS_MEDIA_AUDIO_BACKEND::aaudio},
-        {"opensl", LABELS_MEDIA_AUDIO_BACKEND::opensl},
-        {"wasapi", LABELS_MEDIA_AUDIO_BACKEND::wasapi},
-        {"winmm", LABELS_MEDIA_AUDIO_BACKEND::winmm},
-        {"alsa", LABELS_MEDIA_AUDIO_BACKEND::alsa},
-        {"jack", LABELS_MEDIA_AUDIO_BACKEND::jack},
-        {"oss", LABELS_MEDIA_AUDIO_BACKEND::oss},
-        {"pulse", LABELS_MEDIA_AUDIO_BACKEND::pulse},
-        {"pulse-rust", LABELS_MEDIA_AUDIO_BACKEND::pulse_rust},
-        {"sndio", LABELS_MEDIA_AUDIO_BACKEND::sndio},
-        {"sun", LABELS_MEDIA_AUDIO_BACKEND::sunaudio},
+        {"audiounit", BackendLabel::eAudiounit},
+        {"audiounit-rust", BackendLabel::eAudiounitRust},
+        {"aaudio", BackendLabel::eAaudio},
+        {"opensl", BackendLabel::eOpensl},
+        {"wasapi", BackendLabel::eWasapi},
+        {"winmm", BackendLabel::eWinmm},
+        {"alsa", BackendLabel::eAlsa},
+        {"jack", BackendLabel::eJack},
+        {"oss", BackendLabel::eOss},
+        {"pulse", BackendLabel::ePulse},
+        {"pulse-rust", BackendLabel::ePulseRust},
+        {"sndio", BackendLabel::eSndio},
+        {"sun", BackendLabel::eSunaudio},
 };
 
 // Prefered samplerate, in Hz (characteristic of the hardware, mixer, platform,
@@ -642,19 +640,14 @@ void ReportCubebBackendUsed() {
 
   MOZ_RELEASE_ASSERT(handle.get());
 
-  LABELS_MEDIA_AUDIO_BACKEND label = LABELS_MEDIA_AUDIO_BACKEND::unknown;
+  BackendLabel label = BackendLabel::eUnknown;
   auto backend =
       kTelemetryBackendLabel.find(cubeb_get_backend_id(handle->Context()));
   if (backend != kTelemetryBackendLabel.end()) {
     label = backend->second;
   }
-  AccumulateCategorical(label);
 
-  mozilla::glean::media_audio::backend
-      .Get(backend != kTelemetryBackendLabel.end()
-               ? nsDependentCString(cubeb_get_backend_id(handle->Context()))
-               : nsCString("unknown"_ns))
-      .Add();
+  mozilla::glean::media_audio::backend.EnumGet(label).Add();
 }
 
 void ReportCubebStreamInitFailure(bool aIsFirst) {
@@ -665,8 +658,6 @@ void ReportCubebStreamInitFailure(bool aIsFirst) {
     // failures to open multiple streams in a process over time.
     return;
   }
-  AccumulateCategorical(aIsFirst ? LABELS_MEDIA_AUDIO_INIT_FAILURE::first
-                                 : LABELS_MEDIA_AUDIO_INIT_FAILURE::other);
   mozilla::glean::media_audio::init_failure
       .EnumGet(aIsFirst ? mozilla::glean::media_audio::InitFailureLabel::eFirst
                         : mozilla::glean::media_audio::InitFailureLabel::eOther)

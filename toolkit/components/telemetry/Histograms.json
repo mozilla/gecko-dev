@@ -9011,43 +9011,6 @@
     "n_values": 5,
     "description": "Counts the number of entries in the sample description box (stsd) for a track in an mp4. Recorded each time we process a track's metadata while parsing mp4s."
   },
-  "MEDIA_AUDIO_INIT_FAILURE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "labels": ["first", "other"],
-    "description": "Failure occurs when initializing the audio stream",
-    "bug_numbers": [1671714]
-  },
-  "MEDIA_AUDIO_BACKEND": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "labels": [
-      "unknown",
-      "audiounit",
-      "audiounit_rust",
-      "aaudio",
-      "opensl",
-      "wasapi",
-      "winmm",
-      "alsa",
-      "jack",
-      "oss",
-      "pulse",
-      "pulse_rust",
-      "sndio",
-      "sunaudio"
-    ],
-    "description": "The operating system audio backend",
-    "bug_numbers": [1671714, 1679745]
-  },
   "MEDIA_SNIFFER_MP4_BRAND_PATTERN": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
