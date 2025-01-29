@@ -27,6 +27,8 @@ RELEASE_PROJECTS = {
     "pine",
     # bug 1877483: larch has similar needs for nightlies
     "larch",
+    # maple is also an L3 branch: https://phabricator.services.mozilla.com/D184833
+    "maple",
 }
 
 RELEASE_PROMOTION_PROJECTS = {
