@@ -465,7 +465,7 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
     // Don't accept any breaks until we're far enough into the word.
     if (length >= mHyphenateLimitStart && hyphens[i]) {
       MOZ_ASSERT(aBreakState[i + 1] ==
-                     gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE);
+                 gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE);
       aBreakState[i + 1] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
       // Keep track of hyphen position and "countable" length of the word.
       positionAndLength.AppendElement(
