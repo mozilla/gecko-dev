@@ -1,0 +1,53 @@
+schema: 1
+
+bugzilla:
+  product: "Core"
+  component: "Audio/Video: GMP"
+
+origin:
+  name: "chromium-cdm"
+  description: "Chromium CDM Library Interface"
+
+  url: "https://chromium.googlesource.com/chromium/cdm"
+  license: BSD-3-Clause
+  license-file: OWNERS
+
+  release: 06395a2863cb1ebdb47617a995b73f95c14fe120 (Thu Dec 26 19:52:02 2024).
+
+  revision: 06395a2863cb1ebdb47617a995b73f95c14fe120
+
+updatebot:
+  maintainer-phab: aosmond
+  maintainer-bz: aosmond@mozilla.com
+  tasks:
+    - type: vendoring
+      enabled: True
+
+vendoring:
+  url: https://chromium.googlesource.com/chromium/cdm
+  source-hosting: googlesource
+  tracking: commit
+
+  exclude:
+    - "**"
+
+  keep:
+    - moz.build
+    - moz.yaml
+    - WidevineFileIO.cpp
+    - WidevineFileIO.h
+    - WidevineUtils.cpp
+    - WidevineUtils.h
+    - WidevineVideoFrame.cpp
+    - WidevineVideoFrame.h
+
+  include:
+    - content_decryption_module_export.h
+    - content_decryption_module_ext.h
+    - content_decryption_module.h
+    - content_decryption_module_proxy.h
+    - OWNERS
+    - README.md
+
+  patches:
+    - "*.patch"
