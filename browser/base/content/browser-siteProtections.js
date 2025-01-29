@@ -1847,6 +1847,12 @@ var gProtectionsHandler = {
         });
       }
 
+      // Add the "open" attribute to the tracking protection icon container
+      // for styling.
+      // Only set the attribute once the panel is opened to avoid icon being
+      // incorrectly highlighted if opening is cancelled. See Bug 1926460.
+      this._trackingProtectionIconContainer.setAttribute("open", "true");
+
       // Disable the toggles for a short time after opening via SmartBlock placeholder button
       // to prevent clickjacking.
       if (this._protectionsPopupOpeningReason == "embedPlaceholderButton") {
@@ -1865,24 +1871,24 @@ var gProtectionsHandler = {
     if (event.target == this._protectionsPopup) {
       window.removeEventListener("focus", this, true);
       this._protectionsPopupTPSwitch.removeEventListener("toggle", this);
-    }
 
-    // Record close telemetry, don't record for toasts
-    if (!event.target.hasAttribute("toast")) {
-      Glean.securityUiProtectionspopup.closeProtectionsPopup.record({
-        openingReason: this._protectionsPopupOpeningReason,
-        smartblockToggleClicked: this._hasClickedSmartBlockEmbedToggle,
-      });
-    }
+      // Record close telemetry, don't record for toasts
+      if (!event.target.hasAttribute("toast")) {
+        Glean.securityUiProtectionspopup.closeProtectionsPopup.record({
+          openingReason: this._protectionsPopupOpeningReason,
+          smartblockToggleClicked: this._hasClickedSmartBlockEmbedToggle,
+        });
+      }
 
-    if (this._protectionsPopupToggleDelayTimer) {
-      clearTimeout(this._protectionsPopupToggleDelayTimer);
-      this._enablePopupToggles();
-      delete this._protectionsPopupToggleDelayTimer;
-    }
+      if (this._protectionsPopupToggleDelayTimer) {
+        clearTimeout(this._protectionsPopupToggleDelayTimer);
+        this._enablePopupToggles();
+        delete this._protectionsPopupToggleDelayTimer;
+      }
 
-    this._hasClickedSmartBlockEmbedToggle = false;
-    this._protectionsPopupOpeningReason = null;
+      this._hasClickedSmartBlockEmbedToggle = false;
+      this._protectionsPopupOpeningReason = null;
+    }
   },
 
   async onTrackingProtectionIconHoveredOrFocused() {
@@ -2279,16 +2285,12 @@ var gProtectionsHandler = {
           break;
         }
 
-        if (this._protectionsPopup?.state == "open") {
-          // don't open the panel if it is already open
-          // This is not sufficent since the panel is technically "closed" by the button click
-          // outside the panel, see Bug 1926460
-          break;
-        }
-
         if (gBrowser.selectedBrowser.browserId !== subject.browserId) {
           break;
         }
+
+        // Ensure panel is fully hidden before trying to open
+        this._hidePopup();
 
         this.showProtectionsPopup({
           openingReason: "embedPlaceholderButton",
@@ -2777,10 +2779,6 @@ var gProtectionsHandler = {
         { once: true }
       );
     }
-
-    // Add the "open" attribute to the tracking protection icon container
-    // for styling.
-    this._trackingProtectionIconContainer.setAttribute("open", "true");
 
     // Check the panel state of other panels. Hide them if needed.
     let openPanels = Array.from(document.querySelectorAll("panel[openpanel]"));
