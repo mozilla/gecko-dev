@@ -997,23 +997,6 @@ struct ParamTraits<mozilla::ContentCache> {
   }
 };
 
-template <>
-struct ParamTraits<mozilla::widget::CandidateWindowPosition> {
-  using paramType = mozilla::widget::CandidateWindowPosition;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.mPoint);
-    WriteParam(aWriter, aParam.mRect);
-    WriteParam(aWriter, aParam.mExcludeRect);
-  }
-
-  static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &aResult->mPoint) &&
-           ReadParam(aReader, &aResult->mRect) &&
-           ReadParam(aReader, &aResult->mExcludeRect);
-  }
-};
-
 // InputData.h
 
 template <>
