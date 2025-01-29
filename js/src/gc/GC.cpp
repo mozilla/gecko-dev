@@ -433,7 +433,6 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       incrementalGCEnabled(TuningDefaults::IncrementalGCEnabled),
       perZoneGCEnabled(TuningDefaults::PerZoneGCEnabled),
       numActiveZoneIters(0),
-      cleanUpEverything(false),
       grayBitsValid(true),
       majorGCTriggerReason(JS::GCReason::NO_REASON),
       minorGCNumber(0),
@@ -2471,12 +2470,19 @@ void GCRuntime::purgeRuntime() {
   marker().unmarkGrayStack.clearAndFree();
 }
 
+static bool ShouldCleanUpEverything(JS::GCOptions options) {
+  // During shutdown, we must clean everything up, for the sake of leak
+  // detection. When a runtime has no contexts, or we're doing a GC before a
+  // shutdown CC, those are strong indications that we're shutting down.
+  return options == JS::GCOptions::Shutdown || options == JS::GCOptions::Shrink;
+}
+
 bool GCRuntime::shouldPreserveJITCode(Realm* realm,
                                       const TimeStamp& currentTime,
                                       JS::GCReason reason,
                                       bool canAllocateMoreCode,
                                       bool isActiveCompartment) {
-  if (cleanUpEverything) {
+  if (ShouldCleanUpEverything(gcOptions())) {
     return false;
   }
   if (!canAllocateMoreCode) {
@@ -2582,13 +2588,6 @@ void GCRuntime::checkForCompartmentMismatches() {
 }
 #endif
 
-static bool ShouldCleanUpEverything(JS::GCOptions options) {
-  // During shutdown, we must clean everything up, for the sake of leak
-  // detection. When a runtime has no contexts, or we're doing a GC before a
-  // shutdown CC, those are strong indications that we're shutting down.
-  return options == JS::GCOptions::Shutdown || options == JS::GCOptions::Shrink;
-}
-
 static bool ShouldUseBackgroundThreads(bool isIncremental,
                                        JS::GCReason reason) {
   bool shouldUse = isIncremental && CanUseExtraThreads();
@@ -2604,7 +2603,6 @@ void GCRuntime::startCollection(JS::GCReason reason) {
           reason == JS::GCReason::XPCONNECT_SHUTDOWN /* Bug 1650075 */);
 
   initialReason = reason;
-  cleanUpEverything = ShouldCleanUpEverything(gcOptions());
   isCompacting = shouldCompact();
   rootsRemoved = false;
   sweepGroupIndex = 0;

@@ -1119,9 +1119,6 @@ class GCRuntime {
 
   mozilla::Atomic<size_t, mozilla::ReleaseAcquire> numActiveZoneIters;
 
-  /* During shutdown, the GC needs to clean up every possible object. */
-  MainThreadData<bool> cleanUpEverything;
-
   /*
    * The gray bits can become invalid if UnmarkGray overflows the stack. A
    * full GC will reset this bit, since it fills in all the gray bits.
