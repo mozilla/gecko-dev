@@ -102,6 +102,7 @@ skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1654354
+  "tsan",   # Bug 1767750
 ]
 
 ["browser_application_panel_telemetry-select-page.js"]
