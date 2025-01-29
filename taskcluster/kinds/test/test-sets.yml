@@ -283,6 +283,7 @@ windows11-64-2009-ccov-tests:
 # this remains as we have an issue on msix(mda) tasks
 # as well as reftest-nogpu
 windows11-2009-tests:
+    - mochitest-browser-chrome
     - mochitest-media
     - reftest
     - telemetry-tests-client
@@ -297,7 +298,6 @@ windows11-24h2-tests:
     - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
-    - mochitest-browser-chrome
     - mochitest-browser-media
     - mochitest-browser-translations
     - mochitest-chrome
