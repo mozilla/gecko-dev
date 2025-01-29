@@ -83,7 +83,7 @@ class SVGScriptElement final : public SVGScriptElementBase,
   nsIContent* GetAsContent() override { return this; }
 
   enum { HREF, XLINK_HREF };
-  SVGAnimatedString mStringAttributes[2];
+  SVGAnimatedScriptHrefString mStringAttributes[2];
   static StringInfo sStringInfo[2];
 };
 

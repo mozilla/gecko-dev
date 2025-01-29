@@ -12,19 +12,30 @@
 
 namespace mozilla {
 
+class ErrorResult;
+
 namespace dom {
 class DOMSVGAnimatedString;
 class SVGElement;
+class OwningTrustedScriptURLOrString;
+class TrustedScriptURLOrString;
 }  // namespace dom
 
 class SVGAnimatedClassOrString {
  public:
   using SVGElement = dom::SVGElement;
+  using OwningTrustedScriptURLOrString = dom::OwningTrustedScriptURLOrString;
+  using TrustedScriptURLOrString = dom::TrustedScriptURLOrString;
 
   virtual void SetBaseValue(const nsAString& aValue, SVGElement* aSVGElement,
                             bool aDoSetAttr) = 0;
+  MOZ_CAN_RUN_SCRIPT virtual void SetBaseValue(
+      const TrustedScriptURLOrString& aValue, SVGElement* aSVGElement,
+      bool aDoSetAttr, ErrorResult& aRv);
   virtual void GetBaseValue(nsAString& aValue,
                             const SVGElement* aSVGElement) const = 0;
+  virtual void GetBaseValue(OwningTrustedScriptURLOrString& aValue,
+                            const SVGElement* aSVGElement) const;
 
   virtual void GetAnimValue(nsAString& aResult,
                             const SVGElement* aSVGElement) const = 0;

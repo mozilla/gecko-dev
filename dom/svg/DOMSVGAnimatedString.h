@@ -12,6 +12,9 @@
 
 namespace mozilla::dom {
 
+class OwningTrustedScriptURLOrString;
+class TrustedScriptURLOrString;
+
 class DOMSVGAnimatedString final : public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGAnimatedString)
@@ -26,11 +29,13 @@ class DOMSVGAnimatedString final : public nsWrapperCache {
   // WebIDL
   SVGElement* GetParentObject() const { return mSVGElement; }
 
-  void GetBaseVal(nsAString& aResult) {
+  void GetBaseVal(OwningTrustedScriptURLOrString& aResult) {
     mVal->GetBaseValue(aResult, mSVGElement);
   }
-  void SetBaseVal(const nsAString& aValue) {
-    mVal->SetBaseValue(aValue, mSVGElement, true);
+  MOZ_CAN_RUN_SCRIPT void SetBaseVal(const TrustedScriptURLOrString& aValue,
+                                     ErrorResult& aRv) {
+    RefPtr<SVGElement> svgElement = mSVGElement;
+    mVal->SetBaseValue(aValue, svgElement, true, aRv);
   }
   void GetAnimVal(nsAString& aResult) {
     mSVGElement->FlushAnimations();

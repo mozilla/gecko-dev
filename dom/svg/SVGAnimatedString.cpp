@@ -11,6 +11,8 @@
 #include "SMILStringType.h"
 #include "SVGAttrTearoffTable.h"
 #include "mozilla/SMILValue.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 
 using namespace mozilla::dom;
 
@@ -92,6 +94,25 @@ nsresult SVGAnimatedString::SMILString::SetAnimValue(const SMILValue& aValue) {
     mVal->SetAnimValue(*static_cast<nsAString*>(aValue.mU.mPtr), mSVGElement);
   }
   return NS_OK;
+}
+
+void SVGAnimatedScriptHrefString::SetBaseValue(
+    const TrustedScriptURLOrString& aValue, SVGElement* aSVGElement,
+    bool aDoSetAttr, ErrorResult& aRv) {
+  // https://svgwg.org/svg2-draft/single-page.html#types-InterfaceSVGAnimatedString
+  // See https://github.com/w3c/svgwg/pull/934
+  MOZ_ASSERT(aSVGElement->IsSVGElement(nsGkAtoms::script));
+  nsCOMPtr<SVGElement> svgElement = aSVGElement;
+  constexpr nsLiteralString sink = u"SVGScriptElement href"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aValue, sink, kTrustedTypesOnlySinkGroup, *svgElement,
+          compliantStringHolder, aRv);
+  if (aRv.Failed()) {
+    return;
+  }
+  SVGAnimatedString::SetBaseValue(*compliantString, aSVGElement, aDoSetAttr);
 }
 
 }  // namespace mozilla

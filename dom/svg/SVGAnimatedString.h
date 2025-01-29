@@ -16,15 +16,20 @@
 
 namespace mozilla {
 
+class ErrorResult;
 class SMILValue;
 
 namespace dom {
 class SVGElement;
-}
+class OwningTrustedScriptURLOrString;
+class TrustedScriptURLOrString;
+}  // namespace dom
 
-class SVGAnimatedString final : public SVGAnimatedClassOrString {
+class SVGAnimatedString : public SVGAnimatedClassOrString {
  public:
   using SVGElement = dom::SVGElement;
+  using OwningTrustedScriptURLOrString = dom::OwningTrustedScriptURLOrString;
+  using TrustedScriptURLOrString = dom::TrustedScriptURLOrString;
 
   void Init(uint8_t aAttrEnum) {
     mAnimVal = nullptr;
@@ -34,6 +39,12 @@ class SVGAnimatedString final : public SVGAnimatedClassOrString {
 
   void SetBaseValue(const nsAString& aValue, SVGElement* aSVGElement,
                     bool aDoSetAttr) override;
+  MOZ_CAN_RUN_SCRIPT void SetBaseValue(const TrustedScriptURLOrString& aValue,
+                                       SVGElement* aSVGElement, bool aDoSetAttr,
+                                       ErrorResult& aRv) override {
+    SVGAnimatedClassOrString::SetBaseValue(aValue, aSVGElement, aDoSetAttr,
+                                           aRv);
+  }
   void GetBaseValue(nsAString& aValue,
                     const SVGElement* aSVGElement) const override {
     aSVGElement->GetStringBaseValue(mAttrEnum, aValue);
@@ -94,6 +105,17 @@ class SVGAnimatedString final : public SVGAnimatedClassOrString {
     void ClearAnimValue() override;
     nsresult SetAnimValue(const SMILValue& aValue) override;
   };
+};
+
+class SVGAnimatedScriptHrefString final : public SVGAnimatedString {
+ public:
+  using SVGElement = dom::SVGElement;
+  using OwningTrustedScriptURLOrString = dom::OwningTrustedScriptURLOrString;
+  using TrustedScriptURLOrString = dom::TrustedScriptURLOrString;
+  MOZ_CAN_RUN_SCRIPT void SetBaseValue(const TrustedScriptURLOrString& aValue,
+                                       SVGElement* aSVGElement, bool aDoSetAttr,
+                                       ErrorResult& aRv) override;
+  SVGAnimatedScriptHrefString() = default;
 };
 
 }  // namespace mozilla

@@ -12,6 +12,6 @@
 
 [Exposed=Window]
 interface SVGAnimatedString {
-           attribute DOMString baseVal;
+  [SetterThrows] attribute (TrustedScriptURL or DOMString) baseVal;
   readonly attribute DOMString animVal;
 };
