@@ -3,7 +3,7 @@
 Architecture
 ============
 
-The Firefox AI Platform uses the ONNX runtime to run models, and leverages
+The Firefox AI Runtime uses the ONNX runtime to run models, and leverages
 the Transformers.js library to simplify the inference work.
 
 
@@ -13,7 +13,7 @@ the Transformers.js library to simplify the inference work.
    :scale: 95%
    :align: center
 
-   Firefox AI Platform Architecture
+   Firefox AI Runtime Architecture
 
 (1)(2) When a content process calls the inference API, Firefox calls the Remote Settings
 service to get ONNX WASM runtime if needed, and to get default options for the

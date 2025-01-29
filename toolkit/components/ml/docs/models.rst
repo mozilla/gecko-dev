@@ -61,7 +61,7 @@ When Firefox uses a model, it will
 
 We have two collections in Remote Settings:
 
-- `ml-onnx-runtime`: provides all the WASM files we need to run the inference platform.
+- `ml-onnx-runtime`: provides all the WASM files we need to run the inference runtime.
 - `ml-inference-options`: provides for each `taskId` a list of running options, such as the `modelId`.
 
 Running the inference API will download the WASM files if needed, and then see
@@ -130,7 +130,7 @@ Below are the most common files you’ll encounter:
 - ``pytorch_model.bin``: Contains the model's weights for PyTorch models. It is a serialized file that holds the parameters of the neural network.
 - ``tf_model.h5``: TensorFlow's version of the model weights.
 - ``flax_model.msgpack``: For models built with the Flax framework, this file contains the model weights in a format used by JAX and Flax.
-- ``onnx``: A subdirectory containing ONNX weights files in different quantization levels. **They are the one our platform uses**
+- ``onnx``: A subdirectory containing ONNX weights files in different quantization levels. **They are the one our runtime uses**
 
 
 2. Model Configuration

@@ -1,7 +1,7 @@
-Firefox AI Platform
-===================
+Firefox AI Runtime
+==================
 
-This component is an experimental machine learning local inference engine based on
+This component is an experimental machine learning local inference runtime based on
 `Transformers.js <https://huggingface.co/docs/transformers.js/index>`_ and
 the `ONNX runtime <https://onnxruntime.ai/>`_. You can use the component to leverage
 the inference runtime in the context of the browser. To try out some inference tasks,
@@ -9,7 +9,7 @@ you can refer to the
 `1000+ models <https://huggingface.co/models?library=transformers.js>`_
 that are available in the Hugging Face Hub that are compatible with this runtime.
 
-To enable the engine, flip the `browser.ml.enable` preference to `true` in `about:config`
+To enable it, flip the `browser.ml.enable` preference to `true` in `about:config`
 then visit **about:inference** (Nightly only) or add the following snippet of code
 into your (privileged) Javascript code in Firefox or in the browser console:
 
