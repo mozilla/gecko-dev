@@ -761,6 +761,12 @@ class InferenceEngine {
     getModelFileFn,
     getInferenceProcessInfoFn,
   }) {
+    // Check for the numThreads value. If it's not set, use the best value for the platform, which is the number of physical cores
+    // However ONNX sets the maximum concurrency to 4 so we limit it to 4 here as well.
+    pipelineOptions.numThreads =
+      pipelineOptions.numThreads ||
+      Math.min(4, lazy.mlUtils.getNumPhysicalCores());
+
     // Before we start the worker, we want to make sure we have the resources to run it.
     if (lazy.CHECK_FOR_MEMORY) {
       try {
