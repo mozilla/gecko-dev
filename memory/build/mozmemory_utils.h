@@ -11,7 +11,6 @@
 #include <type_traits>
 
 #if defined(MOZ_MEMORY) && defined(XP_WIN)
-#  include <wtypes.h>
 #  include "mozmemory_wrap.h"
 #endif
 
@@ -46,8 +45,8 @@ struct StallSpecs {
   // ```
   //
   template <typename DelayFunc, typename OpFunc>
-  auto StallAndRetry(DelayFunc&& aDelayFunc,
-                     OpFunc&& aOperation) const -> decltype(aOperation()) {
+  auto StallAndRetry(DelayFunc&& aDelayFunc, OpFunc&& aOperation) const
+      -> decltype(aOperation()) {
     {
       // Explicit typecheck for OpFunc, to provide an explicit error message.
       using detail::is_std_optional;
@@ -69,10 +68,9 @@ struct StallSpecs {
 
 #if defined(MOZ_MEMORY) && defined(XP_WIN)
 MOZ_JEMALLOC_API StallSpecs GetAllocatorStallSpecs();
-MOZ_JEMALLOC_API_NODISCARD void* MozVirtualAlloc(LPVOID lpAddress,
-                                                 SIZE_T dwSize,
-                                                 DWORD flAllocationType,
-                                                 DWORD flProtect);
+MOZ_JEMALLOC_API_NODISCARD void* MozVirtualAlloc(void* lpAddress, size_t dwSize,
+                                                 uint32_t flAllocationType,
+                                                 uint32_t flProtect);
 #endif
 
 }  // namespace mozilla

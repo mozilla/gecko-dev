@@ -1985,8 +1985,8 @@ StallSpecs GetAllocatorStallSpecs() {
 //
 // Ref:
 // https://docs.microsoft.com/en-us/troubleshoot/windows-client/performance/slow-page-file-growth-memory-allocation-errors
-void* MozVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType,
-                      DWORD flProtect) {
+void* MozVirtualAlloc(void* lpAddress, size_t dwSize, uint32_t flAllocationType,
+                      uint32_t flProtect) {
   using namespace MozAllocRetries;
 
   DWORD const lastError = ::GetLastError();
