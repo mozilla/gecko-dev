@@ -30,6 +30,7 @@ WebrtcGmpVideoEncoder::WebrtcGmpVideoEncoder(
     const webrtc::SdpVideoFormat& aFormat, std::string aPCHandle)
     : mGMP(nullptr),
       mInitting(false),
+      mConfiguredBitrateKbps(0),
       mHost(nullptr),
       mMaxPayloadSize(0),
       mFormatParams(aFormat.parameters),
@@ -90,6 +91,11 @@ static int GmpFrameTypeToWebrtcFrameType(GMPVideoFrameType aIn,
 int32_t WebrtcGmpVideoEncoder::InitEncode(
     const webrtc::VideoCodec* aCodecSettings,
     const webrtc::VideoEncoder::Settings& aSettings) {
+  if (!mEncodeQueue) {
+    mEncodeQueue.emplace(GetCurrentSerialEventTarget());
+  }
+  mEncodeQueue->AssertOnCurrentThread();
+
   if (!mMPS) {
     mMPS = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
   }
@@ -135,6 +141,8 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
       webrtc::H264PacketizationMode::NonInterleaved) {
     maxPayloadSize = 0;  // No limit, use FUAs
   }
+
+  mConfiguredBitrateKbps = codecParams.mMaxBitrate;
 
   MOZ_ALWAYS_SUCCEEDS(
       mGMPThread->Dispatch(NewRunnableMethod<GMPVideoCodec, int32_t, uint32_t>(
@@ -248,9 +256,20 @@ int32_t WebrtcGmpVideoEncoder::InitEncoderForSize(unsigned short aWidth,
 int32_t WebrtcGmpVideoEncoder::Encode(
     const webrtc::VideoFrame& aInputImage,
     const std::vector<webrtc::VideoFrameType>* aFrameTypes) {
+  mEncodeQueue->AssertOnCurrentThread();
   MOZ_ASSERT(aInputImage.width() >= 0 && aInputImage.height() >= 0);
   if (!aFrameTypes) {
     return WEBRTC_VIDEO_CODEC_ERROR;
+  }
+
+  if (mConfiguredBitrateKbps == 0) {
+    GMP_LOG_VERBOSE("GMP Encode: not enabled");
+    MutexAutoLock lock(mCallbackMutex);
+    if (mCallback) {
+      mCallback->OnDroppedFrame(
+          webrtc::EncodedImageCallback::DropReason::kDroppedByEncoder);
+    }
+    return WEBRTC_VIDEO_CODEC_OK;
   }
 
   // It is safe to copy aInputImage here because the frame buffer is held by
@@ -390,16 +409,18 @@ int32_t WebrtcGmpVideoEncoder::Shutdown() {
 
 int32_t WebrtcGmpVideoEncoder::SetRates(
     const webrtc::VideoEncoder::RateControlParameters& aParameters) {
+  mEncodeQueue->AssertOnCurrentThread();
   MOZ_ASSERT(mGMPThread);
   MOZ_ASSERT(aParameters.bitrate.IsSpatialLayerUsed(0));
   MOZ_ASSERT(!aParameters.bitrate.HasBitrate(0, 1),
              "No simulcast support for H264");
   MOZ_ASSERT(!aParameters.bitrate.IsSpatialLayerUsed(1),
              "No simulcast support for H264");
+  mConfiguredBitrateKbps = aParameters.bitrate.GetBitrate(0, 0) / 1000;
   MOZ_ALWAYS_SUCCEEDS(
       mGMPThread->Dispatch(NewRunnableMethod<uint32_t, Maybe<double>>(
           __func__, this, &WebrtcGmpVideoEncoder::SetRates_g,
-          aParameters.bitrate.GetBitrate(0, 0) / 1000,
+          mConfiguredBitrateKbps,
           aParameters.framerate_fps > 0.0 ? Some(aParameters.framerate_fps)
                                           : Nothing())));
 

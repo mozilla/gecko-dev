@@ -36,6 +36,7 @@
 #include <string>
 
 #include "nsThreadUtils.h"
+#include "mozilla/EventTargetCapability.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Telemetry.h"
 
@@ -242,8 +243,10 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   nsCOMPtr<mozIGeckoMediaPluginService> mMPS;
   nsCOMPtr<nsIThread> mGMPThread;
   GMPVideoEncoderProxy* mGMP;
+  Maybe<EventTargetCapability<nsISerialEventTarget>> mEncodeQueue;
   // Used to handle a race where Release() is called while init is in progress
   bool mInitting;
+  uint32_t mConfiguredBitrateKbps MOZ_GUARDED_BY(mEncodeQueue);
   GMPVideoHost* mHost;
   GMPVideoCodec mCodecParams{};
   uint32_t mMaxPayloadSize;
