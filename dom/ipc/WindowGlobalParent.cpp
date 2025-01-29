@@ -1174,13 +1174,6 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
     }
 
     glean::use_counter::top_level_content_documents_destroyed.Add();
-    if (CanonicalBrowsingContext* bc = BrowsingContext()) {
-      if (bc->UsePrivateBrowsing()) {
-        glean::captcha_detection::pages_visited_pbm.Add();
-      } else {
-        glean::captcha_detection::pages_visited.Add();
-      }
-    }
 
     bool any = false;
     for (int32_t c = 0; c < eUseCounter_Count; ++c) {
