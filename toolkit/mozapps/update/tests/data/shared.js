@@ -108,8 +108,21 @@ const UPDATE_SETTINGS_CONTENTS =
   "[Settings]\nACCEPTED_MAR_CHANNEL_IDS=xpcshell-test\n";
 const PRECOMPLETE_CONTENTS = 'rmdir "nonexistent_dir/"\n';
 
-const DIR_APP_INFO_PLIST_FILE_CONTENTS =
-  '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleDevelopmentRegion</key><string>English</string><key>CFBundleDisplayName</key><string>dir</string><key>CFBundleExecutable</key><string>firefox</string><key>CFBundleIdentifier</key><string>org.mozilla.firefox</string><key>CFBundleInfoDictionaryVersion</key><string>6.0</string><key>CFBundleName</key><string>dir</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleSignature</key><string>????</string><key>CFBundleVersion</key><string>1.0</string></dict></plist>';
+const DIR_APP_INFO_PLIST_FILE_CONTENTS = `<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+    <dict>
+      <key>CFBundleDevelopmentRegion</key><string>English</string>
+      <key>CFBundleDisplayName</key><string>dir</string>
+      <key>CFBundleExecutable</key><string>${AppConstants.MOZ_APP_NAME}</string>
+      <key>CFBundleIdentifier</key><string>${AppConstants.MOZ_MACBUNDLE_ID}</string>
+      <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+      <key>CFBundleName</key><string>dir</string>
+      <key>CFBundlePackageType</key><string>APPL</string>
+      <key>CFBundleSignature</key><string>????</string>
+      <key>CFBundleVersion</key><string>1.0</string>
+    </dict>
+  </plist>`;
 
 const PR_RDWR = 0x04;
 const PR_CREATE_FILE = 0x08;
