@@ -188,9 +188,11 @@ class RequestListContent extends Component {
     // Wait for the next animation frame to measure the parentNode dimensions.
     // Bug 1900682.
     requestAnimationFrame(() => {
-      const parent = this.refs.scrollEl.parentNode;
-      this.refs.scrollEl.style.width = parent.offsetWidth + "px";
-      this.refs.scrollEl.style.height = parent.offsetHeight + "px";
+      if (document.visibilityState == "visible") {
+        const parent = this.refs.scrollEl.parentNode;
+        this.refs.scrollEl.style.width = parent.offsetWidth + "px";
+        this.refs.scrollEl.style.height = parent.offsetHeight + "px";
+      }
     });
   }
 

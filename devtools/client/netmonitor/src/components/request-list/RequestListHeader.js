@@ -242,11 +242,13 @@ class RequestListHeader extends Component {
       // Measure its width and update the 'waterfallWidth' property in the store.
       // The 'waterfallWidth' will be further updated on every window resize.
       window.cancelIdleCallback(this._resizeTimerId);
-      this._resizeTimerId = window.requestIdleCallback(() =>
-        this.props.resizeWaterfall(
-          waterfallHeader.getBoundingClientRect().width
-        )
-      );
+      this._resizeTimerId = window.requestIdleCallback(() => {
+        if (document.visibilityState == "visible") {
+          this.props.resizeWaterfall(
+            waterfallHeader.getBoundingClientRect().width
+          );
+        }
+      });
     }
   }
 
