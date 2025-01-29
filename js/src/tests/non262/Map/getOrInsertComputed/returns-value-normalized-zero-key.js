@@ -1,0 +1,29 @@
+// |reftest| shell-option(--enable-upsert) skip-if(!Map.prototype.getOrInsertComputed)
+// Copyright (C) 2015 the V8 project authors. All rights reserved.
+// Copyright (C) 2024 Jonas Haukenes, Mathias Ness. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+/*---
+esid: proposal-upsert
+description: >
+  Returns the value from the specified key normalizing +0 and -0.
+info: |
+  Map.prototype.getOrInsertComputed ( key , Callbackfn )
+
+  4. Set key to CanonicalizeKeyedCollectionKey(key).
+  5. For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
+    a. If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true, return p.[[Value]].
+  ...
+
+  features: [arrow-function]
+---*/
+
+var map = new Map();
+
+map.set(+0, 42);
+assertEq(map.getOrInsertComputed(-0, () => 1), 42);
+
+map = new Map();
+map.set(-0, 43);
+assertEq(map.getOrInsertComputed(+0, () => 1), 43);
+
+reportCompare(0, 0);
