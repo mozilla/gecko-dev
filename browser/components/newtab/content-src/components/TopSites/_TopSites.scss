@@ -412,7 +412,11 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         // The normal position for the context menu button is outside of the container,
         // and thus has the wallpaper-contrast-fix mixin.
         // We need to revert that because we're moving it into the shortcut's container.
-        color-scheme: initial;
+        color-scheme: light;
+
+        @include dark-theme-only {
+          color-scheme: dark;
+        }
       }
     }
 
@@ -485,9 +489,15 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .icon-pin-small {
       // The icon's colour is based on currentColor, which is a ligh/dark colour.
-      // We don't want it to change based on the wallpaper-contrast-fix mixin,
-      // as it's inside the topsite container now.
-      color-scheme: initial;
+      // We don't want it to change on hover based on the wallpaper-contrast-fix mixin,
+      // as it's inside the icon container now which is always the same colour
+      // regardless of wallpaper or hover state.
+      color-scheme: light;
+
+      @include dark-theme-only {
+        color-scheme: dark;
+      }
+
       position: absolute;
       inset-block-start: var(--space-xsmall);
       inset-inline-start: var(--space-xsmall);
