@@ -9,11 +9,13 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mozilla.focus.telemetry.fake.FakeGleanProfileId
+import org.mozilla.focus.telemetry.fake.FakeGleanProfileIdStore
 import org.mozilla.focus.telemetry.fake.FakeGleanUsageReporting
 import org.mozilla.focus.telemetry.fake.FakeLifecycleEventObserver
 import org.mozilla.focus.telemetry.fake.FakeLifecycleOwner
 
-class GleanUsageReportingMetricsServiceTest {
+internal class GleanUsageReportingMetricsServiceTest {
 
     private val fakeLifecycleOwner = FakeLifecycleOwner()
     private val fakeLifecycleEventObserver = FakeLifecycleEventObserver()
@@ -72,5 +74,7 @@ class GleanUsageReportingMetricsServiceTest {
         lifecycleOwner = fakeLifecycleOwner,
         gleanUsageReportingLifecycleObserver = fakeLifecycleEventObserver,
         gleanUsageReporting = fakeGleanUsageReporting,
+        gleanProfileId = FakeGleanProfileId(),
+        gleanProfileIdStore = FakeGleanProfileIdStore(),
     )
 }

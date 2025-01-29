@@ -74,6 +74,7 @@ import org.mozilla.focus.state.AppStore
 import org.mozilla.focus.state.Screen
 import org.mozilla.focus.telemetry.GleanMetricsService
 import org.mozilla.focus.telemetry.GleanUsageReportingMetricsService
+import org.mozilla.focus.telemetry.GleanUsageReportingMetricsService.GleanProfileIdPreferenceStore
 import org.mozilla.focus.telemetry.TelemetryMiddleware
 import org.mozilla.focus.telemetry.startuptelemetry.AppStartReasonProvider
 import org.mozilla.focus.telemetry.startuptelemetry.StartupActivityLog
@@ -218,7 +219,13 @@ class Components(
 
     val metrics: GleanMetricsService by lazy { GleanMetricsService(context) }
 
-    val usageReportingMetricsService: GleanUsageReportingMetricsService by lazy { GleanUsageReportingMetricsService() }
+    val usageReportingMetricsService: GleanUsageReportingMetricsService by lazy {
+        GleanUsageReportingMetricsService(
+            gleanProfileIdStore = GleanProfileIdPreferenceStore(
+                context,
+            ),
+        )
+    }
 
     val experiments: NimbusApi by lazy {
         createNimbus(context, BuildConfig.NIMBUS_ENDPOINT)
