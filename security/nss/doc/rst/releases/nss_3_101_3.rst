@@ -1,0 +1,61 @@
+.. _mozilla_projects_nss_nss_3_101_3_release_notes:
+
+NSS 3.101_3 release notes
+=========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.101.3 was released on *23 January 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_101_3_RTM. NSS 3.101_3 requires NSPR 4.35 or newer.
+
+   NSS 3.101_3 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_101_3_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.101_3:
+
+`Changes in NSS 3.101_3 <#changes_in_nss_3.101_3>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1935984 - Ensure zero-initialization of collectArgs.cert
+   - Bug 1927953 - don't look for secmod.db in nssutil_ReadSecmodDB if NSS_DISABLE_DBM is set
+   - Bug 1926256 - fix build error from 9505f79d
+   - Bug 1926256 - simplify error handling in get_token_objects_for_cache.
+   - Bug 1923767 - pk12util: improve error handling in p12U_ReadPKCS12File.
+   - Bug 1909768 - UBSAN fix: applying zero offset to null pointer in sslsnce.c.
+   - Bug 1908623 - move list size check after lock acquisition in sftk_PutObjectToList.
+   - Bug 1899402 - Correctly destroy bulkkey in error scenario.
+
+`Compatibility <#compatibility>`__
+----------------------------------
+
+.. container::
+
+   NSS 3.101_3 shared libraries are backwards-compatible with all older NSS 3.x shared
+   libraries. A program linked with older NSS 3.x shared libraries will work with
+   this new version of the shared libraries without recompiling or
+   relinking. Furthermore, applications that restrict their use of NSS APIs to the
+   functions listed in NSS Public Functions will remain compatible with future
+   versions of the NSS shared libraries.
+
+`Feedback <#feedback>`__
+------------------------
+
+.. container::
+
+   Bugs discovered should be reported by filing a bug report on
+   `bugzilla.mozilla.org <https://bugzilla.mozilla.org/enter_bug.cgi?product=NSS>`__ (product NSS).

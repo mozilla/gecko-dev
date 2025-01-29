@@ -402,8 +402,15 @@ tls13_CreateKEMKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef,
     }
 
     privKey = PK11_GenerateKeyPairWithOpFlags(slot, mechanism,
-                                              &paramSet, &pubKey, PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE,
+                                              &paramSet, &pubKey, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC,
                                               CKF_DERIVE, CKF_DERIVE, ss->pkcs11PinArg);
+
+    if (!privKey) {
+        privKey = PK11_GenerateKeyPairWithOpFlags(slot, mechanism,
+                                                  &paramSet, &pubKey, PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE,
+                                                  CKF_DERIVE, CKF_DERIVE, ss->pkcs11PinArg);
+    }
+
     PK11_FreeSlot(slot);
     if (!privKey || !pubKey) {
         goto loser;
@@ -774,7 +781,7 @@ tls13_HandleKEMCiphertext(sslSocket *ss, TLS13KeyShareEntry *entry, sslKeyPair *
             return SECFailure;
     }
 
-    rv = PK11_Decapsulate(keyPair->privKey, &ct, CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE, CKF_DERIVE, outKey);
+    rv = PK11_Decapsulate(keyPair->privKey, &ct, CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE, CKF_DERIVE, outKey);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_KEY_EXCHANGE_FAILURE);
     }
@@ -818,7 +825,7 @@ tls13_HandleKEMKey(sslSocket *ss,
     }
 
     rv = PK11_Encapsulate(peerKey,
-                          CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE,
+                          CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC,
                           CKF_DERIVE, key, ciphertext);
 
     /* Destroy the imported public key */
