@@ -128,6 +128,7 @@ class DynamicDownloadDialogBehaviorTest {
         behavior.anchor = mockk<View> {
             every { height } returns 10
         }
+        every { downloadDialog.height } returns 20
 
         val animator: ValueAnimator = mockk(relaxed = true)
         behavior.snapAnimator = animator

@@ -188,17 +188,13 @@ class DynamicDownloadDialogBehavior<V : View>(
             object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     // Ensure the right translationY if the anchor changes during the animation
-                    dynamicDownload.translationY = -anchorHeight.toFloat()
+                    child.translationY = computeTranslation(direction)
                 }
             },
         )
         setFloatValues(
             child.translationY,
-            if (direction == SnapDirection.UP) {
-                -anchorHeight.toFloat()
-            } else {
-                child.height.toFloat() + anchorHeight
-            },
+            computeTranslation(direction),
         )
         start()
     }
@@ -213,4 +209,9 @@ class DynamicDownloadDialogBehavior<V : View>(
         possibleAnchors
             .intersect(root.children.filter { it.isVisible && it.height > 0 }.map { it.id }.toSet()).firstOrNull()
             ?.let { root.findViewById<View>(it) }
+
+    private fun computeTranslation(scrollDirection: SnapDirection) = when (scrollDirection) {
+        SnapDirection.UP -> -anchorHeight.toFloat()
+        SnapDirection.DOWN -> dynamicDownload.height.toFloat() + anchorHeight
+    }
 }
