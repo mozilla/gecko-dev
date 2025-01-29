@@ -565,19 +565,21 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   [[nodiscard]] bool findSweepGroupEdges(Zone* atomsZone);
 
-  struct DiscardOptions {
-    DiscardOptions() {}
+  struct JitDiscardOptions {
+    JitDiscardOptions() {}
     bool discardJitScripts = false;
     bool resetNurseryAllocSites = false;
     bool resetPretenuredAllocSites = false;
   };
 
-  void maybeDiscardJitCode(JS::GCContext* gcx,
-                           const DiscardOptions& options = DiscardOptions());
+  void maybeDiscardJitCode(
+      JS::GCContext* gcx,
+      const JitDiscardOptions& options = JitDiscardOptions());
 
   // Discard JIT code regardless of isPreservingCode().
-  void forceDiscardJitCode(JS::GCContext* gcx,
-                           const DiscardOptions& options = DiscardOptions());
+  void forceDiscardJitCode(
+      JS::GCContext* gcx,
+      const JitDiscardOptions& options = JitDiscardOptions());
 
   void resetAllocSitesAndInvalidate(bool resetNurserySites,
                                     bool resetPretenuredSites);

@@ -2720,7 +2720,7 @@ void GCRuntime::discardJITCodeForGC() {
     bool resetPretenuredSites = pz.shouldResetPretenuredAllocSites();
 
     if (!zone->isPreservingCode()) {
-      Zone::DiscardOptions options;
+      Zone::JitDiscardOptions options;
       options.discardJitScripts = true;
       options.resetNurseryAllocSites = resetNurserySites;
       options.resetPretenuredAllocSites = resetPretenuredSites;
