@@ -3335,10 +3335,6 @@ async function setupUpdaterTest(
     gUpdateBin = copyTestUpdaterToBinDir();
   }
 
-  if (AppConstants.platform == "macosx") {
-    stripQuarantineBitFromPath(afterApplyBinDir.parent.parent.path);
-  }
-
   gTestFiles.forEach(function SUT_TF_FE(aTestFile) {
     debugDump("start - setup test file: " + aTestFile.fileName);
     if (aTestFile.originalFile || aTestFile.originalContents) {
@@ -3399,15 +3395,6 @@ async function setupUpdaterTest(
     debugDump("finish - setup test file: " + aTestFile.fileName);
   });
 
-  // Set a similar extended attribute on the `.app` directory as we see in
-  // the wild. We will verify that it is preserved at the end of tests.
-  if (AppConstants.platform == "macosx") {
-    await IOUtils.setMacXAttr(
-      getApplyDirFile().path,
-      MAC_APP_XATTR_KEY,
-      new TextEncoder().encode(MAC_APP_XATTR_VALUE)
-    );
-  }
   // Add the test directory that will be updated for a successful update or left
   // in the initial state for a failed update.
   gTestDirs.forEach(function SUT_TD_FE(aTestDir) {
@@ -3473,6 +3460,20 @@ async function setupUpdaterTest(
     }
     return false;
   }, "Waiting to setup app files");
+
+  if (AppConstants.platform == "macosx") {
+    stripQuarantineBitFromPath(afterApplyBinDir.parent.parent.path);
+  }
+
+  // Set a similar extended attribute on the `.app` directory as we see in
+  // the wild. We will verify that it is preserved at the end of tests.
+  if (AppConstants.platform == "macosx") {
+    await IOUtils.setMacXAttr(
+      getApplyDirFile().path,
+      MAC_APP_XATTR_KEY,
+      new TextEncoder().encode(MAC_APP_XATTR_VALUE)
+    );
+  }
 
   debugDump("finish - updater test setup");
 }
