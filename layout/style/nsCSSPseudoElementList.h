@@ -53,11 +53,16 @@ CSS_PSEUDO_ELEMENT(selection, ":selection",
 
 CSS_PSEUDO_ELEMENT(targetText, ":target-text", 0)
 
-CSS_PSEUDO_ELEMENT(viewTransition, ":view-transition", 0)
-CSS_PSEUDO_ELEMENT(viewTransitionGroup, ":view-transition-group", 0)
-CSS_PSEUDO_ELEMENT(viewTransitionImagePair, ":view-transition-image-pair", 0)
-CSS_PSEUDO_ELEMENT(viewTransitionOld, ":view-transition-old", 0)
-CSS_PSEUDO_ELEMENT(viewTransitionNew, ":view-transition-new", 0)
+CSS_PSEUDO_ELEMENT(viewTransition, ":view-transition",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
+CSS_PSEUDO_ELEMENT(viewTransitionGroup, ":view-transition-group",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
+CSS_PSEUDO_ELEMENT(viewTransitionImagePair, ":view-transition-image-pair",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
+CSS_PSEUDO_ELEMENT(viewTransitionOld, ":view-transition-old",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
+CSS_PSEUDO_ELEMENT(viewTransitionNew, ":view-transition-new",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
 
 // XXXbz should we really allow random content to style these?  Maybe
 // use our flags to prevent that?
