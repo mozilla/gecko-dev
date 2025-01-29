@@ -12256,7 +12256,7 @@
 
 - name: media.webrtc.simulcast.vp9.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: media.webrtc.tls_tunnel_for_all_proxy
