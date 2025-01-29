@@ -16,6 +16,9 @@ const TEST_URL = URL_ROOT + "incremental-js-value-script.sjs";
 add_task(async function () {
   info(" ### Test reloading a Tab");
 
+  // Reinitialize the sjs state if necessary.
+  await fetch(TEST_URL + "?setup");
+
   // Create a TargetCommand for a given test tab
   const tab = await addTab(TEST_URL);
   const commands = await CommandsFactory.forTab(tab);
