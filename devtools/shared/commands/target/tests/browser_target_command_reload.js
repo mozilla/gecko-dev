@@ -16,8 +16,15 @@ const TEST_URL = URL_ROOT + "incremental-js-value-script.sjs";
 add_task(async function () {
   info(" ### Test reloading a Tab");
 
+  // Load "?setup" to reinitialize the sjs state if necessary.
+  const tab = await addTab(TEST_URL + "?setup");
+
+  // Now navigate to actual test URL.
+  const onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, TEST_URL);
+  await onLoaded;
+
   // Create a TargetCommand for a given test tab
-  const tab = await addTab(TEST_URL);
   const commands = await CommandsFactory.forTab(tab);
   const targetCommand = commands.targetCommand;
 

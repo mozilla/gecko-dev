@@ -1,7 +1,16 @@
 "use strict";
 
 function handleRequest(request, response) {
-  const Etag = '"4d881ab-b03-435f0a0f9ef00"';
+  const { queryString } = request;
+  if (queryString === "setup") {
+    setState("cache-counter", "1");
+    setState("etag", `"${Date.now()}-${Math.round(Math.random() * 100)}"`);
+    response.setHeader("Content-Type", "text/html");
+    response.write("OK");
+    return;
+  }
+
+  const Etag = getState("etag");
   const IfNoneMatch = request.hasHeader("If-None-Match")
     ? request.getHeader("If-None-Match")
     : "";
