@@ -472,7 +472,9 @@ inline void MovingTracer::onEdge(T** thingp, const char* name) {
 
 void Zone::prepareForCompacting() {
   JS::GCContext* gcx = runtimeFromMainThread()->gcContext();
-  discardJitCode(gcx);
+
+  MOZ_ASSERT(!isPreservingCode());
+  forceDiscardJitCode(gcx);
 }
 
 void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {

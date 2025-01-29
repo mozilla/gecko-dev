@@ -371,7 +371,8 @@ void Zone::checkStringWrappersAfterMovingGC() {
 }
 #endif
 
-void Zone::discardJitCode(JS::GCContext* gcx, const DiscardOptions& options) {
+void Zone::maybeDiscardJitCode(JS::GCContext* gcx,
+                               const DiscardOptions& options) {
   if (!isPreservingCode()) {
     forceDiscardJitCode(gcx, options);
   }
