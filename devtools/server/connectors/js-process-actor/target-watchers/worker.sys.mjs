@@ -396,7 +396,7 @@ export class WorkerTargetWatcherClass {
     }
 
     if (dbg.type === TYPE_SHARED) {
-      // Don't expose shared workers when debugging a tab.
+      // Bug 1607778 - Don't expose shared workers when debugging a tab.
       // For now, they are only exposed in the browser toolbox, when Session Context Type is set to "all".
       return false;
     }

@@ -618,12 +618,18 @@ class TargetCommand extends EventEmitter {
     if (this.listenForWorkers && !types.includes(TargetCommand.TYPES.WORKER)) {
       types.push(TargetCommand.TYPES.WORKER);
     }
+
+    // Bug 1607778 - For now, shared workers are only displayed in the Browser Toolbox.
+    // The server doesn't expose them yet. See `getWatcherSupportedTargets()` and
+    // `WorkerTargetWatcherClass.shouldHandleWorker`.
     if (
       this.listenForWorkers &&
+      this.descriptorFront.isBrowserProcessDescriptor &&
       !types.includes(TargetCommand.TYPES.SHARED_WORKER)
     ) {
       types.push(TargetCommand.TYPES.SHARED_WORKER);
     }
+
     if (
       this.listenForServiceWorkers &&
       !types.includes(TargetCommand.TYPES.SERVICE_WORKER)

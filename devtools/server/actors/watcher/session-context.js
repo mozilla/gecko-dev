@@ -147,7 +147,10 @@ function getWatcherSupportedTargets(type) {
     [Targets.TYPES.WORKER]: true,
     [Targets.TYPES.SERVICE_WORKER]:
       type == SESSION_TYPES.BROWSER_ELEMENT || type == SESSION_TYPES.ALL,
+
+    // Bug 1607778 - Shared workers aren't yet exposed in tab toolboxes
     [Targets.TYPES.SHARED_WORKER]: type == SESSION_TYPES.ALL,
+
     // Do not expose Web Extension content scripts in the Browser Toolbox
     // as they should be debuggable via the content process targets.
     [Targets.TYPES.CONTENT_SCRIPT]: type == SESSION_TYPES.BROWSER_ELEMENT,
