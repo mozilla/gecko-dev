@@ -85,5 +85,9 @@ add_task(async function test_translations_telemetry_open_panel() {
     expectNewFlowId: false,
   });
 
+  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+    expectedEventCount: 0,
+  });
+
   await cleanup();
 });

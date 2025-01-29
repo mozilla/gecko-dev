@@ -50,6 +50,10 @@ add_task(
       }
     );
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 1,
+    });
+
     await cleanup();
   }
 );
@@ -100,6 +104,10 @@ add_task(
         expectedEventCount: 1,
       }
     );
+
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 1,
+    });
 
     await cleanup();
   }

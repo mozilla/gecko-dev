@@ -113,6 +113,10 @@ add_task(
       }
     );
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 1,
+    });
+
     await cleanup();
   }
 );

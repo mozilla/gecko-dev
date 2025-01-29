@@ -112,6 +112,10 @@ add_task(async function test_translations_telemetry_manual_translation() {
     }
   );
 
+  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+    expectedEventCount: 1,
+  });
+
   await cleanup();
 });
 
@@ -183,6 +187,10 @@ add_task(async function test_translations_telemetry_auto_translation() {
       },
     }
   );
+
+  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+    expectedEventCount: 1,
+  });
 
   await cleanup();
 });

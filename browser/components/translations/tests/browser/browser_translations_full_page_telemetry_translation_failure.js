@@ -132,6 +132,10 @@ add_task(
       }
     );
 
+    await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+      expectedEventCount: 0,
+    });
+
     await cleanup();
   }
 );
@@ -222,6 +226,10 @@ add_task(async function test_translations_telemetry_auto_translation_failure() {
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.close, {
     expectedEventCount: 1,
     expectNewFlowId: false,
+  });
+
+  await TestTranslationsTelemetry.assertTranslationsEnginePerformance({
+    expectedEventCount: 0,
   });
 
   await cleanup();
