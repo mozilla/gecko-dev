@@ -4426,3 +4426,24 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  user_agent:
+    # I don't think it can be longer than 255 characters
+    # but let's be safe
+    type: text
+    description: >
+      User agent string
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944552
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944552#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
