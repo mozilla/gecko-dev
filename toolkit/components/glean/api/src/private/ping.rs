@@ -11,7 +11,10 @@ use crate::ipc::need_ipc;
 /// See [Glean Pings](https://mozilla.github.io/glean/book/user/pings/index.html).
 #[derive(Clone)]
 pub enum Ping {
-    Parent(glean::private::PingType),
+    Parent {
+        inner: glean::private::PingType,
+        name: String,
+    },
     Child,
 }
 
@@ -40,23 +43,26 @@ impl Ping {
             Ping::Child
         } else {
             let name = name.into();
-            Ping::Parent(glean::private::PingType::new(
-                name.clone(),
-                include_client_id,
-                send_if_empty,
-                precise_timestamps,
-                include_info_sections,
-                enabled,
-                schedules_pings,
-                reason_codes,
-                follows_collection_enabled,
-            ))
+            Ping::Parent {
+                inner: glean::private::PingType::new(
+                    name.clone(),
+                    include_client_id,
+                    send_if_empty,
+                    precise_timestamps,
+                    include_info_sections,
+                    enabled,
+                    schedules_pings,
+                    reason_codes,
+                    follows_collection_enabled,
+                ),
+                name,
+            }
         }
     }
 
     pub fn set_enabled(&self, enabled: bool) {
         match self {
-            Ping::Parent(p) => p.set_enabled(enabled),
+            Ping::Parent { inner, .. } => inner.set_enabled(enabled),
             Ping::Child => {
                 panic!("Cannot use ping set_enabled API from non-parent process!");
             }
@@ -73,7 +79,7 @@ impl Ping {
     /// `send_if_empty` is `false`).
     pub fn test_before_next_submit(&self, cb: impl FnOnce(Option<&str>) + Send + 'static) {
         match self {
-            Ping::Parent(p) => p.test_before_next_submit(cb),
+            Ping::Parent { inner, .. } => inner.test_before_next_submit(cb),
             Ping::Child => {
                 panic!("Cannot use ping test API from non-parent process!");
             }
@@ -91,8 +97,22 @@ impl glean::traits::Ping for Ping {
     ///   `ping_info.reason` part of the payload.
     pub fn submit(&self, reason: Option<&str>) {
         match self {
-            Ping::Parent(p) => {
-                p.submit(reason);
+            #[allow(unused)]
+            Ping::Parent { inner, name } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    use gecko_profiler::gecko_profiler_category;
+                    gecko_profiler::add_marker(
+                        "Ping::submit",
+                        super::profiler_utils::TelemetryProfilerCategory,
+                        Default::default(),
+                        super::profiler_utils::PingMarker::new_for_submit(
+                            name.clone(),
+                            reason.map(str::to_string),
+                        ),
+                    );
+                }
+                inner.submit(reason);
             }
             Ping::Child => {
                 log::error!(

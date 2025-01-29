@@ -89,7 +89,13 @@ async function runWithProfilerAndGetMarkers(type, func) {
   //   clone/deserialise)
   // - Counter metrics ("javascriptGc"), which caused intermittents in Bug
   //   1943425
-  markers = markers.filter(marker => marker.id.startsWith("testOnly"));
+  markers = markers.filter(
+    marker =>
+      // Metric markers all start with `testOnly`
+      marker.id.startsWith("testOnly") ||
+      // Ping markers are a little more varied, so we enumerate them
+      ["test-ping", "one-ping-only", "ride-along-ping"].includes(marker.id)
+  );
 
   // Return selected markers
   return markers;
@@ -1047,3 +1053,38 @@ add_task(async function test_fog_object_markers() {
 
   Assert.deepEqual(markers, expected_markers);
 });
+
+add_task(
+  // FIXME(1898464): ride-along pings are not handled correctly in artifact builds.
+  {
+    skip_if: () =>
+      Services.prefs.getBoolPref("telemetry.fog.artifact_build", false),
+  },
+
+  async function test_fog_ping_markers() {
+    let markers = await runWithProfilerAndGetMarkers("Ping", () => {
+      // Do stuff that will generate Ping submissions:
+      // From test_fog_custom_pings:
+      Glean.testOnly.onePingOneBool.set(false);
+      GleanPings.onePingOnly.submit();
+
+      // From test_recursive_testBeforeNextSubmit:
+      Glean.testOnly.onePingOneBool.set(false);
+      GleanPings.onePingOnly.submit();
+      GleanPings.onePingOnly.submit();
+      GleanPings.onePingOnly.submit();
+
+      // From test_fog_ride_along_pings:
+      Glean.testOnly.badCode.add(37);
+      GleanPings.testPing.submit();
+    });
+
+    Assert.deepEqual(markers, [
+      { type: "Ping", id: "one-ping-only" },
+      { type: "Ping", id: "one-ping-only" },
+      { type: "Ping", id: "one-ping-only" },
+      { type: "Ping", id: "one-ping-only" },
+      { type: "Ping", id: "test-ping" },
+    ]);
+  }
+);

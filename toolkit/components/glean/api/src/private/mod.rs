@@ -439,6 +439,51 @@ pub(crate) mod profiler_utils {
             json_writer.bool_property("val", self.val);
         }
     }
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct PingMarker {
+        name: String,
+        reason: Option<String>,
+    }
+
+    impl PingMarker {
+        pub(crate) fn new_for_submit(name: String, reason: Option<String>) -> Self {
+            PingMarker { name, reason }
+        }
+    }
+
+    impl gecko_profiler::ProfilerMarker for PingMarker {
+        fn marker_type_name() -> &'static str {
+            "Ping"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id} {marker.data.reason}");
+            schema.set_table_label("{marker.name} - {marker.data.id} {marker.data.reason}");
+            schema.add_key_label_format_searchable(
+                "id",
+                "Ping",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format_searchable(
+                "reason",
+                "Submission reason",
+                Format::String,
+                Searchable::Searchable,
+            );
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            json_writer.unique_string_property("id", self.name.as_str());
+
+            if let Some(reason) = &self.reason {
+                json_writer.string_property("reason", reason);
+            };
+        }
+    }
 }
 
 // These two methods, and the constant function, "live" within profiler_utils,

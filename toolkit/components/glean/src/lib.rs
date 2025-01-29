@@ -126,7 +126,10 @@ pub extern "C" fn fog_set_debug_view_tag(value: &nsACString) -> nsresult {
 /// Submits a ping by name.
 #[no_mangle]
 pub extern "C" fn fog_submit_ping(ping_name: &nsACString) -> nsresult {
-    glean::submit_ping_by_name(&ping_name.to_string(), None);
+    let ping_name = ping_name.to_string();
+    #[cfg(feature = "with_gecko")]
+    firefox_on_glean::pings::record_profiler_ping_marker(&ping_name);
+    glean::submit_ping_by_name(&ping_name, None);
     NS_OK
 }
 

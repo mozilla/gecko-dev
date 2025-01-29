@@ -11,3 +11,17 @@
 include!(mozbuild::objdir_path!(
     "toolkit/components/glean/api/src/pings.rs"
 ));
+
+#[cfg(feature = "with_gecko")]
+pub fn record_profiler_ping_marker(ping_name: &String) {
+    use crate::private::profiler_utils::PingMarker;
+    use crate::private::profiler_utils::TelemetryProfilerCategory;
+    if gecko_profiler::can_accept_markers() {
+        gecko_profiler::add_marker(
+            "Ping::submit",
+            TelemetryProfilerCategory,
+            Default::default(),
+            PingMarker::new_for_submit(ping_name.clone(), None),
+        );
+    }
+}
