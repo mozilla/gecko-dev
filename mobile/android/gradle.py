@@ -9,8 +9,8 @@ import time
 from contextlib import contextmanager
 
 import mozpack.path as mozpath
+from filelock import SoftFileLock
 from mozbuild.dirutils import ensureParentDir
-from mozbuild.lock import lock_file
 
 
 @contextmanager
@@ -20,12 +20,8 @@ def gradle_lock(topobjdir, max_wait_seconds=600):
     # steps.
     lock_path = "{}/gradle/mach_android.lockfile".format(topobjdir)
     ensureParentDir(lock_path)
-    lock_instance = lock_file(lock_path, max_wait=max_wait_seconds)
-
-    try:
+    with SoftFileLock(lock_path, timeout=max_wait_seconds):
         yield
-    finally:
-        del lock_instance
 
 
 def android(verb, *args):
