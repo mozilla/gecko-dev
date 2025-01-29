@@ -1237,6 +1237,7 @@ class Shims {
             frameId,
             runAt: "document_start",
           });
+          shimToApply.setActiveOnTab(tabId);
         } catch (_) {}
       }
 
