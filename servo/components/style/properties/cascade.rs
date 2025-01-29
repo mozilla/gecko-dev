@@ -1023,6 +1023,12 @@ impl<'b> Cascade<'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
         }
 
+        if self.author_specified.contains_any(LonghandIdSet::margin_properties()) &&
+           self.author_specified.contains(LonghandId::FontSize)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_MARGIN_AND_FONT_SIZE);
+        }
+
         if self.author_specified.contains(LonghandId::Color) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_TEXT_COLOR);
         }

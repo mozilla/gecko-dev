@@ -884,6 +884,16 @@ impl LonghandIdSet {
         &HAS_NO_EFFECT_ON_SCROLLBARS
     }
 
+    /// Returns the set of margin properties, for the purposes of <h1> use counters / warnings.
+    #[inline]
+    pub fn margin_properties() -> &'static Self {
+        ${static_longhand_id_set(
+            "MARGIN_PROPERTIES",
+            lambda p: p.logical_group == "margin"
+        )}
+        &MARGIN_PROPERTIES
+    }
+
     /// Returns the set of border properties for the purpose of disabling native
     /// appearance.
     #[inline]

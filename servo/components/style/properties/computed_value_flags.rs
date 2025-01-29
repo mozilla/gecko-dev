@@ -91,6 +91,9 @@ bitflags! {
         /// https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-604424845
         const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 14;
 
+        /// Whether we have author-specified font-size or margin, for <h1> purposes.
+        const HAS_AUTHOR_SPECIFIED_MARGIN_AND_FONT_SIZE = 1 << 15;
+
         /// Whether there are author-specified rules for `font-family`.
         const HAS_AUTHOR_SPECIFIED_FONT_FAMILY = 1 << 16;
 

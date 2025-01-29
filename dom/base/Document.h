@@ -3651,6 +3651,10 @@ class Document : public nsINode,
     mUseCounters[aUseCounter] = true;
   }
 
+  bool HasUseCounter(UseCounter aUseCounter) const {
+    return mUseCounters[aUseCounter];
+  }
+
   const StyleUseCounters* GetStyleUseCounters() {
     return mStyleUseCounters.get();
   }
