@@ -7,6 +7,7 @@ package org.mozilla.fenix.onboarding
 import mozilla.components.support.ktx.kotlin.ifNullOrEmpty
 import org.mozilla.fenix.onboarding.view.OnboardingTermsOfServiceEventHandler
 import org.mozilla.fenix.settings.SupportUtils
+import org.mozilla.fenix.utils.Settings
 
 /**
  * Default implementation for [OnboardingTermsOfServiceEventHandler].
@@ -15,6 +16,7 @@ class DefaultOnboardingTermsOfServiceEventHandler(
     private val telemetryRecorder: OnboardingTelemetryRecorder,
     private val openLink: (String) -> Unit,
     private val showManagePrivacyPreferencesDialog: () -> Unit,
+    private val settings: Settings,
 ) : OnboardingTermsOfServiceEventHandler {
 
     override fun onTermsOfServiceLinkClicked(url: String) {
@@ -42,5 +44,6 @@ class DefaultOnboardingTermsOfServiceEventHandler(
 
     override fun onAcceptTermsButtonClicked() {
         telemetryRecorder.onTermsOfServiceManagerAcceptTermsButtonClick()
+        settings.hasAcceptedTermsOfService = true
     }
 }

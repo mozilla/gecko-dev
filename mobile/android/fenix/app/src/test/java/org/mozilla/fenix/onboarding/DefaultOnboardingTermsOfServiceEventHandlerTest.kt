@@ -6,10 +6,12 @@ package org.mozilla.fenix.onboarding
 
 import io.mockk.mockk
 import io.mockk.verify
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
 class DefaultOnboardingTermsOfServiceEventHandlerTest {
@@ -18,17 +20,20 @@ class DefaultOnboardingTermsOfServiceEventHandlerTest {
     private lateinit var telemetryRecorder: OnboardingTelemetryRecorder
     private lateinit var openLink: (String) -> Unit
     private lateinit var showManagePrivacyPreferencesDialog: () -> Unit
+    private lateinit var settings: Settings
 
     @Before
     fun setup() {
         telemetryRecorder = mockk(relaxed = true)
         openLink = mockk(relaxed = true)
         showManagePrivacyPreferencesDialog = mockk(relaxed = true)
+        settings = Settings(testContext)
 
         eventHandler = DefaultOnboardingTermsOfServiceEventHandler(
             telemetryRecorder = telemetryRecorder,
             openLink = openLink,
             showManagePrivacyPreferencesDialog = showManagePrivacyPreferencesDialog,
+            settings = settings,
         )
     }
 
@@ -79,5 +84,7 @@ class DefaultOnboardingTermsOfServiceEventHandlerTest {
         verify {
             telemetryRecorder.onTermsOfServiceManagerAcceptTermsButtonClick()
         }
+
+        assert(settings.hasAcceptedTermsOfService)
     }
 }

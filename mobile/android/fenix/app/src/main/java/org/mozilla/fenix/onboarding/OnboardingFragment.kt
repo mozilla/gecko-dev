@@ -70,6 +70,7 @@ class OnboardingFragment : Fragment() {
             telemetryRecorder = telemetryRecorder,
             openLink = this::launchSandboxCustomTab,
             showManagePrivacyPreferencesDialog = this::showPrivacyPreferencesDialog,
+            settings = requireContext().settings(),
         )
     }
 

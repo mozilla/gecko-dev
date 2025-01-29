@@ -354,6 +354,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
+    var hasAcceptedTermsOfService by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_terms_accepted),
+        default = false,
+    )
+
     var isDailyUsagePingEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_daily_usage_ping),
         default = isTelemetryEnabled,
