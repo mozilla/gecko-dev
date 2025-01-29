@@ -30,7 +30,7 @@ add_task(async function () {
     is(tabs[i]._tPos, i, "Tab" + i + " position is :" + i);
   }
 
-  await dragAndDrop(tab3, tab4, false);
+  await dragAndDrop(tab3, tab4);
 
   is(gBrowser.selectedTab, tab3, "Dragged tab (tab3) is now active");
   is(gBrowser.selectedTabs.length, 3, "Three selected tabs");

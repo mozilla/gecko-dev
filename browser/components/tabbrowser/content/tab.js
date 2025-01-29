@@ -129,8 +129,20 @@
       labelContainer.addEventListener("underflow", this);
     }
 
+    #elementIndex;
+    get elementIndex() {
+      // Make sure the index is up to date.
+      this.container.ariaFocusableItems;
+      return this.#elementIndex;
+    }
+
+    set elementIndex(index) {
+      this.#elementIndex = index;
+    }
+
+    #owner;
     get owner() {
-      let owner = this._owner?.deref();
+      let owner = this.#owner?.deref();
       if (owner && !owner.closing) {
         return owner;
       }
@@ -138,11 +150,7 @@
     }
 
     set owner(owner) {
-      if (owner) {
-        this._owner = new WeakRef(owner);
-      } else {
-        this._owner = null;
-      }
+      this.#owner = owner ? new WeakRef(owner) : null;
     }
 
     get container() {
@@ -156,15 +164,6 @@
 
       this.toggleAttribute("attention", val);
       gBrowser._tabAttrModified(this, ["attention"]);
-    }
-
-    set undiscardable(val) {
-      if (val == this.hasAttribute("undiscardable")) {
-        return;
-      }
-
-      this.toggleAttribute("undiscardable", val);
-      gBrowser._tabAttrModified(this, ["undiscardable"]);
     }
 
     set _visuallySelected(val) {
@@ -240,6 +239,15 @@
 
     get undiscardable() {
       return this.hasAttribute("undiscardable");
+    }
+
+    set undiscardable(val) {
+      if (val == this.hasAttribute("undiscardable")) {
+        return;
+      }
+
+      this.toggleAttribute("undiscardable", val);
+      gBrowser._tabAttrModified(this, ["undiscardable"]);
     }
 
     get isEmpty() {

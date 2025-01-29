@@ -864,7 +864,6 @@
 }
 
 .tab-group-label-container {
-  transform: var(--tabgroup-dragover-transform);
   transition: var(--tab-dragover-transition);
 
   /* stylelint-disable-next-line media-query-no-invalid */

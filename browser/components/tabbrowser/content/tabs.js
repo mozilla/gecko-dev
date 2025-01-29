@@ -14,9 +14,6 @@
   const DIRECTION_BACKWARD = -1;
   const DIRECTION_FORWARD = 1;
 
-  const GROUP_DROP_ACTION_CREATE = 0x1;
-  const GROUP_DROP_ACTION_APPEND = 0x2;
-
   /**
    * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
    * @returns {boolean}
@@ -37,7 +34,7 @@
    *   `true` if element is the `<label>` in a `<tab-group>`
    */
   const isTabGroupLabel = element =>
-    element.classList.contains("tab-group-label");
+    element.classList?.contains("tab-group-label") ?? false;
 
   class MozTabbrowserTabs extends MozElements.TabsBase {
     static observedAttributes = ["orient"];
@@ -59,6 +56,8 @@
       this.addEventListener("TabHoverEnd", this);
       this.addEventListener("TabGroupExpand", this);
       this.addEventListener("TabGroupCollapse", this);
+      this.addEventListener("TabGroupCreate", this);
+      this.addEventListener("TabGroupRemoved", this);
       this.addEventListener("transitionend", this);
       this.addEventListener("dblclick", this);
       this.addEventListener("click", this);
@@ -304,6 +303,14 @@
           ) ||
           gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL, { skipAnimation: true });
       }
+    }
+
+    on_TabGroupCreate() {
+      this._invalidateCachedTabs();
+    }
+
+    on_TabGroupRemoved() {
+      this._invalidateCachedTabs();
     }
 
     on_transitionend(event) {
@@ -1033,11 +1040,11 @@
             newTranslateY -= tabHeight;
           }
         } else {
-          let pinned = draggedTab.pinned;
+          let isPinned = draggedTab.pinned;
           let numPinned = gBrowser.pinnedTabCount;
           let tabs = this.visibleTabs.slice(
-            pinned ? 0 : numPinned,
-            pinned ? numPinned : undefined
+            isPinned ? 0 : numPinned,
+            isPinned ? numPinned : undefined
           );
           let size = this.verticalMode ? "height" : "width";
           let screenAxis = this.verticalMode ? "screenY" : "screenX";
@@ -1058,32 +1065,26 @@
               lastBound
             );
           } else {
-            newTranslateX = Math.min(
-              Math.max(oldTranslateX, firstBound),
-              lastBound
-            );
+            newTranslateX = RTL_UI
+              ? Math.min(Math.max(oldTranslateX, lastBound), firstBound)
+              : Math.min(Math.max(oldTranslateX, firstBound), lastBound);
           }
         }
 
+        let { dropElement, dropBefore, shouldCreateGroupOnDrop, fromTabList } =
+          draggedTab._dragData;
+
         let dropIndex;
-        if (draggedTab._dragData.fromTabList) {
-          dropIndex = this._getDropIndex(event);
-        } else {
-          dropIndex =
-            "animDropIndex" in draggedTab._dragData &&
-            draggedTab._dragData.animDropIndex;
-        }
         let directionForward = false;
-        let originalDropIndex = dropIndex;
-        if (dropIndex && dropIndex > movingTabs[0]._tPos) {
-          dropIndex--;
-          directionForward = true;
+        if (fromTabList) {
+          dropIndex = this._getDropIndex(event);
+          if (dropIndex && dropIndex > movingTabs[0]._tPos) {
+            dropIndex--;
+            directionForward = true;
+          }
         }
 
-        const { groupDropAction, groupDropIndex } = draggedTab._dragData;
-
-        let shouldTranslate =
-          !gReduceMotion && groupDropAction != GROUP_DROP_ACTION_CREATE;
+        let shouldTranslate = !gReduceMotion && !shouldCreateGroupOnDrop;
         if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
           shouldTranslate &&=
             (oldTranslateX && oldTranslateX != newTranslateX) ||
@@ -1094,33 +1095,15 @@
           shouldTranslate &&= oldTranslateX && oldTranslateX != newTranslateX;
         }
 
-        if (
-          this.hasAttribute("movingtab-ungroup") &&
-          dropIndex == this.allTabs.length - 1
-        ) {
-          // Allow a tab to ungroup if the last item in the tab strip
-          // is a grouped tab.
-          dropIndex++;
-        }
-
         if (shouldTranslate) {
-          if (groupDropAction == GROUP_DROP_ACTION_APPEND) {
-            let groupTab = this.allTabs[groupDropIndex];
-            groupTab.group.addTabs(movingTabs);
-          } else {
-            for (let tab of movingTabs) {
+          let translationPromises = [];
+          for (let tab of movingTabs) {
+            let translationPromise = new Promise(resolve => {
               tab.toggleAttribute("tabdrop-samewindow", true);
               tab.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px)`;
               let postTransitionCleanup = () => {
                 tab.removeAttribute("tabdrop-samewindow");
-
-                this._finishAnimateTabMove();
-                if (dropIndex !== false) {
-                  gBrowser.moveTabTo(tab, dropIndex);
-                  if (!directionForward) {
-                    dropIndex++;
-                  }
-                }
+                resolve();
               };
               if (gReduceMotion) {
                 postTransitionCleanup();
@@ -1138,39 +1121,44 @@
                 };
                 tab.addEventListener("transitionend", onTransitionEnd);
               }
-            }
+            });
+            translationPromises.push(translationPromise);
           }
+          Promise.all(translationPromises).then(() => {
+            this._finishAnimateTabMove();
+            if (dropIndex !== undefined) {
+              for (let tab of movingTabs) {
+                gBrowser.moveTabTo(tab, dropIndex);
+                if (!directionForward) {
+                  dropIndex++;
+                }
+              }
+            } else if (dropElement) {
+              gBrowser.dropTabs(movingTabs, dropElement, dropBefore);
+            }
+          });
         } else {
           this._finishAnimateTabMove();
-          if (groupDropAction == GROUP_DROP_ACTION_APPEND) {
-            let groupTab = this.allTabs[groupDropIndex];
-            groupTab.group.addTabs(movingTabs);
-          } else if (groupDropAction == GROUP_DROP_ACTION_CREATE) {
-            let groupTab = this.allTabs[groupDropIndex];
-            // If dropping on the forward edge of the `groupTab`, create the
-            // tab group with `groupTab` as the first tab in the new tab group
-            // followed by the dragged tabs.
-            // If dropping on the backward edge of the `groupTab`, create the
-            // tab group with the dragged tabs followed by `groupTab` as the
-            // last tab in the new tab group.
+          if (shouldCreateGroupOnDrop) {
             // This makes the tab group contents reflect the visual order of
             // the tabs right before dropping.
-            let tabsInGroup =
-              originalDropIndex <= groupTab._tPos
-                ? [...movingTabs, groupTab]
-                : [groupTab, ...movingTabs];
+            let tabsInGroup = dropBefore
+              ? [...movingTabs, dropElement]
+              : [dropElement, ...movingTabs];
             gBrowser.addTabGroup(tabsInGroup, {
-              insertBefore: groupTab,
+              insertBefore: dropElement,
               showCreateUI: true,
               color: draggedTab._dragData.tabGroupCreationColor,
             });
-          } else if (dropIndex !== false) {
+          } else if (dropIndex !== undefined) {
             for (let tab of movingTabs) {
               gBrowser.moveTabTo(tab, dropIndex);
               if (!directionForward) {
                 dropIndex++;
               }
             }
+          } else if (dropElement) {
+            gBrowser.dropTabs(movingTabs, dropElement, dropBefore);
           }
         }
       } else if (draggedTab) {
@@ -1613,19 +1601,28 @@
         return this.#focusableItems;
       }
 
+      let elementIndex = 0;
       let verticalPinnedTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
       );
+      for (let i = 0; i < verticalPinnedTabsContainer.childElementCount; i++) {
+        verticalPinnedTabsContainer.children[i].elementIndex = elementIndex++;
+      }
       let children = Array.from(this.arrowScrollbox.children);
 
       let focusableItems = [];
       for (let child of children) {
         if (isTab(child) && child.visible) {
+          child.elementIndex = elementIndex++;
           focusableItems.push(child);
         } else if (isTabGroup(child)) {
+          child.labelElement.elementIndex = elementIndex++;
           focusableItems.push(child.labelElement);
           if (!child.collapsed) {
             let visibleTabsInGroup = child.tabs.filter(tab => tab.visible);
+            visibleTabsInGroup.forEach(tab => {
+              tab.elementIndex = elementIndex++;
+            });
             focusableItems.push(...visibleTabsInGroup);
           }
         }
@@ -2261,6 +2258,8 @@
         return;
       }
       dragData.animDropIndex = newIndex;
+      dragData.dropElement = this.allTabs[newIndex];
+      dragData.dropBefore = true;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
@@ -2295,11 +2294,13 @@
         return;
       }
 
-      let pinned = draggedTab.pinned;
+      this.#clearDragOverCreateGroupTimer();
+
+      let isPinned = draggedTab.pinned;
       let numPinned = gBrowser.pinnedTabCount;
-      let tabs = this.visibleTabs.slice(
-        pinned ? 0 : numPinned,
-        pinned ? numPinned : undefined
+      let tabs = this.ariaFocusableItems.slice(
+        isPinned ? 0 : numPinned,
+        isPinned ? numPinned : undefined
       );
 
       if (this.#rtlMode) {
@@ -2316,7 +2317,7 @@
       let translateAxis = this.verticalMode ? "translateY" : "translateX";
       let scrollDirection = this.verticalMode ? "scrollTop" : "scrollLeft";
       let { width: tabWidth, height: tabHeight } =
-        draggedTab.getBoundingClientRect();
+        window.windowUtils.getBoundsWithoutFlushing(draggedTab);
       let translateX = event.screenX - dragData.screenX;
       let translateY = event.screenY - dragData.screenY;
 
@@ -2328,22 +2329,27 @@
       // Move the dragged tab based on the mouse position.
       let firstTab = tabs[0];
       let lastTab = tabs.at(-1);
-      let lastMovingTabScreen = movingTabs.at(-1)[screenAxis];
-      let firstMovingTabScreen = movingTabs[0][screenAxis];
+      let lastMovingTab = movingTabs.at(-1);
+      let firstMovingTab = movingTabs[0];
+      let lastMovingTabScreen = lastMovingTab[screenAxis];
+      let firstMovingTabScreen = firstMovingTab[screenAxis];
       let tabSize = this.verticalMode ? tabHeight : tabWidth;
       let shiftSize = lastMovingTabScreen + tabSize - firstMovingTabScreen;
       let translate = screen - dragData[screenAxis];
-      if (!pinned) {
+      if (!isPinned) {
         translate +=
           this.arrowScrollbox.scrollbox[scrollDirection] - dragData.scrollPos;
-      } else if (pinned && this.verticalMode) {
+      } else if (isPinned && this.verticalMode) {
         translate +=
           this.verticalPinnedTabsContainer.scrollTop - dragData.scrollPos;
       }
+      // Constrain the range over which the moving tabs can move:
+      // - for pinned tabs, between the first and last pinned tab
+      // - for unpinned tabs, between the first and last unpinned tab
       let firstBound = firstTab[screenAxis] - firstMovingTabScreen;
       let lastBound =
         lastTab[screenAxis] +
-        lastTab.getBoundingClientRect()[size] -
+        window.windowUtils.getBoundsWithoutFlushing(lastTab)[size] -
         (lastMovingTabScreen + tabSize);
       translate = Math.min(Math.max(translate, firstBound), lastBound);
 
@@ -2353,36 +2359,142 @@
 
       dragData.translatePos = translate;
 
-      // Determine what tab we're dragging over.
-      // * Single tab dragging: Point of reference is the center of the dragged tab. If that
-      //   point touches a background tab, the dragged tab would take that
-      //   tab's position when dropped.
-      // * Multiple tabs dragging: All dragged tabs are one "giant" tab with two
-      //   points of reference (center of tabs on the extremities). When
-      //   mouse is moving from top to bottom, the bottom reference gets activated,
-      //   otherwise the top reference will be used. Everything else works the same
-      //   as single tab dragging.
-
       tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
-      let getTabShift = (tab, dropIndex) => {
-        if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
+
+      /**
+       * When the `draggedTab` is just starting to move, the `draggedTab` is in
+       * its original location and the `dropElementIndex == draggedTab.elementIndex`.
+       * Any tabs or tab group labels passed in as `item` will result in a 0 shift
+       * because all of those items should also continue to appear in their original
+       * locations.
+       *
+       * Once the `draggedTab` is more "backward" in the tab strip than its original
+       * position, any tabs or tab group labels between the `draggedTab`'s original
+       * `elementIndex` and the current `dropElementIndex` should shift "forward"
+       * out of the way of the dragging tabs.
+       *
+       * When the `draggedTab` is more "forward" in the tab strip than its original
+       * position, any tabs or tab group labels between the `draggedTab`'s original
+       * `elementIndex` and the current `dropElementIndex` should shift "backward"
+       * out of the way of the dragging tabs.
+       *
+       * @param {MozTabbrowserTab|MozTabbrowserTabGroup.label} item
+       * @param {number} dropElementIndex
+       * @returns {number}
+       */
+      let getTabShift = (item, dropElementIndex) => {
+        if (
+          item.elementIndex < draggedTab.elementIndex &&
+          item.elementIndex >= dropElementIndex
+        ) {
           return this.#rtlMode ? -shiftSize : shiftSize;
         }
-        if (tab._tPos > draggedTab._tPos && tab._tPos < dropIndex) {
+        if (
+          item.elementIndex > draggedTab.elementIndex &&
+          item.elementIndex < dropElementIndex
+        ) {
           return this.#rtlMode ? shiftSize : -shiftSize;
         }
         return 0;
       };
 
-      // We're doing a binary search in order to reduce the amount of
-      // tabs we need to check.
-      let oldIndex = dragData.animDropIndex ?? movingTabs[0]._tPos;
-      let getDragOverIndex = tabSizeDragOverThreshold => {
-        let point =
-          (directionForward
-            ? lastMovingTabScreen + tabSize * (1 - tabSizeDragOverThreshold)
-            : firstMovingTabScreen + tabSize * tabSizeDragOverThreshold) +
-          translate;
+      let oldDropElementIndex =
+        dragData.animDropElementIndex ?? movingTabs[0].elementIndex;
+
+      /**
+       * Returns the higher % by which one element overlaps another
+       * in the tab strip.
+       *
+       * When element 1 is further forward in the tab strip:
+       *
+       *   p1            p2      p1+s1    p2+s2
+       *    |             |        |        |
+       *    ---------------------------------
+       *    ========================
+       *               s1
+       *                  ===================
+       *                           s2
+       *                  ==========
+       *                   overlap
+       *
+       * When element 2 is further forward in the tab strip:
+       *
+       *   p2            p1      p2+s2    p1+s1
+       *    |             |        |        |
+       *    ---------------------------------
+       *    ========================
+       *               s2
+       *                  ===================
+       *                           s1
+       *                  ==========
+       *                   overlap
+       *
+       * @param {number} p1
+       *   Position (x or y value in screen coordinates) of element 1.
+       * @param {number} s1
+       *   Size (width or height) of element 1.
+       * @param {number} p2
+       *   Position (x or y value in screen coordinates) of element 2.
+       * @param {number} s2
+       *   Size (width or height) of element 1.
+       * @returns {number}
+       *   Percent between 0.0 and 1.0 (inclusive) of element 1 or element 2
+       *   that is overlapped by the other element. If the elements have
+       *   different sizes, then this returns the larger overlap percentage.
+       */
+      let greatestOverlap = (p1, s1, p2, s2) => {
+        let overlapSize;
+
+        if (p1 < p2) {
+          overlapSize = p1 + s1 - p2;
+        } else {
+          overlapSize = p2 + s2 - p1;
+        }
+
+        let overlapPercent = Math.max(overlapSize / s1, overlapSize / s2);
+        if (overlapPercent < 0 || overlapPercent > 1) {
+          return 0;
+        }
+        return overlapPercent;
+      };
+
+      /**
+       * "Lowest" edge position of the first moving tab:
+       * - Left edge of leftmost moving tab in horizontal LTR
+       * - Right edge of rightmost moving tab in horizontal RTL
+       * - Top edge of topmost moving tab in vertical tabs
+       */
+      let leastMovingTabPos =
+        firstMovingTabScreen + translate + (this.#rtlMode ? tabSize : 0);
+      /**
+       * "Highest" edge position of the last moving tab:
+       * - Right edge of rightmost moving tab in horizontal LTR
+       * - Left edge of leftmost moving tab in horizontal RTL
+       * - Bottom edge of bottom-most moving tab in vertical tabs
+       */
+      let mostMovingTabPos =
+        lastMovingTabScreen + translate + (this.#rtlMode ? 0 : tabSize);
+
+      /**
+       * Determine what tab/tab group label we're dragging over.
+       * - When dragging "forward" (right in horizontal LTR locale, left in
+       *   horizontal RTL locale, down in vertical tab strip), the reference
+       *   point for overlap is the most forward edge of the most forward moving
+       *   tab.
+       * - When dragging "backward" (left in horizontal LTR locale, right in
+       *   horizontal RTL local, up in vertical tab strip), the reference
+       *   point for overlap is the most backward edge of the most backward
+       *   moving tab.
+       *
+       * The `elementIndex` of a tab or tab group label that should be used
+       *   to visually shift tab strip elements out of the way of the dragged
+       *   tab(s) during a drag operation. Note: this is not used to determine
+       *   where the dragged tab(s) will be dropped, it is only used for
+       *   visual animation at this time.
+       * @returns {number}
+       */
+      let getOverlappedElementIndex = () => {
+        let point = directionForward ? mostMovingTabPos : leastMovingTabPos;
         let index = -1;
         let low = 0;
         let high = tabs.length - 1;
@@ -2391,35 +2503,74 @@
           if (tabs[mid] == draggedTab && ++mid > high) {
             break;
           }
-          screen = tabs[mid][screenAxis] + getTabShift(tabs[mid], oldIndex);
+          let element = tabs[mid];
+          let elementForSize = isTabGroupLabel(element)
+            ? element.parentElement
+            : element;
+          screen =
+            elementForSize[screenAxis] +
+            getTabShift(element, oldDropElementIndex);
 
           if (screen > point) {
             high = mid - 1;
-          } else if (screen + tabs[mid].getBoundingClientRect()[size] < point) {
+          } else if (
+            screen + elementForSize.getBoundingClientRect()[size] <
+            point
+          ) {
             low = mid + 1;
           } else {
-            index = tabs[mid]._tPos;
+            index = element.elementIndex;
             break;
           }
         }
         return index;
       };
-      let moveOverThreshold = gBrowser._tabGroupsEnabled
-        ? Services.prefs.getIntPref(
-            "browser.tabs.dragdrop.moveOverThresholdPercent"
-          ) / 100
-        : 0.5;
-      moveOverThreshold = Math.min(1, Math.max(0, moveOverThreshold));
-      let newIndex = getDragOverIndex(moveOverThreshold);
-      if (newIndex >= oldIndex) {
-        newIndex++;
-      }
-      if (newIndex < 0) {
-        newIndex = oldIndex;
-      }
-      dragData.animDropIndex = newIndex;
 
-      if (gBrowser._tabGroupsEnabled && !pinned) {
+      let newDropElementIndex = getOverlappedElementIndex();
+      if (newDropElementIndex < 0) {
+        newDropElementIndex = oldDropElementIndex;
+      }
+
+      let dropElement = this.ariaFocusableItems[newDropElementIndex];
+      let dropBefore = !directionForward;
+      let moveOverThreshold;
+      let overlapPercent;
+      if (dropElement) {
+        let dropElementForOverlap = isTabGroupLabel(dropElement)
+          ? dropElement.parentElement
+          : dropElement;
+
+        let dropElementPosition = dropElementForOverlap[screenAxis];
+        let dropElementTabShift = getTabShift(dropElement, oldDropElementIndex);
+        let dropElementSize =
+          dropElementForOverlap.getBoundingClientRect()[size];
+        overlapPercent = greatestOverlap(
+          directionForward
+            ? lastMovingTabScreen + translate
+            : firstMovingTabScreen + translate,
+          tabSize,
+          dropElementPosition + dropElementTabShift,
+          dropElementSize
+        );
+
+        moveOverThreshold = gBrowser._tabGroupsEnabled
+          ? Services.prefs.getIntPref(
+              "browser.tabs.dragdrop.moveOverThresholdPercent"
+            ) / 100
+          : 0.5;
+        moveOverThreshold = Math.min(1, Math.max(0, moveOverThreshold));
+        let shouldMoveOver = overlapPercent > moveOverThreshold;
+        if (directionForward) {
+          newDropElementIndex += shouldMoveOver ? 1 : 0;
+          dropBefore = !shouldMoveOver;
+        } else {
+          newDropElementIndex += shouldMoveOver ? 0 : 1;
+          dropBefore = shouldMoveOver;
+        }
+      }
+
+      let shouldCreateGroupOnDrop;
+      if (dropElement && gBrowser._tabGroupsEnabled && !isPinned) {
         let dragOverGroupingThreshold =
           Services.prefs.getIntPref(
             "browser.tabs.groups.dragOverThresholdPercent"
@@ -2428,88 +2579,107 @@
           moveOverThreshold,
           Math.max(0, dragOverGroupingThreshold)
         );
-        let groupDropIndex = getDragOverIndex(dragOverGroupingThreshold);
-        if (
-          "groupDropIndex" in dragData &&
-          dragData.groupDropIndex != groupDropIndex
-        ) {
-          this.allTabs[dragData.groupDropIndex]?.removeAttribute(
-            "dragover-createGroup"
-          );
-          delete dragData.groupDropIndex;
-          delete dragData.groupDropAction;
-        }
-        // If dragging over an ungrouped tab, present the UI for creating a
-        // new tab group on drop.
-        this.#clearDragOverCreateGroupTimer();
-        if (
-          groupDropIndex in this.allTabs &&
-          !this.allTabs[groupDropIndex].group
-        ) {
+
+        // When dragging tab(s) over an ungrouped tab, signal to the user
+        // that dropping the tab(s) will create a new tab group.
+        shouldCreateGroupOnDrop =
+          dropElement != draggedTab &&
+          isTab(dropElement) &&
+          !dropElement.group &&
+          overlapPercent > dragOverGroupingThreshold;
+
+        if (shouldCreateGroupOnDrop) {
           this.#dragOverCreateGroupTimer = setTimeout(
-            () => this.#triggerDragOverCreateGroup(dragData, groupDropIndex),
+            () => this.#triggerDragOverCreateGroup(dragData, dropElement),
             Services.prefs.getIntPref("browser.tabs.groups.dragOverDelayMS")
           );
         } else {
           this.removeAttribute("movingtab-createGroup");
-        }
 
-        // If dragging over the last tab in a group, differentiate between
-        // dropping into the group vs. after the group.
-        if (
-          groupDropIndex in this.allTabs &&
-          this.allTabs[groupDropIndex] ==
-            this.allTabs[groupDropIndex].group?.tabs.at(-1)
-        ) {
-          dragData.groupDropIndex = groupDropIndex;
-          dragData.groupDropAction = GROUP_DROP_ACTION_APPEND;
-          let colorCode = this.allTabs[groupDropIndex].group.color;
+          // Default to dropping into `dropElement`'s tab group, if it exists.
+          let dropElementGroup = dropElement?.group;
+          let colorCode = dropElementGroup?.color;
+
+          if (
+            isTab(dropElement) &&
+            dropElementGroup &&
+            dropElement == dropElementGroup.tabs.at(-1) &&
+            !dropBefore &&
+            overlapPercent < dragOverGroupingThreshold
+          ) {
+            // Dragging tab over the last tab of a tab group, but not enough
+            // for it to drop into the tab group. Drop it after the tab group instead.
+            dropElement = dropElementGroup;
+            colorCode = undefined;
+          } else if (isTabGroupLabel(dropElement)) {
+            let labeledTabGroup = dropElement.closest("tab-group");
+            if (dropBefore) {
+              // Dropping right before the tab group.
+              dropElement = labeledTabGroup;
+            } else if (labeledTabGroup.collapsed) {
+              // Dropping right after the collapsed tab group.
+              dropElement = labeledTabGroup;
+            } else {
+              // Dropping right before the first tab in the tab group.
+              dropElement = labeledTabGroup.tabs[0];
+              dropBefore = true;
+            }
+          }
+
           this.#setDragOverGroupColor(colorCode);
-          this.removeAttribute("movingtab-ungroup");
+          this.toggleAttribute("movingtab-ungroup", !colorCode);
         }
       }
 
-      if (gBrowser._tabGroupsEnabled && !("groupDropIndex" in dragData)) {
-        // Add tab group line to dragged tabs when dragging into a group, and
-        // remove it when dragging outside a group.
-        let colorCode = this.allTabs[dragData.animDropIndex]?.group?.color;
-        this.#setDragOverGroupColor(colorCode);
-        this.toggleAttribute("movingtab-ungroup", !colorCode);
+      if (
+        !shouldCreateGroupOnDrop ||
+        newDropElementIndex != oldDropElementIndex
+      ) {
+        document
+          .querySelector("[dragover-createGroup]")
+          ?.removeAttribute("dragover-createGroup");
+        delete dragData.shouldCreateGroupOnDrop;
       }
 
-      if (newIndex == oldIndex) {
+      if (
+        newDropElementIndex == oldDropElementIndex ||
+        // FIXME: This seems bogus, not sure what's going on with the indexes here:
+        (!directionForward && newDropElementIndex > oldDropElementIndex)
+      ) {
         return;
       }
 
+      dragData.dropElement = dropElement;
+      dragData.dropBefore = dropBefore;
+      dragData.animDropElementIndex = newDropElementIndex;
+
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
-      for (let tab of tabs) {
-        if (tab == draggedTab) {
+      for (let item of tabs) {
+        if (item == draggedTab) {
           continue;
         }
-        let shift = getTabShift(tab, newIndex);
+
+        let shift = getTabShift(item, newDropElementIndex);
         let transform = shift ? `${translateAxis}(${shift}px)` : "";
-        tab.style.transform = transform;
-        if (tab.group?.tabs[0] == tab) {
-          tab.group.style.setProperty(
-            "--tabgroup-dragover-transform",
-            transform
-          );
+        if (isTabGroupLabel(item)) {
+          // Shift the `.tab-group-label-container` to shift the label element.
+          item = item.parentElement;
         }
+        item.style.transform = transform;
       }
     }
 
-    #triggerDragOverCreateGroup(dragData, groupDropIndex) {
+    /**
+     * @param {object} dragData
+     * @param {MozTabbrowserTab} dragoverTab
+     */
+    #triggerDragOverCreateGroup(dragData, dragoverTab) {
       this.#clearDragOverCreateGroupTimer();
-
-      dragData.groupDropIndex = groupDropIndex;
-      dragData.groupDropAction = GROUP_DROP_ACTION_CREATE;
+      dragData.shouldCreateGroupOnDrop = true;
       this.toggleAttribute("movingtab-createGroup", true);
       this.removeAttribute("movingtab-ungroup");
-      this.allTabs[groupDropIndex].toggleAttribute(
-        "dragover-createGroup",
-        true
-      );
+      dragoverTab.toggleAttribute("dragover-createGroup", true);
       this.#setDragOverGroupColor(dragData.tabGroupCreationColor);
     }
 
@@ -2549,12 +2719,13 @@
       this.removeAttribute("movingtab");
       gNavToolbox.removeAttribute("movingtab");
 
-      for (let tab of this.visibleTabs) {
-        tab.style.transform = "";
-        if (tab.group) {
-          tab.group.style.removeProperty("--tabgroup-dragover-transform");
+      for (let item of this.ariaFocusableItems) {
+        if (isTabGroupLabel(item)) {
+          // Unshift the `.tab-group-label-container` to unshift the label element.
+          item = item.parentElement;
         }
-        tab.removeAttribute("dragover-createGroup");
+        item.style.transform = "";
+        item.removeAttribute("dragover-createGroup");
       }
       this.removeAttribute("movingtab-createGroup");
       this.removeAttribute("movingtab-ungroup");

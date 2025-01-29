@@ -282,7 +282,7 @@ async function test_mute_tab(tab, icon, expectMuted) {
 async function dragAndDrop(
   tab1,
   tab2,
-  copy,
+  copy = false,
   destWindow = window,
   afterTab = true,
   origWindow = window
@@ -301,7 +301,7 @@ async function dragAndDrop(
     origWindow.moveTo(rect.left, rect.top + rect.height * 3);
   }
 
-  let originalTPos = tab1._tPos;
+  let originalIndex = tab1.elementIndex;
   EventUtils.synthesizeDrop(
     tab1,
     tab2,
@@ -315,7 +315,7 @@ async function dragAndDrop(
   EventUtils.synthesizeMouseAtCenter(tab2, { type: "mouseup" }, destWindow);
   if (!copy && destWindow == origWindow) {
     await BrowserTestUtils.waitForCondition(() => {
-      return tab1._tPos != originalTPos;
+      return tab1.elementIndex != originalIndex;
     }, "Waiting for tab position to be updated");
   } else if (destWindow != origWindow) {
     await BrowserTestUtils.waitForCondition(
