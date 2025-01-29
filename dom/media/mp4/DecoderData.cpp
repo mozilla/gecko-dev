@@ -8,7 +8,7 @@
 #include "DecoderData.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaMp4Metrics.h"
 #include "VideoUtils.h"
 #include "MP4Metadata.h"
 #include "mozilla/Logging.h"
@@ -88,8 +88,7 @@ static MediaResult UpdateTrackProtectedInfo(mozilla::TrackInfo& aConfig,
 template <typename Mp4ParseTrackAudioOrVideoInfo>
 static MediaResult VerifyAudioOrVideoInfoAndRecordTelemetry(
     Mp4ParseTrackAudioOrVideoInfo* audioOrVideoInfo) {
-  Telemetry::Accumulate(
-      Telemetry::MEDIA_MP4_PARSE_NUM_SAMPLE_DESCRIPTION_ENTRIES,
+  glean::media_mp4_parse::num_sample_description_entries.AccumulateSingleSample(
       audioOrVideoInfo->sample_info_count);
 
   bool hasMultipleCodecs = false;
@@ -106,18 +105,20 @@ static MediaResult VerifyAudioOrVideoInfoAndRecordTelemetry(
     }
   }
 
-  Telemetry::Accumulate(
-      Telemetry::
-          MEDIA_MP4_PARSE_SAMPLE_DESCRIPTION_ENTRIES_HAVE_MULTIPLE_CODECS,
-      hasMultipleCodecs);
+  glean::media_mp4_parse::sample_description_entries_have_multiple_codecs
+      .EnumGet(static_cast<glean::media_mp4_parse::
+                               SampleDescriptionEntriesHaveMultipleCodecsLabel>(
+          hasMultipleCodecs))
+      .Add();
 
   // Accumulate if we have multiple (2 or more) crypto entries.
   // TODO(1715283): rework this to count number of crypto entries + gather
   // richer data.
-  Telemetry::Accumulate(
-      Telemetry::
-          MEDIA_MP4_PARSE_SAMPLE_DESCRIPTION_ENTRIES_HAVE_MULTIPLE_CRYPTO,
-      cryptoCount >= 2);
+  glean::media_mp4_parse::sample_description_entries_have_multiple_crypto
+      .EnumGet(static_cast<glean::media_mp4_parse::
+                               SampleDescriptionEntriesHaveMultipleCryptoLabel>(
+          cryptoCount >= 2))
+      .Add();
 
   if (audioOrVideoInfo->sample_info_count == 0) {
     return MediaResult(
