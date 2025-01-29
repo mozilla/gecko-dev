@@ -34,16 +34,16 @@ passwords-expand-section-tooltip = Show Passwords
 passwords-collapse-section-tooltip = Hide Passwords
 
 passwords-dismiss-breach-alert-command = Dismiss breach alert
-passwords-command-create = Add Password
-passwords-command-import-from-browser = Import from Another Browser…
-passwords-command-import = Import from a File…
-passwords-command-export = Export Passwords…
-passwords-command-remove-all = Remove All Passwords…
+passwords-command-create = Add password
+passwords-command-import-from-browser = Import from another browser…
+passwords-command-import = Import from a file…
+passwords-command-export = Export passwords
+passwords-command-remove-all = Remove all passwords
 passwords-command-settings = Settings
 passwords-command-help = Help
-passwords-command-sort-name = Sort By Name (A-Z)
+passwords-command-sort-name = Sort by name (A-Z)
 # This message can be seen when sorting logins by breached or vulnerable alerts.
-passwords-command-sort-alerts = Sort By Alerts
+passwords-command-sort-alerts = Sort by alerts
 
 passwords-os-auth-dialog-caption = { -brand-full-name }
 
@@ -214,7 +214,7 @@ passwords-add-password-success-button = View
 #   $url (string) - The url associated with the existing login
 passwords-password-already-exists-error-heading =
   .heading = A password and username for { $url } already exists
-passwords-password-already-exists-error-button = Go to Password
+passwords-password-already-exists-error-button = Go to password
 
 passwords-update-password-success-heading =
   .heading = Password saved

@@ -591,29 +591,29 @@ export class MegalistAlpha extends MozLitElement {
       >
         <panel-item
           action="import-from-browser"
-          data-l10n-id="about-logins-menu-menuitem-import-from-another-browser"
+          data-l10n-id="passwords-command-import-from-browser"
           @click=${() => this.#sendCommand("ImportFromBrowser")}
         ></panel-item>
         <panel-item
           action="import-from-file"
-          data-l10n-id="about-logins-menu-menuitem-import-from-a-file"
+          data-l10n-id="passwords-command-import"
           @click=${() => this.#sendCommand("Import")}
         ></panel-item>
         <panel-item
           action="export-logins"
-          data-l10n-id="about-logins-menu-menuitem-export-logins2"
+          data-l10n-id="passwords-command-export"
           @click=${() => this.#sendCommand("Export")}
         ></panel-item>
         <panel-item
           action="remove-all-logins"
-          data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
+          data-l10n-id="passwords-command-remove-all"
           @click=${() => this.#sendCommand("RemoveAll")}
           ?disabled=${!this.header.value.total}
         ></panel-item>
         <hr />
         <panel-item
           action="open-preferences"
-          data-l10n-id="menu-menuitem-preferences"
+          data-l10n-id="passwords-command-settings"
           @click=${() => {
             const command = this.header.commands.find(
               command => command.id === "Settings"
@@ -623,7 +623,7 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="open-help"
-          data-l10n-id="about-logins-menu-menuitem-help"
+          data-l10n-id="passwords-command-help"
           @click=${() => {
             const command = this.header.commands.find(
               command => command.id === "Help"
