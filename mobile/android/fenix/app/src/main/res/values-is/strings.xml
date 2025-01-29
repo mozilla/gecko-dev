@@ -595,7 +595,7 @@
     <string name="onboarding_terms_of_service_sub_header_2">Hratt og öruggt vafur á netinu</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label">Samþykkja og halda áfram</string>
-    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Firefox Terms of Use”). -->
+    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
     <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">Með því að halda áfram samþykkir þú %1$s fyrir Firefox.</string>
     <string name="onboarding_term_of_service_line_one_2">Með því að halda áfram, samþykkir þú %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
