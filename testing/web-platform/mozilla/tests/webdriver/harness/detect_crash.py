@@ -69,8 +69,13 @@ def run_crash_test(configuration, geckodriver, crash_callback):
 def read_extra_file(path):
     """Read and parse the minidump's .extra file."""
     try:
-        with path.open("r") as file:
-            return json.load(file)
+        with path.open("rb") as file:
+            data = file.read()
+
+            # Try to decode first and replace invalid utf-8 characters.
+            decoded = data.decode("utf-8", errors="replace")
+
+            return json.loads(decoded)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in {path}: {e}")
 
