@@ -93,9 +93,9 @@ class GleanUsageReportingMetricsService(
     class UsageProfileId : GleanProfileId {
 
         /**
-         * Glean doesn't have an API to remove a value,
-         * so we have to use this canary value.
-         * (would also allow us to notice if we ever accidentally sent data after we shouldn't).
+         * We want to unset the profile id when switching off profile reporting.
+         * There is no `<field>.unset()` method in Glean.
+         * So to unset the profile id, we set it to an invalid "canary value".
          */
         companion object {
             private const val CANARY_VALUE = "beefbeef-beef-beef-beef-beeefbeefbee"

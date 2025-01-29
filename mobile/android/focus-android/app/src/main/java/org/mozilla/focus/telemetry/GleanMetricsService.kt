@@ -76,18 +76,19 @@ class GleanMetricsService(context: Context) : MetricsService {
 
         /**
          * Determines whether or not telemetry is enabled.
-         * Currently, according to our lean data policy, general telemetry is disabled
+         * Currently, according to our lean data policy, general telemetry is disabled.
          */
         @JvmStatic
         @Suppress("FunctionOnlyReturningConstant", "UNUSED_PARAMETER")
         fun isTelemetryEnabled(context: Context? = null): Boolean = false
 
         /**
-         * Determines whether or not telemetry was enabled prior to the switch being removed.
-         * Currently, according to our lean data policy, general telemetry is disabled
+         * Determines whether or not daily usage telemetry should be enabled by default.
+         * This matches whether general telemetry was enabled prior to the switch being removed.
+         * Currently, according to our lean data policy, general telemetry is disabled.
          */
         @JvmStatic
-        fun wasTelemetryEnabled(context: Context): Boolean {
+        fun shouldTelemetryBeEnabledByDefault(context: Context): Boolean {
             if (isDeviceWithTelemetryDisabled()) { return false }
 
             // The first access to shared preferences will require a disk read.
@@ -160,15 +161,6 @@ class GleanMetricsService(context: Context) : MetricsService {
                 activationPing.checkAndSend()
             }
         }
-    }
-
-    /**
-     * Toggle the glean upload enabled flag on or off.
-     *
-     * @param enabled true if enabling upload, false if disabling it.
-     */
-    fun setUploadEnabled(enabled: Boolean) {
-        Glean.setCollectionEnabled(enabled)
     }
 
     private fun collectPrefMetricsAsync(

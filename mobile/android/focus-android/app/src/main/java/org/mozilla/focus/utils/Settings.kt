@@ -495,7 +495,7 @@ class Settings(
 
     var isDailyUsagePingEnabled by booleanPreference(
         getPreferenceKey(R.string.pref_key_daily_usage_ping),
-        default = GleanMetricsService.wasTelemetryEnabled(context),
+        default = GleanMetricsService.shouldTelemetryBeEnabledByDefault(context),
         persistDefaultIfNotExists = true,
     )
 
