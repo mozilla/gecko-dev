@@ -1731,7 +1731,6 @@ STATIC_ATOMS = [
     Atom("displaystyle_", "displaystyle"),
     Atom("divergence_", "divergence"),
     Atom("divide_", "divide"),
-    Atom("dom_viewTransitions_enabled", "dom.viewTransitions.enabled"),
     Atom("domain_", "domain"),
     Atom("domainofapplication_", "domainofapplication"),
     Atom("edge_", "edge"),
@@ -2501,9 +2500,6 @@ STATIC_ATOMS = [
     Atom("DirectoryService_Appdata", "AppData"),
     Atom("DirectoryService_LocalAppdata", "LocalAppData"),
     Atom("DirectoryService_WinCookiesDirectory", "CookD"),
-    Atom("_ua_view_transition_fade_out", "-ua-view-transition-fade-out"),
-    Atom("_ua_view_transition_fade_in", "-ua-view-transition-fade-in"),
-    Atom("_ua_mix_blend_mode_plus_lighter", "-ua-mix-blend-mode-plus-lighter"),
     # CSS pseudo-elements -- these must appear in the same order as
     # in nsCSSPseudoElementList.h
     PseudoElementAtom("PseudoElement_after", ":after"),
