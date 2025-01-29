@@ -110,6 +110,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-pretty-print-breakpoints.js"]
+skip-if = [
+  "tsan", # Bug 1817087, fails frequently on TSAN
+]
 
 ["browser_dbg-pretty-print-console.js"]
 
