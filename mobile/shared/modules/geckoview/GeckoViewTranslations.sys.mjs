@@ -116,7 +116,7 @@ export class GeckoViewTranslations extends GeckoViewModule {
       case "TranslationsParent:LanguageState": {
         const {
           detectedLanguages,
-          requestedTranslationPair,
+          requestedLanguagePair,
           hasVisibleChange,
           error,
           isEngineReady,
@@ -124,7 +124,7 @@ export class GeckoViewTranslations extends GeckoViewModule {
 
         const data = {
           detectedLanguages,
-          requestedTranslationPair,
+          requestedLanguagePair,
           hasVisibleChange,
           error,
           isEngineReady,

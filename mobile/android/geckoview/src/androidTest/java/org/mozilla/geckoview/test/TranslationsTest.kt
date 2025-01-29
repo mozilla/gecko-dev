@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import junit.framework.TestCase.fail
 import org.json.JSONObject
@@ -93,7 +94,7 @@ class TranslationsTest : BaseSessionTest() {
                       "isDocLangTagSupported": true,
                       "docLangTag": "es"
                     },
-                    "requestedTranslationPair": null,
+                    "requestedLanguagePair": null,
                     "hasVisibleChange": false,
                     "error": null,
                     "isEngineReady": false
@@ -812,7 +813,7 @@ class TranslationsTest : BaseSessionTest() {
                       "isDocLangTagSupported": true,
                       "docLangTag": "es"
                     },
-                    "requestedTranslationPair": null,
+                    "requestedLanguagePair": null,
                     "hasVisibleChange": false,
                     "error": null,
                     "isEngineReady": false
@@ -833,7 +834,83 @@ class TranslationsTest : BaseSessionTest() {
                       "isDocLangTagSupported": true,
                       "docLangTag": "es"
                     },
-                    "requestedTranslationPair": {"fromLanguage" : "es" , "toLanguage" : "en"},
+                    "requestedLanguagePair": {"sourceLanguage" : "es" , "targetLanguage" : "en"},
+                    "hasVisibleChange": true,
+                    "error": null,
+                    "isEngineReady": true
+                    }
+                }
+            }
+            """.trimIndent(),
+        )
+        mainSession.triggerLanguageStateChange(translated)
+        sessionRule.waitForResult(handled)
+    }
+
+    @Test
+    fun checkStateDeserialization() {
+        mainSession.loadTestPath(TRANSLATIONS_ES)
+        mainSession.waitForPageStop()
+
+        val handled = GeckoResult<Void>()
+        sessionRule.delegateUntilTestEnd(object : Delegate {
+            @AssertCalled(count = 1)
+            override fun onTranslationStateChange(
+                session: GeckoSession,
+                translationState: TranslationState?,
+            ) {
+                assertEquals(
+                    "userLangTag is as expected.",
+                    "en",
+                    translationState!!.detectedLanguages!!.userLangTag,
+                )
+                assertEquals(
+                    "isDocLangTagSupported is as expected.",
+                    true,
+                    translationState.detectedLanguages!!.isDocLangTagSupported,
+                )
+                assertEquals(
+                    "docLangTag is as expected.",
+                    "es",
+                    translationState.detectedLanguages!!.docLangTag,
+                )
+                // Full rename to match JS and Java names is bug 1943444, right now it deserializes to different Java names.
+                assertEquals(
+                    "sourceLanguage is as expected.",
+                    "es",
+                    translationState.requestedTranslationPair!!.fromLanguage,
+                )
+                assertEquals(
+                    "targetLanguage is as expected.",
+                    "en",
+                    translationState.requestedTranslationPair!!.toLanguage,
+                )
+                assertEquals(
+                    "hasVisibleChange is as expected.",
+                    true,
+                    translationState.hasVisibleChange,
+                )
+                assertNull("error is as expected.", translationState.error)
+                assertEquals(
+                    "isEngineReady is as expected.",
+                    true,
+                    translationState.isEngineReady,
+                )
+                handled.complete(null)
+            }
+        })
+
+        val translated = JSONObject(
+            """
+            {
+            "actor":{
+                "languageState":{
+                    "detectedLanguages": {
+                      "userLangTag": "en",
+                      "isDocLangTagSupported": true,
+                      "docLangTag": "es"
+                    },
+                    "requestedLanguagePair": {"sourceLanguage" : "es" , "targetLanguage" : "en"},
                     "hasVisibleChange": true,
                     "error": null,
                     "isEngineReady": true

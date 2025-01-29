@@ -1013,7 +1013,7 @@ public class TranslationsController {
           return null;
         }
         return new TranslationPair(
-            bundle.getString("fromLanguage"), bundle.getString("toLanguage"));
+            bundle.getString("sourceLanguage"), bundle.getString("targetLanguage"));
       }
     }
 
@@ -1145,7 +1145,7 @@ public class TranslationsController {
           return null;
         }
         return new TranslationState(
-            TranslationPair.fromBundle(bundle.getBundle("requestedTranslationPair")),
+            TranslationPair.fromBundle(bundle.getBundle("requestedLanguagePair")),
             bundle.getString("error"),
             DetectedLanguages.fromBundle(bundle.getBundle("detectedLanguages")),
             bundle.getBoolean("isEngineReady", false),
