@@ -32,11 +32,14 @@ const {
   WatchpointMap,
 } = require("resource://devtools/server/actors/utils/watchpoint-map.js");
 
-const {
-  logEvent,
-} = require("resource://devtools/server/actors/utils/logEvent.js");
 const Targets = require("devtools/server/actors/targets/index");
 
+loader.lazyRequireGetter(
+  this,
+  "logEvent",
+  "resource://devtools/server/actors/utils/logEvent.js",
+  true
+);
 loader.lazyRequireGetter(
   this,
   "EnvironmentActor",

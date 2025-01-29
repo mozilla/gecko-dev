@@ -11,8 +11,6 @@ const consoleAPIListenerModule = isWorker
   : "devtools/server/actors/webconsole/listeners/console-api";
 const { ConsoleAPIListener } = require(consoleAPIListenerModule);
 
-const { isArray } = require("devtools/server/actors/object/utils");
-
 const {
   makeDebuggeeValue,
   createValueGripForTarget,
@@ -22,9 +20,19 @@ const {
   getActorIdForInternalSourceId,
 } = require("devtools/server/actors/utils/dbg-source");
 
-const {
-  isSupportedByConsoleTable,
-} = require("devtools/shared/webconsole/messages");
+loader.lazyRequireGetter(
+  this,
+  "isArray",
+  "resource://devtools/server/actors/object/utils.js",
+  true
+);
+
+loader.lazyRequireGetter(
+  this,
+  "isSupportedByConsoleTable",
+  "resource://devtools/shared/webconsole/messages.js",
+  true
+);
 
 /**
  * Start watching for all console messages related to a given Target Actor.

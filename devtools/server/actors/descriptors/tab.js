@@ -17,9 +17,6 @@ const {
   tabDescriptorSpec,
 } = require("resource://devtools/shared/specs/descriptors/tab.js");
 
-const {
-  connectToFrame,
-} = require("resource://devtools/server/connectors/frame-connector.js");
 const lazy = {};
 ChromeUtils.defineESModuleGetters(
   lazy,
@@ -41,6 +38,12 @@ loader.lazyRequireGetter(
   this,
   "WatcherActor",
   "resource://devtools/server/actors/watcher.js",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "connectToFrame",
+  "resource://devtools/server/connectors/frame-connector.js",
   true
 );
 
