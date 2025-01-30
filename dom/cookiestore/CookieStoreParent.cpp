@@ -290,7 +290,7 @@ bool CookieStoreParent::SetRequestOnMainThread(
       NS_ConvertUTF16toUTF8(aValue),
       true,   //  secure
       false,  // mHttpOnly,
-      aSession, aSession ? PR_Now() : aExpires, &attrs, aSameSite,
+      aSession, aSession ? INT64_MAX : aExpires, &attrs, aSameSite,
       nsICookie::SCHEME_HTTPS, aPartitioned, &aOperationID);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
