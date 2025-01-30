@@ -104,7 +104,7 @@ class DefaultTopSitesStorage(
                     .getTopSites(allowCache = true)
                     .filter { providerConfig.providerFilter?.invoke(it) ?: true }
                     .take(numSitesRequired)
-                    .take(providerConfig.maxThreshold - pinnedSites.size)
+                    .take(providerConfig.limit)
                 topSites.addAll(providerTopSites)
                 numSitesRequired -= providerTopSites.size
             } catch (e: Exception) {

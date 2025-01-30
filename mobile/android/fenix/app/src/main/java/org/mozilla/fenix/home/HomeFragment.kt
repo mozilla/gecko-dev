@@ -182,6 +182,7 @@ import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.Settings.Companion.TOP_SITES_PROVIDER_LIMIT
 import org.mozilla.fenix.utils.Settings.Companion.TOP_SITES_PROVIDER_MAX_THRESHOLD
 import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.wallpapers.Wallpaper
@@ -1036,6 +1037,7 @@ class HomeFragment : Fragment() {
             ) { !Uri.parse(it.url).containsQueryParameters(settings.frecencyFilterQuery) },
             providerConfig = TopSitesProviderConfig(
                 showProviderTopSites = settings.showContileFeature,
+                limit = TOP_SITES_PROVIDER_LIMIT,
                 maxThreshold = TOP_SITES_PROVIDER_MAX_THRESHOLD,
                 providerFilter = { topSite ->
                     when (store.state.search.selectedOrDefaultSearchEngine?.name) {
