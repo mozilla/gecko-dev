@@ -91,8 +91,6 @@ class CodeGeneratorARM : public CodeGeneratorShared {
   template <typename T>
   void emitWasmUnalignedStore(T* ins);
 
-  ValueOperand ToValue(LInstruction* ins, size_t pos);
-
   Register64 ToOperandOrRegister64(const LInt64Allocation& input);
 
   void divICommon(MDiv* mir, Register lhs, Register rhs, Register output,

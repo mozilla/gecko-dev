@@ -1171,12 +1171,6 @@ void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
                       ins->mir());
 }
 
-ValueOperand CodeGeneratorARM::ToValue(LInstruction* ins, size_t pos) {
-  Register typeReg = ToRegister(ins->getOperand(pos + TYPE_INDEX));
-  Register payloadReg = ToRegister(ins->getOperand(pos + PAYLOAD_INDEX));
-  return ValueOperand(typeReg, payloadReg);
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 
