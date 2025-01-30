@@ -128,6 +128,102 @@ class ContentRecommendationsDatabaseTest {
                 }
         }
     }
+
+    @Test
+    fun migrate2to3() {
+        helper.createDatabase(MIGRATION_TEST_DB, 2).apply {
+            execSQL(
+                """
+                    INSERT INTO ${ContentRecommendationsDatabase.CONTENT_RECOMMENDATIONS_TABLE}
+                    (corpusItemId, scheduledCorpusItemId, url, title, excerpt, topic, publisher, isTimeSensitive, imageUrl, tileId, receivedRank, recommendedAt, impressions)
+                    VALUES (
+                    "${contentRecommendationEntity.corpusItemId}",
+                    "${contentRecommendationEntity.scheduledCorpusItemId}",
+                    "${contentRecommendationEntity.url}",
+                    "${contentRecommendationEntity.title}",
+                    "${contentRecommendationEntity.excerpt}",
+                    "${contentRecommendationEntity.topic}",
+                    "${contentRecommendationEntity.publisher}",
+                    "${contentRecommendationEntity.isTimeSensitive}",
+                    "${contentRecommendationEntity.imageUrl}",
+                    "${contentRecommendationEntity.tileId}",
+                    "${contentRecommendationEntity.receivedRank}",
+                    "${contentRecommendationEntity.recommendedAt}",
+                    "${contentRecommendationEntity.impressions}"
+                    )
+                """,
+            )
+
+            query("SELECT * FROM ${ContentRecommendationsDatabase.CONTENT_RECOMMENDATIONS_TABLE}")
+                .use { cursor ->
+                    assertEquals(1, cursor.count)
+
+                    cursor.moveToFirst()
+
+                    assertEquals(
+                        contentRecommendationEntity.corpusItemId,
+                        cursor.getString(cursor.getColumnIndexOrThrow("corpusItemId")),
+                    )
+                    assertEquals(
+                        contentRecommendationEntity.recommendedAt,
+                        cursor.getLong(cursor.getColumnIndexOrThrow("recommendedAt")),
+                    )
+                }
+        }
+
+        helper.runMigrationsAndValidate(
+            MIGRATION_TEST_DB,
+            3,
+            true,
+            Migrations.migration_2_3,
+        ).apply {
+            // Check that content recommendations are unchanged.
+            query("SELECT * FROM ${ContentRecommendationsDatabase.CONTENT_RECOMMENDATIONS_TABLE}")
+                .use { cursor ->
+                    assertEquals(1, cursor.count)
+
+                    cursor.moveToFirst()
+
+                    assertEquals(
+                        contentRecommendationEntity.corpusItemId,
+                        cursor.getString(cursor.getColumnIndexOrThrow("corpusItemId")),
+                    )
+                    assertEquals(
+                        contentRecommendationEntity.recommendedAt,
+                        cursor.getLong(cursor.getColumnIndexOrThrow("recommendedAt")),
+                    )
+                }
+
+            query("SELECT * FROM ${ContentRecommendationsDatabase.SPONSORED_CONTENT_TABLE}")
+                .use { cursor ->
+                    assertEquals(0, cursor.count)
+                    assertEquals(12, cursor.columnCount)
+
+                    assertEquals("url", cursor.getColumnName(0))
+                    assertEquals("title", cursor.getColumnName(1))
+                    assertEquals("clickUrl", cursor.getColumnName(2))
+                    assertEquals("impressionUrl", cursor.getColumnName(3))
+                    assertEquals("imageUrl", cursor.getColumnName(4))
+                    assertEquals("domain", cursor.getColumnName(5))
+                    assertEquals("excerpt", cursor.getColumnName(6))
+                    assertEquals("sponsor", cursor.getColumnName(7))
+                    assertEquals("blockKey", cursor.getColumnName(8))
+                    assertEquals("flightCapCount", cursor.getColumnName(9))
+                    assertEquals("flightCapPeriod", cursor.getColumnName(10))
+                    assertEquals("priority", cursor.getColumnName(11))
+                }
+
+            query("SELECT * FROM ${ContentRecommendationsDatabase.SPONSORED_CONTENT_IMPRESSION_TABLE}")
+                .use { cursor ->
+                    assertEquals(0, cursor.count)
+                    assertEquals(3, cursor.columnCount)
+
+                    assertEquals("url", cursor.getColumnName(0))
+                    assertEquals("impressionId", cursor.getColumnName(1))
+                    assertEquals("impressionDateInSeconds", cursor.getColumnName(2))
+                }
+        }
+    }
 }
 
 private val contentRecommendationEntity = ContentRecommendationEntity(

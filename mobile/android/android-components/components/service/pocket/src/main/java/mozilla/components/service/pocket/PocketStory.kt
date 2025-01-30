@@ -53,6 +53,62 @@ sealed class PocketStory {
     ) : PocketStory()
 
     /**
+     * A sponsored content story.
+     *
+     * @property url The url of the sponsored content.
+     * @property title The title of the sponsored content.
+     * @property callbacks The [SponsoredContentCallbacks] object containing callback URLs for click
+     * and impression tracking.
+     * @property imageUrl The image URL of the sponsored content.
+     * @property domain The domain of where the sponsored content is hosted.
+     * @property excerpt A short excerpt from the sponsored content.
+     * @property sponsor The name of the sponsor.
+     * @property blockKey The block key generated from encoding the advertiser name and ad placement.
+     * @property caps Frequency capping information for the sponsored content.
+     * @property priority The priority of the sponsored content in the ranking.
+     */
+    data class SponsoredContent(
+        override val url: String,
+        override val title: String,
+        val callbacks: SponsoredContentCallbacks,
+        val imageUrl: String,
+        val domain: String,
+        val excerpt: String,
+        val sponsor: String,
+        val blockKey: String,
+        val caps: SponsoredContentFrequencyCaps,
+        val priority: Int,
+    ) : PocketStory()
+
+    /**
+     * Sponsored content callback URLs for click and impression tracking.
+     *
+     * @property clickUrl URL to be called when the sponsored content is clicked.
+     * @property impressionUrl URL to be called when the sponsored content is viewed (impression).
+     */
+    data class SponsoredContentCallbacks(
+        val clickUrl: String,
+        val impressionUrl: String,
+    )
+
+    /**
+     * Sponsored content frequency capping information.
+     *
+     * @property currentImpressions List of all recorded impression of a sponsored content
+     * expressed in seconds from Epoch (as the result of `System.currentTimeMillis / 1000`).
+     * @property flightCount Maximum number of times this sponsored content should be shown in
+     * the given [flightPeriod].
+     * @property flightPeriod Period expressed as a number of seconds in which this sponsored
+     * content should be shown for at most [flightCount] times.
+     * Any time the period comes to an end the [flightCount] count should be restarted.
+     */
+    data class SponsoredContentFrequencyCaps(
+        val currentImpressions: List<Long> = emptyList(),
+        val flightCount: Int,
+        val flightPeriod: Int,
+    )
+
+    /**
      * A Pocket recommended story.
      *
      * @property title The title of the story.

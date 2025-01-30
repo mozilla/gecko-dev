@@ -61,6 +61,7 @@ import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryShim
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ClickableSubstringLink
 import org.mozilla.fenix.compose.EagerFlingBehavior
@@ -426,6 +427,10 @@ fun PocketStories(
                                         Triple(rowIndex, columnIndex, stories.indexOf(story)),
                                     )
                                 }
+                            }
+
+                            is SponsoredContent -> {
+                                // no-op
                             }
                         }
                     }

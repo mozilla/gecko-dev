@@ -8,6 +8,7 @@ import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.ext.getCurrentFlightImpressions
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
@@ -213,6 +214,10 @@ internal class DefaultPocketStoriesController(
                         position = storyPosition.third,
                     ),
                 )
+            }
+
+            is SponsoredContent -> {
+                // no-op
             }
         }
     }
