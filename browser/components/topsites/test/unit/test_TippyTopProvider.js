@@ -52,11 +52,11 @@ add_task(async function test_provide_facebook_icon() {
   let site = instance.processSite({ url: "https://facebook.com" });
   Assert.equal(
     site.tippyTopIcon,
-    "chrome://activity-stream/content/data/content/tippytop/images/facebook-com.png"
+    "chrome://browser/content/topsites/tippytop/images/facebook-com.png"
   );
   Assert.equal(
     site.smallFavicon,
-    "chrome://activity-stream/content/data/content/tippytop/images/facebook-com.png"
+    "chrome://browser/content/topsites/tippytop/images/facebook-com.png"
   );
   Assert.equal(site.backgroundColor, "#3b5998");
 
@@ -82,7 +82,7 @@ add_task(async function test_provide_other_facebook_icon_stripping() {
   let site = instance.processSite({ url: "https://other.facebook.com" }, "*");
   Assert.equal(
     site.tippyTopIcon,
-    "chrome://activity-stream/content/data/content/tippytop/images/facebook-com.png"
+    "chrome://browser/content/topsites/tippytop/images/facebook-com.png"
   );
 
   sandbox.restore();
@@ -96,11 +96,11 @@ add_task(async function test_provide_facebook_icon_foobar() {
   let site = instance.processSite({ url: "https://facebook.com/foobar" });
   Assert.equal(
     site.tippyTopIcon,
-    "chrome://activity-stream/content/data/content/tippytop/images/facebook-com.png"
+    "chrome://browser/content/topsites/tippytop/images/facebook-com.png"
   );
   Assert.equal(
     site.smallFavicon,
-    "chrome://activity-stream/content/data/content/tippytop/images/facebook-com.png"
+    "chrome://browser/content/topsites/tippytop/images/facebook-com.png"
   );
   Assert.equal(site.backgroundColor, "#3b5998");
 
@@ -115,11 +115,11 @@ add_task(async function test_provide_gmail_icon() {
   const site = instance.processSite({ url: "https://gmail.com" });
   Assert.equal(
     site.tippyTopIcon,
-    "chrome://activity-stream/content/data/content/tippytop/images/gmail-com.png"
+    "chrome://browser/content/topsites/tippytop/images/gmail-com.png"
   );
   Assert.equal(
     site.smallFavicon,
-    "chrome://activity-stream/content/data/content/tippytop/images/gmail-com.png"
+    "chrome://browser/content/topsites/tippytop/images/gmail-com.png"
   );
   Assert.equal(site.backgroundColor, "#000000");
 
@@ -134,11 +134,11 @@ add_task(async function test_provide_mail_google_icon() {
   const site = instance.processSite({ url: "https://mail.google.com" });
   Assert.equal(
     site.tippyTopIcon,
-    "chrome://activity-stream/content/data/content/tippytop/images/gmail-com.png"
+    "chrome://browser/content/topsites/tippytop/images/gmail-com.png"
   );
   Assert.equal(
     site.smallFavicon,
-    "chrome://activity-stream/content/data/content/tippytop/images/gmail-com.png"
+    "chrome://browser/content/topsites/tippytop/images/gmail-com.png"
   );
   Assert.equal(site.backgroundColor, "#000000");
 
