@@ -116,15 +116,20 @@ void DocumentOrShadowRoot::OnSetAdoptedStyleSheets(StyleSheet& aSheet,
   // 1. If value’s constructed flag is not set, or its constructor document is
   // not equal to this DocumentOrShadowRoot's node document, throw a
   // "NotAllowedError" DOMException.
-  if (!aSheet.IsConstructed()) {
-    return aRv.ThrowNotAllowedError(
-        "Adopted style sheet must be created through the Constructable "
-        "StyleSheets API");
-  }
-  if (!aSheet.ConstructorDocumentMatches(doc)) {
-    return aRv.ThrowNotAllowedError(
-        "Adopted style sheet's constructor document must match the "
-        "document or shadow root's node document");
+
+  if (!StaticPrefs::
+          dom_webcomponents_lift_adoptedstylesheets_restriction_enabled()) {
+    if (!aSheet.IsConstructed()) {
+      return aRv.ThrowNotAllowedError(
+          "Adopted style sheet must be created through the Constructable "
+          "StyleSheets API");
+    }
+
+    if (!aSheet.ConstructorDocumentMatches(doc)) {
+      return aRv.ThrowNotAllowedError(
+          "Adopted style sheet's constructor document must match the "
+          "document or shadow root's node document");
+    }
   }
 
   auto* shadow = ShadowRoot::FromNode(AsNode());

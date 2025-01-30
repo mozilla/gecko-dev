@@ -420,7 +420,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Add a document or shadow root to the list of adopters.
   // Adopters will be notified when styles are changed.
   void AddAdopter(dom::DocumentOrShadowRoot& aAdopter) {
-    MOZ_ASSERT(IsConstructed());
+    // MOZ_ASSERT(IsConstructed());
     MOZ_ASSERT(!mAdopters.Contains(&aAdopter));
     mAdopters.AppendElement(&aAdopter);
   }

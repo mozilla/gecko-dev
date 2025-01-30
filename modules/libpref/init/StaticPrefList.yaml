@@ -5140,6 +5140,13 @@
   value: true
   mirror: always
 
+# Is the constructed flag error check disabled during adoptedStyleSheets setter?
+# https://github.com/w3c/csswg-drafts/issues/10013
+- name: dom.webcomponents.lift-adoptedstylesheets-restriction.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Is support for the Web GPU API enabled?
 - name: dom.webgpu.enabled
   type: RelaxedAtomicBool
