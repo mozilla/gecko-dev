@@ -167,22 +167,6 @@ class LUDivOrModConstant : public LInstructionHelper<1, 1, 1> {
   }
 };
 
-class LModPowTwoI : public LInstructionHelper<1, 1, 0> {
-  const int32_t shift_;
-
- public:
-  LIR_HEADER(ModPowTwoI)
-
-  LModPowTwoI(const LAllocation& lhs, int32_t shift)
-      : LInstructionHelper(classOpcode), shift_(shift) {
-    setOperand(0, lhs);
-  }
-
-  int32_t shift() const { return shift_; }
-  const LDefinition* remainder() { return getDef(0); }
-  MMod* mir() const { return mir_->toMod(); }
-};
-
 class LMulI : public LBinaryMath<0, 1> {
  public:
   LIR_HEADER(MulI)

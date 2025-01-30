@@ -4886,7 +4886,12 @@
   gen_boilerplate: false
 
 - name: ModPowTwoI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  mir_op: Mod
 
 # Takes a tableswitch with an integer to decide.
 - name: TableSwitch

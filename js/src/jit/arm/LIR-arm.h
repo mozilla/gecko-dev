@@ -230,21 +230,6 @@ class LSoftModI : public LBinaryCallInstructionHelper<1, 1> {
   MMod* mir() const { return mir_->toMod(); }
 };
 
-class LModPowTwoI : public LInstructionHelper<1, 1, 0> {
-  const int32_t shift_;
-
- public:
-  LIR_HEADER(ModPowTwoI);
-  int32_t shift() { return shift_; }
-
-  LModPowTwoI(const LAllocation& lhs, int32_t shift)
-      : LInstructionHelper(classOpcode), shift_(shift) {
-    setOperand(0, lhs);
-  }
-
-  MMod* mir() const { return mir_->toMod(); }
-};
-
 class LModMaskI : public LInstructionHelper<1, 1, 2> {
   const int32_t shift_;
 

@@ -61,15 +61,6 @@ class LWasmUint32ToDouble : public LInstructionHelper<1, 1, 0> {
     MOZ_CRASH();
   }
 };
-class LModPowTwoI : public LInstructionHelper<1, 1, 0> {
- public:
-  int32_t shift() { MOZ_CRASH(); }
-  LModPowTwoI(const LAllocation& lhs, int32_t shift)
-      : LInstructionHelper(Opcode::Invalid) {
-    MOZ_CRASH();
-  }
-  MMod* mir() const { MOZ_CRASH(); }
-};
 
 class LMulI : public LInstruction {};
 
