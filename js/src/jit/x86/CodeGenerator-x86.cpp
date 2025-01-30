@@ -1102,9 +1102,9 @@ void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
   Register output = ToRegister(lir->output());
 
   if (lir->mir()->bottomHalf()) {
-    masm.movl(ToRegister(input.low()), output);
+    masm.move32(ToRegister(input.low()), output);
   } else {
-    masm.movl(ToRegister(input.high()), output);
+    masm.move32(ToRegister(input.high()), output);
   }
 }
 

@@ -2366,15 +2366,14 @@ void CodeGenerator::visitWasmStackArgI64(LWasmStackArgI64* ins) {
 }
 
 void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
-  const LAllocation* input = lir->getOperand(0);
+  LInt64Allocation input = lir->input();
   Register output = ToRegister(lir->output());
 
   if (lir->mir()->bottomHalf()) {
-    if (input->isMemory()) {
+    if (input.value().isMemory()) {
       masm.load32(ToAddress(input), output);
     } else {
-      // Really this is a 64-bit input register and we could use move64To32.
-      masm.Mov(ARMRegister(output, 32), ARMRegister(ToRegister(input), 32));
+      masm.move64To32(ToRegister64(input), output);
     }
   } else {
     MOZ_CRASH("Not implemented.");
