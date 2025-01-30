@@ -10311,6 +10311,20 @@ void Document::WriteCommon(const nsAString& aText, bool aNewlineTerminate,
     return;
   }
 
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString = &aText;
+  if (!aIsTrusted) {
+    constexpr nsLiteralString sinkWrite = u"Document write"_ns;
+    constexpr nsLiteralString sinkWriteLn = u"Document writeln"_ns;
+    compliantString =
+        TrustedTypeUtils::GetTrustedTypesCompliantStringForTrustedHTML(
+            aText, aNewlineTerminate ? sinkWriteLn : sinkWrite,
+            kTrustedTypesOnlySinkGroup, *this, compliantStringHolder, aRv);
+    if (aRv.Failed()) {
+      return;
+    }
+  }
+
   if (!IsHTMLDocument() || mDisableDocWrite) {
     // No calling document.write*() on XHTML!
 
@@ -10377,36 +10391,17 @@ void Document::WriteCommon(const nsAString& aText, bool aNewlineTerminate,
 
   ++mWriteLevel;
 
-  auto parseString =
-      [this, &aNewlineTerminate, &aRv, &key](const nsAString& aString)
-          MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION -> void {
-    // This could be done with less code, but for performance reasons it
-    // makes sense to have the code for two separate Parse() calls here
-    // since the concatenation of strings costs more than we like. And
-    // why pay that price when we don't need to?
-    if (aNewlineTerminate) {
-      aRv = (static_cast<nsHtml5Parser*>(mParser.get()))
-                ->Parse(aString + new_line, key, false);
-    } else {
-      aRv = (static_cast<nsHtml5Parser*>(mParser.get()))
-                ->Parse(aString, key, false);
-    }
-  };
-
-  if (aIsTrusted) {
-    parseString(aText);
+  // This could be done with less code, but for performance reasons it
+  // makes sense to have the code for two separate Parse() calls here
+  // since the concatenation of strings costs more than we like. And
+  // why pay that price when we don't need to?
+  if (aNewlineTerminate) {
+    aRv = (static_cast<nsHtml5Parser*>(mParser.get()))
+              ->Parse(*compliantString + new_line, key, false);
   } else {
-    constexpr nsLiteralString sinkWrite = u"Document write"_ns;
-    constexpr nsLiteralString sinkWriteLn = u"Document writeln"_ns;
-    Maybe<nsAutoString> compliantStringHolder;
-    const nsAString* compliantString =
-        TrustedTypeUtils::GetTrustedTypesCompliantStringForTrustedHTML(
-            aText, aNewlineTerminate ? sinkWriteLn : sinkWrite,
-            kTrustedTypesOnlySinkGroup, *this, compliantStringHolder, aRv);
-    if (!aRv.Failed()) {
-      parseString(*compliantString);
-    }
-  }
+    aRv = (static_cast<nsHtml5Parser*>(mParser.get()))
+              ->Parse(*compliantString, key, false);
+  };
 
   --mWriteLevel;
 
