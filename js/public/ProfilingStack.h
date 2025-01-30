@@ -366,9 +366,9 @@ JS_PUBLIC_API void EnableContextProfilingStack(JSContext* cx, bool enabled);
 
 JS_PUBLIC_API void RegisterContextProfilingEventMarker(
     JSContext* cx,
-   void (*mark)(mozilla::MarkerCategory, const char*, const char*),
-   void (*interval)(mozilla::MarkerCategory, const char*, mozilla::TimeStamp,
-                    const char*));
+    void (*mark)(mozilla::MarkerCategory, const char*, const char*),
+    void (*interval)(mozilla::MarkerCategory, const char*, mozilla::TimeStamp,
+                     const char*));
 
 }  // namespace js
 

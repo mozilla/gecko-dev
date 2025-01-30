@@ -96,8 +96,7 @@ static void profiler_add_js_interval(mozilla::MarkerCategory aCategory,
   AUTO_PROFILER_STATS(js_interval);
   profiler_add_marker(
       mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerName),
-      aCategory,
-      mozilla::MarkerTiming::IntervalUntilNowFrom(aStartTime),
+      aCategory, mozilla::MarkerTiming::IntervalUntilNowFrom(aStartTime),
       ::geckoprofiler::markers::TextMarker{},
       mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerText));
 #endif
@@ -262,8 +261,8 @@ void ThreadRegistrationLockedRWOnThread::PollJSSampling() {
         JS::EnableRecordingAllocations(cx, profiler_add_js_allocation_marker,
                                        0.01);
       }
-      js::RegisterContextProfilingEventMarker(
-          cx, profiler_add_js_marker, profiler_add_js_interval);
+      js::RegisterContextProfilingEventMarker(cx, profiler_add_js_marker,
+                                              profiler_add_js_interval);
 
     } else if (mJSSampling == INACTIVE_REQUESTED) {
       mJSSampling = INACTIVE;
