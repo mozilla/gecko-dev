@@ -145,21 +145,6 @@ class LUDivOrModI64
   }
 };
 
-// LSoftDivI is a software divide for ARM cores that don't support a hardware
-// divide instruction, implemented as a C++ native call.
-class LSoftDivI : public LBinaryCallInstructionHelper<1, 0> {
- public:
-  LIR_HEADER(SoftDivI);
-
-  LSoftDivI(const LAllocation& lhs, const LAllocation& rhs)
-      : LBinaryCallInstructionHelper(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-  }
-
-  MDiv* mir() const { return mir_->toDiv(); }
-};
-
 class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   const int32_t shift_;
 
@@ -187,23 +172,6 @@ class LModI : public LBinaryMath<0> {
     setOperand(0, lhs);
     setOperand(1, rhs);
   }
-
-  MMod* mir() const { return mir_->toMod(); }
-};
-
-class LSoftModI : public LBinaryCallInstructionHelper<1, 1> {
- public:
-  LIR_HEADER(SoftModI);
-
-  LSoftModI(const LAllocation& lhs, const LAllocation& rhs,
-            const LDefinition& temp)
-      : LBinaryCallInstructionHelper(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setTemp(0, temp);
-  }
-
-  const LDefinition* callTemp() { return getTemp(0); }
 
   MMod* mir() const { return mir_->toMod(); }
 };

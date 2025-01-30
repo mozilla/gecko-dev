@@ -5041,11 +5041,24 @@
 - name: UDivOrModI64
   gen_boilerplate: false
 
+# LSoftDivI is a software divide for ARM cores that don't support a hardware
+# divide instruction, implemented as a C++ native call.
 - name: SoftDivI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: Div
 
 - name: SoftModI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 1
+  call_instruction: true
+  mir_op: Mod
 
 - name: ModMaskI
   result_type: WordSized
