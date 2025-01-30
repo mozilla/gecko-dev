@@ -99,7 +99,7 @@ NS_IMPL_ISUPPORTS(nsAlertsIconListener, nsIAlertNotificationImageListener,
 
 nsAlertsIconListener::nsAlertsIconListener(nsSystemAlertsService* aBackend,
                                            const nsAString& aAlertName)
-    : mAlertName(aAlertName), mBackend(aBackend), mNotification(nullptr) {
+    : mAlertName(aAlertName), mBackend(aBackend) {
   if (!libNotifyHandle && !libNotifyNotAvail) {
     libNotifyHandle = dlopen("libnotify.so.4", RTLD_LAZY);
     if (!libNotifyHandle) {
@@ -219,15 +219,17 @@ nsresult nsAlertsIconListener::ShowAlert(GdkPixbuf* aPixbuf) {
     return NS_ERROR_FAILURE;
   }
 
-  if (mAlertListener)
+  if (mAlertListener) {
     mAlertListener->Observe(nullptr, "alertshow", mAlertCookie.get());
+  }
 
   return NS_OK;
 }
 
 void nsAlertsIconListener::SendCallback() {
-  if (mAlertListener)
+  if (mAlertListener) {
     mAlertListener->Observe(nullptr, "alertclickcallback", mAlertCookie.get());
+  }
 }
 
 void nsAlertsIconListener::SendClosed() {
@@ -328,8 +330,9 @@ nsresult nsAlertsIconListener::InitAlertAsync(nsIAlertNotification* aAlert,
 
   nsresult rv = aAlert->GetTextClickable(&mAlertHasAction);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!gHasActions && mAlertHasAction)
+  if (!gHasActions && mAlertHasAction) {
     return NS_ERROR_FAILURE;  // No good, fallback to XUL
+  }
 
   rv = aAlert->GetSilent(&mAlertIsSilent);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -374,6 +377,7 @@ nsresult nsAlertsIconListener::InitAlertAsync(nsIAlertNotification* aAlert,
 }
 
 void nsAlertsIconListener::NotifyFinished() {
-  if (mAlertListener)
+  if (mAlertListener) {
     mAlertListener->Observe(nullptr, "alertfinished", mAlertCookie.get());
+  }
 }

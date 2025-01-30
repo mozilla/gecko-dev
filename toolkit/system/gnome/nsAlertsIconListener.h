@@ -77,9 +77,9 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
 
   RefPtr<nsSystemAlertsService> mBackend;
 
-  bool mAlertHasAction;
-  bool mAlertIsSilent;
-  bool mAlertRequiresInteraction;
+  bool mAlertHasAction = false;
+  bool mAlertIsSilent = false;
+  bool mAlertRequiresInteraction = false;
 
   static void* libNotifyHandle;
   static bool libNotifyNotAvail;
@@ -94,8 +94,8 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
   static notify_notification_close_t notify_notification_close;
   static notify_notification_set_hint_t notify_notification_set_hint;
   static notify_notification_set_timeout_t notify_notification_set_timeout;
-  NotifyNotification* mNotification;
-  gulong mClosureHandler;
+  NotifyNotification* mNotification = nullptr;
+  gulong mClosureHandler = 0;
 
   nsresult ShowAlert(GdkPixbuf* aPixbuf);
 
