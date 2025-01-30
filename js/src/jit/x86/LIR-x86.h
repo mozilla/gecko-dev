@@ -192,30 +192,6 @@ class LWasmAtomicStoreI64 : public LInstructionHelper<0, 2 + INT64_PIECES, 2> {
   const LDefinition* t2() { return getTemp(1); }
 };
 
-class LWasmCompareExchangeI64
-    : public LInstructionHelper<INT64_PIECES, 2 + 2 * INT64_PIECES, 0> {
- public:
-  LIR_HEADER(WasmCompareExchangeI64);
-
-  LWasmCompareExchangeI64(const LAllocation& memoryBase, const LAllocation& ptr,
-                          const LInt64Allocation& expected,
-                          const LInt64Allocation& replacement)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, memoryBase);
-    setOperand(1, ptr);
-    setInt64Operand(2, expected);
-    setInt64Operand(2 + INT64_PIECES, replacement);
-  }
-
-  MWasmCompareExchangeHeap* mir() const {
-    return mir_->toWasmCompareExchangeHeap();
-  }
-  const LAllocation* memoryBase() { return getOperand(0); }
-  const LAllocation* ptr() { return getOperand(1); }
-  LInt64Allocation expected() { return getInt64Operand(2); }
-  LInt64Allocation replacement() { return getInt64Operand(2 + INT64_PIECES); }
-};
-
 }  // namespace jit
 }  // namespace js
 

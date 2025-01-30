@@ -4962,7 +4962,13 @@
   gen_boilerplate: false
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    memoryBase: WordSized
+    ptr: WordSized
+    expected: Int64
+    replacement: Int64
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
@@ -5066,7 +5072,13 @@
   gen_boilerplate: false
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    expected: Int64
+    replacement: Int64
+    memoryBase: WordSized
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
@@ -5172,7 +5184,13 @@
   gen_boilerplate: false
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    oldValue: Int64
+    newValue: Int64
+    memoryBase: WordSized
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
@@ -5230,7 +5248,13 @@
   gen_boilerplate: false
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    oldValue: Int64
+    newValue: Int64
+    memoryBase: WordSized
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
@@ -5276,7 +5300,13 @@
   mir_op: true
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    oldValue: Int64
+    newValue: Int64
+    memoryBase: WordSized
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
@@ -5322,7 +5352,13 @@
   mir_op: true
 
 - name: WasmCompareExchangeI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    oldValue: Int64
+    newValue: Int64
+    memoryBase: WordSized
+  mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
