@@ -12,6 +12,14 @@ The :doc:`Stub Installer </browser/installer/windows/installer/StubInstaller>` s
 
 Ingestion is handled in `gcp-ingestion <https://mozilla.github.io/gcp-ingestion/>`_ at class StubUri within `ParseUri <https://github.com/mozilla/gcp-ingestion/blob/master/ingestion-beam/src/main/java/com/mozilla/telemetry/decoder/ParseUri.java>`_. Several of the fields are codes which are broken out into multiple boolean columns in the database table.
 
+To add a new data field to the stub installer ping, append the desired variable to this `function <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/browser/installer/windows/nsis/stub.nsi#1237>`_, as well as the `debug log <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/browser/installer/windows/nsis/stub.nsi#1187>`_.
+
+On the server side, append the name and type of the new data field to gcp-ingestion's `URI parser <https://github.com/mozilla/gcp-ingestion/blob/d2d3a36101418a240c0dc9b68b6217d6ddae6ca3/ingestion-beam/src/main/java/com/mozilla/telemetry/decoder/ParseUri.java#L253-L257>`_, and increment the payload version and update SUFFIX_LENGTH & PING_VERSION_PATTERN to reflect the version change (see https://github.com/mozilla/gcp-ingestion/pull/2719/files).
+
+Additionally, modify the `schema <https://github.com/mozilla-services/mozilla-pipeline-schemas/blob/main/schemas/firefox-installer/install/install.1.schema.json>`_ and `template <https://github.com/mozilla-services/mozilla-pipeline-schemas/blob/main/templates/firefox-installer/install/install.1.schema.json>`_ files of ``mozilla-pipeline-schemas`` to include the new fields to the bigquery table. (see https://github.com/mozilla-services/mozilla-pipeline-schemas/pull/829/files).
+
+Finally, in the stub installer code, increment `StubUrlVersion <https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/browser/installer/windows/nsis/stub.nsi#106>`_ to match the changes in the server side.
+
 -----------------
 Full Install Ping
 -----------------
@@ -19,6 +27,8 @@ Full Install Ping
 The :doc:`Full Installer </browser/installer/windows/installer/FullInstaller>` sends a ping just before it exits, in function SendPing of `installer.nsi <https://searchfox.org/mozilla-central/source/browser/installer/windows/nsis/installer.nsi>`_. This is an HTTP POST request with a JSON document, sent to the standard Telemetry endpoint (incoming.telemetry.mozilla.org).
 
 To avoid double counting, the full installer does not send a ping when it is launched from the stub installer, so pings where ``installer_type = "full"`` correspond to installs that did not use the stub.
+
+To add a new data field to the full installer telemetry, call ``nsJSON::Set /tree ping "Data" "[DATA FIELD NAME]" /value '[DATA TO REPORT]'`` within ``browser/installer/windows/nsis/installer.nsi``. Then update ``mozilla-pipeline-schemas`` as described in the stub ping section.
 
 --------------------------
 Querying the install pings
