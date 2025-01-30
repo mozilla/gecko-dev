@@ -2388,11 +2388,10 @@ WSRunScanner::TextFragmentData::InvisibleTrailingWhiteSpaceRangeRef() const {
     return mTrailingWhiteSpaceRange.ref();
   }
 
-  // If it's not immediately before a block boundary nor an invisible
-  // preformatted linefeed, there is no invisible trailing white-spaces.  Note
-  // that collapsible white-spaces before a `<br>` element is visible.
-  if (!EndsByBlockBoundary() && !EndsByInlineEditingHostBoundary() &&
-      !EndsByInvisiblePreformattedLineBreak()) {
+  // If it's not immediately before a block boundary, there is no invisible
+  // trailing white-spaces.  Note that a collapsible white-space before a <br>
+  // element or a preformatted linefeed is visible.
+  if (!EndsByBlockBoundary() && !EndsByInlineEditingHostBoundary()) {
     mTrailingWhiteSpaceRange.emplace();
     return mTrailingWhiteSpaceRange.ref();
   }
