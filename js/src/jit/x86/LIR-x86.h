@@ -216,28 +216,6 @@ class LWasmCompareExchangeI64
   LInt64Allocation replacement() { return getInt64Operand(2 + INT64_PIECES); }
 };
 
-class LWasmAtomicExchangeI64
-    : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 0> {
-  const wasm::MemoryAccessDesc& access_;
-
- public:
-  LIR_HEADER(WasmAtomicExchangeI64);
-
-  LWasmAtomicExchangeI64(const LAllocation& memoryBase, const LAllocation& ptr,
-                         const LInt64Allocation& value,
-                         const wasm::MemoryAccessDesc& access)
-      : LInstructionHelper(classOpcode), access_(access) {
-    setOperand(0, memoryBase);
-    setOperand(1, ptr);
-    setInt64Operand(2, value);
-  }
-
-  const LAllocation* memoryBase() { return getOperand(0); }
-  const LAllocation* ptr() { return getOperand(1); }
-  LInt64Allocation value() { return getInt64Operand(2); }
-  const wasm::MemoryAccessDesc& access() { return access_; }
-};
-
 }  // namespace jit
 }  // namespace js
 
