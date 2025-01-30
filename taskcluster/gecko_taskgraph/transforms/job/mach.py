@@ -27,8 +27,6 @@ mach_schema = Schema(
         Required("comm-checkout"): bool,
         # Base work directory used to set up the task.
         Optional("workdir"): str,
-        # Use the specified caches.
-        Optional("use-caches"): Any(bool, [str]),
     }
 )
 

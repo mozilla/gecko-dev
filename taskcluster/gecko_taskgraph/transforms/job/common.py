@@ -7,7 +7,7 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-import mozpack.path as mozpath
+
 from taskgraph.transforms.run.common import CACHES, add_cache
 from taskgraph.util.keyed_by import evaluate_keyed_by
 from taskgraph.util.taskcluster import get_artifact_prefix
@@ -38,8 +38,7 @@ def generic_worker_add_artifacts(config, job, taskdesc):
     # mean the artifacts will be public or private; that is set via the name
     # attribute in add_artifacts.
     path = get_artifact_prefix(taskdesc)
-    # {task_workdir} gets interpolated in run-task
-    taskdesc["worker"].setdefault("env", {})["UPLOAD_DIR"] = f"{{task_workdir}}/{path}"
+    taskdesc["worker"].setdefault("env", {})["UPLOAD_DIR"] = path
     add_artifacts(config, job, taskdesc, path=path)
 
 
@@ -74,7 +73,7 @@ def support_vcs_checkout(config, job, taskdesc):
     assert is_mac or is_win or is_linux
 
     if is_win:
-        checkoutdir = "build"
+        checkoutdir = "./build"
         geckodir = f"{checkoutdir}/src"
         if "aarch64" in job["worker-type"] or "a64" in job["worker-type"]:
             # arm64 instances on azure don't support local ssds
@@ -86,15 +85,14 @@ def support_vcs_checkout(config, job, taskdesc):
         geckodir = f"{checkoutdir}/gecko"
         hgstore = f"{checkoutdir}/hg-store"
     else:
-        checkoutdir = "checkouts"
+        checkoutdir = "./checkouts"
         geckodir = f"{checkoutdir}/gecko"
         hgstore = f"{checkoutdir}/hg-shared"
 
     # Use some Gecko specific logic to determine cache name.
     CACHES["checkout"]["cache_name"] = get_cache_name
 
-    env = taskdesc["worker"].setdefault("env", {})
-    env.update(
+    taskdesc["worker"].setdefault("env", {}).update(
         {
             "GECKO_BASE_REPOSITORY": config.params["base_repository"],
             "GECKO_HEAD_REPOSITORY": config.params["head_repository"],
@@ -102,13 +100,7 @@ def support_vcs_checkout(config, job, taskdesc):
             "HG_STORE_PATH": hgstore,
         }
     )
-
-    if "GECKO_PATH" in env:
-        gecko_path = env["GECKO_PATH"]
-    else:
-        gecko_path = geckodir
-        # {task_workdir} is interpolated by run-task script
-        env["GECKO_PATH"] = mozpath.join("{task_workdir}", geckodir)
+    taskdesc["worker"]["env"].setdefault("GECKO_PATH", geckodir)
 
     if "comm_base_repository" in config.params:
         taskdesc["worker"]["env"].update(
@@ -131,8 +123,6 @@ def support_vcs_checkout(config, job, taskdesc):
     # only some worker platforms have taskcluster-proxy enabled
     if job["worker"]["implementation"] in ("docker-worker",):
         taskdesc["worker"]["taskcluster-proxy"] = True
-
-    return gecko_path
 
 
 def setup_secrets(config, job, taskdesc):

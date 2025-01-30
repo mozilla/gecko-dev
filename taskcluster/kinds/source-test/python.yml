@@ -33,7 +33,6 @@ task-defaults:
         tier: 1
     run:
         using: mach
-        use-caches: [checkout, pip, uv]
     when:
         files-changed:
             - 'config/mozunit/**'
