@@ -22,7 +22,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoSystemStateListener;
@@ -644,6 +646,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<>("network.trr.mode");
   /* package */ final PrefWithoutDefault<String> mTrustedRecursiveResolverUri =
       new PrefWithoutDefault<>("network.trr.uri");
+  /* package */ final PrefWithoutDefault<String> mTrustedRecursiveResolverExcludedDomains =
+      new PrefWithoutDefault<>("network.trr.excluded-domains");
   /* package */ final PrefWithoutDefault<Integer> mLargeKeepalivefactor =
       new PrefWithoutDefault<>("network.http.largeKeepaliveFactor");
   /* package */ final Pref<Integer> mProcessCount = new Pref<>("dom.ipc.processCount", 2);
@@ -1914,6 +1918,32 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public @NonNull GeckoRuntimeSettings setTrustedRecursiveResolverUri(final @NonNull String uri) {
     mTrustedRecursiveResolverUri.commit(uri);
+    return this;
+  }
+
+  /**
+   * Get the domains excluded from using DNS-over-HTTPS
+   *
+   * @return A list of strings containing the domains saved in the pref.
+   */
+  public @NonNull List<String> getTrustedRecursiveResolverExcludedDomains() {
+    final String domains = mTrustedRecursiveResolverExcludedDomains.get();
+    if (domains.isEmpty()) {
+      return List.of();
+    }
+    return Arrays.asList(domains.split("[\\s,]+"));
+  }
+
+  /**
+   * Set the DNS-over-HTTPS excluded domains
+   *
+   * @param domains list of domains that will be excluded from using DoH. They will use platform DNS
+   *     instead.
+   * @return This GeckoRuntimeSettings instance.
+   */
+  public @NonNull GeckoRuntimeSettings setTrustedRecursiveResolverExcludedDomains(
+      final @NonNull List<String> domains) {
+    mTrustedRecursiveResolverExcludedDomains.commit(String.join(",", domains));
     return this;
   }
 

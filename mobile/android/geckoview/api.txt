@@ -902,6 +902,7 @@ package org.mozilla.geckoview {
     method @Nullable public GeckoRuntime getRuntime();
     method @Nullable public Rect getScreenSizeOverride();
     method public boolean getTranslationsOfferPopup();
+    method @NonNull public List<String> getTrustedRecursiveResolverExcludedDomains();
     method @NonNull public String getTrustedRecursiveResolverUri();
     method public int getTrustedRecusiveResolverMode();
     method public boolean getUseMaxScreenDepth();
@@ -942,6 +943,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setPreferredColorScheme(int);
     method @NonNull public GeckoRuntimeSettings setRemoteDebuggingEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setTranslationsOfferPopup(boolean);
+    method @NonNull public GeckoRuntimeSettings setTrustedRecursiveResolverExcludedDomains(@NonNull List<String>);
     method @NonNull public GeckoRuntimeSettings setTrustedRecursiveResolverMode(int);
     method @NonNull public GeckoRuntimeSettings setTrustedRecursiveResolverUri(@NonNull String);
     method @NonNull public GeckoRuntimeSettings setUserCharacteristicPingCurrentVersion(int);

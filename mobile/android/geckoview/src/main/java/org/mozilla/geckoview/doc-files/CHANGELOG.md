@@ -16,9 +16,12 @@ exclude: true
 ## v136
 - Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
 - Added [`GeckoSession.CompositorScrollDelegate`][136.2] interface, which allows reacting to scroll position changes as soon as they are composited
+- Added support for controlling `network.trr.excluded-domains` via [`GeckoRuntimeSettings.setTrustedRecursiveResolverExcludedDomains`][136.3] and [`GeckoRuntimeSettings.getTrustedRecursiveResolverExcludedDomains`][136.4]
 
 [136.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCertificateTransparencyMode
-[136.2]: {{javadoc uri}}/GeckoSession.html#CompositorScrollDelegate
+[136.2]: {{javadoc_uri}}/GeckoSession.html#CompositorScrollDelegate
+[136.3]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setTrustedRecursiveResolverExcludedDomains
+[136.4]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getTrustedRecursiveResolverExcludedDomains
 
 ## v134
 - ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is removed see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374 for more details.
@@ -1658,4 +1661,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: dc265626066f5c9682b3fd7bc44aeaa37206b84d
+[api-version]: b65c54429cfd61cdb0b8741813f037d0f02c8e2a
