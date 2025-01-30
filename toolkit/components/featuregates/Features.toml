@@ -82,15 +82,3 @@ type = "boolean"
 bug-numbers = [1607954]
 is-public-jexl = "nightly_build"
 default-value-jexl = "nightly_build || thunderbird"
-
-[web-api-webgpu]
-group = "experimental-features-group-webpage-display"
-title = "experimental-features-web-gpu2"
-description = "experimental-features-web-gpu-description3"
-description-links = {wikipedia-webgpu = "https://en.wikipedia.org/wiki/WebGPU", wikipedia-gpu = "https://en.wikipedia.org/wiki/Graphics_processing_unit", spec = "https://gpuweb.github.io/gpuweb/", bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1616739"}
-restart-required = false
-preference = "dom.webgpu.enabled"
-type = "boolean"
-bug-numbers = [1616739]
-is-public-jexl = "nightly_build"
-default-value-jexl = "nightly_build"
