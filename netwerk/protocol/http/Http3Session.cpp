@@ -2239,7 +2239,7 @@ void Http3Session::CallCertVerification(Maybe<nsCString> aEchPublicName) {
         return;
       }
       // ok, we succeded
-      Authenticated(0);
+      Authenticated(0, true);
       return;
     }
   }
@@ -2277,7 +2277,8 @@ void Http3Session::CallCertVerification(Maybe<nsCString> aEchPublicName) {
   }
 }
 
-void Http3Session::Authenticated(int32_t aError) {
+void Http3Session::Authenticated(int32_t aError,
+                                 bool aServCertHashesSucceeded) {
   LOG(("Http3Session::Authenticated error=0x%" PRIx32 " [this=%p].", aError,
        this));
   if ((mState == INITIALIZING) || (mState == ZERORTT)) {
@@ -2294,9 +2295,12 @@ void Http3Session::Authenticated(int32_t aError) {
               ? StaticPrefs::
                     network_http_http3_has_third_party_roots_found_in_automation()
               : !mSocketControl->IsBuiltCertChainRootBuiltInRoot();
-      LOG(("Http3Session::Authenticated [this=%p, hasThirdPartyRoots=%d]", this,
-           hasThirdPartyRoots));
-      if (hasThirdPartyRoots) {
+      LOG(
+          ("Http3Session::Authenticated [this=%p, hasThirdPartyRoots=%d, "
+           "servCertHashesSucceeded=%d]",
+           this, hasThirdPartyRoots, aServCertHashesSucceeded));
+      // If serverCertificateHashes is used a thirdPartyRoot is legal
+      if (hasThirdPartyRoots && !aServCertHashesSucceeded) {
         if (mFirstHttpTransaction) {
           mFirstHttpTransaction->DisableHttp3(false);
         }

@@ -179,7 +179,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   // This function will be called by QuicSocketControl when the certificate
   // verification is done.
-  void Authenticated(int32_t aError);
+  void Authenticated(int32_t aError, bool aServCertHashesSucceeded = false);
 
   nsresult ProcessOutputAndEvents(nsIUDPSocket* socket);
 
