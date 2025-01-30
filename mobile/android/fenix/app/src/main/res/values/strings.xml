@@ -587,9 +587,9 @@
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">When you share how you discovered Firefox and that you use it, you help us introduce our browser to more people.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
     <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Share minimal data with Mozilla’s marketing technology partners. This data is never sold or used to show you ads.</string>
-    <!-- Marketing onboarding page learn more link. -->
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">How we use the data</string>
-    <!-- Marketing onboarding page positive button -->
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirm and start browsing</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Pick a toolbar placement</string>
