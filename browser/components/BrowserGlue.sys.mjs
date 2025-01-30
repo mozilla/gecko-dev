@@ -3798,7 +3798,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 151;
+    const UI_VERSION = 152;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4588,6 +4588,21 @@ BrowserGlue.prototype = {
       // Existing Firefox users should have the usage reporting upload
       // preference "inherit" the general data reporting preference.
       lazy.UsageReporting.adoptDataReportingPreference();
+    }
+
+    if (
+      currentUIVersion < 152 &&
+      Services.prefs.getBoolPref("sidebar.revamp") &&
+      !Services.prefs.getBoolPref("browser.ml.chat.enabled")
+    ) {
+      let tools = Services.prefs.getCharPref("sidebar.main.tools");
+      if (tools?.includes("aichat")) {
+        let updatedTools = tools
+          .split(",")
+          .filter(t => t != "aichat")
+          .join(",");
+        Services.prefs.setCharPref("sidebar.main.tools", updatedTools);
+      }
     }
 
     // Update the migration version.
