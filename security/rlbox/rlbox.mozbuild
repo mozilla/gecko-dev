@@ -53,6 +53,8 @@ def RLBoxLibrary(name, use_segue=True):
         and CONFIG["CC_TYPE"] in ("clang", "gcc")
         and CONFIG["TARGET_CPU"] == "x86_64"
         and CONFIG["OS_TARGET"] != "Android"
+        # https://github.com/llvm/llvm-project/issues/124238
+        and not (CONFIG["MOZ_ASAN"] or CONFIG["MOZ_TSAN"])
     ):
         # Setting WASM_RT_ALLOW_SEGUE means Segue is used on supported
         # OS/compiler/Arch combinations. For example, it is used for
