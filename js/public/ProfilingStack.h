@@ -8,6 +8,7 @@
 #define js_ProfilingStack_h
 
 #include "mozilla/Atomics.h"
+#include "mozilla/BaseProfilerMarkersPrerequisites.h"
 
 #include <stdint.h>
 
@@ -362,9 +363,9 @@ JS_PUBLIC_API void SetContextProfilingStack(JSContext* cx,
 
 JS_PUBLIC_API void EnableContextProfilingStack(JSContext* cx, bool enabled);
 
-JS_PUBLIC_API void RegisterContextProfilingEventMarker(JSContext* cx,
-                                                       void (*fn)(const char*,
-                                                                  const char*));
+JS_PUBLIC_API void RegisterContextProfilingEventMarker(
+    JSContext* cx,
+    void (*fn)(mozilla::MarkerCategory, const char*, const char*));
 
 }  // namespace js
 
