@@ -1710,24 +1710,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  gl_version:
-    type: quantity
-    unit: int
-    description: >
-      The version of OpenGL supported by the user's system.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
   gl_extensions:
     type: text
     description: >
@@ -1923,7 +1905,7 @@ characteristics:
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
 
-  gl_params_v1:
+  gl_params:
     type: text
     description: >
       The list of GL parameters of GL1.
@@ -1933,28 +1915,9 @@ characteristics:
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_params_v2:
-    type: text
-    description: >
-      The list of GL parameters of GL2.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -2229,7 +2192,7 @@ characteristics:
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
 
-  gl_params_v1_software:
+  gl_params_software:
     type: text
     description: >
       The list of GL parameters of GL1.
@@ -2239,28 +2202,9 @@ characteristics:
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506#c15
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_params_v2_software:
-    type: text
-    description: >
-      The list of GL parameters of GL2.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506#c15
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -2318,6 +2262,562 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922506#c17
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_extensions:
+    type: text
+    description: >
+      The list of OpenGL extensions supported by the user's system.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_extensions_raw:
+    type: text
+    description: >
+      The raw list of OpenGL extensions supported by the user's system.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_renderer:
+    type: string
+    description: >
+      The OpenGL renderer string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_renderer_raw:
+    type: string
+    description: >
+      The raw OpenGL renderer string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vendor:
+    type: string
+    description: >
+      The OpenGL vendor string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vendor_raw:
+    type: string
+    description: >
+      The raw OpenGL vendor string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_version_raw:
+    type: string
+    description: >
+      The raw OpenGL version string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_fragment_shader:
+    type: string
+    description: >
+      Hash of the transformed source of the fragment shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vertex_shader:
+    type: string
+    description: >
+      Hash of the transformed source of the vertex shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_minimal_source:
+    type: text
+    description: >
+      Transformed source of the minimal shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_params_extensions:
+    type: text
+    description: >
+      The list of GL parameters of the extensions.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_params:
+    type: text
+    description: >
+      The list of GL parameters of GL2.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_precision_fragment:
+    type: text
+    description: >
+      Precisions of the fragment shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_precision_vertex:
+    type: text
+    description: >
+      Precisions of the vertex shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_context_type:
+    type: string
+    description: >
+      The type of the GL context (EGL, GLX, WGL, etc).
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_version_software:
+    type: quantity
+    unit: int
+    description: >
+      The version of OpenGL supported by the user's system.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_extensions_software:
+    type: text
+    description: >
+      The list of OpenGL extensions supported by the user's system.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_extensions_raw_software:
+    type: text
+    description: >
+      The raw list of OpenGL extensions supported by the user's system.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_renderer_software:
+    type: string
+    description: >
+      The OpenGL renderer string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_renderer_raw_software:
+    type: string
+    description: >
+      The raw OpenGL renderer string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vendor_software:
+    type: string
+    description: >
+      The OpenGL vendor string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vendor_raw_software:
+    type: string
+    description: >
+      The raw OpenGL vendor string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_version_raw_software:
+    type: string
+    description: >
+      The raw OpenGL version string.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_fragment_shader_software:
+    type: string
+    description: >
+      Hash of the transformed source of the fragment shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_vertex_shader_software:
+    type: string
+    description: >
+      Hash of the transformed source of the vertex shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  gl2_minimal_source_software:
+    type: text
+    description: >
+      Transformed source of the minimal shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_params_extensions_software:
+    type: text
+    description: >
+      The list of GL parameters of the extensions.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_params_software:
+    type: text
+    description: >
+      The list of GL parameters of GL2.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_precision_fragment_software:
+    type: text
+    description: >
+      Precisions of the fragment shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_precision_vertex_software:
+    type: text
+    description: >
+      Precisions of the vertex shader.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  gl2_context_type_software:
+    type: string
+    description: >
+      The type of the GL context (EGL, GLX, WGL, etc).
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943627#c1
     expires: never
     data_sensitivity:
       - technical

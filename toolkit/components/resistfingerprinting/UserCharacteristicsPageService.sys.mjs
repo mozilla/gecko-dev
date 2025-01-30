@@ -166,11 +166,19 @@ export class UserCharacteristicsPageService {
       [this.populateWindowInfo, []],
       [
         this.populateWebGlInfo,
-        [browser.ownerGlobal, browser.ownerDocument, false],
+        [browser.ownerGlobal, browser.ownerDocument, 1, false],
       ],
       [
         this.populateWebGlInfo,
-        [browser.ownerGlobal, browser.ownerDocument, true],
+        [browser.ownerGlobal, browser.ownerDocument, 1, true],
+      ],
+      [
+        this.populateWebGlInfo,
+        [browser.ownerGlobal, browser.ownerDocument, 2, false],
+      ],
+      [
+        this.populateWebGlInfo,
+        [browser.ownerGlobal, browser.ownerDocument, 2, true],
       ],
       [this.populateCanvasData, []],
       [this.populateWebGPUProperties, [browser.ownerGlobal]],
@@ -734,12 +742,10 @@ export class UserCharacteristicsPageService {
     Glean.characteristics.cpuArch.set(Services.sysinfo.get("arch"));
   }
 
-  async populateWebGlInfo(window, document, forceSoftwareRendering) {
+  async populateWebGlInfo(window, document, version, forceSoftwareRendering) {
     const results = {
-      glVersion: 2,
       parameters: {
-        v1: [],
-        v2: [],
+        params: [],
         extensions: [],
       },
       shaderPrecision: {
@@ -751,16 +757,13 @@ export class UserCharacteristicsPageService {
     };
 
     const canvas = document.createElement("canvas");
-    let gl = canvas.getContext("webgl2", { forceSoftwareRendering });
-    if (!gl) {
-      gl = canvas.getContext("webgl", { forceSoftwareRendering });
-      results.glVersion = 1;
-    }
+    const gl = canvas.getContext(version === 2 ? "webgl2" : "webgl", {
+      forceSoftwareRendering,
+    });
     if (!gl) {
       lazy.console.error(
         "Unable to initialize WebGL. Your browser or machine may not support it."
       );
-      Glean.characteristics.glVersion.set(results.glVersion);
       return;
     }
 
@@ -839,16 +842,16 @@ export class UserCharacteristicsPageService {
     }
 
     // Get all parameters available in WebGL1
-    if (results.glVersion >= 1) {
+    if (version >= 1) {
       for (const parameter of PARAMS.v1) {
-        results.parameters.v1.push(getParam(parameter));
+        results.parameters.params.push(getParam(parameter));
       }
     }
 
     // Get all parameters available in WebGL2
-    if (results.glVersion === 2) {
+    if (version === 2) {
       for (const parameter of PARAMS.v2) {
-        results.parameters.v2.push(getParam(parameter));
+        results.parameters.params.push(getParam(parameter));
       }
     }
 
@@ -962,33 +965,31 @@ export class UserCharacteristicsPageService {
     }
 
     const map = {
-      // General
-      glVersion: results.glVersion,
       // Debug Params
-      glExtensions: results.debugParams.extensions,
-      glExtensionsRaw: results.debugParams.extensionsRaw,
-      glRenderer: results.debugParams.rendererDebugInfo,
-      glRendererRaw: results.debugParams.rendererRaw,
-      glVendor: results.debugParams.vendorDebugInfo,
-      glVendorRaw: results.debugParams.vendorRaw,
-      glVersionRaw: results.debugParams.versionRaw,
-      glContextType: results.debugParams.contextType,
+      Extensions: results.debugParams.extensions,
+      ExtensionsRaw: results.debugParams.extensionsRaw,
+      Renderer: results.debugParams.rendererDebugInfo,
+      RendererRaw: results.debugParams.rendererRaw,
+      Vendor: results.debugParams.vendorDebugInfo,
+      VendorRaw: results.debugParams.vendorRaw,
+      VersionRaw: results.debugParams.versionRaw,
+      ContextType: results.debugParams.contextType,
       // Debug Shaders
-      glFragmentShader: results.debugShaders.fs,
-      glVertexShader: results.debugShaders.vs,
-      glMinimalSource: results.debugShaders.ms,
+      FragmentShader: results.debugShaders.fs,
+      VertexShader: results.debugShaders.vs,
+      MinimalSource: results.debugShaders.ms,
       // Parameters
-      glParamsExtensions: JSON.stringify(results.parameters.extensions),
-      glParamsV1: JSON.stringify(results.parameters.v1),
-      glParamsV2: JSON.stringify(results.parameters.v2),
+      ParamsExtensions: JSON.stringify(results.parameters.extensions),
+      Params: JSON.stringify(results.parameters.params),
       // Shader Precision
-      glPrecisionFragment: JSON.stringify(
+      PrecisionFragment: JSON.stringify(
         results.shaderPrecision.FRAGMENT_SHADER
       ),
-      glPrecisionVertex: JSON.stringify(results.shaderPrecision.VERTEX_SHADER),
+      PrecisionVertex: JSON.stringify(results.shaderPrecision.VERTEX_SHADER),
     };
 
     this.collectGleanMetricsFromMap(map, {
+      prefix: version === 2 ? "gl2" : "gl",
       suffix: forceSoftwareRendering ? "Software" : "",
     });
   }
