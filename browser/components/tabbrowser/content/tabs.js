@@ -2641,6 +2641,10 @@
         delete dragData.shouldCreateGroupOnDrop;
       }
 
+      dragData.dropElement = dropElement;
+      dragData.dropBefore = dropBefore;
+      dragData.animDropElementIndex = newDropElementIndex;
+
       if (
         newDropElementIndex == oldDropElementIndex ||
         // FIXME: This seems bogus, not sure what's going on with the indexes here:
@@ -2648,10 +2652,6 @@
       ) {
         return;
       }
-
-      dragData.dropElement = dropElement;
-      dragData.dropBefore = dropBefore;
-      dragData.animDropElementIndex = newDropElementIndex;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
