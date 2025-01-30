@@ -551,26 +551,35 @@
     <string name="onboarding_preferences_dialog_crash_reporting_description">I papelli dî scasci ni cunzèntinu di diagnusticari e abbirsari i prubblemi dû navicaturi. I papelli ponnu cuntèniri dati pirsunali o sinzìbbili.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Cchiù nfurmazzioni supra ê signalijazzioni di scasciu</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Cchiù nfurmazzioni</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Manna dati tècnici e di ntirazzioni a Mozilla</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-    <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">Dati supra ô to dispusitivu, a cunfijurazzioni hardware e ncapu a comu usi Firefox n\'ajuta a travagghiari megghiu ncapu ê carattarìstichi, i pristazzioni e a stabbilità pi tutti l\'utenti.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">I dati supra ô to dispusitivu, a cunfijurazzioni hardware e ncapu a comu usi Firefox n\'ajùtanu a travagghiari megghiu ncapu ê carattarìstichi, i pristazzioni e a stabbilità pi tutti l\'utenti.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">I dati supra ô to dispusitivu, a cunfijurazzioni hardware e ncapu a comu usi Firefox n\'ajùtanu a travagghiari megghiu ncapu ê carattarìstichi, i pristazzioni e a stabbilità pi tutti pari.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Cchiù nfurmazzioni supra î dati d\'usu</string>
+    <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Cchiù nfurmazzioni</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">Fattu</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button">Sfai</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Bummegna nne Firefox</string>
+    <!-- Terms of service sub header label. -->
+    <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">Navicazzioni lesta e sicura.</string>
+    <string name="onboarding_terms_of_service_sub_header_2">Navicazzioni lesta e sicura</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label">Accetta e cuntinua</string>
-    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Firefox Terms of Use”). -->
+    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
     <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">Cuntinuannu, accetti i %1$s di Firefox.</string>
+    <string name="onboarding_term_of_service_line_one_2">Cuntinuannu, accetti i %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Tèrmini di sirbizzu</string>
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Tèrmini di sirbizzu di Firefox</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
     <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">A Firefox ci ntiressa dâ to privatizza. Leggi cchiù assai nnô nostru %1$s.</string>
+    <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">A Firefox ci ntiressa dâ to privatizza. Cchiù assai nfurmazzioni nnô nostru %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">Abbisu di privatizza</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
@@ -1329,8 +1338,12 @@
     <string name="webcompat_reporter_url_error_invalid">Pi favuri metti nu nnirizzu vàlitu</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">Qual\'è u prubblema? (facurtativu)</string>
+    <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken_2">Chi si rumpìu?</string>
     <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">Scarta na scaciuni</string>
+    <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason_error">Pi favuri scarta na scaciuni</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">Discrivi u prubblema (facurtativu)</string>
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
@@ -3017,6 +3030,13 @@
 
     <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
     <string name="debug_drawer_addresses_debug_locales_header">Lingui d\'abbilitari nnô debug</string>
+
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_management_header">Manija i nnirizzi</string>
+    <!-- The title of the button in the debug drawer for adding a new address. -->
+    <string name="debug_drawer_add_new_address">Agghiunci nu nnirizzu novu pâ lingua scartata</string>
+    <!-- The title of the button for deleting in the debug drawer all addresses. -->
+    <string name="debug_drawer_delete_all_addresses">Scancella tutti i nnirizzi</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->

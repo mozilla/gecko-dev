@@ -478,6 +478,9 @@
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">එක්කහුවේ බොත්තම</string>
 
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title">බිඳවැටුම් වාර්තා ස්වයංක්‍රීයව යවන්න</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">තව දැනගන්න</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">අහවරයි</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
