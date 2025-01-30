@@ -3340,8 +3340,8 @@ class Document : public nsINode,
                  const mozilla::dom::Optional<nsAString>& /* unused */,
                  mozilla::ErrorResult& aError);
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> Open(
-      const nsAString& aURL, const nsAString& aName, const nsAString& aFeatures,
-      mozilla::ErrorResult& rv);
+      const nsACString& aURL, const nsAString& aName,
+      const nsAString& aFeatures, mozilla::ErrorResult& rv);
   void Close(mozilla::ErrorResult& rv);
   MOZ_CAN_RUN_SCRIPT void Write(
       const mozilla::dom::Sequence<OwningTrustedHTMLOrString>& aText,

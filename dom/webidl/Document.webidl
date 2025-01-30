@@ -184,7 +184,7 @@ partial interface Document {
   [CEReactions, Throws]
   Document open(optional DOMString unused1, optional DOMString unused2); // both arguments are ignored
   [CEReactions, Throws]
-  WindowProxy? open(USVString url, DOMString name, DOMString features);
+  WindowProxy? open(UTF8String url, DOMString name, DOMString features);
   [CEReactions, Throws]
   undefined close();
   [CEReactions, Throws]
