@@ -9,12 +9,15 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.mars.SponsoredContentsUseCases
 import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases
 import mozilla.components.service.pocket.spocs.SpocsUseCases
 import mozilla.components.service.pocket.stories.PocketStoriesUseCases
 import mozilla.components.service.pocket.update.ContentRecommendationsRefreshScheduler
 import mozilla.components.service.pocket.update.PocketStoriesRefreshScheduler
 import mozilla.components.service.pocket.update.SpocsRefreshScheduler
+import mozilla.components.service.pocket.update.SponsoredContentsRefreshScheduler
 
 /**
  * Allows for getting a list of pocket stories based on the provided [PocketStoriesConfig]
@@ -35,6 +38,10 @@ class PocketStoriesService(
     @VisibleForTesting
     internal var contentRecommendationsRefreshScheduler =
         ContentRecommendationsRefreshScheduler(pocketStoriesConfig)
+
+    @VisibleForTesting
+    internal var sponsoredContentsRefreshScheduler =
+        SponsoredContentsRefreshScheduler(pocketStoriesConfig)
 
     @VisibleForTesting
     internal var storiesUseCases = PocketStoriesUseCases(
@@ -62,6 +69,13 @@ class PocketStoriesService(
         appContext = context,
         client = pocketStoriesConfig.client,
         config = pocketStoriesConfig.contentRecommendationsParams,
+    )
+
+    @VisibleForTesting
+    internal var sponsoredContentsUseCases = SponsoredContentsUseCases(
+        appContext = context,
+        client = pocketStoriesConfig.client,
+        config = pocketStoriesConfig.marsSponsoredContentsParams,
     )
 
     /**
@@ -222,5 +236,45 @@ class PocketStoriesService(
      */
     suspend fun updateRecommendationsImpressions(recommendationsShown: List<ContentRecommendation>) {
         contentRecommendationsUseCases.updateRecommendationsImpressions(recommendationsShown)
+    }
+
+    /**
+     * Starts a work request in the background to periodically refresh the list of sponsored
+     * contents.
+     *
+     * Use this at an as high as possible level in your application. Must be paired in a similar
+     * way with the [stopPeriodicSponsoredContentsRefresh] method.
+     *
+     * This starts the process of downloading and caching sponsored contents in the background
+     * and making them available when the [getSponsoredContents] method is called.
+     */
+    fun startPeriodicSponsoredContentsRefresh() {
+        GlobalDependencyProvider.SponsoredContents.initialize(sponsoredContentsUseCases)
+        sponsoredContentsRefreshScheduler.startPeriodicRefreshes(context)
+    }
+
+    /**
+     * Stops the work request to periodically refresh the list of sponsored contents.
+     */
+    fun stopPeriodicSponsoredContentsRefresh() {
+        sponsoredContentsRefreshScheduler.stopPeriodicRefreshes(context)
+        GlobalDependencyProvider.SponsoredContents.reset()
+    }
+
+    /**
+     * Returns a list of [SponsoredContent] based on the initial [pocketStoriesConfig].
+     */
+    suspend fun getSponsoredContents(): List<SponsoredContent> {
+        return sponsoredContentsUseCases.getSponsoredContents()
+    }
+
+    /**
+     * Records the sponsored content impressions from the provided list of sponsored content
+     * URLs.
+     *
+     * @param impressions A list of sponsored content URLs that have been viewed.
+     */
+    suspend fun recordSponsoredContentImpressions(impressions: List<String>) {
+        sponsoredContentsUseCases.recordImpressions.invoke(impressions)
     }
 }

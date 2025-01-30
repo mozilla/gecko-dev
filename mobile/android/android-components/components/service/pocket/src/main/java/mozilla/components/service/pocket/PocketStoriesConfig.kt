@@ -5,6 +5,7 @@
 package mozilla.components.service.pocket
 
 import mozilla.components.concept.fetch.Client
+import mozilla.components.service.pocket.mars.api.MarsSpocsRequestConfig
 import mozilla.components.support.base.worker.Frequency
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -38,6 +39,8 @@ internal val DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_TIMEUNIT = TimeUnit.HOURS
  * content recommendations. Defaults to 4 hours.
  * @param contentRecommendationsParams Optional - Configuration containing parameters used to fetch
  * the content recommendations.
+ * @param marsSponsoredContentsParams Optional - configuration contain parameters used to fetch
+ * the sponsored contents.
  */
 class PocketStoriesConfig(
     val client: Client,
@@ -56,6 +59,7 @@ class PocketStoriesConfig(
         DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_TIMEUNIT,
     ),
     val contentRecommendationsParams: ContentRecommendationsRequestConfig = ContentRecommendationsRequestConfig(),
+    val marsSponsoredContentsParams: MarsSpocsRequestConfig = MarsSpocsRequestConfig(),
 )
 
 /**

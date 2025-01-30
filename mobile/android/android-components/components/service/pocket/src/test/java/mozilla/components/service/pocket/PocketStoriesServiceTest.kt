@@ -11,7 +11,11 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.helpers.assertConstructorsVisibility
+import mozilla.components.service.pocket.mars.SponsoredContentsUseCases
+import mozilla.components.service.pocket.mars.SponsoredContentsUseCases.GetSponsoredContents
+import mozilla.components.service.pocket.mars.SponsoredContentsUseCases.RecordImpressions
 import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases
 import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases.GetContentRecommendations
 import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases.UpdateRecommendationsImpressions
@@ -43,13 +47,16 @@ class PocketStoriesServiceTest {
     private val storiesUseCases: PocketStoriesUseCases = mock()
     private val spocsUseCases: SpocsUseCases = mock()
     private val contentRecommendationsUseCases: ContentRecommendationsUseCases = mock()
+    private val sponsoredContentsUseCases: SponsoredContentsUseCases = mock()
     private val service = PocketStoriesService(testContext, PocketStoriesConfig(mock())).also {
         it.storiesRefreshScheduler = mock()
         it.spocsRefreshscheduler = mock()
         it.contentRecommendationsRefreshScheduler = mock()
+        it.sponsoredContentsRefreshScheduler = mock()
         it.storiesUseCases = storiesUseCases
         it.spocsUseCases = spocsUseCases
         it.contentRecommendationsUseCases = contentRecommendationsUseCases
+        it.sponsoredContentsUseCases = sponsoredContentsUseCases
     }
 
     @After
@@ -57,6 +64,7 @@ class PocketStoriesServiceTest {
         GlobalDependencyProvider.ContentRecommendations.reset()
         GlobalDependencyProvider.SponsoredStories.reset()
         GlobalDependencyProvider.RecommendedStories.reset()
+        GlobalDependencyProvider.SponsoredContents.reset()
     }
 
     @Test
@@ -272,5 +280,44 @@ class PocketStoriesServiceTest {
         service.updateRecommendationsImpressions(recommendationsShown)
 
         verify(updateRecommendationsImpressions).invoke(recommendationsShown)
+    }
+
+    @Test
+    fun `WHEN start periodic sponsored contents refresh is invoked THEN schedule sponsored contents refreshes`() {
+        service.startPeriodicSponsoredContentsRefresh()
+
+        assertNotNull(GlobalDependencyProvider.SponsoredContents.useCases)
+        verify(service.sponsoredContentsRefreshScheduler).startPeriodicRefreshes(any())
+    }
+
+    @Test
+    fun `WHEN stop periodic sponsored contents refresh is invoked THEN unschedule sponsored contents refreshes`() {
+        service.stopPeriodicSponsoredContentsRefresh()
+
+        assertNull(GlobalDependencyProvider.SponsoredContents.useCases)
+        verify(service.sponsoredContentsRefreshScheduler).stopPeriodicRefreshes(any())
+    }
+
+    @Test
+    fun `WHEN get sponsored contents is invoked THEN sponsored contents use cases should return a list of sponsored contents`() = runTest {
+        val sponsoredContents = listOf(mock<SponsoredContent>())
+        val getSponsoredContents: GetSponsoredContents = mock()
+        doReturn(sponsoredContents).`when`(getSponsoredContents).invoke()
+        doReturn(getSponsoredContents).`when`(sponsoredContentsUseCases).getSponsoredContents
+
+        val result = service.getSponsoredContents()
+
+        assertEquals(sponsoredContents, result)
+    }
+
+    @Test
+    fun `WHEN record sponsored content impressions is invoked THEN delegate to the sponsored contents use cases`() = runTest {
+        val impressions = listOf("http://www.mozilla.org")
+        val recordImpressions: RecordImpressions = mock()
+        doReturn(recordImpressions).`when`(sponsoredContentsUseCases).recordImpressions
+
+        service.recordSponsoredContentImpressions(impressions)
+
+        verify(recordImpressions).invoke(impressions)
     }
 }
