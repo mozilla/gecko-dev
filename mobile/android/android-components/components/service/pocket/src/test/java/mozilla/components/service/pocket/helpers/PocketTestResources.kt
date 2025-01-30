@@ -6,6 +6,9 @@ package mozilla.components.service.pocket.helpers
 
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.PocketStory.SponsoredContentCallbacks
+import mozilla.components.service.pocket.PocketStory.SponsoredContentFrequencyCaps
 import mozilla.components.service.pocket.mars.api.MarsSpocFrequencyCaps
 import mozilla.components.service.pocket.mars.api.MarsSpocRanking
 import mozilla.components.service.pocket.mars.api.MarsSpocResponseCallbacks
@@ -314,7 +317,8 @@ internal object PocketTestResources {
             itemScore = 1F,
         ),
     )
-    val marsSpocsResponse = MarsSpocsResponse(
+
+    internal val marsSpocsResponse = MarsSpocsResponse(
         spocs = listOf(marsSpocsResponseItem),
     )
 
@@ -330,6 +334,26 @@ internal object PocketTestResources {
         blockKey = "1",
         flightCapCount = 10,
         flightCapPeriod = 86400,
+        priority = 3,
+    )
+
+    internal val sponsoredContent = SponsoredContent(
+        url = "https://firefox.com",
+        title = "Firefox",
+        callbacks = SponsoredContentCallbacks(
+            clickUrl = "https://firefox.com/click",
+            impressionUrl = "https://firefox.com/impression",
+        ),
+        imageUrl = "https://test.com/image1.jpg",
+        domain = "firefox.com",
+        excerpt = "Mozilla Firefox",
+        sponsor = "Mozilla",
+        blockKey = "1",
+        caps = SponsoredContentFrequencyCaps(
+            currentImpressions = emptyList(),
+            flightCount = 10,
+            flightPeriod = 86400,
+        ),
         priority = 3,
     )
 }

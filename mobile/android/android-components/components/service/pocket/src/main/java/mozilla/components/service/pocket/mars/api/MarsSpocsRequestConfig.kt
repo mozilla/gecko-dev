@@ -14,9 +14,9 @@ import kotlinx.serialization.Serializable
  * @property placements List of [Placement]s to request.
  */
 data class MarsSpocsRequestConfig(
-    val contextId: String,
-    val userAgent: String?,
-    val placements: List<Placement>,
+    val contextId: String = "",
+    val userAgent: String? = null,
+    val placements: List<Placement> = emptyList(),
 )
 
 /**
