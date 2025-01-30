@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -83,21 +84,17 @@ fun MarketingDataOnboardingPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        Text(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            text = state.description,
+            color = FirefoxTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+            style = FirefoxTheme.typography.body2,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         state.marketingData?.let { marketingData ->
-            LinkText(
-                text = marketingData.bodyOneText,
-                linkTextStates = listOf(
-                    LinkTextState(
-                        text = marketingData.bodyOneLinkText,
-                        url = "",
-                        onClick = { onMarketingDataLearnMoreClick() },
-                    ),
-                ),
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-
             Row {
                 Checkbox(
                     modifier = Modifier
@@ -127,11 +124,16 @@ fun MarketingDataOnboardingPage(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = marketingData.bodyThreeText,
-                        color = FirefoxTheme.colors.textSecondary,
-                        style = FirefoxTheme.typography.body2,
-                        textAlign = TextAlign.Start,
+                    LinkText(
+                        text = marketingData.bodyOneText,
+                        linkTextStates = listOf(
+                            LinkTextState(
+                                text = marketingData.bodyOneLinkText,
+                                url = "",
+                                onClick = { onMarketingDataLearnMoreClick() },
+                            ),
+                        ),
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -157,21 +159,18 @@ private fun MarketingDataOnboardingPagePreview() {
     FirefoxTheme {
         MarketingDataOnboardingPage(
             state = OnboardingPageState(
-                imageRes = R.drawable.ic_high_five,
-                title = "title",
-                description = "description",
+                imageRes = R.drawable.ic_onboarding_welcome,
+                title = stringResource(id = R.string.onboarding_marketing_title),
+                description = stringResource(id = R.string.onboarding_marketing_body),
                 primaryButton = Action(
-                    text = "button",
+                    text = stringResource(id = R.string.onboarding_marketing_positive_button),
                     onClick = {},
                 ),
                 marketingData = OnboardingMarketingData(
-                    bodyOneText = "Unlike other companies, we take a balanced approach and never" +
-                        " collect or store any sensitive information. Learn more",
-                    bodyOneLinkText = "Learn more",
-                    bodyTwoText = "Share minimal information with Mozilla and our marketing" +
-                        " technology partners",
-                    bodyThreeText = "This helps us understand how you discovered Firefox and" +
-                        " improve our marketing campaigns.",
+                    bodyOneText = stringResource(id = R.string.onboarding_marketing_learn_more),
+                    bodyOneLinkText = stringResource(id = R.string.onboarding_marketing_learn_more),
+                    bodyTwoText = stringResource(id = R.string.onboarding_marketing_opt_in_checkbox),
+                    bodyThreeText = "",
                 ),
             ),
             onMarketingDataLearnMoreClick = {},
