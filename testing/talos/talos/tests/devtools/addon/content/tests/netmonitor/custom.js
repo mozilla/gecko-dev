@@ -140,8 +140,7 @@ module.exports = async function () {
 
   await exportHar("custom.netmonitor", toolbox);
 
-  // Start a second test which will fill the request list with many simple
-  // requests.
+  // Fill the request list with many simple requests.
   dump("Test panel performance when the request list contains many requests\n");
 
   // For this test, we only want data requests, so they can fill the requests
@@ -175,6 +174,38 @@ module.exports = async function () {
   await toolbox.selectTool("webconsole");
   await toolbox.selectTool("netmonitor");
   test.done();
+
+  // Test handling of big data URIs.
+  dump("Test panel performance with huge data URI requests\n");
+
+  const bigDataRequestsCount = 3;
+  requests = {
+    bigFileRequests: 0,
+    postDataRequests: 0,
+    xhrRequests: 0,
+    dataRequests: 0,
+    bigDataRequests: bigDataRequestsCount,
+  };
+  expectedRequests = getExpectedRequests(requests);
+
+  requestsDone = waitForNetworkRequests(
+    "custom.netmonitor.bigdatarequests",
+    toolbox,
+    expectedRequests,
+    expectedRequests,
+    // Additionally, since this test only emits 3 custom requests, but each
+    // being slow to process, make sure all data URIs were received.
+    function isBigDataRequestTestFinished(requests) {
+      const dataRequests = requests.filter(r => r.urlDetails.scheme == "data");
+      return dataRequests.length == bigDataRequestsCount;
+    }
+  );
+  await navigatePageAndLog(
+    getTestUrl(requests),
+    "custom.netmonitor.bigdatarequests",
+    toolbox
+  );
+  await requestsDone;
 
   await closeToolboxAndLog("custom.netmonitor", toolbox);
 
