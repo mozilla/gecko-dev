@@ -7644,7 +7644,8 @@ static void PrintProfilerEvents_Callback(mozilla::MarkerCategory,
 }
 
 static void PrintProfilerIntervals_Callback(mozilla::MarkerCategory,
-                                            const char* msg, mozilla::TimeStamp start,
+                                            const char* msg,
+                                            mozilla::TimeStamp start,
                                             const char* details) {
   fprintf(stderr, "PROFILER INTERVAL (%.2fms): %s %s\n",
           (TimeStamp::Now() - start).ToMilliseconds(), msg, details);
