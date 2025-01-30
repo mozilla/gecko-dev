@@ -16,7 +16,7 @@ transforms = TransformSequence()
 
 # TODO: Add cert verify
 # def identify_desired_signing_keys(project, product):
-#     if project in ["mozilla-central", "comm-central", "larch", "pine"]:
+#     if project in ["mozilla-central", "comm-central", "larch", "pine", "maple"]:
 #         return "nightly"
 #     if project == "mozilla-beta":
 #         if product == "devedition":
