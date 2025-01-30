@@ -348,7 +348,9 @@ var SidebarController = {
       this._mainResizeObserver.disconnect();
     }
     this._mainResizeObserver = new ResizeObserver(([entry]) =>
-      this._handleLauncherResize(entry)
+      requestAnimationFrame(() => {
+        this._handleLauncherResize(entry);
+      })
     );
 
     CustomizableUI.addListener(this);
