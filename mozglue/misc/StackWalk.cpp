@@ -62,6 +62,9 @@ using namespace mozilla;
 
 #if HAVE___LIBC_STACK_END
 extern MOZ_EXPORT void* __libc_stack_end;  // from ld-linux.so
+#  ifdef __aarch64__
+static Atomic<uintptr_t> ldso_base;
+#  endif
 #endif
 
 #ifdef ANDROID
@@ -873,8 +876,38 @@ struct unwind_info {
 
 static _Unwind_Reason_Code unwind_callback(struct _Unwind_Context* context,
                                            void* closure) {
+  _Unwind_Reason_Code ret = _URC_NO_REASON;
   unwind_info* info = static_cast<unwind_info*>(closure);
   void* pc = reinterpret_cast<void*>(_Unwind_GetIP(context));
+#    if HAVE___LIBC_STACK_END && defined(__aarch64__)
+  // Work around https://sourceware.org/bugzilla/show_bug.cgi?id=32612
+  // The _dl_tlsdesc_dynamic function can't be unwound through with
+  // _Unwind_Backtrace when glibc is built with aarch64 PAC (that leads
+  // to a crash).
+  // Unfortunately, we can't get the address of that specific function, so
+  // we just disallow all of ld-linux-aarch64.so.1: when we hit an address
+  // in there, we make _Unwind_Backtrace stop.
+  // In the case of _dl_tlsdesc_dynamic, this would stop the stackwalk at
+  // tls_get_addr_tail, which is enough information to know the stack comes
+  // from ld.so, and we even get inlining info giving us malloc,
+  // allocate_dtv_entry and allocate_and_init, which is plenty enough and
+  // better than nothing^Hcrashing.
+  // To figure out whether the frame falls into ld-linux-aarch64.so.1, we
+  // use __libc_stack_end (which lives there and is .data) as upper bound
+  // (assuming .data comes after .text), and get the base address of the
+  // library via dladdr.
+  if (!ldso_base) {
+    Dl_info info;
+    dladdr(&__libc_stack_end, &info);
+    ldso_base = (uintptr_t)info.dli_fbase;
+  }
+  if (ldso_base && ((uintptr_t)pc > ldso_base) &&
+      (uintptr_t)pc < (uintptr_t)&__libc_stack_end) {
+    // Any error code will do, we just want to stop the walk even when
+    // we haven't reached the limit.
+    ret = _URC_FOREIGN_EXCEPTION_CAUGHT;
+  }
+#    endif
   // TODO Use something like '_Unwind_GetGR()' to get the stack pointer.
   if (!info->skipper.ShouldSkipPC(pc)) {
     info->numFrames++;
@@ -884,7 +917,7 @@ static _Unwind_Reason_Code unwind_callback(struct _Unwind_Context* context,
       return _URC_FOREIGN_EXCEPTION_CAUGHT;
     }
   }
-  return _URC_NO_REASON;
+  return ret;
 }
 
 MFBT_API void MozStackWalk(MozWalkStackCallback aCallback,
