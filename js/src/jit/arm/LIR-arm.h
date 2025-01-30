@@ -106,6 +106,10 @@ class LDivOrModI64
     setOperand(Instance, instance);
   }
 
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+  const LAllocation* instance() const { return getOperand(Instance); }
+
   MDefinition* mir() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());
     return mir_;
@@ -147,6 +151,10 @@ class LUDivOrModI64
     setInt64Operand(Rhs, rhs);
     setOperand(Instance, instance);
   }
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+  const LAllocation* instance() const { return getOperand(Instance); }
 
   MDefinition* mir() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());
@@ -390,8 +398,8 @@ class LInt64ToFloatingPointCall
     setOperand(Instance, instance);
   }
 
-  LAllocation* input() { return getOperand(Input); }
-  LAllocation* instance() { return getOperand(Instance); }
+  LInt64Allocation input() const { return getInt64Operand(Input); }
+  const LAllocation* instance() const { return getOperand(Instance); }
 
   MBuiltinInt64ToFloatingPoint* mir() const {
     return mir_->toBuiltinInt64ToFloatingPoint();

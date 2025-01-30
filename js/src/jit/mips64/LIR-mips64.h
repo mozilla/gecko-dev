@@ -134,6 +134,8 @@ class LInt64ToFloatingPoint : public LInstructionHelper<1, 1, 0> {
     setInt64Operand(0, in);
   }
 
+  LInt64Allocation input() const { return getInt64Operand(0); }
+
   MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
 };
 

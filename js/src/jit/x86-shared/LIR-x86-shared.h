@@ -293,6 +293,8 @@ class LInt64ToFloatingPoint : public LInstructionHelper<1, INT64_PIECES, 1> {
     setTemp(0, temp);
   }
 
+  LInt64Allocation input() const { return getInt64Operand(0); }
+
   MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
 
   const LDefinition* temp() { return getTemp(0); }

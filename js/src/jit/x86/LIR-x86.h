@@ -100,6 +100,10 @@ class LDivOrModI64
     setOperand(Instance, instance);
   }
 
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+  const LAllocation* instance() const { return getOperand(Instance); }
+
   MDefinition* mir() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());
     return mir_;
@@ -141,6 +145,10 @@ class LUDivOrModI64
     setInt64Operand(Rhs, rhs);
     setOperand(Instance, instance);
   }
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+  const LAllocation* instance() const { return getOperand(Instance); }
 
   MDefinition* mir() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());

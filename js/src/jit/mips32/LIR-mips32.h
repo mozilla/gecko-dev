@@ -67,6 +67,9 @@ class LDivOrModI64
     setInt64Operand(Rhs, rhs);
   }
 
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+
   MBinaryArithInstruction* mir() const {
     MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
     return static_cast<MBinaryArithInstruction*>(mir_);
@@ -106,6 +109,10 @@ class LUDivOrModI64
     setInt64Operand(Lhs, lhs);
     setInt64Operand(Rhs, rhs);
   }
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+
   MBinaryArithInstruction* mir() const {
     MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
     return static_cast<MBinaryArithInstruction*>(mir_);
@@ -153,6 +160,8 @@ class LInt64ToFloatingPoint
       : LCallInstructionHelper(classOpcode) {
     setInt64Operand(0, in);
   }
+
+  LInt64Allocation input() const { return getInt64Operand(0); }
 
   MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
 };

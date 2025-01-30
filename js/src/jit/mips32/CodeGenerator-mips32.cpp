@@ -64,8 +64,8 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
 }
 
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
-  Register64 lhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Lhs));
-  Register64 rhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Rhs));
+  Register64 lhs = ToRegister64(lir->lhs());
+  Register64 rhs = ToRegister64(lir->rhs());
   Register64 output = ToOutRegister64(lir);
 
   MOZ_ASSERT(output == ReturnReg64);
@@ -112,8 +112,8 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
 }
 
 void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
-  Register64 lhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Lhs));
-  Register64 rhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Rhs));
+  Register64 lhs = ToRegister64(lir->lhs());
+  Register64 rhs = ToRegister64(lir->rhs());
 
   MOZ_ASSERT(ToOutRegister64(lir) == ReturnReg64);
 
@@ -304,7 +304,7 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
 }
 
 void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
+  Register64 input = ToRegister64(lir->input());
   mozilla::DebugOnly<FloatRegister> output = ToFloatRegister(lir->output());
 
   MInt64ToFloatingPoint* mir = lir->mir();
