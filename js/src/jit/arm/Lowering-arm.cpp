@@ -711,7 +711,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
     auto* lir = new (alloc()) LWasmAtomicStoreI64(
         useRegister(base),
         useInt64Fixed(ins->value(), Register64(IntArgReg1, IntArgReg0)),
-        memoryBase, tempFixed(IntArgReg2), tempFixed(IntArgReg3));
+        memoryBase, tempInt64Fixed(Register64(IntArgReg3, IntArgReg2)));
     add(lir, ins);
     return;
   }

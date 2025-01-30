@@ -4964,7 +4964,12 @@
   mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
-  gen_boilerplate: false
+  operands:
+    memoryBase: WordSized
+    ptr: WordSized
+    value: Int64
+  num_temps64: 1
+  mir_op: WasmStore
 
 - name: WasmCompareExchangeI64
   result_type: Int64
@@ -5078,7 +5083,12 @@
   mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
-  gen_boilerplate: false
+  operands:
+    ptr: WordSized
+    value: Int64
+    memoryBase: WordSized
+  num_temps64: 1
+  mir_op: WasmStore
 
 - name: WasmCompareExchangeI64
   result_type: Int64
@@ -5193,7 +5203,11 @@
   mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
-  gen_boilerplate: false
+  operands:
+    ptr: WordSized
+    value: Int64
+  num_temps: 1
+  mir_op: WasmStore
 
 - name: WasmCompareExchangeI64
   result_type: Int64

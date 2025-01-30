@@ -2649,7 +2649,7 @@ void CodeGenerator::visitWasmAtomicStoreI64(LWasmAtomicStoreI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register memoryBase = ToRegister(lir->memoryBase());
   Register64 value = ToRegister64(lir->value());
-  Register64 tmp(ToRegister(lir->tmpHigh()), ToRegister(lir->tmpLow()));
+  Register64 tmp = ToRegister64(lir->temp0());
 
   BaseIndex addr(memoryBase, ptr, TimesOne, lir->mir()->access().offset32());
   masm.wasmAtomicExchange64(lir->mir()->access(), addr, value, tmp);

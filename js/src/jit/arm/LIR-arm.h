@@ -267,29 +267,6 @@ class LSoftUDivOrMod : public LBinaryCallInstructionHelper<1, 0> {
   MInstruction* mir() { return mir_->toInstruction(); }
 };
 
-class LWasmAtomicStoreI64 : public LInstructionHelper<0, 2 + INT64_PIECES, 2> {
- public:
-  LIR_HEADER(WasmAtomicStoreI64);
-
-  LWasmAtomicStoreI64(const LAllocation& ptr, const LInt64Allocation& value,
-                      const LAllocation& memoryBase, const LDefinition& tmpLow,
-                      const LDefinition& tmpHigh)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setInt64Operand(1, value);
-    setOperand(3, memoryBase);
-    setTemp(0, tmpLow);
-    setTemp(1, tmpHigh);
-  }
-
-  MWasmStore* mir() const { return mir_->toWasmStore(); }
-  const LAllocation* ptr() { return getOperand(0); }
-  LInt64Allocation value() { return getInt64Operand(1); }
-  const LAllocation* memoryBase() { return getOperand(3); }
-  const LDefinition* tmpLow() { return getTemp(0); }
-  const LDefinition* tmpHigh() { return getTemp(1); }
-};
-
 }  // namespace jit
 }  // namespace js
 

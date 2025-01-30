@@ -474,9 +474,7 @@ void CodeGeneratorX86::emitWasmStoreOrExchangeAtomicI64(
   Operand srcAddr(ToRegister(memoryBase), ToRegister(ptr), TimesOne,
                   access.offset32());
 
-  DebugOnly<LInt64Allocation> value = ins->value();
-  MOZ_ASSERT(ToRegister64(value).low == ebx);
-  MOZ_ASSERT(ToRegister64(value).high == ecx);
+  MOZ_ASSERT(ToRegister64(ins->value()) == Register64(ecx, ebx));
 
   // eax and edx will be overwritten every time through the loop but
   // memoryBase and ptr must remain live for a possible second iteration.
@@ -493,15 +491,13 @@ void CodeGeneratorX86::emitWasmStoreOrExchangeAtomicI64(
 }
 
 void CodeGenerator::visitWasmAtomicStoreI64(LWasmAtomicStoreI64* ins) {
-  MOZ_ASSERT(ToRegister(ins->t1()) == edx);
-  MOZ_ASSERT(ToRegister(ins->t2()) == eax);
+  MOZ_ASSERT(ToRegister64(ins->temp0()) == Register64(edx, eax));
 
   emitWasmStoreOrExchangeAtomicI64(ins, ins->mir()->access());
 }
 
 void CodeGenerator::visitWasmAtomicExchangeI64(LWasmAtomicExchangeI64* ins) {
-  MOZ_ASSERT(ToOutRegister64(ins).high == edx);
-  MOZ_ASSERT(ToOutRegister64(ins).low == eax);
+  MOZ_ASSERT(ToOutRegister64(ins) == Register64(edx, eax));
 
   emitWasmStoreOrExchangeAtomicI64(ins, ins->access());
 }

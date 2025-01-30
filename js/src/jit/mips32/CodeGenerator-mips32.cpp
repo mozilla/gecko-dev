@@ -351,7 +351,7 @@ void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* lir) {
 void CodeGenerator::visitWasmAtomicStoreI64(LWasmAtomicStoreI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register64 value = ToRegister64(lir->value());
-  Register tmp = ToRegister(lir->tmp());
+  Register tmp = ToRegister(lir->temp0());
   uint32_t offset = lir->mir()->access().offset32();
 
   BaseIndex addr(HeapReg, ptr, TimesOne, offset);

@@ -149,29 +149,6 @@ class LUDivOrModI64
   }
 };
 
-class LWasmAtomicStoreI64 : public LInstructionHelper<0, 2 + INT64_PIECES, 2> {
- public:
-  LIR_HEADER(WasmAtomicStoreI64);
-
-  LWasmAtomicStoreI64(const LAllocation& memoryBase, const LAllocation& ptr,
-                      const LInt64Allocation& value, const LDefinition& t1,
-                      const LDefinition& t2)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, memoryBase);
-    setOperand(1, ptr);
-    setInt64Operand(2, value);
-    setTemp(0, t1);
-    setTemp(1, t2);
-  }
-
-  MWasmStore* mir() const { return mir_->toWasmStore(); }
-  const LAllocation* memoryBase() { return getOperand(0); }
-  const LAllocation* ptr() { return getOperand(1); }
-  LInt64Allocation value() { return getInt64Operand(2); }
-  const LDefinition* t1() { return getTemp(0); }
-  const LDefinition* t2() { return getTemp(1); }
-};
-
 }  // namespace jit
 }  // namespace js
 
