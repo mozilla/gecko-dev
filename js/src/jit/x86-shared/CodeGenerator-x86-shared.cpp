@@ -1204,7 +1204,7 @@ void CodeGenerator::visitDivOrModConstantI(LDivOrModConstantI* ins) {
 }
 
 void CodeGenerator::visitDivI(LDivI* ins) {
-  Register remainder = ToRegister(ins->remainder());
+  Register remainder = ToRegister(ins->temp0());
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
   Register output = ToRegister(ins->output());

@@ -4871,7 +4871,13 @@
   gen_boilerplate: false
 
 - name: DivI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 1
+  mir_op: Div
+  extra_name: true
 
 - name: ModI
   gen_boilerplate: false

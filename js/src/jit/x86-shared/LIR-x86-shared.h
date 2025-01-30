@@ -10,38 +10,6 @@
 namespace js {
 namespace jit {
 
-class LDivI : public LBinaryMath<1> {
- public:
-  LIR_HEADER(DivI)
-
-  LDivI(const LAllocation& lhs, const LAllocation& rhs, const LDefinition& temp)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setTemp(0, temp);
-  }
-
-  const char* extraName() const {
-    if (mir()->isTruncated()) {
-      if (mir()->canBeNegativeZero()) {
-        return mir()->canBeNegativeOverflow()
-                   ? "Truncate_NegativeZero_NegativeOverflow"
-                   : "Truncate_NegativeZero";
-      }
-      return mir()->canBeNegativeOverflow() ? "Truncate_NegativeOverflow"
-                                            : "Truncate";
-    }
-    if (mir()->canBeNegativeZero()) {
-      return mir()->canBeNegativeOverflow() ? "NegativeZero_NegativeOverflow"
-                                            : "NegativeZero";
-    }
-    return mir()->canBeNegativeOverflow() ? "NegativeOverflow" : nullptr;
-  }
-
-  const LDefinition* remainder() { return getTemp(0); }
-  MDiv* mir() const { return mir_->toDiv(); }
-};
-
 // Signed division by a power-of-two constant.
 class LDivPowTwoI : public LBinaryMath<0> {
   const int32_t shift_;

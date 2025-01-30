@@ -947,7 +947,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
   Register dest = ToRegister(ins->output());
-  Register temp = ToRegister(ins->getTemp(0));
+  Register temp = ToRegister(ins->temp0());
   MDiv* mir = ins->mir();
 
   Label done;

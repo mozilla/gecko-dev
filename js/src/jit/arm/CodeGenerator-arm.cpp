@@ -463,7 +463,7 @@ void CodeGeneratorARM::divICommon(MDiv* mir, Register lhs, Register rhs,
 void CodeGenerator::visitDivI(LDivI* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
-  Register temp = ToRegister(ins->getTemp(0));
+  Register temp = ToRegister(ins->temp0());
   Register output = ToRegister(ins->output());
   MDiv* mir = ins->mir();
 

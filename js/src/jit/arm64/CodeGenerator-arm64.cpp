@@ -310,7 +310,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
 
   const ARMRegister lhs32 = toWRegister(ins->lhs());
   const ARMRegister rhs32 = toWRegister(ins->rhs());
-  const ARMRegister temp32 = toWRegister(ins->getTemp(0));
+  const ARMRegister temp32 = toWRegister(ins->temp0());
   const ARMRegister output32 = toWRegister(ins->output());
 
   MDiv* mir = ins->mir();

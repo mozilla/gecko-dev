@@ -2187,6 +2187,23 @@ const char* LMinMaxD::extraName() const {
 const char* LMinMaxF::extraName() const {
   return mir()->isMax() ? "Max" : "Min";
 }
+
+const char* LDivI::extraName() const {
+  if (mir()->isTruncated()) {
+    if (mir()->canBeNegativeZero()) {
+      return mir()->canBeNegativeOverflow()
+                 ? "Truncate_NegativeZero_NegativeOverflow"
+                 : "Truncate_NegativeZero";
+    }
+    return mir()->canBeNegativeOverflow() ? "Truncate_NegativeOverflow"
+                                          : "Truncate";
+  }
+  if (mir()->canBeNegativeZero()) {
+    return mir()->canBeNegativeOverflow() ? "NegativeZero_NegativeOverflow"
+                                          : "NegativeZero";
+  }
+  return mir()->canBeNegativeOverflow() ? "NegativeOverflow" : nullptr;
+}
 #endif
 
 }  // namespace jit

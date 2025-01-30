@@ -75,20 +75,6 @@ class LWasmUint32ToFloat32 : public LInstructionHelper<1, 1, 0> {
   }
 };
 
-class LDivI : public LBinaryMath<1> {
- public:
-  LIR_HEADER(DivI);
-
-  LDivI(const LAllocation& lhs, const LAllocation& rhs, const LDefinition& temp)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setTemp(0, temp);
-  }
-
-  MDiv* mir() const { return mir_->toDiv(); }
-};
-
 class LDivOrModI64
     : public LCallInstructionHelper<INT64_PIECES, INT64_PIECES * 2 + 1, 0> {
  public:
