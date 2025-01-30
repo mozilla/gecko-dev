@@ -1009,16 +1009,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Usage and technical data</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technical and interaction data</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Send technical and interaction data</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Learn more</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Shares performance, usage, hardware and customization data about your browser with Mozilla to help us make %1$s better</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources" >Data about your device, hardware configuration, and usage helps us improve Firefox features, performance, and stability.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketing data</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Campaign measurement data</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Shares basic usage data with Adjust, our mobile marketing vendor</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Share information about how you discovered Firefox with Mozilla’s marketing partners. This helps us grow Firefox and build a better internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Share how you discovered Firefox and that you use it with Mozilla’s marketing technology partners.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Learn more about marketing data</string>
     <!-- Preference switch for daily usage ping data collection -->
@@ -1190,6 +1199,10 @@
     <string name="studies_active">Active</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s may install and run studies from time to time.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Try out features and ideas before they’re released to everyone.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Install and run studies</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Learn more</string>
     <!-- Dialog message shown after removing a study -->
