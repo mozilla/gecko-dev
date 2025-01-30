@@ -49,7 +49,7 @@ impl BufferedStream {
 
     /// # Panics
     ///
-    /// This functon cannot be called before the `BufferedStream` is initialized.
+    /// This function cannot be called before the `BufferedStream` is initialized.
     pub fn buffer(&mut self, to_buf: &[u8]) {
         if let Self::Initialized { buf, .. } = self {
             buf.extend_from_slice(to_buf);
@@ -62,14 +62,14 @@ impl BufferedStream {
     ///
     /// Returns `neqo_transport` errors.
     pub fn send_buffer(&mut self, conn: &mut Connection) -> Res<usize> {
-        let label = ::neqo_common::log_subject!(::log::Level::Debug, self);
+        let label = format!("{self}");
         let Self::Initialized { stream_id, buf } = self else {
             return Ok(0);
         };
         if buf.is_empty() {
             return Ok(0);
         }
-        qtrace!([label], "sending data.");
+        qtrace!("[{label}] sending data");
         let sent = conn.stream_send(*stream_id, &buf[..])?;
         if sent == 0 {
             return Ok(0);

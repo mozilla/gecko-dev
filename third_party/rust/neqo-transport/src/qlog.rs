@@ -6,8 +6,10 @@
 
 // Functions that handle capturing QLOG traces.
 
+#![allow(clippy::module_name_repetitions)]
+
 use std::{
-    ops::{Deref, RangeInclusive},
+    ops::{Deref as _, RangeInclusive},
     time::{Duration, Instant},
 };
 
@@ -50,11 +52,7 @@ pub fn connection_tparams_set(qlog: &NeqoQlog, tph: &TransportParametersHandler,
                 initial_source_connection_id: None,
                 retry_source_connection_id: None,
                 stateless_reset_token: remote.get_bytes(tparams::STATELESS_RESET_TOKEN).map(hex),
-                disable_active_migration: if remote.get_empty(tparams::DISABLE_MIGRATION) {
-                    Some(true)
-                } else {
-                    None
-                },
+                disable_active_migration: remote.get_empty(tparams::DISABLE_MIGRATION).then_some(true),
                 max_idle_timeout: Some(remote.get_integer(tparams::IDLE_TIMEOUT)),
                 max_udp_payload_size: Some(remote.get_integer(tparams::MAX_UDP_PAYLOAD_SIZE) as u32),
                 ack_delay_exponent: Some(remote.get_integer(tparams::ACK_DELAY_EXPONENT) as u16),

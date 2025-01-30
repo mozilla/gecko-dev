@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-http3"
-version = "0.11.0"
+version = "0.12.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = false
 autolib = false
@@ -38,6 +38,9 @@ categories = [
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
+
+[package.metadata.cargo-machete]
+ignored = ["log"]
 
 [lib]
 name = "neqo_http3"
@@ -93,17 +96,47 @@ version = "2.5.3"
 features = ["std"]
 default-features = false
 
+[dev-dependencies.neqo-http3]
+path = "."
+features = ["draft-29"]
+
+[dev-dependencies.neqo-transport]
+path = "./../neqo-transport"
+features = ["draft-29"]
+
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
 
 [features]
+bench = [
+    "neqo-common/bench",
+    "neqo-crypto/bench",
+    "neqo-qpack/bench",
+    "neqo-transport/bench",
+]
 disable-encryption = [
     "neqo-transport/disable-encryption",
     "neqo-crypto/disable-encryption",
 ]
+draft-29 = []
 
 [lints.clippy]
+cfg_not_test = "warn"
+clone_on_ref_ptr = "warn"
+create_dir = "warn"
+get_unwrap = "warn"
+if_then_some_else_none = "warn"
 multiple_crate_versions = "allow"
+multiple_inherent_impl = "warn"
+pathbuf_init_then_push = "warn"
+redundant_type_annotations = "warn"
+ref_patterns = "warn"
+renamed_function_params = "warn"
+semicolon_inside_block = "warn"
+try_err = "warn"
+unneeded_field_pattern = "warn"
+unused_result_ok = "warn"
+unused_trait_names = "warn"
 
 [lints.clippy.cargo]
 level = "warn"
@@ -116,3 +149,19 @@ priority = -1
 [lints.clippy.pedantic]
 level = "warn"
 priority = -1
+
+[lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+ambiguous_negative_literals = "warn"
+closure_returning_async_block = "warn"
+explicit_outlives_requirements = "warn"
+macro_use_extern_crate = "warn"
+missing_abi = "warn"
+non_ascii_idents = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unit_bindings = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
+unused_macro_rules = "warn"

@@ -7,20 +7,56 @@
 #![allow(clippy::missing_errors_doc)] // Functions simply delegate to tokio and quinn-udp.
 
 use std::{
+    array,
     io::{self, IoSliceMut},
+    iter,
     net::SocketAddr,
     slice::{self, Chunks},
 };
 
+use log::{log_enabled, Level};
 use neqo_common::{qdebug, qtrace, Datagram, IpTos};
 use quinn_udp::{EcnCodepoint, RecvMeta, Transmit, UdpSocketState};
 
-/// Socket receive buffer size.
+/// Receive buffer size
 ///
-/// Allows reading multiple datagrams in a single [`Socket::recv`] call.
-//
-// TODO: Experiment with different values across platforms.
-pub const RECV_BUF_SIZE: usize = u16::MAX as usize;
+/// Fits a maximum size UDP datagram, or, on platforms with segmentation
+/// offloading, multiple smaller datagrams.
+const RECV_BUF_SIZE: usize = u16::MAX as usize;
+
+/// The number of buffers to pass to the OS on [`Socket::recv`].
+///
+/// Platforms without segmentation offloading, i.e. platforms not able to read
+/// multiple datagrams into a single buffer, can benefit from using multiple
+/// buffers instead.
+///
+/// Platforms with segmentation offloading have not shown performance
+/// improvements when additionally using multiple buffers.
+///
+/// - Linux/Android: use segmentation offloading via GRO
+/// - Windows: use segmentation offloading via URO (caveat see <https://github.com/quinn-rs/quinn/issues/2041>)
+/// - Apple: no segmentation offloading available, use multiple buffers
+#[cfg(not(apple))]
+const NUM_BUFS: usize = 1;
+#[cfg(apple)]
+// Value approximated based on neqo-bin "Download" benchmark only.
+const NUM_BUFS: usize = 16;
+
+/// A UDP receive buffer.
+pub struct RecvBuf(Vec<Vec<u8>>);
+
+impl RecvBuf {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(vec![vec![0; RECV_BUF_SIZE]; NUM_BUFS])
+    }
+}
+
+impl Default for RecvBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub fn send_inner(
     state: &UdpSocketState,
@@ -52,88 +88,97 @@ use std::os::fd::AsFd as SocketRef;
 #[cfg(windows)]
 use std::os::windows::io::AsSocket as SocketRef;
 
+#[allow(clippy::missing_panics_doc)]
 pub fn recv_inner<'a>(
     local_address: SocketAddr,
     state: &UdpSocketState,
     socket: impl SocketRef,
-    recv_buf: &'a mut [u8],
+    recv_buf: &'a mut RecvBuf,
 ) -> Result<DatagramIter<'a>, io::Error> {
-    let mut meta;
-
-    let data = loop {
-        meta = RecvMeta::default();
-
-        state.recv(
-            (&socket).into(),
-            &mut [IoSliceMut::new(recv_buf)],
-            slice::from_mut(&mut meta),
-        )?;
-
-        if meta.len == 0 || meta.stride == 0 {
-            qdebug!(
-                "ignoring datagram from {} to {} len {} stride {}",
-                meta.addr,
-                local_address,
-                meta.len,
-                meta.stride
-            );
-            continue;
-        }
-
-        break &recv_buf[..meta.len];
+    let mut metas = [RecvMeta::default(); NUM_BUFS];
+    let mut iovs: [IoSliceMut; NUM_BUFS] = {
+        let mut bufs = recv_buf.0.iter_mut().map(|b| IoSliceMut::new(b));
+        array::from_fn(|_| bufs.next().expect("NUM_BUFS elements"))
     };
 
-    qtrace!(
-        "received {} bytes from {} to {} in {} segments",
-        data.len(),
-        meta.addr,
-        local_address,
-        data.len().div_ceil(meta.stride),
-    );
+    let n = state.recv((&socket).into(), &mut iovs, &mut metas)?;
+
+    if log_enabled!(Level::Trace) {
+        for meta in metas.iter().take(n) {
+            qtrace!(
+                "received {} bytes from {} to {local_address} in {} segments",
+                meta.len,
+                meta.addr,
+                if meta.stride == 0 {
+                    0
+                } else {
+                    meta.len.div_ceil(meta.stride)
+                }
+            );
+        }
+    }
 
     Ok(DatagramIter {
-        meta,
-        datagrams: data.chunks(meta.stride),
+        current_buffer: None,
+        remaining_buffers: metas.into_iter().zip(recv_buf.0.iter()).take(n),
         local_address,
     })
 }
 
 pub struct DatagramIter<'a> {
-    meta: RecvMeta,
-    datagrams: Chunks<'a, u8>,
+    /// The current buffer, containing zero or more datagrams, each sharing the
+    /// same [`RecvMeta`].
+    current_buffer: Option<(RecvMeta, Chunks<'a, u8>)>,
+    /// Remaining buffers, each containing zero or more datagrams, one
+    /// [`RecvMeta`] per buffer.
+    remaining_buffers:
+        iter::Take<iter::Zip<array::IntoIter<RecvMeta, NUM_BUFS>, slice::Iter<'a, Vec<u8>>>>,
+    /// The local address of the UDP socket used to receive the datagrams.
     local_address: SocketAddr,
-}
-
-impl std::fmt::Debug for DatagramIter<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatagramIter")
-            .field("meta", &self.meta)
-            .field("local_address", &self.local_address)
-            .finish()
-    }
 }
 
 impl<'a> Iterator for DatagramIter<'a> {
     type Item = Datagram<&'a [u8]>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.datagrams.next().map(|d| {
-            Datagram::from_slice(
-                self.meta.addr,
-                self.local_address,
-                self.meta
-                    .ecn
-                    .map(|n| IpTos::from(n as u8))
-                    .unwrap_or_default(),
-                d,
-            )
-        })
-    }
-}
+        loop {
+            // Return the next datagram in the current buffer, if any.
+            if let Some((meta, d)) = self
+                .current_buffer
+                .as_mut()
+                .and_then(|(meta, ds)| ds.next().map(|d| (meta, d)))
+            {
+                return Some(Datagram::from_slice(
+                    meta.addr,
+                    self.local_address,
+                    meta.ecn.map(|n| IpTos::from(n as u8)).unwrap_or_default(),
+                    d,
+                ));
+            }
 
-impl ExactSizeIterator for DatagramIter<'_> {
-    fn len(&self) -> usize {
-        self.datagrams.len()
+            // There are no more datagrams in the current buffer. Try promoting
+            // one of the remaining buffers, if any, to be the current buffer.
+            let Some((meta, buf)) = self.remaining_buffers.next() else {
+                // Handled all buffers. No more datagrams. Iterator is empty.
+                return None;
+            };
+
+            // Ignore empty datagrams.
+            if meta.len == 0 || meta.stride == 0 {
+                qdebug!(
+                    "ignoring empty datagram from {} to {} len {} stride {}",
+                    meta.addr,
+                    self.local_address,
+                    meta.len,
+                    meta.stride
+                );
+                continue;
+            }
+
+            // Got another buffer. Let's chunk it into datagrams and return the
+            // first datagram in the next loop iteration.
+            self.current_buffer = Some((meta, buf[0..meta.len].chunks(meta.stride)));
+        }
     }
 }
 
@@ -147,7 +192,7 @@ impl<S: SocketRef> Socket<S> {
     /// Create a new [`Socket`] given a raw file descriptor managed externally.
     pub fn new(socket: S) -> Result<Self, io::Error> {
         Ok(Self {
-            state: quinn_udp::UdpSocketState::new((&socket).into())?,
+            state: UdpSocketState::new((&socket).into())?,
             inner: socket,
         })
     }
@@ -162,7 +207,7 @@ impl<S: SocketRef> Socket<S> {
     pub fn recv<'a>(
         &self,
         local_address: SocketAddr,
-        recv_buf: &'a mut [u8],
+        recv_buf: &'a mut RecvBuf,
     ) -> Result<DatagramIter<'a>, io::Error> {
         recv_inner(local_address, &self.state, &self.inner, recv_buf)
     }
@@ -182,22 +227,19 @@ mod tests {
     }
 
     #[test]
-    fn ignore_empty_datagram() -> Result<(), io::Error> {
-        let sender = socket()?;
-        let receiver = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
+    fn handle_empty_datagram() -> Result<(), io::Error> {
+        // quinn-udp doesn't support sending emtpy datagrams across all
+        // platforms. Use `std` socket instead.  See also
+        // <https://github.com/quinn-rs/quinn/pull/2123>.
+        let sender = std::net::UdpSocket::bind("127.0.0.1:0")?;
+        let receiver = socket()?;
         let receiver_addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
 
-        let datagram = Datagram::new(
-            sender.inner.local_addr()?,
-            receiver.inner.local_addr()?,
-            IpTos::default(),
-            vec![],
-        );
+        sender.send_to(&[], receiver.inner.local_addr()?)?;
+        let mut recv_buf = RecvBuf::new();
+        let mut datagrams = receiver.recv(receiver_addr, &mut recv_buf)?;
 
-        sender.send(&datagram)?;
-        let mut recv_buf = vec![0; RECV_BUF_SIZE];
-        let res = receiver.recv(receiver_addr, &mut recv_buf);
-        assert_eq!(res.unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+        assert_eq!(datagrams.next(), None);
 
         Ok(())
     }
@@ -217,7 +259,7 @@ mod tests {
 
         sender.send(&datagram)?;
 
-        let mut recv_buf = vec![0; RECV_BUF_SIZE];
+        let mut recv_buf = RecvBuf::new();
         let mut received_datagrams = receiver
             .recv(receiver_addr, &mut recv_buf)
             .expect("receive to succeed");
@@ -260,7 +302,7 @@ mod tests {
 
         // Allow for one GSO sendmmsg to result in multiple GRO recvmmsg.
         let mut num_received = 0;
-        let mut recv_buf = vec![0; RECV_BUF_SIZE];
+        let mut recv_buf = RecvBuf::new();
         while num_received < max_gso_segments {
             receiver
                 .recv(receiver_addr, &mut recv_buf)
@@ -269,28 +311,12 @@ mod tests {
                     assert_eq!(
                         SEGMENT_SIZE,
                         d.len(),
-                        "Expect received datagrams to have same length as sent datagrams."
+                        "Expect received datagrams to have same length as sent datagrams"
                     );
                     num_received += 1;
                 });
         }
 
         Ok(())
-    }
-
-    #[test]
-    fn fmt_datagram_iter() {
-        let dgrams = [];
-
-        let i = DatagramIter {
-            meta: RecvMeta::default(),
-            datagrams: dgrams.chunks(1),
-            local_address: "[::]:0".parse().unwrap(),
-        };
-
-        assert_eq!(
-            &format!("{i:?}"),
-            "DatagramIter { meta: RecvMeta { addr: [::]:0, len: 0, stride: 0, ecn: None, dst_ip: None }, local_address: [::]:0 }"
-        );
     }
 }

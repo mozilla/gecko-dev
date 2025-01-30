@@ -104,6 +104,12 @@ impl StreamId {
         self.0 += 4;
     }
 
+    /// Return the stream index for this stream ID.
+    #[must_use]
+    pub const fn index(&self) -> u64 {
+        self.0 >> 2
+    }
+
     /// This returns a bit that is shared by all streams created by this role.
     #[must_use]
     pub const fn role_bit(role: Role) -> u64 {

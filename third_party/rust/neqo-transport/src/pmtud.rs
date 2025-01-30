@@ -46,6 +46,7 @@ pub struct Pmtud {
     search_table: &'static [usize],
     header_size: usize,
     mtu: usize,
+    iface_mtu: usize,
     probe_index: usize,
     probe_count: usize,
     probe_state: Probe,
@@ -71,13 +72,14 @@ impl Pmtud {
     }
 
     #[must_use]
-    pub const fn new(remote_ip: IpAddr) -> Self {
+    pub fn new(remote_ip: IpAddr, iface_mtu: Option<usize>) -> Self {
         let search_table = Self::search_table(remote_ip);
         let probe_index = 0;
         Self {
             search_table,
             header_size: Self::header_size(remote_ip),
             mtu: search_table[probe_index],
+            iface_mtu: iface_mtu.unwrap_or(usize::MAX),
             probe_index,
             probe_count: 0,
             probe_state: Probe::NotNeeded,
@@ -87,11 +89,11 @@ impl Pmtud {
     }
 
     /// Checks whether the PMTUD raise timer should be fired, and does so if needed.
-    pub fn maybe_fire_raise_timer(&mut self, now: Instant) {
+    pub fn maybe_fire_raise_timer(&mut self, now: Instant, stats: &mut Stats) {
         if self.probe_state == Probe::NotNeeded && self.raise_timer.is_some_and(|t| now >= t) {
             qdebug!("PMTUD raise timer fired");
             self.raise_timer = None;
-            self.start();
+            self.start(now, stats);
         }
     }
 
@@ -106,12 +108,6 @@ impl Pmtud {
     #[must_use]
     pub fn needs_probe(&self) -> bool {
         self.probe_state == Probe::Needed
-    }
-
-    /// Returns true if a PMTUD probe was sent.
-    #[must_use]
-    pub fn probe_sent(&self) -> bool {
-        self.probe_state == Probe::Sent
     }
 
     /// Returns the size of the current PMTUD probe.
@@ -160,7 +156,7 @@ impl Pmtud {
 
     /// Checks whether a PMTUD probe has been acknowledged, and if so, updates the PMTUD state.
     /// May also initiate a new probe process for a larger MTU.
-    pub fn on_packets_acked(&mut self, acked_pkts: &[SentPacket], stats: &mut Stats) {
+    pub fn on_packets_acked(&mut self, acked_pkts: &[SentPacket], now: Instant, stats: &mut Stats) {
         // Reset the loss counts for all packets sizes <= the size of the largest ACKed packet.
         let max_len = acked_pkts.iter().map(SentPacket::len).max().unwrap_or(0);
         if max_len == 0 {
@@ -186,15 +182,17 @@ impl Pmtud {
         // total number of successful probes.
         stats.pmtud_ack += acked;
         self.mtu = self.search_table[self.probe_index];
+        stats.pmtud_pmtu = self.mtu;
         qdebug!("PMTUD probe of size {} succeeded", self.mtu);
-        self.start();
+        self.start(now, stats);
     }
 
     /// Stops the PMTUD process, setting the MTU to the largest successful probe size.
-    fn stop(&mut self, idx: usize, now: Instant) {
+    fn stop(&mut self, idx: usize, now: Instant, stats: &mut Stats) {
         self.probe_state = Probe::NotNeeded; // We don't need to send any more probes
         self.probe_index = idx; // Index of the last successful probe
         self.mtu = self.search_table[idx]; // Leading to this MTU
+        stats.pmtud_pmtu = self.mtu;
         self.probe_count = 0; // Reset the count
         self.loss_counts.fill(0); // Reset the loss counts
         self.raise_timer = Some(now + PMTU_RAISE_TIMER);
@@ -271,9 +269,8 @@ impl Pmtud {
 
         let last_ok = first_failed - 1;
         qdebug!(
-            "Packet of size > {} lost >= {} times",
-            self.search_table[last_ok],
-            MAX_PROBES
+            "Packet of size > {} lost >= {MAX_PROBES} times",
+            self.search_table[last_ok]
         );
         if self.probe_state == Probe::NotNeeded {
             // We saw multiple losses of packets <= the current MTU outside of PMTU discovery,
@@ -283,27 +280,32 @@ impl Pmtud {
             // TODO: If we are declaring losses, that means that we're getting packets through.
             // The size of those will put a floor on the MTU. We're currently conservative and
             // start from scratch, but we don't strictly need to do that.
-            self.restart(stats);
+            self.reset(stats);
+            qdebug!("PMTUD reset and restarting, PLPMTU is now {}", self.mtu);
+            self.start(now, stats);
         } else {
             // We saw multiple losses of packets > the current MTU during PMTU discovery, so
             // we're done.
-            self.stop(last_ok, now);
+            self.stop(last_ok, now, stats);
         }
     }
 
-    fn restart(&mut self, stats: &mut Stats) {
+    /// Resets the PMTUD process, starting from the smallest probe size.
+    fn reset(&mut self, stats: &mut Stats) {
         self.probe_index = 0;
         self.mtu = self.search_table[self.probe_index];
+        stats.pmtud_pmtu = self.mtu;
         self.loss_counts.fill(0);
         self.raise_timer = None;
         stats.pmtud_change += 1;
-        qdebug!("PMTUD restarted, PLPMTU is now {}", self.mtu);
-        self.start();
     }
 
     /// Starts the next upward PMTUD probe.
-    pub fn start(&mut self) {
-        if self.probe_index < SEARCH_TABLE_LEN - 1 {
+    pub fn start(&mut self, now: Instant, stats: &mut Stats) {
+        if self.probe_index < SEARCH_TABLE_LEN - 1 // Not at the end of the search table
+        // Next size is <= iface MTU
+            && self.search_table[self.probe_index + 1] <= self.iface_mtu
+        {
             self.probe_state = Probe::Needed; // We need to send a probe
             self.probe_count = 0; // For the first time
             self.probe_index += 1; // At this size
@@ -312,8 +314,8 @@ impl Pmtud {
                 self.search_table[self.probe_index],
             );
         } else {
-            // If we're at the end of the search table, we're done.
-            self.probe_state = Probe::NotNeeded;
+            // If we're at the end of the search table or hit the local interface MTU, we're done.
+            self.stop(self.probe_index, now, stats);
         }
     }
 
@@ -344,8 +346,8 @@ mod tests {
         Pmtud, Stats,
     };
 
-    const V4: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-    const V6: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
+    const V4: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
+    const V6: IpAddr = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
 
     fn make_sentpacket(pn: u64, now: Instant, len: usize) -> SentPacket {
         SentPacket::new(
@@ -396,7 +398,7 @@ mod tests {
 
         let packet = make_sentpacket(pn, now, encoder.len());
         if encoder.len() + Pmtud::header_size(addr) <= mtu {
-            pmtud.on_packets_acked(&[packet], stats);
+            pmtud.on_packets_acked(&[packet], now, stats);
             assert_eq!(stats_before.pmtud_ack + 1, stats.pmtud_ack);
         } else {
             pmtud.on_packets_lost(&[packet], stats, now);
@@ -407,11 +409,11 @@ mod tests {
     fn find_pmtu(addr: IpAddr, mtu: usize) {
         fixture_init();
         let now = now();
-        let mut pmtud = Pmtud::new(addr);
+        let mut pmtud = Pmtud::new(addr, Some(mtu));
         let mut stats = Stats::default();
         let mut prot = CryptoDxState::test_default();
 
-        pmtud.start();
+        pmtud.start(now, &mut stats);
         assert!(pmtud.needs_probe());
 
         while pmtud.needs_probe() {
@@ -445,12 +447,12 @@ mod tests {
 
         fixture_init();
         let now = now();
-        let mut pmtud = Pmtud::new(addr);
+        let mut pmtud = Pmtud::new(addr, Some(mtu));
         let mut stats = Stats::default();
         let mut prot = CryptoDxState::test_default();
 
         assert!(smaller_mtu >= pmtud.search_table[0]);
-        pmtud.start();
+        pmtud.start(now, &mut stats);
         assert!(pmtud.needs_probe());
 
         while pmtud.needs_probe() {
@@ -458,7 +460,7 @@ mod tests {
         }
         assert_mtu(&pmtud, mtu);
 
-        qdebug!("Reducing MTU to {}", smaller_mtu);
+        qdebug!("Reducing MTU to {smaller_mtu}");
         // Drop packets > smaller_mtu until we need a probe again.
         while !pmtud.needs_probe() {
             let pn = prot.next_pn();
@@ -498,12 +500,12 @@ mod tests {
 
         fixture_init();
         let now = now();
-        let mut pmtud = Pmtud::new(addr);
+        let mut pmtud = Pmtud::new(addr, Some(larger_mtu));
         let mut stats = Stats::default();
         let mut prot = CryptoDxState::test_default();
 
         assert!(larger_mtu >= pmtud.search_table[0]);
-        pmtud.start();
+        pmtud.start(now, &mut stats);
         assert!(pmtud.needs_probe());
 
         while pmtud.needs_probe() {
@@ -511,9 +513,9 @@ mod tests {
         }
         assert_mtu(&pmtud, mtu);
 
-        qdebug!("Increasing MTU to {}", larger_mtu);
+        qdebug!("Increasing MTU to {larger_mtu}");
         let now = now + PMTU_RAISE_TIMER;
-        pmtud.maybe_fire_raise_timer(now);
+        pmtud.maybe_fire_raise_timer(now, &mut stats);
         while pmtud.needs_probe() {
             pmtud_step(&mut pmtud, &mut stats, &mut prot, addr, larger_mtu, now);
         }
@@ -570,7 +572,7 @@ mod tests {
     #[test]
     fn pmtud_on_packets_lost() {
         let now = now();
-        let mut pmtud = Pmtud::new(V4);
+        let mut pmtud = Pmtud::new(V4, Some(1500));
         let mut stats = Stats::default();
 
         // No packets lost, nothing should change.
@@ -638,23 +640,23 @@ mod tests {
     #[test]
     fn pmtud_on_packets_lost_and_acked() {
         let now = now();
-        let mut pmtud = Pmtud::new(V4);
+        let mut pmtud = Pmtud::new(V4, Some(1500));
         let mut stats = Stats::default();
 
         // A packet of size 100 was ACKed, which is smaller than all probe sizes.
         // Loss counts should be unchanged.
-        pmtud.on_packets_acked(&[make_sentpacket(0, now, 100)], &mut stats);
+        pmtud.on_packets_acked(&[make_sentpacket(0, now, 100)], now, &mut stats);
         assert_eq!([0; SEARCH_TABLE_LEN], pmtud.loss_counts);
 
         // A packet of size 100_000 was ACKed, which is larger than all probe sizes.
         // Loss counts should be unchanged.
-        pmtud.on_packets_acked(&[make_sentpacket(0, now, 100_000)], &mut stats);
+        pmtud.on_packets_acked(&[make_sentpacket(0, now, 100_000)], now, &mut stats);
         assert_eq!([0; SEARCH_TABLE_LEN], pmtud.loss_counts);
 
         pmtud.loss_counts.fill(0); // Reset the loss counts.
 
         // No packets ACKed, nothing should change.
-        pmtud.on_packets_acked(&[], &mut stats);
+        pmtud.on_packets_acked(&[], now, &mut stats);
         assert_eq!([0; SEARCH_TABLE_LEN], pmtud.loss_counts);
 
         // One packet of size 4000 was lost, which should increase loss counts >= 4000 by one.
@@ -663,7 +665,7 @@ mod tests {
         assert_eq!(expected_lc, pmtud.loss_counts);
 
         // Now a packet of size 5000 is ACKed, which should reset all loss counts <= 5000.
-        pmtud.on_packets_acked(&[make_sentpacket(0, now, 5000)], &mut stats);
+        pmtud.on_packets_acked(&[make_sentpacket(0, now, 5000)], now, &mut stats);
         let expected_lc = search_table_zero(&pmtud, &pmtud.loss_counts, 5000);
         assert_eq!(expected_lc, pmtud.loss_counts);
 
@@ -674,7 +676,7 @@ mod tests {
         assert_eq!(expected_lc, pmtud.loss_counts);
 
         // Now a packet of size 8000 is ACKed, which should reset all loss counts <= 8000.
-        pmtud.on_packets_acked(&[make_sentpacket(0, now, 8000)], &mut stats);
+        pmtud.on_packets_acked(&[make_sentpacket(0, now, 8000)], now, &mut stats);
         let expected_lc = search_table_zero(&pmtud, &pmtud.loss_counts, 8000);
         assert_eq!(expected_lc, pmtud.loss_counts);
 

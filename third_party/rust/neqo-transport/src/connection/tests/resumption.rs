@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cell::RefCell, mem, rc::Rc, time::Duration};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use neqo_common::{Datagram, Decoder, Role};
 use neqo_crypto::AuthenticationStatus;
@@ -249,19 +249,19 @@ fn two_tickets_on_timer() {
     // We need to wait for release_resumption_token_timer to expire. The timer will be
     // set to 3 * PTO
     let mut now = now() + 3 * client.pto();
-    mem::drop(client.process_output(now));
+    drop(client.process_output(now));
     let mut recv_tokens = get_tokens(&mut client);
     assert_eq!(recv_tokens.len(), 1);
     let token1 = recv_tokens.pop().unwrap();
     // Wai for anottheer 3 * PTO to get the nex okeen.
     now += 3 * client.pto();
-    mem::drop(client.process_output(now));
+    drop(client.process_output(now));
     let mut recv_tokens = get_tokens(&mut client);
     assert_eq!(recv_tokens.len(), 1);
     let token2 = recv_tokens.pop().unwrap();
     // Wait for 3 * PTO, but now there are no more tokens.
     now += 3 * client.pto();
-    mem::drop(client.process_output(now));
+    drop(client.process_output(now));
     assert_eq!(get_tokens(&mut client).len(), 0);
     assert_ne!(token1.as_ref(), token2.as_ref());
 
@@ -343,7 +343,7 @@ fn resume_after_packet() {
     let token = exchange_ticket(&mut client, &mut server, now());
 
     let mut client = default_client();
-    mem::drop(client.process_output(now()).dgram().unwrap());
+    drop(client.process_output(now()).dgram().unwrap());
     assert_eq!(
         client.enable_resumption(now(), token).unwrap_err(),
         Error::ConnectionState

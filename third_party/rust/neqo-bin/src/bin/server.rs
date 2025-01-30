@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use clap::Parser;
+use clap::Parser as _;
 
 #[tokio::main]
 async fn main() -> Result<(), neqo_bin::server::Error> {

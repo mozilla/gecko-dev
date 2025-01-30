@@ -12,7 +12,7 @@ use super::enc_dec_hframe;
 use crate::{
     frames::HFrame,
     settings::{HSetting, HSettingType, HSettings},
-    Priority,
+    Priority, PushId,
 };
 
 #[test]
@@ -31,7 +31,9 @@ fn headers_frame() {
 
 #[test]
 fn cancel_push_frame4() {
-    let f = HFrame::CancelPush { push_id: 5 };
+    let f = HFrame::CancelPush {
+        push_id: PushId::new(5),
+    };
     enc_dec_hframe(&f, "030105", 0);
 }
 
@@ -46,7 +48,7 @@ fn settings_frame4() {
 #[test]
 fn push_promise_frame4() {
     let f = HFrame::PushPromise {
-        push_id: 4,
+        push_id: PushId::new(4),
         header_block: vec![0x61, 0x62, 0x63, 0x64],
     };
     enc_dec_hframe(&f, "05050461626364", 0);

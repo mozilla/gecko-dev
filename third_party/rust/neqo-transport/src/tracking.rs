@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-// Tracking of received packets and generating acks thereof.
+// Tracking of received packets and generating ACKs thereof.
 
 use std::{
     cmp::min,
@@ -18,7 +18,7 @@ use neqo_common::{qdebug, qinfo, qtrace, qwarn, IpTosEcn};
 use neqo_crypto::{Epoch, TLS_EPOCH_HANDSHAKE, TLS_EPOCH_INITIAL};
 
 use crate::{
-    ecn::EcnCount,
+    ecn,
     frame::{FRAME_TYPE_ACK, FRAME_TYPE_ACK_ECN},
     packet::{PacketBuilder, PacketNumber, PacketType},
     recovery::RecoveryToken,
@@ -86,14 +86,14 @@ impl PacketNumberSpaceSet {
 impl Index<PacketNumberSpace> for PacketNumberSpaceSet {
     type Output = bool;
 
-    fn index(&self, space: PacketNumberSpace) -> &Self::Output {
-        &self.spaces[space]
+    fn index(&self, index: PacketNumberSpace) -> &Self::Output {
+        &self.spaces[index]
     }
 }
 
 impl IndexMut<PacketNumberSpace> for PacketNumberSpaceSet {
-    fn index_mut(&mut self, space: PacketNumberSpace) -> &mut Self::Output {
-        &mut self.spaces[space]
+    fn index_mut(&mut self, index: PacketNumberSpace) -> &mut Self::Output {
+        &mut self.spaces[index]
     }
 }
 
@@ -158,7 +158,7 @@ impl PacketRange {
         }
     }
 
-    /// Get the number of acknowleged packets in the range.
+    /// Get the number of acknowledged packets in the range.
     pub const fn len(&self) -> u64 {
         self.largest - self.smallest + 1
     }
@@ -180,12 +180,12 @@ impl PacketRange {
         assert!(!self.contains(pn));
         // Only insert if this is adjacent the current range.
         if (self.largest + 1) == pn {
-            qtrace!([self], "Adding largest {}", pn);
+            qtrace!("[{self}] Adding largest {pn}");
             self.largest += 1;
             self.ack_needed = true;
             InsertionResult::Largest
         } else if self.smallest == (pn + 1) {
-            qtrace!([self], "Adding smallest {}", pn);
+            qtrace!("[{self}] Adding smallest {pn}");
             self.smallest -= 1;
             self.ack_needed = true;
             InsertionResult::Smallest
@@ -196,7 +196,7 @@ impl PacketRange {
 
     /// Maybe merge a higher-numbered range into this.
     fn merge_larger(&mut self, other: &Self) {
-        qinfo!([self], "Merging {}", other);
+        qinfo!("[{self}] Merging {other}");
         // This only works if they are immediately adjacent.
         assert_eq!(self.largest + 1, other.smallest);
 
@@ -271,7 +271,7 @@ pub struct RecvdPackets {
     /// for the purposes of generating immediate acknowledgment.
     ignore_order: bool,
     // The counts of different ECN marks that have been received.
-    ecn_count: EcnCount,
+    ecn_count: ecn::Count,
 }
 
 impl RecvdPackets {
@@ -294,12 +294,12 @@ impl RecvdPackets {
                 0
             },
             ignore_order: false,
-            ecn_count: EcnCount::default(),
+            ecn_count: ecn::Count::default(),
         }
     }
 
     /// Get the ECN counts.
-    pub fn ecn_marks(&mut self) -> &mut EcnCount {
+    pub fn ecn_marks(&mut self) -> &mut ecn::Count {
         &mut self.ecn_count
     }
 
@@ -369,10 +369,10 @@ impl RecvdPackets {
         if self.ranges.len() > MAX_TRACKED_RANGES {
             let oldest = self.ranges.pop_back().unwrap();
             if oldest.ack_needed {
-                qwarn!([self], "Dropping unacknowledged ACK range: {}", oldest);
+                qwarn!("[{self}] Dropping unacknowledged ACK range: {oldest}");
             // TODO(mt) Record some statistics about this so we can tune MAX_TRACKED_RANGES.
             } else {
-                qdebug!([self], "Drop ACK range: {}", oldest);
+                qdebug!("[{self}] Drop ACK range: {oldest}");
             }
             self.min_tracked = oldest.largest + 1;
         }
@@ -382,7 +382,7 @@ impl RecvdPackets {
     /// Return true if the packet was the largest received so far.
     pub fn set_received(&mut self, now: Instant, pn: PacketNumber, ack_eliciting: bool) -> bool {
         let next_in_order_pn = self.ranges.front().map_or(0, |r| r.largest + 1);
-        qtrace!([self], "received {}, next: {}", pn, next_in_order_pn);
+        qtrace!("[{self}] received {pn}, next: {next_in_order_pn}");
 
         self.add(pn);
         self.trim_ranges();
@@ -413,7 +413,7 @@ impl RecvdPackets {
                 // of the change is very small.
                 self.ack_time.unwrap_or_else(|| now + self.ack_delay)
             };
-            qdebug!([self], "Set ACK timer to {:?}", ack_time);
+            qdebug!("[{self}] Set ACK timer to {ack_time:?}");
             self.ack_time = Some(ack_time);
         }
         largest
@@ -422,7 +422,7 @@ impl RecvdPackets {
     /// If we just received a PING frame, we should immediately acknowledge.
     pub fn immediate_ack(&mut self, now: Instant) {
         self.ack_time = Some(now);
-        qdebug!([self], "immediate_ack at {:?}", now);
+        qdebug!("[{self}] immediate_ack at {now:?}");
     }
 
     /// Check if the packet is a duplicate.
@@ -601,7 +601,7 @@ impl AckTracker {
         #[cfg(debug_assertions)]
         for (space, recvd) in &self.spaces {
             if let Some(recvd) = recvd {
-                qtrace!("ack_time for {} = {:?}", space, recvd.ack_time());
+                qtrace!("ack_time for {space} = {:?}", recvd.ack_time());
             }
         }
 
@@ -1062,7 +1062,7 @@ mod tests {
         assert_eq!(stats.ack, 1);
 
         let mut dec = builder.as_decoder();
-        _ = dec.decode_byte().unwrap(); // Skip the short header.
+        dec.skip(1); // Skip the short header.
         let frame = Frame::decode(&mut dec).unwrap();
         if let Frame::Ack { ack_ranges, .. } = frame {
             assert_eq!(ack_ranges.len(), 0);

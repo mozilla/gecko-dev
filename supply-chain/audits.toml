@@ -3378,6 +3378,11 @@ criteria = "safe-to-deploy"
 version = "0.1.2"
 notes = "Developed by Mozilla staff."
 
+[[audits.mtu]]
+who = "Max Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+version = "0.2.5"
+
 [[audits.naga]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
 criteria = "safe-to-deploy"

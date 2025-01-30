@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-common"
-version = "0.11.0"
+version = "0.12.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
 autolib = false
@@ -48,6 +48,12 @@ bench = false
 name = "log"
 path = "tests/log.rs"
 
+[[bench]]
+name = "decoder"
+path = "benches/decoder.rs"
+harness = false
+required-features = ["bench"]
+
 [dependencies.enum-map]
 version = "2.7"
 default-features = false
@@ -70,6 +76,13 @@ default-features = false
 version = "0.13"
 default-features = false
 
+[dev-dependencies.criterion]
+version = "0.5"
+default-features = false
+
+[dev-dependencies.neqo-crypto]
+path = "../neqo-crypto"
+
 [dev-dependencies.regex]
 version = "1.9"
 features = ["unicode-perl"]
@@ -79,8 +92,13 @@ default-features = false
 path = "../test-fixture"
 
 [features]
+bench = [
+    "neqo-crypto/bench",
+    "test-fixture/bench",
+]
 build-fuzzing-corpus = ["hex"]
 ci = []
+test-fixture = []
 
 [target."cfg(windows)".dependencies.windows]
 version = "0.58"
@@ -88,7 +106,22 @@ features = ["Win32_Media"]
 default-features = false
 
 [lints.clippy]
+cfg_not_test = "warn"
+clone_on_ref_ptr = "warn"
+create_dir = "warn"
+get_unwrap = "warn"
+if_then_some_else_none = "warn"
 multiple_crate_versions = "allow"
+multiple_inherent_impl = "warn"
+pathbuf_init_then_push = "warn"
+redundant_type_annotations = "warn"
+ref_patterns = "warn"
+renamed_function_params = "warn"
+semicolon_inside_block = "warn"
+try_err = "warn"
+unneeded_field_pattern = "warn"
+unused_result_ok = "warn"
+unused_trait_names = "warn"
 
 [lints.clippy.cargo]
 level = "warn"
@@ -101,3 +134,19 @@ priority = -1
 [lints.clippy.pedantic]
 level = "warn"
 priority = -1
+
+[lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+ambiguous_negative_literals = "warn"
+closure_returning_async_block = "warn"
+explicit_outlives_requirements = "warn"
+macro_use_extern_crate = "warn"
+missing_abi = "warn"
+non_ascii_idents = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unit_bindings = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
+unused_macro_rules = "warn"

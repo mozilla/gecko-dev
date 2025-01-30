@@ -6,25 +6,21 @@
 
 // Congestion control
 
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    time::Duration,
-};
+use std::time::Duration;
 
 use neqo_common::IpTosEcn;
 use test_fixture::now;
 
+use super::{IP_ADDR, MTU, RTT};
 use crate::{
-    cc::{new_reno::NewReno, ClassicCongestionControl, CongestionControl},
+    cc::{new_reno::NewReno, ClassicCongestionControl, CongestionControl as _},
     packet::PacketType,
     pmtud::Pmtud,
     recovery::SentPacket,
     rtt::RttEstimate,
 };
 
-const IP_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-const PTO: Duration = Duration::from_millis(100);
-const RTT: Duration = Duration::from_millis(98);
+const PTO: Duration = RTT;
 const RTT_ESTIMATE: RttEstimate = RttEstimate::from_duration(RTT);
 
 fn cwnd_is_default(cc: &ClassicCongestionControl<NewReno>) {
@@ -40,7 +36,7 @@ fn cwnd_is_halved(cc: &ClassicCongestionControl<NewReno>) {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn issue_876() {
-    let mut cc = ClassicCongestionControl::new(NewReno::default(), Pmtud::new(IP_ADDR));
+    let mut cc = ClassicCongestionControl::new(NewReno::default(), Pmtud::new(IP_ADDR, MTU));
     let now = now();
     let before = now.checked_sub(Duration::from_millis(100)).unwrap();
     let after = now + Duration::from_millis(150);
@@ -151,7 +147,7 @@ fn issue_876() {
 #[test]
 // https://github.com/mozilla/neqo/pull/1465
 fn issue_1465() {
-    let mut cc = ClassicCongestionControl::new(NewReno::default(), Pmtud::new(IP_ADDR));
+    let mut cc = ClassicCongestionControl::new(NewReno::default(), Pmtud::new(IP_ADDR, MTU));
     let mut pn = 0;
     let mut now = now();
     let max_datagram_size = cc.max_datagram_size();

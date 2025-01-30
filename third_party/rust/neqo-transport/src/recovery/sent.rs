@@ -305,7 +305,6 @@ impl SentPackets {
 mod tests {
     use std::{
         cell::OnceCell,
-        convert::TryFrom,
         time::{Duration, Instant},
     };
 
@@ -366,7 +365,7 @@ mod tests {
         let mut it = store.into_iter();
         assert_eq!(idx, it.next().unwrap().pn());
         assert!(it.next().is_none());
-        std::mem::drop(it);
+        drop(it);
         assert_eq!(pkts.len(), 2);
     }
 

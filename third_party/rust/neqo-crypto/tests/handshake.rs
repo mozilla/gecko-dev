@@ -116,7 +116,7 @@ impl ZeroRttChecker for PermissiveZeroRttChecker {
 }
 
 fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Option<AntiReplay> {
-    if matches!(mode, Resumption::WithZeroRtt) {
+    matches!(mode, Resumption::WithZeroRtt).then(|| {
         client.enable_0rtt().expect("should enable 0-RTT on client");
 
         let anti_replay = anti_replay();
@@ -127,10 +127,8 @@ fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Opt
                 Box::new(PermissiveZeroRttChecker { resuming: false }),
             )
             .expect("should enable 0-RTT on server");
-        Some(anti_replay)
-    } else {
-        None
-    }
+        anti_replay
+    })
 }
 
 #[allow(clippy::missing_panics_doc)]

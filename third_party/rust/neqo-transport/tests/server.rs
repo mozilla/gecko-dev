@@ -6,7 +6,7 @@
 
 mod common;
 
-use std::{cell::RefCell, mem, net::SocketAddr, rc::Rc, time::Duration};
+use std::{cell::RefCell, net::SocketAddr, rc::Rc, time::Duration};
 
 use common::{connect, connected_server, default_server, find_ticket, generate_ticket, new_server};
 use neqo_common::{qtrace, Datagram, Decoder, Encoder, Role};
@@ -15,6 +15,7 @@ use neqo_crypto::{
 };
 use neqo_transport::{
     server::{ConnectionRef, Server, ValidateAddress},
+    version::WireVersion,
     CloseReason, Connection, ConnectionParameters, Error, Output, State, StreamType, Version,
     MIN_INITIAL_PACKET_SIZE,
 };
@@ -226,7 +227,7 @@ fn drop_non_initial() {
     let mut server = default_server();
 
     // This is big enough to look like an Initial, but it uses the Retry type.
-    let mut header = neqo_common::Encoder::with_capacity(MIN_INITIAL_PACKET_SIZE);
+    let mut header = Encoder::with_capacity(MIN_INITIAL_PACKET_SIZE);
     header
         .encode_byte(0xfa)
         .encode_uint(4, Version::default().wire_version())
@@ -245,7 +246,7 @@ fn drop_short_initial() {
     let mut server = default_server();
 
     // This too small to be an Initial, but it is otherwise plausible.
-    let mut header = neqo_common::Encoder::with_capacity(1199);
+    let mut header = Encoder::with_capacity(1199);
     header
         .encode_byte(0xca)
         .encode_uint(4, Version::default().wire_version())
@@ -263,7 +264,7 @@ fn drop_short_header_packet_for_unknown_connection() {
     const CID: &[u8] = &[55; 8]; // not a real connection ID
     let mut server = default_server();
 
-    let mut header = neqo_common::Encoder::with_capacity(MIN_INITIAL_PACKET_SIZE);
+    let mut header = Encoder::with_capacity(MIN_INITIAL_PACKET_SIZE);
     header
         .encode_byte(0x40) // short header
         .encode_vec(1, CID)
@@ -317,12 +318,12 @@ fn zero_rtt() {
     let c4 = client_send();
 
     // 0-RTT packets that arrive before the handshake get dropped.
-    mem::drop(server.process(Some(c2), now));
+    drop(server.process(Some(c2), now));
     assert!(server.active_connections().is_empty());
 
     // Now handshake and let another 0-RTT packet in.
     let shs = server.process(Some(c1), now);
-    mem::drop(server.process(Some(c3), now));
+    drop(server.process(Some(c3), now));
     // The server will have received two STREAM frames now if it processed both packets.
     // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
     #[allow(clippy::mutable_key_type)]
@@ -344,10 +345,10 @@ fn zero_rtt() {
     // a little so that the pacer doesn't prevent the Finished from being sent.
     now += now - start_time;
     let cfin = client.process(shs.dgram(), now);
-    mem::drop(server.process(cfin.dgram(), now));
+    drop(server.process(cfin.dgram(), now));
 
     // The server will drop this last 0-RTT packet.
-    mem::drop(server.process(Some(c4), now));
+    drop(server.process(Some(c4), now));
     // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
     #[allow(clippy::mutable_key_type)]
     let active = server.active_connections();
@@ -584,13 +585,13 @@ fn version_negotiation_ignored() {
     let vn = vn.expect("a vn packet");
     let mut dec = Decoder::from(&vn[1..]); // Skip first byte.
 
-    assert_eq!(dec.decode_uint(4).expect("VN"), 0);
+    assert_eq!(dec.decode_uint::<u32>().expect("VN"), 0);
     assert_eq!(dec.decode_vec(1).expect("VN DCID"), &s_cid[..]);
     assert_eq!(dec.decode_vec(1).expect("VN SCID"), &d_cid[..]);
     let mut found = false;
     while dec.remaining() > 0 {
-        let v = dec.decode_uint(4).expect("supported version");
-        found |= v == u64::from(Version::default().wire_version());
+        let v = dec.decode_uint::<WireVersion>().expect("supported version");
+        found |= v == Version::default().wire_version();
     }
     assert!(found, "valid version not found");
 

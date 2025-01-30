@@ -146,7 +146,7 @@ pub fn generate_keys() -> Res<(PrivateKey, PublicKey)> {
     assert_eq!(secret_ptr.is_null(), public_ptr.is_null());
     let sk = PrivateKey::from_ptr(secret_ptr)?;
     let pk = PublicKey::from_ptr(public_ptr)?;
-    qtrace!("Generated key pair: sk={:?} pk={:?}", sk, pk);
+    qtrace!("Generated key pair: sk={sk:?} pk={pk:?}");
     Ok((sk, pk))
 }
 

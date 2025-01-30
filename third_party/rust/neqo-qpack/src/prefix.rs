@@ -15,9 +15,9 @@ pub struct Prefix {
 impl Prefix {
     pub fn new(prefix: u8, len: u8) -> Self {
         // len should never be larger than 7.
-        // Most of Prefixes are instantiated as consts bellow. The only place where this
-        // construcrtor is used is in tests and when literals are encoded and the Huffman
-        // bit is added to one of the consts bellow. create_prefix guaranty that all const
+        // Most of Prefixes are instantiated as consts below. The only place where this
+        // constructor is used is in tests and when literals are encoded and the Huffman
+        // bit is added to one of the consts below. create_prefix guaranty that all const
         // have len < 7 so we can safely assert that len is <=7.
         assert!(len <= 7);
         assert!((len == 0) || (prefix & ((1 << (8 - len)) - 1) == 0));

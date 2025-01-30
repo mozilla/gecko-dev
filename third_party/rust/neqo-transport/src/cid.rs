@@ -93,7 +93,7 @@ impl<'a> From<ConnectionIdRef<'a>> for ConnectionId {
     }
 }
 
-impl std::ops::Deref for ConnectionId {
+impl Deref for ConnectionId {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
@@ -142,7 +142,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> From<&'a T> for ConnectionIdRef<'a> {
     }
 }
 
-impl std::ops::Deref for ConnectionIdRef<'_> {
+impl Deref for ConnectionIdRef<'_> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {

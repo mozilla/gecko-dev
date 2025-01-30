@@ -37,7 +37,7 @@ impl AckRate {
         let packets = packets.clamp(MIN_PACKETS, MAX_PACKETS) - 1;
         let delay = rtt * RTT_RATIO / u32::from(ratio);
         let delay = delay.clamp(minimum, MAX_DELAY);
-        qtrace!("AckRate inputs: {}/{}/{}, {:?}", cwnd, mtu, ratio, rtt);
+        qtrace!("AckRate inputs: {cwnd}/{mtu}/{ratio}, {rtt:?}");
         Self { packets, delay }
     }
 
@@ -82,12 +82,7 @@ impl FlexibleAckRate {
         mtu: usize,
         rtt: Duration,
     ) -> Self {
-        qtrace!(
-            "FlexibleAckRate: {:?} {:?} {}",
-            max_ack_delay,
-            min_ack_delay,
-            ratio
-        );
+        qtrace!("FlexibleAckRate: {max_ack_delay:?} {min_ack_delay:?} {ratio}");
         let ratio = max(ACK_RATIO_SCALE, ratio); // clamp it
         Self {
             current: AckRate {

@@ -62,7 +62,7 @@ impl IpTosEcn {
     }
 }
 
-/// Diffserv Codepoints, mapped to the upper six bits of the TOS field.
+/// Diffserv codepoints, mapped to the upper six bits of the TOS field.
 /// <https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml>
 #[derive(Copy, Clone, PartialEq, Eq, Enum, Default, Debug)]
 #[repr(u8)]

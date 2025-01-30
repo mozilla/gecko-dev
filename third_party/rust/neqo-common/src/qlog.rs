@@ -59,7 +59,7 @@ impl NeqoQlog {
             title,
             description,
             None,
-            std::time::Instant::now(),
+            Instant::now(),
             new_trace(role),
             qlog::events::EventImportance::Base,
             Box::new(BufWriter::new(file)),
@@ -149,11 +149,7 @@ impl NeqoQlog {
     {
         if let Some(inner) = self.inner.borrow_mut().as_mut() {
             if let Err(e) = f(&mut inner.streamer) {
-                crate::do_log!(
-                    ::log::Level::Error,
-                    "Qlog event generation failed with error {}; closing qlog.",
-                    e
-                );
+                log::error!("Qlog event generation failed with error {e}; closing qlog.");
                 *self.inner.borrow_mut() = None;
             }
         }
@@ -169,13 +165,13 @@ impl fmt::Debug for NeqoQlogShared {
 impl Drop for NeqoQlogShared {
     fn drop(&mut self) {
         if let Err(e) = self.streamer.finish_log() {
-            crate::do_log!(::log::Level::Error, "Error dropping NeqoQlog: {}", e);
+            log::error!("Error dropping NeqoQlog: {e}");
         }
     }
 }
 
 #[must_use]
-pub fn new_trace(role: Role) -> qlog::TraceSeq {
+pub fn new_trace(role: Role) -> TraceSeq {
     TraceSeq {
         vantage_point: VantagePoint {
             name: Some(format!("neqo-{role}")),
@@ -186,7 +182,7 @@ pub fn new_trace(role: Role) -> qlog::TraceSeq {
             flow: None,
         },
         title: Some(format!("neqo-{role} trace")),
-        description: Some("Example qlog trace description".to_string()),
+        description: Some(format!("neqo-{role} trace")),
         configuration: Some(Configuration {
             time_offset: Some(0.0),
             original_uris: None,
@@ -233,7 +229,7 @@ mod test {
         let (log, contents) = test_fixture::new_neqo_qlog();
         log.add_event_with_instant(|| Some(Event::with_time(0.0, EV_DATA)), Instant::now());
         assert_eq!(
-            Regex::new("\"time\":[0-9].[0-9]*,")
+            Regex::new("\"time\":[0-9]+.[0-9]+,")
                 .unwrap()
                 .replace(&contents.to_string(), "\"time\":0.0,"),
             format!("{EXPECTED_LOG_HEADER}{EXPECTED_LOG_EVENT}"),

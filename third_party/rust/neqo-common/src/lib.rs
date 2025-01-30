@@ -18,7 +18,7 @@ pub mod log;
 pub mod qlog;
 pub mod tos;
 
-use std::fmt::Write;
+use std::fmt::Write as _;
 
 use enum_map::Enum;
 

@@ -6,6 +6,8 @@
 
 // Buffering data to send until it is acked.
 
+#![allow(clippy::module_name_repetitions)]
+
 use std::{
     cell::RefCell,
     cmp::{max, min, Ordering},
@@ -405,7 +407,7 @@ impl RangeTracker {
 
     fn unmark_range(&mut self, off: u64, len: usize) {
         if len == 0 {
-            qdebug!("unmark 0-length range at {}", off);
+            qdebug!("unmark 0-length range at {off}");
             return;
         }
 
@@ -424,10 +426,7 @@ impl RangeTracker {
                 if *cur_off + *cur_len > off {
                     if *cur_state == RangeState::Acked {
                         qdebug!(
-                            "Attempted to unmark Acked range {}-{} with unmark_range {}-{}",
-                            cur_off,
-                            cur_len,
-                            off,
+                            "Attempted to unmark Acked range {cur_off}-{cur_len} with unmark_range {off}-{}",
                             off + len
                         );
                     } else {
@@ -439,10 +438,7 @@ impl RangeTracker {
 
             if *cur_state == RangeState::Acked {
                 qdebug!(
-                    "Attempted to unmark Acked range {}-{} with unmark_range {}-{}",
-                    cur_off,
-                    cur_len,
-                    off,
+                    "Attempted to unmark Acked range {cur_off}-{cur_len} with unmark_range {off}-{}",
                     off + len
                 );
                 continue;
@@ -760,7 +756,7 @@ impl SendStream {
         tokens: &mut Vec<RecoveryToken>,
         stats: &mut FrameStats,
     ) {
-        qtrace!("write STREAM frames at priority {:?}", priority);
+        qtrace!("write STREAM frames at priority {priority:?}");
         if !self.write_reset_frame(priority, builder, tokens, stats) {
             self.write_blocked_frame(priority, builder, tokens, stats);
             self.write_stream_frame(priority, builder, tokens, stats);
@@ -882,15 +878,13 @@ impl SendStream {
                             "next_bytes apply retransmission limit at {}",
                             self.retransmission_offset
                         );
-                        if self.retransmission_offset > offset {
+                        (self.retransmission_offset > offset).then(|| {
                             let len = min(
                                 usize::try_from(self.retransmission_offset - offset).unwrap(),
                                 slice.len(),
                             );
-                            Some((offset, &slice[..len]))
-                        } else {
-                            None
-                        }
+                            (offset, &slice[..len])
+                        })
                     } else {
                         Some((offset, slice))
                     }
@@ -926,7 +920,7 @@ impl SendStream {
     fn length_and_fill(data_len: usize, space: usize) -> (usize, bool) {
         if data_len >= space {
             // More data than space allows, or an exact fit => fast path.
-            qtrace!("SendStream::length_and_fill fill {}", space);
+            qtrace!("SendStream::length_and_fill fill {space}");
             return (space, true);
         }
 
@@ -939,7 +933,7 @@ impl SendStream {
         // From here we can always fit `data_len`, but we might as well fill
         // if there is no space for the length field plus another frame.
         let fill = data_len + length_len + PacketBuilder::MINIMUM_FRAME_SIZE > space;
-        qtrace!("SendStream::length_and_fill {} fill {}", data_len, fill);
+        qtrace!("SendStream::length_and_fill {data_len} fill {fill}");
         (data_len, fill)
     }
 
@@ -971,14 +965,14 @@ impl SendStream {
                     0
                 };
             if overhead > builder.remaining() {
-                qtrace!([self], "write_frame no space for header");
+                qtrace!("[{self}] write_frame no space for header");
                 return;
             }
 
             let (length, fill) = Self::length_and_fill(data.len(), builder.remaining() - overhead);
             let fin = final_size.is_some_and(|fs| fs == offset + u64::try_from(length).unwrap());
             if length == 0 && !fin {
-                qtrace!([self], "write_frame no data, no fin");
+                qtrace!("[{self}] write_frame no data, no fin");
                 return;
             }
 
@@ -1015,7 +1009,7 @@ impl SendStream {
             | SendStreamState::Send { .. }
             | SendStreamState::DataSent { .. }
             | SendStreamState::DataRecvd { .. } => {
-                qtrace!([self], "Reset acked while in {} state?", self.state.name());
+                qtrace!("[{self}] Reset acked while in {} state?", self.state.name());
             }
             SendStreamState::ResetSent {
                 final_retired,
@@ -1025,7 +1019,7 @@ impl SendStream {
                 final_retired,
                 final_written,
             }),
-            SendStreamState::ResetRecvd { .. } => qtrace!([self], "already in ResetRecvd state"),
+            SendStreamState::ResetRecvd { .. } => qtrace!("[{self}] already in ResetRecvd state"),
         };
     }
 
@@ -1085,7 +1079,7 @@ impl SendStream {
         {
             fc.frame_lost(limit);
         } else {
-            qtrace!([self], "Ignoring lost STREAM_DATA_BLOCKED({})", limit);
+            qtrace!("[{self}] Ignoring lost STREAM_DATA_BLOCKED({limit})");
         }
     }
 
@@ -1154,8 +1148,7 @@ impl SendStream {
                 }
             }
             _ => qtrace!(
-                [self],
-                "mark_as_acked called from state {}",
+                "[{self}] mark_as_acked called from state {}",
                 self.state.name()
             ),
         }
@@ -1168,8 +1161,7 @@ impl SendStream {
             offset + u64::try_from(len).unwrap(),
         );
         qtrace!(
-            [self],
-            "mark_as_lost retransmission offset={}",
+            "[{self}] mark_as_lost retransmission offset={}",
             self.retransmission_offset
         );
         if let Some(buf) = self.state.tx_buf_mut() {
@@ -1259,7 +1251,7 @@ impl SendStream {
 
     fn send_internal(&mut self, buf: &[u8], atomic: bool) -> Res<usize> {
         if buf.is_empty() {
-            qerror!([self], "zero-length send on stream");
+            qerror!("[{self}] zero-length send on stream");
             return Err(Error::InvalidInput);
         }
 
@@ -1323,10 +1315,10 @@ impl SendStream {
                     fin_acked: false,
                 });
             }
-            SendStreamState::DataSent { .. } => qtrace!([self], "already in DataSent state"),
-            SendStreamState::DataRecvd { .. } => qtrace!([self], "already in DataRecvd state"),
-            SendStreamState::ResetSent { .. } => qtrace!([self], "already in ResetSent state"),
-            SendStreamState::ResetRecvd { .. } => qtrace!([self], "already in ResetRecvd state"),
+            SendStreamState::DataSent { .. } => qtrace!("[{self}] already in DataSent state"),
+            SendStreamState::DataRecvd { .. } => qtrace!("[{self}] already in DataRecvd state"),
+            SendStreamState::ResetSent { .. } => qtrace!("[{self}] already in ResetSent state"),
+            SendStreamState::ResetRecvd { .. } => qtrace!("[{self}] already in ResetRecvd state"),
         }
     }
 
@@ -1367,9 +1359,9 @@ impl SendStream {
                     final_written: buffered,
                 });
             }
-            SendStreamState::DataRecvd { .. } => qtrace!([self], "already in DataRecvd state"),
-            SendStreamState::ResetSent { .. } => qtrace!([self], "already in ResetSent state"),
-            SendStreamState::ResetRecvd { .. } => qtrace!([self], "already in ResetRecvd state"),
+            SendStreamState::DataRecvd { .. } => qtrace!("[{self}] already in DataRecvd state"),
+            SendStreamState::ResetSent { .. } => qtrace!("[{self}] already in ResetSent state"),
+            SendStreamState::ResetRecvd { .. } => qtrace!("[{self}] already in ResetRecvd state"),
         };
     }
 
@@ -1694,7 +1686,7 @@ impl SendStreams {
         tokens: &mut Vec<RecoveryToken>,
         stats: &mut FrameStats,
     ) {
-        qtrace!("write STREAM frames at priority {:?}", priority);
+        qtrace!("write STREAM frames at priority {priority:?}");
         // WebTransport data (which is Normal) may have a SendOrder
         // priority attached.  The spec states (6.3 write-chunk 6.1):
 
@@ -1731,7 +1723,7 @@ impl SendStreams {
         qtrace!("processing streams...  unfair:");
         for stream in self.map.values_mut() {
             if !stream.is_fair() {
-                qtrace!("   {}", stream);
+                qtrace!("   {stream}");
                 if !stream.write_frames_with_early_return(priority, builder, tokens, stats) {
                     break;
                 }
@@ -1747,7 +1739,7 @@ impl SendStreams {
         for stream_id in stream_ids {
             let stream = self.map.get_mut(&stream_id).unwrap();
             if let Some(order) = stream.sendorder() {
-                qtrace!("   {} ({})", stream_id, order);
+                qtrace!("   {stream_id} ({order})");
             } else {
                 qtrace!("   None");
             }
@@ -1793,7 +1785,7 @@ pub struct SendStreamRecoveryToken {
 mod tests {
     use std::{cell::RefCell, collections::VecDeque, num::NonZeroUsize, rc::Rc};
 
-    use neqo_common::{event::Provider, hex_with_len, qtrace, Encoder};
+    use neqo_common::{event::Provider as _, hex_with_len, qtrace, Encoder};
 
     use super::SendStreamRecoveryToken;
     use crate::{
@@ -2943,14 +2935,7 @@ mod tests {
     fn frame_sent_sid(stream: u64, offset: usize, len: usize, fin: bool, space: usize) -> bool {
         const BUF: &[u8] = &[0x42; 128];
 
-        qtrace!(
-            "frame_sent stream={} offset={} len={} fin={}, space={}",
-            stream,
-            offset,
-            len,
-            fin,
-            space
-        );
+        qtrace!("frame_sent stream={stream} offset={offset} len={len} fin={fin}, space={space}");
 
         let mut s = stream_with_sent(stream, offset);
 
@@ -3058,7 +3043,7 @@ mod tests {
 
     fn stream_frame_at_boundary(data: &[u8]) {
         fn send_with_extra_capacity(data: &[u8], extra: usize, expect_full: bool) -> Vec<u8> {
-            qtrace!("send_with_extra_capacity {} + {}", data.len(), extra);
+            qtrace!("send_with_extra_capacity {} + {extra}", data.len());
             let mut s = stream_with_sent(0, 0);
             s.send(data).unwrap();
             s.close();

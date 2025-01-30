@@ -4,13 +4,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{fmt::Debug, io::Write};
+use std::{fmt::Debug, io::Write as _};
 
 use neqo_common::{Decoder, Encoder};
 use neqo_crypto::random;
 use neqo_transport::StreamId;
 
-use crate::{frames::reader::FrameDecoder, settings::HSettings, Error, Priority, Res};
+use crate::{frames::reader::FrameDecoder, settings::HSettings, Error, Priority, PushId, Res};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HFrameType(pub u64);
@@ -48,20 +48,20 @@ pub enum HFrame {
         header_block: Vec<u8>,
     },
     CancelPush {
-        push_id: u64,
+        push_id: PushId,
     },
     Settings {
         settings: HSettings,
     },
     PushPromise {
-        push_id: u64,
+        push_id: PushId,
         header_block: Vec<u8>,
     },
     Goaway {
         stream_id: StreamId,
     },
     MaxPushId {
-        push_id: u64,
+        push_id: PushId,
     },
     Grease,
     PriorityUpdateRequest {
@@ -87,7 +87,9 @@ impl HFrame {
             Self::PriorityUpdateRequest { .. } => H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST,
             Self::PriorityUpdatePush { .. } => H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH,
             Self::Grease => {
-                HFrameType(Decoder::from(&random::<7>()).decode_uint(7).unwrap() * 0x1f + 0x21)
+                let r = Decoder::from(&random::<8>()).decode_uint::<u64>().unwrap();
+                // Zero out the top 7 bits: 2 for being a varint; 5 to account for the *0x1f.
+                HFrameType((r >> 7) * 0x1f + 0x21)
             }
         }
     }
@@ -115,7 +117,9 @@ impl HFrame {
                 push_id,
                 header_block,
             } => {
-                enc.encode_varint((header_block.len() + (Encoder::varint_len(*push_id))) as u64);
+                enc.encode_varint(
+                    (header_block.len() + (Encoder::varint_len(u64::from(*push_id)))) as u64,
+                );
                 enc.encode_varint(*push_id);
                 enc.encode(header_block);
             }
@@ -170,12 +174,12 @@ impl FrameDecoder<Self> for HFrame {
         } else if let Some(payload) = data {
             let mut dec = Decoder::from(payload);
             Ok(match frame_type {
-                H3_FRAME_TYPE_DATA => unreachable!("DATA frame has been handled already."),
+                H3_FRAME_TYPE_DATA => unreachable!("DATA frame has been handled already"),
                 H3_FRAME_TYPE_HEADERS => Some(Self::Headers {
                     header_block: dec.decode_remainder().to_vec(),
                 }),
                 H3_FRAME_TYPE_CANCEL_PUSH => Some(Self::CancelPush {
-                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
+                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?.into(),
                 }),
                 H3_FRAME_TYPE_SETTINGS => {
                     let mut settings = HSettings::default();
@@ -189,14 +193,14 @@ impl FrameDecoder<Self> for HFrame {
                     Some(Self::Settings { settings })
                 }
                 H3_FRAME_TYPE_PUSH_PROMISE => Some(Self::PushPromise {
-                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
+                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?.into(),
                     header_block: dec.decode_remainder().to_vec(),
                 }),
                 H3_FRAME_TYPE_GOAWAY => Some(Self::Goaway {
                     stream_id: StreamId::new(dec.decode_varint().ok_or(Error::HttpFrame)?),
                 }),
                 H3_FRAME_TYPE_MAX_PUSH_ID => Some(Self::MaxPushId {
-                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
+                    push_id: dec.decode_varint().ok_or(Error::HttpFrame)?.into(),
                 }),
                 H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST | H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH => {
                     let element_id = dec.decode_varint().ok_or(Error::HttpFrame)?;
