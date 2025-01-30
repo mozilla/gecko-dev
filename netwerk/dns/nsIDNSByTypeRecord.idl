@@ -139,4 +139,8 @@ interface nsIDNSHTTPSSVCRecord : nsISupports
                                                   in ACString aCName,
                                                   out boolean aAllRecordsHaveEchConfig,
                                                   out boolean aAllRecordsInH3ExcludedList);
+  // Only used for testing.
+  Array<nsISVCBRecord> GetAllRecords(in boolean aNoHttp2,
+                                     in boolean aNoHttp3,
+                                     in ACString aCName);
 };

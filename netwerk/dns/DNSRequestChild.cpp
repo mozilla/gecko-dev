@@ -326,6 +326,21 @@ ChildDNSByTypeRecord::GetServiceModeRecordWithCname(bool aNoHttp2,
 }
 
 NS_IMETHODIMP
+ChildDNSByTypeRecord::GetAllRecords(bool aNoHttp2, bool aNoHttp3,
+                                    const nsACString& aCname,
+                                    nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
+  if (!mResults.is<TypeRecordHTTPSSVC>()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  auto& records = mResults.as<TypeRecordHTTPSSVC>();
+  bool notused;
+  GetAllRecordsInternal(aNoHttp2, aNoHttp3, aCname, records, false, &notused,
+                        &notused, aResult);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ChildDNSByTypeRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
     bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
@@ -335,9 +350,9 @@ ChildDNSByTypeRecord::GetAllRecordsWithEchConfig(
   }
 
   auto& records = mResults.as<TypeRecordHTTPSSVC>();
-  GetAllRecordsWithEchConfigInternal(aNoHttp2, aNoHttp3, aCname, records,
-                                     aAllRecordsHaveEchConfig,
-                                     aAllRecordsInH3ExcludedList, aResult);
+  GetAllRecordsInternal(aNoHttp2, aNoHttp3, aCname, records, true,
+                        aAllRecordsHaveEchConfig, aAllRecordsInH3ExcludedList,
+                        aResult);
   return NS_OK;
 }
 

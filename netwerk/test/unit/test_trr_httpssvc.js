@@ -730,3 +730,198 @@ add_task(async function testPortPrefixedName() {
   Assert.equal(answer[0].name, "port_prefix.test1.com");
   await trrServer.stop();
 });
+
+async function doTestFlattenRecordsWithECH(host, targetName, alpn, expected) {
+  Services.dns.clearCache(true);
+
+  trrServer = new TRRServer();
+  await trrServer.start();
+
+  Services.prefs.setIntPref("network.trr.mode", 3);
+  Services.prefs.setCharPref(
+    "network.trr.uri",
+    `https://foo.example.com:${trrServer.port()}/dns-query`
+  );
+
+  await trrServer.registerDoHAnswers(host, "HTTPS", {
+    answers: [
+      {
+        name: host,
+        ttl: 55,
+        type: "HTTPS",
+        flush: false,
+        data: {
+          priority: 1,
+          name: targetName,
+          values: [
+            ...(alpn ? [{ key: "alpn", value: alpn }] : []),
+            { key: "echconfig", value: "456..." },
+          ],
+        },
+      },
+    ],
+  });
+
+  let { inRecord } = await new TRRDNSListener(host, {
+    type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+  });
+
+  let notused = {};
+  let answer = inRecord
+    .QueryInterface(Ci.nsIDNSHTTPSSVCRecord)
+    .GetAllRecordsWithEchConfig(false, false, "", notused, notused);
+
+  Assert.equal(answer.length, expected.length);
+  for (let i = 0; i < answer.length; i++) {
+    Assert.equal(answer[i].priority, expected[i].priority);
+    Assert.equal(answer[i].name, expected[i].name);
+    if (expected[i].selectedAlpn !== null) {
+      Assert.equal(answer[i].selectedAlpn, expected[i].selectedAlpn);
+    }
+  }
+
+  await trrServer.stop();
+}
+
+add_task(
+  { skip_if: () => inChildProcess() },
+  async function testFlattenRecordsWithECH() {
+    // Test when host name and targetName are the same.
+    await doTestFlattenRecordsWithECH(
+      "test.target.com",
+      "test.target.com",
+      ["h3"],
+      [
+        { priority: 1, name: "test.target.com", selectedAlpn: "h3" },
+        { priority: 1, name: "test.target.com", selectedAlpn: "" },
+      ]
+    );
+    await doTestFlattenRecordsWithECH(
+      "test.target.com",
+      ".",
+      ["h3"],
+      [
+        { priority: 1, name: "test.target.com", selectedAlpn: "h3" },
+        { priority: 1, name: "test.target.com", selectedAlpn: "" },
+      ]
+    );
+
+    // Test when host name and targetName are not the same.
+    // We add
+    await doTestFlattenRecordsWithECH(
+      "test.target.com",
+      "test.target_1.com",
+      ["h3"],
+      [
+        { priority: 1, name: "test.target_1.com", selectedAlpn: "h3" },
+        { priority: 1, name: "test.target_1.com", selectedAlpn: "" },
+      ]
+    );
+
+    // Test when alpn is empty.
+    await doTestFlattenRecordsWithECH("test.target.com", ".", null, [
+      { priority: 1, name: "test.target.com", selectedAlpn: null },
+    ]);
+    await doTestFlattenRecordsWithECH(
+      "test.target.com",
+      "test.target_1.com",
+      null,
+      [{ priority: 1, name: "test.target_1.com", selectedAlpn: null }]
+    );
+  }
+);
+
+async function doTestFlattenRecordsWithoutECH(
+  host,
+  targetName,
+  alpn,
+  expected
+) {
+  Services.dns.clearCache(true);
+
+  trrServer = new TRRServer();
+  await trrServer.start();
+
+  Services.prefs.setIntPref("network.trr.mode", 3);
+  Services.prefs.setCharPref(
+    "network.trr.uri",
+    `https://foo.example.com:${trrServer.port()}/dns-query`
+  );
+
+  await trrServer.registerDoHAnswers(host, "HTTPS", {
+    answers: [
+      {
+        name: host,
+        ttl: 55,
+        type: "HTTPS",
+        flush: false,
+        data: {
+          priority: 1,
+          name: targetName,
+          values: [...(alpn ? [{ key: "alpn", value: alpn }] : [])],
+        },
+      },
+    ],
+  });
+
+  let { inRecord } = await new TRRDNSListener(host, {
+    type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+  });
+
+  let notused = {};
+  let answer = inRecord
+    .QueryInterface(Ci.nsIDNSHTTPSSVCRecord)
+    .GetAllRecords(false, false, "", notused, notused);
+
+  Assert.equal(answer.length, expected.length);
+  for (let i = 0; i < answer.length; i++) {
+    Assert.equal(answer[i].priority, expected[i].priority);
+    Assert.equal(answer[i].name, expected[i].name);
+    if (expected[i].selectedAlpn !== null) {
+      Assert.equal(answer[i].selectedAlpn, expected[i].selectedAlpn);
+    }
+  }
+
+  await trrServer.stop();
+}
+
+add_task(
+  { skip_if: () => inChildProcess() },
+  async function testFlattenRecordsWithoutECH() {
+    // Test when host name and targetName are the same.
+    await doTestFlattenRecordsWithoutECH(
+      "test.target_noech.com",
+      "test.target_noech.com",
+      ["h3"],
+      [{ priority: 1, name: "test.target_noech.com", selectedAlpn: "h3" }]
+    );
+    await doTestFlattenRecordsWithoutECH(
+      "test.target_noech.com",
+      ".",
+      ["h3"],
+      [{ priority: 1, name: "test.target_noech.com", selectedAlpn: "h3" }]
+    );
+
+    // Test when host name and targetName are not the same.
+    await doTestFlattenRecordsWithoutECH(
+      "test.target_noech.com",
+      "test.target_noech_1.com",
+      ["h3"],
+      [
+        { priority: 1, name: "test.target_noech_1.com", selectedAlpn: "h3" },
+        { priority: 1, name: "test.target_noech_1.com", selectedAlpn: "" },
+      ]
+    );
+
+    // Test when alpn is empty.
+    await doTestFlattenRecordsWithoutECH("test.target_noech.com", ".", null, [
+      { priority: 1, name: "test.target_noech.com", selectedAlpn: null },
+    ]);
+    await doTestFlattenRecordsWithoutECH(
+      "test.target_noech.com",
+      "test.target_noech_1.com",
+      null,
+      [{ priority: 1, name: "test.target_noech_1.com", selectedAlpn: null }]
+    );
+  }
+);

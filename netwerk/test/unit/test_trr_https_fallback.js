@@ -816,6 +816,7 @@ add_task(async function testHttp3ExcludedList() {
           name: "www.h3_fail.org",
           values: [
             { key: "alpn", value: "h3" },
+            { key: "no-default-alpn" },
             { key: "port", value: h3Port },
           ],
         },
@@ -921,6 +922,7 @@ add_task(async function testAllRecordsInHttp3ExcludedList() {
             name: "www.h3_fail1.org",
             values: [
               { key: "alpn", value: "h3" },
+              { key: "no-default-alpn" },
               { key: "port", value: h3Port },
               { key: "echconfig", value: "456..." },
             ],

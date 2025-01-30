@@ -214,13 +214,18 @@ class AlpnComparator {
   }
 };
 
-nsTArray<std::tuple<nsCString, SupportedAlpnRank>> SVCB::GetAllAlpn() const {
+nsTArray<std::tuple<nsCString, SupportedAlpnRank>> SVCB::GetAllAlpn(
+    bool& aHasNoDefaultAlpn) const {
+  aHasNoDefaultAlpn = false;
   nsTArray<std::tuple<nsCString, SupportedAlpnRank>> alpnList;
   for (const auto& value : mSvcFieldValue) {
     if (value.mValue.is<SvcParamAlpn>()) {
       for (const auto& alpn : value.mValue.as<SvcParamAlpn>().mValue) {
         alpnList.AppendElement(std::make_tuple(alpn, IsAlpnSupported(alpn)));
       }
+    } else if (value.mValue.is<SvcParamKeyNoDefaultAlpn>()) {
+      // Found "no-default-alpn".
+      aHasNoDefaultAlpn = true;
     }
   }
   alpnList.Sort(AlpnComparator());
@@ -342,17 +347,41 @@ static bool CheckAlpnIsUsable(SupportedAlpnRank aAlpnType, bool aNoHttp2,
   return true;
 }
 
-static nsTArray<SVCBWrapper> FlattenRecords(const nsTArray<SVCB>& aRecords) {
+static nsTArray<SVCBWrapper> FlattenRecords(const nsACString& aHost,
+                                            const nsTArray<SVCB>& aRecords,
+                                            uint32_t& aH3RecordCount) {
   nsTArray<SVCBWrapper> result;
+  aH3RecordCount = 0;
   for (const auto& record : aRecords) {
+    bool hasNoDefaultAlpn = false;
     nsTArray<std::tuple<nsCString, SupportedAlpnRank>> alpnList =
-        record.GetAllAlpn();
+        record.GetAllAlpn(hasNoDefaultAlpn);
     if (alpnList.IsEmpty()) {
       result.AppendElement(SVCBWrapper(record));
     } else {
+      if (!hasNoDefaultAlpn) {
+        // Consider two scenarios when "no-default-alpn" is not found:
+        // 1. If echConfig is present in the record:
+        //    - Firefox should always attempt to connect using echConfig without
+        //    fallback.
+        //    - Therefore, we add an additional record with an empty ALPN to
+        //    allow Firefox to retry using HTTP/1.1 or h2 with echConfig.
+        //
+        // 2. If echConfig is not present in the record::
+        //    - We allow fallback to connections that do not use HTTPS RR.
+        //    - In this case, adding another record with the same target name as
+        //    the host name is unnecessary.
+        if (!aHost.Equals(record.mSvcDomainName) || record.mHasEchConfig) {
+          alpnList.AppendElement(
+              std::make_tuple(""_ns, SupportedAlpnRank::HTTP_1_1));
+        }
+      }
       for (const auto& alpn : alpnList) {
         SVCBWrapper wrapper(record);
         wrapper.mAlpn = Some(alpn);
+        if (IsHttp3(std::get<1>(alpn))) {
+          aH3RecordCount++;
+        }
         result.AppendElement(wrapper);
       }
     }
@@ -379,8 +408,9 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   aRecordsAllExcluded = false;
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
   uint32_t h3ExcludedCount = 0;
-
-  nsTArray<SVCBWrapper> records = FlattenRecords(aRecords);
+  uint32_t h3RecordCount = 0;
+  nsTArray<SVCBWrapper> records =
+      FlattenRecords(mHost, aRecords, h3RecordCount);
   for (const auto& record : records) {
     if (record.mRecord.mSvcFieldPriority == 0) {
       // In ServiceMode, the SvcPriority should never be 0.
@@ -454,7 +484,8 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
 
     // If all records are in http3 excluded list, try again without checking the
     // excluded list. This is better than returning nothing.
-    if (h3ExcludedCount == records.Length() && aCheckHttp3ExcludedList) {
+    if (h3ExcludedCount && h3ExcludedCount == h3RecordCount &&
+        aCheckHttp3ExcludedList) {
       return GetServiceModeRecordInternal(aNoHttp2, aNoHttp3, aRecords,
                                           aRecordsAllExcluded, false, aCname);
     }
@@ -477,11 +508,11 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   return selectedRecord.forget();
 }
 
-void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
+void DNSHTTPSSVCRecordBase::GetAllRecordsInternal(
     bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
-    const nsTArray<SVCB>& aRecords, bool* aAllRecordsHaveEchConfig,
-    bool* aAllRecordsInH3ExcludedList, nsTArray<RefPtr<nsISVCBRecord>>& aResult,
-    bool aCheckHttp3ExcludedList) {
+    const nsTArray<SVCB>& aRecords, bool aOnlyRecordsWithECH,
+    bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
+    nsTArray<RefPtr<nsISVCBRecord>>& aResult, bool aCheckHttp3ExcludedList) {
   if (aRecords.IsEmpty()) {
     return;
   }
@@ -489,15 +520,17 @@ void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
   *aAllRecordsHaveEchConfig = aRecords[0].mHasEchConfig;
   *aAllRecordsInH3ExcludedList = false;
   // The first record should have echConfig.
-  if (!(*aAllRecordsHaveEchConfig)) {
+  if (aOnlyRecordsWithECH && !(*aAllRecordsHaveEchConfig)) {
     return;
   }
 
   uint32_t h3ExcludedCount = 0;
-  nsTArray<SVCBWrapper> records = FlattenRecords(aRecords);
+  uint32_t h3RecordCount = 0;
+  nsTArray<SVCBWrapper> records =
+      FlattenRecords(mHost, aRecords, h3RecordCount);
   for (const auto& record : records) {
     if (record.mRecord.mSvcFieldPriority == 0) {
-      // This should not happen, since GetAllRecordsWithEchConfigInternal()
+      // This should not happen, since GetAllRecordsInternal()
       // should be called only if GetServiceModeRecordInternal() returns a
       // non-null record.
       MOZ_ASSERT(false);
@@ -507,7 +540,7 @@ void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
     // Records with echConfig are in front of records without echConfig, so we
     // don't have to continue.
     *aAllRecordsHaveEchConfig &= record.mRecord.mHasEchConfig;
-    if (!(*aAllRecordsHaveEchConfig)) {
+    if (aOnlyRecordsWithECH && !(*aAllRecordsHaveEchConfig)) {
       aResult.Clear();
       return;
     }
@@ -537,10 +570,11 @@ void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
 
   // If all records are in http3 excluded list, try again without checking the
   // excluded list. This is better than returning nothing.
-  if (h3ExcludedCount == records.Length() && aCheckHttp3ExcludedList) {
-    GetAllRecordsWithEchConfigInternal(
-        aNoHttp2, aNoHttp3, aCname, aRecords, aAllRecordsHaveEchConfig,
-        aAllRecordsInH3ExcludedList, aResult, false);
+  if (h3ExcludedCount && h3ExcludedCount == h3RecordCount &&
+      aCheckHttp3ExcludedList) {
+    GetAllRecordsInternal(aNoHttp2, aNoHttp3, aCname, aRecords,
+                          aOnlyRecordsWithECH, aAllRecordsHaveEchConfig,
+                          aAllRecordsInH3ExcludedList, aResult, false);
     *aAllRecordsInH3ExcludedList = true;
   }
 }

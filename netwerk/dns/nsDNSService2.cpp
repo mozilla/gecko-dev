@@ -427,6 +427,13 @@ NS_IMETHODIMP
 nsDNSByTypeRecord::IsTRR(bool* aResult) { return mHostRecord->IsTRR(aResult); }
 
 NS_IMETHODIMP
+nsDNSByTypeRecord::GetAllRecords(bool aNoHttp2, bool aNoHttp3,
+                                 const nsACString& aCname,
+                                 nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
+  return mHostRecord->GetAllRecords(aNoHttp2, aNoHttp3, aCname, aResult);
+}
+
+NS_IMETHODIMP
 nsDNSByTypeRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
     bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,

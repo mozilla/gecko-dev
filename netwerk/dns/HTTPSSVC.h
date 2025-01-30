@@ -100,7 +100,8 @@ struct SVCB {
   Maybe<uint16_t> GetPort() const;
   bool NoDefaultAlpn() const;
   void GetIPHints(CopyableTArray<mozilla::net::NetAddr>& aAddresses) const;
-  nsTArray<std::tuple<nsCString, SupportedAlpnRank>> GetAllAlpn() const;
+  nsTArray<std::tuple<nsCString, SupportedAlpnRank>> GetAllAlpn(
+      bool& aHasNoDefaultAlpn) const;
   uint16_t mSvcFieldPriority = 0;
   nsCString mSvcDomainName;
   nsCString mEchConfig;
@@ -149,12 +150,14 @@ class DNSHTTPSSVCRecordBase {
 
   bool HasIPAddressesInternal(const nsTArray<SVCB>& aRecords);
 
-  void GetAllRecordsWithEchConfigInternal(
-      bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
-      const nsTArray<SVCB>& aRecords, bool* aAllRecordsHaveEchConfig,
-      bool* aAllRecordsInH3ExcludedList,
-      nsTArray<RefPtr<nsISVCBRecord>>& aResult,
-      bool aCheckHttp3ExcludedList = true);
+  void GetAllRecordsInternal(bool aNoHttp2, bool aNoHttp3,
+                             const nsACString& aCname,
+                             const nsTArray<SVCB>& aRecords,
+                             bool aOnlyRecordsWithECH,
+                             bool* aAllRecordsHaveEchConfig,
+                             bool* aAllRecordsInH3ExcludedList,
+                             nsTArray<RefPtr<nsISVCBRecord>>& aResult,
+                             bool aCheckHttp3ExcludedList = true);
 
   // The owner name of this HTTPS RR.
   nsCString mHost;
