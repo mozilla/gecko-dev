@@ -331,35 +331,6 @@ class LWasmCompareExchangeI64
   const LAllocation* memoryBase() { return getOperand(1 + 2 * INT64_PIECES); }
 };
 
-class LWasmAtomicBinopI64
-    : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 2> {
-  const wasm::MemoryAccessDesc& access_;
-  AtomicOp op_;
-
- public:
-  LIR_HEADER(WasmAtomicBinopI64);
-
-  LWasmAtomicBinopI64(const LAllocation& ptr, const LInt64Allocation& value,
-                      const LAllocation& memoryBase, const LDefinition& tmpLow,
-                      const LDefinition& tmpHigh,
-                      const wasm::MemoryAccessDesc& access, AtomicOp op)
-      : LInstructionHelper(classOpcode), access_(access), op_(op) {
-    setOperand(0, ptr);
-    setInt64Operand(1, value);
-    setOperand(3, memoryBase);
-    setTemp(0, tmpLow);
-    setTemp(1, tmpHigh);
-  }
-
-  const LAllocation* ptr() { return getOperand(0); }
-  LInt64Allocation value() { return getInt64Operand(1); }
-  const LAllocation* memoryBase() { return getOperand(3); }
-  const wasm::MemoryAccessDesc& access() { return access_; }
-  AtomicOp operation() const { return op_; }
-  const LDefinition* tmpLow() { return getTemp(0); }
-  const LDefinition* tmpHigh() { return getTemp(1); }
-};
-
 class LWasmAtomicExchangeI64
     : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 0> {
   const wasm::MemoryAccessDesc& access_;

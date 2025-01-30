@@ -4965,7 +4965,14 @@
   gen_boilerplate: false
 
 - name: WasmAtomicBinopI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    memoryBase: WordSized
+    ptr: WordSized
+    value: Int64
+  arguments:
+    access: const wasm::MemoryAccessDesc&
+    operation: AtomicOp
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false
@@ -5056,7 +5063,15 @@
   gen_boilerplate: false
 
 - name: WasmAtomicBinopI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    value: Int64
+    memoryBase: WordSized
+  arguments:
+    access: const wasm::MemoryAccessDesc&
+    operation: AtomicOp
+  num_temps64: 1
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false
@@ -5148,7 +5163,13 @@
   gen_boilerplate: false
 
 - name: WasmAtomicBinopI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    value: Int64
+    memoryBase: WordSized
+  num_temps64: 1
+  mir_op: WasmAtomicBinopHeap
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false
@@ -5195,7 +5216,13 @@
   gen_boilerplate: false
 
 - name: WasmAtomicBinopI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    value: Int64
+    memoryBase: WordSized
+  num_temps64: 1
+  mir_op: WasmAtomicBinopHeap
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false
@@ -5230,7 +5257,13 @@
   gen_boilerplate: false
 
 - name: WasmAtomicBinopI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    value: Int64
+    memoryBase: WordSized
+  num_temps64: 1
+  mir_op: WasmAtomicBinopHeap
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false

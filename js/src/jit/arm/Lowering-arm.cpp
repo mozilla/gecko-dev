@@ -1041,7 +1041,7 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   if (ins->access().type() == Scalar::Int64) {
     auto* lir = new (alloc()) LWasmAtomicBinopI64(
         useRegister(ins->base()), useInt64Fixed(ins->value(), FetchOpVal64),
-        memoryBase, tempFixed(FetchOpTmpLo), tempFixed(FetchOpTmpHi),
+        memoryBase, tempInt64Fixed(Register64(FetchOpTmpHi, FetchOpTmpLo)),
         ins->access(), ins->operation());
     defineInt64Fixed(lir, ins,
                      LInt64Allocation(LAllocation(AnyRegister(FetchOpOutHi)),

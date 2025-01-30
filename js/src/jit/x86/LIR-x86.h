@@ -238,30 +238,6 @@ class LWasmAtomicExchangeI64
   const wasm::MemoryAccessDesc& access() { return access_; }
 };
 
-class LWasmAtomicBinopI64
-    : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 0> {
-  const wasm::MemoryAccessDesc& access_;
-  AtomicOp op_;
-
- public:
-  LIR_HEADER(WasmAtomicBinopI64);
-
-  LWasmAtomicBinopI64(const LAllocation& memoryBase, const LAllocation& ptr,
-                      const LInt64Allocation& value,
-                      const wasm::MemoryAccessDesc& access, AtomicOp op)
-      : LInstructionHelper(classOpcode), access_(access), op_(op) {
-    setOperand(0, memoryBase);
-    setOperand(1, ptr);
-    setInt64Operand(2, value);
-  }
-
-  const LAllocation* memoryBase() { return getOperand(0); }
-  const LAllocation* ptr() { return getOperand(1); }
-  LInt64Allocation value() { return getInt64Operand(2); }
-  const wasm::MemoryAccessDesc& access() { return access_; }
-  AtomicOp operation() const { return op_; }
-};
-
 }  // namespace jit
 }  // namespace js
 

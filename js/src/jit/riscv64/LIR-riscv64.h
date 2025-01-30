@@ -179,27 +179,6 @@ class LWasmAtomicExchangeI64
   }
 };
 
-class LWasmAtomicBinopI64
-    : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 2> {
- public:
-  LIR_HEADER(WasmAtomicBinopI64);
-
-  LWasmAtomicBinopI64(const LAllocation& ptr, const LInt64Allocation& value,
-                      const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setInt64Operand(1, value);
-    setOperand(1 + INT64_PIECES, memoryBase);
-  }
-
-  const LAllocation* ptr() { return getOperand(0); }
-  LInt64Allocation value() { return getInt64Operand(1); }
-  const LAllocation* memoryBase() { return getOperand(1 + INT64_PIECES); }
-  const MWasmAtomicBinopHeap* mir() const {
-    return mir_->toWasmAtomicBinopHeap();
-  }
-};
-
 class LDivOrModI64 : public LBinaryMath<1> {
  public:
   LIR_HEADER(DivOrModI64)

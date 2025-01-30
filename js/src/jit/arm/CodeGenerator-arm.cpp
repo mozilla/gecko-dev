@@ -2674,7 +2674,7 @@ void CodeGenerator::visitWasmAtomicBinopI64(LWasmAtomicBinopI64* lir) {
   Register64 out = ToOutRegister64(lir);
 
   BaseIndex addr(memoryBase, ptr, TimesOne, lir->access().offset32());
-  Register64 tmp(ToRegister(lir->tmpHigh()), ToRegister(lir->tmpLow()));
+  Register64 tmp = ToRegister64(lir->temp0());
   masm.wasmAtomicFetchOp64(lir->access(), lir->operation(), value, addr, tmp,
                            out);
 }
