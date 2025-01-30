@@ -122,21 +122,6 @@ class LUDivOrModI64 : public LBinaryMath<1> {
   }
 };
 
-class LWasmTruncateToInt64 : public LInstructionHelper<1, 1, 1> {
- public:
-  LIR_HEADER(WasmTruncateToInt64);
-
-  LWasmTruncateToInt64(const LAllocation& in, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, in);
-    setTemp(0, temp);
-  }
-
-  MWasmTruncateToInt64* mir() const { return mir_->toWasmTruncateToInt64(); }
-
-  const LDefinition* temp() { return getTemp(0); }
-};
-
 }  // namespace jit
 }  // namespace js
 

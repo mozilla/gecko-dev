@@ -139,18 +139,6 @@ class LUDivOrModI64
   }
 };
 
-class LWasmTruncateToInt64 : public LCallInstructionHelper<INT64_PIECES, 1, 0> {
- public:
-  LIR_HEADER(WasmTruncateToInt64);
-
-  explicit LWasmTruncateToInt64(const LAllocation& in)
-      : LCallInstructionHelper(classOpcode) {
-    setOperand(0, in);
-  }
-
-  MWasmTruncateToInt64* mir() const { return mir_->toWasmTruncateToInt64(); }
-};
-
 class LWasmAtomicLoadI64 : public LInstructionHelper<INT64_PIECES, 1, 0> {
  public:
   LIR_HEADER(WasmAtomicLoadI64);

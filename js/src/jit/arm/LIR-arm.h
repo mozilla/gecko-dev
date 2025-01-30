@@ -267,27 +267,6 @@ class LSoftUDivOrMod : public LBinaryCallInstructionHelper<1, 0> {
   MInstruction* mir() { return mir_->toInstruction(); }
 };
 
-class LWasmTruncateToInt64 : public LCallInstructionHelper<INT64_PIECES, 2, 0> {
-  static const size_t Input = 0;
-  static const size_t Instance = 1;
-
- public:
-  LIR_HEADER(WasmTruncateToInt64);
-
-  LWasmTruncateToInt64(const LAllocation& in, const LAllocation& instance)
-      : LCallInstructionHelper(classOpcode) {
-    setOperand(Input, in);
-    setOperand(Instance, instance);
-  }
-
-  LAllocation* input() { return getOperand(Input); }
-  LAllocation* instance() { return getOperand(Instance); }
-
-  MWasmBuiltinTruncateToInt64* mir() const {
-    return mir_->toWasmBuiltinTruncateToInt64();
-  }
-};
-
 class LWasmAtomicLoadI64 : public LInstructionHelper<INT64_PIECES, 2, 0> {
  public:
   LIR_HEADER(WasmAtomicLoadI64);

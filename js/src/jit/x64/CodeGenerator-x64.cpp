@@ -897,7 +897,7 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   addOutOfLineCode(ool, mir);
 
   FloatRegister temp =
-      mir->isUnsigned() ? ToFloatRegister(lir->temp()) : InvalidFloatReg;
+      mir->isUnsigned() ? ToFloatRegister(lir->temp0()) : InvalidFloatReg;
 
   Label* oolEntry = ool->entry();
   Label* oolRejoin = ool->rejoin();

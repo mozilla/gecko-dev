@@ -4942,7 +4942,11 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -4984,7 +4988,11 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -5031,7 +5039,12 @@
   mir_op: BuiltinInt64ToFloatingPoint
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+    instance: WordSized
+  call_instruction: true
+  mir_op: WasmBuiltinTruncateToInt64
 
 - name: WasmAtomicLoadI64
   gen_boilerplate: false
@@ -5072,7 +5085,10 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -5098,7 +5114,10 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -5149,7 +5168,10 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -5193,7 +5215,10 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized
@@ -5225,7 +5250,10 @@
   gen_boilerplate: false
 
 - name: WasmTruncateToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: WordSized
+  mir_op: true
 
 - name: Int64ToFloatingPoint
   result_type: WordSized

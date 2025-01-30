@@ -1123,7 +1123,7 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   Register64 output = ToOutRegister64(lir);
 
   MWasmTruncateToInt64* mir = lir->mir();
-  FloatRegister floatTemp = ToFloatRegister(lir->temp());
+  FloatRegister floatTemp = ToFloatRegister(lir->temp0());
 
   Label fail, convert;
 
