@@ -289,7 +289,7 @@ grcov:
     fetch:
         type: git
         repo: https://github.com/mozilla/grcov
-        revision: 322fc39acacd75aca0ff1c0a1ec2a3e91f04011c
+        revision: 00099a73329b139949072254e83e8598ab88cbc2
 
 sccache:
     description: sccache source code
