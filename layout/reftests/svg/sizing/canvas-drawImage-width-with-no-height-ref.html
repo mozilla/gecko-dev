@@ -8,12 +8,12 @@
 </style>
 <body>
   <script>
-    let viewBoxes = [null, "0 0 50 50", "0 0 50 20"];
+    let viewBoxesAndHeights = [{viewBox: null, height: "150px"}, {viewBox: "0 0 50 50", height: "200px"}, {viewBox: "0 0 50 20", height: "80px"}];
     let promises = [];
-    for (viewBox of viewBoxes) {
-      // Without a given width or height the svg should be sized as if a width
-      // of 300px and height of 150px were given.
-      promises.push(generateCanvasDrawImageSVG("350", "200", "200px", "150px", viewBox));
+    for (viewBoxAndHeight of viewBoxesAndHeights) {
+      // Without a given height the viewBox should be used to determine an aspect
+      // ratio and that applied to the width gives the height.
+      promises.push(generateCanvasDrawImageSVG("350", "200", "200px", viewBoxAndHeight.height, viewBoxAndHeight.viewBox));
     }
     Promise.all(promises).then(() => { document.documentElement.className = "" });
   </script>
