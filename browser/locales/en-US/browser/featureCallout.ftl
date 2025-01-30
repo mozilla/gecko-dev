@@ -75,6 +75,7 @@ split-dismiss-button-manage-settings-option-label = Manage settings
 
 sidebar-button-callout-title = Show tab titles in the sidebar
 sidebar-button-callout-subtitle = Use the sidebar button to expand the sidebar, so you can see tab titles.
+sidebar-button-callout-vertical-tabs = To show your tabs, select the sidebar button in the toolbar.
 
 ## Sidebar Callout Survey Strings
 
