@@ -45,6 +45,7 @@ support-files = [
   "doc_inactive_css_xul.xhtml",
   "doc_layer_edit.css",
   "head.js",
+  "ostrich-regular.ttf",
   "sjs_imported_stylesheet_edit.sjs",
   "square_svg.sjs",
   "!/devtools/client/inspector/test/head.js",

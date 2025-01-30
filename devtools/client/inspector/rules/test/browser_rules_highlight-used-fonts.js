@@ -7,6 +7,12 @@
 
 const TEST_URI = `
   <style type="text/css">
+    @font-face {
+      font-family: ostrich;
+      font-weight: normal;
+      src: url(${URL_ROOT_COM_SSL}ostrich-regular.ttf);
+    }
+
     #id1 {
       font-family: foo, bar, sans-serif;
     }
@@ -32,8 +38,15 @@ const TEST_URI = `
       font-family: important;
     }
     #id9::before {
-      content: ' ';
+      content: 'before';
       font-family: foo, monospace;
+    }
+    #id10::before {
+      content: ' ';
+      font-family: monospace;
+    }
+    #id11 {
+      font-family: ostrich, system-ui, monospace;
     }
   </style>
   <div id="id1">Text</div>
@@ -45,6 +58,8 @@ const TEST_URI = `
   <div id="id7">Text</div>
   <div id="id8">Text</div>
   <div id="id9">Text</div>
+  <div id="id10">Text</div>
+  <div id="id11">Hello Wörld</div>
 `;
 
 // Tests that font-family properties in the rule-view correctly
@@ -62,10 +77,13 @@ const TESTS = [
   { baseSelector: "#id2", nb: 1, used: [0] }, // serif
   { baseSelector: "#id3", nb: 4, used: [1] }, // monospace
   { baseSelector: "#id4", nb: 2, used: null },
-  { baseSelector: "#id5", nb: 1, used: [0] }, // monospace
+  { baseSelector: "#id5", nb: 1, used: null }, // "monospace" (quotted) isn't a known font
   { baseSelector: "#id7", nb: 2, used: [1] }, // serif
   { baseSelector: "#id8", nb: 1, used: null },
   { baseSelector: "#id9", nb: 2, used: [1], selectBeforePseudoElement: true }, // monospace
+  // content only has spaces and `white-space` is not set, so no character are being rendered
+  { baseSelector: "#id10", nb: 1, used: null, selectBeforePseudoElement: true },
+  { baseSelector: "#id11", nb: 3, used: [0, 1] }, // ostrich, system-ui
 ];
 
 if (Services.appinfo.OS !== "Linux") {
@@ -76,7 +94,10 @@ if (Services.appinfo.OS !== "Linux") {
 }
 
 add_task(async function () {
-  await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
+  await addTab(
+    "https://example.com/document-builder.sjs?html=" +
+      encodeURIComponent(TEST_URI)
+  );
   const { inspector, view } = await openRuleView();
 
   for (const { baseSelector, nb, used, selectBeforePseudoElement } of TESTS) {
@@ -111,13 +132,17 @@ add_task(async function () {
     is(
       highlighted.length,
       expectedHighlightedNb,
-      "Correct number of used fonts found"
+      `Correct number of used fonts found for <${selector}>`
     );
 
     let highlightedIndex = 0;
     [...fonts].forEach((font, index) => {
       if (font === highlighted[highlightedIndex]) {
-        is(index, used[highlightedIndex], "The right font is highlighted");
+        is(
+          index,
+          used[highlightedIndex],
+          `"${font.innerText}" is marked as used for <${selector}>`
+        );
         highlightedIndex++;
       }
     });

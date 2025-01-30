@@ -88,21 +88,6 @@ const DRAGGING_DEADZONE_DISTANCE = 5;
 const DRAGGABLE_VALUE_CLASSNAME = "ruleview-propertyvalue-draggable";
 const IS_DRAGGING_CLASSNAME = "ruleview-propertyvalue-dragging";
 
-// In order to highlight the used fonts in font-family properties, we
-// retrieve the list of used fonts from the server. That always
-// returns the actually used font family name(s). If the property's
-// authored value is sans-serif for instance, the used font might be
-// arial instead.  So we need the list of all generic font family
-// names to underline those when we find them.
-const GENERIC_FONT_FAMILIES = [
-  "serif",
-  "sans-serif",
-  "cursive",
-  "fantasy",
-  "monospace",
-  "system-ui",
-];
-
 /**
  * TextPropertyEditor is responsible for the following:
  *   Owns a TextProperty object.
@@ -665,28 +650,14 @@ TextPropertyEditor.prototype = {
       this.rule.elementStyle
         .getUsedFontFamilies()
         .then(families => {
-          const usedFontFamilies = families.map(font => font.toLowerCase());
-          let foundMatchingFamily = false;
-          let firstGenericSpan = null;
-
           for (const span of fontFamilySpans) {
             const authoredFont = span.textContent.toLowerCase();
-
-            if (
-              !firstGenericSpan &&
-              GENERIC_FONT_FAMILIES.includes(authoredFont)
-            ) {
-              firstGenericSpan = span;
-            }
-
-            if (usedFontFamilies.includes(authoredFont)) {
+            if (families.has(authoredFont)) {
               span.classList.add("used-font");
-              foundMatchingFamily = true;
+              // In case a font-family appears multiple time in the value, we only want
+              // to highlight the first occurence.
+              families.delete(authoredFont);
             }
-          }
-
-          if (!foundMatchingFamily && firstGenericSpan) {
-            firstGenericSpan.classList.add("used-font");
           }
 
           this.ruleView.emit("font-highlighted", this.valueSpan);
