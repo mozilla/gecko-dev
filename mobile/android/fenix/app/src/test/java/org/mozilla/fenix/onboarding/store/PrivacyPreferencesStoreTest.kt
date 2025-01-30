@@ -24,6 +24,8 @@ class PrivacyPreferencesStoreTest {
         assertEquals(state, store.state)
         assertFalse(state.crashReportingEnabled)
         assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
     }
 
     @Test
@@ -51,6 +53,30 @@ class PrivacyPreferencesStoreTest {
     }
 
     @Test
+    fun `WHEN the crash reporting checked action is dispatched THEN the state is updated to match`() {
+        val store = PrivacyPreferencesStore(initialState = PrivacyPreferencesState())
+        assertFalse(store.state.crashReportingChecked)
+
+        safeDispatch(store, PrivacyPreferencesAction.CrashReportingChecked(true))
+        assertTrue(store.state.crashReportingChecked)
+
+        safeDispatch(store, PrivacyPreferencesAction.CrashReportingChecked(false))
+        assertFalse(store.state.crashReportingChecked)
+    }
+
+    @Test
+    fun `WHEN the usage data checked action is dispatched THEN the state is updated to match`() {
+        val store = PrivacyPreferencesStore(initialState = PrivacyPreferencesState())
+        assertTrue(store.state.usageDataChecked)
+
+        safeDispatch(store, PrivacyPreferencesAction.UsageDataUserChecked(false))
+        assertFalse(store.state.usageDataChecked)
+
+        safeDispatch(store, PrivacyPreferencesAction.UsageDataUserChecked(true))
+        assertTrue(store.state.usageDataChecked)
+    }
+
+    @Test
     fun `WHEN the usage data learn more action is dispatched THEN the state is unchanged`() {
         val state = PrivacyPreferencesState()
         val store = PrivacyPreferencesStore(initialState = state)
@@ -58,12 +84,16 @@ class PrivacyPreferencesStoreTest {
         assertEquals(state, store.state)
         assertFalse(state.crashReportingEnabled)
         assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
 
         safeDispatch(store, PrivacyPreferencesAction.UsageDataUserLearnMore)
 
         assertEquals(state, store.state)
         assertFalse(state.crashReportingEnabled)
         assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
     }
 
     @Test
@@ -74,12 +104,16 @@ class PrivacyPreferencesStoreTest {
         assertEquals(state, store.state)
         assertFalse(state.crashReportingEnabled)
         assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
 
         safeDispatch(store, PrivacyPreferencesAction.CrashReportingLearnMore)
 
         assertEquals(state, store.state)
         assertFalse(state.crashReportingEnabled)
         assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
     }
 }
 

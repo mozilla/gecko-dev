@@ -14,10 +14,14 @@ import mozilla.components.lib.state.UiStore
  *
  * @property crashReportingEnabled Whether automatic crash reporting is enabled.
  * @property usageDataEnabled Whether usage data collection is enabled.
+ * @property crashReportingChecked Whether the crash reporting option is checked.
+ * @property usageDataChecked Whether the usage data option is checked.
  */
 data class PrivacyPreferencesState(
     val crashReportingEnabled: Boolean = false,
     val usageDataEnabled: Boolean = true,
+    val crashReportingChecked: Boolean = crashReportingEnabled,
+    val usageDataChecked: Boolean = usageDataEnabled,
 ) : State
 
 /**
@@ -42,6 +46,20 @@ sealed class PrivacyPreferencesAction : Action {
      * @property enabled Flag to indicate whether the usage data option is enabled.
      */
     data class UsageDataPreferenceUpdatedTo(val enabled: Boolean) : PrivacyPreferencesAction()
+
+    /**
+     * [PrivacyPreferencesAction] to update the checked state of the crash reporting option.
+     *
+     * @property checked Flag to indicate whether the option is checked.
+     */
+    data class CrashReportingChecked(val checked: Boolean) : PrivacyPreferencesAction()
+
+    /**
+     * [PrivacyPreferencesAction] to update the checked state of the usage data option.
+     *
+     * @property checked Flag to indicate whether the option is checked.
+     */
+    data class UsageDataUserChecked(val checked: Boolean) : PrivacyPreferencesAction()
 
     /**
      * [PrivacyPreferencesAction] indicates the crash reporting option "learn more" link was used.
@@ -69,10 +87,19 @@ internal object PrivacyPreferencesReducer {
             -> state
 
             is PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo ->
-                state.copy(crashReportingEnabled = action.enabled)
+                state.copy(
+                    crashReportingEnabled = action.enabled,
+                    crashReportingChecked = action.enabled,
+                )
 
             is PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo ->
-                state.copy(usageDataEnabled = action.enabled)
+                state.copy(usageDataEnabled = action.enabled, usageDataChecked = action.enabled)
+
+            is PrivacyPreferencesAction.CrashReportingChecked ->
+                state.copy(crashReportingChecked = action.checked)
+
+            is PrivacyPreferencesAction.UsageDataUserChecked ->
+                state.copy(usageDataChecked = action.checked)
         }
     }
 }
