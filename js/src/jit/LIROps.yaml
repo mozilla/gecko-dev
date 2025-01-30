@@ -4956,7 +4956,12 @@
   mir_op: true
 
 - name: WasmAtomicLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    memoryBase: WordSized
+    ptr: WordSized
+  num_temps64: 1
+  mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
   gen_boilerplate: false
@@ -5066,7 +5071,11 @@
   mir_op: WasmBuiltinTruncateToInt64
 
 - name: WasmAtomicLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+  mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
   gen_boilerplate: false
@@ -5178,7 +5187,10 @@
   gen_boilerplate: false
 
 - name: WasmAtomicLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+  mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
   gen_boilerplate: false

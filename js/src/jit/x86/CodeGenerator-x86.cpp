@@ -438,10 +438,8 @@ void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* ins) {
   const LAllocation* ptr = ins->ptr();
   BaseIndex srcAddr(ToRegister(memoryBase), ToRegister(ptr), TimesOne, offset);
 
-  MOZ_ASSERT(ToRegister(ins->t1()) == ecx);
-  MOZ_ASSERT(ToRegister(ins->t2()) == ebx);
-  MOZ_ASSERT(ToOutRegister64(ins).high == edx);
-  MOZ_ASSERT(ToOutRegister64(ins).low == eax);
+  MOZ_ASSERT(ToRegister64(ins->temp0()) == Register64(ecx, ebx));
+  MOZ_ASSERT(ToOutRegister64(ins) == Register64(edx, eax));
 
   masm.wasmAtomicLoad64(ins->mir()->access(), srcAddr, Register64(ecx, ebx),
                         Register64(edx, eax));
