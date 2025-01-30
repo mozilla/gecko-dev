@@ -475,7 +475,7 @@ void CodeGenerator::visitDivPowTwoI(LDivPowTwoI* ins) {
 void CodeGenerator::visitDivConstantI(LDivConstantI* ins) {
   const ARMRegister lhs32 = toWRegister(ins->numerator());
   const ARMRegister lhs64 = toXRegister(ins->numerator());
-  const ARMRegister const32 = toWRegister(ins->temp());
+  const ARMRegister const32 = toWRegister(ins->temp0());
   const ARMRegister output32 = toWRegister(ins->output());
   const ARMRegister output64 = toXRegister(ins->output());
   int32_t d = ins->denominator();
@@ -514,7 +514,7 @@ void CodeGenerator::visitDivConstantI(LDivConstantI* ins) {
 
   // We'll subtract -1 instead of adding 1, because (n < 0 ? -1 : 0) can be
   // computed with just a sign-extending shift of 31 bits.
-  if (ins->canBeNegativeDividend()) {
+  if (ins->mir()->canBeNegativeDividend()) {
     masm.Asr(const32, lhs32, 31);
     masm.Sub(output32, output32, const32);
   }
@@ -552,7 +552,7 @@ void CodeGenerator::visitDivConstantI(LDivConstantI* ins) {
 void CodeGenerator::visitUDivConstantI(LUDivConstantI* ins) {
   const ARMRegister lhs32 = toWRegister(ins->numerator());
   const ARMRegister lhs64 = toXRegister(ins->numerator());
-  const ARMRegister const32 = toWRegister(ins->temp());
+  const ARMRegister const32 = toWRegister(ins->temp0());
   const ARMRegister output32 = toWRegister(ins->output());
   const ARMRegister output64 = toXRegister(ins->output());
   uint32_t d = ins->denominator();
@@ -1649,7 +1649,7 @@ void CodeGenerator::visitUDiv(LUDiv* ins) {
 
   // If the remainder is > 0, bailout since this must be a double.
   if (!mir->canTruncateRemainder()) {
-    Register remainder = ToRegister(ins->remainder());
+    Register remainder = ToRegister(ins->temp0());
     ARMRegister remainder32 = ARMRegister(remainder, 32);
 
     // Compute the remainder: remainder = lhs - (output * rhs).

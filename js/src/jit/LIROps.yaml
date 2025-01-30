@@ -5134,10 +5134,22 @@
   gen_boilerplate: false
 
 - name: DivConstantI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    numerator: WordSized
+  arguments:
+    denominator: int32_t
+  num_temps: 1
+  mir_op: Div
 
 - name: UDivConstantI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    numerator: WordSized
+  arguments:
+    denominator: int32_t
+  num_temps: 1
+  mir_op: Div
 
 - name: ModMaskI
   result_type: WordSized
@@ -5149,10 +5161,19 @@
   mir_op: Mod
 
 - name: UDiv
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 1
+  mir_op: Div
 
 - name: UMod
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: Mod
 
 - name: WasmTruncateToInt64
   result_type: Int64

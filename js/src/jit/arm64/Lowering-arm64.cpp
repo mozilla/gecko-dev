@@ -249,7 +249,7 @@ void LIRGeneratorARM64::lowerDivI(MDiv* div) {
       return;
     }
     if (rhs != 0) {
-      LDivConstantI* lir = new (alloc()) LDivConstantI(lhs, rhs, temp());
+      LDivConstantI* lir = new (alloc()) LDivConstantI(lhs, temp(), rhs);
       if (div->fallible()) {
         assignSnapshot(lir, div->bailoutKind());
       }
@@ -571,7 +571,7 @@ void LIRGeneratorARM64::lowerUDiv(MDiv* div) {
       return;
     }
 
-    LUDivConstantI* lir = new (alloc()) LUDivConstantI(lhs, rhs, temp());
+    LUDivConstantI* lir = new (alloc()) LUDivConstantI(lhs, temp(), rhs);
     if (div->fallible()) {
       assignSnapshot(lir, div->bailoutKind());
     }
