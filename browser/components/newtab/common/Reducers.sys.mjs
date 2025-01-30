@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { actionTypes as at } from "resource://activity-stream/common/Actions.mjs";
-import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
+import { Dedupe } from "resource:///modules/Dedupe.sys.mjs";
 
 export {
   TOP_SITES_DEFAULT_ROWS,

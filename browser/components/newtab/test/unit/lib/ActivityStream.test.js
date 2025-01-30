@@ -22,7 +22,6 @@ import { TopStoriesFeed } from "lib/TopStoriesFeed.sys.mjs";
 import { HighlightsFeed } from "lib/HighlightsFeed.sys.mjs";
 import { DiscoveryStreamFeed } from "lib/DiscoveryStreamFeed.sys.mjs";
 
-import { LinksCache } from "lib/LinksCache.sys.mjs";
 import { PersistentCache } from "lib/PersistentCache.sys.mjs";
 import { DownloadsManager } from "lib/DownloadsManager.sys.mjs";
 
@@ -55,7 +54,6 @@ describe("ActivityStream", () => {
       HighlightsFeed,
       DiscoveryStreamFeed,
 
-      LinksCache,
       PersistentCache,
       DownloadsManager,
     });

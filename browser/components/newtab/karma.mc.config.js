@@ -313,6 +313,10 @@ module.exports = function (config) {
                 "../../../toolkit/components/search/SearchShortcuts.sys.mjs"
               ),
             ],
+            [
+              new RegExp("^resource:///modules/Dedupe.sys.mjs"),
+              path.join(__dirname, "../../modules/Dedupe.sys.mjs"),
+            ],
           ],
         }),
         new webpack.DefinePlugin({

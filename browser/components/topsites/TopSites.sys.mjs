@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { TippyTopProvider } from "resource:///modules/topsites/TippyTopProvider.sys.mjs";
-import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
+import { Dedupe } from "resource:///modules/Dedupe.sys.mjs";
 import { TOP_SITES_MAX_SITES_PER_ROW } from "resource:///modules/topsites/constants.mjs";
 import {
   CUSTOM_SEARCH_SHORTCUTS,
@@ -16,7 +16,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   FaviconFeed: "resource://activity-stream/lib/FaviconFeed.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
-  LinksCache: "resource://activity-stream/lib/LinksCache.sys.mjs",
+  LinksCache: "resource:///modules/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",

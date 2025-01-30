@@ -8,14 +8,14 @@ import {
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
 } from "resource:///modules/topsites/constants.mjs";
-import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
+import { Dedupe } from "resource:///modules/Dedupe.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadsManager: "resource://activity-stream/lib/DownloadsManager.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
-  LinksCache: "resource://activity-stream/lib/LinksCache.sys.mjs",
+  LinksCache: "resource:///modules/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
