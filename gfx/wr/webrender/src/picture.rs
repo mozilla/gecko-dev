@@ -4183,6 +4183,8 @@ struct SurfaceAllocInfo {
     // Only used for SVGFEGraph currently, this is the source pixels needed to
     // render the pixels in clipped.
     source: DeviceRect,
+    // Only used for SVGFEGraph, this is the same as clipped before rounding.
+    clipped_notsnapped: DeviceRect,
     clipped_local: PictureRect,
     uv_rect_kind: UvRectKind,
 }
@@ -6378,6 +6380,14 @@ impl PicturePrimitive {
                             )
                         );
 
+                        // Determine the local space to device pixel scaling in the most robust
+                        // way, this accounts for local to device transform and
+                        // device_pixel_scale (if the task is shrunk in get_surface_rects).
+                        let subregion_to_device_scale_x = surface_rects.clipped_notsnapped.width() / surface_rects.clipped_local.width();
+                        let subregion_to_device_scale_y = surface_rects.clipped_notsnapped.height() / surface_rects.clipped_local.height();
+                        let subregion_to_device_offset_x = surface_rects.clipped_notsnapped.min.x - (surface_rects.clipped_local.min.x * subregion_to_device_scale_x).floor();
+                        let subregion_to_device_offset_y = surface_rects.clipped_notsnapped.min.y - (surface_rects.clipped_local.min.y * subregion_to_device_scale_y).floor();
+
                         // Produce the target pixels, this is the result of the
                         // composite op
                         let filter_task_id = request_render_task(
@@ -6396,8 +6406,10 @@ impl PicturePrimitive {
                                     source_subregion.cast_unit(),
                                     target_subregion.cast_unit(),
                                     prim_subregion.cast_unit(),
-                                    surface_rects.clipped.cast_unit(),
-                                    surface_rects.clipped_local.cast_unit(),
+                                    subregion_to_device_scale_x,
+                                    subregion_to_device_scale_y,
+                                    subregion_to_device_offset_x,
+                                    subregion_to_device_offset_y,
                                 )
                             }
                         );
@@ -8151,6 +8163,7 @@ fn get_surface_rects(
         clipped: clipped_snapped,
         unclipped,
         source,
+        clipped_notsnapped: clipped,
         clipped_local,
         uv_rect_kind,
     })
