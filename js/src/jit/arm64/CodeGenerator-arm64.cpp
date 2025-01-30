@@ -913,8 +913,8 @@ void CodeGenerator::visitUrshD(LUrshD* ins) {
   const LAllocation* rhs = ins->rhs();
   const FloatRegister out = ToFloatRegister(ins->output());
 
-  const Register temp = ToRegister(ins->temp());
-  const ARMRegister temp32 = toWRegister(ins->temp());
+  const Register temp = ToRegister(ins->temp0());
+  const ARMRegister temp32 = toWRegister(ins->temp0());
 
   if (rhs->isConstant()) {
     int32_t shift = ToInt32(rhs) & 0x1F;
@@ -2343,9 +2343,9 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
 }
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* ins) {
-  Register64 input = ToRegister64(ins->getInt64Operand(0));
+  Register64 input = ToRegister64(ins->num());
   Register64 output = ToOutRegister64(ins);
-  switch (ins->mode()) {
+  switch (ins->mir()->mode()) {
     case MSignExtendInt64::Byte:
       masm.move8To64SignExtend(input.reg, output);
       break;

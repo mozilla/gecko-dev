@@ -1080,14 +1080,14 @@ void CodeGenerator::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir) {
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* lir) {
 #ifdef DEBUG
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
+  Register64 input = ToRegister64(lir->num());
   Register64 output = ToOutRegister64(lir);
   MOZ_ASSERT(input.low == eax);
   MOZ_ASSERT(output.low == eax);
   MOZ_ASSERT(input.high == edx);
   MOZ_ASSERT(output.high == edx);
 #endif
-  switch (lir->mode()) {
+  switch (lir->mir()->mode()) {
     case MSignExtendInt64::Byte:
       masm.move8SignExtend(eax, eax);
       break;

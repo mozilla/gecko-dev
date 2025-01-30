@@ -1131,10 +1131,17 @@
   mir_op: true
 
 - name: SignExtendInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    num: Int64
+  mir_op: true
 
 - name: UrshD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 1
 
 - name: Return
   gen_boilerplate: false
@@ -1398,7 +1405,12 @@
   gen_boilerplate: false
 
 - name: ModD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: Mod
 
 - name: ModPowTwoD
   result_type: WordSized

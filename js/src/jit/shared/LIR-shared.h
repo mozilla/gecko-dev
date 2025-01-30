@@ -812,35 +812,6 @@ class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0> {
   const char* extraName() const { return CodeName(op_); }
 };
 
-class LSignExtendInt64
-    : public LInstructionHelper<INT64_PIECES, INT64_PIECES, 0> {
- public:
-  LIR_HEADER(SignExtendInt64)
-
-  explicit LSignExtendInt64(const LInt64Allocation& input)
-      : LInstructionHelper(classOpcode) {
-    setInt64Operand(0, input);
-  }
-
-  const MSignExtendInt64* mir() const { return mir_->toSignExtendInt64(); }
-
-  MSignExtendInt64::Mode mode() const { return mir()->mode(); }
-};
-
-class LUrshD : public LBinaryMath<1> {
- public:
-  LIR_HEADER(UrshD)
-
-  LUrshD(const LAllocation& lhs, const LAllocation& rhs,
-         const LDefinition& temp)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setTemp(0, temp);
-  }
-  const LDefinition* temp() { return getTemp(0); }
-};
-
 // Returns from the function being compiled (not used in inlined frames). The
 // input must be a box.
 class LReturn : public LInstructionHelper<0, BOX_PIECES, 0> {
@@ -1013,19 +984,6 @@ class LMathF : public LBinaryMath<0> {
   JSOp jsop() const { return jsop_; }
 
   const char* extraName() const { return CodeName(jsop_); }
-};
-
-class LModD : public LBinaryMath<1> {
- public:
-  LIR_HEADER(ModD)
-
-  LModD(const LAllocation& lhs, const LAllocation& rhs)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setIsCall();
-  }
-  MMod* mir() const { return mir_->toMod(); }
 };
 
 // Passed the BaselineFrame address in the OsrFrameReg via the IonOsrTempData

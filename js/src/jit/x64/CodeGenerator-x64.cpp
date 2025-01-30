@@ -865,9 +865,9 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
 }
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* ins) {
-  Register64 input = ToRegister64(ins->getInt64Operand(0));
+  Register64 input = ToRegister64(ins->num());
   Register64 output = ToOutRegister64(ins);
-  switch (ins->mode()) {
+  switch (ins->mir()->mode()) {
     case MSignExtendInt64::Byte:
       masm.movsbq(Operand(input.reg), output.reg);
       break;

@@ -1649,7 +1649,7 @@ void CodeGenerator::visitShiftI64(LShiftI64* lir) {
 
 void CodeGenerator::visitUrshD(LUrshD* ins) {
   Register lhs = ToRegister(ins->lhs());
-  MOZ_ASSERT(ToRegister(ins->temp()) == lhs);
+  MOZ_ASSERT(ToRegister(ins->temp0()) == lhs);
 
   const LAllocation* rhs = ins->rhs();
   FloatRegister out = ToFloatRegister(ins->output());
