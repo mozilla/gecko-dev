@@ -330,15 +330,13 @@ void LIRGeneratorMIPSShared::lowerWasmSelectI64(MWasmSelect* select) {
 }
 
 LTableSwitch* LIRGeneratorMIPSShared::newLTableSwitch(
-    const LAllocation& in, const LDefinition& inputCopy,
-    MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitch(in, inputCopy, temp(), tableswitch);
+    const LAllocation& in, const LDefinition& inputCopy) {
+  return new (alloc()) LTableSwitch(in, inputCopy, temp());
 }
 
 LTableSwitchV* LIRGeneratorMIPSShared::newLTableSwitchV(
-    MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitchV(useBox(tableswitch->getOperand(0)), temp(),
-                                     tempDouble(), temp(), tableswitch);
+    const LBoxAllocation& in) {
+  return new (alloc()) LTableSwitchV(in, temp(), tempDouble(), temp());
 }
 
 void LIRGeneratorMIPSShared::lowerUrshD(MUrsh* mir) {

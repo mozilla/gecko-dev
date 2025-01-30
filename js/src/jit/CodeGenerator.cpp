@@ -3970,36 +3970,35 @@ void CodeGenerator::visitGoto(LGoto* lir) { jumpToBlock(lir->target()); }
 void CodeGenerator::visitTableSwitch(LTableSwitch* ins) {
   MTableSwitch* mir = ins->mir();
   Label* defaultcase = skipTrivialBlocks(mir->getDefault())->lir()->label();
-  const LAllocation* temp;
 
+  Register intIndex;
   if (mir->getOperand(0)->type() != MIRType::Int32) {
-    temp = ins->tempInt()->output();
+    intIndex = ToRegister(ins->temp0());
 
     // The input is a double, so try and convert it to an integer.
     // If it does not fit in an integer, take the default case.
-    masm.convertDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp),
+    masm.convertDoubleToInt32(ToFloatRegister(ins->index()), intIndex,
                               defaultcase, false);
   } else {
-    temp = ins->index();
+    intIndex = ToRegister(ins->index());
   }
 
-  emitTableSwitchDispatch(mir, ToRegister(temp),
-                          ToRegisterOrInvalid(ins->tempPointer()));
+  emitTableSwitchDispatch(mir, intIndex, ToTempRegisterOrInvalid(ins->temp1()));
 }
 
 void CodeGenerator::visitTableSwitchV(LTableSwitchV* ins) {
   MTableSwitch* mir = ins->mir();
   Label* defaultcase = skipTrivialBlocks(mir->getDefault())->lir()->label();
 
-  Register index = ToRegister(ins->tempInt());
-  ValueOperand value = ToValue(ins, LTableSwitchV::InputValue);
+  Register index = ToRegister(ins->temp0());
+  ValueOperand value = ToValue(ins, LTableSwitchV::InputIndex);
   Register tag = masm.extractTag(value, index);
   masm.branchTestNumber(Assembler::NotEqual, tag, defaultcase);
 
   Label unboxInt, isInt;
   masm.branchTestInt32(Assembler::Equal, tag, &unboxInt);
   {
-    FloatRegister floatIndex = ToFloatRegister(ins->tempFloat());
+    FloatRegister floatIndex = ToFloatRegister(ins->temp1());
     masm.unboxDouble(value, floatIndex);
     masm.convertDoubleToInt32(floatIndex, index, defaultcase, false);
     masm.jump(&isInt);
@@ -4010,7 +4009,7 @@ void CodeGenerator::visitTableSwitchV(LTableSwitchV* ins) {
 
   masm.bind(&isInt);
 
-  emitTableSwitchDispatch(mir, index, ToRegisterOrInvalid(ins->tempPointer()));
+  emitTableSwitchDispatch(mir, index, ToTempRegisterOrInvalid(ins->temp2()));
 }
 
 void CodeGenerator::visitParameter(LParameter* lir) {}

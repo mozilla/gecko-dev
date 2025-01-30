@@ -113,10 +113,9 @@ class LIRGeneratorARM64 : public LIRGeneratorShared {
   bool canEmitWasmReduceSimd128AtUses(MWasmReduceSimd128* ins);
 #endif
 
-  LTableSwitchV* newLTableSwitchV(MTableSwitch* ins);
+  LTableSwitchV* newLTableSwitchV(const LBoxAllocation& in);
   LTableSwitch* newLTableSwitch(const LAllocation& in,
-                                const LDefinition& inputCopy,
-                                MTableSwitch* ins);
+                                const LDefinition& inputCopy);
 
   void lowerPhi(MPhi* phi);
 };

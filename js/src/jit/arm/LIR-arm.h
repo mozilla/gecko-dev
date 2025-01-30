@@ -264,50 +264,6 @@ class LModMaskI : public LInstructionHelper<1, 1, 2> {
   MMod* mir() const { return mir_->toMod(); }
 };
 
-// Takes a tableswitch with an integer to decide.
-class LTableSwitch : public LInstructionHelper<0, 1, 1> {
- public:
-  LIR_HEADER(TableSwitch);
-
-  LTableSwitch(const LAllocation& in, const LDefinition& inputCopy,
-               MTableSwitch* ins)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, in);
-    setTemp(0, inputCopy);
-    setMir(ins);
-  }
-
-  MTableSwitch* mir() const { return mir_->toTableSwitch(); }
-
-  const LAllocation* index() { return getOperand(0); }
-  const LDefinition* tempInt() { return getTemp(0); }
-  // This is added to share the same CodeGenerator prefixes.
-  const LDefinition* tempPointer() { return nullptr; }
-};
-
-// Takes a tableswitch with an integer to decide.
-class LTableSwitchV : public LInstructionHelper<0, BOX_PIECES, 2> {
- public:
-  LIR_HEADER(TableSwitchV);
-
-  LTableSwitchV(const LBoxAllocation& input, const LDefinition& inputCopy,
-                const LDefinition& floatCopy, MTableSwitch* ins)
-      : LInstructionHelper(classOpcode) {
-    setBoxOperand(InputValue, input);
-    setTemp(0, inputCopy);
-    setTemp(1, floatCopy);
-    setMir(ins);
-  }
-
-  MTableSwitch* mir() const { return mir_->toTableSwitch(); }
-
-  static const size_t InputValue = 0;
-
-  const LDefinition* tempInt() { return getTemp(0); }
-  const LDefinition* tempFloat() { return getTemp(1); }
-  const LDefinition* tempPointer() { return nullptr; }
-};
-
 class LMulI : public LBinaryMath<0> {
  public:
   LIR_HEADER(MulI);

@@ -434,14 +434,12 @@ void LIRGenerator::visitAbs(MAbs* ins) {
 }
 
 LTableSwitch* LIRGeneratorARM64::newLTableSwitch(const LAllocation& in,
-                                                 const LDefinition& inputCopy,
-                                                 MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitch(in, inputCopy, temp(), tableswitch);
+                                                 const LDefinition& inputCopy) {
+  return new (alloc()) LTableSwitch(in, inputCopy, temp());
 }
 
-LTableSwitchV* LIRGeneratorARM64::newLTableSwitchV(MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitchV(useBox(tableswitch->getOperand(0)), temp(),
-                                     tempDouble(), temp(), tableswitch);
+LTableSwitchV* LIRGeneratorARM64::newLTableSwitchV(const LBoxAllocation& in) {
+  return new (alloc()) LTableSwitchV(in, temp(), tempDouble(), temp());
 }
 
 void LIRGeneratorARM64::lowerUrshD(MUrsh* mir) {

@@ -19,16 +19,13 @@ using namespace js::jit;
 
 using mozilla::FloorLog2;
 
-LTableSwitch* LIRGeneratorLOONG64::newLTableSwitch(const LAllocation& in,
-                                                   const LDefinition& inputCopy,
-                                                   MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitch(in, inputCopy, temp(), tableswitch);
+LTableSwitch* LIRGeneratorLOONG64::newLTableSwitch(
+    const LAllocation& in, const LDefinition& inputCopy) {
+  return new (alloc()) LTableSwitch(in, inputCopy, temp());
 }
 
-LTableSwitchV* LIRGeneratorLOONG64::newLTableSwitchV(
-    MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitchV(useBox(tableswitch->getOperand(0)), temp(),
-                                     tempDouble(), temp(), tableswitch);
+LTableSwitchV* LIRGeneratorLOONG64::newLTableSwitchV(const LBoxAllocation& in) {
+  return new (alloc()) LTableSwitchV(in, temp(), tempDouble(), temp());
 }
 
 void LIRGeneratorLOONG64::lowerForShift(LInstructionHelper<1, 2, 0>* ins,

@@ -4888,11 +4888,19 @@
 - name: ModPowTwoI
   gen_boilerplate: false
 
+# Takes a tableswitch with an integer to decide.
 - name: TableSwitch
-  gen_boilerplate: false
+  operands:
+    index: WordSized
+  num_temps: 2
+  mir_op: true
 
+# Takes a tableswitch with a value to decide.
 - name: TableSwitchV
-  gen_boilerplate: false
+  operands:
+    input: BoxedValue
+  num_temps: 3
+  mir_op: TableSwitch
 
 - name: MulI
   gen_boilerplate: false

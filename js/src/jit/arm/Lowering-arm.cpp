@@ -503,14 +503,13 @@ void LIRGeneratorARM::lowerWasmSelectI64(MWasmSelect* select) {
 }
 
 LTableSwitch* LIRGeneratorARM::newLTableSwitch(const LAllocation& in,
-                                               const LDefinition& inputCopy,
-                                               MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitch(in, inputCopy, tableswitch);
+                                               const LDefinition& inputCopy) {
+  return new (alloc()) LTableSwitch(in, inputCopy, LDefinition::BogusTemp());
 }
 
-LTableSwitchV* LIRGeneratorARM::newLTableSwitchV(MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitchV(useBox(tableswitch->getOperand(0)), temp(),
-                                     tempDouble(), tableswitch);
+LTableSwitchV* LIRGeneratorARM::newLTableSwitchV(const LBoxAllocation& in) {
+  return new (alloc())
+      LTableSwitchV(in, temp(), tempDouble(), LDefinition::BogusTemp());
 }
 
 void LIRGeneratorARM::lowerUrshD(MUrsh* mir) {

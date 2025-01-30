@@ -103,8 +103,7 @@ void LIRGenerator::visitTableSwitch(MTableSwitch* tableswitch) {
 
   // If we don't know the type.
   if (opd->type() == MIRType::Value) {
-    LTableSwitchV* lir = newLTableSwitchV(tableswitch);
-    add(lir);
+    add(newLTableSwitchV(useBox(opd)), tableswitch);
     return;
   }
 
@@ -124,9 +123,9 @@ void LIRGenerator::visitTableSwitch(MTableSwitch* tableswitch) {
     tempInt = tempCopy(opd, 0);
   } else {
     index = useRegister(opd);
-    tempInt = temp(LDefinition::GENERAL);
+    tempInt = temp();
   }
-  add(newLTableSwitch(index, tempInt, tableswitch));
+  add(newLTableSwitch(index, tempInt), tableswitch);
 }
 
 void LIRGenerator::visitCheckOverRecursed(MCheckOverRecursed* ins) {

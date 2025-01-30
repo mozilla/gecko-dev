@@ -108,10 +108,8 @@ class LIRGeneratorNone : public LIRGeneratorShared {
   void lowerAtomicLoad64(MLoadUnboxedScalar*) { MOZ_CRASH(); }
   void lowerAtomicStore64(MStoreUnboxedScalar*) { MOZ_CRASH(); }
 
-  LTableSwitch* newLTableSwitch(LAllocation, LDefinition, MTableSwitch*) {
-    MOZ_CRASH();
-  }
-  LTableSwitchV* newLTableSwitchV(MTableSwitch*) { MOZ_CRASH(); }
+  LTableSwitch* newLTableSwitch(LAllocation, LDefinition) { MOZ_CRASH(); }
+  LTableSwitchV* newLTableSwitchV(const LBoxAllocation&) { MOZ_CRASH(); }
 };
 
 using LIRGeneratorSpecific = LIRGeneratorNone;

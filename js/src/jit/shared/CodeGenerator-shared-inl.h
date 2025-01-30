@@ -170,10 +170,6 @@ static inline Register ToTempUnboxRegister(const LDefinition* def) {
   return ToTempRegisterOrInvalid(def);
 }
 
-static inline Register ToRegisterOrInvalid(const LDefinition* a) {
-  return a ? ToRegister(a) : InvalidReg;
-}
-
 static inline FloatRegister ToFloatRegister(const LAllocation& a) {
   MOZ_ASSERT(a.isFloatReg());
   return a.toFloatReg()->reg();

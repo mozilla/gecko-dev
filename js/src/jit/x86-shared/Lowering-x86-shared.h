@@ -22,9 +22,8 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   LDefinition tempShift();
 
   LTableSwitch* newLTableSwitch(const LAllocation& in,
-                                const LDefinition& inputCopy,
-                                MTableSwitch* ins);
-  LTableSwitchV* newLTableSwitchV(MTableSwitch* ins);
+                                const LDefinition& inputCopy);
+  LTableSwitchV* newLTableSwitchV(const LBoxAllocation& in);
 
   void lowerForShift(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir,
                      MDefinition* lhs, MDefinition* rhs);

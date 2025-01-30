@@ -25,15 +25,13 @@ using mozilla::Nothing;
 using mozilla::Some;
 
 LTableSwitch* LIRGeneratorX86Shared::newLTableSwitch(
-    const LAllocation& in, const LDefinition& inputCopy,
-    MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitch(in, inputCopy, temp(), tableswitch);
+    const LAllocation& in, const LDefinition& inputCopy) {
+  return new (alloc()) LTableSwitch(in, inputCopy, temp());
 }
 
 LTableSwitchV* LIRGeneratorX86Shared::newLTableSwitchV(
-    MTableSwitch* tableswitch) {
-  return new (alloc()) LTableSwitchV(useBox(tableswitch->getOperand(0)), temp(),
-                                     tempDouble(), temp(), tableswitch);
+    const LBoxAllocation& in) {
+  return new (alloc()) LTableSwitchV(in, temp(), tempDouble(), temp());
 }
 
 void LIRGenerator::visitPowHalf(MPowHalf* ins) {
