@@ -1297,7 +1297,13 @@
 
   .tabbrowser-tab {
     flex: none;
-    padding: 0;
+    padding-inline: 0;
+    padding-block: 3px 2px;
+
+    /* prevent the shadow of the close button from being cutoff by the toolbar on the first tab */
+    &:nth-child(1 of :not([hidden])) {
+      padding-block-start: 5px;
+    }
   }
 
   .tab-label-container {
@@ -1314,18 +1320,8 @@
   }
 
   &:not([expanded]) {
-    .tabbrowser-tab {
-      padding-inline: 0;
-      padding-block: 3px 2px;
-
-      /* prevent the shadow of the close button from being cutoff by the toolbar on the first tab */
-      &:nth-child(1 of :not([hidden])) {
-        padding-block-start: 5px;
-      }
-
-      &[pinned] {
-        width: var(--tab-collapsed-width);
-      }
+    .tabbrowser-tab[pinned] {
+      width: var(--tab-collapsed-width);
     }
 
     .tab-background {
