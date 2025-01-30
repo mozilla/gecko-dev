@@ -16,29 +16,29 @@
  InstrumentedProps=(ancestorOrigins)]
 interface Location {
   [Throws, CrossOriginWritable, NeedsSubjectPrincipal]
-  stringifier attribute USVString href;
+  stringifier attribute UTF8String href;
   [Throws, NeedsSubjectPrincipal]
-  readonly attribute USVString origin;
+  readonly attribute UTF8String origin;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString protocol;
+           attribute UTF8String protocol;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString host;
+           attribute UTF8String host;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString hostname;
+           attribute UTF8String hostname;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString port;
+           attribute UTF8String port;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString pathname;
+           attribute UTF8String pathname;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString search;
+           attribute UTF8String search;
   [Throws, NeedsSubjectPrincipal]
-           attribute USVString hash;
+           attribute UTF8String hash;
 
   [Throws, NeedsSubjectPrincipal]
-  undefined assign(USVString url);
+  undefined assign(UTF8String url);
 
   [Throws, CrossOriginCallable, NeedsSubjectPrincipal]
-  undefined replace(USVString url);
+  undefined replace(UTF8String url);
 
   // XXXbz there is no forceget argument in the spec!  See bug 1037721.
   [Throws, NeedsSubjectPrincipal]

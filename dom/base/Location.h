@@ -40,13 +40,13 @@ class Location final : public nsISupports,
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Location)
 
   // WebIDL API:
-  void Assign(const nsAString& aUrl, nsIPrincipal& aSubjectPrincipal,
+  void Assign(const nsACString& aUrl, nsIPrincipal& aSubjectPrincipal,
               ErrorResult& aError);
 
   void Reload(bool aForceget, nsIPrincipal& aSubjectPrincipal,
               ErrorResult& aError);
 
-  void GetHref(nsAString& aHref, nsIPrincipal& aSubjectPrincipal,
+  void GetHref(nsACString& aHref, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError) {
     if (!CallerSubsumes(&aSubjectPrincipal)) {
       aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -56,49 +56,49 @@ class Location final : public nsISupports,
     aError = GetHref(aHref);
   }
 
-  void GetOrigin(nsAString& aOrigin, nsIPrincipal& aSubjectPrincipal,
+  void GetOrigin(nsACString& aOrigin, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void GetProtocol(nsAString& aProtocol, nsIPrincipal& aSubjectPrincipal,
+  void GetProtocol(nsACString& aProtocol, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetProtocol(const nsAString& aProtocol, nsIPrincipal& aSubjectPrincipal,
+  void SetProtocol(const nsACString& aProtocol, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetHost(nsAString& aHost, nsIPrincipal& aSubjectPrincipal,
+  void GetHost(nsACString& aHost, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetHost(const nsAString& aHost, nsIPrincipal& aSubjectPrincipal,
+  void SetHost(const nsACString& aHost, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void GetHostname(nsAString& aHostname, nsIPrincipal& aSubjectPrincipal,
+  void GetHostname(nsACString& aHostname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetHostname(const nsAString& aHostname, nsIPrincipal& aSubjectPrincipal,
+  void SetHostname(const nsACString& aHostname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetPort(nsAString& aPort, nsIPrincipal& aSubjectPrincipal,
+  void GetPort(nsACString& aPort, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetPort(const nsAString& aPort, nsIPrincipal& aSubjectPrincipal,
+  void SetPort(const nsACString& aPort, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void GetPathname(nsAString& aPathname, nsIPrincipal& aSubjectPrincipal,
+  void GetPathname(nsACString& aPathname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetPathname(const nsAString& aPathname, nsIPrincipal& aSubjectPrincipal,
+  void SetPathname(const nsACString& aPathname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetSearch(nsAString& aSeach, nsIPrincipal& aSubjectPrincipal,
+  void GetSearch(nsACString& aSeach, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void SetSearch(const nsAString& aSeach, nsIPrincipal& aSubjectPrincipal,
+  void SetSearch(const nsACString& aSeach, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void GetHash(nsAString& aHash, nsIPrincipal& aSubjectPrincipal,
+  void GetHash(nsACString& aHash, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetHash(const nsAString& aHash, nsIPrincipal& aSubjectPrincipal,
+  void SetHash(const nsACString& aHash, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
   nsPIDOMWindowInner* GetParentObject() const { return mInnerWindow; }
@@ -108,9 +108,7 @@ class Location final : public nsISupports,
 
   // Non WebIDL methods:
 
-  nsresult GetHref(nsAString& aHref);
-
-  nsresult ToString(nsAString& aString) { return GetHref(aString); }
+  nsresult GetHref(nsACString& aHref);
 
   void ClearCachedValues();
 
@@ -129,7 +127,7 @@ class Location final : public nsISupports,
 
   bool CallerSubsumes(nsIPrincipal* aSubjectPrincipal);
 
-  nsString mCachedHash;
+  nsCString mCachedHash;
   nsCOMPtr<nsPIDOMWindowInner> mInnerWindow;
 };
 
