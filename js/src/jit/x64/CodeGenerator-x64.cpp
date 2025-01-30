@@ -924,23 +924,24 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
 void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   Register64 input = ToRegister64(lir->input());
   FloatRegister output = ToFloatRegister(lir->output());
+  Register temp = ToTempRegisterOrInvalid(lir->temp0());
 
   MInt64ToFloatingPoint* mir = lir->mir();
   bool isUnsigned = mir->isUnsigned();
 
   MIRType outputType = mir->type();
   MOZ_ASSERT(outputType == MIRType::Double || outputType == MIRType::Float32);
-  MOZ_ASSERT(isUnsigned == !lir->getTemp(0)->isBogusTemp());
+  MOZ_ASSERT(isUnsigned == (temp != InvalidReg));
 
   if (outputType == MIRType::Double) {
     if (isUnsigned) {
-      masm.convertUInt64ToDouble(input, output, ToRegister(lir->getTemp(0)));
+      masm.convertUInt64ToDouble(input, output, temp);
     } else {
       masm.convertInt64ToDouble(input, output);
     }
   } else {
     if (isUnsigned) {
-      masm.convertUInt64ToFloat32(input, output, ToRegister(lir->getTemp(0)));
+      masm.convertUInt64ToFloat32(input, output, temp);
     } else {
       masm.convertInt64ToFloat32(input, output);
     }

@@ -151,21 +151,6 @@ class LWasmTruncateToInt64 : public LCallInstructionHelper<INT64_PIECES, 1, 0> {
   MWasmTruncateToInt64* mir() const { return mir_->toWasmTruncateToInt64(); }
 };
 
-class LInt64ToFloatingPoint
-    : public LCallInstructionHelper<1, INT64_PIECES, 0> {
- public:
-  LIR_HEADER(Int64ToFloatingPoint);
-
-  explicit LInt64ToFloatingPoint(const LInt64Allocation& in)
-      : LCallInstructionHelper(classOpcode) {
-    setInt64Operand(0, in);
-  }
-
-  LInt64Allocation input() const { return getInt64Operand(0); }
-
-  MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
-};
-
 class LWasmAtomicLoadI64 : public LInstructionHelper<INT64_PIECES, 1, 0> {
  public:
   LIR_HEADER(WasmAtomicLoadI64);

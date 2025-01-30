@@ -4933,7 +4933,11 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  num_temps: 1
+  mir_op: true
 
 - name: WasmAtomicLoadI64
   gen_boilerplate: false
@@ -4971,7 +4975,11 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  num_temps: 1
+  mir_op: true
 #endif
 
 #ifdef JS_CODEGEN_ARM
@@ -5003,7 +5011,12 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPointCall
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+    instance: WordSized
+  call_instruction: true
+  mir_op: BuiltinInt64ToFloatingPoint
 
 - name: WasmTruncateToInt64
   gen_boilerplate: false
@@ -5050,7 +5063,10 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  mir_op: true
 #endif
 
 #ifdef JS_CODEGEN_MIPS32
@@ -5073,7 +5089,11 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  call_instruction: true
+  mir_op: true
 
 - name: WasmUnalignedLoad
   gen_boilerplate: false
@@ -5120,7 +5140,10 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  mir_op: true
 
 - name: WasmUnalignedLoad
   gen_boilerplate: false
@@ -5161,7 +5184,10 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  mir_op: true
 
 - name: WasmCompareExchangeI64
   gen_boilerplate: false
@@ -5190,7 +5216,10 @@
   gen_boilerplate: false
 
 - name: Int64ToFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: Int64
+  mir_op: true
 
 - name: WasmCompareExchangeI64
   gen_boilerplate: false

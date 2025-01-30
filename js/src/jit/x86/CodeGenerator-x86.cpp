@@ -1156,7 +1156,7 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
 void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   Register64 input = ToRegister64(lir->input());
   FloatRegister output = ToFloatRegister(lir->output());
-  Register temp = ToTempRegisterOrInvalid(lir->temp());
+  Register temp = ToTempRegisterOrInvalid(lir->temp0());
 
   MIRType outputType = lir->mir()->type();
   MOZ_ASSERT(outputType == MIRType::Double || outputType == MIRType::Float32);

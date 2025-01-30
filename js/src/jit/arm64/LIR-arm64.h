@@ -193,20 +193,6 @@ class LUMod : public LBinaryMath<0> {
   MMod* mir() { return mir_->toMod(); }
 };
 
-class LInt64ToFloatingPoint : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(Int64ToFloatingPoint);
-
-  explicit LInt64ToFloatingPoint(const LInt64Allocation& in)
-      : LInstructionHelper(classOpcode) {
-    setInt64Operand(0, in);
-  }
-
-  LInt64Allocation input() const { return getInt64Operand(0); }
-
-  MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
-};
-
 class LWasmTruncateToInt64 : public LInstructionHelper<1, 1, 0> {
  public:
   LIR_HEADER(WasmTruncateToInt64);

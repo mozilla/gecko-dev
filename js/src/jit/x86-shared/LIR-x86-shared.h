@@ -189,23 +189,6 @@ class LMulI : public LBinaryMath<0, 1> {
   const LAllocation* lhsCopy() { return this->getOperand(2); }
 };
 
-class LInt64ToFloatingPoint : public LInstructionHelper<1, INT64_PIECES, 1> {
- public:
-  LIR_HEADER(Int64ToFloatingPoint);
-
-  LInt64ToFloatingPoint(const LInt64Allocation& in, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setInt64Operand(0, in);
-    setTemp(0, temp);
-  }
-
-  LInt64Allocation input() const { return getInt64Operand(0); }
-
-  MInt64ToFloatingPoint* mir() const { return mir_->toInt64ToFloatingPoint(); }
-
-  const LDefinition* temp() { return getTemp(0); }
-};
-
 }  // namespace jit
 }  // namespace js
 
