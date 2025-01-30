@@ -320,23 +320,23 @@ class HgRepository(Repository):
         for node in nodes:
             args.extend(("-r", node))
 
-        output = self._run(*args).encode("utf-8")
+        output = self._run(*args, encoding=None)
 
         patches = []
 
         current_patch = []
-        for i, line in enumerate(output.splitlines()):
-            if i != 0 and line == b"# HG changeset patch":
+        for i, line in enumerate(output.splitlines(keepends=True)):
+            if i != 0 and line.rstrip() == b"# HG changeset patch":
                 # When we see the first line of a new patch, add the patch we have been
                 # building to the patches list and start building a new patch.
-                patches.append(b"\n".join(current_patch))
+                patches.append(b"".join(current_patch))
                 current_patch = [line]
             else:
                 # Add a new line to the patch being built.
                 current_patch.append(line)
 
         # Add the last patch to the stack.
-        patches.append(b"\n".join(current_patch))
+        patches.append(b"".join(current_patch))
 
         return patches
 
