@@ -213,7 +213,8 @@ bool ParallelMarkTask::requestWork(AutoLockHelperThreadState& lock) {
 void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking wait start", "");
+    profiler.markEvent("Parallel marking wait start", "",
+                       JS::ProfilingCategoryPair::GCCC);
   }
 
   pm->addTaskToWaitingList(this, lock);
@@ -232,7 +233,8 @@ void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(!pm->isTaskInWaitingList(this, lock));
 
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking wait end", "");
+    profiler.markEvent("Parallel marking wait end", "",
+                       JS::ProfilingCategoryPair::GCCC);
   }
 }
 
@@ -333,7 +335,8 @@ void ParallelMarker::donateWorkFrom(GCMarker* src) {
 
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking donated work", "");
+    profiler.markEvent("Parallel marking donated work", "",
+                       JS::ProfilingCategoryPair::GCCC);
   }
 
   // Resume waiting task.

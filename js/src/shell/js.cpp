@@ -7638,7 +7638,8 @@ static bool WithSourceHook(JSContext* cx, unsigned argc, Value* vp) {
   return result;
 }
 
-static void PrintProfilerEvents_Callback(const char* msg, const char* details) {
+static void PrintProfilerEvents_Callback(mozilla::MarkerCategory,
+                                         const char* msg, const char* details) {
   fprintf(stderr, "PROFILER EVENT: %s %s\n", msg, details);
 }
 
