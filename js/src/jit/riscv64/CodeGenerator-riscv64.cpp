@@ -702,8 +702,8 @@ void CodeGenerator::visitAddI(LAddI* ins) {
 }
 
 void CodeGenerator::visitAddI64(LAddI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LAddI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LAddI64::Rhs);
+  LInt64Allocation lhs = lir->lhs();
+  LInt64Allocation rhs = lir->rhs();
 
   MOZ_ASSERT(ToOutRegister64(lir) == ToRegister64(lhs));
 
@@ -746,8 +746,8 @@ void CodeGenerator::visitSubI(LSubI* ins) {
 }
 
 void CodeGenerator::visitSubI64(LSubI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LSubI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LSubI64::Rhs);
+  LInt64Allocation lhs = lir->lhs();
+  LInt64Allocation rhs = lir->rhs();
 
   MOZ_ASSERT(ToOutRegister64(lir) == ToRegister64(lhs));
 
@@ -889,9 +889,9 @@ void CodeGenerator::visitMulI(LMulI* ins) {
 }
 
 void CodeGenerator::visitMulI64(LMulI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LMulI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LMulI64::Rhs);
-  const Register64 output = ToOutRegister64(lir);
+  LInt64Allocation lhs = lir->lhs();
+  LInt64Allocation rhs = lir->rhs();
+  Register64 output = ToOutRegister64(lir);
 
   if (IsConstant(rhs)) {
     int64_t constant = ToInt64(rhs);
@@ -1217,11 +1217,11 @@ void CodeGenerator::visitBitNotI(LBitNotI* ins) {
 }
 
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
-  const LAllocation* input = ins->getOperand(0);
-  MOZ_ASSERT(!input->isConstant());
-  Register inputReg = ToRegister(input);
-  MOZ_ASSERT(inputReg == ToRegister(ins->output()));
-  masm.nor(inputReg, inputReg, zero);
+  LInt64Allocation input = ins->input();
+  MOZ_ASSERT(!IsConstant(input));
+  Register64 inputReg = ToRegister64(input);
+  MOZ_ASSERT(inputReg == ToOutRegister64(ins));
+  masm.nor(inputReg.reg, inputReg.reg, zero);
 }
 
 void CodeGenerator::visitBitOpI(LBitOpI* ins) {
@@ -1261,8 +1261,8 @@ void CodeGenerator::visitBitOpI(LBitOpI* ins) {
 }
 
 void CodeGenerator::visitBitOpI64(LBitOpI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LBitOpI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LBitOpI64::Rhs);
+  LInt64Allocation lhs = lir->lhs();
+  LInt64Allocation rhs = lir->rhs();
 
   MOZ_ASSERT(ToOutRegister64(lir) == ToRegister64(lhs));
 
@@ -1354,8 +1354,8 @@ void CodeGenerator::visitShiftI(LShiftI* ins) {
 }
 
 void CodeGenerator::visitShiftI64(LShiftI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LShiftI64::Lhs);
-  LAllocation* rhs = lir->getOperand(LShiftI64::Rhs);
+  LInt64Allocation lhs = lir->lhs();
+  const LAllocation* rhs = lir->rhs();
 
   MOZ_ASSERT(ToOutRegister64(lir) == ToRegister64(lhs));
 
@@ -2113,7 +2113,7 @@ void CodeGenerator::visitNegI(LNegI* ins) {
 }
 
 void CodeGenerator::visitNegI64(LNegI64* ins) {
-  Register64 input = ToRegister64(ins->getInt64Operand(0));
+  Register64 input = ToRegister64(ins->num());
   MOZ_ASSERT(input == ToOutRegister64(ins));
   masm.neg64(input);
 }

@@ -739,6 +739,8 @@ class LBitNotI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES, 0> {
   LIR_HEADER(BitNotI64)
 
   LBitNotI64() : LInstructionHelper(classOpcode) {}
+
+  LInt64Allocation input() const { return getInt64Operand(0); }
 };
 
 // Binary bitwise operation, taking two 32-bit integers as inputs and returning
@@ -767,10 +769,13 @@ class LBitOpI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
  public:
   LIR_HEADER(BitOpI64)
 
+  explicit LBitOpI64(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
+
   static const size_t Lhs = 0;
   static const size_t Rhs = INT64_PIECES;
 
-  explicit LBitOpI64(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
 
   const char* extraName() const { return CodeName(op_); }
 
@@ -804,6 +809,9 @@ class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0> {
 
   static const size_t Lhs = 0;
   static const size_t Rhs = INT64_PIECES;
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  const LAllocation* rhs() const { return getOperand(Rhs); }
 
   JSOp bitop() { return op_; }
 
@@ -903,6 +911,9 @@ class LAddI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
 
   static const size_t Lhs = 0;
   static const size_t Rhs = INT64_PIECES;
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
 };
 
 // Subtracts two integers, returning an integer value.
@@ -938,10 +949,13 @@ class LSubI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
  public:
   LIR_HEADER(SubI64)
 
+  LSubI64() : LInstructionHelper(classOpcode) {}
+
   static const size_t Lhs = 0;
   static const size_t Rhs = INT64_PIECES;
 
-  LSubI64() : LInstructionHelper(classOpcode) {}
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
 };
 
 class LMulI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 1> {
@@ -952,10 +966,12 @@ class LMulI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 1> {
     setTemp(0, LDefinition());
   }
 
-  const LDefinition* temp() { return getTemp(0); }
-
   static const size_t Lhs = 0;
   static const size_t Rhs = INT64_PIECES;
+
+  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
+  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
+  const LDefinition* temp() { return getTemp(0); }
 };
 
 // Performs an add, sub, mul, or div on two double values.

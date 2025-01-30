@@ -832,9 +832,9 @@ void CodeGenerator::visitBitNotI(LBitNotI* ins) {
 }
 
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
-  Register input = ToRegister(ins->input());
-  Register output = ToRegister(ins->output());
-  masm.Mvn(vixl::Register(output, 64), vixl::Register(input, 64));
+  Register64 input = ToRegister64(ins->input());
+  Register64 output = ToOutRegister64(ins);
+  masm.Mvn(vixl::Register(output.reg, 64), vixl::Register(input.reg, 64));
 }
 
 void CodeGenerator::visitBitOpI(LBitOpI* ins) {
@@ -1957,9 +1957,9 @@ void CodeGenerator::visitAddI64(LAddI64* lir) {
 }
 
 void CodeGenerator::visitMulI64(LMulI64* lir) {
-  const LInt64Allocation lhs = lir->getInt64Operand(LMulI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LMulI64::Rhs);
-  const Register64 output = ToOutRegister64(lir);
+  LInt64Allocation lhs = lir->lhs();
+  LInt64Allocation rhs = lir->rhs();
+  Register64 output = ToOutRegister64(lir);
 
   if (IsConstant(rhs)) {
     int64_t constant = ToInt64(rhs);
@@ -2014,8 +2014,8 @@ void CodeGenerator::visitBitOpI64(LBitOpI64* lir) {
 }
 
 void CodeGenerator::visitShiftI64(LShiftI64* lir) {
-  ARMRegister lhs(ToRegister64(lir->getInt64Operand(LShiftI64::Lhs)).reg, 64);
-  LAllocation* rhsAlloc = lir->getOperand(LShiftI64::Rhs);
+  ARMRegister lhs(ToRegister64(lir->lhs()).reg, 64);
+  const LAllocation* rhsAlloc = lir->rhs();
   ARMRegister dest(ToOutRegister64(lir).reg, 64);
 
   if (rhsAlloc->isConstant()) {

@@ -944,9 +944,9 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
 }
 
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
-  const LAllocation* input = ins->getOperand(0);
-  MOZ_ASSERT(!input->isConstant());
-  Register inputR = ToRegister(input);
-  MOZ_ASSERT(inputR == ToRegister(ins->output()));
-  masm.notq(inputR);
+  LInt64Allocation input = ins->input();
+  MOZ_ASSERT(!IsConstant(input));
+  Register64 inputR = ToRegister64(input);
+  MOZ_ASSERT(inputR == ToOutRegister64(ins));
+  masm.notq(inputR.reg);
 }

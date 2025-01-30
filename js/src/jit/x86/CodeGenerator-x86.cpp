@@ -1101,7 +1101,7 @@ void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* lir) {
 }
 
 void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
-  const LInt64Allocation& input = lir->getInt64Operand(0);
+  LInt64Allocation input = lir->input();
   Register output = ToRegister(lir->output());
 
   if (lir->mir()->bottomHalf()) {
@@ -1180,7 +1180,7 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
 }
 
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
-  const LInt64Allocation input = ins->getInt64Operand(0);
+  LInt64Allocation input = ins->input();
   Register64 inputR = ToRegister64(input);
   MOZ_ASSERT(inputR == ToOutRegister64(ins));
   masm.notl(inputR.high);

@@ -342,11 +342,11 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
 }
 
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
-  const LAllocation* input = ins->getOperand(0);
-  MOZ_ASSERT(!input->isConstant());
-  Register inputReg = ToRegister(input);
-  MOZ_ASSERT(inputReg == ToRegister(ins->output()));
-  masm.ma_not(inputReg, inputReg);
+  LInt64Allocation input = ins->input();
+  MOZ_ASSERT(!IsConstant(input));
+  Register64 inputReg = ToRegister64(input);
+  MOZ_ASSERT(inputReg == ToOutRegister64(ins));
+  masm.ma_not(inputReg.reg, inputReg.reg);
 }
 
 void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {

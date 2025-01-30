@@ -224,7 +224,7 @@ void CodeGenerator::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir) {
 }
 
 void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
-  const LInt64Allocation& input = lir->getInt64Operand(0);
+  LInt64Allocation input = lir->input();
   Register output = ToRegister(lir->output());
 
   if (lir->mir()->bottomHalf()) {
