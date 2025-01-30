@@ -2,27 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.service.mars
+package mozilla.components.service.pocket.mars.api
+
+import kotlinx.serialization.Serializable
 
 /**
- * Configuration for the top sites tile request.
+ * Configuration for the sponsored contents (spocs) request.
  *
  * @property contextId An UUID that represents the user's context.
  * @property userAgent The user agent to be used for the request.
  * @property placements List of [Placement]s to request.
  */
-data class MarsTopSitesRequestConfig(
+data class MarsSpocsRequestConfig(
     val contextId: String,
     val userAgent: String?,
     val placements: List<Placement>,
 )
 
 /**
- * An object representing the top sites tile to request.
+ * An object representing the sponsored contents to request.
  *
- * @property placement The ID of the top site tile placement to request.
- * @property count Number of top site tile placement to request.
+ * @property placement The ID of the sponsored content placement to request.
+ * @property count Number of sponsored contents to request.
  */
+@Serializable
 data class Placement(
     val placement: String,
     val count: Int,

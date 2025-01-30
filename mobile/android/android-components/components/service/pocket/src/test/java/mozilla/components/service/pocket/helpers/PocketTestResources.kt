@@ -6,6 +6,11 @@ package mozilla.components.service.pocket.helpers
 
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import mozilla.components.service.pocket.mars.api.MarsSpocFrequencyCaps
+import mozilla.components.service.pocket.mars.api.MarsSpocRanking
+import mozilla.components.service.pocket.mars.api.MarsSpocResponseCallbacks
+import mozilla.components.service.pocket.mars.api.MarsSpocsResponse
+import mozilla.components.service.pocket.mars.api.MarsSpocsResponseItem
 import mozilla.components.service.pocket.recommendations.api.ContentRecommendationResponseItem
 import mozilla.components.service.pocket.recommendations.api.ContentRecommendationsResponse
 import mozilla.components.service.pocket.recommendations.db.ContentRecommendationEntity
@@ -48,6 +53,14 @@ internal object PocketTestResources {
 
     val contentRecommendationsNullUrlResponse = this::class.java.classLoader!!.getResource(
         "$POCKET_DIR/content_recommendations_null_url_response.json",
+    )!!.readText()
+
+    val marsSponsoredStoriesJSONResponse = this::class.java.classLoader!!.getResource(
+        "$POCKET_DIR/mars_sponsored_stories_response.json",
+    )!!.readText()
+
+    val marsSponsoredStoriesNullUrlResponse = this::class.java.classLoader!!.getResource(
+        "$POCKET_DIR/mars_sponsored_stories_null_url_response.json",
     )!!.readText()
 
     val apiExpectedPocketStoriesRecommendations: List<PocketApiStory> = listOf(
@@ -276,5 +289,31 @@ internal object PocketTestResources {
     val contentRecommendationsResponse = ContentRecommendationsResponse(
         recommendedAt = 0,
         data = contentRecommendationResponseItems,
+    )
+
+    private val marsSpocsResponseItem = MarsSpocsResponseItem(
+        format = "spoc",
+        url = "https://firefox.com",
+        callbacks = MarsSpocResponseCallbacks(
+            clickUrl = "https://firefox.com/click",
+            impressionUrl = "https://firefox.com/impression",
+        ),
+        imageUrl = "https://test.com/image1.jpg",
+        title = "Firefox",
+        domain = "firefox.com",
+        excerpt = "Mozilla Firefox",
+        sponsor = "Mozilla",
+        blockKey = "1",
+        caps = MarsSpocFrequencyCaps(
+            capKey = "2",
+            day = 10,
+        ),
+        ranking = MarsSpocRanking(
+            priority = 3,
+            itemScore = 1F,
+        ),
+    )
+    val marsSpocsResponse = MarsSpocsResponse(
+        spocs = listOf(marsSpocsResponseItem),
     )
 }

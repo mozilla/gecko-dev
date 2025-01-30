@@ -34,7 +34,7 @@ internal const val REQUEST_BODY_COUNT_KEY = "count"
 internal const val REQUEST_BODY_TOPICS_KEY = "topics"
 
 /**
- * Performs requests to the retrieve the content recommendations from the [endpointURL] server
+ * Performs requests to retrieve the content recommendations from the [endpointURL] server
  * with the provided [config].
  *
  * See https://merino.services.mozilla.com/docs#/default/curated_content_api_v1_curated_recommendations_post

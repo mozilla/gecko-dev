@@ -1,0 +1,53 @@
+{
+  "newtab_mobile_spocs": [
+    {
+      "format": "spoc",
+      "url": null,
+      "callbacks": {
+        "click": "https://firefox.com/click",
+        "impression": "https://firefox.com/impression"
+      },
+      "image_url": "https://test.com/image1.jpg",
+      "title": "Firefox",
+      "domain": "firefox.com",
+      "excerpt": "Mozilla Firefox",
+      "sponsor": "Mozilla",
+      "block_key": "1",
+      "caps": {
+        "cap_key": "2",
+        "day": 10
+      },
+      "ranking": {
+        "priority": 3,
+        "personalization_models": {
+          "arts_and_entertainment": 1,
+          "autos_and_vehicles": 1,
+          "beauty_and_fitness": 1,
+          "blogging_resources_and_services": 1,
+          "books_and_literature": 1,
+          "business_and_industrial": 1,
+          "computers_and_electronics": 1,
+          "finance": 1,
+          "food_and_drink": 1,
+          "games": 1,
+          "health": 1,
+          "hobbies_and_leisure": 1,
+          "home_and_garden": 1,
+          "internet_and_telecom": 1,
+          "jobs_and_education": 1,
+          "law_and_government": 1,
+          "online_communities": 1,
+          "people_and_society": 1,
+          "pets_and_animals": 1,
+          "real_estate": 1,
+          "reference": 1,
+          "science": 1,
+          "shopping": 1,
+          "sports": 1,
+          "travel": 1
+        },
+        "item_score": 1
+      }
+    }
+  ]
+}

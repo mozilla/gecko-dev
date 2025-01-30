@@ -8,7 +8,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Internal entity represent a content recommendation.
+ * Internal entity representing a content recommendation.
  *
  * @property corpusItemId A content identifier that corresponds uniquely to the URL.
  * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.

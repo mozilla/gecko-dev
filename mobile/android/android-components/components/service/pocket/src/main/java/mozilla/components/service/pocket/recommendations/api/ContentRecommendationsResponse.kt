@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
  * https://merino.services.mozilla.com/docs#/default/curated_content_api_v1_curated_recommendations_post.
  *
  * @property recommendedAt A timestamp indicating when the content recommendations was recommended.
- * @property data A list of [ContentRecommendationResponseItem] from the response payload.
+ * @property data A list of [ContentRecommendationResponseItem]s from the response payload.
  */
 @Serializable
 internal data class ContentRecommendationsResponse(
