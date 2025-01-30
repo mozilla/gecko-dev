@@ -4864,11 +4864,23 @@
 - name: UnboxFloatingPoint
   gen_boilerplate: false
 
+# Convert a 32-bit unsigned integer to a double.
 - name: WasmUint32ToDouble
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+#ifdef JS_CODEGEN_X86
+  num_temps: 1
+#endif
 
+# Convert a 32-bit unsigned integer to a float32.
 - name: WasmUint32ToFloat32
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+#ifdef JS_CODEGEN_X86
+  num_temps: 1
+#endif
 
 - name: DivI
   result_type: WordSized

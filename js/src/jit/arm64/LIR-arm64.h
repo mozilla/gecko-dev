@@ -39,28 +39,6 @@ class LUnboxFloatingPoint : public LUnboxBase {
       : LUnboxBase(classOpcode, input) {}
 };
 
-// Convert a 32-bit unsigned integer to a double.
-class LWasmUint32ToDouble : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmUint32ToDouble)
-
-  explicit LWasmUint32ToDouble(const LAllocation& input)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
-// Convert a 32-bit unsigned integer to a float32.
-class LWasmUint32ToFloat32 : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmUint32ToFloat32)
-
-  explicit LWasmUint32ToFloat32(const LAllocation& input)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
 class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   const int32_t shift_;
   const bool negativeDivisor_;

@@ -57,32 +57,6 @@ class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0> {
   MUnbox* mir() const { return mir_->toUnbox(); }
 };
 
-// Convert a 32-bit unsigned integer to a double.
-class LWasmUint32ToDouble : public LInstructionHelper<1, 1, 1> {
- public:
-  LIR_HEADER(WasmUint32ToDouble)
-
-  LWasmUint32ToDouble(const LAllocation& input, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-    setTemp(0, temp);
-  }
-  const LDefinition* temp() { return getTemp(0); }
-};
-
-// Convert a 32-bit unsigned integer to a float32.
-class LWasmUint32ToFloat32 : public LInstructionHelper<1, 1, 1> {
- public:
-  LIR_HEADER(WasmUint32ToFloat32)
-
-  LWasmUint32ToFloat32(const LAllocation& input, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-    setTemp(0, temp);
-  }
-  const LDefinition* temp() { return getTemp(0); }
-};
-
 class LDivOrModI64
     : public LCallInstructionHelper<INT64_PIECES, INT64_PIECES * 2 + 1, 0> {
  public:

@@ -258,7 +258,7 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
 
 void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
   Register input = ToRegister(lir->input());
-  Register temp = ToRegister(lir->temp());
+  Register temp = ToRegister(lir->temp0());
 
   if (input != temp) {
     masm.mov(input, temp);
@@ -270,7 +270,7 @@ void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
 
 void CodeGenerator::visitWasmUint32ToFloat32(LWasmUint32ToFloat32* lir) {
   Register input = ToRegister(lir->input());
-  Register temp = ToRegister(lir->temp());
+  Register temp = ToRegister(lir->temp0());
   FloatRegister output = ToFloatRegister(lir->output());
 
   if (input != temp) {

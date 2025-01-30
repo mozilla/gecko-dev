@@ -10,28 +10,6 @@
 namespace js {
 namespace jit {
 
-// Convert a 32-bit unsigned integer to a double.
-class LWasmUint32ToDouble : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmUint32ToDouble)
-
-  LWasmUint32ToDouble(const LAllocation& input)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
-// Convert a 32-bit unsigned integer to a float32.
-class LWasmUint32ToFloat32 : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmUint32ToFloat32)
-
-  LWasmUint32ToFloat32(const LAllocation& input)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-};
-
 class LDivPowTwoI : public LInstructionHelper<1, 1, 1> {
   const int32_t shift_;
 

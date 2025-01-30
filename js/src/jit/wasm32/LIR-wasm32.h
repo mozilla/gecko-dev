@@ -19,14 +19,6 @@ class LUnboxFloatingPoint : public LInstruction {
   const LDefinition* output() const { MOZ_CRASH(); }
 };
 
-class LWasmUint32ToFloat32 : public LInstructionHelper<1, 1, 0> {
- public:
-  explicit LWasmUint32ToFloat32(const LAllocation&)
-      : LInstructionHelper(Opcode::Invalid) {
-    MOZ_CRASH();
-  }
-};
-
 class LUnbox : public LInstructionHelper<1, 2, 0> {
  public:
   MUnbox* mir() const { MOZ_CRASH(); }
@@ -53,13 +45,6 @@ class LModI : public LBinaryMath<1> {
 
   const LDefinition* callTemp() { MOZ_CRASH(); }
   MMod* mir() const { MOZ_CRASH(); }
-};
-class LWasmUint32ToDouble : public LInstructionHelper<1, 1, 0> {
- public:
-  explicit LWasmUint32ToDouble(const LAllocation&)
-      : LInstructionHelper(Opcode::Invalid) {
-    MOZ_CRASH();
-  }
 };
 
 class LMulI : public LInstruction {};
