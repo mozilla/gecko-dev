@@ -201,7 +201,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
       // Save some state used below to build the final list of suggestions.
       // `feature` will be null if the suggestion isn't managed by one.
-      let feature = this.#getFeature(suggestion);
+      let feature = lazy.QuickSuggest.getFeatureBySource(suggestion);
       let featureSuggestions = suggestionsByFeature.get(feature);
       if (!featureSuggestions) {
         featureSuggestions = [];
@@ -237,7 +237,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
   onImpression(state, queryContext, controller, resultsAndIndexes, details) {
     // Build a map from each feature to its results in `resultsAndIndexes`.
     let resultsByFeature = resultsAndIndexes.reduce((memo, { result }) => {
-      let feature = this.#getFeatureByResult(result);
+      let feature = lazy.QuickSuggest.getFeatureByResult(result);
       if (feature) {
         let featureResults = memo.get(feature);
         if (!featureResults) {
@@ -265,7 +265,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let { result } = details;
 
     // Delegate to the result's feature if there is one.
-    let feature = this.#getFeatureByResult(result);
+    let feature = lazy.QuickSuggest.getFeatureByResult(details.result);
     if (feature) {
       feature.onEngagement(
         queryContext,
@@ -300,48 +300,15 @@ class ProviderQuickSuggest extends UrlbarProvider {
    * @returns {object} An object describing the view update.
    */
   getViewUpdate(result) {
-    return this.#getFeatureByResult(result)?.getViewUpdate?.(result);
+    return lazy.QuickSuggest.getFeatureByResult(result)?.getViewUpdate?.(
+      result
+    );
   }
 
   getResultCommands(result) {
-    return this.#getFeatureByResult(result)?.getResultCommands?.(result);
-  }
-
-  /**
-   * Gets the `BaseFeature` instance that implements suggestions for a source
-   * and provider name. The source and provider name can be supplied from either
-   * a suggestion object or the payload of a `UrlbarResult` object.
-   *
-   * @param {object} options
-   *   Options object.
-   * @param {string} options.source
-   *   The suggestion source, one of: "merino", "ml", "rust"
-   * @param {string} options.provider
-   *   This value depends on `source`. The possible values per source are:
-   *
-   *   merino:
-   *     The name of the Merino provider that serves the suggestion type
-   *   ml:
-   *     The name of the intent as determined by `MLSuggest`
-   *   rust:
-   *     The name of the suggestion type as defined in Rust
-   * @returns {BaseFeature}
-   *   The feature instance or null if no feature was found.
-   */
-  #getFeature({ source, provider }) {
-    switch (source) {
-      case "merino":
-        return lazy.QuickSuggest.getFeatureByMerinoProvider(provider);
-      case "rust":
-        return lazy.QuickSuggest.getFeatureByRustSuggestionType(provider);
-      case "ml":
-        return lazy.QuickSuggest.getFeatureByMlIntent(provider);
-    }
-    return null;
-  }
-
-  #getFeatureByResult(result) {
-    return this.#getFeature(result.payload);
+    return lazy.QuickSuggest.getFeatureByResult(result)?.getResultCommands?.(
+      result
+    );
   }
 
   /**
@@ -352,13 +319,13 @@ class ProviderQuickSuggest extends UrlbarProvider {
    * @param {object} suggestion
    *   A suggestion from a Suggest backend.
    * @returns {string}
-   *   The telemetry type. If the suggestion type is managed by a `BaseFeature`
-   *   instance, the telemetry type is retrieved from it. Otherwise the
-   *   suggestion type is assumed to come from Merino, and `suggestion.provider`
-   *   (the Merino provider name) is returned.
+   *   The telemetry type. If the suggestion type is managed by a feature, the
+   *   telemetry type is retrieved from it. Otherwise the suggestion type is
+   *   assumed to come from Merino, and `suggestion.provider` (the Merino
+   *   provider name) is returned.
    */
   #getSuggestionTelemetryType(suggestion) {
-    let feature = this.#getFeature(suggestion);
+    let feature = lazy.QuickSuggest.getFeatureBySource(suggestion);
     if (feature) {
       return feature.getSuggestionTelemetryType(suggestion);
     }
@@ -367,7 +334,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
   async #makeResult(queryContext, suggestion) {
     let result = null;
-    let feature = this.#getFeature(suggestion);
+    let feature = lazy.QuickSuggest.getFeatureBySource(suggestion);
     if (!feature) {
       result = this.#makeUnmanagedResult(queryContext, suggestion);
     } else if (feature.isEnabled) {
@@ -383,9 +350,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
     }
 
     // Set important properties that every Suggest result should have. See
-    // `#getFeature()` for possible values of `source` and `provider`. If the
-    // suggestion isn't managed by a feature, then it's from Merino and has
-    // `is_sponsored` set if it's sponsored. (Merino uses snake_case.)
+    // `QuickSuggest.getFeatureBySource()` for `source` and `provider` values.
+    // If the suggestion isn't managed by a feature, then it's from Merino and
+    // `is_sponsored` is true if it's sponsored. (Merino uses snake_case.)
     result.payload.source = suggestion.source;
     result.payload.provider = suggestion.provider;
     result.payload.telemetryType = this.#getSuggestionTelemetryType(suggestion);
@@ -591,7 +558,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     // neither sponsored nor nonsponsored. In other words, the decision to add
     // them or not does not depend on the prefs in this conditional. Such types
     // should always be managed. Exposure suggestions are an example.
-    let feature = this.#getFeatureByResult(result);
+    let feature = lazy.QuickSuggest.getFeatureByResult(result);
     if (
       !feature &&
       ((result.payload.isSponsored &&

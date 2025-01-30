@@ -965,7 +965,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       state.quickSuggestResult &&
       !result.heuristic &&
       result.type == UrlbarUtils.RESULT_TYPE.URL &&
-      lazy.QuickSuggest.isURLEquivalentToResultURL(
+      lazy.QuickSuggest.isUrlEquivalentToResultUrl(
         result.payload.url,
         state.quickSuggestResult
       )

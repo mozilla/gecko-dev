@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CONTEXTUAL_SERVICES_PING_TYPES:
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  rawSuggestionUrlMatches: "resource://gre/modules/RustSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -26,6 +27,10 @@ ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
   }
   return _contextId;
 });
+
+const TIMESTAMP_TEMPLATE = "%YYYYMMDDHH%";
+const TIMESTAMP_LENGTH = 10;
+const TIMESTAMP_REGEXP = /^\d{10}$/;
 
 /**
  * A feature that manages AMP suggestions.
@@ -87,15 +92,13 @@ export class AmpSuggestions extends SuggestProvider {
   makeResult(queryContext, suggestion) {
     let originalUrl;
     if (suggestion.source == "rust") {
-      // The Rust backend defines `rawUrl` on AMP suggestions, and its value is
-      // what we on desktop call the `originalUrl`, i.e., it's a URL that may
-      // contain timestamp templates.
+      // The Rust backend replaces URL timestamp templates for us, and it
+      // includes the original URL as `rawUrl`.
       originalUrl = suggestion.rawUrl;
     } else {
-      // Replace the suggestion's template substrings, but first save the
-      // original URL before its timestamp template is replaced.
+      // Replace URL timestamp templates, but first save the original URL.
       originalUrl = suggestion.url;
-      lazy.QuickSuggest.replaceSuggestionTemplates(suggestion);
+      this.#replaceSuggestionTemplates(suggestion);
 
       // Normalize the Merino suggestion so it has camelCased properties like
       // Rust suggestions.
@@ -226,6 +229,47 @@ export class AmpSuggestions extends SuggestProvider {
     }
   }
 
+  isUrlEquivalentToResultUrl(url, result) {
+    // If the URLs aren't the same length, they can't be equivalent.
+    let resultURL = result.payload.url;
+    if (resultURL.length != url.length) {
+      return false;
+    }
+
+    if (result.payload.source == "rust") {
+      // Rust has its own equivalence function.
+      return lazy.rawSuggestionUrlMatches(result.payload.originalUrl, url);
+    }
+
+    // If the result URL doesn't have a timestamp, then do a straight string
+    // comparison.
+    let { urlTimestampIndex } = result.payload;
+    if (typeof urlTimestampIndex != "number" || urlTimestampIndex < 0) {
+      return resultURL == url;
+    }
+
+    // Compare the first parts of the strings before the timestamps.
+    if (
+      resultURL.substring(0, urlTimestampIndex) !=
+      url.substring(0, urlTimestampIndex)
+    ) {
+      return false;
+    }
+
+    // Compare the second parts of the strings after the timestamps.
+    let remainderIndex = urlTimestampIndex + TIMESTAMP_LENGTH;
+    if (resultURL.substring(remainderIndex) != url.substring(remainderIndex)) {
+      return false;
+    }
+
+    // Test the timestamp against the regexp.
+    let maybeTimestamp = url.substring(
+      urlTimestampIndex,
+      urlTimestampIndex + TIMESTAMP_LENGTH
+    );
+    return TIMESTAMP_REGEXP.test(maybeTimestamp);
+  }
+
   #submitQuickSuggestPing({ queryContext, result, pingType, ...pingData }) {
     if (queryContext.isPrivate) {
       return;
@@ -275,5 +319,62 @@ export class AmpSuggestions extends SuggestProvider {
   #submitQuickSuggestDeletionRequestPing() {
     Glean.quickSuggest.contextId.set(lazy.contextId);
     GleanPings.quickSuggestDeletionRequest.submit();
+  }
+
+  /**
+   * Some AMP suggestion URL properties include timestamp templates that must be
+   * replaced with timestamps at query time. This method replaces them in place.
+   *
+   * Example URL with template:
+   *
+   *   http://example.com/foo?bar=%YYYYMMDDHH%
+   *
+   * It will be replaced with a timestamp like this:
+   *
+   *   http://example.com/foo?bar=2021111610
+   *
+   * @param {object} suggestion
+   *   An AMP suggestion.
+   */
+  #replaceSuggestionTemplates(suggestion) {
+    let now = new Date();
+    let timestampParts = [
+      now.getFullYear(),
+      now.getMonth() + 1,
+      now.getDate(),
+      now.getHours(),
+    ];
+    let timestamp = timestampParts
+      .map(n => n.toString().padStart(2, "0"))
+      .join("");
+    for (let key of ["url", "click_url"]) {
+      let value = suggestion[key];
+      if (!value) {
+        continue;
+      }
+
+      let timestampIndex = value.indexOf(TIMESTAMP_TEMPLATE);
+      if (timestampIndex >= 0) {
+        if (key == "url") {
+          suggestion.urlTimestampIndex = timestampIndex;
+        }
+        // We could use replace() here but we need the timestamp index for
+        // `suggestion.urlTimestampIndex`, and since we already have that, avoid
+        // another O(n) substring search and manually replace the template with
+        // the timestamp.
+        suggestion[key] =
+          value.substring(0, timestampIndex) +
+          timestamp +
+          value.substring(timestampIndex + TIMESTAMP_TEMPLATE.length);
+      }
+    }
+  }
+
+  static get TIMESTAMP_TEMPLATE() {
+    return TIMESTAMP_TEMPLATE;
+  }
+
+  static get TIMESTAMP_LENGTH() {
+    return TIMESTAMP_LENGTH;
   }
 }

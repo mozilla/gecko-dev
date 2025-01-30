@@ -9,6 +9,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AmpMatchingStrategy: "resource://gre/modules/RustSuggest.sys.mjs",
+  AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
   SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
 });
 
@@ -22,7 +23,7 @@ const PREFIX_SUGGESTIONS_STRIPPED_URL = "example.com/prefix-test";
 
 const ONE_CHAR_SEARCH_STRINGS = ["x", "x ", " x", " x "];
 
-const { TIMESTAMP_TEMPLATE, TIMESTAMP_LENGTH } = QuickSuggest;
+const { TIMESTAMP_TEMPLATE, TIMESTAMP_LENGTH } = AmpSuggestions;
 const TIMESTAMP_SEARCH_STRING = "timestamp";
 const TIMESTAMP_SUGGESTION_URL = `http://example.com/timestamp-${TIMESTAMP_TEMPLATE}`;
 const TIMESTAMP_SUGGESTION_CLICK_URL = `http://click.reporting.test.com/timestamp-${TIMESTAMP_TEMPLATE}-foo`;

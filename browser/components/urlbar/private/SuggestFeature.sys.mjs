@@ -312,6 +312,26 @@ export class SuggestProvider extends SuggestFeature {
    */
   onEngagement(queryContext, controller, details, searchString) {}
 
+  /**
+   * Some features may create result URLs that are potentially unique per query.
+   * Typically this is done by modifying an original suggestion URL at query
+   * time, for example by adding timestamps or query-specific search params. In
+   * that case, a single original suggestion URL will map to many result URLs.
+   * If this is true for the subclass, it should override this method and return
+   * whether the given URL and result URL both map back to the same original
+   * suggestion URL.
+   *
+   * @param {string} url
+   *   The URL to check, typically from the user's history.
+   * @param {UrlbarResult} result
+   *   The Suggest result.
+   * @returns {boolean}
+   *   Whether `url` is equivalent to the result's URL.
+   */
+  isUrlEquivalentToResultUrl(url, result) {
+    return url == result.payload.url;
+  }
+
   // Methods not designed for overriding below
 
   /**

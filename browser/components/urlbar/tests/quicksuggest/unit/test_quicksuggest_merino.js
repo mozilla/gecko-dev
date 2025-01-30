@@ -6,12 +6,17 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
+});
+
 // relative to `browser.urlbar`
 const PREF_DATA_COLLECTION_ENABLED = "quicksuggest.dataCollection.enabled";
 
 const SEARCH_STRING = "frab";
 
 const { DEFAULT_SUGGESTION_SCORE } = UrlbarProviderQuickSuggest;
+const { TIMESTAMP_TEMPLATE } = AmpSuggestions;
 
 const REMOTE_SETTINGS_RESULTS = [
   QuickSuggestTestUtils.ampRemoteSettings({
@@ -393,8 +398,6 @@ add_task(async function timestamps() {
 
   // Set up the Merino response with template URLs.
   let suggestion = MerinoTestUtils.server.response.body.suggestions[0];
-  let { TIMESTAMP_TEMPLATE } = QuickSuggest;
-
   suggestion.url = `http://example.com/time-${TIMESTAMP_TEMPLATE}`;
   suggestion.click_url = `http://example.com/time-${TIMESTAMP_TEMPLATE}-foo`;
 

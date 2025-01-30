@@ -5,7 +5,11 @@
 
 "use strict";
 
-const { TIMESTAMP_TEMPLATE } = QuickSuggest;
+ChromeUtils.defineESModuleGetters(this, {
+  AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
+});
+
+const { TIMESTAMP_TEMPLATE } = AmpSuggestions;
 
 // Include the timestamp template in the suggestion URLs so we can make sure
 // their original URLs with the unreplaced templates are blocked and not their

@@ -7,7 +7,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  rawSuggestionUrlMatches: "resource://gre/modules/RustSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
@@ -41,10 +40,6 @@ const FEATURES = {
   YelpSuggestions: "resource:///modules/urlbar/private/YelpSuggestions.sys.mjs",
 };
 
-const TIMESTAMP_TEMPLATE = "%YYYYMMDDHH%";
-const TIMESTAMP_LENGTH = 10;
-const TIMESTAMP_REGEXP = /^\d{10}$/;
-
 // Values returned by the onboarding dialog depending on the user's response.
 // These values are used in telemetry events, so be careful about changing them.
 const ONBOARDING_CHOICE = {
@@ -65,22 +60,6 @@ const ONBOARDING_URI =
  * This class manages Firefox Suggest and has related helpers.
  */
 class _QuickSuggest {
-  /**
-   * @returns {string}
-   *   The timestamp template string used in Suggest URLs.
-   */
-  get TIMESTAMP_TEMPLATE() {
-    return TIMESTAMP_TEMPLATE;
-  }
-
-  /**
-   * @returns {number}
-   *   The length of the timestamp in Suggest URLs.
-   */
-  get TIMESTAMP_LENGTH() {
-    return TIMESTAMP_LENGTH;
-  }
-
   /**
    * @returns {string}
    *   The help URL for Suggest.
@@ -276,6 +255,51 @@ class _QuickSuggest {
   }
 
   /**
+   * Gets the Suggest feature that manages suggestions for urlbar result.
+   *
+   * @param {UrlbarResult} result
+   *   The urlbar result.
+   * @returns {SuggestProvider}
+   *   The feature instance or null if none was found.
+   */
+  getFeatureByResult(result) {
+    return this.getFeatureBySource(result.payload);
+  }
+
+  /**
+   * Gets the Suggest feature that manages suggestions for a source and provider
+   * name. The source and provider name can be supplied from either a suggestion
+   * object or the payload of a `UrlbarResult` object.
+   *
+   * @param {object} options
+   *   Options object.
+   * @param {string} options.source
+   *   The suggestion source, one of: "merino", "ml", "rust"
+   * @param {string} options.provider
+   *   This value depends on `source`. The possible values per source are:
+   *
+   *   merino:
+   *     The name of the Merino provider that serves the suggestion type
+   *   ml:
+   *     The name of the intent as determined by `MLSuggest`
+   *   rust:
+   *     The name of the suggestion type as defined in Rust
+   * @returns {SuggestProvider}
+   *   The feature instance or null if none was found.
+   */
+  getFeatureBySource({ source, provider }) {
+    switch (source) {
+      case "merino":
+        return this.getFeatureByMerinoProvider(provider);
+      case "rust":
+        return this.getFeatureByRustSuggestionType(provider);
+      case "ml":
+        return this.getFeatureByMlIntent(provider);
+    }
+    return null;
+  }
+
+  /**
    * Called when a urlbar pref changes.
    *
    * @param {string} pref
@@ -292,119 +316,28 @@ class _QuickSuggest {
   }
 
   /**
-   * Returns whether a URL is equivalent to a Suggest result's URL. URLs are
-   * equivalent if they are identical except for substrings that replaced
-   * templates in the original suggestion URL.
+   * Returns whether a given URL and result URL map back to the same original
+   * suggestion URL.
    *
-   * For example, a suggestion URL from the backing suggestions source might
-   * include a timestamp template "%YYYYMMDDHH%" like this:
-   *
-   *   http://example.com/foo?bar=%YYYYMMDDHH%
-   *
-   * When a Suggest result is created from this suggestion URL, it's created
-   * with a URL that is a copy of the suggestion URL but with the template
-   * replaced with a real timestamp value, like this:
-   *
-   *   http://example.com/foo?bar=2021111610
-   *
-   * All URLs created from this single suggestion URL are considered equivalent
-   * regardless of their real timestamp values.
+   * Some features may create result URLs that are potentially unique per query.
+   * Typically this is done by modifying an original suggestion URL at query
+   * time, for example by adding timestamps or query-specific search params. In
+   * that case, a single original suggestion URL will map to many result URLs.
+   * This function returns whether the given URL and result URL are equal
+   * excluding any such modifications.
    *
    * @param {string} url
-   *   The URL to check.
+   *   The URL to check, typically from the user's history.
    * @param {UrlbarResult} result
-   *   The Suggest result. Will compare {@link url} to `result.payload.url`
+   *   The Suggest result.
    * @returns {boolean}
-   *   Whether `url` is equivalent to `result.payload.url`.
+   *   Whether `url` is equivalent to the result's URL.
    */
-  isURLEquivalentToResultURL(url, result) {
-    // If the URLs aren't the same length, they can't be equivalent.
-    let resultURL = result.payload.url;
-    if (resultURL.length != url.length) {
-      return false;
-    }
-
-    if (result.payload.source == "rust") {
-      // Rust has its own equivalence function. The urlbar implementation for an
-      // individual Rust suggestion type will define `originalUrl` only when
-      // necessary. Its value depends on the type and generally represents the
-      // suggestion's URL before UTM and timestamp params are added. If it's not
-      // defined, fall back to the main URL.
-      return lazy.rawSuggestionUrlMatches(
-        result.payload.originalUrl || resultURL,
-        url
-      );
-    }
-
-    // If the result URL doesn't have a timestamp, then do a straight string
-    // comparison.
-    let { urlTimestampIndex } = result.payload;
-    if (typeof urlTimestampIndex != "number" || urlTimestampIndex < 0) {
-      return resultURL == url;
-    }
-
-    // Compare the first parts of the strings before the timestamps.
-    if (
-      resultURL.substring(0, urlTimestampIndex) !=
-      url.substring(0, urlTimestampIndex)
-    ) {
-      return false;
-    }
-
-    // Compare the second parts of the strings after the timestamps.
-    let remainderIndex = urlTimestampIndex + TIMESTAMP_LENGTH;
-    if (resultURL.substring(remainderIndex) != url.substring(remainderIndex)) {
-      return false;
-    }
-
-    // Test the timestamp against the regexp.
-    let maybeTimestamp = url.substring(
-      urlTimestampIndex,
-      urlTimestampIndex + TIMESTAMP_LENGTH
-    );
-    return TIMESTAMP_REGEXP.test(maybeTimestamp);
-  }
-
-  /**
-   * Some suggestion properties like `url` and `click_url` include template
-   * substrings that must be replaced with real values. This method replaces
-   * templates with appropriate values in place.
-   *
-   * @param {object} suggestion
-   *   A suggestion object fetched from remote settings or Merino.
-   */
-  replaceSuggestionTemplates(suggestion) {
-    let now = new Date();
-    let timestampParts = [
-      now.getFullYear(),
-      now.getMonth() + 1,
-      now.getDate(),
-      now.getHours(),
-    ];
-    let timestamp = timestampParts
-      .map(n => n.toString().padStart(2, "0"))
-      .join("");
-    for (let key of ["url", "click_url"]) {
-      let value = suggestion[key];
-      if (!value) {
-        continue;
-      }
-
-      let timestampIndex = value.indexOf(TIMESTAMP_TEMPLATE);
-      if (timestampIndex >= 0) {
-        if (key == "url") {
-          suggestion.urlTimestampIndex = timestampIndex;
-        }
-        // We could use replace() here but we need the timestamp index for
-        // `suggestion.urlTimestampIndex`, and since we already have that, avoid
-        // another O(n) substring search and manually replace the template with
-        // the timestamp.
-        suggestion[key] =
-          value.substring(0, timestampIndex) +
-          timestamp +
-          value.substring(timestampIndex + TIMESTAMP_TEMPLATE.length);
-      }
-    }
+  isUrlEquivalentToResultUrl(url, result) {
+    let feature = this.getFeatureByResult(result);
+    return feature
+      ? feature.isUrlEquivalentToResultUrl(url, result)
+      : url == result.payload.url;
   }
 
   /**
