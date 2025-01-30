@@ -113,7 +113,7 @@ document.addEventListener(
           {
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
             let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-            tabGroup.ownerGlobal.gBrowser.replaceGroupWithWindow(tabGroup);
+            gBrowser.replaceGroupWithWindow(tabGroup);
           }
           break;
         case "open-tab-group-context-menu_moveToThisWindow":
