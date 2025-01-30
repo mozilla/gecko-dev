@@ -2,21 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Android tests don't import these properly, so guard against that
-let shortURL = {};
-let searchShortcuts = {};
-let didSuccessfulImport = false;
-try {
-  shortURL = ChromeUtils.importESModule(
-    "resource://activity-stream/lib/ShortURL.sys.mjs"
-  );
-  searchShortcuts = ChromeUtils.importESModule(
-    "resource://activity-stream/lib/SearchShortcuts.sys.mjs"
-  );
-  didSuccessfulImport = true;
-} catch (e) {
-  // The test failed to import these files
-}
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import {
+  getSearchProvider,
+  SEARCH_SHORTCUTS_EXPERIMENT,
+} from "resource://gre/modules/SearchShortcuts.sys.mjs";
 
 const lazy = {};
 
@@ -42,6 +32,13 @@ try {
 ChromeUtils.defineLazyGetter(lazy, "gCryptoHash", function () {
   return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
 });
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "IDNService",
+  "@mozilla.org/network/idn-service;1",
+  "nsIIDNService"
+);
 
 // Boolean preferences that control newtab content
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
@@ -84,6 +81,21 @@ function toHash(aValue) {
   lazy.gCryptoHash.init(lazy.gCryptoHash.MD5);
   lazy.gCryptoHash.update(value, value.length);
   return lazy.gCryptoHash.finish(true);
+}
+
+/**
+ * Properly convert internationalized domain names.
+ * @param {string} host Domain hostname.
+ * @returns {string} Hostname suitable to be displayed.
+ */
+function handleIDNHost(hostname) {
+  try {
+    return lazy.IDNService.convertToDisplayIDN(hostname);
+  } catch (e) {
+    // If something goes wrong (e.g. host is an IP address) just fail back
+    // to the full domain.
+    return hostname;
+  }
 }
 
 /**
@@ -1247,15 +1259,12 @@ var ActivityStreamProvider = {
 
     // Convert all links that are supposed to be a seach shortcut to its canonical URL
     if (
-      didSuccessfulImport &&
       Services.prefs.getBoolPref(
-        `browser.newtabpage.activity-stream.${searchShortcuts.SEARCH_SHORTCUTS_EXPERIMENT}`
+        `browser.newtabpage.activity-stream.${SEARCH_SHORTCUTS_EXPERIMENT}`
       )
     ) {
       links.forEach(link => {
-        let searchProvider = searchShortcuts.getSearchProvider(
-          shortURL.shortURL(link)
-        );
+        let searchProvider = getSearchProvider(NewTabUtils.shortURL(link));
         if (searchProvider) {
           link.url = searchProvider.url;
         }
@@ -2346,6 +2355,69 @@ export var NewTabUtils = {
     Links.resetCache();
     BlockedLinks.resetCache();
     Links.populateCache(aCallback, true);
+  },
+
+  /**
+   * Get the effective top level domain of a host.
+   * @param {string} host The host to be analyzed.
+   * @return {str} The suffix or empty string if there's no suffix.
+   */
+  getETLD: function NewTabUtils_getETLD(host) {
+    try {
+      return Services.eTLD.getPublicSuffixFromHost(host);
+    } catch (err) {
+      return "";
+    }
+  },
+
+  /**
+   * shortHostname - Creates a short version of a hostname, used for display purposes
+   *            e.g. "www.foosite.com"  =>  "foosite"
+   *
+   * @param {string} hostname The full hostname
+   * @returns {string} The shortened hostname
+   */
+  shortHostname: function NewTabUtils_shortHostname(hostname) {
+    if (!hostname) {
+      return "";
+    }
+
+    const newHostname = hostname.replace(/^www\./i, "").toLowerCase();
+
+    // Remove the eTLD (e.g., com, net) and the preceding period from the hostname
+    const eTLD = this.getETLD(newHostname);
+    const eTLDExtra =
+      eTLD.length && newHostname.endsWith(eTLD) ? -(eTLD.length + 1) : Infinity;
+
+    return handleIDNHost(newHostname.slice(0, eTLDExtra) || newHostname);
+  },
+
+  /**
+   * shortURL - Creates a short version of a link's url, used for display purposes
+   *            e.g. {url: http://www.foosite.com}  =>  "foosite"
+   *
+   * @param  {obj} link A link object
+   *         {str} link.url (required)- The url of the link
+   * @return {str}   A short url
+   */
+  shortURL: function NewTabUtils_shortURL({ url }) {
+    if (!url) {
+      return "";
+    }
+
+    // Make sure we have a valid / parseable url
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (ex) {
+      // Not entirely sure what we have, but just give it back
+      return url;
+    }
+
+    // Ideally get the short eTLD-less host but fall back to longer url parts
+    return (
+      this.shortHostname(parsed.hostname) || parsed.pathname || parsed.href
+    );
   },
 
   links: Links,

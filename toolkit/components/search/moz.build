@@ -27,6 +27,7 @@ EXTRA_JS_MODULES += [
     "SearchEngineSelector.sys.mjs",
     "SearchService.sys.mjs",
     "SearchSettings.sys.mjs",
+    "SearchShortcuts.sys.mjs",
     "SearchStaticData.sys.mjs",
     "SearchSuggestionController.sys.mjs",
     "SearchSuggestions.sys.mjs",

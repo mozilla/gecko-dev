@@ -13,7 +13,6 @@ ChromeUtils.defineESModuleGetters(this, {
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
   SectionsManager: "resource://activity-stream/lib/SectionsManager.sys.mjs",
-  shortURL: "resource://activity-stream/lib/ShortURL.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
@@ -533,7 +532,7 @@ add_task(async function test_fetchHighlights_add_hostname_hasImage() {
 
   let highlights = await fetchHighlightsRows(feed);
 
-  Assert.equal(highlights[0].hostname, shortURL(links[0]));
+  Assert.equal(highlights[0].hostname, NewTabUtils.shortURL(links[0]));
   Assert.equal(highlights[0].hasImage, true);
 
   sandbox.restore();

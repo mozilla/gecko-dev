@@ -14,7 +14,6 @@ ChromeUtils.defineESModuleGetters(this, {
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  shortURL: "resource://activity-stream/lib/ShortURL.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
@@ -210,7 +209,7 @@ add_task(async function test_refreshDefaults() {
   let [site] = DEFAULT_TOP_SITES;
   Assert.equal(
     site.hostname,
-    shortURL(site),
+    NewTabUtils.shortURL(site),
     "Lone top site should have the right hostname."
   );
 
@@ -280,7 +279,7 @@ add_task(async function test_getLinksWithDefaults() {
 
   const reference = FAKE_LINKS.map(site =>
     Object.assign({}, site, {
-      hostname: shortURL(site),
+      hostname: NewTabUtils.shortURL(site),
       typedBonus: true,
     })
   );
@@ -325,7 +324,7 @@ add_task(async function test_getLinksWithDefaults_caching() {
   const url = "www.myonlytopsite.com";
   const topsite = {
     frecency: FAKE_FRECENCY,
-    hostname: shortURL({ url }),
+    hostname: NewTabUtils.shortURL({ url }),
     typedBonus: true,
     url,
   };
@@ -396,7 +395,7 @@ add_task(async function test_getLinksWithDefaults_adds_defaults() {
 
   let reference = [...TEST_LINKS, ...DEFAULT_TOP_SITES].map(s =>
     Object.assign({}, s, {
-      hostname: shortURL(s),
+      hostname: NewTabUtils.shortURL(s),
       typedBonus: true,
     })
   );
@@ -429,7 +428,7 @@ add_task(
 
     let reference = [...testLinks, DEFAULT_TOP_SITES[0]].map(s =>
       Object.assign({}, s, {
-        hostname: shortURL(s),
+        hostname: NewTabUtils.shortURL(s),
         typedBonus: true,
       })
     );
@@ -1161,7 +1160,7 @@ add_task(async function test_refresh_dispatch() {
   await TopSites.refresh();
   let reference = FAKE_LINKS.map(site =>
     Object.assign({}, site, {
-      hostname: shortURL(site),
+      hostname: NewTabUtils.shortURL(site),
       typedBonus: true,
     })
   );
@@ -1203,7 +1202,7 @@ add_task(async function test_refresh_empty_slots() {
 
   let reference = FAKE_LINKS.map(site =>
     Object.assign({}, site, {
-      hostname: shortURL(site),
+      hostname: NewTabUtils.shortURL(site),
       typedBonus: true,
     })
   );

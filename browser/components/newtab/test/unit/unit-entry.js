@@ -288,6 +288,7 @@ const TEST_GLOBAL = {
       getTopFrecentSites: () => [],
       executePlacesQuery: async (sql, options) => ({ sql, options }),
     },
+    shortHostname() {},
   },
   OS: {
     File: {

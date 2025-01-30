@@ -4,7 +4,6 @@
 
 import { actionTypes as at } from "resource://activity-stream/common/Actions.mjs";
 
-import { shortURL } from "resource://activity-stream/lib/ShortURL.sys.mjs";
 import {
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
@@ -201,7 +200,7 @@ export class HighlightsFeed {
     const highlights = [];
     const hosts = new Set();
     for (const page of deduped) {
-      const hostname = shortURL(page);
+      const hostname = lazy.NewTabUtils.shortURL(page);
       // Skip this history page if we already something from the same host
       if (page.type === "history" && hosts.has(hostname)) {
         continue;

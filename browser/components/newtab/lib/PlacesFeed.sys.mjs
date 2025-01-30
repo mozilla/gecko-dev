@@ -8,8 +8,6 @@ import {
   actionUtils as au,
 } from "resource://activity-stream/common/Actions.mjs";
 
-import { shortURL } from "resource://activity-stream/lib/ShortURL.sys.mjs";
-
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This
 // is because the Karma test environment already stubs out
@@ -485,7 +483,10 @@ export class PlacesFeed {
     const blockedPref = JSON.parse(
       Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
     );
-    const merged = new Set([...blockedPref, ...urls.map(url => shortURL(url))]);
+    const merged = new Set([
+      ...blockedPref,
+      ...urls.map(url => lazy.NewTabUtils.shortURL(url)),
+    ]);
 
     Services.prefs.setStringPref(
       TOP_SITES_BLOCKED_SPONSORS_PREF,

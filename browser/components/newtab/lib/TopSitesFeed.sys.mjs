@@ -10,10 +10,6 @@ import { TippyTopProvider } from "resource:///modules/topsites/TippyTopProvider.
 import { insertPinned } from "resource:///modules/topsites/TopSites.sys.mjs";
 import { TOP_SITES_MAX_SITES_PER_ROW } from "resource:///modules/topsites/constants.mjs";
 import { Dedupe } from "resource://activity-stream/common/Dedupe.sys.mjs";
-import {
-  shortURL,
-  shortHostname,
-} from "resource://activity-stream/lib/ShortURL.sys.mjs";
 
 import {
   CUSTOM_SEARCH_SHORTCUTS,
@@ -22,7 +18,7 @@ import {
   SEARCH_SHORTCUTS_HAVE_PINNED_PREF,
   checkHasSearchEngine,
   getSearchProvider,
-} from "resource://activity-stream/lib/SearchShortcuts.sys.mjs";
+} from "resource://gre/modules/SearchShortcuts.sys.mjs";
 
 const lazy = {};
 
@@ -141,7 +137,9 @@ const DISPLAY_FAIL_REASON_DISMISSED = "dismissed";
 const DISPLAY_FAIL_REASON_UNRESOLVED = "unresolved";
 
 function getShortHostnameForCurrentSearch() {
-  return shortHostname(Services.search.defaultEngine.searchUrlDomain);
+  return lazy.NewTabUtils.shortHostname(
+    Services.search.defaultEngine.searchUrlDomain
+  );
 }
 
 class TopSitesTelemetry {
@@ -161,7 +159,7 @@ class TopSitesTelemetry {
 
   _buildPropertyKey(tile) {
     let provider = this._tileProvider(tile);
-    return provider + shortURL(tile);
+    return provider + lazy.NewTabUtils.shortURL(tile);
   }
 
   // Returns an array of strings indicating the property name (based on the
@@ -213,7 +211,7 @@ class TopSitesTelemetry {
     let label = tile.label || null;
     let title = tile.title || null;
 
-    return label ?? title ?? shortURL(tile);
+    return label ?? title ?? lazy.NewTabUtils.shortURL(tile);
   }
 
   setTiles(tiles) {
@@ -385,7 +383,9 @@ export class ContileIntegration {
     const blocklist = JSON.parse(
       Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
     );
-    return tiles.filter(tile => !blocklist.includes(shortURL(tile)));
+    return tiles.filter(
+      tile => !blocklist.includes(lazy.NewTabUtils.shortURL(tile))
+    );
   }
 
   /**
@@ -856,7 +856,7 @@ export class TopSitesFeed {
       // Loop until we run out of spocs or positions.
       for (let i = 0; i < minLength; i++) {
         let site = this._contile.sites[i];
-        let hostname = shortURL(site);
+        let hostname = lazy.NewTabUtils.shortURL(site);
         let link = {
           isDefault: true,
           url: site.url,
@@ -895,7 +895,7 @@ export class TopSitesFeed {
     );
 
     for (let siteData of remoteSettingData) {
-      let hostname = shortURL(siteData);
+      let hostname = lazy.NewTabUtils.shortURL(siteData);
       // Drop default sites when Contile already provided a sponsored one with
       // the same host name.
       if (
@@ -964,7 +964,7 @@ export class TopSitesFeed {
           isDefault: true,
           url,
         };
-        site.hostname = shortURL(site);
+        site.hostname = lazy.NewTabUtils.shortURL(site);
         DEFAULT_TOP_SITES.push(site);
       }
     }
@@ -1139,7 +1139,9 @@ export class TopSitesFeed {
         // haven't previously inserted it, there's space to pin it, and the
         // search engine is available in Firefox
         if (
-          !pinnedSites.find(s => s && shortURL(s) === shortcut.shortURL) &&
+          !pinnedSites.find(
+            s => s && lazy.NewTabUtils.shortURL(s) === shortcut.shortURL
+          ) &&
           !prevInsertedShortcuts.includes(shortcut.shortURL) &&
           nextAvailable > -1 &&
           (await checkHasSearchEngine(shortcut.keyword))
@@ -1245,7 +1247,7 @@ export class TopSitesFeed {
             // See Bug 1822027. Note that `sponsored_position` is 1-based.
             sponsored_position: positionIndex + 1,
             // This is used for topsites deduping.
-            hostname: shortURL({ url: spoc.url }),
+            hostname: lazy.NewTabUtils.shortURL({ url: spoc.url }),
             partner: SPONSORED_TILE_PARTNER_MOZ_SALES,
           };
           sponsored.push(link);
@@ -1278,7 +1280,7 @@ export class TopSitesFeed {
       topsiteFrecency: FRECENCY_THRESHOLD,
     });
     for (let link of cache) {
-      const hostname = shortURL(link);
+      const hostname = lazy.NewTabUtils.shortURL(link);
       if (!this.shouldFilterSearchTile(hostname)) {
         frecent.push({
           ...(searchShortcutsExperiment
@@ -1312,7 +1314,7 @@ export class TopSitesFeed {
       }
       // If we've previously blocked a search shortcut, remove the default top site
       // that matches the hostname
-      const searchProvider = getSearchProvider(shortURL(link));
+      const searchProvider = getSearchProvider(lazy.NewTabUtils.shortURL(link));
       if (
         searchProvider &&
         lazy.NewTabUtils.blockedLinks.isBlocked({ url: searchProvider.url })
@@ -1372,7 +1374,9 @@ export class TopSitesFeed {
 
         // Drop pinned search shortcuts when their engine has been removed / hidden.
         if (link.searchTopSite) {
-          const searchProvider = getSearchProvider(shortURL(link));
+          const searchProvider = getSearchProvider(
+            lazy.NewTabUtils.shortURL(link)
+          );
           if (
             !searchProvider ||
             !(await checkHasSearchEngine(searchProvider.keyword))
@@ -1395,7 +1399,7 @@ export class TopSitesFeed {
           {},
           frecentSite || { isDefault: !!notBlockedDefaultSites.find(finder) },
           link,
-          { hostname: shortURL(link) },
+          { hostname: lazy.NewTabUtils.shortURL(link) },
           { searchTopSite: !!link.searchTopSite }
         );
 
@@ -1690,7 +1694,7 @@ export class TopSitesFeed {
   }
 
   async topSiteToSearchTopSite(site) {
-    const searchProvider = getSearchProvider(shortURL(site));
+    const searchProvider = getSearchProvider(lazy.NewTabUtils.shortURL(site));
     if (
       !searchProvider ||
       !(await checkHasSearchEngine(searchProvider.keyword))
@@ -1873,7 +1877,7 @@ export class TopSitesFeed {
       if (
         pinnedLink &&
         pinnedLink.searchTopSite &&
-        shortURL(pinnedLink) === vendor
+        lazy.NewTabUtils.shortURL(pinnedLink) === vendor
       ) {
         lazy.NewTabUtils.pinnedLinks.unpin(pinnedLink);
         this.pinnedCache.expire();

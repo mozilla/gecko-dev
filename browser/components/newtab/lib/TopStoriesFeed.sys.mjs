@@ -7,7 +7,6 @@ import {
   actionCreators as ac,
 } from "resource://activity-stream/common/Actions.mjs";
 import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
-import { shortURL } from "resource://activity-stream/lib/ShortURL.sys.mjs";
 import { SectionsManager } from "resource://activity-stream/lib/SectionsManager.sys.mjs";
 import { PersistentCache } from "resource://activity-stream/lib/PersistentCache.sys.mjs";
 
@@ -247,7 +246,9 @@ export class TopStoriesFeed {
       .map(s => {
         let mapped = {
           guid: s.id,
-          hostname: s.domain || shortURL(Object.assign({}, s, { url: s.url })),
+          hostname:
+            s.domain ||
+            lazy.NewTabUtils.shortURL(Object.assign({}, s, { url: s.url })),
           type:
             Date.now() - s.published_timestamp * 1000 <= STORIES_NOW_THRESHOLD
               ? "now"

@@ -6,10 +6,9 @@
 /* import-globals-from head.js */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CUSTOM_SEARCH_SHORTCUTS:
-    "resource://activity-stream/lib/SearchShortcuts.sys.mjs",
+  CUSTOM_SEARCH_SHORTCUTS: "resource://gre/modules/SearchShortcuts.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
-  SEARCH_SHORTCUTS: "resource://activity-stream/lib/SearchShortcuts.sys.mjs",
+  SEARCH_SHORTCUTS: "resource://gre/modules/SearchShortcuts.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
 });
 

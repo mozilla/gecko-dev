@@ -17,7 +17,6 @@ ChromeUtils.defineESModuleGetters(this, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
-  shortURL: "resource://activity-stream/lib/ShortURL.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
@@ -212,7 +211,7 @@ add_task(async function test_refreshDefaults() {
   let [site] = DEFAULT_TOP_SITES;
   Assert.equal(
     site.hostname,
-    shortURL(site),
+    NewTabUtils.shortURL(site),
     "Lone top site should have the right hostname."
   );
 
@@ -291,7 +290,7 @@ add_task(async function test_getLinksWithDefaults() {
 
   const reference = FAKE_LINKS.map(site =>
     Object.assign({}, site, {
-      hostname: shortURL(site),
+      hostname: NewTabUtils.shortURL(site),
       typedBonus: true,
     })
   );
@@ -334,7 +333,7 @@ add_task(async function test_getLinksWithDefaults_caching() {
   const url = "www.myonlytopsite.com";
   const topsite = {
     frecency: FAKE_FRECENCY,
-    hostname: shortURL({ url }),
+    hostname: NewTabUtils.shortURL({ url }),
     typedBonus: true,
     url,
   };
@@ -402,7 +401,7 @@ add_task(async function test_getLinksWithDefaults_adds_defaults() {
 
   let reference = [...TEST_LINKS, ...DEFAULT_TOP_SITES].map(s =>
     Object.assign({}, s, {
-      hostname: shortURL(s),
+      hostname: NewTabUtils.shortURL(s),
       typedBonus: true,
     })
   );
@@ -434,7 +433,7 @@ add_task(
 
     let reference = [...testLinks, DEFAULT_TOP_SITES[0]].map(s =>
       Object.assign({}, s, {
-        hostname: shortURL(s),
+        hostname: NewTabUtils.shortURL(s),
         typedBonus: true,
       })
     );
@@ -1095,7 +1094,7 @@ add_task(async function test_refresh_dispatch() {
   await feed.refresh({ broadcast: true });
   let reference = FAKE_LINKS.map(site =>
     Object.assign({}, site, {
-      hostname: shortURL(site),
+      hostname: NewTabUtils.shortURL(site),
       typedBonus: true,
     })
   );
