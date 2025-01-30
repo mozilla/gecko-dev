@@ -259,7 +259,7 @@ expected.
 
 .. code:: bash
 
-    ./mach gradle geckoview:apiLintWithGeckoBinariesDebug
+    ./mach gradle geckoview:apiLintDebug
 
 Running the above command should cause the build to fail and the output should contain an API key,
 which should be used to update the ``[api-version]`` field in the changelog. Next, run the command
@@ -267,7 +267,7 @@ again:
 
 .. code:: bash
 
-    ./mach gradle geckoview:apiLintWithGeckoBinariesDebug
+    ./mach gradle geckoview:apiLintDebug
 
 The build should pass this time, and an api.txt file will be generated for the changes. Next, follow
 the next command to double check that the changes made do not break the existing API:
