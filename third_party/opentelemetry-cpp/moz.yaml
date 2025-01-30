@@ -1,8 +1,8 @@
 schema: 1
 
 bugzilla:
-  product: "Firefox"
-  component: "Toolkit: Gecko Trace"
+  product: "Toolkit"
+  component: "Gecko Trace"
 
 origin:
   name: opentelemetry-cpp
