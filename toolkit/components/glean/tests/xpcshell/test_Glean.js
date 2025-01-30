@@ -799,3 +799,34 @@ add_task(async function test_submit_throws() {
     "Should throw inside callback"
   );
 });
+
+add_task(function test_collection_disabled_pings_work() {
+  // This test should work equally for full builds and artifact builds.
+
+  Assert.ok("collectionDisabledPing" in GleanPings);
+
+  // collection-enabled=false pings are disabled by default.
+  // No data is collected for metrics going into that ping.
+  Glean.testOnly.collectionDisabledCounter.add(1);
+  Assert.equal(
+    undefined,
+    Glean.testOnly.collectionDisabledCounter.testGetValue()
+  );
+
+  // After enabling a ping we can record data into it
+  GleanPings.collectionDisabledPing.setEnabled(true);
+  Glean.testOnly.collectionDisabledCounter.add(2);
+  Assert.equal(2, Glean.testOnly.collectionDisabledCounter.testGetValue());
+
+  let submitted = false;
+  GleanPings.collectionDisabledPing.testBeforeNextSubmit(() => {
+    submitted = true;
+    Assert.equal(2, Glean.testOnly.collectionDisabledCounter.testGetValue());
+  });
+  GleanPings.collectionDisabledPing.submit();
+  Assert.ok(submitted, "Ping was submitted, callback was called.");
+  Assert.equal(
+    undefined,
+    Glean.testOnly.collectionDisabledCounter.testGetValue()
+  );
+});

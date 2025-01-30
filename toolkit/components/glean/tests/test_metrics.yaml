@@ -753,6 +753,23 @@ test_only:
     expires: never
     telemetry_mirror: TELEMETRY_TEST_KEYED_MOBILE_ONLY
 
+  collection_disabled_counter:
+    type: counter
+    description: |
+      Number of times we count.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=TODO
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=TODO#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - collection-disabled-ping
+
 test_only.ipc:
   a_counter:
     type: counter
