@@ -8695,6 +8695,11 @@ var TabContextMenu = {
       this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab],
       { insertBefore: this.contextTab, showCreateUI: true }
     );
+
+    // When using the tab context menu to create a group from the all tabs
+    // panel, make sure we close that panel so that it doesn't obscure the tab
+    // group creation panel.
+    gTabsPanel.hideAllTabsPanel();
   },
 
   moveTabsToGroup(group) {
