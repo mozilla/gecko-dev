@@ -1105,6 +1105,9 @@ main section {
 [lwt-newtab-brighttext] .shortcuts-refresh .top-site-outer:hover .context-menu-button {
   color-scheme: dark;
 }
+.shortcuts-refresh .top-site-outer:hover .tile {
+  background-color: var(--newtab-background-color-secondary);
+}
 .shortcuts-refresh .top-site-outer .top-site-button {
   padding: 12px 16px 6px;
 }
@@ -1114,9 +1117,6 @@ main section {
 .shortcuts-refresh .top-site-outer .tile {
   background: var(--newtab-background-card);
   border-radius: var(--border-radius-large);
-}
-.shortcuts-refresh .top-site-outer .tile:hover {
-  background-color: var(--newtab-background-color-secondary);
 }
 .shortcuts-refresh .top-site-outer .tile .icon-wrapper {
   width: 40px;

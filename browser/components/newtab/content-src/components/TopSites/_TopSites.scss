@@ -418,6 +418,10 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
           color-scheme: dark;
         }
       }
+
+      .tile {
+        background-color: var(--newtab-background-color-secondary);
+      }
     }
 
     .top-site-button {
@@ -431,10 +435,6 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     .tile {
       background: var(--newtab-background-card);
       border-radius: var(--border-radius-large);
-
-      &:hover {
-        background-color: var(--newtab-background-color-secondary);
-      }
 
       .icon-wrapper {
         width: 40px;
