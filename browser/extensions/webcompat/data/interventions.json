@@ -1,0 +1,2792 @@
+{
+  "969844": {
+    "label": "mobile.de",
+    "bugs": {
+      "969844": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.mobile.de/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1385206": {
+    "label": "rakuten.co.jp",
+    "bugs": {
+      "1385206": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.rakuten.co.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
+  },
+  "1448747": {
+    "label": "FastClick breakage",
+    "bugs": {
+      "1829947": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.arcsivr.com/*"]
+      },
+      "1944006": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.co2meter.com/*"]
+      },
+      "1944007": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.discountcoffee.co.uk/*"]
+      },
+      "1944008": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.franmar.com/*"]
+      },
+      "1944009": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.iledefrance-mobilites.fr/*"]
+      },
+      "1944010": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.lafoodbank.org/*"]
+      },
+      "1944013": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.lamudi.co.id/*"]
+      },
+      "1944015": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.lawnmowerpartsworld.com/*"]
+      },
+      "1944018": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.oregonfoodbank.org/*"]
+      },
+      "1944019": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.themusiclab.org/*"]
+      },
+      "1944020": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://bathpublishing.com/*"]
+      },
+      "1944022": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://drafthouse.com/*"]
+      },
+      "1944024": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://dylantalkstone.com/*"]
+      },
+      "1916407": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://give.umrelief.org/give/*"]
+      },
+      "1944026": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://renewd.com.au/*"]
+      },
+      "1944027": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://rutamayacoffee.com/*"]
+      },
+      "1944029": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://weaversofireland.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1448747-fastclick-shim.js"]
+        }
+      }
+    ]
+  },
+  "1452707": {
+    "label": "ib.absa.co.za",
+    "bugs": {
+      "1452707": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["https://ib.absa.co.za/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1452707-window.controllers-shim-ib.absa.co.za.js"]
+        }
+      }
+    ]
+  },
+  "1457335": {
+    "label": "histography.io",
+    "bugs": {
+      "1457335": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://histography.io/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1457335-histography.io-ua-change.js"]
+        }
+      }
+    ]
+  },
+  "1472075": {
+    "label": "bankofamerica.com",
+    "bugs": {
+      "1280834": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.bankofamerica.com/*"]
+      },
+      "1899933": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.ml.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["mac", "linux"],
+        "content_scripts": {
+          "js": ["bug1472075-bankofamerica.com-ua-change.js"]
+        }
+      }
+    ]
+  },
+  "1509873": {
+    "label": "zmags.com",
+    "bugs": {
+      "1509873": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.viewer.zmags.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1570108": {
+    "label": "steamcommunity.com",
+    "bugs": {
+      "1904412": {
+        "issue": "blocked-content",
+        "matches": ["*://steamcommunity.com/chat*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1574522": {
+    "label": "enuri.com",
+    "bugs": {
+      "1574522": {
+        "issue": "incorrect-viewport-dimensions",
+        "matches": ["*://enuri.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1574564": {
+    "label": "ceskatelevize.cz",
+    "bugs": {
+      "1574564": {
+        "issue": "broken-videos",
+        "matches": ["*://*.ceskatelevize.cz/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1575000": {
+    "label": "apply.lloydsbank.co.uk",
+    "bugs": {
+      "1575000": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://apply.lloydsbank.co.uk/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1575000-apply.lloydsbank.co.uk-radio-buttons-fix.css"]
+        }
+      }
+    ]
+  },
+  "1577267": {
+    "label": "metfone.com.kh",
+    "bugs": {
+      "1577267": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.metfone.com.kh/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1577519": {
+    "label": "directv.com",
+    "bugs": {
+      "1728450": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.directv.com/*"]
+      },
+      "1827706": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.directv.com.ec/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1579159": {
+    "label": "m.tailieu.vn",
+    "bugs": {
+      "1579159": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://m.tailieu.vn/*", "*://m.elib.vn/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1579159-m.tailieu.vn-pdfjs-worker-disable.js"]
+        }
+      }
+    ]
+  },
+  "1582582": {
+    "label": "watch.sling.com",
+    "bugs": {
+      "1904417": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["https://watch.sling.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1598198": {
+    "label": "galaxy.store",
+    "bugs": {
+      "1598198": {
+        "issue": "broken-redirect",
+        "matches": [
+          "*://galaxy.store/*",
+          "*://dev.galaxy.store/*",
+          "*://stg.galaxy.store/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Samsung_for_Samsung_devices"]
+      }
+    ]
+  },
+  "1610026": {
+    "label": "www.mobilesuica.com",
+    "bugs": {
+      "1610026": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["https://www.mobilesuica.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1610344": {
+    "label": "directv.com.co",
+    "bugs": {
+      "1610344": {
+        "issue": "unsupported-warning",
+        "matches": ["https://*.directv.com.co/*"]
+      },
+      "1827706": {
+        "issue": "unsupported-warning",
+        "matches": ["https://*.directv.com.ec/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1610344-directv.com.co-hide-unsupported-message.css"]
+        }
+      }
+    ]
+  },
+  "1622063": {
+    "label": "wp1-ext.usps.gov",
+    "bugs": {
+      "1622063": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://wp1-ext.usps.gov/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1644830": {
+    "label": "usps.com",
+    "bugs": {
+      "1891016": {
+        "issue": "broken-interactive-elements",
+        "matches": ["https://*.usps.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1644830-missingmail.usps.com-checkboxes-not-visible.css"]
+        }
+      }
+    ]
+  },
+  "1646791": {
+    "label": "santanderbank.com",
+    "bugs": {
+      "1646791": {
+        "issue": "page-fails-to-load",
+        "matches": [
+          "*://*.bancosantander.es/*",
+          "*://*.gruposantander.es/*",
+          "*://*.santander.co.uk/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["cap_Version_to_99", "change_Gecko_to_like_Gecko"]
+      }
+    ]
+  },
+  "1651292": {
+    "label": "www.jp.square-enix.com",
+    "bugs": {
+      "1651292": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://www.jp.square-enix.com/music/sem/page/FF7R/ost/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1666754": {
+    "label": "lffl.org",
+    "bugs": {
+      "1665720": {
+        "issue": "slow-performance",
+        "matches": ["*://*.lffl.org/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1694470": {
+    "label": "m.myvidster.com",
+    "bugs": {
+      "1694470": {
+        "issue": "broken-layout",
+        "matches": ["https://m.myvidster.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1694470-myvidster.com-content-not-shown.css"]
+        }
+      }
+    ]
+  },
+  "1704673": {
+    "label": "app.xiaomi.com",
+    "bugs": {
+      "1704673": {
+        "issue": "broken-redirect",
+        "matches": ["*://app.xiaomi.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1707795": {
+    "label": "Office Excel spreadsheets",
+    "bugs": {
+      "1707795": {
+        "issue": "broken-scrolling",
+        "matches": [
+          "*://*.live.com/*",
+          "*://*.office.com/*",
+          "*://*.sharepoint.com/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1707795-office365-sheets-overscroll-disable.css"]
+        }
+      }
+    ]
+  },
+  "1712807": {
+    "label": "www.dealnews.com",
+    "bugs": {
+      "1712807": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://www.dealnews.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1719859": {
+    "label": "saxoinvestor.fr",
+    "bugs": {
+      "1719859": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.saxoinvestor.fr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1722955": {
+    "label": "frontgate.com",
+    "bugs": {
+      "1722955": {
+        "issue": "broken-layout",
+        "matches": ["*://*.frontgate.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["lib/ua_helpers.js", "bug1722955-frontgate.com-ua-override.js"]
+        }
+      }
+    ]
+  },
+  "1724868": {
+    "label": "news.yahoo.co.jp",
+    "bugs": {
+      "1724868": {
+        "issue": "broken-videos",
+        "matches": ["*://news.yahoo.co.jp/articles/*", "*://s.yimg.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1724868-news.yahoo.co.jp-ua-override.js"]
+        }
+      }
+    ]
+  },
+  "1739489": {
+    "label": "Sites using draft.js",
+    "bugs": {
+      "1739489": {
+        "issue": "broken-editor",
+        "matches": ["*://draftjs.org/*", "*://www.facebook.com/*"]
+      },
+      "1776229": {
+        "issue": "broken-editor",
+        "matches": [
+          "*://mobile.twitter.com/*",
+          "*://mobile.x.com/*",
+          "*://twitter.com/*",
+          "*://x.com/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "skip_if": ["text_event_supported"],
+        "content_scripts": {
+          "js": ["bug1739489-draftjs-beforeinput.js"]
+        }
+      }
+    ]
+  },
+  "1741234": {
+    "label": "patient.alphalabs.ca",
+    "bugs": {
+      "1741234": {
+        "issue": "broken-layout",
+        "matches": ["*://patient.alphalabs.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1741234-patient.alphalabs.ca-height-fix.css"]
+        }
+      }
+    ]
+  },
+  "1743429": {
+    "label": "Sites with issues with Firefox versions over 99",
+    "bugs": {
+      "1944356": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://411.ca/"]
+      },
+      "1800241": {
+        "issue": "broken-layout",
+        "matches": ["*://*.mms.telekom.de/*"]
+      },
+      "1944355": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://ubank.com.au/*"]
+      },
+      "1944352": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://wifi.sncf/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["cap_Version_to_99"]
+      }
+    ]
+  },
+  "1743627": {
+    "label": "renaud-bray.com",
+    "bugs": {
+      "1743627": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.renaud-bray.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Version_segment"]
+      }
+    ]
+  },
+  "1743751": {
+    "label": "slrclub.com",
+    "bugs": {
+      "1743751": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.slrclub.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1743754": {
+    "label": "workflow.base.vn",
+    "bugs": {
+      "1743754": {
+        "issue": "broken-login",
+        "matches": ["*://workflow.base.vn/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1753461": {
+    "label": "serieson.naver.com",
+    "bugs": {
+      "1753461": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://serieson.naver.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["mac", "windows"],
+        "ua_string": ["Chrome_with_FxQuantum"]
+      },
+      {
+        "platforms": ["linux"],
+        "ua_string": ["change_OS_to_Windows"]
+      }
+    ]
+  },
+  "1769762": {
+    "label": "tiktok.com",
+    "bugs": {
+      "1769762": {
+        "issue": "broken-comments",
+        "matches": ["https://www.tiktok.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1769762-tiktok.com-plugins-shim.js"]
+        }
+      }
+    ]
+  },
+  "1770962": {
+    "label": "coldwellbankerhomes.com",
+    "bugs": {
+      "1770962": {
+        "issue": "broken-images",
+        "matches": ["*://*.coldwellbankerhomes.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1770962-coldwellbankerhomes.com-image-height.css"]
+        }
+      }
+    ]
+  },
+  "1771200": {
+    "label": "animalplanet.com",
+    "bugs": {
+      "1771200": {
+        "issue": "broken-videos",
+        "matches": ["*://*.animalplanet.com/video/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1774005": {
+    "label": "Sites relying on window.InstallTrigger",
+    "bugs": {
+      "1788277": {
+        "issue": "broken-meetings",
+        "matches": ["*://*.webex.com/*"]
+      },
+      "1793761": {
+        "issue": "broken-layout",
+        "matches": ["*://www.schoolnutritionandfitness.com/*"]
+      },
+      "1806340": {
+        "issue": "broken-videos",
+        "matches": ["*://ifcinema.institutfrancais.com/*"]
+      },
+      "1821439": {
+        "issue": "broken-login",
+        "matches": ["*://islamionline.islamicbank.ps/*"]
+      },
+      "1930429": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.ambrahealth.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1774005-installtrigger-shim.js"]
+        }
+      }
+    ]
+  },
+  "1776897": {
+    "label": "www.edencast.fr",
+    "bugs": {
+      "1712759": {
+        "issue": "broken-audio",
+        "matches": ["*://www.edencast.fr/zoomcast*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1778168": {
+    "label": "watch.antennaplus.gr",
+    "bugs": {
+      "1778168": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://watch.antennaplus.gr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["mac", "windows"],
+        "ua_string": ["add_Chrome"]
+      },
+      {
+        "platforms": ["linux"],
+        "ua_string": ["add_Chrome", "change_OS_to_Windows"]
+      }
+    ]
+  },
+  "1779059": {
+    "label": "lazada.co.id",
+    "bugs": {
+      "1779059": {
+        "issue": "broken-map",
+        "matches": ["*://member-m.lazada.co.id/address/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1779908": {
+    "label": "play.google.com",
+    "bugs": {
+      "1779908": {
+        "issue": "extra-scrollbars",
+        "matches": ["*://play.google.com/store/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1779908-play.google.com-scrollbar-fix.css"]
+        }
+      }
+    ]
+  },
+  "1784199": {
+    "label": "Sites based on Entrata Platform",
+    "bugs": {
+      "1898912": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.7streetbrownstones.com/*"]
+      },
+      "1898995": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.aptsovation.com/*"]
+      },
+      "1894682": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.arboretumapartments.com/*"]
+      },
+      "1898956": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.avanabayview.com/*"]
+      },
+      "1898964": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.breakpointeandcoronado.com/*"]
+      },
+      "1898914": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.courtsatspringmill.com/*"]
+      },
+      "1898902": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.fieldstoneamherst.com/*"]
+      },
+      "1836182": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.flatsatshadowglen.com/*"]
+      },
+      "1898924": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.gslbriarcreek.com/*"]
+      },
+      "1898905": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.hpixeniatrails.com/*"]
+      },
+      "1899794": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.liveobserverpark.com/*"]
+      },
+      "1899775": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.liveupark.com/*"]
+      },
+      "1898968": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.midwayurban.com/*"]
+      },
+      "1898981": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.nhcalaska.com/*"]
+      },
+      "1898969": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.prospectportal.com/*"]
+      },
+      "1898980": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.securityproperties.com/*"]
+      },
+      "1898913": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.thefoundryat41st.com/*"]
+      },
+      "1898993": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.theloftsorlando.com/*"]
+      },
+      "1907488": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.thepointatkingston.com/*"]
+      },
+      "1898950": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.vanallenapartments.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1784199-entrata-platform-unsupported.css"]
+        }
+      }
+    ]
+  },
+  "1784361": {
+    "label": "coldwellbankerhomes.com",
+    "bugs": {
+      "1784361": {
+        "issue": "broken-images",
+        "matches": ["*://*.coldwellbankerhomes.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1786404": {
+    "label": "business.help.royalmail.com",
+    "bugs": {
+      "1786404": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://business.help.royalmail.com/app/webforms/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
+  },
+  "1799968": {
+    "label": "www.samsung.com",
+    "bugs": {
+      "1799968": {
+        "issue": "broken-scrolling",
+        "matches": ["*://www.samsung.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["linux"],
+        "content_scripts": {
+          "js": ["bug1799968-www.samsung.com-appVersion-linux-fix.js"]
+        }
+      }
+    ]
+  },
+  "1799980": {
+    "label": "healow.com",
+    "bugs": {
+      "1799980": {
+        "issue": "frozen-tab",
+        "matches": ["*://healow.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1799980-healow.com-infinite-loop-fix.js"]
+        }
+      }
+    ]
+  },
+  "1815733": {
+    "label": "Office 365 Outlook locations",
+    "bugs": {
+      "1815733": {
+        "issue": "broken-editor",
+        "matches": [
+          "*://outlook.live.com/*",
+          "*://outlook.office.com/*",
+          "*://outlook.office365.com/*",
+          "*://outlook.office365.us/*",
+          "*://*.outlook.cn/*",
+          "*://*.outlook.com/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1815733-outlook365-clipboard-read-noop.js"]
+        }
+      }
+    ]
+  },
+  "1818818": {
+    "label": "FastClick breakage (legacy)",
+    "bugs": {
+      "1944004": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.chatiw.com/*"]
+      },
+      "1818818": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.wellcare.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1818818-fastclick-legacy-shim.js"]
+        }
+      }
+    ]
+  },
+  "1819450": {
+    "label": "cmbchina.com",
+    "bugs": {
+      "1081239": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://www.cmbchina.com/*", "*://cmbchina.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1819450-cmbchina.com-ua-change.js"]
+        }
+      }
+    ]
+  },
+  "1819476": {
+    "label": "axisbank.com",
+    "bugs": {
+      "1819476": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://*.axisbank.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1819476-axisbank.com-webkitSpeechRecognition-shim.js"]
+        }
+      }
+    ]
+  },
+  "1823966": {
+    "label": "elearning.dmv.ca.gov",
+    "bugs": {
+      "1823785": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.elearning.dmv.ca.gov/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_65753": {
+    "label": "admissions.nid.edu",
+    "bugs": {
+      "1899061": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.admissions.nid.edu/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_68007": {
+    "label": "frankfred.com",
+    "bugs": {
+      "1904411": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.frankfred.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_68520": {
+    "label": "onvue.com",
+    "bugs": {
+      "1899057": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.onvue.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_68635": {
+    "label": "avizia.com",
+    "bugs": {
+      "1889520": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.avizia.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome_with_FxQuantum", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
+  "1827678_76785": {
+    "label": "www.yourtexasbenefits.com",
+    "bugs": {
+      "1899055": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://www.yourtexasbenefits.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1827678_77727": {
+    "label": "www.free4talk.com",
+    "bugs": {
+      "1899053": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://www.free4talk.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1819678-free4talk.com-window-chrome-shim.js"]
+        },
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_77912": {
+    "label": "watch.indee.tv",
+    "bugs": {
+      "1899052": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://watch.indee.tv/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_80180": {
+    "label": "viewer-ebook.books.com.tw",
+    "bugs": {
+      "1904371": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://viewer-ebook.books.com.tw/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_83269": {
+    "label": "jelly.jd.com",
+    "bugs": {
+      "1899051": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://jelly.jd.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_119012": {
+    "label": "kt.com",
+    "bugs": {
+      "1944036": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.kt.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1827678_119017": {
+    "label": "nppes.cms.hhs.gov",
+    "bugs": {
+      "1898955": {
+        "issue": "unsupported-warning",
+        "matches": ["*://nppes.cms.hhs.gov/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1819678-nppes.cms.hhs.gov-unsupported-banner.css"]
+        }
+      }
+    ]
+  },
+  "1827678_119402": {
+    "label": "oirsa.org",
+    "bugs": {
+      "1898953": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.oirsa.org/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1827678_120450": {
+    "label": "onp.cloud.waterloo.ca",
+    "bugs": {
+      "1898947": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://onp.cloud.waterloo.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1830739": {
+    "label": "Casino sites",
+    "bugs": {
+      "1944317": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.captainjackcasino.com/*"]
+      },
+      "1944319": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.casinoextreme.eu/*"]
+      },
+      "1944320": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.cryptoloko.com/*"]
+      },
+      "1944324": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.123lobbygames.com/*"]
+      },
+      "1944321": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.planet7casino.com/*"]
+      },
+      "1944322": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.yebocasino.co.za/*"]
+      },
+      "1944323": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.yabbycasino.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1830752": {
+    "label": "afisha.ru",
+    "bugs": {
+      "1934811": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.afisha.ru/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1830752-afisha.ru-slider-pointer-events.css"]
+        }
+      }
+    ]
+  },
+  "1830761": {
+    "label": "91mobiles.com",
+    "bugs": {
+      "1890794": {
+        "issue": "broken-layout",
+        "matches": ["*://*.91mobiles.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1830761-91mobiles.com-content-height.css"]
+        }
+      }
+    ]
+  },
+  "1830796": {
+    "label": "copyleaks.com",
+    "bugs": {
+      "1898944": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.copyleaks.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1830796-copyleaks.com-hide-unsupported.css"]
+        }
+      }
+    ]
+  },
+  "1830813": {
+    "label": "onstove.com",
+    "bugs": {
+      "1898966": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.onstove.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1830813-page.onstove.com-hide-unsupported.css"]
+        }
+      }
+    ]
+  },
+  "1830821_90981": {
+    "label": "enjoy.point.auone.jp",
+    "bugs": {
+      "1899047": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://enjoy.point.auone.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1830821_113663": {
+    "label": "webcartop.jp",
+    "bugs": {
+      "1944039": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.webcartop.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1831007": {
+    "label": "All international Nintendo domains",
+    "bugs": {
+      "1815836": {
+        "issue": "broken-login",
+        "matches": [
+          "*://*.mojenintendo.cz/*",
+          "*://*.nintendo-europe.com/*",
+          "*://*.nintendo.at/*",
+          "*://*.nintendo.be/*",
+          "*://*.nintendo.ch/*",
+          "*://*.nintendo.co.il/*",
+          "*://*.nintendo.co.jp/*",
+          "*://*.nintendo.co.kr/*",
+          "*://*.nintendo.co.nz/*",
+          "*://*.nintendo.co.uk/*",
+          "*://*.nintendo.co.za/*",
+          "*://*.nintendo.com.au/*",
+          "*://*.nintendo.com.hk/*",
+          "*://*.nintendo.com/*",
+          "*://*.nintendo.de/*",
+          "*://*.nintendo.dk/*",
+          "*://*.nintendo.es/*",
+          "*://*.nintendo.fi/*",
+          "*://*.nintendo.fr/*",
+          "*://*.nintendo.gr/*",
+          "*://*.nintendo.hu/*",
+          "*://*.nintendo.it/*",
+          "*://*.nintendo.nl/*",
+          "*://*.nintendo.no/*",
+          "*://*.nintendo.pt/*",
+          "*://*.nintendo.ru/*",
+          "*://*.nintendo.se/*",
+          "*://*.nintendo.sk/*",
+          "*://*.nintendo.tw/*",
+          "*://*.nintendoswitch.com.cn/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1831007-nintendo-window-OnetrustActiveGroups.js"]
+        }
+      }
+    ]
+  },
+  "1836103": {
+    "label": "autostar-novoross.ru",
+    "bugs": {
+      "1891078": {
+        "issue": "broken-layout",
+        "matches": ["*://autostar-novoross.ru/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1836103-autostar-novoross.ru-make-map-taller.css"]
+        }
+      }
+    ]
+  },
+  "1836105": {
+    "label": "cnn.com",
+    "bugs": {
+      "1830307": {
+        "issue": "broken-printing",
+        "matches": ["*://*.cnn.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1836105-cnn.com-fix-blank-pages-when-printing.css"]
+        }
+      }
+    ]
+  },
+  "1836109": {
+    "label": "watch.tonton.com.my",
+    "bugs": {
+      "1898970": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://watch.tonton.com.my/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1836135": {
+    "label": "gts-pro.sdimedia.com",
+    "bugs": {
+      "1898978": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://gts-pro.sdimedia.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1836157": {
+    "label": "thai-masszazs.net",
+    "bugs": {
+      "1836157": {
+        "issue": "broken-scrolling",
+        "matches": ["*://*.thai-masszazs.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1836157-thai-masszazs-niceScroll-disable.js"]
+        }
+      }
+    ]
+  },
+  "1836178": {
+    "label": "atracker.pro",
+    "bugs": {
+      "1905235": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://atracker.pro/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1836872": {
+    "label": "docs.google.com",
+    "bugs": {
+      "1836872": {
+        "issue": "broken-layout",
+        "matches": ["*://docs.google.com/document/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1836872-docs.google.com-font-submenus-inaccessible.css"]
+        }
+      }
+    ]
+  },
+  "1841730": {
+    "label": "www.korg.com",
+    "bugs": {
+      "1841730": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://www.korg.com/*/support/download/product/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["windows"],
+        "content_scripts": {
+          "js": ["bug1841730-www.korg.com-fix-broken-page-loads.js"]
+        }
+      }
+    ]
+  },
+  "1842437": {
+    "label": "www.youtube.com",
+    "bugs": {
+      "1842437": {
+        "issue": "user-interface-frustration",
+        "matches": ["*://www.youtube.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1842437-www.youtube.com-performance-now-precision.js"]
+        }
+      }
+    ]
+  },
+  "1844503": {
+    "label": "nicochannel.jp",
+    "bugs": {
+      "1844503": {
+        "issue": "firefox-blocked-completely",
+        "matches": [
+          "*://api.ado-dokidokihimitsukichi-daigakuimo.com/fc/video_pages/*",
+          "*://api.canan8181.com/fc/video_pages/*",
+          "*://api.gs-ch.com/fc/video_pages/*",
+          "*://api.keisuke-ueda.jp/fc/video_pages/*",
+          "*://api.kemomimirefle.net/fc/video_pages/*",
+          "*://api.nicochannel.jp/fc/video_pages/*",
+          "*://api.p-jinriki-fc.com/fc/video_pages/*",
+          "*://api.pizzaradio.jp/fc/video_pages/*",
+          "*://api.rnqq.jp/fc/video_pages/*",
+          "*://api.ryogomatsumaru.com/fc/video_pages/*",
+          "*://api.takahashifumiya.com/fc/video_pages/*",
+          "*://api.yamingfc.net/fc/video_pages/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1849058-nicochannel.jp-picture-in-picture-shim.js"]
+        },
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1846742": {
+    "label": "microsoft.com",
+    "bugs": {
+      "1846742": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://www.microsoft.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1846742-microsoft.com-search-key-fix.js"]
+        }
+      }
+    ]
+  },
+  "1848713": {
+    "label": "cleanrider.com",
+    "bugs": {
+      "1848713": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.cleanrider.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1848713-cleanrider.com-slider.css"]
+        }
+      }
+    ]
+  },
+  "1848849": {
+    "label": "theaa.com",
+    "bugs": {
+      "1848849": {
+        "issue": "broken-printing",
+        "matches": ["*://*.theaa.com/route-planner/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1848849-theaa.com-printing-mode-fix.css"]
+        }
+      }
+    ]
+  },
+  "1850455": {
+    "label": "frontgate.com",
+    "bugs": {
+      "1722955": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.frontgate.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1855014": {
+    "label": "eksiseyler.com",
+    "bugs": {
+      "1855014": {
+        "issue": "broken-images",
+        "matches": ["*://eksiseyler.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1855014-eksiseyler.com.js"]
+        }
+      }
+    ]
+  },
+  "1855088": {
+    "label": "hrmis2.eghrmis.gov.my",
+    "bugs": {
+      "1898930": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://hrmis2.eghrmis.gov.my/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
+  },
+  "1855102": {
+    "label": "my.southerncross.co.nz",
+    "bugs": {
+      "1898940": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://my.southerncross.co.nz/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1856915": {
+    "label": "login.yahoo.com",
+    "bugs": {
+      "1856915": {
+        "issue": "broken-layout",
+        "matches": ["*://login.yahoo.com/account/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1856915-login.yahoo.com-unhide-password-button-fix.css"]
+        }
+      }
+    ]
+  },
+  "1859617": {
+    "label": "Sites relying on there being no window.InstallTrigger",
+    "bugs": {
+      "1854165": {
+        "issue": "broken-printing",
+        "matches": ["*://*.stallionexpress.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1859617-installtrigger-removal-shim.js"]
+        }
+      }
+    ]
+  },
+  "1860417": {
+    "label": "www.samsung.com",
+    "bugs": {
+      "1860417": {
+        "issue": "broken-images",
+        "matches": ["*://www.samsung.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1799968-www.samsung.com-appVersion-linux-fix.js"]
+        }
+      }
+    ]
+  },
+  "1864999": {
+    "label": "autotrader.ca",
+    "bugs": {
+      "1864999": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.autotrader.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1865000": {
+    "label": "bmo.com",
+    "bugs": {
+      "1898919": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.bmo.com/main/personal/*/getting-started/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1865004": {
+    "label": "digimart.net",
+    "bugs": {
+      "1865004": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.digimart.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1865007": {
+    "label": "portal.circle.ms",
+    "bugs": {
+      "1865007": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.circle.ms/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1868345": {
+    "label": "tvmovie.de, www.goodcarbadcar.net",
+    "bugs": {
+      "1840166": {
+        "issue": "broken-scrolling",
+        "matches": [
+          "*://www.tvmovie.de/tv/fernsehprogramm",
+          "*://www.tvmovie.de/tv/fernsehprogramm*"
+        ]
+      },
+      "1897392": {
+        "issue": "broken-scrolling",
+        "matches": ["*://www.goodcarbadcar.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1868345-tvmovie.de-scroll-fix.css"]
+        }
+      }
+    ]
+  },
+  "1873166": {
+    "label": "nsandi.com",
+    "bugs": {
+      "1873166": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.nsandi.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1873166-nsandi.com-hide-unsupported-message.css"]
+        }
+      }
+    ]
+  },
+  "1875540": {
+    "label": "allstate.com",
+    "bugs": {
+      "1875540": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.allstate.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1875540-allstate.com-hide-unsupported-message.css"]
+        }
+      }
+    ]
+  },
+  "1879879": {
+    "label": "developers.pinterest.com",
+    "bugs": {
+      "1879879": {
+        "issue": "broken-layout",
+        "matches": ["*://developers.pinterest.com/docs/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1879879-developers.pinterest.com-list-alignment-fix.css"]
+        }
+      }
+    ]
+  },
+  "1881922": {
+    "label": "helpdeskgeek.com",
+    "bugs": {
+      "1881922": {
+        "issue": "slow-performance",
+        "matches": ["*://helpdeskgeek.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1881922-disable-legacy-mutation-events.js"]
+        }
+      }
+    ]
+  },
+  "1884779": {
+    "label": "memurlar.net",
+    "bugs": {
+      "1884779": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.memurlar.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1886293": {
+    "label": "Future PLC websites",
+    "bugs": {
+      "1886293": {
+        "issue": "extra-scrollbars",
+        "matches": [
+          "*://*.androidcentral.com/*",
+          "*://*.creativebloq.com/*",
+          "*://*.cyclingnews.com/*",
+          "*://*.gamesradar.com/*",
+          "*://*.imore.com/*",
+          "*://*.itpro.com/*",
+          "*://*.laptopmag.com/*",
+          "*://*.livescience.com/*",
+          "*://*.loudersound.com/*",
+          "*://*.musicradar.com/*",
+          "*://*.pcgamer.com/*",
+          "*://*.space.com/*",
+          "*://*.techradar.com/*",
+          "*://*.tomshardware.com/*",
+          "*://*.windowscentral.com/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1886293-futurePLC-sites-trending_scrollbars.css"]
+        }
+      }
+    ]
+  },
+  "1886566": {
+    "label": "quezoncity.gov.ph",
+    "bugs": {
+      "1886566": {
+        "issue": "broken-layout",
+        "matches": ["*://qceservices.quezoncity.gov.ph/qcvaxeasy*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1886566-quezoncity.gov.ph-iframe-height.css"]
+        }
+      }
+    ]
+  },
+  "1886591": {
+    "label": "la-vache-noire.com",
+    "bugs": {
+      "1886591": {
+        "issue": "broken-cookie-banner",
+        "matches": ["*://la-vache-noire.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1886591-la-vache-noire.com-cookie-banner-fix.css"]
+        }
+      }
+    ]
+  },
+  "1886616": {
+    "label": "www.six-group.com",
+    "bugs": {
+      "1886616": {
+        "issue": "broken-interactive-elements",
+        "matches": [
+          "*://www.six-group.com/*/market-data/etf/etf-explorer.html*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1886616-www.six-group.com-select-fix.css"]
+        }
+      }
+    ]
+  },
+  "1889326": {
+    "label": "Office 365 email handling prompt",
+    "bugs": {
+      "1709653": {
+        "issue": "user-interface-frustration",
+        "matches": [
+          "*://*.live.com/*",
+          "*://*.office.com/*",
+          "*://*.office365.com/*",
+          "*://*.office365.us/*",
+          "*://*.outlook.cn/*",
+          "*://*.outlook.com/*",
+          "*://*.sharepoint.com/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1889326-office365-email-handling-prompt-autohide.js"]
+        }
+      }
+    ]
+  },
+  "1889505": {
+    "label": "bankmandiri.co.id",
+    "bugs": {
+      "1899059": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.bankmandiri.co.id/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      },
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1889505-bankmandiri.co.id-window.chrome.js"]
+        }
+      }
+    ]
+  },
+  "1895051": {
+    "label": "www.zhihu.com",
+    "bugs": {
+      "1895051": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://www.zhihu.com/question/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1895051-www.zhihu.com-broken-button-fix.css"]
+        }
+      }
+    ]
+  },
+  "1895994": {
+    "label": "www.softrans.ro",
+    "bugs": {
+      "1895994": {
+        "issue": "broken-scrolling",
+        "matches": ["*://*.softrans.ro/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1895994-softtrans.ro-unlock-scrolling.css"]
+        }
+      }
+    ]
+  },
+  "1896349": {
+    "label": "vivaldi.com",
+    "bugs": {
+      "1896349": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://vivaldi.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1896349-vivaldi.com-selected-text-fix.css"]
+        }
+      }
+    ]
+  },
+  "1896354": {
+    "label": "my.rhinoshield.fr",
+    "bugs": {
+      "1896354": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://my.rhinoshield.fr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1896571": {
+    "label": "gracobaby.ca",
+    "bugs": {
+      "1896571": {
+        "issue": "broken-scrolling",
+        "matches": ["*://www.gracobaby.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1896571-gracobaby.ca-unlock-scrolling.css"]
+        }
+      }
+    ]
+  },
+  "1897120": {
+    "label": "Flipbook",
+    "bugs": {
+      "1897120": {
+        "issue": "broken-zooming",
+        "matches": ["*://flipbook.se.com/*", "*://*.flipbookpdf.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1897120-turnjs-zoom-fix.js"]
+        }
+      }
+    ]
+  },
+  "1897724": {
+    "label": "app.homewyse.com",
+    "bugs": {
+      "1897724": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://app.homewyse.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1898531": {
+    "label": "cwb.digital",
+    "bugs": {
+      "1898531": {
+        "issue": "broken-login",
+        "matches": ["*://*.cwb.digital/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1898923": {
+    "label": "trade-in.vodafone.com",
+    "bugs": {
+      "1898923": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://trade-in.vodafone.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1898938": {
+    "label": "conference.amwell.com",
+    "bugs": {
+      "1898938": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://conference.amwell.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
+  "1898941": {
+    "label": "events.webinar.ru",
+    "bugs": {
+      "1898941": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://events.webinar.ru/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1898952": {
+    "label": "digits.t-mobile.com",
+    "bugs": {
+      "1898952": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://digits.t-mobile.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1898952-digits.t-mobile.com.js"]
+        }
+      }
+    ]
+  },
+  "1898960": {
+    "label": "hrm.online.comarch.pl",
+    "bugs": {
+      "1898960": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://hrm.online.comarch.pl/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1898988": {
+    "label": "prudential.com.hk",
+    "bugs": {
+      "1898988": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.prudential.com.hk/*"]
+      }
+    },
+    "interventions": [
+      {
+        "not_platforms": ["linux"],
+        "ua_string": ["add_Chrome"]
+      },
+      {
+        "platforms": ["linux"],
+        "ua_string": ["add_Chrome", "change_OS_to_MacOSX"]
+      }
+    ]
+  },
+  "1898992": {
+    "label": "asp.attenix.co.il",
+    "bugs": {
+      "1898992": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://asp.attenix.co.il/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
+  },
+  "1898994": {
+    "label": "eportal.uestc.edu.cn",
+    "bugs": {
+      "1898994": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://eportal.uestc.edu.cn/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1899060": {
+    "label": "wbte.drcedirect.com",
+    "bugs": {
+      "1899060": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://wbte.drcedirect.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1899066": {
+    "label": "bookcreator.com",
+    "bugs": {
+      "1899066": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://app.bookcreator.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1899067": {
+    "label": "game.granbluefantasy.jp",
+    "bugs": {
+      "1899067": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://game.granbluefantasy.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1899072": {
+    "label": "passpoint.boingo.com",
+    "bugs": {
+      "1899072": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://passpoint.boingo.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome_with_FxQuantum", "mimic_Android_Hotspot2_device"]
+      },
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Safari"]
+      }
+    ]
+  },
+  "1899929": {
+    "label": "selecionases.saude.pe.gov.br",
+    "bugs": {
+      "1899929": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://selecionases.saude.pe.gov.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1899937": {
+    "label": "plus.nhk.jp",
+    "bugs": {
+      "1899937": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://plus.nhk.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1899937-plus.nhk.jp-hide-unsupported.css"],
+          "js": ["bug1899937-plus.nhk.jp-request-picture-in-picture.js"]
+        },
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1899945": {
+    "label": "nytimes.com Modern Love Questions",
+    "bugs": {
+      "1899945": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://www.nytimes.com/interactive/projects/modern-love/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1899948": {
+    "label": "tv.partner.co.il",
+    "bugs": {
+      "1899948": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://tv.partner.co.il/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1901000": {
+    "label": "eyebuydirect.ca",
+    "bugs": {
+      "1901000": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.eyebuydirect.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1901000-eyebuydirect.ca-fix-paypal-button.css"]
+        }
+      }
+    ]
+  },
+  "1901780": {
+    "label": "vanbreda-health.be",
+    "bugs": {
+      "1901780": {
+        "issue": "frozen-tab",
+        "matches": ["*://www.vanbreda-health.be/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1881922-disable-legacy-mutation-events.js"]
+        }
+      }
+    ]
+  },
+  "1902474": {
+    "label": "lg.jio.com",
+    "bugs": {
+      "1902474": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://lg.jio.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["desktop_not_mobile"]
+      }
+    ]
+  },
+  "1903970": {
+    "label": "www.unimedlitoral.com.br",
+    "bugs": {
+      "1903970": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://www.unimedlitoral.com.br/agendaonline/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1909448": {
+    "label": "fire.honeywell.com",
+    "bugs": {
+      "1909448": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://fire.honeywell.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1912923": {
+    "label": "livelesson.class.com",
+    "bugs": {
+      "1912923": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://livelesson.class.com/class/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1913759": {
+    "label": "playblackdesert.com",
+    "bugs": {
+      "1913759": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://eu-trade.naeu.playblackdesert.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1919004": {
+    "label": "www.editoracontexto.com.br",
+    "bugs": {
+      "1919004": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://www.editoracontexto.com.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1921410": {
+    "label": "beta.maps.apple.com",
+    "bugs": {
+      "1921410": {
+        "issue": "blocked-content",
+        "matches": ["*://beta.maps.apple.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["linux"],
+        "ua_string": ["change_OS_to_Windows"]
+      }
+    ]
+  },
+  "1923286": {
+    "label": "bing.com",
+    "bugs": {
+      "1923286": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://www.bing.com/images/search*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1923286-bing.com-image-click-fix.js"]
+        }
+      }
+    ]
+  },
+  "1924500": {
+    "label": "www.tiktok.com",
+    "bugs": {
+      "1924500": {
+        "issue": "broken-captcha",
+        "matches": ["*://www.tiktok.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1924500-www.tiktok.com-fix-captcha-slider.js"]
+        }
+      }
+    ]
+  },
+  "1925508": {
+    "label": "developer.apple.com",
+    "bugs": {
+      "1925508": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://developer.apple.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1925508-developer-apple.com-transform-scale.css"]
+        }
+      }
+    ]
+  },
+  "1928216": {
+    "label": "voice.google.com",
+    "bugs": {
+      "1928216": {
+        "issue": "broken-meetings",
+        "matches": ["*://voice.google.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1928216-voice.google.com-permissions.query.js"]
+        }
+      }
+    ]
+  },
+  "1930440": {
+    "label": "online.singaporepools.com",
+    "bugs": {
+      "1930440": {
+        "issue": "unsupported-warning",
+        "matches": ["*://online.singaporepools.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": [
+            "bug1930440-online.singaporepools.com-prevent-unsupported-alert.js"
+          ]
+        }
+      }
+    ]
+  },
+  "1930632": {
+    "label": "support.hp.com",
+    "bugs": {
+      "1930632": {
+        "issue": "broken-layout",
+        "matches": ["*://support.hp.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1933811": {
+    "label": "indices.circana.com",
+    "bugs": {
+      "1898959": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://indices.circana.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1934567": {
+    "label": "port8.fi",
+    "bugs": {
+      "1934567": {
+        "issue": "broken-scrolling",
+        "matches": ["*://www.port8.fi/bokning/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1934567-www.port8.fi-scrolling-fix.css"]
+        }
+      }
+    ]
+  }
+}

@@ -36,56 +36,67 @@ const replaceStringInRequest = (
 };
 
 const CUSTOM_FUNCTIONS = {
-  detectSwipeFix: injection => {
-    const { urls, types } = injection.data;
-    const listener = (injection.data.listener = ({ requestId }) => {
-      replaceStringInRequest(
-        requestId,
-        "preventDefault:true",
-        "preventDefault:false"
+  replace_string_in_request: {
+    details: ["find", "replace", "urls", "types"],
+    enable(details) {
+      const { find, replace, urls, types } = details;
+      const listener = (details.listener = ({ requestId }) => {
+        replaceStringInRequest(requestId, find, replace);
+        return {};
+      });
+      browser.webRequest.onBeforeRequest.addListener(
+        listener,
+        { urls, types },
+        ["blocking"]
       );
-      return {};
-    });
-    browser.webRequest.onBeforeRequest.addListener(listener, { urls, types }, [
-      "blocking",
-    ]);
+    },
+    disable(details) {
+      const { listener } = details;
+      browser.webRequest.onBeforeRequest.removeListener(listener);
+      delete details.listener;
+    },
   },
-  detectSwipeFixDisable: injection => {
-    const { listener } = injection.data;
-    browser.webRequest.onBeforeRequest.removeListener(listener);
-    delete injection.data.listener;
-  },
-  runScriptBeforeRequest: injection => {
-    const { bug, message, request, script, types } = injection;
-    const warning = `${message} See https://bugzilla.mozilla.org/show_bug.cgi?id=${bug} for details.`;
+  run_script_before_request: {
+    details: ["message", "urls", "script", "types"],
+    enable(details, intervention) {
+      const { bug } = intervention;
+      const { message, script, types, urls } = details;
+      const warning = `${message} See https://bugzilla.mozilla.org/show_bug.cgi?id=${bug} for details.`;
 
-    const listener = (injection.listener = e => {
-      const { tabId, frameId } = e;
-      return browser.tabs
-        .executeScript(tabId, {
-          file: script,
-          frameId,
-          runAt: "document_start",
-        })
-        .then(() => {
-          browser.tabs.executeScript(tabId, {
-            code: `console.warn(${JSON.stringify(warning)})`,
+      const listener = (details.listener = evt => {
+        const { tabId, frameId } = evt;
+        return browser.tabs
+          .executeScript(tabId, {
+            file: script,
+            frameId,
             runAt: "document_start",
+          })
+          .then(() => {
+            browser.tabs.executeScript(tabId, {
+              code: `console.warn(${JSON.stringify(warning)})`,
+              runAt: "document_start",
+            });
+          })
+          .catch(err => {
+            console.error(
+              "Error running script before request for webcompat intervention for bug",
+              bug,
+              err
+            );
           });
-        })
-        .catch(_ => {});
-    });
+      });
 
-    browser.webRequest.onBeforeRequest.addListener(
-      listener,
-      { urls: request, types: types || ["script"] },
-      ["blocking"]
-    );
-  },
-  runScriptBeforeRequestDisable: injection => {
-    const { listener } = injection;
-    browser.webRequest.onBeforeRequest.removeListener(listener);
-    delete injection.data.listener;
+      browser.webRequest.onBeforeRequest.addListener(
+        listener,
+        { urls, types: types || ["script"] },
+        ["blocking"]
+      );
+    },
+    disable(details) {
+      const { listener } = details;
+      browser.webRequest.onBeforeRequest.removeListener(listener);
+      delete details.listener;
+    },
   },
 };
 

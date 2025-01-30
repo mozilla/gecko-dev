@@ -14,6 +14,8 @@ support-files = [
 
 ["browser_aboutcompat.js"]
 
+["browser_interventions.js"]
+
 ["browser_shims.js"]
 https_first_disabled = true
 skip-if = ["verify"]

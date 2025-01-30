@@ -45,7 +45,9 @@ class AboutCompatBroker {
     return overrides
       .filter(override => override.availableOnPlatform)
       .map(override => {
-        const { id, active, bug, domain, hidden } = override;
+        const { id, active, bugs, hidden } = override;
+        let domain = override.label || override.domain;
+        let bug = override.bug || Object.keys(bugs)[0];
         return { id, active, bug, domain, hidden };
       });
   }

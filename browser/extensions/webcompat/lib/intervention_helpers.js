@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals module */
+/* globals browser, module, UAHelpers */
 
 const GOOGLE_TLDS = [
   "com",
@@ -209,6 +209,153 @@ const GOOGLE_TLDS = [
 ];
 
 var InterventionHelpers = {
+  skip_if_functions: {
+    text_event_supported: () => {
+      return !!window.TextEvent;
+    },
+  },
+
+  ua_change_functions: {
+    add_Chrome: (ua, config) => {
+      return UAHelpers.addChrome(ua, config.version);
+    },
+    add_Firefox_as_Gecko: (ua, config) => {
+      return UAHelpers.addGecko(ua, config.version);
+    },
+    add_Samsung_for_Samsung_devices: ua => {
+      return UAHelpers.addSamsungForSamsungDevices(ua);
+    },
+    add_Version_segment: ua => {
+      return `${ua} Version/0`;
+    },
+    cap_Version_to_99: ua => {
+      return UAHelpers.capVersionTo99(ua);
+    },
+    change_Firefox_to_FireFox: ua => {
+      return UAHelpers.changeFirefoxToFireFox(ua);
+    },
+    change_Gecko_to_like_Gecko: ua => {
+      return ua.replace("Gecko", "like Gecko");
+    },
+    change_OS_to_MacOSX: (ua, config) => {
+      return UAHelpers.getMacOSXUA(ua, config.arch, config.version);
+    },
+    change_OS_to_Windows: ua => {
+      return UAHelpers.windows(ua);
+    },
+    Chrome: (ua, config) => {
+      config.ua = ua;
+      config.noFxQuantum = true;
+      return UAHelpers.getDeviceAppropriateChromeUA(config);
+    },
+    Chrome_with_FxQuantum: (ua, config) => {
+      config.ua = ua;
+      return UAHelpers.getDeviceAppropriateChromeUA(config);
+    },
+    desktop_not_mobile: () => {
+      return UAHelpers.desktopUA();
+    },
+    mimic_Android_Hotspot2_device: ua => {
+      return UAHelpers.androidHotspot2Device(ua);
+    },
+    Safari: (ua, config) => {
+      return UAHelpers.safari(config);
+    },
+  },
+
+  valid_platforms: ["all", "android", "desktop", "linux", "mac", "windows"],
+
+  shouldSkip(intervention) {
+    const { bug, skip_if } = intervention;
+    if (skip_if) {
+      try {
+        if (this.skip_if_functions[skip_if]?.()) {
+          return true;
+        }
+      } catch (e) {
+        console.trace(
+          `Error while checking skip-if condition ${skip_if} for bug ${bug}:`,
+          e
+        );
+      }
+    }
+    return false;
+  },
+
+  async getPlatformMatches() {
+    if (!InterventionHelpers._platformMatches) {
+      const platformInfo = await browser.runtime.getPlatformInfo();
+      InterventionHelpers._platformMatches = [
+        "all",
+        platformInfo.os,
+        platformInfo.os == "android" ? "android" : "desktop",
+      ];
+    }
+    return InterventionHelpers._platformMatches;
+  },
+
+  async checkPlatformMatches(intervention) {
+    let desired = intervention.platforms;
+    let undesired = intervention.not_platforms;
+    if (!desired && !undesired) {
+      return true;
+    }
+
+    const actual = await InterventionHelpers.getPlatformMatches();
+    if (undesired) {
+      if (!Array.isArray(undesired)) {
+        undesired = [undesired];
+      }
+      if (
+        undesired.includes("all") ||
+        actual.filter(x => undesired.includes(x)).length
+      ) {
+        return false;
+      }
+    }
+
+    if (!desired) {
+      return true;
+    }
+    if (!Array.isArray(desired)) {
+      desired = [desired];
+    }
+    return (
+      desired.includes("all") ||
+      !!actual.filter(x => desired.includes(x)).length
+    );
+  },
+
+  applyUAChanges(ua, changes) {
+    if (!Array.isArray(changes)) {
+      changes = [changes];
+    }
+    for (let config of changes) {
+      if (typeof config === "string") {
+        config = { change: config, enabled: true };
+      }
+      if (!config.enabled) {
+        continue;
+      }
+      let finalChanges = config.change;
+      if (!Array.isArray(finalChanges)) {
+        finalChanges = [finalChanges];
+      }
+      for (const change of finalChanges) {
+        try {
+          ua = InterventionHelpers.ua_change_functions[change](ua, config);
+        } catch (e) {
+          console.trace(
+            `Error while calling UA change function ${change} for bug ${config.bug}:`,
+            e
+          );
+          return ua;
+        }
+      }
+    }
+    return ua;
+  },
+
   /**
    * Useful helper to generate a list of domains with a fixed base domain and
    * multiple country-TLDs or other cases with various TLDs.

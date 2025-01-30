@@ -354,14 +354,45 @@ class InterventionTest(MozbuildObject):
 
 def webcompat_addon(command_context):
     import shutil
+    import tempfile
 
     src = os.path.join(command_context.topsrcdir, "browser", "extensions", "webcompat")
-    dst = os.path.join(
-        command_context.virtualenv_manager.virtualenv_root, "webcompat.xpi"
-    )
-    shutil.make_archive(dst, "zip", src)
-    shutil.move(f"{dst}.zip", dst)
-    return dst
+
+    # We use #include directives in the system addon's moz.build (to inject our JSON config
+    # into ua_overrides.js and injections.js), so we must do that here to make a working XPI.
+    tmpdir_kwargs = {}
+    if sys.version_info.major >= 3 and sys.version_info.minor >= 10:
+        tmpdir_kwargs["ignore_cleanup_errors"] = True
+    with tempfile.TemporaryDirectory(**tmpdir_kwargs) as src_copy:
+
+        def process_includes(path):
+            fullpath = os.path.join(src_copy, path)
+            in_lines = None
+            with open(fullpath, "r") as f:
+                in_lines = f.readlines()
+            with open(fullpath, "w") as f:
+                for line in in_lines:
+                    if not line.startswith("#include"):
+                        f.write(line)
+                        continue
+                    include_path = line.split()[1]
+                    include_fullpath = os.path.join(
+                        os.path.dirname(fullpath), include_path
+                    )
+                    with open(include_fullpath, "r") as inc:
+                        f.write(inc.read())
+                    f.write("\n")
+
+        shutil.copytree(src, src_copy, dirs_exist_ok=True)
+        process_includes("data/injections.js")
+        process_includes("data/ua_overrides.js")
+
+        dst = os.path.join(
+            command_context.virtualenv_manager.virtualenv_root, "webcompat.xpi"
+        )
+        shutil.make_archive(dst, "zip", src_copy)
+        shutil.move(f"{dst}.zip", dst)
+        return dst
 
 
 def push_to_device(adb_path, device_serial, local_path, remote_path):

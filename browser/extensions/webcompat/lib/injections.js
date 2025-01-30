@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals browser, module */
+/* globals browser, InterventionHelpers, module */
 
 class Injections {
   constructor(availableInjections, customFunctions) {
@@ -12,26 +12,16 @@ class Injections {
 
     this._injectionsEnabled = true;
 
-    this._availableInjections = availableInjections;
-    this._activeInjections = new Set();
-    // Only used if this.shouldUseScriptingAPI is false and we are falling back
-    // to use the contentScripts API.
-    this._activeInjectionHandles = new Map();
+    this._availableInjections = Object.entries(availableInjections).map(
+      ([id, obj]) => {
+        obj.id = id;
+        return obj;
+      }
+    );
     this._customFunctions = customFunctions;
 
-    this.shouldUseScriptingAPI =
-      browser.aboutConfigPrefs.getBoolPrefSync("useScriptingAPI");
-    // Debug log emit only on nightly (similarly to the debug
-    // helper used in shims.js for similar purpose).
-    browser.appConstants.getReleaseBranch().then(releaseBranch => {
-      if (releaseBranch !== "release_or_beta") {
-        console.debug(
-          `WebCompat Injections will be injected using ${
-            this.shouldUseScriptingAPI ? "scripting" : "contentScripts"
-          } API`
-        );
-      }
-    });
+    // We do not try to enable/disable until we finish any such previous operation.
+    this._enablingOrDisablingOperationInProgress = Promise.resolve();
   }
 
   bindAboutCompatBroker(broker) {
@@ -50,9 +40,9 @@ class Injections {
       if (value === undefined) {
         browser.aboutConfigPrefs.setPref(this.INJECTION_PREF, true);
       } else if (value === false) {
-        this.unregisterContentScripts();
+        this.disableInjections();
       } else {
-        this.registerContentScripts();
+        this.enableInjections();
       }
     });
   }
@@ -65,57 +55,44 @@ class Injections {
     return this._injectionsEnabled;
   }
 
-  async getPromiseRegisteredScriptIds(scriptIds) {
-    let registeredScriptIds = [];
+  async enableInjections() {
+    await this._enablingOrDisablingOperationInProgress;
 
-    // Try to avoid re-registering scripts already registered
-    // (e.g. if the webcompat background page is restarted
-    // after an extension process crash, after having registered
-    // the content scripts already once), but do not prevent
-    // to try registering them again if the getRegisteredContentScripts
-    // method returns an unexpected rejection.
-    try {
-      const registeredScripts =
-        await browser.scripting.getRegisteredContentScripts({
-          // By default only look for script ids that belongs to Injections
-          // (and ignore the ones that may belong to Shims).
-          ids: scriptIds ?? this._availableInjections.map(inj => inj.id),
-        });
-      registeredScriptIds = registeredScripts.map(script => script.id);
-    } catch (ex) {
-      console.error(
-        "Retrieve WebCompat GoFaster registered content scripts failed: ",
-        ex
-      );
-    }
+    this._enablingOrDisablingOperationInProgress = new Promise(done => {
+      this._enableInjectionsNow();
+      done();
+    });
 
-    return registeredScriptIds;
+    return this._enablingOrDisablingOperationInProgress;
   }
 
-  async registerContentScripts() {
-    const platformInfo = await browser.runtime.getPlatformInfo();
-    const platformMatches = [
-      "all",
-      platformInfo.os,
-      platformInfo.os == "android" ? "android" : "desktop",
-    ];
-
-    let registeredScriptIds = this.shouldUseScriptingAPI
-      ? await this.getPromiseRegisteredScriptIds()
-      : [];
-
+  async _enableInjectionsNow() {
+    await this._enablingOrDisablingOperationInProgress;
     for (const injection of this._availableInjections) {
-      if (platformMatches.includes(injection.platform)) {
-        injection.availableOnPlatform = true;
-        try {
-          if (injection.checkIfNeeded && !injection.checkIfNeeded()) {
-            console.warn("Skipping un-needed injection for", injection.domain);
-          } else {
-            await this.enableInjection(injection, registeredScriptIds);
-          }
-        } catch (e) {
-          console.error("Error enabling injection for", injection.domain, e);
+      for (const intervention of injection.interventions) {
+        const { content_scripts } = intervention;
+        if (!content_scripts) {
+          continue;
         }
+        if (await InterventionHelpers.shouldSkip(intervention)) {
+          console.warn(`Skipping un-needed injection ${injection.label}`);
+          continue;
+        }
+        if (!(await InterventionHelpers.checkPlatformMatches(intervention))) {
+          continue;
+        }
+        intervention.enabled = true;
+        injection.availableOnPlatform = true;
+      }
+
+      if (!injection.availableOnPlatform) {
+        continue;
+      }
+
+      try {
+        await this._enableInjectionNow(injection);
+      } catch (e) {
+        console.error("Error enabling injection for", injection.domain, e);
       }
     }
 
@@ -127,152 +104,198 @@ class Injections {
     });
   }
 
-  buildContentScriptRegistrations(contentScripts) {
-    let finalConfig = Object.assign({}, contentScripts);
+  async enableInjection(injection) {
+    await this._enablingOrDisablingOperationInProgress;
 
-    if (!finalConfig.runAt) {
-      finalConfig.runAt = "document_start";
-    }
-
-    if (this.shouldUseScriptingAPI) {
-      // Don't persist the content scripts across browser restarts
-      // (at least not yet, we would need to apply some more changes
-      // to adjust webcompat for accounting for the scripts to be
-      // already registered).
-      //
-      // NOTE: scripting API has been introduced in Gecko 102,
-      // prior to Gecko 105 persistAcrossSessions option was required
-      // and only accepted false persistAcrossSessions, after Gecko 105
-      // is optional and defaults to true.
-
-      finalConfig.persistAcrossSessions = false;
-
-      // Convert js/css from contentScripts.register API method
-      // format to scripting.registerContentScripts API method
-      // format.
-      if (Array.isArray(finalConfig.js)) {
-        finalConfig.js = finalConfig.js.map(e => e.file);
-      }
-
-      if (Array.isArray(finalConfig.css)) {
-        finalConfig.css = finalConfig.css.map(e => e.file);
-      }
-    }
-
-    return finalConfig;
-  }
-
-  async enableInjection(injection, registeredScriptIds) {
-    if (injection.active) {
-      return undefined;
-    }
-
-    if (injection.customFunc) {
-      return this.enableCustomInjection(injection);
-    }
-
-    return this.enableContentScripts(injection, registeredScriptIds);
-  }
-
-  enableCustomInjection(injection) {
-    if (injection.customFunc in this._customFunctions) {
-      this._customFunctions[injection.customFunc](injection);
-      injection.active = true;
-    } else {
-      console.error(
-        `Provided function ${injection.customFunc} wasn't found in functions list`
-      );
-    }
-  }
-
-  async enableContentScripts(injection, registeredScriptIds) {
-    let injectProps;
-    try {
-      const { id } = injection;
-      if (this.shouldUseScriptingAPI) {
-        // enableContentScripts receives a registeredScriptIds already
-        // pre-computed once from registerContentScripts to register all
-        // the injection, whereas it does not expect to receive one when
-        // it is called from the AboutCompatBroker to re-enable one specific
-        // injection.
-        let activeScriptIds = Array.isArray(registeredScriptIds)
-          ? registeredScriptIds
-          : await this.getPromiseRegisteredScriptIds([id]);
-        injectProps = this.buildContentScriptRegistrations(
-          injection.contentScripts
-        );
-        injectProps.id = id;
-        if (!activeScriptIds.includes(id)) {
-          await browser.scripting.registerContentScripts([injectProps]);
-        }
-        this._activeInjections.add(id);
-      } else {
-        const handle = await browser.contentScripts.register(
-          this.buildContentScriptRegistrations(injection.contentScripts)
-        );
-        this._activeInjections.add(id);
-        this._activeInjectionHandles.set(id, handle);
-      }
-
-      injection.active = true;
-    } catch (ex) {
-      console.error(
-        "Registering WebCompat GoFaster content scripts failed: ",
-        { injection, injectProps },
-        ex
-      );
-    }
-  }
-
-  unregisterContentScripts() {
-    for (const injection of this._availableInjections) {
-      this.disableInjection(injection);
-    }
-
-    this._injectionsEnabled = false;
-    this._aboutCompatBroker.portsToAboutCompatTabs.broadcast({
-      interventionsChanged: false,
+    this._enablingOrDisablingOperationInProgress = new Promise(done => {
+      this._enableInjectionNow(injection);
+      done();
     });
+
+    return this._enablingOrDisablingOperationInProgress;
+  }
+
+  async _enableInjectionNow(injection) {
+    if (injection.active) {
+      return;
+    }
+
+    const { bugs, label } = injection;
+    const matches = Object.values(bugs)
+      .map(bug => bug.matches)
+      .flat();
+
+    for (const intervention of injection.interventions) {
+      for (const [customFuncName, customFunc] of Object.entries(
+        this._customFunctions
+      )) {
+        if (customFuncName in intervention) {
+          try {
+            await customFunc.enable(injection, intervention);
+          } catch (e) {
+            console.trace(
+              `Error while enabling custom function ${customFuncName} for ${label}:`,
+              e
+            );
+          }
+        }
+      }
+
+      if ("content_scripts" in intervention) {
+        this._buildContentScriptRegistrations(label, intervention, matches);
+
+        // Try to avoid re-registering scripts already registered
+        // (e.g. if the webcompat background page is restarted
+        // after an extension process crash, after having registered
+        // the content scripts already once), but do not prevent
+        // to try registering them again if the getRegisteredContentScripts
+        // method returns an unexpected rejection.
+
+        const scriptsToReg = intervention._registrations;
+        const ids = scriptsToReg.map(s => s.id);
+        try {
+          const alreadyRegged =
+            await browser.scripting.getRegisteredContentScripts({ ids });
+          const alreadyReggedIds = alreadyRegged.map(script => script.id);
+          const stillNeeded = scriptsToReg.filter(
+            ({ id }) => !alreadyReggedIds.includes(id)
+          );
+          await browser.scripting.registerContentScripts(stillNeeded);
+          console.info(
+            `Registered still-not-active content scripts for ${label}`,
+            stillNeeded
+          );
+        } catch (e) {
+          try {
+            await browser.scripting.registerContentScripts(scriptsToReg);
+            console.debug(
+              `Registered all content scripts for ${label} after error registering just non-active ones`,
+              scriptsToReg,
+              e
+            );
+          } catch (e2) {
+            console.error(
+              `Error while registering content scripts for ${label}:`,
+              e2,
+              scriptsToReg
+            );
+          }
+        }
+      }
+    }
+
+    injection.active = true;
+  }
+
+  _buildContentScriptRegistrations(label, intervention, matches) {
+    if (intervention._registrations) {
+      return;
+    }
+
+    const registrations = [];
+    let { content_scripts } = intervention;
+
+    for (const [index, scriptConfig] of content_scripts.entries()) {
+      const registration = {
+        id: `webcompat intervention for ${label} #${index + 1}`,
+        matches,
+        persistAcrossSessions: false,
+      };
+
+      let { all_frames, css, js, run_at } = scriptConfig;
+      if (!css && !js) {
+        console.error(`Missing js or css for content_script in ${label}`);
+        continue;
+      }
+      if (all_frames) {
+        registration.allFrames = true;
+      }
+      if (css) {
+        registration.css = css.map(item => {
+          if (item.includes("/")) {
+            return item;
+          }
+          return `injections/css/${item}`;
+        });
+      }
+      if (js) {
+        registration.js = js.map(item => {
+          if (item.includes("/")) {
+            return item;
+          }
+          return `injections/js/${item}`;
+        });
+      }
+      if (run_at) {
+        registration.runAt = run_at;
+      } else {
+        registration.runAt = "document_start";
+      }
+      registrations.push(registration);
+    }
+
+    intervention._registrations = registrations;
+  }
+
+  async disableInjections() {
+    await this._enablingOrDisablingOperationInProgress;
+
+    this._enablingOrDisablingOperationInProgress = new Promise(done => {
+      for (const injection of this._availableInjections) {
+        this._disableInjectionNow(injection);
+      }
+
+      this._injectionsEnabled = false;
+      this._aboutCompatBroker.portsToAboutCompatTabs.broadcast({
+        interventionsChanged: false,
+      });
+
+      done();
+    });
+
+    return this._enablingOrDisablingOperationInProgress;
   }
 
   async disableInjection(injection) {
-    if (!injection.active) {
-      return undefined;
-    }
+    await this._enablingOrDisablingOperationInProgress;
 
-    if (injection.customFunc) {
-      return this.disableCustomInjections(injection);
-    }
+    this._enablingOrDisablingOperationInProgress = new Promise(done => {
+      this._disableInjectionNow(injection);
+      done();
+    });
 
-    return this.disableContentScripts(injection);
+    return this._enablingOrDisablingOperationInProgress;
   }
 
-  disableCustomInjections(injection) {
-    const disableFunc = injection.customFunc + "Disable";
+  async _disableInjectionNow(injection) {
+    const { active, label, interventions } = injection;
 
-    if (disableFunc in this._customFunctions) {
-      this._customFunctions[disableFunc](injection);
-      injection.active = false;
-    } else {
-      console.error(
-        `Provided function ${disableFunc} for disabling injection wasn't found in functions list`
-      );
+    if (!active) {
+      return;
     }
-  }
 
-  async disableContentScripts(injection) {
-    if (this._activeInjections.has(injection.id)) {
-      if (this.shouldUseScriptingAPI) {
-        await browser.scripting.unregisterContentScripts({
-          ids: [injection.id],
-        });
-      } else {
-        const handle = this._activeInjectionHandles.get(injection.id);
-        await handle.unregister();
-        this._activeInjectionHandles.delete(injection.id);
+    for (const intervention of interventions) {
+      for (const [customFuncName, customFunc] of Object.entries(
+        this._customFunctions
+      )) {
+        if (customFuncName in intervention) {
+          try {
+            await customFunc.disable(injection, intervention);
+          } catch (e) {
+            console.trace(
+              `Error while disabling custom function ${customFuncName} for ${label}:`,
+              e
+            );
+          }
+        }
       }
-      this._activeInjections.delete(injection);
+
+      if ("content_scripts" in intervention) {
+        const ids = intervention._registrations.map(s => s.id);
+        await browser.scripting.unregisterContentScripts({ ids });
+      }
     }
+
     injection.active = false;
   }
 }
