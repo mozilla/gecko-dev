@@ -6,6 +6,7 @@
 
 package org.mozilla.focus.state
 
+import androidx.annotation.VisibleForTesting
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.state.Reducer
 
@@ -118,25 +119,41 @@ private fun finishFirstRun(state: AppState, action: AppAction.FinishFirstRun): A
 /**
  * Force showing the first run screen (for testing).
  */
-private fun showFirstRun(state: AppState): AppState {
+@VisibleForTesting
+internal fun showFirstRun(state: AppState): AppState {
+    if (state.screen is Screen.FirstRun) {
+        return state
+    }
     return state.copy(screen = Screen.FirstRun)
 }
 
-private fun showOnBoardingSecondScreen(state: AppState): AppState {
+@VisibleForTesting
+internal fun showOnBoardingSecondScreen(state: AppState): AppState {
+    if (state.screen is Screen.OnboardingSecondScreen) {
+        return state
+    }
     return state.copy(screen = Screen.OnboardingSecondScreen)
 }
 
 /**
  * Force showing the home screen.
  */
-private fun showHomeScreen(state: AppState): AppState {
+@VisibleForTesting
+internal fun showHomeScreen(state: AppState): AppState {
+    if (state.screen is Screen.Home) {
+        return state
+    }
     return state.copy(screen = Screen.Home)
 }
 
 /**
  * Lock the application.
  */
-private fun lock(state: AppState, action: AppAction.Lock): AppState {
+@VisibleForTesting
+internal fun lock(state: AppState, action: AppAction.Lock): AppState {
+    if (state.screen is Screen.Locked) {
+        return state
+    }
     return state.copy(screen = Screen.Locked(action.bundle))
 }
 
