@@ -2920,6 +2920,12 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::ERRORSTACK_SETTER_NO_ERRORDATA:
       SetUseCounter(obj, eUseCounter_custom_JS_errorstack_setter_no_errordata);
       return;
+    case JSUseCounter::DATEPARSE:
+      SetUseCounter(obj, eUseCounter_custom_JS_dateparse);
+      return;
+    case JSUseCounter::DATEPARSE_IMPL_DEF:
+      SetUseCounter(obj, eUseCounter_custom_JS_dateparse_impl_def);
+      return;
     case JSUseCounter::COUNT:
       break;
   }

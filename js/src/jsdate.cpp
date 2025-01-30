@@ -1545,8 +1545,8 @@ static constexpr size_t MinKeywordLength(const CharsAndAction (&keywords)[N]) {
 }
 
 template <typename CharT>
-static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const CharT* s,
-                      size_t length, ClippedTime* result) {
+static bool ParseDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
+                      const CharT* s, size_t length, ClippedTime* result) {
   if (length == 0) {
     return false;
   }
@@ -1554,6 +1554,10 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const CharT* s,
   if (ParseISOStyleDate(forceUTC, s, length, result)) {
     return true;
   }
+
+  // Collect telemetry on how often Date.parse enters implementation defined
+  // code. This can be removed in the future, see Bug 1944630.
+  cx->runtime()->setUseCounter(cx->global(), JSUseCounter::DATEPARSE_IMPL_DEF);
 
   size_t index = 0;
   int mon = -1;
@@ -2044,12 +2048,13 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const CharT* s,
   return true;
 }
 
-static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const JSLinearString* s,
-                      ClippedTime* result) {
+static bool ParseDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
+                      const JSLinearString* s, ClippedTime* result) {
   AutoCheckCannotGC nogc;
-  return s->hasLatin1Chars()
-             ? ParseDate(forceUTC, s->latin1Chars(nogc), s->length(), result)
-             : ParseDate(forceUTC, s->twoByteChars(nogc), s->length(), result);
+  return s->hasLatin1Chars() ? ParseDate(cx, forceUTC, s->latin1Chars(nogc),
+                                         s->length(), result)
+                             : ParseDate(cx, forceUTC, s->twoByteChars(nogc),
+                                         s->length(), result);
 }
 
 /**
@@ -2059,6 +2064,10 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const JSLinearString* s,
  */
 static bool date_parse(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date", "parse");
+
+  // Collect telemetry on how often Date.parse is being used.
+  // This can be removed in the future, see Bug 1944630.
+  cx->runtime()->setUseCounter(cx->global(), JSUseCounter::DATEPARSE);
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() == 0) {
     args.rval().setNaN();
@@ -2076,7 +2085,7 @@ static bool date_parse(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   ClippedTime result;
-  if (!ParseDate(ForceUTC(cx->realm()), linearStr, &result)) {
+  if (!ParseDate(cx, ForceUTC(cx->realm()), linearStr, &result)) {
     args.rval().setNaN();
     return true;
   }
@@ -4605,7 +4614,7 @@ static bool DateOneArgument(JSContext* cx, const CallArgs& args) {
       return false;
     }
 
-    if (!ParseDate(ForceUTC(cx->realm()), linearStr, &t)) {
+    if (!ParseDate(cx, ForceUTC(cx->realm()), linearStr, &t)) {
       t = ClippedTime::invalid();
     }
   } else {
