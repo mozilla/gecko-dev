@@ -439,7 +439,7 @@ class LWasmAtomicStoreI64 : public LInstructionHelper<0, 2 + INT64_PIECES, 2> {
 
   MWasmStore* mir() const { return mir_->toWasmStore(); }
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LAllocation* memoryBase() { return getOperand(3); }
   const LDefinition* tmpLow() { return getTemp(0); }
   const LDefinition* tmpHigh() { return getTemp(1); }
@@ -465,10 +465,8 @@ class LWasmCompareExchangeI64
     return mir_->toWasmCompareExchangeHeap();
   }
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation expected() { return getInt64Operand(1); }
-  const LInt64Allocation replacement() {
-    return getInt64Operand(1 + INT64_PIECES);
-  }
+  LInt64Allocation expected() { return getInt64Operand(1); }
+  LInt64Allocation replacement() { return getInt64Operand(1 + INT64_PIECES); }
   const LAllocation* memoryBase() { return getOperand(1 + 2 * INT64_PIECES); }
 };
 
@@ -493,7 +491,7 @@ class LWasmAtomicBinopI64
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LAllocation* memoryBase() { return getOperand(3); }
   const wasm::MemoryAccessDesc& access() { return access_; }
   AtomicOp operation() const { return op_; }
@@ -518,7 +516,7 @@ class LWasmAtomicExchangeI64
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LAllocation* memoryBase() { return getOperand(3); }
   const wasm::MemoryAccessDesc& access() { return access_; }
 };

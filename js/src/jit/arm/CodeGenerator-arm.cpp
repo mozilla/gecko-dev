@@ -45,7 +45,7 @@ CodeGeneratorARM::CodeGeneratorARM(MIRGenerator* gen, LIRGraph* graph,
     : CodeGeneratorShared(gen, graph, masm) {}
 
 Register64 CodeGeneratorARM::ToOperandOrRegister64(
-    const LInt64Allocation input) {
+    const LInt64Allocation& input) {
   return ToRegister64(input);
 }
 
@@ -2607,7 +2607,7 @@ void CodeGenerator::visitWasmStackArgI64(LWasmStackArgI64* ins) {
 
 void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   Register cond = ToRegister(lir->condExpr());
-  const LInt64Allocation falseExpr = lir->falseExpr();
+  LInt64Allocation falseExpr = lir->falseExpr();
 
   Register64 out = ToOutRegister64(lir);
   MOZ_ASSERT(ToRegister64(lir->trueExpr()) == out,

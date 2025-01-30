@@ -94,7 +94,7 @@ class CodeGeneratorARM : public CodeGeneratorShared {
   ValueOperand ToValue(LInstruction* ins, size_t pos);
   ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
-  Register64 ToOperandOrRegister64(const LInt64Allocation input);
+  Register64 ToOperandOrRegister64(const LInt64Allocation& input);
 
   void divICommon(MDiv* mir, Register lhs, Register rhs, Register output,
                   LSnapshot* snapshot, Label& done);

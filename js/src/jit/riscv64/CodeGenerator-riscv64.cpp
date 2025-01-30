@@ -55,12 +55,12 @@ Operand CodeGeneratorRiscv64::ToOperand(const LDefinition* def) {
 
 #ifdef JS_PUNBOX64
 Operand CodeGeneratorRiscv64::ToOperandOrRegister64(
-    const LInt64Allocation input) {
+    const LInt64Allocation& input) {
   return ToOperand(input.value());
 }
 #else
 Register64 CodeGeneratorRiscv64::ToOperandOrRegister64(
-    const LInt64Allocation input) {
+    const LInt64Allocation& input) {
   return ToRegister64(input);
 }
 #endif
@@ -515,7 +515,7 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
 
   Register cond = ToRegister(lir->condExpr());
-  const LInt64Allocation falseExpr = lir->falseExpr();
+  LInt64Allocation falseExpr = lir->falseExpr();
 
   Register64 out = ToOutRegister64(lir);
   MOZ_ASSERT(ToRegister64(lir->trueExpr()) == out,

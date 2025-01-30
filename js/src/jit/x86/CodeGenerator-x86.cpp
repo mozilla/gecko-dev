@@ -477,7 +477,7 @@ void CodeGeneratorX86::emitWasmStoreOrExchangeAtomicI64(
   Operand srcAddr(ToRegister(memoryBase), ToRegister(ptr), TimesOne,
                   access.offset32());
 
-  DebugOnly<const LInt64Allocation> value = ins->value();
+  DebugOnly<LInt64Allocation> value = ins->value();
   MOZ_ASSERT(ToRegister64(value).low == ebx);
   MOZ_ASSERT(ToRegister64(value).high == ecx);
 

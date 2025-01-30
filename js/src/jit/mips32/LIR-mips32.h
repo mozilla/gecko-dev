@@ -191,7 +191,7 @@ class LWasmAtomicStoreI64 : public LInstructionHelper<0, 1 + INT64_PIECES, 1> {
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LDefinition* tmp() { return getTemp(0); }
   const MWasmStore* mir() const { return mir_->toWasmStore(); }
 };

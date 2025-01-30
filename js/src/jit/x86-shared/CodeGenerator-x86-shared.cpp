@@ -40,12 +40,12 @@ CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator* gen,
 
 #ifdef JS_PUNBOX64
 Operand CodeGeneratorX86Shared::ToOperandOrRegister64(
-    const LInt64Allocation input) {
+    const LInt64Allocation& input) {
   return ToOperand(input.value());
 }
 #else
 Register64 CodeGeneratorX86Shared::ToOperandOrRegister64(
-    const LInt64Allocation input) {
+    const LInt64Allocation& input) {
   return ToRegister64(input);
 }
 #endif

@@ -1920,10 +1920,9 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
 
 void CodeGeneratorARM64::emitSimpleBinaryI64(
     LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0>* lir, JSOp op) {
-  const ARMRegister dest = ARMRegister(ToOutRegister64(lir).reg, 64);
-  const ARMRegister lhs =
-      ARMRegister(ToRegister64(lir->getInt64Operand(0)).reg, 64);
-  const LInt64Allocation rhsAlloc = lir->getInt64Operand(INT64_PIECES);
+  ARMRegister dest = ARMRegister(ToOutRegister64(lir).reg, 64);
+  ARMRegister lhs = ARMRegister(ToRegister64(lir->getInt64Operand(0)).reg, 64);
+  LInt64Allocation rhsAlloc = lir->getInt64Operand(INT64_PIECES);
   Operand rhs;
 
   if (IsConstant(rhsAlloc)) {

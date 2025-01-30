@@ -247,10 +247,8 @@ class LWasmCompareExchangeI64
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation oldValue() { return getInt64Operand(1); }
-  const LInt64Allocation newValue() {
-    return getInt64Operand(1 + INT64_PIECES);
-  }
+  LInt64Allocation oldValue() { return getInt64Operand(1); }
+  LInt64Allocation newValue() { return getInt64Operand(1 + INT64_PIECES); }
   const LAllocation* memoryBase() { return getOperand(1 + 2 * INT64_PIECES); }
   const MWasmCompareExchangeHeap* mir() const {
     return mir_->toWasmCompareExchangeHeap();
@@ -271,7 +269,7 @@ class LWasmAtomicExchangeI64
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LAllocation* memoryBase() { return getOperand(1 + INT64_PIECES); }
   const MWasmAtomicExchangeHeap* mir() const {
     return mir_->toWasmAtomicExchangeHeap();
@@ -292,7 +290,7 @@ class LWasmAtomicBinopI64
   }
 
   const LAllocation* ptr() { return getOperand(0); }
-  const LInt64Allocation value() { return getInt64Operand(1); }
+  LInt64Allocation value() { return getInt64Operand(1); }
   const LAllocation* memoryBase() { return getOperand(1 + INT64_PIECES); }
   const MWasmAtomicBinopHeap* mir() const {
     return mir_->toWasmAtomicBinopHeap();

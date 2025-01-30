@@ -157,7 +157,7 @@ class LRotateI64
   static const size_t Input = 0;
   static const size_t Count = INT64_PIECES;
 
-  const LInt64Allocation input() { return getInt64Operand(Input); }
+  LInt64Allocation input() { return getInt64Operand(Input); }
   const LDefinition* temp() { return getTemp(0); }
   LAllocation* count() { return getOperand(Count); }
 };
@@ -1074,8 +1074,8 @@ class LWasmSelectI64
     setOperand(CondIndex, cond);
   }
 
-  const LInt64Allocation trueExpr() { return getInt64Operand(TrueExprIndex); }
-  const LInt64Allocation falseExpr() { return getInt64Operand(FalseExprIndex); }
+  LInt64Allocation trueExpr() { return getInt64Operand(TrueExprIndex); }
+  LInt64Allocation falseExpr() { return getInt64Operand(FalseExprIndex); }
   const LAllocation* condExpr() { return getOperand(CondIndex); }
 };
 
@@ -1216,7 +1216,7 @@ class LWasmStoreI64 : public LInstructionHelper<0, INT64_PIECES + 2, 1> {
   const LAllocation* ptr() { return getOperand(PtrIndex); }
   const LAllocation* memoryBase() { return getOperand(MemoryBaseIndex); }
   const LDefinition* ptrCopy() { return getTemp(0); }
-  const LInt64Allocation value() { return getInt64Operand(ValueIndex); }
+  LInt64Allocation value() { return getInt64Operand(ValueIndex); }
 };
 
 class LWasmCompareExchangeHeap : public LInstructionHelper<1, 4, 4> {
@@ -1965,7 +1965,7 @@ class LWasmReplaceInt64LaneSimd128
 
   const LAllocation* lhs() { return getOperand(Lhs); }
   const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const LInt64Allocation rhs() { return getInt64Operand(Rhs); }
+  LInt64Allocation rhs() { return getInt64Operand(Rhs); }
   const LDefinition* output() { return this->getDef(0); }
   uint32_t laneIndex() const {
     return mir_->toWasmReplaceLaneSimd128()->laneIndex();
@@ -2005,7 +2005,7 @@ class LWasmInt64ToSimd128 : public LInstructionHelper<1, INT64_PIECES, 0> {
     setInt64Operand(Src, src);
   }
 
-  const LInt64Allocation src() { return getInt64Operand(Src); }
+  LInt64Allocation src() { return getInt64Operand(Src); }
   wasm::SimdOp simdOp() const {
     return mir_->toWasmScalarToSimd128()->simdOp();
   }

@@ -33,9 +33,9 @@ class CodeGeneratorMIPSShared : public CodeGeneratorShared {
   Operand ToOperand(const LDefinition* def);
 
 #ifdef JS_PUNBOX64
-  Operand ToOperandOrRegister64(const LInt64Allocation input);
+  Operand ToOperandOrRegister64(const LInt64Allocation& input);
 #else
-  Register64 ToOperandOrRegister64(const LInt64Allocation input);
+  Register64 ToOperandOrRegister64(const LInt64Allocation& input);
 #endif
 
   MoveOperand toMoveOperand(LAllocation a) const;

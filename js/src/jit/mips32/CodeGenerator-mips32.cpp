@@ -190,8 +190,8 @@ void CodeGenerator::visitWasmUnalignedStoreI64(LWasmUnalignedStoreI64* lir) {
 void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
   Register cond = ToRegister(lir->condExpr());
-  const LInt64Allocation trueExpr = lir->trueExpr();
-  const LInt64Allocation falseExpr = lir->falseExpr();
+  LInt64Allocation trueExpr = lir->trueExpr();
+  LInt64Allocation falseExpr = lir->falseExpr();
 
   Register64 output = ToOutRegister64(lir);
 
