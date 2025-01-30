@@ -2,5 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# Currently, Merino is sending Suggest results that include chrome:// icon
+# URIs from this set at the activity-stream path. Please don't update this
+# pathing until bug 1944686 is closed.
 browser.jar:
-  content/browser/topsites/tippytop/ (./content/tippytop/*)
+  content/activity-stream/data/content/tippytop/ (./content/tippytop/*)

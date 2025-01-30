@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const TIPPYTOP_PATH = "chrome://browser/content/topsites/tippytop/";
+const TIPPYTOP_PATH = "chrome://activity-stream/content/data/content/tippytop/";
 const TIPPYTOP_JSON_PATH =
-  "chrome://browser/content/topsites/tippytop/top_sites.json";
+  "chrome://activity-stream/content/data/content/tippytop/top_sites.json";
 
 /*
  * Get a domain from a url optionally stripping subdomains.
