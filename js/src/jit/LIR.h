@@ -1160,6 +1160,9 @@ class LInstructionHelper
   // Override the methods in LInstruction with more optimized versions
   // for when we know the exact instruction type.
   LAllocation* getOperand(size_t index) { return &operands_[index]; }
+  const LAllocation* getOperand(size_t index) const {
+    return &operands_[index];
+  }
   void setOperand(size_t index, const LAllocation& a) { operands_[index] = a; }
   void setBoxOperand(size_t index, const LBoxAllocation& alloc) {
 #ifdef JS_NUNBOX32

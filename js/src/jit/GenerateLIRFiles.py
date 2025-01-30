@@ -134,7 +134,7 @@ def gen_operands(operands):
     for index_value, operand in enumerate(reg_operands):
         setters.append(f"setOperand({index_value}, {operand});")
         getters.append(
-            f"const LAllocation* {operand}() {{ return getOperand({index_value}); }}"
+            f"const LAllocation* {operand}() const {{ return getOperand({index_value}); }}"
         )
 
     # Next initialize all BoxedValue operands.
