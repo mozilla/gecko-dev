@@ -1847,11 +1847,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false,
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.uninitializing) {
-      SidebarController.recordTabsLayoutSetting(newValue);
       Services.prefs.setStringPref(
         SidebarController.VISIBILITY_PREF,
         newValue ? "always-show" : "hide-sidebar"
       );
+      SidebarController.recordTabsLayoutSetting(newValue);
     }
   }
 );
