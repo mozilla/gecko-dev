@@ -825,3 +825,35 @@ captcha_detection:
     expires: never
     data_sensitivity:
       - interaction
+
+  pages_visited:
+    type: counter
+    description: >
+      The number of pages visited since the last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D234196#8162534
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  pages_visited_pbm:
+    type: counter
+    description: >
+      The number of pages visited since the last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941596
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D234196#8162534
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction

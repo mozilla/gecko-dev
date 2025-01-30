@@ -26,7 +26,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "submissionInterval",
   SUBMISSION_INTERVAL_PREF,
-  // See #i32SafeDate() function for why we divide by 1000.
+  // See i32SafeDate() function for why we divide by 1000.
   Math.floor((24 * 60 * 60) / 1000)
 );
 
@@ -62,7 +62,7 @@ export class CaptchaDetectionPingUtils {
     }
   }
 
-  static #i32SafeDate() {
+  static i32SafeDate() {
     // Prefs int values are 32-bit signed integers, so we can't store the full
     // Date.now(). We could divide by 1000, but that is safe until 2038, after
     // which it will overflow. Dividing by 1000 again will make it safe until
@@ -96,7 +96,10 @@ export class CaptchaDetectionPingUtils {
     Services.prefs.setBoolPref(HAS_UNSUBMITTED_DATA_PREF, false);
 
     lazy.console.debug("Setting lastSubmission to now.");
-    Services.prefs.setIntPref(LAST_SUBMISSION_PREF, this.#i32SafeDate());
+    Services.prefs.setIntPref(
+      LAST_SUBMISSION_PREF,
+      CaptchaDetectionPingUtils.i32SafeDate()
+    );
   }
 
   static maybeSubmitPing(setHasUnsubmittedDataFlag = true) {
@@ -109,11 +112,17 @@ export class CaptchaDetectionPingUtils {
       // If this is the first time maybeSubmitPing is called, set the lastSubmission time to now
       // so that we don't submit a ping with just one event.
       lazy.console.debug("Setting lastSubmission to now.");
-      Services.prefs.setIntPref(LAST_SUBMISSION_PREF, this.#i32SafeDate());
+      Services.prefs.setIntPref(
+        LAST_SUBMISSION_PREF,
+        CaptchaDetectionPingUtils.i32SafeDate()
+      );
       return;
     }
 
-    if (lastSubmission > this.#i32SafeDate() - lazy.submissionInterval) {
+    if (
+      lastSubmission >
+      CaptchaDetectionPingUtils.i32SafeDate() - lazy.submissionInterval
+    ) {
       lazy.console.debug("Not enough time has passed since last submission.");
       return;
     }
