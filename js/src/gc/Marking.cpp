@@ -1256,11 +1256,11 @@ static gcstats::PhaseKind GrayMarkingPhaseForCurrentPhase(
   }
 }
 
-size_t GCMarker::moveWork(GCMarker* dst, GCMarker* src) {
+void GCMarker::moveWork(GCMarker* dst, GCMarker* src) {
   MOZ_ASSERT(dst->stack.isEmpty());
   MOZ_ASSERT(src->canDonateWork());
 
-  return MarkStack::moveWork(dst->stack, src->stack);
+  MarkStack::moveWork(dst->stack, src->stack);
 }
 
 bool GCMarker::initStack() {
@@ -1916,7 +1916,7 @@ MOZ_ALWAYS_INLINE bool MarkStack::indexIsEntryBase(size_t index) const {
 }
 
 /* static */
-size_t MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
+void MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
   // Move some work from |src| to |dst|. Assumes |dst| is empty.
   //
   // When this method runs during parallel marking, we are on the thread that
@@ -1944,7 +1944,7 @@ size_t MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
   MOZ_ASSERT(wordsToMove == src.position() - targetPos);
 
   if (!dst.ensureSpace(wordsToMove)) {
-    return 0;
+    return;
   }
 
   // TODO: This doesn't have good cache behaviour when moving work between
@@ -1961,7 +1961,6 @@ size_t MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
   src.poisonUnused();
 #endif
   src.peekPtr().assertValid();
-  return wordsToMove;
 }
 
 void MarkStack::clearAndResetCapacity() {
