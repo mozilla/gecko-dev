@@ -144,7 +144,9 @@ def gen_operands(operands):
             f"static constexpr size_t {index_value} = {make_boxed_index(box_index, reg_operands)};"
         )
         setters.append(f"setBoxOperand({index_value}, {operand});")
-        # No getters generated for BoxedValue operands.
+        getters.append(
+            f"LBoxAllocation {operand}() const {{ return getBoxOperand({index_value}); }}"
+        )
 
     # Finally initialize all Int64 operands.
     for int64_index, operand in enumerate(int64_operands):
