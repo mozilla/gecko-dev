@@ -49,7 +49,7 @@ class ContentRecommendationsRefreshWorkerTest {
         doReturn(false).`when`(fetchContentRecommendations).invoke()
         doReturn(fetchContentRecommendations).`when`(useCases).fetchContentRecommendations
         GlobalDependencyProvider.ContentRecommendations.initialize(useCases)
-        val worker = TestListenableWorkerBuilder<RefreshPocketWorker>(testContext).build()
+        val worker = TestListenableWorkerBuilder<ContentRecommendationsRefreshWorker>(testContext).build()
 
         val result = worker.startWork().await()
 
