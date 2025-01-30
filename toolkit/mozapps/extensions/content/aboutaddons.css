@@ -653,6 +653,10 @@ panel-item[action="report"]::part(button) {
    * the min-height unchanged to avoid potential regressions in the short term.
    */
   min-height: 250px;
+
+  /* Setting display to grid to prevent the inline options page browser element
+   * from hitting the regression tracked by Bug 1939206. */
+  display: grid;
 }
 
 addon-permissions-list > .addon-detail-row {
