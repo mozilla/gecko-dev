@@ -17960,6 +17960,13 @@
   value: true
   mirror: always
 
+# Whether PiP windows have window decorations (borders and shadows).
+# Off for now while we fix bug 1934760 and related issues.
+- name: widget.windows.pip-decorations.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether we use the accent color for highlight as some other UWP apps do.
 #
 # false for now since it can cause some contrast-with-background issues

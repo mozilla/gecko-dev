@@ -869,6 +869,9 @@ class nsWindow final : public nsBaseWidget {
   // Whether we were created as a child window (aka ChildWindow) or not.
   bool mIsChildWindow : 1;
 
+  // Whether we're a PIP window.
+  bool mPIPWindow : 1;
+
   int32_t mCachedHitTestResult = 0;
 
   // The point in time at which the last paint completed. We use this to avoid
