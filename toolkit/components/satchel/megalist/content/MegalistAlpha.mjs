@@ -442,6 +442,7 @@ export class MegalistAlpha extends MozLitElement {
       data-l10n-id="passwords-no-passwords-found-header"
     >
       <div
+        id="no-results-message"
         class="empty-search-results"
         data-l10n-id="passwords-no-passwords-found-message"
       ></div>
@@ -508,6 +509,8 @@ export class MegalistAlpha extends MozLitElement {
   }
 
   renderSearch() {
+    const hasResults = this.records.length;
+    const describedBy = hasResults ? "" : "no-results-message";
     return html`
       <div
         class="search-container"
@@ -521,6 +524,7 @@ export class MegalistAlpha extends MozLitElement {
           type="search"
           data-l10n-id="filter-input"
           .value=${this.searchText}
+          aria-describedby=${describedBy}
           @input=${e => this.#onInputChange(e)}
         />
       </div>
