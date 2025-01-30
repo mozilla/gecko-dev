@@ -1234,11 +1234,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
                       ValueTypeFromMIRType(mir->type()));
 }
 
-void CodeGeneratorARM::splitTagForTest(const ValueOperand& value,
-                                       ScratchTagScope& tag) {
-  MOZ_ASSERT(value.typeReg() == tag);
-}
-
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {
   const LAllocation* opd = test->input();
   masm.ma_vcmpz(ToFloatRegister(opd));

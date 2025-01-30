@@ -417,11 +417,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   }
 }
 
-void CodeGeneratorRiscv64::splitTagForTest(const ValueOperand& value,
-                                           ScratchTagScope& tag) {
-  masm.splitTag(value.valueReg(), tag);
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

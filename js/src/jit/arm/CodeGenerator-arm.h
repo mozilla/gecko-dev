@@ -96,9 +96,6 @@ class CodeGeneratorARM : public CodeGeneratorShared {
 
   Register64 ToOperandOrRegister64(const LInt64Allocation input);
 
-  // Functions for LTestVAndBranch.
-  void splitTagForTest(const ValueOperand& value, ScratchTagScope& tag);
-
   void divICommon(MDiv* mir, Register lhs, Register rhs, Register output,
                   LSnapshot* snapshot, Label& done);
   void modICommon(MMod* mir, Register lhs, Register rhs, Register output,

@@ -63,11 +63,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   }
 }
 
-void CodeGeneratorMIPS::splitTagForTest(const ValueOperand& value,
-                                        ScratchTagScope& tag) {
-  MOZ_ASSERT(value.typeReg() == tag);
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register64 lhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Lhs));
   Register64 rhs = ToRegister64(lir->getInt64Operand(LDivOrModI64::Rhs));

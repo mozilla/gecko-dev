@@ -151,9 +151,6 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
 
   ValueOperand ToValue(LInstruction* ins, size_t pos);
   ValueOperand ToTempValue(LInstruction* ins, size_t pos);
-
-  // Functions for LTestVAndBranch.
-  void splitTagForTest(const ValueOperand& value, ScratchTagScope& tag);
 };
 
 typedef CodeGeneratorRiscv64 CodeGeneratorSpecific;
