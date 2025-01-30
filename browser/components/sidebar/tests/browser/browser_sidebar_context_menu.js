@@ -150,12 +150,12 @@ add_task(async function test_sidebar_extension_context_menu() {
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function test_toggle_vertical_tabs_from_a_tab() {
+add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
   });
 
-  info("Enable vertical tabs from a tab.");
+  info("Enable vertical tabs from the tab strip.");
   const tabContextMenu = document.getElementById("tabContextMenu");
   const toggleMenuItem = document.getElementById("context_toggleVerticalTabs");
   await openAndWaitForContextMenu(tabContextMenu, gBrowser.selectedTab, () => {
@@ -171,7 +171,7 @@ add_task(async function test_toggle_vertical_tabs_from_a_tab() {
     "Vertical tabs are enabled."
   );
 
-  info("Disable vertical tabs from a tab.");
+  info("Disable vertical tabs from the tab strip.");
   await openAndWaitForContextMenu(tabContextMenu, gBrowser.selectedTab, () => {
     Assert.deepEqual(
       document.l10n.getAttributes(toggleMenuItem),
@@ -180,72 +180,6 @@ add_task(async function test_toggle_vertical_tabs_from_a_tab() {
     );
     toggleMenuItem.click();
   });
-  await TestUtils.waitForCondition(
-    () => !gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are disabled."
-  );
-
-  await SpecialPowers.popPrefEnv();
-});
-
-add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", false]],
-  });
-
-  info("Enable vertical tabs from the toolbar.");
-  const toolbarContextMenu = document.getElementById("toolbar-context-menu");
-  const toggleMenuItem = document.getElementById(
-    "toolbar-context-toggle-vertical-tabs"
-  );
-  const customizeSidebarItem = document.getElementById(
-    "toolbar-context-customize-sidebar"
-  );
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      Assert.deepEqual(
-        document.l10n.getAttributes(toggleMenuItem),
-        { id: "toolbar-context-turn-on-vertical-tabs", args: null },
-        "Context menu item indicates that it enables vertical tabs."
-      );
-      toggleMenuItem.click();
-    }
-  );
-  await TestUtils.waitForCondition(
-    () => gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are enabled."
-  );
-
-  // Open customize sidebar panel from context menu
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      customizeSidebarItem.click();
-    }
-  );
-  ok(window.SidebarController.isOpen, "Sidebar is open");
-  Assert.equal(
-    window.SidebarController.currentID,
-    "viewCustomizeSidebar",
-    "Sidebar should have opened to the customize sidebar panel"
-  );
-
-  info("Disable vertical tabs from the toolbar.");
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      Assert.deepEqual(
-        document.l10n.getAttributes(toggleMenuItem),
-        { id: "toolbar-context-turn-off-vertical-tabs", args: null },
-        "Context menu item indicates that it disables vertical tabs."
-      );
-      toggleMenuItem.click();
-    }
-  );
   await TestUtils.waitForCondition(
     () => !gBrowser.tabContainer.verticalMode,
     "Vertical tabs are disabled."

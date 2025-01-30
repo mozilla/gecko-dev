@@ -79,9 +79,7 @@ add_task(async function tabstrip_context() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 

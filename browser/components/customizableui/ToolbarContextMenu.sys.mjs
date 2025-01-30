@@ -301,18 +301,6 @@ export var ToolbarContextMenu = {
         document.getElementById("toolbar-context-undoCloseTab"),
         { tabCount: closedCount }
       );
-      let toggleVerticalTabsItem = document.getElementById(
-        "toolbar-context-toggle-vertical-tabs"
-      );
-      document.l10n.setAttributes(
-        toggleVerticalTabsItem,
-        gBrowser.tabContainer?.verticalMode
-          ? "toolbar-context-turn-off-vertical-tabs"
-          : "toolbar-context-turn-on-vertical-tabs"
-      );
-      document.getElementById("toolbar-context-customize-sidebar").hidden =
-        !gBrowser.tabContainer?.verticalMode;
-      document.getElementById("sidebarRevampSeparator").hidden = false;
       return;
     }
 
