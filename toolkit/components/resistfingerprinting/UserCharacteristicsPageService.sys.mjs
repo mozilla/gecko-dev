@@ -731,6 +731,7 @@ export class UserCharacteristicsPageService {
     Glean.characteristics.cpuModel.set(
       await Services.sysinfo.processInfo.then(r => r.name)
     );
+    Glean.characteristics.cpuArch.set(Services.sysinfo.get("arch"));
   }
 
   async populateWebGlInfo(window, document, forceSoftwareRendering) {

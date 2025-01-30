@@ -3568,6 +3568,23 @@ characteristics:
     data_sensitivity:
       - technical
 
+  cpu_arch:
+    type: string
+    description: >
+      Arch of the user's device
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944933
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944933#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
   mathml1:
     type: quantity
     unit: int
