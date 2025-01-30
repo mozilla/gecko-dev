@@ -8203,7 +8203,7 @@ void CodeGenerator::visitHypot(LHypot* lir) {
 
 void CodeGenerator::visitNewArray(LNewArray* lir) {
   Register objReg = ToRegister(lir->output());
-  Register tempReg = ToRegister(lir->temp());
+  Register tempReg = ToRegister(lir->temp0());
   DebugOnly<uint32_t> length = lir->mir()->length();
 
   MOZ_ASSERT(length <= NativeObject::MAX_DENSE_ELEMENTS_COUNT);
@@ -8595,7 +8595,7 @@ static bool ShouldInitFixedSlots(MIRGenerator* gen, LNewPlainObject* lir,
 
 void CodeGenerator::visitNewObject(LNewObject* lir) {
   Register objReg = ToRegister(lir->output());
-  Register tempReg = ToRegister(lir->temp());
+  Register tempReg = ToRegister(lir->temp0());
 
   if (lir->mir()->isVMCall()) {
     visitNewObjectVMCall(lir);
@@ -15177,7 +15177,7 @@ void CodeGenerator::visitStoreElementT(LStoreElementT* store) {
 }
 
 void CodeGenerator::visitStoreElementV(LStoreElementV* lir) {
-  const ValueOperand value = ToValue(lir, LStoreElementV::Value);
+  const ValueOperand value = ToValue(lir, LStoreElementV::ValueIndex);
   Register elements = ToRegister(lir->elements());
   const LAllocation* index = lir->index();
 

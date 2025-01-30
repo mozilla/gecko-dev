@@ -1103,8 +1103,8 @@ void LIRGenerator::visitTest(MTest* test) {
       } else {
         rhs = useAny(right);
       }
-      LCompareAndBranch* lir =
-          new (alloc()) LCompareAndBranch(comp, op, lhs, rhs, ifTrue, ifFalse);
+      auto* lir =
+          new (alloc()) LCompareAndBranch(ifTrue, ifFalse, lhs, rhs, comp, op);
       add(lir, test);
       return;
     }
@@ -1116,7 +1116,7 @@ void LIRGenerator::visitTest(MTest* test) {
       LInt64Allocation lhs = useInt64Register(left);
       LInt64Allocation rhs = useInt64OrConstant(right);
       auto* lir = new (alloc())
-          LCompareI64AndBranch(comp, op, lhs, rhs, ifTrue, ifFalse);
+          LCompareI64AndBranch(ifTrue, ifFalse, lhs, rhs, comp, op);
       add(lir, test);
       return;
     }
@@ -1462,7 +1462,7 @@ void LIRGenerator::visitCompare(MCompare* comp) {
     } else {
       rhs = useAny(right);
     }
-    define(new (alloc()) LCompare(op, lhs, rhs), comp);
+    define(new (alloc()) LCompare(lhs, rhs, op), comp);
     return;
   }
 
@@ -1470,8 +1470,8 @@ void LIRGenerator::visitCompare(MCompare* comp) {
   if (comp->compareType() == MCompare::Compare_Int64 ||
       comp->compareType() == MCompare::Compare_UInt64) {
     JSOp op = ReorderComparison(comp->jsop(), &left, &right);
-    define(new (alloc()) LCompareI64(op, useInt64Register(left),
-                                     useInt64OrConstant(right)),
+    define(new (alloc()) LCompareI64(useInt64Register(left),
+                                     useInt64OrConstant(right), op),
            comp);
     return;
   }

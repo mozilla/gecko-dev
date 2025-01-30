@@ -19,21 +19,6 @@ namespace jit {
 
 LIR_OPCODE_CLASS_GENERATED
 
-class LBox : public LInstructionHelper<BOX_PIECES, 1, 0> {
-  MIRType type_;
-
- public:
-  LIR_HEADER(Box);
-
-  LBox(const LAllocation& payload, MIRType type)
-      : LInstructionHelper(classOpcode), type_(type) {
-    setOperand(0, payload);
-  }
-
-  MIRType type() const { return type_; }
-  const char* extraName() const { return StringFromMIRType(type_); }
-};
-
 template <size_t Temps, size_t ExtraUses = 0>
 class LBinaryMath : public LInstructionHelper<1, 2 + ExtraUses, Temps> {
  protected:
@@ -135,42 +120,6 @@ class LValue : public LInstructionHelper<BOX_PIECES, 0, 0> {
   explicit LValue(const Value& v) : LInstructionHelper(classOpcode), v_(v) {}
 
   Value value() const { return v_; }
-};
-
-class LNewArray : public LInstructionHelper<1, 0, 1> {
- public:
-  LIR_HEADER(NewArray)
-
-  explicit LNewArray(const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setTemp(0, temp);
-  }
-
-  const char* extraName() const {
-    return mir()->isVMCall() ? "VMCall" : nullptr;
-  }
-
-  const LDefinition* temp() { return getTemp(0); }
-
-  MNewArray* mir() const { return mir_->toNewArray(); }
-};
-
-class LNewObject : public LInstructionHelper<1, 0, 1> {
- public:
-  LIR_HEADER(NewObject)
-
-  explicit LNewObject(const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setTemp(0, temp);
-  }
-
-  const char* extraName() const {
-    return mir()->isVMCall() ? "VMCall" : nullptr;
-  }
-
-  const LDefinition* temp() { return getTemp(0); }
-
-  MNewObject* mir() const { return mir_->toNewObject(); }
 };
 
 namespace details {
@@ -776,113 +725,6 @@ class LConstructArrayNative : public LCallInstructionHelper<BOX_PIECES, 2, 3> {
   const LAllocation* getArgc() { return getOperand(0); }
 };
 
-// Compares two integral values of the same JS type, either integer or object.
-// For objects, both operands are in registers.
-class LCompare : public LInstructionHelper<1, 2, 0> {
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(Compare)
-  LCompare(JSOp jsop, const LAllocation& left, const LAllocation& right)
-      : LInstructionHelper(classOpcode), jsop_(jsop) {
-    setOperand(0, left);
-    setOperand(1, right);
-  }
-
-  JSOp jsop() const { return jsop_; }
-  const LAllocation* left() { return getOperand(0); }
-  const LAllocation* right() { return getOperand(1); }
-  MCompare* mir() { return mir_->toCompare(); }
-  const char* extraName() const { return CodeName(jsop_); }
-};
-
-class LCompareI64 : public LInstructionHelper<1, 2 * INT64_PIECES, 0> {
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(CompareI64)
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LCompareI64(JSOp jsop, const LInt64Allocation& left,
-              const LInt64Allocation& right)
-      : LInstructionHelper(classOpcode), jsop_(jsop) {
-    setInt64Operand(Lhs, left);
-    setInt64Operand(Rhs, right);
-  }
-
-  JSOp jsop() const { return jsop_; }
-  LInt64Allocation left() const { return getInt64Operand(LCompareI64::Lhs); }
-  LInt64Allocation right() const { return getInt64Operand(LCompareI64::Rhs); }
-  MCompare* mir() { return mir_->toCompare(); }
-  const char* extraName() const { return CodeName(jsop_); }
-};
-
-class LCompareI64AndBranch
-    : public LControlInstructionHelper<2, 2 * INT64_PIECES, 0> {
-  MCompare* cmpMir_;
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(CompareI64AndBranch)
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LCompareI64AndBranch(MCompare* cmpMir, JSOp jsop,
-                       const LInt64Allocation& left,
-                       const LInt64Allocation& right, MBasicBlock* ifTrue,
-                       MBasicBlock* ifFalse)
-      : LControlInstructionHelper(classOpcode), cmpMir_(cmpMir), jsop_(jsop) {
-    setInt64Operand(Lhs, left);
-    setInt64Operand(Rhs, right);
-    setSuccessor(0, ifTrue);
-    setSuccessor(1, ifFalse);
-  }
-
-  JSOp jsop() const { return jsop_; }
-  MBasicBlock* ifTrue() const { return getSuccessor(0); }
-  MBasicBlock* ifFalse() const { return getSuccessor(1); }
-  LInt64Allocation left() const {
-    return getInt64Operand(LCompareI64AndBranch::Lhs);
-  }
-  LInt64Allocation right() const {
-    return getInt64Operand(LCompareI64AndBranch::Rhs);
-  }
-  MTest* mir() const { return mir_->toTest(); }
-  MCompare* cmpMir() const { return cmpMir_; }
-  const char* extraName() const { return CodeName(jsop_); }
-};
-
-// Compares two integral values of the same JS type, either integer or object.
-// For objects, both operands are in registers.
-class LCompareAndBranch : public LControlInstructionHelper<2, 2, 0> {
-  MCompare* cmpMir_;
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(CompareAndBranch)
-  LCompareAndBranch(MCompare* cmpMir, JSOp jsop, const LAllocation& left,
-                    const LAllocation& right, MBasicBlock* ifTrue,
-                    MBasicBlock* ifFalse)
-      : LControlInstructionHelper(classOpcode), cmpMir_(cmpMir), jsop_(jsop) {
-    setOperand(0, left);
-    setOperand(1, right);
-    setSuccessor(0, ifTrue);
-    setSuccessor(1, ifFalse);
-  }
-
-  JSOp jsop() const { return jsop_; }
-  MBasicBlock* ifTrue() const { return getSuccessor(0); }
-  MBasicBlock* ifFalse() const { return getSuccessor(1); }
-  const LAllocation* left() { return getOperand(0); }
-  const LAllocation* right() { return getOperand(1); }
-  MTest* mir() const { return mir_->toTest(); }
-  MCompare* cmpMir() const { return cmpMir_; }
-  const char* extraName() const { return CodeName(jsop_); }
-};
-
 // Bitwise not operation, takes a 32-bit integer as input and returning
 // a 32-bit integer result as an output.
 class LBitNotI : public LInstructionHelper<1, 1, 0> {
@@ -1141,34 +983,6 @@ class LHypot : public LCallInstructionHelper<1, 4, 0> {
   const LDefinition* output() { return getDef(0); }
 };
 
-class LMathFunctionD : public LCallInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(MathFunctionD)
-  explicit LMathFunctionD(const LAllocation& input)
-      : LCallInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-
-  MMathFunction* mir() const { return mir_->toMathFunction(); }
-  const char* extraName() const {
-    return MMathFunction::FunctionName(mir()->function());
-  }
-};
-
-class LMathFunctionF : public LCallInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(MathFunctionF)
-  explicit LMathFunctionF(const LAllocation& input)
-      : LCallInstructionHelper(classOpcode) {
-    setOperand(0, input);
-  }
-
-  MMathFunction* mir() const { return mir_->toMathFunction(); }
-  const char* extraName() const {
-    return MMathFunction::FunctionName(mir()->function());
-  }
-};
-
 // Adds two integers, returning an integer value.
 class LAddI : public LBinaryMath<0> {
   bool recoversInput_;
@@ -1313,78 +1127,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   uint32_t getFrameDepth() { return frameDepth_; }
   Label* label() { return &label_; }
   const LDefinition* temp() { return getTemp(0); }
-};
-
-// Store a boxed value to a dense array's element vector.
-class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0> {
- public:
-  LIR_HEADER(StoreElementV)
-
-  LStoreElementV(const LAllocation& elements, const LAllocation& index,
-                 const LBoxAllocation& value)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, elements);
-    setOperand(1, index);
-    setBoxOperand(Value, value);
-  }
-
-  const char* extraName() const {
-    return mir()->needsHoleCheck() ? "HoleCheck" : nullptr;
-  }
-
-  static const size_t Value = 2;
-
-  const MStoreElement* mir() const { return mir_->toStoreElement(); }
-  const LAllocation* elements() { return getOperand(0); }
-  const LAllocation* index() { return getOperand(1); }
-};
-
-// Store a typed value to a dense array's elements vector. Compared to
-// LStoreElementV, this instruction can store doubles and constants directly,
-// and does not store the type tag if the array is monomorphic and known to
-// be packed.
-class LStoreElementT : public LInstructionHelper<0, 3, 0> {
- public:
-  LIR_HEADER(StoreElementT)
-
-  LStoreElementT(const LAllocation& elements, const LAllocation& index,
-                 const LAllocation& value)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, elements);
-    setOperand(1, index);
-    setOperand(2, value);
-  }
-
-  const char* extraName() const {
-    return mir()->needsHoleCheck() ? "HoleCheck" : nullptr;
-  }
-
-  const MStoreElement* mir() const { return mir_->toStoreElement(); }
-  const LAllocation* elements() { return getOperand(0); }
-  const LAllocation* index() { return getOperand(1); }
-  const LAllocation* value() { return getOperand(2); }
-};
-
-class LArrayPopShift : public LInstructionHelper<BOX_PIECES, 1, 2> {
- public:
-  LIR_HEADER(ArrayPopShift)
-
-  LArrayPopShift(const LAllocation& object, const LDefinition& temp0,
-                 const LDefinition& temp1)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, object);
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-  }
-
-  const char* extraName() const {
-    return mir()->mode() == MArrayPopShift::Pop ? "Pop" : "Shift";
-  }
-
-  const MArrayPopShift* mir() const { return mir_->toArrayPopShift(); }
-  const LAllocation* object() { return getOperand(0); }
-  const LDefinition* temp0() { return getTemp(0); }
-  const LDefinition* temp1() { return getTemp(1); }
 };
 
 template <size_t Defs, size_t Ops>
@@ -2490,6 +2232,48 @@ class LWasmStoreLaneSimd128 : public LInstructionHelper<1, 3, 1> {
 // End Wasm SIMD
 
 // End Wasm Exception Handling
+
+// Definitions for `extraName` methods of generated LIR instructions.
+
+#ifdef JS_JITSPEW
+const char* LBox::extraName() const { return StringFromMIRType(type_); }
+
+const char* LNewArray::extraName() const {
+  return mir()->isVMCall() ? "VMCall" : nullptr;
+}
+
+const char* LNewObject::extraName() const {
+  return mir()->isVMCall() ? "VMCall" : nullptr;
+}
+
+const char* LCompare::extraName() const { return CodeName(jsop_); }
+
+const char* LCompareI64::extraName() const { return CodeName(jsop_); }
+
+const char* LCompareI64AndBranch::extraName() const { return CodeName(jsop_); }
+
+const char* LCompareAndBranch::extraName() const { return CodeName(jsop_); }
+
+const char* LMathFunctionD::extraName() const {
+  return MMathFunction::FunctionName(mir()->function());
+}
+
+const char* LMathFunctionF::extraName() const {
+  return MMathFunction::FunctionName(mir()->function());
+}
+
+const char* LStoreElementV::extraName() const {
+  return mir()->needsHoleCheck() ? "HoleCheck" : nullptr;
+}
+
+const char* LStoreElementT::extraName() const {
+  return mir()->needsHoleCheck() ? "HoleCheck" : nullptr;
+}
+
+const char* LArrayPopShift::extraName() const {
+  return mir()->mode() == MArrayPopShift::Pop ? "Pop" : "Shift";
+}
+#endif
 
 }  // namespace jit
 }  // namespace js

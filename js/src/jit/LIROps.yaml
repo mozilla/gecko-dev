@@ -118,12 +118,22 @@
 #   - true: generates a method to return MIR instruction
 #   - mir string: returns this specified MIR instruction
 #
+# extra_name
+# ==========
+# Add a declaration for the `extraName` method.
+#   - attribute not specified (default): no code generated
+#   - true: adds the `inline const char* extraName() const;` declaration
 
 - name: Phi
   gen_boilerplate: false
 
 - name: Box
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    payload: WordSized
+  arguments:
+    type: MIRType
+  extra_name: true
 
 - name: OsiPoint
   gen_boilerplate: false
@@ -185,7 +195,10 @@
   successors: [target]
 
 - name: NewArray
-  gen_boilerplate: false
+  result_type: WordSized
+  num_temps: 1
+  mir_op: true
+  extra_name: true
 
 - name: NewArrayDynamicLength
   result_type: WordSized
@@ -241,7 +254,10 @@
   mir_op: true
 
 - name: NewObject
-  gen_boilerplate: false
+  result_type: WordSized
+  num_temps: 1
+  mir_op: true
+  extra_name: true
 
 - name: NewPlainObject
   result_type: WordSized
@@ -795,17 +811,51 @@
   num_temps: 3
   mir_op: Test
 
+# Compares two integral values of the same JS type, either integer or object.
+# For objects, both operands are in registers.
 - name: Compare
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    jsop: JSOp
+  mir_op: true
+  extra_name: true
 
 - name: CompareI64
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    left: Int64
+    right: Int64
+  arguments:
+    jsop: JSOp
+  mir_op: Compare
+  extra_name: true
 
 - name: CompareI64AndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: Int64
+    right: Int64
+  arguments:
+    cmpMir: MCompare*
+    jsop: JSOp
+  mir_op: Test
+  extra_name: true
 
+# Compares two integral values of the same JS type, either integer or object.
+# For objects, both operands are in registers.
 - name: CompareAndBranch
-  gen_boilerplate: false
+  successors: [ifTrue, ifFalse]
+  operands:
+    left: WordSized
+    right: WordSized
+  arguments:
+    cmpMir: MCompare*
+    jsop: JSOp
+  mir_op: Test
+  extra_name: true
 
 - name: CompareD
   result_type: WordSized
@@ -1288,10 +1338,20 @@
   num_temps: 1
 
 - name: MathFunctionD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  call_instruction: true
+  mir_op: MathFunction
+  extra_name: true
 
 - name: MathFunctionF
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  call_instruction: true
+  mir_op: MathFunction
+  extra_name: true
 
 - name: AddI
   gen_boilerplate: false
@@ -2451,11 +2511,26 @@
     initLength: WordSized
   mir_op: true
 
+# Store a boxed value to a dense array's element vector.
 - name: StoreElementV
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: BoxedValue
+  mir_op: StoreElement
+  extra_name: true
 
+# Store a typed value to a dense array's elements vector. Compared to
+# LStoreElementV, this instruction can store doubles and constants directly,
+# and does not store the type tag if the array is monomorphic and known to
+# be packed.
 - name: StoreElementT
-  gen_boilerplate: false
+  operands:
+    elements: WordSized
+    index: WordSized
+    value: WordSized
+  mir_op: StoreElement
+  extra_name: true
 
 - name: StoreHoleValueElement
   operands:
@@ -2483,7 +2558,12 @@
   mir_op: StoreElementHole
 
 - name: ArrayPopShift
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    object: WordSized
+  num_temps: 2
+  mir_op: true
+  extra_name: true
 
 - name: ArrayPush
   result_type: WordSized

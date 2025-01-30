@@ -260,6 +260,7 @@ def gen_lir_class(
     num_temps64,
     call_instruction,
     mir_op,
+    extra_name,
 ):
     """Generates class definition for a single LIR opcode."""
     class_name = "L" + name
@@ -296,6 +297,10 @@ def gen_lir_class(
         mir_name = name if mir_op is True else mir_op
         mir_accessor = f"M{mir_name}* mir() const {{ return mir_->to{mir_name}(); }};"
 
+    extra_name_decl = ""
+    if extra_name:
+        extra_name_decl = "inline const char* extraName() const;"
+
     # Can be moved into the f-string when we use Python 3.12, see PEP 701.
     def nl(ws):
         return "\n" + ws
@@ -321,6 +326,7 @@ class {class_name} : public {parent_class}<{num_defs}, {num_operands}, {num_temp
   {nl("  ").join(temp_getters)}
   {nl("  ").join(args_getters)}
   {mir_accessor}
+  {extra_name_decl}
 }};
 """
 
@@ -377,6 +383,9 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
             mir_op = op.get("mir_op", None)
             assert mir_op in (None, True) or isinstance(mir_op, str)
 
+            extra_name = op.get("extra_name", False)
+            assert isinstance(extra_name, bool)
+
             lir_op_classes.append(
                 gen_lir_class(
                     name,
@@ -388,6 +397,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                     num_temps64,
                     call_instruction,
                     mir_op,
+                    extra_name,
                 )
             )
 
@@ -430,6 +440,8 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
 
             mir_op = None
 
+            extra_name = False
+
             lir_op_classes.append(
                 gen_lir_class(
                     name,
@@ -441,6 +453,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                     num_temps64,
                     call_instruction,
                     mir_op,
+                    extra_name,
                 )
             )
 
