@@ -7638,24 +7638,14 @@ static bool WithSourceHook(JSContext* cx, unsigned argc, Value* vp) {
   return result;
 }
 
-static void PrintProfilerEvents_Callback(mozilla::MarkerCategory,
-                                         const char* msg, const char* details) {
+static void PrintProfilerEvents_Callback(const char* msg, const char* details) {
   fprintf(stderr, "PROFILER EVENT: %s %s\n", msg, details);
-}
-
-static void PrintProfilerIntervals_Callback(mozilla::MarkerCategory,
-                                            const char* msg,
-                                            mozilla::TimeStamp start,
-                                            const char* details) {
-  fprintf(stderr, "PROFILER INTERVAL (%.2fms): %s %s\n",
-          (TimeStamp::Now() - start).ToMilliseconds(), msg, details);
 }
 
 static bool PrintProfilerEvents(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (cx->runtime()->geckoProfiler().enabled()) {
-    js::RegisterContextProfilingEventMarker(cx, &PrintProfilerEvents_Callback,
-                                            &PrintProfilerIntervals_Callback);
+    js::RegisterContextProfilingEventMarker(cx, &PrintProfilerEvents_Callback);
   }
   args.rval().setUndefined();
   return true;

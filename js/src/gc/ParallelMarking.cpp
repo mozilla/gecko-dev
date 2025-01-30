@@ -34,7 +34,7 @@ ParallelMarker::ParallelMarker(GCRuntime* gc) : gc(gc) {}
 
 size_t ParallelMarker::workerCount() const { return gc->markers.length(); }
 
-bool ParallelMarker::mark(const SliceBudget& sliceBudget) {
+bool ParallelMarker::mark(SliceBudget& sliceBudget) {
   MOZ_ASSERT(workerCount() <= gc->getMaxParallelThreads());
 
   if (markOneColor(MarkColor::Black, sliceBudget) == NotFinished) {
@@ -55,8 +55,7 @@ bool ParallelMarker::mark(const SliceBudget& sliceBudget) {
   return true;
 }
 
-bool ParallelMarker::markOneColor(MarkColor color,
-                                  const SliceBudget& sliceBudget) {
+bool ParallelMarker::markOneColor(MarkColor color, SliceBudget& sliceBudget) {
   // Run a marking slice and return whether the stack is now empty.
 
   if (!hasWork(color)) {
@@ -213,9 +212,8 @@ bool ParallelMarkTask::requestWork(AutoLockHelperThreadState& lock) {
 
 void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
-  mozilla::TimeStamp startTime;
   if (profiler.enabled()) {
-    startTime = mozilla::TimeStamp::Now();
+    profiler.markEvent("Parallel marking wait start", "");
   }
 
   pm->addTaskToWaitingList(this, lock);
@@ -234,10 +232,7 @@ void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(!pm->isTaskInWaitingList(this, lock));
 
   if (profiler.enabled()) {
-    char details[32];
-    SprintfLiteral(details, "markers=%zu", pm->workerCount());
-    profiler.markInterval("Parallel marking wait", startTime, details,
-                          JS::ProfilingCategoryPair::GCCC);
+    profiler.markEvent("Parallel marking wait end", "");
   }
 }
 
@@ -332,16 +327,13 @@ void ParallelMarker::donateWorkFrom(GCMarker* src) {
 
   // Move some work from this thread's mark stack to the waiting task.
   MOZ_ASSERT(!waitingTask->hasWork());
-  size_t wordsMoved = GCMarker::moveWork(waitingTask->marker, src);
+  GCMarker::moveWork(waitingTask->marker, src);
 
   gc->stats().count(gcstats::COUNT_PARALLEL_MARK_INTERRUPTIONS);
 
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
-    char details[32];
-    SprintfLiteral(details, "words=%zu", wordsMoved);
-    profiler.markEvent("Parallel marking donated work", details,
-                       JS::ProfilingCategoryPair::GCCC);
+    profiler.markEvent("Parallel marking donated work", "");
   }
 
   // Resume waiting task.
