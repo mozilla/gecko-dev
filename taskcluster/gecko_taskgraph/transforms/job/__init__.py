@@ -212,7 +212,8 @@ def use_system_python(config, jobs):
             worker = job.setdefault("worker", {})
             env = worker.setdefault("env", {})
 
-            moz_fetches_dir = env.get("MOZ_FETCHES_DIR", "fetches")
+            # {task_workdir} is interpolated in run-task
+            moz_fetches_dir = env.get("MOZ_FETCHES_DIR", "{task_workdir}/fetches")
             moz_python_home = mozpath.join(moz_fetches_dir, "python")
             env["MOZ_PYTHON_HOME"] = moz_python_home
 
@@ -383,8 +384,8 @@ def use_fetches(config, jobs):
                 sorted(job_fetches, key=lambda x: sorted(x.items())), sort_keys=True
             )
         }
-        # The path is normalized to an absolute path in run-task
-        env.setdefault("MOZ_FETCHES_DIR", "fetches")
+        # {task_workdir} is interpolated in run-task
+        env.setdefault("MOZ_FETCHES_DIR", "{task_workdir}/fetches")
 
         yield job
 

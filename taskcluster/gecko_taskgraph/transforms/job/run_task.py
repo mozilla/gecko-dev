@@ -63,15 +63,11 @@ def common_setup(config, job, taskdesc, command):
     run = job["run"]
     run_cwd = run.get("cwd")
     if run["checkout"]:
-        support_vcs_checkout(config, job, taskdesc)
-        command.append(
-            "--gecko-checkout={}".format(taskdesc["worker"]["env"]["GECKO_PATH"])
-        )
+        gecko_path = support_vcs_checkout(config, job, taskdesc)
+        command.append("--gecko-checkout={}".format(gecko_path))
 
         if run_cwd:
-            run_cwd = path.normpath(
-                run_cwd.format(checkout=taskdesc["worker"]["env"]["GECKO_PATH"])
-            )
+            run_cwd = path.normpath(run_cwd.format(checkout=gecko_path))
 
     elif run_cwd and "{checkout}" in run_cwd:
         raise Exception(
