@@ -19,6 +19,8 @@ support-files = [
 
 ["browser_interactions_disabledHistory.js"]
 
+["browser_interactions_export.js"]
+
 ["browser_interactions_referrer.js"]
 
 ["browser_interactions_scrolling.js"]

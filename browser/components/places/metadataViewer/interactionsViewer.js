@@ -4,6 +4,10 @@
 
 /* eslint-env module */
 
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 const { Interactions } = ChromeUtils.importESModule(
   "resource:///modules/Interactions.sys.mjs"
 );
@@ -268,23 +272,22 @@ const metadataHandler = new (class extends TableViewer {
     this.displayData(rows);
   }
 
-  export() {
-    // Export all data. We only export place_id and not url so users can share their exports
-    // without revealing the sites they have been visiting.
+  export(includeUrlAndTitle = false) {
     return this.#getRows(
       `SELECT
       m.id,
-      m.place_id,
-      m.referrer_place_id,
-      h.origin_id,
+      ${includeUrlAndTitle ? "h.title," : ""}
+      ${includeUrlAndTitle ? "h.url" : "m.place_id"},
       m.updated_at,
-      m.total_view_time,
-      h.visit_count,
       h.frecency,
+      m.total_view_time,
       m.typing_time,
       m.key_presses,
       m.scrolling_time,
       m.scrolling_distance,
+      ${includeUrlAndTitle ? "r.url AS referrer_url" : "m.referrer_place_id"},
+      ${includeUrlAndTitle ? "o.host" : "h.origin_id"},
+      h.visit_count,
       vall.visit_dates,
       vall.visit_types
   FROM moz_places_metadata m
@@ -298,21 +301,25 @@ const metadataHandler = new (class extends TableViewer {
       GROUP BY place_id
       ORDER BY visit_date DESC
       ) vall ON vall.place_id = m.place_id
+  JOIN moz_origins o ON h.origin_id = o.id
+  LEFT JOIN moz_places r ON m.referrer_place_id = r.id
+
   ORDER BY m.place_id DESC
      `,
       [
         "id",
-        "place_id",
-        "referrer_place_id",
-        "origin_id",
+        ...(includeUrlAndTitle ? ["title"] : []),
+        includeUrlAndTitle ? "url" : "place_id",
         "updated_at",
-        "total_view_time",
-        "visit_count",
         "frecency",
+        "total_view_time",
         "typing_time",
         "key_presses",
         "scrolling_time",
         "scrolling_distance",
+        includeUrlAndTitle ? "referrer_url" : "referrer_place_id",
+        includeUrlAndTitle ? "host" : "origin_id",
+        "visit_count",
         "visit_dates",
         "visit_types",
       ]
@@ -398,6 +405,43 @@ function show(selectedButton) {
   }
 }
 
+function createObjectURL(data, type) {
+  // Downloading the Blob will throw errors in debug mode because the
+  // principal is system and nsUrlClassifierDBService::lookup does not expect
+  // a caller from this principal. Thus, we use the null principal. However, in
+  // non-debug mode we'd rather not run eval and use the Javascript API.
+  if (AppConstants.DEBUG) {
+    let escapedData = data.replaceAll("'", "\\'").replaceAll("\n", "\\n");
+    let sb = new Cu.Sandbox(null, { wantGlobalProperties: ["Blob", "URL"] });
+    return Cu.evalInSandbox(
+      `URL.createObjectURL(new Blob(['${escapedData}'], {type: '${type}'}))`,
+      sb,
+      "",
+      null,
+      0,
+      false
+    );
+  }
+  let blob = new Blob([data], {
+    type,
+  });
+  return window.URL.createObjectURL(blob);
+}
+
+function downloadFile(data, blobType, fileType) {
+  const a = document.createElement("a");
+  a.setAttribute("download", `places-${Date.now()}.${fileType}`);
+  a.setAttribute("href", createObjectURL(data, blobType));
+  a.click();
+  a.remove();
+}
+
+async function getData() {
+  let includeUrlAndTitle =
+    document.getElementById("include-place-data").checked;
+  return await metadataHandler.export(includeUrlAndTitle);
+}
+
 function setupListeners() {
   let menu = document.getElementById("categories");
   menu.addEventListener("click", e => {
@@ -405,18 +449,28 @@ function setupListeners() {
       show(e.target);
     }
   });
-  document.getElementById("export").addEventListener("click", async e => {
-    e.preventDefault();
-    const data = await metadataHandler.export();
 
-    const blob = new Blob([JSON.stringify(data)], {
-      type: "text/json;charset=utf-8",
-    });
-    const a = document.createElement("a");
-    a.setAttribute("download", `places-${Date.now()}.json`);
-    a.setAttribute("href", window.URL.createObjectURL(blob));
-    a.click();
-    a.remove();
+  document.getElementById("export-json").addEventListener("click", async e => {
+    e.preventDefault();
+    const data = await getData();
+    downloadFile(JSON.stringify(data), "text/json;charset=utf-8", "json");
+  });
+
+  document.getElementById("export-csv").addEventListener("click", async e => {
+    e.preventDefault();
+    const data = await getData();
+
+    // Convert Javascript to CSV string.
+    let headers = Object.keys(data.at(0));
+    let rows = [
+      headers.join(","),
+      ...data.map(obj =>
+        headers.map(field => JSON.stringify(obj[field] ?? "")).join(",")
+      ),
+    ];
+    rows = rows.join("\n");
+
+    downloadFile(rows, "text/csv", "csv");
   });
 }
 

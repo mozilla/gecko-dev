@@ -39,8 +39,18 @@
       <div class="category" value="places-stats">
         <span class="category-name">Places Stats</span>
       </div>
-      <div class="export-button-container">
-        <button id="export">Export History</button>
+      <div class="export-container">
+        <h4>Export History</h4>
+        <div>
+          <input
+            type="checkbox"
+            name="include-place-data"
+            id="include-place-data"
+          />
+          <label for="include-place-data">Include page title and URLs</label>
+        </div>
+        <button id="export-json">JSON</button>
+        <button id="export-csv">CSV</button>
       </div>
     </div>
     <div id="main" class="main-content">
