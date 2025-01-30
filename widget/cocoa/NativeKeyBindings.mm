@@ -349,6 +349,27 @@ void NativeKeyBindings::GetEditCommandsForTests(
               ? aEvent.GetRemappedKeyNameIndex(aWritingMode.ref())
               : aEvent.mKeyNameIndex) {
     case KEY_NAME_INDEX_USE_STRING:
+      // OSX specific key bindings.
+      if (aEvent.IsControl() && aEvent.IsAlt()) {
+        if (aEvent.PseudoCharCode() == 'b' || aEvent.PseudoCharCode() == 'B') {
+          instance->AppendEditCommandsForSelector(
+              !aEvent.IsShift()
+                  ? ToObjcSelectorPtr(@selector(moveWordBackward:))
+                  : ToObjcSelectorPtr(@selector
+                                      (moveWordBackwardAndModifySelection:)),
+              aCommands);
+          break;
+        }
+        if (aEvent.PseudoCharCode() == 'f' || aEvent.PseudoCharCode() == 'F') {
+          instance->AppendEditCommandsForSelector(
+              !aEvent.IsShift() ? ToObjcSelectorPtr(@selector(moveWordForward:))
+                                : ToObjcSelectorPtr(@selector(
+                                      moveWordForwardAndModifySelection:)),
+              aCommands);
+          break;
+        }
+      }
+
       if (!aEvent.IsControl() || aEvent.IsAlt() || aEvent.IsMeta()) {
         break;
       }

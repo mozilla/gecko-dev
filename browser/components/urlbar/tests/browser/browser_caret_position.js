@@ -308,6 +308,199 @@ add_task(async function navigation() {
   }
 });
 
+// Test mac specific keybinds that move the caret to edge of word.
+add_task(async function word_break_binding_in_mac() {
+  if (AppConstants.platform != "macosx") {
+    return;
+  }
+
+  const testData = [
+    {
+      input: "a bc d",
+      initialSelectionStart: 0,
+      // Indexes when fowarding is repeated.
+      forward: [1, 4, 6, 6],
+      // Indexes when backwarding is repeated.
+      backward: [0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 1,
+      forward: [4, 6, 6],
+      backward: [0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 2,
+      forward: [4, 6, 6],
+      backward: [0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 3,
+      forward: [4, 6, 6],
+      backward: [2, 0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 4,
+      forward: [6, 6],
+      backward: [2, 0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 5,
+      forward: [6, 6],
+      backward: [2, 0, 0],
+    },
+    {
+      input: "a bc d",
+      initialSelectionStart: 6,
+      forward: [6, 6],
+      backward: [5, 2, 0, 0],
+    },
+    {
+      input: "  a",
+      initialSelectionStart: 0,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "  a",
+      initialSelectionStart: 1,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "  a",
+      initialSelectionStart: 2,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "  a",
+      initialSelectionStart: 3,
+      forward: [3, 3],
+      backward: [2, 0, 0],
+    },
+    {
+      input: "a  ",
+      initialSelectionStart: 0,
+      forward: [1, 3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "a  ",
+      initialSelectionStart: 1,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "a  ",
+      initialSelectionStart: 2,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "a  ",
+      initialSelectionStart: 3,
+      forward: [3, 3],
+      backward: [0, 0],
+    },
+    {
+      input: "a  b",
+      initialSelectionStart: 0,
+      forward: [1, 4, 4],
+      backward: [0, 0],
+    },
+    {
+      input: "a  b",
+      initialSelectionStart: 1,
+      forward: [4, 4],
+      backward: [0, 0],
+    },
+    {
+      input: "a  b",
+      initialSelectionStart: 2,
+      forward: [4, 4],
+      backward: [0, 0],
+    },
+    {
+      input: "a  b",
+      initialSelectionStart: 3,
+      forward: [4, 4],
+      backward: [0, 0],
+    },
+    {
+      input: "a  b",
+      initialSelectionStart: 4,
+      forward: [4, 4],
+      backward: [3, 0, 0],
+    },
+    {
+      input: "a b c",
+      initialSelectionStart: 1,
+      initialSelectionEnd: 3,
+      forward: [3, 5, 5],
+      backward: [1, 0, 0],
+    },
+  ];
+
+  for (let {
+    input,
+    initialSelectionStart,
+    initialSelectionEnd = initialSelectionStart,
+    forward,
+    backward,
+  } of testData) {
+    info(`Prepare text in urlbar [${input}]`);
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: input,
+    });
+    await UrlbarTestUtils.promisePopupClose(window);
+
+    info(
+      `Initialize caret position ${(initialSelectionStart, initialSelectionEnd)}`
+    );
+    gURLBar.selectionStart = initialSelectionStart;
+    gURLBar.selectionEnd = initialSelectionEnd;
+
+    info("Test for forward binding");
+    for (let expectedIndex of forward) {
+      EventUtils.synthesizeKey("f", { altKey: true, ctrlKey: true });
+      Assert.equal(
+        gURLBar.selectionStart,
+        gURLBar.selectionEnd,
+        "The selection start position and selection end position should be same"
+      );
+      Assert.equal(
+        gURLBar.selectionStart,
+        expectedIndex,
+        "The caret position is expected"
+      );
+    }
+
+    info("Reset caret position");
+    gURLBar.selectionStart = initialSelectionStart;
+    gURLBar.selectionEnd = initialSelectionEnd;
+    info("Test for backward binding");
+    for (let expectedIndex of backward) {
+      EventUtils.synthesizeKey("b", { altKey: true, ctrlKey: true });
+      Assert.equal(
+        gURLBar.selectionStart,
+        gURLBar.selectionEnd,
+        "The selection start position and selection end position should be same"
+      );
+      Assert.equal(
+        gURLBar.selectionStart,
+        expectedIndex,
+        "The caret position is expected"
+      );
+    }
+  }
+});
+
 async function checkCaretMoves(key, pos, msg, win) {
   checkIfKeyStartsQuery(key, false, win);
   Assert.equal(
