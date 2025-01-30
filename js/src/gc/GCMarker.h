@@ -199,7 +199,7 @@ class MarkStack {
 
   [[nodiscard]] bool ensureSpace(size_t count);
 
-  static void moveWork(MarkStack& dst, MarkStack& src);
+  static size_t moveWork(MarkStack& dst, MarkStack& src);
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -415,7 +415,7 @@ class GCMarker {
   template <uint32_t markingOptions, gc::MarkColor>
   bool markOneColor(JS::SliceBudget& budget);
 
-  static void moveWork(GCMarker* dst, GCMarker* src);
+  static size_t moveWork(GCMarker* dst, GCMarker* src);
 
   [[nodiscard]] bool initStack();
   void resetStackCapacity();
