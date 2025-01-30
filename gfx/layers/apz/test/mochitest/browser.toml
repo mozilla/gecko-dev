@@ -38,19 +38,6 @@ skip-if = [
   "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
 ]
 
-["browser_test_group_fission.js"]
-support-files = [
-  "FissionTestHelperParent.sys.mjs",
-  "FissionTestHelperChild.sys.mjs",
-  "helper_fission_*.*",
-  "!/dom/animation/test/testcommon.js"
-]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1773830
-  "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # 1936464
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # 1936464
-]
-
 ["browser_test_mousemove_optimization.js"]
 skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 

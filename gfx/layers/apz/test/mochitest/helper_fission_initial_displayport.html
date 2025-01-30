@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Test that OOP iframe's displayport is initially set</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/paint_listener.js"></script>
@@ -9,97 +10,104 @@
   <script src="apz_test_utils.js"></script>
   <script>
 
-fission_subtest_init();
+    async function getIframeDisplayport(iframe) {
+      return SpecialPowers.spawn(iframe, [], () => {
+        return content.wrappedJSObject.getLastContentDisplayportFor("fission_empty_docelement", false);
+      });
+    }
 
-FissionTestHelper.startTestPromise
-  .then(waitUntilApzStable)
-  .then(loadOOPIFrame("visible-testframe", "helper_fission_empty.html"))
-  .then(loadOOPIFrame("invisible-testframe", "helper_fission_empty.html"))
-  .then(loadOOPIFrame("scrolled-out-testframe", "helper_fission_empty.html"))
-  .then(loadOOPIFrame("clipped-out-testframe", "helper_fission_empty.html"))
-  .then(loadOOPIFrame("partially-scrolled-out-testframe", "helper_fission_empty.html"))
-  .then(waitUntilApzStable)
-  .then(test)
-  .then(FissionTestHelper.subtestDone, FissionTestHelper.subtestFailed);
+    async function test() {
+      // Fully visible iframe.
+      const visibleIframeElement = document.getElementById("visible-testframe");
+      await setupCrossOriginIFrame(visibleIframeElement, "helper_fission_plain.html");
 
+      const remoteType = await SpecialPowers.spawn(visibleIframeElement, [], async () => {
+        return await SpecialPowers.spawnChrome([], () => {
+          return windowGlobalParent.domProcess.remoteType;
+        });
+      });
+      if (remoteType === "web") {
+        is(SpecialPowers.effectiveIsolationStrategy(), SpecialPowers.ISOLATION_STRATEGY.IsolateHighValue);
+        ok(true, "Skipping this test since the document on example.com got loaded in the same content process");
+        return;
+      }
 
-// The actual test
+      let displayport = await getIframeDisplayport(visibleIframeElement);
+      is(displayport.width, 400, "The displayport size should be same as the iframe size");
+      is(displayport.height, 300, "The displayport size should be same as the iframe size");
 
-async function getIframeDisplayport(iframeElement) {
-  let oopif_displayport = function() {
-    let result = getLastContentDisplayportFor("fission_empty_docelement", false);
-    FissionTestHelper.fireEventInEmbedder("OOPIF:Displayport", result);
-    return true;
-  };
+      // Fully invisible iframe (inside `overflow: hidden` parent element)
+      const invisibleIframeElement = document.getElementById("invisible-testframe");
+      await setupCrossOriginIFrame(invisibleIframeElement, "helper_fission_plain.html", true);
+      displayport = await getIframeDisplayport(invisibleIframeElement);
+      ok(!displayport, "The displayport shouldn't have set for invisible iframe");
 
-  let iframePromise = promiseOneEvent(window, "OOPIF:Displayport", null);
-  ok(await FissionTestHelper.sendToOopif(iframeElement, `(${oopif_displayport})()`));
-  let iframeResponse = await iframePromise;
-  dump("OOPIF response for Displayport: " +
-       JSON.stringify(iframeResponse.data) + "\n");
+      // Scrolled out iframe.
+      const scrolledOutIframeElement = document.getElementById("scrolled-out-testframe");
+      await setupCrossOriginIFrame(scrolledOutIframeElement, "helper_fission_plain.html", true);
+      displayport = await getIframeDisplayport(scrolledOutIframeElement);
+      ok(!displayport,
+        "The displayport shouldn't have set for iframe far away from the parent displayport");
 
-  return iframeResponse.data;
-}
+      // Partially invisible iframe (inside `overflow: hidden` parent element)
+      const clippedOutIframeElement = document.getElementById("clipped-out-testframe");
+      await setupCrossOriginIFrame(clippedOutIframeElement, "helper_fission_plain.html");
+      displayport = await getIframeDisplayport(clippedOutIframeElement);
+      is(displayport.width, 400, "The displayport width should be same as the iframe width");
+      ok(displayport.height > 0, "The displayport height should be greater than zero");
+      ok(displayport.height < 300, "The displayport height should be less than the iframe height");
 
-async function test() {
-  const visibleIframeElement = document.getElementById("visible-testframe");
+      const partiallyScrolledOutIframeElement = document.getElementById("partially-scrolled-out-testframe");
+      await setupCrossOriginIFrame(partiallyScrolledOutIframeElement, "helper_fission_plain.html");
+      displayport = await getIframeDisplayport(partiallyScrolledOutIframeElement);
+      is(displayport.width, 400, "The displayport width should be same as the iframe width");
+      ok(displayport.height > 0, "The displayport height should be greater than zero");
+      ok(displayport.height < 300, "The displayport height should be less than the iframe height");
+    }
 
-  // Fully visible iframe.
-  let displayport = await getIframeDisplayport(visibleIframeElement);
-  is(displayport.width, 400, "The displayport size should be same as the iframe size");
-  is(displayport.height, 300, "The displayport size should be same as the iframe size");
-
-  // Fully invisible iframe (inside `overflow: hidden` parent element)
-  const invisibleIframeElement = document.getElementById("invisible-testframe");
-  displayport = await getIframeDisplayport(invisibleIframeElement);
-  ok(!displayport, "The displayport shouldn't have set for invisible iframe");
-
-  // Scrolled out iframe.
-  const scrolledOutIframeElement = document.getElementById("scrolled-out-testframe");
-  displayport = await getIframeDisplayport(scrolledOutIframeElement);
-  ok(!displayport,
-     "The displayport shouldn't have set for iframe far away from the parent displayport");
-
-  // Partially invisible iframe (inside `overflow: hidden` parent element)
-  const clippedOutIframeElement = document.getElementById("clipped-out-testframe");
-  displayport = await getIframeDisplayport(clippedOutIframeElement);
-  is(displayport.width, 400, "The displayport width should be same as the iframe width");
-  ok(displayport.height > 0, "The displayport height should be greater than zero");
-  ok(displayport.height < 300, "The displayport height should be less than the iframe height");
-
-  const partiallyScrolledOutIframeElement = document.getElementById("partially-scrolled-out-testframe");
-  displayport = await getIframeDisplayport(partiallyScrolledOutIframeElement);
-  is(displayport.width, 400, "The displayport width should be same as the iframe width");
-  ok(displayport.height > 0, "The displayport height should be greater than zero");
-  ok(displayport.height < 300, "The displayport height should be less than the iframe height");
-}
+    if (!SpecialPowers.Services.appinfo.fissionAutostart) {
+      ok(true, "This test doesn't need to run with disabling Fission");
+      subtestDone();
+    } else if (SpecialPowers.isHeadless) {
+      // Bug 1940964: Enable headless mode for helper_fission_initial_displayport
+      // - We saw errors on Try that we did not see in non-headless mode
+      // - Browser mochitests do not run in headless mode, so enabling it during bug 1841896
+      //   would have expanded the set of platforms the tests run on
+      // - Point of bug 1841896 was to expand set of platforms to Android
+      ok(true, "This test doesn't need to run in headless configurations");
+      subtestDone();
+    } else {
+      waitUntilApzStable()
+        .then(test)
+        .then(subtestDone, subtestFailed);
+    }
 
   </script>
   <style>
     iframe {
-        width: 400px;
-        height: 300px;
-        border: none;
+      width: 400px;
+      height: 300px;
+      border: none;
     }
   </style>
 </head>
 <body>
-<iframe id="visible-testframe"></iframe>
-<div style="width: 300px; height: 300px; overflow: hidden;">
-  <div style="width: 100%; height: 1000px;"></div>
-  <iframe id="invisible-testframe"></iframe>
-</div>
-<div style="width: 300px; height: 300px; overflow: scroll;">
-  <div style="width: 100%; height: 10000px;"></div>
-  <iframe id="scrolled-out-testframe"></iframe>
-</div>
-<div style="width: 300px; height: 300px; overflow: hidden;">
-  <div style="width: 100%; height: 200px;"></div>
-  <iframe id="clipped-out-testframe"></iframe>
-</div>
-<div style="width: 300px; height: 300px; overflow: scroll;">
-  <div style="width: 100%; height: 200px;"></div>
-  <iframe id="partially-scrolled-out-testframe"></iframe>
-</div>
+  <iframe id="visible-testframe"></iframe>
+  <div style="width: 300px; height: 300px; overflow: hidden;">
+    <div style="width: 100%; height: 1000px;"></div>
+    <iframe id="invisible-testframe"></iframe>
+  </div>
+  <div style="width: 300px; height: 300px; overflow: scroll;">
+    <div style="width: 100%; height: 10000px;"></div>
+    <iframe id="scrolled-out-testframe"></iframe>
+  </div>
+  <div style="width: 300px; height: 300px; overflow: hidden;">
+    <div style="width: 100%; height: 200px;"></div>
+    <iframe id="clipped-out-testframe"></iframe>
+  </div>
+  <div style="width: 300px; height: 300px; overflow: scroll;">
+    <div style="width: 100%; height: 200px;"></div>
+    <iframe id="partially-scrolled-out-testframe"></iframe>
+  </div>
 </body>
 </html>
