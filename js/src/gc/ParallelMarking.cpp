@@ -34,7 +34,7 @@ ParallelMarker::ParallelMarker(GCRuntime* gc) : gc(gc) {}
 
 size_t ParallelMarker::workerCount() const { return gc->markers.length(); }
 
-bool ParallelMarker::mark(SliceBudget& sliceBudget) {
+bool ParallelMarker::mark(const SliceBudget& sliceBudget) {
   MOZ_ASSERT(workerCount() <= gc->getMaxParallelThreads());
 
   if (markOneColor(MarkColor::Black, sliceBudget) == NotFinished) {
@@ -55,7 +55,8 @@ bool ParallelMarker::mark(SliceBudget& sliceBudget) {
   return true;
 }
 
-bool ParallelMarker::markOneColor(MarkColor color, SliceBudget& sliceBudget) {
+bool ParallelMarker::markOneColor(MarkColor color,
+                                  const SliceBudget& sliceBudget) {
   // Run a marking slice and return whether the stack is now empty.
 
   if (!hasWork(color)) {
@@ -212,9 +213,9 @@ bool ParallelMarkTask::requestWork(AutoLockHelperThreadState& lock) {
 
 void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
+  mozilla::TimeStamp startTime;
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking wait start", "",
-                       JS::ProfilingCategoryPair::GCCC);
+    startTime = mozilla::TimeStamp::Now();
   }
 
   pm->addTaskToWaitingList(this, lock);
@@ -233,8 +234,10 @@ void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(!pm->isTaskInWaitingList(this, lock));
 
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking wait end", "",
-                       JS::ProfilingCategoryPair::GCCC);
+    char details[32];
+    SprintfLiteral(details, "markers=%zu", pm->workerCount());
+    profiler.markInterval("Parallel marking wait", startTime, details,
+                          JS::ProfilingCategoryPair::GCCC);
   }
 }
 
