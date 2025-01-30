@@ -11108,8 +11108,7 @@ bool CacheIRCompiler::emitArrayFromArgumentsObjectResult(ObjOperandId objId,
 }
 
 bool CacheIRCompiler::emitGuardGlobalGeneration(uint32_t expectedOffset,
-                                                uint32_t generationAddrOffset,
-                                                uint32_t realmOffset) {
+                                                uint32_t generationAddrOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
   AutoScratchRegister scratch(allocator, masm);

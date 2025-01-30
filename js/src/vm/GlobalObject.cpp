@@ -54,9 +54,6 @@
 #include "gc/FinalizationObservers.h"
 #include "gc/GC.h"
 #include "gc/GCContext.h"
-#include "jit/BaselineJIT.h"
-#include "jit/Invalidation.h"
-#include "jit/JitSpewer.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
 #include "js/Prefs.h"                 // JS::Prefs
@@ -70,7 +67,6 @@
 #include "vm/EnvironmentObject.h"
 #include "vm/ErrorObject.h"
 #include "vm/GeneratorObject.h"
-#include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
 #include "vm/NumberObject.h"
 #include "vm/PIC.h"
@@ -88,7 +84,6 @@
 
 #include "gc/GCContext-inl.h"
 #include "vm/JSObject-inl.h"
-#include "vm/JSScript-inl.h"
 #include "vm/Realm-inl.h"
 
 using namespace js;
@@ -1129,27 +1124,4 @@ void GlobalObjectData::addSizeOfIncludingThis(
     info->objectsMallocHeapGlobalData +=
         regExpRealm.regExpStatics->sizeOfIncludingThis(mallocSizeOf);
   }
-}
-
-void GlobalObject::bumpGenerationCount(JSContext* cx) {
-  MOZ_RELEASE_ASSERT(data().generationCount < UINT32_MAX);
-  data().generationCount++;
-
-  auto& weakScripts = realm()->generationCounterDependentScripts;
-
-  // Cancel pending off-thread compiles which may be impacted by this
-  // generation count bump.
-  for (auto r = weakScripts.all(); !r.empty(); r.popFront()) {
-    auto script = r.front();
-    if (script->hasBaselineScript() &&
-        script->baselineScript()->hasPendingIonCompileTask()) {
-      JS_LOG(compilationDependency, Debug,
-             "Cancelling pending ion compile, if it exists, for script %s:%d ",
-             script->filename(), script->lineno());
-      CancelOffThreadIonCompile(script);
-    }
-  }
-
-  js::jit::InvalidateAndClearScriptSet(cx, weakScripts,
-                                       "generation count bump");
 }

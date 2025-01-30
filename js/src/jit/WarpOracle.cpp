@@ -54,8 +54,6 @@ class MOZ_STACK_CLASS WarpScriptOracle {
   const CompileInfo* info_;
   ICScript* icScript_;
 
-  bool registerForGenerationCounterBumpOffThreadCancellation = false;
-
   // Index of the next ICEntry for getICEntry. This assumes the script's
   // bytecode is processed from first to last instruction.
   uint32_t icEntryIndex_ = 0;
@@ -741,18 +739,6 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
     return abort(AbortReason::Alloc);
   }
 
-  if (registerForGenerationCounterBumpOffThreadCancellation) {
-    Realm* realm = script_->realm();
-
-    auto& dependentScripts = realm->generationCounterDependentScripts;
-    Realm::WeakScriptSet::AddPtr p = dependentScripts.lookupForAdd(script_);
-    if (!p) {
-      if (!dependentScripts.add(p, script_)) {
-        return abort(AbortReason::Alloc);
-      }
-    }
-  }
-
   autoClearOpSnapshots.release();
   return scriptSnapshot;
 }
@@ -936,7 +922,7 @@ AbortReasonOr<Ok> WarpScriptOracle::maybeInlineIC(WarpOpSnapshotList& snapshots,
     }
 
     // While on the main thread, ensure code stubs exist for ops that require
-    // them, and check if any registration is required.
+    // them.
     switch (op) {
       case CacheOp::CallRegExpMatcherResult:
         if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::RegExpMatcher)) {
@@ -962,15 +948,6 @@ AbortReasonOr<Ok> WarpScriptOracle::maybeInlineIC(WarpOpSnapshotList& snapshots,
         if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::StringConcat)) {
           return abort(AbortReason::Error);
         }
-        break;
-      case CacheOp::GuardGlobalGeneration:
-        // Before linking this Ion compilation, we will check the generation
-        // count, and throw away the compilation if it was bumped while we were
-        // compiling. To avoid wasting time compiling code that will fail to
-        // link, we register this script for eager cancellation. If the
-        // generation count is bumped while we're compiling, the offthread
-        // compilation will be cancelled
-        registerForGenerationCounterBumpOffThreadCancellation = true;
         break;
       default:
         break;
@@ -1144,11 +1121,6 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
       default:
         MOZ_CRASH("Unexpected abort reason");
     }
-  }
-
-  // Propagate registration requirement from inline call outwards.
-  if (scriptOracle.registerForGenerationCounterBumpOffThreadCancellation) {
-    registerForGenerationCounterBumpOffThreadCancellation = true;
   }
 
   WarpScriptSnapshot* scriptSnapshot = maybeScriptSnapshot.unwrap();
