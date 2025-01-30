@@ -1931,6 +1931,17 @@ add_task(async function test_pinningInteractionsWithTabGroups() {
   moreTabs.concat(tabs).forEach(tab => BrowserTestUtils.removeTab(tab));
 });
 
+add_task(async function test_pinFirstGroupedTab() {
+  let tabs = [gBrowser.selectedTab, ...createManyTabs(1)];
+  let group = gBrowser.addTabGroup(tabs);
+
+  gBrowser.pinTab(tabs[0]);
+  Assert.ok(tabs[0].pinned, "pinned first tab of group");
+  Assert.ok(!tabs[0].group, "pinning first tab ungroups it");
+
+  await removeTabGroup(group);
+});
+
 add_task(async function test_bug1936015() {
   // Checks that groups are properly deleted if the group was created before
   // the user switches between vertical and horizontal tabs.

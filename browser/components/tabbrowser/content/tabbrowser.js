@@ -805,6 +805,7 @@
       }
 
       this.showTab(aTab);
+      this.ungroupTab(aTab);
       if (this.tabContainer.verticalMode) {
         this._handleTabMove(aTab, () =>
           this.verticalPinnedTabsContainer.appendChild(aTab)
