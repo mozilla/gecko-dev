@@ -9172,7 +9172,7 @@ void CodeGenerator::visitGetArgumentsObjectArg(LGetArgumentsObjectArg* lir) {
 }
 
 void CodeGenerator::visitSetArgumentsObjectArg(LSetArgumentsObjectArg* lir) {
-  Register temp = ToRegister(lir->getTemp(0));
+  Register temp = ToRegister(lir->temp0());
   Register argsObj = ToRegister(lir->argsObject());
   ValueOperand value = ToValue(lir, LSetArgumentsObjectArg::ValueIndex);
 
@@ -14987,7 +14987,7 @@ void CodeGenerator::visitBoundsCheckRange(LBoundsCheckRange* lir) {
   MIRType type = lir->mir()->type();
 
   const LAllocation* length = lir->length();
-  Register temp = ToRegister(lir->getTemp(0));
+  Register temp = ToRegister(lir->temp0());
 
   auto bailoutCmp = [&](Assembler::Condition cond, auto lhs, auto rhs) {
     if (type == MIRType::Int32) {
@@ -20115,7 +20115,7 @@ void CodeGenerator::emitAssertRangeD(const Range* r, FloatRegister input,
 
 void CodeGenerator::visitAssertClass(LAssertClass* ins) {
   Register obj = ToRegister(ins->input());
-  Register temp = ToRegister(ins->getTemp(0));
+  Register temp = ToRegister(ins->temp0());
 
   Label success;
   if (ins->mir()->getClass() == &FunctionClass) {
@@ -22174,8 +22174,8 @@ void CodeGenerator::emitFuzzilliHashBigInt(LInstruction* lir, Register bigInt,
 void CodeGenerator::visitFuzzilliHashV(LFuzzilliHashV* ins) {
   ValueOperand value = ToValue(ins, 0);
 
-  FloatRegister scratchFloat = ToFloatRegister(ins->getTemp(1));
-  Register scratch = ToRegister(ins->getTemp(0));
+  FloatRegister scratchFloat = ToFloatRegister(ins->temp1());
+  Register scratch = ToRegister(ins->temp0());
   Register output = ToRegister(ins->output());
   MOZ_ASSERT(scratch != output);
 
@@ -22256,8 +22256,8 @@ void CodeGenerator::visitFuzzilliHashT(LFuzzilliHashT* ins) {
   const LAllocation* value = ins->value();
   MIRType mirType = ins->mir()->getOperand(0)->type();
 
-  Register scratch = ToTempRegisterOrInvalid(ins->getTemp(0));
-  FloatRegister scratchFloat = ToTempFloatRegisterOrInvalid(ins->getTemp(1));
+  Register scratch = ToTempRegisterOrInvalid(ins->temp0());
+  FloatRegister scratchFloat = ToTempFloatRegisterOrInvalid(ins->temp1());
 
   Register output = ToRegister(ins->output());
   MOZ_ASSERT(scratch != output);
@@ -22319,8 +22319,8 @@ void CodeGenerator::visitFuzzilliHashT(LFuzzilliHashT* ins) {
 
 void CodeGenerator::visitFuzzilliHashStore(LFuzzilliHashStore* ins) {
   Register value = ToRegister(ins->value());
-  Register temp0 = ToRegister(ins->getTemp(0));
-  Register temp1 = ToRegister(ins->getTemp(1));
+  Register temp0 = ToRegister(ins->temp0());
+  Register temp1 = ToRegister(ins->temp1());
 
   masm.fuzzilliStoreHash(value, temp0, temp1);
 }
