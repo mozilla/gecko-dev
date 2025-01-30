@@ -5,36 +5,27 @@
 package org.mozilla.fenix.onboarding.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emptyFlow
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.rule.MainCoroutineRule
-import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
+import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 
 @RunWith(AndroidJUnit4::class)
 class PrivacyPreferencesMiddlewareTest {
 
-    @get:Rule
-    val mainCoroutineTestRule = MainCoroutineRule()
-
     @Mock
     private lateinit var repository: PrivacyPreferencesRepository
 
     @Mock
     private lateinit var context: MiddlewareContext<PrivacyPreferencesState, PrivacyPreferencesAction>
-
-    @Mock
-    private lateinit var store: PrivacyPreferencesStore
 
     private lateinit var middleware: PrivacyPreferencesMiddleware
 
@@ -46,38 +37,22 @@ class PrivacyPreferencesMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN init called with no preferences WHEN middleware is invoked THEN only the repo is initialized`() =
-        runTestOnMain {
-            `when`(repository.privacyPreferenceUpdates).thenReturn(emptyFlow())
+    fun `GIVEN init called with no preferences WHEN middleware is invoked THEN only the repo is initialized`() {
+        `when`(repository.privacyPreferenceUpdates).thenReturn(emptyFlow())
 
-            middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
+        middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
 
-            verifyNoInteractions(context)
-            verify(repository).init()
-        }
+        verifyNoInteractions(context)
+        verify(repository).init()
+    }
 
     @Test
-    fun `GIVEN init called with preferences WHEN middleware is invoked THEN the store is updated and repo is initialized`() =
-        runTestOnMain {
-            val preferenceUpdates = PrivacyPreferencesRepository.PrivacyPreference.entries.map {
-                PrivacyPreferencesRepository.PrivacyPreferenceUpdate(it, false)
-            }
+    fun `GIVEN init called with preferences WHEN middleware is invoked THEN the repo is initialized`() {
+        middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
 
-            `when`(repository.privacyPreferenceUpdates).thenReturn(preferenceUpdates.asFlow())
-            `when`(context.store).thenReturn(store)
-
-            middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
-
-            val expectedFirstAction =
-                PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo(preferenceUpdates[0].value)
-            verify(context.store).dispatch(expectedFirstAction)
-
-            val expectedSecondAction =
-                PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo(preferenceUpdates[1].value)
-            verify(context.store).dispatch(expectedSecondAction)
-
-            verify(repository).init()
-        }
+        verify(repository).init()
+        verifyNoMoreInteractions(repository)
+    }
 
     @Test
     fun `GIVEN crash reporting called WHEN middleware is invoked THEN the repo is updated`() {
@@ -103,22 +78,6 @@ class PrivacyPreferencesMiddlewareTest {
                 value = action.enabled,
             ),
         )
-    }
-
-    @Test
-    fun `GIVEN crash reporting checked called WHEN middleware is invoked THEN the repo is unchanged`() {
-        val action = PrivacyPreferencesAction.CrashReportingChecked(true)
-        middleware.invoke(context, {}, action)
-
-        verifyNoInteractions(repository)
-    }
-
-    @Test
-    fun `GIVEN usage data checked called WHEN middleware is invoked THEN the repo is unchanged`() {
-        val action = PrivacyPreferencesAction.UsageDataUserChecked(true)
-        middleware.invoke(context, {}, action)
-
-        verifyNoInteractions(repository)
     }
 
     @Test

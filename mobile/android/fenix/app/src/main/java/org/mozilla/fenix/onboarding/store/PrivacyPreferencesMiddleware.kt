@@ -4,9 +4,6 @@
 
 package org.mozilla.fenix.onboarding.store
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 
@@ -14,11 +11,9 @@ import mozilla.components.lib.state.MiddlewareContext
  * [Middleware] that reacts to various [PrivacyPreferencesAction]s and updates any corresponding preferences.
  *
  * @param privacyPreferencesRepository [PrivacyPreferencesRepository] used to access the privacy preferences.
- * @param coroutineScope The coroutine scope used for emitting flows.
  */
 class PrivacyPreferencesMiddleware(
     private val privacyPreferencesRepository: PrivacyPreferencesRepository,
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main),
 ) : Middleware<PrivacyPreferencesState, PrivacyPreferencesAction> {
 
     override fun invoke(
@@ -29,17 +24,7 @@ class PrivacyPreferencesMiddleware(
         next(action)
 
         when (action) {
-            is PrivacyPreferencesAction.Init -> {
-                coroutineScope.launch {
-                    privacyPreferencesRepository.privacyPreferenceUpdates
-                        .collect { preferenceUpdate ->
-                            val updateAction =
-                                mapPrivacyPreferenceUpdateToStoreAction(preferenceUpdate)
-                            context.store.dispatch(updateAction)
-                        }
-                }
-                privacyPreferencesRepository.init()
-            }
+            is PrivacyPreferencesAction.Init -> privacyPreferencesRepository.init()
 
             is PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo -> {
                 privacyPreferencesRepository.updatePrivacyPreference(
@@ -60,23 +45,9 @@ class PrivacyPreferencesMiddleware(
             }
 
             // no-ops
-            is PrivacyPreferencesAction.CrashReportingChecked,
-            is PrivacyPreferencesAction.UsageDataUserChecked,
             is PrivacyPreferencesAction.CrashReportingLearnMore,
             is PrivacyPreferencesAction.UsageDataUserLearnMore,
             -> {}
-        }
-    }
-
-    private fun mapPrivacyPreferenceUpdateToStoreAction(
-        privacyPreferenceUpdate: PrivacyPreferencesRepository.PrivacyPreferenceUpdate,
-    ): PrivacyPreferencesAction {
-        return when (privacyPreferenceUpdate.preferenceType) {
-            PrivacyPreferencesRepository.PrivacyPreference.CrashReporting ->
-                PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo(privacyPreferenceUpdate.value)
-
-            PrivacyPreferencesRepository.PrivacyPreference.UsageData ->
-                PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(privacyPreferenceUpdate.value)
         }
     }
 }

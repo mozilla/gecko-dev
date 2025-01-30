@@ -72,40 +72,6 @@ class PrivacyPreferencesTelemetryMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN crash reporting checked action WHEN middleware is invoked THEN the corresponding telemetry is sent`() {
-        assertNull(Onboarding.privacyPreferencesModalCrashReportingChecked.testGetValue())
-
-        middleware.invoke(
-            context,
-            {},
-            PrivacyPreferencesAction.CrashReportingChecked(true),
-        )
-
-        val event = Onboarding.privacyPreferencesModalCrashReportingChecked.testGetValue()!!
-        assertNotNull(event)
-        assertEquals(1, event.size)
-        val result = event.single().extra?.getValue("checked").toBoolean()
-        assertTrue(result)
-    }
-
-    @Test
-    fun `GIVEN usage data checked action WHEN middleware is invoked THEN the corresponding telemetry is sent`() {
-        assertNull(Onboarding.privacyPreferencesModalUsageDataChecked.testGetValue())
-
-        middleware.invoke(
-            context,
-            {},
-            PrivacyPreferencesAction.UsageDataUserChecked(true),
-        )
-
-        val event = Onboarding.privacyPreferencesModalUsageDataChecked.testGetValue()!!
-        assertNotNull(event)
-        assertEquals(1, event.size)
-        val result = event.single().extra?.getValue("checked").toBoolean()
-        assertTrue(result)
-    }
-
-    @Test
     fun `GIVEN crash reporting learn more action WHEN middleware is invoked THEN the corresponding telemetry is sent`() {
         assertNull(Onboarding.privacyPreferencesModalCrashReportingLearnMore.testGetValue())
 
