@@ -6,6 +6,7 @@
 
 use std::{
     cell::RefCell,
+    mem,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     rc::Rc,
     time::{Duration, Instant},
@@ -34,7 +35,7 @@ use crate::{
     pmtud::Pmtud,
     stats::FrameStats,
     tparams::{self, PreferredAddress, TransportParameter},
-    CloseReason, ConnectionId, ConnectionIdDecoder as _, ConnectionIdGenerator, ConnectionIdRef,
+    CloseReason, ConnectionId, ConnectionIdDecoder, ConnectionIdGenerator, ConnectionIdRef,
     ConnectionParameters, EmptyConnectionIdGenerator, Error, MIN_INITIAL_PACKET_SIZE,
 };
 
@@ -167,7 +168,8 @@ fn rebind(
         .borrow()
         .local_cid()
         .unwrap()
-        .is_empty();
+        .len()
+        == 0;
     let mut total_delay = Duration::new(0, 0);
     loop {
         let before = server.stats().frame_tx;
@@ -1227,7 +1229,7 @@ fn error_on_new_path_with_no_connection_id() {
     // See issue #1697. We had a crash when the client had a temporary path and
     // process_output is called.
     let closing_frames = client.stats().frame_tx.connection_close;
-    drop(client.process_output(now()));
+    mem::drop(client.process_output(now()));
     assert!(matches!(
         client.state(),
         State::Closing {

@@ -1287,9 +1287,7 @@ networking:
     expires: never
     labels:
       - capable
-      - black-hole
-      - bleaching
-      - received-unsent-ect-1
+      - not-capable
 
   http_3_loss_ratio:
     type: custom_distribution

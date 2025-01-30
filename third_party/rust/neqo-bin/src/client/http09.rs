@@ -10,7 +10,7 @@ use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
     fs::File,
-    io::{BufWriter, Write as _},
+    io::{BufWriter, Write},
     net::SocketAddr,
     path::PathBuf,
     rc::Rc,
@@ -61,7 +61,7 @@ impl super::Handler for Handler<'_> {
                         self.needs_key_update = false;
                         self.download_urls(client);
                     }
-                    Err(Error::KeyUpdateBlocked) => (),
+                    Err(neqo_transport::Error::KeyUpdateBlocked) => (),
                     Err(e) => return Err(e.into()),
                 }
             }
@@ -213,7 +213,7 @@ impl super::Client for Connection {
     }
 
     fn has_events(&self) -> bool {
-        Provider::has_events(self)
+        neqo_common::event::Provider::has_events(self)
     }
 }
 
@@ -301,7 +301,8 @@ impl<'b> Handler<'b> {
                 qdebug!("READ[{stream_id}]: {} bytes", read_buffer.len());
             } else {
                 qdebug!(
-                    "READ[{stream_id}]: {}",
+                    "READ[{}]: {}",
+                    stream_id,
                     std::str::from_utf8(read_buffer).unwrap()
                 );
             }

@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(clippy::module_name_repetitions)] // This lint doesn't work here.
+
 use neqo_common::qwarn;
 use neqo_crypto::Error as CryptoError;
 
@@ -13,7 +15,7 @@ mod cc;
 mod cid;
 mod connection;
 mod crypto;
-pub mod ecn;
+mod ecn;
 mod events;
 mod fc;
 #[cfg(fuzzing)]
@@ -44,7 +46,6 @@ pub mod send_stream;
 mod send_stream;
 mod sender;
 pub mod server;
-mod shuffle;
 mod stats;
 pub mod stream_id;
 pub mod streams;
@@ -69,7 +70,6 @@ pub use self::{
     quic_datagrams::DatagramTracking,
     recv_stream::{RecvStreamStats, RECV_BUFFER_SIZE},
     send_stream::{SendStreamStats, SEND_BUFFER_SIZE},
-    shuffle::find_sni,
     stats::Stats,
     stream_id::{StreamId, StreamType},
     version::Version,
@@ -84,7 +84,7 @@ const ERROR_AEAD_LIMIT_REACHED: TransportError = 15;
 pub enum Error {
     NoError,
     // Each time this error is returned a different parameter is supplied.
-    // This will be used to distinguish each occurrence of this error.
+    // This will be used to distinguish each occurance of this error.
     InternalError,
     ConnectionRefused,
     FlowControlError,
@@ -177,7 +177,7 @@ impl Error {
 
 impl From<CryptoError> for Error {
     fn from(err: CryptoError) -> Self {
-        qwarn!("Crypto operation failed {err:?}");
+        qwarn!("Crypto operation failed {:?}", err);
         match err {
             CryptoError::EchRetry(config) => Self::EchRetry(config),
             _ => Self::CryptoError(err),
@@ -250,4 +250,4 @@ impl From<CloseError> for CloseReason {
     }
 }
 
-pub type Res<T> = Result<T, Error>;
+pub type Res<T> = std::result::Result<T, Error>;

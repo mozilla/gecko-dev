@@ -61,7 +61,7 @@ impl SelfEncrypt {
         self.old_key = Some(mem::replace(&mut self.key, new_key));
         let (kid, _) = self.key_id.overflowing_add(1);
         self.key_id = kid;
-        qinfo!("[SelfEncrypt] Rotated keys to {}", self.key_id);
+        qinfo!(["SelfEncrypt"], "Rotated keys to {}", self.key_id);
         Ok(())
     }
 
@@ -99,7 +99,8 @@ impl SelfEncrypt {
         output.resize(encoded_len, 0);
         cipher.encrypt(0, extended_aad.as_ref(), plaintext, &mut output[offset..])?;
         qtrace!(
-            "[SelfEncrypt] seal {} {} -> {}",
+            ["SelfEncrypt"],
+            "seal {} {} -> {}",
             hex(aad),
             hex(plaintext),
             hex(&output)
@@ -149,7 +150,8 @@ impl SelfEncrypt {
         let final_len = decrypted.len();
         output.truncate(final_len);
         qtrace!(
-            "[SelfEncrypt] open {} {} -> {}",
+            ["SelfEncrypt"],
+            "open {} {} -> {}",
             hex(aad),
             hex(ciphertext),
             hex(&output)

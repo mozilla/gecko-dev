@@ -9,6 +9,7 @@
 mod common;
 
 use std::{
+    mem,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     time::Duration,
 };
@@ -36,14 +37,16 @@ fn retry_basic() {
 
     let dgram = client.process_output(now()).dgram(); // Initial
     assert!(dgram.is_some());
-    let dgram = server.process(dgram, now()).dgram().unwrap(); // Retry
-    assertions::assert_retry(&dgram);
+    let dgram = server.process(dgram, now()).dgram(); // Retry
+    assert!(dgram.is_some());
 
-    let dgram = client.process(Some(dgram), now()).dgram(); // Initial w/token
+    assertions::assert_retry(dgram.as_ref().unwrap());
+
+    let dgram = client.process(dgram, now()).dgram(); // Initial w/token
     assert!(dgram.is_some());
     let dgram = server.process(dgram, now()).dgram(); // Initial, HS
     assert!(dgram.is_some());
-    drop(client.process(dgram, now()).dgram()); // Ingest, drop any ACK.
+    mem::drop(client.process(dgram, now()).dgram()); // Ingest, drop any ACK.
     client.authenticated(AuthenticationStatus::Ok, now());
     let dgram = client.process_output(now()).dgram(); // Send Finished
     assert!(dgram.is_some());

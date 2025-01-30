@@ -7,7 +7,7 @@
 use std::{
     collections::hash_map::DefaultHasher,
     fs::File,
-    hash::{Hash as _, Hasher as _},
+    hash::{Hash, Hasher},
     io::Write,
     path::Path,
 };

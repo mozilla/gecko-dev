@@ -283,8 +283,8 @@ fn handshake_mlkem768x25519() {
 
     client
         .set_groups(&[neqo_crypto::TLS_GRP_KEM_MLKEM768X25519])
-        .unwrap();
-    client.send_additional_key_shares(0).unwrap();
+        .ok();
+    client.send_additional_key_shares(0).ok();
 
     test_fixture::handshake(&mut client, &mut server);
     assert_eq!(*client.state(), State::Confirmed);

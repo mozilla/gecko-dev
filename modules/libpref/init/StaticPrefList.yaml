@@ -14590,13 +14590,6 @@
   value: false
   mirror: always
 
-# When network.http.http3.sni-slicing is set, TLS SNI slicing is enabled.
-- name: network.http.http3.sni-slicing
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # When true, a http request will be upgraded to https when HTTPS RR is
 # available.
 - name: network.dns.upgrade_with_https_rr

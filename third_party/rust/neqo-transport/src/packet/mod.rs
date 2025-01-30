@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)]
-
 // Encoding and decoding packets off the wire.
 use std::{
     cmp::min,
@@ -204,8 +202,7 @@ impl PacketBuilder {
                 + scid.as_ref().map_or(0, |d| d.as_ref().len())
                 < limit - encoder.len()
         {
-            encoder
-                .encode_byte(PACKET_BIT_LONG | PACKET_BIT_FIXED_QUIC | (pt.to_byte(version) << 4));
+            encoder.encode_byte(PACKET_BIT_LONG | PACKET_BIT_FIXED_QUIC | pt.to_byte(version) << 4);
             encoder.encode_uint(4, version.wire_version());
             encoder.encode_vec(1, dcid.take().as_ref().map_or(&[], AsRef::as_ref));
             encoder.encode_vec(1, scid.take().as_ref().map_or(&[], AsRef::as_ref));
@@ -613,7 +610,7 @@ impl<'a> PublicPacket<'a> {
     #[allow(clippy::similar_names)]
     pub fn decode(data: &'a [u8], dcid_decoder: &dyn ConnectionIdDecoder) -> Res<(Self, &'a [u8])> {
         let mut decoder = Decoder::new(data);
-        let first = Self::opt(decoder.decode_uint::<u8>())?;
+        let first = Self::opt(decoder.decode_byte())?;
 
         if first & 0x80 == PACKET_BIT_SHORT {
             // Conveniently, this also guarantees that there is enough space
@@ -641,7 +638,7 @@ impl<'a> PublicPacket<'a> {
         }
 
         // Generic long header.
-        let version = Self::opt(decoder.decode_uint())?;
+        let version = WireVersion::try_from(Self::opt(decoder.decode_uint(4))?)?;
         let dcid = ConnectionIdRef::from(Self::opt(decoder.decode_vec(1))?);
         let scid = ConnectionIdRef::from(Self::opt(decoder.decode_vec(1))?);
 
@@ -859,7 +856,7 @@ impl<'a> PublicPacket<'a> {
             // fail is if the cryptographic module is bad or the packet is
             // too small (which is public information).
             let (key_phase, pn, header, body) = self.decrypt_header(rx)?;
-            qtrace!("[{rx}] decoded header: {header:?}");
+            qtrace!([rx], "decoded header: {:?}", header);
             let Some(rx) = crypto.rx(version, cspace, key_phase) else {
                 return Err(Error::DecryptError);
             };
@@ -880,7 +877,7 @@ impl<'a> PublicPacket<'a> {
         } else if crypto.rx_pending(cspace) {
             Err(Error::KeysPending(cspace))
         } else {
-            qtrace!("keys for {cspace:?} already discarded");
+            qtrace!("keys for {:?} already discarded", cspace);
             Err(Error::KeysDiscarded(cspace))
         }
     }
@@ -896,7 +893,7 @@ impl<'a> PublicPacket<'a> {
         let mut decoder = Decoder::new(&self.data[self.header_len..]);
         let mut res = Vec::new();
         while decoder.remaining() > 0 {
-            let version = Self::opt(decoder.decode_uint::<WireVersion>())?;
+            let version = WireVersion::try_from(Self::opt(decoder.decode_uint(4))?)?;
             res.push(version);
         }
         Ok(res)
@@ -1281,6 +1278,24 @@ mod tests {
         0x8a, 0xa4, 0x57, 0x5e, 0x1e, 0x49,
     ];
 
+    const SAMPLE_RETRY_30: &[u8] = &[
+        0xff, 0xff, 0x00, 0x00, 0x1e, 0x00, 0x08, 0xf0, 0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5,
+        0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x2d, 0x3e, 0x04, 0x5d, 0x6d, 0x39, 0x20, 0x67, 0x89, 0x94,
+        0x37, 0x10, 0x8c, 0xe0, 0x0a, 0x61,
+    ];
+
+    const SAMPLE_RETRY_31: &[u8] = &[
+        0xff, 0xff, 0x00, 0x00, 0x1f, 0x00, 0x08, 0xf0, 0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5,
+        0x74, 0x6f, 0x6b, 0x65, 0x6e, 0xc7, 0x0c, 0xe5, 0xde, 0x43, 0x0b, 0x4b, 0xdb, 0x7d, 0xf1,
+        0xa3, 0x83, 0x3a, 0x75, 0xf9, 0x86,
+    ];
+
+    const SAMPLE_RETRY_32: &[u8] = &[
+        0xff, 0xff, 0x00, 0x00, 0x20, 0x00, 0x08, 0xf0, 0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5,
+        0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x59, 0x75, 0x65, 0x19, 0xdd, 0x6c, 0xc8, 0x5b, 0xd9, 0x0e,
+        0x33, 0xa9, 0x34, 0xd2, 0xff, 0x85,
+    ];
+
     const RETRY_TOKEN: &[u8] = b"token";
 
     fn build_retry_single(version: Version, sample_retry: &[u8]) {
@@ -1323,6 +1338,21 @@ mod tests {
     }
 
     #[test]
+    fn build_retry_30() {
+        build_retry_single(Version::Draft30, SAMPLE_RETRY_30);
+    }
+
+    #[test]
+    fn build_retry_31() {
+        build_retry_single(Version::Draft31, SAMPLE_RETRY_31);
+    }
+
+    #[test]
+    fn build_retry_32() {
+        build_retry_single(Version::Draft32, SAMPLE_RETRY_32);
+    }
+
+    #[test]
     fn build_retry_multiple() {
         // Run the build_retry test a few times.
         // Odds are approximately 1 in 8 that the full comparison doesn't happen
@@ -1331,6 +1361,9 @@ mod tests {
             build_retry_v2();
             build_retry_v1();
             build_retry_29();
+            build_retry_30();
+            build_retry_31();
+            build_retry_32();
         }
     }
 
@@ -1359,6 +1392,21 @@ mod tests {
     #[test]
     fn decode_retry_29() {
         decode_retry(Version::Draft29, SAMPLE_RETRY_29);
+    }
+
+    #[test]
+    fn decode_retry_30() {
+        decode_retry(Version::Draft30, SAMPLE_RETRY_30);
+    }
+
+    #[test]
+    fn decode_retry_31() {
+        decode_retry(Version::Draft31, SAMPLE_RETRY_31);
+    }
+
+    #[test]
+    fn decode_retry_32() {
+        decode_retry(Version::Draft32, SAMPLE_RETRY_32);
     }
 
     /// Check some packets that are clearly not valid Retry packets.
@@ -1397,7 +1445,8 @@ mod tests {
     const SAMPLE_VN: &[u8] = &[
         0x80, 0x00, 0x00, 0x00, 0x00, 0x08, 0xf0, 0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5, 0x08,
         0x83, 0x94, 0xc8, 0xf0, 0x3e, 0x51, 0x57, 0x08, 0x6b, 0x33, 0x43, 0xcf, 0x00, 0x00, 0x00,
-        0x01, 0xff, 0x00, 0x00, 0x1d, 0x0a, 0x0a, 0x0a, 0x0a,
+        0x01, 0xff, 0x00, 0x00, 0x20, 0xff, 0x00, 0x00, 0x1f, 0xff, 0x00, 0x00, 0x1e, 0xff, 0x00,
+        0x00, 0x1d, 0x0a, 0x0a, 0x0a, 0x0a,
     ];
 
     #[test]
@@ -1511,7 +1560,7 @@ mod tests {
     fn decode_too_short() {
         neqo_crypto::init().unwrap();
         let res = PublicPacket::decode(
-            &[179, 255, 0, 0, 29, 0, 0],
+            &[179, 255, 0, 0, 32, 0, 0],
             &EmptyConnectionIdGenerator::default(),
         );
         assert!(res.is_err());

@@ -1227,5 +1227,3 @@ extern "C" fn __tsan_default_suppressions() -> *const std::os::raw::c_char {
 extern "C" {}
 #[cfg_attr(target_os = "windows", link(name = "propsys"))]
 extern "C" {}
-#[cfg_attr(target_os = "windows", link(name = "iphlpapi"))]
-extern "C" {}

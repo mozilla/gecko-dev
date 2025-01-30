@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::mem;
+
 use neqo_crypto::{
     constants::{
         Cipher, TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256,
@@ -69,12 +71,12 @@ fn chacha20_ctr() {
 #[should_panic(expected = "out of range")]
 fn aes_short() {
     let hp = make_hp(TLS_AES_128_GCM_SHA256);
-    drop(hp.mask(&[0; 15]));
+    mem::drop(hp.mask(&[0; 15]));
 }
 
 #[test]
 #[should_panic(expected = "out of range")]
 fn chacha20_short() {
     let hp = make_hp(TLS_CHACHA20_POLY1305_SHA256);
-    drop(hp.mask(&[0; 15]));
+    mem::drop(hp.mask(&[0; 15]));
 }

@@ -12,7 +12,7 @@ use std::{
     time::Instant,
 };
 
-use neqo_common::{header::HeadersExt as _, hex, qdebug, qerror, qinfo, Datagram, Header};
+use neqo_common::{hex, qdebug, qerror, qinfo, Datagram, Header};
 use neqo_crypto::{generate_ech_keys, random, AntiReplay};
 use neqo_http3::{
     Http3OrWebTransportStream, Http3Parameters, Http3Server, Http3ServerEvent, StreamId,
@@ -94,12 +94,15 @@ impl super::HttpServer for HttpServer {
                 } => {
                     qdebug!("Headers (request={stream} fin={fin}): {headers:?}");
 
-                    if headers.contains_header(":method", "POST") {
+                    if headers
+                        .iter()
+                        .any(|h| h.name() == ":method" && h.value() == "POST")
+                    {
                         self.posts.insert(stream, 0);
                         continue;
                     }
 
-                    let Some(path) = headers.find_header(":path") else {
+                    let Some(path) = headers.iter().find(|&h| h.name() == ":path") else {
                         stream
                             .cancel_fetch(neqo_http3::Error::HttpRequestIncomplete.code())
                             .unwrap();

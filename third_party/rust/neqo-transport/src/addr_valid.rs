@@ -148,7 +148,7 @@ impl AddressValidation {
     }
 
     pub fn set_validation(&mut self, validation: ValidateAddress) {
-        qtrace!("AddressValidation {self:p}: set to {validation:?}");
+        qtrace!("AddressValidation {:p}: set to {:?}", self, validation);
         self.validation = validation;
     }
 
@@ -166,11 +166,11 @@ impl AddressValidation {
         let peer_addr = Self::encode_aad(peer_address, retry);
         let data = self.self_encrypt.open(peer_addr.as_ref(), token).ok()?;
         let mut dec = Decoder::new(&data);
-        match dec.decode_uint::<u32>() {
+        match dec.decode_uint(4) {
             Some(d) => {
-                let end = self.start_time + Duration::from_millis(u64::from(d));
+                let end = self.start_time + Duration::from_millis(d);
                 if end < now {
-                    qtrace!("Expired token: {end:?} vs. {now:?}");
+                    qtrace!("Expired token: {:?} vs. {:?}", end, now);
                     return None;
                 }
             }
@@ -199,7 +199,11 @@ impl AddressValidation {
         peer_address: SocketAddr,
         now: Instant,
     ) -> AddressValidationResult {
-        qtrace!("AddressValidation {self:p}: validate {:?}", self.validation);
+        qtrace!(
+            "AddressValidation {:p}: validate {:?}",
+            self,
+            self.validation
+        );
 
         if token.is_empty() {
             if self.validation == ValidateAddress::Never {
@@ -223,7 +227,7 @@ impl AddressValidation {
             if retry {
                 // This is from Retry, so we should have an ODCID >= 8.
                 if cid.len() >= 8 {
-                    qinfo!("AddressValidation: valid Retry token for {cid}");
+                    qinfo!("AddressValidation: valid Retry token for {}", cid);
                     AddressValidationResult::ValidRetry(cid)
                 } else {
                     panic!("AddressValidation: Retry token with small CID {cid}");
@@ -288,7 +292,7 @@ impl NewTokenState {
     /// Is there a token available?
     pub fn has_token(&self) -> bool {
         match self {
-            Self::Client { pending, .. } => !pending.is_empty(),
+            Self::Client { ref pending, .. } => !pending.is_empty(),
             Self::Server(..) => false,
         }
     }
@@ -318,7 +322,7 @@ impl NewTokenState {
     pub fn save_token(&mut self, token: Vec<u8>) {
         if let Self::Client {
             ref mut pending,
-            old,
+            ref old,
         } = self
         {
             for t in old.iter().rev().chain(pending.iter().rev()) {

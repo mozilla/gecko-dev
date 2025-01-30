@@ -7,12 +7,43 @@
 #![allow(clippy::module_name_repetitions)]
 
 use std::{
-    io::Write as _,
+    io::Write,
     sync::{Once, OnceLock},
     time::{Duration, Instant},
 };
 
 use env_logger::Builder;
+
+#[macro_export]
+macro_rules! do_log {
+    (target: $target:expr, $lvl:expr, $($arg:tt)+) => ({
+        let lvl = $lvl;
+        if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
+            ::log::logger().log(
+                &::log::Record::builder()
+                    .args(format_args!($($arg)+))
+                    .level(lvl)
+                    .target($target)
+                    .module_path_static(Some(module_path!()))
+                    .file_static(Some(file!()))
+                    .line(Some(line!()))
+                    .build()
+            );
+        }
+    });
+    ($lvl:expr, $($arg:tt)+) => ($crate::do_log!(target: module_path!(), $lvl, $($arg)+))
+}
+
+#[macro_export]
+macro_rules! log_subject {
+    ($lvl:expr, $subject:expr) => {{
+        if $lvl <= ::log::max_level() {
+            format!("{}", $subject)
+        } else {
+            String::new()
+        }
+    }};
+}
 
 fn since_start() -> Duration {
     static START_TIME: OnceLock<Instant> = OnceLock::new();
@@ -35,7 +66,7 @@ pub fn init(level_filter: Option<log::LevelFilter>) {
             let elapsed = since_start();
             writeln!(
                 buf,
-                "{}.{:03} {} {}",
+                "{}s{:3}ms {} {}",
                 elapsed.as_secs(),
                 elapsed.as_millis() % 1000,
                 record.level(),
@@ -43,55 +74,42 @@ pub fn init(level_filter: Option<log::LevelFilter>) {
             )
         });
         if let Err(e) = builder.try_init() {
-            eprintln!("Logging initialization error {e:?}");
+            do_log!(::log::Level::Warn, "Logging initialization error {:?}", e);
         } else {
-            ::log::debug!("Logging initialized");
+            do_log!(::log::Level::Debug, "Logging initialized");
         }
     });
 }
 
 #[macro_export]
-// TODO: Enable `#[clippy::format_args]` once our MSRV is >= 1.84
+macro_rules! log_invoke {
+    ($lvl:expr, $ctx:expr, $($arg:tt)*) => ( {
+        ::neqo_common::log::init(None);
+        ::neqo_common::do_log!($lvl, "[{}] {}", $ctx, format!($($arg)*));
+    } )
+}
+#[macro_export]
 macro_rules! qerror {
-    ($($arg:tt)*) => ( {
-        #[cfg(any(test, feature = "bench"))]
-        ::neqo_common::log::init(None);
-        ::log::error!($($arg)*);
-    } );
+    ([$ctx:expr], $($arg:tt)*) => (::neqo_common::log_invoke!(::log::Level::Error, $ctx, $($arg)*););
+    ($($arg:tt)*) => ( { ::neqo_common::log::init(None); ::neqo_common::do_log!(::log::Level::Error, $($arg)*); } );
 }
 #[macro_export]
-// TODO: Enable `#[clippy::format_args]` once our MSRV is >= 1.84
 macro_rules! qwarn {
-    ($($arg:tt)*) => ( {
-        #[cfg(any(test, feature = "bench"))]
-        ::neqo_common::log::init(None);
-        ::log::warn!($($arg)*);
-    } );
+    ([$ctx:expr], $($arg:tt)*) => (::neqo_common::log_invoke!(::log::Level::Warn, $ctx, $($arg)*););
+    ($($arg:tt)*) => ( { ::neqo_common::log::init(None); ::neqo_common::do_log!(::log::Level::Warn, $($arg)*); } );
 }
 #[macro_export]
-// TODO: Enable `#[clippy::format_args]` once our MSRV is >= 1.84
 macro_rules! qinfo {
-    ($($arg:tt)*) => ( {
-        #[cfg(any(test, feature = "bench"))]
-        ::neqo_common::log::init(None);
-        ::log::info!($($arg)*);
-    } );
+    ([$ctx:expr], $($arg:tt)*) => (::neqo_common::log_invoke!(::log::Level::Info, $ctx, $($arg)*););
+    ($($arg:tt)*) => ( { ::neqo_common::log::init(None); ::neqo_common::do_log!(::log::Level::Info, $($arg)*); } );
 }
 #[macro_export]
-// TODO: Enable `#[clippy::format_args]` once our MSRV is >= 1.84
 macro_rules! qdebug {
-    ($($arg:tt)*) => ( {
-        #[cfg(any(test, feature = "bench"))]
-        ::neqo_common::log::init(None);
-        ::log::debug!($($arg)*);
-    } );
+    ([$ctx:expr], $($arg:tt)*) => (::neqo_common::log_invoke!(::log::Level::Debug, $ctx, $($arg)*););
+    ($($arg:tt)*) => ( { ::neqo_common::log::init(None); ::neqo_common::do_log!(::log::Level::Debug, $($arg)*); } );
 }
 #[macro_export]
-// TODO: Enable `#[clippy::format_args]` once our MSRV is >= 1.84
 macro_rules! qtrace {
-    ($($arg:tt)*) => ( {
-        #[cfg(any(test, feature = "bench"))]
-        ::neqo_common::log::init(None);
-        ::log::trace!($($arg)*);
-    } );
+    ([$ctx:expr], $($arg:tt)*) => (::neqo_common::log_invoke!(::log::Level::Trace, $ctx, $($arg)*););
+    ($($arg:tt)*) => ( { ::neqo_common::log::init(None); ::neqo_common::do_log!(::log::Level::Trace, $($arg)*); } );
 }

@@ -222,11 +222,13 @@ impl StateSignaling {
     }
 
     pub fn write_done(&mut self, builder: &mut PacketBuilder) -> Option<RecoveryToken> {
-        (matches!(self, Self::HandshakeDone) && builder.remaining() >= 1).then(|| {
+        if matches!(self, Self::HandshakeDone) && builder.remaining() >= 1 {
             *self = Self::Idle;
             builder.encode_varint(FRAME_TYPE_HANDSHAKE_DONE);
-            RecoveryToken::HandshakeDone
-        })
+            Some(RecoveryToken::HandshakeDone)
+        } else {
+            None
+        }
     }
 
     pub fn close(

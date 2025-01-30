@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::mem;
+
 use neqo_transport::StreamType;
 
 use crate::{
@@ -92,7 +94,7 @@ fn wt_server_stream_bidi() {
     wt.send_data_server(&wt_server_stream, BUF_SERVER);
     wt.receive_data_client(wt_server_stream.stream_id(), true, BUF_SERVER, false);
     wt.send_data_client(wt_server_stream.stream_id(), BUF_CLIENT);
-    drop(wt.receive_data_server(wt_server_stream.stream_id(), false, BUF_CLIENT, false));
+    mem::drop(wt.receive_data_server(wt_server_stream.stream_id(), false, BUF_CLIENT, false));
     let stats = wt.send_stream_stats(wt_server_stream.stream_id()).unwrap();
     assert_eq!(stats.bytes_written(), BUF_CLIENT.len() as u64);
     assert_eq!(stats.bytes_sent(), BUF_CLIENT.len() as u64);
@@ -159,7 +161,7 @@ fn wt_server_stream_bidi_close() {
     wt.receive_data_client(wt_server_stream.stream_id(), true, BUF_SERVER, true);
     wt.send_data_client(wt_server_stream.stream_id(), BUF_CLIENT);
     wt.close_stream_sending_client(wt_server_stream.stream_id());
-    drop(wt.receive_data_server(wt_server_stream.stream_id(), false, BUF_CLIENT, true));
+    mem::drop(wt.receive_data_server(wt_server_stream.stream_id(), false, BUF_CLIENT, true));
 }
 
 #[test]
@@ -170,7 +172,7 @@ fn wt_client_stream_uni_reset() {
     let wt_session = wt.create_wt_session();
     let wt_stream = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
     wt.send_data_client(wt_stream, BUF_CLIENT);
-    drop(wt.receive_data_server(wt_stream, true, BUF_CLIENT, false));
+    mem::drop(wt.receive_data_server(wt_stream, true, BUF_CLIENT, false));
     wt.reset_stream_client(wt_stream);
     wt.receive_reset_server(wt_stream, Error::HttpNoError.code());
 }
@@ -313,7 +315,7 @@ fn wt_client_session_close_1() {
 
     let bidi_from_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_from_client, BUF);
-    drop(wt.receive_data_server(bidi_from_client, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_from_client, true, BUF, false));
 
     wt.cancel_session_client(wt_session.stream_id());
 
@@ -348,7 +350,7 @@ fn wt_client_session_close_2() {
     let unidi_from_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
 
     wt.send_data_client(unidi_from_client, BUF);
-    drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
 
     wt.cancel_session_client(wt_session.stream_id());
 
@@ -383,7 +385,7 @@ fn wt_client_session_close_3() {
     let unidi_from_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
 
     wt.send_data_client(unidi_from_client, BUF);
-    drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
     wt.close_stream_sending_client(unidi_from_client);
 
     wt.cancel_session_client(wt_session.stream_id());
@@ -448,7 +450,7 @@ fn wt_client_session_close_5() {
     let unidi_from_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
 
     wt.send_data_client(unidi_from_client, BUF);
-    drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
+    mem::drop(wt.receive_data_server(unidi_from_client, true, BUF, false));
     wt.reset_stream_client(unidi_from_client);
 
     wt.cancel_session_client(wt_session.stream_id());
@@ -698,10 +700,10 @@ fn wt_client_session_close_13() {
 
     let bidi_client_1 = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_client_1, BUF);
-    drop(wt.receive_data_server(bidi_client_1, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_client_1, true, BUF, false));
     let bidi_client_2 = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_client_2, BUF);
-    drop(wt.receive_data_server(bidi_client_2, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_client_2, true, BUF, false));
 
     wt.cancel_session_client(wt_session.stream_id());
 
@@ -748,7 +750,7 @@ fn wt_client_session_server_close_1() {
 
     let bidi_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_client, BUF);
-    drop(wt.receive_data_server(bidi_client, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_client, true, BUF, false));
 
     wt.cancel_session_server(&wt_session);
 
@@ -782,7 +784,7 @@ fn wt_client_session_server_close_2() {
 
     let unidi_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
     wt.send_data_client(unidi_client, BUF);
-    drop(wt.receive_data_server(unidi_client, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(unidi_client, true, BUF, false));
 
     wt.cancel_session_server(&wt_session);
 
@@ -1062,10 +1064,10 @@ fn wt_client_session_server_close_11() {
 
     let bidi_client_1 = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_client_1, BUF);
-    drop(wt.receive_data_server(bidi_client_1, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_client_1, true, BUF, false));
     let bidi_client_2 = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::BiDi);
     wt.send_data_client(bidi_client_2, BUF);
-    drop(wt.receive_data_server(bidi_client_2, true, BUF, false));
+    std::mem::drop(wt.receive_data_server(bidi_client_2, true, BUF, false));
 
     wt.cancel_session_server(&wt_session);
 

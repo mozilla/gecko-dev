@@ -31,11 +31,15 @@ impl IncrementalDecoderUint {
             if amount < 8 {
                 self.v <<= amount * 8;
             }
-            self.v |= dv.decode_n(amount).unwrap();
+            self.v |= dv.decode_uint(amount).unwrap();
             *r -= amount;
-            (*r == 0).then_some(self.v)
+            if *r == 0 {
+                Some(self.v)
+            } else {
+                None
+            }
         } else {
-            let (v, remaining) = dv.decode_uint::<u8>().map_or_else(
+            let (v, remaining) = dv.decode_byte().map_or_else(
                 || unreachable!(),
                 |b| {
                     (
@@ -52,7 +56,11 @@ impl IncrementalDecoderUint {
             );
             self.remaining = Some(remaining);
             self.v = v;
-            (remaining == 0).then_some(v)
+            if remaining == 0 {
+                Some(v)
+            } else {
+                None
+            }
         }
     }
 
@@ -92,7 +100,11 @@ impl IncrementalDecoderBuffer {
         let b = dv.decode(amount).unwrap();
         self.v.extend_from_slice(b);
         self.remaining -= amount;
-        (self.remaining == 0).then(|| mem::take(&mut self.v))
+        if self.remaining == 0 {
+            Some(mem::take(&mut self.v))
+        } else {
+            None
+        }
     }
 }
 

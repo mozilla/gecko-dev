@@ -233,7 +233,7 @@ mod test {
         init();
         let base = get_base();
         let delta_micros = PRTime::try_from(DELTA.as_micros()).unwrap();
-        println!("{} - {delta_micros}", base.prtime);
+        println!("{} - {}", base.prtime, delta_micros);
         let t = Time::try_from(base.prtime - delta_micros).unwrap();
         assert_eq!(Instant::from(t) + DELTA, base.instant);
     }

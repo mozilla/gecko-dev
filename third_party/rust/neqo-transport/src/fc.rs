@@ -68,11 +68,13 @@ where
     /// control if the change was an increase and `None` otherwise.
     pub fn update(&mut self, limit: u64) -> Option<usize> {
         debug_assert!(limit < u64::MAX);
-        (limit > self.limit).then(|| {
+        if limit > self.limit {
             self.limit = limit;
             self.blocked_frame = false;
-            self.available()
-        })
+            Some(self.available())
+        } else {
+            None
+        }
     }
 
     /// Consume flow control.
@@ -324,8 +326,9 @@ impl ReceiverFlowControl<()> {
     pub fn consume(&mut self, count: u64) -> Res<()> {
         if self.consumed + count > self.max_allowed {
             qtrace!(
-                "Session RX window exceeded: consumed:{} new:{count} limit:{}",
+                "Session RX window exceeded: consumed:{} new:{} limit:{}",
                 self.consumed,
+                count,
                 self.max_allowed
             );
             return Err(Error::FlowControlError);
@@ -380,7 +383,7 @@ impl ReceiverFlowControl<StreamId> {
         }
 
         if consumed > self.max_allowed {
-            qtrace!("Stream RX window exceeded: {consumed}");
+            qtrace!("Stream RX window exceeded: {}", consumed);
             return Err(Error::FlowControlError);
         }
         let new_consumed = consumed - self.consumed;
@@ -499,8 +502,8 @@ impl RemoteStreamLimits {
 impl Index<StreamType> for RemoteStreamLimits {
     type Output = RemoteStreamLimit;
 
-    fn index(&self, index: StreamType) -> &Self::Output {
-        match index {
+    fn index(&self, idx: StreamType) -> &Self::Output {
+        match idx {
             StreamType::BiDi => &self.bidirectional,
             StreamType::UniDi => &self.unidirectional,
         }
@@ -508,8 +511,8 @@ impl Index<StreamType> for RemoteStreamLimits {
 }
 
 impl IndexMut<StreamType> for RemoteStreamLimits {
-    fn index_mut(&mut self, index: StreamType) -> &mut Self::Output {
-        match index {
+    fn index_mut(&mut self, idx: StreamType) -> &mut Self::Output {
+        match idx {
             StreamType::BiDi => &mut self.bidirectional,
             StreamType::UniDi => &mut self.unidirectional,
         }
@@ -554,8 +557,8 @@ impl LocalStreamLimits {
 impl Index<StreamType> for LocalStreamLimits {
     type Output = SenderFlowControl<StreamType>;
 
-    fn index(&self, index: StreamType) -> &Self::Output {
-        match index {
+    fn index(&self, idx: StreamType) -> &Self::Output {
+        match idx {
             StreamType::BiDi => &self.bidirectional,
             StreamType::UniDi => &self.unidirectional,
         }
@@ -563,8 +566,8 @@ impl Index<StreamType> for LocalStreamLimits {
 }
 
 impl IndexMut<StreamType> for LocalStreamLimits {
-    fn index_mut(&mut self, index: StreamType) -> &mut Self::Output {
-        match index {
+    fn index_mut(&mut self, idx: StreamType) -> &mut Self::Output {
+        match idx {
             StreamType::BiDi => &mut self.bidirectional,
             StreamType::UniDi => &mut self.unidirectional,
         }
