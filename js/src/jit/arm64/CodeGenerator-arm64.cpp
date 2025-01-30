@@ -1156,6 +1156,14 @@ void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
                                 ToRegister(lir->output()));
 }
 
+ValueOperand CodeGeneratorARM64::ToValue(LInstruction* ins, size_t pos) {
+  return ValueOperand(ToRegister(ins->getOperand(pos)));
+}
+
+ValueOperand CodeGeneratorARM64::ToTempValue(LInstruction* ins, size_t pos) {
+  MOZ_CRASH("CodeGeneratorARM64::ToTempValue");
+}
+
 void CodeGenerator::visitBox(LBox* box) {
   const LAllocation* in = box->payload();
   ValueOperand result = ToOutValue(box);
@@ -1169,7 +1177,7 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   Register result = ToRegister(unbox->output());
 
   if (mir->fallible()) {
-    ValueOperand value = ToValue(unbox->input());
+    const ValueOperand value = ToValue(unbox, LUnbox::Input);
     Label bail;
     switch (mir->type()) {
       case MIRType::Int32:
@@ -1199,7 +1207,7 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
 
   // Infallible unbox.
 
-  ValueOperand input = ToValue(unbox->input());
+  ValueOperand input = ToValue(unbox, LUnbox::Input);
 
 #ifdef DEBUG
   // Assert the types match.

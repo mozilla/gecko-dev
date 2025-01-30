@@ -880,15 +880,6 @@ class LInstruction : public LNode,
     *getOperand(index) = a;
   }
 
-  LBoxAllocation getBoxOperand(size_t index) const {
-#ifdef JS_NUNBOX32
-    return LBoxAllocation(*getOperand(index + TYPE_INDEX),
-                          *getOperand(index + PAYLOAD_INDEX));
-#else
-    return LBoxAllocation(*getOperand(index));
-#endif
-  }
-
   void initOperandsOffset(size_t offset) {
     MOZ_ASSERT(nonPhiOperandsOffset_ == 0);
     MOZ_ASSERT(offset >= sizeof(LInstruction));
@@ -1173,14 +1164,6 @@ class LInstructionHelper
     return &operands_[index];
   }
   void setOperand(size_t index, const LAllocation& a) { operands_[index] = a; }
-  LBoxAllocation getBoxOperand(size_t index) const {
-#ifdef JS_NUNBOX32
-    return LBoxAllocation(operands_[index + TYPE_INDEX],
-                          operands_[index + PAYLOAD_INDEX]);
-#else
-    return LBoxAllocation(operands_[index]);
-#endif
-  }
   void setBoxOperand(size_t index, const LBoxAllocation& alloc) {
 #ifdef JS_NUNBOX32
     operands_[index + TYPE_INDEX] = alloc.type();

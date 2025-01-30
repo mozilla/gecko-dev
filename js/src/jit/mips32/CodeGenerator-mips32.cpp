@@ -21,6 +21,18 @@
 using namespace js;
 using namespace js::jit;
 
+ValueOperand CodeGeneratorMIPS::ToValue(LInstruction* ins, size_t pos) {
+  Register typeReg = ToRegister(ins->getOperand(pos + TYPE_INDEX));
+  Register payloadReg = ToRegister(ins->getOperand(pos + PAYLOAD_INDEX));
+  return ValueOperand(typeReg, payloadReg);
+}
+
+ValueOperand CodeGeneratorMIPS::ToTempValue(LInstruction* ins, size_t pos) {
+  Register typeReg = ToRegister(ins->getTemp(pos + TYPE_INDEX));
+  Register payloadReg = ToRegister(ins->getTemp(pos + PAYLOAD_INDEX));
+  return ValueOperand(typeReg, payloadReg);
+}
+
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 

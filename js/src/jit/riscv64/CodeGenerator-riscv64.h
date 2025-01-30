@@ -148,6 +148,9 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
   void emitWasmLoadI64(T* ins);
   template <typename T>
   void emitWasmStoreI64(T* ins);
+
+  ValueOperand ToValue(LInstruction* ins, size_t pos);
+  ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 };
 
 typedef CodeGeneratorRiscv64 CodeGeneratorSpecific;

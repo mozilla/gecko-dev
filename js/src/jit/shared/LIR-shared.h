@@ -420,7 +420,6 @@ class LApplyArgsGeneric
   const LAllocation* getFunction() { return getOperand(0); }
   const LAllocation* getArgc() { return getOperand(1); }
   static const size_t ThisIndex = 2;
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   const LDefinition* getTempObject() { return getTemp(0); }
   const LDefinition* getTempForArgCopy() { return getTemp(1); }
@@ -452,7 +451,6 @@ class LApplyArgsObj
   // All registers are calltemps. argc is mapped to the same register as
   // ArgsObj. argc becomes live as ArgsObj is dying.
   const LAllocation* getArgc() { return getOperand(1); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
   static const size_t ThisIndex = 2;
 
   const LDefinition* getTempObject() { return getTemp(0); }
@@ -485,7 +483,6 @@ class LApplyArrayGeneric
   // argc is mapped to the same register as elements: argc becomes
   // live as elements is dying, all registers are calltemps.
   const LAllocation* getArgc() { return getOperand(1); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
   static const size_t ThisIndex = 2;
 
   const LDefinition* getTempObject() { return getTemp(0); }
@@ -519,7 +516,6 @@ class LConstructArgsGeneric
   const LAllocation* getFunction() { return getOperand(0); }
   const LAllocation* getArgc() { return getOperand(1); }
   const LAllocation* getNewTarget() { return getOperand(2); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   static const size_t ThisIndex = 3;
 
@@ -556,7 +552,6 @@ class LConstructArrayGeneric
   const LAllocation* getFunction() { return getOperand(0); }
   const LAllocation* getElements() { return getOperand(1); }
   const LAllocation* getNewTarget() { return getOperand(2); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   static const size_t ThisIndex = 3;
 
@@ -595,7 +590,6 @@ class LApplyArgsNative
   uint32_t numExtraFormals() const { return mir()->numExtraFormals(); }
 
   const LAllocation* getArgc() { return getOperand(0); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   static const size_t ThisIndex = 1;
 
@@ -625,7 +619,6 @@ class LApplyArgsObjNative
   MApplyArgsObj* mir() const { return mir_->toApplyArgsObj(); }
 
   const LAllocation* getArgsObj() { return getOperand(0); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   static const size_t ThisIndex = 1;
 
@@ -659,7 +652,6 @@ class LApplyArrayNative
   MApplyArray* mir() const { return mir_->toApplyArray(); }
 
   const LAllocation* getElements() { return getOperand(0); }
-  LBoxAllocation thisValue() const { return getBoxOperand(ThisIndex); }
 
   static const size_t ThisIndex = 1;
 

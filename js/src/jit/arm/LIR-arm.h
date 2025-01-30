@@ -39,7 +39,7 @@ class LUnbox : public LInstructionHelper<1, 2, 0> {
   const char* extraName() const { return StringFromMIRType(mir()->type()); }
 };
 
-class LUnboxFloatingPoint : public LInstructionHelper<1, BOX_PIECES, 0> {
+class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0> {
  public:
   LIR_HEADER(UnboxFloatingPoint);
 
@@ -49,8 +49,6 @@ class LUnboxFloatingPoint : public LInstructionHelper<1, BOX_PIECES, 0> {
       : LInstructionHelper(classOpcode) {
     setBoxOperand(Input, input);
   }
-
-  LBoxAllocation input() const { return getBoxOperand(Input); }
 
   MUnbox* mir() const { return mir_->toUnbox(); }
 };

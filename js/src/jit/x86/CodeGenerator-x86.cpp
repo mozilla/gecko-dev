@@ -39,6 +39,18 @@ CodeGeneratorX86::CodeGeneratorX86(MIRGenerator* gen, LIRGraph* graph,
                                    MacroAssembler* masm)
     : CodeGeneratorX86Shared(gen, graph, masm) {}
 
+ValueOperand CodeGeneratorX86::ToValue(LInstruction* ins, size_t pos) {
+  Register typeReg = ToRegister(ins->getOperand(pos + TYPE_INDEX));
+  Register payloadReg = ToRegister(ins->getOperand(pos + PAYLOAD_INDEX));
+  return ValueOperand(typeReg, payloadReg);
+}
+
+ValueOperand CodeGeneratorX86::ToTempValue(LInstruction* ins, size_t pos) {
+  Register typeReg = ToRegister(ins->getTemp(pos + TYPE_INDEX));
+  Register payloadReg = ToRegister(ins->getTemp(pos + PAYLOAD_INDEX));
+  return ValueOperand(typeReg, payloadReg);
+}
+
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 
@@ -320,11 +332,12 @@ void CodeGeneratorX86::emitWasmStore(T* ins) {
                     offset ? offset : mir->base()->toConstant()->toInt32())
           : Operand(ToRegister(memoryBase), ToRegister(ptr), TimesOne, offset);
 
-  if constexpr (std::is_same_v<T, LWasmStoreI64>) {
-    Register64 value = ToRegister64(ins->value());
+  if (mir->access().type() == Scalar::Int64) {
+    Register64 value =
+        ToRegister64(ins->getInt64Operand(LWasmStoreI64::ValueIndex));
     masm.wasmStoreI64(mir->access(), value, dstAddr);
   } else {
-    AnyRegister value = ToAnyRegister(ins->value());
+    AnyRegister value = ToAnyRegister(ins->getOperand(LWasmStore::ValueIndex));
     masm.wasmStore(mir->access(), value, dstAddr);
   }
 }
