@@ -92,3 +92,18 @@ collection-disabled-ping:
     - REDUNDANT_PING
   metadata:
     follows_collection_enabled: false
+
+disabled-ping:
+  description: |
+    This ping is for tests only.
+  include_client_id: false
+  send_if_empty: true
+  enabled: false
+  bugs:
+    - https://bugzilla.mozilla.org/1894270
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1894270#c1
+  notification_emails:
+    - glean-team@mozilla.com
+  no_lint:
+    - REDUNDANT_PING

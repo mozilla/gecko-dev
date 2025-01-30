@@ -172,3 +172,41 @@ add_task(function test_fog_metrics_disabled_reset_fog_behavior() {
   // Reset everything so it doesn't interfere with other tests.
   Services.fog.testResetFOG();
 });
+
+add_task(function test_fog_metrics_disabled_ping() {
+  // This test should work equally for full builds and artifact builds.
+
+  Assert.ok("disabledPing" in GleanPings);
+
+  // This metric's ping is disabled and does not collect data.
+  Glean.testOnly.disabledCounter.add(1);
+  Assert.equal(undefined, Glean.testOnly.disabledCounter.testGetValue());
+
+  // Create and set a feature configuration that enables the test ping.
+  let feature_config = {
+    pings_enabled: {
+      "disabled-ping": true,
+    },
+  };
+  Services.fog.applyServerKnobsConfig(JSON.stringify(feature_config));
+
+  Glean.testOnly.disabledCounter.add(2);
+  Assert.equal(2, Glean.testOnly.disabledCounter.testGetValue());
+
+  // Will be submitted. We can observe that data is cleared afterwards
+  GleanPings.disabledPing.submit();
+  Assert.equal(undefined, Glean.testOnly.disabledCounter.testGetValue());
+
+  feature_config = {
+    pings_enabled: {
+      "disabled-ping": false,
+    },
+  };
+  Services.fog.applyServerKnobsConfig(JSON.stringify(feature_config));
+
+  Glean.testOnly.disabledCounter.add(3);
+  Assert.equal(undefined, Glean.testOnly.disabledCounter.testGetValue());
+
+  // Reset everything so it doesn't interfere with other tests.
+  Services.fog.testResetFOG();
+});
