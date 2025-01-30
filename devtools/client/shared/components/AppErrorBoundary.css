@@ -16,7 +16,10 @@
   overflow-y: scroll;
   padding: 1rem 3rem;
   width: 100%;
+  box-sizing: border-box;
   height: 100%;
+  max-height: 100vh;
+  user-select: text;
 }
 
 /* "Has crashed" header */
@@ -39,6 +42,17 @@
   text-align: center;
   inline-size: 200px;
   text-decoration: none;
+}
+
+/* Close button, when the error is for an early exception during toolbox opening */
+.app-error-panel .error-panel-close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+
+  &::before {
+    background-image: url("chrome://devtools/skin/images/close.svg");
+  }
 }
 
 .app-error-panel .error-panel-file-button:hover {

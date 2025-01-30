@@ -50,7 +50,8 @@ const {
 } = require("resource://devtools/shared/l10n.js");
 const L10N = new MultiLocalizationHelper(
   "devtools/client/locales/toolbox.properties",
-  "chrome://branding/locale/brand.properties"
+  "chrome://branding/locale/brand.properties",
+  "devtools/client/locales/menus.properties"
 );
 
 loader.lazyRequireGetter(
@@ -916,8 +917,8 @@ Toolbox.prototype = {
   /**
    * Open the toolbox
    */
-  open() {
-    return async function () {
+  async open() {
+    try {
       // Kick off async loading the Fluent bundles.
       const fluentL10n = new FluentL10n();
       const fluentInitPromise = fluentL10n.init([
@@ -930,7 +931,9 @@ Toolbox.prototype = {
         this._URL = this.win.location.href;
       }
 
-      const domReady = new Promise(resolve => {
+      // To avoid any possible artifact, wait for the document to be fully loaded
+      // before creating the Browser Loader based on toolbox window object.
+      await new Promise(resolve => {
         DOMHelpers.onceDOMReady(
           this.win,
           () => {
@@ -940,6 +943,24 @@ Toolbox.prototype = {
         );
       });
 
+      // Setup the Toolbox Browser Loader, used to load React component modules
+      // which expect to be loaded with toolbox.xhtml document as global scope.
+      this.browserRequire = BrowserLoader({
+        window: this.win,
+        useOnlyShared: true,
+      }).require;
+
+      // Wait for fluent initialization before mounting React component,
+      // which depends on it.
+      await fluentInitPromise;
+
+      // Mount toolbox React components and update all its state that can be updated synchronously.
+      // Do that early as it will be used to render any exception happening next.
+      this._mountReactComponent(fluentL10n.getBundles());
+
+      // Bug 1709063: Use commands.resourceCommand instead of toolbox.resourceCommand
+      this.resourceCommand = this.commands.resourceCommand;
+
       this.commands.targetCommand.on(
         "target-thread-wrong-order-on-resume",
         this._onTargetThreadFrontResumeWrongOrder.bind(this)
@@ -948,9 +969,6 @@ Toolbox.prototype = {
         this.commands.targetCommand.store,
         this._onTargetCommandStateChange.bind(this)
       );
-
-      // Bug 1709063: Use commands.resourceCommand instead of toolbox.resourceCommand
-      this.resourceCommand = this.commands.resourceCommand;
 
       // Optimization: fire up a few other things before waiting on
       // the iframe being ready (makes startup faster)
@@ -1011,13 +1029,6 @@ Toolbox.prototype = {
         }
       );
 
-      await domReady;
-
-      this.browserRequire = BrowserLoader({
-        window: this.win,
-        useOnlyShared: true,
-      }).require;
-
       this.isReady = true;
 
       const framesPromise = this._listFrames();
@@ -1027,14 +1038,6 @@ Toolbox.prototype = {
         this._refreshHostTitle
       );
 
-      // Get the DOM element to mount the ToolboxController to.
-      this._componentMount = this.doc.getElementById("toolbox-toolbar-mount");
-
-      await fluentInitPromise;
-
-      // Mount the ToolboxController component and update all its state
-      // that can be updated synchronousl
-      this._mountReactComponent(fluentL10n.getBundles());
       this._buildDockOptions();
       this._buildInitialPanelDefinitions();
       this._setDebugTargetData();
@@ -1140,14 +1143,32 @@ Toolbox.prototype = {
 
       this.emit("ready");
       this._resolveIsOpen();
+    } catch (error) {
+      console.error(
+        "Exception while opening the toolbox",
+        String(error),
+        error
+      );
+      // While the exception stack is correctly printed in the Browser console when
+      // passing `e` to console.error, it is not on the stdout, so print it via dump.
+      dump(error.stack + "\n");
+      if (error.serverStack) {
+        dump("Server stack:" + error.serverStack + "\n");
+      }
+
+      // If the exception happens *after* the React component were initialized,
+      // try to display the exception to the user via AppErrorBoundary component
+      if (this._appBoundary) {
+        this._appBoundary.setState({
+          errorMsg: error.toString(),
+          errorStack: error.stack,
+          errorInfo: {
+            serverStack: error.serverStack,
+          },
+          toolbox: this,
+        });
+      }
     }
-      .bind(this)()
-      .catch(e => {
-        console.error("Exception while opening the toolbox", String(e), e);
-        // While the exception stack is correctly printed in the Browser console when
-        // passing `e` to console.error, it is not on the stdout, so print it via dump.
-        dump(e.stack + "\n");
-      });
   },
 
   /**
@@ -1490,6 +1511,12 @@ Toolbox.prototype = {
   get ToolboxController() {
     return this.browserRequire(
       "devtools/client/framework/components/ToolboxController"
+    );
+  },
+
+  get AppErrorBoundary() {
+    return this.browserRequire(
+      "resource://devtools/client/shared/components/AppErrorBoundary.js"
     );
   },
 
@@ -1983,32 +2010,44 @@ Toolbox.prototype = {
   },
 
   /**
-   * Initiate ToolboxController React component and all it's properties. Do the initial render.
+   * Initiate toolbox React components and all it's properties. Do the initial render.
    *
    * @param {Object} fluentBundles
    *        A FluentBundle instance used to display any localized text in the React component.
    */
   _mountReactComponent(fluentBundles) {
     // Ensure the toolbar doesn't try to render until the tool is ready.
-    const element = this.React.createElement(this.ToolboxController, {
-      L10N,
-      fluentBundles,
-      currentToolId: this.currentToolId,
-      selectTool: this.selectTool,
-      toggleOptions: this.toggleOptions,
-      toggleSplitConsole: this.toggleSplitConsole,
-      toggleNoAutohide: this.toggleNoAutohide,
-      toggleAlwaysOnTop: this.toggleAlwaysOnTop,
-      disablePseudoLocale: this.disablePseudoLocale,
-      enableAccentedPseudoLocale: this.enableAccentedPseudoLocale,
-      enableBidiPseudoLocale: this.enableBidiPseudoLocale,
-      closeToolbox: this.closeToolbox,
-      focusButton: this._onToolbarFocus,
-      toolbox: this,
-      onTabsOrderUpdated: this._onTabsOrderUpdated,
-    });
+    const element = this.React.createElement(
+      this.AppErrorBoundary,
+      {
+        componentName: "General",
+        panel: L10N.getStr("webDeveloperToolsMenu.label"),
+      },
+      this.React.createElement(this.ToolboxController, {
+        ref: r => {
+          this.component = r;
+        },
+        L10N,
+        fluentBundles,
+        currentToolId: this.currentToolId,
+        selectTool: this.selectTool,
+        toggleOptions: this.toggleOptions,
+        toggleSplitConsole: this.toggleSplitConsole,
+        toggleNoAutohide: this.toggleNoAutohide,
+        toggleAlwaysOnTop: this.toggleAlwaysOnTop,
+        disablePseudoLocale: this.disablePseudoLocale,
+        enableAccentedPseudoLocale: this.enableAccentedPseudoLocale,
+        enableBidiPseudoLocale: this.enableBidiPseudoLocale,
+        closeToolbox: this.closeToolbox,
+        focusButton: this._onToolbarFocus,
+        toolbox: this,
+        onTabsOrderUpdated: this._onTabsOrderUpdated,
+      })
+    );
 
-    this.component = this.ReactDOM.render(element, this._componentMount);
+    // Get the DOM element to mount the ToolboxController to.
+    this._componentMount = this.doc.getElementById("toolbox-toolbar-mount");
+    this._appBoundary = this.ReactDOM.render(element, this._componentMount);
   },
 
   /**
@@ -4247,15 +4286,18 @@ Toolbox.prototype = {
       );
       this.webconsolePanel = null;
     }
-    if (this._componentMount) {
+    if (this._tabBar) {
       this._tabBar.removeEventListener(
         "keypress",
         this._onToolbarArrowKeypress
       );
+    }
+    if (this._componentMount) {
       this.ReactDOM.unmountComponentAtNode(this._componentMount);
       this.component = null;
       this._componentMount = null;
       this._tabBar = null;
+      this._appBoundary = null;
     }
     this.destroyHarAutomation();
 
@@ -4317,12 +4359,14 @@ Toolbox.prototype = {
     });
 
     // Unregister buttons listeners
-    this.toolbarButtons.forEach(button => {
-      if (typeof button.teardown == "function") {
-        // teardown arguments have already been bound in _createButtonState
-        button.teardown();
-      }
-    });
+    if (this.toolbarButtons) {
+      this.toolbarButtons.forEach(button => {
+        if (typeof button.teardown == "function") {
+          // teardown arguments have already been bound in _createButtonState
+          button.teardown();
+        }
+      });
+    }
 
     // We need to grab a reference to win before this._host is destroyed.
     const win = this.win;

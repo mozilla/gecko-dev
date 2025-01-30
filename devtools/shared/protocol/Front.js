@@ -380,6 +380,8 @@ class Front extends Pool {
             message += ` (${fileName}:${lineNumber}:${columnNumber})`;
           }
           const packetError = new Error(message);
+          // Also handle the stack trace from the server side
+          packetError.serverStack = packet.stack;
           deferred.reject(packetError);
         } else {
           deferred.resolve(packet);

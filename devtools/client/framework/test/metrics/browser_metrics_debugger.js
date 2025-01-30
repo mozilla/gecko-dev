@@ -41,9 +41,11 @@ add_task(async function () {
     "resource://devtools/client/shared/vendor/redux.js",
     "resource://devtools/client/shared/redux/subscriber.js",
 
+    // React components loaded from Toolbox and Panel BrowserLoaders
     "resource://devtools/client/shared/components/menu/MenuButton.js",
     "resource://devtools/client/shared/components/menu/MenuItem.js",
     "resource://devtools/client/shared/components/menu/MenuList.js",
+    "resource://devtools/client/shared/components/AppErrorBoundary.js",
   ];
   runDuplicatedModulesTest(loaders, allowedDupes);
 

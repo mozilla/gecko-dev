@@ -684,3 +684,8 @@
   color: var(--theme-toolbar-reordering-color);
   z-index: 1;
 }
+
+.app-error-panel {
+  /* ensure that the panel hides the possibly broken toolbox displayed behind */
+  background-color: var(--theme-body-background);
+}

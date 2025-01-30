@@ -35,9 +35,6 @@ add_task(async function () {
     "resource://devtools/client/webconsole/utils/l10n.js",
     "resource://devtools/client/netmonitor/src/utils/request-utils.js",
     "resource://devtools/client/webconsole/types.js",
-    "resource://devtools/client/shared/components/menu/MenuButton.js",
-    "resource://devtools/client/shared/components/menu/MenuItem.js",
-    "resource://devtools/client/shared/components/menu/MenuList.js",
     "resource://devtools/client/shared/vendor/fluent-react.js",
     "resource://devtools/client/shared/vendor/react.js",
     "resource://devtools/client/shared/vendor/react-dom.js",
@@ -45,6 +42,12 @@ add_task(async function () {
     "resource://devtools/client/shared/vendor/react-dom-factories.js",
     "resource://devtools/client/shared/vendor/redux.js",
     "resource://devtools/client/shared/redux/middleware/thunk.js",
+
+    // React components loaded from Toolbox and Panel BrowserLoaders
+    "resource://devtools/client/shared/components/menu/MenuButton.js",
+    "resource://devtools/client/shared/components/menu/MenuItem.js",
+    "resource://devtools/client/shared/components/menu/MenuList.js",
+    "resource://devtools/client/shared/components/AppErrorBoundary.js",
   ];
   runDuplicatedModulesTest(loaders, allowedDupes);
 

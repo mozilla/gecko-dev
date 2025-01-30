@@ -131,6 +131,8 @@ class Actor extends Pool {
       fileName: error.fileName || error.filename,
       lineNumber: error.lineNumber,
       columnNumber: error.columnNumber,
+      // Also pass the whole stack as string
+      stack: error.stack,
     });
   }
 
