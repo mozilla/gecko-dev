@@ -1171,6 +1171,9 @@ main section {
   display: flex;
   justify-content: center;
 }
+.shortcuts-refresh .discovery-stream.ds-layout.ds-layout-topsites .top-sites {
+  padding-block-start: 0;
+}
 
 .edit-topsites-wrapper .top-site-inner > .top-site-button > .tile {
   border: 1px solid var(--newtab-border-color);
@@ -1699,6 +1702,7 @@ main section {
 
 .shortcuts-refresh.has-recommended-stories .outer-wrapper:not(.fixed-search) .search-wrapper {
   margin-block-end: 28px;
+  padding: 0;
 }
 
 .layout-variant-b.has-recommended-stories .outer-wrapper:not(.fixed-search) .search-wrapper {

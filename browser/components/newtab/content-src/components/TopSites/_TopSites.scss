@@ -509,6 +509,10 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   .discovery-stream.ds-layout.ds-layout-topsites {
     display: flex;
     justify-content: center;
+
+    .top-sites {
+      padding-block-start: 0;
+    }
   }
 }
 
