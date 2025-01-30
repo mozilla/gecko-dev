@@ -97,16 +97,21 @@ Detailed Docs
 
 .. __: ./messaging-glossary.html
 
-* Read more about `trigger listeners and user action schemas`__.
-
-.. __: /toolkit/components/messaging-system/docs
-
-* If interested in messaging experimentation through Nimbus, see `Messaging System: Experimenter Onboarding`__.
+* Learn more about messaging experimentation through `Nimbus <https://experimenter.info/>`_ in the `Messaging System: Experimenter Onboarding`__.
 
 .. __: https://mozilla-hub.atlassian.net/wiki/spaces/FIREFOX/pages/233406786/OMC+Experimenter+Onboarding
 
+* `Messaging system schemas`_
 
+.. _Messaging system schemas: https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/index.html#messaging-system-schemas
 
+* `User actions`_
+
+.. _User actions: https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/SpecialMessageActionSchemas/index.html
+
+* `Triggers`_
+
+.. _Triggers: https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/TriggerActionSchemas/index.html
 
 .. In theory, we ought to be able to use the :glob: directive here to
 .. automatically generate the list below. For unknown reasons, however,
