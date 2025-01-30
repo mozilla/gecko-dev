@@ -72,16 +72,25 @@ function getUnicodeUrlPath(urlPath) {
  * If the `url` is a data: URI, then this function will return the original
  * `url`.
  *
- * @param {string}  url
+ * @param {string|URL}  url
  *                  the full URL, or a data: URI. from which the readable URL
  *                  will be parsed, such as, http://example.org/a/b/c.js,
  *                  http://xn--g6w.xn--8pv/%E8%A9%A6/%E6%B8%AC.js
+ *                  Can also be an already parsed URL.
  * @return {string} The readable URL. It may be the same as the `url` passed to
  *                  this function if the `url` itself is readable.
  */
 function getUnicodeUrl(url) {
   try {
-    const { protocol, hostname } = new URL(url);
+    let urlObject;
+    if (typeof url === "string") {
+      urlObject = new URL(url);
+    } else {
+      urlObject = url;
+      url = urlObject.href;
+    }
+
+    const { protocol, hostname } = urlObject;
     if (protocol === "data:") {
       // Never convert a data: URI.
       return url;

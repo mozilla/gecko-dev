@@ -186,11 +186,14 @@ function getFileName(baseNameWithQuery) {
 /**
  * Helpers for retrieving a URL object from a string
  *
- * @param {string} url - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or already a URL object
  * @return {URL} The URL object
  */
 function getUrl(url) {
   try {
+    if (url instanceof URL) {
+      return url;
+    }
     return new URL(url);
   } catch (err) {
     return null;
@@ -200,7 +203,7 @@ function getUrl(url) {
 /**
  * Helpers for retrieving the value of a URL object property
  *
- * @param {string} input - unvalidated url string
+ * @param {string|URL} input - unvalidated url string or URL instance
  * @param {string} string - desired property in the URL object
  * @return {string} unicode query of a url
  */
@@ -214,7 +217,7 @@ function getUrlProperty(input, property) {
  * For example helper returns "basename" from http://domain.com/path/basename
  * If basename portion is empty, it returns the url pathname.
  *
- * @param {string} input - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or URL instance
  * @return {string} unicode basename of a url
  */
 function getUrlBaseName(url) {
@@ -225,7 +228,7 @@ function getUrlBaseName(url) {
 /**
  * Helpers for getting the query portion of a url.
  *
- * @param {string} url - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or URL instance
  * @return {string} unicode query of a url
  */
 function getUrlQuery(url) {
@@ -235,25 +238,25 @@ function getUrlQuery(url) {
 /**
  * Helpers for getting unicode name and query portions of a url.
  *
- * @param {string} url - unvalidated url string
+ * @param {URL} urlObject - the URL instance
  * @return {string} unicode basename and query portions of a url
  */
-function getUrlBaseNameWithQuery(url) {
-  if (url.startsWith("data:")) {
+function getUrlBaseNameWithQuery(urlObject) {
+  if (urlObject.href.startsWith("data:")) {
     // For data URIs, no basename can be extracted from the URL so just reuse
     // the full url.
-    return url;
+    return urlObject.href;
   }
 
-  const basename = getUrlBaseName(url);
-  const search = getUrlProperty(url, "search");
+  const basename = getUrlBaseName(urlObject);
+  const search = getUrlProperty(urlObject, "search");
   return basename + getUnicodeUrlPath(search);
 }
 
 /**
  * Helpers for getting hostname portion of an URL.
  *
- * @param {string} url - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or URL instance
  * @return {string} unicode hostname of a url
  */
 function getUrlHostName(url) {
@@ -263,7 +266,7 @@ function getUrlHostName(url) {
 /**
  * Helpers for getting host portion of an URL.
  *
- * @param {string} url - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or URL instance
  * @return {string} unicode host of a url
  */
 function getUrlHost(url) {
@@ -274,7 +277,7 @@ function getUrlHost(url) {
  * Helpers for getting the shceme portion of a url.
  * For example helper returns "http" from http://domain.com/path/basename
  *
- * @param {string}  url - unvalidated url string
+ * @param {string|URL} url - unvalidated url string or URL instance
  * @return {string} string scheme of a url
  */
 function getUrlScheme(url) {
@@ -286,11 +289,12 @@ function getUrlScheme(url) {
  * Extract several details fields from a URL at once.
  */
 function getUrlDetails(url) {
-  const baseNameWithQuery = getUrlBaseNameWithQuery(url);
-  let host = getUrlHost(url);
-  const hostname = getUrlHostName(url);
-  const unicodeUrl = getUnicodeUrl(url);
-  const scheme = getUrlScheme(url);
+  const urlObject = getUrl(url);
+  const baseNameWithQuery = getUrlBaseNameWithQuery(urlObject);
+  let host = getUrlHost(urlObject);
+  const hostname = getUrlHostName(urlObject);
+  const unicodeUrl = getUnicodeUrl(urlObject);
+  const scheme = getUrlScheme(urlObject);
 
   // If the hostname contains unreadable ASCII characters, we need to do the
   // following two steps:
