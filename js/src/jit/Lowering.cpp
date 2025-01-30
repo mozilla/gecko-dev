@@ -1883,7 +1883,7 @@ void LIRGenerator::visitMinMax(MMinMax* ins) {
 
   ReorderCommutative(&first, &second, ins);
 
-  LMinMaxBase* lir;
+  LInstructionHelper<1, 2, 0>* lir;
   switch (ins->type()) {
     case MIRType::Int32:
       lir = new (alloc())

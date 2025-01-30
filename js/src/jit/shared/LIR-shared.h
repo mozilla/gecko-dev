@@ -855,84 +855,6 @@ class LReturn : public LInstructionHelper<0, BOX_PIECES, 0> {
   bool isGenerator() { return isGenerator_; }
 };
 
-class LMinMaxBase : public LInstructionHelper<1, 2, 0> {
- protected:
-  LMinMaxBase(LNode::Opcode opcode, const LAllocation& first,
-              const LAllocation& second)
-      : LInstructionHelper(opcode) {
-    setOperand(0, first);
-    setOperand(1, second);
-  }
-
- public:
-  const LAllocation* first() { return this->getOperand(0); }
-  const LAllocation* second() { return this->getOperand(1); }
-  const LDefinition* output() { return this->getDef(0); }
-  MMinMax* mir() const { return mir_->toMinMax(); }
-  const char* extraName() const { return mir()->isMax() ? "Max" : "Min"; }
-};
-
-class LMinMaxI : public LMinMaxBase {
- public:
-  LIR_HEADER(MinMaxI)
-  LMinMaxI(const LAllocation& first, const LAllocation& second)
-      : LMinMaxBase(classOpcode, first, second) {}
-};
-
-class LMinMaxD : public LMinMaxBase {
- public:
-  LIR_HEADER(MinMaxD)
-  LMinMaxD(const LAllocation& first, const LAllocation& second)
-      : LMinMaxBase(classOpcode, first, second) {}
-};
-
-class LMinMaxF : public LMinMaxBase {
- public:
-  LIR_HEADER(MinMaxF)
-  LMinMaxF(const LAllocation& first, const LAllocation& second)
-      : LMinMaxBase(classOpcode, first, second) {}
-};
-
-class LMinMaxArrayI : public LInstructionHelper<1, 1, 3> {
- public:
-  LIR_HEADER(MinMaxArrayI);
-  LMinMaxArrayI(const LAllocation& array, const LDefinition& temp0,
-                const LDefinition& temp1, const LDefinition& temp2)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, array);
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-    setTemp(2, temp2);
-  }
-
-  const LAllocation* array() { return getOperand(0); }
-  const LDefinition* temp1() { return getTemp(0); }
-  const LDefinition* temp2() { return getTemp(1); }
-  const LDefinition* temp3() { return getTemp(2); }
-
-  bool isMax() const { return mir_->toMinMaxArray()->isMax(); }
-};
-
-class LMinMaxArrayD : public LInstructionHelper<1, 1, 3> {
- public:
-  LIR_HEADER(MinMaxArrayD);
-  LMinMaxArrayD(const LAllocation& array, const LDefinition& floatTemp,
-                const LDefinition& temp1, const LDefinition& temp2)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, array);
-    setTemp(0, floatTemp);
-    setTemp(1, temp1);
-    setTemp(2, temp2);
-  }
-
-  const LAllocation* array() { return getOperand(0); }
-  const LDefinition* floatTemp() { return getTemp(0); }
-  const LDefinition* temp1() { return getTemp(1); }
-  const LDefinition* temp2() { return getTemp(2); }
-
-  bool isMax() const { return mir_->toMinMaxArray()->isMax(); }
-};
-
 // Copysign for doubles.
 class LCopySignD : public LInstructionHelper<1, 2, 2> {
  public:
@@ -2272,6 +2194,18 @@ const char* LStoreElementT::extraName() const {
 
 const char* LArrayPopShift::extraName() const {
   return mir()->mode() == MArrayPopShift::Pop ? "Pop" : "Shift";
+}
+
+const char* LMinMaxI::extraName() const {
+  return mir()->isMax() ? "Max" : "Min";
+}
+
+const char* LMinMaxD::extraName() const {
+  return mir()->isMax() ? "Max" : "Min";
+}
+
+const char* LMinMaxF::extraName() const {
+  return mir()->isMax() ? "Max" : "Min";
 }
 #endif
 

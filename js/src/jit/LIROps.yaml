@@ -1151,19 +1151,42 @@
   call_instruction: true
 
 - name: MinMaxI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    first: WordSized
+    second: WordSized
+  mir_op: MinMax
+  extra_name: true
 
 - name: MinMaxD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    first: WordSized
+    second: WordSized
+  mir_op: MinMax
+  extra_name: true
 
 - name: MinMaxF
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    first: WordSized
+    second: WordSized
+  mir_op: MinMax
+  extra_name: true
 
 - name: MinMaxArrayI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    array: WordSized
+  num_temps: 3
+  mir_op: MinMaxArray
 
 - name: MinMaxArrayD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    array: WordSized
+  num_temps: 3
+  mir_op: MinMaxArray
 
 # Negative of integer
 - name: NegI
