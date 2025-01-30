@@ -37,9 +37,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * Handles content's interactions for the frame.
  */
 export class FormAutofillChild extends JSWindowActorChild {
-  // Flag to indicate whethere there is an ongoing autofilling process.
-  #autofillInProgress = false;
-
   /**
    * Keep track of autofill handlers that are waiting for the parent process
    * to send back the identified result.
@@ -389,12 +386,13 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   onFocusIn(element) {
-    // When autofilling, we focus on the element before setting the autofill value
-    // (See FormAutofillHandler.fillFieldValue). We ignore the focus event for this
-    // case to avoid showing popup while autofilling.
+    const handler = this._fieldDetailsManager.getFormHandler(element);
+    // When autofilling and clearing a field, we focus on the element before modifying the value.
+    // (See FormAutofillHandler.fillFieldValue and FormAutofillHandler.clearFilledFields).
+    // We ignore the focus event for those case to avoid showing popup while autofilling or clearing.
     if (
       !lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element) ||
-      this.#autofillInProgress
+      handler?.isAutofillInProgress
     ) {
       return;
     }
@@ -595,7 +593,6 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   async fillFields(focusedId, elementIds, profile) {
-    this.#autofillInProgress = true;
     let result = new Map();
     try {
       Services.obs.notifyObservers(null, "autofill-fill-starting");
@@ -609,7 +606,6 @@ export class FormAutofillChild extends JSWindowActorChild {
       Services.obs.notifyObservers(null, "autofill-fill-complete");
     } catch {}
 
-    this.#autofillInProgress = false;
     return result;
   }
 
