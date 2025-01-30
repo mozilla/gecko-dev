@@ -835,17 +835,23 @@ class LReturn : public LInstructionHelper<0, BOX_PIECES, 0> {
 };
 
 // Copysign for doubles.
-class LCopySignD : public LInstructionHelper<1, 2, 2> {
+class LCopySignD : public LBinaryMath<2> {
  public:
   LIR_HEADER(CopySignD)
-  explicit LCopySignD() : LInstructionHelper(classOpcode) {}
+  explicit LCopySignD() : LBinaryMath(classOpcode) {}
+
+  const LDefinition* temp0() { return getTemp(0); }
+  const LDefinition* temp1() { return getTemp(1); }
 };
 
 // Copysign for float32.
-class LCopySignF : public LInstructionHelper<1, 2, 2> {
+class LCopySignF : public LBinaryMath<2> {
  public:
   LIR_HEADER(CopySignF)
-  explicit LCopySignF() : LInstructionHelper(classOpcode) {}
+  explicit LCopySignF() : LBinaryMath(classOpcode) {}
+
+  const LDefinition* temp0() { return getTemp(0); }
+  const LDefinition* temp1() { return getTemp(1); }
 };
 
 class LHypot : public LCallInstructionHelper<1, 4, 0> {

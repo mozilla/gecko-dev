@@ -1060,12 +1060,12 @@ void CodeGeneratorMIPSShared::visitOutOfLineWasmTruncateCheck(
 }
 
 void CodeGenerator::visitCopySignF(LCopySignF* ins) {
-  FloatRegister lhs = ToFloatRegister(ins->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(ins->getOperand(1));
-  FloatRegister output = ToFloatRegister(ins->getDef(0));
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
+  FloatRegister rhs = ToFloatRegister(ins->rhs());
+  FloatRegister output = ToFloatRegister(ins->output());
 
-  Register lhsi = ToRegister(ins->getTemp(0));
-  Register rhsi = ToRegister(ins->getTemp(1));
+  Register lhsi = ToRegister(ins->temp0());
+  Register rhsi = ToRegister(ins->temp1());
 
   masm.moveFromFloat32(lhs, lhsi);
   masm.moveFromFloat32(rhs, rhsi);
@@ -1077,12 +1077,12 @@ void CodeGenerator::visitCopySignF(LCopySignF* ins) {
 }
 
 void CodeGenerator::visitCopySignD(LCopySignD* ins) {
-  FloatRegister lhs = ToFloatRegister(ins->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(ins->getOperand(1));
-  FloatRegister output = ToFloatRegister(ins->getDef(0));
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
+  FloatRegister rhs = ToFloatRegister(ins->rhs());
+  FloatRegister output = ToFloatRegister(ins->output());
 
-  Register lhsi = ToRegister(ins->getTemp(0));
-  Register rhsi = ToRegister(ins->getTemp(1));
+  Register lhsi = ToRegister(ins->temp0());
+  Register rhsi = ToRegister(ins->temp1());
 
   // Manipulate high words of double inputs.
   masm.moveFromDoubleHi(lhs, lhsi);

@@ -1583,17 +1583,17 @@ void CodeGenerator::visitWasmTruncateToInt32(LWasmTruncateToInt32* lir) {
 }
 
 void CodeGenerator::visitCopySignF(LCopySignF* ins) {
-  FloatRegister lhs = ToFloatRegister(ins->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(ins->getOperand(1));
-  FloatRegister output = ToFloatRegister(ins->getDef(0));
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
+  FloatRegister rhs = ToFloatRegister(ins->rhs());
+  FloatRegister output = ToFloatRegister(ins->output());
 
   masm.fsgnj_s(output, lhs, rhs);
 }
 
 void CodeGenerator::visitCopySignD(LCopySignD* ins) {
-  FloatRegister lhs = ToFloatRegister(ins->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(ins->getOperand(1));
-  FloatRegister output = ToFloatRegister(ins->getDef(0));
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
+  FloatRegister rhs = ToFloatRegister(ins->rhs());
+  FloatRegister output = ToFloatRegister(ins->output());
 
   masm.fsgnj_d(output, lhs, rhs);
 }

@@ -2083,8 +2083,8 @@ Operand CodeGeneratorX86Shared::toMemoryAccessOperand(T* lir, int32_t disp) {
 }
 
 void CodeGenerator::visitCopySignF(LCopySignF* lir) {
-  FloatRegister lhs = ToFloatRegister(lir->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(lir->getOperand(1));
+  FloatRegister lhs = ToFloatRegister(lir->lhs());
+  FloatRegister rhs = ToFloatRegister(lir->rhs());
 
   FloatRegister out = ToFloatRegister(lir->output());
 
@@ -2099,8 +2099,8 @@ void CodeGenerator::visitCopySignF(LCopySignF* lir) {
 }
 
 void CodeGenerator::visitCopySignD(LCopySignD* lir) {
-  FloatRegister lhs = ToFloatRegister(lir->getOperand(0));
-  FloatRegister rhs = ToFloatRegister(lir->getOperand(1));
+  FloatRegister lhs = ToFloatRegister(lir->lhs());
+  FloatRegister rhs = ToFloatRegister(lir->rhs());
 
   FloatRegister out = ToFloatRegister(lir->output());
 

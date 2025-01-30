@@ -2092,19 +2092,17 @@ void CodeGenerator::visitWasmLoad(LWasmLoad* lir) {
 }
 
 void CodeGenerator::visitCopySignD(LCopySignD* ins) {
-  MOZ_ASSERT(ins->getTemp(0)->isBogusTemp());
-  MOZ_ASSERT(ins->getTemp(1)->isBogusTemp());
-  masm.copySignDouble(ToFloatRegister(ins->getOperand(0)),
-                      ToFloatRegister(ins->getOperand(1)),
-                      ToFloatRegister(ins->getDef(0)));
+  MOZ_ASSERT(ins->temp0()->isBogusTemp());
+  MOZ_ASSERT(ins->temp1()->isBogusTemp());
+  masm.copySignDouble(ToFloatRegister(ins->lhs()), ToFloatRegister(ins->rhs()),
+                      ToFloatRegister(ins->output()));
 }
 
 void CodeGenerator::visitCopySignF(LCopySignF* ins) {
-  MOZ_ASSERT(ins->getTemp(0)->isBogusTemp());
-  MOZ_ASSERT(ins->getTemp(1)->isBogusTemp());
-  masm.copySignFloat32(ToFloatRegister(ins->getOperand(0)),
-                       ToFloatRegister(ins->getOperand(1)),
-                       ToFloatRegister(ins->getDef(0)));
+  MOZ_ASSERT(ins->temp0()->isBogusTemp());
+  MOZ_ASSERT(ins->temp1()->isBogusTemp());
+  masm.copySignFloat32(ToFloatRegister(ins->lhs()), ToFloatRegister(ins->rhs()),
+                       ToFloatRegister(ins->output()));
 }
 
 void CodeGenerator::visitRotateI64(LRotateI64* lir) {
