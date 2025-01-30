@@ -29,10 +29,6 @@ ValueOperand CodeGeneratorX64::ToValue(LInstruction* ins, size_t pos) {
   return ValueOperand(ToRegister(ins->getOperand(pos)));
 }
 
-ValueOperand CodeGeneratorX64::ToTempValue(LInstruction* ins, size_t pos) {
-  return ValueOperand(ToRegister(ins->getTemp(pos)));
-}
-
 Operand CodeGeneratorX64::ToOperand64(const LInt64Allocation& a64) {
   const LAllocation& a = a64.value();
   MOZ_ASSERT(!a.isFloatReg());

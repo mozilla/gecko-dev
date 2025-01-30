@@ -21,7 +21,6 @@ class CodeGeneratorX86 : public CodeGeneratorX86Shared {
   CodeGeneratorX86(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
 
   ValueOperand ToValue(LInstruction* ins, size_t pos);
-  ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);
