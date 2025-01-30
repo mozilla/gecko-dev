@@ -49,6 +49,8 @@ class InspectorFontFace final : public NonRefcountedDOMObject {
   void GetFormat(nsAString& aFormat);
   void GetMetadata(nsAString& aMetadata);
 
+  void GetNameString(uint16_t aNameId, nsAString& aResult);
+
   void GetVariationAxes(nsTArray<InspectorVariationAxis>& aResult,
                         ErrorResult& aRV);
   void GetVariationInstances(nsTArray<InspectorVariationInstance>& aResult,

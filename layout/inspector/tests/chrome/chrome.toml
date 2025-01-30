@@ -21,6 +21,8 @@ support-files = ["test_bug727834.css"]
 ["test_fontFaceRanges.xhtml"]
 support-files = ["test_fontFaceRanges.css"]
 
+["test_fontFaceVersion.xhtml"]
+
 ["test_fontFeaturesAPI.xhtml"]
 support-files = [
   "test_fontFeaturesAPI.css",

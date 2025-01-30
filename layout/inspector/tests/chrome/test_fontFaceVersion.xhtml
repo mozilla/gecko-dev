@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/css" href="chrome://global/skin"?>
+<?xml-stylesheet type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"?>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1944662
+-->
+<window title="Mozilla Bug 1944662"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        onload="RunTest();">
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
+
+  <script type="application/javascript">
+  <![CDATA[
+SimpleTest.waitForExplicitFinish();
+
+function RunTest() {
+  document.fonts.add(new FontFace("gentium", "url(GentiumPlus-R.woff)"));
+  document.fonts.add(new FontFace("dejavu", "url(DejaVuSans.ttf)"));
+
+  document.fonts.ready.then(() => {
+    let rng = document.createRange();
+    let elem, fonts, f;
+
+    elem = document.getElementById("test1");
+    rng.selectNode(elem);
+    fonts = InspectorUtils.getUsedFontFaces(rng);
+    is(fonts.length, 1, "element should use a single font face");
+    f = fonts[0];
+    is(f.rule, null, "no @font-face rule");
+    is(f.srcIndex, 0, "expect srcIndex 0");
+    is(f.localName, "", "no local name");
+    is(f.URI, "chrome://mochitests/content/chrome/layout/inspector/tests/chrome/GentiumPlus-R.woff", "URI");
+    is(f.format, "", "empty format string");
+    isnot(f.metadata, "", "Gentium has a long metadata field");
+    is(f.getNameString(InspectorFontFace.NAME_ID_VERSION), "Version 5.000", "version of the Gentium font");
+
+    elem = document.getElementById("test2");
+    rng.selectNode(elem);
+    fonts = InspectorUtils.getUsedFontFaces(rng);
+    is(fonts.length, 1, "element should use a single font face");
+    f = fonts[0];
+    is(f.rule, null, "no @font-face rule");
+    is(f.srcIndex, 0, "expect srcIndex 0");
+    is(f.localName, "", "no local name");
+    is(f.URI, "chrome://mochitests/content/chrome/layout/inspector/tests/chrome/DejaVuSans.ttf", "URI");
+    is(f.format, "", "expect empty format string");
+    is(f.metadata, "", "expect empty metadata");
+    is(f.getNameString(InspectorFontFace.NAME_ID_VERSION), "Version 2.31", "version of the DejaVu font");
+
+    SimpleTest.finish();
+  });
+}
+  ]]>
+  </script>
+
+  <!-- html:body contains elements the test will inspect -->
+  <body xmlns="http://www.w3.org/1999/xhtml">
+  <div id="test1" style="font-family: gentium">Gentium</div>
+  <div id="test2" style="font-family: dejavu">Deja Vu</div>
+  </body>
+
+</window>
