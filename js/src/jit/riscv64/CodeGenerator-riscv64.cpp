@@ -1193,8 +1193,8 @@ void CodeGenerator::visitModPowTwoI(LModPowTwoI* ins) {
 void CodeGenerator::visitModMaskI(LModMaskI* ins) {
   Register src = ToRegister(ins->input());
   Register dest = ToRegister(ins->output());
-  Register tmp0 = ToRegister(ins->getTemp(0));
-  Register tmp1 = ToRegister(ins->getTemp(1));
+  Register tmp0 = ToRegister(ins->temp0());
+  Register tmp1 = ToRegister(ins->temp1());
   MMod* mir = ins->mir();
 
   if (!mir->isTruncated() && mir->canBeNegativeDividend()) {

@@ -43,24 +43,6 @@ class LModI : public LBinaryMath<1> {
   MMod* mir() const { return mir_->toMod(); }
 };
 
-class LModMaskI : public LInstructionHelper<1, 1, 2> {
-  const int32_t shift_;
-
- public:
-  LIR_HEADER(ModMaskI);
-
-  LModMaskI(const LAllocation& lhs, const LDefinition& temp0,
-            const LDefinition& temp1, int32_t shift)
-      : LInstructionHelper(classOpcode), shift_(shift) {
-    setOperand(0, lhs);
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-  }
-
-  int32_t shift() const { return shift_; }
-  MMod* mir() const { return mir_->toMod(); }
-};
-
 class LMulI : public LBinaryMath<0> {
  public:
   LIR_HEADER(MulI);

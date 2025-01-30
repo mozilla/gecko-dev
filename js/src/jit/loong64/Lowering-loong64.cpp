@@ -268,8 +268,7 @@ void LIRGeneratorLOONG64::lowerModI(MMod* mod) {
       return;
     } else if (shift < 31 && (1 << (shift + 1)) - 1 == rhs) {
       LModMaskI* lir = new (alloc())
-          LModMaskI(useRegister(mod->lhs()), temp(LDefinition::GENERAL),
-                    temp(LDefinition::GENERAL), shift + 1);
+          LModMaskI(useRegister(mod->lhs()), temp(), temp(), shift + 1);
       if (mod->fallible()) {
         assignSnapshot(lir, mod->bailoutKind());
       }
@@ -277,9 +276,8 @@ void LIRGeneratorLOONG64::lowerModI(MMod* mod) {
       return;
     }
   }
-  LModI* lir =
-      new (alloc()) LModI(useRegister(mod->lhs()), useRegister(mod->rhs()),
-                          temp(LDefinition::GENERAL));
+  LModI* lir = new (alloc())
+      LModI(useRegister(mod->lhs()), useRegister(mod->rhs()), temp());
 
   if (mod->fallible()) {
     assignSnapshot(lir, mod->bailoutKind());

@@ -711,8 +711,8 @@ void CodeGenerator::visitModMaskI(LModMaskI* ins) {
 
   const Register src = ToRegister(ins->input());
   const Register dest = ToRegister(ins->output());
-  const Register hold = ToRegister(ins->getTemp(0));
-  const Register remain = ToRegister(ins->getTemp(1));
+  const Register hold = ToRegister(ins->temp0());
+  const Register remain = ToRegister(ins->temp1());
 
   const ARMRegister src32 = ARMRegister(src, 32);
   const ARMRegister dest32 = ARMRegister(dest, 32);

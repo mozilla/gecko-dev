@@ -5048,7 +5048,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: UDiv
   gen_boilerplate: false
@@ -5134,7 +5140,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: UDiv
   gen_boilerplate: false
@@ -5169,7 +5181,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: WasmTruncateToInt64
   result_type: Int64
@@ -5247,7 +5265,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: WasmTruncateToInt64
   result_type: Int64
@@ -5311,7 +5335,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: WasmTruncateToInt64
   result_type: Int64
@@ -5363,7 +5393,13 @@
   gen_boilerplate: false
 
 - name: ModMaskI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 2
+  mir_op: Mod
 
 - name: WasmTruncateToInt64
   result_type: Int64
