@@ -25,13 +25,21 @@ function getExpectedRequests({
   postDataRequests,
   xhrRequests,
   dataRequests,
+  bigDataRequests,
 }) {
   // These other numbers only state how many requests the test do,
   // we have to keep them in sync with netmonitor.html static content
   const expectedSyncCssRequests = 10,
     expectedSyncJSRequests = 10;
-  // There is 10 request for the html document and 10 for the js files
-  // But the css file is loaded only once, the others are cached
+
+  // In theory we should always expect 30 requests for iframes here:
+  // - 10 for html documents
+  // - 10 for js files
+  // - 10 for css files
+  // However even if network events for cached CSS files are supported since
+  // Bug 1916960, they are sometimes missing. To avoid timeouts we will only
+  // expect 1 here. This should not make a huge timing difference in most tests
+  // triggering many requests.
   const expectedSyncIframeRequests = 2 * 10 + 1;
 
   return (
@@ -42,7 +50,8 @@ function getExpectedRequests({
     bigFileRequests +
     postDataRequests +
     xhrRequests +
-    dataRequests
+    dataRequests +
+    bigDataRequests
   );
 }
 
@@ -51,6 +60,7 @@ function getTestUrl({
   postDataRequests,
   xhrRequests,
   dataRequests,
+  bigDataRequests,
 }) {
   return (
     PAGES_BASE_URL +
@@ -58,7 +68,8 @@ function getTestUrl({
     `?bigFileRequests=${bigFileRequests}` +
     `&postDataRequests=${postDataRequests}` +
     `&xhrRequests=${xhrRequests}` +
-    `&dataRequests=${dataRequests}`
+    `&dataRequests=${dataRequests}` +
+    `&bigDataRequests=${bigDataRequests}`
   );
 }
 
@@ -93,6 +104,7 @@ module.exports = async function () {
     postDataRequests: 20,
     xhrRequests: 50,
     dataRequests: 0,
+    bigDataRequests: 0,
   };
 
   let tab = await testSetup(getTestUrl(requests));
@@ -139,7 +151,9 @@ module.exports = async function () {
     postDataRequests: 0,
     xhrRequests: 0,
     dataRequests: 2000,
+    bigDataRequests: 0,
   };
+  expectedRequests = getExpectedRequests(requests);
 
   requestsDone = waitForNetworkRequests(
     "custom.netmonitor.manyrequests",
