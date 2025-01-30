@@ -322,6 +322,11 @@ void WaylandSurface::RequestFrameCallbackLocked(
   if (!mIsReadyToDraw) {
     return;
   }
+
+  if (!mFrameCallbackEnabled) {
+    return;
+  }
+
   MOZ_DIAGNOSTIC_ASSERT(mSurface, "Missing mapped surface!");
 
   if (!mFrameCallback) {
@@ -388,6 +393,26 @@ void WaylandSurface::AddPersistentFrameCallbackLocked(
   mPersistentFrameCallbackHandlers.push_back(
       FrameCallback{aFrameCallbackHandler, aEmulateFrameCallback});
   RequestFrameCallbackLocked(aProofOfLock, aEmulateFrameCallback);
+}
+
+void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
+  LOGWAYLAND("WaylandSurface::SetFrameCallbackState() state %d", aEnabled);
+
+  WaylandSurfaceLock lock(this);
+  if (mFrameCallbackEnabled == aEnabled) {
+    return;
+  }
+  mFrameCallbackEnabled = aEnabled;
+
+  // If there's any frame callback waiting, register the handler.
+  if (mFrameCallbackEnabled) {
+    if (!mPersistentFrameCallbackHandlers.empty() ||
+        !mOneTimeFrameCallbackHandlers.empty()) {
+      RequestFrameCallbackLocked(lock, IsEmulatedFrameCallbackPending());
+    }
+  } else {
+    ClearFrameCallbackLocked(lock);
+  }
 }
 
 bool WaylandSurface::CreateViewportLocked(
