@@ -3170,4 +3170,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Werk bij vóór 14 maart om add-ons en andere functies te blijven gebruiken.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Sommige functies werken morgen niet meer.</string>
-</resources>
+
+    </resources>

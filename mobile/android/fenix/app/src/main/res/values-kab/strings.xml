@@ -3072,4 +3072,5 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Leqqem tura</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Leqqem iminig-ik Firefox</string>
+
     </resources>

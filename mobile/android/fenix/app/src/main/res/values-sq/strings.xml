@@ -3132,4 +3132,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Që të vazhdoni të përdorni shtesa dhe veçori të tjera, përditësojeni para 14 marsit.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Disa veçori do të reshtin së funksionuari nesër.</string>
-</resources>
+
+    </resources>

@@ -3139,4 +3139,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Eguneratu martxoaren 14a aurretik gehigarriak eta bestelako eginbideak erabiltzen jarraitzeko.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Zenbait eginbide ez dira ibiliko bihartik aurrera.</string>
-</resources>
+
+    </resources>

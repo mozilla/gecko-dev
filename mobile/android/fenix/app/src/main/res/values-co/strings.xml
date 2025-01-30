@@ -3197,4 +3197,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Mittite à livellu prima di u 14 di marzu per cuntinuà à impiegà i moduli addiziunali è d’altre funzioni.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certe funzioni ùn funziuneranu più dumane.</string>
-</resources>
+
+    </resources>

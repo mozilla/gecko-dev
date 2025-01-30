@@ -3188,4 +3188,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Барои идомаи истифодабарии ҷузъҳои иловагӣ ва хусусиятҳои дигар, браузерро то санаи 14 март навсозӣ кунед.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Фардо баъзе хусусиятҳо дигар кор намекунанд.</string>
-</resources>
+
+    </resources>

@@ -3168,4 +3168,5 @@ To budźe jenož pomhać, kwalitu pohódnoćenjow posudźić, nic kwalitu produk
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Aktualizujće do 14. měrca, zo byšće přidatki a druhe funkcije dale wužiwał.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Někotre funkcije jutře hižo njebudu fungować.</string>
-</resources>
+
+    </resources>

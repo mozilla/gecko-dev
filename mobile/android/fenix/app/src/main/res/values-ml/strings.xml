@@ -2926,4 +2926,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ആഡ് ഓണുകളും മറ്റു് സവിശേഷതളും ഉപയോഗിച്ചതിരിക്കാൻ 14-൹ മാർച്ചിന്റെ മുമ്പു് പുതുക്കൽ ചെയ്യുക</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ചില സവിശേഷതകൾ നാളെ പ്രവർത്തിക്കാൻ നിർത്തും.</string>
-</resources>
+
+    </resources>

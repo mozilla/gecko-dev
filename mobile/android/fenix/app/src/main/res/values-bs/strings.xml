@@ -3128,4 +3128,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Ažurirajte prije 14. marta da nastavite koristiti dodatke i druge funkcije.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Neke funkcije će prestati raditi sutra.</string>
-</resources>
+
+    </resources>

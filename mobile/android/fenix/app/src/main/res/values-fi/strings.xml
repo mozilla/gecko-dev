@@ -3172,4 +3172,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Päivitä ennen 14. maaliskuuta, jotta voit jatkaa lisäosien ja muiden ominaisuuksien käyttöä.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Jotkut ominaisuudet lakkaavat toimimasta huomenna.</string>
-</resources>
+
+    </resources>

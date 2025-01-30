@@ -3145,4 +3145,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Cập nhật trước ngày 14 tháng 3 để tiếp tục sử dụng các tiện ích và tính năng khác.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Một số tính năng sẽ ngừng hoạt động vào ngày mai.</string>
-</resources>
+
+    </resources>
