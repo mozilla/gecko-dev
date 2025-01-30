@@ -1297,7 +1297,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
 }
 
 void CodeGenerator::visitModPowTwoI(LModPowTwoI* ins) {
-  Register lhs = ToRegister(ins->getOperand(0));
+  Register lhs = ToRegister(ins->input());
   int32_t shift = ins->shift();
 
   Label negative;
@@ -1476,15 +1476,15 @@ void CodeGenerator::visitModI(LModI* ins) {
 }
 
 void CodeGenerator::visitBitNotI(LBitNotI* ins) {
-  const LAllocation* input = ins->getOperand(0);
+  const LAllocation* input = ins->input();
   MOZ_ASSERT(!input->isConstant());
 
   masm.notl(ToOperand(input));
 }
 
 void CodeGenerator::visitBitOpI(LBitOpI* ins) {
-  const LAllocation* lhs = ins->getOperand(0);
-  const LAllocation* rhs = ins->getOperand(1);
+  const LAllocation* lhs = ins->lhs();
+  const LAllocation* rhs = ins->rhs();
 
   switch (ins->bitop()) {
     case JSOp::BitOr:
@@ -2145,7 +2145,7 @@ void CodeGenerator::visitRotateI64(LRotateI64* lir) {
 
 void CodeGenerator::visitSimd128(LSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  const LDefinition* out = ins->getDef(0);
+  const LDefinition* out = ins->output();
   masm.loadConstantSimd128(ins->simd128(), ToFloatRegister(out));
 #else
   MOZ_CRASH("No SIMD");

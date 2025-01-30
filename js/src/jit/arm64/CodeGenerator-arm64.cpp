@@ -153,9 +153,9 @@ static Operand toWOperand(const LAllocation* a) {
 }
 
 void CodeGenerator::visitAddI(LAddI* ins) {
-  const LAllocation* lhs = ins->getOperand(0);
-  const LAllocation* rhs = ins->getOperand(1);
-  const LDefinition* dest = ins->getDef(0);
+  const LAllocation* lhs = ins->lhs();
+  const LAllocation* rhs = ins->rhs();
+  const LDefinition* dest = ins->output();
 
   // Platforms with three-operand arithmetic ops don't need recovery.
   MOZ_ASSERT(!ins->recoversInput());
@@ -169,9 +169,9 @@ void CodeGenerator::visitAddI(LAddI* ins) {
 }
 
 void CodeGenerator::visitSubI(LSubI* ins) {
-  const LAllocation* lhs = ins->getOperand(0);
-  const LAllocation* rhs = ins->getOperand(1);
-  const LDefinition* dest = ins->getDef(0);
+  const LAllocation* lhs = ins->lhs();
+  const LAllocation* rhs = ins->rhs();
+  const LDefinition* dest = ins->output();
 
   // Platforms with three-operand arithmetic ops don't need recovery.
   MOZ_ASSERT(!ins->recoversInput());
@@ -185,9 +185,9 @@ void CodeGenerator::visitSubI(LSubI* ins) {
 }
 
 void CodeGenerator::visitMulI(LMulI* ins) {
-  const LAllocation* lhs = ins->getOperand(0);
-  const LAllocation* rhs = ins->getOperand(1);
-  const LDefinition* dest = ins->getDef(0);
+  const LAllocation* lhs = ins->lhs();
+  const LAllocation* rhs = ins->rhs();
+  const LDefinition* dest = ins->output();
   MMul* mul = ins->mir();
   MOZ_ASSERT_IF(mul->mode() == MMul::Integer,
                 !mul->canBeNegativeZero() && !mul->canOverflow());
@@ -666,8 +666,8 @@ void CodeGenerator::visitModI(LModI* ins) {
 }
 
 void CodeGenerator::visitModPowTwoI(LModPowTwoI* ins) {
-  Register lhs = ToRegister(ins->getOperand(0));
-  ARMRegister lhsw = toWRegister(ins->getOperand(0));
+  Register lhs = ToRegister(ins->input());
+  ARMRegister lhsw = toWRegister(ins->input());
   ARMRegister outw = toWRegister(ins->output());
 
   int32_t shift = ins->shift();
@@ -709,8 +709,8 @@ void CodeGenerator::visitModMaskI(LModMaskI* ins) {
   MMod* mir = ins->mir();
   int32_t shift = ins->shift();
 
-  const Register src = ToRegister(ins->getOperand(0));
-  const Register dest = ToRegister(ins->getDef(0));
+  const Register src = ToRegister(ins->input());
+  const Register dest = ToRegister(ins->output());
   const Register hold = ToRegister(ins->getTemp(0));
   const Register remain = ToRegister(ins->getTemp(1));
 
@@ -826,8 +826,8 @@ void CodeGeneratorARM64::emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend,
 }
 
 void CodeGenerator::visitBitNotI(LBitNotI* ins) {
-  const LAllocation* input = ins->getOperand(0);
-  const LDefinition* output = ins->getDef(0);
+  const LAllocation* input = ins->input();
+  const LDefinition* output = ins->output();
   masm.Mvn(toWRegister(output), toWOperand(input));
 }
 
@@ -838,9 +838,9 @@ void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
 }
 
 void CodeGenerator::visitBitOpI(LBitOpI* ins) {
-  const ARMRegister lhs = toWRegister(ins->getOperand(0));
-  const Operand rhs = toWOperand(ins->getOperand(1));
-  const ARMRegister dest = toWRegister(ins->getDef(0));
+  const ARMRegister lhs = toWRegister(ins->lhs());
+  const Operand rhs = toWOperand(ins->rhs());
+  const ARMRegister dest = toWRegister(ins->output());
 
   switch (ins->bitop()) {
     case JSOp::BitOr:
@@ -1165,7 +1165,7 @@ ValueOperand CodeGeneratorARM64::ToTempValue(LInstruction* ins, size_t pos) {
 }
 
 void CodeGenerator::visitBox(LBox* box) {
-  const LAllocation* in = box->getOperand(0);
+  const LAllocation* in = box->payload();
   ValueOperand result = ToOutValue(box);
 
   masm.moveValue(TypedOrValueRegister(box->type(), ToAnyRegister(in)), result);
@@ -2382,7 +2382,7 @@ void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
 }
 
 void CodeGenerator::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir) {
-  Register input = ToRegister(lir->getOperand(0));
+  Register input = ToRegister(lir->input());
   Register64 output = ToOutRegister64(lir);
 
   if (lir->mir()->isUnsigned()) {
@@ -2654,7 +2654,7 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
 
 void CodeGenerator::visitSimd128(LSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  const LDefinition* out = ins->getDef(0);
+  const LDefinition* out = ins->output();
   masm.loadConstantSimd128(ins->simd128(), ToFloatRegister(out));
 #else
   MOZ_CRASH("No SIMD");

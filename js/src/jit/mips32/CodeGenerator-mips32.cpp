@@ -36,7 +36,7 @@ ValueOperand CodeGeneratorMIPS::ToTempValue(LInstruction* ins, size_t pos) {
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 
-  MOZ_ASSERT(!box->getOperand(0)->isConstant());
+  MOZ_ASSERT(!box->payload()->isConstant());
 
   // For NUNBOX32, the input operand and the output payload have the same
   // virtual register. All that needs to be written is the type tag for
@@ -45,7 +45,7 @@ void CodeGenerator::visitBox(LBox* box) {
 }
 
 void CodeGenerator::visitBoxFloatingPoint(LBoxFloatingPoint* box) {
-  const AnyRegister in = ToAnyRegister(box->getOperand(0));
+  const AnyRegister in = ToAnyRegister(box->input());
   const ValueOperand out = ToOutValue(box);
 
   masm.moveValue(TypedOrValueRegister(box->type(), in), out);

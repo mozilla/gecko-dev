@@ -54,8 +54,7 @@ ValueOperand CodeGeneratorX86::ToTempValue(LInstruction* ins, size_t pos) {
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 
-  DebugOnly<const LAllocation*> a = box->getOperand(0);
-  MOZ_ASSERT(!a->isConstant());
+  MOZ_ASSERT(!box->payload()->isConstant());
 
   // On x86, the input operand and the output payload have the same
   // virtual register. All that needs to be written is the type tag for
@@ -64,7 +63,7 @@ void CodeGenerator::visitBox(LBox* box) {
 }
 
 void CodeGenerator::visitBoxFloatingPoint(LBoxFloatingPoint* box) {
-  const AnyRegister in = ToAnyRegister(box->getOperand(0));
+  const AnyRegister in = ToAnyRegister(box->input());
   const ValueOperand out = ToOutValue(box);
 
   masm.moveValue(TypedOrValueRegister(box->type(), in), out);
@@ -615,8 +614,8 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->getOperand(0));
-  Register output = ToRegister(lir->getDef(0));
+  FloatRegister input = ToFloatRegister(lir->in());
+  Register output = ToRegister(lir->output());
 
   OutOfLineTruncate* ool = new (alloc()) OutOfLineTruncate(lir);
   addOutOfLineCode(ool, lir->mir());
@@ -638,8 +637,8 @@ void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->getOperand(0));
-  Register output = ToRegister(lir->getDef(0));
+  FloatRegister input = ToFloatRegister(lir->in());
+  Register output = ToRegister(lir->output());
 
   OutOfLineTruncateFloat32* ool = new (alloc()) OutOfLineTruncateFloat32(lir);
   addOutOfLineCode(ool, lir->mir());

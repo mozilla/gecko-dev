@@ -745,13 +745,13 @@ class LBitNotI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES, 0> {
 
 // Binary bitwise operation, taking two 32-bit integers as inputs and returning
 // a 32-bit integer result as an output.
-class LBitOpI : public LInstructionHelper<1, 2, 0> {
+class LBitOpI : public LBinaryMath<0> {
   JSOp op_;
 
  public:
   LIR_HEADER(BitOpI)
 
-  explicit LBitOpI(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
+  explicit LBitOpI(JSOp op) : LBinaryMath(classOpcode), op_(op) {}
 
   const char* extraName() const {
     if (bitop() == JSOp::Ursh && mir_->toUrsh()->bailoutsDisabled()) {
@@ -886,8 +886,6 @@ class LHypot : public LCallInstructionHelper<1, 4, 0> {
   const LAllocation* x() { return getOperand(0); }
 
   const LAllocation* y() { return getOperand(1); }
-
-  const LDefinition* output() { return getDef(0); }
 };
 
 // Adds two integers, returning an integer value.
@@ -1972,7 +1970,6 @@ class LWasmReplaceInt64LaneSimd128
   const LAllocation* lhs() { return getOperand(Lhs); }
   const LAllocation* lhsDest() { return getOperand(LhsDest); }
   LInt64Allocation rhs() { return getInt64Operand(Rhs); }
-  const LDefinition* output() { return this->getDef(0); }
   uint32_t laneIndex() const {
     return mir_->toWasmReplaceLaneSimd128()->laneIndex();
   }
