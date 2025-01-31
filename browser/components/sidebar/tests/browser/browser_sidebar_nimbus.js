@@ -126,7 +126,7 @@ add_task(async function test_nimbus_rollout_experiment() {
  * Check that multi-feature sidebar and chatbot sets prefs
  */
 add_task(async function test_nimbus_multi_feature() {
-  const chatbot = "browser.ml.chat.enabled";
+  const chatbot = "browser.ml.chat.test";
   const sidebar = "sidebar.main.tools";
   Assert.ok(!Services.prefs.prefHasUserValue(chatbot), "chatbot is default");
   Assert.ok(!Services.prefs.prefHasUserValue(sidebar), "sidebar is default");
@@ -143,7 +143,7 @@ add_task(async function test_nimbus_multi_feature() {
             },
             {
               featureId: "chatbot",
-              value: { prefs: { enabled: { value: true } } },
+              value: { prefs: { test: { value: true } } },
             },
           ],
         },

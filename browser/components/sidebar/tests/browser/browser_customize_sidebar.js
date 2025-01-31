@@ -39,8 +39,8 @@ add_task(async function test_customize_sidebar_actions() {
   );
   is(
     customizeComponent.toolInputs.length,
-    3,
-    "Three default tools are shown in the customize menu"
+    4,
+    "Four default tools are shown in the customize menu"
   );
   let bookmarksInput = Array.from(customizeComponent.toolInputs).find(
     input => input.name === "viewBookmarksSidebar"

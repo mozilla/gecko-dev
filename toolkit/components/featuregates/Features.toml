@@ -14,18 +14,6 @@
 # based on the order of appearance in this file. Settings within
 # a group will also be determined by their order in this file.
 
-[genai-chat]
-group = "experimental-features-group-customize-browsing"
-title = "genai-settings-chat-title"
-description = "genai-settings-chat-description"
-description-links = {connect= "https://connect.mozilla.org/t5/discussions/share-your-feedback-on-the-ai-services-experiment-in-nightly/m-p/60519#M21202"}
-restart-required = false
-preference = "browser.ml.chat.enabled"
-type = "boolean"
-bug-numbers = [1894999]
-is-public-jexl = "!'browser.ml.chat.hideFromLabs'|preferenceValue"
-default-value-jexl = "false"
-
 [auto-pip]
 group = "experimental-features-group-customize-browsing"
 title = "experimental-features-auto-pip"

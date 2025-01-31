@@ -607,7 +607,28 @@ let JSWINDOWACTORS = {
       },
     },
     allFrames: true,
-    enablePreference: "browser.ml.chat.enabled",
+    onAddActor(register, unregister) {
+      // Register the actor if we have a provider set and not yet registered
+      const maybeRegister = (val, prev) => {
+        if (val) {
+          if (!prev) {
+            register();
+          }
+        } else {
+          unregister();
+        }
+      };
+
+      // Detect pref changes and handle initial value
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_pref",
+        "browser.ml.chat.provider",
+        "",
+        (_pref, prev, val) => maybeRegister(val, prev)
+      );
+      maybeRegister(this._pref);
+    },
   },
 
   LightweightTheme: {

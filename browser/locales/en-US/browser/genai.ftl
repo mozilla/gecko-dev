@@ -4,11 +4,6 @@
 
 ## Generative AI (GenAI) Settings section
 
-genai-settings-chat-description = Adds the chatbot of your choice to the sidebar, for quick access as you browse. <a data-l10n-name="connect">Share feedback</a>
-genai-settings-chat-choose = Choose a chatbot
-genai-settings-chat-choose-one-menuitem =
-    .label = Choose one
-genai-settings-chat-links = When you choose a chatbot, you agree to the provider’s terms of use and privacy policy.
 genai-settings-chat-chatgpt-links = By choosing ChatGPT, you agree to the OpenAI <a data-l10n-name="link1">Terms of Use</a> and <a data-l10n-name="link2">Privacy Policy</a>.
 genai-settings-chat-claude-links = By choosing Anthropic Claude, you agree to the Anthropic <a data-l10n-name="link1">Consumer Terms of Service</a>, <a data-l10n-name="link2">Usage Policy</a>, and <a data-l10n-name="link3">Privacy Policy</a>.
 genai-settings-chat-copilot-links = By choosing Copilot, you agree to the <a data-l10n-name="link1">Copilot AI Experiences Terms</a> and <a data-l10n-name="link2">Microsoft Privacy Statement</a>.
@@ -16,9 +11,6 @@ genai-settings-chat-gemini-links = By choosing Google Gemini, you agree to the <
 genai-settings-chat-huggingchat-links = By choosing HuggingChat, you agree to the <a data-l10n-name="link1">HuggingChat Privacy Notice</a> and <a data-l10n-name="link2">Hugging Face Privacy Policy</a>.
 genai-settings-chat-lechat-links = By choosing Le Chat Mistral, you agree to the Mistral AI <a data-l10n-name="link1">Terms of Service</a> and <a data-l10n-name="link2">Privacy Policy</a>.
 genai-settings-chat-localhost-links = Bring your own private local chatbot such as <a data-l10n-name="link1">llamafile</a> from { -vendor-short-name }’s Innovation group.
-genai-settings-chat-shortcuts =
-    .description = Displays a shortcut to prompts when you select text. { -brand-short-name } sends the text, page title, and prompt to the chatbot.
-    .label = Show prompts on text select
 
 ## Chatbot prompts
 ## Prompts are plain language ‘instructions’ sent to a chatbot.

@@ -34,9 +34,6 @@ experimental-features-auto-pip =
     .label = Picture-in-Picture: auto-open on tab switch
 experimental-features-auto-pip-description = Enable Picture-in-Picture on active videos when switching tabs.
 
-genai-settings-chat-title =
-    .label = AI chatbot
-
 experimental-features-group-developer-tools =
   .label = Developer Tools
 experimental-features-group-webpage-display =

@@ -21,7 +21,7 @@ add_task(async function test_got_actor() {
  */
 add_task(async function test_actor_disabled() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.enabled", false]],
+    set: [["browser.ml.chat.provider", ""]],
   });
   await BrowserTestUtils.withNewTab("about:blank", async browser => {
     Assert.throws(

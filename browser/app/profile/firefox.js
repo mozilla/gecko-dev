@@ -2085,7 +2085,7 @@ pref("sidebar.visibility", "always-show");
 // or has history cleared on browser close.
 pref("sidebar.backupState", "{}");
 
-pref("browser.ml.chat.enabled", false);
+pref("browser.ml.chat.enabled", true);
 pref("browser.ml.chat.hideLocalhost", true);
 pref("browser.ml.chat.prompt.prefix", '{"l10nId":"genai-prompt-prefix-selection"}');
 pref("browser.ml.chat.prompts.0", '{"id":"summarize","l10nId":"genai-prompts-summarize"}');

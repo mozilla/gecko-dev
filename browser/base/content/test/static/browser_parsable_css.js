@@ -174,6 +174,9 @@ let propNameAllowlist = [
 
   /* Allow design tokens in devtools without all variables being used there */
   { sourceName: /\/design-system\/tokens-.*\.css$/, isFromDevTools: true },
+
+  // Bug 1908535 to refactor form components to use this token
+  { propName: "--input-space-block", isFromDevTools: false },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and
