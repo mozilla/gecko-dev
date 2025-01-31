@@ -5043,8 +5043,12 @@
 - name: WasmScalarToSimd128
   gen_boilerplate: false
 
+# (int64) -> v128 effect-free operations
 - name: WasmInt64ToSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    src: Int64
+  mir_op: WasmScalarToSimd128
 
 # (v128) -> v128 effect-free operations
 - name: WasmUnarySimd128

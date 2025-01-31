@@ -1348,24 +1348,6 @@ class LWasmScalarToSimd128 : public LInstructionHelper<1, 1, 0> {
   }
 };
 
-// (int64) -> v128 effect-free operations
-class LWasmInt64ToSimd128 : public LInstructionHelper<1, INT64_PIECES, 0> {
- public:
-  LIR_HEADER(WasmInt64ToSimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  explicit LWasmInt64ToSimd128(const LInt64Allocation& src)
-      : LInstructionHelper(classOpcode) {
-    setInt64Operand(Src, src);
-  }
-
-  LInt64Allocation src() { return getInt64Operand(Src); }
-  wasm::SimdOp simdOp() const {
-    return mir_->toWasmScalarToSimd128()->simdOp();
-  }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling
