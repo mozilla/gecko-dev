@@ -3848,29 +3848,29 @@ void CodeGenerator::visitWasmStoreLaneSimd128(LWasmStoreLaneSimd128* ins) {
   // Forward storing to wasmStore for the result of extractLane.
   const MWasmStoreLaneSimd128* mir = ins->mir();
   Register memoryBase = ToRegister(ins->memoryBase());
-  Register temp = ToRegister(ins->temp());
+  Register temp = ToRegister(ins->temp0());
   FloatRegister src = ToFloatRegister(ins->src());
-  switch (ins->laneSize()) {
+  switch (mir->laneSize()) {
     case 1: {
-      masm.extractLaneInt8x16(ins->laneIndex(), src, temp);
+      masm.extractLaneInt8x16(mir->laneIndex(), src, temp);
       masm.wasmStore(DeriveMemoryAccessDesc(mir->access(), Scalar::Int8),
                      AnyRegister(temp), memoryBase, ToRegister(ins->ptr()));
       break;
     }
     case 2: {
-      masm.extractLaneInt16x8(ins->laneIndex(), src, temp);
+      masm.extractLaneInt16x8(mir->laneIndex(), src, temp);
       masm.wasmStore(DeriveMemoryAccessDesc(mir->access(), Scalar::Int16),
                      AnyRegister(temp), memoryBase, ToRegister(ins->ptr()));
       break;
     }
     case 4: {
-      masm.extractLaneInt32x4(ins->laneIndex(), src, temp);
+      masm.extractLaneInt32x4(mir->laneIndex(), src, temp);
       masm.wasmStore(DeriveMemoryAccessDesc(mir->access(), Scalar::Int32),
                      AnyRegister(temp), memoryBase, ToRegister(ins->ptr()));
       break;
     }
     case 8: {
-      masm.extractLaneInt64x2(ins->laneIndex(), src, Register64(temp));
+      masm.extractLaneInt64x2(mir->laneIndex(), src, Register64(temp));
       masm.wasmStoreI64(DeriveMemoryAccessDesc(mir->access(), Scalar::Int64),
                         Register64(temp), memoryBase, ToRegister(ins->ptr()));
       break;
