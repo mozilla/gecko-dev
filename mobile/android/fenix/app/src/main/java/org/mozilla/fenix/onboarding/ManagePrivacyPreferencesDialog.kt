@@ -102,6 +102,7 @@ private fun CrashReportingPreference(
             )
         },
         modifier = Modifier.wrapContentWidth(),
+        labelStyle = FirefoxTheme.typography.body2,
     )
 
     Spacer(modifier = Modifier.height(8.dp))
@@ -112,7 +113,7 @@ private fun CrashReportingPreference(
         style = FirefoxTheme.typography.caption,
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
     LinkText(
         text = stringResource(R.string.onboarding_preferences_dialog_crash_reporting_learn_more_2),
@@ -142,6 +143,7 @@ private fun UsageDataPreference(
             )
         },
         modifier = Modifier.wrapContentWidth(),
+        labelStyle = FirefoxTheme.typography.body2,
     )
 
     Spacer(modifier = Modifier.height(8.dp))
@@ -152,7 +154,7 @@ private fun UsageDataPreference(
         style = FirefoxTheme.typography.caption,
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
     LinkText(
         text = stringResource(R.string.onboarding_preferences_dialog_usage_data_learn_more_2),
