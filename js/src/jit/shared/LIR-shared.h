@@ -2209,6 +2209,10 @@ const char* LDivI::extraName() const {
   }
   return mir()->canBeNegativeOverflow() ? "NegativeOverflow" : nullptr;
 }
+
+const char* LModI::extraName() const {
+  return mir()->isTruncated() ? "Truncated" : nullptr;
+}
 #endif
 
 }  // namespace jit

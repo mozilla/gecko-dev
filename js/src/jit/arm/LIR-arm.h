@@ -132,19 +132,6 @@ class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   MDiv* mir() const { return mir_->toDiv(); }
 };
 
-class LModI : public LBinaryMath<0> {
- public:
-  LIR_HEADER(ModI);
-
-  LModI(const LAllocation& lhs, const LAllocation& rhs)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-  }
-
-  MMod* mir() const { return mir_->toMod(); }
-};
-
 class LMulI : public LBinaryMath<0> {
  public:
   LIR_HEADER(MulI);

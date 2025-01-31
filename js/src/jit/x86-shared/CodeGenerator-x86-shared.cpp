@@ -1365,7 +1365,7 @@ void CodeGeneratorX86Shared::visitModOverflowCheck(ModOverflowCheck* ool) {
 }
 
 void CodeGenerator::visitModI(LModI* ins) {
-  Register remainder = ToRegister(ins->remainder());
+  Register remainder = ToRegister(ins->output());
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
 
@@ -1373,7 +1373,7 @@ void CodeGenerator::visitModI(LModI* ins) {
   MOZ_ASSERT_IF(lhs != rhs, rhs != eax);
   MOZ_ASSERT(rhs != edx);
   MOZ_ASSERT(remainder == edx);
-  MOZ_ASSERT(ToRegister(ins->getTemp(0)) == eax);
+  MOZ_ASSERT(ToRegister(ins->temp0()) == eax);
 
   Label done;
   ReturnZero* ool = nullptr;

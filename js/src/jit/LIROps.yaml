@@ -4895,7 +4895,15 @@
   extra_name: true
 
 - name: ModI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+#if !defined(JS_CODEGEN_ARM) && !defined(JS_CODEGEN_ARM64)
+  num_temps: 1
+#endif
+  mir_op: Mod
+  extra_name: true
 
 - name: DivPowTwoI
   gen_boilerplate: false

@@ -61,25 +61,6 @@ class LDivOrModConstantI : public LInstructionHelper<1, 1, 1> {
   }
 };
 
-class LModI : public LBinaryMath<1> {
- public:
-  LIR_HEADER(ModI)
-
-  LModI(const LAllocation& lhs, const LAllocation& rhs, const LDefinition& temp)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setTemp(0, temp);
-  }
-
-  const char* extraName() const {
-    return mir()->isTruncated() ? "Truncated" : nullptr;
-  }
-
-  const LDefinition* remainder() { return getDef(0); }
-  MMod* mir() const { return mir_->toMod(); }
-};
-
 // This class performs a simple x86 'div', yielding either a quotient or
 // remainder depending on whether this instruction is defined to output eax
 // (quotient) or edx (remainder).

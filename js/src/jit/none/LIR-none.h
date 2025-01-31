@@ -27,16 +27,6 @@ class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   int32_t shift() { MOZ_CRASH(); }
   MDiv* mir() const { MOZ_CRASH(); }
 };
-class LModI : public LBinaryMath<1> {
- public:
-  LModI(const LAllocation&, const LAllocation&, const LDefinition&)
-      : LBinaryMath(Opcode::Invalid) {
-    MOZ_CRASH();
-  }
-
-  const LDefinition* callTemp() { MOZ_CRASH(); }
-  MMod* mir() const { MOZ_CRASH(); }
-};
 
 class LMulI : public LInstruction {};
 

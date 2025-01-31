@@ -555,7 +555,7 @@ void CodeGenerator::visitModI(LModI* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
   Register dest = ToRegister(ins->output());
-  Register callTemp = ToRegister(ins->callTemp());
+  Register callTemp = ToRegister(ins->temp0());
   MMod* mir = ins->mir();
   Label done;
 
