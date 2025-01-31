@@ -1351,8 +1351,8 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
   MOZ_CRASH("Not supported for this target");
 }
 
-void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
-  if (barrier) {
+void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
+  if (!barrier.isNone()) {
     as_sync();
   }
 }

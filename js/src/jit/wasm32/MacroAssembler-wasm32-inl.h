@@ -333,7 +333,7 @@ void MacroAssembler::lshift32(Register shift, Register srcDest) { MOZ_CRASH(); }
 
 void MacroAssembler::rshift32(Register shift, Register srcDest) { MOZ_CRASH(); }
 
-void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) { MOZ_CRASH(); }
+void MacroAssembler::memoryBarrier(MemoryBarrier barrier) { MOZ_CRASH(); }
 
 void MacroAssembler::clampIntToUint8(Register reg) { MOZ_CRASH(); }
 

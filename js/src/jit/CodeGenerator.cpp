@@ -19120,7 +19120,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
 }
 
 void CodeGenerator::visitMemoryBarrier(LMemoryBarrier* ins) {
-  masm.memoryBarrier(ins->type());
+  masm.memoryBarrier(ins->barrier());
 }
 
 void CodeGenerator::visitAtomicIsLockFree(LAtomicIsLockFree* lir) {
@@ -22022,7 +22022,7 @@ void CodeGenerator::visitWasmNullConstant(LWasmNullConstant* lir) {
 
 void CodeGenerator::visitWasmFence(LWasmFence* lir) {
   MOZ_ASSERT(gen->compilingWasm());
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
 }
 
 void CodeGenerator::visitWasmAnyRefFromJSValue(LWasmAnyRefFromJSValue* lir) {

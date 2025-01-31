@@ -1017,19 +1017,15 @@ inline bool LNode::isCallPreserved(AnyRegister reg) const {
 
 class LMemoryBarrier : public LInstructionHelper<0, 0, 0> {
  private:
-  const MemoryBarrierBits type_;
+  const MemoryBarrier barrier_;
 
  public:
   LIR_HEADER(MemoryBarrier)
 
-  // The parameter 'type' is a bitwise 'or' of the barrier types needed,
-  // see AtomicOp.h.
-  explicit LMemoryBarrier(MemoryBarrierBits type)
-      : LInstructionHelper(classOpcode), type_(type) {
-    MOZ_ASSERT((type_ & ~MembarAllbits) == MembarNobits);
-  }
+  explicit LMemoryBarrier(MemoryBarrier barrier)
+      : LInstructionHelper(classOpcode), barrier_(barrier) {}
 
-  MemoryBarrierBits type() const { return type_; }
+  MemoryBarrier barrier() const { return barrier_; }
 };
 
 template <size_t NumDefs>

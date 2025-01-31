@@ -2472,7 +2472,7 @@ static void EnterAtomic64Region(MacroAssembler& masm,
 
   Label tryLock;
 
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
 
   masm.bind(&tryLock);
 
@@ -2482,13 +2482,13 @@ static void EnterAtomic64Region(MacroAssembler& masm,
   masm.as_sc(scratch, spinlock, 0);
   masm.ma_b(scratch, scratch, &tryLock, Assembler::Zero, ShortJump);
 
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
 }
 
 static void ExitAtomic64Region(MacroAssembler& masm, Register spinlock) {
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
   masm.as_sw(zero, spinlock, 0);
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
 }
 
 template <typename T>

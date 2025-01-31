@@ -6785,7 +6785,7 @@ bool BaseCompiler::emitFence() {
   if (deadCode_) {
     return true;
   }
-  masm.memoryBarrier(MembarFull);
+  masm.memoryBarrier(MemoryBarrier::Full());
   return true;
 }
 

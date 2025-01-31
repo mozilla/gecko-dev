@@ -2571,15 +2571,15 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
   return store16(scratch, dest);
 }
 
-void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
+void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
   // On ARMv6 the optional argument (BarrierST, etc) is ignored.
-  if (barrier == (MembarStoreStore | MembarSynchronizing)) {
+  if (barrier.isSyncStoreStore()) {
     ma_dsb(BarrierST);
-  } else if (barrier & MembarSynchronizing) {
+  } else if (barrier.hasSync()) {
     ma_dsb();
-  } else if (barrier == MembarStoreStore) {
+  } else if (barrier.isStoreStore()) {
     ma_dmb(BarrierST);
-  } else if (barrier) {
+  } else if (!barrier.isNone()) {
     ma_dmb();
   }
 }

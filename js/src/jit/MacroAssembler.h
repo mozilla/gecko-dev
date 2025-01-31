@@ -2345,7 +2345,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest) PER_ARCH;
 
-  inline void memoryBarrier(MemoryBarrierBits barrier) PER_SHARED_ARCH;
+  inline void memoryBarrier(MemoryBarrier barrier) PER_SHARED_ARCH;
 
  public:
   // ========================================================================

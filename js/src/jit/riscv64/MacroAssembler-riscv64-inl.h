@@ -1596,8 +1596,8 @@ void MacroAssembler::maxFloat32(FloatRegister other, FloatRegister srcDest,
                                 bool handleNaN) {
   Float32Max(srcDest, srcDest, other);
 }
-void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
-  if (barrier) {
+void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
+  if (!barrier.isNone()) {
     sync();
   }
 }

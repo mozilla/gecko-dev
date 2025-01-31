@@ -2347,10 +2347,10 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
   return doBaseIndex(ARMFPRegister(src, 16), dest, vixl::STR_h);
 }
 
-void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
+void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
   // Bug 1715494: Discriminating barriers such as StoreStore are hard to reason
   // about.  Execute the full barrier for everything that requires a barrier.
-  if (barrier) {
+  if (!barrier.isNone()) {
     Dmb(vixl::InnerShareable, vixl::BarrierAll);
   }
 }
