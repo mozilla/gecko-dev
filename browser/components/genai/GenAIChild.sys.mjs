@@ -62,6 +62,8 @@ export class GenAIChild extends JSWindowActorChild {
           this.contentWindow.clearTimeout(this.mouseUpTimeout);
         }
 
+        const { screenX, screenY } = event;
+
         this.mouseUpTimeout = this.contentWindow.setTimeout(() => {
           const selectionInfo = this.getSelectionInfo();
           const delay = Date.now() - this.downTime;
@@ -75,8 +77,8 @@ export class GenAIChild extends JSWindowActorChild {
             this.sendAsyncMessage("GenAI:ShowShortcuts", {
               ...selectionInfo,
               delay,
-              screenXDevPx: event.screenX * this.contentWindow.devicePixelRatio,
-              screenYDevPx: event.screenY * this.contentWindow.devicePixelRatio,
+              screenXDevPx: screenX * this.contentWindow.devicePixelRatio,
+              screenYDevPx: screenY * this.contentWindow.devicePixelRatio,
             });
           }
 
