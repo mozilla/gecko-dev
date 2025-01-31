@@ -25,7 +25,7 @@ class MARSUseCases(
 
     /**
      * Performs a request to the provided click or impression callback [url] for a MARS top sites or
-     * content recommendation to record the interaction.
+     * sponsored content to record the interaction.
      *
      * @param url The click or impression URL to request.
      * @return Whether the response is successful or not.

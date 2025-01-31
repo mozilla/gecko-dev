@@ -14,8 +14,12 @@ import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.PocketStory.SponsoredContentCallbacks
+import mozilla.components.service.pocket.PocketStory.SponsoredContentFrequencyCaps
 import mozilla.components.service.pocket.ext.getCurrentFlightImpressions
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -36,6 +40,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.home.pocket.controller.DefaultPocketStoriesController
 import org.mozilla.fenix.utils.Settings
 
@@ -43,10 +48,16 @@ import org.mozilla.fenix.utils.Settings
 class DefaultPocketStoriesControllerTest {
 
     @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+
+    @get:Rule
     val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val homeActivity: HomeActivity = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
+    private val marsUseCases: MARSUseCases = mockk(relaxed = true)
+
+    private val scope = coroutinesTestRule.scope
 
     @Before
     fun setup() {
@@ -411,6 +422,37 @@ class DefaultPocketStoriesControllerTest {
     }
 
     @Test
+    fun `WHEN a sponsored content is clicked THEN navigate to the sponsored content URL and record the interaction`() {
+        val sponsoredContent = SponsoredContent(
+            url = "https://firefox.com",
+            title = "Firefox",
+            callbacks = SponsoredContentCallbacks(
+                clickUrl = "https://firefox.com/click",
+                impressionUrl = "https://firefox.com/impression",
+            ),
+            imageUrl = "https://test.com/image1.jpg",
+            domain = "firefox.com",
+            excerpt = "Mozilla Firefox",
+            sponsor = "Mozilla",
+            blockKey = "1",
+            caps = SponsoredContentFrequencyCaps(
+                currentImpressions = listOf(2L, 3L),
+                flightCount = 10,
+                flightPeriod = 86400,
+            ),
+            priority = 3,
+        )
+        val controller = createController()
+
+        controller.handleStoryClicked(sponsoredContent, storyPosition = Triple(2, 3, 4))
+
+        verify {
+            homeActivity.openToBrowserAndLoad(sponsoredContent.url, true, BrowserDirection.FromHome)
+            marsUseCases.recordInteraction(sponsoredContent.callbacks.clickUrl)
+        }
+    }
+
+    @Test
     fun `WHEN discover more is clicked then open that using HomeActivity and record telemetry`() {
         val link = "http://getpocket.com/explore"
         val controller = createController()
@@ -493,5 +535,7 @@ class DefaultPocketStoriesControllerTest {
         homeActivity = homeActivity,
         appStore = appStore,
         settings = settings,
+        marsUseCases = marsUseCases,
+        viewLifecycleScope = scope,
     )
 }

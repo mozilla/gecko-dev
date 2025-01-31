@@ -515,6 +515,8 @@ class HomeFragment : Fragment() {
                 homeActivity = activity,
                 appStore = components.appStore,
                 settings = components.settings,
+                marsUseCases = components.useCases.marsUseCases,
+                viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
             ),
             privateBrowsingController = DefaultPrivateBrowsingController(
                 activity = activity,

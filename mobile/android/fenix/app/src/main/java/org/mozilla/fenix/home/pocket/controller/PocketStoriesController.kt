@@ -4,6 +4,9 @@
 
 package org.mozilla.fenix.home.pocket.controller
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
@@ -18,6 +21,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.home.pocket.PocketImpression
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.view.POCKET_CATEGORIES_SELECTED_AT_A_TIME_COUNT
@@ -80,11 +84,16 @@ interface PocketStoriesController {
  * @param homeActivity [HomeActivity] used to open URLs in a new tab.
  * @param appStore [AppStore] from which to read the current Pocket recommendations and dispatch new actions on.
  * @param settings [Settings] used to check the application shared preferences.
+ * @param marsUseCases [MARSUseCases] used for handling the sponsored content click and impression
+ * recording.
+ * @param viewLifecycleScope The [CoroutineScope] to use for launching coroutines.
  */
 internal class DefaultPocketStoriesController(
     private val homeActivity: HomeActivity,
     private val appStore: AppStore,
     private val settings: Settings,
+    private val marsUseCases: MARSUseCases,
+    private val viewLifecycleScope: CoroutineScope,
 ) : PocketStoriesController {
     override fun handleStoryShown(
         storyShown: PocketStory,
@@ -113,6 +122,13 @@ internal class DefaultPocketStoriesController(
                 Pocket.spocShim.set(storyShown.shim.impression)
                 Pings.spoc.submit(Pings.spocReasonCodes.impression)
             }
+
+            is SponsoredContent -> {
+                viewLifecycleScope.launch(Dispatchers.IO) {
+                    marsUseCases.recordInteraction(storyShown.callbacks.impressionUrl)
+                }
+            }
+
             else -> {
                 // no-op
                 // The telemetry for PocketRecommendedStory is sent separately for bulk updates.
@@ -195,6 +211,7 @@ internal class DefaultPocketStoriesController(
                     ),
                 )
             }
+
             is PocketSponsoredStory -> {
                 Pocket.homeRecsSpocClicked.record(
                     Pocket.HomeRecsSpocClickedExtra(
@@ -217,7 +234,9 @@ internal class DefaultPocketStoriesController(
             }
 
             is SponsoredContent -> {
-                // no-op
+                viewLifecycleScope.launch(Dispatchers.IO) {
+                    marsUseCases.recordInteraction(storyClicked.callbacks.clickUrl)
+                }
             }
         }
     }
