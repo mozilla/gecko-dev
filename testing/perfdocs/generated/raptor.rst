@@ -16670,17 +16670,150 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-webcodecs-chrome-ve-h264-q**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-webcodecs-custom-car-ve-h264-q**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-webcodecs-firefox-ve-h264-q**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+
+.. dropdown:: ve-h264-q-sd
+   :class-container: anchor-id-ve-h264-q-sd-c
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach raptor -t ve-h264-q-sd
+
+   **Owner**: :chunmin and Media Team
+
+   **Description**: Measures H264-baseline encoding performance for 480p video in quality mode using AVC format.
+
+   * **alert threshold**: 2.0
+   * **apps**: firefox, chrome, safari, custom-car
+   * **expected**: pass
+   * **expose browser profiler**: true
+   * **gecko profile interval**: 1
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#33>`__
+   * **lower is better**: true
+   * **page cycles**: 3
+   * **page timeout**: 360000
+   * **repository**: https://github.com/mozilla/perf-automation
+   * **repository path**: benchmarks/webcodecs
+   * **repository revision**: d34775ba6b6cef6068005c05b570d6c79eb0f7d8
+   * **support class**: browsertime_benchmark.py
+   * **test url**: `<http://\<host\>:\<port\>/index.html?raptor&codecs=avc1.42001E:avc&latencyModes=quality&width=640&height=480&framerate=30>`__
+   * **type**: benchmark
+   * **unit**: score
+   * **Test Task**:
+
+   .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1470-64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-safari-ve-h264-q-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1470-64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-chrome-ve-h264-q-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-custom-car-ve-h264-q-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
         - ✅
         - ✅
         - ❌
@@ -16813,17 +16946,150 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-webcodecs-chrome-ve-h264-rt**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-webcodecs-custom-car-ve-h264-rt**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-webcodecs-firefox-ve-h264-rt**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+
+.. dropdown:: ve-h264-rt-sd
+   :class-container: anchor-id-ve-h264-rt-sd-c
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach raptor -t ve-h264-rt-sd
+
+   **Owner**: :chunmin and Media Team
+
+   **Description**: Measures H264-baseline encoding performance for 480p video in real-time mode using Annex B format.
+
+   * **alert threshold**: 2.0
+   * **apps**: firefox, chrome, safari, custom-car
+   * **expected**: pass
+   * **expose browser profiler**: true
+   * **gecko profile interval**: 1
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#30>`__
+   * **lower is better**: true
+   * **page cycles**: 3
+   * **page timeout**: 360000
+   * **repository**: https://github.com/mozilla/perf-automation
+   * **repository path**: benchmarks/webcodecs
+   * **repository revision**: d34775ba6b6cef6068005c05b570d6c79eb0f7d8
+   * **support class**: browsertime_benchmark.py
+   * **test url**: `<http://\<host\>:\<port\>/index.html?raptor&codecs=avc1.42001E:annexb&latencyModes=realtime&width=640&height=480&framerate=30>`__
+   * **type**: benchmark
+   * **unit**: score
+   * **Test Task**:
+
+   .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1470-64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-safari-ve-h264-rt-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-macosx1470-64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-nightlyasrelease-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows11-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-webcodecs-chrome-ve-h264-rt-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-custom-car-ve-h264-rt-sd**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
         - ✅
         - ✅
         - ❌
@@ -16849,7 +17115,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#33>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#39>`__
    * **lower is better**: true
    * **page cycles**: 3
    * **page timeout**: 360000
@@ -17050,7 +17316,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#30>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#36>`__
    * **lower is better**: true
    * **page cycles**: 3
    * **page timeout**: 360000
@@ -17251,7 +17517,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#39>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#45>`__
    * **lower is better**: true
    * **page cycles**: 3
    * **page timeout**: 360000
@@ -17452,7 +17718,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#36>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-webcodecs.toml#42>`__
    * **lower is better**: true
    * **page cycles**: 3
    * **page timeout**: 360000

@@ -27,6 +27,12 @@ test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:annexb&lat
 ["ve-h264-q"]
 test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:avc&latencyModes=quality&width=1920&height=1080&framerate=30"
 
+["ve-h264-rt-sd"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:annexb&latencyModes=realtime&width=640&height=480&framerate=30"
+
+["ve-h264-q-sd"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:avc&latencyModes=quality&width=640&height=480&framerate=30"
+
 ["ve-vp8-rt"]
 test_url = "http://<host>:<port>/index.html?raptor&codecs=vp8&latencyModes=realtime&width=1920&height=1080&framerate=30"
 
