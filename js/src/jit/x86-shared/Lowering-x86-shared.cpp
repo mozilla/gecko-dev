@@ -1709,9 +1709,8 @@ void LIRGenerator::visitWasmLoadLaneSimd128(MWasmLoadLaneSimd128* ins) {
   LAllocation memoryBase = ins->hasMemoryBase()
                                ? useRegisterAtStart(ins->memoryBase())
                                : LAllocation();
-  LWasmLoadLaneSimd128* lir = new (alloc()) LWasmLoadLaneSimd128(
-      base, inputUse, LDefinition::BogusTemp(), memoryBase);
-  defineReuseInput(lir, ins, LWasmLoadLaneSimd128::Src);
+  auto* lir = new (alloc()) LWasmLoadLaneSimd128(base, inputUse, memoryBase);
+  defineReuseInput(lir, ins, LWasmLoadLaneSimd128::SrcIndex);
 #else
   MOZ_CRASH("No SIMD");
 #endif

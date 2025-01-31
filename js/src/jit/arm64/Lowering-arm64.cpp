@@ -1403,8 +1403,8 @@ void LIRGenerator::visitWasmLoadLaneSimd128(MWasmLoadLaneSimd128* ins) {
   LAllocation memoryBase =
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
-  LWasmLoadLaneSimd128* lir =
-      new (alloc()) LWasmLoadLaneSimd128(base, inputUse, temp(), memoryBase);
+  auto* lir =
+      new (alloc()) LWasmLoadLaneSimd128(base, inputUse, memoryBase, temp());
   define(lir, ins);
 #else
   MOZ_CRASH("No SIMD");

@@ -5064,7 +5064,15 @@
   gen_boilerplate: false
 
 - name: WasmLoadLaneSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    src: WordSized
+    memoryBase: WordSized
+#ifdef JS_CODEGEN_ARM64
+  num_temps: 1
+#endif
+  mir_op: true
 
 - name: WasmStoreLaneSimd128
   gen_boilerplate: false

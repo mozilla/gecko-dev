@@ -3706,32 +3706,32 @@ void CodeGenerator::visitWasmLoadLaneSimd128(LWasmLoadLaneSimd128* ins) {
   const LAllocation* value = ins->src();
   Operand srcAddr = toMemoryAccessOperand(ins, offset);
 
-  switch (ins->laneSize()) {
+  switch (mir->laneSize()) {
     case 1: {
       masm.append(access, wasm::TrapMachineInsn::Load8,
                   FaultingCodeOffset(masm.currentOffset()));
-      masm.vpinsrb(ins->laneIndex(), srcAddr, ToFloatRegister(value),
+      masm.vpinsrb(mir->laneIndex(), srcAddr, ToFloatRegister(value),
                    ToFloatRegister(value));
       break;
     }
     case 2: {
       masm.append(access, wasm::TrapMachineInsn::Load16,
                   FaultingCodeOffset(masm.currentOffset()));
-      masm.vpinsrw(ins->laneIndex(), srcAddr, ToFloatRegister(value),
+      masm.vpinsrw(mir->laneIndex(), srcAddr, ToFloatRegister(value),
                    ToFloatRegister(value));
       break;
     }
     case 4: {
       masm.append(access, wasm::TrapMachineInsn::Load32,
                   FaultingCodeOffset(masm.currentOffset()));
-      masm.vinsertps(ins->laneIndex() << 4, srcAddr, ToFloatRegister(value),
+      masm.vinsertps(mir->laneIndex() << 4, srcAddr, ToFloatRegister(value),
                      ToFloatRegister(value));
       break;
     }
     case 8: {
       masm.append(access, wasm::TrapMachineInsn::Load64,
                   FaultingCodeOffset(masm.currentOffset()));
-      if (ins->laneIndex() == 0) {
+      if (mir->laneIndex() == 0) {
         masm.vmovlps(srcAddr, ToFloatRegister(value), ToFloatRegister(value));
       } else {
         masm.vmovhps(srcAddr, ToFloatRegister(value), ToFloatRegister(value));
