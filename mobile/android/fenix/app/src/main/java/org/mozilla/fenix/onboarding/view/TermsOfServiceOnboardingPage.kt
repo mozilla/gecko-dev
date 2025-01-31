@@ -4,10 +4,10 @@
 
 package org.mozilla.fenix.onboarding.view
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,56 +46,81 @@ fun TermsOfServiceOnboardingPage(
     pageState: OnboardingPageState,
     eventHandler: OnboardingTermsOfServiceEventHandler,
 ) {
-    // Base
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .background(FirefoxTheme.colors.layer1)
-            .padding(horizontal = 16.dp, vertical = 32.dp)
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 16.dp),
     ) {
-        with(pageState) {
-            // Main content group
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                HeaderImage(imageRes)
+        val boxWithConstraintsScope = this
 
-                Spacer(Modifier.height(25.dp))
+        // Base
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Spacer(Modifier)
 
-                Text(
-                    text = title,
-                    color = FirefoxTheme.colors.textPrimary,
-                    textAlign = TextAlign.Center,
-                    style = FirefoxTheme.typography.headline5,
-                )
+            with(pageState) {
+                // Main content group
+                Column(
+                    modifier = Modifier
+                        .padding(vertical = 32.dp)
+                        .height(imageHeight(boxWithConstraintsScope)),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .height(167.dp)
+                            .width(161.dp),
+                    )
 
-                Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(24.dp))
 
-                Text(
-                    text = description,
-                    color = FirefoxTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    style = FirefoxTheme.typography.subtitle1,
-                )
+                    Text(
+                        text = title,
+                        color = FirefoxTheme.colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                        style = FirefoxTheme.typography.headline5,
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = description,
+                        color = FirefoxTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        style = FirefoxTheme.typography.subtitle1,
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(bottom = 24.dp),
+                ) {
+                    BodyText(pageState, eventHandler)
+
+                    Spacer(Modifier.height(32.dp))
+
+                    PrimaryButton(
+                        text = primaryButton.text,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { testTag = title + "onboarding_card.positive_button" },
+                        onClick = primaryButton.onClick,
+                    )
+                }
             }
-
-            Spacer(Modifier.height(50.dp))
-
-            BodyText(pageState, eventHandler)
-
-            PrimaryButton(
-                text = primaryButton.text,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { testTag = title + "onboarding_card.positive_button" },
-                onClick = primaryButton.onClick,
-            )
         }
-    }
 
-    LaunchedEffect(pageState) {
-        pageState.onRecordImpressionEvent()
+        LaunchedEffect(pageState) {
+            pageState.onRecordImpressionEvent()
+        }
     }
 }
 
@@ -106,8 +131,8 @@ private fun BodyText(
 ) {
     pageState.termsOfService?.let {
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 10.dp),
         ) {
             val lineOneState = LinkTextState(
                 text = it.lineOneLinkText,
@@ -134,7 +159,9 @@ private fun BodyText(
                     color = FirefoxTheme.colors.textSecondary,
                 ),
             )
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+
             LinkText(
                 text = it.lineTwoText.updateFirstPlaceholder(it.lineTwoLinkText),
                 linkTextStates = listOf(
@@ -145,7 +172,9 @@ private fun BodyText(
                     color = FirefoxTheme.colors.textSecondary,
                 ),
             )
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+
             LinkText(
                 text = it.lineThreeText.updateFirstPlaceholder(it.lineThreeLinkText),
                 linkTextStates = listOf(
@@ -158,19 +187,6 @@ private fun BodyText(
             )
         }
     }
-}
-
-@Composable
-private fun HeaderImage(@DrawableRes imageRes: Int) {
-    Spacer(Modifier.height(75.dp))
-
-    Image(
-        painter = painterResource(id = imageRes),
-        contentDescription = null,
-        modifier = Modifier
-            .height(167.dp)
-            .width(161.dp),
-    )
 }
 
 private fun String.updateFirstPlaceholder(text: String) = replace("%1\$s", text)
