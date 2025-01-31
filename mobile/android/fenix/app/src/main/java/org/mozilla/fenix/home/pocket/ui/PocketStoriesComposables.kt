@@ -232,6 +232,69 @@ fun PocketSponsoredStory(
 }
 
 /**
+ * Displays a single [SponsoredContent].
+ *
+ * @param sponsoredContent The [SponsoredContent] to be displayed.
+ * @param backgroundColor The background [Color] of the sponsored content.
+ * @param onClick Callback for when the user taps on the sponsored content.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun SponsoredContent(
+    sponsoredContent: SponsoredContent,
+    backgroundColor: Color,
+    onClick: (SponsoredContent) -> Unit,
+) {
+    ListItemTabSurface(
+        imageUrl = sponsoredContent.imageUrl,
+        contentPadding = PaddingValues(16.dp, 0.dp),
+        backgroundColor = backgroundColor,
+        onClick = { onClick(sponsoredContent) },
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            Text(
+                text = sponsoredContent.title,
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = "pocket.sponsoredContent.title"
+                },
+                color = FirefoxTheme.colors.textPrimary,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                style = FirefoxTheme.typography.body2,
+            )
+
+            Text(
+                text = stringResource(R.string.pocket_stories_sponsor_indication),
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = "pocket.sponsoredContent.identifier"
+                },
+                color = FirefoxTheme.colors.textSecondary,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                style = FirefoxTheme.typography.caption,
+            )
+
+            Text(
+                text = sponsoredContent.sponsor,
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = "pocket.sponsoredContent.sponsor"
+                },
+                color = FirefoxTheme.colors.textSecondary,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                style = FirefoxTheme.typography.caption,
+            )
+        }
+    }
+}
+
+/**
  * Displays a single [ContentRecommendation].
  *
  * @param recommendation The [ContentRecommendation] to be displayed.
@@ -430,7 +493,15 @@ fun PocketStories(
                             }
 
                             is SponsoredContent -> {
-                                // no-op
+                                SponsoredContent(
+                                    sponsoredContent = story,
+                                    backgroundColor = backgroundColor,
+                                ) {
+                                    onStoryClicked(
+                                        story,
+                                        Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                    )
+                                }
                             }
                         }
                     }
