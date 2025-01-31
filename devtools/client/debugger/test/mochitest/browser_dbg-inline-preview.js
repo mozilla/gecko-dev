@@ -73,6 +73,8 @@ add_task(async function () {
   // Check preview of event ( event.target should be clickable )
   // onBtnClick function in inline-preview.js
   await checkInspectorIcon(dbg);
+
+  await dbg.toolbox.closeToolbox();
 });
 
 async function checkInlinePreview(dbg, fnName, inlinePreviews) {

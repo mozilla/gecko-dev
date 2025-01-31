@@ -37,4 +37,6 @@ add_task(async function () {
   await resume(dbg);
   info("Wait for reload to complete after resume");
   await onReloaded;
+
+  await dbg.toolbox.closeToolbox();
 });
