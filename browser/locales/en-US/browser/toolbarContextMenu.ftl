@@ -30,6 +30,13 @@ toolbar-context-menu-reopen-closed-tabs =
         }
     .accesskey = o
 
+toolbar-context-turn-on-vertical-tabs =
+    .label = Turn on Vertical Tabs
+toolbar-context-turn-off-vertical-tabs =
+    .label = Turn off Vertical Tabs
+toolbar-context-customize-sidebar =
+    .label = Customize Sidebar
+
 toolbar-context-menu-manage-extension =
     .label = Manage Extension
     .accesskey = E

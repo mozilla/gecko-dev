@@ -66,6 +66,14 @@ sidebar-visibility-setting-always-show =
   .label = Expand and collapse sidebar
 sidebar-visibility-setting-hide-sidebar =
   .label = Show and hide sidebar
+sidebar-settings =
+  .label = Sidebar settings
+sidebar-hide-tabs-and-sidebar =
+  .label = Hide tabs and sidebar
+sidebar-show-on-the-right =
+  .label = Move sidebar to the right
+sidebar-show-on-the-left =
+  .label = Move sidebar to the left
 
 ## Labels for sidebar context menu items
 
