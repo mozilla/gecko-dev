@@ -22,8 +22,6 @@ class CodeGeneratorMIPS : public CodeGeneratorMIPSShared {
   template <typename T>
   void emitWasmStoreI64(T* ins);
 
-  ValueOperand ToValue(LInstruction* ins, size_t pos);
-
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);
   void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,

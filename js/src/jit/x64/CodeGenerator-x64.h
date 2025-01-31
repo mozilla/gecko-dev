@@ -19,7 +19,6 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared {
   CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
 
   Operand ToOperand64(const LInt64Allocation& a);
-  ValueOperand ToValue(LInstruction* ins, size_t pos);
 
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);

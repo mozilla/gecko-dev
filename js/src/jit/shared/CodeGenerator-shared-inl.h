@@ -218,12 +218,11 @@ static inline ValueOperand ToOutValue(LInstruction* ins) {
 #endif
 }
 
-static inline ValueOperand GetTempValue(Register type, Register payload) {
+static inline ValueOperand ToValue(const LBoxAllocation& a) {
 #if defined(JS_NUNBOX32)
-  return ValueOperand(type, payload);
+  return ValueOperand(ToRegister(a.type()), ToRegister(a.payload()));
 #elif defined(JS_PUNBOX64)
-  (void)type;
-  return ValueOperand(payload);
+  return ValueOperand(ToRegister(a.value()));
 #else
 #  error "Unknown"
 #endif

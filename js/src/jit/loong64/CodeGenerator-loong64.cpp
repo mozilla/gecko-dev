@@ -295,10 +295,6 @@ void CodeGeneratorLOONG64::visitOutOfLineWasmTruncateCheck(
   }
 }
 
-ValueOperand CodeGeneratorLOONG64::ToValue(LInstruction* ins, size_t pos) {
-  return ValueOperand(ToRegister(ins->getOperand(pos)));
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LAllocation* in = box->payload();
   ValueOperand result = ToOutValue(box);
@@ -312,7 +308,7 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   Register result = ToRegister(unbox->output());
 
   if (mir->fallible()) {
-    const ValueOperand value = ToValue(unbox, LUnbox::Input);
+    ValueOperand value = ToValue(unbox->input());
     Label bail;
     switch (mir->type()) {
       case MIRType::Int32:

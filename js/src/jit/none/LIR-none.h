@@ -15,6 +15,8 @@ class LUnboxFloatingPoint : public LInstruction {
   LIR_HEADER(UnboxFloatingPoint)
   static const size_t Input = 0;
 
+  LBoxAllocation input() const { MOZ_CRASH(); }
+
   MUnbox* mir() const { MOZ_CRASH(); }
 
   const LDefinition* output() const { MOZ_CRASH(); }

@@ -25,10 +25,6 @@ CodeGeneratorX64::CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph,
                                    MacroAssembler* masm)
     : CodeGeneratorX86Shared(gen, graph, masm) {}
 
-ValueOperand CodeGeneratorX64::ToValue(LInstruction* ins, size_t pos) {
-  return ValueOperand(ToRegister(ins->getOperand(pos)));
-}
-
 Operand CodeGeneratorX64::ToOperand64(const LInt64Allocation& a64) {
   const LAllocation& a = a64.value();
   MOZ_ASSERT(!a.isFloatReg());
@@ -58,7 +54,7 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   Register result = ToRegister(unbox->output());
 
   if (mir->fallible()) {
-    const ValueOperand value = ToValue(unbox, LUnbox::Input);
+    ValueOperand value = ToValue(unbox->input());
     Label bail;
     switch (mir->type()) {
       case MIRType::Int32:
