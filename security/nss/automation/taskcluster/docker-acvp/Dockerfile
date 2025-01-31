@@ -17,7 +17,7 @@ RUN echo "deb http://ftp.debian.org/debian/ sid main" > /etc/apt/sources.list.d/
     git \
     gyp \
     clang-15 \
-    libclang-rt-15-dev \
+    libclang-rt-19-dev \
     llvm-15 \
     ninja-build \
     binutils \
