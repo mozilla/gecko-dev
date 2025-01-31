@@ -50,6 +50,13 @@ support-files = [
   "audio-overhang.ogg^headers^",
   "audio.wav",
   "audio.wav^headers^",
+  # The following two files are generated using these commands:
+  #  ffmpeg -f lavfi -i testsrc=s=1920x1080:d=1 -vf scale=1440x1080,setsar=sar=4/3 -pix_fmt yuv420p -c:v libx265 aspect_ratio_4_3_hevc.mp4
+  #  ffmpeg -f lavfi -i testsrc=s=1920x1080:d=1 -vf scale=1440x1080,setsar=sar=5/2 -pix_fmt yuv420p -c:v libx265 aspect_ratio_5_2_hevc.mp4
+  "aspect_ratio_4_3_hevc.mp4",
+  "aspect_ratio_4_3_hevc.mp4^headers^",
+  "aspect_ratio_5_2_hevc.mp4",
+  "aspect_ratio_5_2_hevc.mp4^headers^",
   "av1.mp4",
   "av1.mp4^headers^",
   "background_video.js",

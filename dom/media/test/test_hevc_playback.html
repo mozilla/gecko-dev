@@ -60,6 +60,34 @@ add_task(async function test8BitAnd10BitHEVC() {
   }
 });
 
+add_task(async function testHEVCAspectRatio() {
+  // The video resolution is 1440x1080, but its Display Aspect Ratio (DAR) is
+  // influenced by different Sample Aspect Ratios (SARs), which adjust how the
+  // image is stretched when displayed.
+  const tests = [
+    { file: 'aspect_ratio_4_3_hevc.mp4',
+      expectedWidth: 1920,
+      expectedHeight: 1080,
+    }, {
+      file: 'aspect_ratio_5_2_hevc.mp4',
+      expectedWidth: 3600,
+      expectedHeight: 1080,
+    }];
+  for (let test of tests) {
+    let video = document.createElement('video');
+    info(`try to play ${test.file}`);
+    video.src = test.file;
+    video.controls = true;
+    document.body.appendChild(video);
+    ok(await video.play().then(_=>true, _=>false), "video started playing");
+    is(video.videoWidth, test.expectedWidth, `expect width ${test.expectedWidth}, actual width ${video.videoWidth}`);
+    is(video.videoHeight, test.expectedHeight, `expect height ${test.expectedHeight}, actual height ${video.videoHeight}`);
+    ok(await new Promise(r => video.onended = r).then(_=>true, _=>false),
+       "video played to end");
+    removeNodeAndSource(video);
+  }
+});
+
 </script>
 </head>
 <body>
