@@ -4132,10 +4132,26 @@
   mir_op: true
 
 - name: WasmLoad
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 1
+#endif
+  mir_op: true
 
 - name: WasmLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+#ifdef JS_CODEGEN_ARM
+  num_temps: 2
+#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 1
+#endif
+  mir_op: WasmLoad
 
 - name: WasmStore
   gen_boilerplate: false
@@ -5425,10 +5441,20 @@
   mir_op: true
 
 - name: WasmUnalignedLoad
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+  num_temps: 2
+  mir_op: WasmLoad
 
 - name: WasmUnalignedLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+  num_temps: 2
+  mir_op: WasmLoad
 
 - name: WasmUnalignedStore
   gen_boilerplate: false
@@ -5508,10 +5534,20 @@
   mir_op: true
 
 - name: WasmUnalignedLoad
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+  num_temps: 2
+  mir_op: WasmLoad
 
 - name: WasmUnalignedLoadI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: WordSized
+    memoryBase: WordSized
+  num_temps: 2
+  mir_op: WasmLoad
 
 - name: WasmUnalignedStore
   gen_boilerplate: false

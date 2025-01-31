@@ -64,49 +64,6 @@ class LUDivOrMod : public LBinaryMath<0> {
 namespace details {
 
 // Base class for the int64 and non-int64 variants.
-template <size_t NumDefs>
-class LWasmUnalignedLoadBase : public details::LWasmLoadBase<NumDefs, 2> {
- public:
-  typedef LWasmLoadBase<NumDefs, 2> Base;
-
-  explicit LWasmUnalignedLoadBase(LNode::Opcode opcode, const LAllocation& ptr,
-                                  const LAllocation& memoryBase,
-                                  const LDefinition& valueHelper)
-      : Base(opcode, ptr, memoryBase) {
-    Base::setTemp(0, LDefinition::BogusTemp());
-    Base::setTemp(1, valueHelper);
-  }
-
-  const LAllocation* ptr() { return Base::getOperand(0); }
-  const LDefinition* ptrCopy() { return Base::getTemp(0); }
-};
-
-}  // namespace details
-
-class LWasmUnalignedLoad : public details::LWasmUnalignedLoadBase<1> {
- public:
-  LIR_HEADER(WasmUnalignedLoad);
-
-  explicit LWasmUnalignedLoad(const LAllocation& ptr,
-                              const LAllocation& memoryBase,
-                              const LDefinition& valueHelper)
-      : LWasmUnalignedLoadBase(classOpcode, ptr, memoryBase, valueHelper) {}
-};
-
-class LWasmUnalignedLoadI64
-    : public details::LWasmUnalignedLoadBase<INT64_PIECES> {
- public:
-  LIR_HEADER(WasmUnalignedLoadI64);
-
-  explicit LWasmUnalignedLoadI64(const LAllocation& ptr,
-                                 const LAllocation& memoryBase,
-                                 const LDefinition& valueHelper)
-      : LWasmUnalignedLoadBase(classOpcode, ptr, memoryBase, valueHelper) {}
-};
-
-namespace details {
-
-// Base class for the int64 and non-int64 variants.
 template <size_t NumOps>
 class LWasmUnalignedStoreBase : public LInstructionHelper<0, NumOps, 2> {
  public:

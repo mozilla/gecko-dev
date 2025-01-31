@@ -131,13 +131,15 @@ template <typename T>
 void CodeGeneratorMIPS::emitWasmLoadI64(T* lir) {
   const MWasmLoad* mir = lir->mir();
 
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
-  if (IsUnaligned(mir->access())) {
+  if constexpr (std::is_same_v<T, LWasmUnalignedLoadI64>) {
+    MOZ_ASSERT(IsUnaligned(mir->access()));
     masm.wasmUnalignedLoadI64(mir->access(), HeapReg, ToRegister(lir->ptr()),
                               ptrScratch, ToOutRegister64(lir),
-                              ToRegister(lir->getTemp(1)));
+                              ToRegister(lir->temp1()));
   } else {
+    MOZ_ASSERT(!IsUnaligned(mir->access()));
     masm.wasmLoadI64(mir->access(), HeapReg, ToRegister(lir->ptr()), ptrScratch,
                      ToOutRegister64(lir));
   }

@@ -1720,9 +1720,9 @@ void CodeGeneratorARM::emitWasmLoad(T* lir) {
   Register memoryBase = ToRegister(lir->memoryBase());
 
   if (mir->access().offset32() || mir->access().type() == Scalar::Int64) {
-    ptr = ToRegister(lir->ptrCopy());
+    ptr = ToRegister(lir->temp0());
   } else {
-    MOZ_ASSERT(lir->ptrCopy()->isBogusTemp());
+    MOZ_ASSERT(lir->temp0()->isBogusTemp());
     ptr = ToRegister(lir->ptr());
   }
 

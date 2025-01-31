@@ -1281,7 +1281,7 @@ void CodeGeneratorMIPSShared::emitWasmLoad(T* lir) {
 
   Register memoryBase = ToRegister(lir->memoryBase());
   Register ptr = ToRegister(lir->ptr());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   if (mir->base()->type() == MIRType::Int32) {
     masm.move32To64ZeroExtend(ptr, Register64(scratch2));
@@ -1289,17 +1289,19 @@ void CodeGeneratorMIPSShared::emitWasmLoad(T* lir) {
     ptrScratch = ptrScratch != InvalidReg ? scratch2 : InvalidReg;
   }
 
-  if (IsUnaligned(mir->access())) {
+  if constexpr (std::is_same_v<T, LWasmUnalignedLoad>) {
+    MOZ_ASSERT(IsUnaligned(mir->access()));
     if (IsFloatingPointType(mir->type())) {
       masm.wasmUnalignedLoadFP(mir->access(), memoryBase, ptr, ptrScratch,
                                ToFloatRegister(lir->output()),
-                               ToRegister(lir->getTemp(1)));
+                               ToRegister(lir->temp1()));
     } else {
       masm.wasmUnalignedLoad(mir->access(), memoryBase, ptr, ptrScratch,
                              ToRegister(lir->output()),
-                             ToRegister(lir->getTemp(1)));
+                             ToRegister(lir->temp1()));
     }
   } else {
+    MOZ_ASSERT(!IsUnaligned(mir->access()));
     masm.wasmLoad(mir->access(), memoryBase, ptr, ptrScratch,
                   ToAnyRegister(lir->output()));
   }

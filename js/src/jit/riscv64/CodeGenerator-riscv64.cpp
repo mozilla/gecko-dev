@@ -192,7 +192,7 @@ void CodeGeneratorRiscv64::emitWasmLoad(T* lir) {
 
   Register memoryBase = ToRegister(lir->memoryBase());
   Register ptr = ToRegister(lir->ptr());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   if (mir->base()->type() == MIRType::Int32) {
     masm.move32To64ZeroExtend(ptr, Register64(scratch2));
@@ -475,7 +475,7 @@ void CodeGenerator::visitWasmLoadI64(LWasmLoadI64* lir) {
   const MWasmLoad* mir = lir->mir();
 
   Register memoryBase = ToRegister(lir->memoryBase());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   Register ptrReg = ToRegister(lir->ptr());
   if (mir->base()->type() == MIRType::Int32) {

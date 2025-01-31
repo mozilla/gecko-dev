@@ -414,48 +414,42 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   ptr = useRegisterAtStart(base);
 #endif
 
-  if (IsUnaligned(ins->access())) {
-    if (ins->type() == MIRType::Int64) {
-      auto* lir = new (alloc()) LWasmUnalignedLoadI64(ptr, memoryBase, temp());
-      if (ins->access().offset32()) {
-        lir->setTemp(0, tempCopy(base, 0));
-      }
+#ifdef JS_CODEGEN_MIPS32
+  if (ins->access().type() == Scalar::Int64 && ins->access().isAtomic()) {
+    MOZ_ASSERT(!IsUnaligned(ins->access()));
 
-      defineInt64(lir, ins);
-      return;
-    }
-
-    auto* lir = new (alloc()) LWasmUnalignedLoad(ptr, memoryBase, temp());
-    if (ins->access().offset32()) {
-      lir->setTemp(0, tempCopy(base, 0));
-    }
-
-    define(lir, ins);
+    auto* lir = new (alloc()) LWasmAtomicLoadI64(ptr);
+    defineInt64(lir, ins);
     return;
   }
+#endif
 
-  if (ins->type() == MIRType::Int64) {
-#ifdef JS_CODEGEN_MIPS32
-    if (ins->access().isAtomic()) {
-      auto* lir = new (alloc()) LWasmAtomicLoadI64(ptr);
+  LDefinition ptrCopy = LDefinition::BogusTemp();
+  if (ins->access().offset32()) {
+    ptrCopy = tempCopy(base, 0);
+  }
+
+  if (ins->access().type() == Scalar::Int64) {
+    if (IsUnaligned(ins->access())) {
+      auto* lir =
+          new (alloc()) LWasmUnalignedLoadI64(ptr, memoryBase, ptrCopy, temp());
       defineInt64(lir, ins);
       return;
     }
-#endif
-    auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase);
-    if (ins->access().offset32()) {
-      lir->setTemp(0, tempCopy(base, 0));
-    }
 
+    auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase, ptrCopy);
     defineInt64(lir, ins);
     return;
   }
 
-  auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase);
-  if (ins->access().offset32()) {
-    lir->setTemp(0, tempCopy(base, 0));
+  if (IsUnaligned(ins->access())) {
+    auto* lir =
+        new (alloc()) LWasmUnalignedLoad(ptr, memoryBase, ptrCopy, temp());
+    define(lir, ins);
+    return;
   }
 
+  auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase, ptrCopy);
   define(lir, ins);
 }
 

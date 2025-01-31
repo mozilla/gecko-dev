@@ -812,52 +812,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
-namespace details {
-
-// This is a base class for LWasmLoad/LWasmLoadI64.
-template <size_t Defs, size_t Temp>
-class LWasmLoadBase : public LInstructionHelper<Defs, 2, Temp> {
- public:
-  using Base = LInstructionHelper<Defs, 2, Temp>;
-  explicit LWasmLoadBase(LNode::Opcode opcode, const LAllocation& ptr,
-                         const LAllocation& memoryBase)
-      : Base(opcode) {
-    Base::setOperand(0, ptr);
-    Base::setOperand(1, memoryBase);
-  }
-  MWasmLoad* mir() const { return Base::mir_->toWasmLoad(); }
-  const LAllocation* ptr() { return Base::getOperand(0); }
-  const LAllocation* memoryBase() { return Base::getOperand(1); }
-};
-
-}  // namespace details
-
-class LWasmLoad : public details::LWasmLoadBase<1, 1> {
- public:
-  explicit LWasmLoad(const LAllocation& ptr, const LAllocation& memoryBase)
-      : LWasmLoadBase(classOpcode, ptr, memoryBase) {
-    setTemp(0, LDefinition::BogusTemp());
-  }
-
-  const LDefinition* ptrCopy() { return Base::getTemp(0); }
-
-  LIR_HEADER(WasmLoad);
-};
-
-class LWasmLoadI64 : public details::LWasmLoadBase<INT64_PIECES, 2> {
- public:
-  explicit LWasmLoadI64(const LAllocation& ptr, const LAllocation& memoryBase)
-      : LWasmLoadBase(classOpcode, ptr, memoryBase) {
-    setTemp(0, LDefinition::BogusTemp());
-    setTemp(1, LDefinition::BogusTemp());
-  }
-
-  const LDefinition* ptrCopy() { return Base::getTemp(0); }
-  const LDefinition* memoryBaseCopy() { return Base::getTemp(1); }
-
-  LIR_HEADER(WasmLoadI64);
-};
-
 class LWasmStore : public LInstructionHelper<0, 3, 1> {
  public:
   LIR_HEADER(WasmStore);

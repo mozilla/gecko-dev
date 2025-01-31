@@ -686,22 +686,28 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   LAllocation ptr = useRegisterAtStart(base);
 
   if (ins->type() == MIRType::Int64) {
-    auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase);
+    LDefinition ptrCopy = LDefinition::BogusTemp();
     if (ins->access().offset32() || ins->access().type() == Scalar::Int64) {
-      lir->setTemp(0, tempCopy(base, 0));
+      ptrCopy = tempCopy(base, 0);
     }
+
+    LDefinition memoryBaseCopy = LDefinition::BogusTemp();
     if (ins->hasMemoryBase()) {
-      lir->setTemp(1, tempCopy(ins->memoryBase(), 1));
+      memoryBaseCopy = tempCopy(ins->memoryBase(), 1);
     }
+
+    auto* lir =
+        new (alloc()) LWasmLoadI64(ptr, memoryBase, ptrCopy, memoryBaseCopy);
     defineInt64(lir, ins);
     return;
   }
 
-  auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase);
+  LDefinition ptrCopy = LDefinition::BogusTemp();
   if (ins->access().offset32()) {
-    lir->setTemp(0, tempCopy(base, 0));
+    ptrCopy = tempCopy(base, 0);
   }
 
+  auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase, ptrCopy);
   define(lir, ins);
 }
 
