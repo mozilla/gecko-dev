@@ -12249,9 +12249,7 @@
 - name: media.webrtc.codec.video.av1.enabled
   type: RelaxedAtomicBool
 #if defined(MOZ_AV1)
-  value: @IS_NIGHTLY_BUILD@
-#else
-  value: false
+  value: true
 #endif
   mirror: always
 
