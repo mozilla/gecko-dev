@@ -684,8 +684,7 @@ def vcs_checkout_from_args(args, project):
 
 
 def main(args):
-    task_workdir = os.environ["TASK_WORKDIR"] = os.getcwd()
-    print_line(b'setup', b'run-task started in %s\n' % task_workdir.encode('utf-8'))
+    print_line(b'setup', b'run-task started in %s\n' % os.getcwd().encode('utf-8'))
     running_as_root = IS_POSIX and os.getuid() == 0
 
     # Set a reasonable limit to the number of open files.
@@ -903,24 +902,14 @@ def main(args):
     vcs_checkout_from_args(args, 'gecko')
     vcs_checkout_from_args(args, 'comm')
 
-    # Interpolate environment variables with defined substitution patterns. For
-    # example, the variable `CACHE_DIR={task_workdir}/.cache` will be
-    # interpolated with the task's working directory.
-    env_subs = {
-        "task_workdir": task_workdir,
-    }
-    for k, v in os.environ.items():
-        for subname, subval in env_subs.items():
-            # We check for an exact match rather than using a format string to
-            # avoid accidentally trying to interpolate environment variables
-            # that happen to contain brackets for some other reason.
-            pattern = f"{{{subname}}}"
-            if pattern in v:
-                os.environ[k] = os.path.normpath(v.replace(pattern, subval))
-                print_line(
-                    b"setup",
-                    b"%s is %s\n" % (k.encode("utf-8"), os.environ[k].encode("utf-8")),
-                )
+    for k in ('GECKO_PATH', 'MOZ_FETCHES_DIR', 'UPLOAD_DIR', 'MOZ_PYTHON_HOME'):
+        if k in os.environ:
+            # Normalize paths to use forward slashes. Some shell scripts
+            # tolerate that better on Windows.
+            os.environ[k] = os.path.abspath(os.environ[k]).replace(os.sep, '/')
+            print_line(b'setup', b'%s is %s\n' % (
+                k.encode('utf-8'),
+                os.environ[k].encode('utf-8')))
 
     if 'MOZ_FETCHES' in os.environ:
         fetch_artifacts()

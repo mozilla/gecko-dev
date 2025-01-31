@@ -216,6 +216,8 @@ def common_toolchain(config, job, taskdesc, is_docker):
     run["using"] = "run-task"
     if is_docker:
         gecko_path = "workspace/build/src"
+    elif job["worker"]["os"] == "windows":
+        gecko_path = "%GECKO_PATH%"
     else:
         gecko_path = "$GECKO_PATH"
 
