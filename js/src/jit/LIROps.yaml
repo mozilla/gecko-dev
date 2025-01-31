@@ -4053,7 +4053,11 @@
   mir_op: true
 
 - name: WasmBoundsCheck64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    ptr: Int64
+    boundsCheckLimit: Int64
+  mir_op: WasmBoundsCheck
 
 - name: WasmBoundsCheckRange32
   result_type: WordSized
@@ -4245,10 +4249,17 @@
     index: WordSized
 
 - name: WasmDerivedPointer
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    base: WordSized
+  mir_op: true
 
 - name: WasmDerivedIndexPointer
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    base: WordSized
+    index: WordSized
+  mir_op: true
 
 - name: WasmStoreRef
   operands:
@@ -4291,7 +4302,7 @@
   result_type: WordSized
 
 - name: WasmParameterI64
-  gen_boilerplate: false
+  result_type: Int64
 
 - name: WasmReturn
   operands:

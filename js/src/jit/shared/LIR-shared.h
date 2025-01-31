@@ -899,21 +899,6 @@ class LWasmCompareAndSelect : public LWasmSelectBase<1, 4> {
   JSOp jsop() { return jsop_; }
 };
 
-class LWasmBoundsCheck64
-    : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
- public:
-  LIR_HEADER(WasmBoundsCheck64);
-  explicit LWasmBoundsCheck64(const LInt64Allocation& ptr,
-                              const LInt64Allocation& boundsCheckLimit)
-      : LInstructionHelper(classOpcode) {
-    setInt64Operand(0, ptr);
-    setInt64Operand(INT64_PIECES, boundsCheckLimit);
-  }
-  MWasmBoundsCheck* mir() const { return mir_->toWasmBoundsCheck(); }
-  LInt64Allocation ptr() { return getInt64Operand(0); }
-  LInt64Allocation boundsCheckLimit() { return getInt64Operand(INT64_PIECES); }
-};
-
 namespace details {
 
 // This is a base class for LWasmLoad/LWasmLoadI64.
@@ -1209,38 +1194,6 @@ class LWasmAtomicBinopHeapForEffect : public LInstructionHelper<0, 3, 5> {
   const LDefinition* maskTemp() { return getTemp(4); }
 
   MWasmAtomicBinopHeap* mir() const { return mir_->toWasmAtomicBinopHeap(); }
-};
-
-class LWasmDerivedPointer : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmDerivedPointer);
-  explicit LWasmDerivedPointer(const LAllocation& base)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, base);
-  }
-  const LAllocation* base() { return getOperand(0); }
-  uint32_t offset() { return mirRaw()->toWasmDerivedPointer()->offset(); }
-};
-
-class LWasmDerivedIndexPointer : public LInstructionHelper<1, 2, 0> {
- public:
-  LIR_HEADER(WasmDerivedIndexPointer);
-  explicit LWasmDerivedIndexPointer(const LAllocation& base,
-                                    const LAllocation& index)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, base);
-    setOperand(1, index);
-  }
-  const LAllocation* base() { return getOperand(0); }
-  const LAllocation* index() { return getOperand(1); }
-  Scale scale() { return mirRaw()->toWasmDerivedIndexPointer()->scale(); }
-};
-
-class LWasmParameterI64 : public LInstructionHelper<INT64_PIECES, 0, 0> {
- public:
-  LIR_HEADER(WasmParameterI64);
-
-  LWasmParameterI64() : LInstructionHelper(classOpcode) {}
 };
 
 // This is used only with LWasmCall.
