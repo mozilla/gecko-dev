@@ -93,6 +93,8 @@ import mozilla.components.service.pocket.PocketStoriesConfig
 import mozilla.components.service.pocket.PocketStoriesRequestConfig
 import mozilla.components.service.pocket.PocketStoriesService
 import mozilla.components.service.pocket.Profile
+import mozilla.components.service.pocket.mars.api.MarsSpocsRequestConfig
+import mozilla.components.service.pocket.mars.api.NEW_TAB_SPOCS_PLACEMENT_KEY
 import mozilla.components.service.sync.autofill.AutofillCreditCardsAddressesStorage
 import mozilla.components.service.sync.logins.SyncableLoginsStorage
 import mozilla.components.support.base.worker.Frequency
@@ -125,6 +127,7 @@ import org.mozilla.fenix.utils.getUndoDelay
 import org.mozilla.geckoview.GeckoRuntime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import mozilla.components.service.pocket.mars.api.Placement as MarsSpocsPlacement
 
 /**
  * Component group for all core browser functionality.
@@ -531,6 +534,16 @@ class Core(
             },
             contentRecommendationsParams = ContentRecommendationsRequestConfig(
                 locale = LocaleManager.getSelectedLocale(context).toLanguageTag(),
+            ),
+            marsSponsoredContentsParams = MarsSpocsRequestConfig(
+                contextId = context.settings().contileContextId,
+                userAgent = engine.settings.userAgentString,
+                placements = listOf(
+                    MarsSpocsPlacement(
+                        placement = NEW_TAB_SPOCS_PLACEMENT_KEY,
+                        count = 10,
+                    ),
+                ),
             ),
         )
     }

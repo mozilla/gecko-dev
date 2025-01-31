@@ -526,11 +526,15 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             }
 
             if (settings().showPocketSponsoredStories) {
-                components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
-                // If the secret setting for sponsored stories parameters is set,
-                // force refresh the sponsored Pocket stories.
-                if (settings().useCustomConfigurationForSponsoredStories) {
-                    components.core.pocketStoriesService.refreshSponsoredStories()
+                if (settings().marsAPIEnabled) {
+                    components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
+                } else {
+                    components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
+                    // If the secret setting for sponsored stories parameters is set,
+                    // force refresh the sponsored Pocket stories.
+                    if (settings().useCustomConfigurationForSponsoredStories) {
+                        components.core.pocketStoriesService.refreshSponsoredStories()
+                    }
                 }
             }
 
@@ -746,6 +750,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         components.core.pocketStoriesService.stopPeriodicStoriesRefresh()
         components.core.pocketStoriesService.stopPeriodicSponsoredStoriesRefresh()
         components.core.pocketStoriesService.stopPeriodicContentRecommendationsRefresh()
+        components.core.pocketStoriesService.stopPeriodicSponsoredContentsRefresh()
         privateNotificationObserver?.stop()
         components.notificationsDelegate.unBindActivity(this)
 
