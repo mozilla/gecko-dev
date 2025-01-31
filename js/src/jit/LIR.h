@@ -1236,18 +1236,6 @@ class LCallInstructionHelper
   }
 };
 
-template <size_t Defs, size_t Temps>
-class LBinaryCallInstructionHelper
-    : public LCallInstructionHelper<Defs, 2, Temps> {
- protected:
-  explicit LBinaryCallInstructionHelper(LNode::Opcode opcode)
-      : LCallInstructionHelper<Defs, 2, Temps>(opcode) {}
-
- public:
-  const LAllocation* lhs() { return this->getOperand(0); }
-  const LAllocation* rhs() { return this->getOperand(1); }
-};
-
 // Base class for control instructions (goto, branch, etc.)
 template <size_t Succs, size_t Operands, size_t Temps>
 class LControlInstructionHelper

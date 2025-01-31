@@ -132,19 +132,6 @@ class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   MDiv* mir() const { return mir_->toDiv(); }
 };
 
-class LSoftUDivOrMod : public LBinaryCallInstructionHelper<1, 0> {
- public:
-  LIR_HEADER(SoftUDivOrMod);
-
-  LSoftUDivOrMod(const LAllocation& lhs, const LAllocation& rhs)
-      : LBinaryCallInstructionHelper(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-  }
-
-  MInstruction* mir() { return mir_->toInstruction(); }
-};
-
 // Definitions for `extraName` methods of generated LIR instructions.
 
 #ifdef JS_JITSPEW

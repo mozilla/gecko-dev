@@ -5223,7 +5223,12 @@
   defer_init: true
 
 - name: SoftUDivOrMod
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: Instruction
 
 - name: Int64ToFloatingPointCall
   result_type: WordSized
