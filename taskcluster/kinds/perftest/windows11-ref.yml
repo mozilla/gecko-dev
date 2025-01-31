@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 task-defaults:
-    worker-type: win11-64-2009-hw
+    worker-type: win11-64-2009-hw-ref
     fetches:
         build:
             - artifact: target.condprof.tests.tar.gz
