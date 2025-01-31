@@ -2099,35 +2099,6 @@ void CodeGenerator::visitCopySignF(LCopySignF* ins) {
                        ToFloatRegister(ins->output()));
 }
 
-void CodeGenerator::visitRotateI64(LRotateI64* lir) {
-  bool rotateLeft = lir->mir()->isLeftRotate();
-  Register64 input = ToRegister64(lir->input());
-  Register64 output = ToOutRegister64(lir);
-  const LAllocation* count = lir->count();
-
-  if (count->isConstant()) {
-    int32_t c = int32_t(count->toConstant()->toInt64() & 0x3F);
-    if (c == 0) {
-      if (input != output) {
-        masm.move64(input, output);
-        return;
-      }
-    }
-    if (rotateLeft) {
-      masm.rotateLeft64(Imm32(c), input, output, InvalidReg);
-    } else {
-      masm.rotateRight64(Imm32(c), input, output, InvalidReg);
-    }
-  } else {
-    Register c = ToRegister(count);
-    if (rotateLeft) {
-      masm.rotateLeft64(c, input, output, InvalidReg);
-    } else {
-      masm.rotateRight64(c, input, output, InvalidReg);
-    }
-  }
-}
-
 void CodeGenerator::visitWasmStore(LWasmStore* lir) {
   const MWasmStore* mir = lir->mir();
 
