@@ -239,7 +239,7 @@ export class SidebarState {
           return;
         }
         // we need this set to verticalTabsEnabled to ensure it has the correct state when toggling the sidebar button
-        this.launcherExpanded = lazy.verticalTabsEnabled;
+        this.launcherExpanded = lazy.verticalTabsEnabled && visible;
 
         if (!visible && this.panelOpen) {
           // Hiding the launcher should also close out any open panels and resets panelOpen

@@ -366,21 +366,18 @@ add_task(async function test_customize_extensions_clicked() {
 });
 
 async function testCustomizeSetting(
-  inputs,
+  input,
   gleanEventOrMetric,
   firstExpected,
-  secondExpected,
-  reverseInputsOrder
+  secondExpected
 ) {
   await SidebarController.show("viewCustomizeSidebar");
-  const { contentDocument, contentWindow } = SidebarController.browser;
+  const { contentDocument } = SidebarController.browser;
   const component = contentDocument.querySelector("sidebar-customize");
-  const [firstInput, secondInput] = reverseInputsOrder
-    ? [...component[inputs]].reverse()
-    : component[inputs];
 
-  info(`Toggle the setting for ${inputs}.`);
-  EventUtils.synthesizeMouseAtCenter(firstInput, {}, contentWindow);
+  info(`Toggle the setting for ${input}.`);
+  // Use click as the rect in synthesizeMouseAtCenter can change for the vertical tabs toggle
+  component[input].click();
   await TestUtils.waitForTick();
   let value = gleanEventOrMetric.testGetValue();
   if (Array.isArray(value)) {
@@ -390,7 +387,8 @@ async function testCustomizeSetting(
     Assert.equal(value, firstExpected);
   }
 
-  EventUtils.synthesizeMouseAtCenter(secondInput, {}, contentWindow);
+  info(`Toggle the setting for ${input}.`);
+  component[input].click();
   await TestUtils.waitForTick();
   value = gleanEventOrMetric.testGetValue();
   if (Array.isArray(value)) {
@@ -408,32 +406,29 @@ add_task(async function test_customize_sidebar_display() {
     set: [[TAB_DIRECTION_PREF, true]],
   });
   await testCustomizeSetting(
-    "visibilityInputs",
+    "visibilityInput",
     Glean.sidebarCustomize.sidebarDisplay,
     { preference: "hide" },
-    { preference: "always" },
-    true
+    { preference: "always" }
   );
   await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_customize_sidebar_position() {
   await testCustomizeSetting(
-    "positionInputs",
+    "positionInput",
     Glean.sidebarCustomize.sidebarPosition,
     { position: "right" },
-    { position: "left" },
-    true
+    { position: "left" }
   );
 });
 
 add_task(async function test_customize_tabs_layout() {
   await testCustomizeSetting(
-    "verticalTabsInputs",
+    "verticalTabsInput",
     Glean.sidebarCustomize.tabsLayout,
     { orientation: "vertical" },
-    { orientation: "horizontal" },
-    false
+    { orientation: "horizontal" }
   );
 });
 
@@ -484,32 +479,29 @@ add_task(async function test_sidebar_display_settings() {
     set: [[TAB_DIRECTION_PREF, true]],
   });
   await testCustomizeSetting(
-    "visibilityInputs",
+    "visibilityInput",
     Glean.sidebar.displaySettings,
     "hide",
-    "always",
-    true
+    "always"
   );
   await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_sidebar_position_settings() {
   await testCustomizeSetting(
-    "positionInputs",
+    "positionInput",
     Glean.sidebar.positionSettings,
     "right",
-    "left",
-    true
+    "left"
   );
 });
 
 add_task(async function test_sidebar_tabs_layout() {
   await testCustomizeSetting(
-    "verticalTabsInputs",
+    "verticalTabsInput",
     Glean.sidebar.tabsLayout,
     "vertical",
-    "horizontal",
-    false
+    "horizontal"
   );
 });
 
@@ -522,13 +514,13 @@ add_task(async function test_sidebar_position_rtl_ui() {
   // When RTL is enabled, sidebar is shown on the right by default.
   // Toggle position setting to move it to the left, then back to the right.
   await testCustomizeSetting(
-    "positionInputs",
+    "positionInput",
     Glean.sidebarCustomize.sidebarPosition,
     { position: "left" },
     { position: "right" }
   );
   await testCustomizeSetting(
-    "positionInputs",
+    "positionInput",
     Glean.sidebar.positionSettings,
     "left",
     "right"

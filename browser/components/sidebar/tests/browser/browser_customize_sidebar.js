@@ -13,7 +13,11 @@ async function showCustomizePanel(win) {
   const document = win.SidebarController.browser.contentDocument;
   return TestUtils.waitForCondition(async () => {
     const component = document.querySelector("sidebar-customize");
-    if (!component?.positionInputs || !component?.visibilityInputs) {
+    if (
+      !component?.positionInput ||
+      (win.SidebarController.sidebarVerticalTabsEnabled &&
+        !component?.visibilityInput)
+    ) {
       return false;
     }
     return component;
@@ -170,19 +174,22 @@ add_task(async function test_customize_position_setting() {
     () => BrowserTestUtils.isVisible(sidebarBox),
     "Sidebar panel is visible"
   );
-  const [positionLeft, positionRight] = panel.positionInputs;
-  ok(positionLeft.checked, "The sidebar positioned on the left by default.");
+
+  ok(
+    !panel.positionInput.checked,
+    "The sidebar positioned on the left by default."
+  );
   is(
     sidebarBox.style.order,
     "3",
     "Sidebar box should have an order of 3 when on the left"
   );
   EventUtils.synthesizeMouseAtCenter(
-    positionRight,
+    panel.positionInput,
     {},
     win.SidebarController.browser.contentWindow
   );
-  ok(positionRight.checked, "Sidebar is positioned on the right");
+  ok(panel.positionInput.checked, "Sidebar is positioned on the right");
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   const newPanel = await showCustomizePanel(newWin);
@@ -191,8 +198,8 @@ add_task(async function test_customize_position_setting() {
     () => BrowserTestUtils.isVisible(newSidebarBox),
     "Sidebar panel is visible"
   );
-  const [, newPositionRight] = newPanel.positionInputs;
-  ok(newPositionRight.checked, "Position setting persists.");
+
+  ok(newPanel.positionInput.checked, "Position setting persists.");
   is(
     newSidebarBox.style.order,
     "5",
@@ -217,22 +224,20 @@ add_task(async function test_customize_visibility_setting() {
 
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const panel = await showCustomizePanel(win);
-  const [showInput, hideInput] = panel.visibilityInputs;
-  ok(showInput.checked, "Always show is enabled by default.");
+  ok(!panel.visibilityInput.checked, "Always show is enabled by default.");
   EventUtils.synthesizeMouseAtCenter(
-    hideInput,
+    panel.visibilityInput,
     {},
     win.SidebarController.browser.contentWindow
   );
-  ok(hideInput.checked, "Hide sidebar is enabled.");
+  ok(panel.visibilityInput.checked, "Hide sidebar is enabled.");
   await deferredPrefChange.promise;
   const newPrefValue = Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF);
   is(newPrefValue, "hide-sidebar", "Visibility preference updated.");
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   const newPanel = await showCustomizePanel(newWin);
-  const [, newHideInput] = newPanel.visibilityInputs;
-  ok(newHideInput.checked, "Visibility setting persists.");
+  ok(newPanel.visibilityInput.checked, "Visibility setting persists.");
 
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
@@ -251,22 +256,23 @@ add_task(async function test_vertical_tabs_setting() {
 
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const panel = await showCustomizePanel(win);
-  const [verticalTabs, horizontalTabs] = panel.verticalTabsInputs;
-  ok(horizontalTabs.checked, "Horizontal tabs is enabled by default.");
+  ok(
+    !panel.verticalTabsInput.checked,
+    "Horizontal tabs is enabled by default."
+  );
   EventUtils.synthesizeMouseAtCenter(
-    verticalTabs,
+    panel.verticalTabsInput,
     {},
     win.SidebarController.browser.contentWindow
   );
-  ok(verticalTabs.checked, "Vertical tabs is enabled.");
+  ok(panel.verticalTabsInput.checked, "Vertical tabs is enabled.");
   await deferredPrefChange.promise;
   const newPrefValue = Services.prefs.getBoolPref(TAB_DIRECTION_PREF);
   is(newPrefValue, true, "Vertical tabs pref updated.");
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   const newPanel = await showCustomizePanel(newWin);
-  const [newVerticalTabs] = newPanel.verticalTabsInputs;
-  ok(newVerticalTabs.checked, "Vertical tabs setting persists.");
+  ok(newPanel.verticalTabsInput.checked, "Vertical tabs setting persists.");
 
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);

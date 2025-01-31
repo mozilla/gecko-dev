@@ -1827,7 +1827,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "always-show",
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.uninitializing) {
-      SidebarController.updateToolbarButton();
       SidebarController.recordVisibilitySetting(newValue);
       SidebarController._state.revampVisibility = newValue;
       SidebarController._state.updateVisibility(
@@ -1835,6 +1834,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
           SidebarController.sidebarVerticalTabsEnabled) ||
           !SidebarController.sidebarVerticalTabsEnabled
       );
+      SidebarController.updateToolbarButton();
     }
   }
 );
@@ -1845,11 +1845,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false,
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.uninitializing) {
+      SidebarController.recordTabsLayoutSetting(newValue);
       Services.prefs.setStringPref(
         SidebarController.VISIBILITY_PREF,
         newValue ? "always-show" : "hide-sidebar"
       );
-      SidebarController.recordTabsLayoutSetting(newValue);
     }
   }
 );
