@@ -1898,8 +1898,7 @@ release_partner_config:
           - en-GB
         platforms:
           - macosx64-shippable
-          - win64-shippable
-          - win32-shippable
+          - win32-shippable # Stub installers only
         upload_to_candidates: true
         publish_to_releases: true
       - campaign: softonic
