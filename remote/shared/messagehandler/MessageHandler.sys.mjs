@@ -29,8 +29,6 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
  *     For ContextDescriptorType.All, id can be ommitted.
  *     For ContextDescriptorType.TopBrowsingContext, the id should be the
  *     browserId corresponding to a top-level browsing context.
- *     For ContextDescriptorType.UserContext, the id should be the
- *     platform user context id.
  */
 
 /**
@@ -41,7 +39,6 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 export const ContextDescriptorType = {
   All: "All",
   TopBrowsingContext: "TopBrowsingContext",
-  UserContext: "UserContext",
 };
 
 /**

@@ -194,10 +194,6 @@ export class RootTransport {
       return this._getBrowsingContexts({ browserId: id });
     }
 
-    if (type === lazy.ContextDescriptorType.UserContext) {
-      return this._getBrowsingContexts({ userContext: id });
-    }
-
     // TODO: Handle other types of context descriptors.
     throw new Error(
       `Unsupported contextDescriptor type for broadcasting: ${type}`
@@ -210,25 +206,18 @@ export class RootTransport {
    * @param {object} options
    * @param {string=} options.browserId
    *    The id of the browser to filter the browsing contexts by (optional).
-   * @param {string=} options.userContext
-   *    The id of the user context to filter the browsing contexts by (optional).
    * @returns {Array<BrowsingContext>}
    *    The browsing contexts matching the provided options or all browsing contexts
    *    if no options are provided.
    */
   _getBrowsingContexts(options = {}) {
     // extract browserId from options
-    const { browserId, userContext } = options;
+    const { browserId } = options;
     let browsingContexts = [];
 
     // Fetch all tab related browsing contexts for top-level windows.
     for (const { browsingContext } of lazy.TabManager.browsers) {
-      if (
-        lazy.isBrowsingContextCompatible(browsingContext, {
-          browserId,
-          userContext,
-        })
-      ) {
+      if (lazy.isBrowsingContextCompatible(browsingContext, { browserId })) {
         browsingContexts = browsingContexts.concat(
           browsingContext.getAllBrowsingContextsInSubtree()
         );

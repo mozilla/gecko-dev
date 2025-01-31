@@ -241,9 +241,7 @@ export class WindowGlobalMessageHandler extends MessageHandler {
     return (
       contextDescriptor.type === ContextDescriptorType.All ||
       (contextDescriptor.type === ContextDescriptorType.TopBrowsingContext &&
-        contextDescriptor.id === this.context.browserId) ||
-      (contextDescriptor.type === ContextDescriptorType.UserContext &&
-        contextDescriptor.id === this.context.originAttributes.userContextId)
+        contextDescriptor.id === this.context.browserId)
     );
   }
 

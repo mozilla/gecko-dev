@@ -98,8 +98,7 @@ class Script(BidiModule):
         function_declaration: str,
         arguments: Optional[List[Mapping[str, Any]]] = None,
         contexts: Optional[List[str]] = None,
-        sandbox: Optional[str] = None,
-        user_contexts: Optional[List[str]] = None,
+        sandbox: Optional[str] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "functionDeclaration": function_declaration
@@ -111,8 +110,6 @@ class Script(BidiModule):
             params["contexts"] = contexts
         if sandbox is not None:
             params["sandbox"] = sandbox
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
 
         return params
 

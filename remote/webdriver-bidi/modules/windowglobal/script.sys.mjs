@@ -159,7 +159,7 @@ class ScriptModule extends WindowGlobalBiDiModule {
 
     const seenNodeIds = new Map();
     switch (evaluationStatus) {
-      case EvaluationStatus.Normal: {
+      case EvaluationStatus.Normal:
         const dataSuccess = this.serialize(
           this.#toRawObject(result),
           serializationOptions,
@@ -174,8 +174,7 @@ class ScriptModule extends WindowGlobalBiDiModule {
           result: dataSuccess,
           _extraData: { seenNodeIds },
         };
-      }
-      case EvaluationStatus.Throw: {
+      case EvaluationStatus.Throw:
         const dataThrow = this.#buildExceptionDetails(
           exception,
           stack,
@@ -190,7 +189,6 @@ class ScriptModule extends WindowGlobalBiDiModule {
           realmId: realm.id,
           _extraData: { seenNodeIds },
         };
-      }
       default:
         throw new lazy.error.UnsupportedOperationError(
           `Unsupported completion value for expression evaluation`
