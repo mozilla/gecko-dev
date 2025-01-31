@@ -9,6 +9,7 @@
 #include "mozilla/dom/ConsoleBinding.h"
 #include "ConsoleCommon.h"
 
+#include "double-conversion/double-conversion.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
 #include "mozilla/dom/BlobBinding.h"
@@ -2046,7 +2047,11 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
             output.AppendFloat(v);
           } else {
             nsCString format;
-            MakeFormatString(format, integer, mantissa, 'f');
+            using DToSConverter = double_conversion::DoubleToStringConverter;
+            MakeFormatString(
+                format, integer,
+                std::min(mantissa, DToSConverter::kMaxFixedDigitsAfterPoint),
+                'f');
             output.AppendPrintf(format.get(), v);
           }
         }
