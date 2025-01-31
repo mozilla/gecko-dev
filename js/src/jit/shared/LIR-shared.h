@@ -1165,31 +1165,6 @@ class LWasmBinarySimd128WithConstant : public LInstructionHelper<1, 1, 1> {
   }
 };
 
-// (v128, i32) -> v128 effect-free variable-width shift operations
-// lhs and dest are the same.
-// temp is an FPR (if in use).
-class LWasmVariableShiftSimd128 : public LInstructionHelper<1, 2, 1> {
- public:
-  LIR_HEADER(WasmVariableShiftSimd128)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-  static constexpr uint32_t Rhs = 1;
-
-  LWasmVariableShiftSimd128(const LAllocation& lhs, const LAllocation& rhs,
-                            const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Lhs, lhs);
-    setOperand(Rhs, rhs);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const LAllocation* rhs() { return getOperand(Rhs); }
-  wasm::SimdOp simdOp() const { return mir_->toWasmShiftSimd128()->simdOp(); }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

@@ -3080,7 +3080,7 @@ void CodeGenerator::visitWasmVariableShiftSimd128(
   Register rhs = ToRegister(ins->rhs());
   FloatRegister dest = ToFloatRegister(ins->output());
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16Shl:
       masm.leftShiftInt8x16(lhs, rhs, dest);
       break;

@@ -5019,8 +5019,18 @@
 - name: WasmBinarySimd128WithConstant
   gen_boilerplate: false
 
+# (v128, i32) -> v128 effect-free variable-width shift operations
+# lhs and dest are the same.
 - name: WasmVariableShiftSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+  # temp is an FPR (if in use).
+  num_temps: 1
+#endif
+  mir_op: WasmShiftSimd128
 
 # (v128, i32) -> v128 effect-free constant-width shift operations
 - name: WasmConstantShiftSimd128

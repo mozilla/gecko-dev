@@ -1417,7 +1417,7 @@ void LIRGenerator::visitWasmShiftSimd128(MWasmShiftSimd128* ins) {
   LAllocation rhsAlloc = useRegisterAtStart(rhs);
   auto* lir =
       new (alloc()) LWasmVariableShiftSimd128(lhsDestAlloc, rhsAlloc, tempReg);
-  defineReuseInput(lir, ins, LWasmVariableShiftSimd128::LhsDest);
+  defineReuseInput(lir, ins, LWasmVariableShiftSimd128::LhsIndex);
 #else
   MOZ_CRASH("No SIMD");
 #endif

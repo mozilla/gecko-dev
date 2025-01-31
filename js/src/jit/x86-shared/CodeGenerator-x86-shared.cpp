@@ -2794,13 +2794,13 @@ void CodeGenerator::visitWasmBinarySimd128WithConstant(
 void CodeGenerator::visitWasmVariableShiftSimd128(
     LWasmVariableShiftSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  FloatRegister lhsDest = ToFloatRegister(ins->lhsDest());
+  FloatRegister lhsDest = ToFloatRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
-  FloatRegister temp = ToTempFloatRegisterOrInvalid(ins->getTemp(0));
+  FloatRegister temp = ToTempFloatRegisterOrInvalid(ins->temp0());
 
   MOZ_ASSERT(ToFloatRegister(ins->output()) == lhsDest);
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16Shl:
       masm.leftShiftInt8x16(rhs, lhsDest, temp);
       break;
