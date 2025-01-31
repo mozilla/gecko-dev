@@ -2087,6 +2087,8 @@ void MediaFormatReader::DecoderData::StartRecordDecodingPerf(
       flag |= MediaInfoFlag::VIDEO_VP8;
     } else if (VPXDecoder::IsVPX(mimeType, VPXDecoder::VP9)) {
       flag |= MediaInfoFlag::VIDEO_VP9;
+    } else if (MP4Decoder::IsHEVC(mimeType)) {
+      flag |= MediaInfoFlag::VIDEO_HEVC;
     }
 #ifdef MOZ_AV1
     else if (AOMDecoder::IsAV1(mimeType)) {
