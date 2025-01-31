@@ -28,6 +28,7 @@
 -relay-brand-name = Firefox Relay
 -relay-brand-short-name = Relay
 -fakespot-brand-name = Fakespot
+-solo-ai-brand-name = Solo
 
 # Note the name of the website is capitalized.
 -fakespot-website-name = Fakespot.com

@@ -133,6 +133,9 @@ ID02:
 # Check with the localization team for advice.
 CO01:
     messages:
+        # toolkit/locales/en-US/toolkit/intl/regionNames.ftl
+        # Hard-coded brand name Solo in name of region
+        - region-name-sb
         # browser/branding/official/locales/en-US/brand.ftl
         - trademarkInfo
         # toolkit/locales/en-US/toolkit/neterror/certError.ftl
