@@ -31,7 +31,7 @@ module.exports = {
       assignment:
         "Assigning to a variable inside ok() is odd - did you mean to compare the two?",
       comparison:
-        "Use dedicated assertion methods rather than ok(a {{operator}} b).",
+        "Use dedicated assertion methods ({{assertMethod}}) rather than ok(a {{operator}} b).",
     },
     schema: [],
     type: "suggestion",
@@ -60,7 +60,10 @@ module.exports = {
           context.report({
             node,
             messageId: "comparison",
-            data: { operator: firstArg.operator },
+            data: {
+              assertMethod: operatorToAssertionMap[firstArg.operator],
+              operator: firstArg.operator,
+            },
             fix: fixer => {
               let left = context.sourceCode.getText(firstArg.left);
               let right = context.sourceCode.getText(firstArg.right);
