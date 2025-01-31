@@ -144,7 +144,7 @@ class ScriptModule extends RootBiDiModule {
       sandbox = null,
       userContexts: userContextIds = null,
     } = options;
-    let userContexts = new Set();
+    let userContexts = null;
     let navigables = null;
 
     if (contextIds != null) {
@@ -182,6 +182,7 @@ class ScriptModule extends RootBiDiModule {
         lazy.pprint`Expected "userContexts" array to have at least one item, got ${userContextIds}`
       )(userContextIds);
 
+      userContexts = new Set();
       for (const userContextId of userContextIds) {
         lazy.assert.string(
           userContextId,
@@ -247,7 +248,7 @@ class ScriptModule extends RootBiDiModule {
       ],
     };
 
-    if (navigables === null) {
+    if (navigables === null && userContexts === null) {
       await this.messageHandler.addSessionDataItem({
         ...preloadScriptDataItem,
         contextDescriptor: {
@@ -256,15 +257,29 @@ class ScriptModule extends RootBiDiModule {
       });
     } else {
       const preloadScriptDataItems = [];
-      for (const id of navigables) {
-        preloadScriptDataItems.push({
-          ...preloadScriptDataItem,
-          contextDescriptor: {
-            type: lazy.ContextDescriptorType.TopBrowsingContext,
-            id,
-          },
-          method: lazy.SessionDataMethod.Add,
-        });
+
+      if (navigables === null) {
+        for (const id of userContexts) {
+          preloadScriptDataItems.push({
+            ...preloadScriptDataItem,
+            contextDescriptor: {
+              type: lazy.ContextDescriptorType.UserContext,
+              id,
+            },
+            method: lazy.SessionDataMethod.Add,
+          });
+        }
+      } else {
+        for (const id of navigables) {
+          preloadScriptDataItems.push({
+            ...preloadScriptDataItem,
+            contextDescriptor: {
+              type: lazy.ContextDescriptorType.TopBrowsingContext,
+              id,
+            },
+            method: lazy.SessionDataMethod.Add,
+          });
+        }
       }
 
       await this.messageHandler.updateSessionData(preloadScriptDataItems);
@@ -685,7 +700,10 @@ class ScriptModule extends RootBiDiModule {
       ],
     };
 
-    if (preloadScript.contexts === null) {
+    if (
+      preloadScript.contexts === null &&
+      preloadScript.userContexts === null
+    ) {
       await this.messageHandler.removeSessionDataItem({
         ...sessionDataItem,
         contextDescriptor: {
@@ -694,15 +712,29 @@ class ScriptModule extends RootBiDiModule {
       });
     } else {
       const sessionDataItemToUpdate = [];
-      for (const id of preloadScript.contexts) {
-        sessionDataItemToUpdate.push({
-          ...sessionDataItem,
-          contextDescriptor: {
-            type: lazy.ContextDescriptorType.TopBrowsingContext,
-            id,
-          },
-          method: lazy.SessionDataMethod.Remove,
-        });
+
+      if (preloadScript.contexts === null) {
+        for (const id of preloadScript.userContexts) {
+          sessionDataItemToUpdate.push({
+            ...sessionDataItem,
+            contextDescriptor: {
+              type: lazy.ContextDescriptorType.UserContext,
+              id,
+            },
+            method: lazy.SessionDataMethod.Remove,
+          });
+        }
+      } else {
+        for (const id of preloadScript.contexts) {
+          sessionDataItemToUpdate.push({
+            ...sessionDataItem,
+            contextDescriptor: {
+              type: lazy.ContextDescriptorType.TopBrowsingContext,
+              id,
+            },
+            method: lazy.SessionDataMethod.Remove,
+          });
+        }
       }
 
       await this.messageHandler.updateSessionData(sessionDataItemToUpdate);

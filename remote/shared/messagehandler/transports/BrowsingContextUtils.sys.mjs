@@ -71,16 +71,27 @@ export function isInitialDocument(browsingContext) {
  * @param {object=} options
  * @param {string=} options.browserId
  *    The id of the browser to filter the browsing contexts by (optional).
+ * @param {string=} options.userContext
+ *    The id of the user context to filter the browsing contexts by (optional).
  *
  * @returns {boolean}
  *     True if the browsing context is valid, false otherwise.
  */
 export function isBrowsingContextCompatible(browsingContext, options = {}) {
-  const { browserId } = options;
+  const { browserId, userContext } = options;
 
   // If a browserId was provided, skip browsing contexts which are not
   // associated with this browserId.
   if (browserId !== undefined && browsingContext.browserId !== browserId) {
+    return false;
+  }
+
+  // If a userContext was provided, skip browsing contexts which are not
+  // associated with this userContext.
+  if (
+    userContext !== undefined &&
+    browsingContext.originAttributes.userContextId !== userContext
+  ) {
     return false;
   }
 
