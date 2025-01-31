@@ -651,17 +651,14 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
     value = useRegisterAtStart(ins->value());
   }
 
-  LWasmAtomicBinopHeap* lir = new (alloc())
-      LWasmAtomicBinopHeap(useRegister(base), value, tempDef,
-                           LDefinition::BogusTemp(), useRegister(memoryBase));
-
-  lir->setAddrTemp(temp());
+  auto* lir = new (alloc()) LWasmAtomicBinopHeap(
+      useRegister(base), value, useRegister(memoryBase), tempDef, temp());
   if (byteArray || bitOp) {
     defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
   } else if (ins->value()->isConstant()) {
     define(lir, ins);
   } else {
-    defineReuseInput(lir, ins, LWasmAtomicBinopHeap::valueOp);
+    defineReuseInput(lir, ins, LWasmAtomicBinopHeap::ValueIndex);
   }
 }
 

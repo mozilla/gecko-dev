@@ -623,9 +623,8 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   Register ptr = ToRegister(ins->ptr());
   Register memoryBase = ToRegister(ins->memoryBase());
   const LAllocation* value = ins->value();
-  Register temp = ToTempRegisterOrInvalid(ins->temp());
+  Register temp = ToTempRegisterOrInvalid(ins->temp0());
   Register output = ToRegister(ins->output());
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   Scalar::Type accessType = mir->access().type();
   if (accessType == Scalar::Uint32) {

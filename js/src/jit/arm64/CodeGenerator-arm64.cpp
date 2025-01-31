@@ -1552,10 +1552,8 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   Register memoryBase = ToRegister(ins->memoryBase());
   Register ptr = ToRegister(ins->ptr());
   Register value = ToRegister(ins->value());
-  Register flagTemp = ToRegister(ins->flagTemp());
+  Register flagTemp = ToRegister(ins->temp0());
   Register out = ToRegister(ins->output());
-  MOZ_ASSERT(ins->temp()->isBogusTemp());
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
   AtomicOp op = mir->operation();

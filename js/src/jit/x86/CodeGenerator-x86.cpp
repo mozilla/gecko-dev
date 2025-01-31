@@ -373,8 +373,8 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   MWasmAtomicBinopHeap* mir = ins->mir();
 
   Register ptrReg = ToRegister(ins->ptr());
-  Register temp = ToTempRegisterOrInvalid(ins->temp());
-  Register addrTemp = ToRegister(ins->addrTemp());
+  Register temp = ToTempRegisterOrInvalid(ins->temp0());
+  Register addrTemp = ToRegister(ins->temp1());
   Register out = ToRegister(ins->output());
   const LAllocation* value = ins->value();
   AtomicOp op = mir->operation();

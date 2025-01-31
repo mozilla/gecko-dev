@@ -1540,14 +1540,13 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
 
 void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   MOZ_ASSERT(ins->mir()->hasUses());
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   MWasmAtomicBinopHeap* mir = ins->mir();
   Register memoryBase = ToRegister(ins->memoryBase());
   Register ptrReg = ToRegister(ins->ptr());
-  Register valueTemp = ToTempRegisterOrInvalid(ins->valueTemp());
-  Register offsetTemp = ToTempRegisterOrInvalid(ins->offsetTemp());
-  Register maskTemp = ToTempRegisterOrInvalid(ins->maskTemp());
+  Register valueTemp = ToTempRegisterOrInvalid(ins->temp0());
+  Register offsetTemp = ToTempRegisterOrInvalid(ins->temp1());
+  Register maskTemp = ToTempRegisterOrInvalid(ins->temp2());
 
   BaseIndex srcAddr(memoryBase, ptrReg, TimesOne, mir->access().offset32());
 

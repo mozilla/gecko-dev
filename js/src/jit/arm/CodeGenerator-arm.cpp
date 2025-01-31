@@ -1891,11 +1891,10 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
 
   Register ptrReg = ToRegister(ins->ptr());
   Register memoryBase = ToRegister(ins->memoryBase());
-  Register flagTemp = ToRegister(ins->flagTemp());
+  Register flagTemp = ToRegister(ins->temp0());
   Register output = ToRegister(ins->output());
   const LAllocation* value = ins->value();
   AtomicOp op = mir->operation();
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   BaseIndex srcAddr(memoryBase, ptrReg, TimesOne, mir->access().offset32());
   masm.wasmAtomicFetchOp(mir->access(), op, ToRegister(value), srcAddr,

@@ -812,63 +812,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
-class LWasmAtomicBinopHeap : public LInstructionHelper<1, 3, 6> {
- public:
-  LIR_HEADER(WasmAtomicBinopHeap);
-
-  static const int32_t valueOp = 1;
-
-  // ARM, ARM64, x86, x64
-  LWasmAtomicBinopHeap(const LAllocation& ptr, const LAllocation& value,
-                       const LDefinition& temp, const LDefinition& flagTemp,
-                       const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, value);
-    setOperand(2, memoryBase);
-    setTemp(0, temp);
-    setTemp(1, LDefinition::BogusTemp());
-    setTemp(2, flagTemp);
-  }
-  // MIPS32, MIPS64, LoongArch64
-  LWasmAtomicBinopHeap(const LAllocation& ptr, const LAllocation& value,
-                       const LDefinition& valueTemp,
-                       const LDefinition& offsetTemp,
-                       const LDefinition& maskTemp,
-                       const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, value);
-    setOperand(2, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-    setTemp(1, LDefinition::BogusTemp());
-    setTemp(2, LDefinition::BogusTemp());
-    setTemp(3, valueTemp);
-    setTemp(4, offsetTemp);
-    setTemp(5, maskTemp);
-  }
-  const LAllocation* ptr() { return getOperand(0); }
-  const LAllocation* value() {
-    MOZ_ASSERT(valueOp == 1);
-    return getOperand(1);
-  }
-  const LAllocation* memoryBase() { return getOperand(2); }
-  const LDefinition* temp() { return getTemp(0); }
-
-  // Temp that may be used on some platforms to hold a computed address.
-  const LDefinition* addrTemp() { return getTemp(1); }
-  void setAddrTemp(const LDefinition& addrTemp) { setTemp(1, addrTemp); }
-
-  // Temp that may be used on LL/SC platforms for the flag result of the store.
-  const LDefinition* flagTemp() { return getTemp(2); }
-  // Temp that may be used on LL/SC platforms for extract/insert bits of word.
-  const LDefinition* valueTemp() { return getTemp(3); }
-  const LDefinition* offsetTemp() { return getTemp(4); }
-  const LDefinition* maskTemp() { return getTemp(5); }
-
-  MWasmAtomicBinopHeap* mir() const { return mir_->toWasmAtomicBinopHeap(); }
-};
-
 // Atomic binary operation where the result is discarded.
 class LWasmAtomicBinopHeapForEffect : public LInstructionHelper<0, 3, 5> {
  public:
