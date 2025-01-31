@@ -1112,11 +1112,7 @@ class LInstructionFixedDefsTempsHelper : public LInstruction {
 #endif
   }
 
-  // Default accessors, assuming a single input and output, respectively.
-  const LAllocation* input() {
-    MOZ_ASSERT(numOperands() == 1);
-    return getOperand(0);
-  }
+  // Default accessor, assuming a single output.
   const LDefinition* output() {
     MOZ_ASSERT(numDefs() == 1);
     return getDef(0);

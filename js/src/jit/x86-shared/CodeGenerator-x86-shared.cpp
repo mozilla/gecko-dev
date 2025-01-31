@@ -1861,7 +1861,7 @@ void CodeGenerator::visitNegI(LNegI* ins) {
 }
 
 void CodeGenerator::visitNegI64(LNegI64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   MOZ_ASSERT(input == ToOutRegister64(ins));
   masm.neg64(input);
 }

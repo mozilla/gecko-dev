@@ -1143,7 +1143,7 @@ void CodeGenerator::visitNearbyIntF(LNearbyIntF* lir) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->in());
+  FloatRegister input = ToFloatRegister(lir->input());
   Register output = ToRegister(lir->output());
 
   // Directly call Fjcvtzs if available to avoid generating unused OOL code in
@@ -1163,7 +1163,7 @@ void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
   MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for arm64");
-  masm.truncateFloat32ModUint32(ToFloatRegister(lir->in()),
+  masm.truncateFloat32ModUint32(ToFloatRegister(lir->input()),
                                 ToRegister(lir->output()));
 }
 
@@ -2300,7 +2300,7 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
 }
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   Register64 output = ToOutRegister64(ins);
   switch (ins->mir()->mode()) {
     case MSignExtendInt64::Byte:

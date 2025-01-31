@@ -786,7 +786,7 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->in());
+  FloatRegister input = ToFloatRegister(lir->input());
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());
   MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for x64");
@@ -800,7 +800,7 @@ void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->in());
+  FloatRegister input = ToFloatRegister(lir->input());
   Register output = ToRegister(lir->output());
   MOZ_ASSERT(lir->instance()->isBogus(), "instance not used for x64");
 
@@ -857,7 +857,7 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
 }
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   Register64 output = ToOutRegister64(ins);
   switch (ins->mir()->mode()) {
     case MSignExtendInt64::Byte:

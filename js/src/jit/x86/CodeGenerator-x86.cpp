@@ -595,7 +595,7 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->in());
+  FloatRegister input = ToFloatRegister(lir->input());
   Register output = ToRegister(lir->output());
 
   OutOfLineTruncate* ool = new (alloc()) OutOfLineTruncate(lir);
@@ -618,7 +618,7 @@ void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* lir) {
-  FloatRegister input = ToFloatRegister(lir->in());
+  FloatRegister input = ToFloatRegister(lir->input());
   Register output = ToRegister(lir->output());
 
   OutOfLineTruncateFloat32* ool = new (alloc()) OutOfLineTruncateFloat32(lir);
@@ -1058,7 +1058,7 @@ void CodeGenerator::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir) {
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* lir) {
 #ifdef DEBUG
-  Register64 input = ToRegister64(lir->num());
+  Register64 input = ToRegister64(lir->input());
   Register64 output = ToOutRegister64(lir);
   MOZ_ASSERT(input.low == eax);
   MOZ_ASSERT(output.low == eax);

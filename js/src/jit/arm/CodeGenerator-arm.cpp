@@ -1156,7 +1156,7 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* ins) {
-  emitTruncateDouble(ToFloatRegister(ins->in()), ToRegister(ins->output()),
+  emitTruncateDouble(ToFloatRegister(ins->input()), ToRegister(ins->output()),
                      ins->mir());
 }
 
@@ -1167,7 +1167,7 @@ void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
 
 void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
     LWasmBuiltinTruncateFToInt32* ins) {
-  emitTruncateFloat32(ToFloatRegister(ins->in()), ToRegister(ins->output()),
+  emitTruncateFloat32(ToFloatRegister(ins->input()), ToRegister(ins->output()),
                       ins->mir());
 }
 
@@ -2104,7 +2104,7 @@ void CodeGenerator::visitNegI(LNegI* ins) {
 }
 
 void CodeGenerator::visitNegI64(LNegI64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   MOZ_ASSERT(input == ToOutRegister64(ins));
   masm.neg64(input);
 }
@@ -2345,7 +2345,7 @@ void CodeGenerator::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir) {
 }
 
 void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* lir) {
-  Register64 input = ToRegister64(lir->num());
+  Register64 input = ToRegister64(lir->input());
   Register64 output = ToOutRegister64(lir);
   switch (lir->mir()->mode()) {
     case MSignExtendInt64::Byte:

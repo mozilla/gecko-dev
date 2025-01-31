@@ -4523,7 +4523,7 @@ void CodeGenerator::visitGuardProto(LGuardProto* guard) {
 }
 
 void CodeGenerator::visitGuardNullProto(LGuardNullProto* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   masm.loadObjProto(obj, temp);
@@ -4534,7 +4534,7 @@ void CodeGenerator::visitGuardNullProto(LGuardNullProto* guard) {
 }
 
 void CodeGenerator::visitGuardIsNativeObject(LGuardIsNativeObject* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4553,7 +4553,7 @@ void CodeGenerator::visitGuardGlobalGeneration(LGuardGlobalGeneration* guard) {
 }
 
 void CodeGenerator::visitGuardIsProxy(LGuardIsProxy* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4562,7 +4562,7 @@ void CodeGenerator::visitGuardIsProxy(LGuardIsProxy* guard) {
 }
 
 void CodeGenerator::visitGuardIsNotProxy(LGuardIsNotProxy* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4933,7 +4933,7 @@ void CodeGenerator::visitSmallObjectVariableKeyHasProp(
 
 void CodeGenerator::visitGuardIsNotArrayBufferMaybeShared(
     LGuardIsNotArrayBufferMaybeShared* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4950,7 +4950,7 @@ void CodeGenerator::visitGuardIsNotArrayBufferMaybeShared(
 }
 
 void CodeGenerator::visitGuardIsTypedArray(LGuardIsTypedArray* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4961,7 +4961,7 @@ void CodeGenerator::visitGuardIsTypedArray(LGuardIsTypedArray* guard) {
 
 void CodeGenerator::visitGuardIsFixedLengthTypedArray(
     LGuardIsFixedLengthTypedArray* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4972,7 +4972,7 @@ void CodeGenerator::visitGuardIsFixedLengthTypedArray(
 
 void CodeGenerator::visitGuardIsResizableTypedArray(
     LGuardIsResizableTypedArray* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
@@ -4982,7 +4982,7 @@ void CodeGenerator::visitGuardIsResizableTypedArray(
 }
 
 void CodeGenerator::visitGuardHasProxyHandler(LGuardHasProxyHandler* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
 
   Label bail;
 
@@ -11470,21 +11470,21 @@ void CodeGenerator::visitPopcntI(LPopcntI* ins) {
 }
 
 void CodeGenerator::visitClzI64(LClzI64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   Register64 output = ToOutRegister64(ins);
 
   masm.clz64(input, output);
 }
 
 void CodeGenerator::visitCtzI64(LCtzI64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   Register64 output = ToOutRegister64(ins);
 
   masm.ctz64(input, output);
 }
 
 void CodeGenerator::visitPopcntI64(LPopcntI64* ins) {
-  Register64 input = ToRegister64(ins->num());
+  Register64 input = ToRegister64(ins->input());
   Register64 output = ToOutRegister64(ins);
   Register temp = ToRegister(ins->temp0());
 
@@ -21213,7 +21213,7 @@ void CodeGenerator::visitObjectWithProto(LObjectWithProto* lir) {
 }
 
 void CodeGenerator::visitObjectStaticProto(LObjectStaticProto* lir) {
-  Register obj = ToRegister(lir->input());
+  Register obj = ToRegister(lir->object());
   Register output = ToRegister(lir->output());
 
   masm.loadObjProto(obj, output);

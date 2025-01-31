@@ -1183,19 +1183,19 @@
 - name: SignExtendInt32
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: true
 
 - name: SignExtendIntPtr
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: true
 
 - name: SignExtendInt64
   result_type: Int64
   operands:
-    num: Int64
+    input: Int64
   mir_op: true
 
 - name: UrshD
@@ -1261,44 +1261,44 @@
 - name: NegI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Negative of an int64
 - name: NegI64
   result_type: Int64
   operands:
-    num: Int64
+    input: Int64
 
 # Negative of double
 - name: NegD
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Negative of float32
 - name: NegF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Absolute value of an integer.
 - name: AbsI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: Abs
 
 # Absolute value of a double.
 - name: AbsD
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Absolute value of a float32.
 - name: AbsF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Copysign for doubles.
 - name: CopySignD
@@ -1322,35 +1322,35 @@
 - name: ClzI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: Clz
 
 # Count leading zeroes on an int64.
 - name: ClzI64
   result_type: Int64
   operands:
-    num: Int64
+    input: Int64
   mir_op: Clz
 
 # Count trailing zeroes on an int32.
 - name: CtzI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: Ctz
 
 # Count trailing zeroes on an int64.
 - name: CtzI64
   result_type: Int64
   operands:
-    num: Int64
+    input: Int64
   mir_op: Ctz
 
 # Count population on an int32.
 - name: PopcntI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: Popcnt
 
@@ -1358,19 +1358,19 @@
 - name: PopcntI64
   result_type: Int64
   operands:
-    num: Int64
+    input: Int64
   num_temps: 1
   mir_op: Popcnt
 
 - name: SqrtD
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 - name: SqrtF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 - name: Atan2D
   result_type: WordSized
@@ -1419,13 +1419,13 @@
 - name: SignI
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Sign value of an integer.
 - name: SignD
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Sign value of a double with expected int32 result.
 - name: SignDI
@@ -2137,7 +2137,7 @@
 - name: DoubleToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   mir_op: ToNumberInt32
 
 # Convert a float32 to an int32.
@@ -2147,7 +2147,7 @@
 - name: Float32ToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   mir_op: ToNumberInt32
 
 # Convert a double to a truncated int32.
@@ -2156,7 +2156,7 @@
 - name: TruncateDToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: TruncateToInt32
 
@@ -2165,7 +2165,7 @@
 - name: WasmBuiltinTruncateDToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
     instance: WordSized
   num_temps: 1
   mir_op: WasmBuiltinTruncateToInt32
@@ -2176,7 +2176,7 @@
 - name: TruncateFToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: TruncateToInt32
 
@@ -2185,7 +2185,7 @@
 - name: WasmBuiltinTruncateFToInt32
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
     instance: WordSized
   num_temps: 1
   mir_op: WasmBuiltinTruncateToInt32
@@ -2586,7 +2586,7 @@
 - name: GuardNumberToIntPtrIndex
   result_type: WordSized
   operands:
-    object: WordSized
+    input: WordSized
   mir_op: true
 
 # Bailout if index >= length.
@@ -3013,7 +3013,7 @@
 - name: ClampDToUint8
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
 
 - name: ClampVToUint8
@@ -3183,7 +3183,7 @@
 - name: LoadDynamicSlotV
   result_type: BoxedValue
   operands:
-    in: WordSized
+    input: WordSized
   mir_op: LoadDynamicSlot
 
 # Load a value from an object's dslots or a slots vector.
@@ -3191,7 +3191,7 @@
 - name: LoadDynamicSlotAndAtomize
   result_type: BoxedValue
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: LoadDynamicSlot
 
@@ -3225,35 +3225,35 @@
 - name: Floor
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Take the floor of a single precision number and converts it to an int32.
 # Implements Math.floor().
 - name: FloorF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Take the ceiling of a double precision number and converts it to an int32.
 # Implements Math.ceil().
 - name: Ceil
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Take the ceiling of a single precision number and converts it to an int32.
 # Implements Math.ceil().
 - name: CeilF
   result_type: WordSized
   operands:
-    string: WordSized
+    input: WordSized
 
 # Round a double precision number and converts it to an int32.
 # Implements Math.round().
 - name: Round
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: true
 
@@ -3262,7 +3262,7 @@
 - name: RoundF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: Round
 
@@ -3271,21 +3271,21 @@
 - name: Trunc
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Truncates a single precision number and converts it to an int32.
 # Implements Math.trunc().
 - name: TruncF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
 
 # Rounds a double precision number accordingly to mir()->roundingMode(),
 # and keeps a double output.
 - name: NearbyInt
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: true
 
 # Rounds a single precision number accordingly to mir()->roundingMode(),
@@ -3293,7 +3293,7 @@
 - name: NearbyIntF
   result_type: WordSized
   operands:
-    num: WordSized
+    input: WordSized
   mir_op: NearbyInt
 
 # Load a function's call environment.
@@ -3688,7 +3688,7 @@
 - name: GuardShape
   result_type: WordSized
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
   mir_op: true
 
@@ -3874,7 +3874,7 @@
 
 - name: GuardNoDenseElements
   operands:
-    in: WordSized
+    input: WordSized
   num_temps: 1
 
 - name: InCache
