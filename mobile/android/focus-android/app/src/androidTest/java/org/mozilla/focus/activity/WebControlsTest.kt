@@ -32,7 +32,7 @@ class WebControlsTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get: Rule
-    var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @Rule
     @JvmField

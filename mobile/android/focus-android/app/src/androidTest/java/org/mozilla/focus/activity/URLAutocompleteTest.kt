@@ -24,7 +24,7 @@ class URLAutocompleteTest : TestSetup() {
     private val customURL = "680news.com"
 
     @get: Rule
-    var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     // Test the url autocomplete feature with default settings
     @SmokeTest

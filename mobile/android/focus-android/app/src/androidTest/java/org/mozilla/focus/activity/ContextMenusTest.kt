@@ -34,7 +34,7 @@ class ContextMenusTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get: Rule
-    var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @get: Rule
     val retryTestRule = RetryTestRule(3)

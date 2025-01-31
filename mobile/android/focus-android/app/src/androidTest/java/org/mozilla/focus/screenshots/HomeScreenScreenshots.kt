@@ -32,17 +32,19 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
 import java.util.Locale
 
 class HomeScreenScreenshots : ScreenshotTest() {
-    @Rule @JvmField
-    var mActivityTestRule: ActivityTestRule<MainActivity> =
+    @Rule
+    @JvmField
+    val mScreenshotTestRule: ActivityTestRule<MainActivity> =
         object : MainActivityFirstrunTestRule(true, false) {
         }
 
-    @Rule @JvmField
+    @Rule
+    @JvmField
     val localeTestRule = LocaleTestRule()
 
     @Before
     fun setUp() {
-        mActivityTestRule.runOnUiThread {
+        mScreenshotTestRule.runOnUiThread {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
     }

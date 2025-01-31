@@ -17,7 +17,7 @@ import org.mozilla.focus.testAnnotations.SmokeTest
 @RunWith(AndroidJUnit4ClassRunner::class)
 class SettingsTest : TestSetup() {
     @get: Rule
-    var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @SmokeTest
     @Test

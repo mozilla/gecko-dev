@@ -25,7 +25,7 @@ class PDFViewerTest : TestSetup() {
     private val pdfLink = "PDF file"
 
     @get: Rule
-    var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @Before
     override fun setUp() {

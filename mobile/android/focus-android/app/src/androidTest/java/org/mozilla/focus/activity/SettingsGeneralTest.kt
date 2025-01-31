@@ -39,7 +39,7 @@ import org.mozilla.gecko.util.ThreadUtils.runOnUiThread
 // Tests for the General settings sub-menu: changing theme, locale and default browser
 class SettingsGeneralTest : TestSetup() {
     @get: Rule
-    var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @get: Rule
     var watcher: TestRule = object : TestWatcher() {

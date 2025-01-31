@@ -39,7 +39,7 @@ class EraseBrowsingDataTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get: Rule
-    var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Rule
     @JvmField

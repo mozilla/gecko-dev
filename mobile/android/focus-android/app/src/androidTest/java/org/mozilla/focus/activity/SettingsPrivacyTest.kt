@@ -32,7 +32,7 @@ class SettingsPrivacyTest : TestSetup() {
     private lateinit var webServer: MockWebServer
 
     @get: Rule
-    var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Rule
     @JvmField

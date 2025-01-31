@@ -34,7 +34,7 @@ class LocalSessionStorageTest : TestSetup() {
     }
 
     @get: Rule
-    var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
     override fun setUp() {

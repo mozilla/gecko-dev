@@ -39,7 +39,7 @@ class DownloadFileTest : TestSetup() {
     private var downloadFileName: String = ""
 
     @get:Rule
-    var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
+    val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @Rule
     @JvmField
