@@ -22,7 +22,7 @@ from gecko_taskgraph.transforms.task import taskref_or_string
 run_task_schema = Schema(
     {
         Required("using"): "run-task",
-        # Whether or not to use caches.
+        # Use the specified caches.
         Optional("use-caches"): Any(bool, [str]),
         # if true (the default), perform a checkout of gecko on the worker
         Required("checkout"): bool,
