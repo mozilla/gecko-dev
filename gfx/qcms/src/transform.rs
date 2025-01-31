@@ -403,14 +403,12 @@ unsafe extern "C" fn qcms_transform_data_gray_template_lut<I: GrayFormat, F: For
 
     let mut i: u32 = 0;
     while (i as usize) < length {
-        let fresh0 = src;
+        let device: u8 = *src;
         src = src.offset(1);
-        let device: u8 = *fresh0;
         let mut alpha: u8 = 0xffu8;
         if I::has_alpha {
-            let fresh1 = src;
+            alpha = *src;
             src = src.offset(1);
-            alpha = *fresh1
         }
         let linear: f32 = input_gamma_table_gray[device as usize];
 
@@ -496,14 +494,12 @@ unsafe fn qcms_transform_data_gray_template_precache<I: GrayFormat, F: Format>(
 
     let mut i: u32 = 0;
     while (i as usize) < length {
-        let fresh2 = src;
+        let device: u8 = *src;
         src = src.offset(1);
-        let device: u8 = *fresh2;
         let mut alpha: u8 = 0xffu8;
         if I::has_alpha {
-            let fresh3 = src;
+            alpha  = *src;
             src = src.offset(1);
-            alpha = *fresh3
         }
 
         let linear: f32 = *input_gamma_table_gray.offset(device as isize);
