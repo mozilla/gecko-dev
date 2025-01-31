@@ -3273,12 +3273,12 @@ void CodeGenerator::visitWasmPermuteSimd128(LWasmPermuteSimd128* ins) {
 
 void CodeGenerator::visitWasmReplaceLaneSimd128(LWasmReplaceLaneSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  FloatRegister lhs = ToFloatRegister(ins->lhsDest());
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
   FloatRegister dest = ToFloatRegister(ins->output());
   const LAllocation* rhs = ins->rhs();
-  uint32_t laneIndex = ins->laneIndex();
+  uint32_t laneIndex = ins->mir()->laneIndex();
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16ReplaceLane:
       masm.replaceLaneInt8x16(laneIndex, lhs, ToRegister(rhs), dest);
       break;

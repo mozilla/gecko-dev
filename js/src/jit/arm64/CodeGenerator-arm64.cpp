@@ -3373,9 +3373,9 @@ void CodeGenerator::visitWasmReplaceLaneSimd128(LWasmReplaceLaneSimd128* ins) {
   MOZ_ASSERT(ToFloatRegister(ins->lhs()) == ToFloatRegister(ins->output()));
   FloatRegister lhsDest = ToFloatRegister(ins->lhs());
   const LAllocation* rhs = ins->rhs();
-  uint32_t laneIndex = ins->laneIndex();
+  uint32_t laneIndex = ins->mir()->laneIndex();
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16ReplaceLane:
       masm.replaceLaneInt8x16(laneIndex, ToRegister(rhs), lhsDest);
       break;

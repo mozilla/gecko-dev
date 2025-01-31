@@ -5035,7 +5035,11 @@
   gen_boilerplate: false
 
 - name: WasmReplaceLaneSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
 
 - name: WasmReplaceInt64LaneSimd128
   result_type: WordSized

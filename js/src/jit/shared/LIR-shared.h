@@ -1278,31 +1278,6 @@ class LWasmPermuteSimd128 : public LInstructionHelper<1, 1, 0> {
   SimdConstant control() { return control_; }
 };
 
-class LWasmReplaceLaneSimd128 : public LInstructionHelper<1, 2, 0> {
- public:
-  LIR_HEADER(WasmReplaceLaneSimd128)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-  static constexpr uint32_t Rhs = 1;
-
-  LWasmReplaceLaneSimd128(const LAllocation& lhs, const LAllocation& rhs)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Lhs, lhs);
-    setOperand(Rhs, rhs);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const LAllocation* rhs() { return getOperand(Rhs); }
-  uint32_t laneIndex() const {
-    return mir_->toWasmReplaceLaneSimd128()->laneIndex();
-  }
-  wasm::SimdOp simdOp() const {
-    return mir_->toWasmReplaceLaneSimd128()->simdOp();
-  }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling
