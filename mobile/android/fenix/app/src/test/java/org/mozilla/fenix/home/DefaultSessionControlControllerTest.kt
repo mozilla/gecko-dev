@@ -1052,9 +1052,30 @@ class DefaultSessionControlControllerTest {
         every { controller.getAvailableSearchEngines() } returns listOf(searchEngine)
         every { settings.marsAPIEnabled } returns true
 
+        assertNull(TopSites.contileImpression.testGetValue())
+
+        var topSiteImpressionPinged = false
+        Pings.topsitesImpression.testBeforeNextSubmit {
+            assertEquals(3L, TopSites.contileTileId.testGetValue())
+            assertEquals("mozilla", TopSites.contileAdvertiser.testGetValue())
+            assertNull(TopSites.contileReportingUrl.testGetValue())
+
+            topSiteImpressionPinged = true
+        }
+
         controller.handleSelectTopSite(topSite, position)
 
         verify { marsUseCases.recordInteraction(topSite.clickUrl) }
+
+        val event = TopSites.contileClick.testGetValue()!!
+
+        assertEquals(1, event.size)
+        assertEquals("top_sites", event[0].category)
+        assertEquals("contile_click", event[0].name)
+        assertEquals("1", event[0].extra!!["position"])
+        assertEquals("newtab", event[0].extra!!["source"])
+
+        assertTrue(topSiteImpressionPinged)
     }
 
     @Test
@@ -1074,9 +1095,30 @@ class DefaultSessionControlControllerTest {
         every { controller.getAvailableSearchEngines() } returns listOf(searchEngine)
         every { settings.marsAPIEnabled } returns true
 
+        assertNull(TopSites.contileImpression.testGetValue())
+
+        var topSiteImpressionSubmitted = false
+        Pings.topsitesImpression.testBeforeNextSubmit {
+            assertEquals(3L, TopSites.contileTileId.testGetValue())
+            assertEquals("mozilla", TopSites.contileAdvertiser.testGetValue())
+            assertNull(TopSites.contileReportingUrl.testGetValue())
+
+            topSiteImpressionSubmitted = true
+        }
+
         controller.handleTopSiteImpression(topSite, position)
 
         verify { marsUseCases.recordInteraction(topSite.impressionUrl) }
+
+        val event = TopSites.contileImpression.testGetValue()!!
+
+        assertEquals(1, event.size)
+        assertEquals("top_sites", event[0].category)
+        assertEquals("contile_impression", event[0].name)
+        assertEquals("1", event[0].extra!!["position"])
+        assertEquals("newtab", event[0].extra!!["source"])
+
+        assertTrue(topSiteImpressionSubmitted)
     }
 
     @Test
