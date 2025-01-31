@@ -135,10 +135,12 @@ def gen_operands(operands, defer_init):
             params.append(f"const {operand_types[op_type]}& {operand}")
 
     # First initialize all word-sized operands.
-    for index_value, operand in enumerate(reg_operands):
+    for index, operand in enumerate(reg_operands):
         cap_operand = operand[0].upper() + operand[1:]
+        index_value = cap_operand + "Index"
         init_expr = f"setOperand({index_value}, {operand});"
 
+        indices.append(f"static constexpr size_t {index_value} = {index};")
         if not defer_init:
             initializers.append(init_expr)
         else:
@@ -153,11 +155,11 @@ def gen_operands(operands, defer_init):
     for box_index, operand in enumerate(value_operands):
         cap_operand = operand[0].upper() + operand[1:]
         index_value = cap_operand + "Index"
+        init_expr = f"setBoxOperand({index_value}, {operand});"
+
         indices.append(
             f"static constexpr size_t {index_value} = {make_boxed_index(box_index, reg_operands)};"
         )
-        init_expr = f"setBoxOperand({index_value}, {operand});"
-
         if not defer_init:
             initializers.append(init_expr)
         else:
@@ -172,11 +174,11 @@ def gen_operands(operands, defer_init):
     for int64_index, operand in enumerate(int64_operands):
         cap_operand = operand[0].upper() + operand[1:]
         index_value = cap_operand + "Index"
+        init_expr = f"setInt64Operand({index_value}, {operand});"
+
         indices.append(
             f"static constexpr size_t {index_value} = {make_int64_index(int64_index, reg_operands, value_operands)};"
         )
-        init_expr = f"setInt64Operand({index_value}, {operand});"
-
         if not defer_init:
             initializers.append(init_expr)
         else:
