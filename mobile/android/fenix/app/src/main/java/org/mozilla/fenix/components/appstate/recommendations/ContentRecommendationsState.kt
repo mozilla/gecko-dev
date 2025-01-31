@@ -8,6 +8,7 @@ import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 
@@ -18,7 +19,8 @@ import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
  * @property pocketStoriesCategories All [PocketRecommendedStory] categories.
  * @property pocketStoriesCategoriesSelections Current Pocket recommended stories categories selected by the user.
  * @property pocketSponsoredStories All [PocketSponsoredStory]s.
- * @property contentRecommendations The list of [ContentRecommendation] that could be displayed.
+ * @property contentRecommendations The list of [ContentRecommendation]s that could be displayed.
+ * @property sponsoredContents The list of [SponsoredContent]s that could be displayed.
  */
 data class ContentRecommendationsState(
     val pocketStories: List<PocketStory> = emptyList(),
@@ -26,4 +28,5 @@ data class ContentRecommendationsState(
     val pocketStoriesCategoriesSelections: List<PocketRecommendedStoriesSelectedCategory> = emptyList(),
     val pocketSponsoredStories: List<PocketSponsoredStory> = emptyList(),
     val contentRecommendations: List<ContentRecommendation> = emptyList(),
+    val sponsoredContents: List<SponsoredContent> = emptyList(),
 )
