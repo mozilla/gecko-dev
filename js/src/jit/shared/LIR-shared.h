@@ -1256,28 +1256,6 @@ class LWasmShuffleSimd128 : public LInstructionHelper<1, 2, 1> {
   SimdConstant control() { return control_; }
 };
 
-// (v128, imm_simd) -> v128 effect-free operation.
-class LWasmPermuteSimd128 : public LInstructionHelper<1, 1, 0> {
- private:
-  SimdPermuteOp op_;
-  SimdConstant control_;
-
- public:
-  LIR_HEADER(WasmPermuteSimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  LWasmPermuteSimd128(const LAllocation& src, SimdPermuteOp op,
-                      SimdConstant control)
-      : LInstructionHelper(classOpcode), op_(op), control_(control) {
-    setOperand(Src, src);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  SimdPermuteOp op() { return op_; }
-  SimdConstant control() { return control_; }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

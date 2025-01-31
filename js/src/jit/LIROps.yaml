@@ -5031,8 +5031,14 @@
 - name: WasmShuffleSimd128
   gen_boilerplate: false
 
+# (v128, imm_simd) -> v128 effect-free operation.
 - name: WasmPermuteSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    src: WordSized
+  arguments:
+    op: SimdPermuteOp
+    control: SimdConstant
 
 - name: WasmReplaceLaneSimd128
   result_type: WordSized

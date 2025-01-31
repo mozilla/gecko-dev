@@ -1470,7 +1470,7 @@ void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
       auto* lir =
           new (alloc()) LWasmPermuteSimd128(src, *s.permuteOp, s.control);
       if (reuse) {
-        defineReuseInput(lir, ins, LWasmPermuteSimd128::Src);
+        defineReuseInput(lir, ins, LWasmPermuteSimd128::SrcIndex);
       } else {
         define(lir, ins);
       }
