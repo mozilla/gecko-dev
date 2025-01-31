@@ -450,6 +450,15 @@ pub fn prepare_quad(
 
                     let rect = int_rect.to_f32();
 
+                    // At extreme scales the rect can round to zero size due to
+                    // f32 precision, causing a panic in new_dynamic, so just
+                    // skip segments that would produce zero size tasks.
+                    // https://bugzilla.mozilla.org/show_bug.cgi?id=1941838#c13
+                    let int_rect_size = int_rect.round().to_i32().size();
+                    if int_rect_size.is_empty() {
+                        continue;
+                    }
+
                     if is_direct {
                         scratch.quad_direct_segments.push(QuadSegment { rect: rect.cast_unit(), task_id: RenderTaskId::INVALID });
                     } else {
@@ -480,7 +489,7 @@ pub fn prepare_quad(
 
                         let task_id = add_render_task_with_mask(
                             &pattern,
-                            int_rect.round().to_i32().size(),
+                            int_rect_size,
                             rect.min,
                             clip_chain.clips_range,
                             prim_spatial_node_index,
