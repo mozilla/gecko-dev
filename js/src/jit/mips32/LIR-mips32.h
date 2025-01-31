@@ -10,23 +10,6 @@
 namespace js {
 namespace jit {
 
-class LBoxFloatingPoint : public LInstructionHelper<2, 1, 1> {
-  MIRType type_;
-
- public:
-  LIR_HEADER(BoxFloatingPoint);
-
-  LBoxFloatingPoint(const LAllocation& in, const LDefinition& temp,
-                    MIRType type)
-      : LInstructionHelper(classOpcode), type_(type) {
-    setOperand(0, in);
-    setTemp(0, temp);
-  }
-
-  MIRType type() const { return type_; }
-  const char* extraName() const { return StringFromMIRType(type_); }
-};
-
 class LUnbox : public LInstructionHelper<1, 2, 0> {
  public:
   LIR_HEADER(Unbox);
@@ -124,6 +107,14 @@ class LUDivOrModI64
     return mir_->toDiv()->trapSiteDesc();
   }
 };
+
+// Definitions for `extraName` methods of generated LIR instructions.
+
+#ifdef JS_JITSPEW
+const char* LBoxFloatingPoint::extraName() const {
+  return StringFromMIRType(type_);
+}
+#endif
 
 }  // namespace jit
 }  // namespace js

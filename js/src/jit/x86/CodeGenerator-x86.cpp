@@ -57,7 +57,7 @@ void CodeGenerator::visitBoxFloatingPoint(LBoxFloatingPoint* box) {
   masm.moveValue(TypedOrValueRegister(box->type(), in), out);
 
   if (JitOptions.spectreValueMasking) {
-    Register scratch = ToRegister(box->spectreTemp());
+    Register scratch = ToRegister(box->temp1());
     masm.move32(Imm32(JSVAL_TAG_CLEAR), scratch);
     masm.cmp32Move32(Assembler::Below, scratch, out.typeReg(), scratch,
                      out.typeReg());

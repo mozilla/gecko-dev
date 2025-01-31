@@ -4927,7 +4927,13 @@
 
 #ifdef JS_CODEGEN_X86
 - name: BoxFloatingPoint
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    input: WordSized
+  arguments:
+    type: MIRType
+  num_temps: 2
+  extra_name: true
 
 - name: DivOrModI64
   gen_boilerplate: false
@@ -5036,7 +5042,13 @@
 
 #ifdef JS_CODEGEN_ARM
 - name: BoxFloatingPoint
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    input: WordSized
+  arguments:
+    type: MIRType
+  num_temps: 1
+  extra_name: true
 
 - name: DivOrModI64
   gen_boilerplate: false
@@ -5206,7 +5218,13 @@
 
 #ifdef JS_CODEGEN_MIPS32
 - name: BoxFloatingPoint
-  gen_boilerplate: false
+  result_type: BoxedValue
+  operands:
+    input: WordSized
+  arguments:
+    type: MIRType
+  num_temps: 1
+  extra_name: true
 
 - name: DivOrModI64
   gen_boilerplate: false
