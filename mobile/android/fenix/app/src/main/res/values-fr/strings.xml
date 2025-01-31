@@ -3198,4 +3198,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Effectuez la mise à jour avant le 14 mars pour continuer à utiliser vos modules complémentaires et d’autres fonctionnalités.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certaines fonctionnalités cesseront de fonctionner demain.</string>
-</resources>
+
+    </resources>

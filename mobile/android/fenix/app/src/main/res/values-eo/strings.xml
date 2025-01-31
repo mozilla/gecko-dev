@@ -3160,4 +3160,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Ĝisdatigu antaŭ la 14a de marto por povi plu uzi aldonaĵojn kaj aliajn trajtojn.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Kelkaj trajtoj ĉesos funkcii morgaŭ.</string>
-</resources>
+
+    </resources>

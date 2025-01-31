@@ -3162,4 +3162,10 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Atualize antes de 14 de março para continuar a utilizar extras e outras funcionalidades.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algumas funcionalidades vão deixar de funcionar amanhã.</string>
+
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Mostrar texto oculto</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Texto simples</string>
 </resources>

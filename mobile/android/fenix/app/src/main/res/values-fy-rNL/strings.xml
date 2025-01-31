@@ -3159,4 +3159,5 @@ Dizze analyze sil jo allinnich helpe om de beoardielingskwaliteit te beoardielen
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Wurkje by foar 14 maart om add-ons en oare funksjes brûke te bliuwen.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Guon funksjes sille moarn net mear wurkje.</string>
-</resources>
+
+    </resources>

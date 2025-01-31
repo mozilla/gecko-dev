@@ -3172,4 +3172,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Eklentileri ve diğer özellikleri kullanmaya devam edebilmek için 14 Mart’tan önce tarayıcınızı güncelleyin.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bazı özellikler yarından itibaren çalışmayacak.</string>
-</resources>
+
+    </resources>

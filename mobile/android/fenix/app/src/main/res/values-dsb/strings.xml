@@ -3160,4 +3160,5 @@ To buźo jano pomagaś, kwalitu pógódnośenjow pósuźiś, nic kwalitu produkt
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Aktualizěrujśo do 14. měrca, aby dodanki a druge funkcije dalej wužywał.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Někotare funkcije witśe wěcej njebudu funkcioněrowaś.</string>
-</resources>
+
+    </resources>

@@ -3151,4 +3151,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">განაახლეთ 14 მარტამდე, დამატებებითა და სხვა შესაძლებლობებით სარგებლობა რომ განაგრძოთ.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ზოგიერთი შესაძლებლობა ხვალიდან შეწყვეტს მუშაობას.</string>
-</resources>
+
+    </resources>

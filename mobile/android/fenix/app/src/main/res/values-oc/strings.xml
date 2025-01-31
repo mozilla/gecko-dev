@@ -3160,4 +3160,5 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Realizatz la mesa a jorn abans loe 14 de març per téner d’utilizar vòstres moduls complementaris e d’autras foncionalitats.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">D’unas foncionalitats quitaràn de foncionar deman.</string>
-</resources>
+
+    </resources>

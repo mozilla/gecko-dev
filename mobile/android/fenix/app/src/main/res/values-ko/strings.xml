@@ -3219,4 +3219,10 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">부가 기능과 기타 기능을 계속 사용하시려면 3월 14일 전에 업데이트를 하세요.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">내일이면 일부 기능이 작동하지 않습니다.</string>
+
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">숨긴 텍스트 표시</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">텍스트 지우기</string>
 </resources>

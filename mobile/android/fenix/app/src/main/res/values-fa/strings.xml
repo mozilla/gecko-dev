@@ -3151,4 +3151,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">قبل از ۱۴ مارس به‌روزرسانی کنید تا به استفاده از برافزاها و سایر ویژگی‌ها ادامه دهید.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">برخی ویژگی‌ها فردا متوقف خواهند شد.</string>
-</resources>
+
+    </resources>

@@ -3090,4 +3090,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Attualizza prima dû 14 di marzu pi cuntinuari a usari i juncitini e autri carattarìstichi.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certi carattarìstichi nun funziònanu cchiù di dumani.</string>
-</resources>
+
+    </resources>

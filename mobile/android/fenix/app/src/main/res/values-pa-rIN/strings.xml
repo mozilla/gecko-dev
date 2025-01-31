@@ -3185,4 +3185,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ਐਡ-ਆਨ ਅਤੇ ਹੋਰ ਫ਼ੀਚਰਾਂ ਨੂੰ ਵਰਤਣਾ ਜਾਰੀ ਰੱਖਣ ਲਈ 14 ਮਾਰਚ ਤੋਂ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਕਰ ਲਵੋ</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ਭਲਕੇ ਕੁਝ ਫ਼ੀਚਰ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਣਗੇ।</string>
-</resources>
+
+    </resources>

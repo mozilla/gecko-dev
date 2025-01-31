@@ -3127,4 +3127,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Արդիացրեք  մինչև մարտի 14-ը, որպեսզի շարունակեք օգտագործել հավելումներ և այլ գործառույթներ:</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Որոշ գործառույթներ կդադարեն գործել վաղը:</string>
-</resources>
+
+    </resources>

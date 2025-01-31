@@ -2921,4 +2921,5 @@
     <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
     <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ہݨ ابڈیٹ کرو</string>
+
     </resources>

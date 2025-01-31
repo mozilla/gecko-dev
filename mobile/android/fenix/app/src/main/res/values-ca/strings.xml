@@ -3131,4 +3131,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualitzeu abans del 14 de març per seguir utilitzant els complements i altres funcions.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algunes funcions deixaran de funcionar demà.</string>
-</resources>
+
+    </resources>

@@ -198,6 +198,8 @@
     <string name="browser_menu_extensions_banner_onboarding_header">ສ້າງ %s ເປັນຂອງທ່ານເອງ</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">ສຶກສາເພີ່ມເຕີມ</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_manage_extensions">ຈັດການສ່ວນເສີມ</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">ສ່ວນຂະຫຍາຍທີ່ແນະນຳ</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
@@ -441,6 +443,8 @@
     <string name="onboarding_add_on_start_browsing_button_2">ເລີ່ມການທ່ອງເວັບ</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">ໄອຄອນສ່ວນເສີມ</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
@@ -502,6 +506,12 @@
     <string name="preferences_default_search_engine">ເຄື່ອງມືການຄົ້ນຫາພື້ນຖານ</string>
     <!-- Preference for settings related to Search -->
     <string name="preferences_search">ຄົ້ນຫາ</string>
+    <!-- Preference for settings related to Search engines -->
+    <string name="preferences_search_engines">ເຄື່ອງ​ມື​ຄົ້ນ​ຫາ</string>
+    <!-- Preference for settings related to Search engines suggestions-->
+    <string name="preferences_search_engines_suggestions">ຄໍາແນະນໍາຈາກເຄື່ອງມືຄົ້ນຫາ</string>
+    <!-- Preference Category for settings related to Search address bar -->
+    <string name="preferences_settings_address_bar">ການຕັ້ງຄ່າແຖບທີ່ຢູ່</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">ໃຫ້ຄະແນນໃນ Google Play</string>
     <!-- Preference linking to about page for Fenix

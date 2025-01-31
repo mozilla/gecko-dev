@@ -1608,4 +1608,5 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ఇప్పుడే తాజాకరించు</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">మీరు Firefox యొక్క పాత వెర్షన్ వాడుతున్నారు</string>
+
     </resources>

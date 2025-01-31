@@ -3125,4 +3125,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualiza antes del 14 de marzo para seguir usando complementos y otras funcionalidades.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algunas funcionalidades dejarán de funcionar mañana.</string>
-</resources>
+
+    </resources>

@@ -3186,4 +3186,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Κάντε ενημέρωση πριν τις 14 Μαρτίου για να συνεχίσετε να χρησιμοποιείτε τα πρόσθετα και άλλες λειτουργίες.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Ορισμένες λειτουργίες θα σταματήσουν να λειτουργούν αύριο.</string>
-</resources>
+
+    </resources>

@@ -3191,4 +3191,5 @@
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">請於 3 月 14 日前更新，以繼續使用附加元件與其他功能。</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">某些功能將於明天失效。</string>
-</resources>
+
+    </resources>

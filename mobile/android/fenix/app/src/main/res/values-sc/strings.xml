@@ -2595,4 +2595,5 @@
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Abarrant prus pagu de 7 dies pro atualizare</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Dae su 14 de martzu, is cumplementos e àteras caraterìsticas de Firefox no ant a funtzionare prus, ca unu tzertificadu printzipale at a iscadire.</string>
+
     </resources>
