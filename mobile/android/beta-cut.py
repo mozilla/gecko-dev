@@ -162,7 +162,7 @@ def search_remaining_occurrences(removed_strings):
 def commit_changes(bug_id, new_version_number, strings_removed, json_updated):
     """Commit all changes with a constructed commit message."""
     commit_message = (
-        f"Bug {bug_id} - Start the nightly {new_version_number} development cycle\n\n"
+        f"Bug {bug_id} - Start the nightly {new_version_number} development cycle.\n\n"
     )
     if strings_removed:
         commit_message += f"Strings expiring in version {new_version_number - EXPIRED_STRING_VERSION_OFFSET} have been removed\n"
@@ -216,8 +216,12 @@ def main():
 
     if remaining_use_message:
         print(
-            "\n⚠️  Some of the strings that were removed are still used in the codebase. Please remove their uses and amend the commit."
+            "\n⚠️  Some of the strings that were removed might still be used in the codebase."
         )
+        print(
+            "These are the potential remaining usages. Keep in mind that it is purely indicative and might show false positives."
+        )
+        print("Please remove the real remaining usages and amend the commit.")
         print(remaining_use_message)
 
     print("\n\033[1mPlease make sure you complete the following steps:\033[0m")
