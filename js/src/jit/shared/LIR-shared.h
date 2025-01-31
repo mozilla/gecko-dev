@@ -1330,24 +1330,6 @@ class LWasmReplaceInt64LaneSimd128
   }
 };
 
-// (scalar) -> v128 effect-free operations, scalar != int64
-class LWasmScalarToSimd128 : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(WasmScalarToSimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  explicit LWasmScalarToSimd128(const LAllocation& src)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Src, src);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  wasm::SimdOp simdOp() const {
-    return mir_->toWasmScalarToSimd128()->simdOp();
-  }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling
