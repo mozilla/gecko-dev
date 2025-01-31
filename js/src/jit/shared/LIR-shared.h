@@ -1140,31 +1140,6 @@ class LWasmBinarySimd128 : public LInstructionHelper<1, 2, 2> {
   static bool SpecializeForConstantRhs(wasm::SimdOp op);
 };
 
-class LWasmBinarySimd128WithConstant : public LInstructionHelper<1, 1, 1> {
-  SimdConstant rhs_;
-
- public:
-  LIR_HEADER(WasmBinarySimd128WithConstant)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-
-  LWasmBinarySimd128WithConstant(const LAllocation& lhs,
-                                 const SimdConstant& rhs,
-                                 const LDefinition& temp)
-      : LInstructionHelper(classOpcode), rhs_(rhs) {
-    setOperand(Lhs, lhs);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const SimdConstant& rhs() { return rhs_; }
-  wasm::SimdOp simdOp() const {
-    return mir_->toWasmBinarySimd128WithConstant()->simdOp();
-  }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

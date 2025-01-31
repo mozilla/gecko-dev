@@ -5017,7 +5017,13 @@
   gen_boilerplate: false
 
 - name: WasmBinarySimd128WithConstant
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+  arguments:
+    rhs: SimdConstant
+  num_temps: 1
+  mir_op: true
 
 # (v128, i32) -> v128 effect-free variable-width shift operations
 # lhs and dest are the same.

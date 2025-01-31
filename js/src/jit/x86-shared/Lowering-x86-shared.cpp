@@ -1302,15 +1302,15 @@ void LIRGenerator::visitWasmBinarySimd128WithConstant(
     // when AVX is enabled.
     LAllocation lhsAlloc = useRegisterAtStart(lhs);
     auto* lir = new (alloc())
-        LWasmBinarySimd128WithConstant(lhsAlloc, ins->rhs(), tempReg);
+        LWasmBinarySimd128WithConstant(lhsAlloc, tempReg, ins->rhs());
     define(lir, ins);
   } else {
     // Always beneficial to reuse the lhs register here, see discussion in
     // visitWasmBinarySimd128() and also code in specializeForConstantRhs().
     LAllocation lhsDestAlloc = useRegisterAtStart(lhs);
     auto* lir = new (alloc())
-        LWasmBinarySimd128WithConstant(lhsDestAlloc, ins->rhs(), tempReg);
-    defineReuseInput(lir, ins, LWasmBinarySimd128WithConstant::LhsDest);
+        LWasmBinarySimd128WithConstant(lhsDestAlloc, tempReg, ins->rhs());
+    defineReuseInput(lir, ins, LWasmBinarySimd128WithConstant::LhsIndex);
   }
 #else
   MOZ_CRASH("No SIMD");
