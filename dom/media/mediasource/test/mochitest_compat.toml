@@ -301,6 +301,9 @@ skip-if = ["os == 'android' && verify"] # Crash
 ["test_SeekNoData_mp4.html"]
 
 ["test_SeekToEnd_mp4.html"]
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64' && opt", # Bug 1781577
+]
 
 ["test_SeekTwice_mp4.html"]
 
