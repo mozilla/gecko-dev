@@ -18,6 +18,9 @@ prefs = [
 ["browser_addBookmarkForFrame.js"]
 
 ["browser_autoshow_bookmarks_toolbar.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1829323
+]
 
 ["browser_bookmarkMenu_hiddenWindow.js"]
 run-if = ["os == 'mac'"] # Mac-only functionality
