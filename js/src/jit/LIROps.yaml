@@ -686,7 +686,7 @@
 - name: Bail
 
 - name: Unreachable
-  gen_boilerplate: false
+  successors: []
 
 - name: EncodeSnapshot
 

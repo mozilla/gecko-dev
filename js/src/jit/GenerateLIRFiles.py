@@ -289,7 +289,7 @@ def gen_successors(successors):
     # Getter definitions.
     getters = []
 
-    for index, successor in enumerate(successors):
+    for index, successor in enumerate(successors or []):
         params.append(f"MBasicBlock* {successor}")
         initializers.append(f"setSuccessor({index}, {successor});")
         getters.append(
@@ -334,7 +334,7 @@ def gen_lir_class(
 
     succ_params, succ_initializers, succ_getters = gen_successors(successors)
 
-    if successors:
+    if successors is not None:
         if result_type:
             raise Exception("Control instructions don't return a result")
         num_defs = len(successors)
@@ -416,8 +416,8 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
             result_type = op.get("result_type", None)
             assert result_type is None or result_type in result_types
 
-            successors = op.get("successors", [])
-            assert isinstance(successors, list)
+            successors = op.get("successors", None)
+            assert successors is None or isinstance(successors, list)
 
             operands = op.get("operands") or {}
             assert isinstance(operands, dict)
@@ -481,7 +481,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 result_type = mir_type_to_lir_type(result_type)
                 assert result_type in result_types
 
-            successors = []
+            successors = None
 
             operands_raw = op.get("operands", {})
             assert isinstance(operands_raw, dict)
