@@ -237,6 +237,12 @@ document.addEventListener(
         case "toolbar-context-customize":
           gCustomizeMode.enter();
           break;
+        case "toolbar-context-toggle-vertical-tabs":
+          SidebarController.toggleVerticalTabs();
+          break;
+        case "toolbar-context-customize-sidebar":
+          SidebarController.show("viewCustomizeSidebar");
+          break;
         case "toolbar-context-full-screen-autohide":
           FullScreen.setAutohide();
           break;

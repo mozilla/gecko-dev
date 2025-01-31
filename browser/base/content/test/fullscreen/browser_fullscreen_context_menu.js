@@ -33,6 +33,8 @@ async function testContextMenu() {
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",
+          "#sidebarRevampSeparator",
+          "#toolbar-context-toggle-vertical-tabs",
         ]
       : [
           ".customize-context-moveToPanel",
@@ -41,6 +43,8 @@ async function testContextMenu() {
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",
+          "#sidebarRevampSeparator",
+          "#toolbar-context-toggle-vertical-tabs",
         ];
     let result1 = verifyContextMenu(contextMenu, array1);
     ok(!result1, "Expected no errors verifying context menu items");
@@ -74,6 +78,8 @@ async function testContextMenu() {
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",
+          "#sidebarRevampSeparator",
+          "#toolbar-context-toggle-vertical-tabs",
           `menuseparator[contexttype="fullscreen"]`,
           `.fullscreen-context-autohide`,
           `menuitem[contexttype="fullscreen"]`,
@@ -85,6 +91,8 @@ async function testContextMenu() {
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",
+          "#sidebarRevampSeparator",
+          "#toolbar-context-toggle-vertical-tabs",
           `menuseparator[contexttype="fullscreen"]`,
           `.fullscreen-context-autohide`,
           `menuitem[contexttype="fullscreen"]`,
