@@ -2590,7 +2590,13 @@
 
         if (shouldCreateGroupOnDrop) {
           this.#dragOverCreateGroupTimer = setTimeout(
-            () => this.#triggerDragOverCreateGroup(dragData, dropElement),
+            () =>
+              this.#triggerDragOverCreateGroup(
+                dragData,
+                newDropElementIndex,
+                dropElement,
+                dropBefore
+              ),
             Services.prefs.getIntPref("browser.tabs.groups.dragOverDelayMS")
           );
         } else {
@@ -2641,10 +2647,6 @@
         delete dragData.shouldCreateGroupOnDrop;
       }
 
-      dragData.dropElement = dropElement;
-      dragData.dropBefore = dropBefore;
-      dragData.animDropElementIndex = newDropElementIndex;
-
       if (
         newDropElementIndex == oldDropElementIndex ||
         // FIXME: This seems bogus, not sure what's going on with the indexes here:
@@ -2652,6 +2654,10 @@
       ) {
         return;
       }
+
+      dragData.dropElement = dropElement;
+      dragData.dropBefore = dropBefore;
+      dragData.animDropElementIndex = newDropElementIndex;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
@@ -2672,14 +2678,27 @@
 
     /**
      * @param {object} dragData
-     * @param {MozTabbrowserTab} dragoverTab
+     * @param {number} animDropElementIndex
+     * @param {MozTabbrowserTab} dropElement
+     * @param {boolean} dropBefore
      */
-    #triggerDragOverCreateGroup(dragData, dragoverTab) {
+    #triggerDragOverCreateGroup(
+      dragData,
+      animDropElementIndex,
+      dropElement,
+      dropBefore
+    ) {
       this.#clearDragOverCreateGroupTimer();
+
+      dragData.dropElement = dropElement;
+      dragData.dropBefore = dropBefore;
+      dragData.animDropElementIndex = animDropElementIndex;
       dragData.shouldCreateGroupOnDrop = true;
+
       this.toggleAttribute("movingtab-createGroup", true);
       this.removeAttribute("movingtab-ungroup");
-      dragoverTab.toggleAttribute("dragover-createGroup", true);
+      dropElement.toggleAttribute("dragover-createGroup", true);
+
       this.#setDragOverGroupColor(dragData.tabGroupCreationColor);
     }
 
