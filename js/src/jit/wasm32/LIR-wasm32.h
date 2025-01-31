@@ -9,18 +9,6 @@
 
 namespace js::jit {
 
-class LUnboxFloatingPoint : public LInstruction {
- public:
-  LIR_HEADER(UnboxFloatingPoint)
-  static const size_t Input = 0;
-
-  LBoxAllocation input() const { MOZ_CRASH(); }
-
-  MUnbox* mir() const { MOZ_CRASH(); }
-
-  const LDefinition* output() const { MOZ_CRASH(); }
-};
-
 class LUnbox : public LInstructionHelper<1, 2, 0> {
  public:
   MUnbox* mir() const { MOZ_CRASH(); }

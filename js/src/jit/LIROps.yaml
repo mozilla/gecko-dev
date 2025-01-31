@@ -4862,7 +4862,10 @@
   gen_boilerplate: false
 
 - name: UnboxFloatingPoint
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: BoxedValue
+  mir_op: Unbox
 
 # Convert a 32-bit unsigned integer to a double.
 - name: WasmUint32ToDouble

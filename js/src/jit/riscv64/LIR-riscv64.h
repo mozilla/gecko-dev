@@ -32,14 +32,6 @@ class LUnbox : public LInstructionHelper<1, BOX_PIECES, 0> {
   const char* extraName() const { return StringFromMIRType(mir()->type()); }
 };
 
-class LUnboxFloatingPoint : public LUnbox {
- public:
-  LIR_HEADER(UnboxFloatingPoint);
-
-  explicit LUnboxFloatingPoint(const LAllocation& input)
-      : LUnbox(classOpcode, input) {}
-};
-
 class LDivPowTwoI : public LInstructionHelper<1, 1, 1> {
   const int32_t shift_;
 

@@ -35,14 +35,6 @@ class LUnbox : public LUnboxBase {
   const char* extraName() const { return StringFromMIRType(mir()->type()); }
 };
 
-class LUnboxFloatingPoint : public LUnboxBase {
- public:
-  LIR_HEADER(UnboxFloatingPoint)
-
-  explicit LUnboxFloatingPoint(const LAllocation& input)
-      : LUnboxBase(classOpcode, input) {}
-};
-
 class LDivOrModI64 : public LBinaryMath<1> {
  public:
   LIR_HEADER(DivOrModI64)
