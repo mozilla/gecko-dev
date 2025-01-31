@@ -576,6 +576,48 @@ class DefaultTopSitesStorageTest {
         assertEquals(pinnedSite1, topSites[5])
         assertEquals(pinnedSite2, topSites[6])
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
+
+        whenever(pinnedSitesStorage.getPinnedSites()).thenReturn(pinnedSites + defaultSite)
+        topSites = defaultTopSitesStorage.getTopSites(
+            totalSites = 8,
+            providerConfig = TopSitesProviderConfig(
+                showProviderTopSites = true,
+                limit = 2,
+                maxThreshold = 8,
+            ),
+        )
+
+        assertEquals(8, topSites.size)
+        assertEquals(providedSite1, topSites[0])
+        assertEquals(defaultSite, topSites[1])
+        assertEquals(pinnedSite1, topSites[2])
+        assertEquals(pinnedSite2, topSites[3])
+        assertEquals(defaultSite, topSites[4])
+        assertEquals(pinnedSite1, topSites[5])
+        assertEquals(pinnedSite2, topSites[6])
+        assertEquals(defaultSite, topSites[7])
+        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
+
+        whenever(pinnedSitesStorage.getPinnedSites()).thenReturn(pinnedSites + defaultSite + pinnedSite1)
+        topSites = defaultTopSitesStorage.getTopSites(
+            totalSites = 8,
+            providerConfig = TopSitesProviderConfig(
+                showProviderTopSites = true,
+                limit = 2,
+                maxThreshold = 8,
+            ),
+        )
+
+        assertEquals(8, topSites.size)
+        assertEquals(defaultSite, topSites[0])
+        assertEquals(pinnedSite1, topSites[1])
+        assertEquals(pinnedSite2, topSites[2])
+        assertEquals(defaultSite, topSites[3])
+        assertEquals(pinnedSite1, topSites[4])
+        assertEquals(pinnedSite2, topSites[5])
+        assertEquals(defaultSite, topSites[6])
+        assertEquals(pinnedSite1, topSites[7])
+        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 
     @Test
