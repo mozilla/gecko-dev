@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.fetch.Client
 import mozilla.components.service.pocket.helpers.PocketTestResources
 import mozilla.components.service.pocket.helpers.assertResponseIsFailure
+import mozilla.components.service.pocket.helpers.assertResponseIsSuccess
 import mozilla.components.service.pocket.stories.api.PocketResponse
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
@@ -65,5 +66,17 @@ class MarsSpocsEndpointTest {
             PocketTestResources.marsSpocsResponse,
             (result as? PocketResponse.Success)?.data,
         )
+    }
+
+    @Test
+    fun `WHEN deleting an user returns a successful response THEN return a pocket response success`() {
+        whenever(rawEndpoint.deleteUser()).thenReturn(true)
+        assertResponseIsSuccess(endpoint.deleteUser())
+    }
+
+    @Test
+    fun `WHEN deleting an user returns a failure response THEN return a pocket response failure`() {
+        whenever(rawEndpoint.deleteUser()).thenReturn(false)
+        assertResponseIsFailure(endpoint.deleteUser())
     }
 }

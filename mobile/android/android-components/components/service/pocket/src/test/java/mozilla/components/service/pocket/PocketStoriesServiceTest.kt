@@ -320,4 +320,13 @@ class PocketStoriesServiceTest {
 
         verify(recordImpressions).invoke(impressions)
     }
+
+    @Test
+    fun `WHEN delete user is invoked THEN stop sponsored content refreshes and schedule user deletion`() {
+        service.deleteUser()
+
+        assertNotNull(GlobalDependencyProvider.SponsoredContents.useCases)
+        verify(service.sponsoredContentsRefreshScheduler).stopPeriodicRefreshes(any())
+        verify(service.sponsoredContentsRefreshScheduler).scheduleUserDeletion(any())
+    }
 }

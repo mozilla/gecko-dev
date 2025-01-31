@@ -169,7 +169,7 @@ internal class HomeSettingsFragmentTest {
         assertTrue(result)
         verify {
             appPrefsEditor.putBoolean(testContext.getString(R.string.pref_key_pocket_sponsored_stories), false)
-            pocketService.deleteProfile()
+            pocketService.deleteUser()
             appStore.dispatch(
                 ContentRecommendationsAction.SponsoredContentsChange(
                     sponsoredContents = emptyList(),

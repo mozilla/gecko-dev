@@ -10,6 +10,7 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.mars.api.MarsSpocsEndpoint
 import mozilla.components.service.pocket.mars.api.MarsSpocsRequestConfig
+import mozilla.components.service.pocket.stories.api.PocketResponse.Failure
 import mozilla.components.service.pocket.stories.api.PocketResponse.Success
 
 /**
@@ -48,12 +49,19 @@ internal class SponsoredContentsUseCases(
     }
 
     /**
+     * Deletes all data persisted for sponsored content.
+     */
+    internal val deleteUser by lazy {
+        DeleteUser(appContext)
+    }
+
+    /**
      * Use case for fetching and refreshing the list of sponsored contents in storage.
      *
      * @param context Application [Context]. Prefer sending application context to limit the
      * possibility of even small leaks.
      * @param client The HTTP [Client] to use for network requests.
-     *
+     * @param config Configuration for sponsored contents request.
      */
     internal inner class RefreshSponsoredContents(
         @get:VisibleForTesting
@@ -123,6 +131,40 @@ internal class SponsoredContentsUseCases(
             if (impressions.isEmpty()) return
 
             getSponsoredContentsRepository(context).recordImpressions(impressions)
+        }
+    }
+
+    /**
+     * Use case for deleting any data persisted for sponsored content.
+     *
+     * @param context Application [Context]. Prefer sending application context to limit the
+     * possibility of even small leaks.
+     * @param client The HTTP [Client] to use for network requests.
+     * @param config Configuration for sponsored contents request.
+     */
+    internal inner class DeleteUser(
+        @get:VisibleForTesting
+        internal val context: Context = this@SponsoredContentsUseCases.appContext,
+        @get:VisibleForTesting
+        internal val client: Client = this@SponsoredContentsUseCases.client,
+        @get:VisibleForTesting
+        internal val config: MarsSpocsRequestConfig = this@SponsoredContentsUseCases.config,
+    ) {
+
+        suspend operator fun invoke(): Boolean {
+            val provider = getSponsoredContentsProvider(client, config)
+
+            return when (provider.deleteUser()) {
+                is Success -> {
+                    getSponsoredContentsRepository(context).deleteAllSponsoredContents()
+                    true
+                }
+                is Failure -> {
+                    // Don't attempt to delete locally persisted sponsored contents to prevent
+                    // mismatching issues with user profile deletion failing.
+                    false
+                }
+            }
         }
     }
 

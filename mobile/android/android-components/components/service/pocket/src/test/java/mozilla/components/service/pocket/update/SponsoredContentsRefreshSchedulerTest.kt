@@ -5,17 +5,22 @@
 package mozilla.components.service.pocket.update
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.BackoffPolicy
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.pocket.PocketStoriesConfig
+import mozilla.components.service.pocket.update.DeleteUserWorker.Companion.DELETE_USER_WORK_TAG
 import mozilla.components.service.pocket.update.SponsoredContentsRefreshWorker.Companion.REFRESH_WORK_TAG
 import mozilla.components.support.base.worker.Frequency
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -83,6 +88,63 @@ class SponsoredContentsRefreshSchedulerTest {
         assertFalse(result.workSpec.constraints.requiresDeviceIdle())
         assertTrue(result.workSpec.constraints.requiredNetworkType == NetworkType.CONNECTED)
         assertTrue(result.tags.contains(REFRESH_WORK_TAG))
+    }
+
+    @Test
+    fun `WHEN delete user work is scheduled THEN work is queued`() {
+        val client: HttpURLConnectionClient = mock()
+        val scheduler = spy(
+            SponsoredContentsRefreshScheduler(
+                config = PocketStoriesConfig(
+                    client = client,
+                    sponsoredStoriesRefreshFrequency = Frequency(1, TimeUnit.HOURS),
+                ),
+            ),
+        )
+        val workManager = mock<WorkManager>()
+        val worker = mock<OneTimeWorkRequest>()
+        doReturn(workManager).`when`(scheduler).getWorkManager(any())
+        doReturn(worker).`when`(scheduler).createOneTimeDeleteUserWorkerRequest()
+
+        scheduler.scheduleUserDeletion(testContext)
+
+        verify(workManager).enqueueUniqueWork(
+            DELETE_USER_WORK_TAG,
+            ExistingWorkPolicy.KEEP,
+            worker,
+        )
+    }
+
+    @Test
+    fun `WHEN delete user work is cancelled THEN any existing work request should be cancelled`() {
+        val scheduler = spy(SponsoredContentsRefreshScheduler(mock()))
+        val workManager = mock<WorkManager>()
+        doReturn(workManager).`when`(scheduler).getWorkManager(any())
+
+        scheduler.stopUserDeletion(testContext)
+
+        verify(workManager).cancelAllWorkByTag(DELETE_USER_WORK_TAG)
+        verify(workManager, never()).cancelAllWork()
+    }
+
+    @Test
+    fun `WHEN delete user work request is created THEN ensure the work request has the correct constraints configured`() {
+        val scheduler = spy(SponsoredContentsRefreshScheduler(mock()))
+
+        val result = scheduler.createOneTimeDeleteUserWorkerRequest()
+
+        verify(scheduler).getWorkerConstraints()
+
+        assertEquals(0, result.workSpec.intervalDuration)
+        assertEquals(0, result.workSpec.initialDelay)
+        assertEquals(BackoffPolicy.EXPONENTIAL, result.workSpec.backoffPolicy)
+        assertFalse(result.workSpec.constraints.requiresBatteryNotLow())
+        assertFalse(result.workSpec.constraints.requiresCharging())
+        assertFalse(result.workSpec.constraints.hasContentUriTriggers())
+        assertFalse(result.workSpec.constraints.requiresStorageNotLow())
+        assertFalse(result.workSpec.constraints.requiresDeviceIdle())
+        assertTrue(result.workSpec.constraints.requiredNetworkType == NetworkType.CONNECTED)
+        assertTrue(result.tags.contains(DELETE_USER_WORK_TAG))
     }
 
     @Test

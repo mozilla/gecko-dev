@@ -91,6 +91,30 @@ class SponsoredContentsUseCasesTest {
         verify(repository).recordImpressions(impressions)
     }
 
+    @Test
+    fun `GIVEN a successful response WHEN deleting an user THEN delete all sponsored contents from the repository`() = runTest {
+        val response = PocketResponse.wrap(true)
+        doReturn(response).`when`(endPoint).deleteUser()
+
+        val result = useCases.DeleteUser().invoke()
+
+        assertTrue(result)
+        verify(endPoint).deleteUser()
+        verify(repository).deleteAllSponsoredContents()
+    }
+
+    @Test
+    fun `GIVEN a failed response WHEN deleting an user THEN do not update the sponsored content repository`() = runTest {
+        val response = getFailResponse()
+        doReturn(response).`when`(endPoint).deleteUser()
+
+        val result = useCases.DeleteUser().invoke()
+
+        assertFalse(result)
+        verify(endPoint).deleteUser()
+        verify(repository, never()).addSponsoredContents(any())
+    }
+
     private fun getSuccessSponsoredContentResponse() =
         PocketResponse.wrap(PocketTestResources.marsSpocsResponse)
 

@@ -135,8 +135,9 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                             }
                         }
                         false -> {
-                            context.components.core.pocketStoriesService.deleteProfile()
                             if (context.settings().marsAPIEnabled) {
+                                context.components.core.pocketStoriesService.deleteUser()
+
                                 context.components.appStore.dispatch(
                                     ContentRecommendationsAction.SponsoredContentsChange(
                                         sponsoredContents = emptyList(),
@@ -144,6 +145,8 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                                     ),
                                 )
                             } else {
+                                context.components.core.pocketStoriesService.deleteProfile()
+
                                 context.components.appStore.dispatch(
                                     ContentRecommendationsAction.PocketSponsoredStoriesChange(
                                         sponsoredStories = emptyList(),

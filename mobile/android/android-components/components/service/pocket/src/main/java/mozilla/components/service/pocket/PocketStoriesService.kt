@@ -277,4 +277,14 @@ class PocketStoriesService(
     suspend fun recordSponsoredContentImpressions(impressions: List<String>) {
         sponsoredContentsUseCases.recordImpressions.invoke(impressions)
     }
+
+    /**
+     * Deletes all data persisted for sponsored content.
+     * This returns immediately but will handle the profile deletion in background.
+     */
+    fun deleteUser() {
+        GlobalDependencyProvider.SponsoredContents.initialize(sponsoredContentsUseCases)
+        sponsoredContentsRefreshScheduler.stopPeriodicRefreshes(context)
+        sponsoredContentsRefreshScheduler.scheduleUserDeletion(context)
+    }
 }

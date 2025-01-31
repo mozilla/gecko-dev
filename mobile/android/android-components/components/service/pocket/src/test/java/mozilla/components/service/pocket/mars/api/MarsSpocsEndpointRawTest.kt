@@ -21,6 +21,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -71,7 +72,7 @@ class MarsSpocsEndpointRawTest {
                 customEndpoint.getSponsoredStories()
             },
             assertParams = { request ->
-                assertEquals(MARS_ENDPOINT_URL, request.url)
+                assertEquals(MARS_ENDPOINT_BASE_URL + MARS_ENDPOINT_ADS_PATH, request.url)
                 assertEquals(Request.Method.POST, request.method)
                 assertTrue(request.conservative)
 
@@ -98,6 +99,39 @@ class MarsSpocsEndpointRawTest {
                 assertEquals(1, placements.size)
                 assertEquals(placement.placement, placements.first().placement)
                 assertEquals(placement.count, placements.first().count)
+            },
+        )
+    }
+
+    @Test
+    fun `WHEN deleting a user with a custom request config THEN ensure the correct request parameters are used`() {
+        val config = getRequestConfig()
+        val customEndpoint = MarsSpocsEndpointRaw(
+            client = client,
+            config = config,
+        )
+
+        assertRequestParams(
+            client = client,
+            makeRequest = {
+                customEndpoint.deleteUser()
+            },
+            assertParams = { request ->
+                assertEquals(MARS_ENDPOINT_BASE_URL + MARS_ENDPOINT_DELETE_USER_PATH, request.url)
+                assertEquals(Request.Method.DELETE, request.method)
+                assertTrue(request.conservative)
+
+                request.headers!!.first {
+                    it.name.equals(CONTENT_TYPE, true)
+                }.value.contains(CONTENT_TYPE_APPLICATION_JSON, true)
+
+                val requestBody = JSONObject(
+                    request.body!!.useStream {
+                        it.bufferedReader().readText()
+                    },
+                )
+
+                assertEquals(config.contextId, requestBody.get(REQUEST_BODY_CONTEXT_ID_KEY))
             },
         )
     }
@@ -133,6 +167,41 @@ class MarsSpocsEndpointRawTest {
 
         assertResponseIsClosed(client, errorResponse) {
             endpoint.getSponsoredStories()
+        }
+    }
+
+    @Test
+    fun `WHEN deleting an user and the client throws an IOException THEN false is returned`() {
+        whenever(client.fetch(any())).thenThrow(IOException::class.java)
+        assertFalse(endpoint.deleteUser())
+    }
+
+    @Test
+    fun `WHEN deleting an user and the response is null THEN false is returned`() {
+        whenever(client.fetch(any())).thenReturn(null)
+        assertFalse(endpoint.deleteUser())
+    }
+
+    @Test
+    fun `WHEN deleting an user and the response is a failure THEN false is returned`() {
+        whenever(client.fetch(any())).thenReturn(errorResponse)
+        assertFalse(endpoint.deleteUser())
+    }
+
+    @Test
+    fun `WHEN deleting an user and the response is a success THEN true is returned`() {
+        whenever(client.fetch(any())).thenReturn(successResponse)
+        assertTrue(endpoint.deleteUser())
+    }
+
+    @Test
+    fun `WHEN deleting an user and a success or error response is received THEN response is closed`() {
+        assertResponseIsClosed(client, successResponse) {
+            endpoint.deleteUser()
+        }
+
+        assertResponseIsClosed(client, errorResponse) {
+            endpoint.deleteUser()
         }
     }
 

@@ -8,12 +8,16 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import mozilla.components.service.pocket.PocketStoriesConfig
 import mozilla.components.service.pocket.logger
+import mozilla.components.service.pocket.update.DeleteUserWorker.Companion.DELETE_USER_WORK_TAG
 import mozilla.components.service.pocket.update.SponsoredContentsRefreshWorker.Companion.REFRESH_WORK_TAG
 import mozilla.components.support.base.worker.Frequency
 
@@ -56,6 +60,32 @@ class SponsoredContentsRefreshScheduler(
             setConstraints(constraints)
             addTag(REFRESH_WORK_TAG)
         }.build()
+    }
+
+    internal fun scheduleUserDeletion(context: Context) {
+        getWorkManager(context).enqueueUniqueWork(
+            DELETE_USER_WORK_TAG,
+            ExistingWorkPolicy.KEEP,
+            createOneTimeDeleteUserWorkerRequest(),
+        )
+
+        logger.info("Scheduling sponsored content user deletion")
+    }
+
+    internal fun stopUserDeletion(context: Context) {
+        getWorkManager(context).cancelAllWorkByTag(DELETE_USER_WORK_TAG)
+    }
+
+    @VisibleForTesting
+    internal fun createOneTimeDeleteUserWorkerRequest(): OneTimeWorkRequest {
+        val constraints = getWorkerConstraints()
+
+        return OneTimeWorkRequestBuilder<DeleteUserWorker>()
+            .apply {
+                setConstraints(constraints)
+                addTag(DELETE_USER_WORK_TAG)
+            }
+            .build()
     }
 
     @VisibleForTesting

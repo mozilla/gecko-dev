@@ -9,6 +9,7 @@ import androidx.annotation.WorkerThread
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import mozilla.components.concept.fetch.Client
+import mozilla.components.service.pocket.mars.api.MarsSpocsEndpoint.Companion.newInstance
 import mozilla.components.service.pocket.stories.api.PocketResponse
 
 /**
@@ -36,6 +37,17 @@ internal class MarsSpocsEndpoint internal constructor(
             }
         }
 
+        return PocketResponse.wrap(response)
+    }
+
+    /**
+     * Request to delete any data persisted associated with the user.
+     *
+     * @return true if the delete operation was successful and false otherwise.
+     */
+    @WorkerThread
+    fun deleteUser(): PocketResponse<Boolean> {
+        val response = rawEndpoint.deleteUser()
         return PocketResponse.wrap(response)
     }
 

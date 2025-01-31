@@ -4,6 +4,7 @@
 
 package mozilla.components.service.pocket.mars.api
 
+import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import mozilla.components.concept.fetch.Client
@@ -14,14 +15,20 @@ import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Request.Body
 import mozilla.components.concept.fetch.Request.Method
+import mozilla.components.concept.fetch.Response
+import mozilla.components.concept.fetch.isSuccess
+import mozilla.components.service.pocket.logger
+import mozilla.components.service.pocket.mars.api.MarsSpocsEndpointRaw.Companion.newInstance
 import mozilla.components.service.pocket.recommendations.api.ContentRecommendationEndpointRaw.Companion.newInstance
 import mozilla.components.service.pocket.recommendations.api.ContentRecommendationsEndpoint.Companion.newInstance
-import mozilla.components.service.pocket.recommendations.api.ENDPOINT_URL
 import mozilla.components.service.pocket.stories.api.PocketEndpoint.Companion.newInstance
 import mozilla.components.support.base.ext.fetchBodyOrNull
 import org.json.JSONObject
+import java.io.IOException
 
-internal const val MARS_ENDPOINT_URL = "https://ads.mozilla.org/v1/ads"
+internal const val MARS_ENDPOINT_BASE_URL = "https://ads.mozilla.org/v1/"
+internal const val MARS_ENDPOINT_ADS_PATH = "ads"
+internal const val MARS_ENDPOINT_DELETE_USER_PATH = "delete_user"
 
 internal const val REQUEST_BODY_CONTEXT_ID_KEY = "context_id"
 internal const val REQUEST_BODY_PLACEMENTS_KEY = "placements"
@@ -29,39 +36,41 @@ internal const val REQUEST_BODY_PLACEMENT_KEY = "placement"
 internal const val REQUEST_BODY_COUNT_KEY = "count"
 
 /**
- * Performs requests to retrieve the sponsored stories from the [endpointURL] server
- * with the provided [config].
+ * Performs requests to retrieve the sponsored stories from the MARS endpoint with the provided
+ * [config].
  *
  * @see [newInstance] to retrieve an instance.
  *
  * @property client The [Client] used for interacting with the MARS HTTP API.
  * @property config Configuration for the sponsored stories request.
- * @property endpointURL The url of the endpoint to fetch from. Defaults to [ENDPOINT_URL].
  */
 internal class MarsSpocsEndpointRaw internal constructor(
     @get:VisibleForTesting internal val client: Client,
     @get:VisibleForTesting internal val config: MarsSpocsRequestConfig,
-    private val endpointURL: String = MARS_ENDPOINT_URL,
 ) {
     /**
-     * Makes a request to [endpointURL] and returns the sponsored stories as a JSON string or
+     * Makes a request to the MARS endpoint and returns the sponsored stories as a JSON string or
      * null.
      *
      * @return The sponsored stories as a raw JSON string or null on error.
      */
     @WorkerThread
     fun getSponsoredStories(): String? {
+        val url = Uri.Builder()
+            .encodedPath(MARS_ENDPOINT_BASE_URL + MARS_ENDPOINT_ADS_PATH)
+            .build()
+            .toString()
         val request = Request(
-            url = endpointURL,
+            url = url,
             method = Method.POST,
-            headers = getRequestHeaders(),
-            body = getRequestBody(),
+            headers = getSponsoredStoriesRequestHeaders(),
+            body = getSponsoredStoriesRequestBody(),
             conservative = true,
         )
         return client.fetchBodyOrNull(request)
     }
 
-    private fun getRequestHeaders(): MutableHeaders {
+    private fun getSponsoredStoriesRequestHeaders(): MutableHeaders {
         return if (config.userAgent.isNullOrEmpty()) {
             MutableHeaders(
                 CONTENT_TYPE to "$CONTENT_TYPE_APPLICATION_JSON; charset=UTF-8",
@@ -74,7 +83,7 @@ internal class MarsSpocsEndpointRaw internal constructor(
         }
     }
 
-    private fun getRequestBody(): Body {
+    private fun getSponsoredStoriesRequestBody(): Body {
         val params = mapOf(
             REQUEST_BODY_CONTEXT_ID_KEY to config.contextId,
             REQUEST_BODY_PLACEMENTS_KEY to config.placements.map {
@@ -83,6 +92,47 @@ internal class MarsSpocsEndpointRaw internal constructor(
                     REQUEST_BODY_COUNT_KEY to it.count,
                 )
             },
+        )
+
+        return Body(JSONObject(params).toString().byteInputStream())
+    }
+
+    /**
+     * Request to delete any data persisted associated with the [config.contextId].
+     *
+     * @return true if the delete operation was successful and false otherwise.
+     */
+    @WorkerThread
+    fun deleteUser(): Boolean {
+        val url = Uri.Builder()
+            .encodedPath(MARS_ENDPOINT_BASE_URL + MARS_ENDPOINT_DELETE_USER_PATH)
+            .build()
+            .toString()
+        val request = Request(
+            url = url,
+            method = Method.DELETE,
+            headers = MutableHeaders(
+                CONTENT_TYPE to "$CONTENT_TYPE_APPLICATION_JSON; charset=UTF-8",
+                "Accept" to "*/*",
+            ),
+            body = getDeleteUserRequestBody(),
+            conservative = true,
+        )
+
+        val response: Response? = try {
+            client.fetch(request)
+        } catch (e: IOException) {
+            logger.debug("Network error", e)
+            null
+        }
+
+        response?.close()
+        return response?.isSuccess ?: false
+    }
+
+    private fun getDeleteUserRequestBody(): Body {
+        val params = mapOf(
+            REQUEST_BODY_CONTEXT_ID_KEY to config.contextId,
         )
 
         return Body(JSONObject(params).toString().byteInputStream())
