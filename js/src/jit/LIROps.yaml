@@ -5049,8 +5049,16 @@
 - name: WasmUnarySimd128
   gen_boilerplate: false
 
+# // (v128, imm) -> scalar effect-free operations.
 - name: WasmReduceSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    src: WordSized
+#ifdef JS_CODEGEN_ARM64
+  # temp is FPR (if in use).
+  num_temps: 1
+#endif
+  mir_op: true
 
 # (v128, onTrue, onFalse) test-and-branch operations.
 - name: WasmReduceAndBranchSimd128

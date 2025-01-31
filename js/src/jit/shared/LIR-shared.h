@@ -1385,25 +1385,6 @@ class LWasmUnarySimd128 : public LInstructionHelper<1, 1, 1> {
   wasm::SimdOp simdOp() const { return mir_->toWasmUnarySimd128()->simdOp(); }
 };
 
-// (v128, imm) -> scalar effect-free operations.
-// temp is FPR (if in use).
-class LWasmReduceSimd128 : public LInstructionHelper<1, 1, 1> {
- public:
-  LIR_HEADER(WasmReduceSimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  explicit LWasmReduceSimd128(const LAllocation& src, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Src, src);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  uint32_t imm() const { return mir_->toWasmReduceSimd128()->imm(); }
-  wasm::SimdOp simdOp() const { return mir_->toWasmReduceSimd128()->simdOp(); }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

@@ -1807,8 +1807,8 @@ void LIRGenerator::visitWasmReduceSimd128(MWasmReduceSimd128* ins) {
     // Ideally we would reuse the input register for floating extract_lane if
     // the lane is zero, but constraints in the register allocator require the
     // input and output register types to be the same.
-    auto* lir = new (alloc()) LWasmReduceSimd128(
-        useRegisterAtStart(ins->input()), LDefinition::BogusTemp());
+    auto* lir =
+        new (alloc()) LWasmReduceSimd128(useRegisterAtStart(ins->input()));
     define(lir, ins);
   }
 #else

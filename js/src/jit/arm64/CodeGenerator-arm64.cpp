@@ -3661,10 +3661,10 @@ void CodeGenerator::visitWasmReduceSimd128(LWasmReduceSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
   FloatRegister src = ToFloatRegister(ins->src());
   const LDefinition* dest = ins->output();
-  uint32_t imm = ins->imm();
-  FloatRegister temp = ToTempFloatRegisterOrInvalid(ins->getTemp(0));
+  uint32_t imm = ins->mir()->imm();
+  FloatRegister temp = ToTempFloatRegisterOrInvalid(ins->temp0());
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::V128AnyTrue:
       masm.anyTrueSimd128(src, ToRegister(dest));
       break;
