@@ -149,8 +149,8 @@ def _get_output_path(
 
 
 def _get_artifact_file_name(platform):
-    if platform.startswith("win"):
-        return "target.installer.exe"
+    if platform.startswith("win32"):
+        return "target.stub-installer.exe"
     elif platform.startswith("macos"):
         return "target.dmg"
     else:
