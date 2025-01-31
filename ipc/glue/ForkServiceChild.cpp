@@ -39,7 +39,7 @@ static bool ConfigurePipeFd(int aFd) {
 static Result<Ok, LaunchError> CreateSocketPair(UniqueFileHandle& aFD0,
                                                 UniqueFileHandle& aFD1) {
   int fds[2];
-#ifdef SOCK_CLOXEC
+#ifdef SOCK_CLOEXEC
   constexpr int type = SOCK_STREAM | SOCK_CLOEXEC;
 #else
   constexpr int type = SOCK_STREAM;
