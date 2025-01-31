@@ -4110,7 +4110,7 @@ void CodeGenerator::visitOsrValue(LOsrValue* value) {
 }
 
 void CodeGenerator::visitOsrReturnValue(LOsrReturnValue* lir) {
-  const LAllocation* frame = lir->getOperand(0);
+  const LAllocation* frame = lir->entry();
   const ValueOperand out = ToOutValue(lir);
 
   Address flags =
