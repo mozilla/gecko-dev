@@ -183,7 +183,6 @@ private fun MarketingDataOnboardingPagePreview() {
                     bodyOneText = stringResource(id = R.string.onboarding_marketing_learn_more),
                     bodyOneLinkText = stringResource(id = R.string.onboarding_marketing_learn_more),
                     bodyTwoText = stringResource(id = R.string.onboarding_marketing_opt_in_checkbox),
-                    bodyThreeText = "",
                 ),
             ),
             onMarketingDataLearnMoreClick = {},

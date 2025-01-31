@@ -285,10 +285,6 @@ objects:
         type: Text
         description: The text for line two of the body.
         default: ""
-      body-line-three-text:
-        type: Text
-        description: The text for line three of the body.
-        default: ""
 
 enums:
 

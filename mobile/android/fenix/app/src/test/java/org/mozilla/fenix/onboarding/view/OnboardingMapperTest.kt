@@ -291,7 +291,6 @@ class OnboardingMapperTest {
             bodyOneText = "marketing data body one",
             bodyOneLinkText = "marketing data body one link",
             bodyTwoText = "marketing data body two",
-            bodyThreeText = "marketing data body three",
         )
 
         val expected = OnboardingPageState(
