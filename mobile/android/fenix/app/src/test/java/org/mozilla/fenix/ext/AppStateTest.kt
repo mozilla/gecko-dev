@@ -216,7 +216,7 @@ class AppStateTest {
         val recommendedStories = getFakePocketStories(POCKET_STORIES_TO_SHOW_COUNT, "other")
         val sponsoredStories = getFakeSponsoredStories(4)
 
-        val result = combineRecommendedAndSponsoredStories(recommendedStories, sponsoredStories)
+        val result = combineRecommendationsAndSponsoredContents(recommendedStories, sponsoredStories)
 
         assertEquals(POCKET_STORIES_TO_SHOW_COUNT, result.size)
         assertEquals(recommendedStories[0], result[0])
@@ -234,7 +234,11 @@ class AppStateTest {
         val recommendations = getFakeContentRecommendations(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT)
         val sponsoredStories = getFakeSponsoredStories(4)
 
-        val result = combineRecommendationsAndSponsoredStories(recommendations, sponsoredStories)
+        val result = combineRecommendationsAndSponsoredContents(
+            recommendations,
+            sponsoredStories,
+            totalLimit = CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT,
+        )
 
         assertEquals(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT, result.size)
         assertEquals(recommendations[0], result[0])
