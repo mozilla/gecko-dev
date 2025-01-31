@@ -1,0 +1,40 @@
+[DEFAULT]
+alert_threshold = 2.0
+apps = "firefox, chrome, safari, custom-car"
+gecko_profile_interval = 1
+expose_browser_profiler = true
+lower_is_better = true
+owner = ":chunmin and Media Team"
+page_cycles = 3
+page_timeout = 360000
+support_class = "browsertime_benchmark.py"
+test_url = "http://<host>:<port>/index.html?raptor"
+type = "benchmark"
+unit = "score"
+repository = "https://github.com/mozilla/perf-automation"
+repository_revision = "d34775ba6b6cef6068005c05b570d6c79eb0f7d8"
+repository_path = "benchmarks/webcodecs"
+
+["ve-av1-rt"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=av01.0.04M.08&latencyModes=realtime&width=1920&height=1080&framerate=30"
+
+["ve-av1-q"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=av01.0.04M.08&latencyModes=quality&width=1920&height=1080&framerate=30"
+
+["ve-h264-rt"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:annexb&latencyModes=realtime&width=1920&height=1080&framerate=30"
+
+["ve-h264-q"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=avc1.42001E:avc&latencyModes=quality&width=1920&height=1080&framerate=30"
+
+["ve-vp8-rt"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=vp8&latencyModes=realtime&width=1920&height=1080&framerate=30"
+
+["ve-vp8-q"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=vp8&latencyModes=quality&width=1920&height=1080&framerate=30"
+
+["ve-vp9-rt"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=vp09.00.10.08&latencyModes=realtime&width=1920&height=1080&framerate=30"
+
+["ve-vp9-q"]
+test_url = "http://<host>:<port>/index.html?raptor&codecs=vp09.00.10.08&latencyModes=quality&width=1920&height=1080&framerate=30"

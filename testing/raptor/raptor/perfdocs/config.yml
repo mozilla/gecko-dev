@@ -252,6 +252,15 @@ suites:
             vpl-av1: "Measures AV1 1080p video playback latency."
             vpl-h264: "Measures H264 1080p video playback latency."
             vpl-vp9: "Measures VP9 1080p video playback latency."
+            ve-av1-rt: "Measures AV1 encoding performance for 1080p video in real-time mode."
+            ve-av1-q: "Measures AV1 encoding performance for 1080p video in quality mode."
+            ve-h264-rt: "Measures H264-baseline encoding performance for 1080p video in real-time mode using Annex B format."
+            ve-h264-q: "Measures H264-baseline encoding performance for 1080p video in quality mode using AVC format."
+            ve-vp8-rt: "Measures VP8 encoding performance for 1080p video in real-time mode."
+            ve-vp8-q: "Measures VP8 encoding performance for 1080p video in quality mode."
+            ve-vp9-rt: "Measures VP9 encoding performance for 1080p video in real-time mode."
+            ve-vp9-q: "Measures VP9 encoding performance for 1080p video in quality mode."
+
     interactive:
         description: "Browsertime tests that interact with the webpage. Includes responsiveness tests as they make use of this support for navigation. This type of test allows the specification of browsertime commands through the test manifest."
         tests:

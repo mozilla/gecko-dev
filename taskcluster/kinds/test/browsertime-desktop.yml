@@ -1010,6 +1010,44 @@ browsertime-video-playback-latency:
             default: []
     treeherder-symbol: Btime(vpl)
 
+browsertime-webcodecs:
+    raptor:
+        apps: [firefox, chrome, safari, custom-car]
+        test: webcodecs
+        run-visual-metrics: false
+        subtests:
+            by-test-platform:
+                # Since x264 isn't built into Ubuntu 18.04 by defualt, we skip it.
+                linux.*.*:
+                    - ve-av1-rt
+                    - ve-av1-q
+                    - ve-vp8-rt
+                    - ve-vp8-q
+                    - ve-vp9-rt
+                    - ve-vp9-q
+                default:
+                    - ve-av1-rt
+                    - ve-av1-q
+                    - ve-h264-rt
+                    - ve-h264-q
+                    - ve-vp8-rt
+                    - ve-vp8-q
+                    - ve-vp9-rt
+                    - ve-vp9-q
+    description: Raptor (browsertime) WebCodecs test
+    mozharness:
+        extra-options:
+            - --extra-profiler-run
+    run-on-projects:
+        by-app:
+            firefox: [autoland, mozilla-central]
+            default: []
+    tier:
+        by-app:
+            firefox: 2
+            default: 3
+    treeherder-symbol: Btime(webcodecs)
+
 browsertime-speculative:
     raptor:
         apps: [firefox]

@@ -111,6 +111,7 @@ browsertime:
     - browsertime-indexeddb
     - browsertime-video-playback-latency
     - browsertime-network-bench
+    - browsertime-webcodecs
 
 browsertime-clang:
     - browsertime-tp6

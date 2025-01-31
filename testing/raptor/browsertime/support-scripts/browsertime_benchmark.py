@@ -1,6 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+import json
 import pathlib
 import sys
 from collections.abc import Iterable
@@ -179,6 +180,71 @@ class BenchmarkSupport(PageloadSupport):
 
         return subtests, vals
 
+    def parseWebCodecsOutput(self, test):
+        """
+        Example output (this is one page cycle):
+
+        {
+            'name': 'webcodecs',
+            'type': 'benchmark',
+            'measurements': {
+            'webcodecs': [
+                ['{
+                    "vp8 realtime encode": {
+                        "frame-to-frame mean (key)": {"value":5.222857,"unit":"ms"},
+                        "frame-to-frame cv (key)":{"value":27.052957,"unit":"%"},
+                        "frame-dropping rate (key)":{"value":0,"unit":"%"},
+                        "frame-to-frame mean (non key)":{"value":1.460678,"unit":"ms"},
+                        "frame-to-frame cv (non key)":{"value":65.4360136,"unit":"%"},
+                        "frame-dropping rate (non key)":{"value":0,"unit":"%"}
+                    }
+                }'],
+                ...
+            ]
+            },
+            'lower_is_better': False,
+            'unit': 'score'
+        }
+        """
+
+        data = test["measurements"]["webcodecs"]
+        results = {}
+        for page_cycle in data:
+            d = json.loads(page_cycle[0])
+            for test_name, test_data in d.items():
+                results.setdefault(test_name, []).append(test_data)
+
+        _subtests = {}
+        for test_name in results:
+            for result in results[test_name]:
+                for subtest_name, subtest_result in result.items():
+                    subtest_result_name = f"{test_name} - {subtest_name}"
+                    _subtests.setdefault(
+                        subtest_result_name,
+                        {
+                            "unit": subtest_result["unit"],
+                            "alertThreshold": float(test["alert_threshold"]),
+                            "lowerIsBetter": test["subtest_lower_is_better"],
+                            "name": subtest_result_name,
+                            "replicates": [],
+                            "shouldAlert": True,
+                        },
+                    )["replicates"].append(subtest_result["value"])
+
+            for subtest_name in results[test_name]:
+                for subtest_name in result:
+                    subtest_result_name = f"{test_name} - {subtest_name}"
+                    _subtests[subtest_result_name]["value"] = filters.median(
+                        _subtests[subtest_result_name]["replicates"]
+                    )
+
+        subtests = sorted(_subtests.values(), key=lambda x: x["name"], reverse=True)
+        for subtest in subtests:
+            if isinstance(subtest["value"], float):
+                subtest["value"] = round(subtest["value"], 3)
+        vals = [[subtest["value"], subtest["name"]] for subtest in subtests]
+        return subtests, vals
+
     def parseUnknown(self, test):
         # Attempt to flatten whatever we've been given
         # Dictionary keys will be joined by dashes, arrays represent
@@ -339,6 +405,25 @@ class BenchmarkSupport(PageloadSupport):
         if "twitch-animation" in testname:
             return round(filters.geometric_mean(_filter(vals, "run")), 2)
 
+        if "ve" in testname:
+            if "rt" in testname:
+                # We collect the mean and cv of frame-to-frame performance and the
+                # frame-dropping rate for both keyframe and non-keyframe. However,
+                # the most important factor is the frame-to-frame mean, so we only
+                # include it in the summarized score. Note that all the values
+                # collected are monitored by "shouldAlert".
+                means = [i for i, j in vals if "mean" in j]
+                if len(means) > 0:
+                    return round(filters.geometric_mean(means), 2)
+                return -1
+
+            if "q" in testname:
+                if len(vals) > 0:
+                    return round(filters.mean(_filter(vals)), 2)
+                return -1
+
+            raise NotImplementedError("Summary for %s is not implemented" % testname)
+
         if testname.startswith("supporting_data"):
             if not unit:
                 return sum(_filter(vals))
@@ -430,6 +515,8 @@ class BenchmarkSupport(PageloadSupport):
         subtests = None
         if "youtube-playback" in test["name"]:
             subtests, vals = self.parseYoutubePlaybackPerformanceOutput(test)
+        elif "ve" in test["name"]:
+            subtests, vals = self.parseWebCodecsOutput(test)
         else:
             # Attempt to parse the unknown benchmark by flattening the
             # given data and merging all the arrays of non-iterable

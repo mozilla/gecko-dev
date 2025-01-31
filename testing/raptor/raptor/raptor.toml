@@ -79,6 +79,9 @@
 ["include:tests/custom/browsertime-video-playback-latency.toml"]
 # Video playback latency tests
 
+["include:tests/custom/browsertime-webcodecs.toml"]
+# WebCodecs tests
+
 ["include:tests/custom/browsertime-welcome.toml"]
 # First-install pageload test
 
