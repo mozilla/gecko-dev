@@ -159,7 +159,7 @@ class ScriptModule extends WindowGlobalBiDiModule {
 
     const seenNodeIds = new Map();
     switch (evaluationStatus) {
-      case EvaluationStatus.Normal:
+      case EvaluationStatus.Normal: {
         const dataSuccess = this.serialize(
           this.#toRawObject(result),
           serializationOptions,
@@ -174,7 +174,8 @@ class ScriptModule extends WindowGlobalBiDiModule {
           result: dataSuccess,
           _extraData: { seenNodeIds },
         };
-      case EvaluationStatus.Throw:
+      }
+      case EvaluationStatus.Throw: {
         const dataThrow = this.#buildExceptionDetails(
           exception,
           stack,
@@ -189,6 +190,7 @@ class ScriptModule extends WindowGlobalBiDiModule {
           realmId: realm.id,
           _extraData: { seenNodeIds },
         };
+      }
       default:
         throw new lazy.error.UnsupportedOperationError(
           `Unsupported completion value for expression evaluation`
@@ -479,6 +481,23 @@ class ScriptModule extends WindowGlobalBiDiModule {
       this.#preloadScripts = new Set();
       for (const item of params.sessionData) {
         if (this.messageHandler.matchesContext(item.contextDescriptor)) {
+          if (item.value.userContexts.size > 0) {
+            for (const userContext of item.value.userContexts) {
+              // Apply only if the browsing context belongs to the user context.
+              if (
+                userContext ===
+                this.messageHandler.context.originAttributes.userContextId
+              ) {
+                this.#preloadScripts.add(item.value);
+
+                // A browsing context can belong only to one user context.
+                break;
+              }
+            }
+
+            continue;
+          }
+
           this.#preloadScripts.add(item.value);
         }
       }
