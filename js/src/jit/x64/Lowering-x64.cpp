@@ -395,9 +395,8 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   if (!ins->hasUses()) {
     LAllocation value = canTakeConstant ? useRegisterOrConstant(ins->value())
                                         : useRegister(ins->value());
-    LWasmAtomicBinopHeapForEffect* lir =
-        new (alloc()) LWasmAtomicBinopHeapForEffect(
-            useRegister(base), value, LDefinition::BogusTemp(), memoryBase);
+    auto* lir = new (alloc())
+        LWasmAtomicBinopHeapForEffect(useRegister(base), value, memoryBase);
     add(lir, ins);
     return;
   }

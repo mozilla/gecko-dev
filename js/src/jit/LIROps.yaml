@@ -4238,8 +4238,19 @@
 #endif
   mir_op: true
 
+# Atomic binary operation where the result is discarded.
 - name: WasmAtomicBinopHeapForEffect
-  gen_boilerplate: false
+  operands:
+    ptr: WordSized
+    value: WordSized
+    memoryBase: WordSized
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  # Temp that may be used on LL/SC platforms for extract/insert bits of word.
+  num_temps: 3
+#elif defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+  num_temps: 1
+#endif
+  mir_op: WasmAtomicBinopHeap
 
 - name: WasmLoadSlot
   result_type: WordSized

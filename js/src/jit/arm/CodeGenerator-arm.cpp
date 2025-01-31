@@ -1908,10 +1908,9 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
 
   Register ptrReg = ToRegister(ins->ptr());
   Register memoryBase = ToRegister(ins->memoryBase());
-  Register flagTemp = ToRegister(ins->flagTemp());
+  Register flagTemp = ToRegister(ins->temp0());
   const LAllocation* value = ins->value();
   AtomicOp op = mir->operation();
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   BaseIndex srcAddr(memoryBase, ptrReg, TimesOne, mir->access().offset32());
   masm.wasmAtomicEffectOp(mir->access(), op, ToRegister(value), srcAddr,
