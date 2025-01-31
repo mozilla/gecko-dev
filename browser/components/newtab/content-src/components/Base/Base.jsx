@@ -728,7 +728,11 @@ export class BaseContent extends React.PureComponent {
             )}
             {/* Bug 1914055: Show logo regardless if search is enabled */}
             {!prefs.showSearch && layoutsVariantAorB && !noSectionsEnabled && (
-              <Logo />
+              <Logo
+                isAprilFoolsLogo={
+                  this.props.Prefs.values["newtabLogo.aprilfools"]
+                }
+              />
             )}
             <div className={`body-wrapper${initialized ? " on" : ""}`}>
               {isDiscoveryStream ? (
