@@ -48,15 +48,6 @@ class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   MDiv* mir() const { return mir_->toDiv(); }
 };
 
-class LMulI : public LBinaryMath<0> {
- public:
-  LIR_HEADER(MulI);
-
-  LMulI() : LBinaryMath(classOpcode) {}
-
-  MMul* mir() { return mir_->toMul(); }
-};
-
 class LDivOrModI64 : public LBinaryMath<0> {
  public:
   LIR_HEADER(DivOrModI64)

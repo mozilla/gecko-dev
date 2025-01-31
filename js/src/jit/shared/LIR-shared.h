@@ -1968,6 +1968,12 @@ const char* LMinMaxF::extraName() const {
   return mir()->isMax() ? "Max" : "Min";
 }
 
+const char* LMulI::extraName() const {
+  return (mir()->mode() == MMul::Integer)
+             ? "Integer"
+             : (mir()->canBeNegativeZero() ? "CanBeNegativeZero" : nullptr);
+}
+
 const char* LDivI::extraName() const {
   if (mir()->isTruncated()) {
     if (mir()->canBeNegativeZero()) {

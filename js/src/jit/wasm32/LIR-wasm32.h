@@ -27,8 +27,6 @@ class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
   MDiv* mir() const { MOZ_CRASH(); }
 };
 
-class LMulI : public LInstruction {};
-
 }  // namespace js::jit
 
 #endif /* jit_wasm32_LIR_wasm32_h */

@@ -5034,7 +5034,18 @@
   mir_op: TableSwitch
 
 - name: MulI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    lhsCopy: WordSized
+#endif
+  mir_op: Mul
+  extra_name: true
+#if !defined(JS_CODEGEN_X86) && !defined(JS_CODEGEN_X64)
+  defer_init: true
+#endif
 
 #ifdef JS_CODEGEN_X86
 - name: BoxFloatingPoint

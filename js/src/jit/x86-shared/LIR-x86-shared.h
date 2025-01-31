@@ -148,28 +148,6 @@ class LUDivOrModConstant : public LInstructionHelper<1, 1, 1> {
   }
 };
 
-class LMulI : public LBinaryMath<0, 1> {
- public:
-  LIR_HEADER(MulI)
-
-  LMulI(const LAllocation& lhs, const LAllocation& rhs,
-        const LAllocation& lhsCopy)
-      : LBinaryMath(classOpcode) {
-    setOperand(0, lhs);
-    setOperand(1, rhs);
-    setOperand(2, lhsCopy);
-  }
-
-  const char* extraName() const {
-    return (mir()->mode() == MMul::Integer)
-               ? "Integer"
-               : (mir()->canBeNegativeZero() ? "CanBeNegativeZero" : nullptr);
-  }
-
-  MMul* mir() const { return mir_->toMul(); }
-  const LAllocation* lhsCopy() { return this->getOperand(2); }
-};
-
 }  // namespace jit
 }  // namespace js
 
