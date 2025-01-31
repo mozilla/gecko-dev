@@ -10,10 +10,11 @@
 namespace js {
 namespace jit {
 
-class LUnboxBase : public LInstructionHelper<1, BOX_PIECES, 0> {
+class LUnbox : public LInstructionHelper<1, BOX_PIECES, 0> {
  public:
-  LUnboxBase(LNode::Opcode opcode, const LAllocation& input)
-      : LInstructionHelper(opcode) {
+  LIR_HEADER(Unbox);
+
+  explicit LUnbox(const LAllocation& input) : LInstructionHelper(classOpcode) {
     setOperand(0, input);
   }
 
@@ -22,14 +23,6 @@ class LUnboxBase : public LInstructionHelper<1, BOX_PIECES, 0> {
   LBoxAllocation input() const { return getBoxOperand(Input); }
 
   MUnbox* mir() const { return mir_->toUnbox(); }
-};
-
-class LUnbox : public LUnboxBase {
- public:
-  LIR_HEADER(Unbox);
-
-  explicit LUnbox(const LAllocation& input) : LUnboxBase(classOpcode, input) {}
-
   const char* extraName() const { return StringFromMIRType(mir()->type()); }
 };
 

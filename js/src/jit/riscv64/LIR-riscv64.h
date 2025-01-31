@@ -11,12 +11,6 @@ namespace js {
 namespace jit {
 
 class LUnbox : public LInstructionHelper<1, BOX_PIECES, 0> {
- protected:
-  LUnbox(LNode::Opcode opcode, const LAllocation& input)
-      : LInstructionHelper(opcode) {
-    setOperand(0, input);
-  }
-
  public:
   LIR_HEADER(Unbox);
 
