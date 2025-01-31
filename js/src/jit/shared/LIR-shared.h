@@ -812,52 +812,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
-class LWasmAtomicExchangeHeap : public LInstructionHelper<1, 3, 4> {
- public:
-  LIR_HEADER(WasmAtomicExchangeHeap);
-
-  // ARM, ARM64, x86, x64
-  LWasmAtomicExchangeHeap(const LAllocation& ptr, const LAllocation& value,
-                          const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, value);
-    setOperand(2, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-  }
-  // MIPS32, MIPS64, LoongArch64
-  LWasmAtomicExchangeHeap(const LAllocation& ptr, const LAllocation& value,
-                          const LDefinition& valueTemp,
-                          const LDefinition& offsetTemp,
-                          const LDefinition& maskTemp,
-                          const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, value);
-    setOperand(2, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-    setTemp(1, valueTemp);
-    setTemp(2, offsetTemp);
-    setTemp(3, maskTemp);
-  }
-
-  const LAllocation* ptr() { return getOperand(0); }
-  const LAllocation* value() { return getOperand(1); }
-  const LAllocation* memoryBase() { return getOperand(2); }
-  const LDefinition* addrTemp() { return getTemp(0); }
-
-  void setAddrTemp(const LDefinition& addrTemp) { setTemp(0, addrTemp); }
-
-  // Temp that may be used on LL/SC platforms for extract/insert bits of word.
-  const LDefinition* valueTemp() { return getTemp(1); }
-  const LDefinition* offsetTemp() { return getTemp(2); }
-  const LDefinition* maskTemp() { return getTemp(3); }
-
-  MWasmAtomicExchangeHeap* mir() const {
-    return mir_->toWasmAtomicExchangeHeap();
-  }
-};
-
 class LWasmAtomicBinopHeap : public LInstructionHelper<1, 3, 6> {
  public:
   LIR_HEADER(WasmAtomicBinopHeap);

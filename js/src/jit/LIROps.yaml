@@ -4208,7 +4208,18 @@
 - name: WasmFence
 
 - name: WasmAtomicExchangeHeap
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    value: WordSized
+    memoryBase: WordSized
+#ifdef JS_CODEGEN_X86
+  num_temps: 1
+#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  # Temp that may be used on LL/SC platforms for extract/insert bits of word.
+  num_temps: 3
+#endif
+  mir_op: true
 
 - name: WasmAtomicBinopHeap
   gen_boilerplate: false

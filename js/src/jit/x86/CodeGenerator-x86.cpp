@@ -358,7 +358,7 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
 
   Register ptrReg = ToRegister(ins->ptr());
   Register value = ToRegister(ins->value());
-  Register addrTemp = ToRegister(ins->addrTemp());
+  Register addrTemp = ToRegister(ins->temp0());
   Register memoryBase = ToRegister(ins->memoryBase());
   Register output = ToRegister(ins->output());
 

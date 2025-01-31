@@ -546,10 +546,9 @@ void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
   const LAllocation base = useRegister(ins->base());
   const LAllocation value = useRegister(ins->value());
 
-  LWasmAtomicExchangeHeap* lir = new (alloc())
-      LWasmAtomicExchangeHeap(base, value, useRegister(memoryBase));
+  auto* lir = new (alloc())
+      LWasmAtomicExchangeHeap(base, value, useRegister(memoryBase), temp());
 
-  lir->setAddrTemp(temp());
   if (byteSize(ins->access().type()) == 1) {
     defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
   } else {
