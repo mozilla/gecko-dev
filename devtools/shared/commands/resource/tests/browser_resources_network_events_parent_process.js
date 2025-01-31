@@ -32,10 +32,6 @@ const FETCH_URI = "https://example.com/document-builder.sjs?html=foo";
 const uuid = `${Date.now()}-${Math.random()}`;
 const IMAGE_URI = URL_ROOT_SSL + "test_image.png?" + uuid;
 
-// Loading the content page might also trigger priviledge image requests from the firefox UI, this seems to
-// happen when a new tab is created for the page.
-const ignoreRequestPatterns = "file:///";
-
 add_task(async function testParentProcessRequests() {
   // The test expects the main process commands instance to receive resources
   // for content process requests.
@@ -50,7 +46,13 @@ add_task(async function testParentProcessRequests() {
   const onAvailable = resources => {
     for (const resource of resources) {
       if (resource.resourceType == resourceCommand.TYPES.NETWORK_EVENT) {
-        if (resource.url.startsWith(ignoreRequestPatterns)) {
+        if (!resource.url.startsWith("https://example")) {
+          // Skip all URLs which don't start with https://example to avoid
+          // pollution from newtab, file urls etc...
+          info(
+            "Skipping network event resource not starting with https://example: " +
+              resource.url
+          );
           return;
         }
         receivedNetworkEvents.push(resource);
