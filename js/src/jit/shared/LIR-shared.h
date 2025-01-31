@@ -1108,38 +1108,6 @@ class LWasmTernarySimd128 : public LInstructionHelper<1, 3, 1> {
   wasm::SimdOp simdOp() const { return op_; }
 };
 
-// (v128, v128) -> v128 effect-free operations
-// lhs and dest are the same.
-// temps (if in use) are FPR.
-// The op may differ from the MIR node's op.
-class LWasmBinarySimd128 : public LInstructionHelper<1, 2, 2> {
-  wasm::SimdOp op_;
-
- public:
-  LIR_HEADER(WasmBinarySimd128)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-  static constexpr uint32_t Rhs = 1;
-
-  LWasmBinarySimd128(wasm::SimdOp op, const LAllocation& lhs,
-                     const LAllocation& rhs, const LDefinition& temp0,
-                     const LDefinition& temp1)
-      : LInstructionHelper(classOpcode), op_(op) {
-    setOperand(Lhs, lhs);
-    setOperand(Rhs, rhs);
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const LAllocation* rhs() { return getOperand(Rhs); }
-  wasm::SimdOp simdOp() const { return op_; }
-
-  static bool SpecializeForConstantRhs(wasm::SimdOp op);
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

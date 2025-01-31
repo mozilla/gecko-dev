@@ -1056,7 +1056,7 @@ void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
     tempReg1 = tempSimd128();
   }
   auto* lir = new (alloc())
-      LWasmBinarySimd128(op, lhsAlloc, rhsAlloc, tempReg0, tempReg1);
+      LWasmBinarySimd128(lhsAlloc, rhsAlloc, tempReg0, tempReg1, op);
   define(lir, ins);
 #else
   MOZ_CRASH("No SIMD");

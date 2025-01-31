@@ -5013,8 +5013,18 @@
 - name: WasmTernarySimd128
   gen_boilerplate: false
 
+# (v128, v128) -> v128 effect-free operations
+# lhs and dest are the same.
+# temps (if in use) are FPR.
+# The op may differ from the MIR node's op.
 - name: WasmBinarySimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    simdOp: wasm::SimdOp
+  num_temps: 2
 
 - name: WasmBinarySimd128WithConstant
   result_type: WordSized

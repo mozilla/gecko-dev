@@ -2785,8 +2785,8 @@ void CodeGenerator::visitWasmBinarySimd128(LWasmBinarySimd128* ins) {
       masm.subInt64x2(lhs, rhs, dest);
       break;
     case wasm::SimdOp::I64x2Mul: {
-      auto temp1 = ToFloatRegister(ins->getTemp(0));
-      auto temp2 = ToFloatRegister(ins->getTemp(1));
+      auto temp1 = ToFloatRegister(ins->temp0());
+      auto temp2 = ToFloatRegister(ins->temp1());
       masm.mulInt64x2(lhs, rhs, dest, temp1, temp2);
       break;
     }

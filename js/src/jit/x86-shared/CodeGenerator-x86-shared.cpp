@@ -2176,10 +2176,10 @@ void CodeGenerator::visitWasmTernarySimd128(LWasmTernarySimd128* ins) {
 
 void CodeGenerator::visitWasmBinarySimd128(LWasmBinarySimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  FloatRegister lhs = ToFloatRegister(ins->lhsDest());
+  FloatRegister lhs = ToFloatRegister(ins->lhs());
   FloatRegister rhs = ToFloatRegister(ins->rhs());
-  FloatRegister temp1 = ToTempFloatRegisterOrInvalid(ins->getTemp(0));
-  FloatRegister temp2 = ToTempFloatRegisterOrInvalid(ins->getTemp(1));
+  FloatRegister temp1 = ToTempFloatRegisterOrInvalid(ins->temp0());
+  FloatRegister temp2 = ToTempFloatRegisterOrInvalid(ins->temp1());
   FloatRegister dest = ToFloatRegister(ins->output());
 
   switch (ins->simdOp()) {

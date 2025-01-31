@@ -1073,8 +1073,8 @@ void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
     case wasm::SimdOp::MozPMADDUBSW:
       if (isThreeOpAllowed()) {
         auto* lir = new (alloc())
-            LWasmBinarySimd128(op, useRegisterAtStart(lhs),
-                               useRegisterAtStart(rhs), tempReg0, tempReg1);
+            LWasmBinarySimd128(useRegisterAtStart(lhs), useRegisterAtStart(rhs),
+                               tempReg0, tempReg1, op);
         define(lir, ins);
         break;
       }
@@ -1085,8 +1085,8 @@ void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
                                  ? useRegister(rhs)
                                  : useRegisterAtStart(rhs);
       auto* lir = new (alloc())
-          LWasmBinarySimd128(op, lhsDestAlloc, rhsAlloc, tempReg0, tempReg1);
-      defineReuseInput(lir, ins, LWasmBinarySimd128::LhsDest);
+          LWasmBinarySimd128(lhsDestAlloc, rhsAlloc, tempReg0, tempReg1, op);
+      defineReuseInput(lir, ins, LWasmBinarySimd128::LhsIndex);
       break;
     }
   }
