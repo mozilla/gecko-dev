@@ -5229,8 +5229,24 @@
   mir_op: Mod
   extra_name: true
 
+# Signed division by a power-of-two constant.
 - name: DivPowTwoI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    numerator: WordSized
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    numeratorCopy: WordSized
+#endif
+  arguments:
+    shift: int32_t
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+    # Negative divisor case not implemented for all targets.
+    negativeDivisor: bool
+#endif
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+  num_temps: 1
+#endif
+  mir_op: Div
 
 - name: ModPowTwoI
   result_type: WordSized

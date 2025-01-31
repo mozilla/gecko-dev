@@ -1017,7 +1017,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
 void CodeGenerator::visitDivPowTwoI(LDivPowTwoI* ins) {
   Register lhs = ToRegister(ins->numerator());
   Register dest = ToRegister(ins->output());
-  Register tmp = ToRegister(ins->getTemp(0));
+  Register tmp = ToRegister(ins->temp0());
   int32_t shift = ins->shift();
 
   if (shift != 0) {

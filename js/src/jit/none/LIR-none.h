@@ -17,16 +17,6 @@ class LUnbox : public LInstructionHelper<1, 2, 0> {
   const LAllocation* type() { MOZ_CRASH(); }
   const char* extraName() const { MOZ_CRASH(); }
 };
-class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
- public:
-  LDivPowTwoI(const LAllocation&, int32_t)
-      : LInstructionHelper(Opcode::Invalid) {
-    MOZ_CRASH();
-  }
-  const LAllocation* numerator() { MOZ_CRASH(); }
-  int32_t shift() { MOZ_CRASH(); }
-  MDiv* mir() const { MOZ_CRASH(); }
-};
 
 }  // namespace jit
 }  // namespace js

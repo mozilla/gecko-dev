@@ -26,28 +26,6 @@ class LUnbox : public LInstructionHelper<1, BOX_PIECES, 0> {
   const char* extraName() const { return StringFromMIRType(mir()->type()); }
 };
 
-class LDivPowTwoI : public LInstructionHelper<1, 1, 0> {
-  const int32_t shift_;
-  const bool negativeDivisor_;
-
- public:
-  LIR_HEADER(DivPowTwoI)
-
-  LDivPowTwoI(const LAllocation& lhs, int32_t shift, bool negativeDivisor)
-      : LInstructionHelper(classOpcode),
-        shift_(shift),
-        negativeDivisor_(negativeDivisor) {
-    setOperand(0, lhs);
-  }
-
-  const LAllocation* numerator() { return getOperand(0); }
-
-  int32_t shift() { return shift_; }
-  bool negativeDivisor() { return negativeDivisor_; }
-
-  MDiv* mir() const { return mir_->toDiv(); }
-};
-
 class LDivOrModI64 : public LBinaryMath<0> {
  public:
   LIR_HEADER(DivOrModI64)

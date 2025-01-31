@@ -10,30 +10,6 @@
 namespace js {
 namespace jit {
 
-// Signed division by a power-of-two constant.
-class LDivPowTwoI : public LBinaryMath<0> {
-  const int32_t shift_;
-  const bool negativeDivisor_;
-
- public:
-  LIR_HEADER(DivPowTwoI)
-
-  LDivPowTwoI(const LAllocation& lhs, const LAllocation& lhsCopy, int32_t shift,
-              bool negativeDivisor)
-      : LBinaryMath(classOpcode),
-        shift_(shift),
-        negativeDivisor_(negativeDivisor) {
-    setOperand(0, lhs);
-    setOperand(1, lhsCopy);
-  }
-
-  const LAllocation* numerator() { return getOperand(0); }
-  const LAllocation* numeratorCopy() { return getOperand(1); }
-  int32_t shift() const { return shift_; }
-  bool negativeDivisor() const { return negativeDivisor_; }
-  MDiv* mir() const { return mir_->toDiv(); }
-};
-
 class LDivOrModConstantI : public LInstructionHelper<1, 1, 1> {
   const int32_t denominator_;
 

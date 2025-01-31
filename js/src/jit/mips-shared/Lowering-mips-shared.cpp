@@ -219,7 +219,7 @@ void LIRGeneratorMIPSShared::lowerDivI(MDiv* div) {
     int32_t shift = FloorLog2(rhs);
     if (rhs > 0 && 1 << shift == rhs) {
       LDivPowTwoI* lir =
-          new (alloc()) LDivPowTwoI(useRegister(div->lhs()), shift, temp());
+          new (alloc()) LDivPowTwoI(useRegister(div->lhs()), temp(), shift);
       if (div->fallible()) {
         assignSnapshot(lir, div->bailoutKind());
       }
