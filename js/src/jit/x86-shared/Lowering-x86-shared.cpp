@@ -1686,7 +1686,7 @@ void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
       useAtStart ? useRegisterAtStart(ins->input()) : useRegister(ins->input());
   LWasmUnarySimd128* lir = new (alloc()) LWasmUnarySimd128(inputUse, tempReg);
   if (reuseInput) {
-    defineReuseInput(lir, ins, LWasmUnarySimd128::Src);
+    defineReuseInput(lir, ins, LWasmUnarySimd128::SrcIndex);
   } else {
     define(lir, ins);
   }

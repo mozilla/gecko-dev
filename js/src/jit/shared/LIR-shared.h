@@ -1366,25 +1366,6 @@ class LWasmInt64ToSimd128 : public LInstructionHelper<1, INT64_PIECES, 0> {
   }
 };
 
-// (v128) -> v128 effect-free operations
-// temp is FPR (if in use).
-class LWasmUnarySimd128 : public LInstructionHelper<1, 1, 1> {
- public:
-  LIR_HEADER(WasmUnarySimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  LWasmUnarySimd128(const LAllocation& src, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Src, src);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  const LDefinition* temp() { return getTemp(0); }
-  wasm::SimdOp simdOp() const { return mir_->toWasmUnarySimd128()->simdOp(); }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

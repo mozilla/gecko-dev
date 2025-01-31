@@ -3485,7 +3485,7 @@ void CodeGenerator::visitWasmUnarySimd128(LWasmUnarySimd128* ins) {
   FloatRegister src = ToFloatRegister(ins->src());
   FloatRegister dest = ToFloatRegister(ins->output());
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16Neg:
       masm.negInt8x16(src, dest);
       break;
@@ -3616,11 +3616,11 @@ void CodeGenerator::visitWasmUnarySimd128(LWasmUnarySimd128* ins) {
       masm.unsignedConvertInt32x4ToFloat64x2(src, dest);
       break;
     case wasm::SimdOp::I32x4TruncSatF64x2SZero:
-      masm.truncSatFloat64x2ToInt32x4(src, dest, ToFloatRegister(ins->temp()));
+      masm.truncSatFloat64x2ToInt32x4(src, dest, ToFloatRegister(ins->temp0()));
       break;
     case wasm::SimdOp::I32x4TruncSatF64x2UZero:
       masm.unsignedTruncSatFloat64x2ToInt32x4(src, dest,
-                                              ToFloatRegister(ins->temp()));
+                                              ToFloatRegister(ins->temp0()));
       break;
     case wasm::SimdOp::I16x8ExtaddPairwiseI8x16S:
       masm.extAddPairwiseInt8x16(src, dest);
