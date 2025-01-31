@@ -87,6 +87,10 @@ export const DEFAULT_MODELS = Object.freeze({
     modelId: "Xenova/vit-base-patch16-224-in21k",
     dtype: "q8",
   },
+  "text-to-speech": {
+    modelId: "Xenova/speecht5_tts",
+    dtype: "q8",
+  },
 });
 
 /**

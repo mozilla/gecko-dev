@@ -51,6 +51,7 @@ const SUPPORTED_TASKS = [
   "translation",
   "text2text-generation",
   "text-generation",
+  "text-to-speech",
   "zero-shot-classification",
   "image-to-text",
   "image-classification",
