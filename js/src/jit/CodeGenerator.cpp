@@ -21057,11 +21057,11 @@ void CodeGenerator::visitRotate(LRotate* ins) {
 
 void CodeGenerator::visitRotateI64(LRotateI64* lir) {
   MRotate* mir = lir->mir();
-  LAllocation* count = lir->count();
+  const LAllocation* count = lir->count();
 
   Register64 input = ToRegister64(lir->input());
   Register64 output = ToOutRegister64(lir);
-  Register temp = ToTempRegisterOrInvalid(lir->temp());
+  Register temp = ToTempRegisterOrInvalid(lir->temp0());
 
   if (count->isConstant()) {
     int32_t c = int32_t(count->toConstant()->toInt64() & 0x3F);

@@ -215,10 +215,10 @@ void LIRGeneratorARM::lowerForMulInt64(LMulI64* ins, MMul* mir,
     }
   }
 
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-  ins->setInt64Operand(INT64_PIECES, useInt64OrConstant(rhs));
+  ins->setLhs(useInt64RegisterAtStart(lhs));
+  ins->setRhs(useInt64OrConstant(rhs));
   if (needsTemp) {
-    ins->setTemp(0, temp());
+    ins->setTemp0(temp());
   }
 
   defineInt64ReuseInput(ins, mir, 0);
@@ -289,25 +289,31 @@ void LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0>* ins,
   define(ins, mir);
 }
 
-template <size_t Temps>
-void LIRGeneratorARM::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs) {
-  if (mir->isRotate() && !rhs->isConstant()) {
-    ins->setTemp(0, temp());
+template <class LInstr>
+void LIRGeneratorARM::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
+                                         MDefinition* lhs, MDefinition* rhs) {
+  if constexpr (std::is_same_v<LInstr, LShiftI64>) {
+    ins->setLhs(useInt64RegisterAtStart(lhs));
+    ins->setRhs(useRegisterOrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
+  } else {
+    ins->setInput(useInt64RegisterAtStart(lhs));
+    ins->setCount(useRegisterOrConstant(rhs));
+    if (!rhs->isConstant()) {
+      ins->setTemp0(temp());
+    }
+    defineInt64ReuseInput(ins, mir, LRotateI64::InputIndex);
   }
-
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-  ins->setOperand(INT64_PIECES, useRegisterOrConstant(rhs));
-  defineInt64ReuseInput(ins, mir, 0);
 }
 
-template void LIRGeneratorARM::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
-template void LIRGeneratorARM::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+template void LIRGeneratorARM::lowerForShiftInt64(LShiftI64* ins,
+                                                  MDefinition* mir,
+                                                  MDefinition* lhs,
+                                                  MDefinition* rhs);
+template void LIRGeneratorARM::lowerForShiftInt64(LRotateI64* ins,
+                                                  MDefinition* mir,
+                                                  MDefinition* lhs,
+                                                  MDefinition* rhs);
 
 void LIRGeneratorARM::lowerDivI(MDiv* div) {
   if (div->isUnsigned()) {

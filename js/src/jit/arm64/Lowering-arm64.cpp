@@ -171,32 +171,32 @@ void LIRGeneratorARM64::lowerForALUInt64(
 
 void LIRGeneratorARM64::lowerForMulInt64(LMulI64* ins, MMul* mir,
                                          MDefinition* lhs, MDefinition* rhs) {
-  ins->setInt64Operand(LMulI64::Lhs, useInt64RegisterAtStart(lhs));
-  ins->setInt64Operand(LMulI64::Rhs, useInt64RegisterOrConstantAtStart(rhs));
+  ins->setLhs(useInt64RegisterAtStart(lhs));
+  ins->setRhs(useInt64RegisterOrConstantAtStart(rhs));
   defineInt64(ins, mir);
 }
 
-template <size_t Temps>
-void LIRGeneratorARM64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs) {
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-
-  static_assert(LShiftI64::Rhs == INT64_PIECES,
-                "Assume Rhs is located at INT64_PIECES.");
-  static_assert(LRotateI64::Count == INT64_PIECES,
-                "Assume Count is located at INT64_PIECES.");
-
-  ins->setOperand(INT64_PIECES, useRegisterOrConstantAtStart(rhs));
+template <class LInstr>
+void LIRGeneratorARM64::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
+                                           MDefinition* lhs, MDefinition* rhs) {
+  if constexpr (std::is_same_v<LInstr, LShiftI64>) {
+    ins->setLhs(useInt64RegisterAtStart(lhs));
+    ins->setRhs(useRegisterOrConstantAtStart(rhs));
+  } else {
+    ins->setInput(useInt64RegisterAtStart(lhs));
+    ins->setCount(useRegisterOrConstantAtStart(rhs));
+  }
   defineInt64(ins, mir);
 }
 
-template void LIRGeneratorARM64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
-template void LIRGeneratorARM64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+template void LIRGeneratorARM64::lowerForShiftInt64(LShiftI64* ins,
+                                                    MDefinition* mir,
+                                                    MDefinition* lhs,
+                                                    MDefinition* rhs);
+template void LIRGeneratorARM64::lowerForShiftInt64(LRotateI64* ins,
+                                                    MDefinition* mir,
+                                                    MDefinition* lhs,
+                                                    MDefinition* rhs);
 
 void LIRGeneratorARM64::lowerWasmBuiltinTruncateToInt32(
     MWasmBuiltinTruncateToInt32* ins) {

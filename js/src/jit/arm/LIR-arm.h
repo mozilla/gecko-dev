@@ -141,24 +141,6 @@ class LMulI : public LBinaryMath<0> {
   MMul* mir() { return mir_->toMul(); }
 };
 
-class LUDiv : public LBinaryMath<0> {
- public:
-  LIR_HEADER(UDiv);
-
-  LUDiv() : LBinaryMath(classOpcode) {}
-
-  MDiv* mir() { return mir_->toDiv(); }
-};
-
-class LUMod : public LBinaryMath<0> {
- public:
-  LIR_HEADER(UMod);
-
-  LUMod() : LBinaryMath(classOpcode) {}
-
-  MMod* mir() { return mir_->toMod(); }
-};
-
 class LSoftUDivOrMod : public LBinaryCallInstructionHelper<1, 0> {
  public:
   LIR_HEADER(SoftUDivOrMod);

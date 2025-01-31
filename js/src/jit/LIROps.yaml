@@ -437,10 +437,21 @@
   mir_op: ReinterpretCast
 
 - name: Rotate
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+    count: WordSized
+  mir_op: true
+  defer_init: true
 
 - name: RotateI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: Int64
+    count: WordSized
+  num_temps: 1
+  mir_op: Rotate
+  defer_init: true
 
 - name: InterruptCheck
   mir_op: true
@@ -1109,23 +1120,65 @@
   num_temps: 2
   mir_op: Not
 
+# Bitwise not operation, takes a 32-bit integer as input and returning
+# a 32-bit integer result as an output.
 - name: BitNotI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  defer_init: true
 
 - name: BitNotI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    input: Int64
+  defer_init: true
 
+# Binary bitwise operation, taking two 32-bit integers as inputs and returning
+# a 32-bit integer result as an output.
 - name: BitOpI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    bitop: JSOp
+  extra_name: true
+  defer_init: true
 
 - name: BitOpI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    lhs: Int64
+    rhs: Int64
+  arguments:
+    bitop: JSOp
+  extra_name: true
+  defer_init: true
 
+# Shift operation, taking two 32-bit integers as inputs and returning
+# a 32-bit integer result as an output.
 - name: ShiftI
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    bitop: JSOp
+  mir_op: Instruction
+  extra_name: true
+  defer_init: true
 
 - name: ShiftI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    lhs: Int64
+    rhs: WordSized
+  arguments:
+    bitop: JSOp
+  mir_op: Instruction
+  extra_name: true
+  defer_init: true
 
 - name: SignExtendInt32
   result_type: WordSized
@@ -1247,11 +1300,23 @@
   operands:
     num: WordSized
 
+# Copysign for doubles.
 - name: CopySignD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  defer_init: true
 
+# Copysign for float32.
 - name: CopySignF
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  defer_init: true
 
 # Count leading zeroes on an int32.
 - name: ClzI
@@ -1396,22 +1461,51 @@
   gen_boilerplate: false
 
 - name: AddI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    lhs: Int64
+    rhs: Int64
+  defer_init: true
 
 - name: SubI
   gen_boilerplate: false
 
 - name: SubI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    lhs: Int64
+    rhs: Int64
+  defer_init: true
 
 - name: MulI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    lhs: Int64
+    rhs: Int64
+  num_temps: 1
+  defer_init: true
 
+# Performs an add, sub, mul, or div on two double values.
 - name: MathD
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    jsop: JSOp
+  extra_name: true
+  defer_init: true
 
+# Performs an add, sub, mul, or div on two float values.
 - name: MathF
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    jsop: JSOp
+  extra_name: true
+  defer_init: true
 
 - name: ModD
   result_type: WordSized
@@ -5102,10 +5196,20 @@
   mir_op: Mod
 
 - name: UDiv
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: Div
+  defer_init: true
 
 - name: UMod
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: Mod
+  defer_init: true
 
 - name: SoftUDivOrMod
   gen_boilerplate: false

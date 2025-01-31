@@ -100,14 +100,13 @@ void LIRGeneratorMIPSShared::lowerForMulInt64(LMulI64* ins, MMul* mir,
       reuseInput = false;
   }
 #endif
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-  ins->setInt64Operand(INT64_PIECES,
-                       (willHaveDifferentLIRNodes(lhs, rhs) || cannotAliasRhs)
-                           ? useInt64OrConstant(rhs)
-                           : useInt64OrConstantAtStart(rhs));
+  ins->setLhs(useInt64RegisterAtStart(lhs));
+  ins->setRhs((willHaveDifferentLIRNodes(lhs, rhs) || cannotAliasRhs)
+                  ? useInt64OrConstant(rhs)
+                  : useInt64OrConstantAtStart(rhs));
 
   if (needsTemp) {
-    ins->setTemp(0, temp());
+    ins->setTemp0(temp());
   }
   if (reuseInput) {
     defineInt64ReuseInput(ins, mir, 0);
@@ -116,47 +115,38 @@ void LIRGeneratorMIPSShared::lowerForMulInt64(LMulI64* ins, MMul* mir,
   }
 }
 
-template <size_t Temps>
-void LIRGeneratorMIPSShared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs) {
+template <class LInstr>
+void LIRGeneratorMIPSShared::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
+                                                MDefinition* lhs,
+                                                MDefinition* rhs) {
+  if constexpr (std::is_same_v<LInstr, LShiftI64>) {
+    ins->setLhs(useInt64RegisterAtStart(lhs));
+    ins->setRhs(useRegisterOrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
+  } else {
 #ifdef JS_CODEGEN_MIPS32
-  if (mir->isRotate()) {
     if (!rhs->isConstant()) {
-      ins->setTemp(0, temp());
+      ins->setTemp0(temp());
     }
-    ins->setInt64Operand(0, useInt64Register(lhs));
-  } else {
-    ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-  }
-#else
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-#endif
-
-  static_assert(LShiftI64::Rhs == INT64_PIECES,
-                "Assume Rhs is located at INT64_PIECES.");
-  static_assert(LRotateI64::Count == INT64_PIECES,
-                "Assume Count is located at INT64_PIECES.");
-
-  ins->setOperand(INT64_PIECES, useRegisterOrConstant(rhs));
-
-#ifdef JS_CODEGEN_MIPS32
-  if (mir->isRotate()) {
+    ins->setInput(useInt64Register(lhs));
+    ins->setCount(useRegisterOrConstant(rhs));
     defineInt64(ins, mir);
-  } else {
-    defineInt64ReuseInput(ins, mir, 0);
-  }
 #else
-  defineInt64ReuseInput(ins, mir, 0);
+    ins->setInput(useInt64RegisterAtStart(lhs));
+    ins->setCount(useRegisterOrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, LRotateI64::InputIndex);
 #endif
+  }
 }
 
-template void LIRGeneratorMIPSShared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
-template void LIRGeneratorMIPSShared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+template void LIRGeneratorMIPSShared::lowerForShiftInt64(LShiftI64* ins,
+                                                         MDefinition* mir,
+                                                         MDefinition* lhs,
+                                                         MDefinition* rhs);
+template void LIRGeneratorMIPSShared::lowerForShiftInt64(LRotateI64* ins,
+                                                         MDefinition* mir,
+                                                         MDefinition* lhs,
+                                                         MDefinition* rhs);
 
 void LIRGeneratorMIPSShared::lowerForFPU(LInstructionHelper<1, 1, 0>* ins,
                                          MDefinition* mir, MDefinition* input) {

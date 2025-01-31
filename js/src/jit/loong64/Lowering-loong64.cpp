@@ -36,28 +36,29 @@ void LIRGeneratorLOONG64::lowerForShift(LInstructionHelper<1, 2, 0>* ins,
   define(ins, mir);
 }
 
-template <size_t Temps>
-void LIRGeneratorLOONG64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs) {
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-
-  static_assert(LShiftI64::Rhs == INT64_PIECES,
-                "Assume Rhs is located at INT64_PIECES.");
-  static_assert(LRotateI64::Count == INT64_PIECES,
-                "Assume Count is located at INT64_PIECES.");
-
-  ins->setOperand(INT64_PIECES, useRegisterOrConstant(rhs));
-
-  defineInt64ReuseInput(ins, mir, 0);
+template <class LInstr>
+void LIRGeneratorLOONG64::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
+                                             MDefinition* lhs,
+                                             MDefinition* rhs) {
+  if constexpr (std::is_same_v<LInstr, LShiftI64>) {
+    ins->setLhs(useInt64RegisterAtStart(lhs));
+    ins->setRhs(useRegisterOrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
+  } else {
+    ins->setInput(useInt64RegisterAtStart(lhs));
+    ins->setCount(useRegisterOrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, LRotateI64::InputIndex);
+  }
 }
 
-template void LIRGeneratorLOONG64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
-template void LIRGeneratorLOONG64::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+template void LIRGeneratorLOONG64::lowerForShiftInt64(LShiftI64* ins,
+                                                      MDefinition* mir,
+                                                      MDefinition* lhs,
+                                                      MDefinition* rhs);
+template void LIRGeneratorLOONG64::lowerForShiftInt64(LRotateI64* ins,
+                                                      MDefinition* mir,
+                                                      MDefinition* lhs,
+                                                      MDefinition* rhs);
 
 // x = !y
 void LIRGeneratorLOONG64::lowerForALU(LInstructionHelper<1, 1, 0>* ins,
@@ -102,14 +103,13 @@ void LIRGeneratorLOONG64::lowerForMulInt64(LMulI64* ins, MMul* mir,
   bool cannotAliasRhs = false;
   bool reuseInput = true;
 
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-  ins->setInt64Operand(INT64_PIECES,
-                       (willHaveDifferentLIRNodes(lhs, rhs) || cannotAliasRhs)
-                           ? useInt64OrConstant(rhs)
-                           : useInt64OrConstantAtStart(rhs));
+  ins->setLhs(useInt64RegisterAtStart(lhs));
+  ins->setRhs((willHaveDifferentLIRNodes(lhs, rhs) || cannotAliasRhs)
+                  ? useInt64OrConstant(rhs)
+                  : useInt64OrConstantAtStart(rhs));
 
   if (needsTemp) {
-    ins->setTemp(0, temp());
+    ins->setTemp0(temp());
   }
   if (reuseInput) {
     defineInt64ReuseInput(ins, mir, 0);

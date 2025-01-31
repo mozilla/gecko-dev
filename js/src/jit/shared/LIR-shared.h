@@ -122,46 +122,6 @@ class LValue : public LInstructionHelper<BOX_PIECES, 0, 0> {
   Value value() const { return v_; }
 };
 
-namespace details {
-template <size_t Defs, size_t Ops, size_t Temps>
-class RotateBase : public LInstructionHelper<Defs, Ops, Temps> {
-  using Base = LInstructionHelper<Defs, Ops, Temps>;
-
- protected:
-  explicit RotateBase(LNode::Opcode opcode) : Base(opcode) {}
-
- public:
-  MRotate* mir() { return Base::mir_->toRotate(); }
-};
-}  // namespace details
-
-class LRotate : public details::RotateBase<1, 2, 0> {
- public:
-  LIR_HEADER(Rotate);
-
-  LRotate() : RotateBase(classOpcode) {}
-
-  const LAllocation* input() { return getOperand(0); }
-  LAllocation* count() { return getOperand(1); }
-};
-
-class LRotateI64
-    : public details::RotateBase<INT64_PIECES, INT64_PIECES + 1, 1> {
- public:
-  LIR_HEADER(RotateI64);
-
-  LRotateI64() : RotateBase(classOpcode) {
-    setTemp(0, LDefinition::BogusTemp());
-  }
-
-  static const size_t Input = 0;
-  static const size_t Count = INT64_PIECES;
-
-  LInt64Allocation input() { return getInt64Operand(Input); }
-  const LDefinition* temp() { return getTemp(0); }
-  LAllocation* count() { return getOperand(Count); }
-};
-
 // Allocate a new arguments object for an inlined frame.
 class LCreateInlinedArgumentsObject : public LVariadicInstruction<1, 2> {
  public:
@@ -733,101 +693,6 @@ class LConstructArrayNative : public LCallInstructionHelper<BOX_PIECES, 2, 3> {
   const LAllocation* getArgc() { return getOperand(0); }
 };
 
-// Bitwise not operation, takes a 32-bit integer as input and returning
-// a 32-bit integer result as an output.
-class LBitNotI : public LInstructionHelper<1, 1, 0> {
- public:
-  LIR_HEADER(BitNotI)
-
-  LBitNotI() : LInstructionHelper(classOpcode) {}
-};
-
-class LBitNotI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES, 0> {
- public:
-  LIR_HEADER(BitNotI64)
-
-  LBitNotI64() : LInstructionHelper(classOpcode) {}
-
-  LInt64Allocation input() const { return getInt64Operand(0); }
-};
-
-// Binary bitwise operation, taking two 32-bit integers as inputs and returning
-// a 32-bit integer result as an output.
-class LBitOpI : public LBinaryMath<0> {
-  JSOp op_;
-
- public:
-  LIR_HEADER(BitOpI)
-
-  explicit LBitOpI(JSOp op) : LBinaryMath(classOpcode), op_(op) {}
-
-  const char* extraName() const {
-    if (bitop() == JSOp::Ursh && mir_->toUrsh()->bailoutsDisabled()) {
-      return "ursh:BailoutsDisabled";
-    }
-    return CodeName(op_);
-  }
-
-  JSOp bitop() const { return op_; }
-};
-
-class LBitOpI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
-  JSOp op_;
-
- public:
-  LIR_HEADER(BitOpI64)
-
-  explicit LBitOpI64(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
-  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
-
-  const char* extraName() const { return CodeName(op_); }
-
-  JSOp bitop() const { return op_; }
-};
-
-// Shift operation, taking two 32-bit integers as inputs and returning
-// a 32-bit integer result as an output.
-class LShiftI : public LBinaryMath<0> {
-  JSOp op_;
-
- public:
-  LIR_HEADER(ShiftI)
-
-  explicit LShiftI(JSOp op) : LBinaryMath(classOpcode), op_(op) {}
-
-  JSOp bitop() { return op_; }
-
-  MInstruction* mir() { return mir_->toInstruction(); }
-
-  const char* extraName() const { return CodeName(op_); }
-};
-
-class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0> {
-  JSOp op_;
-
- public:
-  LIR_HEADER(ShiftI64)
-
-  explicit LShiftI64(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
-  const LAllocation* rhs() const { return getOperand(Rhs); }
-
-  JSOp bitop() { return op_; }
-
-  MInstruction* mir() { return mir_->toInstruction(); }
-
-  const char* extraName() const { return CodeName(op_); }
-};
-
 // Returns from the function being compiled (not used in inlined frames). The
 // input must be a box.
 class LReturn : public LInstructionHelper<0, BOX_PIECES, 0> {
@@ -840,26 +705,6 @@ class LReturn : public LInstructionHelper<0, BOX_PIECES, 0> {
       : LInstructionHelper(classOpcode), isGenerator_(isGenerator) {}
 
   bool isGenerator() { return isGenerator_; }
-};
-
-// Copysign for doubles.
-class LCopySignD : public LBinaryMath<2> {
- public:
-  LIR_HEADER(CopySignD)
-  explicit LCopySignD() : LBinaryMath(classOpcode) {}
-
-  const LDefinition* temp0() { return getTemp(0); }
-  const LDefinition* temp1() { return getTemp(1); }
-};
-
-// Copysign for float32.
-class LCopySignF : public LBinaryMath<2> {
- public:
-  LIR_HEADER(CopySignF)
-  explicit LCopySignF() : LBinaryMath(classOpcode) {}
-
-  const LDefinition* temp0() { return getTemp(0); }
-  const LDefinition* temp1() { return getTemp(1); }
 };
 
 class LHypot : public LCallInstructionHelper<1, 4, 0> {
@@ -915,19 +760,6 @@ class LAddI : public LBinaryMath<0> {
   MAdd* mir() const { return mir_->toAdd(); }
 };
 
-class LAddI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
- public:
-  LIR_HEADER(AddI64)
-
-  LAddI64() : LInstructionHelper(classOpcode) {}
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
-  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
-};
-
 // Subtracts two integers, returning an integer value.
 class LSubI : public LBinaryMath<0> {
   bool recoversInput_;
@@ -956,63 +788,6 @@ inline bool LNode::recoversInput() const {
       return false;
   }
 }
-
-class LSubI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
- public:
-  LIR_HEADER(SubI64)
-
-  LSubI64() : LInstructionHelper(classOpcode) {}
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
-  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
-};
-
-class LMulI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 1> {
- public:
-  LIR_HEADER(MulI64)
-
-  explicit LMulI64() : LInstructionHelper(classOpcode) {
-    setTemp(0, LDefinition());
-  }
-
-  static const size_t Lhs = 0;
-  static const size_t Rhs = INT64_PIECES;
-
-  LInt64Allocation lhs() const { return getInt64Operand(Lhs); }
-  LInt64Allocation rhs() const { return getInt64Operand(Rhs); }
-  const LDefinition* temp() { return getTemp(0); }
-};
-
-// Performs an add, sub, mul, or div on two double values.
-class LMathD : public LBinaryMath<0> {
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(MathD)
-
-  explicit LMathD(JSOp jsop) : LBinaryMath(classOpcode), jsop_(jsop) {}
-
-  JSOp jsop() const { return jsop_; }
-
-  const char* extraName() const { return CodeName(jsop_); }
-};
-
-// Performs an add, sub, mul, or div on two double values.
-class LMathF : public LBinaryMath<0> {
-  JSOp jsop_;
-
- public:
-  LIR_HEADER(MathF)
-
-  explicit LMathF(JSOp jsop) : LBinaryMath(classOpcode), jsop_(jsop) {}
-
-  JSOp jsop() const { return jsop_; }
-
-  const char* extraName() const { return CodeName(jsop_); }
-};
 
 // Passed the BaselineFrame address in the OsrFrameReg via the IonOsrTempData
 // populated by PrepareOsrTempData.
@@ -2213,6 +1988,23 @@ const char* LDivI::extraName() const {
 const char* LModI::extraName() const {
   return mir()->isTruncated() ? "Truncated" : nullptr;
 }
+
+const char* LBitOpI::extraName() const {
+  if (bitop() == JSOp::Ursh && mir_->toUrsh()->bailoutsDisabled()) {
+    return "ursh:BailoutsDisabled";
+  }
+  return CodeName(bitop_);
+}
+
+const char* LBitOpI64::extraName() const { return CodeName(bitop_); }
+
+const char* LShiftI::extraName() const { return CodeName(bitop_); }
+
+const char* LShiftI64::extraName() const { return CodeName(bitop_); }
+
+const char* LMathD::extraName() const { return CodeName(jsop_); }
+
+const char* LMathF::extraName() const { return CodeName(jsop_); }
 #endif
 
 }  // namespace jit

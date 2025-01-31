@@ -32,10 +32,9 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   void lowerForALU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir,
                    MDefinition* lhs, MDefinition* rhs);
 
-  template <size_t Temps>
-  void lowerForShiftInt64(
-      LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-      MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+  template <class LInstr>
+  void lowerForShiftInt64(LInstr* ins, MDefinition* mir, MDefinition* lhs,
+                          MDefinition* rhs);
 
   template <size_t Temps>
   void lowerForFPU(LInstructionHelper<1, 2, Temps>* ins, MDefinition* mir,

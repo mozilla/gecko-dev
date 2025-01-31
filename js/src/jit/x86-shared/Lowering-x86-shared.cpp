@@ -88,27 +88,16 @@ void LIRGeneratorX86Shared::lowerForShift(LInstructionHelper<1, 2, 0>* ins,
   defineReuseInput(ins, mir, 0);
 }
 
-template <size_t Temps>
-void LIRGeneratorX86Shared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, Temps>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs) {
-  ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
-#if defined(JS_NUNBOX32)
-  if (mir->isRotate()) {
-    ins->setTemp(0, temp());
-  }
-#endif
-
-  static_assert(LShiftI64::Rhs == INT64_PIECES,
-                "Assume Rhs is located at INT64_PIECES.");
-  static_assert(LRotateI64::Count == INT64_PIECES,
-                "Assume Count is located at INT64_PIECES.");
-
+template <class LInstr>
+void LIRGeneratorX86Shared::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
+                                               MDefinition* lhs,
+                                               MDefinition* rhs) {
+  LAllocation rhsAlloc;
   if (rhs->isConstant()) {
-    ins->setOperand(INT64_PIECES, useOrConstantAtStart(rhs));
+    rhsAlloc = useOrConstantAtStart(rhs);
 #ifdef JS_CODEGEN_X64
-  } else if (!mir->isRotate()) {
-    ins->setOperand(INT64_PIECES, useShiftRegister(rhs));
+  } else if (std::is_same_v<LInstr, LShiftI64>) {
+    rhsAlloc = useShiftRegister(rhs);
 #endif
   } else {
     // The operands are int64, but we only care about the lower 32 bits of
@@ -117,18 +106,31 @@ void LIRGeneratorX86Shared::lowerForShiftInt64(
     ensureDefined(rhs);
     LUse use(ecx);
     use.setVirtualRegister(rhs->virtualRegister());
-    ins->setOperand(INT64_PIECES, use);
+    rhsAlloc = use;
   }
 
-  defineInt64ReuseInput(ins, mir, 0);
+  if constexpr (std::is_same_v<LInstr, LShiftI64>) {
+    ins->setLhs(useInt64RegisterAtStart(lhs));
+    ins->setRhs(rhsAlloc);
+    defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
+  } else {
+    ins->setInput(useInt64RegisterAtStart(lhs));
+    ins->setCount(rhsAlloc);
+#if defined(JS_NUNBOX32)
+    ins->setTemp0(temp());
+#endif
+    defineInt64ReuseInput(ins, mir, LRotateI64::InputIndex);
+  }
 }
 
-template void LIRGeneratorX86Shared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
-template void LIRGeneratorX86Shared::lowerForShiftInt64(
-    LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
-    MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+template void LIRGeneratorX86Shared::lowerForShiftInt64(LShiftI64* ins,
+                                                        MDefinition* mir,
+                                                        MDefinition* lhs,
+                                                        MDefinition* rhs);
+template void LIRGeneratorX86Shared::lowerForShiftInt64(LRotateI64* ins,
+                                                        MDefinition* mir,
+                                                        MDefinition* lhs,
+                                                        MDefinition* rhs);
 
 void LIRGeneratorX86Shared::lowerForALU(LInstructionHelper<1, 1, 0>* ins,
                                         MDefinition* mir, MDefinition* input) {
