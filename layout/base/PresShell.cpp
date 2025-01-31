@@ -1616,15 +1616,13 @@ void PresShell::FrameSelectionWillTakeFocus(nsFrameSelection& aFrameSelection) {
 
 NS_IMETHODIMP
 PresShell::SetDisplaySelection(int16_t aToggle) {
-  RefPtr<nsFrameSelection> frameSelection = mSelection;
-  frameSelection->SetDisplaySelection(aToggle);
+  mSelection->SetDisplaySelection(aToggle);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 PresShell::GetDisplaySelection(int16_t* aToggle) {
-  RefPtr<nsFrameSelection> frameSelection = mSelection;
-  *aToggle = frameSelection->GetDisplaySelection();
+  *aToggle = mSelection->GetDisplaySelection();
   return NS_OK;
 }
 
@@ -1635,9 +1633,8 @@ PresShell::GetSelectionFromScript(RawSelectionType aRawSelectionType,
     return NS_ERROR_NULL_POINTER;
   }
 
-  RefPtr<nsFrameSelection> frameSelection = mSelection;
   RefPtr<Selection> selection =
-      frameSelection->GetSelection(ToSelectionType(aRawSelectionType));
+      mSelection->GetSelection(ToSelectionType(aRawSelectionType));
 
   if (!selection) {
     return NS_ERROR_INVALID_ARG;
@@ -1652,8 +1649,7 @@ Selection* PresShell::GetSelection(RawSelectionType aRawSelectionType) {
     return nullptr;
   }
 
-  RefPtr<nsFrameSelection> frameSelection = mSelection;
-  return frameSelection->GetSelection(ToSelectionType(aRawSelectionType));
+  return mSelection->GetSelection(ToSelectionType(aRawSelectionType));
 }
 
 Selection* PresShell::GetCurrentSelection(SelectionType aSelectionType) {
@@ -1661,8 +1657,7 @@ Selection* PresShell::GetCurrentSelection(SelectionType aSelectionType) {
     return nullptr;
   }
 
-  RefPtr<nsFrameSelection> frameSelection = mSelection;
-  return frameSelection->GetSelection(aSelectionType);
+  return mSelection->GetSelection(aSelectionType);
 }
 
 nsFrameSelection* PresShell::GetLastFocusedFrameSelection() {
