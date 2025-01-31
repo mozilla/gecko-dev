@@ -20,6 +20,7 @@ support-files = [
 ["browser_interactions_disabledHistory.js"]
 
 ["browser_interactions_export.js"]
+run-if = ["nightly_build"] # Interactions viewer is only available on Nightly.
 
 ["browser_interactions_referrer.js"]
 
