@@ -45,7 +45,9 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 /**
+ * @typedef {import("SearchEngine.sys.mjs").SearchEngine} SearchEngine
  * @typedef {import("SearchEngineSelector.sys.mjs").RefinedConfig} RefinedConfig
+ * @typedef {import("SearchEngineSelector.sys.mjs").SearchEngineSelector} SearchEngineSelector
  */
 
 /**
@@ -130,7 +132,7 @@ const REASON_CHANGE_MAP = new Map([
  * The ParseSubmissionResult contains getter methods that return attributes
  * about the parsed submission url.
  *
- * @implements {nsIParseSubmissionResult}
+ * @implements {nsISearchParseSubmissionResult}
  */
 class ParseSubmissionResult {
   constructor(engine, terms, termsParameterName) {
@@ -403,7 +405,7 @@ export class SearchService {
   }
 
   async getVisibleEngines() {
-    await this.init(true);
+    await this.init();
     lazy.logConsole.debug("getVisibleEngines: getting all visible engines");
     return this.#sortedVisibleEngines;
   }
@@ -520,7 +522,7 @@ export class SearchService {
    * Test only variable to indicate an error should occur during
    * search service initialization.
    *
-   * @type {string}
+   * @type {{type : string, message: string}}
    */
   errorToThrowInTest = { type: null, message: null };
 
@@ -1562,7 +1564,7 @@ export class SearchService {
   /**
    * Determines if a given engine matches the ignorelists or not.
    *
-   * @param {Engine} engine
+   * @param {SearchEngine} engine
    *   The engine to check against the ignorelists.
    * @returns {boolean}
    *   Returns true if the engine matches a ignorelists entry.
@@ -1878,7 +1880,7 @@ export class SearchService {
    *
    * @param {object} settings
    *   The loaded settings for the user.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Returns true if the default engine was changed.
    */
   async #checkOpenSearchOverrides(settings) {
@@ -1947,7 +1949,7 @@ export class SearchService {
    * This is prefixed with _ rather than # because it is
    * called in test_reload_engines.js
    *
-   * @param {integer} changeReason
+   * @param {number} changeReason
    *   The reason reload engines is being called, one of
    *   Ci.nsISearchService.CHANGE_REASON*
    */
@@ -2010,7 +2012,7 @@ export class SearchService {
    *
    * @param {object} settings
    *   The user's current saved settings.
-   * @param {integer} changeReason
+   * @param {number} changeReason
    *   The reason reload engines is being called, one of
    *   Ci.nsISearchService.CHANGE_REASON*
    */
@@ -2252,7 +2254,7 @@ export class SearchService {
    *
    * @param {SearchEngine} prevCurrentEngine
    *   The previous current engine to check for override.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   True if an engine was restored.
    */
   async #maybeRestoreEngineFromOverride(prevCurrentEngine) {
@@ -2301,7 +2303,7 @@ export class SearchService {
   /**
    * Remove any engines that have been flagged for removal during reloadEngines.
    *
-   * @param {SearchEngine[]} engines
+   * @param {Map<string, object>|null} engines
    *   The list of engines to check.
    */
   async #maybeRemoveEnginesAfterReload(engines) {
@@ -2382,7 +2384,7 @@ export class SearchService {
    *
    * @param {object} [settings]
    *   The saved settings for the user.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Returns true if the default engine was changed.
    */
   async #loadEnginesFromSettings(settings) {
@@ -2511,7 +2513,7 @@ export class SearchService {
    *
    * @param {SearchEngine} engine
    *   The search engine to check to see if it should override an existing engine.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *  True if the default engine was changed.
    */
   async #maybeApplyOverride(engine) {
@@ -2959,7 +2961,9 @@ export class SearchService {
    * - If the default from the configuration is the one being removed, unhide
    *   the first general search engine, or first visible engine.
    *
-   * @param {boolean} privateMode
+   * @param {object} options
+   *   The options object.
+   * @param {boolean} options.privateMode
    *   If true, returns the default engine for private browsing mode, otherwise
    *   the default engine for the normal mode. Note, this function does not
    *   check the "separatePrivateDefault" preference - that is up to the caller.
@@ -3261,7 +3265,7 @@ export class SearchService {
    *   The previously default search engine.
    * @param {SearchEngine} [newEngine]
    *   The new default search engine.
-   * @param {string} changeSource
+   * @param {number} changeSource
    *   The source of the change of default.
    */
   #recordDefaultChangedEvent(
@@ -3677,7 +3681,7 @@ class SearchDefaultOverrideAllowlistHandler {
    *   app provided search engine.
    * @param {string} appProvidedEngineId
    *   The id of the search engine that will be overriden.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Returns true if the search engine extension may override the app provided
    *   instance.
    */
@@ -3712,7 +3716,7 @@ class SearchDefaultOverrideAllowlistHandler {
    *   The existing search engine.
    * @param {string} appProvidedEngineId
    *   The id of the search engine that will be overriden.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Returns true if the existing search engine is allowed to override the
    *   app provided instance.
    */
@@ -3753,7 +3757,7 @@ class SearchDefaultOverrideAllowlistHandler {
    * Note that this may cause a network check of the certificate, but that
    * should generally be quick.
    *
-   * @returns {Array}
+   * @returns {Promise<object[]>}
    *   An array of objects in the database, or an empty array if none
    *   could be obtained.
    */

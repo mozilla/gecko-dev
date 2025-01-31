@@ -713,7 +713,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
    * Determines whether the specified engine properties differ between their
    * current and initial values.
    *
-   * @param {Engine} currentEngine
+   * @param {AppProvidedSearchEngine} currentEngine
    *   The current engine.
    * @param {Map} initialValues
    *   The initial values stored for the currentEngine.

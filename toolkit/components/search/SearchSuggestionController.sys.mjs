@@ -252,7 +252,7 @@ export class SearchSuggestionController {
    * @param {boolean} privateMode - whether the request is being made in the
    *                                context of private browsing.
    * @param {nsISearchEngine} engine - search engine for the suggestions.
-   * @param {int} userContextId - the userContextId of the selected tab.
+   * @param {number} userContextId - the userContextId of the selected tab.
    * @param {boolean} restrictToEngine - whether to restrict local historical
    *   suggestions to the ones registered under the given engine.
    * @param {boolean} dedupeRemoteAndLocal - whether to remove remote
@@ -519,7 +519,6 @@ export class SearchSuggestionController {
    *   The search context.
    * @param {Promise} deferredResponse
    *   The promise to resolve when a response is received.
-   * @private
    */
   #onRemoteLoaded(context, deferredResponse) {
     let status;

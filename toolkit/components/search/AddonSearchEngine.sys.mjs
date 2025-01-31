@@ -168,7 +168,7 @@ export class AddonSearchEngine extends SearchEngine {
   /**
    * Initializes the engine based on the manifest and other values.
    *
-   * @param {string} extensionBaseURI
+   * @param {nsIURI} extensionBaseURI
    *   The Base URI of the WebExtension.
    * @param {object} manifest
    *   An object representing the WebExtensions' manifest.
@@ -209,7 +209,7 @@ export class AddonSearchEngine extends SearchEngine {
    * Update this engine based on new manifest, used during
    * webextension upgrades.
    *
-   * @param {string} extensionBaseURI
+   * @param {nsIURI} extensionBaseURI
    *   The Base URI of the WebExtension.
    * @param {object} manifest
    *   An object representing the WebExtensions' manifest.
@@ -227,7 +227,7 @@ export class AddonSearchEngine extends SearchEngine {
    *
    * @param {object} [extension]
    *   The extension to get the manifest from.
-   * @returns {object}
+   * @returns {Promise<object>}
    *   The loaded manifest.
    */
   async #getExtensionDetailsForLocale(extension) {
@@ -264,7 +264,7 @@ export class AddonSearchEngine extends SearchEngine {
    *
    * @param {string} id
    *   The WebExtension id.
-   * @returns {WebExtensionPolicy}
+   * @returns {Promise<WebExtensionPolicy>}
    */
   static async getWebExtensionPolicy(id) {
     let policy = WebExtensionPolicy.getByID(id);

@@ -101,7 +101,7 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  *   The uri from which to load the OpenSearch engine data.
  * @param {string} [lastModified]
  *   The UTC date when the engine was last updated, if any.
- * @returns {OpenSearchProperties}
+ * @returns {Promise<OpenSearchProperties>}
  *   The properties of the loaded OpenSearch engine.
  */
 export async function loadAndParseOpenSearchEngine(sourceURI, lastModified) {

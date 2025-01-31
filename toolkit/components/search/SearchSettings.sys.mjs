@@ -149,7 +149,7 @@ export class SearchSettings {
    *   If this parameter is "test", then the settings will not be written. As
    *   some tests manipulate the settings directly, we allow turning off writing to
    *   avoid writing stale settings data.
-   * @returns {object}
+   * @returns {Promise<object>}
    *   Returns the settings file data.
    */
   async get(origin = "") {
