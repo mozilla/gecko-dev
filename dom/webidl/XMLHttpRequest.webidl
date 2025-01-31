@@ -70,10 +70,10 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
 
   // request
   [Throws]
-  undefined open(ByteString method, USVString url);
+  undefined open(ByteString method, UTF8String url);
   [Throws]
-  undefined open(ByteString method, USVString url, boolean async,
-            optional USVString? user=null, optional USVString? password=null);
+  undefined open(ByteString method, UTF8String url, boolean async,
+            optional UTF8String? user=null, optional UTF8String? password=null);
   [Throws]
   undefined setRequestHeader(ByteString header, ByteString value);
 
@@ -93,7 +93,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   undefined abort();
 
   // response
-  readonly attribute USVString responseURL;
+  readonly attribute UTF8String responseURL;
 
   [Throws]
   readonly attribute unsigned short status;
@@ -108,14 +108,19 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   ByteString getAllResponseHeaders();
 
   [Throws]
-  undefined overrideMimeType(DOMString mime);
+  undefined overrideMimeType(UTF8String mime);
 
   [SetterThrows]
   attribute XMLHttpRequestResponseType responseType;
   [Throws]
   readonly attribute any response;
+
+  // This is really USVString, but this string is potentially large,
+  // and we already know that it's valid UTF-16, since it came out of
+  // an encoding converter, so let's not have the binding layer
+  // do UTF-16 validation on a known-valid value.
   [Cached, Pure, Throws]
-  readonly attribute USVString? responseText;
+  readonly attribute DOMString? responseText;
 
   [Throws, Exposed=Window]
   readonly attribute Document? responseXML;
