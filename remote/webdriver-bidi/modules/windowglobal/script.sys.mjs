@@ -481,23 +481,6 @@ class ScriptModule extends WindowGlobalBiDiModule {
       this.#preloadScripts = new Set();
       for (const item of params.sessionData) {
         if (this.messageHandler.matchesContext(item.contextDescriptor)) {
-          if (item.value.userContexts.size > 0) {
-            for (const userContext of item.value.userContexts) {
-              // Apply only if the browsing context belongs to the user context.
-              if (
-                userContext ===
-                this.messageHandler.context.originAttributes.userContextId
-              ) {
-                this.#preloadScripts.add(item.value);
-
-                // A browsing context can belong only to one user context.
-                break;
-              }
-            }
-
-            continue;
-          }
-
           this.#preloadScripts.add(item.value);
         }
       }

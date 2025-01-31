@@ -170,7 +170,7 @@ export class SessionData {
   applySessionData(sessionDataItemUpdates = []) {
     // The subset of session data item updates, which are cleaned up from
     // duplicates and unknown items.
-    let updates = [];
+    const updates = [];
     for (const sessionDataItemUpdate of sessionDataItemUpdates) {
       const { category, contextDescriptor, method, moduleName, values } =
         sessionDataItemUpdate;
