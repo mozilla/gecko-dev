@@ -5025,8 +5025,12 @@
 - name: WasmConstantShiftSimd128
   gen_boilerplate: false
 
+# (v128) -> v128 sign replication operation.
 - name: WasmSignReplicationSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    src: WordSized
+  mir_op: WasmShiftSimd128
 
 # // (v128, v128, imm_simd) -> v128 effect-free operation.
 - name: WasmShuffleSimd128

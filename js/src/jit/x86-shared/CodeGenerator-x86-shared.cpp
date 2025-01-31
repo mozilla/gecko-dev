@@ -2908,7 +2908,7 @@ void CodeGenerator::visitWasmSignReplicationSimd128(
   FloatRegister src = ToFloatRegister(ins->src());
   FloatRegister dest = ToFloatRegister(ins->output());
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16ShrS:
       masm.signReplicationInt8x16(src, dest);
       break;
