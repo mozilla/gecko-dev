@@ -2857,7 +2857,7 @@ void CodeGenerator::visitWasmConstantShiftSimd128(
     return;
   }
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I8x16Shl:
       masm.leftShiftInt8x16(Imm32(shift), src, dest);
       break;

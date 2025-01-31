@@ -1190,25 +1190,6 @@ class LWasmVariableShiftSimd128 : public LInstructionHelper<1, 2, 1> {
   wasm::SimdOp simdOp() const { return mir_->toWasmShiftSimd128()->simdOp(); }
 };
 
-// (v128, i32) -> v128 effect-free constant-width shift operations
-class LWasmConstantShiftSimd128 : public LInstructionHelper<1, 1, 0> {
-  int32_t shift_;
-
- public:
-  LIR_HEADER(WasmConstantShiftSimd128)
-
-  static constexpr uint32_t Src = 0;
-
-  LWasmConstantShiftSimd128(const LAllocation& src, int32_t shift)
-      : LInstructionHelper(classOpcode), shift_(shift) {
-    setOperand(Src, src);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  int32_t shift() { return shift_; }
-  wasm::SimdOp simdOp() const { return mir_->toWasmShiftSimd128()->simdOp(); }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling
