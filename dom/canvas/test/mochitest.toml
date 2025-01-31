@@ -208,6 +208,9 @@ skip-if = ["verify || (os == 'win' && debug)"]
 ["test_bug902651.html"]
 
 ["test_bug1215072.html"]
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64' && debug", # Bug 1908622
+]
 
 ["test_bug1567544.html"]
 subsuite = "gpu"
