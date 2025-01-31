@@ -299,10 +299,6 @@ ValueOperand CodeGeneratorLOONG64::ToValue(LInstruction* ins, size_t pos) {
   return ValueOperand(ToRegister(ins->getOperand(pos)));
 }
 
-ValueOperand CodeGeneratorLOONG64::ToTempValue(LInstruction* ins, size_t pos) {
-  return ValueOperand(ToRegister(ins->getTemp(pos)));
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LAllocation* in = box->payload();
   ValueOperand result = ToOutValue(box);

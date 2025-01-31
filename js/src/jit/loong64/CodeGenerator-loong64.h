@@ -155,7 +155,6 @@ class CodeGeneratorLOONG64 : public CodeGeneratorShared {
   void emitWasmStoreI64(T* ins);
 
   ValueOperand ToValue(LInstruction* ins, size_t pos);
-  ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 };
 
 typedef CodeGeneratorLOONG64 CodeGeneratorSpecific;

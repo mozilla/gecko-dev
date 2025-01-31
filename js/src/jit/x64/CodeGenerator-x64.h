@@ -20,7 +20,6 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared {
 
   Operand ToOperand64(const LInt64Allocation& a);
   ValueOperand ToValue(LInstruction* ins, size_t pos);
-  ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);

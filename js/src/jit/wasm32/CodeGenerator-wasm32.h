@@ -49,7 +49,6 @@ class CodeGeneratorWasm32 : public CodeGeneratorShared {
     MOZ_CRASH();
   }
   ValueOperand ToValue(LInstruction*, size_t) { MOZ_CRASH(); }
-  ValueOperand ToTempValue(LInstruction*, size_t) { MOZ_CRASH(); }
   void generateInvalidateEpilogue() { MOZ_CRASH(); }
 };
 

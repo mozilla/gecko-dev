@@ -92,7 +92,6 @@ class CodeGeneratorARM : public CodeGeneratorShared {
   void emitWasmUnalignedStore(T* ins);
 
   ValueOperand ToValue(LInstruction* ins, size_t pos);
-  ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
   Register64 ToOperandOrRegister64(const LInt64Allocation& input);
 
