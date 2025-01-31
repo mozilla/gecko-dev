@@ -46,5 +46,28 @@ def test_jogfile_output():
     expect(here_path / "jogfile_output", output_fd.getvalue())
 
 
+def test_jogfactory_output():
+    """
+    A regression test. Very fragile.
+    It generates a jog factory for metrics_test.yaml and compares it
+    byte-for-byte with an expected output file.
+
+    To generate new expected output files, set `UPDATE_EXPECT=1` when running the test suite:
+
+    UPDATE_EXPECT=1 mach test toolkit/components/glean/tests/pytest
+    """
+
+    options = {"allow_reserved": False}
+    here_path = Path(path.dirname(__file__))
+    input_files = [here_path / "metrics_test.yaml", here_path / "pings_test.yaml"]
+
+    all_objs, options = run_glean_parser.parse_with_options(input_files, options)
+
+    output_fd = io.StringIO()
+    jog.output_factory(all_objs, output_fd, options)
+
+    expect(here_path / "jogfactory_output", output_fd.getvalue())
+
+
 if __name__ == "__main__":
     mozunit.main()

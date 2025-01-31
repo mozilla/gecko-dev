@@ -137,7 +137,6 @@ def output_factory(objs, output_fd, options={}):
 
     output_fd.write(
         template.render(
-            all_objs=objs,
             common_metric_data_args=common_metric_data_args,
             extra_args=util.extra_args,
             metric_types=metric_types,

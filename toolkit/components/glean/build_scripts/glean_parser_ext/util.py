@@ -109,4 +109,6 @@ def type_ids_and_categories(objs) -> Tuple[Dict[str, Tuple[int, List[str]]], Lis
                         args.append(arg_name)
                 metric_type_ids[metric.type] = {"id": type_id, "args": args}
 
+    metric_type_ids = dict(sorted(metric_type_ids.items()))
+    categories = sorted(categories)
     return (metric_type_ids, categories)
