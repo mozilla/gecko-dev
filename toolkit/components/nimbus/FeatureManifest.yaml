@@ -4330,3 +4330,63 @@ storageAccessHeuristics:
       description: >-
         Do we grant cookie access to a tracker third party when it has been interacted with in the
         recent past and redirects itself to another top level site?
+
+auto-pip:
+  description: "Automatic Picture-in-Picture"
+  owner: mconley@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether or not to auto-open PiP when switching tabs.
+      setPref:
+        branch: user
+        pref: "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled"
+
+urlbar-ime-search:
+  description: "Urlbar IME"
+  owner: search-and-suggest-program@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether or not to keep the urlbar panel open during IME composition.
+      setPref:
+        branch: user
+        pref: "browser.urlbar.keepPanelOpenDuringImeComposition"
+
+web-rtc-global-mute-toggles:
+  description: "WebRTC Global Mute Toggles"
+  owner: mconley@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether or not to enable global mute toggles to the WebRTC indicator.
+      setPref:
+        branch: user
+        pref: "privacy.webrtc.globalMuteToggles"
+
+jpeg-xl:
+  description: "JPEG-XL"
+  owner: krosylight@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether or not to enable JPEG-XL support.
+      setPref:
+        branch: user
+        pref: "image.jxl.enabled"
+
+css-masonry:
+  description: "CSS Masonry Layout"
+  owner: dholbert@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether or not to enable CSS masonry layout.
+      setPref:
+        branch: user
+        pref: "layout.css.grid-template-masonry-value.enabled"
