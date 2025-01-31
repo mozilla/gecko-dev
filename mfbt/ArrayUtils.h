@@ -63,7 +63,7 @@ namespace detail {
 template <typename AlignType, typename Pointee, typename = void>
 struct AlignedChecker {
   static void test(const Pointee* aPtr) {
-    MOZ_ASSERT((uintptr_t(aPtr) % MOZ_ALIGNOF(AlignType)) == 0,
+    MOZ_ASSERT((uintptr_t(aPtr) % alignof(AlignType)) == 0,
                "performing a range-check with a misaligned pointer");
   }
 };

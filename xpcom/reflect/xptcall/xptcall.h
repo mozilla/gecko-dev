@@ -113,7 +113,7 @@ static_assert(offsetof(nsXPTCVariant, val) == offsetof(nsXPTCVariant, ext),
 #define XPT_CHECK_SIZEOF(xpt, type)                                            \
   static_assert(sizeof(nsXPTCVariant::ExtendedVal) >= sizeof(type),            \
                 "nsXPTCVariant::ext not big enough for " #xpt " (" #type ")"); \
-  static_assert(MOZ_ALIGNOF(nsXPTCVariant::ExtendedVal) >= MOZ_ALIGNOF(type),  \
+  static_assert(alignof(nsXPTCVariant::ExtendedVal) >= alignof(type),          \
                 "nsXPTCVariant::ext not aligned enough for " #xpt " (" #type   \
                 ")");
 XPT_FOR_EACH_TYPE(XPT_CHECK_SIZEOF)

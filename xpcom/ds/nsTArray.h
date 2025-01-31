@@ -1029,7 +1029,7 @@ class nsTArray_Impl
 
     // This does not use SwapArrayElements because that's unnecessarily complex.
     this->MoveConstructNonAutoArray(aOther, sizeof(value_type),
-                                    MOZ_ALIGNOF(value_type));
+                                    alignof(value_type));
   }
 
   // The array's copy-constructor performs a 'deep' copy of the given array.
@@ -1074,7 +1074,7 @@ class nsTArray_Impl
   self_type& operator=(self_type&& aOther) {
     if (this != &aOther) {
       Clear();
-      this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+      this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
     }
     return *this;
   }
@@ -1120,7 +1120,7 @@ class nsTArray_Impl
   template <typename Allocator>
   self_type& operator=(nsTArray_Impl<E, Allocator>&& aOther) {
     Clear();
-    this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
     return *this;
   }
 
@@ -1439,7 +1439,7 @@ class nsTArray_Impl
   template <class Allocator>
   void Assign(nsTArray_Impl<E, Allocator>&& aOther) {
     Clear();
-    this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
   }
 
   // This method call the destructor on each element of the array, empties it,
@@ -1914,8 +1914,7 @@ class nsTArray_Impl
 
   void Clear() {
     ClearAndRetainStorage();
-    base_type::ShrinkCapacityToZero(sizeof(value_type),
-                                    MOZ_ALIGNOF(value_type));
+    base_type::ShrinkCapacityToZero(sizeof(value_type), alignof(value_type));
   }
 
   // This method removes elements based on the return value of the
@@ -1981,7 +1980,7 @@ class nsTArray_Impl
     // AutoTArray upcast to nsTArray_Impl, under the conditions mentioned in the
     // overload for AutoTArray below.
     this->template SwapArrayElements<InfallibleAlloc>(
-        aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+        aOther, sizeof(value_type), alignof(value_type));
   }
 
   template <size_t N>
@@ -1992,7 +1991,7 @@ class nsTArray_Impl
     static_assert(!std::is_same_v<Alloc, FallibleAlloc> ||
                   sizeof(E) * N <= 1024);
     this->template SwapArrayElements<InfallibleAlloc>(
-        aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+        aOther, sizeof(value_type), alignof(value_type));
   }
 
   template <class Allocator>
@@ -2002,7 +2001,7 @@ class nsTArray_Impl
     // Allocator==InfallibleAlloc and aOther uses auto storage.
     return FallibleAlloc::Result(
         this->template SwapArrayElements<FallibleAlloc>(
-            aOther, sizeof(value_type), MOZ_ALIGNOF(value_type)));
+            aOther, sizeof(value_type), alignof(value_type)));
   }
 
  private:
@@ -2278,7 +2277,7 @@ class nsTArray_Impl
   template <typename ActualAlloc>
   value_type* InsertElementsAtInternal(index_type aIndex, size_type aCount) {
     if (!ActualAlloc::Successful(this->template InsertSlotsAt<ActualAlloc>(
-            aIndex, aCount, sizeof(value_type), MOZ_ALIGNOF(value_type)))) {
+            aIndex, aCount, sizeof(value_type), alignof(value_type)))) {
       return nullptr;
     }
 
@@ -2321,9 +2320,7 @@ class nsTArray_Impl
   }
 
   // This method may be called to minimize the memory used by this array.
-  void Compact() {
-    ShrinkCapacity(sizeof(value_type), MOZ_ALIGNOF(value_type));
-  }
+  void Compact() { ShrinkCapacity(sizeof(value_type), alignof(value_type)); }
 
   //
   // Sorting
@@ -2466,7 +2463,7 @@ auto nsTArray_Impl<E, Alloc>::ReplaceElementsAtInternal(index_type aStart,
   }
   DestructRange(aStart, aCount);
   this->template ShiftData<ActualAlloc>(
-      aStart, aCount, aArrayLen, sizeof(value_type), MOZ_ALIGNOF(value_type));
+      aStart, aCount, aArrayLen, sizeof(value_type), alignof(value_type));
   AssignRange(aStart, aArrayLen, aArray);
   return Elements() + aStart;
 }
@@ -2491,7 +2488,7 @@ void nsTArray_Impl<E, Alloc>::RemoveElementsAtUnsafe(index_type aStart,
                                                      size_type aCount) {
   DestructRange(aStart, aCount);
   this->template ShiftData<InfallibleAlloc>(
-      aStart, aCount, 0, sizeof(value_type), MOZ_ALIGNOF(value_type));
+      aStart, aCount, 0, sizeof(value_type), alignof(value_type));
 }
 
 template <typename E, class Alloc>
@@ -2511,7 +2508,7 @@ void nsTArray_Impl<E, Alloc>::UnorderedRemoveElementsAt(index_type aStart,
   // function.
   DestructRange(aStart, aCount);
   this->template SwapFromEnd<InfallibleAlloc>(
-      aStart, aCount, sizeof(value_type), MOZ_ALIGNOF(value_type));
+      aStart, aCount, sizeof(value_type), alignof(value_type));
 }
 
 template <typename E, class Alloc>
@@ -2554,7 +2551,7 @@ auto nsTArray_Impl<E, Alloc>::InsertElementsAtInternal(index_type aIndex,
                                                        const Item& aItem)
     -> value_type* {
   if (!ActualAlloc::Successful(this->template InsertSlotsAt<ActualAlloc>(
-          aIndex, aCount, sizeof(value_type), MOZ_ALIGNOF(value_type)))) {
+          aIndex, aCount, sizeof(value_type), alignof(value_type)))) {
     return nullptr;
   }
 
@@ -2582,7 +2579,7 @@ auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(index_type aIndex)
     return nullptr;
   }
   this->template ShiftData<ActualAlloc>(aIndex, 0, 1, sizeof(value_type),
-                                        MOZ_ALIGNOF(value_type));
+                                        alignof(value_type));
   value_type* elem = Elements() + aIndex;
   elem_traits::Construct(elem);
   return elem;
@@ -2603,7 +2600,7 @@ auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(index_type aIndex,
     return nullptr;
   }
   this->template ShiftData<ActualAlloc>(aIndex, 0, 1, sizeof(value_type),
-                                        MOZ_ALIGNOF(value_type));
+                                        alignof(value_type));
   value_type* elem = Elements() + aIndex;
   elem_traits::Construct(elem, std::forward<Item>(aItem));
   return elem;
@@ -2634,8 +2631,8 @@ auto nsTArray_Impl<E, Alloc>::AppendElementsInternal(
   if (Length() == 0) {
     // XXX This might still be optimized. If aArray uses auto-storage but we
     // won't, we might better retain our storage if it's sufficiently large.
-    this->ShrinkCapacityToZero(sizeof(value_type), MOZ_ALIGNOF(value_type));
-    this->MoveInit(aArray, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->ShrinkCapacityToZero(sizeof(value_type), alignof(value_type));
+    this->MoveInit(aArray, sizeof(value_type), alignof(value_type));
     return Elements();
   }
 
@@ -2649,7 +2646,7 @@ auto nsTArray_Impl<E, Alloc>::AppendElementsInternal(
       Elements() + len, aArray.Elements(), otherLen, sizeof(value_type));
   this->IncrementLength(otherLen);
   aArray.template ShiftData<ActualAlloc>(0, otherLen, 0, sizeof(value_type),
-                                         MOZ_ALIGNOF(value_type));
+                                         alignof(value_type));
   return Elements() + len;
 }
 
@@ -3022,18 +3019,18 @@ class MOZ_NON_MEMMOVABLE AutoTArray : public nsTArray<E> {
 
   AutoTArray(self_type&& aOther) : nsTArray<E>() {
     Init();
-    this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
   }
 
   explicit AutoTArray(base_type&& aOther) : mAlign() {
     Init();
-    this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
   }
 
   template <typename Allocator>
   explicit AutoTArray(nsTArray_Impl<value_type, Allocator>&& aOther) {
     Init();
-    this->MoveInit(aOther, sizeof(value_type), MOZ_ALIGNOF(value_type));
+    this->MoveInit(aOther, sizeof(value_type), alignof(value_type));
   }
 
   MOZ_IMPLICIT AutoTArray(std::initializer_list<E> aIL) : mAlign() {
@@ -3067,7 +3064,7 @@ class MOZ_NON_MEMMOVABLE AutoTArray : public nsTArray<E> {
   friend class nsTArray_base;
 
   void Init() {
-    static_assert(MOZ_ALIGNOF(value_type) <= 8,
+    static_assert(alignof(value_type) <= 8,
                   "can't handle alignments greater than 8, "
                   "see nsTArray_base::UsesAutoArrayBuffer()");
     // Temporary work around for VS2012 RC compiler crash
@@ -3077,7 +3074,7 @@ class MOZ_NON_MEMMOVABLE AutoTArray : public nsTArray<E> {
     (*phdr)->mCapacity = N;
     (*phdr)->mIsAutoArray = 1;
 
-    MOZ_ASSERT(base_type::GetAutoArrayBuffer(MOZ_ALIGNOF(value_type)) ==
+    MOZ_ASSERT(base_type::GetAutoArrayBuffer(alignof(value_type)) ==
                    reinterpret_cast<Header*>(&mAutoBuf),
                "GetAutoArrayBuffer needs to be fixed");
   }
@@ -3089,9 +3086,9 @@ class MOZ_NON_MEMMOVABLE AutoTArray : public nsTArray<E> {
   union {
     char mAutoBuf[sizeof(nsTArrayHeader) + N * sizeof(value_type)];
     // Do the max operation inline to ensure that it is a compile-time constant.
-    mozilla::AlignedElem<(MOZ_ALIGNOF(Header) > MOZ_ALIGNOF(value_type))
-                             ? MOZ_ALIGNOF(Header)
-                             : MOZ_ALIGNOF(value_type)>
+    mozilla::AlignedElem<(alignof(Header) > alignof(value_type))
+                             ? alignof(Header)
+                             : alignof(value_type)>
         mAlign;
   };
 };

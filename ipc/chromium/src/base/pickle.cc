@@ -23,7 +23,7 @@
 
 //------------------------------------------------------------------------------
 
-static_assert(MOZ_ALIGNOF(Pickle::memberAlignmentType) >= MOZ_ALIGNOF(uint32_t),
+static_assert(alignof(Pickle::memberAlignmentType) >= alignof(uint32_t),
               "Insufficient alignment");
 
 static const uint32_t kHeaderSegmentCapacity = 64;
@@ -62,7 +62,7 @@ struct Copier<T, sizeof(uint64_t), false> {
 #  else
     static const int loIndex = 1, hiIndex = 0;
 #  endif
-    static_assert(MOZ_ALIGNOF(uint32_t*) == MOZ_ALIGNOF(void*),
+    static_assert(alignof(uint32_t*) == alignof(void*),
                   "Pointers have different alignments");
     const uint32_t* src = reinterpret_cast<const uint32_t*>(iter);
     uint32_t* uint32dest = reinterpret_cast<uint32_t*>(dest);
@@ -76,7 +76,7 @@ template <typename T, size_t size>
 struct Copier<T, size, true> {
   static void Copy(T* dest, const char* iter) {
     // The pointer ought to be properly aligned.
-    DCHECK_EQ((((uintptr_t)iter) & (MOZ_ALIGNOF(T) - 1)), 0);
+    DCHECK_EQ((((uintptr_t)iter) & (alignof(T) - 1)), 0);
     *dest = *reinterpret_cast<const T*>(iter);
   }
 };
@@ -92,9 +92,8 @@ template <typename T>
 void PickleIterator::CopyInto(T* dest) {
   static_assert(std::is_trivially_copyable<T>::value,
                 "Copied type must be a POD type");
-  Copier<T, sizeof(T),
-         (MOZ_ALIGNOF(T) <=
-          sizeof(Pickle::memberAlignmentType))>::Copy(dest, iter_.Data());
+  Copier<T, sizeof(T), (alignof(T) <= sizeof(Pickle::memberAlignmentType))>::
+      Copy(dest, iter_.Data());
 }
 template void PickleIterator::CopyInto<char>(char*);
 
