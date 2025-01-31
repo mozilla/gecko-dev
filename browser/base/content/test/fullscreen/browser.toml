@@ -11,6 +11,10 @@ support-files = [
   "fullscreen.html",
   "fullscreen_frame.html",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1864085
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1864085
+]
 
 ["browser_domFS_statuspanel.js"]
 
