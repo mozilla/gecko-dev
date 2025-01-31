@@ -1540,7 +1540,7 @@ void LIRGenerator::visitWasmReplaceLaneSimd128(MWasmReplaceLaneSimd128* ins) {
     } else {
       auto* lir = new (alloc()) LWasmReplaceInt64LaneSimd128(
           useRegisterAtStart(ins->lhs()), useInt64Register(ins->rhs()));
-      defineReuseInput(lir, ins, LWasmReplaceInt64LaneSimd128::LhsDest);
+      defineReuseInput(lir, ins, LWasmReplaceInt64LaneSimd128::LhsIndex);
     }
   } else {
     if (isThreeOpAllowed()) {

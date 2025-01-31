@@ -5038,7 +5038,11 @@
   gen_boilerplate: false
 
 - name: WasmReplaceInt64LaneSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: Int64
+  mir_op: WasmReplaceLaneSimd128
 
 # (scalar) -> v128 effect-free operations, scalar != int64
 - name: WasmScalarToSimd128

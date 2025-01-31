@@ -3402,9 +3402,9 @@ void CodeGenerator::visitWasmReplaceLaneSimd128(LWasmReplaceLaneSimd128* ins) {
 void CodeGenerator::visitWasmReplaceInt64LaneSimd128(
     LWasmReplaceInt64LaneSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  MOZ_RELEASE_ASSERT(ins->simdOp() == wasm::SimdOp::I64x2ReplaceLane);
+  MOZ_RELEASE_ASSERT(ins->mir()->simdOp() == wasm::SimdOp::I64x2ReplaceLane);
   MOZ_ASSERT(ToFloatRegister(ins->lhs()) == ToFloatRegister(ins->output()));
-  masm.replaceLaneInt64x2(ins->laneIndex(), ToRegister64(ins->rhs()),
+  masm.replaceLaneInt64x2(ins->mir()->laneIndex(), ToRegister64(ins->rhs()),
                           ToFloatRegister(ins->lhs()));
 #else
   MOZ_CRASH("No SIMD");

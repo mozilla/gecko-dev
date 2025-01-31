@@ -1303,33 +1303,6 @@ class LWasmReplaceLaneSimd128 : public LInstructionHelper<1, 2, 0> {
   }
 };
 
-class LWasmReplaceInt64LaneSimd128
-    : public LInstructionHelper<1, INT64_PIECES + 1, 0> {
- public:
-  LIR_HEADER(WasmReplaceInt64LaneSimd128)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-  static constexpr uint32_t Rhs = 1;
-
-  LWasmReplaceInt64LaneSimd128(const LAllocation& lhs,
-                               const LInt64Allocation& rhs)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Lhs, lhs);
-    setInt64Operand(Rhs, rhs);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  LInt64Allocation rhs() { return getInt64Operand(Rhs); }
-  uint32_t laneIndex() const {
-    return mir_->toWasmReplaceLaneSimd128()->laneIndex();
-  }
-  wasm::SimdOp simdOp() const {
-    return mir_->toWasmReplaceLaneSimd128()->simdOp();
-  }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling
