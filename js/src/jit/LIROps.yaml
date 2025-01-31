@@ -5010,8 +5010,17 @@
   arguments:
     simd128: SimdConstant
 
+# (v128, v128, v128) -> v128 effect-free operation.
+# temp is FPR.
 - name: WasmTernarySimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    v0: WordSized
+    v1: WordSized
+    v2: WordSized
+  arguments:
+    simdOp: wasm::SimdOp
+  num_temps: 1
 
 # (v128, v128) -> v128 effect-free operations
 # lhs and dest are the same.

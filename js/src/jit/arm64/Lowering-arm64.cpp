@@ -995,38 +995,41 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
 
   switch (ins->simdOp()) {
     case wasm::SimdOp::V128Bitselect: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()));
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
+                              useRegisterAtStart(ins->v2()),
+                              LDefinition::BogusTemp(), ins->simdOp());
       // On ARM64, control register is used as output at machine instruction.
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     case wasm::SimdOp::F32x4RelaxedMadd:
     case wasm::SimdOp::F32x4RelaxedNmadd:
     case wasm::SimdOp::F64x2RelaxedMadd:
     case wasm::SimdOp::F64x2RelaxedNmadd: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()));
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
+                              useRegisterAtStart(ins->v2()),
+                              LDefinition::BogusTemp(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     case wasm::SimdOp::I32x4DotI8x16I7x16AddS: {
       auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()), tempSimd128());
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+          useRegister(ins->v0()), useRegister(ins->v1()),
+          useRegisterAtStart(ins->v2()), tempSimd128(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     case wasm::SimdOp::I8x16RelaxedLaneSelect:
     case wasm::SimdOp::I16x8RelaxedLaneSelect:
     case wasm::SimdOp::I32x4RelaxedLaneSelect:
     case wasm::SimdOp::I64x2RelaxedLaneSelect: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()));
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
+                              useRegisterAtStart(ins->v2()),
+                              LDefinition::BogusTemp(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     default:

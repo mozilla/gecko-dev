@@ -2130,7 +2130,7 @@ void CodeGenerator::visitWasmTernarySimd128(LWasmTernarySimd128* ins) {
       FloatRegister lhsDest = ToFloatRegister(ins->v0());
       FloatRegister rhs = ToFloatRegister(ins->v1());
       FloatRegister control = ToFloatRegister(ins->v2());
-      FloatRegister temp = ToFloatRegister(ins->temp());
+      FloatRegister temp = ToFloatRegister(ins->temp0());
       masm.bitwiseSelectSimd128(control, lhsDest, rhs, lhsDest, temp);
       break;
     }

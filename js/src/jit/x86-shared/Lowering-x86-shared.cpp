@@ -780,26 +780,28 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
       // usRegisterAtStart(control) and tempCopy()), but the register allocator
       // ignores those constraints at present.
       auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegisterAtStart(ins->v0()), useRegister(ins->v1()),
-          useRegister(ins->v2()), tempSimd128());
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V0);
+          useRegisterAtStart(ins->v0()), useRegister(ins->v1()),
+          useRegister(ins->v2()), tempSimd128(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V0Index);
       break;
     }
     case wasm::SimdOp::F32x4RelaxedMadd:
     case wasm::SimdOp::F32x4RelaxedNmadd:
     case wasm::SimdOp::F64x2RelaxedMadd:
     case wasm::SimdOp::F64x2RelaxedNmadd: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()));
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
+                              useRegisterAtStart(ins->v2()),
+                              LDefinition::BogusTemp(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     case wasm::SimdOp::I32x4DotI8x16I7x16AddS: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()));
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
+                              useRegisterAtStart(ins->v2()),
+                              LDefinition::BogusTemp(), ins->simdOp());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
     case wasm::SimdOp::I8x16RelaxedLaneSelect:
@@ -808,14 +810,15 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
     case wasm::SimdOp::I64x2RelaxedLaneSelect: {
       if (Assembler::HasAVX()) {
         auto* lir = new (alloc()) LWasmTernarySimd128(
-            ins->simdOp(), useRegisterAtStart(ins->v0()),
-            useRegisterAtStart(ins->v1()), useRegisterAtStart(ins->v2()));
+            useRegisterAtStart(ins->v0()), useRegisterAtStart(ins->v1()),
+            useRegisterAtStart(ins->v2()), LDefinition::BogusTemp(),
+            ins->simdOp());
         define(lir, ins);
       } else {
         auto* lir = new (alloc()) LWasmTernarySimd128(
-            ins->simdOp(), useRegister(ins->v0()),
-            useRegisterAtStart(ins->v1()), useFixed(ins->v2(), vmm0));
-        defineReuseInput(lir, ins, LWasmTernarySimd128::V1);
+            useRegister(ins->v0()), useRegisterAtStart(ins->v1()),
+            useFixed(ins->v2(), vmm0), LDefinition::BogusTemp(), ins->simdOp());
+        defineReuseInput(lir, ins, LWasmTernarySimd128::V1Index);
       }
       break;
     }

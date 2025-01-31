@@ -1068,50 +1068,6 @@ class LIonToWasmCallI64 : public LIonToWasmCallBase<INT64_PIECES> {
       : LIonToWasmCallBase<INT64_PIECES>(classOpcode, numOperands, temp) {}
 };
 
-// Wasm SIMD.
-
-// (v128, v128, v128) -> v128 effect-free operation.
-// temp is FPR.
-class LWasmTernarySimd128 : public LInstructionHelper<1, 3, 1> {
-  wasm::SimdOp op_;
-
- public:
-  LIR_HEADER(WasmTernarySimd128)
-
-  static constexpr uint32_t V0 = 0;
-  static constexpr uint32_t V1 = 1;
-  static constexpr uint32_t V2 = 2;
-
-  LWasmTernarySimd128(wasm::SimdOp op, const LAllocation& v0,
-                      const LAllocation& v1, const LAllocation& v2)
-      : LInstructionHelper(classOpcode), op_(op) {
-    setOperand(V0, v0);
-    setOperand(V1, v1);
-    setOperand(V2, v2);
-  }
-
-  LWasmTernarySimd128(wasm::SimdOp op, const LAllocation& v0,
-                      const LAllocation& v1, const LAllocation& v2,
-                      const LDefinition& temp)
-      : LInstructionHelper(classOpcode), op_(op) {
-    setOperand(V0, v0);
-    setOperand(V1, v1);
-    setOperand(V2, v2);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* v0() { return getOperand(V0); }
-  const LAllocation* v1() { return getOperand(V1); }
-  const LAllocation* v2() { return getOperand(V2); }
-  const LDefinition* temp() { return getTemp(0); }
-
-  wasm::SimdOp simdOp() const { return op_; }
-};
-
-// End Wasm SIMD
-
-// End Wasm Exception Handling
-
 // Definitions for `extraName` methods of generated LIR instructions.
 
 #ifdef JS_JITSPEW
