@@ -415,7 +415,7 @@ class LoadStartDetectionRunnable final : public Runnable,
 class EventRunnable final : public MainThreadProxyRunnable {
   const EventType& mType;
   UniquePtr<XMLHttpRequestWorker::ResponseData> mResponseData;
-  nsCString mResponseURL;
+  nsString mResponseURL;
   nsCString mStatusText;
   uint64_t mLoaded;
   uint64_t mTotal;
@@ -610,16 +610,16 @@ class GetResponseHeaderRunnable final : public WorkerThreadProxySyncRunnable {
 
 class OpenRunnable final : public WorkerThreadProxySyncRunnable {
   nsCString mMethod;
-  nsCString mURL;
-  Optional<nsACString> mUser;
-  nsCString mUserStr;
-  Optional<nsACString> mPassword;
-  nsCString mPasswordStr;
+  nsString mURL;
+  Optional<nsAString> mUser;
+  nsString mUserStr;
+  Optional<nsAString> mPassword;
+  nsString mPasswordStr;
   bool mBackgroundRequest;
   bool mWithCredentials;
   uint32_t mTimeout;
   XMLHttpRequestResponseType mResponseType;
-  const nsCString mMimeTypeOverride;
+  const nsString mMimeTypeOverride;
 
   // Remember the worker thread's stack when the XHR was opened, so that it can
   // be passed on to the net monitor.
@@ -631,12 +631,12 @@ class OpenRunnable final : public WorkerThreadProxySyncRunnable {
 
  public:
   OpenRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
-               const nsACString& aMethod, const nsACString& aURL,
-               const Optional<nsACString>& aUser,
-               const Optional<nsACString>& aPassword, bool aBackgroundRequest,
+               const nsACString& aMethod, const nsAString& aURL,
+               const Optional<nsAString>& aUser,
+               const Optional<nsAString>& aPassword, bool aBackgroundRequest,
                bool aWithCredentials, uint32_t aTimeout,
                XMLHttpRequestResponseType aResponseType,
-               const nsCString& aMimeTypeOverride,
+               const nsString& aMimeTypeOverride,
                UniquePtr<SerializedStackHolder> aOriginStack,
                UniquePtr<ProfileChunkedBuffer> aSource = nullptr)
       : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy),
@@ -712,11 +712,11 @@ class SetRequestHeaderRunnable final : public WorkerThreadProxySyncRunnable {
 };
 
 class OverrideMimeTypeRunnable final : public WorkerThreadProxySyncRunnable {
-  nsCString mMimeType;
+  nsString mMimeType;
 
  public:
   OverrideMimeTypeRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
-                           const nsACString& aMimeType)
+                           const nsAString& aMimeType)
       : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy),
         mMimeType(aMimeType) {}
 
@@ -1254,8 +1254,8 @@ void OpenRunnable::MainThreadRunInternal(ErrorResult& aRv) {
   mProxy->mInOpen = true;
 
   mProxy->mXHR->Open(
-      mMethod, mURL, true, mUser.WasPassed() ? mUser.Value() : VoidCString(),
-      mPassword.WasPassed() ? mPassword.Value() : VoidCString(), aRv);
+      mMethod, mURL, true, mUser.WasPassed() ? mUser.Value() : VoidString(),
+      mPassword.WasPassed() ? mPassword.Value() : VoidString(), aRv);
 
   MOZ_ASSERT(mProxy->mInOpen);
   mProxy->mInOpen = false;
@@ -1362,7 +1362,7 @@ XMLHttpRequestWorker::XMLHttpRequestWorker(WorkerPrivate* aWorkerPrivate,
       mFlagSendActive(false),
       mMozAnon(false),
       mMozSystem(false),
-      mMimeTypeOverride(VoidCString()) {
+      mMimeTypeOverride(VoidString()) {
   aWorkerPrivate->AssertIsOnWorkerThread();
 
   mozilla::HoldJSObjects(this);
@@ -1816,15 +1816,15 @@ void XMLHttpRequestWorker::SendInternal(const BodyExtractorBase* aBody,
 }
 
 void XMLHttpRequestWorker::Open(const nsACString& aMethod,
-                                const nsACString& aUrl, bool aAsync,
-                                const Optional<nsACString>& aUser,
-                                const Optional<nsACString>& aPassword,
+                                const nsAString& aUrl, bool aAsync,
+                                const Optional<nsAString>& aUser,
+                                const Optional<nsAString>& aPassword,
                                 ErrorResult& aRv) {
   MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug,
-          ("%p Open(%s,%s,%d)", this, PromiseFlatCString(aMethod).get(),
-           PromiseFlatCString(aUrl).get(), aAsync));
+          ("%p Open(%s,%s,%d)", this, nsAutoCString(aMethod).get(),
+           NS_ConvertUTF16toUTF8(aUrl).get(), aAsync));
 
   if (mCanceled) {
     aRv.ThrowUncatchableException();
@@ -1864,8 +1864,8 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
   RefPtr<OpenRunnable> runnable = new OpenRunnable(
       workerPrivate, mProxy, aMethod, aUrl, aUser, aPassword,
       mBackgroundRequest, mWithCredentials, mTimeout, mResponseType,
-      alsoOverrideMimeType ? mMimeTypeOverride : VoidCString(),
-      std::move(stack), profiler_capture_backtrace());
+      alsoOverrideMimeType ? mMimeTypeOverride : VoidString(), std::move(stack),
+      profiler_capture_backtrace());
 
   ++mProxy->mOpenCount;
   runnable->Dispatch(workerPrivate, Canceling, aRv);
@@ -2176,7 +2176,7 @@ void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
   aResponseHeaders = responseHeaders;
 }
 
-void XMLHttpRequestWorker::OverrideMimeType(const nsACString& aMimeType,
+void XMLHttpRequestWorker::OverrideMimeType(const nsAString& aMimeType,
                                             ErrorResult& aRv) {
   MOZ_ASSERT_DEBUG_OR_FUZZING(IsCurrentThreadRunningWorker());
 

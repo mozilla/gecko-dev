@@ -930,7 +930,7 @@ void XMLHttpRequestMainThread::GetContentRangeHeader(nsACString& out) const {
   }
 }
 
-void XMLHttpRequestMainThread::GetResponseURL(nsACString& aUrl) {
+void XMLHttpRequestMainThread::GetResponseURL(nsAString& aUrl) {
   aUrl.Truncate();
 
   if ((mState == XMLHttpRequest_Binding::UNSENT ||
@@ -950,7 +950,9 @@ void XMLHttpRequestMainThread::GetResponseURL(nsACString& aUrl) {
     return;
   }
 
-  responseUrl->GetSpecIgnoringRef(aUrl);
+  nsAutoCString temp;
+  responseUrl->GetSpecIgnoringRef(temp);
+  CopyUTF8toUTF16(temp, aUrl);
 }
 
 uint32_t XMLHttpRequestMainThread::GetStatus(ErrorResult& aRv) {
@@ -1519,17 +1521,25 @@ bool XMLHttpRequestMainThread::InUploadPhase() const {
 // This case is hit when the async parameter is outright omitted, which
 // should set it to true (and the username and password to null).
 void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
-                                    const nsACString& aUrl, ErrorResult& aRv) {
-  Open(aMethod, aUrl, true, VoidCString(), VoidCString(), aRv);
+                                    const nsAString& aUrl, ErrorResult& aRv) {
+  Open(aMethod, aUrl, true, VoidString(), VoidString(), aRv);
 }
 
 // This case is hit when the async parameter is specified, even if the
 // JS value was "undefined" (which due to legacy reasons should be
 // treated as true, which is how it will already be passed in here).
 void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
+                                    const nsAString& aUrl, bool aAsync,
+                                    const nsAString& aUsername,
+                                    const nsAString& aPassword,
+                                    ErrorResult& aRv) {
+  Open(aMethod, NS_ConvertUTF16toUTF8(aUrl), aAsync, aUsername, aPassword, aRv);
+}
+
+void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
                                     const nsACString& aUrl, bool aAsync,
-                                    const nsACString& aUsername,
-                                    const nsACString& aPassword,
+                                    const nsAString& aUsername,
+                                    const nsAString& aPassword,
                                     ErrorResult& aRv) {
   DEBUG_WORKERREFS1(aMethod << " " << aUrl);
   NOT_CALLABLE_IN_SYNC_SEND_RV
@@ -1625,10 +1635,10 @@ void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
   if (!host.IsEmpty() && (!aUsername.IsVoid() || !aPassword.IsVoid())) {
     auto mutator = NS_MutateURI(parsedURL);
     if (!aUsername.IsVoid()) {
-      mutator.SetUsername(aUsername);
+      mutator.SetUsername(NS_ConvertUTF16toUTF8(aUsername));
     }
     if (!aPassword.IsVoid()) {
-      mutator.SetPassword(aPassword);
+      mutator.SetPassword(NS_ConvertUTF16toUTF8(aPassword));
     }
     Unused << mutator.Finalize(parsedURL);
   }
@@ -2034,7 +2044,7 @@ XMLHttpRequestMainThread::OnStartRequest(nsIRequest* request) {
   ResetResponse();
 
   if (!mOverrideMimeType.IsEmpty()) {
-    channel->SetContentType(mOverrideMimeType);
+    channel->SetContentType(NS_ConvertUTF16toUTF8(mOverrideMimeType));
   }
 
   // Fallback to 'application/octet-stream' (leaving data URLs alone)
@@ -2337,7 +2347,7 @@ XMLHttpRequestMainThread::OnStopRequest(nsIRequest* request, nsresult status) {
     // Also, no-store response cannot be written in persistent cache.
     nsAutoCString contentType;
     if (!mOverrideMimeType.IsEmpty()) {
-      contentType.Assign(mOverrideMimeType);
+      contentType.Assign(NS_ConvertUTF16toUTF8(mOverrideMimeType));
     } else {
       mChannel->GetContentType(contentType);
     }
@@ -3416,7 +3426,7 @@ void XMLHttpRequestMainThread::StartTimeoutTimer() {
 
 uint16_t XMLHttpRequestMainThread::ReadyState() const { return mState; }
 
-void XMLHttpRequestMainThread::OverrideMimeType(const nsACString& aMimeType,
+void XMLHttpRequestMainThread::OverrideMimeType(const nsAString& aMimeType,
                                                 ErrorResult& aRv) {
   NOT_CALLABLE_IN_SYNC_SEND_RV
 
@@ -3428,7 +3438,7 @@ void XMLHttpRequestMainThread::OverrideMimeType(const nsACString& aMimeType,
     return;
   }
 
-  RefPtr<CMimeType> parsed = CMimeType::Parse(aMimeType);
+  RefPtr<MimeType> parsed = MimeType::Parse(aMimeType);
   if (parsed) {
     parsed->Serialize(mOverrideMimeType);
   } else {

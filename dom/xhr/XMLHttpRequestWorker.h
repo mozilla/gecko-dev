@@ -47,7 +47,7 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
   };
 
   struct StateData {
-    nsCString mResponseURL;
+    nsString mResponseURL;
     uint32_t mStatus{0};
     nsCString mStatusText;
     uint16_t mReadyState{0};
@@ -89,7 +89,7 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
   bool mMozAnon;
   bool mMozSystem;
 
-  nsCString mMimeTypeOverride;
+  nsString mMimeTypeOverride;
 
  public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -104,27 +104,27 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
   virtual uint16_t ReadyState() const override;
 
-  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
+  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
                     ErrorResult& aRv) override {
-    Open(aMethod, aUrl, true, Optional<nsACString>(), Optional<nsACString>(),
+    Open(aMethod, aUrl, true, Optional<nsAString>(), Optional<nsAString>(),
          aRv);
   }
 
   uint32_t EventStreamId() const { return mEventStreamId; }
 
-  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
-                    bool aAsync, const nsACString& aUsername,
-                    const nsACString& aPassword, ErrorResult& aRv) override {
-    Optional<nsACString> username;
+  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
+                    bool aAsync, const nsAString& aUsername,
+                    const nsAString& aPassword, ErrorResult& aRv) override {
+    Optional<nsAString> username;
     username = &aUsername;
-    Optional<nsACString> password;
+    Optional<nsAString> password;
     password = &aPassword;
     Open(aMethod, aUrl, aAsync, username, password, aRv);
   }
 
-  void Open(const nsACString& aMethod, const nsACString& aUrl, bool aAsync,
-            const Optional<nsACString>& aUser,
-            const Optional<nsACString>& aPassword, ErrorResult& aRv);
+  void Open(const nsACString& aMethod, const nsAString& aUrl, bool aAsync,
+            const Optional<nsAString>& aUser,
+            const Optional<nsAString>& aPassword, ErrorResult& aRv);
 
   virtual void SetRequestHeader(const nsACString& aHeader,
                                 const nsACString& aValue,
@@ -165,7 +165,7 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
 
   virtual void Abort(ErrorResult& aRv) override;
 
-  virtual void GetResponseURL(nsACString& aUrl) override {
+  virtual void GetResponseURL(nsAString& aUrl) override {
     aUrl = mStateData->mResponseURL;
   }
 
@@ -186,7 +186,7 @@ class XMLHttpRequestWorker final : public SupportsWeakPtr,
   virtual void GetAllResponseHeaders(nsACString& aResponseHeaders,
                                      ErrorResult& aRv) override;
 
-  virtual void OverrideMimeType(const nsACString& aMimeType,
+  virtual void OverrideMimeType(const nsAString& aMimeType,
                                 ErrorResult& aRv) override;
 
   virtual XMLHttpRequestResponseType ResponseType() const override {
