@@ -175,12 +175,12 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     listener->WillPaintWindow(this);
   }
 
-  // For layered translucent windows all drawing should go to memory DC and no
+  // For layered translucent popups all drawing should go to memory DC and no
   // WM_PAINT messages are normally generated. To support asynchronous painting
   // we force generation of WM_PAINT messages by invalidating window areas with
   // RedrawWindow, InvalidateRect or InvalidateRgn function calls.
   const bool usingMemoryDC =
-      renderer->GetBackendType() == LayersBackend::LAYERS_NONE &&
+      IsPopup() && renderer->GetBackendType() == LayersBackend::LAYERS_NONE &&
       mTransparencyMode == TransparencyMode::Transparent;
   const LayoutDeviceIntRect winRect = [&] {
     RECT r;
@@ -265,7 +265,7 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
       RefPtr<gfxASurface> targetSurface;
 
       // don't support transparency for non-GDI rendering, for now
-      if (TransparencyMode::Transparent == mTransparencyMode) {
+      if (usingMemoryDC) {
         // This mutex needs to be held when EnsureTransparentSurface is
         // called.
         MutexAutoLock lock(mBasicLayersSurface->GetTransparentSurfaceLock());
@@ -316,7 +316,7 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
         }
       }
 
-      if (TransparencyMode::Transparent == mTransparencyMode) {
+      if (usingMemoryDC) {
         // Data from offscreen drawing surface was copied to memory bitmap of
         // transparent bitmap. Now it can be read from memory bitmap to apply
         // alpha channel and after that displayed on the screen.
