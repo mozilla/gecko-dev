@@ -1225,37 +1225,6 @@ class LWasmSignReplicationSimd128 : public LInstructionHelper<1, 1, 0> {
   wasm::SimdOp simdOp() const { return mir_->toWasmShiftSimd128()->simdOp(); }
 };
 
-// (v128, v128, imm_simd) -> v128 effect-free operation.
-// temp is FPR (and always in use).
-class LWasmShuffleSimd128 : public LInstructionHelper<1, 2, 1> {
- private:
-  SimdShuffleOp op_;
-  SimdConstant control_;
-
- public:
-  LIR_HEADER(WasmShuffleSimd128)
-
-  static constexpr uint32_t Lhs = 0;
-  static constexpr uint32_t LhsDest = 0;
-  static constexpr uint32_t Rhs = 1;
-
-  LWasmShuffleSimd128(const LAllocation& lhs, const LAllocation& rhs,
-                      const LDefinition& temp, SimdShuffleOp op,
-                      SimdConstant control)
-      : LInstructionHelper(classOpcode), op_(op), control_(control) {
-    setOperand(Lhs, lhs);
-    setOperand(Rhs, rhs);
-    setTemp(0, temp);
-  }
-
-  const LAllocation* lhs() { return getOperand(Lhs); }
-  const LAllocation* lhsDest() { return getOperand(LhsDest); }
-  const LAllocation* rhs() { return getOperand(Rhs); }
-  const LDefinition* temp() { return getTemp(0); }
-  SimdShuffleOp op() { return op_; }
-  SimdConstant control() { return control_; }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

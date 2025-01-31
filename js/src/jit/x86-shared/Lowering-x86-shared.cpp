@@ -1511,7 +1511,7 @@ void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
         }
         auto* lir = new (alloc())
             LWasmShuffleSimd128(lhs, rhs, temp, *s.shuffleOp, s.control);
-        defineReuseInput(lir, ins, LWasmShuffleSimd128::LhsDest);
+        defineReuseInput(lir, ins, LWasmShuffleSimd128::LhsIndex);
       }
       break;
     }

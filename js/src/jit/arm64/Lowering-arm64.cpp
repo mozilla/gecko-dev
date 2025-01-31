@@ -1187,7 +1187,6 @@ void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
     }
     case SimdShuffle::Operand::BOTH:
     case SimdShuffle::Operand::BOTH_SWAPPED: {
-      LDefinition temp = LDefinition::BogusTemp();
       LAllocation lhs;
       LAllocation rhs;
       if (s.opd == SimdShuffle::Operand::BOTH) {
@@ -1197,8 +1196,8 @@ void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
         lhs = useRegisterAtStart(ins->rhs());
         rhs = useRegisterAtStart(ins->lhs());
       }
-      auto* lir = new (alloc())
-          LWasmShuffleSimd128(lhs, rhs, temp, *s.shuffleOp, s.control);
+      auto* lir =
+          new (alloc()) LWasmShuffleSimd128(lhs, rhs, *s.shuffleOp, s.control);
       define(lir, ins);
       break;
     }

@@ -2931,66 +2931,66 @@ void CodeGenerator::visitWasmSignReplicationSimd128(
 
 void CodeGenerator::visitWasmShuffleSimd128(LWasmShuffleSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  FloatRegister lhsDest = ToFloatRegister(ins->lhsDest());
+  FloatRegister lhsDest = ToFloatRegister(ins->lhs());
   FloatRegister rhs = ToFloatRegister(ins->rhs());
   SimdConstant control = ins->control();
   FloatRegister output = ToFloatRegister(ins->output());
   switch (ins->op()) {
     case SimdShuffleOp::BLEND_8x16: {
       masm.blendInt8x16(reinterpret_cast<const uint8_t*>(control.asInt8x16()),
-                        lhsDest, rhs, output, ToFloatRegister(ins->temp()));
+                        lhsDest, rhs, output, ToFloatRegister(ins->temp0()));
       break;
     }
     case SimdShuffleOp::BLEND_16x8: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.blendInt16x8(reinterpret_cast<const uint16_t*>(control.asInt16x8()),
                         lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::CONCAT_RIGHT_SHIFT_8x16: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       int8_t count = 16 - control.asInt8x16()[0];
       MOZ_ASSERT(count > 0, "Should have been a MOVE operation");
       masm.concatAndRightShiftSimd128(lhsDest, rhs, output, count);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_HIGH_8x16: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveHighInt8x16(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_HIGH_16x8: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveHighInt16x8(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_HIGH_32x4: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveHighInt32x4(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_HIGH_64x2: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveHighInt64x2(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_LOW_8x16: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveLowInt8x16(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_LOW_16x8: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveLowInt16x8(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_LOW_32x4: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveLowInt32x4(lhsDest, rhs, output);
       break;
     }
     case SimdShuffleOp::INTERLEAVE_LOW_64x2: {
-      MOZ_ASSERT(ins->temp()->isBogusTemp());
+      MOZ_ASSERT(ins->temp0()->isBogusTemp());
       masm.interleaveLowInt64x2(lhsDest, rhs, output);
       break;
     }

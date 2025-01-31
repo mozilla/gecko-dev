@@ -5028,8 +5028,19 @@
 - name: WasmSignReplicationSimd128
   gen_boilerplate: false
 
+# // (v128, v128, imm_simd) -> v128 effect-free operation.
 - name: WasmShuffleSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  arguments:
+    op: SimdShuffleOp
+    control: SimdConstant
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+  # temp is FPR (and always in use).
+  num_temps: 1
+#endif
 
 # (v128, imm_simd) -> v128 effect-free operation.
 - name: WasmPermuteSimd128
