@@ -1069,13 +1069,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   // Default to the system color scheme unless getting told otherwise.
   SetColorScheme(Nothing());
 
-  if (WinUtils::MicaEnabled() && !IsPopup()) {
-    // Enable Mica Alt Material if available.
-    const DWM_SYSTEMBACKDROP_TYPE tabbedWindow = DWMSBT_TABBEDWINDOW;
-    DwmSetWindowAttribute(mWnd, DWMWA_SYSTEMBACKDROP_TYPE, &tabbedWindow,
-                          sizeof tabbedWindow);
-  }
-
   if (mOpeningAnimationSuppressed) {
     SuppressAnimation(true);
   }
@@ -2533,6 +2526,17 @@ void nsWindow::SetColorScheme(const Maybe<ColorScheme>& aScheme) {
                         sizeof dark);
   DwmSetWindowAttribute(mWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark,
                         sizeof dark);
+}
+
+void nsWindow::SetMicaBackdrop(bool aEnabled) {
+  if (!WinUtils::MicaEnabled()) {
+    return;
+  }
+
+  // Enable Mica Alt Material if available.
+  const DWM_SYSTEMBACKDROP_TYPE type =
+      aEnabled ? DWMSBT_TABBEDWINDOW : DWMSBT_AUTO;
+  DwmSetWindowAttribute(mWnd, DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof type);
 }
 
 LayoutDeviceIntMargin nsWindow::NormalWindowNonClientOffset() const {

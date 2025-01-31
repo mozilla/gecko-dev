@@ -1617,6 +1617,7 @@ STATIC_ATOMS = [
     Atom("viewBox", "viewBox"),
     Atom("viewTarget", "viewTarget"),
     Atom("white_space", "white-space"),
+    Atom("windowsmica", "windowsmica"),
     Atom("word_spacing", "word-spacing"),
     Atom("writing_mode", "writing-mode"),
     Atom("x", "x"),

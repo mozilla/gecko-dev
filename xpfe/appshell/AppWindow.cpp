@@ -1531,6 +1531,9 @@ void AppWindow::SyncAttributesToWidget() {
 
   NS_ENSURE_TRUE_VOID(mWindow);
 
+  mWindow->SetMicaBackdrop(windowElement->GetBoolAttr(nsGkAtoms::windowsmica));
+  NS_ENSURE_TRUE_VOID(mWindow);
+
   // "windowtype", "windowclass", "windowname" attributes
   nsAutoString windowClassAttr, windowNameAttr;
   windowElement->GetAttr(nsGkAtoms::windowtype, attr);
