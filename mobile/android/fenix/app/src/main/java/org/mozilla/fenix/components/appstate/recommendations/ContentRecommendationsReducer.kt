@@ -128,6 +128,26 @@ internal object ContentRecommendationsReducer {
                 }
             }
 
+            is ContentRecommendationsAction.SponsoredContentsChange -> {
+                val updatedSponsoredContentsState = state.copyWithRecommendationsState {
+                    it.copy(
+                        sponsoredContents = action.sponsoredContents,
+                    )
+                }
+
+                updatedSponsoredContentsState.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStories = if (action.showContentRecommendations) {
+                            updatedSponsoredContentsState.getStories(useSponsoredStoriesState = false)
+                        } else {
+                            updatedSponsoredContentsState.getFilteredStories(
+                                useSponsoredStoriesState = false,
+                            )
+                        },
+                    )
+                }
+            }
+
             is ContentRecommendationsAction.PocketStoriesShown -> {
                 val stories = action.impressions.map { it.story }
                 var updatedCategories = state.recommendationState.pocketStoriesCategories

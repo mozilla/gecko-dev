@@ -16,6 +16,7 @@ import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.nimbus.messaging.MessageSurfaceId
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
@@ -569,6 +570,18 @@ sealed class AppAction : Action {
          */
         data class PocketSponsoredStoriesChange(
             val sponsoredStories: List<PocketSponsoredStory>,
+            val showContentRecommendations: Boolean,
+        ) : ContentRecommendationsAction()
+
+        /**
+         * Replaces the current list of [SponsoredContent]s.
+         *
+         * @property sponsoredContents THe new list of [SponsoredContent] that was fetched.
+         * @property showContentRecommendations Whether or not to show Merino content
+         * recommendations.
+         */
+        data class SponsoredContentsChange(
+            val sponsoredContents: List<SponsoredContent>,
             val showContentRecommendations: Boolean,
         ) : ContentRecommendationsAction()
 

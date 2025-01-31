@@ -122,6 +122,21 @@ internal class HomeSettingsFragmentTest {
     }
 
     @Test
+    fun `GIVEN the setting for Pocket sponsored stories is unchecked and MARS API is enabled WHEN tapping it THEN toggle it and start downloading stories`() {
+        every { appSettings.marsAPIEnabled } returns true
+
+        activateFragment()
+
+        val result = getSponsoredStoriesPreference().callChangeListener(true)
+
+        assertTrue(result)
+        verify {
+            appPrefsEditor.putBoolean(testContext.getString(R.string.pref_key_pocket_sponsored_stories), true)
+            pocketService.startPeriodicSponsoredContentsRefresh()
+        }
+    }
+
+    @Test
     fun `GIVEN the setting for Pocket sponsored stories is checked WHEN tapping it THEN toggle it, delete Pocket profile and remove sponsored stories from showing`() {
         every { appSettings.showContentRecommendations } returns false
 
@@ -136,6 +151,28 @@ internal class HomeSettingsFragmentTest {
             appStore.dispatch(
                 ContentRecommendationsAction.PocketSponsoredStoriesChange(
                     sponsoredStories = emptyList(),
+                    showContentRecommendations = false,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN the setting for Pocket sponsored stories is checked WHEN tapping it THEN toggle it, delete Pocket profile and remove sponsored contents from showing`() {
+        every { appSettings.marsAPIEnabled } returns true
+        every { appSettings.showContentRecommendations } returns false
+
+        activateFragment()
+
+        val result = getSponsoredStoriesPreference().callChangeListener(false)
+
+        assertTrue(result)
+        verify {
+            appPrefsEditor.putBoolean(testContext.getString(R.string.pref_key_pocket_sponsored_stories), false)
+            pocketService.deleteProfile()
+            appStore.dispatch(
+                ContentRecommendationsAction.SponsoredContentsChange(
+                    sponsoredContents = emptyList(),
                     showContentRecommendations = false,
                 ),
             )

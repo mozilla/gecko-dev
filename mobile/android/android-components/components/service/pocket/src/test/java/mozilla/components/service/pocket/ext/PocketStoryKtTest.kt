@@ -6,6 +6,8 @@ package mozilla.components.service.pocket.ext
 
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.PocketStory.SponsoredContentFrequencyCaps
 import mozilla.components.service.pocket.helpers.PocketTestResources
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -131,5 +133,50 @@ class PocketStoryKtTest {
             LongRange(nowInSeconds - 5, nowInSeconds + 5)
                 .contains(result.caps.currentImpressions[3]),
         )
+    }
+
+    @Test
+    fun `GIVEN sponsored content impressions are recorded WHEN asking for the current flight impressions THEN return all impressions in the flight period`() {
+        val frequencyCaps = SponsoredContentFrequencyCaps(
+            currentImpressions = currentImpressions,
+            flightCount = 5,
+            flightPeriod = flightPeriod,
+        )
+        val sponsoredContent: SponsoredContent = mock()
+
+        doReturn(frequencyCaps).`when`(sponsoredContent).caps
+
+        assertEquals(
+            listOf(flightImpression1, flightImpression2),
+            sponsoredContent.getCurrentFlightImpressions(),
+        )
+    }
+
+    @Test
+    fun `GIVEN 3 recorded sponsored content impressions and 5 flight count WHEN asking if flight impressions limit has been reached THEN return false`() {
+        val frequencyCaps = SponsoredContentFrequencyCaps(
+            currentImpressions = currentImpressions,
+            flightCount = 5,
+            flightPeriod = flightPeriod,
+        )
+        val sponsoredContent: SponsoredContent = mock()
+
+        doReturn(frequencyCaps).`when`(sponsoredContent).caps
+
+        assertFalse(sponsoredContent.hasFlightImpressionsLimitReached())
+    }
+
+    @Test
+    fun `GIVEN 3 recorded sponsored content impressions and 2 flight count WHEN asking if flight impressions limit has been reached THEN return true`() {
+        val frequencyCaps = SponsoredContentFrequencyCaps(
+            currentImpressions = currentImpressions,
+            flightCount = 2,
+            flightPeriod = flightPeriod,
+        )
+        val sponsoredContent: SponsoredContent = mock()
+
+        doReturn(frequencyCaps).`when`(sponsoredContent).caps
+
+        assertTrue(sponsoredContent.hasFlightImpressionsLimitReached())
     }
 }

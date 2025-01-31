@@ -6,6 +6,8 @@ package mozilla.components.service.pocket.ext
 
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.PocketStory.SponsoredContentFrequencyCaps
 import java.util.concurrent.TimeUnit
 
 /**
@@ -47,4 +49,23 @@ fun PocketSponsoredStory.recordNewImpression(): PocketSponsoredStory {
             currentImpressions = caps.currentImpressions + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()),
         ),
     )
+}
+
+/**
+ * Returns a list of all sponsored content impressions (expressed in seconds from Epoch) in the
+ * period between `now` down to [SponsoredContentFrequencyCaps.flightPeriod].
+ */
+fun SponsoredContent.getCurrentFlightImpressions(): List<Long> {
+    val now = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+    return caps.currentImpressions.filter {
+        now - it < caps.flightPeriod
+    }
+}
+
+/**
+ * Returns true if sponsored content has reached the maximum number of impressions in the period
+ * specified by [SponsoredContentFrequencyCaps.flightPeriod] and false otherwise.
+ */
+fun SponsoredContent.hasFlightImpressionsLimitReached(): Boolean {
+    return getCurrentFlightImpressions().size >= caps.flightCount
 }

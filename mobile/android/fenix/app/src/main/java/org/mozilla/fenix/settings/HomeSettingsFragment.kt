@@ -128,16 +128,29 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
                     when (newValue) {
                         true -> {
-                            context.components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
+                            if (context.settings().marsAPIEnabled) {
+                                context.components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
+                            } else {
+                                context.components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
+                            }
                         }
                         false -> {
                             context.components.core.pocketStoriesService.deleteProfile()
-                            context.components.appStore.dispatch(
-                                ContentRecommendationsAction.PocketSponsoredStoriesChange(
-                                    sponsoredStories = emptyList(),
-                                    showContentRecommendations = context.settings().showContentRecommendations,
-                                ),
-                            )
+                            if (context.settings().marsAPIEnabled) {
+                                context.components.appStore.dispatch(
+                                    ContentRecommendationsAction.SponsoredContentsChange(
+                                        sponsoredContents = emptyList(),
+                                        showContentRecommendations = context.settings().showContentRecommendations,
+                                    ),
+                                )
+                            } else {
+                                context.components.appStore.dispatch(
+                                    ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                                        sponsoredStories = emptyList(),
+                                        showContentRecommendations = context.settings().showContentRecommendations,
+                                    ),
+                                )
+                            }
                         }
                     }
 

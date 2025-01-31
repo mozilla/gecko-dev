@@ -8,6 +8,7 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.ext.hasFlightImpressionsLimitReached
 import mozilla.components.service.pocket.ext.hasLifetimeImpressionsLimitReached
 import org.mozilla.fenix.components.appstate.AppState
@@ -42,14 +43,23 @@ internal const val POCKET_SPONSORED_STORIES_TO_SHOW_COUNT = 2
 /**
  * Get the list of stories to be displayed based on the user selected categories.
  *
+ * @param useSponsoredStoriesState Whether or not to pull sponsored stories from
+ * [recommendationState.pocketSponsoredStories] or [recommendationState.sponsoredContents] state.
  * @return a list of [PocketStory]es from the currently selected categories.
  */
-fun AppState.getFilteredStories(): List<PocketStory> {
+fun AppState.getFilteredStories(useSponsoredStoriesState: Boolean = true): List<PocketStory> {
     val recommendedStories = getFilteredRecommendedStories()
-    val sponsoredStories = getFilteredSponsoredStories(
-        stories = recommendationState.pocketSponsoredStories,
-        limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
-    )
+    val sponsoredStories = if (useSponsoredStoriesState) {
+        getFilteredSponsoredStories(
+            stories = recommendationState.pocketSponsoredStories,
+            limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
+        )
+    } else {
+        getFilteredSponsoredContents(
+            sponsoredContents = recommendationState.sponsoredContents,
+            limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
+        )
+    }
 
     return combineRecommendationsAndSponsoredContents(
         recommendations = recommendedStories,
@@ -99,17 +109,26 @@ private fun AppState.getFilteredRecommendedStories(): List<PocketRecommendedStor
  * Get the list of stories to be displayed based on the content recommendations and sponsored
  * stories state.
  *
+ * @param useSponsoredStoriesState Whether or not to pull sponsored stories from
+ * [recommendationState.pocketSponsoredStories] or [recommendationState.sponsoredContents] state.
  * @return A list of [PocketStory]s containing the content recommendations and sponsored stories
  * to display.
  */
-fun AppState.getStories(): List<PocketStory> {
+fun AppState.getStories(useSponsoredStoriesState: Boolean = true): List<PocketStory> {
     val recommendations = recommendationState.contentRecommendations
         .sortedBy { it.impressions }
         .take(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT)
-    val sponsoredStories = getFilteredSponsoredStories(
-        stories = recommendationState.pocketSponsoredStories,
-        limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
-    )
+    val sponsoredStories = if (useSponsoredStoriesState) {
+        getFilteredSponsoredStories(
+            stories = recommendationState.pocketSponsoredStories,
+            limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
+        )
+    } else {
+        getFilteredSponsoredContents(
+            sponsoredContents = recommendationState.sponsoredContents,
+            limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
+        )
+    }
 
     return combineRecommendationsAndSponsoredContents(
         recommendations = recommendations,
@@ -204,6 +223,25 @@ internal fun getFilteredSponsoredStories(
 ): List<PocketSponsoredStory> {
     return stories.asSequence()
         .filterNot { it.hasLifetimeImpressionsLimitReached() }
+        .sortedByDescending { it.priority }
+        .filterNot { it.hasFlightImpressionsLimitReached() }
+        .take(limit)
+        .toList()
+}
+
+/**
+ * Handle pacing and rotation of sponsored contents.
+ *
+ * @param sponsoredContents The list of [SponsoredContent]s to filter and sort.
+ * @param limit Maximum number of [SponsoredContent]s to return.
+ * @return A sorted and filtered list of [SponsoredContent]s to display.
+ */
+@VisibleForTesting
+internal fun getFilteredSponsoredContents(
+    sponsoredContents: List<SponsoredContent>,
+    limit: Int,
+): List<SponsoredContent> {
+    return sponsoredContents.asSequence()
         .sortedByDescending { it.priority }
         .filterNot { it.hasFlightImpressionsLimitReached() }
         .take(limit)
