@@ -345,13 +345,6 @@ class LUnreachable : public LControlInstructionHelper<0, 0, 0> {
   LUnreachable() : LControlInstructionHelper(classOpcode) {}
 };
 
-class LUnreachableResultV : public LInstructionHelper<BOX_PIECES, 0, 0> {
- public:
-  LIR_HEADER(UnreachableResultV)
-
-  LUnreachableResultV() : LInstructionHelper(classOpcode) {}
-};
-
 // Generates a polymorphic callsite, wherein the function being called is
 // unknown and anticipated to vary.
 class LApplyArgsGeneric

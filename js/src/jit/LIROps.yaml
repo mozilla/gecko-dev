@@ -691,7 +691,7 @@
 - name: EncodeSnapshot
 
 - name: UnreachableResultV
-  gen_boilerplate: false
+  result_type: BoxedValue
 
 - name: UnreachableResultT
   result_type: WordSized
