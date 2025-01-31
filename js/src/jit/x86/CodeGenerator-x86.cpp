@@ -342,7 +342,7 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   Register ptrReg = ToRegister(ins->ptr());
   Register oldval = ToRegister(ins->oldValue());
   Register newval = ToRegister(ins->newValue());
-  Register addrTemp = ToRegister(ins->addrTemp());
+  Register addrTemp = ToRegister(ins->temp0());
   Register memoryBase = ToRegister(ins->memoryBase());
   Register output = ToRegister(ins->output());
 

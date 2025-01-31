@@ -523,10 +523,8 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   const LAllocation newval =
       byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
 
-  LWasmCompareExchangeHeap* lir = new (alloc()) LWasmCompareExchangeHeap(
-      useRegister(base), oldval, newval, useRegister(memoryBase));
-
-  lir->setAddrTemp(temp());
+  auto* lir = new (alloc()) LWasmCompareExchangeHeap(
+      useRegister(base), oldval, newval, useRegister(memoryBase), temp());
   defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
 }
 

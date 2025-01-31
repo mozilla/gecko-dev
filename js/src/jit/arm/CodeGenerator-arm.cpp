@@ -1866,8 +1866,6 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   Register memoryBase = ToRegister(ins->memoryBase());
   BaseIndex srcAddr(memoryBase, ptrReg, TimesOne, mir->access().offset32());
 
-  MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
-
   Register oldval = ToRegister(ins->oldValue());
   Register newval = ToRegister(ins->newValue());
   Register out = ToRegister(ins->output());

@@ -812,57 +812,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
-class LWasmCompareExchangeHeap : public LInstructionHelper<1, 4, 4> {
- public:
-  LIR_HEADER(WasmCompareExchangeHeap);
-
-  // ARM, ARM64, x86, x64
-  LWasmCompareExchangeHeap(const LAllocation& ptr, const LAllocation& oldValue,
-                           const LAllocation& newValue,
-                           const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, oldValue);
-    setOperand(2, newValue);
-    setOperand(3, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-  }
-  // MIPS32, MIPS64, LoongArch64
-  LWasmCompareExchangeHeap(const LAllocation& ptr, const LAllocation& oldValue,
-                           const LAllocation& newValue,
-                           const LDefinition& valueTemp,
-                           const LDefinition& offsetTemp,
-                           const LDefinition& maskTemp,
-                           const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, ptr);
-    setOperand(1, oldValue);
-    setOperand(2, newValue);
-    setOperand(3, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-    setTemp(1, valueTemp);
-    setTemp(2, offsetTemp);
-    setTemp(3, maskTemp);
-  }
-
-  const LAllocation* ptr() { return getOperand(0); }
-  const LAllocation* oldValue() { return getOperand(1); }
-  const LAllocation* newValue() { return getOperand(2); }
-  const LAllocation* memoryBase() { return getOperand(3); }
-  const LDefinition* addrTemp() { return getTemp(0); }
-
-  void setAddrTemp(const LDefinition& addrTemp) { setTemp(0, addrTemp); }
-
-  // Temp that may be used on LL/SC platforms for extract/insert bits of word.
-  const LDefinition* valueTemp() { return getTemp(1); }
-  const LDefinition* offsetTemp() { return getTemp(2); }
-  const LDefinition* maskTemp() { return getTemp(3); }
-
-  MWasmCompareExchangeHeap* mir() const {
-    return mir_->toWasmCompareExchangeHeap();
-  }
-};
-
 class LWasmAtomicExchangeHeap : public LInstructionHelper<1, 3, 4> {
  public:
   LIR_HEADER(WasmAtomicExchangeHeap);
