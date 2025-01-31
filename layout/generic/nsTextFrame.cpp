@@ -8441,6 +8441,19 @@ static bool FindFirstLetterRange(const nsTextFragment* aFrag,
     return false;
   }
 
+  // skip space/no-break-space after punctuation
+  while (i < length) {
+    char16_t ch = aFrag->CharAt(AssertedCast<uint32_t>(aOffset + i));
+    if (ch == ' ' || ch == CH_NBSP) {
+      ++i;
+    } else {
+      break;
+    }
+  }
+  if (i == length) {
+    return false;
+  }
+
   // If the next character is not a letter, number or symbol, there is no
   // first-letter.
   // Return true so that we don't go on looking, but set aLength to 0.
