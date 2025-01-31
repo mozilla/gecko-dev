@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -41,6 +42,7 @@ private const val DISABLED_ALPHA = 0.5f
  * @param modifier Modifier to be applied to the switch layout.
  * @param description An optional description text below the label.
  * @param enabled Whether the switch is enabled or grayed out.
+ * @param labelStyle The style to be applied to the label text.
  * @param onCheckedChange Invoked when Switch is being clicked, therefore the change of checked
  * state is requested.
  */
@@ -51,6 +53,7 @@ fun SwitchWithLabel(
     modifier: Modifier = Modifier,
     description: String? = null,
     enabled: Boolean = true,
+    labelStyle: TextStyle = FirefoxTheme.typography.subtitle1,
     onCheckedChange: ((Boolean) -> Unit),
 ) {
     Row(
@@ -80,7 +83,7 @@ fun SwitchWithLabel(
                 } else {
                     FirefoxTheme.colors.textDisabled
                 },
-                style = FirefoxTheme.typography.subtitle1,
+                style = labelStyle,
             )
 
             description?.let {
