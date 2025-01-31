@@ -1404,24 +1404,6 @@ class LWasmReduceSimd128 : public LInstructionHelper<1, 1, 1> {
   wasm::SimdOp simdOp() const { return mir_->toWasmReduceSimd128()->simdOp(); }
 };
 
-// (v128, imm) -> i64 effect-free operations
-class LWasmReduceSimd128ToInt64
-    : public LInstructionHelper<INT64_PIECES, 1, 0> {
- public:
-  LIR_HEADER(WasmReduceSimd128ToInt64)
-
-  static constexpr uint32_t Src = 0;
-
-  explicit LWasmReduceSimd128ToInt64(const LAllocation& src)
-      : LInstructionHelper(classOpcode) {
-    setOperand(Src, src);
-  }
-
-  const LAllocation* src() { return getOperand(Src); }
-  uint32_t imm() const { return mir_->toWasmReduceSimd128()->imm(); }
-  wasm::SimdOp simdOp() const { return mir_->toWasmReduceSimd128()->simdOp(); }
-};
-
 // End Wasm SIMD
 
 // End Wasm Exception Handling

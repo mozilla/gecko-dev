@@ -3779,9 +3779,9 @@ void CodeGenerator::visitWasmReduceSimd128ToInt64(
 #ifdef ENABLE_WASM_SIMD
   FloatRegister src = ToFloatRegister(ins->src());
   Register64 dest = ToOutRegister64(ins);
-  uint32_t imm = ins->imm();
+  uint32_t imm = ins->mir()->imm();
 
-  switch (ins->simdOp()) {
+  switch (ins->mir()->simdOp()) {
     case wasm::SimdOp::I64x2ExtractLane:
       masm.extractLaneInt64x2(imm, src, dest);
       break;

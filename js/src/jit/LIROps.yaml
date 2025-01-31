@@ -5060,8 +5060,12 @@
   arguments:
     simdOp: wasm::SimdOp
 
+# (v128, imm) -> i64 effect-free operations
 - name: WasmReduceSimd128ToInt64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    src: WordSized
+  mir_op: WasmReduceSimd128
 
 - name: WasmLoadLaneSimd128
   result_type: WordSized
@@ -5075,7 +5079,15 @@
   mir_op: true
 
 - name: WasmStoreLaneSimd128
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    ptr: WordSized
+    src: WordSized
+    memoryBase: WordSized
+#ifdef JS_CODEGEN_ARM64
+  num_temps: 1
+#endif
+  mir_op: true
 
 - name: Unbox
   gen_boilerplate: false
