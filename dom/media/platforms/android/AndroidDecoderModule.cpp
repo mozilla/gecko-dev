@@ -331,11 +331,6 @@ already_AddRefed<MediaDataDecoder> AndroidDecoderModule::CreateVideoDecoder(
 already_AddRefed<MediaDataDecoder> AndroidDecoderModule::CreateAudioDecoder(
     const CreateDecoderParams& aParams) {
   const AudioInfo& config = aParams.AudioConfig();
-  if (config.mBitDepth != 16) {
-    // We only handle 16-bit audio.
-    return nullptr;
-  }
-
   LOG("CreateAudioFormat with mimeType=%s, mRate=%d, channels=%d",
       config.mMimeType.Data(), config.mRate, config.mChannels);
 
