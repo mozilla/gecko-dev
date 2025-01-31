@@ -123,6 +123,15 @@
 # Add a declaration for the `extraName` method.
 #   - attribute not specified (default): no code generated
 #   - true: adds the `inline const char* extraName() const;` declaration
+#
+# defer_init
+# ==========
+# Control whether or not operands and temps are initialized outside the
+# constructor.
+#   - attribute not specified (default): operands and temps are initialized in
+#     the constructor.
+#   - true: operands and temps are not initialized in the constructor, instead
+#     setter definitions are added for manual initialization.
 
 - name: Phi
   gen_boilerplate: false
