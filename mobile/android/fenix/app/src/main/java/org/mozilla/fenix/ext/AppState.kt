@@ -46,7 +46,24 @@ internal const val POCKET_SPONSORED_STORIES_TO_SHOW_COUNT = 2
  * @return a list of [PocketStory]es from the currently selected categories.
  */
 fun AppState.getFilteredStories(): List<PocketStory> {
-    val recommendedStories = when (recommendationState.pocketStoriesCategoriesSelections.isEmpty()) {
+    val recommendedStories = getFilteredRecommendedStories()
+    val sponsoredStories = getFilteredSponsoredStories(
+        stories = recommendationState.pocketSponsoredStories,
+        limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
+    )
+
+    return combineRecommendedAndSponsoredStories(
+        recommendedStories = recommendedStories,
+        sponsoredStories = sponsoredStories,
+    )
+}
+
+/**
+ * Returns a filtered list of [PocketRecommendedStory]s based on the pocket stories categories
+ * selections, impressions and numbers of stories to show.
+ */
+private fun AppState.getFilteredRecommendedStories(): List<PocketRecommendedStory> {
+    return when (recommendationState.pocketStoriesCategoriesSelections.isEmpty()) {
         true -> {
             recommendationState.pocketStoriesCategories
                 .find { it.name == POCKET_STORIES_DEFAULT_CATEGORY_NAME }
@@ -76,16 +93,6 @@ fun AppState.getFilteredStories(): List<PocketStory> {
                 }.take(POCKET_STORIES_TO_SHOW_COUNT)
         }
     }
-
-    val sponsoredStories = getFilteredSponsoredStories(
-        stories = recommendationState.pocketSponsoredStories,
-        limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
-    )
-
-    return combineRecommendedAndSponsoredStories(
-        recommendedStories = recommendedStories,
-        sponsoredStories = sponsoredStories,
-    )
 }
 
 /**
