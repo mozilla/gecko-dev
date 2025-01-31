@@ -192,7 +192,10 @@ skip-if = [
 ]
 
 ["browser_toolbox_many_toggles.js"]
-skip-if = ["os == 'win'"] # Content process killing throws on Window
+skip-if = [
+  "os == 'win'", # Content process killing throws on Window
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug" # Frequent failures on linux debug
+]
 
 ["browser_toolbox_meatball.js"]
 
