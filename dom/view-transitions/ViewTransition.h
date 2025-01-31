@@ -85,6 +85,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void SetupTransitionPseudoElements();
   void ClearNamedElements();
   void HandleFrame();
+  bool CheckForActiveAnimations() const;
   void SkipTransition(SkipTransitionReason, JS::Handle<JS::Value>);
   void ClearTimeoutTimer();
 

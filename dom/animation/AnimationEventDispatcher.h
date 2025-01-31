@@ -279,6 +279,17 @@ class AnimationEventDispatcher final {
   }
   bool HasQueuedEvents() const { return !mPendingEvents.IsEmpty(); }
 
+  // There shouldn't be a lot of events in the queue, so linear search should be
+  // fine.
+  bool HasQueuedEventsFor(const dom::Animation* aAnimation) const {
+    for (const AnimationEventInfo& info : mPendingEvents) {
+      if (info.mAnimation.get() == aAnimation) {
+        return true;
+      }
+    }
+    return false;
+  }
+
  private:
 #ifndef DEBUG
   ~AnimationEventDispatcher() = default;

@@ -18011,11 +18011,8 @@ already_AddRefed<ViewTransition> Document::StartViewTransition(
   // Step 6: Set document's active view transition to transition.
   mActiveViewTransition = transition;
 
-  if (mPresShell) {
-    if (nsRefreshDriver* rd = mPresShell->GetRefreshDriver()) {
-      rd->EnsureViewTransitionOperationsHappen();
-    }
-  }
+  EnsureViewTransitionOperationsHappen();
+
   // Step 7: return transition
   return transition.forget();
 }
@@ -18030,6 +18027,18 @@ void Document::PerformPendingViewTransitionOperations() {
     aDoc.PerformPendingViewTransitionOperations();
     return CallState::Continue;
   });
+}
+
+void Document::EnsureViewTransitionOperationsHappen() {
+  if (!mPresShell) {
+    return;
+  }
+
+  nsRefreshDriver* rd = mPresShell->GetRefreshDriver();
+  if (!rd) {
+    return;
+  }
+  rd->EnsureViewTransitionOperationsHappen();
 }
 
 Selection* Document::GetSelection(ErrorResult& aRv) {

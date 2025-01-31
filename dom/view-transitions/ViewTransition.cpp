@@ -7,9 +7,12 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
 #include "mozilla/webrender/WebRenderAPI.h"
+#include "mozilla/AnimationEventDispatcher.h"
+#include "mozilla/EffectSet.h"
 #include "mozilla/ElementAnimationData.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "mozilla/SVGIntegrationUtils.h"
@@ -229,6 +232,13 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
   callbackPromise->AddCallbacksWithCycleCollectedArgs(
       [](JSContext*, JS::Handle<JS::Value>, ErrorResult& aRv,
          ViewTransition* aVt) {
+        // We clear the timeout when we are ready to activate. Otherwise, any
+        // animations with the duration longer than
+        // StaticPrefs::dom_viewTransitions_timeout_ms() will be interrupted.
+        // FIXME: We may need a better solution to tweak the timeout, e.g. reset
+        // the timeout to a longer value or so on.
+        aVt->ClearTimeoutTimer();
+
         // Step 6: Let fulfillSteps be to following steps:
         if (Promise* ucd = aVt->GetUpdateCallbackDone(aRv)) {
           // 6.1: Resolve transition's update callback done promise with
@@ -246,6 +256,9 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
       },
       [](JSContext*, JS::Handle<JS::Value> aReason, ErrorResult& aRv,
          ViewTransition* aVt) {
+        // Clear the timeout because we are ready to skip the view transitions.
+        aVt->ClearTimeoutTimer();
+
         // Step 7: Let rejectSteps be to following steps:
         if (Promise* ucd = aVt->GetUpdateCallbackDone(aRv)) {
           // 7.1: Reject transition's update callback done promise with reason.
@@ -434,6 +447,11 @@ void ViewTransition::Activate() {
   if (Promise* ready = GetReady(IgnoreErrors())) {
     ready->MaybeResolveWithUndefined();
   }
+
+  // Once this view transition is activated, we have to perform the pending
+  // operations periodically.
+  MOZ_ASSERT(mDocument);
+  mDocument->EnsureViewTransitionOperationsHappen();
 }
 
 // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations
@@ -625,8 +643,9 @@ void ViewTransition::Setup() {
 
 // https://drafts.csswg.org/css-view-transitions-1/#handle-transition-frame
 void ViewTransition::HandleFrame() {
-  // TODO(emilio): Steps 1-3: Compute active animations.
-  bool hasActiveAnimations = false;
+  // Steps 1-3: Steps 1-3: Compute active animations.
+  bool hasActiveAnimations = CheckForActiveAnimations();
+
   // Step 4: If hasActiveAnimations is false:
   if (!hasActiveAnimations) {
     // 4.1: Set transition's phase to "done".
@@ -638,8 +657,109 @@ void ViewTransition::HandleFrame() {
       finished->MaybeResolveWithUndefined();
     }
     return;
+  } else {
+    // If the view tranimation is still animating after HandleFrame(),
+    // we have to periodically perform operations to check if it is still
+    // animating in the following ticks.
+    mDocument->EnsureViewTransitionOperationsHappen();
   }
+
   // TODO(emilio): Steps 5-6 (check CB size, update pseudo styles).
+}
+
+static bool CheckForActiveAnimationsForEachPseudo(
+    const Element& aRoot, const AnimationTimeline& aDocTimeline,
+    const AnimationEventDispatcher& aDispatcher,
+    PseudoStyleRequest&& aRequest) {
+  // Check EffectSet because an Animation (either a CSS Animations or a
+  // script animation) is associated with a KeyframeEffect. If the animation
+  // doesn't have an associated effect, we can skip it per spec.
+  // If the effect target is not the element we request, it shouldn't be in
+  // |effects| either.
+  EffectSet* effects = EffectSet::Get(&aRoot, aRequest);
+  if (!effects) {
+    return false;
+  }
+
+  for (const auto* effect : *effects) {
+    // 3.1: For each animation whose timeline is a document timeline associated
+    // with document, and contains at least one associated effect whose effect
+    // target is element, set hasActiveAnimations to true if any of the
+    // following conditions is true:
+    //   * animation’s play state is paused or running.
+    //   * document’s pending animation event queue has any events associated
+    //     with animation.
+
+    MOZ_ASSERT(effect && effect->GetAnimation(),
+               "Only effects associated with an animation should be "
+               "added to an element's effect set");
+    const Animation* anim = effect->GetAnimation();
+
+    // The animation's timeline is not the document timeline.
+    if (anim->GetTimeline() != &aDocTimeline) {
+      continue;
+    }
+
+    // Return true if any of the following conditions is true:
+    // 1. animation’s play state is paused or running.
+    // 2. document’s pending animation event queue has any events associated
+    //    with animation.
+    const auto playState = anim->PlayState();
+    if (playState != AnimationPlayState::Paused &&
+        playState != AnimationPlayState::Running &&
+        !aDispatcher.HasQueuedEventsFor(anim)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+// This is the implementation of step 3 in HandleFrame(). For each element of
+// transition’s transition root pseudo-element’s inclusive descendants, we check
+// if it has active animations.
+bool ViewTransition::CheckForActiveAnimations() const {
+  MOZ_ASSERT(mDocument);
+
+  const Element* root = mDocument->GetRootElement();
+  if (!root) {
+    // The documentElement could be removed during animating via script.
+    return false;
+  }
+
+  const AnimationTimeline* timeline = mDocument->Timeline();
+  if (!timeline) {
+    return false;
+  }
+
+  nsPresContext* presContext = mDocument->GetPresContext();
+  if (!presContext) {
+    return false;
+  }
+
+  const AnimationEventDispatcher* dispatcher =
+      presContext->AnimationEventDispatcher();
+  MOZ_ASSERT(dispatcher);
+
+  auto checkForEachPseudo = [&](PseudoStyleRequest&& aRequest) {
+    return CheckForActiveAnimationsForEachPseudo(*root, *timeline, *dispatcher,
+                                                 std::move(aRequest));
+  };
+
+  bool hasActiveAnimations =
+      checkForEachPseudo(PseudoStyleRequest(PseudoStyleType::viewTransition));
+  for (nsAtom* name : mNamedElements.Keys()) {
+    if (hasActiveAnimations) {
+      break;
+    }
+
+    hasActiveAnimations =
+        checkForEachPseudo({PseudoStyleType::viewTransitionGroup, name}) ||
+        checkForEachPseudo({PseudoStyleType::viewTransitionImagePair, name}) ||
+        checkForEachPseudo({PseudoStyleType::viewTransitionOld, name}) ||
+        checkForEachPseudo({PseudoStyleType::viewTransitionNew, name});
+  }
+  return hasActiveAnimations;
 }
 
 void ViewTransition::ClearNamedElements() {
