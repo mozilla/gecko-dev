@@ -612,6 +612,10 @@ support-files = [
   "sin-441-1s-44100.opus",
   # ffmpeg -i sin-441-1s-44100.wav sin-441-1s-44100.flac
   "sin-441-1s-44100.flac",
+  # > sox -n -r 44100 -c 1 -b 32 sin-1k.wav synth 1 sine 1000 vol 0dB && \
+  # ffmpeg -i sin-1k.wav -c:a aac -b:a 320k -sample_fmt fltp sin-1k.mp4
+  # then hex-edited the 'samplesize' field in 'mp4a' box to 32, since ffmpeg always output 16
+  "sin-1k-32bit.m4a",
   "sine.webm",
   "sine.webm^headers^",
   "sintel-short-clearkey-subsample-encrypted-audio.webm",
@@ -822,6 +826,8 @@ skip-if = [
 ]
 
 ["test_mp3_broadcast.html"]
+
+["test_mp4a_32bit_samplesize.html"] # bug 1924052
 
 ["test_multiple_mediastreamtracks.html"]
 scheme = "https"

@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test playing 32-bit M4A (bug 1924052)</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript" src="manifest.js"></script>
+</head>
+<body onload="doTest()">
+<audio id="a" src="sin-1k-32bit.m4a"></audio>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+SimpleTest.waitForExplicitFinish();
+
+function doTest() {
+  let a = document.getElementById('a');
+  a.play();
+  a.onerror = err => {
+    is(false, `error: ${err}`);
+    SimpleTest.finish();
+  };
+  a.onended = function() {
+    info("ended.");
+    a.onended = null;
+    SimpleTest.finish();
+  };
+}
+
+</script>
+</pre>
+</body>
+</html>
