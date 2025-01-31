@@ -4545,7 +4545,8 @@
   mir_op: true
 
 - name: MemoryBarrier
-  gen_boilerplate: false
+  arguments:
+    barrier: jit::MemoryBarrier
 
 - name: Debugger
   num_temps: 1

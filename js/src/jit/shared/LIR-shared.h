@@ -1015,19 +1015,6 @@ inline bool LNode::isCallPreserved(AnyRegister reg) const {
   return isWasmCall() && LWasmCall::isCallPreserved(reg);
 }
 
-class LMemoryBarrier : public LInstructionHelper<0, 0, 0> {
- private:
-  const MemoryBarrier barrier_;
-
- public:
-  LIR_HEADER(MemoryBarrier)
-
-  explicit LMemoryBarrier(MemoryBarrier barrier)
-      : LInstructionHelper(classOpcode), barrier_(barrier) {}
-
-  MemoryBarrier barrier() const { return barrier_; }
-};
-
 template <size_t NumDefs>
 class LIonToWasmCallBase : public LVariadicInstruction<NumDefs, 1> {
   using Base = LVariadicInstruction<NumDefs, 1>;
