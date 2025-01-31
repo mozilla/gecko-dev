@@ -157,13 +157,15 @@ template <typename T>
 void CodeGeneratorMIPS::emitWasmStoreI64(T* lir) {
   const MWasmStore* mir = lir->mir();
 
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
-  if (IsUnaligned(mir->access())) {
+  if constexpr (std::is_same_v<T, LWasmUnalignedStoreI64>) {
+    MOZ_ASSERT(IsUnaligned(mir->access()));
     masm.wasmUnalignedStoreI64(mir->access(), ToRegister64(lir->value()),
                                HeapReg, ToRegister(lir->ptr()), ptrScratch,
-                               ToRegister(lir->getTemp(1)));
+                               ToRegister(lir->temp1()));
   } else {
+    MOZ_ASSERT(!IsUnaligned(mir->access()));
     masm.wasmStoreI64(mir->access(), ToRegister64(lir->value()), HeapReg,
                       ToRegister(lir->ptr()), ptrScratch);
   }

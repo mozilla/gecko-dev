@@ -1775,20 +1775,23 @@ void CodeGeneratorARM::emitWasmStore(T* lir) {
 
   // Maybe add the offset.
   if (mir->access().offset32() || accessType == Scalar::Int64) {
-    ptr = ToRegister(lir->ptrCopy());
+    ptr = ToRegister(lir->temp0());
   } else {
-    MOZ_ASSERT(lir->ptrCopy()->isBogusTemp());
+    MOZ_ASSERT(lir->temp0()->isBogusTemp());
     ptr = ToRegister(lir->ptr());
   }
 
-  if (accessType == Scalar::Int64) {
-    masm.wasmStoreI64(mir->access(),
-                      ToRegister64(lir->getInt64Operand(lir->ValueIndex)),
-                      memoryBase, ptr, ptr);
+  if constexpr (std::is_same_v<T, LWasmStoreI64>) {
+    Register64 value = ToRegister64(lir->value());
+    if (accessType == Scalar::Int64) {
+      masm.wasmStoreI64(mir->access(), value, memoryBase, ptr, ptr);
+    } else {
+      masm.wasmStore(mir->access(), AnyRegister(value.low), memoryBase, ptr,
+                     ptr);
+    }
   } else {
-    masm.wasmStore(mir->access(),
-                   ToAnyRegister(lir->getOperand(lir->ValueIndex)), memoryBase,
-                   ptr, ptr);
+    masm.wasmStore(mir->access(), ToAnyRegister(lir->value()), memoryBase, ptr,
+                   ptr);
   }
 }
 

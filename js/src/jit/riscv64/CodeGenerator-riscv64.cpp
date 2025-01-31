@@ -214,7 +214,7 @@ void CodeGeneratorRiscv64::emitWasmStore(T* lir) {
 
   Register memoryBase = ToRegister(lir->memoryBase());
   Register ptr = ToRegister(lir->ptr());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   if (mir->base()->type() == MIRType::Int32) {
     masm.move32To64ZeroExtend(ptr, Register64(scratch2));
@@ -491,7 +491,7 @@ void CodeGenerator::visitWasmStoreI64(LWasmStoreI64* lir) {
   const MWasmStore* mir = lir->mir();
 
   Register memoryBase = ToRegister(lir->memoryBase());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   Register ptrReg = ToRegister(lir->ptr());
   if (mir->base()->type() == MIRType::Int32) {

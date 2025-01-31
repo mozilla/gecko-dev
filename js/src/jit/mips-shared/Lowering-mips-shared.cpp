@@ -463,59 +463,51 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
 
-  if (IsUnaligned(ins->access())) {
-    LAllocation baseAlloc = useRegisterAtStart(base);
-    if (ins->access().type() == Scalar::Int64) {
-      LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
-      auto* lir = new (alloc())
-          LWasmUnalignedStoreI64(baseAlloc, valueAlloc, memoryBase, temp());
-      if (ins->access().offset32()) {
-        lir->setTemp(0, tempCopy(base, 0));
-      }
+#ifdef JS_CODEGEN_MIPS32
+  if (ins->access().type() == Scalar::Int64 && ins->access().isAtomic()) {
+    MOZ_ASSERT(!IsUnaligned(ins->access()));
 
-      add(lir, ins);
-      return;
-    }
-
-    LAllocation valueAlloc = useRegisterAtStart(value);
     auto* lir = new (alloc())
-        LWasmUnalignedStore(baseAlloc, valueAlloc, memoryBase, temp());
-    if (ins->access().offset32()) {
-      lir->setTemp(0, tempCopy(base, 0));
-    }
-
+        LWasmAtomicStoreI64(useRegister(base), useInt64Register(value), temp());
     add(lir, ins);
     return;
+  }
+#endif
+
+  LAllocation baseAlloc = useRegisterAtStart(base);
+
+  LDefinition ptrCopy = LDefinition::BogusTemp();
+  if (ins->access().offset32()) {
+    ptrCopy = tempCopy(base, 0);
   }
 
   if (ins->access().type() == Scalar::Int64) {
-#ifdef JS_CODEGEN_MIPS32
-    if (ins->access().isAtomic()) {
-      auto* lir = new (alloc()) LWasmAtomicStoreI64(
-          useRegister(base), useInt64Register(value), temp());
+    LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
+
+    if (IsUnaligned(ins->access())) {
+      auto* lir = new (alloc()) LWasmUnalignedStoreI64(
+          baseAlloc, valueAlloc, memoryBase, ptrCopy, temp());
       add(lir, ins);
       return;
     }
-#endif
 
-    LAllocation baseAlloc = useRegisterAtStart(base);
-    LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
-    auto* lir = new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase);
-    if (ins->access().offset32()) {
-      lir->setTemp(0, tempCopy(base, 0));
-    }
-
+    auto* lir =
+        new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase, ptrCopy);
     add(lir, ins);
     return;
   }
 
-  LAllocation baseAlloc = useRegisterAtStart(base);
   LAllocation valueAlloc = useRegisterAtStart(value);
-  auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase);
-  if (ins->access().offset32()) {
-    lir->setTemp(0, tempCopy(base, 0));
+
+  if (IsUnaligned(ins->access())) {
+    auto* lir = new (alloc())
+        LWasmUnalignedStore(baseAlloc, valueAlloc, memoryBase, ptrCopy, temp());
+    add(lir, ins);
+    return;
   }
 
+  auto* lir =
+      new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase, ptrCopy);
   add(lir, ins);
 }
 

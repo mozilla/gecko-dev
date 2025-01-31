@@ -850,25 +850,24 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
 
-  if (ins->access().type() == Scalar::Int64) {
-    LAllocation baseAlloc = useRegisterAtStart(base);
-    LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
-    auto* lir = new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase);
-    if (ins->access().offset32()) {
-      lir->setTemp(0, tempCopy(base, 0));
-    }
+  LAllocation baseAlloc = useRegisterAtStart(base);
 
+  LDefinition ptrCopy = LDefinition::BogusTemp();
+  if (ins->access().offset32()) {
+    ptrCopy = tempCopy(base, 0);
+  }
+
+  if (ins->access().type() == Scalar::Int64) {
+    LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
+    auto* lir =
+        new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase, ptrCopy);
     add(lir, ins);
     return;
   }
 
-  LAllocation baseAlloc = useRegisterAtStart(base);
   LAllocation valueAlloc = useRegisterAtStart(value);
-  auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase);
-  if (ins->access().offset32()) {
-    lir->setTemp(0, tempCopy(base, 0));
-  }
-
+  auto* lir =
+      new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase, ptrCopy);
   add(lir, ins);
 }
 

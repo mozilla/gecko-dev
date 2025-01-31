@@ -933,16 +933,15 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   LAllocation memoryBase =
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
+  LAllocation baseAlloc = useRegisterOrConstantAtStart(base);
 
   if (ins->access().type() == Scalar::Int64) {
-    LAllocation baseAlloc = useRegisterOrConstantAtStart(base);
     LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
     auto* lir = new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase);
     add(lir, ins);
     return;
   }
 
-  LAllocation baseAlloc = useRegisterOrConstantAtStart(base);
   LAllocation valueAlloc = useRegisterAtStart(value);
   auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase);
   add(lir, ins);

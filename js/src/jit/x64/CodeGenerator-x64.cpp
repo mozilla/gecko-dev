@@ -559,7 +559,7 @@ void CodeGeneratorX64::emitWasmStore(T* ins) {
   mir->access().assertOffsetInGuardPages();
   uint32_t offset = access.offset32();
 
-  const LAllocation* value = ins->getOperand(ins->ValueIndex);
+  const LAllocation* value = ins->value();
   const LAllocation* ptr = ins->ptr();
   Register memoryBase = ToRegister(ins->memoryBase());
   Operand dstAddr =

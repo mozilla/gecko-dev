@@ -61,66 +61,6 @@ class LUDivOrMod : public LBinaryMath<0> {
   }
 };
 
-namespace details {
-
-// Base class for the int64 and non-int64 variants.
-template <size_t NumOps>
-class LWasmUnalignedStoreBase : public LInstructionHelper<0, NumOps, 2> {
- public:
-  typedef LInstructionHelper<0, NumOps, 2> Base;
-
-  static const size_t PtrIndex = 0;
-  static const size_t ValueIndex = 1;
-
-  LWasmUnalignedStoreBase(LNode::Opcode opcode, const LAllocation& ptr,
-                          const LDefinition& valueHelper)
-      : Base(opcode) {
-    Base::setOperand(0, ptr);
-    Base::setTemp(0, LDefinition::BogusTemp());
-    Base::setTemp(1, valueHelper);
-  }
-
-  MWasmStore* mir() const { return Base::mir_->toWasmStore(); }
-  const LAllocation* ptr() { return Base::getOperand(PtrIndex); }
-  const LDefinition* ptrCopy() { return Base::getTemp(0); }
-};
-
-}  // namespace details
-
-class LWasmUnalignedStore : public details::LWasmUnalignedStoreBase<3> {
- public:
-  LIR_HEADER(WasmUnalignedStore);
-
-  LWasmUnalignedStore(const LAllocation& ptr, const LAllocation& value,
-                      const LAllocation& memoryBase,
-                      const LDefinition& valueHelper)
-      : LWasmUnalignedStoreBase(classOpcode, ptr, valueHelper) {
-    setOperand(1, value);
-    setOperand(2, memoryBase);
-  }
-
-  const LAllocation* value() { return Base::getOperand(ValueIndex); }
-  const LAllocation* memoryBase() { return Base::getOperand(ValueIndex + 1); }
-};
-
-class LWasmUnalignedStoreI64
-    : public details::LWasmUnalignedStoreBase<2 + INT64_PIECES> {
- public:
-  LIR_HEADER(WasmUnalignedStoreI64);
-  LWasmUnalignedStoreI64(const LAllocation& ptr, const LInt64Allocation& value,
-                         const LAllocation& memoryBase,
-                         const LDefinition& valueHelper)
-      : LWasmUnalignedStoreBase(classOpcode, ptr, valueHelper) {
-    setInt64Operand(1, value);
-    setOperand(1 + INT64_PIECES, memoryBase);
-  }
-
-  LInt64Allocation value() { return getInt64Operand(ValueIndex); }
-  const LAllocation* memoryBase() {
-    return Base::getOperand(ValueIndex + INT64_PIECES);
-  }
-};
-
 }  // namespace jit
 }  // namespace js
 

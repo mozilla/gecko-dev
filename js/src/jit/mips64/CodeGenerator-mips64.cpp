@@ -230,7 +230,7 @@ void CodeGeneratorMIPS64::emitWasmStoreI64(T* lir) {
   const MWasmStore* mir = lir->mir();
 
   Register memoryBase = ToRegister(lir->memoryBase());
-  Register ptrScratch = ToTempRegisterOrInvalid(lir->ptrCopy());
+  Register ptrScratch = ToTempRegisterOrInvalid(lir->temp0());
 
   Register ptrReg = ToRegister(lir->ptr());
   if (mir->base()->type() == MIRType::Int32) {
@@ -238,11 +238,13 @@ void CodeGeneratorMIPS64::emitWasmStoreI64(T* lir) {
     masm.move32ZeroExtendToPtr(ptrReg, ptrReg);
   }
 
-  if (IsUnaligned(mir->access())) {
+  if constexpr (std::is_same_v<T, LWasmUnalignedStoreI64>) {
+    MOZ_ASSERT(IsUnaligned(mir->access()));
     masm.wasmUnalignedStoreI64(mir->access(), ToRegister64(lir->value()),
                                memoryBase, ptrReg, ptrScratch,
-                               ToRegister(lir->getTemp(1)));
+                               ToRegister(lir->temp1()));
   } else {
+    MOZ_ASSERT(!IsUnaligned(mir->access()));
     masm.wasmStoreI64(mir->access(), ToRegister64(lir->value()), memoryBase,
                       ptrReg, ptrScratch);
   }

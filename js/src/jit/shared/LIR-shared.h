@@ -812,52 +812,6 @@ class LOsrEntry : public LInstructionHelper<1, 0, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
-class LWasmStore : public LInstructionHelper<0, 3, 1> {
- public:
-  LIR_HEADER(WasmStore);
-
-  static const size_t PtrIndex = 0;
-  static const size_t ValueIndex = 1;
-  static const size_t MemoryBaseIndex = 2;
-
-  LWasmStore(const LAllocation& ptr, const LAllocation& value,
-             const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(PtrIndex, ptr);
-    setOperand(ValueIndex, value);
-    setOperand(MemoryBaseIndex, memoryBase);
-    setTemp(0, LDefinition::BogusTemp());
-  }
-  MWasmStore* mir() const { return mir_->toWasmStore(); }
-  const LAllocation* ptr() { return getOperand(PtrIndex); }
-  const LDefinition* ptrCopy() { return getTemp(0); }
-  const LAllocation* value() { return getOperand(ValueIndex); }
-  const LAllocation* memoryBase() { return getOperand(MemoryBaseIndex); }
-};
-
-class LWasmStoreI64 : public LInstructionHelper<0, INT64_PIECES + 2, 1> {
- public:
-  LIR_HEADER(WasmStoreI64);
-
-  static const size_t PtrIndex = 0;
-  static const size_t MemoryBaseIndex = 1;
-  static const size_t ValueIndex = 2;
-
-  LWasmStoreI64(const LAllocation& ptr, const LInt64Allocation& value,
-                const LAllocation& memoryBase)
-      : LInstructionHelper(classOpcode) {
-    setOperand(PtrIndex, ptr);
-    setOperand(MemoryBaseIndex, memoryBase);
-    setInt64Operand(ValueIndex, value);
-    setTemp(0, LDefinition::BogusTemp());
-  }
-  MWasmStore* mir() const { return mir_->toWasmStore(); }
-  const LAllocation* ptr() { return getOperand(PtrIndex); }
-  const LAllocation* memoryBase() { return getOperand(MemoryBaseIndex); }
-  const LDefinition* ptrCopy() { return getTemp(0); }
-  LInt64Allocation value() { return getInt64Operand(ValueIndex); }
-};
-
 class LWasmCompareExchangeHeap : public LInstructionHelper<1, 4, 4> {
  public:
   LIR_HEADER(WasmCompareExchangeHeap);
