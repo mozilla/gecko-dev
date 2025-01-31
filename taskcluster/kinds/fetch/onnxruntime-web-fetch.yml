@@ -79,3 +79,21 @@ qwen2.5-0.5-instruct:
         revision: fd3f0e7171371df20d5eefc7851cf96706c391de
         path-prefix: "onnx-models/Mozilla/Qwen2.5-0.5B-Instruct/main/"
         artifact-name: qwen2_5-0_5_instruct.tar.zst
+
+mozilla-smart-tab-topic:
+    description: Smart Tab Topic Model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Mozilla/smart-tab-topic
+        revision: a537e5109ccc57a3a1e7acd71963078fbe03c21b
+        path-prefix: "onnx-models/Mozilla/smart-tab-topic/main/"
+        artifact-name: smart-tab-topic.tar.zst
+
+mozilla-smart-tab-emb:
+    description: Smart Tab Embedding Model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Mozilla/smart-tab-embedding
+        revision: 2278e76f67ada584cfd3149fd2661dad03674e4d
+        path-prefix: "onnx-models/Mozilla/smart-tab-embedding/main/"
+        artifact-name: smart-tab-embedding.tar.zst

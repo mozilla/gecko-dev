@@ -422,6 +422,24 @@ browser_ml_autofill_perf.js
 
 **Template test for latency for ML Autofill model**
 
+browser_ml_smart_tab_perf.js
+============================
+
+:owner: GenAI Team
+:name: ML Smart Tab Model
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Testing Smart Tab Models**
+
 browser_ml_suggest_feature_perf.js
 ==================================
 

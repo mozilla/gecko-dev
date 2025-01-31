@@ -67,6 +67,7 @@ suites:
             "ML Suggest Inference Model": ""
             "ML Autofill Model": ""
             "ML Summarizer Model": ""
+            "ML Smart Tab Model": ""
 
     intl/benchmarks/test/xpcshell:
         description: "Performance tests running through XPCShell for Intl code"
