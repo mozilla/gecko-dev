@@ -174,7 +174,7 @@ fun OnboardingPage(
 /**
  * Calculates the image height to be set. The ratio is selected based on parent height.
  */
-private fun imageHeight(boxWithConstraintsScope: BoxWithConstraintsScope): Dp {
+fun imageHeight(boxWithConstraintsScope: BoxWithConstraintsScope): Dp {
     val imageHeightRatio: Float = when {
         boxWithConstraintsScope.maxHeight <= 550.dp -> IMAGE_HEIGHT_RATIO_SMALL
         boxWithConstraintsScope.maxHeight <= 650.dp -> IMAGE_HEIGHT_RATIO_MEDIUM
