@@ -31,6 +31,32 @@ extern LazyLogModule gMediaDecoderLog;
 #define LOG(x, ...) \
   MOZ_LOG(gMediaDecoderLog, LogLevel::Debug, (x, ##__VA_ARGS__))
 
+// Gets the pixel aspect ratio from the decoded video size and the rendered
+// size.
+inline double GetPixelAspectRatio(const gfx::IntSize& aImage,
+                                  const gfx::IntSize& aDisplay) {
+  if (MOZ_UNLIKELY(aImage.IsEmpty() || aDisplay.IsEmpty())) {
+    return 0.0;
+  }
+  return (static_cast<double>(aDisplay.Width()) / aImage.Width()) /
+         (static_cast<double>(aDisplay.Height()) / aImage.Height());
+}
+
+// Returns the render size based on the PAR and the new image size.
+inline gfx::IntSize ApplyPixelAspectRatio(double aPixelAspectRatio,
+                                          const gfx::IntSize& aImage) {
+  // No need to apply PAR, or an invalid PAR.
+  if (aPixelAspectRatio == 1.0 || MOZ_UNLIKELY(aPixelAspectRatio <= 0)) {
+    return aImage;
+  }
+  double width = aImage.Width() * aPixelAspectRatio;
+  // Ignore values that would cause overflow.
+  if (MOZ_UNLIKELY(width > std::numeric_limits<int32_t>::max())) {
+    return aImage;
+  }
+  return gfx::IntSize(static_cast<int32_t>(width), aImage.Height());
+}
+
 // H264ChangeMonitor is used to ensure that only AVCC or AnnexB is fed to the
 // underlying MediaDataDecoder. The H264ChangeMonitor allows playback of content
 // where the SPS NAL may not be provided in the init segment (e.g. AVC3 or Annex
@@ -283,8 +309,14 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
         const auto sps = rv.unwrap();
         mCurrentConfig.mImage.width = sps.GetImageSize().Width();
         mCurrentConfig.mImage.height = sps.GetImageSize().Height();
-        mCurrentConfig.mDisplay.width = sps.GetDisplaySize().Width();
-        mCurrentConfig.mDisplay.height = sps.GetDisplaySize().Height();
+        if (const auto& vui = sps.vui_parameters;
+            vui && vui->HasValidAspectRatio()) {
+          mCurrentConfig.mDisplay = ApplyPixelAspectRatio(
+              vui->GetPixelAspectRatio(), mCurrentConfig.mImage);
+        } else {
+          mCurrentConfig.mDisplay.width = sps.GetDisplaySize().Width();
+          mCurrentConfig.mDisplay.height = sps.GetDisplaySize().Height();
+        }
         mCurrentConfig.mColorDepth = sps.ColorDepth();
         mCurrentConfig.mColorSpace = Some(sps.ColorSpace());
         mCurrentConfig.mColorPrimaries = gfxUtils::CicpToColorPrimaries(
@@ -338,21 +370,6 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
   uint32_t mStreamID = 0;
   RefPtr<TrackInfoSharedPtr> mTrackInfo;
 };
-
-// Gets the pixel aspect ratio from the decoded video size and the rendered
-// size.
-inline double GetPixelAspectRatio(const gfx::IntSize& aImage,
-                                  const gfx::IntSize& aDisplay) {
-  return (static_cast<double>(aDisplay.Width()) / aImage.Width()) /
-         (static_cast<double>(aDisplay.Height()) / aImage.Height());
-}
-
-// Returns the render size based on the PAR and the new image size.
-inline gfx::IntSize ApplyPixelAspectRatio(double aPixelAspectRatio,
-                                          const gfx::IntSize& aImage) {
-  return gfx::IntSize(static_cast<int32_t>(aImage.Width() * aPixelAspectRatio),
-                      aImage.Height());
-}
 
 class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
  public:

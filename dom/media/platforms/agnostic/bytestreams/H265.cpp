@@ -545,6 +545,20 @@ bool H265VUIParameters::operator==(const H265VUIParameters& aOther) const {
          COMPARE_FIELD(matrix_coeffs);
 }
 
+bool H265VUIParameters::HasValidAspectRatio() const {
+  return aspect_ratio_info_present_flag && mIsSARValid;
+}
+
+double H265VUIParameters::GetPixelAspectRatio() const {
+  MOZ_ASSERT(HasValidAspectRatio(),
+             "Shouldn't call this for an invalid ratio!");
+  if (MOZ_UNLIKELY(!sar_height)) {
+    return 0.0;
+  }
+  // Sample Aspect Ratio (SAR) is equivalent to Pixel Aspect Ratio (PAR).
+  return static_cast<double>(sar_width) / static_cast<double>(sar_height);
+}
+
 /* static */
 Result<Ok, nsresult> H265::ParseAndIgnoreScalingListData(BitReader& aReader) {
   // H265 spec, 7.3.4 Scaling list data syntax
@@ -712,8 +726,8 @@ Result<Ok, nsresult> H265::ParseVuiParameters(BitReader& aReader,
   aSPS.vui_parameters = Some(H265VUIParameters());
   H265VUIParameters* vui = aSPS.vui_parameters.ptr();
 
-  const auto aspect_ratio_info_present_flag = aReader.ReadBit();
-  if (aspect_ratio_info_present_flag) {
+  vui->aspect_ratio_info_present_flag = aReader.ReadBit();
+  if (vui->aspect_ratio_info_present_flag) {
     const auto aspect_ratio_idc = aReader.ReadBits(8);
     constexpr int kExtendedSar = 255;
     if (aspect_ratio_idc == kExtendedSar) {
@@ -724,6 +738,13 @@ Result<Ok, nsresult> H265::ParseVuiParameters(BitReader& aReader,
       IN_RANGE_OR_RETURN(aspect_ratio_idc, 0, max_aspect_ratio_idc);
       vui->sar_width = kTableSarWidth[aspect_ratio_idc];
       vui->sar_height = kTableSarHeight[aspect_ratio_idc];
+    }
+    // In E.3.1 VUI parameters semantics, "when aspect_ratio_idc is equal to 0
+    // or sar_width is equal to 0 or sar_height is equal to 0, the sample aspect
+    // ratio is unspecified in this Specification".
+    vui->mIsSARValid = vui->sar_width && vui->sar_height;
+    if (!vui->mIsSARValid) {
+      LOG("sar_width or sar_height should not be zero!");
     }
   }
 

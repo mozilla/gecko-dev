@@ -191,13 +191,22 @@ struct H265VUIParameters {
 
   bool operator==(const H265VUIParameters& aOther) const;
 
+  bool HasValidAspectRatio() const;
+
+  // This should only be called when VUI has a valid aspect ratio.
+  double GetPixelAspectRatio() const;
+
   // Syntax elements.
+  bool aspect_ratio_info_present_flag = false;
   uint32_t sar_width = {};
   uint32_t sar_height = {};
   bool video_full_range_flag = {};
   Maybe<uint8_t> colour_primaries;
   Maybe<uint8_t> transfer_characteristics;
   Maybe<uint8_t> matrix_coeffs;
+
+  // Not spec element.
+  bool mIsSARValid = false;
 };
 
 // H265 spec, 7.3.2.2 Sequence parameter set RBSP syntax
