@@ -422,10 +422,9 @@ void LIRGeneratorARM64::lowerWasmCompareAndSelect(MWasmSelect* ins,
   } else {
     MOZ_CRASH("Unexpected type");
   }
-  auto* lir = new (alloc())
-      LWasmCompareAndSelect(useRegisterAtStart(lhs), rhsAlloc, compTy, jsop,
-                            useRegisterAtStart(ins->trueExpr()),
-                            useRegisterAtStart(ins->falseExpr()));
+  auto* lir = new (alloc()) LWasmCompareAndSelect(
+      useRegisterAtStart(lhs), rhsAlloc, useRegisterAtStart(ins->trueExpr()),
+      useRegisterAtStart(ins->falseExpr()), compTy, jsop);
   define(lir, ins);
 }
 

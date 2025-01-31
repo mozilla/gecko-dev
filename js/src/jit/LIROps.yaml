@@ -4025,13 +4025,32 @@
   mir_op: true
 
 - name: WasmSelect
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    trueExpr: WordSized
+    falseExpr: WordSized
+    condExpr: WordSized
+  mir_op: true
 
 - name: WasmSelectI64
-  gen_boilerplate: false
+  result_type: Int64
+  operands:
+    trueExpr: Int64
+    falseExpr: Int64
+    condExpr: WordSized
+  mir_op: WasmSelect
 
 - name: WasmCompareAndSelect
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    leftExpr: WordSized
+    rightExpr: WordSized
+    ifTrueExpr: WordSized
+    ifFalseExpr: WordSized
+  arguments:
+    compareType: MCompare::CompareType
+    jsop: JSOp
+  mir_op: WasmSelect
 
 - name: WasmAddOffset
   result_type: WordSized

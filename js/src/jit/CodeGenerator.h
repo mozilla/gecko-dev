@@ -358,8 +358,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   IonScriptCounts* maybeCreateScriptCounts();
 
-  void emitWasmCompareAndSelect(LWasmCompareAndSelect* ins);
-
   template <typename InstructionWithMaybeTrapSite, class AddressOrBaseIndex>
   void emitWasmValueLoad(InstructionWithMaybeTrapSite* ins, MIRType type,
                          MWideningOp wideningOp, AddressOrBaseIndex addr,

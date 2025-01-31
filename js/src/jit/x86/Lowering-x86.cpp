@@ -872,7 +872,7 @@ void LIRGeneratorShared::lowerWasmCompareAndSelect(MWasmSelect* ins,
                                                    JSOp jsop) {
   MOZ_ASSERT(canSpecializeWasmCompareAndSelect(compTy, ins->type()));
   auto* lir = new (alloc()) LWasmCompareAndSelect(
-      useRegister(lhs), useAny(rhs), compTy, jsop,
-      useRegisterAtStart(ins->trueExpr()), useAny(ins->falseExpr()));
+      useRegister(lhs), useAny(rhs), useRegisterAtStart(ins->trueExpr()),
+      useAny(ins->falseExpr()), compTy, jsop);
   defineReuseInput(lir, ins, LWasmCompareAndSelect::IfTrueExprIndex);
 }
