@@ -39,18 +39,17 @@
 
 using namespace mozilla;
 
-typedef nsAbsoluteContainingBlock::AbsPosReflowFlags AbsPosReflowFlags;
-typedef nsGridContainerFrame::TrackSize TrackSize;
-typedef mozilla::CSSAlignUtils::AlignJustifyFlags AlignJustifyFlags;
-
+using AbsPosReflowFlags = nsAbsoluteContainingBlock::AbsPosReflowFlags;
+using AlignJustifyFlags = CSSAlignUtils::AlignJustifyFlags;
+using GridItemCachedBAxisMeasurement =
+    nsGridContainerFrame::CachedBAxisMeasurement;
 using GridTemplate = StyleGridTemplateComponent;
+using NameList = StyleOwnedSlice<StyleCustomIdent>;
+using SizingConstraint = nsGridContainerFrame::SizingConstraint;
 using TrackListValue =
     StyleGenericTrackListValue<LengthPercentage, StyleInteger>;
 using TrackRepeat = StyleGenericTrackRepeat<LengthPercentage, StyleInteger>;
-using NameList = StyleOwnedSlice<StyleCustomIdent>;
-using SizingConstraint = nsGridContainerFrame::SizingConstraint;
-using GridItemCachedBAxisMeasurement =
-    nsGridContainerFrame::CachedBAxisMeasurement;
+using TrackSize = nsGridContainerFrame::TrackSize;
 
 static mozilla::LazyLogModule gGridContainerLog("GridContainer");
 #define GRID_LOG(...) \
