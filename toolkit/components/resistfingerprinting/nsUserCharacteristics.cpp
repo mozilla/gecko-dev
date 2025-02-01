@@ -695,6 +695,8 @@ const auto* const kOptOutPref =
     "toolkit.telemetry.user_characteristics_ping.opt-out";
 const auto* const kSendOncePref =
     "toolkit.telemetry.user_characteristics_ping.send-once";
+const auto* const kCanvasRandomizationPrincipalCheckPref =
+    "privacy.resistFingerprinting.randomization.canvas.disable_for_chrome";
 
 namespace {
 
@@ -748,6 +750,7 @@ void AfterPingSentSteps(bool aUpdatePref) {
       Preferences::SetBool(kSendOncePref, false);
     }
   }
+  Preferences::SetBool(kCanvasRandomizationPrincipalCheckPref, false);
 }
 
 /*
@@ -834,6 +837,9 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
 ) {
   MOZ_LOG(gUserCharacteristicsLog, LogLevel::Warning, ("Populating Data"));
   MOZ_ASSERT(XRE_IsParentProcess());
+
+  // Enable canvas principal check for randomization
+  Preferences::SetBool(kCanvasRandomizationPrincipalCheckPref, true);
 
   if (NS_FAILED(PopulateEssentials())) {
     // We couldn't populate important metrics. Don't submit a ping.
