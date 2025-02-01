@@ -313,9 +313,7 @@ bool nsRFPService::IsRFPEnabledFor(
   }
 #endif
 
-  if (!aSkipChromePrincipalCheck &&
-      aTarget != RFPTarget::IsAlwaysEnabledForPrecompute &&
-      IsJSContextCurrentlyChromePrivileged()) {
+  if (!aSkipChromePrincipalCheck && IsJSContextCurrentlyChromePrivileged()) {
     return false;
   }
 
