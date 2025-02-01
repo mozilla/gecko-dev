@@ -307,6 +307,24 @@ async function runTests() {
   assertFound(table, "words");
   rf.entireWord = false;
 
+  // Bug 1943846: Searching for U+2000D should not match space.
+  var nonspace = document.getElementById("nonspace");
+  assertFound(nonspace, "\u{2000D}");
+  assertFound(nonspace, "\u{10000A}");
+  assertNotFound(nonspace, "\u{3000D}");
+  assertNotFound(nonspace, "\u{3000A}");
+
+  var space = document.getElementById("space");
+  assertFound(space, " ");
+  assertFound(space, "\n");
+  assertFound(space, "\r");
+  assertFound(space, "\t");
+  assertFound(space, "\u00A0");
+  assertNotFound(space, "\u{2000D}");
+  assertNotFound(space, "\u{10000A}");
+  assertNotFound(space, "\u{3000D}");
+  assertNotFound(space, "\u{3000A}");
+
   // Do these test at the end since they trigger failure screenshots in
   // the test harness, and we want as much information as possible about
   // any OTHER tests that may have already failed.
@@ -393,6 +411,8 @@ async function runTests() {
   <div><div></div><div></div><div>several whole words</div></div>
   <div><div>one</div><div>more</div><div>row</div></div>
 </div>
+<p id="nonspace">&#x2000D;&#x10000A;</p>
+<p id="space"> <br>&nbsp;</p>
 <pre id="test">
 </pre>
 </body>
