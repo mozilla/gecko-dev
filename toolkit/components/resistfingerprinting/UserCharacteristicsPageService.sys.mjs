@@ -680,38 +680,48 @@ export class UserCharacteristicsPageService {
   async populateMathOps() {
     // Taken from https://github.com/fingerprintjs/fingerprintjs/blob/da64ad07a9c1728af595068e4a306a4151c5d503/src/sources/math.ts
     // At the time, fingerprintjs was licensed under MIT. Slightly modified to reduce payload size.
-    const ops = [
-      // Native
-      [Math.acos, 0.123124234234234242],
-      [Math.acosh, 1e308],
-      [Math.asin, 0.123124234234234242],
-      [Math.asinh, 1],
-      [Math.atanh, 0.5],
-      [Math.atan, 0.5],
-      [Math.sin, -1e300],
-      [Math.sinh, 1],
-      [Math.cos, 10.000000000123],
-      [Math.cosh, 1],
-      [Math.tan, -1e300],
-      [Math.tanh, 1],
-      [Math.exp, 1],
-      [Math.expm1, 1],
-      [Math.log1p, 10],
-      // Polyfills (I'm not sure if we need polyfills since firefox seem to have all of these operations, but I'll leave it here just in case they yield different values due to chaining)
-      [value => Math.pow(Math.PI, value), -100],
-      [value => Math.log(value + Math.sqrt(value * value - 1)), 1e154],
-      [value => Math.log(value + Math.sqrt(value * value + 1)), 1],
-      [value => Math.log((1 + value) / (1 - value)) / 2, 0.5],
-      [value => Math.exp(value) - 1 / Math.exp(value) / 2, 1],
-      [value => (Math.exp(value) + 1 / Math.exp(value)) / 2, 1],
-      [value => Math.exp(value) - 1, 1],
-      [value => (Math.exp(2 * value) - 1) / (Math.exp(2 * value) + 1), 1],
-      [value => Math.log(1 + value), 10],
-    ].map(([op, value]) => [op || (() => 0), value]);
+    const getResults = () =>
+      (() =>
+        [
+          // Native
+          [Math.acos, 0.123124234234234242],
+          [Math.acosh, 1e308],
+          [Math.asin, 0.123124234234234242],
+          [Math.asinh, 1],
+          [Math.atanh, 0.5],
+          [Math.atan, 0.5],
+          [Math.sin, -1e300],
+          [Math.sinh, 1],
+          [Math.cos, 10.000000000123],
+          [Math.cosh, 1],
+          [Math.tan, -1e300],
+          [Math.tanh, 1],
+          [Math.exp, 1],
+          [Math.expm1, 1],
+          [Math.log1p, 10],
+          // Polyfills (I'm not sure if we need polyfills since firefox seem to have all of these operations, but I'll leave it here just in case they yield different values due to chaining)
+          [value => Math.pow(Math.PI, value), -100],
+          [value => Math.log(value + Math.sqrt(value * value - 1)), 1e154],
+          [value => Math.log(value + Math.sqrt(value * value + 1)), 1],
+          [value => Math.log((1 + value) / (1 - value)) / 2, 0.5],
+          [value => Math.exp(value) - 1 / Math.exp(value) / 2, 1],
+          [value => (Math.exp(value) + 1 / Math.exp(value)) / 2, 1],
+          [value => Math.exp(value) - 1, 1],
+          [value => (Math.exp(2 * value) - 1) / (Math.exp(2 * value) + 1), 1],
+          [value => Math.log(1 + value), 10],
+        ].map(([op, value]) => [op || (() => 0), value]))().map(([op, value]) =>
+        op(value)
+      );
 
-    Glean.characteristics.mathOps.set(
-      JSON.stringify(ops.map(([op, value]) => op(value)))
-    );
+    Glean.characteristics.mathOps.set(JSON.stringify(getResults()));
+
+    if (AppConstants.platform === "win") {
+      const sandbox = Cu.Sandbox(null, {
+        alwaysUseFdlibm: true,
+      });
+      const results = Cu.evalInSandbox(`(${getResults.toString()})()`, sandbox);
+      Glean.characteristics.mathOpsFdlibm.set(JSON.stringify(results));
+    }
   }
 
   async populateClientInfo() {
