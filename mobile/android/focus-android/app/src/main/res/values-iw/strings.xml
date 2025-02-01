@@ -338,6 +338,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">‏Mozilla חותרת לאסוף רק מה שנדרש לצורך שיפור %1$s לטובת הכלל.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">פינג שימוש יומי</string>
+    <string name="preference_daily_usage_ping_description">זה מסייע ל־Mozilla להעריך כמה יש משתמשים פעילים.</string>
+    <string name="preference_daily_usage_ping_learn_more">מידע נוסף</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">הצהרת פרטיות</string>
 
@@ -637,7 +642,7 @@
     <string name="security_popup_secure_connection">חיבור מאובטח</string>
     <string name="security_popup_insecure_connection">חיבור לא מאובטח</string>
     <!-- %1$s will be replaced with organization that granted the SSL certificate -->
-    <string name="security_popup_security_verified">מאומת ע״י: %1$s</string>
+    <string name="security_popup_security_verified">מאומת על־ידי: %1$s</string>
 
     <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">אבטחת האתר</string>
