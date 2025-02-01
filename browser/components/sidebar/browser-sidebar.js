@@ -1093,6 +1093,7 @@ var SidebarController = {
     }
     if (!this.sidebarRevampEnabled) {
       toolbarButton.dataset.l10nId = "show-sidebars";
+      toolbarButton.checked = this.isOpen;
     } else {
       let sidebarToggleKey = document.getElementById("toggleSidebarKb");
       const shortcut = ShortcutUtils.prettifyShortcut(sidebarToggleKey);

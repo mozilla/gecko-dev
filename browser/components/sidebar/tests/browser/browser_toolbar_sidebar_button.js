@@ -362,6 +362,16 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
     "The sidebar button is in the nav-bar"
   );
 
+  Assert.ok(button.checked, "Sidebar button should be checked when showing.");
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", false]],
+  });
+  Assert.ok(
+    !button.checked,
+    "Sidebar button should not be checked when old sidebar is not showing."
+  );
+  await SpecialPowers.popPrefEnv();
+
   // When the button was removed, "hide-sidebar" was set automatically. Revert for the next test.
   // Expanded is the default when "hide-sidebar" is set - click the button to revert to collapsed for the next test.
   await SpecialPowers.pushPrefEnv({
