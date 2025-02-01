@@ -195,6 +195,10 @@ class Injections {
     const registrations = [];
     let { content_scripts } = intervention;
 
+    if (!Array.isArray(content_scripts)) {
+      content_scripts = [content_scripts];
+    }
+
     for (const [index, scriptConfig] of content_scripts.entries()) {
       const registration = {
         id: `webcompat intervention for ${label} #${index + 1}`,
