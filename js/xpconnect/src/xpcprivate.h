@@ -2289,7 +2289,8 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
         discardSource(false),
         metadata(cx),
         userContextId(0),
-        originAttributes(cx) {}
+        originAttributes(cx),
+        alwaysUseFdlibm(false) {}
 
   virtual bool Parse() override;
 
@@ -2312,6 +2313,7 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
   JS::RootedValue metadata;
   uint32_t userContextId;
   JS::RootedObject originAttributes;
+  bool alwaysUseFdlibm;
 
  protected:
   bool ParseGlobalProperties();

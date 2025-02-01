@@ -1273,6 +1273,10 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     creationOptions.setNewCompartmentInSystemZone();
   }
 
+  if (options.alwaysUseFdlibm) {
+    creationOptions.setAlwaysUseFdlibm(true);
+  }
+
   creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
       .setTrace(TraceXPCGlobal);
 
@@ -1913,7 +1917,8 @@ bool SandboxOptions::Parse() {
             ParseBoolean("discardSource", &discardSource) &&
             ParseGlobalProperties() && ParseValue("metadata", &metadata) &&
             ParseUInt32("userContextId", &userContextId) &&
-            ParseObject("originAttributes", &originAttributes);
+            ParseObject("originAttributes", &originAttributes) &&
+            ParseBoolean("alwaysUseFdlibm", &alwaysUseFdlibm);
   if (!ok) {
     return false;
   }
