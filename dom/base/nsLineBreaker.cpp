@@ -428,7 +428,15 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
   // Keep track of the length seen so far, in terms of characters that are
   // countable for hyphenate-limit-chars purposes.
   uint32_t length = 0;
-  AutoTArray<std::pair<uint32_t, uint32_t>, 16> positionAndLength;
+  // When setting a potential break in aBreakState, we record the previous
+  // value in case we need to restore it because the position turns out to
+  // be too close to the end of the word.
+  struct BreakInfo {
+    uint32_t mPosition;
+    uint32_t mLength;
+    uint8_t mState;
+  };
+  AutoTArray<BreakInfo, 16> oldBreaks;
   for (uint32_t i = 0; i + 1 < string.Length(); ++i) {
     // Get current character, converting surrogate pairs to UCS4 for char
     // category lookup.
@@ -464,12 +472,9 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
 
     // Don't accept any breaks until we're far enough into the word.
     if (length >= mHyphenateLimitStart && hyphens[i]) {
-      MOZ_ASSERT(aBreakState[i + 1] ==
-                 gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE);
-      aBreakState[i + 1] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
       // Keep track of hyphen position and "countable" length of the word.
-      positionAndLength.AppendElement(
-          std::pair<uint32_t, uint32_t>(i + 1, length));
+      oldBreaks.AppendElement(BreakInfo{i + 1, length, aBreakState[i + 1]});
+      aBreakState[i + 1] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
     }
 
     // If the character was outside the BMP, skip past the low surrogate.
@@ -483,19 +488,19 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
     // After discounting combining marks, punctuation, controls, etc., the word
     // was too short for hyphenate-limit-chars. If we've set any hyphen breaks,
     // forget them.
-    while (!positionAndLength.IsEmpty()) {
-      auto [lastPos, lastLen] = positionAndLength.PopLastElement();
-      aBreakState[lastPos] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
+    while (!oldBreaks.IsEmpty()) {
+      auto lastBreak = oldBreaks.PopLastElement();
+      aBreakState[lastBreak.mPosition] = lastBreak.mState;
     }
   } else {
     // Check if trailing fragment is too short; if so, remove the last hyphen
     // break(s) that we set, until the fragment will be long enough.
-    while (!positionAndLength.IsEmpty()) {
-      auto [lastPos, lastLen] = positionAndLength.PopLastElement();
-      if (length - lastLen >= mHyphenateLimitEnd) {
+    while (!oldBreaks.IsEmpty()) {
+      auto lastBreak = oldBreaks.PopLastElement();
+      if (length - lastBreak.mLength >= mHyphenateLimitEnd) {
         break;
       }
-      aBreakState[lastPos] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
+      aBreakState[lastBreak.mPosition] = lastBreak.mState;
     }
   }
 }
