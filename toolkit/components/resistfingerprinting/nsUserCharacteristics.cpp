@@ -93,7 +93,7 @@ using PopulatePromise = PopulatePromiseBase::Private;
 
 // ==================================================================
 // ==================================================================
-RefPtr<PopulatePromise> ContentPageStuff() {
+already_AddRefed<PopulatePromise> ContentPageStuff() {
   nsCOMPtr<nsIUserCharacteristicsPageService> ucp =
       do_GetService("@mozilla.org/user-characteristics-page;1");
   MOZ_ASSERT(ucp);
@@ -108,7 +108,7 @@ RefPtr<PopulatePromise> ContentPageStuff() {
             ("Could not create Content Page"));
     populatePromise->Reject(
         std::pair(__func__, "CREATION_FAILED"_ns.AsString()), __func__);
-    return populatePromise;
+    return populatePromise.forget();
   }
   MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Debug,
           ("Created Content Page"));
@@ -136,7 +136,7 @@ RefPtr<PopulatePromise> ContentPageStuff() {
                             __func__);
   }
 
-  return populatePromise;
+  return populatePromise.forget();
 }
 
 void PopulateCSSProperties() {
@@ -436,7 +436,7 @@ void PopulateScaling() {
   glean::characteristics::scalings.Set(output);
 }
 
-RefPtr<PopulatePromise> PopulateMediaDevices() {
+already_AddRefed<PopulatePromise> PopulateMediaDevices() {
   RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
   MediaManager::Get()->GetPhysicalDevices()->Then(
       GetCurrentSerialEventTarget(), __func__,
@@ -480,7 +480,7 @@ RefPtr<PopulatePromise> PopulateMediaDevices() {
         populatePromise->Reject(
             std::pair("PopulateMediaDevices"_ns, reason->mMessage), __func__);
       });
-  return populatePromise;
+  return populatePromise.forget();
 }
 
 void PopulateLanguages() {
@@ -631,7 +631,7 @@ void PopulateMisc(bool worksInGtest) {
   }
 }
 
-RefPtr<PopulatePromise> PopulateTimeZone() {
+already_AddRefed<PopulatePromise> PopulateTimeZone() {
   RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
 
   AutoTArray<char16_t, 128> tzBuffer;
@@ -646,7 +646,7 @@ RefPtr<PopulatePromise> PopulateTimeZone() {
                             __func__);
   }
 
-  return populatePromise;
+  return populatePromise.forget();
 }
 
 const RefPtr<PopulatePromise>& TimoutPromise(
