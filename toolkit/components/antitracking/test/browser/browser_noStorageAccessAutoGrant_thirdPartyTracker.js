@@ -22,10 +22,11 @@ add_setup(async function () {
 
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["network.cookie.cookieBehavior.trackerCookieBlocking", false],
       ["dom.storage_access.max_concurrent_auto_grants", 2],
       [
         "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
-        false,
+        true,
       ],
     ],
   });
@@ -34,7 +35,6 @@ add_setup(async function () {
 
   registerCleanupFunction(async _ => {
     await UrlClassifierTestUtils.cleanupTestTrackers();
-    await cleanUpData();
   });
 });
 
@@ -61,9 +61,25 @@ add_task(async function test_noAutoGrant_thirdPartyTracker() {
     TEST_3RD_PARTY_PAGE,
     requestStorageAccessAndExpectFailure
   );
+
+  await cleanUpData();
 });
 
 add_task(async function test_autoGrant_entityList() {
+  // Grant the storageAccessAPI permission to the third-party tracker. This
+  // indicates that the tracker has been interacted with. This is necessary to
+  // trigger the auto-grant logic.
+  const uri = Services.io.newURI(TEST_3RD_PARTY_DOMAIN);
+  const principal = Services.scriptSecurityManager.createContentPrincipal(
+    uri,
+    {}
+  );
+  Services.perms.addFromPrincipal(
+    principal,
+    "storageAccessAPI",
+    Services.perms.ALLOW_ACTION
+  );
+
   // Ensure that third-party trackers in the entity list can still be
   // auto-granted.
   await openPageAndRunCode(
@@ -72,4 +88,6 @@ add_task(async function test_autoGrant_entityList() {
     TEST_3RD_PARTY_PAGE,
     requestStorageAccessAndExpectSuccess
   );
+
+  await cleanUpData();
 });

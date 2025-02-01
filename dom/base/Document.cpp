@@ -19085,7 +19085,7 @@ Document::AutomaticStorageAccessPermissionCanBeGranted(
   }
 
   if (isThirdPartyTracker &&
-      !StaticPrefs::
+      StaticPrefs::
           privacy_restrict3rdpartystorage_heuristic_exclude_third_party_trackers()) {
     return AutomaticStorageAccessPermissionGrantPromise::CreateAndResolve(
         false, __func__);
