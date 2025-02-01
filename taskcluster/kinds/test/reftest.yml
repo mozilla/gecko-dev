@@ -231,11 +231,18 @@ reftest:
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
+            no-gpu-process:
+                by-test-platform:
+                    android.*: []
+                    .*wayland.*: []
+                    linux.*asan.*/opt: []
+                    windows.*: []
+                    default: built-projects
             default:
                 by-test-platform:
-                    android.*/.*: []
+                    android.*: []
                     .*wayland.*: []
-                    linux.*asan/opt: []
+                    linux.*asan.*/opt: []
                     default: built-projects
     max-run-time:
         by-test-platform:

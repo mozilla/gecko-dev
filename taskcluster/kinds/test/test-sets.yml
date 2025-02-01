@@ -236,9 +236,6 @@ linux2204-wayland-tests:
     - xpcshell
 
 # Windows
-windows32-2009-tests:
-    - reftest
-
 windows32-tests:
     - cppunittest
     - crashtest
@@ -253,6 +250,7 @@ windows32-tests:
     - mochitest-browser-media
     - mochitest-chrome
     - mochitest-media
+    - reftest
     - test-verify
     - test-verify-gpu
     - test-verify-wpt
@@ -286,7 +284,6 @@ windows11-64-2009-ccov-tests:
 windows11-2009-tests:
     - mochitest-browser-chrome
     - mochitest-media
-    - reftest
     - telemetry-tests-client
 
 windows11-24h2-tests:
@@ -311,13 +308,11 @@ windows11-24h2-tests:
     - mochitest-webgl1-ext
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
+    - reftest
     - test-verify
     - test-verify-gpu
     - test-verify-wpt
     - xpcshell
-
-mingwclang-win2009-tests:
-    - reftest
 
 mingwclang-tests-debug:
     - cppunittest
@@ -330,6 +325,7 @@ mingwclang-tests-debug:
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
     - telemetry-tests-client
+    - reftest
 
 # The following is the same as the above block, minus reftests.
 # Reftests were disabled due to frequent hangs; see bug 1642719

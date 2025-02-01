@@ -127,27 +127,6 @@ linux2204-64-wayland-shippable/opt:
         - webgpu
 
 ##
-# Windows platforms (matching /windows.*/)
-# win11-32-2009 - only around for reftest
-windows11-32-2009-shippable-qr/opt:
-    build-platform: win32-shippable/opt
-    build-signing-label: build-signing-win32-shippable/opt
-    test-sets:
-        - windows32-2009-tests
-
-windows11-32-2009-qr/opt:
-    build-platform: win32/opt
-    build-signing-label: build-signing-win32/opt
-    test-sets:
-        - windows32-2009-tests
-
-windows11-32-2009-qr/debug:
-    build-platform: win32/debug
-    build-signing-label: build-signing-win32/debug
-    test-sets:
-        - windows32-2009-tests
-
-##
 # Windows platforms (matching /windows.*/) 24h2 (no -qr)
 
 # win11-32-24h2
@@ -306,10 +285,6 @@ windows11-64-2009-asan-qr/opt:
     test-sets:
         - windows11-2009-tests
 
-windows11-64-2009-mingwclang-qr/debug:
-    build-platform: win64-mingwclang/debug
-    test-sets:
-        - mingwclang-win2009-tests
 
 # win64 24h2 (no -qr)
 # no perf right now
