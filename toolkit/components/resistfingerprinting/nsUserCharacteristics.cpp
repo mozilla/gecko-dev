@@ -26,6 +26,7 @@
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/StaticPrefs_privacy.h"
 
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/PreferenceSheet.h"
@@ -697,6 +698,8 @@ const auto* const kSendOncePref =
     "toolkit.telemetry.user_characteristics_ping.send-once";
 const auto* const kCanvasRandomizationPrincipalCheckPref =
     "privacy.resistFingerprinting.randomization.canvas.disable_for_chrome";
+const auto* const kFingerprintingProtectionOverridesPref =
+    "privacy.fingerprintingProtection.overrides";
 
 namespace {
 
@@ -776,6 +779,22 @@ bool nsUserCharacteristics::ShouldSubmit() {
   }
 
   if (optOut) {
+    return false;
+  }
+
+  if (StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() ||
+      StaticPrefs::privacy_resistFingerprinting_pbmode_DoNotUseDirectly()) {
+    // If resistFingerprinting is enabled, we don't want to send the ping
+    // as it will mess up data.
+    return false;
+  }
+
+  nsAutoString fppOverrides;
+  nsresult rv = Preferences::GetString(kFingerprintingProtectionOverridesPref,
+                                       fppOverrides);
+  if (NS_FAILED(rv) || !fppOverrides.IsEmpty()) {
+    // If there are any overrides, we don't want to send the ping
+    // as it will mess up data.
     return false;
   }
 

@@ -153,6 +153,11 @@ const auto* const kOptOutPref =
     "toolkit.telemetry.user_characteristics_ping.opt-out";
 const auto* const kSendOncePref =
     "toolkit.telemetry.user_characteristics_ping.send-once";
+const auto* const kResistFingerprintingPref = "privacy.resistFingerprinting";
+const auto* const kResistFingerprintingPrefPBMode =
+    "privacy.resistFingerprinting.pbmode";
+const auto* const kFingerprintingProtectionOverrides =
+    "privacy.fingerprintingProtection.overrides";
 
 TEST(ResistFingerprinting, UserCharacteristics_ShouldSubmit)
 {
@@ -187,4 +192,18 @@ TEST(ResistFingerprinting, UserCharacteristics_ShouldSubmit)
   Preferences::SetBool(kOptOutPref, true);
   ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
   Preferences::SetBool(kOptOutPref, false);
+
+  // Verify resistFingerprinting prevents submission
+  Preferences::SetBool(kResistFingerprintingPref, true);
+  ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
+  Preferences::SetBool(kResistFingerprintingPref, false);
+
+  Preferences::SetBool(kResistFingerprintingPrefPBMode, true);
+  ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
+  Preferences::SetBool(kResistFingerprintingPrefPBMode, false);
+
+  // Verify non-empty fingerprintingProtection overrides prevent submission
+  Preferences::SetCString(kFingerprintingProtectionOverrides, "test");
+  ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
+  Preferences::ClearUser(kFingerprintingProtectionOverrides);
 }
