@@ -437,7 +437,11 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
     uint8_t mState;
   };
   AutoTArray<BreakInfo, 16> oldBreaks;
-  for (uint32_t i = 0; i + 1 < string.Length(); ++i) {
+  // Don't consider setting any breaks where i >= endLimit, as they will
+  // definitely be too near the end of the word to be accepted.
+  uint32_t endLimit =
+      string.Length() - std::max<uint32_t>(1u, mHyphenateLimitEnd);
+  for (uint32_t i = 0; i < string.Length(); ++i) {
     // Get current character, converting surrogate pairs to UCS4 for char
     // category lookup.
     uint32_t ch = string[i];
@@ -470,8 +474,13 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
         break;
     }
 
-    // Don't accept any breaks until we're far enough into the word.
-    if (length >= mHyphenateLimitStart && hyphens[i]) {
+    // Don't accept any breaks until we're far enough into the word, or if
+    // we're too near the end for it to possibly be accepted. (Note that the
+    // check against endLimit is just an initial worst-case check that assumes
+    // all the remaining characters are countable; if there are combining
+    // marks, etc., in the trailing part of the word we may need to reset the
+    // potential break later, after we've fully counted length.)
+    if (hyphens[i] && length >= mHyphenateLimitStart && i < endLimit) {
       // Keep track of hyphen position and "countable" length of the word.
       oldBreaks.AppendElement(BreakInfo{i + 1, length, aBreakState[i + 1]});
       aBreakState[i + 1] = gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
@@ -482,7 +491,6 @@ void nsLineBreaker::FindHyphenationPoints(nsHyphenator* aHyphenator,
       ++i;
     }
   }
-  ++length;  // Account for the last character (not counted by the loop above).
 
   if (length < mHyphenateLimitWord) {
     // After discounting combining marks, punctuation, controls, etc., the word
