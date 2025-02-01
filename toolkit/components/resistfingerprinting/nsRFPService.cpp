@@ -313,7 +313,7 @@ bool nsRFPService::IsRFPEnabledFor(
   }
 #endif
 
-  if (!aSkipChromePrincipalCheck && IsJSContextCurrentlyChromePrivileged()) {
+  if (IsJSContextCurrentlyChromePrivileged()) {
     return false;
   }
 

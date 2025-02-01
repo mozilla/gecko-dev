@@ -346,7 +346,6 @@ add_task(async function setupRFPExemptions() {
     set: [
       ["privacy.resistFingerprinting", true],
       ["privacy.resistFingerprinting.exemptedDomains", "example.net"],
-      ["privacy.resistFingerprinting.principalCheckEnabled", false],
     ],
   });
 
@@ -442,10 +441,7 @@ add_task(async function setupETPToggleExemptions() {
 
 add_task(async function setupResistFingerprinting() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.principalCheckEnabled", false],
-    ],
+    set: [["privacy.resistFingerprinting", true]],
   });
 
   let spoofedGeckoTrail = SPOOFED_UA_GECKO_TRAIL[AppConstants.platform];

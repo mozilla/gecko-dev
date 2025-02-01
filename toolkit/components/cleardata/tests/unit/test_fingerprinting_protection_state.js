@@ -8,10 +8,6 @@ do_get_profile();
 add_task(async function test_clear_fingerprinting_protection_state() {
   info("Enabling fingerprinting randomization");
   Services.prefs.setBoolPref("privacy.resistFingerprinting", true);
-  Services.prefs.setBoolPref(
-    "privacy.resistFingerprinting.principalCheckEnabled",
-    false
-  );
 
   let uri = Services.io.newURI("https://example.com");
   let principal = Services.scriptSecurityManager.createContentPrincipal(
@@ -163,19 +159,12 @@ add_task(async function test_clear_fingerprinting_protection_state() {
   );
 
   Services.prefs.clearUserPref("privacy.resistFingerprinting");
-  Services.prefs.clearUserPref(
-    "privacy.resistFingerprinting.principalCheckEnabled"
-  );
 });
 
 add_task(
   async function test_clear_fingerprinting_protection_state_by_site_and_pattern() {
     info("Enabling fingerprinting randomization");
     Services.prefs.setBoolPref("privacy.resistFingerprinting", true);
-    Services.prefs.setBoolPref(
-      "privacy.resistFingerprinting.principalCheckEnabled",
-      false
-    );
 
     let uri = Services.io.newURI("https://example.com");
     let principal = Services.scriptSecurityManager.createContentPrincipal(
@@ -256,8 +245,5 @@ add_task(
     );
 
     Services.prefs.clearUserPref("privacy.resistFingerprinting");
-    Services.prefs.clearUserPref(
-      "privacy.resistFingerprinting.principalCheckEnabled"
-    );
   }
 );

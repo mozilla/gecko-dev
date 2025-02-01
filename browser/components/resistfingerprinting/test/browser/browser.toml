@@ -8,6 +8,7 @@ support-files = [
   "file_keyBoardEvent.sjs",
   "file_navigator.html",
   "file_navigator.worker.js",
+  "file_workerNetInfo.js",
   "file_workerPerformance.js",
   "head.js",
   "file_canvascompare_aboutblank_iframee.html",
@@ -80,8 +81,6 @@ https_first_disabled = true
 
 ["browser_canvascompare_popups_data.js"]
 
-["browser_color_scheme.js"]
-
 ["browser_cross_origin_isolated_animation_api.js"]
 
 ["browser_cross_origin_isolated_performance_api.js"]
@@ -138,6 +137,9 @@ https_first_disabled = true
 ["browser_navigator_iframes.js"]
 https_first_disabled = true
 
+["browser_netInfo.js"]
+https_first_disabled = true
+
 ["browser_performanceAPI.js"]
 
 ["browser_performanceAPIWorkers.js"]
@@ -158,3 +160,5 @@ https_first_disabled = true
 ["browser_spoofing_keyboard_event.js"]
 
 ["browser_timezone.js"]
+
+["browser_color_scheme.js"]
