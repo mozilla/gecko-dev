@@ -4105,8 +4105,7 @@ characteristics:
       - technical
 
   mathml1:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4123,8 +4122,7 @@ characteristics:
       - technical
 
   mathml2:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4142,8 +4140,7 @@ characteristics:
 
 
   mathml3:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4161,8 +4158,7 @@ characteristics:
 
 
   mathml4:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4179,8 +4175,7 @@ characteristics:
       - technical
 
   mathml5:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4197,8 +4192,7 @@ characteristics:
       - technical
 
   mathml6:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4215,8 +4209,7 @@ characteristics:
       - technical
 
   mathml7:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4233,8 +4226,7 @@ characteristics:
       - technical
 
   mathml8:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4251,8 +4243,7 @@ characteristics:
       - technical
 
   mathml9:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
@@ -4269,8 +4260,7 @@ characteristics:
       - technical
 
   mathml10:
-    type: quantity
-    unit: int
+    type: string
     description: >
       Width of the drawn MathML element
     lifetime: application
