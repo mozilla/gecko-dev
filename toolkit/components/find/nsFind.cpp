@@ -574,16 +574,7 @@ char32_t nsFind::PeekNextChar(State& aState, bool aAlreadyMatching) const {
 }
 
 #define NBSP_CHARCODE (CHAR_TO_UNICHAR(160))
-// Bug 1943846: The char16_t version of nsCRT::IsAsciiSpace is not working as
-// expected for characters with UTF32 > 0xFFFF. Add a check for UTF32 characters
-
-static bool IsSpace(char16_t aChar) {
-  return nsCRT::IsAsciiSpace(aChar) || aChar == NBSP_CHARCODE;
-}
-static bool IsSpace(char32_t aChar) {
-  return aChar <= 0xffff && IsSpace(char16_t(aChar));
-}
-
+#define IsSpace(c) (nsCRT::IsAsciiSpace(c) || (c) == NBSP_CHARCODE)
 #define OVERFLOW_PINDEX (mFindBackward ? pindex < 0 : pindex > patLen)
 #define DONE_WITH_PINDEX (mFindBackward ? pindex <= 0 : pindex >= patLen)
 
