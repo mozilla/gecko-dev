@@ -50,36 +50,6 @@ class ImagePendingRendering final {
   TimeStamp mLoadTime;
 };
 
-class ContentIdentifierHashEntry : public PLDHashEntryHdr {
- public:
-  using KeyType = const Element*;
-  using KeyTypePointer = const Element*;
-
-  explicit ContentIdentifierHashEntry(KeyTypePointer aKey) : mElement(aKey) {}
-
-  ContentIdentifierHashEntry(ContentIdentifierHashEntry&&) = default;
-
-  ~ContentIdentifierHashEntry() = default;
-
-  bool KeyEquals(KeyTypePointer aKey) const { return mElement == aKey; }
-
-  static KeyTypePointer KeyToPointer(KeyType& aKey) { return aKey; }
-
-  static PLDHashNumber HashKey(KeyTypePointer aKey) {
-    return mozilla::HashGeneric(reinterpret_cast<uintptr_t>(aKey));
-  }
-
-  // mImageRequestProxies isn't memmoveable.
-  enum { ALLOW_MEMMOVE = false };
-
-  AutoTArray<WeakPtr<PreloaderBase>, 1> mImageRequestProxies;
-
- private:
-  // Raw pointer; Element::UnbindFromTree will delete this entry to make
-  // sure mElement is always valid.
-  const Element* mElement;
-};
-
 class LCPHelpers final {
  public:
   // Called when the size of the image is known.
