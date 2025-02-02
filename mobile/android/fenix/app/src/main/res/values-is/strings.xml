@@ -614,6 +614,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Til að hjálpa til við að bæta vafrann sendir Firefox greiningar- og samskiptagögn til Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Stjórna</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hjálpaðu til við að láta Firefox dafna</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Ef þú deilir því hvernig þú uppgötvaðir Firefox og að þú notar hann, hjálpar þú við að kynna vafrann okkar fyrir fleirum.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Deildu lágmarksgögnum með markaðstæknifélögum Mozilla. Þessi gögn eru aldrei seld eða notuð til að sýna þér auglýsingar.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hvernig við notum gögnin</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Staðfesta og byrja að vafra</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Veldu staðsetningu verkfærastikunnar</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1056,16 +1066,25 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tækni- og gagnvirknigögn</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Senda tækni- og samskiptagögn</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Fræðast meira</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Deilir afköstum, notkun, vélbúnaðarupplýsingum og sérsniðum gögnum um vafrann þinn með Mozilla svo hægt sé að betrumbæta %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Gögn um tækið þitt, vélbúnaðarstillingar og hvernig þú notar Firefox, hjálpa til við að bæta eiginleika, afköst og stöðugleika fyrir alla notendur.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Markaðsgögn</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Mælingagögn herferðar</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Deilir grunnnotkunargögnum með Adjust, söluaðila farsímamarkaðssetningar okkar</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Deildu upplýsingum um hvernig þú uppgötvaðir Firefox með markaðsaðilum Mozilla. Þetta hjálpar okkur að láta Firefox vaxa og að byggja upp betra internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Deildu því hvernig þú uppgötvaðir Firefox og að þú notar hann með markaðstæknifélögum Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Frekari upplýsingar um markaðsgögn</string>
 
@@ -1243,6 +1262,10 @@
     <string name="studies_active">Virkt</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s kann að setja upp og keyra rannsóknir af og til.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Prófaðu eiginleika og hugmyndir áður en þær eru settar í dreifingu.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Settu upp og keyrðu rannsóknir</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Frekari upplýsingar</string>
     <!-- Dialog message shown after removing a study -->
@@ -3160,4 +3183,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Sumir eiginleikar hætta að virka á morgun.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Sýna falinn texta</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Hreinsa texta</string>
+</resources>

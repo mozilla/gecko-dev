@@ -621,6 +621,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Барои беҳтар кардани браузер, «Firefox» маълумоти ташхисӣ ва ҳамкориро ба «Mozilla» ирсол мекунад. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Идоракунӣ</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ба мо барои инкишофи браузери «Firefox» кумак расонед</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Вақте ки шумо хабар медиҳед, ки чӣ тавр браузери «Firefox»-ро пайдо кардед ва онро истифода мебаред, шумо ба мо барои муаррифӣ кардани браузер ба шумораи зиёди одамон кумак мерасонед.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Маълумоти камтаринро ба шарикони технологияи бозоршиносии «Mozilla» мубодила кунед. Ин маълумот ҳеҷ вақт фурӯхта намешавад ё нисбат ба шумо барои нишон додани таблиғ истифода намешавад.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Чӣ тавр мо маълумотро истифода мебарем</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Тасдиқ кунед ва тамошоро оғоз намоед</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Ҷойгиркунии навори абзорҳоро интихоб кунед</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1067,16 +1077,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Истифодабарӣ ва маълумоти техникӣ</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Маълумоти техникӣ ва ҳамкорӣ</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Фиристодани маълумоти техникӣ ва ҳамкорӣ</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Маълумоти бештар</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Барои беҳтар кардани %1$s маълумоти самаранокӣ, истифодабарӣ, сахтафзор ва танзимоти фармоишӣ дар бораи браузери шумо бо Mozilla мубодила карда шавад</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Маълумот дар бораи дастгоҳи шумо, танзимоти сахтафзор ва тарзи истифодаи браузер ба мо барои беҳтар кардани хусусиятҳо, самаранокӣ ва устувории «Firefox» кумак мерасонад.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маълумоти маркетингӣ</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Маълумоти андозагирии маърака</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Маълумоти асосии истифодабариро бо «Adjust», фурӯшандаи маркетингии мобилии мо, мубодила мекунад</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Маълумотро дар бораи он, ки шумо чӣ тавр браузери «Firefox»-ро кашф кардаед, бо шарикони бозоршиносии «Mozilla» мубодила кунед. Ин ба мо кумак мекунад, ки сифати браузери «Firefox»-ро боз ҳам баланд бардорем ва Интернети беҳтарро созем</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Ба шарикони технологияи бозоршиносии «Mozilla» хабар диҳед, ки шумо чӣ тавр браузери «Firefox»-ро пайдо кардед ва онро истифода мебаред.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Маълумоти бештар дар бораи иттилооти бозоршиносӣ</string>
 
@@ -1257,6 +1276,10 @@
     <string name="studies_active">Фаъол</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">Баъзе вақт «%1$s» метавонад омӯзишҳоро насб ва иҷро намояд.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Хусусиятҳо ва ғояҳои моро пеш аз он ки онҳо дар версияи нав ба ҳамаи корбарон дастрас шаванд, озмоиш кунед.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Насб ва иҷро кардани омӯзишҳо</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Маълумоти бештар</string>
 

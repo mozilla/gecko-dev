@@ -7,9 +7,9 @@
     The %1$s will be replaced by the number of opened tabs -->
     <string name="mozac_open_tab_counter_tab_tray">Schedi nun privati graputi: %1$s. Tocca pi canciari schedi.</string>
     <!-- Browser menu button that creates a new tab -->
-    <string name="mozac_browser_menu_new_tab">Nova scheda</string>
+    <string name="mozac_browser_menu_new_tab">Scheda nova</string>
     <!-- Browser menu button that creates a private tab -->
-    <string name="mozac_browser_menu_new_private_tab">Nova scheda privata</string>
+    <string name="mozac_browser_menu_new_private_tab">Scheda privata nova</string>
     <!-- Browser menu button to close tab. Closes the current session when pressed. -->
     <string name="mozac_close_tab">Chiuji scheda</string>
     <!-- Menu option to duplicate the current tab -->

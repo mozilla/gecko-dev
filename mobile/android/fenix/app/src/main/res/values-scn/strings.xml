@@ -98,11 +98,11 @@
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
-    <string name="erase_action_cfr_message">Tocca cca p\'abbiari na nova sissioni privata. Scancella a crunuluggìa, i viscotta — tutti cosi.</string>
+    <string name="erase_action_cfr_message">Tocca cca p\'abbiari na sissioni privata nova. Scancella a crunuluggìa, i viscotta — tutti cosi.</string>
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_title">Nàvica cchiù lestu câ nova navicazzioni</string>
+    <string name="navbar_cfr_title">Nàvica cchiù lestu câ navicazzioni nova</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Nnôn situ, sta sbarra s\'ammuccia quannu tiri versu jusu p\'aviri cchiù spazziu di navicazzioni.</string>
@@ -146,9 +146,9 @@
 
     <!-- Home screen icons - Long press shortcuts -->
     <!-- Shortcut action to open new tab -->
-    <string name="home_screen_shortcut_open_new_tab_2">Nova scheda</string>
+    <string name="home_screen_shortcut_open_new_tab_2">Scheda nova</string>
     <!-- Shortcut action to open new private tab -->
-    <string name="home_screen_shortcut_open_new_private_tab_2">Nova scheda privata</string>
+    <string name="home_screen_shortcut_open_new_private_tab_2">Scheda privata nova</string>
     <!-- Shortcut action to open Passwords screen -->
     <string name="home_screen_shortcut_passwords">Chiavi</string>
 
@@ -292,7 +292,7 @@
     <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
     <string name="browser_menu_syncing_paused_caption">Sincrunizzazzioni \'n pausa</string>
     <!-- Browser menu label that creates a private tab -->
-    <string name="browser_menu_new_private_tab">Nova scheda privata</string>
+    <string name="browser_menu_new_private_tab">Scheda privata nova</string>
     <!-- Browser menu label that navigates to the Password screen -->
     <string name="browser_menu_passwords">Chiavi</string>
     <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
@@ -591,6 +591,16 @@
 
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Manija</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a fari crìsciri Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Quannu sparti comu scupristi Firefox, e chi l\'usi, n\'ajuti a fàrini canùsciri di cchiù cristiani.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Sparti dati minimali câ squatra tecnulòggica dâ pubblicità di Mozilla. Sti dati nun i vinnemu mai, e nun l\'usamu pi mustràriti pubblicità.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Comu usamu i dati</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Cunferma e accumincia a navicari</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Scarta a pusizzioni dâ barra dî stigghi</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -640,7 +650,7 @@
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
-    <string name="search_widget_content_description_2">Grapi na nova scheda di %1$s</string>
+    <string name="search_widget_content_description_2">Grapi na scheda nova di %1$s</string>
     <!-- Text preview for smaller sized widgets -->
     <string name="search_widget_text_short">Riscedi</string>
     <!-- Text preview for larger sized widgets -->
@@ -929,9 +939,9 @@
 
     <!-- Add-ons general availability nimbus message-->
     <!-- Title of the Nimbus message for extension general availability-->
-    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Sunnu dispunìbbili novi stinneri</string>
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Sunnu dispunìbbili stinneri novi</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Scopri cchiù assai di centu novi stinneri chi ti pirmèttinu di pirsunalizzari Firefox.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Scopri cchiù assai di centu stinneri novi chi ti pirmèttinu di pirsunalizzari Firefox.</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Scopri i stinneri</string>
 
@@ -1024,16 +1034,25 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Dati tècnici e di ntirazzioni</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Manna dati tècnici e di ntirazzioni</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Cchiù nfurmazzioni</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Sparti i dati di pristazzioni, usu, hardware e pirsunalizzazzioni dû to navicaturi cu Mozilla p\'ajutàrini a \'mmigghiurari %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Dati supra ô to dispusitivu, a cunfijurazzioni hardware e ncapu a comu usi Firefox n\'ajuta a \'mmigghiuràrinni i funzioni, i pristazzioni e a stabbilità.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dati di màrketing</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dati di misurazzioni dî campagni</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Sparti dati di basi cu Adjust, u nostru furnituri di màrketing mòbbili</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sparti nfurmazzioni ncapu a comu scupristi Firefox chî cumpagni di màrketing di Mozilla. Chistu n\'ajuta a fari crìsciri Firefox e custrujiri na riti megghiu</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Sparti comu scupristi e chi usi Firefox câ nostra squatra dâ pubblicità.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Cchiù nfurmazzioni supra ê dati di màrketing</string>
 
@@ -1113,7 +1132,7 @@
     <!-- Option in Library to open History page -->
     <string name="library_history">Crunuluggìa</string>
     <!-- Option in Library to open a new tab -->
-    <string name="library_new_tab">Nova scheda</string>
+    <string name="library_new_tab">Scheda nova</string>
     <!-- Settings Page Title -->
     <string name="settings_title">Mpustazzioni</string>
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
@@ -1210,6 +1229,10 @@
     <string name="studies_active">Attivi</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s po nzitari e abbiari studi di tempu \'n tempu.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Prova i funzioni e i pinzati novi prima chi vennu fatti pùbblichi.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Nzita e abbìa studi</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Cchiù nfurmazzioni</string>
     <!-- Dialog message shown after removing a study -->
@@ -1499,7 +1522,7 @@
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">Junci nzingalibbra mentri chi nàvichi, accussì ti l\'attrovi fàcili doppu.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title">Nova carpetta</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Carpetta nova</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2263,7 +2286,7 @@
     <!-- Title of the Add search engine screen -->
     <string name="search_engine_add_custom_search_engine_title">Junci muturi di risciduta</string>
     <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
-    <string name="search_engine_add_custom_search_engine_button_content_description">Junci un novu muturi di risciduta</string>
+    <string name="search_engine_add_custom_search_engine_button_content_description">Junci un muturi di risciduta novu</string>
     <!-- Title of the Edit search engine screen -->
     <string name="search_engine_edit_custom_search_engine_title">Cancia u muturi di risciduta</string>
     <!-- Text for the menu button to edit a search engine -->
@@ -2566,7 +2589,7 @@
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
     <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">%s di Mozilla</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-    <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">Nova nfurmazzioni di cuntrullari</string>
+    <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">Nfurmazzioni nova di cuntrullari</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
     <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">Cuntrolla ora</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
@@ -2692,7 +2715,7 @@
     <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="translations_bottom_sheet_title_first_time">Prova i traduzzioni privati di %1$s</string>
     <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
-    <string name="translations_bottom_sheet_info_message">Pâ to privatizza, i traduzzioni nun làssanu mai u to dispusitvu. Prestu sarannu dispunìbbili novi lingui e autri ammigghiuramenti! %1$s</string>
+    <string name="translations_bottom_sheet_info_message">Pâ to privatizza, i traduzzioni nun làssanu mai u to dispusitvu. Prestu sarannu dispunìbbili lingui novi e autri ammigghiuramenti! %1$s</string>
     <!-- Text that links to additional information about the Firefox translations feature. -->
     <string name="translations_bottom_sheet_info_message_learn_more">Cchiù nfurmazzioni</string>
     <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
@@ -2806,7 +2829,7 @@
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
     <string name="never_translate_site_toolbar_title_preference">Nun tradùciri mai sti siti</string>
     <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-    <string name="never_translate_site_header_preference">Pi jùnciri un novu situ: vacci e scarta “Nun tradùciri mai” dû minù di traduzzioni.</string>
+    <string name="never_translate_site_header_preference">Pi jùnciri un situ novu: vacci e scarta “Nun tradùciri mai” dû minù di traduzzioni.</string>
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">Scancella %1$s</string>

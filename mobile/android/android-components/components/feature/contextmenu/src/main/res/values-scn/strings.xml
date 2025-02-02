@@ -23,9 +23,9 @@
     <!-- Text for context menu item to save / download the file. -->
     <string name="mozac_feature_contextmenu_save_file_to_device">Sarba u pricu nnô dispusitivu</string>
     <!-- Text for confirmation "snackbar" shown after opening a link in a new tab.  -->
-    <string name="mozac_feature_contextmenu_snackbar_new_tab_opened">Nova scheda graputa</string>
+    <string name="mozac_feature_contextmenu_snackbar_new_tab_opened">Scheda nova graputa</string>
     <!-- Text for confirmation "snackbar" shown after opening a link in a new private tab.  -->
-    <string name="mozac_feature_contextmenu_snackbar_new_private_tab_opened">Nova scheda privata graputa</string>
+    <string name="mozac_feature_contextmenu_snackbar_new_private_tab_opened">Scheda privata nova graputa</string>
     <!-- Text for confirmation "snackbar" shown after copying a link or image URL to the clipboard. -->
     <string name="mozac_feature_contextmenu_snackbar_link_copied">Lijami cupiata nnô pitazzu</string>
     <!-- Action shown in a "snacbkar" after opening a new/private tab. Clicking this action will switch to the newly opened tab. -->

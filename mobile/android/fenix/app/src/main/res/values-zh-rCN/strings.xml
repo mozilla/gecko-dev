@@ -627,6 +627,10 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">为帮助改进浏览器，Firefox 会向 Mozilla 发送诊断和交互数据。%1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">管理</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">我们如何使用您的数据</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">确认并开始浏览</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">选取工具栏位置</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1075,10 +1079,14 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">使用率和技术数据</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">技术和交互数据</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">发送技术和交互数据</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">详细了解</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">与 Mozilla 分享使用浏览器时的工作性能、使用方式、硬件设备以及有关自定义的数据，帮助我们改进 %1$s，让它变得更好</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">与您的设备、硬件配置、使用方式相关的数据，有助于我们改进 Firefox 的功能、性能、稳定性。</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">营销数据</string>
     <!-- Preference description for marketing data collection -->
@@ -1264,6 +1272,10 @@
     <string name="studies_active">进行中</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s 可能会不时地安装并运行一些研究项目。</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">抢先体验尚未全面推出的功能和概念。</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">安装并运行研究</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">详细了解</string>
 
@@ -3222,4 +3234,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">部分功能将从明天起失效。</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">显示隐藏文本</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">清空文本</string>
+</resources>
