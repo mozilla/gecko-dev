@@ -12,7 +12,7 @@
  * and create derivative works of this document.
  */
 
-[Exposed=Window, InstrumentedProps=(attributeStyleMap)]
+[Exposed=Window]
 interface HTMLElement : Element {
   [HTMLConstructor] constructor();
 

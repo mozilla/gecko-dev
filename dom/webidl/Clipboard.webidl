@@ -13,8 +13,7 @@
 typedef sequence<ClipboardItem> ClipboardItems;
 
 [SecureContext,
- Exposed=Window,
- InstrumentedProps=(read,readText,write)]
+ Exposed=Window]
 interface Clipboard : EventTarget {
   [Pref="dom.events.asyncClipboard.clipboardItem", NewObject, NeedsSubjectPrincipal]
   Promise<ClipboardItems> read();

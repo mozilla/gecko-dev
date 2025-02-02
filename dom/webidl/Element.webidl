@@ -14,8 +14,7 @@
 
 interface nsIScreen;
 
-[Exposed=Window,
- InstrumentedProps=(computedStyleMap,onmousewheel,scrollIntoViewIfNeeded)]
+[Exposed=Window]
 interface Element : Node {
   [Constant]
   readonly attribute DOMString? namespaceURI;

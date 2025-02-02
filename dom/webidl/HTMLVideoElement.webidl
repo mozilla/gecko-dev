@@ -31,11 +31,7 @@ dictionary VideoFrameCallbackMetadata {
 callback VideoFrameRequestCallback =
     undefined(DOMHighResTimeStamp now, VideoFrameCallbackMetadata metadata);
 
-[Exposed=Window,
- InstrumentedProps=(onenterpictureinpicture,
-                    onleavepictureinpicture,
-                    playsInline,
-                    requestPictureInPicture)]
+[Exposed=Window]
 interface HTMLVideoElement : HTMLMediaElement {
   [HTMLConstructor] constructor();
 

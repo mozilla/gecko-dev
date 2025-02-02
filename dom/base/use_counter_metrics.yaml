@@ -1963,75 +1963,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  clipboard_read:
-    type: counter
-    description: >
-      Whether a page called called Clipboard.read.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  clipboard_readtext:
-    type: counter
-    description: >
-      Whether a page called called Clipboard.readText.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  clipboard_write:
-    type: counter
-    description: >
-      Whether a page called called Clipboard.write.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  datatransferitem_webkitgetasentry:
-    type: counter
-    description: >
-      Whether a page called called DataTransferItem.webkitGetAsEntry.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  document_caretrangefrompoint:
+  htmldocument_caretrangefrompoint:
     type: counter
     description: >
       Whether a page called called Document.caretRangeFromPoint.
@@ -2048,7 +1980,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_exitpictureinpicture:
+  htmldocument_exitpictureinpicture:
     type: counter
     description: >
       Whether a page called called Document.exitPictureInPicture.
@@ -2065,7 +1997,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_featurepolicy:
+  htmldocument_featurepolicy:
     type: counter
     description: >
       Whether a page called called Document.featurePolicy.
@@ -2082,7 +2014,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onbeforecopy:
+  htmldocument_onbeforecopy:
     type: counter
     description: >
       Whether a page called called Document.onbeforecopy.
@@ -2099,7 +2031,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onbeforecut:
+  htmldocument_onbeforecut:
     type: counter
     description: >
       Whether a page called called Document.onbeforecut.
@@ -2116,7 +2048,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onbeforepaste:
+  htmldocument_onbeforepaste:
     type: counter
     description: >
       Whether a page called called Document.onbeforepaste.
@@ -2133,7 +2065,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_oncancel:
+  htmldocument_oncancel:
     type: counter
     description: >
       Whether a page called called Document.oncancel.
@@ -2150,7 +2082,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onfreeze:
+  htmldocument_onfreeze:
     type: counter
     description: >
       Whether a page called called Document.onfreeze.
@@ -2167,7 +2099,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onmousewheel:
+  htmldocument_onmousewheel:
     type: counter
     description: >
       Whether a page called called Document.onmousewheel.
@@ -2184,7 +2116,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onresume:
+  htmldocument_onresume:
     type: counter
     description: >
       Whether a page called called Document.onresume.
@@ -2201,7 +2133,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onsearch:
+  htmldocument_onsearch:
     type: counter
     description: >
       Whether a page called called Document.onsearch.
@@ -2218,7 +2150,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onwebkitfullscreenchange:
+  htmldocument_onwebkitfullscreenchange:
     type: counter
     description: >
       Whether a page called called Document.onwebkitfullscreenchange.
@@ -2235,7 +2167,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_onwebkitfullscreenerror:
+  htmldocument_onwebkitfullscreenerror:
     type: counter
     description: >
       Whether a page called called Document.onwebkitfullscreenerror.
@@ -2252,7 +2184,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_pictureinpictureelement:
+  htmldocument_pictureinpictureelement:
     type: counter
     description: >
       Whether a page called called Document.pictureInPictureElement.
@@ -2269,7 +2201,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_pictureinpictureenabled:
+  htmldocument_pictureinpictureenabled:
     type: counter
     description: >
       Whether a page called called Document.pictureInPictureEnabled.
@@ -2286,7 +2218,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_registerelement:
+  htmldocument_registerelement:
     type: counter
     description: >
       Whether a page called called Document.registerElement.
@@ -2303,7 +2235,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_wasdiscarded:
+  htmldocument_wasdiscarded:
     type: counter
     description: >
       Whether a page called called Document.wasDiscarded.
@@ -2320,7 +2252,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitcancelfullscreen:
+  htmldocument_webkitcancelfullscreen:
     type: counter
     description: >
       Whether a page called called Document.webkitCancelFullScreen.
@@ -2337,7 +2269,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitcurrentfullscreenelement:
+  htmldocument_webkitcurrentfullscreenelement:
     type: counter
     description: >
       Whether a page called called Document.webkitCurrentFullScreenElement.
@@ -2354,7 +2286,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitexitfullscreen:
+  htmldocument_webkitexitfullscreen:
     type: counter
     description: >
       Whether a page called called Document.webkitExitFullscreen.
@@ -2371,7 +2303,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitfullscreenelement:
+  htmldocument_webkitfullscreenelement:
     type: counter
     description: >
       Whether a page called called Document.webkitFullscreenElement.
@@ -2388,7 +2320,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitfullscreenenabled:
+  htmldocument_webkitfullscreenenabled:
     type: counter
     description: >
       Whether a page called called Document.webkitFullscreenEnabled.
@@ -2405,7 +2337,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkithidden:
+  htmldocument_webkithidden:
     type: counter
     description: >
       Whether a page called called Document.webkitHidden.
@@ -2422,7 +2354,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitisfullscreen:
+  htmldocument_webkitisfullscreen:
     type: counter
     description: >
       Whether a page called called Document.webkitIsFullScreen.
@@ -2439,7 +2371,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_webkitvisibilitystate:
+  htmldocument_webkitvisibilitystate:
     type: counter
     description: >
       Whether a page called called Document.webkitVisibilityState.
@@ -2456,7 +2388,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_xmlencoding:
+  htmldocument_xmlencoding:
     type: counter
     description: >
       Whether a page called called Document.xmlEncoding.
@@ -2473,7 +2405,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_xmlstandalone:
+  htmldocument_xmlstandalone:
     type: counter
     description: >
       Whether a page called called Document.xmlStandalone.
@@ -2490,486 +2422,10 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  document_xmlversion:
+  htmldocument_xmlversion:
     type: counter
     description: >
       Whether a page called called Document.xmlVersion.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_computedstylemap:
-    type: counter
-    description: >
-      Whether a page called called Element.computedStyleMap.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_onmousewheel:
-    type: counter
-    description: >
-      Whether a page called called Element.onmousewheel.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_scrollintoviewifneeded:
-    type: counter
-    description: >
-      Whether a page called called Element.scrollIntoViewIfNeeded.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlbuttonelement_popovertargetaction:
-    type: counter
-    description: >
-      Whether a page called called HTMLButtonElement.popoverTargetAction.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlbuttonelement_popovertargetelement:
-    type: counter
-    description: >
-      Whether a page called called HTMLButtonElement.popoverTargetElement.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_attributestylemap:
-    type: counter
-    description: >
-      Whether a page called called HTMLElement.attributeStyleMap.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_hidepopover:
-    type: counter
-    description: >
-      Whether a page called called HTMLElement.hidePopover.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_popover:
-    type: counter
-    description: >
-      Whether a page called called HTMLElement.popover.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_showpopover:
-    type: counter
-    description: >
-      Whether a page called called HTMLElement.showPopover.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_togglepopover:
-    type: counter
-    description: >
-      Whether a page called called HTMLElement.togglePopover.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmliframeelement_loading:
-    type: counter
-    description: >
-      Whether a page called called HTMLIFrameElement.loading.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_capture:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.capture.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_incremental:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.incremental.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_onsearch:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.onsearch.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_popovertargetaction:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.popoverTargetAction.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_popovertargetelement:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.popoverTargetElement.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_webkitdirectory:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.webkitdirectory.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_webkitentries:
-    type: counter
-    description: >
-      Whether a page called called HTMLInputElement.webkitEntries.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlmediaelement_disableremoteplayback:
-    type: counter
-    description: >
-      Whether a page called called HTMLMediaElement.disableRemotePlayback.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlmediaelement_remote:
-    type: counter
-    description: >
-      Whether a page called called HTMLMediaElement.remote.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_cancelvideoframecallback:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.cancelVideoFrameCallback.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_disablepictureinpicture:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.disablePictureInPicture.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_onenterpictureinpicture:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.onenterpictureinpicture.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_onleavepictureinpicture:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.onleavepictureinpicture.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_playsinline:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.playsInline.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_requestpictureinpicture:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.requestPictureInPicture.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_requestvideoframecallback:
-    type: counter
-    description: >
-      Whether a page called called HTMLVideoElement.requestVideoFrameCallback.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  imagedata_colorspace:
-    type: counter
-    description: >
-      Whether a page called called ImageData.colorSpace.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2987,125 +2443,6 @@ use.counter.page:
     type: counter
     description: >
       Whether a page called called Location.ancestorOrigins.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_canshare:
-    type: counter
-    description: >
-      Whether a page called called Navigator.canShare.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_clearappbadge:
-    type: counter
-    description: >
-      Whether a page called called Navigator.clearAppBadge.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_setappbadge:
-    type: counter
-    description: >
-      Whether a page called called Navigator.setAppBadge.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_share:
-    type: counter
-    description: >
-      Whether a page called called Navigator.share.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_useractivation:
-    type: counter
-    description: >
-      Whether a page called called Navigator.userActivation.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_wakelock:
-    type: counter
-    description: >
-      Whether a page called called Navigator.wakeLock.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  shadowroot_pictureinpictureelement:
-    type: counter
-    description: >
-      Whether a page called called ShadowRoot.pictureInPictureElement.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -5826,23 +5163,6 @@ use.counter.page:
     type: counter
     description: >
       Whether a page called called Window.webkitStorageInfo.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  workernavigator_permissions:
-    type: counter
-    description: >
-      Whether a page called called WorkerNavigator.permissions.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8612,75 +7932,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  clipboard_read:
-    type: counter
-    description: >
-      Whether a document called called Clipboard.read.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  clipboard_readtext:
-    type: counter
-    description: >
-      Whether a document called called Clipboard.readText.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  clipboard_write:
-    type: counter
-    description: >
-      Whether a document called called Clipboard.write.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  datatransferitem_webkitgetasentry:
-    type: counter
-    description: >
-      Whether a document called called DataTransferItem.webkitGetAsEntry.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  document_caretrangefrompoint:
+  htmldocument_caretrangefrompoint:
     type: counter
     description: >
       Whether a document called called Document.caretRangeFromPoint.
@@ -8697,7 +7949,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_exitpictureinpicture:
+  htmldocument_exitpictureinpicture:
     type: counter
     description: >
       Whether a document called called Document.exitPictureInPicture.
@@ -8714,7 +7966,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_featurepolicy:
+  htmldocument_featurepolicy:
     type: counter
     description: >
       Whether a document called called Document.featurePolicy.
@@ -8731,7 +7983,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onbeforecopy:
+  htmldocument_onbeforecopy:
     type: counter
     description: >
       Whether a document called called Document.onbeforecopy.
@@ -8748,7 +8000,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onbeforecut:
+  htmldocument_onbeforecut:
     type: counter
     description: >
       Whether a document called called Document.onbeforecut.
@@ -8765,7 +8017,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onbeforepaste:
+  htmldocument_onbeforepaste:
     type: counter
     description: >
       Whether a document called called Document.onbeforepaste.
@@ -8782,7 +8034,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_oncancel:
+  htmldocument_oncancel:
     type: counter
     description: >
       Whether a document called called Document.oncancel.
@@ -8799,7 +8051,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onfreeze:
+  htmldocument_onfreeze:
     type: counter
     description: >
       Whether a document called called Document.onfreeze.
@@ -8816,7 +8068,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onmousewheel:
+  htmldocument_onmousewheel:
     type: counter
     description: >
       Whether a document called called Document.onmousewheel.
@@ -8833,7 +8085,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onresume:
+  htmldocument_onresume:
     type: counter
     description: >
       Whether a document called called Document.onresume.
@@ -8850,7 +8102,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onsearch:
+  htmldocument_onsearch:
     type: counter
     description: >
       Whether a document called called Document.onsearch.
@@ -8867,7 +8119,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onwebkitfullscreenchange:
+  htmldocument_onwebkitfullscreenchange:
     type: counter
     description: >
       Whether a document called called Document.onwebkitfullscreenchange.
@@ -8884,7 +8136,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_onwebkitfullscreenerror:
+  htmldocument_onwebkitfullscreenerror:
     type: counter
     description: >
       Whether a document called called Document.onwebkitfullscreenerror.
@@ -8901,7 +8153,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_pictureinpictureelement:
+  htmldocument_pictureinpictureelement:
     type: counter
     description: >
       Whether a document called called Document.pictureInPictureElement.
@@ -8918,7 +8170,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_pictureinpictureenabled:
+  htmldocument_pictureinpictureenabled:
     type: counter
     description: >
       Whether a document called called Document.pictureInPictureEnabled.
@@ -8935,7 +8187,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_registerelement:
+  htmldocument_registerelement:
     type: counter
     description: >
       Whether a document called called Document.registerElement.
@@ -8952,7 +8204,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_wasdiscarded:
+  htmldocument_wasdiscarded:
     type: counter
     description: >
       Whether a document called called Document.wasDiscarded.
@@ -8969,7 +8221,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitcancelfullscreen:
+  htmldocument_webkitcancelfullscreen:
     type: counter
     description: >
       Whether a document called called Document.webkitCancelFullScreen.
@@ -8986,7 +8238,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitcurrentfullscreenelement:
+  htmldocument_webkitcurrentfullscreenelement:
     type: counter
     description: >
       Whether a document called called Document.webkitCurrentFullScreenElement.
@@ -9003,7 +8255,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitexitfullscreen:
+  htmldocument_webkitexitfullscreen:
     type: counter
     description: >
       Whether a document called called Document.webkitExitFullscreen.
@@ -9020,7 +8272,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitfullscreenelement:
+  htmldocument_webkitfullscreenelement:
     type: counter
     description: >
       Whether a document called called Document.webkitFullscreenElement.
@@ -9037,7 +8289,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitfullscreenenabled:
+  htmldocument_webkitfullscreenenabled:
     type: counter
     description: >
       Whether a document called called Document.webkitFullscreenEnabled.
@@ -9054,7 +8306,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkithidden:
+  htmldocument_webkithidden:
     type: counter
     description: >
       Whether a document called called Document.webkitHidden.
@@ -9071,7 +8323,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitisfullscreen:
+  htmldocument_webkitisfullscreen:
     type: counter
     description: >
       Whether a document called called Document.webkitIsFullScreen.
@@ -9088,7 +8340,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_webkitvisibilitystate:
+  htmldocument_webkitvisibilitystate:
     type: counter
     description: >
       Whether a document called called Document.webkitVisibilityState.
@@ -9105,7 +8357,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_xmlencoding:
+  htmldocument_xmlencoding:
     type: counter
     description: >
       Whether a document called called Document.xmlEncoding.
@@ -9122,7 +8374,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_xmlstandalone:
+  htmldocument_xmlstandalone:
     type: counter
     description: >
       Whether a document called called Document.xmlStandalone.
@@ -9139,486 +8391,10 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  document_xmlversion:
+  htmldocument_xmlversion:
     type: counter
     description: >
       Whether a document called called Document.xmlVersion.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_computedstylemap:
-    type: counter
-    description: >
-      Whether a document called called Element.computedStyleMap.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_onmousewheel:
-    type: counter
-    description: >
-      Whether a document called called Element.onmousewheel.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  element_scrollintoviewifneeded:
-    type: counter
-    description: >
-      Whether a document called called Element.scrollIntoViewIfNeeded.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlbuttonelement_popovertargetaction:
-    type: counter
-    description: >
-      Whether a document called called HTMLButtonElement.popoverTargetAction.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlbuttonelement_popovertargetelement:
-    type: counter
-    description: >
-      Whether a document called called HTMLButtonElement.popoverTargetElement.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_attributestylemap:
-    type: counter
-    description: >
-      Whether a document called called HTMLElement.attributeStyleMap.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_hidepopover:
-    type: counter
-    description: >
-      Whether a document called called HTMLElement.hidePopover.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_popover:
-    type: counter
-    description: >
-      Whether a document called called HTMLElement.popover.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_showpopover:
-    type: counter
-    description: >
-      Whether a document called called HTMLElement.showPopover.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlelement_togglepopover:
-    type: counter
-    description: >
-      Whether a document called called HTMLElement.togglePopover.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmliframeelement_loading:
-    type: counter
-    description: >
-      Whether a document called called HTMLIFrameElement.loading.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_capture:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.capture.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_incremental:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.incremental.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_onsearch:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.onsearch.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_popovertargetaction:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.popoverTargetAction.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_popovertargetelement:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.popoverTargetElement.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_webkitdirectory:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.webkitdirectory.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlinputelement_webkitentries:
-    type: counter
-    description: >
-      Whether a document called called HTMLInputElement.webkitEntries.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlmediaelement_disableremoteplayback:
-    type: counter
-    description: >
-      Whether a document called called HTMLMediaElement.disableRemotePlayback.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlmediaelement_remote:
-    type: counter
-    description: >
-      Whether a document called called HTMLMediaElement.remote.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_cancelvideoframecallback:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.cancelVideoFrameCallback.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_disablepictureinpicture:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.disablePictureInPicture.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_onenterpictureinpicture:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.onenterpictureinpicture.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_onleavepictureinpicture:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.onleavepictureinpicture.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_playsinline:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.playsInline.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_requestpictureinpicture:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.requestPictureInPicture.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  htmlvideoelement_requestvideoframecallback:
-    type: counter
-    description: >
-      Whether a document called called HTMLVideoElement.requestVideoFrameCallback.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  imagedata_colorspace:
-    type: counter
-    description: >
-      Whether a document called called ImageData.colorSpace.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -9636,125 +8412,6 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document called called Location.ancestorOrigins.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_canshare:
-    type: counter
-    description: >
-      Whether a document called called Navigator.canShare.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_clearappbadge:
-    type: counter
-    description: >
-      Whether a document called called Navigator.clearAppBadge.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_setappbadge:
-    type: counter
-    description: >
-      Whether a document called called Navigator.setAppBadge.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_share:
-    type: counter
-    description: >
-      Whether a document called called Navigator.share.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_useractivation:
-    type: counter
-    description: >
-      Whether a document called called Navigator.userActivation.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  navigator_wakelock:
-    type: counter
-    description: >
-      Whether a document called called Navigator.wakeLock.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  shadowroot_pictureinpictureelement:
-    type: counter
-    description: >
-      Whether a document called called ShadowRoot.pictureInPictureElement.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -12475,23 +11132,6 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document called called Window.webkitStorageInfo.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  workernavigator_permissions:
-    type: counter
-    description: >
-      Whether a document called called WorkerNavigator.permissions.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:

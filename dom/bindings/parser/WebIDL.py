@@ -2182,8 +2182,27 @@ class IDLInterface(IDLInterfaceOrNamespace):
         else:
             IDLInterfaceOrNamespace.handleExtendedAttribute(self, attr)
 
+    def implementedWithProxy(self):
+        if self.parent and self.parent.implementedWithProxy():
+            return True
+        return self.hasCrossOriginMembers or any(
+            member.isMethod()
+            and member.isGetter()
+            and (member.isIndexed() or member.isNamed())
+            for member in self.members
+        )
+
     def validate(self):
         IDLInterfaceOrNamespace.validate(self)
+        if (
+            self.getExtendedAttribute("InstrumentedProps")
+            and not self.implementedWithProxy()
+        ):
+            raise WebIDLError(
+                "IntrumentedProps attribute can't be used for non-proxy-based interfaces."
+                "Proxy is used if the interface has any named/indexed getters or has cross origin members.",
+                [self.location],
+            )
         if self.parent and self.isSerializable() and not self.parent.isSerializable():
             raise WebIDLError(
                 "Serializable interface inherits from non-serializable "
