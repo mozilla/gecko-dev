@@ -184,12 +184,22 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Дадаць іх да %1$s</string>
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">Зараз мы ствараем падтрымку для пачатковага набору рэкамендаваных пашырэнняў.</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">Сцягванне і праверка пашырэння…</string>
+    <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+    <string name="mozac_feature_addons_failed_to_query_extensions">Не ўдалося запытацца на пашырэнні!</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">Пераклад не знойдзены, ні для лакалі %1$s, ні для прадвызначанай мовы %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s паспяхова ўсталяваны</string>
     <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Не атрымалася ўсталяваць %1$s</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+    <string name="mozac_feature_addons_extension_failed_to_install">Не ўдалося ўсталяваць гэтае пашырэнне.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Немагчыма ўсталяваць пашырэнне</string>
+    <!-- Text shown when attempting to install an extension and a network error happened. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Немагчыма сцягнуць гэтае пашырэнне, бо злучэнне не ўдалося.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s не можа быць усталяваны, бо ён несумяшчальны з %2$s %3$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->

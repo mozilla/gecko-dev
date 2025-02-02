@@ -199,6 +199,11 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">ສ້າງ %s ເປັນຂອງທ່ານເອງ</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">ທ່ານໄດ້ຕິດຕັ້ງສ່ວນຂະຫຍາຍ, ແຕ່ບໍ່ໄດ້ເປີດໃຊ້ງານ</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">ເພື່ອໃຊ້ສ່ວນຂະຫຍາຍ, ໃຫ້ເປີດໃຊ້ພວກມັນໃນການຕັ້ງຄ່າ ຫຼື ໂດຍການເລືອກ “%s” ຂ້າງລຸ່ມນີ້.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">ສຶກສາເພີ່ມເຕີມ</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -291,6 +296,13 @@
     <string name="browser_menu_new_private_tab">ແທັບສ່ວນຕົວໃຫມ່</string>
     <!-- Browser menu label that navigates to the Password screen -->
     <string name="browser_menu_passwords">ລະຫັດຜ່ານ</string>
+    <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
+         The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="browser_menu_new_in_firefox">ໃໝ່ໃນ %1$s</string>
+    <!-- Browser menu label that navigates to the page tools sub-menu -->
+    <string name="browser_menu_tools">ເຄື່ອງມື</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">ກັບໄປທີ່ເມນູຫຼັກ</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">ຊ່ວຍເຫລືອ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -463,7 +475,7 @@
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">ສຳເລັດ</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button">ຍົກເລີກ</string>
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">ຍົກເລີກ</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ຍິນດີຕ້ອນຮັບສູ່ Firefox</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->

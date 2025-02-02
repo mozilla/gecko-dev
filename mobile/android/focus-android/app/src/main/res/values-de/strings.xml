@@ -351,6 +351,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla ist bestrebt, nur die Informationen zu sammeln, mit denen wir %1$s anbieten und für alle Nutzer verbessern können.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">Täglicher Nutzungs-Ping</string>
+    <string name="preference_daily_usage_ping_description">Dies hilft Mozilla, aktive Benutzer zu schätzen.</string>
+    <string name="preference_daily_usage_ping_learn_more">Weitere Informationen</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Datenschutzhinweis</string>
 
