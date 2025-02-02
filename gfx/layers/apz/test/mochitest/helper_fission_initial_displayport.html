@@ -19,6 +19,7 @@
     async function test() {
       // Fully visible iframe.
       const visibleIframeElement = document.getElementById("visible-testframe");
+      const shortIframeSize = visibleIframeElement.getBoundingClientRect();
       await setupCrossOriginIFrame(visibleIframeElement, "helper_fission_plain.html");
 
       const remoteType = await SpecialPowers.spawn(visibleIframeElement, [], async () => {
@@ -33,8 +34,8 @@
       }
 
       let displayport = await getIframeDisplayport(visibleIframeElement);
-      is(displayport.width, 400, "The displayport size should be same as the iframe size");
-      is(displayport.height, 300, "The displayport size should be same as the iframe size");
+      is(displayport.width, shortIframeSize.width, "The displayport size should be same as the iframe size");
+      is(displayport.height, shortIframeSize.height, "The displayport size should be same as the iframe size");
 
       // Fully invisible iframe (inside `overflow: hidden` parent element)
       const invisibleIframeElement = document.getElementById("invisible-testframe");
@@ -51,30 +52,23 @@
 
       // Partially invisible iframe (inside `overflow: hidden` parent element)
       const clippedOutIframeElement = document.getElementById("clipped-out-testframe");
+      const tallIframeSize = clippedOutIframeElement.getBoundingClientRect();
       await setupCrossOriginIFrame(clippedOutIframeElement, "helper_fission_plain.html");
       displayport = await getIframeDisplayport(clippedOutIframeElement);
-      is(displayport.width, 400, "The displayport width should be same as the iframe width");
+      is(displayport.width, tallIframeSize.width, "The displayport width should be same as the iframe width");
       ok(displayport.height > 0, "The displayport height should be greater than zero");
-      ok(displayport.height < 300, "The displayport height should be less than the iframe height");
+      ok(displayport.height < tallIframeSize.height, "The displayport height should be less than the iframe height");
 
       const partiallyScrolledOutIframeElement = document.getElementById("partially-scrolled-out-testframe");
       await setupCrossOriginIFrame(partiallyScrolledOutIframeElement, "helper_fission_plain.html");
       displayport = await getIframeDisplayport(partiallyScrolledOutIframeElement);
-      is(displayport.width, 400, "The displayport width should be same as the iframe width");
+      is(displayport.width, tallIframeSize.width, "The displayport width should be same as the iframe width");
       ok(displayport.height > 0, "The displayport height should be greater than zero");
-      ok(displayport.height < 300, "The displayport height should be less than the iframe height");
+      ok(displayport.height < tallIframeSize.height, "The displayport height should be less than the iframe height");
     }
 
     if (!SpecialPowers.Services.appinfo.fissionAutostart) {
       ok(true, "This test doesn't need to run with disabling Fission");
-      subtestDone();
-    } else if (SpecialPowers.isHeadless) {
-      // Bug 1940964: Enable headless mode for helper_fission_initial_displayport
-      // - We saw errors on Try that we did not see in non-headless mode
-      // - Browser mochitests do not run in headless mode, so enabling it during bug 1841896
-      //   would have expanded the set of platforms the tests run on
-      // - Point of bug 1841896 was to expand set of platforms to Android
-      ok(true, "This test doesn't need to run in headless configurations");
       subtestDone();
     } else {
       waitUntilApzStable()
@@ -84,30 +78,52 @@
 
   </script>
   <style>
+    :root {
+      /* To avoid fractional getBoundingClientRect() */
+      --rounded-15vh: round(15vh, 1px);
+      --rounded-50vh: round(50vh, 1px);
+      --rounded-30vw: round(30vw, 1px);
+    }
+    body {
+      margin: 0px;
+    }
+    .container {
+      display: flex;
+    }
     iframe {
-      width: 400px;
-      height: 300px;
+      width: var(--rounded-30vw);
       border: none;
+    }
+    .short {
+      height: var(--rounded-15vh);
+    }
+    .tall {
+      height: var(--rounded-50vh);
     }
   </style>
 </head>
 <body>
-  <iframe id="visible-testframe"></iframe>
-  <div style="width: 300px; height: 300px; overflow: hidden;">
-    <div style="width: 100%; height: 1000px;"></div>
-    <iframe id="invisible-testframe"></iframe>
+  <div class="container">
+    <iframe id="visible-testframe" class="short"></iframe>
+    <div style="width: var(--rounded-30vw); height: var(--rounded-15vh); overflow: hidden;">
+      <div style="width: 100%; height: 1000px;"></div>
+      <iframe id="invisible-testframe" class="short"></iframe>
+    </div>
+    <div style="width: var(--rounded-30vw); height: var(--rounded-15vh); overflow: scroll;">
+      <div style="width: 100%; height: 10000px;"></div>
+      <iframe id="scrolled-out-testframe" class="short"></iframe>
+    </div>
   </div>
-  <div style="width: 300px; height: 300px; overflow: scroll;">
-    <div style="width: 100%; height: 10000px;"></div>
-    <iframe id="scrolled-out-testframe"></iframe>
-  </div>
-  <div style="width: 300px; height: 300px; overflow: hidden;">
-    <div style="width: 100%; height: 200px;"></div>
-    <iframe id="clipped-out-testframe"></iframe>
-  </div>
-  <div style="width: 300px; height: 300px; overflow: scroll;">
-    <div style="width: 100%; height: 200px;"></div>
-    <iframe id="partially-scrolled-out-testframe"></iframe>
+
+  <div class="container">
+    <div style="width: var(--rounded-30vw); height: var(--rounded-50vh); overflow: hidden;">
+      <div style="width: 100%; height: 40vh;"></div>
+      <iframe id="clipped-out-testframe" class="tall"></iframe>
+    </div>
+    <div style="width: var(--rounded-30vw); height: var(--rounded-50vh); overflow: scroll;">
+      <div style="width: 100%; height: 40vh;"></div>
+      <iframe id="partially-scrolled-out-testframe" class="tall"></iframe>
+    </div>
   </div>
 </body>
 </html>
