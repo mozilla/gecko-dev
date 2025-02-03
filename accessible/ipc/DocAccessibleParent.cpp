@@ -878,23 +878,17 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
   if (aChildDoc->IsTopLevelInContentProcess()) {
     // aChildDoc is an embedded document in a different content process to
     // this document.
-    auto embeddedBrowser =
-        static_cast<dom::BrowserParent*>(aChildDoc->Manager());
-    dom::BrowserBridgeParent* bridge =
-        embeddedBrowser->GetBrowserBridgeParent();
-    if (bridge) {
 #if defined(XP_WIN)
-      if (nsWinUtils::IsWindowEmulationStarted()) {
-        aChildDoc->SetEmulatedWindowHandle(mEmulatedWindowHandle);
-      }
-#endif  // defined(XP_WIN)
-      // We need to fire a reorder event on the outer doc accessible.
-      // For same-process documents, this is fired by the content process, but
-      // this isn't possible when the document is in a different process to its
-      // embedder.
-      // FireEvent fires both OS and XPCOM events.
-      FireEvent(outerDoc, nsIAccessibleEvent::EVENT_REORDER);
+    if (nsWinUtils::IsWindowEmulationStarted()) {
+      aChildDoc->SetEmulatedWindowHandle(mEmulatedWindowHandle);
     }
+#endif  // defined(XP_WIN)
+    // We need to fire a reorder event on the outer doc accessible.
+    // For same-process documents, this is fired by the content process, but
+    // this isn't possible when the document is in a different process to its
+    // embedder.
+    // FireEvent fires both OS and XPCOM events.
+    FireEvent(outerDoc, nsIAccessibleEvent::EVENT_REORDER);
   }
 
   return IPC_OK();
