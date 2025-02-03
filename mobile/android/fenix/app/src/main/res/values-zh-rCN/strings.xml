@@ -627,6 +627,10 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">为帮助改进浏览器，Firefox 会向 Mozilla 发送诊断和交互数据。%1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">管理</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">分享您发现 Firefox 的途径及使用方式，可帮助我们将这款浏览器介绍给更多用户。</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">与 Mozilla 的营销技术合作伙伴共享最低限度的数据。我们绝不会出售这些数据，也不会用于向您展示广告。</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">我们如何使用您的数据</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -1093,6 +1097,9 @@
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">与我们的移动营销服务商 Adjust 分享基本使用数据</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">与 Mozilla 的营销合作伙伴分享您发现 Firefox 的途径。这有助于我们推广 Firefox 并建设更美好的互联网</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">与 Mozilla 的营销技术合作伙伴分享您发现 Firefox 的途径及使用方式。</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">详细了解营销数据</string>
 
