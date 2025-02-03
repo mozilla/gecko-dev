@@ -897,6 +897,28 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
     return nullptr;
   }
 
+  // Total structured clone size in bytes.
+  const size_t structuredCloneSize = cloneWriteInfo.mCloneBuffer.data().Size();
+
+  // Bug 1783242 introduced the use of shared memory for serializing large
+  // JSStructuredCloneData, which required adjusting IPC message size estimation
+  // calculations below. However, structured clone sizes are still limited:
+  // - On 32-bit platforms, crashes can occur around 2GB, and on 64-bit
+  //   platforms around 4GB, even with shared memory.
+  // - Ideally, the content process would write directly to a file to avoid
+  //   shared memory and data copying (see Bug 1944231).
+  //
+  // For now, structured clone sizes are capped at < 1042 MB (configurable via a
+  // preference).
+  if (structuredCloneSize > IndexedDatabaseManager::MaxStructuredCloneSize()) {
+    IDB_REPORT_INTERNAL_ERR();
+    aRv.ThrowUnknownError(nsPrintfCString(
+        "The structured clone is too large"
+        " (size=%zu bytes, max=%u bytes).",
+        structuredCloneSize, IndexedDatabaseManager::MaxStructuredCloneSize()));
+    return nullptr;
+  }
+
   // Check the size limit of the serialized message which mainly consists of
   // a StructuredCloneBuffer, an encoded object key, and the encoded index keys.
   // kMaxIDBMsgOverhead covers the minor stuff not included in this calculation
@@ -907,6 +929,14 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
   MOZ_ASSERT(maximalSizeFromPref > kMaxIDBMsgOverhead);
   const size_t kMaxMessageSize = maximalSizeFromPref - kMaxIDBMsgOverhead;
 
+  // Serialized structured clone size in bytes. For structured clone sizes >
+  // IPC::kMessageBufferShmemThreshold, only the size and shared memory handle
+  // are included in the IPC message. The value 16 is an estimate.
+  const size_t serializedStructuredCloneSize =
+      structuredCloneSize > IPC::kMessageBufferShmemThreshold
+          ? 16
+          : structuredCloneSize;
+
   const size_t indexUpdateInfoSize =
       std::accumulate(updateInfos.cbegin(), updateInfos.cend(), 0u,
                       [](size_t old, const IndexUpdateInfo& updateInfo) {
@@ -914,7 +944,12 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
                                updateInfo.localizedValue().GetBuffer().Length();
                       });
 
-  const size_t messageSize = cloneWriteInfo.mCloneBuffer.data().Size() +
+  // TODO: Adjust the calculation of messageSize to account for the fallback
+  // to shared memory during serialization of the primary key and index keys if
+  // their size exceeds IPC::kMessageBufferShmemThreshold. This ensures the
+  // calculated size accurately reflects the actual IPC message size.
+  // See also bug 1945043.
+  const size_t messageSize = serializedStructuredCloneSize +
                              key.GetBuffer().Length() + indexUpdateInfoSize;
 
   if (messageSize > kMaxMessageSize) {

@@ -92,6 +92,8 @@ class IndexedDatabaseManager final : public nsIIndexedDatabaseManager {
 
   static uint32_t DataThreshold();
 
+  static uint32_t MaxStructuredCloneSize();
+
   static uint32_t MaxSerializedMsgSize();
 
   // The maximum number of extra entries to preload in an Cursor::OpenOp or

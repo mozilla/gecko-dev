@@ -11,11 +11,9 @@ var testGenerator = testSteps();
 function* testSteps() {
   const name = this.window
     ? window.location.pathname
-    : "test_maximal_serialized_object_size.js";
+    : "test_maximal_structured_clone_size.js";
   const megaBytes = 1024 * 1024;
-  const kMessageOverhead = 1; // in MB
-  const kMaxIpcMessageSize = 20; // in MB
-  const kMaxIdbMessageSize = kMaxIpcMessageSize - kMessageOverhead;
+  const kMaxIdbMessageSize = 20; // in MB
 
   let chunks = new Array(kMaxIdbMessageSize);
   for (let i = 0; i < kMaxIdbMessageSize; i++) {
@@ -27,8 +25,8 @@ function* testSteps() {
       {
         set: [
           [
-            "dom.indexedDB.maxSerializedMsgSize",
-            kMaxIpcMessageSize * megaBytes,
+            "dom.indexedDB.maxStructuredCloneSize",
+            kMaxIdbMessageSize * megaBytes,
           ],
         ],
       },
@@ -36,7 +34,7 @@ function* testSteps() {
     );
     yield undefined;
   } else {
-    setMaxSerializedMsgSize(kMaxIpcMessageSize * megaBytes);
+    setMaxStructuredCloneSize(kMaxIdbMessageSize * megaBytes);
   }
 
   let openRequest = indexedDB.open(name, 1);
@@ -67,25 +65,24 @@ function* testSteps() {
       ok(!!e.message, "Error message: " + e.message);
       ok(
         e.message.startsWith(
-          `IDBObjectStore.${aOperation}: The serialized value is too large`
+          `IDBObjectStore.${aOperation}: The structured clone is too large`
         ),
         "Correct error message prefix."
       );
     }
   }
 
-  info("Verify IDBObjectStore.add() - object key is too large");
-  testTooLargeError("add", { id: chunks });
+  info("Verify IDBObjectStore.add() - object is too large");
+  testTooLargeError("add", { id: 1, data: chunks });
 
-  objectStore.createIndex("index name", "index");
-  ok(objectStore.index("index name"), "Index created.");
-
-  info("Verify IDBObjectStore.add() - index key is too large");
-  testTooLargeError("add", { id: 2, index: chunks });
-
-  info("Verify IDBObjectStore.add() - object key and index key are too large");
-  let indexChunks = chunks.splice(0, 10);
-  testTooLargeError("add", { id: chunks, index: indexChunks });
+  info(
+    "Verify IDBObjectStore.add() - object size is closed to the maximal size."
+  );
+  chunks.length = chunks.length - 1;
+  let request = objectStore.add({ id: 1, data: chunks });
+  request.onerror = errorHandler;
+  request.onsuccess = grabEventAndContinueHandler;
+  yield undefined;
 
   openRequest.onsuccess = continueToNextStep;
   yield undefined;

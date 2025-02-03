@@ -117,9 +117,6 @@ pref("dom.indexedDB.logging.details", true);
 // Enable profiler marks for indexedDB events.
 pref("dom.indexedDB.logging.profiler-marks", false);
 
-// Enable adding/getting ~1042MB of data.
-pref("dom.indexedDB.maxSerializedMsgSize", 1092616192);
-
 // The number of workers per domain allowed to run concurrently.
 // We're going for effectively infinite, while preventing abuse.
 pref("dom.workers.maxPerDomain", 512);

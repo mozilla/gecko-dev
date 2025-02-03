@@ -120,6 +120,17 @@ namespace {
 // Anything larger is compressed and stored outside the database.
 const int32_t kDefaultDataThresholdBytes = 1024 * 1024;  // 1MB
 
+// The maximum size of a structured clone that can be transferred through IPC.
+// Originally planned as 1024 MB, but adjusted to 1042 MB based on the
+// following considerations:
+// - The largest model at https://whisper.ggerganov.com is 1030 MB.
+// - Chrome's limit varies between 1030–1050 MB depending on the platform.
+// Keeping the limit at 1042 MB ensures better compatibility with both use
+// cases.
+//
+// This limit might be increased after bug 1944231 and bug 1942995 are fixed.
+const int32_t kDefaultMaxStructuredCloneSize = 1042 * 1024 * 1024;  // 1042 MB
+
 // The maximal size of a serialized object to be transfered through IPC.
 const int32_t kDefaultMaxSerializedMsgSize = IPC::Channel::kMaximumMessageSize;
 
@@ -134,6 +145,8 @@ const int32_t kDefaultMaxPreloadExtraRecords = 64;
 #define IDB_PREF_BRANCH_ROOT "dom.indexedDB."
 
 const char kDataThresholdPref[] = IDB_PREF_BRANCH_ROOT "dataThreshold";
+const char kPrefMaxStructuredCloneSize[] =
+    IDB_PREF_BRANCH_ROOT "maxStructuredCloneSize";
 const char kPrefMaxSerilizedMsgSize[] =
     IDB_PREF_BRANCH_ROOT "maxSerializedMsgSize";
 const char kPrefMaxPreloadExtraRecords[] =
@@ -156,6 +169,7 @@ bool gInitialized MOZ_GUARDED_BY(gDBManagerMutex) = false;
 bool gClosed MOZ_GUARDED_BY(gDBManagerMutex) = false;
 
 Atomic<int32_t> gDataThresholdBytes(0);
+Atomic<int32_t> gMaxStructuredCloneSize(0);
 Atomic<int32_t> gMaxSerializedMsgSize(0);
 Atomic<int32_t> gMaxPreloadExtraRecords(0);
 
@@ -173,6 +187,17 @@ void DataThresholdPrefChangedCallback(const char* aPrefName, void* aClosure) {
   }
 
   gDataThresholdBytes = dataThresholdBytes;
+}
+
+void MaxStructuredCloneSizePrefChangeCallback(const char* aPrefName,
+                                              void* aClosure) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!strcmp(aPrefName, kPrefMaxStructuredCloneSize));
+  MOZ_ASSERT(!aClosure);
+
+  gMaxStructuredCloneSize =
+      Preferences::GetInt(aPrefName, kDefaultMaxStructuredCloneSize);
+  MOZ_ASSERT(gMaxStructuredCloneSize > 0);
 }
 
 void MaxSerializedMsgSizePrefChangeCallback(const char* aPrefName,
@@ -313,6 +338,9 @@ nsresult IndexedDatabaseManager::Init() {
   Preferences::RegisterCallbackAndCall(DataThresholdPrefChangedCallback,
                                        kDataThresholdPref);
 
+  Preferences::RegisterCallbackAndCall(MaxStructuredCloneSizePrefChangeCallback,
+                                       kPrefMaxStructuredCloneSize);
+
   Preferences::RegisterCallbackAndCall(MaxSerializedMsgSizePrefChangeCallback,
                                        kPrefMaxSerilizedMsgSize);
 
@@ -346,6 +374,9 @@ void IndexedDatabaseManager::Destroy() {
 
   Preferences::UnregisterCallback(DataThresholdPrefChangedCallback,
                                   kDataThresholdPref);
+
+  Preferences::UnregisterCallback(MaxStructuredCloneSizePrefChangeCallback,
+                                  kPrefMaxStructuredCloneSize);
 
   Preferences::UnregisterCallback(MaxSerializedMsgSizePrefChangeCallback,
                                   kPrefMaxSerilizedMsgSize);
@@ -483,6 +514,16 @@ uint32_t IndexedDatabaseManager::DataThreshold() {
              "DataThreshold() called before indexedDB has been initialized!");
 
   return gDataThresholdBytes;
+}
+
+// static
+uint32_t IndexedDatabaseManager::MaxStructuredCloneSize() {
+  MOZ_ASSERT(
+      Get(),
+      "MaxStructuredCloneSize() called before indexedDB has been initialized!");
+  MOZ_ASSERT(gMaxStructuredCloneSize > 0);
+
+  return gMaxStructuredCloneSize;
 }
 
 // static
