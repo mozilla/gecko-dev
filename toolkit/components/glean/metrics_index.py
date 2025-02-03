@@ -47,6 +47,7 @@ gecko_metrics = [
     "mobile/shared/modules/geckoview/metrics.yaml",
     "modules/libjar/metrics.yaml",
     "modules/libpref/metrics.yaml",
+    "netwerk/cache2/metrics.yaml",
     "netwerk/metrics.yaml",
     "netwerk/protocol/http/metrics.yaml",
     "parser/html/metrics.yaml",

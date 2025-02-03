@@ -14,7 +14,7 @@
 #include "CacheIndex.h"
 #include "CacheLog.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkCache2Metrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
 #include "nsComponentManagerUtils.h"
 #include "nsICacheEntry.h"
@@ -2085,8 +2085,8 @@ void CacheFile::RemoveInput(CacheFileInputStream* aInput, nsresult aStatus) {
   // chunks that won't be used anymore.
   CleanUpCachedChunks();
 
-  Telemetry::Accumulate(Telemetry::NETWORK_CACHE_V2_INPUT_STREAM_STATUS,
-                        StatusToTelemetryEnum(aStatus));
+  glean::network::cache_v2_input_stream_status.AccumulateSingleSample(
+      StatusToTelemetryEnum(aStatus));
 }
 
 void CacheFile::RemoveOutput(CacheFileOutputStream* aOutput, nsresult aStatus) {
@@ -2152,8 +2152,8 @@ void CacheFile::RemoveOutput(CacheFileOutputStream* aOutput, nsresult aStatus) {
   // Notify close listener as the last action
   aOutput->NotifyCloseListener();
 
-  Telemetry::Accumulate(Telemetry::NETWORK_CACHE_V2_OUTPUT_STREAM_STATUS,
-                        StatusToTelemetryEnum(aStatus));
+  glean::network::cache_v2_output_stream_status.AccumulateSingleSample(
+      StatusToTelemetryEnum(aStatus));
 }
 
 nsresult CacheFile::NotifyChunkListener(CacheFileChunkListener* aCallback,
