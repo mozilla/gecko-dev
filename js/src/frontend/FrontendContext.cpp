@@ -7,7 +7,7 @@
 #include "frontend/FrontendContext.h"
 
 #ifdef _WIN32
-#  include <windows.h>
+#  include "util/WindowsWrapper.h"
 #  include <process.h>  // GetCurrentThreadId
 #else
 #  include <pthread.h>  // pthread_self
