@@ -14,6 +14,7 @@ support-files = [
 ]
 
 prefs = [
+  "extensions.screenshots.disabled=false",
   "screenshots.browser.component.enabled=true",
   "sidebar.revamp=true",
 ]

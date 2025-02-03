@@ -14,6 +14,7 @@ skip-if = [
 prefs = [
   "browser.startup.record=true",
   "gfx.canvas.willReadFrequently.enable=true",
+  "extensions.screenshots.disabled=false", # The Screenshots extension is disabled by default in Mochitests. We re-enable it here, since it's a more realistic configuration.
 ]
 environment = [
   "GNOME_ACCESSIBILITY=0",
