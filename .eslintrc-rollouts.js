@@ -104,6 +104,7 @@ const rollouts = [
       "browser/actors/**",
       "browser/base/content/**",
       "browser/components/**",
+      "browser/extensions/newtab/**",
       "browser/modules/BrowserUsageTelemetry.sys.mjs",
       "browser/modules/URILoadingHelper.sys.mjs",
       "devtools/client/**",
