@@ -46,6 +46,7 @@
 #include "nsIMIMEService.h"
 #include "imgIEncoder.h"
 #include "imgITools.h"
+#include "WinOLELock.h"
 #include "WinUtils.h"
 #include "nsLocalFile.h"
 
@@ -1072,17 +1073,18 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
     size -= BFH_LENGTH;
   }
 
-  HGLOBAL glob = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size);
+  ScopedOLEMemory<char[]> glob(size);
   if (!glob) {
     return E_FAIL;
   }
 
-  char* dst = (char*)::GlobalLock(glob);
-  ::CopyMemory(dst, src, size);
-  ::GlobalUnlock(glob);
+  {
+    auto lock = glob.lock();
+    ::CopyMemory(lock.begin(), src, size);
+  }
 
-  aSTG.hGlobal = glob;
   aSTG.tymed = TYMED_HGLOBAL;
+  aSTG.hGlobal = glob.forget();
   return S_OK;
 }
 
@@ -1457,10 +1459,9 @@ HRESULT nsDataObj::GetPreferredDropEffect(FORMATETC& aFE, STGMEDIUM& aSTG) {
   HRESULT res = S_OK;
   aSTG.tymed = TYMED_HGLOBAL;
   aSTG.pUnkForRelease = nullptr;
-  HGLOBAL hGlobalMemory = nullptr;
-  hGlobalMemory = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(DWORD));
+
+  ScopedOLEMemory<DWORD> hGlobalMemory;
   if (hGlobalMemory) {
-    DWORD* pdw = (DWORD*)GlobalLock(hGlobalMemory);
     // The PreferredDropEffect clipboard format is only registered if a
     // drag/drop of an image happens from Mozilla to the desktop.  We want its
     // value to be DROPEFFECT_MOVE in that case so that the file is moved from
@@ -1468,12 +1469,11 @@ HRESULT nsDataObj::GetPreferredDropEffect(FORMATETC& aFE, STGMEDIUM& aSTG) {
     // the data object via SetData() but our IDataObject implementation doesn't
     // implement SetData.  It adds data to the data object lazily only when the
     // drop target asks for it.
-    *pdw = (DWORD)DROPEFFECT_MOVE;
-    GlobalUnlock(hGlobalMemory);
+    *hGlobalMemory.lock() = (DWORD)DROPEFFECT_MOVE;
   } else {
     res = E_OUTOFMEMORY;
   }
-  aSTG.hGlobal = hGlobalMemory;
+  aSTG.hGlobal = hGlobalMemory.forget();
   return res;
 }
 
