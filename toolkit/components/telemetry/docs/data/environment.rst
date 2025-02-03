@@ -53,7 +53,6 @@ Structure:
         e10sEnabled: <bool>, // whether e10s is on, i.e. browser tabs open by default in a different process
         e10sMultiProcesses: <integer>, // Maximum number of processes that will be launched for regular web content
         fissionEnabled: <bool>, // whether fission is enabled this session, and subframes can load in a different process
-        telemetryEnabled: <bool>, // false on failure
         locale: <string>, // e.g. "it", null on failure
         intl: {
           requestedLocales: [ <string>, ... ], // The locales that are being requested.
@@ -144,16 +143,9 @@ Structure:
               // "hasAES", "hasEDSP", "hasARMv6", "hasARMv7", "hasNEON"
             ],
         },
-        device: { // This section is only available on mobile devices.
-          model: <string>, // the "device" from FHR, null on failure
-          manufacturer: <string>, // null on failure
-          hardware: <string>, // null on failure
-          isTablet: <bool>, // null on failure
-        },
         os: {
             name: <string>, // "Windows_NT" or null on failure
             version: <string>, // e.g. "6.1", null on failure
-            kernelVersion: <string>, // android only or null on failure
             servicePackMajor: <number>, // windows only or null on failure
             servicePackMinor: <number>, // windows only or null on failure
             windowsBuildNumber: <number>, // windows only or null on failure
@@ -188,7 +180,6 @@ Structure:
             ContentBackend: <string> // One of "Cairo", "Skia", or "Direct2D 1.1"
             Headless: <bool>, // null on failure
             TargetFrameRate: <number>, // frame rate in Hz, typically 60 or more
-            //DWriteVersion: <string>, // temporarily removed, pending bug 1154500
             adapters: [
               {
                 description: <string>, // e.g. "Intel(R) HD Graphics 4600", null on failure
@@ -577,7 +568,6 @@ This object contains operating system information.
 
 - ``name``: the name of the OS.
 - ``version``: a string representing the OS version.
-- ``kernelVersion``: an Android only string representing the kernel version.
 - ``servicePackMajor``: the Windows only major version number for the installed service pack.
 - ``servicePackMinor``: the Windows only minor version number for the installed service pack.
 - ``windowsBuildNumber``: the Windows build number.
@@ -617,6 +607,10 @@ Note that this list includes other types of deliveries, including Normandy rollo
 
 Version History
 ---------------
+
+- Firefox 137:
+
+  - Removed unused and Android-only fields as part of Glean mirroring support. (`bug 1943698 <https://bugzilla.mozilla.org/show_bug.cgi?id=1943698>`_)
 
 - Firefox 88:
 
