@@ -5825,3 +5825,11 @@ JS::InstantiationStorage::~InstantiationStorage() {
     gcOutput_ = nullptr;
   }
 }
+
+bool JS::IsStencilCacheable(JS::Stencil* stencil) {
+  if (stencil->hasAsmJS()) {
+    return false;
+  }
+
+  return true;
+}
