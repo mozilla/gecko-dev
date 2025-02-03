@@ -171,7 +171,7 @@ module.exports = async function () {
   // to check how long it takes for it to hide and show with many requests.
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1942149.
   let test = runTest("custom.netmonitor.manyrequests.togglepanel");
-  await toolbox.selectTool("webconsole");
+  await toolbox.selectTool("options");
   await toolbox.selectTool("netmonitor");
   test.done();
 
