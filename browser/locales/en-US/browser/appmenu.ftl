@@ -322,7 +322,8 @@ appmenu-other-protection-header = Try other protection tools from { -vendor-shor
 
 ## Profiles panel
 
-appmenu-profiles = Profiles
+appmenu-profiles-2 =
+    .label = Profiles
 appmenu-other-profiles = Other profiles
 appmenu-manage-profiles =
     .label = Manage profiles
