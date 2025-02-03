@@ -12,6 +12,7 @@ import { UpdateUtils } from "resource://gre/modules/UpdateUtils.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const Utils = TelemetryUtils;
+const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 
 import {
   AddonManager,
@@ -80,10 +81,6 @@ export var Policy = {
 // don't prematurely initialize our environment if it is called early during
 // startup.
 var gActiveExperimentStartupBuffer = new Map();
-
-// For Powering arewegleanyet.com (See bug 1944592)
-// Legacy Count: 120
-// Glean Count: 9
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1636,6 +1633,8 @@ EnvironmentCache.prototype = {
       e10sEnabled: Services.appinfo.browserTabsRemoteAutostart,
       e10sMultiProcesses: Services.appinfo.maxWebProcessCount,
       fissionEnabled: Services.appinfo.fissionAutostart,
+      telemetryEnabled:
+        Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED, false) === true,
       locale: getBrowserLocale(),
       // We need to wait for browser-delayed-startup-finished to ensure that the locales
       // have settled, once that's happened we can get the intl data directly.
@@ -1920,6 +1919,24 @@ EnvironmentCache.prototype = {
     return {};
   },
 
+  /**
+   * Get the device information, if we are on a portable device.
+   * @return Object containing the device information data, or null if
+   * not a portable device.
+   */
+  _getDeviceData() {
+    if (AppConstants.platform !== "android") {
+      return null;
+    }
+
+    return {
+      model: getSysinfoProperty("device", null),
+      manufacturer: getSysinfoProperty("manufacturer", null),
+      hardware: getSysinfoProperty("hardware", null),
+      isTablet: getSysinfoProperty("tablet", null),
+    };
+  },
+
   _osData: null,
   /**
    * Get the OS information.
@@ -2025,9 +2042,13 @@ EnvironmentCache.prototype = {
       DWriteEnabled: getGfxField("DWriteEnabled", null),
       ContentBackend: getGfxField("ContentBackend", null),
       Headless: getGfxField("isHeadless", null),
+      EmbeddedInFirefoxReality: getGfxField("EmbeddedInFirefoxReality", null),
       TargetFrameRate: getGfxField("TargetFrameRate", null),
       textScaleFactor: getGfxField("textScaleFactor", null),
 
+      // The following line is disabled due to main thread jank and will be enabled
+      // again as part of bug 1154500.
+      // DWriteVersion: getGfxField("DWriteVersion", null),
       adapters: [],
       monitors: [],
       features: {},
@@ -2109,6 +2130,8 @@ EnvironmentCache.prototype = {
       }
       data = { ...this._getProcessData(), ...data };
       data.sec = this._getSecurityAppData();
+    } else if (AppConstants.platform == "android") {
+      data.device = this._getDeviceData();
     }
 
     return data;

@@ -263,6 +263,7 @@ export var TelemetryEnvironmentTesting = {
       fissionEnabled: "boolean",
       intl: "object",
       locale: "string",
+      telemetryEnabled: "boolean",
       update: "object",
       userPrefs: "object",
     };
@@ -620,6 +621,8 @@ export var TelemetryEnvironmentTesting = {
           "windowsUBR must be null or a number."
         );
       }
+    } else if (gIsAndroid) {
+      lazy.Assert.ok(this.checkNullOrString(osData.kernelVersion));
     } else if (gIsLinux) {
       lazy.Assert.ok(this.checkNullOrString(osData.distro));
       lazy.Assert.ok(this.checkNullOrString(osData.distroVersion));
@@ -637,10 +640,17 @@ export var TelemetryEnvironmentTesting = {
     lazy.Assert.ok("Headless" in gfxData);
     lazy.Assert.ok("TargetFrameRate" in gfxData);
     lazy.Assert.equal(typeof gfxData.TargetFrameRate, "number");
+    lazy.Assert.ok("EmbeddedInFirefoxReality" in gfxData);
     lazy.Assert.ok("textScaleFactor" in gfxData);
+    // DWriteVersion is disabled due to main thread jank and will be enabled
+    // again as part of bug 1154500.
+    // Assert.ok("DWriteVersion" in gfxData);
     if (gIsWindows) {
       lazy.Assert.equal(typeof gfxData.D2DEnabled, "boolean");
       lazy.Assert.equal(typeof gfxData.DWriteEnabled, "boolean");
+      lazy.Assert.equal(typeof gfxData.EmbeddedInFirefoxReality, "boolean");
+      // As above, will be enabled again as part of bug 1154500.
+      // Assert.ok(this.checkString(gfxData.DWriteVersion));
     }
 
     lazy.Assert.ok("adapters" in gfxData);
