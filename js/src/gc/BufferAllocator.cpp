@@ -1017,6 +1017,16 @@ void BufferAllocator::finishMajorCollection(const AutoLock& lock) {
   // This can be called without startMajorSweeping if collection is aborted.
   MOZ_ASSERT(majorState == State::Marking || majorState == State::Sweeping);
 
+  ClearAllocatedDuringCollection(mediumMixedChunks.ref());
+  ClearAllocatedDuringCollection(mediumTenuredChunks.ref());
+  // This flag is not set for large nursery-owned allocations.
+  ClearAllocatedDuringCollection(largeTenuredAllocs.ref());
+
+  if (minorState == State::Sweeping) {
+    // Ensure this flag is cleared when chunks are merged in mergeSweptData.
+    majorFinishedWhileMinorSweeping = true;
+  }
+
   if (minorState == State::Sweeping || majorState == State::Sweeping) {
     mergeSweptData(lock);
   }
@@ -1025,17 +1035,6 @@ void BufferAllocator::finishMajorCollection(const AutoLock& lock) {
                 sweptMediumTenuredChunks.ref().isEmpty());
   MOZ_ASSERT_IF(majorState == State::Sweeping,
                 mediumTenuredChunksToSweep.ref().isEmpty());
-
-  // TODO: It may be more efficient if we can clear this flag before merging
-  // swept data above.
-  ClearAllocatedDuringCollection(mediumMixedChunks.ref());
-  ClearAllocatedDuringCollection(mediumTenuredChunks.ref());
-  // This flag is not set for large nursery-owned allocations.
-  ClearAllocatedDuringCollection(largeTenuredAllocs.ref());
-  if (minorState == State::Sweeping) {
-    // Ensure this flag is cleared when chunks are merged in mergeSweptData.
-    majorFinishedWhileMinorSweeping = true;
-  }
 
   if (majorState == State::Marking) {
     // We have aborted collection without sweeping this zone. Restore or rebuild
@@ -1120,6 +1119,7 @@ void BufferAllocator::mergeSweptData(const AutoLock& lock) {
   for (BufferChunk* chunk : sweptMediumTenuredChunks.ref()) {
     MOZ_ASSERT(!chunk->hasNurseryOwnedAllocs);
     MOZ_ASSERT(!chunk->hasNurseryOwnedAllocsAfterSweep);
+    MOZ_ASSERT(!chunk->allocatedDuringCollection);
   }
 #endif
   mediumTenuredChunks.ref().prepend(std::move(sweptMediumTenuredChunks.ref()));
