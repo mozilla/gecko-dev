@@ -156,7 +156,10 @@ struct StructuredCloneReadInfo : StructuredCloneReadInfoBase {
   StructuredCloneReadInfo& operator=(const StructuredCloneReadInfo& aOther) =
       delete;
 
-  // In IndexedDatabaseInlines.h
+  // Returns the estimated size used for IPC message size calculations, not the
+  // actual size of the data. This estimation accounts for serialization
+  // behavior of large data.
+  // Defined in IndexedDatabaseInlines.h
   size_t Size() const;
 
   // XXX This is only needed for a schema upgrade (UpgradeSchemaFrom19_0To20_0).

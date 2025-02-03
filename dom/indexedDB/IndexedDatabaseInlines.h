@@ -112,7 +112,22 @@ inline StructuredCloneReadInfo<
 
 template <typename StructuredCloneFile>
 inline size_t StructuredCloneReadInfo<StructuredCloneFile>::Size() const {
-  size_t size = Data().Size();
+  // We do not check the structured clone size against
+  // IndexedDatabaseManager::MaxStructuredCloneSize here.
+  // The size has already been validated before being sent from the content
+  // process to the parent process. At this stage, the parent process has
+  // either stored the data in the database or written it to a separate file,
+  // ensuring that size constraints are enforced elsewhere.
+  //
+  // If necessary, we could add a warning to flag oversized structured clones
+  // here. However, failing the request entirely would require additional
+  // changes, such as making these methods fallible, which would add complexity.
+
+  // Serialized structured clone size in bytes. For structured clone sizes >
+  // IPC::kMessageBufferShmemThreshold, only the size and shared memory handle
+  // are included in the IPC message. The value 16 is an estimate.
+  size_t size =
+      Data().Size() > IPC::kMessageBufferShmemThreshold ? 16 : Data().Size();
 
   for (uint32_t i = 0, count = mFiles.Length(); i < count; ++i) {
     // We don't want to calculate the size of files and so on, because are

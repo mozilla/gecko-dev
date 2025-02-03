@@ -9651,7 +9651,8 @@ Database::AllocPBackgroundIDBTransactionParent(
           aObjectStoreNames,
           [lastName = Maybe<const nsString&>{},
            &objectStores](const nsString& name) mutable
-          -> mozilla::Result<SafeRefPtr<FullObjectStoreMetadata>, nsresult> {
+              -> mozilla::Result<SafeRefPtr<FullObjectStoreMetadata>,
+                                 nsresult> {
             if (lastName) {
               // Make sure that this name is sorted properly and not a
               // duplicate.
@@ -18597,6 +18598,13 @@ nsresult NormalTransactionOp::SendSuccessResult() {
     RequestResponse response;
     size_t responseSize = kMaxMessageSize;
     GetResponse(response, &responseSize);
+
+    // TODO: Adjust the calculation of the response size in relevant
+    // GetResponse methods to account for the fallback to shared memory during
+    // serialization of the primary key and index keys if their size exceeds
+    // IPC::kMessageBufferShmemThreshold. This ensures the calculated size
+    // accurately reflects the actual IPC message size.
+    // See also bug 1945040.
 
     if (responseSize >= kMaxMessageSize) {
       nsPrintfCString warning(

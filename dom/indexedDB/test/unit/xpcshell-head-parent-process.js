@@ -496,6 +496,11 @@ function resetDataThreshold() {
   SpecialPowers.clearUserPref("dom.indexedDB.dataThreshold");
 }
 
+function setMaxStructuredCloneSize(aSize) {
+  info("Setting maximal structured clone size to " + aSize);
+  SpecialPowers.setIntPref("dom.indexedDB.maxStructuredCloneSize", aSize);
+}
+
 function setMaxSerializedMsgSize(aSize) {
   info("Setting maximal size of a serialized message to " + aSize);
   SpecialPowers.setIntPref("dom.indexedDB.maxSerializedMsgSize", aSize);

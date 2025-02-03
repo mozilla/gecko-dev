@@ -77,6 +77,8 @@ skip-if = ["true"]
 
 ["test_maximal_serialized_object_size.js"]
 
+["test_maximal_structured_clone_size.js"]
+
 ["test_metadata2Restore.js"]
 
 ["test_metadataRestore.js"]
