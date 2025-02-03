@@ -7,6 +7,7 @@
             closeExtensionsPanel,
             createExtensions,
             ensureMaximizedWindow,
+            ensureWindowInnerDimensions,
             getBlockKey
             getMessageBars,
             getUnifiedExtensionsItem,
@@ -130,44 +131,7 @@ const createExtensions = (
   );
 };
 
-/**
- * Given a window, this test helper resizes it so that the window takes most of
- * the available screen size (unless the window is already maximized).
- */
-const ensureMaximizedWindow = async win => {
-  info("ensuring maximized window...");
-
-  // Make sure we wait for window position to have settled
-  // to avoid unexpected failures.
-  let samePositionTimes = 0;
-  let lastScreenTop = win.screen.top;
-  let lastScreenLeft = win.screen.left;
-  win.moveTo(0, 0);
-  await TestUtils.waitForCondition(() => {
-    let isSamePosition =
-      lastScreenTop === win.screen.top && lastScreenLeft === win.screen.left;
-    if (!isSamePosition) {
-      lastScreenTop = win.screen.top;
-      lastScreenLeft = win.screen.left;
-    }
-    samePositionTimes = isSamePosition ? samePositionTimes + 1 : 0;
-    return samePositionTimes === 10;
-  }, "Wait for the chrome window position to settle");
-
-  const widthDiff = Math.max(win.screen.availWidth - win.outerWidth, 0);
-  const heightDiff = Math.max(win.screen.availHeight - win.outerHeight, 0);
-
-  if (widthDiff || heightDiff) {
-    info(
-      `resizing window... widthDiff=${widthDiff} - heightDiff=${heightDiff}`
-    );
-    win.windowUtils.ensureDirtyRootFrame();
-    win.resizeBy(widthDiff, heightDiff);
-  } else {
-    info(`not resizing window!`);
-  }
-
-  // Make sure we wait for window size to have settled.
+const ensureStableDimensions = async win => {
   let lastOuterWidth = win.outerWidth;
   let lastOuterHeight = win.outerHeight;
   let sameSizeTimes = 0;
@@ -181,6 +145,52 @@ const ensureMaximizedWindow = async win => {
     sameSizeTimes = isSameSize ? sameSizeTimes + 1 : 0;
     return sameSizeTimes === 10;
   }, "Wait for the chrome window size to settle");
+};
+
+const _ensureSizeMode = (win, expectedMode, change) => {
+  info(`ensuring sizeMode ${expectedMode}`);
+  if (win.windowState == expectedMode) {
+    info(`already the right mode`);
+    return;
+  }
+
+  return new Promise(resolve => {
+    win.addEventListener("sizemodechange", function listener() {
+      info(`sizeMode changed to ${win.windowState}`);
+      if (win.windowState == expectedMode) {
+        win.removeEventListener("sizemodechange", listener);
+        resolve();
+      }
+    });
+    change();
+  });
+};
+
+/**
+ * Given a window, this test helper resizes it so that the window takes most of
+ * the available screen size (unless the window is already maximized).
+ */
+const ensureMaximizedWindow = win => {
+  return _ensureSizeMode(win, win.STATE_MAXIMIZED, () => win.maximize());
+};
+
+const ensureWindowInnerDimensions = async (win, w, h) => {
+  // restore() first if needed, because some Linux compositors (older Mutter)
+  // will not honor the size request otherwise.
+  await _ensureSizeMode(win, win.STATE_NORMAL, () => win.restore());
+
+  await ensureStableDimensions(win);
+
+  let diffX = w ? w - win.innerWidth : 0;
+  let diffY = h ? h - win.innerHeight : 0;
+  info(`Resizing to ${w} (${diffX}), ${h} (${diffY})`);
+  if (diffX || diffY) {
+    await new Promise(resolve => {
+      win.addEventListener("resize", resolve, { once: true });
+      win.resizeBy(diffX, diffY);
+    });
+    info(`Got window resize: ${win.innerWidth}x${win.innerHeight}`);
+  }
 };
 
 const promiseSetToolbarVisibility = (toolbar, visible) => {
