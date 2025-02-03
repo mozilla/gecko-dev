@@ -755,3 +755,32 @@ def emulator(
                 "Unable to retrieve Android emulator return code.",
             )
     return 0
+
+
+@Command(
+    "adb",
+    category="devenv",
+    description="Run the version of Android Debug Bridge (adb) utility that the build system would use.",
+)
+@CommandArgument("args", nargs=argparse.REMAINDER)
+def adb(
+    command_context,
+    args,
+):
+    """Run the version of Android Debug Bridge (adb) utility that the build
+    system would use."""
+    from mozrunner.devices.android_device import get_adb_path
+
+    adb_path = get_adb_path(command_context)
+    if not adb_path:
+        command_context.log(
+            logging.ERROR,
+            "adb",
+            {},
+            "ADB not found. Did you run `mach bootstrap` with Android selected yet?",
+        )
+        return 1
+
+    return command_context.run_process(
+        [adb_path] + args, pass_thru=True, ensure_exit_code=False
+    )
