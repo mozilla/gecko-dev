@@ -9028,7 +9028,6 @@ bool CacheIRCompiler::emitCallObjectHasSparseElementResult(
 
   LiveRegisterSet volatileRegs = liveVolatileRegs();
   volatileRegs.takeUnchecked(scratch1);
-  volatileRegs.takeUnchecked(index);
   masm.PushRegsInMask(volatileRegs);
 
   using Fn =
