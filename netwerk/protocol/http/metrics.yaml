@@ -1650,3 +1650,446 @@ spdy:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: SPDY_CONTINUED_HEADERS
+
+http:
+  subitem_open_latency_time:
+    type: timing_distribution
+    description: >
+      HTTP subitem channel: Page start -> subitem open() (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_SUBITEM_OPEN_LATENCY_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_SUBITEM_OPEN_LATENCY_TIME
+
+  subitem_first_byte_latency_time:
+    type: timing_distribution
+    description: >
+      HTTP subitem channel: Page start -> first byte received for subitem reply
+      (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_SUBITEM_FIRST_BYTE_LATENCY_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_SUBITEM_FIRST_BYTE_LATENCY_TIME
+
+  request_per_page:
+    type: custom_distribution
+    description: >
+      HTTP: Requests per page (count)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_REQUEST_PER_PAGE.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_REQUEST_PER_PAGE
+
+  request_per_page_from_cache:
+    type: custom_distribution
+    description: >
+      HTTP: Requests serviced from cache (%)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_REQUEST_PER_PAGE_FROM_CACHE.
+    range_min: 0
+    range_max: 101
+    bucket_count: 102
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_REQUEST_PER_PAGE_FROM_CACHE
+
+  request_per_conn:
+    type: custom_distribution
+    description: >
+      HTTP: requests per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_REQUEST_PER_CONN.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_REQUEST_PER_CONN
+
+  kbread_per_conn2:
+    type: memory_distribution
+    description: >
+      HTTP: KB read per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_KBREAD_PER_CONN2.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520260
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_KBREAD_PER_CONN2
+
+  proxy_type:
+    type: custom_distribution
+    description: >
+      HTTP Proxy Type (none, http, socks)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_PROXY_TYPE.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_PROXY_TYPE
+
+  transaction_is_ssl:
+    type: labeled_counter
+    description: >
+      Whether an HTTP request occurred over TLS/SSL or not. Recorded during
+      response processing for all requests.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_TRANSACTION_IS_SSL.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_TRANSACTION_IS_SSL
+
+  pageload_is_ssl:
+    type: labeled_counter
+    description: >
+      Whether a HTTP page load was over SSL or not. Recorded during response
+      processing for all first-party page loads.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_PAGELOAD_IS_SSL.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_PAGELOAD_IS_SSL
+
+  transaction_use_altsvc:
+    type: labeled_counter
+    description: >
+      Whether a HTTP transaction was routed via Alt-Svc or not.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_TRANSACTION_USE_ALTSVC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_TRANSACTION_USE_ALTSVC
+
+  altsvc_entries_per_header:
+    type: custom_distribution
+    description: >
+      How many alt-svc productions were seen in a single Alt-Svc header
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_ALTSVC_ENTRIES_PER_HEADER.
+    range_min: 0
+    range_max: 5
+    bucket_count: 6
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499149
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499149
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_ALTSVC_ENTRIES_PER_HEADER
+
+  altsvc_mapping_changed_target:
+    type: labeled_counter
+    description: >
+      Whether or not a new alt-svc mapping would change the target hostname of
+      the existing mapping
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_ALTSVC_MAPPING_CHANGED_TARGET.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499149
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499149
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_ALTSVC_MAPPING_CHANGED_TARGET
+
+  upload_bandwidth_mbps:
+    type: labeled_custom_distribution
+    description: >
+      The upload bandwidth for requests larger than 10MB. Measured in megabits
+      per second, Mbps. Keyed by HTTP protocol version.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP_UPLOAD_BANDWIDTH_MBPS.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: megabits per second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830087
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830087
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_UPLOAD_BANDWIDTH_MBPS
+
+  response_version:
+    type: custom_distribution
+    description: >
+      HTTP: Protocol Version Used on Response from nsHttp.h
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_RESPONSE_VERSION.
+    range_min: 0
+    range_max: 48
+    bucket_count: 49
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_RESPONSE_VERSION
+
+  channel_disposition:
+    type: custom_distribution
+    description: >
+      Channel Disposition: 0=Cancel, 1=Disk, 2=NetOK, 3=NetEarlyFail,
+      4=NetlateFail, +8 for HTTPS
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_CHANNEL_DISPOSITION.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341128
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341128
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CHANNEL_DISPOSITION
+
+  channel_onstart_success:
+    type: labeled_counter
+    description: >
+      Successfully started HTTP channels
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_CHANNEL_ONSTART_SUCCESS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1473333
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1587226
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1473333
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1587226
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_CHANNEL_ONSTART_SUCCESS
+
+  channel_page_onstart_success_trr:
+    type: labeled_custom_distribution
+    description: >
+      Successfully started HTTP channels for page loading when TRR is enabled;
+      Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_CHANNEL_PAGE_ONSTART_SUCCESS_TRR3.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1767417
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1767417
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CHANNEL_PAGE_ONSTART_SUCCESS_TRR3
+
+  channel_sub_onstart_success_trr:
+    type: labeled_custom_distribution
+    description: >
+      Successfully started HTTP channels for resource loading when TRR is
+      enabled; Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_CHANNEL_SUB_ONSTART_SUCCESS_TRR3.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1767417
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1767417
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CHANNEL_SUB_ONSTART_SUCCESS_TRR3
+
+  connection_entry_cache_hit:
+    type: labeled_counter
+    description: >
+      Fraction of sockets that used a nsConnectionEntry with history - size 300.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP_CONNECTION_ENTRY_CACHE_HIT_1.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP_CONNECTION_ENTRY_CACHE_HIT_1
+
+  saw_quic_alt_protocol:
+    type: custom_distribution
+    description: >
+      Does a response has a h3(1), other quic(2) or non(0) alt-protocol
+      advertisement.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_SAW_QUIC_ALT_PROTOCOL_2.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_SAW_QUIC_ALT_PROTOCOL_2
+
+  content_encoding:
+    type: custom_distribution
+    description: >
+      encoding removed: 0=unknown, 1=gzip, 2=deflate, 3=brotli, 4=zstd
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_CONTENT_ENCODING.
+    range_min: 0
+    range_max: 6
+    bucket_count: 7
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CONTENT_ENCODING
+
+  connection_close_reason:
+    type: labeled_custom_distribution
+    description: >
+      Reason for HTTP connection closure, keyed by properties like HTTP version
+      and connection state.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_CONNECTION_CLOSE_REASON.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1784261
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1784261
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CONNECTION_CLOSE_REASON

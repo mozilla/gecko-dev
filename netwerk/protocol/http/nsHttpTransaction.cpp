@@ -3642,8 +3642,8 @@ void nsHttpTransaction::CollectTelemetryForUploads() {
   TimeDuration sendTime = mTimings.responseStart - mTimings.requestStart;
   double megabits = static_cast<double>(mRequestSize) * 8.0 / 1000000.0;
   uint32_t mpbs = static_cast<uint32_t>(megabits / sendTime.ToSeconds());
-  Telemetry::Accumulate(Telemetry::HTTP_UPLOAD_BANDWIDTH_MBPS, protocolVersion,
-                        mpbs);
+  glean::http::upload_bandwidth_mbps.Get(protocolVersion)
+      .AccumulateSingleSample(mpbs);
 
   switch (mHttpVersion) {
     case HttpVersion::v1_0:

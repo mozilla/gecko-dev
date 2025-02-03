@@ -212,8 +212,8 @@ void AltSvcMapping::ProcessHeader(
                 doUpdateAltSvcMapping);
 
   if (numEntriesInHeader) {  // Ignore headers that were just "alt-svc: clear"
-    Telemetry::Accumulate(Telemetry::HTTP_ALTSVC_ENTRIES_PER_HEADER,
-                          numEntriesInHeader);
+    glean::http::altsvc_entries_per_header.AccumulateSingleSample(
+        numEntriesInHeader);
   }
 }
 
@@ -1057,8 +1057,9 @@ void AltSvcCache::UpdateAltServiceMapping(
                this, map, existing.get()));
         }
       }
-      Telemetry::Accumulate(Telemetry::HTTP_ALTSVC_MAPPING_CHANGED_TARGET,
-                            false);
+      glean::http::altsvc_mapping_changed_target
+          .EnumGet(glean::http::AltsvcMappingChangedTargetLabel::eFalse)
+          .Add();
       return;
     }
 
@@ -1073,7 +1074,9 @@ void AltSvcCache::UpdateAltServiceMapping(
     // new alternate. start new validation
     LOG(("AltSvcCache::UpdateAltServiceMapping %p map %p may overwrite %p\n",
          this, map, existing.get()));
-    Telemetry::Accumulate(Telemetry::HTTP_ALTSVC_MAPPING_CHANGED_TARGET, true);
+    glean::http::altsvc_mapping_changed_target
+        .EnumGet(glean::http::AltsvcMappingChangedTargetLabel::eTrue)
+        .Add();
   }
 
   if (existing && !existing->Validated()) {

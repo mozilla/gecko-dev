@@ -24,6 +24,7 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/NetwerkMetrics.h"
@@ -1758,13 +1759,13 @@ void nsHttpConnectionMgr::ReportProxyTelemetry(ConnectionEntry* ent) {
   enum { PROXY_NONE = 1, PROXY_HTTP = 2, PROXY_SOCKS = 3, PROXY_HTTPS = 4 };
 
   if (!ent->mConnInfo->UsingProxy()) {
-    Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_NONE);
+    glean::http::proxy_type.AccumulateSingleSample(PROXY_NONE);
   } else if (ent->mConnInfo->UsingHttpsProxy()) {
-    Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_HTTPS);
+    glean::http::proxy_type.AccumulateSingleSample(PROXY_HTTPS);
   } else if (ent->mConnInfo->UsingHttpProxy()) {
-    Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_HTTP);
+    glean::http::proxy_type.AccumulateSingleSample(PROXY_HTTP);
   } else {
-    Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_SOCKS);
+    glean::http::proxy_type.AccumulateSingleSample(PROXY_SOCKS);
   }
 }
 

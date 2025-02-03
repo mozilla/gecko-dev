@@ -427,14 +427,18 @@ nsresult TRRServiceChannel::BeginConnect() {
          this));
     mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo,
                                OriginAttributes());
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, true);
+    glean::http::transaction_use_altsvc
+        .EnumGet(glean::http::TransactionUseAltsvcLabel::eTrue)
+        .Add();
   } else if (mConnectionInfo) {
     LOG(("TRRServiceChannel %p Using channel supplied connection info", this));
   } else {
     LOG(("TRRServiceChannel %p Using default connection info", this));
 
     mConnectionInfo = connInfo;
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);
+    glean::http::transaction_use_altsvc
+        .EnumGet(glean::http::TransactionUseAltsvcLabel::eFalse)
+        .Add();
   }
 
   // Need to re-ask the handler, since mConnectionInfo may not be the connInfo

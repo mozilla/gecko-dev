@@ -1547,7 +1547,7 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
         } else if (from.EqualsLiteral("zstd")) {
           mode = 4;
         }
-        Telemetry::Accumulate(Telemetry::HTTP_CONTENT_ENCODING, mode);
+        glean::http::content_encoding.AccumulateSingleSample(mode);
       }
       nextListener = converter;
     } else {

@@ -15,7 +15,6 @@
 #include "mozilla/Logging.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "mozilla/Telemetry.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsITimedChannel.h"
 #include "nsIInterfaceRequestor.h"
@@ -587,16 +586,14 @@ nsresult nsLoadGroup::RemoveRequestFromHashtable(nsIRequest* request,
       } else {
         rv = timedChannel->GetAsyncOpen(&timeStamp);
         if (NS_SUCCEEDED(rv) && !timeStamp.IsNull()) {
-          Telemetry::AccumulateTimeDelta(
-              Telemetry::HTTP_SUBITEM_OPEN_LATENCY_TIME,
-              mDefaultRequestCreationTime, timeStamp);
+          glean::http::subitem_open_latency_time.AccumulateRawDuration(
+              timeStamp - mDefaultRequestCreationTime);
         }
 
         rv = timedChannel->GetResponseStart(&timeStamp);
         if (NS_SUCCEEDED(rv) && !timeStamp.IsNull()) {
-          Telemetry::AccumulateTimeDelta(
-              Telemetry::HTTP_SUBITEM_FIRST_BYTE_LATENCY_TIME,
-              mDefaultRequestCreationTime, timeStamp);
+          glean::http::subitem_first_byte_latency_time.AccumulateRawDuration(
+              timeStamp - mDefaultRequestCreationTime);
         }
 
         TelemetryReportChannel(timedChannel, false);
@@ -811,10 +808,10 @@ void nsLoadGroup::TelemetryReport() {
   // We should only report HTTP_PAGE_* telemetry if the defaultRequest was
   // actually successful.
   if (mDefaultLoadIsTimed && NS_SUCCEEDED(mDefaultStatus)) {
-    Telemetry::Accumulate(Telemetry::HTTP_REQUEST_PER_PAGE, mTimedRequests);
+    glean::http::request_per_page.AccumulateSingleSample(mTimedRequests);
     if (mTimedRequests) {
-      Telemetry::Accumulate(Telemetry::HTTP_REQUEST_PER_PAGE_FROM_CACHE,
-                            mCachedRequests * 100 / mTimedRequests);
+      glean::http::request_per_page_from_cache.AccumulateSingleSample(
+          mCachedRequests * 100 / mTimedRequests);
     }
   }
 

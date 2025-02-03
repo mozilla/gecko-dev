@@ -2533,11 +2533,15 @@ nsresult nsHttpChannel::ProcessResponse() {
 
   // Gather data on whether the transaction and page (if this is
   // the initial page load) is being loaded with SSL.
-  Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_IS_SSL,
-                        mConnectionInfo->EndToEndSSL());
+  glean::http::transaction_is_ssl
+      .EnumGet(static_cast<glean::http::TransactionIsSslLabel>(
+          mConnectionInfo->EndToEndSSL()))
+      .Add();
   if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
-    Telemetry::Accumulate(Telemetry::HTTP_PAGELOAD_IS_SSL,
-                          mConnectionInfo->EndToEndSSL());
+    glean::http::pageload_is_ssl
+        .EnumGet(static_cast<glean::http::PageloadIsSslLabel>(
+            mConnectionInfo->EndToEndSSL()))
+        .Add();
   }
 
   if (Telemetry::CanRecordPrereleaseData()) {
@@ -2553,7 +2557,7 @@ nsresult nsHttpChannel::ProcessResponse() {
         saw_quic = 2;
       }
     }
-    Telemetry::Accumulate(Telemetry::HTTP_SAW_QUIC_ALT_PROTOCOL_2, saw_quic);
+    glean::http::saw_quic_alt_protocol.AccumulateSingleSample(saw_quic);
 
     // Gather data on various response status to monitor any increased frequency
     // of auth failures due to Bug 1896350
@@ -3099,8 +3103,8 @@ nsresult nsHttpChannel::ContinueProcessResponseAfterNotModified(nsresult aRv) {
 
 static void ReportHttpResponseVersion(HttpVersion version) {
   if (Telemetry::CanRecordPrereleaseData()) {
-    Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_VERSION,
-                          static_cast<uint32_t>(version));
+    glean::http::response_version.AccumulateSingleSample(
+        static_cast<uint32_t>(version));
   }
   mozilla::glean::networking::http_response_version
       .Get(HttpVersionToTelemetryLabel(version))
@@ -7049,7 +7053,9 @@ nsresult nsHttpChannel::BeginConnect() {
     LOG(("nsHttpChannel %p Using connection info from altsvc mapping", this));
     mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo,
                                originAttributes);
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, true);
+    glean::http::transaction_use_altsvc
+        .EnumGet(glean::http::TransactionUseAltsvcLabel::eTrue)
+        .Add();
     if (mConnectionInfo->IsHttp3() &&
         StaticPrefs::
             network_http_http3_force_use_alt_svc_mapping_for_testing()) {
@@ -7057,12 +7063,16 @@ nsresult nsHttpChannel::BeginConnect() {
     }
   } else if (mConnectionInfo) {
     LOG(("nsHttpChannel %p Using channel supplied connection info", this));
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);
+    glean::http::transaction_use_altsvc
+        .EnumGet(glean::http::TransactionUseAltsvcLabel::eFalse)
+        .Add();
   } else {
     LOG(("nsHttpChannel %p Using default connection info", this));
 
     mConnectionInfo = connInfo;
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);
+    glean::http::transaction_use_altsvc
+        .EnumGet(glean::http::TransactionUseAltsvcLabel::eFalse)
+        .Add();
   }
 
   bool trrEnabled = false;
@@ -7756,8 +7766,10 @@ nsHttpChannel::GetRequestMethod(nsACString& aMethod) {
 
 void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
                                            bool aIsNavigation) {
-  Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS,
-                        NS_SUCCEEDED(aStatus));
+  glean::http::channel_onstart_success
+      .EnumGet(static_cast<glean::http::ChannelOnstartSuccessLabel>(
+          NS_SUCCEEDED(aStatus)))
+      .Add();
 
   mozilla::glean::networking::http_channel_onstart_status
       .Get(NS_SUCCEEDED(aStatus) ? "successful"_ns : "fail"_ns)
@@ -7788,13 +7800,13 @@ void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
     }
 
     if (aIsNavigation) {
-      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_PAGE_ONSTART_SUCCESS_TRR3,
-                            TRRService::ProviderKey(),
-                            static_cast<uint32_t>(state));
+      glean::http::channel_page_onstart_success_trr
+          .Get(TRRService::ProviderKey())
+          .AccumulateSingleSample(static_cast<uint32_t>(state));
     } else {
-      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_SUB_ONSTART_SUCCESS_TRR3,
-                            TRRService::ProviderKey(),
-                            static_cast<uint32_t>(state));
+      glean::http::channel_sub_onstart_success_trr
+          .Get(TRRService::ProviderKey())
+          .AccumulateSingleSample(static_cast<uint32_t>(state));
     }
   }
 
@@ -8793,7 +8805,7 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
 
   LOG(("  nsHttpChannel::OnStopRequest ChannelDisposition %d\n",
        chanDisposition));
-  Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_DISPOSITION, chanDisposition);
+  glean::http::channel_disposition.AccumulateSingleSample(chanDisposition);
   RecordHttpChanDispositionGlean(chanDisposition);
 
   // Collect specific telemetry for measuring image, video, audio

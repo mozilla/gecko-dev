@@ -20,7 +20,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "nsHttpHandler.h"
 #include "ConnectionEntry.h"
 #include "HttpConnectionUDP.h"
@@ -1289,8 +1289,10 @@ nsresult DnsAndConnectSocket::TransportSetup::SetupStreams(
       gHttpHandler->ConnMgr()->FindConnectionEntry(ci);
   MOZ_DIAGNOSTIC_ASSERT(ent);
   if (ent) {
-    Telemetry::Accumulate(Telemetry::HTTP_CONNECTION_ENTRY_CACHE_HIT_1,
-                          ent->mUsedForConnection);
+    glean::http::connection_entry_cache_hit
+        .EnumGet(static_cast<glean::http::ConnectionEntryCacheHitLabel>(
+            ent->mUsedForConnection))
+        .Add();
     ent->mUsedForConnection = true;
   }
 
