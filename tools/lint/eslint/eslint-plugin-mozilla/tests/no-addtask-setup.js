@@ -22,6 +22,7 @@ function callError() {
 
 ruleTester.run("no-addtask-setup", rule, {
   valid: [
+    "add_task();",
     "add_task(function() {});",
     "add_task(function () {});",
     "add_task(function foo() {});",

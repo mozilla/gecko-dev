@@ -41,35 +41,43 @@ module.exports = {
       return api == "obs" || api == "prefs";
     }
 
-    function getObservableName(node, api) {
-      if (api === "obs") {
-        return node.arguments[1].value;
+    function getObservableName(node) {
+      const api = getObserverAPI(node);
+      if (!isServicesObserver(api)) {
+        return null;
       }
-      return node.arguments[0].value;
+
+      const observableArgument =
+        api === "obs" ? node.arguments[1] : node.arguments[0];
+      if (!observableArgument) {
+        return null;
+      }
+
+      return observableArgument.value;
     }
 
     function addAddedObserver(node) {
-      const api = getObserverAPI(node);
-      if (!isServicesObserver(api)) {
+      const observableName = getObservableName(node);
+      if (observableName === null) {
         return;
       }
 
       addedObservers.push({
         functionName: node.callee.property.name,
-        observable: getObservableName(node, api),
+        observable: observableName,
         node: node.callee.property,
       });
     }
 
     function addRemovedObserver(node) {
-      const api = getObserverAPI(node);
-      if (!isServicesObserver(api)) {
+      const observableName = getObservableName(node);
+      if (observableName === null) {
         return;
       }
 
       removedObservers.push({
         functionName: node.callee.property.name,
-        observable: getObservableName(node, api),
+        observable: observableName,
       });
     }
 
@@ -90,10 +98,6 @@ module.exports = {
 
     return {
       CallExpression(node) {
-        if (node.arguments.length === 0) {
-          return;
-        }
-
         if (node.callee.type === "MemberExpression") {
           var methodName = node.callee.property.name;
 

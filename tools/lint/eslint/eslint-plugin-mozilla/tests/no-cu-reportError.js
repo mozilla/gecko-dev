@@ -30,6 +30,11 @@ ruleTester.run("no-cu-reportError", rule, {
   ],
   invalid: [
     {
+      code: "Cu.reportError()",
+      output: "console.error()",
+      errors: callError(),
+    },
+    {
       code: "Cu.reportError('foo')",
       output: "console.error('foo')",
       errors: callError(),

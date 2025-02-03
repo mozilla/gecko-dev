@@ -29,6 +29,7 @@ function invalidCode(code, output, messageId, data) {
 
 ruleTester.run("no-comparison-or-assignment-inside-ok", rule, {
   valid: [
+    "ok()",
     "ok(foo)",
     "ok(!bar)",
     "ok(!foo, 'Message')",

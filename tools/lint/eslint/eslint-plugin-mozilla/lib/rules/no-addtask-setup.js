@@ -32,6 +32,7 @@ module.exports = {
         if (callee.type === "Identifier" && callee.name === "add_task") {
           let arg = node.arguments[0];
           if (
+            !arg ||
             arg.type !== "FunctionExpression" ||
             !arg.id ||
             !isNamedLikeSetup(arg.id.name)

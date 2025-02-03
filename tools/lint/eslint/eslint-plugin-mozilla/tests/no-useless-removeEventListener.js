@@ -22,6 +22,12 @@ function invalidCode(code) {
 
 ruleTester.run("no-useless-removeEventListener", rule, {
   valid: [
+    // Rule should not throw if arguments for removeEventListener
+    // are not provided yet.
+    "elt.addEventListener(event1, function listener() {" +
+      "  elt.removeEventListener();" +
+      "});",
+
     // Listeners that aren't a function are always valid.
     "elt.addEventListener('click', handler);",
     "elt.addEventListener('click', handler, true);",

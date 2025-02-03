@@ -45,7 +45,7 @@ module.exports = {
           return;
         }
         let firstArg = node.arguments[0];
-        if (!exprs.has(firstArg.type)) {
+        if (!firstArg || !exprs.has(firstArg.type)) {
           return;
         }
         if (firstArg.type == "AssignmentExpression") {

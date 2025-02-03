@@ -29,6 +29,10 @@ ruleTester.run("reject-importGlobalProperties", rule, {
       options: ["allownonwebidl"],
       code: "XPCOMUtils.defineLazyGlobalGetters(this, ['caches'])",
     },
+    {
+      code: "Cu.importGlobalProperties()",
+      options: ["allownonwebidl"],
+    },
   ],
   invalid: [
     {

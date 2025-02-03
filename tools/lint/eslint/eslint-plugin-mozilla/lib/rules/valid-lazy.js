@@ -143,7 +143,8 @@ module.exports = {
           node.id.type === "Identifier" &&
           node.id.name == "lazy" &&
           node.init.type == "CallExpression" &&
-          node.init.callee.name == "createLazyLoaders"
+          node.init.callee.name == "createLazyLoaders" &&
+          node.init.arguments.length >= 1
         ) {
           setPropertiesFromArgument(node.init, node.init.arguments[0]);
         }

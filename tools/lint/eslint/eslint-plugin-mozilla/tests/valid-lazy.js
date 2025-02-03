@@ -44,6 +44,9 @@ ruleTester.run("valid-lazy", rule, {
        if (x) { lazy.foo.bar(); }
      `,
     `
+        const lazy = createLazyLoaders();
+      `,
+    `
        const lazy = createLazyLoaders({ foo: () => {}});
        if (x) { lazy.foo.bar(); }
      `,

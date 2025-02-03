@@ -31,6 +31,10 @@ function error(code, observable) {
 
 ruleTester.run("balanced-observers", rule, {
   valid: [
+    "Services.obs.addObserver(observer);",
+    "Services.obs.removeObserver(observer);",
+    "Services.prefs.addObserver();",
+    "Services.prefs.removeObserver();",
     "Services.obs.addObserver(observer, 'observable');" +
       "Services.obs.removeObserver(observer, 'observable');",
     "Services.prefs.addObserver('preference.name', otherObserver);" +
