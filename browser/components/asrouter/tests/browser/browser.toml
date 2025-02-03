@@ -1,6 +1,6 @@
 [DEFAULT]
 support-files = [
-  "../../../../extensions/newtab/test/browser/blue_page.html",
+  "../../../newtab/test/browser/blue_page.html",
   "head.js",
 ]
 

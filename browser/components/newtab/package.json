@@ -64,7 +64,7 @@
   "repository": "mozilla/activity-stream",
   "config": {
     "mc_root": "../../..",
-    "newtab_path": "browser/extensions/newtab"
+    "newtab_path": "browser/components/newtab"
   },
   "scripts": {
     "bundle": "npm-run-all bundle:*",

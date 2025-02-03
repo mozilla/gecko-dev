@@ -6,7 +6,7 @@
 
 :root {
   /* --tabpanel-background-color matches $in-content-page-background in newtab
-     (browser/extensions/newtab/content-src/styles/_variables.scss) */
+     (browser/components/newtab/content-src/styles/_variables.scss) */
   --tabpanel-background-color: #F9F9FB;
   @media (-moz-content-prefers-color-scheme: dark) {
     --tabpanel-background-color: #2B2A33;

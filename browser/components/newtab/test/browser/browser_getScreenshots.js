@@ -5,7 +5,7 @@
 
 // a blue page
 const TEST_URL =
-  "https://example.com/browser/browser/extensions/newtab/test/browser/blue_page.html";
+  "https://example.com/browser/browser/components/newtab/test/browser/blue_page.html";
 const XHTMLNS = "http://www.w3.org/1999/xhtml";
 
 const { Screenshots } = ChromeUtils.importESModule(

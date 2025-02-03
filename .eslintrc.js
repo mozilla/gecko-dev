@@ -277,8 +277,8 @@ module.exports = {
       files: [
         "browser/components/aboutwelcome/**",
         "browser/components/asrouter/**",
+        "browser/components/newtab/**",
         "browser/components/pocket/**",
-        "browser/extensions/newtab/**",
         "devtools/**",
       ],
       rules: {

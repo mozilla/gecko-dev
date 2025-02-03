@@ -201,7 +201,7 @@ async function main() {
   
     Examples
       $ node bin/import-rollouts.js --collection nimbus-preview
-      $ ./mach npm run import-rollouts --prefix=browser/components/asrouter -- -e
+      $ ./mach npm run import-rollouts --prefix=browser/components/newtab -- -e
   `,
     {
       description: false,

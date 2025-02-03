@@ -7,7 +7,7 @@ async function setupPrefs() {
   sinon
     .stub(DiscoveryStreamFeed.prototype, "generateFeedUrl")
     .returns(
-      "https://example.com/browser/browser/extensions/newtab/test/browser/topstories.json"
+      "https://example.com/browser/browser/components/newtab/test/browser/topstories.json"
     );
   await setDefaultTopSites();
   await SpecialPowers.pushPrefEnv({

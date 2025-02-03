@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-01-09T20:22:30.898610+00:00'
+updated_at: '2024-12-13T13:27:25.205577+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3652,7 +3652,6 @@ modules:
         description: The new tab/home page.
         includes:
           - browser/components/newtab/**/*
-          - browser/extensions/newtab/**/*
         meta:
           components:
             - Firefox::New Tab Page
@@ -4527,5 +4526,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2cd3ccb08a7682dd9b4ee6a705944097e8f20737
-  export: 3d1f2939a885652782b6368b36caee74274cf26a
+  config: 47203670aa6060cfd7790c4bbf1ef02ff80d49b7
+  export: faee9ad768d4c2fb9d5672b4089e0dd157049838

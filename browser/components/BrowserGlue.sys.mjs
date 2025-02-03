@@ -5644,7 +5644,7 @@ export var DefaultBrowserCheck = {
  * performance optimization. It only works when the "privileged about
  * content process" is enabled and when ENABLED_PREF is set to true.
  *
- * See https://firefox-source-docs.mozilla.org/browser/extensions/newtab/docs/v2-system-addon/about_home_startup_cache.html
+ * See https://firefox-source-docs.mozilla.org/browser/components/newtab/docs/v2-system-addon/about_home_startup_cache.html
  * for further details.
  */
 export var AboutHomeStartupCache = {

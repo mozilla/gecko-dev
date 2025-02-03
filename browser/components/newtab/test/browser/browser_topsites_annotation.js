@@ -47,7 +47,6 @@ const {
 /**
  * To be used before checking database contents when they depend on a visit
  * being added to History.
- *
  * @param {string} href the page to await notifications for.
  */
 async function waitForVisitNotification(href) {
@@ -552,7 +551,7 @@ add_task(async function redirection() {
     const redirectTo = "https://example.com/";
     const link = {
       label: "test_label",
-      url: "https://example.com/browser/browser/extensions/newtab/test/browser/redirect_to.sjs?/",
+      url: "https://example.com/browser/browser/components/newtab/test/browser/redirect_to.sjs?/",
       sponsored_position: 1,
       sponsored_tile_id: 12345,
       sponsored_impression_url: "https://impression.example.com/",
@@ -614,7 +613,7 @@ add_task(async function redirection() {
 add_task(async function inherit() {
   const host = "https://example.com/";
   const sameBaseDomainHost = "https://www.example.com/";
-  const path = "browser/browser/extensions/newtab/test/browser/";
+  const path = "browser/browser/components/newtab/test/browser/";
   const firstURL = `${host}${path}annotation_first.html`;
   const secondURL = `${host}${path}annotation_second.html`;
   const thirdURL = `${sameBaseDomainHost}${path}annotation_third.html`;
@@ -793,7 +792,7 @@ add_task(async function inherit() {
 
 add_task(async function timeout() {
   const base =
-    "https://example.com/browser/browser/extensions/newtab/test/browser";
+    "https://example.com/browser/browser/components/newtab/test/browser";
   const firstURL = `${base}/annotation_first.html`;
   const secondURL = `${base}/annotation_second.html`;
 

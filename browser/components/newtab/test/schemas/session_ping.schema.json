@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "browser/extensions/newtab/test/schemas/session_ping.schema.json",
+  "$id": "browser/components/newtab/test/schemas/session_ping.schema.json",
   "title": "Session PingCentre ping",
   "type": "object",
   "properties": {

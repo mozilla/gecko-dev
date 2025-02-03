@@ -280,7 +280,7 @@ module.exports = {
       files: [
         "browser/components/aboutwelcome/**",
         "browser/components/asrouter/**",
-        "browser/extensions/newtab/**",
+        "browser/components/newtab/**",
       ],
       customSyntax: "postcss-scss",
       extends: "stylelint-config-standard-scss",

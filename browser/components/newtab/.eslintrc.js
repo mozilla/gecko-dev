@@ -114,9 +114,6 @@ module.exports = {
     "accessor-pairs": ["error", { setWithoutGet: true, getWithoutSet: false }],
     "array-callback-return": "error",
     "block-scoped-var": "error",
-    // XXX Bug 1326071 - This should be reduced down - probably to 20 or to
-    // be removed & synced with the mozilla/recommended value.
-    complexity: ["error", 61],
     "consistent-this": ["error", "use-bind"],
     eqeqeq: "error",
     "func-name-matching": "error",

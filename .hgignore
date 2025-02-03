@@ -73,13 +73,13 @@
 ^tools/browsertime/node_modules/
 ^tools/lint/eslint/eslint-plugin-mozilla/node_modules/
 ^browser/components/asrouter/node_modules/
+^browser/components/newtab/node_modules/
 ^browser/components/aboutwelcome/node_modules/
-^browser/extensions/newtab/node_modules/
 ^tools/ts/node_modules/
 ^testing/xpcshell/moz-http2/node_modules/
 
 # Ignore newtab component build assets
-^browser/extensions/newtab/logs/
+^browser/components/newtab/logs/
 
 # Ignore about:welcome component build assets
 ^browser/components/aboutwelcome/logs/

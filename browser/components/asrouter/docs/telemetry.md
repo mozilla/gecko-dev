@@ -1,6 +1,7 @@
 # Messaging System & Onboarding Telemetry
 
-This document (combined with the [messaging system ping section of the Glean Dictionary](https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/messaging-system)), is now the place to look first for Messaging System and Onboarding telemetry information. For historical reasons, there is still some related documentation mixed in with the Activity Stream documentation.
+This document (combined with the [messaging system ping section of the Glean Dictionary](https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/messaging-system)), is now the place to look first for Messaging System and Onboarding telemetry information. For historical reasons, there is still some related documentation mixed in with the Activity Stream documentation. If you can't find what you need here, check [old metrics we collect](/browser/components/newtab/docs/v2-system-addon/data_events.md) and the
+[old data dictionary](/browser/components/newtab/docs/v2-system-addon/data_dictionary.md).
 
 ## Collection with Glean
 
@@ -31,7 +32,7 @@ file.
 ## Adding or changing telemetry
 
 A general process overview can be found in the
-[Activity Stream telemetry document](/browser/extensions/newtab/docs/v2-system-addon/telemetry.md).
+[Activity Stream telemetry document](/browser/components/newtab/docs/v2-system-addon/telemetry.md).
 
 Note that when you need to add new metrics (i.e. JSON keys),
 they MUST to be

@@ -1,5 +1,5 @@
 import { ASRouterStorage } from "modules/ASRouterStorage.sys.mjs";
-import { GlobalOverrider } from "tests/unit/utils";
+import { GlobalOverrider } from "../../../newtab/test/unit/utils";
 
 let overrider = new GlobalOverrider();
 

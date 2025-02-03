@@ -54,7 +54,7 @@ async function withFullyLoadedAboutHome(taskFn) {
   sandbox
     .stub(DiscoveryStreamFeed.prototype, "generateFeedUrl")
     .returns(
-      "https://example.com/browser/browser/extensions/newtab/test/browser/topstories.json"
+      "https://example.com/browser/browser/components/newtab/test/browser/topstories.json"
     );
 
   // Set "prefers-reduced-motion" media to "reduce"
