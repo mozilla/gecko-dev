@@ -48,6 +48,10 @@ zero_byte_load:
         description: >
           Whether this load has been cancelled.
         type: boolean
+      cancel_reason:
+        description: >
+          Reason why this load was cancelled.
+        type: string
     telemetry_mirror: Zero_byte_load_Load_Ftl
     no_lint:
       - COMMON_PREFIX

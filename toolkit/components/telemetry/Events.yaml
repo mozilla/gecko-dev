@@ -3273,6 +3273,7 @@ zero_byte_load:
       file_name: The name of the file being loaded.
       status: The channel status code.
       cancelled: Whether this load has been cancelled.
+      cancel_reason: Reason why this load was cancelled.
 
 avif:
   dav1d_get_picture:

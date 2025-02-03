@@ -823,7 +823,8 @@ nsJARChannel::SetContentLength(int64_t aContentLength) {
 }
 
 static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
-                                  nsresult aStatus, bool aCanceled) {
+                                  nsresult aStatus, bool aCanceled,
+                                  const nsCString& aCanceledReason) {
   if (!StaticPrefs::network_jar_record_failure_reason()) {
     return;
   }
@@ -871,6 +872,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadFtlExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -885,6 +887,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadDtdExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -893,6 +896,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     glean::zero_byte_load::load_dtd.Record(Some(extra));
   } else if (StringEndsWith(fileName, ".properties"_ns)) {
     glean::zero_byte_load::LoadPropertiesExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -910,6 +914,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadJsExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -918,6 +923,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     glean::zero_byte_load::load_js.Record(Some(extra));
   } else if (StringEndsWith(fileName, ".xml"_ns)) {
     glean::zero_byte_load::LoadXmlExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -937,6 +943,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadXhtmlExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -956,6 +963,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadCssExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -973,6 +981,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadJsonExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -994,6 +1003,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadHtmlExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -1008,6 +1018,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadPngExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -1021,6 +1032,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
       return;
     }
     glean::zero_byte_load::LoadSvgExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -1052,6 +1064,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
     }
 
     glean::zero_byte_load::LoadOthersExtra extra = {
+        .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),
         .fileName = Some(fileName),
         .status = Some(errorCString),
@@ -1071,7 +1084,7 @@ nsJARChannel::Open(nsIInputStream** aStream) {
 
   auto recordEvent = MakeScopeExit([&] {
     if (mContentLength <= 0 || NS_FAILED(rv)) {
-      RecordZeroLengthEvent(true, mSpec, rv, mCanceled);
+      RecordZeroLengthEvent(true, mSpec, rv, mCanceled, mCanceledReason);
     }
   });
 
@@ -1293,7 +1306,7 @@ nsJARChannel::OnStopRequest(nsIRequest* req, nsresult status) {
 
   if (mListener) {
     if (!mOnDataCalled || NS_FAILED(status)) {
-      RecordZeroLengthEvent(false, mSpec, status, mCanceled);
+      RecordZeroLengthEvent(false, mSpec, status, mCanceled, mCanceledReason);
     }
 
     mListener->OnStopRequest(this, status);
