@@ -2660,6 +2660,9 @@ export var BrowserTestUtils = {
       params.triggeringPrincipal =
         Services.scriptSecurityManager.getSystemPrincipal();
     }
+    if (!params.allowInheritPrincipal) {
+      params.allowInheritPrincipal = true;
+    }
     if (beforeLoadFunc) {
       let window = tabbrowser.ownerGlobal;
       window.addEventListener(
