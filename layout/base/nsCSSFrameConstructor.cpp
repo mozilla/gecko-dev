@@ -3249,7 +3249,7 @@ nsCSSFrameConstructor::FindH1Data(const Element& aElement,
           nsIScriptError::warningFlag, "DOM"_ns, doc,
           nsContentUtils::eDOM_PROPERTIES,
           "SectioningH1WithNoFontSizeOrMargins",
-          {u"https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements#specify_font-size_and_margin-block_on_h1"_ns});
+          {u"https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements#specifying_a_uniform_font_size_for_h1"_ns});
     }
   }
   return nullptr;
