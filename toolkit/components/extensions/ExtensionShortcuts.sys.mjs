@@ -283,6 +283,17 @@ export class ExtensionShortcuts {
     }
   }
 
+  async openShortcutSettings() {
+    let window = lazy.windowTracker.topWindow;
+    if (!window) {
+      throw new ExtensionError("No browser window available");
+    }
+
+    let { extension } = this;
+    const viewId = `addons://shortcuts/${encodeURIComponent(extension.id)}`;
+    await window.BrowserAddonUI.openAddonsMgr(viewId);
+  }
+
   loadCommands() {
     let { extension } = this;
 

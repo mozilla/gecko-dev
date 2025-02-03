@@ -4184,12 +4184,15 @@ gViewController.defineView("discover", async () => {
   return discopane;
 });
 
-gViewController.defineView("shortcuts", async () => {
+gViewController.defineView("shortcuts", async extensionId => {
   // Force the extension category to be selected, in the case of a reload,
   // restart, or if the view was opened from another category's page.
   document.querySelector("categories-box").selectType("extension");
 
   let view = document.createElement("addon-shortcuts");
+  if (extensionId && extensionId !== "shortcuts") {
+    view.setAttribute("extension-id", extensionId);
+  }
   await view.render();
   await document.l10n.translateFragment(view);
   return view;

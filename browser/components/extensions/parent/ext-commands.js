@@ -68,6 +68,8 @@ this.commands = class extends ExtensionAPIPersistent {
         getAll: () => this.extension.shortcuts.allCommands(),
         update: args => this.extension.shortcuts.updateCommand(args),
         reset: name => this.extension.shortcuts.resetCommand(name),
+        openShortcutSettings: () =>
+          this.extension.shortcuts.openShortcutSettings(),
         onCommand: new EventManager({
           context,
           module: "commands",

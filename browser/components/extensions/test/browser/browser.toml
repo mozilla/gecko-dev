@@ -132,6 +132,8 @@ skip-if = [
 
 ["browser_ext_commands_onCommand.js"]
 
+["browser_ext_commands_openShortcutSettings.js"]
+
 ["browser_ext_commands_update.js"]
 
 ["browser_ext_connect_and_move_tabs.js"]

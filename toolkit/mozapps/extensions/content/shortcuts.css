@@ -5,6 +5,10 @@
 .shortcut.card {
   margin-bottom: 16px;
 
+  &.focused-extension {
+    border: 1px solid var(--color-accent-primary);
+  }
+
   .card-heading-icon {
     width: 24px;
     height: 24px;

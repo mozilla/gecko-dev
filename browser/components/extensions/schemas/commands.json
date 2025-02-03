@@ -204,6 +204,13 @@
             "description": "Called to return the registered commands."
           }
         ]
+      },
+      {
+        "name": "openShortcutSettings",
+        "type": "function",
+        "async": true,
+        "description": "Open extension shortcuts configuration page.",
+        "parameters": []
       }
     ]
   }
