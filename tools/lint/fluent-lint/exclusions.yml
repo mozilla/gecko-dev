@@ -9,154 +9,162 @@
 # Only lowercase letters and hyphens should be used in Fluent IDs.
 ID01:
     messages:
+        # brand.ftl
         - trademarkInfo
+        # browser/aboutTabCrashed.ftl
         - crashed-include-URL-2
-        - blocklist-item-moz-std-listName
+        # browser/preferences/blocklists.ftl
         - blocklist-item-moz-full-listName
+        - blocklist-item-moz-std-listName
+        # toolkit/about/aboutAddons.ftl
         - shortcuts-browserAction2
         - shortcuts-pageAction
         - shortcuts-sidebarAction
+        # toolkit/about/aboutNetworking.ftl
         - about-networking-originAttributesSuffix
-        - size-KB
-        - size-MB
-        - size-GB
-        - state-dd-Disabled
-        - state-dd-Disabled-block-list-state
+        # toolkit/about/aboutProcesses.ftl
         - memory-unit-B
+        - memory-unit-EB
+        - memory-unit-GB
         - memory-unit-KB
         - memory-unit-MB
-        - memory-unit-GB
-        - memory-unit-TB
         - memory-unit-PB
-        - memory-unit-EB
+        - memory-unit-TB
+        # toolkit/about/aboutRights.ftl
         - enableSafeBrowsing-label
+        # toolkit/about/aboutTelemetry.ftl
         - about-telemetry-show-in-Firefox-json-viewer
+        # toolkit/about/url-classifier.ftl
         - url-classifier-search-listType
-        # aboutDialog.ftl: Do not add new exceptions for this file,
-        # new strings should follow the naming convention.
+
+        # browser/aboutDialog.ftl
+        # Do not add new exceptions for this file, new strings should follow the
+        # naming convention.
         - aboutDialog-title
+        - aboutDialog-version
+        - aboutDialog-version-nightly
+        - bottomLinks-license
+        - bottomLinks-privacy
+        - bottomLinks-rights
         - releaseNotes-link
         - update-checkForUpdatesButton
-        - update-updateButton
         - update-checkingForUpdates
         - update-noUpdatesFound
         - update-otherInstanceHandlingUpdates
+        - update-updateButton
         - warningDesc-version
-        - bottomLinks-license
-        - bottomLinks-rights
-        - bottomLinks-privacy
-        - aboutDialog-version
-        - aboutDialog-version-nightly
-        # certError.ftl: These IDs are generated programmatically
-        # from certificate error codes.
+
+        # toolkit/neterror/certError.ftl
+        # These IDs are generated programmatically from certificate error codes.
+        - blockedByPolicy-title
+        - captivePortal-title
+        - clockSkewError-title
         - connectionFailure-title
+        - contentEncodingError-title
+        - corruptedContentError-title
         - deniedPortAccess-title
         - dnsNotFound-title
-        - fileNotFound-title
         - fileAccessDenied-title
-        - captivePortal-title
+        - fileNotFound-title
+        - httpErrorPage-title
+        - inadequateSecurityError-title
         - malformedURI-title
         - netInterrupt-title
-        - notCached-title
         - netOffline-title
-        - contentEncodingError-title
-        - unsafeContentType-title
         - netReset-title
         - netTimeout-title
-        - httpErrorPage-title
-        - serverError-title
-        - unknownProtocolFound-title
+        - networkProtocolError-title
+        - notCached-title
+        - nssBadCert-sts-title
+        - nssBadCert-title
+        - nssFailure2-title
         - proxyConnectFailure-title
         - proxyResolveFailure-title
         - redirectLoop-title
-        - unknownSocketType-title
-        - nssFailure2-title
-        - corruptedContentError-title
+        - serverError-title
         - sslv3Used-title
-        - inadequateSecurityError-title
-        - blockedByPolicy-title
-        - clockSkewError-title
-        - networkProtocolError-title
-        - nssBadCert-title
-        - nssBadCert-sts-title
+        - unknownProtocolFound-title
+        - unknownSocketType-title
+        - unsafeContentType-title
     files:
-        # policies-descriptions.ftl: These IDs are generated programmatically
-        # from policy names.
+        # policies-descriptions.ftl
+        # These IDs are generated programmatically from policy names.
         - browser/locales/en-US/browser/policies/policies-descriptions.ftl
         # The webext-perms-description-* IDs are generated programmatically
-        # from permission names
+        # from permission names.
         - toolkit/locales/en-US/toolkit/global/extensionPermissions.ftl
 ID02:
     messages:
-        # browser/components/ion/content/ion.ftl
-        - ion
-        # browser/locales/en-US/browser/aboutDialog.ftl
+        # browser/aboutDialog.ftl
         - helpus
-        # browser/locales/en-US/browser/aboutLogins.ftl
+        # browser/aboutLogins.ftl
         - menu
-        # browser/locales/en-US/browser/pageInfo.ftl
+        # browser/pageInfo.ftl
         - copy
         - perm-tab
-        # browser/locales/en-US/browser/tabContextMenu.ftl
+        # browser/tabContextMenu.ftl
         - pin-tab
-        # browser/locales/en-US/browser/touchbar/touchbar.ftl
+        # browser/touchbar/touchbar.ftl
         - back
-        - forward
-        - reload
-        - home
         - find
+        - forward
+        - home
         - new-tab
+        - reload
         - share
-        # toolkit/locales/en-US/toolkit/about/aboutServiceWorkers.ftl
+        # toolkit/about/aboutServiceWorkers.ftl
         - scope
         - waiting
-        # toolkit/locales/en-US/toolkit/about/aboutSupport.ftl
-        # yaml interprets yes and no as booleans if quotes are not present.
+        # toolkit/about/aboutSupport.ftl
+        # YAML interprets yes and no as booleans without quotes.
         - "yes"
         - "no"
-        - unknown
-        - found
-        - missing
-        - gpu-ram
         - apz-none
-        # toolkit/locales/en-US/toolkit/printing/printDialogs.ftl
-        - portrait
-        - scale
-        - print-bg
+        - found
+        - gpu-ram
+        - missing
+        - unknown
+        # toolkit/printing/printDialogs.ftl
         - hf-blank
+        - hf-page
         - hf-title
         - hf-url
-        - hf-page
+        - portrait
+        - print-bg
+        - scale
     files: []
 # Hard-coded brand names like Firefox or Mozilla should be used only in
 # specific cases, in all other cases the corresponding terms should be used.
 # Check with the localization team for advice.
 CO01:
     messages:
-        # toolkit/locales/en-US/toolkit/intl/regionNames.ftl
-        # Hard-coded brand name Solo in name of region
-        - region-name-sb
         # browser/branding/official/locales/en-US/brand.ftl
         - trademarkInfo
-        # toolkit/locales/en-US/toolkit/neterror/certError.ftl
-        - cert-error-mitm-mozilla
-        - cert-error-mitm-connection
-        # browser/locales/en-US/browser/appExtensionFields.ftl
+        # browser/addonNotifications.ftl
+        - addon-install-error-hard-blocked
+        - addon-install-error-soft-blocked
+        # browser/appExtensionFields.ftl
         - extension-firefox-alpenglow-name
-        # browser/locales/en-US/browser/browser.ftl
+        # browser/browser.ftl
         - identity-custom-root
         - identity-description-custom-root2
-        # browser/locales/en-US/browser/migrationWizard.ftl
+        # browser/migrationWizard.ftl
         - migration-wizard-migrator-display-name-firefox
-        # browser/locales/en-US/browser/newtab/onboarding.ftl
+        # browser/newtab/onboarding.ftl
         - mr1-onboarding-welcome-image-caption
         - mr2022-onboarding-gratitude-subtitle
         - onboarding-gratitude-security-and-privacy-subtitle
-        # browser/locales/en-US/browser/policies/policies-descriptions.ftl
+        # browser/policies/policies-descriptions.ftl
         - policy-DisableFirefoxScreenshots
-        # browser/locales/en-US/browser/preferences/preferences.ftl
+        # browser/preferences/preferences.ftl
         - sync-engine-addons
         - sync-mobile-promo
+        # browser/unifiedExtensions.ftl
+        - unified-extensions-item-messagebar-softblocked
+        - unified-extensions-mb-blocklist-error-multiple
+        - unified-extensions-mb-blocklist-error-single
+        - unified-extensions-mb-blocklist-warning-multiple
+        - unified-extensions-mb-blocklist-warning-single
         # devtools/client/locales/en-US/aboutdebugging.ftl
         - about-debugging-setup-usb-step-enable-debug-firefox2
         - about-debugging-browser-version-too-old-fennec
@@ -165,42 +173,33 @@ CO01:
         - manifest-loaded-devtools-error
         # devtools/shared/locales/en-US/webconsole-commands.ftl
         - webconsole-commands-usage-block
-        # toolkit/locales/en-US/toolkit/about/aboutAddons.ftl
+        # toolkit/about/aboutAddons.ftl
         - addon-badge-line4
-        - recommended-theme-1
-        - plugins-openh264-description
         - details-notification-hard-blocked-extension
         - details-notification-hard-blocked-other
         - details-notification-soft-blocked-extension-disabled
         - details-notification-soft-blocked-extension-enabled
         - details-notification-soft-blocked-other-disabled
         - details-notification-soft-blocked-other-enabled
-        # toolkit/locales/en-US/toolkit/about/aboutGlean.ftl
-        - about-glean-description
-        # toolkit/locales/en-US/toolkit/about/aboutRights.ftl
+        - plugins-openh264-description
+        - recommended-theme-1
+        # toolkit/about/aboutRights.ftl
         - rights-intro-point-1
         - rights-intro-point-2
-        # toolkit/locales/en-US/toolkit/about/aboutSupport.ftl
+        # toolkit/about/aboutSupport.ftl
         - app-basics-key-mozilla
         - virtual-monitor-disp
-        # toolkit/locales/en-US/toolkit/about/aboutTelemetry.ftl
+        # toolkit/about/aboutTelemetry.ftl
         - about-telemetry-firefox-data-doc
         - about-telemetry-telemetry-client-doc
         - about-telemetry-telemetry-dashboard
-        # toolkit/locales/en-US/toolkit/global/extensionPermissions.ftl
+        # toolkit/global/extensionPermissions.ftl
         - webext-perms-description-management
-        # toolkit/locales/en-US/toolkit/global/processTypes.ftl
+        # toolkit/global/processTypes.ftl
         - process-type-privilegedmozilla
-        # browser/locales/en-US/browser/addonNotifications.ftl
-        - addon-install-error-hard-blocked
-        - addon-install-error-soft-blocked
-        # browser/locales/en-US/browser/unifiedExtensions.ftl
-        - unified-extensions-item-messagebar-softblocked
-        - unified-extensions-mb-blocklist-error-multiple
-        - unified-extensions-mb-blocklist-error-single
-        - unified-extensions-mb-blocklist-warning-multiple
-        - unified-extensions-mb-blocklist-warning-single
+        # toolkit/neterror/certError.ftl
+        - cert-error-mitm-mozilla
+        - cert-error-mitm-connection
     files:
-        - browser/components/ion/content/ion.ftl
         - browser/locales/en-US/browser/profile/default-bookmarks.ftl
         - toolkit/locales/en-US/toolkit/about/aboutMozilla.ftl
