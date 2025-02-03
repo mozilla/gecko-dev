@@ -136,6 +136,8 @@ skip-if = [
 
 ["browser_dbg-pretty-print.js"]
 
+["browser_dbg-preview-bucketed-array.js"]
+
 ["browser_dbg-preview-frame.js"]
 skip-if = ["os == 'win'"]
 
@@ -147,6 +149,8 @@ skip-if = ["true"] # This specific test is heavily intermittent, and sometimes l
 
 ["browser_dbg-preview-module.js"]
 skip-if = ["os == 'win'"]
+
+["browser_dbg-preview-moving-token.js"]
 
 ["browser_dbg-preview-source-maps.js"]
 skip-if = ["os == 'win'"]
