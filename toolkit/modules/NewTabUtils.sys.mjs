@@ -252,7 +252,7 @@ var AllPages = {
    */
   get enabled() {
     if (this._enabled === null) {
-      this._enabled = Services.prefs.getBoolPref(PREF_NEWTAB_ENABLED);
+      this._enabled = Services.prefs.getBoolPref(PREF_NEWTAB_ENABLED, false);
     }
 
     return this._enabled;
@@ -1260,7 +1260,8 @@ var ActivityStreamProvider = {
     // Convert all links that are supposed to be a seach shortcut to its canonical URL
     if (
       Services.prefs.getBoolPref(
-        `browser.newtabpage.activity-stream.${SEARCH_SHORTCUTS_EXPERIMENT}`
+        `browser.newtabpage.activity-stream.${SEARCH_SHORTCUTS_EXPERIMENT}`,
+        false
       )
     ) {
       links.forEach(link => {
