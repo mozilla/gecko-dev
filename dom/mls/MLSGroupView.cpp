@@ -655,12 +655,13 @@ already_AddRefed<Promise> MLSGroupView::Details(ErrorResult& aRv) {
             rvalue.mType = MLSObjectType::Group_info;
             rvalue.mGroupId.Init(jsGroupId);
             rvalue.mGroupEpoch.Init(jsGroupEpoch);
-            rvalue.mMembers.Clear();
+            if (!rvalue.mMembers.SetCapacity(
+                    groupMembers->group_members.Length(), fallible)) {
+              promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
+              return;
+            }
 
-            Sequence<MLSGroupMember> membersSequence;
-            for (size_t i = 0; i < groupMembers->group_members.Length(); ++i) {
-              const GkClientIdentifiers& member =
-                  groupMembers->group_members[i];
+            for (const auto& member : groupMembers->group_members) {
               JS::Rooted<JSObject*> jsClientId(
                   cx, Uint8Array::Create(cx, member.identity, error));
               error.WouldReportJSException();
@@ -676,17 +677,12 @@ already_AddRefed<Promise> MLSGroupView::Details(ErrorResult& aRv) {
                 return;
               }
 
-              MLSGroupMember jsMember;
+              // Guaranteed not to fail because of the SetCapacity above.
+              MLSGroupMember& jsMember =
+                  *rvalue.mMembers.AppendElement(fallible);
               jsMember.mClientId.Init(jsClientId);
               jsMember.mCredential.Init(jsCredential);
-
-              if (!membersSequence.AppendElement(std::move(jsMember),
-                                                 fallible)) {
-                promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
-                return;
-              }
             }
-            rvalue.mMembers = std::move(membersSequence);
 
             // Resolve the promise
             promise->MaybeResolve(rvalue);
