@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CssAltContent.h"
-#include "mozilla/a11y/DocAccessible.h"
+#include "DocAccessible-inl.h"
 #include "mozilla/a11y/DocManager.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
