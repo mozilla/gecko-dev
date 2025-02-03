@@ -84,6 +84,11 @@ object FeatureFlags {
     const val UNIFIED_TRUST_PANEL = false
 
     /**
+     * Enables Trending Searches.
+     */
+    const val TRENDING_SEARCHES = false
+
+    /**
      * Enables native WebCompat Reporter.
      */
     const val webCompatReporter = true

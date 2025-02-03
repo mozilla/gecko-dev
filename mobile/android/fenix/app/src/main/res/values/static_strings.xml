@@ -101,6 +101,8 @@
     <string name="preferences_debug_settings_set_as_default_browser_prompt_for_existing_users_feature" translatable="false">Enable Native Default Browser Prompt For Existing Users</string>
     <!-- Label for enabling Unified Trust Panel -->
     <string name="preferences_debug_settings_unified_trust_panel" translatable="false">Enable Unified Trust Panel</string>
+    <!-- Label for enabling Trending Searches -->
+    <string name="preferences_debug_settings_trending_searches" translatable="false">Enable Trending Searches</string>
 
     <!-- A secret menu option in the tabs tray for making a tab inactive for testing. -->
     <string name="inactive_tabs_menu_item">Make inactive</string>

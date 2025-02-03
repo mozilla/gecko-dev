@@ -1929,6 +1929,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if Trending Searches is enabled.
+     */
+    var enableTrendingSearches by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_trending_searches),
+        default = FeatureFlags.TRENDING_SEARCHES,
+    )
+
+    /**
      * Adjust Activated User sent
      */
     var growthUserActivatedSent by booleanPreference(
