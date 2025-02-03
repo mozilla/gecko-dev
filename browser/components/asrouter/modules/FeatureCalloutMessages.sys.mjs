@@ -1675,6 +1675,148 @@ const MESSAGES = () => {
       },
       targeting: `'cookiebanners.ui.desktop.enabled'|preferenceValue == true && 'cookiebanners.ui.desktop.showCallout'|preferenceValue == true && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false`,
     },
+    {
+      // "Callout 6" in the Review Checker Figma spec
+      // Explains where to find Review Checker after closing the sidebar with the X button
+      // Horizontal tabs layout
+      id: "REVIEW_CHECKER_SIDEBAR_CLOSED",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_SIDEBAR_CLOSED",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_SIDEBAR_CLOSED_HORIZONTAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "topright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-integrated-callout-sidebar-closed-title",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-integrated-callout-sidebar-closed-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Using horizontal tabs.
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && !'sidebar.verticalTabs' | preferenceValue`,
+      trigger: {
+        id: "showRCSidebarClosedCallout",
+      },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      // "Callout 6" in the Review Checker Figma spec
+      // Explains where to find Review Checker after closing the sidebar with the X button
+      // Vertical tabs layout
+      id: "REVIEW_CHECKER_SIDEBAR_CLOSED",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_SIDEBAR_CLOSED",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_SIDEBAR_CLOSED_VERTICAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-integrated-callout-sidebar-closed-title",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-integrated-callout-sidebar-closed-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Vertical tabs is enabled.
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && 'sidebar.verticalTabs' | preferenceValue`,
+      trigger: {
+        id: "showRCSidebarClosedCallout",
+      },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
   ];
   messages = add24HourImpressionJEXLTargeting(
     ["FIREFOX_VIEW_TAB_PICKUP_REMINDER"],

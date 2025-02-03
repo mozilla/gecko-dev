@@ -24,4 +24,9 @@ shopping-empty-state-supported-site = View a product and { -brand-product-name }
 # This string will be displayed above the list of sites. The list will be hardcoded and does not require localization.
 shopping-empty-state-non-supported-site = Review Checker works when you shop on:
 
+## Callout for where to find Review Checker when the sidebar closes
+
+shopping-integrated-callout-sidebar-closed-title = Get back to Review Checker
+shopping-integrated-callout-sidebar-closed-subtitle = Select the price tag in the sidebar to see if you can trust a product’s reviews.
+
 ##
