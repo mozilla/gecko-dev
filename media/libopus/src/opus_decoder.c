@@ -1296,69 +1296,48 @@ bad_arg:
 #ifdef ENABLE_DRED
 static int dred_find_payload(const unsigned char *data, opus_int32 len, const unsigned char **payload, int *dred_frame_offset)
 {
-   const unsigned char *data0;
-   opus_int32 len0;
-   int frame = 0;
+   OpusExtensionIterator iter;
+   opus_extension_data ext;
+   const unsigned char *padding;
+   opus_int32 padding_len;
    int nb_frames;
    const unsigned char *frames[48];
    opus_int16 size[48];
    int frame_size;
+   int ret;
 
    *payload = NULL;
    /* Get the padding section of the packet. */
-   nb_frames = opus_packet_parse_impl(data, len, 0, NULL, frames, size, NULL, NULL, &data0, &len0);
-   if (nb_frames < 0)
-      return nb_frames;
+   ret = opus_packet_parse_impl(data, len, 0, NULL, frames, size, NULL, NULL,
+    &padding, &padding_len);
+   if (ret < 0)
+      return ret;
+   nb_frames = ret;
    frame_size = opus_packet_get_samples_per_frame(data, 48000);
-   data = data0;
-   len = len0;
-   /* Scan extensions in order until we find the earliest frame with DRED data. */
-   while (len > 0)
-   {
-      opus_int32 header_size;
-      int id, L;
-      len0 = len;
-      data0 = data;
-      id = *data0 >> 1;
-      L = *data0 & 0x1;
-      len = skip_extension(&data, len, &header_size);
-      if (len < 0)
+   opus_extension_iterator_init(&iter, padding, padding_len);
+   for (;;) {
+      ret = opus_extension_iterator_find(&iter, &ext, DRED_EXTENSION_ID);
+      if (ret <= 0)
+         return ret;
+      if (ext.frame >= nb_frames)
          break;
-      if (id == 1)
-      {
-         if (L==0)
-         {
-            frame++;
-         } else {
-            frame += data0[1];
-         }
-         if (frame >= nb_frames) {
-           break;
-         }
-      } else if (id == DRED_EXTENSION_ID)
-      {
-         const unsigned char *curr_payload;
-         opus_int32 curr_payload_len;
-         curr_payload = data0+header_size;
-         curr_payload_len = (data-data0)-header_size;
-         /* DRED position in the packet, in units of 2.5 ms like for the signaled DRED offset. */
-         *dred_frame_offset = frame*frame_size/120;
+      /* DRED position in the packet, in units of 2.5 ms like for the signaled DRED offset. */
+      *dred_frame_offset = ext.frame*frame_size/120;
 #ifdef DRED_EXPERIMENTAL_VERSION
-         /* Check that temporary extension type and version match.
-            This check will be removed once extension is finalized. */
-         if (curr_payload_len > DRED_EXPERIMENTAL_BYTES && curr_payload[0] == 'D' && curr_payload[1] == DRED_EXPERIMENTAL_VERSION) {
-            *payload = curr_payload+2;
-            return curr_payload_len-2;
-         }
-#else
-         if (curr_payload_len > 0) {
-            *payload = curr_payload;
-            return curr_payload_len;
-         }
-#endif
+      /* Check that temporary extension type and version match.
+         This check will be removed once extension is finalized. */
+      if (ext.len > DRED_EXPERIMENTAL_BYTES && ext.data[0] == 'D'
+       && ext.data[1] == DRED_EXPERIMENTAL_VERSION) {
+         *payload = ext.data+2;
+         return ext.len-2;
       }
+#else
+      if (ext.len > 0) {
+         *payload = ext.data;
+         return ext.len;
+      }
+#endif
    }
-   return 0;
 }
 #endif
 

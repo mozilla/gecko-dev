@@ -510,7 +510,7 @@ OPUS_EXPORT OPUS_WARN_UNUSED_RESULT OpusMSDecoder *opus_multistream_decoder_crea
       int *error
 ) OPUS_ARG_NONNULL(5);
 
-/** Intialize a previously allocated decoder state object.
+/** Initialize a previously allocated decoder state object.
   * The memory pointed to by \a st must be at least the size returned by
   * opus_multistream_encoder_get_size().
   * This is intended for applications which use their own allocator instead of

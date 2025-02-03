@@ -38,7 +38,8 @@
 
 /* Given an extension payload, advance data to the next extension and return the
    length of the remaining extensions. */
-opus_int32 skip_extension(const unsigned char **data, opus_int32 len, opus_int32 *header_size)
+static opus_int32 skip_extension(const unsigned char **data, opus_int32 len,
+ opus_int32 *header_size)
 {
    int id, L;
    if (len==0)
@@ -91,95 +92,114 @@ opus_int32 skip_extension(const unsigned char **data, opus_int32 len, opus_int32
    }
 }
 
+void opus_extension_iterator_init(OpusExtensionIterator *iter,
+ const unsigned char *data, opus_int32 len) {
+   celt_assert(len >= 0);
+   celt_assert(data != NULL || len == 0);
+   iter->curr_data = iter->data = data;
+   iter->curr_len = iter->len = len;
+   iter->curr_frame = 0;
+}
+
+/* Reset the iterator so it can start iterating again from the first
+    extension. */
+void opus_extension_iterator_reset(OpusExtensionIterator *iter) {
+   iter->curr_data = iter->data;
+   iter->curr_len = iter->len;
+   iter->curr_frame = 0;
+}
+
+/* Return the next extension (excluding real padding and separators). */
+int opus_extension_iterator_next(OpusExtensionIterator *iter,
+ opus_extension_data *ext) {
+   opus_int32 header_size;
+   if (iter->curr_len < 0) {
+      return OPUS_INVALID_PACKET;
+   }
+   while (iter->curr_len > 0) {
+      const unsigned char *curr_data0;
+      int id;
+      int L;
+      curr_data0 = iter->curr_data;
+      id = *curr_data0>>1;
+      L = *curr_data0&1;
+      iter->curr_len = skip_extension(&iter->curr_data, iter->curr_len,
+       &header_size);
+      if (iter->curr_len < 0) {
+         return OPUS_INVALID_PACKET;
+      }
+      celt_assert(iter->curr_data - iter->data == iter->len - iter->curr_len);
+      if (id == 1) {
+         if (L == 0) {
+            iter->curr_frame++;
+         }
+         else {
+            iter->curr_frame += curr_data0[1];
+         }
+         if (iter->curr_frame >= 48) {
+            iter->curr_len = -1;
+            return OPUS_INVALID_PACKET;
+         }
+      }
+      else if (id > 1) {
+         if (ext != NULL) {
+            ext->id = id;
+            ext->frame = iter->curr_frame;
+            ext->data = curr_data0 + header_size;
+            ext->len = iter->curr_data - curr_data0 - header_size;
+         }
+         return 1;
+      }
+   }
+   return 0;
+}
+
+int opus_extension_iterator_find(OpusExtensionIterator *iter,
+ opus_extension_data *ext, int id) {
+   opus_extension_data curr_ext;
+   int ret;
+   for(;;) {
+      ret = opus_extension_iterator_next(iter, &curr_ext);
+      if (ret <= 0) {
+         return ret;
+      }
+      if (curr_ext.id == id) {
+         *ext = curr_ext;
+         return ret;
+      }
+   }
+}
+
 /* Count the number of extensions, excluding real padding and separators. */
 opus_int32 opus_packet_extensions_count(const unsigned char *data, opus_int32 len)
 {
-   opus_int32 curr_len;
-   opus_int32 count=0;
-   const unsigned char *curr_data = data;
-
-   celt_assert(len >= 0);
-   celt_assert(data != NULL || len == 0);
-
-   curr_len = len;
-   while (curr_len > 0)
-   {
-      int id;
-      opus_int32 header_size;
-      id = *curr_data>>1;
-      curr_len = skip_extension(&curr_data, curr_len, &header_size);
-      if (curr_len < 0)
-         return OPUS_INVALID_PACKET;
-      if (id > 1)
-         count++;
-   }
+   OpusExtensionIterator iter;
+   int count;
+   opus_extension_iterator_init(&iter, data, len);
+   for (count=0; opus_extension_iterator_next(&iter, NULL) > 0; count++);
    return count;
 }
 
 /* Extract extensions from Opus padding (excluding real padding and separators) */
 opus_int32 opus_packet_extensions_parse(const unsigned char *data, opus_int32 len, opus_extension_data *extensions, opus_int32 *nb_extensions)
 {
-   const unsigned char *curr_data;
-   opus_int32 curr_len;
-   int curr_frame=0;
-   opus_int32 count=0;
-
-   celt_assert(len >= 0);
-   celt_assert(data != NULL || len == 0);
+   OpusExtensionIterator iter;
+   int count;
+   int ret;
    celt_assert(nb_extensions != NULL);
    celt_assert(extensions != NULL || *nb_extensions == 0);
-
-   curr_data = data;
-   curr_len = len;
-   while (curr_len > 0)
-   {
-      int id;
-      opus_int32 header_size;
-      opus_extension_data curr_ext;
-      id = *curr_data>>1;
-      if (id > 1)
-      {
-         curr_ext.id = id;
-         curr_ext.frame = curr_frame;
-         curr_ext.data = curr_data;
-      } else if (id == 1)
-      {
-         int L = *curr_data&1;
-         if (L==0)
-            curr_frame++;
-         else {
-            if (curr_len >= 2)
-               curr_frame += curr_data[1];
-            /* Else we're at the end and it doesn't matter. */
-         }
-         if (curr_frame >= 48)
-         {
-            *nb_extensions = count;
-            return OPUS_INVALID_PACKET;
-         }
+   opus_extension_iterator_init(&iter, data, len);
+   for (count=0;; count++) {
+      opus_extension_data ext;
+      ret = opus_extension_iterator_next(&iter, &ext);
+      if (ret <= 0) break;
+      if (count == *nb_extensions) {
+         return OPUS_BUFFER_TOO_SMALL;
       }
-      curr_len = skip_extension(&curr_data, curr_len, &header_size);
-      /* printf("curr_len = %d, header_size = %d\n", curr_len, header_size); */
-      if (curr_len < 0)
-      {
-         *nb_extensions = count;
-         return OPUS_INVALID_PACKET;
-      }
-      celt_assert(curr_data - data == len - curr_len);
-      if (id > 1)
-      {
-         if (count == *nb_extensions)
-         {
-             return OPUS_BUFFER_TOO_SMALL;
-         }
-         curr_ext.len = curr_data - curr_ext.data - header_size;
-         curr_ext.data += header_size;
-         extensions[count++] = curr_ext;
-      }
+      extensions[count] = ext;
    }
-   celt_assert(curr_len == 0);
    *nb_extensions = count;
-   return OPUS_OK;
+   return ret;
 }
 
 opus_int32 opus_packet_extensions_generate(unsigned char *data, opus_int32 len, const opus_extension_data  *extensions, opus_int32 nb_extensions, int pad)
