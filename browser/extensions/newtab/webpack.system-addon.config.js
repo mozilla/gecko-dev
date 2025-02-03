@@ -28,7 +28,7 @@ module.exports = (env = {}) => ({
         ],
         [
           new RegExp("^resource:///modules/topsites/"),
-          path.join(__dirname, "../topsites/"),
+          path.join(__dirname, "../../components/topsites/"),
         ],
         [
           new RegExp("^resource:///modules/Dedupe.sys.mjs"),
