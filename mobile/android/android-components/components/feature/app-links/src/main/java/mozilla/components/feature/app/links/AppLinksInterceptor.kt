@@ -28,6 +28,11 @@ private const val M = "m."
 private const val MOBILE = "mobile."
 private const val MAPS = "maps."
 
+// List of URL schemes that are allowed to open an external application in subframe.
+private val ALLOWED_SCHEMES_IN_SUBFRAME: List<String> = listOf(
+    "msteams", // Microsoft Teams
+)
+
 /**
  * This feature implements use cases for detecting and handling redirects to external apps. The user
  * is asked to confirm her intention before leaving the app. These include the Android Intents,
@@ -119,8 +124,9 @@ class AppLinksInterceptor(
 
         val doNotIntercept = when {
             uriScheme == null -> true
-            // A subframe request not triggered by the user should not go to an external app.
-            (!hasUserGesture && isSubframeRequest) -> true
+            // A subframe request not triggered by the user and not in allow list should not go to
+            // an external app.
+            (!hasUserGesture && isSubframeRequest && !isSubframeAllowed(uriScheme)) -> true
             // If request not from an user gesture, allowed redirect and direct navigation
             // or if we're already on the site then let's not go to an external app.
             (
@@ -380,6 +386,11 @@ class AppLinksInterceptor(
             cacheKey?.let {
                 userDoNotInterceptCache[it] = SystemClock.elapsedRealtime()
             }
+        }
+
+        @VisibleForTesting
+        internal fun isSubframeAllowed(uriScheme: String): Boolean {
+            return ALLOWED_SCHEMES_IN_SUBFRAME.contains(uriScheme)
         }
 
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

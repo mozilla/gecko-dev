@@ -23,6 +23,7 @@ import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.APP_LI
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.APP_LINKS_DO_NOT_OPEN_CACHE_INTERVAL
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.addUserDoNotIntercept
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.inUserDoNotIntercept
+import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.isSubframeAllowed
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.lastApplinksPackageWithTimestamp
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.userDoNotInterceptCache
 import mozilla.components.feature.session.SessionUseCases
@@ -1212,5 +1213,14 @@ class AppLinksInterceptorTest {
             source = SessionState.Source.External.ActionSearch(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
         assertFalse(appLinksInterceptor.isAuthentication(tabSessionState4, appIntent))
+    }
+
+    @Test
+    fun `WHEN scheme is allowed for subframe THEN subframe is allowed to trigger applinks redirect`() {
+        assertTrue(isSubframeAllowed("msteams"))
+        assertFalse(isSubframeAllowed("msteam"))
+        assertFalse(isSubframeAllowed("abc"))
+        assertFalse(isSubframeAllowed("http")) // we should never allow http for subframes
+        assertFalse(isSubframeAllowed("https")) // we should never allow https for subframes
     }
 }
