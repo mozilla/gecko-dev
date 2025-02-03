@@ -496,15 +496,16 @@ class ScreenshotsHelper {
 
   async resizeContentWindow(width, height) {
     info(
-      `Resizing window to ${width}x${height} (from ${innerWidth}x${innerHeight})`
+      `Resizing window to ${width}x${height} from ${innerWidth}x${innerHeight} (outer ${outerWidth}x${outerHeight})`
     );
-    window.resizeTo(
-      outerWidth - innerWidth + width,
-      outerHeight - innerHeight + height
-    );
+    let targetW = outerWidth - innerWidth + width;
+    let targetH = outerHeight - innerHeight + height;
+    window.resizeTo(targetW, targetH);
     await TestUtils.waitForCondition(() => {
-      info(`Current: ${innerWidth}x${innerHeight}`);
-      return innerHeight === height && innerWidth === width;
+      info(
+        `Current: ${innerWidth}x${innerHeight} (outer ${outerWidth}x${outerHeight})`
+      );
+      return outerHeight === targetH && outerWidth === targetW;
     }, "Waiting for window to resize");
   }
 
