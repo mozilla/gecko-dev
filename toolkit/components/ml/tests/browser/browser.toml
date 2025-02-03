@@ -19,3 +19,5 @@ skip-if = [
 ["browser_ml_engine_process.js"]
 
 ["browser_ml_utils.js"]
+
+["browser_ml_nlp_utils.js"]

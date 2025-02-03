@@ -515,3 +515,10 @@ async function perfTest(
   Assert.ok(true);
   reportMetrics(journal);
 }
+
+/**
+ * Measures floating point value within epsilon tolerance
+ */
+function isEqualWithTolerance(A, B, epsilon = 0.000001) {
+  return Math.abs(Math.abs(A) - Math.abs(B)) < epsilon;
+}
