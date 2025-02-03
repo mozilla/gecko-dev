@@ -7,6 +7,7 @@
 #include "ServiceWorkerRegistrar.h"
 #include "mozilla/dom/ServiceWorkerRegistrarTypes.h"
 #include "mozilla/dom/DOMException.h"
+#include "mozilla/glean/DomServiceworkersMetrics.h"
 #include "mozilla/StaticPrefs_dom.h"
 
 #include "nsIEventTarget.h"
@@ -223,8 +224,8 @@ void ServiceWorkerRegistrar::GetRegistrations(
 
   if (firstTime) {
     firstTime = false;
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::SERVICE_WORKER_REGISTRATION_LOADING, startTime);
+    glean::service_worker::registration_loading.AccumulateRawDuration(
+        TimeStamp::Now() - startTime);
   }
 }
 

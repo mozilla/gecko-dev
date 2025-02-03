@@ -1,0 +1,188 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Service Workers'
+
+service_worker:
+  launch_time:
+    type: timing_distribution
+    description: >
+      Time (ms) for spawning a service worker in the remote content process.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_LAUNCH_TIME_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1328398
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1328398
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_LAUNCH_TIME_2
+
+  isolated_launch_time:
+    type: timing_distribution
+    description: >
+      Time (ms) for spawning a service worker in an isolated content process.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_ISOLATED_LAUNCH_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1740335
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1740335
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - rjesup@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_ISOLATED_LAUNCH_TIME
+
+  registration_loading:
+    type: timing_distribution
+    description: >
+      Tracking how ServiceWorkerRegistrar loads data before the first content is
+      shown.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_REGISTRATION_LOADING.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - sw-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_REGISTRATION_LOADING
+
+  fetch_interception_duration:
+    type: labeled_timing_distribution
+    description: >
+      Time delta (ms) between when a network request is intercepted in the
+      parent process and the service worker provides a response.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_FETCH_INTERCEPTION_DURATION_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    notification_emails:
+      - sw-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_FETCH_INTERCEPTION_DURATION_MS_2
+
+  fetch_event_dispatch:
+    type: labeled_timing_distribution
+    description: >
+      Time (in ms) measured between when the fetch event is dispatched by the
+      Service Worker and before we execute the event listeners.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_FETCH_EVENT_DISPATCH_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_FETCH_EVENT_DISPATCH_MS_2
+
+  fetch_event_finish_synthesized_response:
+    type: labeled_timing_distribution
+    description: >
+      Time (in ms) measured between when the respondWith promise resolves and
+      when we provide the response through the intercepted channel.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      SERVICE_WORKER_FETCH_EVENT_FINISH_SYNTHESIZED_RESPONSE_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_FETCH_EVENT_FINISH_SYNTHESIZED_RESPONSE_MS_2
+
+  fetch_event_channel_reset:
+    type: labeled_timing_distribution
+    description: >
+      Time (in ms) measured between when the fetch handler finished executing
+      and when we reset the network channel.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SERVICE_WORKER_FETCH_EVENT_CHANNEL_RESET_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1359610
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1693074
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_FETCH_EVENT_CHANNEL_RESET_MS_2
+
+  running:
+    type: labeled_custom_distribution
+    description: >
+      The sampled number of simultaneous running ServiceWorkers in a session,
+      sampled once each 10 seconds (lazily on state change)
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram SERVICE_WORKER_RUNNING.
+    labels:
+      - All
+      - Fetch
+    range_min: 1
+    range_max: 31
+    bucket_count: 30
+    histogram_type: linear
+    unit: serviceworkers
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1740335
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1740335
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - rjesup@mozilla.com
+      - echuang@mozilla.com
+    expires: never
+    telemetry_mirror: SERVICE_WORKER_RUNNING

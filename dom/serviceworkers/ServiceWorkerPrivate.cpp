@@ -30,7 +30,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StoragePrincipalHelper.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomServiceworkersMetrics.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/ClientManager.h"
@@ -1691,12 +1691,11 @@ void ServiceWorkerPrivate::CreationFailed() {
 
   if (mRemoteWorkerData.remoteType().Find(SERVICEWORKER_REMOTE_TYPE) !=
       kNotFound) {
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::SERVICE_WORKER_ISOLATED_LAUNCH_TIME,
-        mServiceWorkerLaunchTimeStart);
+    glean::service_worker::isolated_launch_time.AccumulateRawDuration(
+        TimeStamp::Now() - mServiceWorkerLaunchTimeStart);
   } else {
-    Telemetry::AccumulateTimeDelta(Telemetry::SERVICE_WORKER_LAUNCH_TIME_2,
-                                   mServiceWorkerLaunchTimeStart);
+    glean::service_worker::launch_time.AccumulateRawDuration(
+        TimeStamp::Now() - mServiceWorkerLaunchTimeStart);
   }
 
   mPendingSpawnLifetime = ServiceWorkerLifetimeExtension(NoLifetimeExtension{});
@@ -1719,12 +1718,11 @@ void ServiceWorkerPrivate::CreationSucceeded() {
 
   if (mRemoteWorkerData.remoteType().Find(SERVICEWORKER_REMOTE_TYPE) !=
       kNotFound) {
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::SERVICE_WORKER_ISOLATED_LAUNCH_TIME,
-        mServiceWorkerLaunchTimeStart);
+    glean::service_worker::isolated_launch_time.AccumulateRawDuration(
+        TimeStamp::Now() - mServiceWorkerLaunchTimeStart);
   } else {
-    Telemetry::AccumulateTimeDelta(Telemetry::SERVICE_WORKER_LAUNCH_TIME_2,
-                                   mServiceWorkerLaunchTimeStart);
+    glean::service_worker::launch_time.AccumulateRawDuration(
+        TimeStamp::Now() - mServiceWorkerLaunchTimeStart);
   }
 
   RenewKeepAliveToken(mPendingSpawnLifetime);

@@ -34,7 +34,7 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomServiceworkersMetrics.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ClientHandle.h"
 #include "mozilla/dom/ClientManager.h"
@@ -509,20 +509,22 @@ void ServiceWorkerManager::RecordTelemetry(uint32_t aNumber, uint32_t aFetch) {
         // after a few months running. 1 month is about 500K repeats @ 5s
         // sampling
         uint32_t num_repeats = std::min(repeats, 1000000U);  // 4MB max
-        nsTArray<uint32_t> values;
+        nsTArray<uint64_t> values;
 
-        uint32_t* array = values.AppendElements(num_repeats);
+        uint64_t* array = values.AppendElements(num_repeats);
         for (uint32_t i = 0; i < num_repeats; i++) {
           array[i] = aNumber;
         }
-        Telemetry::Accumulate(Telemetry::SERVICE_WORKER_RUNNING, "All"_ns,
-                              values);
+        glean::service_worker::running
+            .EnumGet(glean::service_worker::RunningLabel::eAll)
+            .AccumulateSamples(values);
 
         for (uint32_t i = 0; i < num_repeats; i++) {
           array[i] = aFetch;
         }
-        Telemetry::Accumulate(Telemetry::SERVICE_WORKER_RUNNING, "Fetch"_ns,
-                              values);
+        glean::service_worker::running
+            .EnumGet(glean::service_worker::RunningLabel::eFetch)
+            .AccumulateSamples(values);
       });
   NS_DispatchBackgroundTask(runnable.forget(), nsIEventTarget::DISPATCH_NORMAL);
 }
