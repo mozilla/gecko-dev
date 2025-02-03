@@ -87,7 +87,7 @@
 
   /* Description */
 
-  .description {
+  :host(:state(has-description)) .description {
     margin-inline-start: var(--input-space-offset);
     margin-block-start: var(--space-xxsmall);
 
