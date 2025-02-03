@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "HostRecordQueue.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "nsQueryObject.h"
 
 namespace mozilla {
@@ -76,20 +76,16 @@ void HostRecordQueue::AddToEvictionQ(
       // record the age of the entry upon eviction.
       TimeDuration age = TimeStamp::NowLoRes() - head->mValidStart;
       if (aRec->IsAddrRecord()) {
-        Telemetry::Accumulate(Telemetry::DNS_CLEANUP_AGE,
-                              static_cast<uint32_t>(age.ToSeconds() / 60));
+        glean::dns::cleanup_age.AccumulateRawDuration(age);
       } else {
-        Telemetry::Accumulate(Telemetry::DNS_BY_TYPE_CLEANUP_AGE,
-                              static_cast<uint32_t>(age.ToSeconds() / 60));
+        glean::dns::by_type_cleanup_age.AccumulateRawDuration(age);
       }
       if (head->CheckExpiration(TimeStamp::Now()) !=
           nsHostRecord::EXP_EXPIRED) {
         if (aRec->IsAddrRecord()) {
-          Telemetry::Accumulate(Telemetry::DNS_PREMATURE_EVICTION,
-                                static_cast<uint32_t>(age.ToSeconds() / 60));
+          glean::dns::premature_eviction.AccumulateRawDuration(age);
         } else {
-          Telemetry::Accumulate(Telemetry::DNS_BY_TYPE_PREMATURE_EVICTION,
-                                static_cast<uint32_t>(age.ToSeconds() / 60));
+          glean::dns::by_type_premature_eviction.AccumulateRawDuration(age);
         }
       }
     }

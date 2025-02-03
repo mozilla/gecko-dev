@@ -49,6 +49,7 @@ gecko_metrics = [
     "modules/libjar/metrics.yaml",
     "modules/libpref/metrics.yaml",
     "netwerk/cache2/metrics.yaml",
+    "netwerk/dns/metrics.yaml",
     "netwerk/metrics.yaml",
     "netwerk/protocol/http/metrics.yaml",
     "parser/html/metrics.yaml",
