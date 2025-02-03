@@ -4305,6 +4305,7 @@ var SessionStoreInternal = {
       userContextId: state.userContextId,
       skipLoad: true,
       preferredRemoteType,
+      tabGroup: tabbrowser.tabGroups.find(g => g.id == state.groupId),
     }));
 
     // restore tab content
