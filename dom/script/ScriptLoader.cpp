@@ -21,7 +21,7 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"  // JS::CompileOptions, JS::OwningCompileOptions, JS::DecodeOptions, JS::OwningDecodeOptions, JS::DelazificationOption
 #include "js/ContextOptions.h"  // JS::ContextOptionsRef
-#include "js/experimental/JSStencil.h"  // JS::Stencil, JS::InstantiationStorage, JS::StartCollectingDelazifications, JS::FinishCollectingDelazifications, JS::AbortCollectingDelazifications
+#include "js/experimental/JSStencil.h"  // JS::Stencil, JS::InstantiationStorage, JS::StartCollectingDelazifications, JS::FinishCollectingDelazifications, JS::AbortCollectingDelazifications, JS::IsStencilCacheable
 #include "js/experimental/CompileScript.h"  // JS::FrontendContext, JS::NewFrontendContext, JS::DestroyFrontendContext, JS::SetNativeStackQuota, JS::ThreadStackQuotaForSize, JS::CompilationStorage, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::DecodeStencil, JS::PrepareForInstantiate
 #include "js/loader/ScriptLoadRequest.h"
 #include "ScriptCompression.h"
@@ -2955,7 +2955,7 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
       aCx, aCompileOptions, aRequest, aScript, stencil, aDebuggerPrivateValue,
       aDebuggerIntroductionScript, aRv);
   if (!aRv.Failed()) {
-    if (createCache) {
+    if (createCache && JS::IsStencilCacheable(stencil)) {
       MOZ_ASSERT(mCache);
       MOZ_ASSERT(stencil);
       aRequest->SetStencil(stencil.forget());
