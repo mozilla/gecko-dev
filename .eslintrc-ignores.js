@@ -69,10 +69,6 @@ module.exports = [
   "!browser/components/storybook/.storybook/",
   "!browser/components/storybook/.storybook/*.js",
 
-  // Ignore newtab files
-  "browser/components/newtab/data/",
-  "browser/components/newtab/logs/",
-
   // Ignore webpack about:welcome files
   "browser/components/aboutwelcome/webpack.aboutwelcome.config.js",
 
@@ -84,6 +80,10 @@ module.exports = [
   // JS files using the #include pre-processor macro, leading to syntax errors.
   "browser/extensions/webcompat/data/injections.js",
   "browser/extensions/webcompat/data/ua_overrides.js",
+
+  // Ignore newtab files
+  "browser/extensions/newtab/data/",
+  "browser/extensions/newtab/logs/",
 
   // Ignore devtools debugger files which aren't intended for linting.
   "devtools/client/debugger/bin/",

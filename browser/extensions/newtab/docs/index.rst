@@ -3,7 +3,7 @@ Firefox Home (New Tab)
 ======================
 
 All files related to Firefox Home, which includes content that appears on ``about:home`` and
-``about:newtab``, can be found in the ``browser/components/newtab`` directory.
+``about:newtab``, can be found in the ``browser/extensions/newtab`` directory.
 Some of these source files (such as ``.js``, ``.jsx``, and ``.scss``) require an additional build step.
 We are working on migrating this to work with ``mach``, but in the meantime, please
 follow the following steps if you need to make changes in this directory:
@@ -29,15 +29,15 @@ To install dependencies, run the following from the root of the mozilla-central 
 
 .. code-block:: shell
 
-  (cd browser/components/newtab && ../../../mach npm install)
+  (cd browser/extensions/newtab && ../../../mach npm install)
 
 
 Which files should you edit?
 ````````````````````````````
 
-You should not make changes to ``.js`` or ``.css`` files in ``browser/components/newtab/css`` or
-``browser/components/newtab/data`` directory. Instead, you should edit the ``.jsx``, ``.js``, and ``.scss`` source files
-in ``browser/components/newtab/content-src`` directory. These files will be compiled into the ``.js`` and ``.css`` files.
+You should not make changes to ``.js`` or ``.css`` files in ``browser/extensions/newtab/css`` or
+``browser/extensions/newtab/data`` directory. Instead, you should edit the ``.jsx``, ``.js``, and ``.scss`` source files
+in ``browser/extensions/newtab/content-src`` directory. These files will be compiled into the ``.js`` and ``.css`` files.
 
 
 Building assets and running Firefox
@@ -47,11 +47,11 @@ To build assets and run Firefox, run the following from the root of the mozilla-
 
 .. code-block:: shell
 
-  ./mach npm run bundle --prefix=browser/components/newtab && ./mach build && ./mach run
+  ./mach npm run bundle --prefix=browser/extensions/newtab && ./mach build && ./mach run
 
 Continuous development / debugging
 ----------------------------------
-Running ``./mach npm run watchmc --prefix=browser/components/newtab`` will start a process that watches files in
+Running ``./mach npm run watchmc --prefix=browser/extensions/newtab`` will start a process that watches files in
 ``activity-stream`` and rebuilds the bundled files when JS or CSS files change.
 
 **IMPORTANT NOTE**: This task will add inline source maps to help with debugging, which changes the memory footprint.
@@ -68,7 +68,7 @@ red, these tests are what is failing.  To execute them, do this:
 
 .. code-block:: shell
 
-  ./mach npm test --prefix=browser/components/newtab
+  ./mach npm test --prefix=browser/extensions/newtab
 
 These tests are not currently run by ``mach test``, but there's a
 `task filed to fix that <https://bugzilla.mozilla.org/show_bug.cgi?id=1581165>`_.
@@ -80,9 +80,9 @@ To run newtab specific tests that aren't covered by ``mach lint`` and
 
 .. code-block:: shell
 
-  ./mach npm run lint:stylelint --prefix=browser/components/newtab
-  ./mach npm run testmc:build --prefix=browser/components/newtab
-  ./mach npm run testmc:unit --prefix=browser/components/newtab
+  ./mach npm run lint:stylelint --prefix=browser/extensions/newtab
+  ./mach npm run testmc:build --prefix=browser/extensions/newtab
+  ./mach npm run testmc:unit --prefix=browser/extensions/newtab
 
 Mochitests and xpcshell tests run normally, using ``mach test``.
 
@@ -96,8 +96,8 @@ running
 
 .. code-block:: shell
 
-  ./mach npm test --prefix=browser/components/newtab &&
-  ./mach npm run debugcoverage --prefix=browser/components/newtab
+  ./mach npm test --prefix=browser/extensions/newtab &&
+  ./mach npm run debugcoverage --prefix=browser/extensions/newtab
 
 Discovery Stream Developer tools
 --------------------------------
