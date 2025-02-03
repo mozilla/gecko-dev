@@ -13,7 +13,6 @@ skip-if = [
 prefs = [
   "browser.bookmarks.testing.skipDefaultBookmarksImport=true",
   "browser.urlbar.trending.featureGate=false",
-  "extensions.screenshots.disabled=false",
   "screenshots.browser.component.enabled=true",
   "sidebar.revamp=true",
 ]

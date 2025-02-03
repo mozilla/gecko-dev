@@ -106,8 +106,6 @@ user_pref("extensions.getAddons.search.browseURL", "http://{server}/extensions-d
 user_pref("extensions.hotfix.url", "http://{server}/extensions-dummy/hotfixURL");
 // Disable intalling any distribution add-ons
 user_pref("extensions.installDistroAddons", false);
-// Disable Screenshots by default for now
-user_pref("extensions.screenshots.disabled", true);
 user_pref("extensions.systemAddon.update.url", "http://{server}/dummy-system-addons.xml");
 user_pref("extensions.systemAddon.update.enabled", false);
 user_pref("extensions.update.background.url", "http://{server}/extensions-dummy/updateBackgroundURL");
