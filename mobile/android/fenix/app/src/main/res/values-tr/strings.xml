@@ -617,6 +617,10 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Firefox, tarayıcıyı geliştirmemize yardımcı olmak için Mozilla’ya tanı ve etkileşim verileri gönderir. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Yönet</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Firefox’u büyütmemize yardım edin</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Firefox’u nasıl keşfettiğinizi ve kullandığınızı paylaşarak daha fazla kişiye tarayıcımızı tanıtmamıza yardımcı olabilirsiniz.</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Araç çubuğu konumunu seçin</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1065,8 +1069,12 @@
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Daha fazla bilgi al</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s tarayıcınızı iyileştirmemize yardımcı olmak için tarayıcınızla ilgili performans, kullanım, donanım ve özelleştirme verilerini Mozilla ile paylaşır</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Cihazınız, donanım yapılandırmanız ve kullanımınızla ilgili veriler Firefox’un özelliklerini, performansını ve kararlılığını geliştirmemize yardımcı olur.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Pazarlama verileri</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Kampanya ölçüm verileri</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Temel kullanım verilerini mobil pazarlama iş ortağımız Adjust ile paylaşır</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
@@ -1249,6 +1257,10 @@
     <string name="studies_active">Etkin</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s zaman zaman araştırmalar yükleyip çalıştırabilir.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Yeni özellikleri ve fikirleri herkesin kullanımına açılmadan önce deneyin.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Araştırmaları yükle ve çalıştır</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Daha fazla bilgi al</string>
 
@@ -3177,4 +3189,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bazı özellikler yarından itibaren çalışmayacak.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Gizli metni göster</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Metni temizle</string>
+</resources>

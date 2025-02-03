@@ -623,6 +623,10 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Firefox odesílá společnosti Mozilla diagnostické údaje a údaje o interakci, které pomáhají prohlížeč vylepšovat. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Správa</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomozte nám rozvíjet Firefox</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Jak data používáme</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Vyberte si umístění nástrojové lišty</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1064,6 +1068,8 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Údaje a používání a technická data</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technické údaje a údaje o interakcích</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Odesílat technická data a data o interakcích</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Zjistit více</string>
     <!-- Preference description for usage and technical data collection -->
@@ -1251,6 +1257,8 @@
     <string name="studies_active">Aktivní</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s může čas od času instalovat a spouštět studie.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Instalovat a spouštět studie</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Zjistit více</string>
 

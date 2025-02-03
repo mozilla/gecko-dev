@@ -618,6 +618,12 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Selaimen parantamiseksi Firefox lähettää diagnostiikka- ja vuorovaikutustietoja Mozillalle. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Hallitse</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Auta meitä kasvattamaan Firefoxia</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kun kerrot kuinka löysit Firefoxin ja miten käytät sitä, autat meitä esittelemään selaimemme entistä useammalle ihmiselle.</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Vahvista ja aloita selaaminen</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Valitse työkalupalkin sijoitus</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1248,6 +1254,8 @@
     <string name="studies_active">Käynnissä</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s saattaa asentaa ja suorittaa tutkimuksia silloin tällöin.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Kokeile ominaisuuksia ja ideoita, ennen kuin ne julkaistaan kaikille.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Lue lisää</string>
 
@@ -3177,4 +3185,7 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Jotkut ominaisuudet lakkaavat toimimasta huomenna.</string>
 
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Näytä piilotettu teksti</string>
     </resources>

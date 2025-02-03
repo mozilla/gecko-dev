@@ -612,6 +612,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Manage</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Help us grow Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">When you share how you discovered Firefox and that you use it, you help us introduce our browser to more people.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Share minimal data with Mozilla’s marketing technology partners. This data is never sold or used to show you ads.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">How we use the data</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirm and start browsing</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Pick a toolbar placement</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1053,16 +1063,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Usage and technical data</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technical and interaction data</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Send technical and interaction data</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Learn more</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Shares performance, usage, hardware and customisation data about your browser with Mozilla to help us make %1$s better</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Data about your device, hardware configuration and usage helps us improve Firefox features, performance and stability.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketing data</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Campaign measurement data</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Shares basic usage data with Adjust, our mobile marketing vendor</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Share information about how you discovered Firefox with Mozilla’s marketing partners. This helps us grow Firefox and build a better internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Share how you discovered Firefox and that you use it with Mozilla’s marketing technology partners.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Learn more about marketing data</string>
 
@@ -1240,6 +1259,10 @@
     <string name="studies_active">Active</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s may install and run studies from time to time.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Try out features and ideas before they’re released to everyone.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Install and run studies</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Learn more</string>
 
@@ -3150,4 +3173,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Some features will stop working tomorrow.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Show hidden text</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Clear text</string>
+</resources>

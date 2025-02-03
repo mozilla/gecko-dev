@@ -580,6 +580,12 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">അന്വേഷിയന്ത്രത്തിനെ മെച്ചപ്പെുടത്താൻ ഫയർഫോക്സു് മോസില്ലക്കു് നിദാനനിർണയനീയും ഇടപാടുനീയ ദത്ത അയയ്ക്കാരുണ്ടു്. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">കൈകാര്യം ചെയ്യുക</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">ഫയൎഫോക്സിനെ ഉയൎത്താൻ ഞങ്ങൾ സഹായിക്കുക</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">എങ്ങനെയാണു് ഞങ്ങൾ ദത്തയെ ഉപയോഗിക്കുന്നതു്</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ഉറപ്പിച്ചു് തിരയാൻ തുടങ്ങുക</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">കരുപ്പട്ട സ്ഥാനം തിരഞ്ഞെടുക്കുക</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -993,6 +999,8 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ഉപയോഗവും സാങ്കേതിക ഡാറ്റയും</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത അയയ്ക്കുക</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
     <!-- Preference description for usage and technical data collection -->
@@ -1174,6 +1182,8 @@
     <string name="studies_active">സജീവം</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s ചിലപ്പോൾ പഠനങ്ങൾ വല്ലപ്പോഴു് സ്ഥാപിച്ചുനടത്തും.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">പാഠനങ്ങൾ സ്ഥാപിച്ചിട്ടു് അവയെ നടത്തുക</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">കൂടുതലറിയുക</string>
     <!-- Dialog message shown after removing a study -->
@@ -2477,6 +2487,8 @@
     <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">ഗോളാന്തരവല സമ്പർക്കമില്ല</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">&quot;അതെ, ഇതു് പരീക്ഷിച്ചു് നോക്കാം&quot; തിരഞ്ഞെടുക്കുന്നതിലൂടെ താങ്ങൾ %1$s-ന്റെ %2$s, %3$s-ന്റെ %4$s എന്നിവ അംഗീകരിക്കുന്നു.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">സ്വകാര്യത അറിയിപ്പ്</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
@@ -2931,4 +2943,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ചില സവിശേഷതകൾ നാളെ പ്രവർത്തിക്കാൻ നിർത്തും.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">മറഞ്ഞിരിക്കുന്ന വാചകം കാണിക്കുക</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">പാഠം വേൎപ്പെടുത്തുക</string>
+</resources>

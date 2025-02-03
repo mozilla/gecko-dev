@@ -620,6 +620,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">為了幫助改善瀏覽器，Firefox 會將除錯與互動資料傳送回 Mozilla。%1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">管理</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">協助我們讓 Firefox 成長</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">當您分享如何發現 Firefox 以及是如何使用的時候，就能幫助我們將瀏覽器介紹給更多人。</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">與 Mozilla 的行銷技術夥伴分享最小幅度的資料，此資料不會被賣掉，或用於向您顯示廣告。</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">我們會如何使用該資料</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">確認並開始上網</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">挑選工具列要放置的位置</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1068,16 +1078,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">使用與技術資料</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">技術與互動資料</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">傳送技術與互動資料</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">更多資訊</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">分享您瀏覽器的效能、使用方式、硬體設備、與自訂功能的資料給 Mozilla 以幫助我們讓 %1$s 變得更好</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">關於您的裝置、硬體設定，以及您的使用方式，可幫助我們為所有使用者改進 Firefox 功能、效能與穩定度。</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">行銷資料</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">活動測量資料</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">與我們的行動行銷服務廠商 Adjust 分享基本使用資料</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 的相關資訊。這能夠幫助我們拓展 Firefox 使用率，打造更好的網際網路環境。</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">與 Mozilla 的行銷技術夥伴分享您如何發現 Firefox 以及是如何使用。</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">了解行銷資料的更多資訊</string>
 
@@ -1255,6 +1274,10 @@
     <string name="studies_active">進行中</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s 會不定時安裝並執行使用者研究。</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">在功能推出給所有人之前，搶先試用新功能與點子。</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">安裝並進行使用者研究</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">了解更多</string>
 

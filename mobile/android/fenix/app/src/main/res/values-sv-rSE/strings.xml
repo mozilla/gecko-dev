@@ -623,11 +623,11 @@
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hjälp oss att utveckla Firefox</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">När du delar med dig av hur du upptäckte Firefox och att du använder den, hjälper du oss att introducera vår webbläsare för fler människor.</string>
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">När du delar med dig av hur du upptäckte Firefox och att du använder Firefox, hjälper du oss att introducera vår webbläsare för fler människor.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Dela minimal data med Mozillas marknadsföringsteknikpartners. Denna data säljs eller används aldrig för att visa dig annonser.</string>
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Dela minimalt med data med Mozillas marknadsföringsteknikpartners. Denna data säljs aldrig eller används för att visa dig annonser.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
-    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hur vi använder datan</string>
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hur vi använder informationen</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Bekräfta och börja surfa</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1092,7 +1092,7 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Dela information om hur du upptäckte Firefox med Mozillas marknadsföringspartners. Detta hjälper oss att utveckla Firefox och bygga ett bättre internet</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Dela hur du upptäckte Firefox och att du använder den med Mozillas marknadsföringspartners.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Dela hur du upptäckte Firefox och att du använder Firefox med Mozillas marknadsföringsteknikpartners.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Läs mer om marknadsföringsdata</string>
 
@@ -1272,7 +1272,7 @@
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s kan installera och köra undersökningar då och då.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Testa funktioner och idéer innan de släpps för alla.</string>
+    <string name="studies_description_3" tools:ignore="UnusedResources">Testa funktioner och idéer innan de släpps till alla.</string>
     <!-- Title of the Studies data preference -->
     <string name="studies_title" tools:ignore="UnusedResources">Installera och kör studier</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->

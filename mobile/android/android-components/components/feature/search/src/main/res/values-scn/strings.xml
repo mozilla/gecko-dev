@@ -2,7 +2,7 @@
 <resources>
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
-    <string name="search_widget_content_description">Grapi na nova scheda di %1$s</string>
+    <string name="search_widget_content_description">Grapi na scheda nova di %1$s</string>
     <!-- Text preview for smaller sized widgets -->
     <string name="search_widget_text_short">Riscedi</string>
     <!-- Text preview for larger sized widgets -->
