@@ -29,5 +29,3 @@ EXTRA_JS_MODULES += [
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
-
-JAR_MANIFESTS += ["jar.mn"]
