@@ -14,7 +14,6 @@
 #include "RootCertificateTelemetryUtils.h"
 #include "ScopedNSSTypes.h"
 #include "mozilla/EnumSet.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/glean/bindings/MetricTypes.h"
@@ -93,7 +92,8 @@ class PinningTelemetryInfo {
 
   // Should we accumulate pinning telemetry for the result?
   bool accumulateResult;
-  Maybe<Telemetry::HistogramID> certPinningResultHistogram;
+  bool isMoz;
+  bool testMode;
   int32_t certPinningResultBucket;
   // Should we accumulate telemetry for the root?
   bool accumulateForRoot;
@@ -102,6 +102,8 @@ class PinningTelemetryInfo {
   void Reset() {
     accumulateForRoot = false;
     accumulateResult = false;
+    isMoz = false;
+    testMode = false;
   }
 };
 

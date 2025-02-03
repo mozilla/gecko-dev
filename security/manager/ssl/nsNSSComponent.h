@@ -43,12 +43,8 @@ CertVerifier::CertificateTransparencyMode GetCertificateTransparencyMode();
 }  // namespace psm
 }  // namespace mozilla
 
-#define NS_NSSCOMPONENT_CID                          \
-  {                                                  \
-    0x4cb64dfd, 0xca98, 0x4e24, {                    \
-      0xbe, 0xfd, 0x0d, 0x92, 0x85, 0xa3, 0x3b, 0xcb \
-    }                                                \
-  }
+#define NS_NSSCOMPONENT_CID \
+  {0x4cb64dfd, 0xca98, 0x4e24, {0xbe, 0xfd, 0x0d, 0x92, 0x85, 0xa3, 0x3b, 0xcb}}
 
 bool EnsureNSSInitializedChromeOrContent();
 bool HandleTLSPrefChange(const nsCString& aPref);
@@ -94,8 +90,7 @@ class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
   nsresult InitializeNSS();
   void PrepareForShutdown();
 
-  void setValidationOptions(bool isInitialSetting,
-                            const mozilla::MutexAutoLock& proofOfLock);
+  void setValidationOptions(const mozilla::MutexAutoLock& proofOfLock);
   void GetRevocationBehaviorFromPrefs(
       /*out*/ mozilla::psm::CertVerifier::OcspDownloadConfig* odc,
       /*out*/ mozilla::psm::CertVerifier::OcspStrictConfig* osc,

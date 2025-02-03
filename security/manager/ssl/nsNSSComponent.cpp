@@ -35,7 +35,6 @@
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 #include "mozilla/Vector.h"
@@ -298,7 +297,7 @@ void nsNSSComponent::UnloadEnterpriseRoots() {
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("UnloadEnterpriseRoots"));
   MutexAutoLock lock(mMutex);
   mEnterpriseCerts.Clear();
-  setValidationOptions(false, lock);
+  setValidationOptions(lock);
   ClearSSLExternalAndInternalSessionCache();
 }
 
@@ -1063,7 +1062,7 @@ nsresult CipherSuiteChangeObserver::Observe(nsISupports* /*aSubject*/,
 }  // namespace
 
 void nsNSSComponent::setValidationOptions(
-    bool isInitialSetting, const mozilla::MutexAutoLock& proofOfLock) {
+    const mozilla::MutexAutoLock& proofOfLock) {
   // We access prefs so this must be done on the main thread.
   mMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(NS_IsMainThread());
@@ -1092,20 +1091,6 @@ void nsNSSComponent::setValidationOptions(
   }
   CertVerifier::CertificateTransparencyConfig ctConfig(
       ctMode, std::move(skipCTForHosts), std::move(skipCTForSPKIHashes));
-
-  // This preference controls whether we do OCSP fetching and does not affect
-  // OCSP stapling.
-  // 0 = disabled, 1 = enabled, 2 = only enabled for EV
-  uint32_t ocspEnabled = StaticPrefs::security_OCSP_enabled();
-
-  bool ocspRequired = ocspEnabled > 0 && StaticPrefs::security_OCSP_require();
-
-  // We measure the setting of the pref at startup only to minimize noise by
-  // addons that may muck with the settings, though it probably doesn't matter.
-  if (isInitialSetting) {
-    Telemetry::Accumulate(Telemetry::CERT_OCSP_ENABLED, ocspEnabled);
-    Telemetry::Accumulate(Telemetry::CERT_OCSP_REQUIRED, ocspRequired);
-  }
 
   NetscapeStepUpPolicy netscapeStepUpPolicy = static_cast<NetscapeStepUpPolicy>(
       StaticPrefs::security_pki_netscape_step_up_policy());
@@ -1615,7 +1600,7 @@ nsresult nsNSSComponent::InitializeNSS() {
         Preferences::GetBool("security.pki.mitm_canary_issuer.enabled", true);
 
     // Set dynamic options from prefs.
-    setValidationOptions(true, lock);
+    setValidationOptions(lock);
 
     bool importEnterpriseRoots =
         StaticPrefs::security_enterprise_roots_enabled();
@@ -1725,7 +1710,7 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
         prefName.EqualsLiteral("security.OCSP.timeoutMilliseconds.hard") ||
         prefName.EqualsLiteral("security.pki.crlite_mode")) {
       MutexAutoLock lock(mMutex);
-      setValidationOptions(false, lock);
+      setValidationOptions(lock);
 #ifdef DEBUG
     } else if (prefName.EqualsLiteral("security.test.built_in_root_hash")) {
       MutexAutoLock lock(mMutex);

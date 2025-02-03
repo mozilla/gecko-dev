@@ -158,17 +158,17 @@ nsresult OCSPRequest::DispatchToMainThreadAndWait() {
   // If mStartTime was never set, we consider this an internal error.
   // Otherwise, we managed to at least send the request.
   if (mStartTime.IsNull()) {
-    Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 3);
+    glean::cert::validation_http_request_result.AccumulateSingleSample(3);
   } else if (mResponseResult == NS_ERROR_NET_TIMEOUT) {
-    Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 0);
+    glean::cert::validation_http_request_result.AccumulateSingleSample(0);
     mozilla::glean::ocsp_request_time::cancel.AccumulateRawDuration(
         TimeStamp::Now() - mStartTime);
   } else if (NS_SUCCEEDED(mResponseResult)) {
-    Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 1);
+    glean::cert::validation_http_request_result.AccumulateSingleSample(1);
     mozilla::glean::ocsp_request_time::success.AccumulateRawDuration(
         TimeStamp::Now() - mStartTime);
   } else {
-    Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 2);
+    glean::cert::validation_http_request_result.AccumulateSingleSample(2);
     mozilla::glean::ocsp_request_time::failure.AccumulateRawDuration(
         TimeStamp::Now() - mStartTime);
   }

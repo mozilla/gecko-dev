@@ -358,3 +358,204 @@ security:
       - dkeeler@mozilla.com
     expires: never
     telemetry_mirror: SECURITY_CLIENT_AUTH_CERT_USAGE
+
+cert:
+  ev_status:
+    type: custom_distribution
+    description: >
+      EV status of a certificate, recorded on each TLS connection. 0=invalid,
+      1=DV, 2=EV
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_EV_STATUS.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1254653
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1254653
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: CERT_EV_STATUS
+
+  validation_success_by_ca:
+    type: custom_distribution
+    description: >
+      Successful SSL server cert validations by CA (see RootHashes.inc for names
+      of CAs)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_VALIDATION_SUCCESS_BY_CA_2.
+    range_min: 0
+    range_max: 256
+    bucket_count: 257
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1369747
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1441550
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1369747
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1441550
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+    telemetry_mirror: CERT_VALIDATION_SUCCESS_BY_CA_2
+
+  chain_key_size_status:
+    type: custom_distribution
+    description: >
+      Does enforcing a larger minimum RSA key size cause verification failures?
+      1 = no, 2 = yes, 3 = another error prevented finding a verified chain
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_CHAIN_KEY_SIZE_STATUS.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: CERT_CHAIN_KEY_SIZE_STATUS
+
+  validation_http_request_result:
+    type: custom_distribution
+    description: >
+      HTTP result of OCSP, etc.. (0=canceled, 1=OK, 2=FAILED, 3=internal-error)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_VALIDATION_HTTP_REQUEST_RESULT.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: CERT_VALIDATION_HTTP_REQUEST_RESULT
+
+cert_pinning:
+  failures_by_ca:
+    type: custom_distribution
+    description: >
+      Pinning failures by CA (see RootHashes.inc for names of CAs)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_PINNING_FAILURES_BY_CA_2.
+    range_min: 0
+    range_max: 256
+    bucket_count: 257
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    notification_emails:
+      - pinning@mozilla.org
+      - dkeeler@mozilla.com
+    expires: never
+    telemetry_mirror: CERT_PINNING_FAILURES_BY_CA_2
+
+  results:
+    type: labeled_counter
+    description: >
+      Certificate pinning results (0 = failure, 1 = success)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CERT_PINNING_RESULTS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - pinning@mozilla.org
+    expires: never
+    telemetry_mirror: h#CERT_PINNING_RESULTS
+
+  test_results:
+    type: labeled_counter
+    description: >
+      Certificate pinning test results (0 = failure, 1 = success)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CERT_PINNING_TEST_RESULTS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - pinning@mozilla.org
+    expires: never
+    telemetry_mirror: h#CERT_PINNING_TEST_RESULTS
+
+  moz_results_by_host:
+    type: custom_distribution
+    description: >
+      Certificate pinning results by host for Mozilla operational sites
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_PINNING_MOZ_RESULTS_BY_HOST.
+    range_min: 0
+    range_max: 512
+    bucket_count: 513
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1007844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521940
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1007844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521940
+    notification_emails:
+      - dkeeler@mozilla.com
+      - pinning@mozilla.org
+    expires: never
+    telemetry_mirror: CERT_PINNING_MOZ_RESULTS_BY_HOST
+
+  moz_test_results_by_host:
+    type: custom_distribution
+    description: >
+      Certificate pinning test results by host for Mozilla operational sites
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CERT_PINNING_MOZ_TEST_RESULTS_BY_HOST.
+    range_min: 0
+    range_max: 512
+    bucket_count: 513
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1007844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521940
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1007844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521940
+    notification_emails:
+      - dkeeler@mozilla.com
+      - pinning@mozilla.org
+    expires: never
+    telemetry_mirror: CERT_PINNING_MOZ_TEST_RESULTS_BY_HOST

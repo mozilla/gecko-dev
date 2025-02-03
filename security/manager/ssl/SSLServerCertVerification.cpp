@@ -504,8 +504,11 @@ void GatherCertificateTransparencyTelemetry(
   // Report CT Policy compliance by CA.
   if (info.policyCompliance.isSome() &&
       *info.policyCompliance != ct::CTPolicyCompliance::Compliant) {
-    AccumulateTelemetryForRootCA(
-        Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, rootCert);
+    int32_t binId = RootCABinNumber(rootCert);
+    if (binId != ROOT_CERTIFICATE_HASH_FAILURE) {
+      Telemetry::Accumulate(
+          Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, binId);
+    }
   }
 }
 
@@ -523,33 +526,52 @@ static void CollectCertTelemetry(
   uint32_t evStatus = (aCertVerificationResult != Success) ? 0  // 0 = Failure
                       : (aEVStatus != EVStatus::EV)        ? 1  // 1 = DV
                                                            : 2;        // 2 = EV
-  Telemetry::Accumulate(Telemetry::CERT_EV_STATUS, evStatus);
+  glean::cert::ev_status.AccumulateSingleSample(evStatus);
 
   if (aOcspStaplingStatus != CertVerifier::OCSP_STAPLING_NEVER_CHECKED) {
     Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, aOcspStaplingStatus);
   }
 
   if (aKeySizeStatus != KeySizeStatus::NeverChecked) {
-    Telemetry::Accumulate(Telemetry::CERT_CHAIN_KEY_SIZE_STATUS,
-                          static_cast<uint32_t>(aKeySizeStatus));
+    glean::cert::chain_key_size_status.AccumulateSingleSample(
+        static_cast<uint32_t>(aKeySizeStatus));
   }
 
   if (aPinningTelemetryInfo.accumulateForRoot) {
-    Telemetry::Accumulate(Telemetry::CERT_PINNING_FAILURES_BY_CA_2,
-                          aPinningTelemetryInfo.rootBucket);
+    glean::cert_pinning::failures_by_ca.AccumulateSingleSample(
+        aPinningTelemetryInfo.rootBucket);
   }
 
   if (aPinningTelemetryInfo.accumulateResult) {
-    MOZ_ASSERT(aPinningTelemetryInfo.certPinningResultHistogram.isSome());
-    Telemetry::Accumulate(
-        aPinningTelemetryInfo.certPinningResultHistogram.value(),
-        aPinningTelemetryInfo.certPinningResultBucket);
+    if (aPinningTelemetryInfo.isMoz) {
+      if (aPinningTelemetryInfo.testMode) {
+        glean::cert_pinning::moz_test_results_by_host.AccumulateSingleSample(
+            aPinningTelemetryInfo.certPinningResultBucket);
+      } else {
+        glean::cert_pinning::moz_results_by_host.AccumulateSingleSample(
+            aPinningTelemetryInfo.certPinningResultBucket);
+      }
+    } else {
+      if (aPinningTelemetryInfo.testMode) {
+        glean::cert_pinning::test_results
+            .EnumGet(static_cast<glean::cert_pinning::TestResultsLabel>(
+                aPinningTelemetryInfo.certPinningResultBucket))
+            .Add();
+      } else {
+        glean::cert_pinning::results
+            .EnumGet(static_cast<glean::cert_pinning::ResultsLabel>(
+                aPinningTelemetryInfo.certPinningResultBucket))
+            .Add();
+      }
+    }
   }
 
   if (aCertVerificationResult == Success && aBuiltCertChain.Length() > 0) {
     const nsTArray<uint8_t>& rootCert = aBuiltCertChain.LastElement();
-    AccumulateTelemetryForRootCA(Telemetry::CERT_VALIDATION_SUCCESS_BY_CA_2,
-                                 rootCert);
+    int32_t binId = RootCABinNumber(rootCert);
+    if (binId != ROOT_CERTIFICATE_HASH_FAILURE) {
+      glean::cert::validation_success_by_ca.AccumulateSingleSample(binId);
+    }
 
     mozilla::glean::tls::certificate_verifications.Add(1);
     if (issuerSources.contains(IssuerSource::TLSHandshake)) {

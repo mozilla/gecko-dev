@@ -10838,22 +10838,6 @@
     "releaseChannelCollection": "opt-out",
     "description": "Verification status of Signed Certificate Timestamps received (0=Decoding error, 1=Valid SCT, 2=SCT from unknown log, 3=Invalid SCT signature, 4=SCT timestamp is in the future, 5=Valid SCT from a disqualified log)"
   },
-  "CERT_OCSP_ENABLED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "Is OCSP fetching enabled? (pref security.OCSP.enabled)"
-  },
-  "CERT_OCSP_REQUIRED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "Is OCSP required when the cert has an OCSP URI? (pref security.OCSP.require)"
-  },
   "CERT_EV_STATUS": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
