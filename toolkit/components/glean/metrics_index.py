@@ -69,6 +69,7 @@ gecko_metrics = [
     "toolkit/components/extensions/metrics.yaml",
     "toolkit/components/formautofill/metrics.yaml",
     "toolkit/components/glean/metrics.yaml",
+    "toolkit/components/mediasniffer/metrics.yaml",
     "toolkit/components/messaging-system/metrics.yaml",
     "toolkit/components/normandy/metrics.yaml",
     "toolkit/components/passwordmgr/metrics.yaml",

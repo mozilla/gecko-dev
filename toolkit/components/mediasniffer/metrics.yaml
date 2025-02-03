@@ -1,0 +1,41 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Audio/Video'
+
+media_sniffer:
+  mp4_brand_pattern:
+    type: labeled_counter
+    description: >
+      ISOBMFF brand pattern used to identify MP4 in media sniffer
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram MEDIA_SNIFFER_MP4_BRAND_PATTERN.
+    labels:
+      - ftyp_mp4
+      - ftyp_avc
+      - ftyp_3gp4
+      - ftyp_3gp
+      - ftyp_M4V
+      - ftyp_M4A
+      - ftyp_M4P
+      - ftyp_qt
+      - ftyp_iso
+      - ftyp_mmp4
+      - ftyp_avif
+      - ftyp_crx
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1725190
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1725190
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#MEDIA_SNIFFER_MP4_BRAND_PATTERN
