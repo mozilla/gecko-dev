@@ -3188,13 +3188,6 @@ mozilla::ipc::IPCResult ContentChild::RecvPushWithData(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvPushSubscriptionChange(
-    const nsCString& aScope, nsIPrincipal* aPrincipal) {
-  PushSubscriptionChangeDispatcher dispatcher(aScope, aPrincipal);
-  Unused << NS_WARN_IF(NS_FAILED(dispatcher.NotifyObserversAndWorkers()));
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvPushError(const nsCString& aScope,
                                                     nsIPrincipal* aPrincipal,
                                                     const nsString& aMessage,

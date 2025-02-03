@@ -339,13 +339,12 @@ nsresult PushSubscriptionChangeDispatcher::NotifyWorkers() {
 
 bool PushSubscriptionChangeDispatcher::SendToParent(
     ContentChild* aParentActor) {
-  return aParentActor->SendNotifyPushSubscriptionChangeObservers(mScope,
-                                                                 mPrincipal);
+  return true;
 }
 
 bool PushSubscriptionChangeDispatcher::SendToChild(
     ContentParent* aContentActor) {
-  return aContentActor->SendPushSubscriptionChange(mScope, mPrincipal);
+  return true;
 }
 
 PushSubscriptionModifiedDispatcher::PushSubscriptionModifiedDispatcher(

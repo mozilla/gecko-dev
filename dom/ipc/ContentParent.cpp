@@ -5773,21 +5773,6 @@ mozilla::ipc::IPCResult ContentParent::RecvNotifyPushObserversWithData(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-ContentParent::RecvNotifyPushSubscriptionChangeObservers(
-    const nsACString& aScope, nsIPrincipal* aPrincipal) {
-  if (!aPrincipal) {
-    return IPC_FAIL(this, "No principal");
-  }
-
-  if (!ValidatePrincipal(aPrincipal)) {
-    LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
-  }
-  PushSubscriptionChangeDispatcher dispatcher(aScope, aPrincipal);
-  Unused << NS_WARN_IF(NS_FAILED(dispatcher.NotifyObserversAndWorkers()));
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentParent::RecvPushError(const nsACString& aScope,
                                                      nsIPrincipal* aPrincipal,
                                                      const nsAString& aMessage,

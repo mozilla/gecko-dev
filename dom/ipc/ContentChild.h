@@ -422,9 +422,6 @@ class ContentChild final : public PContentChild,
                                            const nsString& aMessageId,
                                            nsTArray<uint8_t>&& aData);
 
-  mozilla::ipc::IPCResult RecvPushSubscriptionChange(const nsCString& aScope,
-                                                     nsIPrincipal* aPrincipal);
-
   mozilla::ipc::IPCResult RecvPushError(const nsCString& aScope,
                                         nsIPrincipal* aPrincipal,
                                         const nsString& aMessage,
