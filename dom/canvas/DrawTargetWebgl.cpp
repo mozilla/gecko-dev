@@ -24,6 +24,7 @@
 #include "mozilla/widget/ScreenManager.h"
 #include "skia/include/core/SkPixmap.h"
 #include "nsContentUtils.h"
+#include "nsIMemoryReporter.h"
 
 #include "GLContext.h"
 #include "WebGLContext.h"
@@ -42,6 +43,48 @@
 #endif
 
 namespace mozilla::gfx {
+
+static Atomic<size_t> gReportedTextureMemory;
+static Atomic<size_t> gReportedHeapData;
+static Atomic<size_t> gReportedContextCount;
+static Atomic<size_t> gReportedTargetCount;
+
+class AcceleratedCanvas2DMemoryReporter final : public nsIMemoryReporter {
+  ~AcceleratedCanvas2DMemoryReporter() = default;
+
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  MOZ_DEFINE_MALLOC_SIZE_OF_ON_ALLOC(MallocSizeOfOnAlloc)
+  MOZ_DEFINE_MALLOC_SIZE_OF_ON_FREE(MallocSizeOfOnFree)
+
+  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
+                            nsISupports* aData, bool aAnonymize) override {
+    MOZ_COLLECT_REPORT("ac2d-texture-memory", KIND_OTHER, UNITS_BYTES,
+                       gReportedTextureMemory,
+                       "GPU memory used by Accelerated Canvas2D textures.");
+    MOZ_COLLECT_REPORT("explicit/ac2d/heap-resources", KIND_HEAP, UNITS_BYTES,
+                       gReportedHeapData,
+                       "Heap overhead for Accelerated Canvas2D resources.");
+    MOZ_COLLECT_REPORT("ac2d-context-count", KIND_OTHER, UNITS_COUNT,
+                       gReportedContextCount,
+                       "Number of Accelerated Canvas2D contexts.");
+    MOZ_COLLECT_REPORT("ac2d-target-count", KIND_OTHER, UNITS_COUNT,
+                       gReportedTargetCount,
+                       "Number of Accelerated Canvas2D targets.");
+    return NS_OK;
+  }
+
+  static void Register() {
+    static bool registered = false;
+    if (!registered) {
+      registered = true;
+      RegisterStrongMemoryReporter(new AcceleratedCanvas2DMemoryReporter);
+    }
+  }
+};
+
+NS_IMPL_ISUPPORTS(AcceleratedCanvas2DMemoryReporter, nsIMemoryReporter)
 
 BackingTexture::BackingTexture(const IntSize& aSize, SurfaceFormat aFormat,
                                const RefPtr<WebGLTexture>& aTexture)
@@ -155,10 +198,17 @@ DrawTargetWebgl::~DrawTargetWebgl() {
       mSkia->DetachAllSnapshots();
     }
     mSharedContext->ClearLastTexture(true);
-    mClipMask = nullptr;
+    if (mClipMask) {
+      mSharedContext->RemoveUntrackedTextureMemory(mClipMask);
+      mClipMask = nullptr;
+    }
     mFramebuffer = nullptr;
-    mTex = nullptr;
+    if (mTex) {
+      mSharedContext->RemoveUntrackedTextureMemory(mTex);
+      mTex = nullptr;
+    }
     mSharedContext->mDrawTargetCount--;
+    gReportedTargetCount--;
   }
 }
 
@@ -169,11 +219,17 @@ SharedContextWebgl::~SharedContextWebgl() {
   if (mWebgl) {
     ExitTlsScope();
     mWebgl->ActiveTexture(0);
+    gReportedContextCount--;
   }
   if (mWGRPathBuilder) {
     WGR::wgr_builder_release(mWGRPathBuilder);
     mWGRPathBuilder = nullptr;
   }
+  if (mPathVertexCapacity > 0) {
+    mPathVertexCapacity = 0;
+    ResetPathVertexBuffer();
+  }
+  ClearZeroBuffer();
   ClearAllTextures();
   UnlinkSurfaceTextures();
   UnlinkGlyphCaches();
@@ -252,19 +308,63 @@ void SharedContextWebgl::ClearAllTextures() {
   }
 }
 
+static inline size_t TextureMemoryUsage(WebGLTexture* aTexture) {
+  return aTexture->MemoryUsage();
+}
+
+static inline size_t TextureMemoryUsage(WebGLBuffer* aBuffer) {
+  return aBuffer->ByteLength();
+}
+
+template <typename T>
+inline void SharedContextWebgl::AddUntrackedTextureMemory(
+    const RefPtr<T>& aObject, size_t aBytes) {
+  size_t usedBytes = aBytes > 0 ? aBytes : TextureMemoryUsage(aObject);
+  gReportedTextureMemory += usedBytes;
+  gReportedHeapData += aObject->SizeOfIncludingThis(
+      AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnAlloc);
+}
+
+template <typename T>
+inline void SharedContextWebgl::RemoveUntrackedTextureMemory(
+    const RefPtr<T>& aObject, size_t aBytes) {
+  size_t usedBytes = aBytes > 0 ? aBytes : TextureMemoryUsage(aObject);
+  gReportedTextureMemory -= usedBytes;
+  gReportedHeapData -= aObject->SizeOfIncludingThis(
+      AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnFree);
+}
+
+inline void SharedContextWebgl::AddTextureMemory(BackingTexture* aTexture) {
+  size_t usedBytes = aTexture->UsedBytes();
+  mTotalTextureMemory += usedBytes;
+  AddUntrackedTextureMemory(aTexture->GetWebGLTexture(), usedBytes);
+}
+
+inline void SharedContextWebgl::RemoveTextureMemory(BackingTexture* aTexture) {
+  size_t usedBytes = aTexture->UsedBytes();
+  mTotalTextureMemory -= usedBytes;
+  RemoveUntrackedTextureMemory(aTexture->GetWebGLTexture(), usedBytes);
+}
+
 // Scan through the shared texture pages looking for any that are empty and
 // delete them.
 void SharedContextWebgl::ClearEmptyTextureMemory() {
   for (auto pos = mSharedTextures.begin(); pos != mSharedTextures.end();) {
     if (!(*pos)->HasAllocatedHandles()) {
       RefPtr<SharedTexture> shared = *pos;
-      size_t usedBytes = shared->UsedBytes();
-      mEmptyTextureMemory -= usedBytes;
-      mTotalTextureMemory -= usedBytes;
+      mEmptyTextureMemory -= shared->UsedBytes();
+      RemoveTextureMemory(shared);
       pos = mSharedTextures.erase(pos);
     } else {
       ++pos;
     }
+  }
+}
+
+void SharedContextWebgl::ClearZeroBuffer() {
+  if (mZeroBuffer) {
+    RemoveUntrackedTextureMemory(mZeroBuffer);
+    mZeroBuffer = nullptr;
   }
 }
 
@@ -275,7 +375,7 @@ void SharedContextWebgl::ClearCachesIfNecessary() {
   if (!mShouldClearCaches.exchange(false)) {
     return;
   }
-  mZeroBuffer = nullptr;
+  ClearZeroBuffer();
   ClearAllTextures();
   if (mEmptyTextureMemory) {
     ClearEmptyTextureMemory();
@@ -300,6 +400,7 @@ bool DrawTargetWebgl::Init(const IntSize& size, const SurfaceFormat format,
   }
   mSharedContext = aSharedContext;
   mSharedContext->mDrawTargetCount++;
+  gReportedTargetCount++;
 
   if (size_t(std::max(size.width, size.height)) >
       mSharedContext->mMaxTextureSize) {
@@ -374,6 +475,8 @@ already_AddRefed<SharedContextWebgl> SharedContextWebgl::Create() {
 }
 
 bool SharedContextWebgl::Initialize() {
+  AcceleratedCanvas2DMemoryReporter::Register();
+
   WebGLContextOptions options = {};
   options.alpha = true;
   options.depth = false;
@@ -421,6 +524,8 @@ bool SharedContextWebgl::Initialize() {
   }
 
   mWGRPathBuilder = WGR::wgr_new_builder();
+
+  gReportedContextCount++;
 
   return true;
 }
@@ -620,6 +725,10 @@ bool DrawTargetWebgl::GenerateComplexClipMask() {
   // uploading to only the clip region.
   RefPtr<DrawTargetSkia> dt = new DrawTargetSkia;
   if (!dt->Init(mClipBounds.Size(), SurfaceFormat::A8)) {
+    if (init) {
+      // Ensure that the clip mask is reinitialized on the next attempt.
+      mClipMask = nullptr;
+    }
     return false;
   }
   // Set the clip region and fill the entire inside of it
@@ -666,6 +775,9 @@ bool DrawTargetWebgl::GenerateComplexClipMask() {
   mSharedContext->SetClipRect(mClipBounds);
   // We uploaded a surface, just as if we missed the texture cache, so account
   // for that here.
+  if (init) {
+    mSharedContext->AddUntrackedTextureMemory(mClipMask);
+  }
   mProfile.OnCacheMiss();
   return !!data;
 }
@@ -833,7 +945,7 @@ already_AddRefed<TextureHandle> SharedContextWebgl::WrapSnapshot(
       new StandaloneTexture(aSize, aFormat, aTex.forget());
   mStandaloneTextures.push_back(handle);
   mTextureHandles.insertFront(handle);
-  mTotalTextureMemory += usedBytes;
+  AddTextureMemory(handle);
   mUsedTextureMemory += usedBytes;
   ++mNumTextureHandles;
   return handle.forget();
@@ -1181,7 +1293,18 @@ static const float kRectVertexData[12] = {0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
 // Orphans the contents of the path vertex buffer. The beginning of the buffer
 // always contains data for a simple rectangle draw to avoid needing to switch
 // buffers.
-void SharedContextWebgl::ResetPathVertexBuffer(bool aChanged) {
+void SharedContextWebgl::ResetPathVertexBuffer() {
+  if (!mPathVertexBuffer) {
+    MOZ_ASSERT(false);
+    return;
+  }
+
+  size_t oldCapacity = mPathVertexBuffer->ByteLength();
+  if (mWGROutputBuffer) {
+    gReportedHeapData -= oldCapacity;
+  }
+  RemoveUntrackedTextureMemory(mPathVertexBuffer);
+
   mWebgl->BindBuffer(LOCAL_GL_ARRAY_BUFFER, mPathVertexBuffer.get());
   mWebgl->UninitializedBufferData_SizeOnly(
       LOCAL_GL_ARRAY_BUFFER,
@@ -1190,12 +1313,17 @@ void SharedContextWebgl::ResetPathVertexBuffer(bool aChanged) {
   mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, 0, sizeof(kRectVertexData),
                         (const uint8_t*)kRectVertexData);
   mPathVertexOffset = sizeof(kRectVertexData);
-  if (aChanged) {
-    mWGROutputBuffer.reset(
-        mPathVertexCapacity > 0
-            ? new (fallible) WGR::OutputVertex[mPathVertexCapacity /
-                                               sizeof(WGR::OutputVertex)]
-            : nullptr);
+
+  AddUntrackedTextureMemory(mPathVertexBuffer);
+  if (mPathVertexCapacity > 0) {
+    size_t newCapacity = mPathVertexBuffer->ByteLength();
+    if (!mWGROutputBuffer || newCapacity != oldCapacity) {
+      mWGROutputBuffer.reset(new (
+          fallible) WGR::OutputVertex[newCapacity / sizeof(WGR::OutputVertex)]);
+    }
+    gReportedHeapData += newCapacity;
+  } else {
+    mWGROutputBuffer = nullptr;
   }
 }
 
@@ -1519,6 +1647,7 @@ bool DrawTargetWebgl::CreateFramebuffer() {
     webgl->Clear(LOCAL_GL_COLOR_BUFFER_BIT);
     mSharedContext->ClearTarget();
     mSharedContext->ClearLastTexture();
+    mSharedContext->AddUntrackedTextureMemory(mTex);
   }
   return true;
 }
@@ -1895,6 +2024,7 @@ bool SharedContextWebgl::UploadSurface(DataSourceSurface* aData,
         size_t(GetAlignedStride<4>(aSrcRect.width, BytesPerPixel(aFormat))) *
         aSrcRect.height;
     if (!mZeroBuffer || size > mZeroSize) {
+      ClearZeroBuffer();
       mZeroBuffer = mWebgl->CreateBuffer();
       mZeroSize = size;
       mWebgl->BindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, mZeroBuffer);
@@ -1902,6 +2032,7 @@ bool SharedContextWebgl::UploadSurface(DataSourceSurface* aData,
       // explicitly.
       mWebgl->BufferData(LOCAL_GL_PIXEL_UNPACK_BUFFER, size, nullptr,
                          LOCAL_GL_STATIC_DRAW);
+      AddUntrackedTextureMemory(mZeroBuffer);
     } else {
       mWebgl->BindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, mZeroBuffer);
     }
@@ -1976,7 +2107,7 @@ already_AddRefed<TextureHandle> SharedContextWebgl::AllocateTextureHandle(
           shared->MarkRenderable();
         }
         mSharedTextures.push_back(shared);
-        mTotalTextureMemory += shared->UsedBytes();
+        AddTextureMemory(shared);
         handle = shared->Allocate(aSize);
       }
     }
@@ -1990,7 +2121,7 @@ already_AddRefed<TextureHandle> SharedContextWebgl::AllocateTextureHandle(
         standalone->MarkRenderable();
       }
       mStandaloneTextures.push_back(standalone);
-      mTotalTextureMemory += standalone->UsedBytes();
+      AddTextureMemory(standalone);
       handle = standalone;
     }
   }
@@ -2589,11 +2720,11 @@ bool SharedContextWebgl::RemoveSharedTexture(
   // just add it to the reserve. Otherwise, erase the empty texture page.
   size_t maxBytes = StaticPrefs::gfx_canvas_accelerated_reserve_empty_cache()
                     << 20;
-  size_t usedBytes = aTexture->UsedBytes();
-  if (mEmptyTextureMemory + usedBytes <= maxBytes) {
-    mEmptyTextureMemory += usedBytes;
+  size_t totalEmpty = mEmptyTextureMemory + aTexture->UsedBytes();
+  if (totalEmpty <= maxBytes) {
+    mEmptyTextureMemory = totalEmpty;
   } else {
-    mTotalTextureMemory -= usedBytes;
+    RemoveTextureMemory(aTexture);
     mSharedTextures.erase(pos);
     ClearLastTexture();
   }
@@ -2617,7 +2748,7 @@ bool SharedContextWebgl::RemoveStandaloneTexture(
   if (pos == mStandaloneTextures.end()) {
     return false;
   }
-  mTotalTextureMemory -= aTexture->UsedBytes();
+  RemoveTextureMemory(aTexture);
   mStandaloneTextures.erase(pos);
   ClearLastTexture();
   return true;
@@ -3559,7 +3690,7 @@ bool SharedContextWebgl::DrawPathAccel(
         if (mPathCache) {
           mPathCache->ClearVertexRanges();
         }
-        ResetPathVertexBuffer(false);
+        ResetPathVertexBuffer();
       }
       if (vertexBytes <= mPathVertexCapacity - mPathVertexOffset) {
         // If there is actually room to fit the vertex data in the vertex buffer

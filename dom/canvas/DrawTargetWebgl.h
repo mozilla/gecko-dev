@@ -52,6 +52,7 @@ class PathSkia;
 class SourceSurfaceSkia;
 class SourceSurfaceWebgl;
 
+class BackingTexture;
 class TextureHandle;
 class SharedTexture;
 class SharedTextureHandle;
@@ -226,7 +227,7 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
 
   bool Initialize();
   bool CreateShaders();
-  void ResetPathVertexBuffer(bool aChanged = true);
+  void ResetPathVertexBuffer();
 
   void BlendFunc(GLenum aSrcFactor, GLenum aDstFactor);
   void SetBlendState(CompositionOp aOp,
@@ -332,6 +333,15 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
   void UnlinkSurfaceTexture(const RefPtr<TextureHandle>& aHandle);
   void UnlinkGlyphCaches();
 
+  template <typename T>
+  void AddUntrackedTextureMemory(const RefPtr<T>& aObject, size_t aBytes = 0);
+  template <typename T>
+  void RemoveUntrackedTextureMemory(const RefPtr<T>& aObject,
+                                    size_t aBytes = 0);
+  void AddTextureMemory(BackingTexture* aTexture);
+  void RemoveTextureMemory(BackingTexture* aTexture);
+
+  void ClearZeroBuffer();
   void ClearAllTextures();
   void ClearEmptyTextureMemory();
   void ClearCachesIfNecessary();
