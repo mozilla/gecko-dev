@@ -142,6 +142,9 @@ skip-if = ["os == 'win'"]
 ["browser_dbg-preview-getter.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
+["browser_dbg-preview-invalid-tokens.js"]
+skip-if = ["true"] # This specific test is heavily intermittent, and sometimes leaks on debug.
+
 ["browser_dbg-preview-module.js"]
 skip-if = ["os == 'win'"]
 
@@ -152,12 +155,7 @@ skip-if = ["os == 'win'"]
 fail-if = ["a11y_checks"] # Bug 1860733 splitter element is not focusable
 
 ["browser_dbg-preview.js"]
-skip-if = [
-  "os == 'win'",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # perma fail on opt, high frequency fail on debug
-]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-project-root.js"]
 
