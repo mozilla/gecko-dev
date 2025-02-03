@@ -124,6 +124,7 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
     const data = new Map();
     data.set("renderings", renderings);
     data.set("errors", errors);
+    data.set("dpr", this.contentWindow.devicePixelRatio.toString());
 
     return data;
   }

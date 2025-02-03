@@ -467,6 +467,7 @@ export class UserCharacteristicsPageService {
 
     // We may have HW + SW, or only SW rendered canvases - populate the metrics with what we have
     this.collectGleanMetricsFromMap(data.get("renderings") ?? {});
+    Glean.characteristics.canvasDpr.set(data.get("dpr") ?? "");
 
     ChromeUtils.unregisterWindowActor(actorName);
 

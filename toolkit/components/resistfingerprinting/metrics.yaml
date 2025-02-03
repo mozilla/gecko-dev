@@ -1515,6 +1515,23 @@ characteristics:
     data_sensitivity:
       - technical
 
+  canvas_dpr:
+    type: string
+    description: >
+      The device pixel ratio of the canvas rendering context
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945296
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945296#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
   font_size_monospace_modified:
     type: quantity
     unit: int
