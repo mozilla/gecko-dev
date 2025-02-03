@@ -14,7 +14,7 @@ const DEFAULT_OPTIONS = {
   // Starting in newtab/bin/ and we want to write to newtab/prerendered/ so we
   // go up one level.
   addonPath: "..",
-  // depends on the registration in browser/components/newtab/jar.mn
+  // depends on the registration in browser/extensions/newtab/jar.mn
   baseUrl: "resource://activity-stream/",
   baseVendorUrl: "chrome://global/content/",
 };

@@ -9,7 +9,7 @@ const { DefaultBrowserCheck } = ChromeUtils.importESModule(
 );
 
 const PDF_TEST_URL =
-  "https://example.com/browser/browser/components/newtab/test/browser/file_pdf.PDF";
+  "https://example.com/browser/browser/extensions/newtab/test/browser/file_pdf.PDF";
 
 async function openURLInWindow(window, url) {
   const { selectedBrowser } = window.gBrowser;
