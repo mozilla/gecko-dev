@@ -2058,8 +2058,8 @@ bool TextLeafRange::Crop(Accessible* aContainer) {
 LayoutDeviceIntRect TextLeafRange::Bounds() const {
   // Walk all the lines and union them into the result rectangle.
   LayoutDeviceIntRect result = TextLeafPoint{mStart}.CharBounds();
-  const bool succeeded =
-      WalkLineRects([&result](LayoutDeviceIntRect aLineRect) {
+  const bool succeeded = WalkLineRects(
+      [&result](TextLeafRange aLine, LayoutDeviceIntRect aLineRect) {
         result.UnionRect(result, aLineRect);
       });
 
@@ -2078,7 +2078,8 @@ nsTArray<LayoutDeviceIntRect> TextLeafRange::LineRects() const {
   }
 
   nsTArray<LayoutDeviceIntRect> lineRects;
-  WalkLineRects([&lineRects, &contentBounds](LayoutDeviceIntRect aLineRect) {
+  WalkLineRects([&lineRects, &contentBounds](TextLeafRange aLine,
+                                             LayoutDeviceIntRect aLineRect) {
     // Clip the bounds to the bounds of the content area.
     bool boundsVisible = true;
     if (contentBounds.isSome()) {
@@ -2253,22 +2254,25 @@ bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
     // start of the next line and going back one char. We don't
     // use BOUNDARY_LINE_END here because it is equivalent to LINE_START when
     // the line doesn't end with a line feed character.
-    TextLeafPoint lineStartPoint = currPoint.FindBoundary(
+    TextLeafPoint nextLineStartPoint = currPoint.FindBoundary(
         nsIAccessibleText::BOUNDARY_LINE_START, eDirNext);
-    TextLeafPoint lastPointInLine = lineStartPoint.FindBoundary(
+    TextLeafPoint lastPointInLine = nextLineStartPoint.FindBoundary(
         nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-    // If currPoint is the end of the document, lineStartPoint will be equal
+    // If currPoint is the end of the document, nextLineStartPoint will be equal
     // to currPoint and we would be in an endless loop.
-    if (lineStartPoint == currPoint || mEnd <= lastPointInLine) {
+    if (nextLineStartPoint == currPoint || mEnd <= lastPointInLine) {
       lastPointInLine = mEnd;
       locatedFinalLine = true;
     }
 
-    LayoutDeviceIntRect currLine = currPoint.CharBounds();
-    currLine.UnionRect(currLine, lastPointInLine.CharBounds());
-    aCallback(currLine);
+    LayoutDeviceIntRect currLineRect = currPoint.CharBounds();
+    currLineRect.UnionRect(currLineRect, lastPointInLine.CharBounds());
+    // The range we pass must include the last character and range ends are
+    // exclusive, hence the use of nextLineStartPoint.
+    TextLeafRange currLine = TextLeafRange(currPoint, nextLineStartPoint);
+    aCallback(currLine, currLineRect);
 
-    currPoint = lineStartPoint;
+    currPoint = nextLineStartPoint;
   }
   return true;
 }
