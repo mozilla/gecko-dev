@@ -28,6 +28,7 @@ export default class MozInputSearch extends MozInputText {
     return html`
       <input
         id="input"
+        class="with-icon"
         type="search"
         name=${this.name}
         value=${this.value}
