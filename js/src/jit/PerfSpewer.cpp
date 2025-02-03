@@ -74,12 +74,11 @@ pid_t gettid_pthread() {
 #include "vm/MutexIDs.h"
 
 #ifdef XP_WIN
-#  include <windef.h>
+#  include "util/WindowsWrapper.h"
 #  include <codecvt>
 #  include <evntprov.h>
 #  include <locale>
 #  include <string>
-#  include <windows.h>
 
 const GUID PROVIDER_JSCRIPT9 = {
     0x57277741,

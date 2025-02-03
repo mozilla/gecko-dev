@@ -19,7 +19,7 @@
 #  include <process.h>
 #  include <string.h>
 #  include <wchar.h>
-#  include <windows.h>
+#  include "util/WindowsWrapper.h"
 #elif __wasi__
 #  include <dirent.h>
 #  include <sys/types.h>
