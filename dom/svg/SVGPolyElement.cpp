@@ -41,7 +41,7 @@ bool SVGPolyElement::HasValidDimensions() const {
 // SVGGeometryElement methods
 
 bool SVGPolyElement::AttributeDefinesGeometry(const nsAtom* aName) {
-  return aName == nsGkAtoms::points;
+  return aName == nsGkAtoms::points || aName == nsGkAtoms::pathLength;
 }
 
 void SVGPolyElement::GetMarkPoints(nsTArray<SVGMark>* aMarks) {
