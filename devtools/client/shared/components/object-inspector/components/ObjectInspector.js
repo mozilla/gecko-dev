@@ -115,7 +115,7 @@ class ObjectInspector extends Component {
       this.focusedItem = nextProps.focusedItem;
       this.activeItem = nextProps.activeItem;
       if (this.props.rootsChanged) {
-        this.props.rootsChanged(this.roots, oldRoots, this.props.autoReleaseObjectActors);
+        this.props.rootsChanged(this.roots, oldRoots);
       }
     }
   }

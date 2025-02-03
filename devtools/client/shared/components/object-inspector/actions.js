@@ -60,7 +60,6 @@ function nodeLoadProperties(node, actor) {
       dispatch(nodePropertiesLoaded(node, actor, properties));
     } catch (e) {
       console.error(e);
-      dispatch(nodeCollapse(node));
     }
   };
 }
@@ -157,11 +156,9 @@ function closeObjectInspector(roots) {
  * It takes a props argument which reflects what is passed by the upper-level
  * consumer.
  */
-function rootsChanged(roots, oldRoots, autoReleaseObjectActors) {
+function rootsChanged(roots, oldRoots) {
   return ({ dispatch, client }) => {
-    if (autoReleaseObjectActors) {
-      releaseActors(client, oldRoots, roots);
-    }
+    releaseActors(client, oldRoots, roots);
     dispatch({
       type: "ROOTS_CHANGED",
       data: roots,
