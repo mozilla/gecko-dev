@@ -35,6 +35,14 @@ object CustomAttributeProvider : JexlAttributeProvider {
      * These are only evaluated right at the beginning of start up, so any first run experiments needing
      * targeting attributes which aren't set until after startup e.g. are_notifications_enabled
      * will unlikely to targeted as expected.
+     *
+     * IMPORTANT: Attributes added here is specifically for advanced targeting purposes within an
+     * experiment.  Any modifications made here must also be reflected on the experimenter side
+     * to ensure that the experimenter dashboard accurately displays the updated advanced targeting
+     * options.
+     *
+     * WARNING: Attributes not initialized during the first startup cannot be used to target
+     * first-run experiments. These target attributes will only become active after the second startup.
      */
     fun getCustomTargetingAttributes(context: Context): JSONObject {
         val settings = context.settings()
@@ -62,6 +70,8 @@ object CustomAttributeProvider : JexlAttributeProvider {
      * was called.
      *
      * This is used to drive display triggers of messages.
+     *
+     * IMPORTANT: Attributes added here are used as triggers in an experiment.
      */
     override fun getCustomAttributes(context: Context): JSONObject {
         val now = Calendar.getInstance()
