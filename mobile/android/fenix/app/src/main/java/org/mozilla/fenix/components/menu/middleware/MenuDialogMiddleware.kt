@@ -38,6 +38,7 @@ import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
+import org.mozilla.fenix.utils.LastSavedFolderCache
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -69,6 +70,7 @@ import org.mozilla.fenix.utils.Settings
  * @param onDismiss Callback invoked to dismiss the menu dialog.
  * @param onSendPendingIntentWithUrl Callback invoked to send the pending intent of a custom menu item
  * with the url of the custom tab.
+ * @param lastSavedFolderCache used to fetch the guid of the folder to save a bookmark in.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 @Suppress("LongParameterList", "CyclomaticComplexMethod")
@@ -89,6 +91,7 @@ class MenuDialogMiddleware(
     private val onDeleteAndQuit: () -> Unit,
     private val onDismiss: suspend () -> Unit,
     private val onSendPendingIntentWithUrl: (intent: PendingIntent, url: String?) -> Unit,
+    private val lastSavedFolderCache: LastSavedFolderCache,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
 
@@ -212,11 +215,7 @@ class MenuDialogMiddleware(
         val selectedTab = browserMenuState.selectedTab
         val url = selectedTab.getUrl() ?: return@launch
 
-        val parentGuid = bookmarksStorage
-            .getRecentBookmarks(1)
-            .firstOrNull()
-            ?.parentGuid
-            ?: BookmarkRoot.Mobile.id
+        val parentGuid = lastSavedFolderCache.getGuid() ?: BookmarkRoot.Mobile.id
 
         val parentNode = bookmarksStorage.getBookmark(parentGuid)
 

@@ -2268,4 +2268,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = { FxNimbus.features.bookmarks.value().newComposeUi },
         featureFlag = true,
     )
+
+    var lastSavedInFolderGuid by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_last_folder_saved_in),
+        default = "",
+    )
 }

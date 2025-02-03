@@ -80,6 +80,7 @@ import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
+import org.mozilla.fenix.utils.lastSavedFolderCache
 
 /**
  * The screen that displays the user's bookmark list in their Library.
@@ -182,6 +183,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                             ),
                                         )
                                     },
+                                    lastSavedFolderCache = context.settings().lastSavedFolderCache,
                                 ),
                             ),
                             lifecycleHolder = lifecycleHolder,

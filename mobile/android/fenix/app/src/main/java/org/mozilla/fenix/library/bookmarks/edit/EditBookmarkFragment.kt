@@ -75,6 +75,7 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.library.bookmarks.ui.LifecycleHolder
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.lastSavedFolderCache
 
 /**
  * Menu to edit the name, URL, and location of a bookmark item.
@@ -163,6 +164,7 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                             ),
                                         )
                                     },
+                                    lastSavedFolderCache = context.settings().lastSavedFolderCache,
                                 ),
                             ),
                             lifecycleHolder = lifecycleHolder,

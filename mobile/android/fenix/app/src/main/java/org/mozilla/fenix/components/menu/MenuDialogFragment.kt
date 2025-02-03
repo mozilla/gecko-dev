@@ -74,6 +74,7 @@ import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
@@ -87,6 +88,7 @@ import org.mozilla.fenix.utils.enterMenu
 import org.mozilla.fenix.utils.enterSubmenu
 import org.mozilla.fenix.utils.exitMenu
 import org.mozilla.fenix.utils.exitSubmenu
+import org.mozilla.fenix.utils.lastSavedFolderCache
 import org.mozilla.fenix.utils.slideDown
 
 // EXPANDED_MIN_RATIO is used for BottomSheetBehavior.halfExpandedRatio().
@@ -238,6 +240,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 },
                                 onSendPendingIntentWithUrl = ::sendPendingIntentWithUrl,
                                 scope = coroutineScope,
+                                lastSavedFolderCache = context.settings().lastSavedFolderCache,
                             ),
                             MenuNavigationMiddleware(
                                 navController = findNavController(),

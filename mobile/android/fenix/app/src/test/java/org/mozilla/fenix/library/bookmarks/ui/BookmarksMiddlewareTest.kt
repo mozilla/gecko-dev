@@ -39,6 +39,7 @@ import org.mozilla.fenix.GleanMetrics.CustomizeHome.bookmarks
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
+import org.mozilla.fenix.utils.LastSavedFolderCache
 
 @RunWith(AndroidJUnit4::class)
 class BookmarksMiddlewareTest {
@@ -59,6 +60,7 @@ class BookmarksMiddlewareTest {
     private lateinit var showUrlCopiedSnackbar: () -> Unit
     private lateinit var getBrowsingMode: () -> BrowsingMode
     private lateinit var openTab: (String, Boolean) -> Unit
+    private lateinit var lastSavedFolderCache: LastSavedFolderCache
     private val resolveFolderTitle = { node: BookmarkNode ->
         friendlyRootTitle(
             mock(),
@@ -89,6 +91,7 @@ class BookmarksMiddlewareTest {
         showUrlCopiedSnackbar = { }
         getBrowsingMode = { BrowsingMode.Normal }
         openTab = { _, _ -> }
+        lastSavedFolderCache = mock()
     }
 
     @Test
@@ -514,6 +517,7 @@ class BookmarksMiddlewareTest {
                 url = "item url 0",
             ),
         )
+        verify(lastSavedFolderCache).setGuid(BookmarkRoot.Mobile.id)
         verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
         verify(navController).popBackStack()
         assertNull(store.state.bookmarksEditBookmarkState)
@@ -1353,6 +1357,7 @@ class BookmarksMiddlewareTest {
         getBrowsingMode = getBrowsingMode,
         openTab = openTab,
         ioDispatcher = coroutineRule.testDispatcher,
+        lastSavedFolderCache = lastSavedFolderCache,
     )
 
     private fun BookmarksMiddleware.makeStore(

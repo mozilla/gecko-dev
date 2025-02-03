@@ -22,6 +22,7 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.utils.LastSavedFolderCache
 
 private const val WARN_OPEN_ALL_SIZE = 15
 
@@ -42,6 +43,7 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param showUrlCopiedSnackbar Invoked when a bookmark url is copied.
  * @param getBrowsingMode Invoked when retrieving the app's current [BrowsingMode].
  * @param openTab Invoked when opening a tab when a bookmark is clicked.
+ * @param lastSavedFolderCache used to cache the last folder you edited a bookmark in.
  * @param ioDispatcher Coroutine dispatcher for IO operations.
  */
 @Suppress("LongParameterList")
@@ -60,6 +62,7 @@ internal class BookmarksMiddleware(
     private val showUrlCopiedSnackbar: () -> Unit,
     private val getBrowsingMode: () -> BrowsingMode,
     private val openTab: (url: String, openInNewTab: Boolean) -> Unit,
+    private val lastSavedFolderCache: LastSavedFolderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : Middleware<BookmarksState, BookmarksAction> {
 
@@ -207,6 +210,7 @@ internal class BookmarksMiddleware(
                                         guid = preReductionState.bookmarksEditBookmarkState.bookmark.guid,
                                         info = it,
                                     )
+                                    lastSavedFolderCache.setGuid(it.parentGuid)
                                 }
                                 context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                             }

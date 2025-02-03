@@ -43,6 +43,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
@@ -57,6 +58,7 @@ import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.utils.LastSavedFolderCache
 import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
@@ -82,6 +84,7 @@ class MenuDialogMiddlewareTest {
     private lateinit var tabsUseCases: TabsUseCases
     private lateinit var migratePrivateTabUseCase: TabsUseCases.MigratePrivateTabUseCase
     private lateinit var settings: Settings
+    private lateinit var lastSavedFolderCache: LastSavedFolderCache
 
     companion object {
         const val TOP_SITES_MAX_COUNT = 16
@@ -97,6 +100,7 @@ class MenuDialogMiddlewareTest {
         requestDesktopSiteUseCase = mock()
         tabsUseCases = mock()
         migratePrivateTabUseCase = mock()
+        lastSavedFolderCache = mock()
 
         settings = Settings(testContext)
 
@@ -264,7 +268,7 @@ class MenuDialogMiddlewareTest {
         }
 
     @Test
-    fun `WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added`() = runTestOnMain {
+    fun `GIVEN last save folder cache is empty WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added with Mobile root as the parent`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -285,10 +289,13 @@ class MenuDialogMiddlewareTest {
             onDismiss = { dismissWasCalled = true },
         )
 
+        `when`(lastSavedFolderCache.getGuid()).thenReturn(null)
+
         store.dispatch(MenuAction.AddBookmark)
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = BookmarkRoot.Mobile.id)
+
         captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
             assertNotNull(action.guidToEdit)
         }
@@ -296,25 +303,11 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN the last added bookmark belongs to a folder WHEN bookmark is added THEN bookmark is added to folder and parent title is dispatched`() = runTestOnMain {
+    fun `GIVEN last save folder cache has a value WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added with the caches value as its parent`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
-        val parentTitle = "title"
+        var dismissWasCalled = false
 
-        // Add parent
-        val parentGuid = bookmarksStorage.addItem(
-            parentGuid = "root",
-            url = "url",
-            title = parentTitle,
-            position = 0U,
-        )
-        // Add pre-existing child
-        bookmarksStorage.addItem(
-            parentGuid = parentGuid,
-            url = "url",
-            title = parentTitle,
-            position = 1U,
-        )
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
                 url = url,
@@ -328,17 +321,20 @@ class MenuDialogMiddlewareTest {
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
-            onDismiss = { },
+            onDismiss = { dismissWasCalled = true },
         )
+
+        `when`(lastSavedFolderCache.getGuid()).thenReturn("cached-value")
 
         store.dispatch(MenuAction.AddBookmark)
         store.waitUntilIdle()
 
-        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = parentGuid)
+        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = "cached-value")
+
         captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
             assertNotNull(action.guidToEdit)
-            assertEquals(parentTitle, action.parentNode?.title)
         }
+        assertTrue(dismissWasCalled)
     }
 
     @Test
@@ -1173,6 +1169,7 @@ class MenuDialogMiddlewareTest {
                 onDismiss = onDismiss,
                 onSendPendingIntentWithUrl = onSendPendingIntentWithUrl,
                 scope = scope,
+                lastSavedFolderCache = lastSavedFolderCache,
             ),
         ),
     )
