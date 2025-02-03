@@ -342,11 +342,9 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
     JSGCParamKey key;
   };
 
-#define PREF(suffix_, key_)                                          \
-  {                                                                  \
-    nsLiteralCString(suffix_),                                       \
-        PREF_JS_OPTIONS_PREFIX PREF_MEM_OPTIONS_PREFIX suffix_, key_ \
-  }
+#define PREF(suffix_, key_)   \
+  {nsLiteralCString(suffix_), \
+   PREF_JS_OPTIONS_PREFIX PREF_MEM_OPTIONS_PREFIX suffix_, key_}
   constexpr WorkerGCPref kWorkerPrefs[] = {
       PREF("max", JSGC_MAX_BYTES),
       PREF("gc_high_frequency_time_limit_ms", JSGC_HIGH_FREQUENCY_TIME_LIMIT),
