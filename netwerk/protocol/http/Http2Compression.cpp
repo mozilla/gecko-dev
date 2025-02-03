@@ -17,6 +17,7 @@
 #include "Http2HuffmanIncoming.h"
 #include "Http2HuffmanOutgoing.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsIMemoryReporter.h"
 #include "nsHttpHandler.h"
@@ -245,12 +246,6 @@ Http2BaseCompressor::Http2BaseCompressor() {
 }
 
 Http2BaseCompressor::~Http2BaseCompressor() {
-  if (mPeakSize) {
-    Telemetry::Accumulate(mPeakSizeID, mPeakSize);
-  }
-  if (mPeakCount) {
-    Telemetry::Accumulate(mPeakCountID, mPeakCount);
-  }
   UnregisterStrongMemoryReporter(mDynamicReporter);
   {
     MutexAutoLock lock(mDynamicReporter->mMutex);
@@ -293,20 +288,16 @@ void Http2BaseCompressor::MakeRoom(uint32_t amount, const char* direction) {
   }
 
   if (!strcmp(direction, "decompressor")) {
-    Telemetry::Accumulate(Telemetry::HPACK_ELEMENTS_EVICTED_DECOMPRESSOR,
-                          countEvicted);
-    Telemetry::Accumulate(Telemetry::HPACK_BYTES_EVICTED_DECOMPRESSOR,
-                          bytesEvicted);
-    Telemetry::Accumulate(
-        Telemetry::HPACK_BYTES_EVICTED_RATIO_DECOMPRESSOR,
+    glean::hpack::elements_evicted_decompressor.AccumulateSingleSample(
+        countEvicted);
+    glean::hpack::bytes_evicted_decompressor.Accumulate(bytesEvicted);
+    glean::hpack::bytes_evicted_ratio_decompressor.AccumulateSingleSample(
         (uint32_t)((100.0 * (double)bytesEvicted) / (double)amount));
   } else {
-    Telemetry::Accumulate(Telemetry::HPACK_ELEMENTS_EVICTED_COMPRESSOR,
-                          countEvicted);
-    Telemetry::Accumulate(Telemetry::HPACK_BYTES_EVICTED_COMPRESSOR,
-                          bytesEvicted);
-    Telemetry::Accumulate(
-        Telemetry::HPACK_BYTES_EVICTED_RATIO_COMPRESSOR,
+    glean::hpack::elements_evicted_compressor.AccumulateSingleSample(
+        countEvicted);
+    glean::hpack::bytes_evicted_compressor.Accumulate(bytesEvicted);
+    glean::hpack::bytes_evicted_ratio_compressor.AccumulateSingleSample(
         (uint32_t)((100.0 * (double)bytesEvicted) / (double)amount));
   }
 }
@@ -362,6 +353,15 @@ nsresult Http2BaseCompressor::SetInitialMaxBufferSize(uint32_t maxBufferSize) {
 
 void Http2BaseCompressor::SetDumpTables(bool dumpTables) {
   mDumpTables = dumpTables;
+}
+
+Http2Decompressor::~Http2Decompressor() {
+  if (mPeakSize) {
+    glean::hpack::peak_size_decompressor.Accumulate(mPeakSize);
+  }
+  if (mPeakCount) {
+    glean::hpack::peak_count_decompressor.AccumulateSingleSample(mPeakCount);
+  }
 }
 
 nsresult Http2Decompressor::DecodeHeaderBlock(const uint8_t* data,
@@ -1052,6 +1052,15 @@ nsresult Http2Decompressor::DoContextUpdate() {
 }
 
 /////////////////////////////////////////////////////////////////
+
+Http2Compressor::~Http2Compressor() {
+  if (mPeakSize) {
+    glean::hpack::peak_size_compressor.Accumulate(mPeakSize);
+  }
+  if (mPeakCount) {
+    glean::hpack::peak_count_compressor.AccumulateSingleSample(mPeakCount);
+  }
+}
 
 nsresult Http2Compressor::EncodeHeaderBlock(
     const nsCString& nvInput, const nsACString& method, const nsACString& path,

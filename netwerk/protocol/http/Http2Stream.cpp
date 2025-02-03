@@ -18,6 +18,7 @@
 #include "nsIRequestContext.h"
 #include "nsHttpTransaction.h"
 #include "nsSocketTransportService2.h"
+#include "mozilla/Telemetry.h"
 
 namespace mozilla::net {
 

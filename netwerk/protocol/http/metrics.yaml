@@ -1183,3 +1183,202 @@ orb:
       - afarre@mozilla.com
     expires: never
     telemetry_mirror: h#ORB_BLOCK_INITIATOR
+
+hpack:
+  elements_evicted_decompressor:
+    type: custom_distribution
+    description: >
+      HPACK: Number of items removed from dynamic table to make room for 1 new
+      item
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_ELEMENTS_EVICTED_DECOMPRESSOR.
+    range_min: 1
+    range_max: 256
+    bucket_count: 50
+    histogram_type: exponential
+    unit: item
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_ELEMENTS_EVICTED_DECOMPRESSOR
+
+  bytes_evicted_decompressor:
+    type: memory_distribution
+    description: >
+      HPACK: Number of bytes removed from dynamic table to make room for 1 new
+      item
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_BYTES_EVICTED_DECOMPRESSOR.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_BYTES_EVICTED_DECOMPRESSOR
+
+  bytes_evicted_ratio_decompressor:
+    type: custom_distribution
+    description: >
+      HPACK: Ratio of bytes evicted to bytes added (* 100)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_BYTES_EVICTED_RATIO_DECOMPRESSOR.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 50
+    histogram_type: exponential
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_BYTES_EVICTED_RATIO_DECOMPRESSOR
+
+  peak_count_decompressor:
+    type: custom_distribution
+    description: >
+      HPACK: peak number of items in the dynamic table
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_PEAK_COUNT_DECOMPRESSOR.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 50
+    histogram_type: exponential
+    unit: item
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_PEAK_COUNT_DECOMPRESSOR
+
+  peak_size_decompressor:
+    type: memory_distribution
+    description: >
+      HPACK: peak size in bytes of the table
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_PEAK_SIZE_DECOMPRESSOR.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_PEAK_SIZE_DECOMPRESSOR
+
+  elements_evicted_compressor:
+    type: custom_distribution
+    description: >
+      HPACK: Number of items removed from dynamic table to make room for 1 new
+      item
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_ELEMENTS_EVICTED_COMPRESSOR.
+    range_min: 1
+    range_max: 256
+    bucket_count: 50
+    histogram_type: exponential
+    unit: item
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_ELEMENTS_EVICTED_COMPRESSOR
+
+  bytes_evicted_compressor:
+    type: memory_distribution
+    description: >
+      HPACK: Number of bytes removed from dynamic table to make room for 1 new
+      item
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_BYTES_EVICTED_COMPRESSOR.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_BYTES_EVICTED_COMPRESSOR
+
+  bytes_evicted_ratio_compressor:
+    type: custom_distribution
+    description: >
+      HPACK: Ratio of bytes evicted to bytes added (* 100)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_BYTES_EVICTED_RATIO_COMPRESSOR.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 50
+    histogram_type: exponential
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_BYTES_EVICTED_RATIO_COMPRESSOR
+
+  peak_count_compressor:
+    type: custom_distribution
+    description: >
+      HPACK: peak number of items in the dynamic table
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_PEAK_COUNT_COMPRESSOR.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 50
+    histogram_type: exponential
+    unit: item
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_PEAK_COUNT_COMPRESSOR
+
+  peak_size_compressor:
+    type: memory_distribution
+    description: >
+      HPACK: peak size in bytes of the table
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HPACK_PEAK_SIZE_COMPRESSOR.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296280
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HPACK_PEAK_SIZE_COMPRESSOR

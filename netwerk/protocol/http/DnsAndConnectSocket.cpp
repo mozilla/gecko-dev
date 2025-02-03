@@ -20,6 +20,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/Telemetry.h"
 #include "nsHttpHandler.h"
 #include "ConnectionEntry.h"
 #include "HttpConnectionUDP.h"

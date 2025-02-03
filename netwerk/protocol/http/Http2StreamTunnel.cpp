@@ -18,6 +18,7 @@
 #include "nsHttpConnectionInfo.h"
 #include "nsQueryObject.h"
 #include "nsProxyRelease.h"
+#include "mozilla/Telemetry.h"
 
 namespace mozilla::net {
 
