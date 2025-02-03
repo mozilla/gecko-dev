@@ -52,9 +52,6 @@ check_updates () {
           ;;
   esac
 
-  if [ -f update/update.status ]; then rm update/update.status; fi
-  if [ -f update/update.log ]; then rm update/update.log; fi
-
   # This check is disabled because we rely on glob expansion here
   # shellcheck disable=SC2086
   if [ -d source/$platform_dirname ]; then
@@ -77,21 +74,19 @@ check_updates () {
     # shellcheck disable=SC2086
     cd_dir=$(ls -d ${PWD}/source/${platform_dirname})
     cd "${cd_dir}" || (echo "TEST-UNEXPECTED-FAIL: couldn't cd to ${cd_dir}" && return 1)
+    echo "Calling updater: $updater $update_abspath $cwd $cwd 0"
     set -x
     "$updater" "$update_abspath" "$cwd" "$cwd" 0
+    updater_ret=$?
     set +x
+    if [ "$updater_ret" -gt 0 ]
+    then
+      echo "TEST-UNEXPECTED-FAIL: update status was not successful: $updater_ret"
+      return $updater_ret
+    fi
     cd ../..
   else
     echo "TEST-UNEXPECTED-FAIL: no dir in source/$platform_dirname"
-    return 1
-  fi
-
-  cat update/update.log
-  update_status=$(cat update/update.status)
-
-  if [ "$update_status" != "succeeded" ]
-  then
-    echo "TEST-UNEXPECTED-FAIL: update status was not successful: $update_status"
     return 1
   fi
 
