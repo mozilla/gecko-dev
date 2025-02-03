@@ -28,6 +28,10 @@
     add_task(async function testMozInputSearchEvents() {
       await testHelpers.testTextBasedInputEvents("moz-input-search");
     });
+
+    add_task(async function testMozInputSearchAriaLabel() {
+      await testHelpers.verifyAriaLabel("moz-input-search");
+    });
   </script>
 </head>
 <body>
