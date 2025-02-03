@@ -11,7 +11,6 @@
 #include "WMFUtils.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Telemetry.h"
 #include "nsTArray.h"
 #include "BufferReader.h"
 #include "mozilla/ScopeExit.h"

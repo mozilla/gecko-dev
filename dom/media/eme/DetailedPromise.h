@@ -8,7 +8,6 @@
 #define __DetailedPromise_h__
 
 #include "mozilla/dom/Promise.h"
-#include "mozilla/Telemetry.h"
 #include "EMEUtils.h"
 
 namespace mozilla::dom {
@@ -27,7 +26,6 @@ class DetailedPromise : public Promise {
   template <typename T>
   void MaybeResolve(T&& aArg) {
     EME_LOG("%s promise resolved", mName.get());
-    MaybeReportTelemetry(eStatus::kSucceeded);
     Promise::MaybeResolve(std::forward<T>(aArg));
   }
 
@@ -83,20 +81,13 @@ class DetailedPromise : public Promise {
  private:
   explicit DetailedPromise(nsIGlobalObject* aGlobal, const nsACString& aName);
 
-  explicit DetailedPromise(nsIGlobalObject* aGlobal, const nsACString& aName,
-                           Telemetry::HistogramID aSuccessLatencyProbe,
-                           Telemetry::HistogramID aFailureLatencyProbe);
   virtual ~DetailedPromise();
 
   enum eStatus { kSucceeded, kFailed };
-  void MaybeReportTelemetry(eStatus aStatus);
   void LogRejectionReason(uint32_t aErrorCode, const nsACString& aReason);
 
   nsCString mName;
-  bool mResponded;
   TimeStamp mStartTime;
-  Optional<Telemetry::HistogramID> mSuccessLatencyProbe;
-  Optional<Telemetry::HistogramID> mFailureLatencyProbe;
 };
 
 }  // namespace mozilla::dom

@@ -10,7 +10,6 @@
 #include "GMPCrashHelper.h"
 #include "mozilla/EMEUtils.h"
 #include "mozilla/JSONStringWriteFuncs.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/HTMLMediaElement.h"

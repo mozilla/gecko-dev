@@ -10,34 +10,12 @@
 #  include "GLImages.h"  // for SurfaceTextureImage
 #endif
 #include "MediaDecoderOwner.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/AbstractThread.h"
 
 using namespace mozilla::layers;
 
 namespace mozilla {
 #define NS_DispatchToMainThread(...) CompileError_UseAbstractMainThreadInstead
-
-namespace {
-template <Telemetry::HistogramID ID>
-class AutoTimer {
-  // Set a threshold to reduce performance overhead
-  // for we're measuring hot spots.
-  static const uint32_t sThresholdMS = 1000;
-
- public:
-  ~AutoTimer() {
-    auto end = TimeStamp::Now();
-    auto diff = uint32_t((end - mStart).ToMilliseconds());
-    if (diff > sThresholdMS) {
-      Telemetry::Accumulate(ID, diff);
-    }
-  }
-
- private:
-  const TimeStamp mStart = TimeStamp::Now();
-};
-}  // namespace
 
 VideoFrameContainer::VideoFrameContainer(
     MediaDecoderOwner* aOwner, already_AddRefed<ImageContainer> aContainer)

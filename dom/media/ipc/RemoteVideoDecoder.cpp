@@ -22,7 +22,6 @@
 #include "RemoteDecoderManagerParent.h"
 #include "RemoteImageHolder.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/layers/ImageClient.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/VideoBridgeChild.h"

@@ -37,7 +37,6 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
 #include "nsIMemoryReporter.h"
 #include "nsPrintfCString.h"
 #include "nsTArray.h"

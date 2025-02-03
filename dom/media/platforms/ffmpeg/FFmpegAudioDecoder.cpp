@@ -17,7 +17,6 @@
 #  include "libavutil/channel_layout.h"
 #endif
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 

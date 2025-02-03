@@ -22,7 +22,6 @@
 #include "VPXDecoder.h"
 #include "mozilla/Span.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 #include "nsPrintfCString.h"
 #include "SampleIterator.h"
 

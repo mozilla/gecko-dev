@@ -16,7 +16,6 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/Unused.h"
 #include <algorithm>
-#include "mozilla/Telemetry.h"
 #include "CubebUtils.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsPrintfCString.h"

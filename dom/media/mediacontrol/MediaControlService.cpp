@@ -12,7 +12,6 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 

@@ -9,7 +9,6 @@
 #include "mozilla/dom/MediaSession.h"
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/WindowContext.h"
-#include "mozilla/Telemetry.h"
 #include "nsFocusManager.h"
 
 // avoid redefined macro in unified build

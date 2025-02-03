@@ -19,7 +19,6 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "nsGkAtoms.h"

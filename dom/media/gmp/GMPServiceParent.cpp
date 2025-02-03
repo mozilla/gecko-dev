@@ -30,7 +30,6 @@
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #if defined(XP_WIN)
 #  include "mozilla/UntrustedModulesData.h"

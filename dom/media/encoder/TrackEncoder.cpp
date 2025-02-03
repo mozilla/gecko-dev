@@ -14,7 +14,6 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/RollingMean.h"
 #include "VideoUtils.h"
-#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 

@@ -16,7 +16,6 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/SharedThreadPool.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "nsDebug.h"
 #include "nsAutoRef.h"

@@ -21,7 +21,6 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsINetworkLinkService.h"
 #include "nsIObserverService.h"

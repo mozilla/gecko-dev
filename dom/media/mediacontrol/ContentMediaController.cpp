@@ -7,7 +7,6 @@
 #include "MediaControlUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ToString.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"

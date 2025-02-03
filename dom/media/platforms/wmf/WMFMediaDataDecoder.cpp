@@ -12,7 +12,6 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
 #include "nsTArray.h"
 
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))

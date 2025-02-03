@@ -7,7 +7,6 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "VideoUtils.h"
 #include "MoofParser.h"
