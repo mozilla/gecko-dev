@@ -12,7 +12,6 @@
 #include "mozilla/EMEUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/glean/DomMediaEmeMetrics.h"
 #include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
@@ -428,26 +427,26 @@ void TelemetryProbesReporter::ReportResultForVideo() {
   MOZ_ASSERT(totalVideoPlayTimeS >= invisiblePlayTimeS);
 
   LOG("VIDEO_PLAY_TIME_S = %f", totalVideoPlayTimeS);
-  Telemetry::Accumulate(Telemetry::VIDEO_PLAY_TIME_MS,
-                        SECONDS_TO_MS(totalVideoPlayTimeS));
+  glean::media::video_play_time.AccumulateRawDuration(
+      TimeDuration::FromSeconds(totalVideoPlayTimeS));
 
   LOG("VIDEO_HIDDEN_PLAY_TIME_S = %f", invisiblePlayTimeS);
-  Telemetry::Accumulate(Telemetry::VIDEO_HIDDEN_PLAY_TIME_MS,
-                        SECONDS_TO_MS(invisiblePlayTimeS));
+  glean::media::video_hidden_play_time.AccumulateRawDuration(
+      TimeDuration::FromSeconds(invisiblePlayTimeS));
 
   // We only want to accumulate non-zero samples for HDR playback.
   // This is different from the other timings tracked here, but
   // we don't need 0-length play times to do our calculations.
   if (totalVideoHDRPlayTimeS > 0.0) {
     LOG("VIDEO_HDR_PLAY_TIME_S = %f", totalVideoHDRPlayTimeS);
-    Telemetry::Accumulate(Telemetry::VIDEO_HDR_PLAY_TIME_MS,
-                          SECONDS_TO_MS(totalVideoHDRPlayTimeS));
+    glean::media::video_hdr_play_time.AccumulateRawDuration(
+        TimeDuration::FromSeconds(totalVideoHDRPlayTimeS));
   }
 
   if (mOwner->IsEncrypted()) {
     LOG("VIDEO_ENCRYPTED_PLAY_TIME_S = %f", totalVideoPlayTimeS);
-    Telemetry::Accumulate(Telemetry::VIDEO_ENCRYPTED_PLAY_TIME_MS,
-                          SECONDS_TO_MS(totalVideoPlayTimeS));
+    glean::media::video_encrypted_play_time.AccumulateRawDuration(
+        TimeDuration::FromSeconds(totalVideoPlayTimeS));
   }
 
   // TODO: deprecate the old probes.
@@ -456,13 +455,13 @@ void TelemetryProbesReporter::ReportResultForVideo() {
   if (keySystem) {
     if (IsClearkeyKeySystem(*keySystem)) {
       LOG("VIDEO_CLEARKEY_PLAY_TIME_S = %f", totalVideoPlayTimeS);
-      Telemetry::Accumulate(Telemetry::VIDEO_CLEARKEY_PLAY_TIME_MS,
-                            SECONDS_TO_MS(totalVideoPlayTimeS));
+      glean::media::video_clearkey_play_time.AccumulateRawDuration(
+          TimeDuration::FromSeconds(totalVideoPlayTimeS));
 
     } else if (IsWidevineKeySystem(*keySystem)) {
       LOG("VIDEO_WIDEVINE_PLAY_TIME_S = %f", totalVideoPlayTimeS);
-      Telemetry::Accumulate(Telemetry::VIDEO_WIDEVINE_PLAY_TIME_MS,
-                            SECONDS_TO_MS(totalVideoPlayTimeS));
+      glean::media::video_widevine_play_time.AccumulateRawDuration(
+          TimeDuration::FromSeconds(totalVideoPlayTimeS));
     }
   }
 
@@ -474,19 +473,19 @@ void TelemetryProbesReporter::ReportResultForVideo() {
   auto visiblePlayTimeS = totalVideoPlayTimeS - invisiblePlayTimeS;
   LOG("VIDEO_VISIBLE_PLAY_TIME = %f, keys: '%s' and 'All'", visiblePlayTimeS,
       key.get());
-  Telemetry::Accumulate(Telemetry::VIDEO_VISIBLE_PLAY_TIME_MS, key,
-                        SECONDS_TO_MS(visiblePlayTimeS));
+  glean::media::video_visible_play_time.Get(key).AccumulateRawDuration(
+      TimeDuration::FromSeconds(visiblePlayTimeS));
   // Also accumulate result in an "All" key.
-  Telemetry::Accumulate(Telemetry::VIDEO_VISIBLE_PLAY_TIME_MS, "All"_ns,
-                        SECONDS_TO_MS(visiblePlayTimeS));
+  glean::media::video_visible_play_time.Get("All"_ns).AccumulateRawDuration(
+      TimeDuration::FromSeconds(visiblePlayTimeS));
 
   const uint32_t hiddenPercentage =
       lround(invisiblePlayTimeS / totalVideoPlayTimeS * 100.0);
-  Telemetry::Accumulate(Telemetry::VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE, key,
-                        hiddenPercentage);
+  glean::media::video_hidden_play_time_percentage.Get(key)
+      .AccumulateSingleSample(hiddenPercentage);
   // Also accumulate all percentages in an "All" key.
-  Telemetry::Accumulate(Telemetry::VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE, "All"_ns,
-                        hiddenPercentage);
+  glean::media::video_hidden_play_time_percentage.Get("All"_ns)
+      .AccumulateSingleSample(hiddenPercentage);
   LOG("VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE = %u, keys: '%s' and 'All'",
       hiddenPercentage, key.get());
 
@@ -609,16 +608,16 @@ void TelemetryProbesReporter::ReportResultForAudio() {
         "%u\npercentage unmuted: %u\n",
         totalAudioPlayTimeS, audiblePlayTimeS, inaudiblePlayTimeS,
         mutedPlayTimeS, audiblePercentage, unmutedPercentage);
-    Telemetry::Accumulate(Telemetry::MEDIA_PLAY_TIME_MS, key,
-                          SECONDS_TO_MS(totalAudioPlayTimeS));
-    Telemetry::Accumulate(Telemetry::MUTED_PLAY_TIME_PERCENT, avKey,
-                          100 - unmutedPercentage);
-    Telemetry::Accumulate(Telemetry::AUDIBLE_PLAY_TIME_PERCENT, avKey,
-                          audiblePercentage);
+    glean::media::media_play_time.Get(key).AccumulateRawDuration(
+        TimeDuration::FromSeconds(totalAudioPlayTimeS));
+    glean::media::muted_play_time_percent.Get(avKey).AccumulateSingleSample(
+        100 - unmutedPercentage);
+    glean::media::audible_play_time_percent.Get(avKey).AccumulateSingleSample(
+        audiblePercentage);
   } else {
     MOZ_ASSERT(mMediaContent & MediaContent::MEDIA_HAS_VIDEO);
-    Telemetry::Accumulate(Telemetry::MEDIA_PLAY_TIME_MS, key,
-                          SECONDS_TO_MS(totalVideoPlayTimeS));
+    glean::media::media_play_time.Get(key).AccumulateRawDuration(
+        TimeDuration::FromSeconds(totalVideoPlayTimeS));
   }
 }
 
@@ -637,32 +636,29 @@ void TelemetryProbesReporter::ReportResultForVideoFrameStatistics(
     // 100 and therefore can fit in a uint32_t (that Telemetry takes).
     const uint32_t percentage = 100 * droppedFrames / parsedFrames;
     LOG("DROPPED_FRAMES_IN_VIDEO_PLAYBACK = %u", percentage);
-    Telemetry::Accumulate(Telemetry::VIDEO_DROPPED_FRAMES_PROPORTION,
-                          percentage);
+    glean::media::video_dropped_frames_proportion.AccumulateSingleSample(
+        percentage);
     const uint32_t proportion = 10000 * droppedFrames / parsedFrames;
-    Telemetry::Accumulate(
-        Telemetry::VIDEO_DROPPED_FRAMES_PROPORTION_EXPONENTIAL, proportion);
+    glean::media::video_dropped_frames_proportion_exponential
+        .AccumulateSingleSample(proportion);
 
     {
       const uint64_t droppedFrames = stats->GetDroppedDecodedFrames();
       const uint32_t proportion = 10000 * droppedFrames / parsedFrames;
-      Telemetry::Accumulate(
-          Telemetry::VIDEO_DROPPED_DECODED_FRAMES_PROPORTION_EXPONENTIAL,
-          proportion);
+      glean::media::video_dropped_decoded_frames_proportion_exponential
+          .AccumulateSingleSample(proportion);
     }
     {
       const uint64_t droppedFrames = stats->GetDroppedSinkFrames();
       const uint32_t proportion = 10000 * droppedFrames / parsedFrames;
-      Telemetry::Accumulate(
-          Telemetry::VIDEO_DROPPED_SINK_FRAMES_PROPORTION_EXPONENTIAL,
-          proportion);
+      glean::media::video_dropped_sink_frames_proportion_exponential
+          .AccumulateSingleSample(proportion);
     }
     {
       const uint64_t droppedFrames = stats->GetDroppedCompositorFrames();
       const uint32_t proportion = 10000 * droppedFrames / parsedFrames;
-      Telemetry::Accumulate(
-          Telemetry::VIDEO_DROPPED_COMPOSITOR_FRAMES_PROPORTION_EXPONENTIAL,
-          proportion);
+      glean::media::video_dropped_compositor_frames_proportion_exponential
+          .AccumulateSingleSample(proportion);
     }
   }
 }

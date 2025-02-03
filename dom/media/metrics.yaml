@@ -343,3 +343,346 @@ media:
           will be null if the error is related to non-EME playback.
         type : string
     expires: never
+
+  video_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1261955
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1127646
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1567604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1261955
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1127646
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1567604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_PLAY_TIME_MS
+
+  media_play_time:
+    type: labeled_timing_distribution
+    description: >
+      Total time spent playing media in milliseconds, keyed by its content
+      (Audio and video, audio only, video only, audio and video but audio
+      inaudible, audio and video but audio muted).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEDIA_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEDIA_PLAY_TIME_MS
+
+  audible_play_time_percent:
+    type: labeled_custom_distribution
+    description: >
+      Percentage of time spent playing media with an audible audio track,
+      regardless of the volume. Keyed by audio-only or video presence.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram AUDIBLE_PLAY_TIME_PERCENT.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: AUDIBLE_PLAY_TIME_PERCENT
+
+  muted_play_time_percent:
+    type: labeled_custom_distribution
+    description: >
+      Percentage of time spent playing media that has an audio track, with the
+      audio muted. Keyed by audio-only or video presence.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram MUTED_PLAY_TIME_PERCENT.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1678373
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MUTED_PLAY_TIME_PERCENT
+
+  video_visible_play_time:
+    type: labeled_timing_distribution
+    description: >
+      Total time spent playing visible video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_VISIBLE_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1723799
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1723799
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_VISIBLE_PLAY_TIME_MS
+
+  video_hidden_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing video while element is hidden, in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_HIDDEN_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1285419
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1285419
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_HIDDEN_PLAY_TIME_MS
+
+  video_hidden_play_time_percentage:
+    type: labeled_custom_distribution
+    description: >
+      Percentage of total time spent playing video while element is hidden.
+      Keyed by audio presence and by height ranges (boundaries: 240. 480, 576,
+      720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will
+      accumulate all percentages. This is reported whenever the decoder stops.
+      (eg. pausing media, encountering an error, changing to a new resource,
+      page goes to the bf-cached or page gets discarded)
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1287987
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1287987
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE
+
+  video_hdr_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing HDR video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_HDR_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777264
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777264
+    notification_emails:
+      - media-alerts@mozilla.com
+      - bwerth@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_HDR_PLAY_TIME_MS
+
+  video_encrypted_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing encrypted video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_ENCRYPTED_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_ENCRYPTED_PLAY_TIME_MS
+
+  video_clearkey_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing Clearkey encrypted video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_CLEARKEY_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_CLEARKEY_PLAY_TIME_MS
+
+  video_widevine_play_time:
+    type: timing_distribution
+    description: >
+      Total time spent playing Widevine encrypted video in milliseconds.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_WIDEVINE_PLAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662212
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685399
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_WIDEVINE_PLAY_TIME_MS
+
+  video_dropped_frames_proportion:
+    type: custom_distribution
+    description: >
+      Percentage of frames decoded frames dropped between starting and stopping
+      a video
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram VIDEO_DROPPED_FRAMES_PROPORTION.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: percentage
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1238433
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1238433
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_DROPPED_FRAMES_PROPORTION
+
+  video_dropped_frames_proportion_exponential:
+    type: custom_distribution
+    description: >
+      Ratio of dropped frames per total decoded frames scaled by 10,000 between
+      starting and stopping a video
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_DROPPED_FRAMES_PROPORTION_EXPONENTIAL.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1238433
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1752207
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1755363
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1238433
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1570634
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1752207
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1755363
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_DROPPED_FRAMES_PROPORTION_EXPONENTIAL
+
+  video_dropped_decoded_frames_proportion_exponential:
+    type: custom_distribution
+    description: >
+      Ratio of decoder dropped frames per total decoded frames scaled by 10,000
+      between starting and stopping a video
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_DROPPED_DECODED_FRAMES_PROPORTION_EXPONENTIAL.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_DROPPED_DECODED_FRAMES_PROPORTION_EXPONENTIAL
+
+  video_dropped_sink_frames_proportion_exponential:
+    type: custom_distribution
+    description: >
+      Ratio of sink dropped frames per total decoded frames scaled by 10,000
+      between starting and stopping a video
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram VIDEO_DROPPED_SINK_FRAMES_PROPORTION_EXPONENTIAL.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_DROPPED_SINK_FRAMES_PROPORTION_EXPONENTIAL
+
+  video_dropped_compositor_frames_proportion_exponential:
+    type: custom_distribution
+    description: >
+      Ratio of compositor dropped frames per total decoded frames scaled by
+      10,000 between starting and stopping a video
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      VIDEO_DROPPED_COMPOSITOR_FRAMES_PROPORTION_EXPONENTIAL.
+    range_min: 1
+    range_max: 10000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1761994
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: VIDEO_DROPPED_COMPOSITOR_FRAMES_PROPORTION_EXPONENTIAL

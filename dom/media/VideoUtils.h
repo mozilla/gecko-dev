@@ -129,12 +129,6 @@ CheckedInt64 UsecsToFrames(int64_t aUsecs, uint32_t aRate);
 // Format TimeUnit as number of frames at given rate.
 CheckedInt64 TimeUnitToFrames(const media::TimeUnit& aTime, uint32_t aRate);
 
-// Converts milliseconds to seconds.
-#define MS_TO_SECONDS(ms) ((double)(ms) / (PR_MSEC_PER_SEC))
-
-// Converts seconds to milliseconds.
-#define SECONDS_TO_MS(s) ((int)((s) * (PR_MSEC_PER_SEC)))
-
 // Converts from seconds to microseconds. Returns failure if the resulting
 // integer is too big to fit in an int64_t.
 nsresult SecondsToUsecs(double aSeconds, int64_t& aOutUsecs);
