@@ -15,6 +15,22 @@ add_setup(async function () {
   window.gTabsPanel.init();
 });
 
+/**
+ * One-liner to create a basic tab group
+ *
+ * @param {Object} [options] options for addTabGroup
+ * @param {Window} [options.targetWin] window to create the group in
+ * @returns {MozTabbrowserTabGroup}
+ */
+async function createTestGroup(options = {}) {
+  let win = options.targetWin ? options.targetWin : window;
+  let tab = await addTabTo(win.gBrowser, `data:text/plain,tab1`, {
+    skipAnimation: true,
+  });
+  await TabStateFlusher.flush(tab.linkedBrowser);
+  return win.gBrowser.addTabGroup([tab], options);
+}
+
 function forgetSavedTabGroups() {
   const tabGroups = SessionStore.getSavedTabGroups();
   tabGroups.forEach(tabGroup => SessionStore.forgetSavedTabGroup(tabGroup.id));
@@ -144,20 +160,11 @@ async function getContextMenu(triggerNode, contextMenuId) {
  */
 add_task(async function test_tabGroupsView() {
   const savedGroupId = "test-saved-group";
-
-  let tabs = [];
-  for (let i = 1; i <= 5; i++) {
-    let tab = await addTab(`data:text/plain,tab${i}`, {
-      skipAnimation: true,
-    });
-    await TabStateFlusher.flush(tab.linkedBrowser);
-    tabs.push(tab);
-  }
-  let group1 = gBrowser.addTabGroup([tabs[0], tabs[1]], {
+  let group1 = await createTestGroup({
     id: savedGroupId,
     label: "Test Saved Group",
   });
-  let group2 = gBrowser.addTabGroup([tabs[2], tabs[3]], {
+  let group2 = await createTestGroup({
     label: "Test Open Group",
   });
 
@@ -235,179 +242,8 @@ add_task(async function test_tabGroupsView() {
 
   await closeTabsMenu();
 
-  newWindow = await BrowserTestUtils.openNewBrowserWindow();
-  newWindow.gTabsPanel.init();
-
-  allTabsMenu = await openTabsMenu(newWindow);
-  let group1MenuItem = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  let menu = await getContextMenu(
-    group1MenuItem,
-    "open-tab-group-context-menu"
-  );
-  let waitForGroup = BrowserTestUtils.waitForEvent(
-    newWindow.gBrowser.tabContainer,
-    "TabGroupCreate"
-  );
-  menu.querySelector("#open-tab-group-context-menu_moveToThisWindow").click();
-  await waitForGroup;
-
-  Assert.equal(
-    window.gBrowser.tabGroups.length,
-    1,
-    "tab group should have moved from other window"
-  );
-  Assert.equal(
-    newWindow.gBrowser.tabGroups.length,
-    1,
-    "tab group should have moved to new window"
-  );
-  Assert.equal(
-    newWindow.gBrowser.tabGroups[0].id,
-    savedGroupId,
-    "tab group in new window should be the one that was moved"
-  );
-
-  await closeTabsMenu(newWindow);
-
-  allTabsMenu = await openTabsMenu(window);
-  group1MenuItem = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
-  waitForGroup = BrowserTestUtils.waitForEvent(
-    newWindow.gBrowser.tabContainer,
-    "TabGroupRemoved"
-  );
-  menu.querySelector("#open-tab-group-context-menu_moveToNewWindow").click();
-  await waitForGroup;
-
-  await closeTabsMenu(window);
-
-  Assert.equal(
-    newWindow.gBrowser.tabGroups.length,
-    0,
-    "tab group should have moved out of the new window to some newer window"
-  );
-
-  allTabsMenu = await openTabsMenu(window);
-  group1MenuItem = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
-
-  menu.querySelector("#open-tab-group-context-menu_delete").click();
-  menu.hidePopup();
-  await TestUtils.waitForCondition(
-    () => gBrowser.getAllTabGroups().length == 1,
-    "wait for tab group to be deleted"
-  );
-
-  await closeTabsMenu(window);
-
-  Assert.equal(
-    gBrowser.getAllTabGroups().length,
-    1,
-    "the only tab group left should be the unnamed group in the original window"
-  );
-
-  let moreTabs = [];
-  for (let i = 1; i <= 2; i++) {
-    moreTabs.push(
-      await addTabTo(newWindow.gBrowser, `data:text/plain,tab${i}`, {
-        skipAnimation: true,
-      })
-    );
-  }
-  group1 = newWindow.gBrowser.addTabGroup([moreTabs[0], moreTabs[1]], {
-    id: savedGroupId,
-    label: "Test Saved Group",
-  });
-
-  group1.save();
-  await removeTabGroup(group1);
-
-  Assert.ok(!gBrowser.getTabGroupById(savedGroupId), "Group 1 removed");
-
-  allTabsMenu = await openTabsMenu(newWindow);
-  savedGroupButton = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  Assert.equal(
-    savedGroupButton.label,
-    "Test Saved Group",
-    "Saved group once again appears as saved"
-  );
-
-  menu = await getContextMenu(savedGroupButton, "saved-tab-group-context-menu");
-  waitForGroup = BrowserTestUtils.waitForEvent(newWindow, "SSWindowStateReady");
-  menu.querySelector("#saved-tab-group-context-menu_openInThisWindow").click();
-  menu.hidePopup();
-  await waitForGroup;
-  await closeTabsMenu(newWindow);
-
-  group1 = gBrowser.getTabGroupById(savedGroupId);
-  Assert.equal(group1.name, "Test Saved Group", "Saved group was reopened");
-
-  info("save the group once again");
-  group1.save();
-  await removeTabGroup(group1);
-
-  Assert.ok(!gBrowser.getTabGroupById(savedGroupId), "Group 1 removed");
-
-  // TODO Bug 1940112: "Open Group in New Window" should directly restore saved tab groups into a new window
-  // allTabsMenu = await openTabsMenu(newWindow);
-  // savedGroupButton = allTabsMenu.querySelector(
-  //   `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  // );
-  // Assert.equal(
-  //   savedGroupButton.label,
-  //   "Test Saved Group",
-  //   "Saved group once again appears as saved"
-  // );
-
-  // menu = await getContextMenu(savedGroupButton, "saved-tab-group-context-menu");
-
-  // menu
-  //   .querySelector("#saved-tab-group-context-menu_openInNewWindow")
-  //   .click();
-  // menu.hidePopup();
-  // await TestUtils.waitForCondition(
-  //   () => gBrowser.getAllTabGroups().length == 2,
-  //   "wait for saved group to be reopened in a new window"
-  // );
-
-  // await closeTabsMenu(newWindow);
-
-  // group1 = gBrowser.getTabGroupById(savedGroupId);
-  // info("save the group yet again");
-  // group1.save();
-  // await removeTabGroup(group1);
-
-  allTabsMenu = await openTabsMenu(newWindow);
-  savedGroupButton = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  Assert.ok(savedGroupButton, "saved group should be in the TOM");
-
-  menu = await getContextMenu(savedGroupButton, "saved-tab-group-context-menu");
-  menu.querySelector("#saved-tab-group-context-menu_delete").click();
-  menu.hidePopup();
-  await closeTabsMenu(newWindow);
-
-  allTabsMenu = await openTabsMenu(newWindow);
-  savedGroupButton = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
-  );
-  Assert.ok(!savedGroupButton, "saved group should have been forgotten");
-  await closeTabsMenu(newWindow);
-
-  await BrowserTestUtils.closeWindow(newWindow, { animate: false });
-
-  for (let tab of tabs) {
-    BrowserTestUtils.removeTab(tab);
-  }
+  gBrowser.removeTabGroup(group1);
+  gBrowser.removeTabGroup(group2);
   forgetSavedTabGroups();
 });
 
@@ -417,16 +253,9 @@ add_task(async function test_tabGroupsView() {
  */
 add_task(async function test_groupsViewShowMore() {
   const savedGroupId = "test-saved-group";
-
-  let tabs = [];
   let groups = [];
   for (let i = 1; i <= 7; i++) {
-    let tab = await addTab(`data:text/plain,tab${i}`, {
-      skipAnimation: true,
-    });
-    await TabStateFlusher.flush(tab.linkedBrowser);
-    tabs.push(tab);
-    let group = gBrowser.addTabGroup([tab], {
+    let group = await createTestGroup({
       id: savedGroupId + i,
       label: "Test Saved Group " + i,
     });
@@ -490,4 +319,167 @@ add_task(async function test_groupsViewShowMore() {
   await closeTabsMenu(window);
 
   forgetSavedTabGroups();
+});
+
+/**
+ * Tests the context menu behaviors for saved groups
+ */
+add_task(async function test_tabGroupsViewContextMenu_savedGroups() {
+  let savedGroupId = "test-saved-group";
+  let group1 = await createTestGroup({
+    id: savedGroupId,
+    label: "Test Saved Group",
+  });
+  group1.save();
+  await removeTabGroup(group1);
+  Assert.ok(!gBrowser.getTabGroupById(savedGroupId), "Group 1 removed");
+
+  let newWindow = await BrowserTestUtils.openNewBrowserWindow();
+  newWindow.gTabsPanel.init();
+  let allTabsMenu = await openTabsMenu(newWindow);
+  let savedGroupButton = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+  );
+  Assert.equal(
+    savedGroupButton.label,
+    "Test Saved Group",
+    "Saved group appears as saved"
+  );
+
+  info("open saved group in current window");
+
+  let menu = await getContextMenu(
+    savedGroupButton,
+    "saved-tab-group-context-menu"
+  );
+  let waitForGroup = BrowserTestUtils.waitForEvent(
+    newWindow,
+    "SSWindowStateReady"
+  );
+  menu.querySelector("#saved-tab-group-context-menu_openInThisWindow").click();
+  menu.hidePopup();
+  await waitForGroup;
+  await closeTabsMenu(newWindow);
+
+  group1 = gBrowser.getTabGroupById(savedGroupId);
+  Assert.equal(group1.name, "Test Saved Group", "Saved group was reopened");
+
+  // re-save group
+  group1.save();
+  await removeTabGroup(group1);
+  Assert.ok(!gBrowser.getTabGroupById(savedGroupId), "Group 1 removed");
+
+  info("delete saved group");
+
+  allTabsMenu = await openTabsMenu(newWindow);
+  savedGroupButton = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+  );
+  Assert.ok(savedGroupButton, "saved group should be in the TOM");
+
+  menu = await getContextMenu(savedGroupButton, "saved-tab-group-context-menu");
+  menu.querySelector("#saved-tab-group-context-menu_delete").click();
+  menu.hidePopup();
+  await closeTabsMenu(newWindow);
+
+  allTabsMenu = await openTabsMenu(newWindow);
+  savedGroupButton = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+  );
+  Assert.ok(!savedGroupButton, "saved group should have been forgotten");
+  await closeTabsMenu(newWindow);
+
+  await BrowserTestUtils.closeWindow(newWindow, { animate: false });
+});
+
+/**
+ * Tests behavior of the context menu for open groups
+ */
+add_task(async function test_tabGroupsViewContextMenu_openGroups() {
+  let groupId = "test-group";
+
+  let otherWindow = await BrowserTestUtils.openNewBrowserWindow();
+  await createTestGroup({
+    id: groupId,
+    label: "Test Group",
+    targetWin: otherWindow,
+  });
+  otherWindow.gTabsPanel.init();
+  let allTabsMenu = await openTabsMenu();
+
+  info("move group from another window to this window");
+  let group1MenuItem = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+  );
+  let menu = await getContextMenu(
+    group1MenuItem,
+    "open-tab-group-context-menu"
+  );
+  let waitForGroup = BrowserTestUtils.waitForEvent(
+    gBrowser.tabContainer,
+    "TabGroupCreate"
+  );
+  menu.querySelector("#open-tab-group-context-menu_moveToThisWindow").click();
+  await waitForGroup;
+
+  Assert.equal(
+    otherWindow.gBrowser.tabGroups.length,
+    0,
+    "tab group should have moved from the second window"
+  );
+  Assert.equal(
+    window.gBrowser.tabGroups.length,
+    1,
+    "tab group should have moved to the starting window"
+  );
+
+  Assert.equal(
+    gBrowser.tabGroups[0].id,
+    groupId,
+    "tab group in window should be the one that was moved"
+  );
+  await closeTabsMenu();
+
+  info("move group to a new window");
+
+  allTabsMenu = await openTabsMenu(otherWindow);
+  group1MenuItem = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+  );
+  menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
+  waitForGroup = BrowserTestUtils.waitForEvent(
+    gBrowser.tabContainer,
+    "TabGroupRemoved"
+  );
+  let waitForWindow = BrowserTestUtils.waitForNewWindow();
+  menu.querySelector("#open-tab-group-context-menu_moveToNewWindow").click();
+  let menuHidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+  menu.hidePopup();
+  await Promise.allSettled([menuHidden, waitForGroup, waitForWindow]);
+
+  await closeTabsMenu(otherWindow);
+  Assert.equal(
+    otherWindow.gBrowser.tabGroups.length,
+    0,
+    "tab group should have moved out of the second window to a new window"
+  );
+
+  await BrowserTestUtils.closeWindow(otherWindow, { animate: false });
+
+  info("delete group");
+
+  allTabsMenu = await openTabsMenu(window);
+  group1MenuItem = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+  );
+  menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
+
+  menu.querySelector("#open-tab-group-context-menu_delete").click();
+  menu.hidePopup();
+  await TestUtils.waitForCondition(
+    () => !gBrowser.getAllTabGroups().length,
+    "wait for tab group to be deleted"
+  );
+  await closeTabsMenu(window);
+  Assert.equal(gBrowser.getAllTabGroups().length, 0, "Group was deleted");
 });
