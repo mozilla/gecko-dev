@@ -13,7 +13,6 @@
 #include "nsTHashMap.h"
 #include "nsHashKeys.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Atomics.h"
 
 namespace mozilla::dom {

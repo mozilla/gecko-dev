@@ -1,0 +1,49 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Storage: localStorage & sessionStorage'
+
+localdomstorage:
+  shutdown_database:
+    type: timing_distribution
+    description: >
+      Time to flush and close the localStorage database (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram LOCALDOMSTORAGE_SHUTDOWN_DATABASE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - storage-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: LOCALDOMSTORAGE_SHUTDOWN_DATABASE_MS
+
+  preload_pending_on_first_access:
+    type: labeled_counter
+    description: >
+      True when we had to wait for a pending preload on first access to
+      localStorage data, false otherwise
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram LOCALDOMSTORAGE_PRELOAD_PENDING_ON_FIRST_ACCESS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - storage-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#LOCALDOMSTORAGE_PRELOAD_PENDING_ON_FIRST_ACCESS
