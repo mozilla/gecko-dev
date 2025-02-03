@@ -1686,9 +1686,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if Merino content recommendations should be shown.
      */
-    var showContentRecommendations by booleanPreference(
+    var showContentRecommendations by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_pocket_content_recommendations),
-        default = FeatureFlags.MERINO_CONTENT_RECOMMENDATIONS,
+        default = { FxNimbus.features.merinoRecommendations.value().enabled },
+        featureFlag = true,
     )
 
     /**
