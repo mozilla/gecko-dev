@@ -670,3 +670,88 @@ add_task(async function testRecentlyClosedTabsFromManyWindows() {
 
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
+
+add_task(async function testTabsFromGroupClosedBeforeGroupDeleted() {
+  // Ensures that bug1945111 has a proper resolution.
+  info(
+    "Tabs that were closed from within a tab group should appear in history menus as standalone tabs, even if the tab group is later deleted"
+  );
+
+  await resetClosedTabsAndWindows();
+  const ORIG_STATE = SessionStore.getBrowserState();
+
+  const GROUP_ID = "1234567890-1";
+  const _makeTab = function (url, { groupId, closedInTabGroup = false } = {}) {
+    return {
+      title: url,
+      closedInTabGroupId: closedInTabGroup ? groupId : null,
+      state: {
+        entries: [
+          {
+            url,
+            triggeringPrincipal_base64,
+          },
+        ],
+        groupId,
+      },
+    };
+  };
+  await SessionStoreTestUtils.promiseBrowserState({
+    windows: [
+      {
+        tabs: [_makeTab("about:blank")],
+        _closedTabs: [_makeTab("about:mozilla", { groupId: GROUP_ID })],
+        closedGroups: [
+          {
+            id: GROUP_ID,
+            color: "blue",
+            name: "tab-group",
+            tabs: [
+              _makeTab("about:mozilla", {
+                groupId: GROUP_ID,
+                closedInTabGroup: true,
+              }),
+              _makeTab("about:mozilla", {
+                groupId: GROUP_ID,
+                closedInTabGroup: true,
+              }),
+              _makeTab("about:mozilla", {
+                groupId: GROUP_ID,
+                closedInTabGroup: true,
+              }),
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  Assert.equal(
+    SessionStore.getClosedTabCount(),
+    4,
+    "Sanity check number of closed tabs from closed windows"
+  );
+
+  prepareHistoryPanel();
+  let closeTabsPanel = await openRecentlyClosedTabsMenu();
+
+  const topLevelClosedTabItems = closeTabsPanel
+    .querySelector(".panel-subview-body")
+    .querySelectorAll(":scope > toolbarbutton[targetURI]");
+  Assert.equal(
+    topLevelClosedTabItems.length,
+    1,
+    "We have the expected number of top-level closed tab items"
+  );
+
+  const tabGroupClosedTabItems = closeTabsPanel.querySelectorAll(
+    `panelview#closed-tabs-tab-group-${GROUP_ID} toolbarbutton[targetURI]`
+  );
+  Assert.equal(
+    tabGroupClosedTabItems.length,
+    3,
+    "We have the expected number of closed tab items within the tab group"
+  );
+
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
+});
