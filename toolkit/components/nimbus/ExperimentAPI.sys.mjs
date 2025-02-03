@@ -12,6 +12,15 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentStore: "resource://nimbus/lib/ExperimentStore.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  RemoteSettingsExperimentLoader:
+    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
+});
+
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  const { Logger } = ChromeUtils.importESModule(
+    "resource://messaging-system/lib/Logger.sys.mjs"
+  );
+  return new Logger("ExperimentAPI");
 });
 
 const IS_MAIN_PROCESS =
@@ -73,11 +82,49 @@ const experimentBranchAccessor = {
   },
 };
 
+let initialized = false;
+
 export const ExperimentAPI = {
   /**
-   * @returns {Promise} Resolves when the API has synchronized to the main store
+   * Initialize the ExperimentAPI.
+   *
+   * This will initialize the ExperimentManager and the
+   * RemoteSettingsExperimentLoader. It will also trigger The
+   * RemoteSettingsExperimentLoader to update recipes.
    */
-  ready() {
+  async init() {
+    if (!initialized) {
+      initialized = true;
+
+      try {
+        await this._manager.onStartup();
+      } catch (e) {
+        lazy.log.error("Failed to initialize ExperimentManager:", e);
+      }
+
+      try {
+        await lazy.RemoteSettingsExperimentLoader.init();
+      } catch (e) {
+        lazy.log.error(
+          "Failed to initialize RemoteSettingsExperimentLoader:",
+          e
+        );
+      }
+    }
+  },
+
+  /**
+   * Wait for the ExperimentAPI to become ready.
+   *
+   * NB: This method will not initialize the ExperimentAPI. This is intentional
+   * and doing so breaks a lot of tests due to initializing the
+   * RemoteSettingsExperimentLoader et al.
+   *
+   * @returns {Promise}
+   *          A promise that resolves when the API has synchronized to the main
+   *          store
+   */
+  async ready() {
     return this._store.ready();
   },
 
