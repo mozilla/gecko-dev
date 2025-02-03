@@ -26,11 +26,14 @@ moz-page-nav-button-five = External Link
   .title = External Link
 moz-page-nav-heading =
   .heading = Heading
+moz-page-nav-search-input =
+  .aria-label = Search Storybook
+  .placeholder = Search Storybook
      `,
   },
 };
 
-const Template = ({ hasFooterLinks, hasIcons }) => {
+const Template = ({ hasFooterLinks, hasIcons, showSearch }) => {
   let iconSrc = hasIcons
     ? "chrome://global/skin/icons/settings.svg"
     : undefined;
@@ -55,6 +58,14 @@ const Template = ({ hasFooterLinks, hasIcons }) => {
     </style>
     <div id="page">
       <moz-page-nav data-l10n-id="moz-page-nav-heading">
+        ${when(
+          showSearch,
+          () =>
+            html`<moz-input-search
+              slot="subheading"
+              data-l10n-id="moz-page-nav-search-input"
+            ></moz-input-search>`
+        )}
         <moz-page-nav-button
           view="view-one"
           data-l10n-id="moz-page-nav-button-one"
@@ -98,10 +109,13 @@ const Template = ({ hasFooterLinks, hasIcons }) => {
 };
 
 export const Default = Template.bind({});
-Default.args = { hasFooterLinks: false, hasIcons: true };
+Default.args = { hasFooterLinks: false, hasIcons: true, showSearch: false };
 
 export const WithFooterLinks = Template.bind({});
 WithFooterLinks.args = { ...Default.args, hasFooterLinks: true };
 
 export const WithoutIcons = Template.bind({});
 WithoutIcons.args = { ...Default.args, hasIcons: false };
+
+export const WithSearch = Template.bind({});
+WithSearch.args = { ...Default.args, showSearch: true };
