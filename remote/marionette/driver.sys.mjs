@@ -1375,13 +1375,24 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
       break;
   }
 
-  function geometryMatches() {
+  // We retry on each iteration because on Linux, when combined with some
+  // sizemode changes (e.g. unmaximizing), the size request might get lost
+  // and we might get resized to the restored size / position.
+  function geometryMatches(retry = false) {
+    lazy.logger.trace(
+      `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
+    );
+    let sizeMatches = true;
+    let posMatches = true;
     if (
       width !== null &&
       height !== null &&
       (win.outerWidth !== width || win.outerHeight !== height)
     ) {
-      return false;
+      sizeMatches = false;
+      if (retry) {
+        win.resizeTo(width, height);
+      }
     }
     // Wayland doesn't support getting the window position.
     if (
@@ -1390,24 +1401,35 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
       y !== null &&
       (win.screenX !== x || win.screenY !== y)
     ) {
-      return false;
+      posMatches = false;
+      if (retry) {
+        win.moveTo(x, y);
+      }
     }
-    lazy.logger.trace(`Requested window geometry matches`);
-    return true;
+    if (sizeMatches && posMatches) {
+      lazy.logger.trace(`Requested window geometry matches`);
+      return true;
+    }
+    return false;
   }
 
   if (!geometryMatches()) {
     // There might be more than one resize or MozUpdateWindowPos event due
     // to previous geometry changes, such as from restoreWindow(), so
     // wait longer if window geometry does not match.
-    const options = { checkFn: geometryMatches, timeout: 500 };
+    const options = {
+      checkFn() {
+        return geometryMatches(/* retry = */ true);
+      },
+      timeout: 500,
+    };
     const promises = [];
     if (width !== null && height !== null) {
       promises.push(new lazy.EventPromise(win, "resize", options));
       win.resizeTo(width, height);
     }
     // Wayland doesn't support setting the window position.
-    if (lazy.AppInfo.isWayland !== "wayland" && x !== null && y !== null) {
+    if (!lazy.AppInfo.isWayland && x !== null && y !== null) {
       promises.push(
         new lazy.EventPromise(win.windowRoot, "MozUpdateWindowPos", options)
       );
