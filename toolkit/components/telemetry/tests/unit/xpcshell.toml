@@ -64,8 +64,6 @@ tags = "addons"
 ["test_SyncPingIntegration.js"]
 skip-if = ["os == 'android'"]
 
-["test_TelemetryAndroidEnvironment.js"]
-
 ["test_TelemetryClientID_reset.js"]
 skip-if = ["os == 'android'"] # Disabled as Android/GeckoView doesn't run TelemetryController
 
