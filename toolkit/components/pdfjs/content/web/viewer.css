@@ -1771,7 +1771,8 @@
   box-sizing:border-box;
 }
 
-.annotationEditorLayer :is(.freeTextEditor, .inkEditor, .stampEditor){
+.annotationEditorLayer
+  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor){
   position:absolute;
   background:transparent;
   z-index:1;
@@ -1812,7 +1813,13 @@
 }
 
 .annotationEditorLayer
-  :is(.freeTextEditor, .inkEditor, .stampEditor, .highlightEditor),
+  :is(
+    .freeTextEditor,
+    .inkEditor,
+    .stampEditor,
+    .highlightEditor,
+    .signatureEditor
+  ),
 .textLayer{
   .editToolbar{
     --editor-toolbar-delete-image:url(images/editor-toolbar-delete.svg);
@@ -2213,7 +2220,7 @@
 }
 
 .annotationEditorLayer{
-  :is(.freeTextEditor, .inkEditor, .stampEditor){
+  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor){
     & > .resizers{
       position:absolute;
       inset:0;
@@ -3249,6 +3256,7 @@
   --toolbarButton-editorHighlight-icon:url(images/toolbarButton-editorHighlight.svg);
   --toolbarButton-editorInk-icon:url(images/toolbarButton-editorInk.svg);
   --toolbarButton-editorStamp-icon:url(images/toolbarButton-editorStamp.svg);
+  --toolbarButton-editorSignature-icon:url(images/toolbarButton-editorSignature.svg);
   --toolbarButton-menuArrow-icon:url(images/toolbarButton-menuArrow.svg);
   --toolbarButton-sidebarToggle-icon:url(images/toolbarButton-sidebarToggle.svg);
   --toolbarButton-secondaryToolbarToggle-icon:url(images/toolbarButton-secondaryToolbarToggle.svg);
@@ -3718,6 +3726,10 @@ body{
 
 #editorStampButton::before{
   mask-image:var(--toolbarButton-editorStamp-icon);
+}
+
+#editorSignatureButton::before{
+  mask-image:var(--toolbarButton-editorSignature-icon);
 }
 
 #printButton::before{
@@ -4251,7 +4263,7 @@ dialog :link{
     z-index:30000;
     cursor:default;
 
-    #editorStampAddImage::before{
+    :is(#editorStampAddImage, #editorSignatureAddSignature)::before{
       mask-image:var(--editorParams-stampAddImage-icon);
     }
 

@@ -657,6 +657,10 @@ const defaultOptions = {
     value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
+  enableSignatureEditor: {
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   enableUpdatedAddImage: {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -1257,6 +1261,7 @@ const {
   setLayerDimensions,
   shadow,
   stopEvent,
+  SupportedImageMimeTypes,
   TextLayer,
   TouchManager,
   Util,
@@ -1450,6 +1455,7 @@ class BasePreferences {
     enablePermissions: false,
     enablePrintAutoRotate: true,
     enableScripting: true,
+    enableSignatureEditor: false,
     enableUpdatedAddImage: false,
     externalLinkTarget: 0,
     highlightEditorColors: "yellow=#FFFF98,green=#53FFBC,blue=#80EBFF,pink=#FFCBE6,red=#FF4F5F",
@@ -2332,6 +2338,7 @@ class EditorUndoBar {
     freetext: "pdfjs-editor-undo-bar-message-freetext",
     stamp: "pdfjs-editor-undo-bar-message-stamp",
     ink: "pdfjs-editor-undo-bar-message-ink",
+    signature: "pdfjs-editor-undo-bar-message-signature",
     _multiple: "pdfjs-editor-undo-bar-message-multiple"
   });
   constructor({
@@ -2417,8 +2424,12 @@ class OverlayManager {
     this.#overlays.set(dialog, {
       canForceClose
     });
-    dialog.addEventListener("cancel", evt => {
-      this.#active = null;
+    dialog.addEventListener("cancel", ({
+      target
+    }) => {
+      if (this.#active === target) {
+        this.#active = null;
+      }
     });
   }
   async open(dialog) {
@@ -6409,7 +6420,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.43";
+    const viewerVersion = "5.0.71";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -8317,6 +8328,10 @@ const PDFViewerApplication = {
     }
     if (appConfig.annotationEditorParams) {
       if (annotationEditorMode !== AnnotationEditorType.DISABLE) {
+        const editorSignatureButton = appConfig.toolbar?.editorSignatureButton;
+        if (editorSignatureButton && AppOptions.get("enableSignatureEditor")) {
+          editorSignatureButton.parentElement.hidden = false;
+        }
         this.annotationEditorParams = new AnnotationEditorParams(appConfig.annotationEditorParams, eventBus);
       } else {
         for (const id of ["editorModeButtons", "editorModeSeparator"]) {
@@ -9878,8 +9893,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.43";
-const pdfjsBuild = "38800715c";
+const pdfjsVersion = "5.0.71";
+const pdfjsBuild = "b48717a99";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

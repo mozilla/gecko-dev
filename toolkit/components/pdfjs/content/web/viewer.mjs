@@ -657,6 +657,10 @@ const defaultOptions = {
     value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
+  enableSignatureEditor: {
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   enableUpdatedAddImage: {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -1257,6 +1261,7 @@ const {
   setLayerDimensions,
   shadow,
   stopEvent,
+  SupportedImageMimeTypes,
   TextLayer,
   TouchManager,
   Util,
@@ -1450,6 +1455,7 @@ class BasePreferences {
     enablePermissions: false,
     enablePrintAutoRotate: true,
     enableScripting: true,
+    enableSignatureEditor: false,
     enableUpdatedAddImage: false,
     externalLinkTarget: 0,
     highlightEditorColors: "yellow=#FFFF98,green=#53FFBC,blue=#80EBFF,pink=#FFCBE6,red=#FF4F5F",
@@ -2873,7 +2879,8 @@ class AnnotationEditorParams {
     editorInkOpacity,
     editorStampAddImage,
     editorFreeHighlightThickness,
-    editorHighlightShowAll
+    editorHighlightShowAll,
+    editorSignatureAddSignature
   }) {
     const {
       eventBus
@@ -2919,6 +2926,9 @@ class AnnotationEditorParams {
       const checked = this.getAttribute("aria-pressed") === "true";
       this.setAttribute("aria-pressed", !checked);
       dispatchEvent("HIGHLIGHT_SHOW_ALL", !checked);
+    });
+    editorSignatureAddSignature.addEventListener("click", () => {
+      dispatchEvent("CREATE");
     });
     eventBus._on("annotationeditorparamschanged", evt => {
       for (const [type, value] of evt.details) {
@@ -3182,6 +3192,7 @@ class EditorUndoBar {
     freetext: "pdfjs-editor-undo-bar-message-freetext",
     stamp: "pdfjs-editor-undo-bar-message-stamp",
     ink: "pdfjs-editor-undo-bar-message-ink",
+    signature: "pdfjs-editor-undo-bar-message-signature",
     _multiple: "pdfjs-editor-undo-bar-message-multiple"
   });
   constructor({
@@ -3267,8 +3278,12 @@ class OverlayManager {
     this.#overlays.set(dialog, {
       canForceClose
     });
-    dialog.addEventListener("cancel", evt => {
-      this.#active = null;
+    dialog.addEventListener("cancel", ({
+      target
+    }) => {
+      if (this.#active === target) {
+        this.#active = null;
+      }
     });
   }
   async open(dialog) {
@@ -9576,7 +9591,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.43";
+    const viewerVersion = "5.0.71";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -11426,6 +11441,17 @@ class Toolbar {
           action: "pdfjs.image.icon_click"
         }
       }
+    }, {
+      element: options.editorSignatureButton,
+      eventName: "switchannotationeditormode",
+      eventDetails: {
+        get mode() {
+          const {
+            classList
+          } = options.editorSignatureButton;
+          return classList.contains("toggled") ? AnnotationEditorType.NONE : AnnotationEditorType.SIGNATURE;
+        }
+      }
     }];
     this.#bindListeners(buttons);
     this.#updateToolbarDensity({
@@ -11574,17 +11600,21 @@ class Toolbar {
       editorInkButton,
       editorInkParamsToolbar,
       editorStampButton,
-      editorStampParamsToolbar
+      editorStampParamsToolbar,
+      editorSignatureButton,
+      editorSignatureParamsToolbar
     } = this.#opts;
     toggleExpandedBtn(editorFreeTextButton, mode === AnnotationEditorType.FREETEXT, editorFreeTextParamsToolbar);
     toggleExpandedBtn(editorHighlightButton, mode === AnnotationEditorType.HIGHLIGHT, editorHighlightParamsToolbar);
     toggleExpandedBtn(editorInkButton, mode === AnnotationEditorType.INK, editorInkParamsToolbar);
     toggleExpandedBtn(editorStampButton, mode === AnnotationEditorType.STAMP, editorStampParamsToolbar);
+    toggleExpandedBtn(editorSignatureButton, mode === AnnotationEditorType.SIGNATURE, editorSignatureParamsToolbar);
     const isDisable = mode === AnnotationEditorType.DISABLE;
     editorFreeTextButton.disabled = isDisable;
     editorHighlightButton.disabled = isDisable;
     editorInkButton.disabled = isDisable;
     editorStampButton.disabled = isDisable;
+    editorSignatureButton.disabled = isDisable;
   }
   #updateUIState(resetNumPages = false) {
     const {
@@ -12020,6 +12050,10 @@ const PDFViewerApplication = {
     }
     if (appConfig.annotationEditorParams) {
       if (annotationEditorMode !== AnnotationEditorType.DISABLE) {
+        const editorSignatureButton = appConfig.toolbar?.editorSignatureButton;
+        if (editorSignatureButton && AppOptions.get("enableSignatureEditor")) {
+          editorSignatureButton.parentElement.hidden = false;
+        }
         this.annotationEditorParams = new AnnotationEditorParams(appConfig.annotationEditorParams, eventBus);
       } else {
         for (const id of ["editorModeButtons", "editorModeSeparator"]) {
@@ -13613,8 +13647,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.43";
-const pdfjsBuild = "38800715c";
+const pdfjsVersion = "5.0.71";
+const pdfjsBuild = "b48717a99";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
@@ -13645,6 +13679,8 @@ function getViewerConfiguration() {
       editorInkParamsToolbar: document.getElementById("editorInkParamsToolbar"),
       editorStampButton: document.getElementById("editorStampButton"),
       editorStampParamsToolbar: document.getElementById("editorStampParamsToolbar"),
+      editorSignatureButton: document.getElementById("editorSignatureButton"),
+      editorSignatureParamsToolbar: document.getElementById("editorSignatureParamsToolbar"),
       download: document.getElementById("downloadButton")
     },
     secondaryToolbar: {
@@ -13771,6 +13807,7 @@ function getViewerConfiguration() {
       editorInkThickness: document.getElementById("editorInkThickness"),
       editorInkOpacity: document.getElementById("editorInkOpacity"),
       editorStampAddImage: document.getElementById("editorStampAddImage"),
+      editorSignatureAddSignature: document.getElementById("editorSignatureAddSignature"),
       editorFreeHighlightThickness: document.getElementById("editorFreeHighlightThickness"),
       editorHighlightShowAll: document.getElementById("editorHighlightShowAll")
     },

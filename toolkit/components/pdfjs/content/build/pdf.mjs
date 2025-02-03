@@ -70,6 +70,7 @@ __webpack_require__.d(__webpack_exports__, {
   PixelsPerInch: () => (/* reexport */ PixelsPerInch),
   RenderingCancelledException: () => (/* reexport */ RenderingCancelledException),
   ResponseException: () => (/* reexport */ ResponseException),
+  SupportedImageMimeTypes: () => (/* reexport */ SupportedImageMimeTypes),
   TextLayer: () => (/* reexport */ TextLayer),
   TouchManager: () => (/* reexport */ TouchManager),
   Util: () => (/* reexport */ Util),
@@ -96,7 +97,6 @@ __webpack_require__.d(__webpack_exports__, {
 const isNodeJS = false;
 const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
-const MAX_IMAGE_SIZE_TO_CACHE = 10e6;
 const LINE_FACTOR = 1.35;
 const LINE_DESCENT_FACTOR = 0.35;
 const BASELINE_FACTOR = LINE_DESCENT_FACTOR / LINE_FACTOR;
@@ -124,7 +124,8 @@ const AnnotationEditorType = {
   FREETEXT: 3,
   HIGHLIGHT: 9,
   STAMP: 13,
-  INK: 15
+  INK: 15,
+  SIGNATURE: 101
 };
 const AnnotationEditorParamsType = {
   RESIZE: 1,
@@ -1195,6 +1196,7 @@ class OutputScale {
     return this.sx === this.sy;
   }
 }
+const SupportedImageMimeTypes = ["image/apng", "image/avif", "image/bmp", "image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp", "image/x-icon"];
 
 ;// ./src/display/editor/toolbar.js
 
@@ -1211,7 +1213,8 @@ class EditorToolbar {
       freetext: "pdfjs-editor-remove-freetext-button",
       highlight: "pdfjs-editor-remove-highlight-button",
       ink: "pdfjs-editor-remove-ink-button",
-      stamp: "pdfjs-editor-remove-stamp-button"
+      stamp: "pdfjs-editor-remove-stamp-button",
+      signature: "pdfjs-editor-remove-signature-button"
     });
   }
   render() {
@@ -2591,9 +2594,6 @@ class AnnotationEditorUIManager {
       }
     }
     this.#updateModeCapability.resolve();
-  }
-  isInEditingMode() {
-    return this.#mode !== AnnotationEditorType.NONE;
   }
   addNewEditorFromKeyboard() {
     if (this.currentLayer.canCreateNewEmptyEditor()) {
@@ -10120,7 +10120,6 @@ class XfaText {
 
 const DEFAULT_RANGE_CHUNK_SIZE = 65536;
 const RENDERING_CANCELLED_TIMEOUT = 100;
-const DELAYED_CLEANUP_TIMEOUT = 5000;
 function getDocument(src = {}) {
   const task = new PDFDocumentLoadingTask();
   const {
@@ -10188,7 +10187,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.43",
+    apiVersion: "5.0.71",
     data,
     password,
     disableAutoFetch,
@@ -10466,7 +10465,6 @@ class PDFDocumentProxy {
   }
 }
 class PDFPageProxy {
-  #delayedCleanupTimeout = null;
   #pendingCleanup = false;
   constructor(pageIndex, pageInfo, transport, pdfBug = false) {
     this._pageIndex = pageIndex;
@@ -10476,7 +10474,6 @@ class PDFPageProxy {
     this._pdfBug = pdfBug;
     this.commonObjs = transport.commonObjs;
     this.objs = new PDFObjects();
-    this._maybeCleanupAfterRender = false;
     this._intentStates = new Map();
     this.destroyed = false;
   }
@@ -10552,7 +10549,6 @@ class PDFPageProxy {
       cacheKey
     } = intentArgs;
     this.#pendingCleanup = false;
-    this.#abortDelayedCleanup();
     optionalContentConfigPromise ||= this._transport.getOptionalContentConfig(renderingIntent);
     let intentState = this._intentStates.get(cacheKey);
     if (!intentState) {
@@ -10577,10 +10573,10 @@ class PDFPageProxy {
     }
     const complete = error => {
       intentState.renderTasks.delete(internalRenderTask);
-      if (this._maybeCleanupAfterRender || intentPrint) {
+      if (intentPrint) {
         this.#pendingCleanup = true;
       }
-      this.#tryCleanup(!intentPrint);
+      this.#tryCleanup();
       if (error) {
         internalRenderTask.capability.reject(error);
         this._abortOperatorList({
@@ -10712,27 +10708,18 @@ class PDFPageProxy {
     }
     this.objs.clear();
     this.#pendingCleanup = false;
-    this.#abortDelayedCleanup();
     return Promise.all(waitOn);
   }
   cleanup(resetStats = false) {
     this.#pendingCleanup = true;
-    const success = this.#tryCleanup(false);
+    const success = this.#tryCleanup();
     if (resetStats && success) {
       this._stats &&= new StatTimer();
     }
     return success;
   }
-  #tryCleanup(delayed = false) {
-    this.#abortDelayedCleanup();
+  #tryCleanup() {
     if (!this.#pendingCleanup || this.destroyed) {
-      return false;
-    }
-    if (delayed) {
-      this.#delayedCleanupTimeout = setTimeout(() => {
-        this.#delayedCleanupTimeout = null;
-        this.#tryCleanup(false);
-      }, DELAYED_CLEANUP_TIMEOUT);
       return false;
     }
     for (const {
@@ -10747,12 +10734,6 @@ class PDFPageProxy {
     this.objs.clear();
     this.#pendingCleanup = false;
     return true;
-  }
-  #abortDelayedCleanup() {
-    if (this.#delayedCleanupTimeout) {
-      clearTimeout(this.#delayedCleanupTimeout);
-      this.#delayedCleanupTimeout = null;
-    }
   }
   _startRenderPage(transparency, cacheKey) {
     const intentState = this._intentStates.get(cacheKey);
@@ -10773,7 +10754,7 @@ class PDFPageProxy {
       internalRenderTask.operatorListChanged();
     }
     if (operatorListChunk.lastChunk) {
-      this.#tryCleanup(true);
+      this.#tryCleanup();
     }
   }
   _pumpOperatorList({
@@ -10820,7 +10801,7 @@ class PDFPageProxy {
           for (const internalRenderTask of intentState.renderTasks) {
             internalRenderTask.operatorListChanged();
           }
-          this.#tryCleanup(true);
+          this.#tryCleanup();
         }
         if (intentState.displayReadyCapability) {
           intentState.displayReadyCapability.reject(reason);
@@ -11424,11 +11405,6 @@ class WorkerTransport {
       }
       switch (type) {
         case "Image":
-          pageProxy.objs.resolve(id, imageData);
-          if (imageData?.dataLen > MAX_IMAGE_SIZE_TO_CACHE) {
-            pageProxy._maybeCleanupAfterRender = true;
-          }
-          break;
         case "Pattern":
           pageProxy.objs.resolve(id, imageData);
           break;
@@ -11844,8 +11820,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.43";
-const build = "38800715c";
+const version = "5.0.71";
+const build = "b48717a99";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -13146,7 +13122,7 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
         }
       } else {
         element = document.createElement("input");
-        element.type = "text";
+        element.type = this.data.password ? "password" : "text";
         element.setAttribute("value", fieldFormattedValues ?? textContent);
         if (this.data.doNotScroll) {
           element.style.overflowX = "hidden";
@@ -17190,6 +17166,9 @@ class DrawingEditor extends AnnotationEditor {
   constructor(params) {
     super(params);
     this.#mustBeCommitted = params.mustBeCommitted || false;
+    this._addOutlines(params);
+  }
+  _addOutlines(params) {
     if (params.drawOutlines) {
       this.#createDrawOutlines(params);
       this.#addToDrawLayer();
@@ -18005,7 +17984,7 @@ class InkDrawOutline extends Outline {
         buffer.push("Z");
         continue;
       }
-      if (line.length === 12) {
+      if (line.length === 12 && isNaN(line[6])) {
         buffer.push(`L${Outline.svgRound(line[10])} ${Outline.svgRound(line[11])}`);
         continue;
       }
@@ -18627,6 +18606,627 @@ class InkEditor extends DrawingEditor {
   }
 }
 
+;// ./src/display/editor/drawers/contour.js
+
+class ContourDrawOutline extends InkDrawOutline {
+  toSVGPath() {
+    let path = super.toSVGPath();
+    if (!path.endsWith("Z")) {
+      path += "Z";
+    }
+    return path;
+  }
+}
+
+;// ./src/display/editor/drawers/signaturedraw.js
+
+
+
+class SignatureExtractor {
+  static #PARAMETERS = {
+    maxDim: 512,
+    sigmaSFactor: 0.02,
+    sigmaR: 25,
+    kernelSize: 16
+  };
+  static #neighborIndexToId(i0, j0, i, j) {
+    i -= i0;
+    j -= j0;
+    if (i === 0) {
+      return j > 0 ? 0 : 4;
+    }
+    if (i === 1) {
+      return j + 6;
+    }
+    return 2 - j;
+  }
+  static #neighborIdToIndex = new Int32Array([0, 1, -1, 1, -1, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1]);
+  static #clockwiseNonZero(buf, width, i0, j0, i, j, offset) {
+    const id = this.#neighborIndexToId(i0, j0, i, j);
+    for (let k = 0; k < 8; k++) {
+      const kk = (-k + id - offset + 16) % 8;
+      const shiftI = this.#neighborIdToIndex[2 * kk];
+      const shiftJ = this.#neighborIdToIndex[2 * kk + 1];
+      if (buf[(i0 + shiftI) * width + (j0 + shiftJ)] !== 0) {
+        return kk;
+      }
+    }
+    return -1;
+  }
+  static #counterClockwiseNonZero(buf, width, i0, j0, i, j, offset) {
+    const id = this.#neighborIndexToId(i0, j0, i, j);
+    for (let k = 0; k < 8; k++) {
+      const kk = (k + id + offset + 16) % 8;
+      const shiftI = this.#neighborIdToIndex[2 * kk];
+      const shiftJ = this.#neighborIdToIndex[2 * kk + 1];
+      if (buf[(i0 + shiftI) * width + (j0 + shiftJ)] !== 0) {
+        return kk;
+      }
+    }
+    return -1;
+  }
+  static #findContours(buf, width, height, threshold) {
+    const N = buf.length;
+    const types = new Int32Array(N);
+    for (let i = 0; i < N; i++) {
+      types[i] = buf[i] <= threshold ? 1 : 0;
+    }
+    for (let i = 1; i < height - 1; i++) {
+      types[i * width] = types[i * width + width - 1] = 0;
+    }
+    for (let i = 0; i < width; i++) {
+      types[i] = types[width * height - 1 - i] = 0;
+    }
+    let nbd = 1;
+    let lnbd;
+    const contours = [];
+    for (let i = 1; i < height - 1; i++) {
+      lnbd = 1;
+      for (let j = 1; j < width - 1; j++) {
+        const ij = i * width + j;
+        const pix = types[ij];
+        if (pix === 0) {
+          continue;
+        }
+        let i2 = i;
+        let j2 = j;
+        if (pix === 1 && types[ij - 1] === 0) {
+          nbd += 1;
+          j2 -= 1;
+        } else if (pix >= 1 && types[ij + 1] === 0) {
+          nbd += 1;
+          j2 += 1;
+          if (pix > 1) {
+            lnbd = pix;
+          }
+        } else {
+          if (pix !== 1) {
+            lnbd = Math.abs(pix);
+          }
+          continue;
+        }
+        const points = [j, i];
+        const isHole = j2 === j + 1;
+        const contour = {
+          isHole,
+          points,
+          id: nbd,
+          parent: 0
+        };
+        contours.push(contour);
+        let contour0;
+        for (const c of contours) {
+          if (c.id === lnbd) {
+            contour0 = c;
+            break;
+          }
+        }
+        if (!contour0) {
+          contour.parent = isHole ? lnbd : 0;
+        } else if (contour0.isHole) {
+          contour.parent = isHole ? contour0.parent : lnbd;
+        } else {
+          contour.parent = isHole ? lnbd : contour0.parent;
+        }
+        const k = this.#clockwiseNonZero(types, width, i, j, i2, j2, 0);
+        if (k === -1) {
+          types[ij] = -nbd;
+          if (types[ij] !== 1) {
+            lnbd = Math.abs(types[ij]);
+          }
+          continue;
+        }
+        let shiftI = this.#neighborIdToIndex[2 * k];
+        let shiftJ = this.#neighborIdToIndex[2 * k + 1];
+        const i1 = i + shiftI;
+        const j1 = j + shiftJ;
+        i2 = i1;
+        j2 = j1;
+        let i3 = i;
+        let j3 = j;
+        while (true) {
+          const kk = this.#counterClockwiseNonZero(types, width, i3, j3, i2, j2, 1);
+          shiftI = this.#neighborIdToIndex[2 * kk];
+          shiftJ = this.#neighborIdToIndex[2 * kk + 1];
+          const i4 = i3 + shiftI;
+          const j4 = j3 + shiftJ;
+          points.push(j4, i4);
+          const ij3 = i3 * width + j3;
+          if (types[ij3 + 1] === 0) {
+            types[ij3] = -nbd;
+          } else if (types[ij3] === 1) {
+            types[ij3] = nbd;
+          }
+          if (i4 === i && j4 === j && i3 === i1 && j3 === j1) {
+            if (types[ij] !== 1) {
+              lnbd = Math.abs(types[ij]);
+            }
+            break;
+          } else {
+            i2 = i3;
+            j2 = j3;
+            i3 = i4;
+            j3 = j4;
+          }
+        }
+      }
+    }
+    return contours;
+  }
+  static #douglasPeuckerHelper(points, start, end, output) {
+    if (end - start <= 4) {
+      for (let i = start; i < end - 2; i += 2) {
+        output.push(points[i], points[i + 1]);
+      }
+      return;
+    }
+    const ax = points[start];
+    const ay = points[start + 1];
+    const abx = points[end - 4] - ax;
+    const aby = points[end - 3] - ay;
+    const dist = Math.hypot(abx, aby);
+    const nabx = abx / dist;
+    const naby = aby / dist;
+    const aa = nabx * ay - naby * ax;
+    const m = aby / abx;
+    const invS = 1 / dist;
+    const phi = Math.atan(m);
+    const cosPhi = Math.cos(phi);
+    const sinPhi = Math.sin(phi);
+    const tmax = invS * (Math.abs(cosPhi) + Math.abs(sinPhi));
+    const poly = invS * (1 - tmax + tmax ** 2);
+    const partialPhi = Math.max(Math.atan(Math.abs(sinPhi + cosPhi) * poly), Math.atan(Math.abs(sinPhi - cosPhi) * poly));
+    let dmax = 0;
+    let index = start;
+    for (let i = start + 2; i < end - 2; i += 2) {
+      const d = Math.abs(aa - nabx * points[i + 1] + naby * points[i]);
+      if (d > dmax) {
+        index = i;
+        dmax = d;
+      }
+    }
+    if (dmax > (dist * partialPhi) ** 2) {
+      this.#douglasPeuckerHelper(points, start, index + 2, output);
+      this.#douglasPeuckerHelper(points, index, end, output);
+    } else {
+      output.push(ax, ay);
+    }
+  }
+  static #douglasPeucker(points) {
+    const output = [];
+    const len = points.length;
+    this.#douglasPeuckerHelper(points, 0, len, output);
+    output.push(points[len - 2], points[len - 1]);
+    return output.length <= 4 ? null : output;
+  }
+  static #bilateralFilter(buf, width, height, sigmaS, sigmaR, kernelSize) {
+    const kernel = new Float32Array(kernelSize ** 2);
+    const sigmaS2 = -2 * sigmaS ** 2;
+    const halfSize = kernelSize >> 1;
+    for (let i = 0; i < kernelSize; i++) {
+      const x = (i - halfSize) ** 2;
+      for (let j = 0; j < kernelSize; j++) {
+        kernel[i * kernelSize + j] = Math.exp((x + (j - halfSize) ** 2) / sigmaS2);
+      }
+    }
+    const rangeValues = new Float32Array(256);
+    const sigmaR2 = -2 * sigmaR ** 2;
+    for (let i = 0; i < 256; i++) {
+      rangeValues[i] = Math.exp(i ** 2 / sigmaR2);
+    }
+    const N = buf.length;
+    const out = new Uint8Array(N);
+    const histogram = new Uint32Array(256);
+    for (let i = 0; i < height; i++) {
+      for (let j = 0; j < width; j++) {
+        const ij = i * width + j;
+        const center = buf[ij];
+        let sum = 0;
+        let norm = 0;
+        for (let k = 0; k < kernelSize; k++) {
+          const y = i + k - halfSize;
+          if (y < 0 || y >= height) {
+            continue;
+          }
+          for (let l = 0; l < kernelSize; l++) {
+            const x = j + l - halfSize;
+            if (x < 0 || x >= width) {
+              continue;
+            }
+            const neighbour = buf[y * width + x];
+            const w = kernel[k * kernelSize + l] * rangeValues[Math.abs(neighbour - center)];
+            sum += neighbour * w;
+            norm += w;
+          }
+        }
+        const pix = out[ij] = Math.round(sum / norm);
+        histogram[pix]++;
+      }
+    }
+    return [out, histogram];
+  }
+  static #getHistogram(buf) {
+    const histogram = new Uint32Array(256);
+    for (const g of buf) {
+      histogram[g]++;
+    }
+    return histogram;
+  }
+  static #toUint8(buf) {
+    const N = buf.length;
+    const out = new Uint8ClampedArray(N >> 2);
+    let max = -Infinity;
+    let min = Infinity;
+    for (let i = 0, ii = out.length; i < ii; i++) {
+      const A = buf[(i << 2) + 3];
+      if (A === 0) {
+        max = out[i] = 0xff;
+        continue;
+      }
+      const pix = out[i] = buf[i << 2];
+      if (pix > max) {
+        max = pix;
+      }
+      if (pix < min) {
+        min = pix;
+      }
+    }
+    const ratio = 255 / (max - min);
+    for (let i = 0; i < N; i++) {
+      out[i] = (out[i] - min) * ratio;
+    }
+    return out;
+  }
+  static #guessThreshold(histogram) {
+    let i;
+    let M = -Infinity;
+    let L = -Infinity;
+    const min = histogram.findIndex(v => v !== 0);
+    let pos = min;
+    let spos = min;
+    for (i = min; i < 256; i++) {
+      const v = histogram[i];
+      if (v > M) {
+        if (i - pos > L) {
+          L = i - pos;
+          spos = i - 1;
+        }
+        M = v;
+        pos = i;
+      }
+    }
+    for (i = spos - 1; i >= 0; i--) {
+      if (histogram[i] > histogram[i + 1]) {
+        break;
+      }
+    }
+    return i;
+  }
+  static #getGrayPixels(bitmap) {
+    const originalBitmap = bitmap;
+    const {
+      width,
+      height
+    } = bitmap;
+    const {
+      maxDim
+    } = this.#PARAMETERS;
+    let newWidth = width;
+    let newHeight = height;
+    if (width > maxDim || height > maxDim) {
+      let prevWidth = width;
+      let prevHeight = height;
+      let steps = Math.log2(Math.max(width, height) / maxDim);
+      const isteps = Math.floor(steps);
+      steps = steps === isteps ? isteps - 1 : isteps;
+      for (let i = 0; i < steps; i++) {
+        newWidth = prevWidth;
+        newHeight = prevHeight;
+        if (newWidth > maxDim) {
+          newWidth = Math.ceil(newWidth / 2);
+        }
+        if (newHeight > maxDim) {
+          newHeight = Math.ceil(newHeight / 2);
+        }
+        const offscreen = new OffscreenCanvas(newWidth, newHeight);
+        const ctx = offscreen.getContext("2d");
+        ctx.drawImage(bitmap, 0, 0, prevWidth, prevHeight, 0, 0, newWidth, newHeight);
+        prevWidth = newWidth;
+        prevHeight = newHeight;
+        if (bitmap !== originalBitmap) {
+          bitmap.close();
+        }
+        bitmap = offscreen.transferToImageBitmap();
+      }
+      const ratio = Math.min(maxDim / newWidth, maxDim / newHeight);
+      newWidth = Math.round(newWidth * ratio);
+      newHeight = Math.round(newHeight * ratio);
+    }
+    const offscreen = new OffscreenCanvas(newWidth, newHeight);
+    const ctx = offscreen.getContext("2d", {
+      willReadFrequently: true
+    });
+    ctx.filter = "grayscale(1)";
+    ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, newWidth, newHeight);
+    const grayImage = ctx.getImageData(0, 0, newWidth, newHeight).data;
+    const uint8Buf = this.#toUint8(grayImage);
+    return [uint8Buf, newWidth, newHeight];
+  }
+  static extractContoursFromText(text, {
+    fontFamily,
+    fontStyle,
+    fontWeight
+  }, pageWidth, pageHeight, rotation, innerMargin) {
+    let canvas = new OffscreenCanvas(1, 1);
+    let ctx = canvas.getContext("2d", {
+      alpha: false
+    });
+    const fontSize = 200;
+    const font = ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+    const {
+      actualBoundingBoxLeft,
+      actualBoundingBoxRight,
+      actualBoundingBoxAscent,
+      actualBoundingBoxDescent,
+      fontBoundingBoxAscent,
+      fontBoundingBoxDescent,
+      width
+    } = ctx.measureText(text);
+    const SCALE = 1.5;
+    const canvasWidth = Math.ceil(Math.max(Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight) || 0, width) * SCALE);
+    const canvasHeight = Math.ceil(Math.max(Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent) || fontSize, Math.abs(fontBoundingBoxAscent) + Math.abs(fontBoundingBoxDescent) || fontSize) * SCALE);
+    canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
+    ctx = canvas.getContext("2d", {
+      alpha: true,
+      willReadFrequently: true
+    });
+    ctx.font = font;
+    ctx.filter = "grayscale(1)";
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillStyle = "black";
+    ctx.fillText(text, canvasWidth * (SCALE - 1) / 2, canvasHeight * (3 - SCALE) / 2);
+    const uint8Buf = this.#toUint8(ctx.getImageData(0, 0, canvasWidth, canvasHeight).data);
+    const histogram = this.#getHistogram(uint8Buf);
+    const threshold = this.#guessThreshold(histogram);
+    const contourList = this.#findContours(uint8Buf, canvasWidth, canvasHeight, threshold);
+    return this.processDrawnLines({
+      lines: {
+        curves: contourList,
+        width: canvasWidth,
+        height: canvasHeight
+      },
+      pageWidth,
+      pageHeight,
+      rotation,
+      innerMargin,
+      mustSmooth: true,
+      areContours: true
+    });
+  }
+  static process(bitmap, pageWidth, pageHeight, rotation, innerMargin) {
+    const [uint8Buf, width, height] = this.#getGrayPixels(bitmap);
+    const [buffer, histogram] = this.#bilateralFilter(uint8Buf, width, height, Math.hypot(width, height) * this.#PARAMETERS.sigmaSFactor, this.#PARAMETERS.sigmaR, this.#PARAMETERS.kernelSize);
+    const threshold = this.#guessThreshold(histogram);
+    const contourList = this.#findContours(buffer, width, height, threshold);
+    return this.processDrawnLines({
+      lines: {
+        curves: contourList,
+        width,
+        height
+      },
+      pageWidth,
+      pageHeight,
+      rotation,
+      innerMargin,
+      mustSmooth: true,
+      areContours: true
+    });
+  }
+  static processDrawnLines({
+    lines,
+    pageWidth,
+    pageHeight,
+    rotation,
+    innerMargin,
+    mustSmooth,
+    areContours
+  }) {
+    if (rotation % 180 !== 0) {
+      [pageWidth, pageHeight] = [pageHeight, pageWidth];
+    }
+    const {
+      curves,
+      thickness,
+      width,
+      height
+    } = lines;
+    const linesAndPoints = [];
+    const ratio = Math.min(pageWidth / width, pageHeight / height);
+    const xScale = ratio / pageWidth;
+    const yScale = ratio / pageHeight;
+    for (const {
+      points
+    } of curves) {
+      const reducedPoints = mustSmooth ? this.#douglasPeucker(points) : points;
+      if (!reducedPoints) {
+        continue;
+      }
+      const len = reducedPoints.length;
+      const newPoints = new Float32Array(len);
+      const line = new Float32Array(3 * (len === 2 ? 2 : len - 2));
+      linesAndPoints.push({
+        line,
+        points: newPoints
+      });
+      if (len === 2) {
+        newPoints[0] = reducedPoints[0] * xScale;
+        newPoints[1] = reducedPoints[1] * yScale;
+        line.set([NaN, NaN, NaN, NaN, newPoints[0], newPoints[1]], 0);
+        continue;
+      }
+      let [x1, y1, x2, y2] = reducedPoints;
+      x1 *= xScale;
+      y1 *= yScale;
+      x2 *= xScale;
+      y2 *= yScale;
+      newPoints.set([x1, y1, x2, y2], 0);
+      line.set([NaN, NaN, NaN, NaN, x1, y1], 0);
+      for (let i = 4; i < len; i += 2) {
+        const x = newPoints[i] = reducedPoints[i] * xScale;
+        const y = newPoints[i + 1] = reducedPoints[i + 1] * yScale;
+        line.set(Outline.createBezierPoints(x1, y1, x2, y2, x, y), (i - 2) * 3);
+        [x1, y1, x2, y2] = [x2, y2, x, y];
+      }
+    }
+    if (linesAndPoints.length === 0) {
+      return null;
+    }
+    const outline = areContours ? new ContourDrawOutline() : new InkDrawOutline();
+    outline.build(linesAndPoints, pageWidth, pageHeight, 1, rotation, areContours ? 0 : thickness, innerMargin);
+    return outline;
+  }
+}
+
+;// ./src/display/editor/signature.js
+
+
+
+
+
+class SignatureOptions extends DrawingOptions {
+  #viewParameters;
+  constructor(viewerParameters) {
+    super();
+    this.#viewParameters = viewerParameters;
+    super.updateProperties({
+      fill: "black",
+      "stroke-width": 0
+    });
+  }
+  clone() {
+    const clone = new SignatureOptions(this.#viewParameters);
+    clone.updateAll(this);
+    return clone;
+  }
+}
+class SignatureEditor extends DrawingEditor {
+  static _type = "signature";
+  static _editorType = AnnotationEditorType.SIGNATURE;
+  static _defaultDrawingOptions = null;
+  constructor(params) {
+    super({
+      ...params,
+      mustBeCommitted: true,
+      name: "signatureEditor"
+    });
+    this._willKeepAspectRatio = false;
+  }
+  static initialize(l10n, uiManager) {
+    AnnotationEditor.initialize(l10n, uiManager);
+    this._defaultDrawingOptions = new SignatureOptions(uiManager.viewParameters);
+  }
+  static getDefaultDrawingOptions(options) {
+    const clone = this._defaultDrawingOptions.clone();
+    clone.updateProperties(options);
+    return clone;
+  }
+  static get supportMultipleDrawings() {
+    return false;
+  }
+  static get typesMap() {
+    return shadow(this, "typesMap", new Map());
+  }
+  static get isDrawer() {
+    return false;
+  }
+  get isResizable() {
+    return true;
+  }
+  render() {
+    if (this.div) {
+      return this.div;
+    }
+    super.render();
+    this.div.hidden = true;
+    this.div.setAttribute("role", "figure");
+    this.#extractSignature();
+    return this.div;
+  }
+  async #extractSignature() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = SupportedImageMimeTypes.join(",");
+    const signal = this._uiManager._signal;
+    const {
+      promise,
+      resolve
+    } = Promise.withResolvers();
+    input.addEventListener("change", async () => {
+      if (!input.files || input.files.length === 0) {
+        resolve();
+      } else {
+        this._uiManager.enableWaiting(true);
+        const data = await this._uiManager.imageManager.getFromFile(input.files[0]);
+        this._uiManager.enableWaiting(false);
+        resolve(data);
+      }
+      resolve();
+    }, {
+      signal
+    });
+    input.addEventListener("cancel", resolve, {
+      signal
+    });
+    input.click();
+    const bitmap = await promise;
+    const {
+      rawDims: {
+        pageWidth,
+        pageHeight
+      },
+      rotation
+    } = this.parent.viewport;
+    let drawOutlines;
+    if (bitmap?.bitmap) {
+      drawOutlines = SignatureExtractor.process(bitmap.bitmap, pageWidth, pageHeight, rotation, SignatureEditor._INNER_MARGIN);
+    } else {
+      drawOutlines = SignatureExtractor.extractContoursFromText("Hello PDF.js' World !!", {
+        fontStyle: "italic",
+        fontWeight: "400",
+        fontFamily: "cursive"
+      }, pageWidth, pageHeight, rotation, SignatureEditor._INNER_MARGIN);
+    }
+    this._addOutlines({
+      drawOutlines,
+      drawingOptions: SignatureEditor.getDefaultDrawingOptions()
+    });
+    this.onScaleChanging();
+    this.rotate();
+    this.div.hidden = false;
+  }
+}
+
 ;// ./src/display/editor/stamp.js
 
 
@@ -18657,15 +19257,8 @@ class StampEditor extends AnnotationEditor {
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
   }
-  static get supportedTypes() {
-    const types = ["apng", "avif", "bmp", "gif", "jpeg", "png", "svg+xml", "webp", "x-icon"];
-    return shadow(this, "supportedTypes", types.map(type => `image/${type}`));
-  }
-  static get supportedTypesStr() {
-    return shadow(this, "supportedTypesStr", this.supportedTypes.join(","));
-  }
   static isHandlingMimeForPasting(mime) {
-    return this.supportedTypes.includes(mime);
+    return SupportedImageMimeTypes.includes(mime);
   }
   static paste(item, parent) {
     parent.pasteEditor(AnnotationEditorType.STAMP, {
@@ -18802,7 +19395,7 @@ class StampEditor extends AnnotationEditor {
     }
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = StampEditor.supportedTypesStr;
+    input.accept = SupportedImageMimeTypes.join(",");
     const signal = this._uiManager._signal;
     this.#bitmapPromise = new Promise(resolve => {
       input.addEventListener("change", async () => {
@@ -19316,6 +19909,7 @@ class StampEditor extends AnnotationEditor {
 
 
 
+
 class AnnotationEditorLayer {
   #accessibilityManager;
   #allowClick = false;
@@ -19332,7 +19926,7 @@ class AnnotationEditorLayer {
   #textSelectionAC = null;
   #uiManager;
   static _initialized = false;
-  static #editorTypes = new Map([FreeTextEditor, InkEditor, StampEditor, HighlightEditor].map(type => [type._editorType, type]));
+  static #editorTypes = new Map([FreeTextEditor, InkEditor, StampEditor, HighlightEditor, SignatureEditor].map(type => [type._editorType, type]));
   constructor({
     uiManager,
     pageIndex,
@@ -19812,7 +20406,8 @@ class AnnotationEditorLayer {
       this.#allowClick = true;
       return;
     }
-    if (this.#uiManager.getMode() === AnnotationEditorType.STAMP) {
+    const currentMode = this.#uiManager.getMode();
+    if (currentMode === AnnotationEditorType.STAMP || currentMode === AnnotationEditorType.SIGNATURE) {
       this.#uiManager.unselectAll();
       return;
     }
@@ -20199,8 +20794,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.43";
-const pdfjsBuild = "38800715c";
+const pdfjsVersion = "5.0.71";
+const pdfjsBuild = "b48717a99";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
@@ -20226,6 +20821,7 @@ var __webpack_exports__PermissionFlag = __webpack_exports__.PermissionFlag;
 var __webpack_exports__PixelsPerInch = __webpack_exports__.PixelsPerInch;
 var __webpack_exports__RenderingCancelledException = __webpack_exports__.RenderingCancelledException;
 var __webpack_exports__ResponseException = __webpack_exports__.ResponseException;
+var __webpack_exports__SupportedImageMimeTypes = __webpack_exports__.SupportedImageMimeTypes;
 var __webpack_exports__TextLayer = __webpack_exports__.TextLayer;
 var __webpack_exports__TouchManager = __webpack_exports__.TouchManager;
 var __webpack_exports__Util = __webpack_exports__.Util;
@@ -20246,4 +20842,4 @@ var __webpack_exports__setLayerDimensions = __webpack_exports__.setLayerDimensio
 var __webpack_exports__shadow = __webpack_exports__.shadow;
 var __webpack_exports__stopEvent = __webpack_exports__.stopEvent;
 var __webpack_exports__version = __webpack_exports__.version;
-export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };
+export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__SupportedImageMimeTypes as SupportedImageMimeTypes, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };
