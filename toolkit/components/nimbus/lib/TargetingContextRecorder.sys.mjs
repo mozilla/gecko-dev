@@ -162,7 +162,10 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
       numberOfURLsVisited,
       date,
     })),
-  userPrefersReducedMotion: typeAssertions.boolean,
+  // userPrefersReducedMotion can only be false in xpcshell tests because it
+  // uses a stubbed nsIXULAppInfo (/testing/modules/AppInfo.sys.mjs).
+  userPrefersReducedMotion: userPrefersReducedMotion =>
+    userPrefersReducedMotion ?? false,
   usesFirefoxSync: typeAssertions.boolean,
   version: typeAssertions.string,
 });
