@@ -561,6 +561,17 @@ So that ``console.shouldLog()`` only consider the level set by
   logger.debug("some debug info");
 
 
+Logging web page errors and warnings
+++++++++++++++++++++++++++++++++++++
+
+Any error or warning message sent to the ``nsConsoleService`` C++ class can be
+logged via the ``PageMessages`` module name.
+
+These messages are typically emitted via ``nsContentUtils::ReportToConsole*()``
+or ``nsContentUtils::LogMessageToConsole()`` methods.
+
+They includes any JavaScript exception and most DOM API warnings and errors.
+
 Console API levels
 ------------------
 

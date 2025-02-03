@@ -57,6 +57,8 @@ static const bool gLoggingBuffered = true;
 static bool gLoggingToDebugger = true;
 #endif  // XP_WIN
 
+static mozilla::LazyLogModule gPageMessagesLog("PageMessages");
+
 nsConsoleService::MessageElement::~MessageElement() = default;
 
 nsConsoleService::nsConsoleService()
@@ -373,6 +375,34 @@ nsresult nsConsoleService::LogMessageWithMode(
 
     if (mListeners.Count() > 0) {
       r = new LogMessageRunnable(aMessage, this);
+    }
+
+    // Avoid MOG_LOG-ing messages sent from the content process,
+    // where ContentParent will pass SupressLog output mode.
+    if (aOutputMode == OutputToLog) {
+      uint32_t logLevel = 0;
+      aMessage->GetLogLevel(&logLevel);
+
+      LogLevel mozLogLevel = LogLevel::Info;
+      switch (logLevel) {
+        case nsIConsoleMessage::debug:
+          mozLogLevel = LogLevel::Debug;
+          break;
+        case nsIConsoleMessage::info:
+          mozLogLevel = LogLevel::Info;
+          break;
+        case nsIConsoleMessage::warn:
+          mozLogLevel = LogLevel::Warning;
+          break;
+        case nsIConsoleMessage::error:
+          mozLogLevel = LogLevel::Error;
+          break;
+      }
+      if (MOZ_LOG_TEST(gPageMessagesLog, mozLogLevel)) {
+        nsCString msg;
+        aMessage->ToString(msg);
+        MOZ_LOG(gPageMessagesLog, mozLogLevel, ("%s", msg.get()));
+      }
     }
   }
 
