@@ -239,10 +239,11 @@ ext.geckoBinariesOnlyIf = { task ->
     return true
 }
 
-// Non-official versions are like "61.0a1", where "a1" is the milestone.
+// Non-official versions are like "61.0a1" or "61.0b1", where "a1" and "b1"
+// are the milestone.
 // This simply strips that off, leaving "61.0" in this example.
 def getAppVersionWithoutMilestone() {
-    return project.ext.mozconfig.substs.MOZ_APP_VERSION.replaceFirst(/a[0-9]/, "")
+    return project.ext.mozconfig.substs.MOZ_APP_VERSION.replaceFirst(/[ab][0-9]/, "")
 }
 
 // This converts MOZ_APP_VERSION into an integer
