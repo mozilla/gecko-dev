@@ -31,15 +31,13 @@ EXCLUSION_FILES = [
 
 def setup(root, **setupargs):
     if setupargs.get("substs", {}).get("MOZ_BUILD_APP") != "mobile/android":
-        return 1
+        return -1
 
     if "topobjdir" not in setupargs:
-        print(
-            "Skipping {}: a configured Android build is required!".format(
-                setupargs["name"]
-            )
+        setupargs["log"].debug(
+            f"Skipping {setupargs['name']}: a configured Android build is required!"
         )
-        return 1
+        return -1
 
     return 0
 

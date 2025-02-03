@@ -231,8 +231,11 @@ class LintRoller(object):
                 if virtualenv_manager is not None:
                     setupargs["virtualenv_manager"] = virtualenv_manager
                 start_time = time.monotonic()
-                res = findobject(linter["setup"])(
-                    **setupargs,
+                res = (
+                    findobject(linter["setup"])(
+                        **setupargs,
+                    )
+                    or 0
                 )
                 self.log.debug(
                     f"setup for {linter['name']} finished in "
@@ -242,8 +245,15 @@ class LintRoller(object):
                 traceback.print_exc()
                 res = 1
 
-            if res:
+            if res > 0:
                 self.result.failed_setup.add(linter["name"])
+                self.result.skipped.add(linter["name"])
+            elif res < 0:
+                # Negative return code means the linter should be skipped for
+                # reasons other than a failure.
+                self.result.skipped.add(linter["name"])
+
+        self.linters = [l for l in self.linters if l["name"] not in self.result.skipped]
 
         if self.result.failed_setup:
             print(
@@ -251,9 +261,6 @@ class LintRoller(object):
                     ", ".join(sorted(self.result.failed_setup))
                 )
             )
-            self.linters = [
-                l for l in self.linters if l["name"] not in self.result.failed_setup
-            ]
             return 1
         return 0
 

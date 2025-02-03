@@ -29,6 +29,7 @@ class ResultSummary(object):
         self.issues = defaultdict(list)
         self.failed_run = set()
         self.failed_setup = set()
+        self.skipped = set()
         self.suppressed_warnings = defaultdict(int)
         self.fixed = 0
 
@@ -71,6 +72,7 @@ class ResultSummary(object):
 
         self.failed_run |= other.failed_run
         self.failed_setup |= other.failed_setup
+        self.skipped |= other.skipped
         self.fixed += other.fixed
         for k, v in other.suppressed_warnings.items():
             self.suppressed_warnings[k] += v
