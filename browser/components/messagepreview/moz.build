@@ -11,10 +11,6 @@ FINAL_LIBRARY = "browsercomps"
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Messaging System")
 
-BROWSER_CHROME_MANIFESTS += [
-    "tests/browser/browser.toml",
-]
-
 FINAL_TARGET_FILES.actors += [
     "actors/AboutMessagePreviewChild.sys.mjs",
     "actors/AboutMessagePreviewParent.sys.mjs",
