@@ -29,6 +29,7 @@
 #include "mozilla/StaticMonitor.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/WeakPtr.h"
@@ -422,8 +423,13 @@ bool HangMonitorChild::InterruptCallback() {
     if (browserChild) {
       js::AutoAssertNoContentJS nojs(mContext);
       if (paintWhileInterruptingJS.value()) {
+        AUTO_PROFILER_MARKER_TEXT("InterruptCallback: PaintWhileInterruptingJS",
+                                  DOM, {}, ""_ns);
         browserChild->PaintWhileInterruptingJS();
       } else {
+        AUTO_PROFILER_MARKER_TEXT(
+            "InterruptCallback: UnloadLayersWhileInterruptingJS", DOM, {},
+            ""_ns);
         browserChild->UnloadLayersWhileInterruptingJS();
       }
     }
@@ -590,6 +596,7 @@ mozilla::ipc::IPCResult HangMonitorChild::RecvEndStartingDebugger() {
 
 mozilla::ipc::IPCResult HangMonitorChild::RecvPaintWhileInterruptingJS(
     const TabId& aTabId) {
+  PROFILER_MARKER_TEXT("PaintWhileInterruptingJS", DOM, {}, ""_ns);
   MOZ_RELEASE_ASSERT(IsOnThread());
 
   {
