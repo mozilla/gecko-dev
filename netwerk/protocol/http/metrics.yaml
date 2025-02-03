@@ -1382,3 +1382,271 @@ hpack:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: HPACK_PEAK_SIZE_COMPRESSOR
+
+spdy:
+  parallel_streams:
+    type: custom_distribution
+    description: >
+      SPDY: Streams concurrent active per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_PARALLEL_STREAMS.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_PARALLEL_STREAMS
+
+  request_per_conn:
+    type: custom_distribution
+    description: >
+      SPDY: Streams created per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_REQUEST_PER_CONN_3.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: streams
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1505500
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1642559
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1505500
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1642559
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_REQUEST_PER_CONN_3
+
+  server_initiated_streams:
+    type: custom_distribution
+    description: >
+      SPDY: Streams received per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_SERVER_INITIATED_STREAMS.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SERVER_INITIATED_STREAMS
+
+  chunk_recvd:
+    type: memory_distribution
+    description: >
+      SPDY: Recvd Chunk Size (rounded to KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_CHUNK_RECVD.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_CHUNK_RECVD
+
+  syn_size:
+    type: memory_distribution
+    description: >
+      SPDY: SYN Frame Header Size
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_SYN_SIZE.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SYN_SIZE
+
+  syn_ratio:
+    type: custom_distribution
+    description: >
+      SPDY: SYN Frame Header Ratio (lower better)
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram SPDY_SYN_RATIO.
+    range_min: 1
+    range_max: 99
+    bucket_count: 20
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SYN_RATIO
+
+  syn_reply_size:
+    type: memory_distribution
+    description: >
+      SPDY: SYN Reply Header Size
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_SYN_REPLY_SIZE.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SYN_REPLY_SIZE
+
+  syn_reply_ratio:
+    type: custom_distribution
+    description: >
+      SPDY: SYN Reply Header Ratio (lower better)
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram SPDY_SYN_REPLY_RATIO.
+    range_min: 1
+    range_max: 99
+    bucket_count: 20
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SYN_REPLY_RATIO
+
+  kbread_per_conn:
+    type: memory_distribution
+    description: >
+      SPDY: KB read per connection
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_KBREAD_PER_CONN2.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520260
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_KBREAD_PER_CONN2
+
+  settings_max_streams:
+    type: custom_distribution
+    description: >
+      H2: Settings Max Streams parameter
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_SETTINGS_MAX_STREAMS.
+    range_min: 1
+    range_max: 5000
+    bucket_count: 100
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SETTINGS_MAX_STREAMS
+
+  settings_iw:
+    type: memory_distribution
+    description: >
+      H2: Settings Initial Window (rounded to KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_SETTINGS_IW.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_SETTINGS_IW
+
+  goaway_local:
+    type: custom_distribution
+    description: >
+      H2: goaway reason client sent from rfc 7540. 31 is none sent.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SPDY_GOAWAY_LOCAL.
+    range_min: 0
+    range_max: 32
+    bucket_count: 33
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_GOAWAY_LOCAL
+
+  goaway_peer:
+    type: custom_distribution
+    description: >
+      H2: goaway reason from peer from rfc 7540. 31 is none received.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SPDY_GOAWAY_PEER.
+    range_min: 0
+    range_max: 32
+    bucket_count: 33
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_GOAWAY_PEER
+
+  continued_headers:
+    type: memory_distribution
+    description: >
+      Size of continued H2 headers in bytes.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SPDY_CONTINUED_HEADERS.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1324855
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1324855
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: SPDY_CONTINUED_HEADERS

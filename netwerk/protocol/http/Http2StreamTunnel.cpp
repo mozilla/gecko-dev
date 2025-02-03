@@ -18,7 +18,7 @@
 #include "nsHttpConnectionInfo.h"
 #include "nsQueryObject.h"
 #include "nsProxyRelease.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 
 namespace mozilla::net {
 
@@ -357,7 +357,7 @@ nsresult Http2StreamTunnel::GenerateHeaders(nsCString& aCompressedData,
       aCompressedData.Length() * 100 /
       (11 + authorityHeader.Length() + mFlatHttpRequestHeaders.Length());
 
-  Telemetry::Accumulate(Telemetry::SPDY_SYN_RATIO, ratio);
+  glean::spdy::syn_ratio.AccumulateSingleSample(ratio);
 
   return NS_OK;
 }
@@ -748,7 +748,7 @@ nsresult Http2StreamWebSocket::GenerateHeaders(nsCString& aCompressedData,
       aCompressedData.Length() * 100 /
       (11 + authorityHeader.Length() + mFlatHttpRequestHeaders.Length());
 
-  Telemetry::Accumulate(Telemetry::SPDY_SYN_RATIO, ratio);
+  glean::spdy::syn_ratio.AccumulateSingleSample(ratio);
   return NS_OK;
 }
 

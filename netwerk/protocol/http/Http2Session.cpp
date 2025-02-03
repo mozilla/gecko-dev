@@ -31,6 +31,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "nsHttp.h"
 #include "nsHttpConnection.h"
@@ -244,12 +245,12 @@ Http2Session::~Http2Session() {
     mozilla::glean::networking::trr_request_count_per_conn.Get("h2"_ns).Add(
         static_cast<int32_t>(mTrrStreams));
   }
-  Telemetry::Accumulate(Telemetry::SPDY_PARALLEL_STREAMS, mConcurrentHighWater);
-  Telemetry::Accumulate(Telemetry::SPDY_REQUEST_PER_CONN_3, mCntActivated);
-  Telemetry::Accumulate(Telemetry::SPDY_SERVER_INITIATED_STREAMS,
-                        mServerPushedResources);
-  Telemetry::Accumulate(Telemetry::SPDY_GOAWAY_LOCAL, mClientGoAwayReason);
-  Telemetry::Accumulate(Telemetry::SPDY_GOAWAY_PEER, mPeerGoAwayReason);
+  glean::spdy::parallel_streams.AccumulateSingleSample(mConcurrentHighWater);
+  glean::spdy::request_per_conn.AccumulateSingleSample(mCntActivated);
+  glean::spdy::server_initiated_streams.AccumulateSingleSample(
+      mServerPushedResources);
+  glean::spdy::goaway_local.AccumulateSingleSample(mClientGoAwayReason);
+  glean::spdy::goaway_peer.AccumulateSingleSample(mPeerGoAwayReason);
   Telemetry::Accumulate(Telemetry::HTTP2_FAIL_BEFORE_SETTINGS,
                         mPeerFailedHandshake);
 }
@@ -1580,8 +1581,7 @@ nsresult Http2Session::RecvHeaders(Http2Session* self) {
   }
 
   if (isContinuation) {
-    Telemetry::Accumulate(Telemetry::SPDY_CONTINUED_HEADERS,
-                          self->mAggregatedHeaderSize);
+    glean::spdy::continued_headers.Accumulate(self->mAggregatedHeaderSize);
   }
 
   rv = self->ResponseHeadersComplete();
@@ -1793,12 +1793,12 @@ nsresult Http2Session::RecvSettings(Http2Session* self) {
 
       case SETTINGS_TYPE_MAX_CONCURRENT:
         self->mMaxConcurrent = value;
-        Telemetry::Accumulate(Telemetry::SPDY_SETTINGS_MAX_STREAMS, value);
+        glean::spdy::settings_max_streams.AccumulateSingleSample(value);
         self->ProcessPending();
         break;
 
       case SETTINGS_TYPE_INITIAL_WINDOW: {
-        Telemetry::Accumulate(Telemetry::SPDY_SETTINGS_IW, value >> 10);
+        glean::spdy::settings_iw.Accumulate(value >> 10);
         int32_t delta = value - self->mServerInitialStreamWindow;
         self->mServerInitialStreamWindow = value;
 
@@ -2038,8 +2038,7 @@ nsresult Http2Session::RecvPushPromise(Http2Session* self) {
   }
 
   if (self->mInputFrameType == FRAME_TYPE_CONTINUATION) {
-    Telemetry::Accumulate(Telemetry::SPDY_CONTINUED_HEADERS,
-                          self->mAggregatedHeaderSize);
+    glean::spdy::continued_headers.Accumulate(self->mAggregatedHeaderSize);
   }
 
   // Create the buffering transaction and push stream
@@ -3067,7 +3066,7 @@ nsresult Http2Session::ReadyToProcessDataFrame(
              newState == DISCARDING_DATA_FRAME_PADDING);
   ChangeDownstreamState(newState);
 
-  Telemetry::Accumulate(Telemetry::SPDY_CHUNK_RECVD, mInputFrameDataSize >> 10);
+  glean::spdy::chunk_recvd.Accumulate(mInputFrameDataSize >> 10);
   mLastDataReadEpoch = mLastReadEpoch;
 
   if (!mInputFrameID) {
