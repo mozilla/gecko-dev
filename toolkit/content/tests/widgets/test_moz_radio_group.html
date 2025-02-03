@@ -12,6 +12,7 @@
     let testHelpers = new InputTestHelpers();
     let html;
     let defaultTemplate;
+    const isMac = navigator.platform.includes("Mac");
 
     add_setup(async function setup() {
       ({ html } = await testHelpers.setupLit());
@@ -272,12 +273,29 @@
       let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
-      firstButton.click();
-      is(
-        document.activeElement,
-        firstButton,
-        "The first radio button receives focus on click."
-      );
+
+      synthesizeMouseAtCenter(firstButton, {});
+      await radioGroup.updateComplete;
+      // Bug 1927205: The focus model for native dialogs on macOS is that clicking a radio button
+      // does not move focus. Since our chrome UI emulates native OS behaviors, clicking
+      // a moz-radio _should not_ move focus to the inner HTML input in that clicked
+      // moz-radio element.
+      if (isMac) {
+        is(
+          document.activeElement,
+          document.body,
+          "On macOS, the first radio button should NOT receive focus on click."
+        );
+        // In order to keep compatibility with the rest of the test task,
+        // we manually move focus to the first button.
+        firstButton.focus();
+      } else {
+        is(
+          document.activeElement,
+          firstButton,
+          "The first radio button receives focus on click."
+        );
+      }
 
       await keyboardNavigate("down");
       validateActiveElement(secondButton);
@@ -332,6 +350,12 @@
       validateActiveElement(thirdButton);
 
       await keyboardNavigate("right");
+      validateActiveElement(secondButton);
+
+      // Bug 1927205: If a radio button is already focused and we click
+      // another button in that group, focus should move accordingly.
+      secondButton.click();
+      await radioGroup.updateComplete;
       validateActiveElement(secondButton);
 
       await SpecialPowers.popPrefEnv();
@@ -507,6 +531,12 @@
         { type: "change", value: "third", localName: "moz-radio-group" },
       ]);
 
+      // The macOS native focus model is that clicking on a radio button does not move the focus
+      // to that radio button. Because our chrome UI emulates native OS behaviors, we must
+      // manually move the focus in order to keep compatibility with the test.
+      if (isMac) {
+        thirdButton.focus();
+      }
       // Verify that keyboard navigation emits the right events in the correct order.
       synthesizeKey("KEY_ArrowUp", {});
       await radioGroup.updateComplete;
@@ -514,10 +544,7 @@
       await TestUtils.waitForTick();
 
       verifyEvents([
-        { type: "click", value: "second", localName: "moz-radio", checked: true },
-        { type: "input", value: "second", localName: "moz-radio", checked: true },
         { type: "input", value: "second", localName: "moz-radio-group" },
-        { type: "change", value: "second", localName: "moz-radio", checked: true },
         { type: "change", value: "second", localName: "moz-radio-group" },
       ]);
 
