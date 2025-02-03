@@ -106,7 +106,9 @@ async function openPreferencesViaOpenPreferencesAPI(aPane, aOptions) {
     ? "sync-pane-loaded"
     : "privacy-pane-loaded";
   let finalPrefPaneLoaded = TestUtils.topicObserved(finalPaneEvent, () => true);
-  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    allowInheritPrincipal: true,
+  });
   openPreferences(aPane, aOptions);
   let newTabBrowser = gBrowser.selectedBrowser;
 

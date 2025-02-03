@@ -402,6 +402,7 @@ function GetBrowserType(type) {
       // open a tab in a `type` content process
       gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
         preferredRemoteType: type,
+        allowInheritPrincipal: true,
       });
       // get the browser for the `type` process tab
       GetBrowserType[type] = gBrowser.getBrowserForTab(gBrowser.selectedTab);
