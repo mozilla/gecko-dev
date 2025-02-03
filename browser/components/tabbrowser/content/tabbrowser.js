@@ -805,7 +805,6 @@
       }
 
       this.showTab(aTab);
-      this.ungroupTab(aTab);
       if (this.tabContainer.verticalMode) {
         this._handleTabMove(aTab, () =>
           this.verticalPinnedTabsContainer.appendChild(aTab)
@@ -3532,19 +3531,14 @@
       let tabs = contextTab.multiselected ? this.selectedTabs : [contextTab];
       // Walk the array in reverse order so the tabs are kept in order.
       for (let i = tabs.length - 1; i >= 0; i--) {
-        let tab = tabs[i];
-        if (tab._tPos > 0) {
-          this.moveTabTo(tab, 0);
-        }
+        this.moveTabToStart(tabs[i]);
       }
     }
 
     moveTabsToEnd(contextTab) {
       let tabs = contextTab.multiselected ? this.selectedTabs : [contextTab];
       for (let tab of tabs) {
-        if (tab._tPos < this.tabs.length - 1) {
-          this.moveTabTo(tab, this.tabs.length - 1);
-        }
+        this.moveTabToEnd(tab);
       }
     }
 
@@ -5664,16 +5658,14 @@
      *   a tab group, since pinned tabs are presently not allowed in tab groups.
      * @returns {void}
      */
-    moveTabTo(aTab, aIndex, options = { forceStandaloneTab: false }) {
-      const { forceStandaloneTab } = options;
-
+    moveTabTo(aTab, aIndex, { forceStandaloneTab = false } = {}) {
       // Don't allow mixing pinned and unpinned tabs.
       if (aTab.pinned) {
         aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
       } else {
         aIndex = Math.max(aIndex, this.pinnedTabCount);
       }
-      if (aTab._tPos == aIndex) {
+      if (aTab._tPos == aIndex && !(aTab.group && forceStandaloneTab)) {
         return;
       }
 
@@ -5684,7 +5676,7 @@
         if (forceStandaloneTab && neighbor.group) {
           neighbor = neighbor.group;
         }
-        if (neighbor && aIndex >= aTab._tPos) {
+        if (neighbor && aIndex > aTab._tPos) {
           neighbor.after(aTab);
         } else {
           this.tabContainer.insertBefore(aTab, neighbor);
@@ -5878,12 +5870,12 @@
       }
     }
 
-    moveTabToStart() {
-      this.moveTabTo(this.selectedTab, 0);
+    moveTabToStart(aTab = this.selectedTab) {
+      this.moveTabTo(aTab, 0, { forceStandaloneTab: true });
     }
 
-    moveTabToEnd() {
-      this.moveTabTo(this.selectedTab, this.tabs.length - 1);
+    moveTabToEnd(aTab = this.selectedTab) {
+      this.moveTabTo(aTab, this.tabs.length - 1, { forceStandaloneTab: true });
     }
 
     /**
@@ -8420,9 +8412,9 @@ var TabContextMenu = {
       }
     );
     let visibleTabs = gBrowser.visibleTabs;
-    let lastVisibleTab = visibleTabs[visibleTabs.length - 1];
+    let lastVisibleTab = visibleTabs.at(-1);
     let tabsToMove = contextTabs;
-    let lastTabToMove = tabsToMove[tabsToMove.length - 1];
+    let lastTabToMove = tabsToMove.at(-1);
 
     let isLastPinnedTab = false;
     if (lastTabToMove.pinned) {
@@ -8431,11 +8423,13 @@ var TabContextMenu = {
     }
     contextMoveTabToEnd.disabled =
       (lastTabToMove == lastVisibleTab || isLastPinnedTab) &&
+      !lastTabToMove.group &&
       allSelectedTabsAdjacent;
     let contextMoveTabToStart = document.getElementById("context_moveToStart");
     let isFirstTab =
-      tabsToMove[0] == visibleTabs[0] ||
-      tabsToMove[0] == visibleTabs[gBrowser.pinnedTabCount];
+      !tabsToMove[0].group &&
+      (tabsToMove[0] == visibleTabs[0] ||
+        tabsToMove[0] == visibleTabs[gBrowser.pinnedTabCount]);
     contextMoveTabToStart.disabled = isFirstTab && allSelectedTabsAdjacent;
 
     document.getElementById("context_openTabInWindow").disabled =

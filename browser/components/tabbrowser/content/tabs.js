@@ -1162,8 +1162,8 @@
           }
         }
       } else if (draggedTab) {
-        // Move the tabs. To avoid multiple tab-switches in the original window,
-        // the selected tab should be adopted last.
+        // Move the tabs into this window. To avoid multiple tab-switches in
+        // the original window, the selected tab should be adopted last.
         const dropIndex = this._getDropIndex(event);
         let newIndex = dropIndex;
         let selectedTab;
