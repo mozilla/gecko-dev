@@ -604,13 +604,14 @@ void PerformanceMainThread::IncEventCount(const nsAtom* aType) {
     return;
   }
 
-  ErrorResult rv;
+  IgnoredErrorResult rv;
   uint64_t count = EventCounts_Binding::MaplikeHelpers::Get(
       mEventCounts, nsDependentAtomString(aType), rv);
-  MOZ_ASSERT(!rv.Failed());
+  if (rv.Failed()) {
+    return;
+  }
   EventCounts_Binding::MaplikeHelpers::Set(
       mEventCounts, nsDependentAtomString(aType), ++count, rv);
-  MOZ_ASSERT(!rv.Failed());
 }
 
 size_t PerformanceMainThread::SizeOfEventEntries(
