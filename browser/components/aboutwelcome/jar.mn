@@ -18,6 +18,7 @@ browser.jar:
   content/activity-stream/data/content/assets/fox-doodle-tail.png                           (./assets/fox-doodle-tail.png)
   content/activity-stream/data/content/assets/fox-doodle-waving.gif                         (./assets/fox-doodle-waving.gif)
   content/activity-stream/data/content/assets/fox-doodle-waving-static.png                  (./assets/fox-doodle-waving-static.png)
+  content/activity-stream/data/content/assets/fox-doodle-waving-laptop.svg                  (./assets/fox-doodle-waving-laptop.svg)
   content/activity-stream/data/content/assets/heart.webp                                    (./assets/heart.webp)
   content/activity-stream/data/content/assets/long-zap.svg                                  (./assets/long-zap.svg)
   content/activity-stream/data/content/assets/mobile-download-qr-existing-user-cn.svg       (./assets/mobile-download-qr-existing-user-cn.svg)

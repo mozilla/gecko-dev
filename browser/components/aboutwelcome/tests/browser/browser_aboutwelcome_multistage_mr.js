@@ -810,3 +810,73 @@ add_task(async function test_AWMultistage_newtab_urlbar_focus() {
   BrowserTestUtils.removeTab(tab);
   sandbox.restore();
 });
+
+add_task(async function test_aboutwelcome_gratitude() {
+  const TEST_CONTENT = [
+    {
+      id: "AW_ACCOUNT_LOGIN",
+      content: {
+        fullscreen: true,
+        position: "split",
+        split_narrow_bkg_position: "-228px",
+        background:
+          "url('chrome://activity-stream/content/data/content/assets/fox-doodle-waving-laptop.svg') center center / 80% no-repeat var(--mr-screen-background-color)",
+        progress_bar: true,
+        logo: {},
+        title: {
+          string_id: "onboarding-sign-up-title",
+        },
+        subtitle: {
+          string_id: "onboarding-sign-up-description",
+        },
+        secondary_button: {
+          label: {
+            string_id: "mr2-onboarding-start-browsing-button-label",
+          },
+          style: "secondary",
+          action: {
+            navigate: true,
+          },
+        },
+        primary_button: {
+          label: {
+            string_id: "onboarding-sign-up-button",
+          },
+          action: {
+            navigate: true,
+          },
+        },
+      },
+    },
+  ];
+  await setAboutWelcomeMultiStage(JSON.stringify(TEST_CONTENT));
+  let { cleanup, browser } = await openMRAboutWelcome();
+
+  await test_screen_content(
+    browser,
+    "renders action buttons",
+    //Expected selectors
+    [
+      "main.AW_ACCOUNT_LOGIN",
+      "button[value='primary_button']",
+      "button[value='secondary_button']",
+    ],
+    //Unexpected selectors:
+    []
+  );
+
+  // make sure the secondary button navigates to newtab
+  await clickVisibleButton(browser, ".action-buttons button.secondary");
+  await test_screen_content(
+    browser,
+    "home",
+    //Expected selectors
+    ["body.activity-stream"],
+    //Unexpected selectors:
+    ["main.AW_ACCOUNT_LOGIN"]
+  );
+
+  // cleanup
+  await SpecialPowers.popPrefEnv();
+  await cleanup();
+});

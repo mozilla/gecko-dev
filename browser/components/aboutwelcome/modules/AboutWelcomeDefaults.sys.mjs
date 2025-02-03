@@ -42,6 +42,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       id: "AW_WELCOME_BACK",
       targeting: "isDeviceMigration",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-100px",
         image_alt_text: {
@@ -92,6 +93,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       targeting:
         "doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-60px",
         image_alt_text: {
@@ -226,6 +228,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       targeting:
         "!doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-60px",
         image_alt_text: {
@@ -337,6 +340,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       targeting:
         "doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-60px",
         image_alt_text: {
@@ -459,6 +463,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       targeting:
         "!doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-60px",
         image_alt_text: {
@@ -557,6 +562,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_LANGUAGE_MISMATCH",
       content: {
+        fullscreen: true,
         position: "split",
         background: "var(--mr-screen-background-color)",
         progress_bar: true,
@@ -597,6 +603,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       id: "AW_IMPORT_SETTINGS_EMBEDDED",
       targeting: `("messaging-system-action.showEmbeddedImport" |preferenceValue == true) && useEmbeddedMigrationWizard`,
       content: {
+        fullscreen: true,
         tiles: { type: "migration-wizard" },
         position: "split",
         split_narrow_bkg_position: "-42px",
@@ -632,6 +639,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       // are either not logged into FxA, or don't have any mobile devices syncing
       targeting: "!isFxASignedIn || sync.mobileDevices == 0",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-160px",
         image_alt_text: {
@@ -675,87 +683,39 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       },
     },
     {
-      id: "AW_ADDONS_PICKER",
-      // Show to en-* locales only
+      id: "AW_AMO_INTRODUCE",
       targeting: "localeLanguageCode == 'en'",
       content: {
-        position: "center",
+        position: "split",
+        fullscreen: true,
+        split_narrow_bkg_position: "-58px",
+        background:
+          "url('chrome://activity-stream/content/data/content/assets/mr-amo-collection.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
         logo: {},
-        tiles: {
-          type: "addons-picker",
-          data: [
-            {
-              id: "jid1-MnnxcxisBPnSXQ@jetpack",
-              name: "Privacy Badger",
-              icon: "https://addons.mozilla.org/user-media/addon_icons/506/506646-64.png?modified=mcrushed",
-              type: "extension",
-              description: "Automatically learns to block invisible trackers.",
-              source_id: "ADD_EXTENSION_BUTTON",
-              action: {
-                type: "INSTALL_ADDON_FROM_URL",
-                data: {
-                  url: "https://addons.mozilla.org/firefox/downloads/file/4129240/privacy_badger17-2023.6.23.xpi",
-                  telemetrySource: "aboutwelcome-addon",
-                },
-              },
-            },
-            {
-              id: "@contain-facebook",
-              name: "Facebook Container",
-              icon: "https://addons.mozilla.org/user-media/addon_icons/954/954390-64.png?modified=97d4c956",
-              type: "extension",
-              description: "Prevent Facebook from tracking you around the web.",
-              source_id: "ADD_EXTENSION_BUTTON",
-              action: {
-                type: "INSTALL_ADDON_FROM_URL",
-                data: {
-                  url: "https://addons.mozilla.org/firefox/downloads/file/4141092/facebook_container-2.3.11.xpi",
-                  telemetrySource: "aboutwelcome-addon",
-                },
-              },
-            },
-            {
-              id: "{74145f27-f039-47ce-a470-a662b129930a}",
-              name: "ClearURLs",
-              icon: "https://addons.mozilla.org/user-media/addon_icons/839/839767-64.png?modified=b06fa7ed",
-              type: "extension",
-              description: "Removes tracking elements from URLs.",
-              source_id: "ADD_EXTENSION_BUTTON",
-              action: {
-                type: "INSTALL_ADDON_FROM_URL",
-                data: {
-                  url: "https://addons.mozilla.org/firefox/downloads/file/4064884/clearurls-1.26.1.xpi",
-                  telemetrySource: "aboutwelcome-addon",
-                },
-              },
-            },
-          ],
-        },
         title: {
-          string_id: "amo-picker-title",
+          string_id: "amo-screen-title",
         },
         subtitle: {
-          string_id: "amo-picker-subtitle",
+          raw: "Extensions are tiny apps that let you customize Firefox. They can boost your privacy, enhance productivity, improve media, change the way Firefox looks, and so much more.",
         },
-        additional_button: {
+        primary_button: {
           label: {
-            string_id: "amo-picker-collection-link",
+            raw: "Explore staff recommended extensions",
           },
-          style: "link",
           action: {
             type: "OPEN_URL",
             data: {
-              args: "https://addons.mozilla.org",
-              where: "tab",
+              args: "https://addons.mozilla.org/en-US/firefox/collections/4757633/b4d5649fb087446aa05add5f0258c3/?page=1&collection_sort=-popularity",
+              where: "tabshifted",
             },
+            navigate: true,
           },
         },
         secondary_button: {
           label: {
             string_id: "mr2022-onboarding-secondary-skip-button-label",
           },
-          style: "secondary",
           action: {
             navigate: true,
           },
@@ -765,6 +725,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_GRATITUDE",
       content: {
+        fullscreen: true,
         position: "split",
         split_narrow_bkg_position: "-228px",
         image_alt_text: {
@@ -789,6 +750,50 @@ const MR_ABOUT_WELCOME_DEFAULT = {
           },
         },
       },
+      targeting: "isFxASignedIn",
+    },
+    {
+      id: "AW_ACCOUNT_LOGIN",
+      content: {
+        fullscreen: true,
+        position: "split",
+        split_narrow_bkg_position: "-228px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-gratitude-image-alt",
+        },
+        background:
+          "url('chrome://activity-stream/content/data/content/assets/fox-doodle-waving-laptop.svg') center center / 80% no-repeat var(--mr-screen-background-color)",
+        progress_bar: true,
+        logo: {},
+        title: {
+          string_id: "onboarding-sign-up-title",
+        },
+        subtitle: {
+          string_id: "onboarding-sign-up-description",
+        },
+        secondary_button: {
+          label: {
+            string_id: "mr2-onboarding-start-browsing-button-label",
+          },
+          style: "secondary",
+          action: {
+            navigate: true,
+          },
+        },
+        primary_button: {
+          label: {
+            string_id: "onboarding-sign-up-button",
+          },
+          action: {
+            data: {
+              entrypoint: "newuser-onboarding-desktop",
+            },
+            type: "FXA_SIGNIN_FLOW",
+            navigate: true,
+          },
+        },
+      },
+      targeting: "!isFxASignedIn",
     },
   ],
 };
