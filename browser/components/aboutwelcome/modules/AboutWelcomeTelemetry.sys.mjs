@@ -83,7 +83,7 @@ export class AboutWelcomeTelemetry {
    *                there is a case where spotlight may use this, too)
    *                containing a nested structure of data for reporting as
    *                telemetry, as documented in
-   * https://firefox-source-docs.mozilla.org/browser/components/newtab/docs/v2-system-addon/data_events.html
+   * https://firefox-source-docs.mozilla.org/browser/extensions/newtab/docs/v2-system-addon/data_events.html
    *                Does not have all of its data (`_createPing` will augment
    *                with ids and attribution if available).
    */
