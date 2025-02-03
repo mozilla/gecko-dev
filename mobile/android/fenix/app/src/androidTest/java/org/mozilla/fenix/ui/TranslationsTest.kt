@@ -5,9 +5,12 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.core.net.toUri
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.helpers.AppAndSystemHelper.disableWifiNetworkConnection
+import org.mozilla.fenix.helpers.AppAndSystemHelper.enableDataSaverSystemSetting
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
@@ -171,7 +174,7 @@ class TranslationsTest : TestSetup() {
             clickTranslationsOptionsButton()
             clickNeverTranslateLanguageOption(languageToTranslate = "French")
             verifyTheNeverTranslateLanguageDescription()
-            verifyTheNeverTranslateLanguageOptionState(isChecked = true)
+            verifyTheNeverTranslateLanguageOptionIsChecked(isChecked = true)
         }.clickTranslationSettingsButton {
             clickAutomaticTranslationButton()
             verifyNeverAutomaticallyTranslateForLanguage(languageToTranslate = "French")
@@ -193,6 +196,221 @@ class TranslationsTest : TestSetup() {
         }
         navigationToolbar {
             verifyTranslationButton(isPageTranslated = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2436642
+    @Test
+    fun verifyFirstTranslationBottomSheetTranslateFunctionalityTest() {
+        val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURL(testPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickTranslateButton {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = false)
+        }
+        navigationToolbar {
+            verifyTranslationButton(
+                isPageTranslated = true,
+                originalLanguage = "French",
+                translatedLanguage = "English",
+            )
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437112
+    @Test
+    fun verifyTheShowOriginalTranslationOptionTest() {
+        val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURL(testPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickTranslateButton {
+        }
+        navigationToolbar {
+        }.clickTranslateButton(
+            composeTestRule = composeTestRule,
+            isPageTranslated = true,
+            originalLanguage = "French",
+            translatedLanguage = "English",
+        ) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickShowOriginalButton {
+            verifyPageContent(testPage.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437111
+    @Test
+    fun changeTheTranslateToLanguageTest() {
+        val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURL(testPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickTranslateButton {
+        }
+        navigationToolbar {
+        }.clickTranslateButton(
+            composeTestRule = composeTestRule,
+            isPageTranslated = true,
+            originalLanguage = "French",
+            translatedLanguage = "English",
+        ) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+            clickTranslateToDropdown()
+            clickTranslateToLanguage("Estonian")
+        }.clickTranslateButton {
+        }
+        navigationToolbar {
+            verifyTranslationButton(
+                isPageTranslated = true,
+                originalLanguage = "French",
+                translatedLanguage = "Estonian",
+            )
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437990
+    @Test
+    fun verifyTheAlwaysOfferToTranslateOptionTest() {
+        val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+        val secondTestPage = "https://support.mozilla.org/fr/"
+
+        navigationToolbar {
+        }.enterURL(firstTestPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+            clickTranslationsOptionsButton()
+            verifyAlwaysOfferToTranslateOptionIsChecked(isChecked = true)
+            clickAlwaysOfferToTranslateOption()
+            verifyAlwaysOfferToTranslateOptionIsChecked(isChecked = false)
+        }.swipeCloseTranslationsSheet {
+            verifyPageContent(firstTestPage.content)
+        }
+        navigationToolbar {
+        }.enterURL(secondTestPage.toUri()) {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = false)
+        }
+        navigationToolbar {
+            verifyTranslationButton(isPageTranslated = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437992
+    @Test
+    fun verifyTheAlwaysTranslateOptionTest() {
+        val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+        val secondTestPage = "https://support.mozilla.org/fr/"
+
+        navigationToolbar {
+        }.enterURL(secondTestPage.toUri()) {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+            clickTranslationsOptionsButton()
+            verifyAlwaysTranslateOptionIsChecked(isChecked = false)
+            clickAlwaysTranslateLanguageOption("French")
+            verifyTheAlwaysTranslateLanguageDescription()
+        }.clickTranslationSettingsButton {
+            clickAutomaticTranslationButton()
+            verifyAlwaysAutomaticallyTranslateForLanguage(languageToTranslate = "French")
+            clickLanguageFromAutomaticTranslationMenu("French")
+            verifyAlwaysTranslateOptionState(isChecked = true)
+        }.goBackToAutomaticTranslationSubMenu {
+        }.goBackToTranslationSettingsSubMenu {
+        }.goBackToTranslationOptionSheet {
+            closeTranslationsSheet()
+        }
+        browserScreen {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+        }
+        navigationToolbar {
+            verifyTranslationButton(
+                isPageTranslated = true,
+                originalLanguage = "French",
+                translatedLanguage = "English",
+            )
+        }.enterURL(firstTestPage.url) {
+        }
+        navigationToolbar {
+            verifyTranslationButton(
+                isPageTranslated = true,
+                originalLanguage = "French",
+                translatedLanguage = "English",
+            )
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2439960
+    @Test
+    fun verifyTheSiteDeletionFromTheNeverTranslateListTest() {
+        val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURL(firstTestPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+            clickTranslationsOptionsButton()
+            verifyTheNeverTranslateThisSiteOptionIsChecked(isChecked = false)
+            clickNeverTranslateThisSiteOption()
+            verifyTheNeverTranslateThisSiteOptionIsChecked(isChecked = true)
+            verifyAlwaysOfferToTranslateOptionIsEnabled(isEnabled = false)
+            verifyAlwaysTranslateOptionIsEnabled(isEnabled = false)
+            verifyTheNeverTranslateLanguageOptionIsEnabled(isEnabled = false)
+        }.clickTranslationSettingsButton {
+            clickNeverTranslateTheseSitesButton()
+            verifyNeverTranslateThisSiteRemoveButton("${firstTestPage.url.scheme}://${firstTestPage.url.authority}")
+            clickNeverTranslateThisSiteRemoveButton("${firstTestPage.url.scheme}://${firstTestPage.url.authority}")
+            verifyDeleteNeverTranslateThisSiteDialog("${firstTestPage.url.scheme}://${firstTestPage.url.authority}")
+            clickCancelDeleteNeverTranslateThisSiteDialog()
+            clickNeverTranslateThisSiteRemoveButton("${firstTestPage.url.scheme}://${firstTestPage.url.authority}")
+            verifyDeleteNeverTranslateThisSiteDialog("${firstTestPage.url.scheme}://${firstTestPage.url.authority}")
+            clickConfirmDeleteNeverTranslateThisSiteDialog()
+        }.goBackToTranslationSettingsSubMenu {
+        }.goBackToTranslationOptionSheet {
+            verifyTheNeverTranslateThisSiteOptionIsChecked(isChecked = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2440963
+    @Test
+    fun downloadLanguageWhileDataSaverModeIsOnTest() {
+        val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURL(firstTestPage.url) {
+        }
+        translationsRobot(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+            clickTranslationsOptionsButton()
+        }.clickTranslationSettingsButton {
+            disableWifiNetworkConnection()
+            enableDataSaverSystemSetting(enabled = true)
+            clickDownloadLanguagesButton()
+            clickLanguageToDownload("Bosnian")
+            verifyDownloadLanguageInSavingModePrompt()
+            clickCancelDownloadLanguageInSavingModePromptButton()
+            clickLanguageToDownload("Bosnian")
+            verifyDownloadLanguageInSavingModePrompt()
+            clickDownloadLanguageInSavingModePromptButton()
+            verifyDownloadedLanguage("Bosnian")
         }
     }
 }
