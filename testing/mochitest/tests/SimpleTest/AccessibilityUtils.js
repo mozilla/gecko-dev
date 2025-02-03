@@ -35,6 +35,7 @@ this.AccessibilityUtils = (function () {
     Ci.nsIAccessibleRole.ROLE_PASSWORD_TEXT,
     Ci.nsIAccessibleRole.ROLE_PUSHBUTTON,
     Ci.nsIAccessibleRole.ROLE_RADIOBUTTON,
+    Ci.nsIAccessibleRole.ROLE_SEARCHBOX,
     Ci.nsIAccessibleRole.ROLE_SLIDER,
     Ci.nsIAccessibleRole.ROLE_SPINBUTTON,
     Ci.nsIAccessibleRole.ROLE_SUMMARY,

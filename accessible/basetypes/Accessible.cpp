@@ -451,16 +451,6 @@ already_AddRefed<nsIURI> Accessible::AnchorURIAt(uint32_t aAnchorIndex) const {
   return nullptr;
 }
 
-bool Accessible::IsSearchbox() const {
-  const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-  if (roleMapEntry && roleMapEntry->Is(nsGkAtoms::searchbox)) {
-    return true;
-  }
-
-  RefPtr<nsAtom> inputType = InputType();
-  return inputType == nsGkAtoms::search;
-}
-
 #ifdef A11Y_LOG
 void Accessible::DebugDescription(nsCString& aDesc) const {
   aDesc.Truncate();
@@ -631,9 +621,6 @@ nsStaticAtom* Accessible::ComputedARIARole() const {
     // Explicit ARIA role (e.g. specified via the role attribute) which does not
     // map to a unique Gecko role.
     return roleMap->roleAtom;
-  }
-  if (IsSearchbox()) {
-    return nsGkAtoms::searchbox;
   }
   role geckoRole = Role();
   if (geckoRole == roles::LANDMARK) {
