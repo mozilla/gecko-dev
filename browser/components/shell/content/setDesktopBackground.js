@@ -34,6 +34,18 @@ var gSetBackground = {
       document
         .getElementById("SetDesktopBackgroundDialog")
         .getButton("accept").hidden = true;
+
+      document
+        .getElementById("setDesktopBackground")
+        .addEventListener("command", () => this.setDesktopBackground());
+
+      document
+        .getElementById("showDesktopPreferences")
+        .addEventListener("command", () => {
+          this._shell
+            .QueryInterface(Ci.nsIMacShellService)
+            .showDesktopPreferences();
+        });
     } else {
       let multiMonitors = false;
       if (AppConstants.platform == "linux") {
@@ -50,6 +62,15 @@ var gSetBackground = {
         // Hide span option on single monitor systems.
         document.getElementById("spanPosition").hidden = true;
       }
+
+      document
+        .getElementById("menuPosition")
+        .addEventListener("command", () => this.updatePosition());
+      document
+        .getElementById("desktopColor")
+        .addEventListener("change", event =>
+          this.updateColor(event.currentTarget.value)
+        );
     }
 
     document.addEventListener("dialogaccept", function () {
@@ -242,8 +263,6 @@ if (AppConstants.platform != "macosx") {
       Services.obs.removeObserver(this, "shell:desktop-background-changed");
     }
   };
-
-  gSetBackground.showDesktopPrefs = function () {
-    this._shell.QueryInterface(Ci.nsIMacShellService).showDesktopPreferences();
-  };
 }
+
+window.addEventListener("load", () => gSetBackground.load());

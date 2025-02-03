@@ -7,9 +7,9 @@
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
         windowtype="Shell:SetDesktopBackground"
-        onload="gSetBackground.load();"
         data-l10n-id="set-desktop-background-window"
-        style="min-width: 30em;">
+        style="min-width: 30em;"
+        csp="default-src chrome:; style-src chrome: 'unsafe-inline';">
 
 <linkset>
   <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
@@ -43,8 +43,7 @@
 #ifndef XP_MACOSX
     <hbox align="center">
       <label data-l10n-id="set-background-position"/>
-      <menulist id="menuPosition"
-                oncommand="gSetBackground.updatePosition();" native="true">
+      <menulist id="menuPosition" native="true">
         <menupopup>
           <menuitem data-l10n-id="set-background-center"  value="CENTER"/>
           <menuitem data-l10n-id="set-background-tile"    value="TILE"/>
@@ -56,9 +55,7 @@
       </menulist>
       <spacer flex="1"/>
       <label data-l10n-id="set-background-color"/>
-      <html:input id="desktopColor"
-                  type="color"
-                  onchange="gSetBackground.updateColor(this.value);"/>
+      <html:input id="desktopColor" type="color"/>
     </hbox>
 #endif
 
@@ -78,11 +75,9 @@
 
     <hbox pack="end">
       <button id="setDesktopBackground"
-              data-l10n-id="set-desktop-background-accept"
-              oncommand="gSetBackground.setDesktopBackground();"/>
+              data-l10n-id="set-desktop-background-accept"/>
       <button id="showDesktopPreferences"
               data-l10n-id="open-desktop-prefs"
-              oncommand="gSetBackground.showDesktopPrefs();"
               hidden="true"/>
     </hbox>
 #endif
