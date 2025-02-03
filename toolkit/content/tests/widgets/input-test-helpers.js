@@ -665,26 +665,4 @@ class InputTestHelpers {
       { type: "change", localName: selector, value: TEST_STRING },
     ]);
   }
-
-  async verifyAriaLabel(selector) {
-    const ARIA_LABEL = "I'm not visible";
-    let ariaLabelTemplate = this.templateFn({
-      value: "default",
-      "aria-label": ARIA_LABEL,
-    });
-    let renderTarget = await this.renderInputElements(ariaLabelTemplate);
-    let input = renderTarget.querySelector(selector);
-
-    let labelText = input.shadowRoot.querySelector(".text");
-    ok(!labelText, "No visible label text is rendered.");
-    ok(
-      !input.getAttribute("aria-label"),
-      "aria-label is not set on the outer element."
-    );
-    is(
-      input.inputEl.getAttribute("aria-label"),
-      ARIA_LABEL,
-      "The aria-label is set on the input element."
-    );
-  }
 }

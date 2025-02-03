@@ -9,7 +9,7 @@
   --page-nav-button-gap: var(--space-xsmall);
   --page-nav-border-color: var(--border-color);
   --page-nav-focus-outline-inset: var(--focus-outline-inset);
-  --page-nav-heading-logo-size: calc(var(--icon-size-default) + var(--space-small));
+  --page-nav-header-logo-size: calc(var(--icon-size-default) + var(--space-small));
   --page-nav-hr-color: #CFCFD8;
 
   margin-inline-start: 42px;
@@ -36,20 +36,20 @@ nav {
   height: calc(100% - var(--page-nav-margin-top) - var(--page-nav-margin-bottom));
 }
 
-.page-nav-heading-wrapper {
+.page-nav-header-wrapper {
   display: flex;
   align-items: center;
   gap: var(--space-small);
 
   > .logo {
     display: inline-block;
-    height: var(--page-nav-heading-logo-size);
-    width: var(--page-nav-heading-logo-size);
+    height: var(--page-nav-header-logo-size);
+    width: var(--page-nav-header-logo-size);
     background: image-set(url("chrome://branding/content/about-logo.png"), url("chrome://branding/content/about-logo@2x.png") 2x) no-repeat center;
     background-size: auto;
-    background-size: var(--page-nav-heading-logo-size);
-    /* heading logo should be centered above button icons */
-    margin-inline-start: calc(var(--space-medium) - ((var(--page-nav-heading-logo-size) - var(--icon-size-default)) / 2));
+    background-size: var(--page-nav-header-logo-size);
+    /* Header logo should be centered above button icons */
+    margin-inline-start: calc(var(--space-medium) - ((var(--page-nav-header-logo-size) - var(--icon-size-default)) / 2));
 
     @media (max-width: 52rem) {
       .has-nav-icons & {
@@ -58,7 +58,7 @@ nav {
     }
   }
 
-  > .page-nav-heading {
+  > .page-nav-header {
     font-size: var(--font-size-xlarge);
     font-weight: var(--font-weight-bold);
     margin-block: 0;

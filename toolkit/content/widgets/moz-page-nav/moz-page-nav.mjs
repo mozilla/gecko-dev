@@ -20,7 +20,6 @@ import "chrome://global/content/elements/moz-support-link.mjs";
  * @property {string} currentView - The currently selected view.
  * @property {string} heading - A heading to be displayed at the top of the navigation.
  * @slot [default] - Used to append moz-page-nav-button elements to the navigation.
- * @slot [subheading] - Used to append page specific search input or notification to the nav.
  */
 export default class MozPageNav extends MozLitElement {
   static properties = {
@@ -29,7 +28,7 @@ export default class MozPageNav extends MozLitElement {
   };
 
   static queries = {
-    headingEl: "#page-nav-heading",
+    headingEl: "#page-nav-header",
     primaryNavGroupSlot: ".primary-nav-group slot",
     secondaryNavGroupSlot: "#secondary-nav-group slot",
   };
@@ -103,18 +102,15 @@ export default class MozPageNav extends MozLitElement {
         href="chrome://global/content/elements/moz-page-nav.css"
       />
       <nav class=${classMap({ "has-nav-icons": hasNavIcons })}>
-        <div class="page-nav-heading-wrapper">
+        <div class="page-nav-header-wrapper">
           <div class="logo"></div>
-          <h1 class="page-nav-heading" id="page-nav-heading">
-            ${this.heading}
-          </h1>
+          <h1 class="page-nav-header" id="page-nav-header">${this.heading}</h1>
         </div>
-        <slot name="subheading"></slot>
         <div
           class="primary-nav-group"
           role="tablist"
           aria-orientation="vertical"
-          aria-labelledby="page-nav-heading"
+          aria-labelledby="page-nav-header"
         >
           <slot
             @change-view=${this.onChangeView}
