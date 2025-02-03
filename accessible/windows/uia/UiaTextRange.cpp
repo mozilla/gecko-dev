@@ -25,6 +25,22 @@ template <typename T>
 HRESULT GetAttribute(TEXTATTRIBUTEID aAttributeId, T const& aRangeOrPoint,
                      VARIANT& aRetVal);
 
+static int CompareVariants(const VARIANT& aFirst, const VARIANT& aSecond) {
+  // MinGW lacks support for VariantCompare, but does support converting to
+  // PROPVARIANT and PropVariantCompareEx. Use this as a workaround for MinGW
+  // builds, but avoid the extra work otherwise. See Bug 1944732.
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__MINGW__)
+  PROPVARIANT firstPropVar;
+  PROPVARIANT secondPropVar;
+  VariantToPropVariant(&aFirst, &firstPropVar);
+  VariantToPropVariant(&aSecond, &secondPropVar);
+  return PropVariantCompareEx(firstPropVar, secondPropVar, PVCU_DEFAULT,
+                              PVCHF_DEFAULT);
+#else
+  return VariantCompare(aFirst, aSecond);
+#endif
+}
+
 // Used internally to safely get a UiaTextRange from a COM pointer provided
 // to us by a client.
 // {74B8E664-4578-4B52-9CBC-30A7A8271AE8}
@@ -385,9 +401,9 @@ UiaTextRange::FindAttribute(TEXTATTRIBUTEID aAttributeId, VARIANT aVal,
       // text attribute runs, we don't need to check the entire range; this
       // point's attributes are those of the entire range.
       GetAttribute(aAttributeId, startPoint, value);
-      //  VariantCompare is not valid if types are different. Verify the type
+      //  CompareVariants is not valid if types are different. Verify the type
       //  first so the result is well-defined.
-      if (aVal.vt == value.vt && VariantCompare(aVal, value) == 0) {
+      if (aVal.vt == value.vt && CompareVariants(aVal, value) == 0) {
         if (!matchingRangeStart) {
           matchingRangeStart = Some(startPoint);
         }
@@ -417,7 +433,7 @@ UiaTextRange::FindAttribute(TEXTATTRIBUTEID aAttributeId, VARIANT aVal,
     startPoint = startPoint.FindTextAttrsStart(eDirPrevious);
     do {
       GetAttribute(aAttributeId, startPoint, value);
-      if (aVal.vt == value.vt && VariantCompare(aVal, value) == 0) {
+      if (aVal.vt == value.vt && CompareVariants(aVal, value) == 0) {
         if (!matchingRangeEnd) {
           matchingRangeEnd = Some(endPoint);
         }
