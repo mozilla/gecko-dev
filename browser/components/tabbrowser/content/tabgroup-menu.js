@@ -59,6 +59,31 @@
     </panel>
        `;
 
+    static State = {
+      // Standard create mode (No AI UI)
+      CREATE_STANDARD_INITIAL: 0,
+      // Create mode with AI able to suggest tabs
+      CREATE_AI_INITIAL: 1,
+      // No ungrouped tabs to suggest (hide AI interactions)
+      CREATE_AI_INITIAL_SUGGESTIONS_DISABLED: 2,
+      // Create mode with suggestions
+      CREATE_AI_WITH_SUGGESTIONS: 3,
+      // Create mode with no suggestions
+      CREATE_AI_WITH_NO_SUGGESTIONS: 4,
+      // Standard edit mode (No AI UI)
+      EDIT_STANDARD_INITIAL: 5,
+      // Edit mode with AI able to suggest tabs
+      EDIT_AI_INITIAL: 6,
+      // No ungrouped tabs to suggest
+      EDIT_AI_INITIAL_SUGGESTIONS_DISABLED: 7,
+      // Edit mode with suggestions
+      EDIT_AI_WITH_SUGGESTIONS: 8,
+      // Edit mode with no suggestions
+      EDIT_AI_WITH_NO_SUGGESTIONS: 9,
+      LOADING: 10,
+      ERROR: 11,
+    };
+
     #activeGroup;
     #cancelButton;
     #createButton;
@@ -68,6 +93,7 @@
     #panel;
     #swatches;
     #swatchesContainer;
+    #suggestionState = MozTabbrowserTabGroupMenu.State.CREATE_STANDARD_INITIAL;
 
     constructor() {
       super();
@@ -248,6 +274,8 @@
     openCreateModal(group) {
       this.activeGroup = group;
       this.createMode = true;
+      this.suggestionState =
+        MozTabbrowserTabGroupMenu.State.CREATE_STANDARD_INITIAL;
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
@@ -256,6 +284,8 @@
     openEditModal(group) {
       this.activeGroup = group;
       this.createMode = false;
+      this.suggestionState =
+        MozTabbrowserTabGroupMenu.State.EDIT_STANDARD_INITIAL;
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
@@ -355,6 +385,93 @@
 
     #handleDelete() {
       gBrowser.removeTabGroup(this.activeGroup);
+    }
+
+    /**
+     * @param {number} newState - See MozTabbrowserTabGroupMenu.State
+     */
+    set suggestionState(newState) {
+      if (this.#suggestionState === newState) {
+        return;
+      }
+      this.#suggestionState = newState;
+      this.#renderSuggestionState();
+    }
+
+    #resetCommonUI() {
+      // TODO - has commun UI reset logic
+    }
+
+    #renderSuggestionState() {
+      switch (this.#suggestionState) {
+        // CREATE STANDARD INITIAL
+        case MozTabbrowserTabGroupMenu.State.CREATE_STANDARD_INITIAL:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        //CREATE AI INITIAL
+        case MozTabbrowserTabGroupMenu.State.CREATE_AI_INITIAL:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        // CREATE AI INITIAL SUGGESTIONS DISABLED
+        case MozTabbrowserTabGroupMenu.State
+          .CREATE_AI_INITIAL_SUGGESTIONS_DISABLED:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        // CREATE AI WITH SUGGESTIONS
+        case MozTabbrowserTabGroupMenu.State.CREATE_AI_WITH_SUGGESTIONS:
+          //TODO
+          break;
+
+        // CREATE AI WITH NO SUGGESTIONS
+        case MozTabbrowserTabGroupMenu.State.CREATE_AI_WITH_NO_SUGGESTIONS:
+          //TODO
+          break;
+
+        // EDIT STANDARD INITIAL
+        case MozTabbrowserTabGroupMenu.State.EDIT_STANDARD_INITIAL:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        // EDIT AI INITIAL
+        case MozTabbrowserTabGroupMenu.State.EDIT_AI_INITIAL:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        // EDIT AI INITIAL SUGGESTIONS DISABLED
+        case MozTabbrowserTabGroupMenu.State
+          .EDIT_AI_INITIAL_SUGGESTIONS_DISABLED:
+          this.#resetCommonUI();
+          //TODO
+          break;
+
+        // EDIT AI WITH SUGGESTIONS
+        case MozTabbrowserTabGroupMenu.State.EDIT_AI_WITH_SUGGESTIONS:
+          //TODO
+          break;
+
+        // EDIT AI WITH NO SUGGESTIONS
+        case MozTabbrowserTabGroupMenu.State.EDIT_AI_WITH_NO_SUGGESTIONS:
+          //TODO
+          break;
+
+        // LOADING
+        case MozTabbrowserTabGroupMenu.State.LOADING:
+          //TODO
+          break;
+
+        // ERROR
+        case MozTabbrowserTabGroupMenu.State.ERROR:
+          //TODO
+          break;
+      }
     }
   }
 
