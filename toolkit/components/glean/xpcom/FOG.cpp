@@ -13,6 +13,7 @@
 #include "mozilla/FOGIPC.h"
 #include "mozilla/glean/bindings/Common.h"
 #include "mozilla/glean/bindings/jog/jog_ffi_generated.h"
+#include "mozilla/glean/bindings/jog/JOG.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/HelperMacros.h"
@@ -378,6 +379,7 @@ NS_IMETHODIMP
 FOG::TestResetFOG(const nsACString& aDataPathOverride,
                   const nsACString& aAppIdOverride) {
   MOZ_ASSERT(XRE_IsParentProcess());
+  glean::JOG::TestReset();
   return glean::impl::fog_test_reset(&aDataPathOverride, &aAppIdOverride);
 }
 
