@@ -151,6 +151,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_animation_logic_mutations_fast.js"]
 skip-if = [
+  "asan",
   "debug",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1567800
 ]
