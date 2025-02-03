@@ -36,7 +36,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomWorkersMetrics.h"
+#include "mozilla/glean/DomServiceworkersMetrics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -1181,11 +1182,11 @@ bool RuntimeService::RegisterWorker(WorkerPrivate& aWorkerPrivate) {
                                           "HittingMaxWorkersPerDomain2"_ns);
 
       if (isServiceWorker) {
-        Telemetry::Accumulate(Telemetry::SERVICE_WORKER_SPAWN_GETS_QUEUED, 1);
+        glean::workers::service_worker_spawn_gets_queued.Add(1);
       } else if (isSharedWorker) {
-        Telemetry::Accumulate(Telemetry::SHARED_WORKER_SPAWN_GETS_QUEUED, 1);
+        glean::workers::shared_worker_spawn_gets_queued.Add(1);
       } else if (isDedicatedWorker) {
-        Telemetry::Accumulate(Telemetry::DEDICATED_WORKER_SPAWN_GETS_QUEUED, 1);
+        glean::workers::dedicated_worker_spawn_gets_queued.Add(1);
       }
     } else if (parent) {
       domainInfo->mChildWorkerCount++;

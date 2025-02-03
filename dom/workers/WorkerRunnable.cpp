@@ -18,7 +18,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomWorkersMetrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
@@ -624,10 +624,8 @@ void WorkerMainThreadRunnable::Dispatch(WorkerPrivate* aWorkerPrivate,
   // syncLoop is done, release WorkerRef to unblock shutdown.
   mWorkerRef = nullptr;
 
-  Telemetry::Accumulate(
-      Telemetry::SYNC_WORKER_OPERATION, mTelemetryKey,
-      static_cast<uint32_t>(
-          (TimeStamp::NowLoRes() - startTime).ToMilliseconds()));
+  glean::workers::sync_worker_operation.Get(mTelemetryKey)
+      .AccumulateRawDuration(TimeStamp::NowLoRes() - startTime);
 
   Unused << startTime;  // Shut the compiler up.
 

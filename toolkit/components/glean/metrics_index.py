@@ -42,6 +42,7 @@ gecko_metrics = [
     "dom/serviceworkers/metrics.yaml",
     "dom/storage/metrics.yaml",
     "dom/webauthn/metrics.yaml",
+    "dom/workers/metrics.yaml",
     "gfx/metrics.yaml",
     "image/decoders/metrics.yaml",
     "js/xpconnect/metrics.yaml",
