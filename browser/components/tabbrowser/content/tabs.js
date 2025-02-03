@@ -2309,7 +2309,8 @@
         movingTabs = [...movingTabs].reverse();
       }
 
-      let directionForward = screen > dragData.animLastScreenPos;
+      let directionForward =
+        screen > dragData.animLastScreenPos != this.#rtlMode;
       dragData.animLastScreenPos = screen;
 
       let screenAxis = this.verticalMode ? "screenY" : "screenX";
