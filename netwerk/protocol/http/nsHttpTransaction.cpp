@@ -1226,7 +1226,7 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
     return;
   }
 
-  Telemetry::HistogramID id = Telemetry::TRANSACTION_ECH_RETRY_OTHERS_COUNT;
+  TRANSACTION_ECH_RETRY_COUNT id = TRANSACTION_ECH_RETRY_OTHERS_COUNT;
   auto updateCount = MakeScopeExit([&] {
     auto entry = mEchRetryCounterMap.Lookup(id);
     MOZ_ASSERT(entry, "table not initialized");
@@ -1239,7 +1239,7 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
     LOG((" Got SSL_ERROR_ECH_RETRY_WITHOUT_ECH, use empty echConfig to retry"));
     failedConnInfo->SetEchConfig(EmptyCString());
     failedConnInfo.swap(mConnInfo);
-    id = Telemetry::TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT;
+    id = TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT;
     return;
   }
 
@@ -1261,7 +1261,7 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
       failedConnInfo->SetEchConfig(retryEchConfig);
       failedConnInfo.swap(mConnInfo);
     }
-    id = Telemetry::TRANSACTION_ECH_RETRY_WITH_ECH_COUNT;
+    id = TRANSACTION_ECH_RETRY_WITH_ECH_COUNT;
     return;
   }
 
@@ -1271,7 +1271,7 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
       NS_FAILED(aReason)) {
     LOG((" Got SSL_ERROR_ECH_FAILED, try other records"));
     if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_FAILED)) {
-      id = Telemetry::TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT;
+      id = TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT;
     }
     if (mRecordsForRetry.IsEmpty()) {
       if (mHTTPSSVCRecord) {
@@ -1579,8 +1579,8 @@ void nsHttpTransaction::Close(nsresult reason) {
     }
   }
 
-  Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_RESTART_REASON,
-                        mRestartReason);
+  glean::http::transaction_restart_reason.AccumulateSingleSample(
+      mRestartReason);
 
   if (!mResponseIsComplete && NS_SUCCEEDED(reason) && isHttp2or3) {
     // Responses without content-length header field are still complete if
@@ -1813,8 +1813,24 @@ void nsHttpTransaction::Close(nsresult reason) {
   }
 
   for (const auto& entry : mEchRetryCounterMap) {
-    Telemetry::Accumulate(static_cast<Telemetry::HistogramID>(entry.GetKey()),
-                          entry.GetData());
+    switch (entry.GetKey()) {
+      case TRANSACTION_ECH_RETRY_OTHERS_COUNT:
+        glean::http::transaction_ech_retry_others_count.AccumulateSingleSample(
+            entry.GetData());
+        break;
+      case TRANSACTION_ECH_RETRY_WITH_ECH_COUNT:
+        glean::http::transaction_ech_retry_with_ech_count
+            .AccumulateSingleSample(entry.GetData());
+        break;
+      case TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT:
+        glean::http::transaction_ech_retry_without_ech_count
+            .AccumulateSingleSample(entry.GetData());
+        break;
+      case TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT:
+        glean::http::transaction_ech_retry_ech_failed_count
+            .AccumulateSingleSample(entry.GetData());
+        break;
+    }
   }
 
   // closing this pipe triggers the channel's OnStopRequest method.
@@ -2423,8 +2439,8 @@ nsresult nsHttpTransaction::HandleContentStart() {
 
     // Report telemetry
     if (mSupportsHTTP3) {
-      Accumulate(Telemetry::TRANSACTION_WAIT_TIME_HTTP2_SUP_HTTP3,
-                 mPendingDurationTime.ToMilliseconds());
+      glean::http::transaction_wait_time_http2_sup_http3.AccumulateRawDuration(
+          mPendingDurationTime);
     }
 
     // If we're only connecting then we're going to be upgrading this
@@ -3404,14 +3420,12 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
 
   // echConfig is used, so initialize the retry counters to 0.
   if (!mConnInfo->GetEchConfig().IsEmpty()) {
-    mEchRetryCounterMap.InsertOrUpdate(
-        Telemetry::TRANSACTION_ECH_RETRY_WITH_ECH_COUNT, 0);
-    mEchRetryCounterMap.InsertOrUpdate(
-        Telemetry::TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT, 0);
-    mEchRetryCounterMap.InsertOrUpdate(
-        Telemetry::TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT, 0);
-    mEchRetryCounterMap.InsertOrUpdate(
-        Telemetry::TRANSACTION_ECH_RETRY_OTHERS_COUNT, 0);
+    mEchRetryCounterMap.InsertOrUpdate(TRANSACTION_ECH_RETRY_WITH_ECH_COUNT, 0);
+    mEchRetryCounterMap.InsertOrUpdate(TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT,
+                                       0);
+    mEchRetryCounterMap.InsertOrUpdate(TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT,
+                                       0);
+    mEchRetryCounterMap.InsertOrUpdate(TRANSACTION_ECH_RETRY_OTHERS_COUNT, 0);
   }
 
   return NS_OK;

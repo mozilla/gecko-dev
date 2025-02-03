@@ -2093,3 +2093,181 @@ http:
       - kershaw@mozilla.com
     expires: never
     telemetry_mirror: HTTP_CONNECTION_CLOSE_REASON
+
+  transaction_restart_reason:
+    type: custom_distribution
+    description: >
+      The reason why a HTTP transaction is restarted.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram HTTP_TRANSACTION_RESTART_REASON.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1667775
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1667775
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_TRANSACTION_RESTART_REASON
+
+  transaction_ech_retry_with_ech_count:
+    type: custom_distribution
+    description: >
+      When echConfig is enabled, number of times a transaction is retried
+      because of SSL_ERROR_ECH_RETRY_WITH_ECH
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_ECH_RETRY_WITH_ECH_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_ECH_RETRY_WITH_ECH_COUNT
+
+  transaction_ech_retry_without_ech_count:
+    type: custom_distribution
+    description: >
+      When echConfig is enabled, number of times a transaction is retried
+      because of SSL_ERROR_ECH_RETRY_WITHOUT_ECH
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT
+
+  transaction_ech_retry_ech_failed_count:
+    type: custom_distribution
+    description: >
+      When echConfig is enabled, number of times a transaction is retried
+      because of SSL_ERROR_ECH_FAILED
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT
+
+  transaction_ech_retry_others_count:
+    type: custom_distribution
+    description: >
+      When echConfig is enabled, number of times a transaction is retried
+      because of other error
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_ECH_RETRY_OTHERS_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671886
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_ECH_RETRY_OTHERS_COUNT
+
+  transaction_wait_time_http:
+    type: timing_distribution
+    description: >
+      Time from submission to dispatch of HTTP transaction (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_WAIT_TIME_HTTP.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_WAIT_TIME_HTTP
+
+  transaction_wait_time_spdy:
+    type: timing_distribution
+    description: >
+      Time from submission to dispatch of SPDY transaction (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_WAIT_TIME_SPDY.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_WAIT_TIME_SPDY
+
+  transaction_wait_time_http3:
+    type: timing_distribution
+    description: >
+      Time from submission to dispatch of HTTP/3 transaction (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_WAIT_TIME_HTTP3.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1605099
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_WAIT_TIME_HTTP3
+
+  transaction_wait_time_http2_sup_http3:
+    type: timing_distribution
+    description: >
+      Time from submission to dispatch of HTTP2 transaction that has received a
+      respone from a server that addretizes HTTP3 support (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TRANSACTION_WAIT_TIME_HTTP2_SUP_HTTP3.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675500
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675500
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: TRANSACTION_WAIT_TIME_HTTP2_SUP_HTTP3

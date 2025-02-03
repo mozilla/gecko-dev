@@ -25,7 +25,6 @@
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/net/DNS.h"
@@ -1689,12 +1688,12 @@ nsresult nsHttpConnectionMgr::DispatchTransaction(ConnectionEntry* ent,
     if (NS_SUCCEEDED(rv) && !trans->GetPendingTime().IsNull()) {
       if (conn->UsingSpdy()) {
         httpVersionkey = "h2"_ns;
-        AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_SPDY,
-                            trans->GetPendingTime(), now);
+        glean::http::transaction_wait_time_spdy.AccumulateRawDuration(
+            now - trans->GetPendingTime());
       } else {
         httpVersionkey = "h3"_ns;
-        AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_HTTP3,
-                            trans->GetPendingTime(), now);
+        glean::http::transaction_wait_time_http3.AccumulateRawDuration(
+            now - trans->GetPendingTime());
       }
       recordPendingTimeForHTTPSRR(httpVersionkey);
       trans->SetPendingTime(false);
@@ -1708,8 +1707,8 @@ nsresult nsHttpConnectionMgr::DispatchTransaction(ConnectionEntry* ent,
   rv = DispatchAbstractTransaction(ent, trans, caps, conn, priority);
 
   if (NS_SUCCEEDED(rv) && !trans->GetPendingTime().IsNull()) {
-    AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_HTTP,
-                        trans->GetPendingTime(), now);
+    glean::http::transaction_wait_time_http.AccumulateRawDuration(
+        now - trans->GetPendingTime());
     recordPendingTimeForHTTPSRR(httpVersionkey);
     trans->SetPendingTime(false);
   }
