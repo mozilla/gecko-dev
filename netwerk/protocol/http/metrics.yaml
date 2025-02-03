@@ -878,6 +878,137 @@ network:
       - necko@mozilla.com
     expires: never
 
+  race_cache_with_network_usage:
+    type: labeled_counter
+    description: >
+      Whether we raced network with the cache.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2.
+    labels:
+      - NetworkNoRace
+      - CacheNoRace
+      - NetworkRace
+      - CacheRace
+      - NetworkDelayedRace
+      - CacheDelayedRace
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1377340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1377340
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2
+
+  race_cache_with_network_saved_time:
+    type: timing_distribution
+    description: >
+      Time in milliseconds that we saved when we race cache with network.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RACE_CACHE_WITH_NETWORK_SAVED_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354407
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354407
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RACE_CACHE_WITH_NETWORK_SAVED_TIME
+
+  race_cache_with_network_ocec_on_start_diff:
+    type: timing_distribution
+    description: >
+      Time in milliseconds between onStartRequest from the cache and
+      onCacheEntryCheck. Report only when net wins and OCEC is before
+      onStartRequest from net.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram NETWORK_RACE_CACHE_WITH_NETWORK_OCEC_ON_START_DIFF.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354407
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354407
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RACE_CACHE_WITH_NETWORK_OCEC_ON_START_DIFF
+
+  race_cache_bandwidth_race_network_win:
+    type: memory_distribution
+    description: >
+      Amount of bytes received when we decide to race cache with network and
+      network wins.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RACE_CACHE_BANDWIDTH_RACE_NETWORK_WIN.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RACE_CACHE_BANDWIDTH_RACE_NETWORK_WIN
+
+  race_cache_bandwidth_race_cache_win:
+    type: memory_distribution
+    description: >
+      Amount of bytes received when we decide to race cache with network and
+      cache wins.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RACE_CACHE_BANDWIDTH_RACE_CACHE_WIN.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RACE_CACHE_BANDWIDTH_RACE_CACHE_WIN
+
+  race_cache_bandwidth_not_race:
+    type: memory_distribution
+    description: >
+      Amount of bytes received when we decide not to race cache with network.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RACE_CACHE_BANDWIDTH_NOT_RACE.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1354405
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RACE_CACHE_BANDWIDTH_NOT_RACE
+
+  race_cache_validation:
+    type: labeled_counter
+    description: >
+      Stats for validation requests when cache won the race.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram NETWORK_RACE_CACHE_VALIDATION.
+    labels:
+      - NotSent
+      - CachedContentUsed
+      - CachedContentNotUsed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1377223
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1377223
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#NETWORK_RACE_CACHE_VALIDATION
 
 networking:
   http3_enabled:

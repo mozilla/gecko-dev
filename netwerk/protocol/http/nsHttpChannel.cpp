@@ -1228,8 +1228,9 @@ nsresult nsHttpChannel::ConnectOnTailUnblock() {
                                 mIgnoreCacheEntry)) {
     // We won't send the conditional request because the unconditional
     // request was already sent (see bug 1377223).
-    AccumulateCategorical(
-        Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
+    glean::network::race_cache_validation
+        .EnumGet(glean::network::RaceCacheValidationLabel::eNotsent)
+        .Add();
   }
 
   // When racing, if OnCacheEntryAvailable is called before AsyncOpenURI
@@ -3116,11 +3117,14 @@ void nsHttpChannel::UpdateCacheDisposition(bool aSuccessfulReval,
   if (mRaceDelay && !mRaceCacheWithNetwork &&
       (LoadCachedContentIsPartial() || mDidReval)) {
     if (aSuccessfulReval || aPartialContentUsed) {
-      AccumulateCategorical(
-          Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::CachedContentUsed);
+      glean::network::race_cache_validation
+          .EnumGet(glean::network::RaceCacheValidationLabel::eCachedcontentused)
+          .Add();
     } else {
-      AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::
-                                CachedContentNotUsed);
+      glean::network::race_cache_validation
+          .EnumGet(
+              glean::network::RaceCacheValidationLabel::eCachedcontentnotused)
+          .Add();
     }
   }
 
@@ -4386,13 +4390,12 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
     *aResult = ENTRY_NOT_WANTED;
 
     // Net-win indicates that mOnStartRequestTimestamp is from net.
-    int64_t savedTime =
-        (TimeStamp::Now() - mOnStartRequestTimestamp).ToMilliseconds();
-    Telemetry::Accumulate(Telemetry::NETWORK_RACE_CACHE_WITH_NETWORK_SAVED_TIME,
-                          savedTime);
-    PROFILER_MARKER_TEXT(
-        "RCWN", NETWORK, {},
-        nsPrintfCString("Network won by %" PRId64 "ms", savedTime));
+    TimeDuration savedTime = (TimeStamp::Now() - mOnStartRequestTimestamp);
+    glean::network::race_cache_with_network_saved_time.AccumulateRawDuration(
+        savedTime);
+    PROFILER_MARKER_TEXT("RCWN", NETWORK, {},
+                         nsPrintfCString("Network won by %" PRId64 "ms",
+                                         int64_t(savedTime.ToMilliseconds())));
     return NS_OK;
   }
   if (mRaceCacheWithNetwork && mFirstResponseSource == RESPONSE_PENDING) {
@@ -4846,8 +4849,9 @@ nsresult nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry* entry,
        mIgnoreCacheEntry)) {
     // We won't send the conditional request because the unconditional
     // request was already sent (see bug 1377223).
-    AccumulateCategorical(
-        Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
+    glean::network::race_cache_validation
+        .EnumGet(glean::network::RaceCacheValidationLabel::eNotsent)
+        .Add();
   }
 
   if (mRaceCacheWithNetwork && valid) {
@@ -5245,20 +5249,17 @@ nsresult nsHttpChannel::ReadFromCache(void) {
 
       if (!mOnCacheEntryCheckTimestamp.IsNull()) {
         TimeStamp currentTime = TimeStamp::Now();
-        int64_t savedTime =
-            (currentTime - mOnStartRequestTimestamp).ToMilliseconds();
-        Telemetry::Accumulate(
-            Telemetry::NETWORK_RACE_CACHE_WITH_NETWORK_SAVED_TIME, savedTime);
+        TimeDuration savedTime = currentTime - mOnStartRequestTimestamp;
+        glean::network::race_cache_with_network_saved_time
+            .AccumulateRawDuration(savedTime);
 
         PROFILER_MARKER_TEXT(
             "RCWN", NETWORK, {},
-            nsPrintfCString("Network won by %" PRId64 "ms for %s", savedTime,
-                            mSpec.get()));
-        int64_t diffTime =
-            (currentTime - mOnCacheEntryCheckTimestamp).ToMilliseconds();
-        Telemetry::Accumulate(
-            Telemetry::NETWORK_RACE_CACHE_WITH_NETWORK_OCEC_ON_START_DIFF,
-            diffTime);
+            nsPrintfCString("Network won by %" PRId64 "ms for %s",
+                            int64_t(savedTime.ToMilliseconds()), mSpec.get()));
+        TimeDuration diffTime = currentTime - mOnCacheEntryCheckTimestamp;
+        glean::network::race_cache_with_network_ocec_on_start_diff
+            .AccumulateRawDuration(diffTime);
       }
       return NS_OK;
     }
@@ -10389,17 +10390,18 @@ void nsHttpChannel::ReportRcwnStats(bool isFromNet) {
           nsPrintfCString("Network won valid = %d, channel %p, URI %s",
                           LoadCachedContentIsValid(), this, mSpec.get()));
       gIOService->IncrementNetWonRequestNumber();
-      Telemetry::Accumulate(
-          Telemetry::NETWORK_RACE_CACHE_BANDWIDTH_RACE_NETWORK_WIN,
+      glean::network::race_cache_bandwidth_race_network_win.Accumulate(
           mTransferSize);
       if (mRaceDelay) {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-                NetworkDelayedRace);
+        glean::network::race_cache_with_network_usage
+            .EnumGet(glean::network::RaceCacheWithNetworkUsageLabel::
+                         eNetworkdelayedrace)
+            .Add();
       } else {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-                NetworkRace);
+        glean::network::race_cache_with_network_usage
+            .EnumGet(
+                glean::network::RaceCacheWithNetworkUsageLabel::eNetworkrace)
+            .Add();
       }
     } else {
       PROFILER_MARKER_TEXT(
@@ -10407,11 +10409,11 @@ void nsHttpChannel::ReportRcwnStats(bool isFromNet) {
           nsPrintfCString(
               "Cache won or was replaced, valid = %d, channel %p, URI %s",
               LoadCachedContentIsValid(), this, mSpec.get()));
-      Telemetry::Accumulate(Telemetry::NETWORK_RACE_CACHE_BANDWIDTH_NOT_RACE,
-                            mTransferSize);
-      AccumulateCategorical(
-          Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-              NetworkNoRace);
+      glean::network::race_cache_bandwidth_not_race.Accumulate(mTransferSize);
+      glean::network::race_cache_with_network_usage
+          .EnumGet(
+              glean::network::RaceCacheWithNetworkUsageLabel::eNetworknorace)
+          .Add();
     }
   } else {
     if (mRaceCacheWithNetwork || mRaceDelay) {
@@ -10420,24 +10422,23 @@ void nsHttpChannel::ReportRcwnStats(bool isFromNet) {
           nsPrintfCString("Cache won valid=%d, channel %p, URI %s",
                           LoadCachedContentIsValid(), this, mSpec.get()));
       gIOService->IncrementCacheWonRequestNumber();
-      Telemetry::Accumulate(
-          Telemetry::NETWORK_RACE_CACHE_BANDWIDTH_RACE_CACHE_WIN,
+      glean::network::race_cache_bandwidth_race_cache_win.Accumulate(
           mTransferSize);
       if (mRaceDelay) {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-                CacheDelayedRace);
+        glean::network::race_cache_with_network_usage
+            .EnumGet(glean::network::RaceCacheWithNetworkUsageLabel::
+                         eCachedelayedrace)
+            .Add();
       } else {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-                CacheRace);
+        glean::network::race_cache_with_network_usage
+            .EnumGet(glean::network::RaceCacheWithNetworkUsageLabel::eCacherace)
+            .Add();
       }
     } else {
-      Telemetry::Accumulate(Telemetry::NETWORK_RACE_CACHE_BANDWIDTH_NOT_RACE,
-                            mTransferSize);
-      AccumulateCategorical(
-          Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::
-              CacheNoRace);
+      glean::network::race_cache_bandwidth_not_race.Accumulate(mTransferSize);
+      glean::network::race_cache_with_network_usage
+          .EnumGet(glean::network::RaceCacheWithNetworkUsageLabel::eCachenorace)
+          .Add();
     }
   }
 
