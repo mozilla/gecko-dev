@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/BrowsingContext.h"
 #include "nsJAR.h"
 #include "nsJARChannel.h"
 #include "nsJARProtocolHandler.h"
@@ -824,9 +825,20 @@ nsJARChannel::SetContentLength(int64_t aContentLength) {
 
 static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
                                   nsresult aStatus, bool aCanceled,
-                                  const nsCString& aCanceledReason) {
+                                  const nsCString& aCanceledReason,
+                                  nsILoadInfo* aLoadInfo) {
   if (!StaticPrefs::network_jar_record_failure_reason()) {
     return;
+  }
+
+  // If the BrowsingContext performing the load has already been discarded, and
+  // we're getting a zero-length event due to the channel being canceled, this
+  // event isn't interesting for YSOD analysis, so can be skipped.
+  if (RefPtr<mozilla::dom::BrowsingContext> targetBC =
+          aLoadInfo->GetTargetBrowsingContext()) {
+    if (targetBC->IsDiscarded() && aCanceled) {
+      return;
+    }
   }
 
   // The Legacy Telemetry event can only hold 80 characters.
@@ -1084,7 +1096,8 @@ nsJARChannel::Open(nsIInputStream** aStream) {
 
   auto recordEvent = MakeScopeExit([&] {
     if (mContentLength <= 0 || NS_FAILED(rv)) {
-      RecordZeroLengthEvent(true, mSpec, rv, mCanceled, mCanceledReason);
+      RecordZeroLengthEvent(true, mSpec, rv, mCanceled, mCanceledReason,
+                            mLoadInfo);
     }
   });
 
@@ -1306,7 +1319,8 @@ nsJARChannel::OnStopRequest(nsIRequest* req, nsresult status) {
 
   if (mListener) {
     if (!mOnDataCalled || NS_FAILED(status)) {
-      RecordZeroLengthEvent(false, mSpec, status, mCanceled, mCanceledReason);
+      RecordZeroLengthEvent(false, mSpec, status, mCanceled, mCanceledReason,
+                            mLoadInfo);
     }
 
     mListener->OnStopRequest(this, status);
