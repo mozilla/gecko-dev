@@ -522,7 +522,7 @@ WebGLFramebuffer::WebGLFramebuffer(WebGLContext* webgl,
   info.zLayerCount = 1;
   info.isMultiview = false;
 
-  mCompletenessInfo = Some(std::move(info));
+  mCompletenessInfo = std::move(info);
 }
 
 WebGLFramebuffer::~WebGLFramebuffer() {
@@ -1062,7 +1062,7 @@ FBStatus WebGLFramebuffer::CheckFramebufferStatus() const {
       info.isMultiview = cur->IsMultiview();
     }
     MOZ_ASSERT(info.width && info.height);
-    mCompletenessInfo = Some(std::move(info));
+    mCompletenessInfo = std::move(info);
     info.fb = nullptr;  // Don't trigger the invalidation warning.
     return LOCAL_GL_FRAMEBUFFER_COMPLETE;
   } while (false);
