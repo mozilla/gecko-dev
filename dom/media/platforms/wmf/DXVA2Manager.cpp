@@ -26,7 +26,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/layers/D3D11ShareHandleImage.h"
 #include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
@@ -642,8 +642,8 @@ D3D11DXVA2Manager::Init(layers::KnowsCompositor* aKnowsCompositor,
   }
   mTextureClientAllocator->SetMaxPoolSize(5);
 
-  Telemetry::Accumulate(Telemetry::MEDIA_DECODER_BACKEND_USED,
-                        uint32_t(media::MediaDecoderBackend::WMFDXVA2D3D11));
+  glean::media::decoder_backend_used.AccumulateSingleSample(
+      uint32_t(media::MediaDecoderBackend::WMFDXVA2D3D11));
 
   reporter.SetSuccessful();
 

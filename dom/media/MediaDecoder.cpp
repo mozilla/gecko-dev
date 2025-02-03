@@ -29,7 +29,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
@@ -832,7 +832,7 @@ void MediaDecoder::EnsureTelemetryReported() {
   }
   for (const nsCString& codec : codecs) {
     LOG("Telemetry MEDIA_CODEC_USED= '%s'", codec.get());
-    Telemetry::Accumulate(Telemetry::HistogramID::MEDIA_CODEC_USED, codec);
+    glean::media::codec_used.Get(codec).Add(1);
   }
 
   mTelemetryReported = true;

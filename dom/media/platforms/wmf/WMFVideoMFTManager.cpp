@@ -27,7 +27,7 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/LayersTypes.h"
@@ -310,8 +310,8 @@ MediaResult WMFVideoMFTManager::InitInternal() {
           RESULT_DETAIL("Use VP8/VP9/AV1 MFT only if HW acceleration "
                         "is available."));
     }
-    Telemetry::Accumulate(Telemetry::MEDIA_DECODER_BACKEND_USED,
-                          uint32_t(media::MediaDecoderBackend::WMFSoftware));
+    glean::media::decoder_backend_used.AccumulateSingleSample(
+        uint32_t(media::MediaDecoderBackend::WMFSoftware));
   }
 
   LOG("Created a video decoder, useDxva=%s, streamType=%s, outputSubType=%s",

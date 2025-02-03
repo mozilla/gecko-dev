@@ -24,6 +24,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/glean/DomMediaMetrics.h"
 #include "mozilla/mozalloc.h"
 #include "nsDebug.h"
 #include "nsError.h"
@@ -97,35 +98,44 @@ static void RecordTypeForTelemetry(const nsAString& aType,
 
   const MediaMIMEType& mimeType = containerType->Type();
   if (mimeType == MEDIAMIMETYPE(VIDEO_WEBM)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::VideoWebm);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eVideowebm)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(AUDIO_WEBM)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::AudioWebm);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eAudiowebm)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(VIDEO_MP4)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::VideoMp4);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eVideomp4)
+        .Add();
     const auto& codecString = containerType->ExtendedType().Codecs().AsString();
     if (StringBeginsWith(codecString, u"hev1"_ns) ||
         StringBeginsWith(codecString, u"hvc1"_ns)) {
-      AccumulateCategorical(
-          mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::VideoHevc);
+      mozilla::glean::media::mse_source_buffer_type
+          .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eVideohevc)
+          .Add();
     }
   } else if (mimeType == MEDIAMIMETYPE(AUDIO_MP4)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::AudioMp4);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eAudiomp4)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(VIDEO_MPEG_TS)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::VideoMp2t);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eVideomp2t)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(AUDIO_MPEG_TS)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::AudioMp2t);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eAudiomp2t)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(AUDIO_MP3)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::AudioMpeg);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eAudiompeg)
+        .Add();
   } else if (mimeType == MEDIAMIMETYPE(AUDIO_AAC)) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MSE_SOURCE_BUFFER_TYPE::AudioAac);
+    mozilla::glean::media::mse_source_buffer_type
+        .EnumGet(mozilla::glean::media::MseSourceBufferTypeLabel::eAudioaac)
+        .Add();
   }
 }
 
