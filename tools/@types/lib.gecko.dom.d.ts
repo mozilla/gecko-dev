@@ -2770,7 +2770,6 @@ interface ProcessActorOptions {
 
 interface ProcessActorSidedOptions {
     esModuleURI?: string;
-    moduleURI?: string;
 }
 
 interface ProfilerMarkerOptions {
@@ -3488,6 +3487,10 @@ interface SVGBoundingBoxOptions {
     stroke?: boolean;
 }
 
+interface SVGPathDataSettings {
+    normalize?: boolean;
+}
+
 interface SanitizerAttributeNamespace {
     name: string;
     namespace?: string | null;
@@ -4170,7 +4173,6 @@ interface WindowActorOptions {
 
 interface WindowActorSidedOptions {
     esModuleURI?: string;
-    moduleURI?: string;
 }
 
 interface WindowInfoDictionary {
@@ -5217,6 +5219,7 @@ declare var BroadcastChannel: {
     prototype: BroadcastChannel;
     new(channel: string): BroadcastChannel;
     isInstance: IsInstance<BroadcastChannel>;
+    unpartitionedTestingChannel(channel: string): BroadcastChannel;
 };
 
 interface BrowsingContext extends LoadContextMixin {
@@ -5804,6 +5807,7 @@ declare var CallbackDebuggerNotification: {
 
 interface CanonicalBrowsingContext extends BrowsingContext {
     readonly activeSessionHistoryEntry: nsISHEntry | null;
+    readonly canOpenModalPicker: boolean;
     crossGroupOpener: CanonicalBrowsingContext | null;
     readonly currentRemoteType: string | null;
     readonly currentURI: URI | null;
@@ -5866,6 +5870,7 @@ interface CanvasCompositing {
 }
 
 interface CanvasDrawImage {
+    contextProperties: CanvasContextProperties;
     drawImage(image: CanvasImageSource, dx: number, dy: number): void;
     drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
     drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
@@ -8408,6 +8413,7 @@ declare var FormDataEvent: {
 };
 
 interface FragmentDirective {
+    createTextDirective(range: Range): Promise<string>;
     getTextDirectiveRanges(): Range[];
     removeAllTextDirectives(): void;
 }
@@ -8482,6 +8488,7 @@ interface GPUAdapter {
     readonly info: GPUAdapterInfo;
     readonly isFallbackAdapter: boolean;
     readonly limits: GPUSupportedLimits;
+    readonly missingFeatures: number;
     requestDevice(descriptor?: GPUDeviceDescriptor): Promise<GPUDevice>;
 }
 
@@ -10497,6 +10504,7 @@ interface HTMLInputElement extends HTMLElement, InvokerElement, MozEditableEleme
     reportValidity(): boolean;
     select(): void;
     setCustomValidity(error: string): void;
+    setDateTimePickerState(aIsOpen: boolean): void;
     setFocusState(aIsFocused: boolean): void;
     setRangeText(replacement: string): void;
     setRangeText(replacement: string, start: number, end: number, selectionMode?: SelectionMode): void;
@@ -16879,6 +16887,19 @@ declare var SVGDescElement: {
     isInstance: IsInstance<SVGDescElement>;
 };
 
+interface SVGDiscardElement extends SVGAnimationElement {
+    addEventListener<K extends keyof SVGAnimationElementEventMap>(type: K, listener: (this: SVGDiscardElement, ev: SVGAnimationElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<K extends keyof SVGAnimationElementEventMap>(type: K, listener: (this: SVGDiscardElement, ev: SVGAnimationElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+}
+
+declare var SVGDiscardElement: {
+    prototype: SVGDiscardElement;
+    new(): SVGDiscardElement;
+    isInstance: IsInstance<SVGDiscardElement>;
+};
+
 interface SVGElementEventMap extends ElementEventMap, GlobalEventHandlersEventMap, OnErrorEventHandlerForNodesEventMap, TouchEventHandlersEventMap {
 }
 
@@ -17798,7 +17819,13 @@ declare var SVGNumberList: {
     isInstance: IsInstance<SVGNumberList>;
 };
 
-interface SVGPathElement extends SVGGeometryElement {
+interface SVGPathData {
+    getPathData(settings?: SVGPathDataSettings): SVGPathSegment[];
+    setPathData(pathData: SVGPathSegment[]): void;
+}
+
+interface SVGPathElement extends SVGGeometryElement, SVGPathData {
+    getPathSegmentAtLength(distance: number): SVGPathSegment | null;
     addEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGPathElement, ev: SVGElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
     removeEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGPathElement, ev: SVGElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
@@ -17810,6 +17837,11 @@ declare var SVGPathElement: {
     new(): SVGPathElement;
     isInstance: IsInstance<SVGPathElement>;
 };
+
+interface SVGPathSegment {
+    type: string;
+    values: number[] | Float32Array;
+}
 
 interface SVGPatternElement extends SVGElement, SVGFitToViewBox, SVGURIReference {
     readonly height: SVGAnimatedLength;
@@ -18594,7 +18626,7 @@ interface ServiceWorkerContainer extends EventTarget {
     readonly ready: Promise<ServiceWorkerRegistration>;
     getRegistration(documentURL?: string | URL): Promise<ServiceWorkerRegistration | undefined>;
     getRegistrations(): Promise<ServiceWorkerRegistration[]>;
-    register(scriptURL: string | URL, options?: RegistrationOptions): Promise<ServiceWorkerRegistration>;
+    register(scriptURL: TrustedScriptURL | string, options?: RegistrationOptions): Promise<ServiceWorkerRegistration>;
     startMessages(): void;
     addEventListener<K extends keyof ServiceWorkerContainerEventMap>(type: K, listener: (this: ServiceWorkerContainer, ev: ServiceWorkerContainerEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
@@ -23364,7 +23396,7 @@ interface WindowContext {
     readonly isInBFCache: boolean;
     readonly isInProcess: boolean;
     readonly isLocalIP: boolean;
-    readonly overriddenFingerprintingSettings: number | null;
+    readonly overriddenFingerprintingSettings: nsIRFPTargetSetIDL | null;
     readonly parentWindowContext: WindowContext | null;
     readonly shouldResistFingerprinting: boolean;
     readonly topWindowContext: WindowContext;
@@ -24350,6 +24382,9 @@ interface nsIPermissionDelegateHandler {
 interface nsIPrintSettings {
 }
 
+interface nsIRFPTargetSetIDL {
+}
+
 interface nsIReferrerInfo {
 }
 
@@ -24675,7 +24710,7 @@ declare namespace ChromeUtils {
     function saveHeapSnapshotGetId(boundaries?: HeapSnapshotBoundaries): string;
     function setPerfStatsCollectionMask(aCollectionMask: number): void;
     function shallowClone(obj: any, target?: any): any;
-    function shouldResistFingerprinting(target: JSRFPTarget, overriddenFingerprintingSettings: number | null): boolean;
+    function shouldResistFingerprinting(target: JSRFPTarget, overriddenFingerprintingSettings: nsIRFPTargetSetIDL | null, isPBM?: boolean): boolean;
     function unregisterProcessActor(aName: string): void;
     function unregisterWindowActor(aName: string): void;
     function unwaiveXrays(val: any): any;
@@ -25622,6 +25657,7 @@ type CSSBoxType = "border" | "content" | "margin" | "padding";
 type CSSStyleSheetParsingMode = "agent" | "author" | "user";
 type CacheStorageNamespace = "chrome" | "content";
 type CallbackDebuggerNotificationPhase = "post" | "pre";
+type CanvasContextProperties = "both" | "fill" | "none" | "stroke";
 type CanvasDirection = "inherit" | "ltr" | "rtl";
 type CanvasFontKerning = "auto" | "none" | "normal";
 type CanvasFontStretch = "condensed" | "expanded" | "extra-condensed" | "extra-expanded" | "normal" | "semi-condensed" | "semi-expanded" | "ultra-condensed" | "ultra-expanded";
@@ -25696,7 +25732,7 @@ type GPUTextureDimension = "1d" | "2d" | "3d";
 type GPUTextureFormat = "astc-10x10-unorm" | "astc-10x10-unorm-srgb" | "astc-10x5-unorm" | "astc-10x5-unorm-srgb" | "astc-10x6-unorm" | "astc-10x6-unorm-srgb" | "astc-10x8-unorm" | "astc-10x8-unorm-srgb" | "astc-12x10-unorm" | "astc-12x10-unorm-srgb" | "astc-12x12-unorm" | "astc-12x12-unorm-srgb" | "astc-4x4-unorm" | "astc-4x4-unorm-srgb" | "astc-5x4-unorm" | "astc-5x4-unorm-srgb" | "astc-5x5-unorm" | "astc-5x5-unorm-srgb" | "astc-6x5-unorm" | "astc-6x5-unorm-srgb" | "astc-6x6-unorm" | "astc-6x6-unorm-srgb" | "astc-8x5-unorm" | "astc-8x5-unorm-srgb" | "astc-8x6-unorm" | "astc-8x6-unorm-srgb" | "astc-8x8-unorm" | "astc-8x8-unorm-srgb" | "bc1-rgba-unorm" | "bc1-rgba-unorm-srgb" | "bc2-rgba-unorm" | "bc2-rgba-unorm-srgb" | "bc3-rgba-unorm" | "bc3-rgba-unorm-srgb" | "bc4-r-snorm" | "bc4-r-unorm" | "bc5-rg-snorm" | "bc5-rg-unorm" | "bc6h-rgb-float" | "bc6h-rgb-ufloat" | "bc7-rgba-unorm" | "bc7-rgba-unorm-srgb" | "bgra8unorm" | "bgra8unorm-srgb" | "depth16unorm" | "depth24plus" | "depth24plus-stencil8" | "depth32float" | "depth32float-stencil8" | "eac-r11snorm" | "eac-r11unorm" | "eac-rg11snorm" | "eac-rg11unorm" | "etc2-rgb8a1unorm" | "etc2-rgb8a1unorm-srgb" | "etc2-rgb8unorm" | "etc2-rgb8unorm-srgb" | "etc2-rgba8unorm" | "etc2-rgba8unorm-srgb" | "r16float" | "r16sint" | "r16uint" | "r32float" | "r32sint" | "r32uint" | "r8sint" | "r8snorm" | "r8uint" | "r8unorm" | "rg11b10ufloat" | "rg16float" | "rg16sint" | "rg16uint" | "rg32float" | "rg32sint" | "rg32uint" | "rg8sint" | "rg8snorm" | "rg8uint" | "rg8unorm" | "rgb10a2uint" | "rgb10a2unorm" | "rgb9e5ufloat" | "rgba16float" | "rgba16sint" | "rgba16uint" | "rgba32float" | "rgba32sint" | "rgba32uint" | "rgba8sint" | "rgba8snorm" | "rgba8uint" | "rgba8unorm" | "rgba8unorm-srgb" | "stencil8";
 type GPUTextureSampleType = "depth" | "float" | "sint" | "uint" | "unfilterable-float";
 type GPUTextureViewDimension = "1d" | "2d" | "2d-array" | "3d" | "cube" | "cube-array";
-type GPUVertexFormat = "float16x2" | "float16x4" | "float32" | "float32x2" | "float32x3" | "float32x4" | "sint16x2" | "sint16x4" | "sint32" | "sint32x2" | "sint32x3" | "sint32x4" | "sint8x2" | "sint8x4" | "snorm16x2" | "snorm16x4" | "snorm8x2" | "snorm8x4" | "uint16x2" | "uint16x4" | "uint32" | "uint32x2" | "uint32x3" | "uint32x4" | "uint8x2" | "uint8x4" | "unorm10-10-10-2" | "unorm16x2" | "unorm16x4" | "unorm8x2" | "unorm8x4";
+type GPUVertexFormat = "float16" | "float16x2" | "float16x4" | "float32" | "float32x2" | "float32x3" | "float32x4" | "sint16" | "sint16x2" | "sint16x4" | "sint32" | "sint32x2" | "sint32x3" | "sint32x4" | "sint8" | "sint8x2" | "sint8x4" | "snorm16" | "snorm16x2" | "snorm16x4" | "snorm8" | "snorm8x2" | "snorm8x4" | "uint16" | "uint16x2" | "uint16x4" | "uint32" | "uint32x2" | "uint32x3" | "uint32x4" | "uint8" | "uint8x2" | "uint8x4" | "unorm10-10-10-2" | "unorm16" | "unorm16x2" | "unorm16x4" | "unorm8" | "unorm8x2" | "unorm8x4" | "unorm8x4-bgra";
 type GPUVertexStepMode = "instance" | "vertex";
 type GamepadHand = "" | "left" | "right";
 type GamepadHapticActuatorType = "vibration";
@@ -26190,6 +26226,10 @@ interface SVGLengthList {
 
 interface SVGNumberList {
     [Symbol.iterator](): IterableIterator<SVGNumber>;
+}
+
+interface SVGPathData {
+    setPathData(pathData: Iterable<SVGPathSegment>): void;
 }
 
 interface SVGPointList {
