@@ -175,21 +175,12 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     listener->WillPaintWindow(this);
   }
 
-  // For layered translucent popups all drawing should go to memory DC and no
-  // WM_PAINT messages are normally generated. To support asynchronous painting
-  // we force generation of WM_PAINT messages by invalidating window areas with
-  // RedrawWindow, InvalidateRect or InvalidateRgn function calls.
-  const bool usingMemoryDC =
-      IsPopup() && renderer->GetBackendType() == LayersBackend::LAYERS_NONE &&
-      mTransparencyMode == TransparencyMode::Transparent;
   const LayoutDeviceIntRect winRect = [&] {
     RECT r;
     ::GetWindowRect(mWnd, &r);
     ::MapWindowPoints(nullptr, mWnd, (LPPOINT)&r, 2);
     return WinUtils::ToIntRect(r);
   }();
-  LayoutDeviceIntRegion region;
-  LayoutDeviceIntRegion translucentRegion;
   // BeginPaint/EndPaint must be called to make Windows think that invalid
   // area is painted. Otherwise it will continue sending the same message
   // endlessly. Note that we need to call it after WillPaintWindow, which
@@ -198,40 +189,31 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   // [1]:
   // https://learn.microsoft.com/en-us/windows/win32/gdi/the-wm-paint-message
   HDC hDC = ::BeginPaint(mWnd, &ps);
-  if (usingMemoryDC) {
-    ::EndPaint(mWnd, &ps);
-    // We're guaranteed to have a widget proxy since we called
-    // GetLayerManager().
-    hDC = mBasicLayersSurface->GetTransparentDC();
-    region = translucentRegion = LayoutDeviceIntRegion{winRect};
-  } else {
-    region = GetRegionToPaint(ps, hDC);
-    if (mTransparencyMode == TransparencyMode::Transparent) {
-      translucentRegion = LayoutDeviceIntRegion{winRect};
-      translucentRegion.SubOut(mOpaqueRegion);
-      region.OrWith(translucentRegion);
-    }
+  LayoutDeviceIntRegion region = GetRegionToPaint(ps, hDC);
+  LayoutDeviceIntRegion translucentRegion;
+  if (mTransparencyMode == TransparencyMode::Transparent) {
+    translucentRegion = LayoutDeviceIntRegion{winRect};
+    translucentRegion.SubOut(mOpaqueRegion);
+    region.OrWith(translucentRegion);
+  }
 
-    if (mNeedsNCAreaClear ||
-        (didResize && mTransparencyMode == TransparencyMode::Transparent)) {
-      // We need to clear the non-client-area region, and the transparent parts
-      // of the window to black (once).
-      auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
-      nsAutoRegion regionToClear(ComputeNonClientHRGN());
-      if (!translucentRegion.IsEmpty()) {
-        nsAutoRegion translucent(WinUtils::RegionToHRGN(translucentRegion));
-        ::CombineRgn(regionToClear, regionToClear, translucent, RGN_OR);
-      }
-      ::FillRgn(hDC, regionToClear, black);
+  if (mNeedsNCAreaClear ||
+      (didResize && mTransparencyMode == TransparencyMode::Transparent)) {
+    // We need to clear the non-client-area region, and the transparent parts
+    // of the window to black (once).
+    auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
+    nsAutoRegion regionToClear(ComputeNonClientHRGN());
+    if (!translucentRegion.IsEmpty()) {
+      nsAutoRegion translucent(WinUtils::RegionToHRGN(translucentRegion));
+      ::CombineRgn(regionToClear, regionToClear, translucent, RGN_OR);
     }
+    ::FillRgn(hDC, regionToClear, black);
   }
   mNeedsNCAreaClear = false;
 
   bool didPaint = false;
   auto endPaint = MakeScopeExit([&] {
-    if (!usingMemoryDC) {
-      ::EndPaint(mWnd, &ps);
-    }
+    ::EndPaint(mWnd, &ps);
     if (didPaint) {
       mLastPaintEndTime = TimeStamp::Now();
       if (nsIWidgetListener* listener = GetPaintListener()) {
@@ -262,25 +244,10 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   bool result = true;
   switch (renderer->GetBackendType()) {
     case LayersBackend::LAYERS_NONE: {
-      RefPtr<gfxASurface> targetSurface;
-
-      // don't support transparency for non-GDI rendering, for now
-      if (usingMemoryDC) {
-        // This mutex needs to be held when EnsureTransparentSurface is
-        // called.
-        MutexAutoLock lock(mBasicLayersSurface->GetTransparentSurfaceLock());
-        targetSurface = mBasicLayersSurface->EnsureTransparentSurface();
-      }
-
-      RefPtr<gfxWindowsSurface> targetSurfaceWin;
-      if (!targetSurface) {
-        uint32_t flags = (mTransparencyMode == TransparencyMode::Opaque)
-                             ? 0
-                             : gfxWindowsSurface::FLAG_IS_TRANSPARENT;
-        targetSurfaceWin = new gfxWindowsSurface(hDC, flags);
-        targetSurface = targetSurfaceWin;
-      }
-
+      uint32_t flags = mTransparencyMode == TransparencyMode::Opaque
+                           ? 0
+                           : gfxWindowsSurface::FLAG_IS_TRANSPARENT;
+      RefPtr<gfxASurface> targetSurface = new gfxWindowsSurface(hDC, flags);
       RECT paintRect;
       ::GetClientRect(mWnd, &paintRect);
       RefPtr<DrawTarget> dt = gfxPlatform::CreateDrawTargetForSurface(
@@ -314,13 +281,6 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
         if (nsIWidgetListener* listener = GetPaintListener()) {
           result = listener->PaintWindow(this, region);
         }
-      }
-
-      if (usingMemoryDC) {
-        // Data from offscreen drawing surface was copied to memory bitmap of
-        // transparent bitmap. Now it can be read from memory bitmap to apply
-        // alpha channel and after that displayed on the screen.
-        mBasicLayersSurface->RedrawTransparentWindow();
       }
     } break;
     case LayersBackend::LAYERS_WR: {

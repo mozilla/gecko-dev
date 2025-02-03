@@ -157,14 +157,6 @@ class CompositorWidget {
   }
 
   /**
-   * Return true when it is better to defer EndRemoteDrawing().
-   *
-   * Called by BasicCompositor on the compositor thread for OMTC drawing
-   * after each composition.
-   */
-  virtual bool NeedsToDeferEndRemoteDrawing() { return false; }
-
-  /**
    * Some widgets (namely Gtk) may need clean up underlying surface
    * before painting to draw transparent objects correctly. Return
    * the transparent region where this clearing is required.

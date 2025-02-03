@@ -30,7 +30,6 @@ class PlatformCompositorWidgetDelegate : public CompositorWidgetDelegate {
 
   // Transparency handling.
   virtual void UpdateTransparency(TransparencyMode aMode) = 0;
-  virtual void ClearTransparentWindow() = 0;
 
   // Deliver visibility info
   virtual void NotifyVisibilityUpdated(bool aIsFullyOccluded) = 0;

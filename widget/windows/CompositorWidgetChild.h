@@ -36,7 +36,6 @@ class CompositorWidgetChild final : public PCompositorWidgetChild,
   void NotifyVisibilityUpdated(bool aIsFullyOccluded) override;
 
   void UpdateTransparency(TransparencyMode) override;
-  void ClearTransparentWindow() override;
 
   mozilla::ipc::IPCResult RecvObserveVsync() override;
   mozilla::ipc::IPCResult RecvUnobserveVsync() override;
