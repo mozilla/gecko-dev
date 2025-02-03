@@ -271,7 +271,7 @@ async function withWindowOverflowed(
     };
     CustomizableUI.addListener(widgetOverflowListener);
 
-    win.resizeTo(OVERFLOW_WINDOW_WIDTH_PX, win.outerHeight);
+    win.resizeBy(OVERFLOW_WINDOW_WIDTH_PX - win.innerWidth, 0);
     await widgetOverflowListener.promise;
     CustomizableUI.removeListener(widgetOverflowListener);
 

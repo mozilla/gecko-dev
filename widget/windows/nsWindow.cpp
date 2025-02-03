@@ -3581,7 +3581,7 @@ LayoutDeviceIntPoint nsWindow::WidgetToScreenOffset() {
   return LayoutDeviceIntPoint(point.x, point.y);
 }
 
-LayoutDeviceIntMargin nsWindow::ClientToWindowMargin() {
+LayoutDeviceIntMargin nsWindow::NormalSizeModeClientToWindowMargin() {
   if (mWindowType == WindowType::Popup) {
     return {};
   }

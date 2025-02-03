@@ -842,6 +842,9 @@ class nsIWidget : public nsISupports {
    * Similar to GetScreenBounds except that this function will always
    * get the size when the widget is in the nsSizeMode_Normal size mode
    * even if the current size mode is not nsSizeMode_Normal.
+   *
+   * If PersistClientBounds() is true, then the returned size are client sizes.
+   *
    * This method will fail if the size mode is not nsSizeMode_Normal and
    * the platform doesn't have the ability.
    * This method will always succeed if the current size mode is
@@ -852,6 +855,13 @@ class nsIWidget : public nsISupports {
    */
   [[nodiscard]] virtual nsresult GetRestoredBounds(
       LayoutDeviceIntRect& aRect) = 0;
+
+  /**
+   * On some platforms (namely, GTK), we can't know the bounds of the client
+   * decorations before actually showing the window. For that reason, we instead
+   * persist client (inner) sizes.
+   */
+  virtual bool PersistClientBounds() const { return false; }
 
   /**
    * Get this widget's client area bounds, if the window has a 3D border
@@ -1215,7 +1225,7 @@ class nsIWidget : public nsISupports {
   virtual void SetIcon(const nsAString& aIconSpec) = 0;
 
   /**
-   * Return this widget's origin in screen coordinates.
+   * Return this widget's client origin in screen coordinates.
    *
    * @return screen coordinates stored in the x,y members
    */
@@ -1249,12 +1259,20 @@ class nsIWidget : public nsISupports {
 
   /**
    * Returns the margins that are applied to go from client sizes to window
-   * sizes (which includes window borders and titlebar).
+   * sizes on a normal sizemode window (which includes window borders and
+   * titlebar).
+   *
    * This method should work even when the window is not yet visible.
    */
-  virtual LayoutDeviceIntMargin ClientToWindowMargin() { return {}; }
+  virtual LayoutDeviceIntMargin NormalSizeModeClientToWindowMargin() {
+    return {};
+  }
 
-  LayoutDeviceIntSize ClientToWindowSizeDifference();
+  /**
+   * Returns the size difference from client area to window area of a
+   * normal-sizemode window.
+   */
+  LayoutDeviceIntSize NormalSizeModeClientToWindowSizeDifference();
 
   /**
    * Dispatches an event to the widget

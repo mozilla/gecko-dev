@@ -27,9 +27,9 @@ function openWindow(features = "") {
   );
 }
 
-function checkWindow(msg, win, sizemode, width, height) {
+function checkWindow(msg, win, sizemode, width, height, checkSizes = true) {
   is(win.windowState, sizemode, "sizemode should match " + msg);
-  if (sizemode == win.STATE_NORMAL) {
+  if (sizemode == win.STATE_NORMAL && checkSizes) {
     is(win.innerWidth, width, "width should match " + msg);
     is(win.innerHeight, height, "height should match " + msg);
   }
@@ -120,10 +120,22 @@ async function runTest(aWindow) {
   win.close();
 
   // Open a new window with sizing synchronously.
+  //
+  // On Linux, resizes done before we have window decorations can't set the
+  // outer size. Before bug 581863 this was papered over, because outerWidth
+  // was the same as innerWidth, so windowDiff was always zero.
+  let checkSize = !isLinux;
   win = openWindow();
   win.resizeTo(500 + widthDiff, 500 + heightDiff);
   await SimpleTest.promiseFocus(win);
-  checkWindow("when sized synchronously", win, win.STATE_NORMAL, 500, 500);
+  checkWindow(
+    "when sized synchronously",
+    win,
+    win.STATE_NORMAL,
+    500,
+    500,
+    checkSize
+  );
   await waitForSizeModePersisted();
   win.close();
 

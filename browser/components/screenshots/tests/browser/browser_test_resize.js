@@ -15,7 +15,7 @@ add_task(async function test_window_resize() {
       await new Promise(r => window.requestAnimationFrame(r));
 
       let helper = new ScreenshotsHelper(browser);
-      await helper.resizeContentWindow(windowWidth, window.outerHeight);
+      await helper.resizeContentWindow(windowWidth, window.innerHeight);
       const originalContentDimensions = await helper.getContentDimensions();
       info(JSON.stringify(originalContentDimensions, null, 2));
 
@@ -66,7 +66,7 @@ add_task(async function test_window_resize_vertical_writing_mode() {
       await new Promise(r => window.requestAnimationFrame(r));
 
       let helper = new ScreenshotsHelper(browser);
-      await helper.resizeContentWindow(windowWidth, window.outerHeight);
+      await helper.resizeContentWindow(windowWidth, window.innerHeight);
       const originalContentDimensions = await helper.getContentDimensions();
       info(JSON.stringify(originalContentDimensions, null, 2));
 

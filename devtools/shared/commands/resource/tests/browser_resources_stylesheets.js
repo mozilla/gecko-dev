@@ -432,16 +432,23 @@ async function testResourceUpdateFeature() {
   await client.close();
 }
 
+function resizeToInner(win, wantedInnerWidth, wantedInnerHeight) {
+  const diffX = wantedInnerWidth - win.innerWidth;
+  const diffY = wantedInnerHeight - win.innerHeight;
+  win.resizeBy(diffX, diffY);
+}
+
 async function testNestedResourceUpdateFeature() {
   info("Check nested resource update feature of the ResourceCommand");
 
   const tab = await addTab(STYLE_TEST_URL);
+  const win = tab.ownerGlobal;
 
-  const { outerWidth: originalWindowWidth, outerHeight: originalWindowHeight } =
-    tab.ownerGlobal;
+  const { innerWidth: originalWindowWidth, innerHeight: originalWindowHeight } =
+    win;
 
   registerCleanupFunction(() => {
-    tab.ownerGlobal.resizeTo(originalWindowWidth, originalWindowHeight);
+    resizeToInner(win, originalWindowWidth, originalWindowHeight);
   });
 
   const { client, resourceCommand, targetCommand } =
@@ -464,8 +471,8 @@ async function testNestedResourceUpdateFeature() {
   // In order to avoid applying the media query (min-height: 400px).
   if (originalWindowHeight !== 300) {
     await new Promise(resolve => {
-      tab.ownerGlobal.addEventListener("resize", resolve, { once: true });
-      tab.ownerGlobal.resizeTo(originalWindowWidth, 300);
+      win.addEventListener("resize", resolve, { once: true });
+      resizeToInner(win, originalWindowWidth, 300);
     });
   }
 
@@ -512,7 +519,7 @@ async function testNestedResourceUpdateFeature() {
   is(resource.atRules[0].matches, false, "Media query is not matched yet");
 
   info("Change window size to fire matches-change event");
-  tab.ownerGlobal.resizeTo(originalWindowWidth, 500);
+  resizeToInner(win, originalWindowWidth, 500);
   await waitUntil(() => updates.length === 4);
 
   // Check the update content.
@@ -574,7 +581,7 @@ async function testNestedResourceUpdateFeature() {
   );
   assertAtRules(styleSheetResult.atRules, expectedAtRules);
 
-  tab.ownerGlobal.resizeTo(originalWindowWidth, originalWindowHeight);
+  resizeToInner(win, originalWindowWidth, originalWindowHeight);
 
   targetCommand.destroy();
   await client.close();

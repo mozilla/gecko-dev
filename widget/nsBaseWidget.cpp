@@ -587,8 +587,8 @@ nsIntSize nsIWidget::CustomCursorSize(const Cursor& aCursor) {
   return {width, height};
 }
 
-LayoutDeviceIntSize nsIWidget::ClientToWindowSizeDifference() {
-  auto margin = ClientToWindowMargin();
+LayoutDeviceIntSize nsIWidget::NormalSizeModeClientToWindowSizeDifference() {
+  auto margin = NormalSizeModeClientToWindowMargin();
   MOZ_ASSERT(margin.top >= 0, "Window should be bigger than client area");
   MOZ_ASSERT(margin.left >= 0, "Window should be bigger than client area");
   MOZ_ASSERT(margin.right >= 0, "Window should be bigger than client area");

@@ -441,18 +441,20 @@ static void CreateHeaderBarWidget(WidgetNodeType aAppearance) {
   gtk_style_context_add_class(fixedStyle, "titlebar");
 
   GtkWidget* headerBar = gtk_header_bar_new();
+  // From create_headerbar in gtkwindow.c
+  g_object_set(headerBar, "title", "Title", "has-subtitle", FALSE,
+               "show-close-button", TRUE, NULL);
 
   // Emulate what create_titlebar() at gtkwindow.c does.
   GtkStyleContext* headerBarStyle = gtk_widget_get_style_context(headerBar);
-  gtk_style_context_add_class(headerBarStyle, "titlebar");
+  gtk_style_context_add_class(headerBarStyle, GTK_STYLE_CLASS_TITLEBAR);
 
   // TODO: Define default-decoration titlebar style as workaround
-  // to ensure the titlebar buttons does not overflow outside.
-  // Recently the titlebar size is calculated as
-  // tab size + titlebar border/padding (default-decoration has 6px padding
-  // at default Adwaita theme).
-  // We need to fix titlebar size calculation to also include
-  // titlebar button sizes. (Bug 1419442)
+  // to ensure the titlebar buttons does not overflow outside. Recently the
+  // titlebar size is calculated as tab size + titlebar border/padding
+  // (default-decoration has 6px padding at default Adwaita theme).
+  // We need to fix titlebar size calculation to also include titlebar button
+  // sizes. (Bug 1419442)
   gtk_style_context_add_class(headerBarStyle, "default-decoration");
 
   sWidgetStorage[aAppearance] = headerBar;
@@ -480,6 +482,7 @@ static void CreateHeaderBarWidget(WidgetNodeType aAppearance) {
 
   gtk_style_context_invalidate(headerBarStyle);
   gtk_style_context_invalidate(fixedStyle);
+  gtk_widget_show_all(headerBar);
 
   // Some themes like Elementary's style the container of the headerbar rather
   // than the header bar itself.

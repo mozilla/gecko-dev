@@ -29,8 +29,8 @@
         clicky.removeEventListener('click', linkclick);
         let popup = window.open("about:blank", "_blank", "width=500,height=500");
         function loaded() {
-          is(popup.innerHeight, 500, "starting width is 500");
-          is(popup.innerWidth, 500, "starting height in 500");
+          is(popup.innerHeight, 500, "starting height is 500");
+          is(popup.innerWidth, 500, "starting width in 500");
 
           popup.resizeBy(50, 0);
 
@@ -38,13 +38,13 @@
           // an resize event, so we resolve immediately.
           if (popup.innerWidth == 550) {
             resolve(popup);
-          } else {
-            let popupresize = () => {
-              popup.removeEventListener('resize', popupresize);
-              resolve(popup);
-            };
-            popup.addEventListener('resize', popupresize);
+            return;
           }
+          let popupresize = () => {
+            info(`Got resize event ${popup.innerWidth}\n`);
+            resolve(popup);
+          };
+          popup.addEventListener('resize', popupresize, { once: true });
         };
         popup.addEventListener("load", loaded, { once: true })
       };

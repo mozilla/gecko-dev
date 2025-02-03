@@ -2187,7 +2187,7 @@ LayoutDeviceIntPoint nsCocoaWindow::GetClientOffset() {
   NS_OBJC_END_TRY_BLOCK_RETURN(LayoutDeviceIntPoint(0, 0));
 }
 
-LayoutDeviceIntMargin nsCocoaWindow::ClientToWindowMargin() {
+LayoutDeviceIntMargin nsCocoaWindow::NormalSizeModeClientToWindowMargin() {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   if (!mWindow || mWindow.drawsContentsIntoWindowFrame ||

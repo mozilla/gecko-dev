@@ -168,7 +168,7 @@ class nsWindow final : public nsBaseWidget {
   void OnDestroy() override;
 
   // called to check and see if a widget's dimensions are sane
-  bool AreBoundsSane(void);
+  bool AreBoundsSane();
 
   // nsIWidget
   using nsBaseWidget::Create;  // for Create signature not overridden here
@@ -185,7 +185,7 @@ class nsWindow final : public nsBaseWidget {
   bool IsVisible() const override;
   bool IsMapped() const override;
   void ConstrainPosition(DesktopIntPoint&) override;
-  void SetSizeConstraints(const SizeConstraints& aConstraints) override;
+  void SetSizeConstraints(const SizeConstraints&) override;
   void LockAspectRatio(bool aShouldLock) override;
   void Move(double aX, double aY) override;
   void Show(bool aState) override;
@@ -200,21 +200,23 @@ class nsWindow final : public nsBaseWidget {
   void MoveToWorkspace(const nsAString& workspaceID) override;
   void Enable(bool aState) override;
   void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
-  void ResetScreenBounds();
   LayoutDeviceIntRect GetScreenBounds() override;
   LayoutDeviceIntRect GetClientBounds() override;
   LayoutDeviceIntSize GetClientSize() override;
-  LayoutDeviceIntPoint GetClientOffset() override { return mClientOffset; }
+  LayoutDeviceIntPoint GetClientOffset() override {
+    return LayoutDeviceIntPoint(mClientMargin.left, mClientMargin.top);
+  }
   LayoutDeviceIntPoint GetScreenEdgeSlop() override;
+  nsresult GetRestoredBounds(LayoutDeviceIntRect&) override;
+  bool PersistClientBounds() const override { return true; }
+  LayoutDeviceIntMargin NormalSizeModeClientToWindowMargin() override;
 
-  // Recomputes the client offset according to our current window position.
-  // If aNotify is true, NotifyWindowMoved will be called on client offset
-  // changes.
-  //
-  // NOTE(emilio): It seems that as long any change here update either the size
-  // or the position of the window, we should be doing fine without notifying,
-  // but this is done to preserve existing behavior.
-  void RecomputeClientOffset(bool aNotify);
+  // Recomputes the bounds according to our current window position. Dispatches
+  // move / resizes as needed.
+  void RecomputeBounds();
+  void ConstrainSize(int* aWidth, int* aHeight) override;
+  void SchedulePendingBounds();
+  void MaybeRecomputeBounds();
 
   void SetCursor(const Cursor&) override;
   void Invalidate(const LayoutDeviceIntRect& aRect) override;
@@ -422,6 +424,7 @@ class nsWindow final : public nsBaseWidget {
   LayoutDeviceIntPoint GdkPointToDevicePixels(const GdkPoint&);
   LayoutDeviceIntPoint GdkEventCoordsToDevicePixels(gdouble aX, gdouble aY);
   LayoutDeviceIntRect GdkRectToDevicePixels(const GdkRectangle&);
+  LayoutDeviceIntMargin GtkBorderToDevicePixels(const GtkBorder&);
 
   bool WidgetTypeSupportsAcceleration() override;
 
@@ -496,7 +499,6 @@ class nsWindow final : public nsBaseWidget {
   // event handling code
   void DispatchActivateEvent(void);
   void DispatchDeactivateEvent(void);
-  void MaybeDispatchResized();
   void DispatchPanGesture(mozilla::PanGestureInput& aPanInput);
 
   void RegisterTouchWindow() override;
@@ -553,7 +555,7 @@ class nsWindow final : public nsBaseWidget {
   GtkTextDirection GetTextDirection();
 
   bool DrawsToCSDTitlebar() const;
-  void AddCSDDecorationSize(int* aWidth, int* aHeight);
+  bool ToplevelUsesCSD() const;
 
   void CreateAndPutGdkScrollEvent(mozilla::LayoutDeviceIntPoint aPoint,
                                   double aDeltaX, double aDeltaY);
@@ -569,8 +571,6 @@ class nsWindow final : public nsBaseWidget {
 #ifdef MOZ_WAYLAND
   RefPtr<mozilla::widget::WaylandSurface> mSurface;
 #endif
-  mozilla::Maybe<GdkPoint> mGdkWindowOrigin;
-  mozilla::Maybe<GdkPoint> mGdkWindowRootOrigin;
 
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate = nullptr;
 
@@ -596,9 +596,10 @@ class nsWindow final : public nsBaseWidget {
   // to remember a size requested while waiting for moved-to-rect when
   // OnSizeAllocate() might change mBounds.Size().
   LayoutDeviceIntSize mLastSizeRequest;
-  LayoutDeviceIntPoint mClientOffset;
-  // Indicates a new size that still needs to be dispatched.
-  LayoutDeviceIntSize mNeedsDispatchSize = LayoutDeviceIntSize(-1, -1);
+  // Same but for positioning. Used to track move requests.
+  LayoutDeviceIntPoint mLastMoveRequest;
+  // Margin from outer bounds to inner bounds _including CSD decorations_.
+  LayoutDeviceIntMargin mClientMargin;
 
   // This field omits duplicate scroll events caused by GNOME bug 726878.
   guint32 mLastScrollEventTime = GDK_CURRENT_TIME;
@@ -679,6 +680,7 @@ class nsWindow final : public nsBaseWidget {
   bool mWindowShouldStartDragging : 1;
   bool mHasMappedToplevel : 1;
   bool mPanInProgress : 1;
+  bool mPendingBounds : 1;
   // Draw titlebar with :backdrop css state (inactive/unfocused).
   bool mTitlebarBackdropState : 1;
   // It's child window, i.e. window which is nested in parent window.

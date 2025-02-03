@@ -746,9 +746,8 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
     devMaxSize.height = devMinSize.height;
   }
 
-  nsIWidget* rootWidget = aPresContext->GetNearestWidget();
   DesktopToLayoutDeviceScale constraintsScale(MOZ_WIDGET_INVALID_SCALE);
-  if (rootWidget) {
+  if (nsIWidget* rootWidget = aPresContext->GetNearestWidget()) {
     constraintsScale = rootWidget->GetDesktopToDeviceScale();
   }
 
@@ -757,7 +756,8 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
   // The sizes are in inner window sizes, so convert them into outer window
   // sizes. Use a size of (200, 200) as only the difference between the inner
   // and outer size is needed.
-  const LayoutDeviceIntSize sizeDiff = aWidget->ClientToWindowSizeDifference();
+  const LayoutDeviceIntSize sizeDiff =
+      aWidget->NormalSizeModeClientToWindowSizeDifference();
   if (constraints.mMinSize.width) {
     constraints.mMinSize.width += sizeDiff.width;
   }

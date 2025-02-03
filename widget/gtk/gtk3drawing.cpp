@@ -11,6 +11,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkprivate.h>
 #include <string.h>
+#include "gdk/gdk.h"
 #include "gtkdrawing.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ScopeExit.h"
@@ -394,6 +395,13 @@ const ToolbarButtonGTKMetrics* GetToolbarButtonMetrics(
 gint moz_gtk_get_titlebar_button_spacing() {
   EnsureToolbarMetrics();
   return sToolbarMetrics.inlineSpacing;
+}
+
+gint moz_gtk_get_titlebar_preferred_height() {
+  gint height = 0;
+  gtk_widget_get_preferred_height(GetWidget(MOZ_GTK_HEADER_BAR), nullptr,
+                                  &height);
+  return height;
 }
 
 static gint moz_gtk_window_decoration_paint(cairo_t* cr,

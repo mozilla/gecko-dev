@@ -188,6 +188,9 @@ skip-if = [
 ["test_pointerPreserves3DPerspective.html"]
 
 ["test_resizeby.html"]
+fail-if = [
+  "display == 'wayland'" # Decorations arrive async and mess up the resize on automation.
+]
 skip-if = [
   "os == 'android'", # Window sizes cannot be controled on android; Windows
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",# Bug 1604152

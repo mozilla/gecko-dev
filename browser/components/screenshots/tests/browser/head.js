@@ -495,11 +495,17 @@ class ScreenshotsHelper {
   }
 
   async resizeContentWindow(width, height) {
-    this.browser.ownerGlobal.resizeTo(width, height);
-    await TestUtils.waitForCondition(
-      () => window.outerHeight === height && window.outerWidth === width,
-      "Waiting for window to resize"
+    info(
+      `Resizing window to ${width}x${height} (from ${innerWidth}x${innerHeight})`
     );
+    window.resizeTo(
+      outerWidth - innerWidth + width,
+      outerHeight - innerHeight + height
+    );
+    await TestUtils.waitForCondition(() => {
+      info(`Current: ${innerWidth}x${innerHeight}`);
+      return innerHeight === height && innerWidth === width;
+    }, "Waiting for window to resize");
   }
 
   waitForContentMousePosition(left, top) {

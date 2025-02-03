@@ -212,7 +212,7 @@ class nsCocoaWindow final : public nsBaseWidget {
   void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
   LayoutDeviceIntPoint WidgetToScreenOffset() override;
   LayoutDeviceIntPoint GetClientOffset() override;
-  LayoutDeviceIntMargin ClientToWindowMargin() override;
+  LayoutDeviceIntMargin NormalSizeModeClientToWindowMargin() override;
 
   void* GetNativeData(uint32_t aDataType) override;
 

@@ -215,9 +215,15 @@ add_task(async function testPopupTypeWithDimension() {
     "expected popup type windows are opened at given coordinates"
   );
 
-  const actualSizes = windows
-    .slice(0, 3)
-    .map(window => `${window.outerWidth}x${window.outerHeight}`);
+  const isGtk = Services.appinfo.widgetToolkit == "gtk";
+  const actualSizes = windows.slice(0, 3).map(window => {
+    // Gtk can't set outer sizes on window creation because it doesn't know how
+    // big the decorations of the window will be. This was papered over before
+    // bug 581863 returning outer == innerWidth (even tho it was a lie).
+    return isGtk
+      ? `${window.innerWidth}x${window.innerHeight}`
+      : `${window.outerWidth}x${window.outerHeight}`;
+  });
   const expectedSizes = [`151x152`, `152x153`, `153x154`];
   is(
     actualSizes.join(" / "),

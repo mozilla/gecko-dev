@@ -18,15 +18,21 @@
       synthesizeMouseAtCenter(document.getElementById("thebutton"), {}, window);
     }
 
-    function popupShown(event)
+    async function popupShown(event)
     {
       document.getElementById("parent").className = "";
       var popup = document.getElementById("thepopup");
 
       var buttonbcr = document.getElementById("thebutton").getBoundingClientRect();
+
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
       var popupbcr = popup.getOuterScreenRect();
       var popupMarginLeft = parseFloat(getComputedStyle(popup).marginLeft);
       var popupMarginTop = parseFloat(getComputedStyle(popup).marginTop);
+
+      info(`button: ${buttonbcr.width}x${buttonbcr.height} @ (${buttonbcr.x}, ${buttonbcr.y}) screen (${buttonbcr.x + window.mozInnerScreenX}, ${buttonbcr.y + window.mozInnerScreenY})`);
+      info(`popup: ${popupbcr.width}x${popupbcr.height} @ (${popupbcr.x}, ${popupbcr.y})`);
 
       ok(Math.abs(popupbcr.x - popupMarginLeft - window.mozInnerScreenX - buttonbcr.x) < 3, "x pos is correct");
       ok(Math.abs(popupbcr.y - popupMarginTop - window.mozInnerScreenY - buttonbcr.bottom) < 3, "y pos is correct");

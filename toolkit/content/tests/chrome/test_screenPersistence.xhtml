@@ -15,31 +15,35 @@
   var left = 60 + screen.availLeft;
   var upper = 60 + screen.availTop;
 
-  function runTest() {
+  async function runTest() {
     win = window.browsingContext.topChromeWindow
                 .openDialog("window_screenPosSize.xhtml",
                             "_blank",
                             "chrome,dialog=no,all,screenX=" + left + ",screenY=" + upper + ",outerHeight=200,outerWidth=200");
-    SimpleTest.waitForFocus(checkTest, win);
-  }
-  function checkTest() {
+    await SimpleTest.promiseFocus(win);
+
     is(win.screenX, left, "The window should be placed now at x=" + left + "px");
     is(win.screenY, upper, "The window should be placed now at y=" + upper + "px");
-    is(win.outerHeight, 200, "The window size should be height=200px");
-    is(win.outerWidth, 200, "The window size should be width=200px");
-    runTest2();
-  }
-  function runTest2() {
+
+    // On Linux, outerHeight used to return the inner height, papering over this
+    // issue. Main issue being that when being opened, the window doesn't have
+    // any decorations.
+    let isLinux = SpecialPowers.Services.appinfo.OS == "Linux";
+    if (isLinux) {
+      is(win.innerHeight, 200, "The window size should be height=200px");
+      is(win.innerWidth, 200, "The window size should be width=200px");
+    } else {
+      is(win.outerHeight, 200, "The window size should be height=200px");
+      is(win.outerWidth, 200, "The window size should be width=200px");
+    }
     win.close();
+
     win = window.browsingContext.topChromeWindow
                 .openDialog("window_screenPosSize.xhtml",
                             "_blank",
                             "chrome,dialog=no,all");
-    SimpleTest.waitForFocus(checkTest2, win);
-  }
-  function checkTest2() {
-    let runTime = SpecialPowers.Services.appinfo;
-    if (runTime.OS != "Linux") {
+    await SimpleTest.promiseFocus(win);
+    if (!isLinux) {
       is(win.screenX, 80, "The window should be placed now at x=80px");
       is(win.screenY, 80, "The window should be placed now at y=80px");
     }
