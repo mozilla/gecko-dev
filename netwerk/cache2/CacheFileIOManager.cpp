@@ -22,7 +22,7 @@
 #include "nsIObserverService.h"
 #include "nsISizeOf.h"
 #include "mozilla/net/MozURL.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkCache2Metrics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Services.h"
 #include "mozilla/SpinEventLoopUntil.h"
@@ -1191,7 +1191,7 @@ nsresult CacheFileIOManager::Shutdown() {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  Telemetry::AutoTimer<Telemetry::NETWORK_DISK_CACHE_SHUTDOWN_V2> shutdownTimer;
+  auto shutdownTimer = glean::network::disk_cache_shutdown_v2.Measure();
 
   CacheIndex::PreShutdown();
 
@@ -1210,8 +1210,8 @@ nsresult CacheFileIOManager::Shutdown() {
   CacheIndex::Shutdown();
 
   if (CacheObserver::ClearCacheOnShutdown()) {
-    Telemetry::AutoTimer<Telemetry::NETWORK_DISK_CACHE2_SHUTDOWN_CLEAR_PRIVATE>
-        totalTimer;
+    auto totalTimer =
+        glean::network::disk_cache2_shutdown_clear_private.Measure();
     gInstance->SyncRemoveAllCacheFiles();
   }
 

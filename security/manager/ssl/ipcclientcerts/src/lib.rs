@@ -13,40 +13,11 @@ extern crate sha2;
 
 use pkcs11_bindings::*;
 use rsclientcerts::manager::{Manager, SlotType};
-use std::ffi::{c_void, CStr};
 use std::sync::Mutex;
 
 mod backend;
 
 use backend::Backend;
-
-type FindObjectsCallback = Option<
-    unsafe extern "C" fn(
-        typ: u8,
-        data_len: usize,
-        data: *const u8,
-        extra_len: usize,
-        extra: *const u8,
-        slot_type: u32,
-        ctx: *mut c_void,
-    ),
->;
-
-type FindObjectsFunction = extern "C" fn(callback: FindObjectsCallback, ctx: *mut c_void);
-
-type SignCallback =
-    Option<unsafe extern "C" fn(data_len: usize, data: *const u8, ctx: *mut c_void)>;
-
-type SignFunction = extern "C" fn(
-    cert_len: usize,
-    cert: *const u8,
-    data_len: usize,
-    data: *const u8,
-    params_len: usize,
-    params: *const u8,
-    callback: SignCallback,
-    ctx: *mut c_void,
-);
 
 /// The singleton `Manager` that handles state with respect to PKCS #11. Only one thread
 /// may use it at a time, but there is no restriction on which threads may use it.
@@ -79,35 +50,9 @@ macro_rules! manager_guard_to_manager {
 
 /// This gets called to initialize the module. For this implementation, this consists of
 /// instantiating the `Manager`.
-extern "C" fn C_Initialize(pInitArgs: CK_VOID_PTR) -> CK_RV {
-    // pInitArgs.pReserved will be a c-string containing the base-16
-    // stringification of the addresses of the functions to call to communicate
-    // with the main process.
-    if pInitArgs.is_null() {
-        return CKR_DEVICE_ERROR;
-    }
-    let serialized_addresses_ptr = unsafe { (*(pInitArgs as CK_C_INITIALIZE_ARGS_PTR)).pReserved };
-    if serialized_addresses_ptr.is_null() {
-        return CKR_DEVICE_ERROR;
-    }
-    let serialized_addresses_cstr =
-        unsafe { CStr::from_ptr(serialized_addresses_ptr as *mut std::os::raw::c_char) };
-    let serialized_addresses = match serialized_addresses_cstr.to_str() {
-        Ok(serialized_addresses) => serialized_addresses,
-        Err(_) => return CKR_DEVICE_ERROR,
-    };
-    let function_addresses: Vec<usize> = serialized_addresses
-        .split(',')
-        .filter_map(|serialized_address| usize::from_str_radix(serialized_address, 16).ok())
-        .collect();
-    if function_addresses.len() != 2 {
-        return CKR_DEVICE_ERROR;
-    }
-    let find_objects: FindObjectsFunction = unsafe { std::mem::transmute(function_addresses[0]) };
-    let sign: SignFunction = unsafe { std::mem::transmute(function_addresses[1]) };
+extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
     let mut manager_guard = try_to_get_manager_guard!();
-    let _unexpected_previous_manager =
-        manager_guard.replace(Manager::new(Backend::new(find_objects, sign)));
+    let _unexpected_previous_manager = manager_guard.replace(Manager::new(Backend::new()));
     CKR_OK
 }
 

@@ -44,6 +44,13 @@ class JOG {
   static bool EnsureRuntimeMetricsRegistered(bool aForce = false);
 
   /**
+   * Reset JOG state in tests.
+   *
+   * The next access to metrics or pings will reload the JOG file if it exists.
+   */
+  static void TestReset();
+
+  /**
    * Returns whether, if a metric is absent in the runtime-registered metrics,
    * you should check the compile-time-registered metrics.
    *

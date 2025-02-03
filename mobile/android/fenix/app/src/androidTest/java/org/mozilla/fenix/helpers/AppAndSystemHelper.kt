@@ -299,6 +299,24 @@ object AppAndSystemHelper {
         }
     }
 
+    fun disableWifiNetworkConnection() {
+        mDevice.executeShellCommand("svc wifi disable")
+        Log.i(TAG, "disableWifiNetworkConnection: Wifi network connection disable command sent.")
+    }
+
+    fun enableDataSaverSystemSetting(enabled: Boolean) {
+        when (enabled) {
+            true -> {
+                mDevice.executeShellCommand("cmd netpolicy set restrict-background true")
+                Log.i(TAG, "enableDataSaverSystemSetting: Command to enable data saver system setting sent.")
+            }
+            false -> {
+                mDevice.executeShellCommand("cmd netpolicy set restrict-background false")
+                Log.i(TAG, "enableDataSaverSystemSetting: Command to disable data saver system setting sent.")
+            }
+        }
+    }
+
     fun isPackageInstalled(packageName: String): Boolean {
         Log.i(TAG, "isPackageInstalled: Trying to verify that $packageName is installed")
         return try {

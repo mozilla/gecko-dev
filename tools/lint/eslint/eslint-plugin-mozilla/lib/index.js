@@ -75,7 +75,6 @@ const plugin = {
     "reject-top-level-await": require("./rules/reject-top-level-await"),
     "rejects-requires-await": require("./rules/rejects-requires-await"),
     "use-cc-etc": require("./rules/use-cc-etc"),
-    "use-chromeutils-definelazygetter": require("./rules/use-chromeutils-definelazygetter"),
     "use-chromeutils-generateqi": require("./rules/use-chromeutils-generateqi"),
     "use-console-createInstance": require("./rules/use-console-createInstance"),
     "use-default-preference-values": require("./rules/use-default-preference-values"),

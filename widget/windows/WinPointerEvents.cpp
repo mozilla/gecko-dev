@@ -105,6 +105,21 @@ bool WinPointerEvents::GetPointerPenInfo(uint32_t aPointerId,
   return getPointerPenInfo(aPointerId, aPenInfo);
 }
 
+void WinPointerEvents::GetPointerFrameTouchInfo(
+    uint32_t pointerId, nsTArray<POINTER_TOUCH_INFO>& aTouchInfoArray) {
+  uint32_t pointerCount = 0;
+  if (!::GetPointerFrameTouchInfo(pointerId, &pointerCount, nullptr)) {
+    return;
+  }
+  if (!pointerCount) {
+    return;
+  }
+
+  aTouchInfoArray.SetLength(pointerCount);
+  ::GetPointerFrameTouchInfo(pointerId, &pointerCount,
+                             aTouchInfoArray.Elements());
+}
+
 bool WinPointerEvents::ShouldRollupOnPointerEvent(UINT aMsg, WPARAM aWParam) {
   MOZ_ASSERT(aMsg == WM_POINTERDOWN);
   // Only roll up popups when we handling WM_POINTER* to fire Gecko

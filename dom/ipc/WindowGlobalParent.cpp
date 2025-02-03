@@ -43,7 +43,7 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomSecurityMetrics.h"
 #include "mozilla/Variant.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "MMPrinter.h"
@@ -1548,7 +1548,7 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
       !mDocumentPrincipal->SchemeIs("about")) {
     // Record the page load
     uint32_t pageLoaded = 1;
-    Accumulate(Telemetry::MIXED_CONTENT_UNBLOCK_COUNTER, pageLoaded);
+    glean::mixed_content::unblock_counter.AccumulateSingleSample(pageLoaded);
 
     // Record the mixed content status of the docshell in Telemetry
     enum {
@@ -1578,7 +1578,7 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
     } else if (hasMixedDisplay) {
       mixedContentLevel = MIXED_DISPLAY_CONTENT;
     }
-    Accumulate(Telemetry::MIXED_CONTENT_PAGE_LOAD, mixedContentLevel);
+    glean::mixed_content::page_load.AccumulateSingleSample(mixedContentLevel);
 
     if (GetDocTreeHadMedia()) {
       glean::media::element_in_page_count.Add(1);

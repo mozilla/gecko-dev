@@ -3585,6 +3585,14 @@ bool ExtensibleCompilationStencil::isModule() const {
   return scriptExtra[CompilationStencil::TopLevelIndex].isModule();
 }
 
+bool CompilationStencil::hasAsmJS() const { return asmJS; }
+
+bool ExtensibleCompilationStencil::hasAsmJS() const { return asmJS; }
+
+bool InitialStencilAndDelazifications::hasAsmJS() const {
+  return initial_->hasAsmJS();
+}
+
 InitialStencilAndDelazifications::~InitialStencilAndDelazifications() {
   MOZ_ASSERT(refCount_ == 0);
 
@@ -3720,7 +3728,7 @@ bool InitialStencilAndDelazifications::instantiateStencils(
     RefPtr<InitialStencilAndDelazifications> stencilsPtr = &stencils;
     ScriptSourceObject* sso = gcOutput.script->sourceObject();
     MOZ_ASSERT(!sso->maybeGetStencils());
-    if (!stencils.getInitial()->asmJS) {
+    if (!stencils.hasAsmJS()) {
       sso->setStencils(stencilsPtr.forget());
       sso->setSharingDelazifications();
     }
@@ -4819,9 +4827,7 @@ struct DumpOptionsFields {
 
 static void DumpOptionsFields(js::JSONPrinter& json,
                               const JS::ReadOnlyCompileOptions& options) {
-  struct DumpOptionsFields printer {
-    json
-  };
+  struct DumpOptionsFields printer{json};
   options.dumpWith(printer);
 }
 
@@ -5733,7 +5739,7 @@ bool CompilationStencilMerger::addDelazification(
 
   // asm.js shouldn't appear inside delazification, given asm.js forces
   // full-parse.
-  MOZ_ASSERT(!delazification.asmJS);
+  MOZ_ASSERT(!delazification.hasAsmJS());
 
   failureCase.release();
   return true;
@@ -5818,4 +5824,12 @@ JS::InstantiationStorage::~InstantiationStorage() {
     js_delete(gcOutput_);
     gcOutput_ = nullptr;
   }
+}
+
+bool JS::IsStencilCacheable(JS::Stencil* stencil) {
+  if (stencil->hasAsmJS()) {
+    return false;
+  }
+
+  return true;
 }

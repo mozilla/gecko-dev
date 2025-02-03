@@ -115,9 +115,9 @@ export class SidebarState {
     } else {
       this.launcherVisible = true;
     }
-    // Ensure that tab container has the updated value of `launcherExpanded`.
-    const { tabContainer } = this.#controllerGlobal.gBrowser;
-    tabContainer.toggleAttribute("expanded", this.launcherExpanded);
+
+    // Explicitly trigger effects to ensure that the UI is kept up to date.
+    this.launcherExpanded = this.#props.launcherExpanded;
   }
 
   /**

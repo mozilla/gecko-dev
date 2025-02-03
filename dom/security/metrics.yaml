@@ -450,3 +450,131 @@ security:
           Information about the filename that was requested to be loaded
         type: string
     telemetry_mirror: Security_Javascriptload_Parentprocess
+
+mixed_content:
+  page_load:
+    type: custom_distribution
+    description: >
+      Accumulates type of content per page load (0=no mixed or non-secure page,
+      1=mixed passive, 2=mixed active, 3=mixed passive and mixed active)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram MIXED_CONTENT_PAGE_LOAD.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: MIXED_CONTENT_PAGE_LOAD
+
+  unblock_counter:
+    type: custom_distribution
+    description: >
+      A simple counter of daily mixed-content unblock operations and top
+      documents loaded
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram MIXED_CONTENT_UNBLOCK_COUNTER.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: MIXED_CONTENT_UNBLOCK_COUNTER
+
+  hsts:
+    type: custom_distribution
+    description: >
+      How often would blocked mixed content be allowed if HSTS upgrades were
+      allowed? 0=display/no-HSTS, 1=display/HSTS, 2=active/no-HSTS,
+      3=active/HSTS
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram MIXED_CONTENT_HSTS.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: MIXED_CONTENT_HSTS
+
+  images:
+    type: labeled_counter
+    description: >
+      How often image loads fail in regular mode and in upgrading mode?
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram MIXED_CONTENT_IMAGES.
+    labels:
+      - ImgUpSuccess
+      - ImgUpFailure
+      - ImgNoUpSuccess
+      - ImgNoUpFailure
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#MIXED_CONTENT_IMAGES
+
+  video:
+    type: labeled_counter
+    description: >
+      How often video loads fail in regular mode and in upgrading mode?
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram MIXED_CONTENT_VIDEO.
+    labels:
+      - VideoUpSuccess
+      - VideoUpFailure
+      - VideoNoUpSuccess
+      - VideoNoUpFailure
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#MIXED_CONTENT_VIDEO
+
+  audio:
+    type: labeled_counter
+    description: >
+      How often audio loads fail in regular mode and in upgrading mode?
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram MIXED_CONTENT_AUDIO.
+    labels:
+      - AudioUpSuccess
+      - AudioUpFailure
+      - AudioNoUpSuccess
+      - AudioNoUpFailure
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819336
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#MIXED_CONTENT_AUDIO

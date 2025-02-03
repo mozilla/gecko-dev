@@ -95,6 +95,7 @@
 #include "nsStringStream.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "mozilla/dom/ReferrerInfo.h"
+#include "mozilla/glean/DomSecurityMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "AlternateServices.h"
 #include "NetworkMarker.h"
@@ -8805,41 +8806,47 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
   if (internalLoadType == nsIContentPolicy::TYPE_INTERNAL_IMAGE ||
       internalLoadType == nsIContentPolicy::TYPE_INTERNAL_IMAGE_PRELOAD) {
     if (mLoadInfo->GetBrowserDidUpgradeInsecureRequests()) {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_IMAGES::ImgUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_IMAGES::ImgUpFailure);
+      glean::mixed_content::images
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::ImagesLabel::eImgupsuccess
+                       : glean::mixed_content::ImagesLabel::eImgupfailure)
+          .Add();
     } else {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_IMAGES::ImgNoUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_IMAGES::ImgNoUpFailure);
+      glean::mixed_content::images
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::ImagesLabel::eImgnoupsuccess
+                       : glean::mixed_content::ImagesLabel::eImgnoupfailure)
+          .Add();
     }
   }
   if (internalLoadType == nsIContentPolicy::TYPE_INTERNAL_VIDEO) {
     if (mLoadInfo->GetBrowserDidUpgradeInsecureRequests()) {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_VIDEO::VideoUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_VIDEO::VideoUpFailure);
+      glean::mixed_content::video
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::VideoLabel::eVideoupsuccess
+                       : glean::mixed_content::VideoLabel::eVideoupfailure)
+          .Add();
     } else {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_VIDEO::VideoNoUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_VIDEO::VideoNoUpFailure);
+      glean::mixed_content::video
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::VideoLabel::eVideonoupsuccess
+                       : glean::mixed_content::VideoLabel::eVideonoupfailure)
+          .Add();
     }
   }
   if (internalLoadType == nsIContentPolicy::TYPE_INTERNAL_AUDIO) {
     if (mLoadInfo->GetBrowserDidUpgradeInsecureRequests()) {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_AUDIO::AudioUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_AUDIO::AudioUpFailure);
+      glean::mixed_content::audio
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::AudioLabel::eAudioupsuccess
+                       : glean::mixed_content::AudioLabel::eAudioupfailure)
+          .Add();
     } else {
-      Telemetry::AccumulateCategorical(
-          statusIsSuccess
-              ? Telemetry::LABELS_MIXED_CONTENT_AUDIO::AudioNoUpSuccess
-              : Telemetry::LABELS_MIXED_CONTENT_AUDIO::AudioNoUpFailure);
+      glean::mixed_content::audio
+          .EnumGet(statusIsSuccess
+                       ? glean::mixed_content::AudioLabel::eAudionoupsuccess
+                       : glean::mixed_content::AudioLabel::eAudionoupfailure)
+          .Add();
     }
   }
 

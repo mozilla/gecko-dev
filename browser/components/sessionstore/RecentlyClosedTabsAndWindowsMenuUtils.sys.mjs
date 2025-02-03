@@ -87,7 +87,7 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
 
       closedTabSets.forEach(tabSet => {
         tabSet.forEach((tab, index) => {
-          let { groupId } = tab.state;
+          let groupId = tab.closedInTabGroupId;
           if (groupId && closedTabGroupsById.has(groupId)) {
             if (groupId != currentGroupId) {
               // This is the first tab in a new group. Push all the tabs into the menu.

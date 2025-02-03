@@ -439,17 +439,20 @@ add_task(async function test_vertical_tabs_expanded() {
     "Sidebar launcher is hidden."
   );
 
-  info("Enable revamped sidebar and vertical tabs.");
-  Services.prefs.setBoolPref("sidebar.revamp", true);
+  info("Enable vertical tabs.");
   Services.prefs.setBoolPref("sidebar.verticalTabs", true);
   await TestUtils.waitForCondition(
     () => BrowserTestUtils.isVisible(document.getElementById("sidebar-main")),
     "Sidebar launcher is shown."
   );
-  ok(
+  const expandedStateValues = [
+    SidebarController.getUIState().launcherExpanded,
+    SidebarController.sidebarMain.expanded,
     gBrowser.tabContainer.hasAttribute("expanded"),
-    "Tab container is expanded."
-  );
+  ];
+  for (const val of expandedStateValues) {
+    is(val, false, "Launcher is collapsed.");
+  }
 
   await SpecialPowers.popPrefEnv();
 });

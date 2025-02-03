@@ -1551,15 +1551,8 @@ void nsWindow::Show(bool aState) {
 #endif  // defined(ACCESSIBILITY)
   }
 
-  if (mWindowType == WindowType::Popup) {
-    MOZ_ASSERT(ChooseWindowClass(mWindowType) == kClassNameDropShadow);
-    // WS_EX_COMPOSITED conflicts with the WS_EX_LAYERED style and causes
-    // some popup menus to become invisible.
-    LONG_PTR exStyle = ::GetWindowLongPtrW(mWnd, GWL_EXSTYLE);
-    if (exStyle & WS_EX_LAYERED) {
-      ::SetWindowLongPtrW(mWnd, GWL_EXSTYLE, exStyle & ~WS_EX_COMPOSITED);
-    }
-  }
+  MOZ_ASSERT_IF(mWindowType == WindowType::Popup,
+                ChooseWindowClass(mWindowType) == kClassNameDropShadow);
 
   bool syncInvalidate = false;
 
@@ -1708,13 +1701,6 @@ void nsWindow::Show(bool aState) {
         }
       }
     } else {
-      // Clear contents to avoid ghosting of old content if we display
-      // this window again.
-      if (wasVisible && mTransparencyMode == TransparencyMode::Transparent) {
-        if (mCompositorWidgetDelegate) {
-          mCompositorWidgetDelegate->ClearTransparentWindow();
-        }
-      }
       if (mWindowType != WindowType::Dialog) {
         ::ShowWindow(mWnd, SW_HIDE);
       } else {
@@ -7195,17 +7181,6 @@ void nsWindow::SetWindowTranslucencyInner(TransparencyMode aMode) {
   }
 
   MOZ_ASSERT(WinUtils::GetTopLevelHWND(mWnd, true) == mWnd);
-  if (IsPopup()) {
-    // This can probably go away if we make transparent popups report true in
-    // WidgetTypeSupportsAcceleration(). See there for context.
-    LONG_PTR exStyle = ::GetWindowLongPtr(mWnd, GWL_EXSTYLE);
-    if (aMode == TransparencyMode::Transparent) {
-      exStyle |= WS_EX_LAYERED;
-    } else {
-      exStyle &= ~WS_EX_LAYERED;
-    }
-    ::SetWindowLongPtrW(mWnd, GWL_EXSTYLE, exStyle);
-  }
 
   mTransparencyMode = aMode;
 
@@ -8060,22 +8035,43 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
     // which fallbacks to WM_LBUTTON* and WM_GESTURE, to keep consistency.
     return false;
   }
-  if (!mPointerEvents.ShouldHandleWinPointerMessages(msg, aWParam)) {
+
+  uint32_t pointerId = mPointerEvents.GetPointerId(aWParam);
+  POINTER_INPUT_TYPE pointerType = PT_POINTER;
+  if (!GetPointerType(pointerId, &pointerType)) {
+    MOZ_ASSERT(false, "cannot find PointerType");
     return false;
   }
+
+  if (pointerType == PT_TOUCH) {
+    if (!StaticPrefs::
+            dom_w3c_pointer_events_dispatch_by_pointer_messages_touch()) {
+      return false;
+    }
+    return OnTouchPointerEvents(pointerId, msg, aWParam, aLParam);
+  }
+
+  if (pointerType == PT_PEN) {
+    return OnPenPointerEvents(pointerId, msg, aWParam, aLParam);
+  }
+
+  return false;
+}
+
+bool nsWindow::OnPenPointerEvents(uint32_t aPointerId, UINT aMsg,
+                                  WPARAM aWParam, LPARAM aLParam) {
   if (!mPointerEvents.ShouldFirePointerEventByWinPointerMessages()) {
     // We have to handle WM_POINTER* to fetch and cache pen related information
     // and fire WidgetMouseEvent with the cached information the WM_*BUTTONDOWN
     // handler. This is because Windows doesn't support ::DoDragDrop in the
     // touch or pen message handlers.
-    mPointerEvents.ConvertAndCachePointerInfo(msg, aWParam);
+    mPointerEvents.ConvertAndCachePointerInfo(aMsg, aWParam);
     // Don't consume the Windows WM_POINTER* messages
     return false;
   }
 
-  uint32_t pointerId = mPointerEvents.GetPointerId(aWParam);
   POINTER_PEN_INFO penInfo{};
-  if (!mPointerEvents.GetPointerPenInfo(pointerId, &penInfo)) {
+  if (!mPointerEvents.GetPointerPenInfo(aPointerId, &penInfo)) {
     return false;
   }
 
@@ -8095,7 +8091,7 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
 
   EventMessage message;
   mozilla::MouseButton button = MouseButton::ePrimary;
-  switch (msg) {
+  switch (aMsg) {
     case WM_POINTERDOWN: {
       LayoutDeviceIntPoint eventPoint(GET_X_LPARAM(aLParam),
                                       GET_Y_LPARAM(aLParam));
@@ -8147,8 +8143,8 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
   float pressure = penInfo.pressure ? (float)penInfo.pressure / 1024 : 0;
   int16_t buttons = sPointerDown
                         ? nsContentUtils::GetButtonsFlagForButton(button)
-                        : MouseButtonsFlag::eNoButtons;
-  WinPointerInfo pointerInfo(pointerId, penInfo.tiltX, penInfo.tiltY, pressure,
+                        : static_cast<int16_t>(MouseButtonsFlag::eNoButtons);
+  WinPointerInfo pointerInfo(aPointerId, penInfo.tiltX, penInfo.tiltY, pressure,
                              buttons);
   // Per
   // https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-pointer_pen_info,
@@ -8159,7 +8155,7 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
   // Fire touch events but not when the barrel button is pressed.
   if (button != MouseButton::eSecondary &&
       StaticPrefs::dom_w3c_pointer_events_scroll_by_pen_enabled() &&
-      DispatchTouchEventFromWMPointer(msg, aLParam, pointerInfo, button)) {
+      DispatchTouchEventFromWMPointer(aMsg, aLParam, pointerInfo, button)) {
     return true;
   }
 
@@ -8177,6 +8173,71 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
   }
   // Consume WM_POINTER* to stop Windows fires WM_*BUTTONDOWN / WM_*BUTTONUP
   // WM_MOUSEMOVE.
+  return true;
+}
+
+bool nsWindow::OnTouchPointerEvents(uint32_t aPointerId, UINT aMsg,
+                                    WPARAM aWParam, LPARAM aLParam) {
+  MultiTouchInput::MultiTouchType touchType;
+  switch (aMsg) {
+    case WM_POINTERDOWN:
+      touchType = MultiTouchInput::MULTITOUCH_START;
+      break;
+    case WM_POINTERUPDATE:
+      touchType = MultiTouchInput::MULTITOUCH_MOVE;
+      break;
+    case WM_POINTERUP:
+      touchType = MultiTouchInput::MULTITOUCH_END;
+      break;
+    default:
+      return false;
+  }
+
+  nsTArray<POINTER_TOUCH_INFO> touchInfoArray{};
+  mPointerEvents.GetPointerFrameTouchInfo(aPointerId, touchInfoArray);
+  if (touchInfoArray.IsEmpty()) {
+    return false;
+  }
+
+  MultiTouchInput inputToDispatch;
+  inputToDispatch.mInputType = MULTITOUCH_INPUT;
+  inputToDispatch.mType = touchType;
+  inputToDispatch.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
+
+  for (const POINTER_TOUCH_INFO& touchInfo : touchInfoArray) {
+    ScreenSize size(static_cast<float>(touchInfo.rcContact.right -
+                                       touchInfo.rcContact.left),
+                    static_cast<float>(touchInfo.rcContact.bottom -
+                                       touchInfo.rcContact.top));
+
+    nsPointWin touchPoint;
+    touchPoint.x = touchInfo.pointerInfo.ptPixelLocation.x;
+    touchPoint.y = touchInfo.pointerInfo.ptPixelLocation.y;
+    touchPoint.ScreenToClient(mWnd);
+
+    // Windows provides orientation info, but the behavior differs from
+    // TouchEvent because TouchEvent's angle rotates the elliptic contact region
+    // while the Windows provided orientation is independent from touch point
+    // rect.
+    //
+    // e.g. For a vertically long touch pointer, Windows would give vertically
+    // long rect and also give a 90 degree orientation, and passing both would
+    // incorrectly represent a horizontal ellipse.
+    //
+    // See also: https://w3c.github.io/touch-events/#dom-touch-rotationangle
+    // "The angle (in degrees) that the ellipse described by radiusX and radiusY
+    // is rotated clockwise about its center; 0 if no value is known."
+    float angle = 0.0f;
+
+    bool hasPressure = !!(touchInfo.touchMask & TOUCH_MASK_PRESSURE);
+    float pressure = hasPressure ? (float)touchInfo.pressure / 1024 : 0;
+    inputToDispatch.mTouches.AppendElement(
+        SingleTouchData(static_cast<int32_t>(touchInfo.pointerInfo.pointerId),
+                        ScreenIntPoint::FromUnknownPoint(touchPoint), size / 2,
+                        angle, pressure));
+  }
+
+  DispatchTouchInput(inputToDispatch);
   return true;
 }
 

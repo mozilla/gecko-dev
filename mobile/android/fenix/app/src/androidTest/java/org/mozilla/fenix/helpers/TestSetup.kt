@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.allowOrPreventSystemUIFromReadingTheClipboard
+import org.mozilla.fenix.helpers.AppAndSystemHelper.enableDataSaverSystemSetting
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -56,6 +57,8 @@ open class TestSetup {
             AppAndSystemHelper.clearDownloadsFolder()
             // Make sure the Wifi and Mobile Data connections are on.
             AppAndSystemHelper.setNetworkEnabled(true)
+            // Make sure that the data saver system setting is disabled.
+            enableDataSaverSystemSetting(enabled = false)
             // Clear bookmarks left after a failed test, before a retry.
             AppAndSystemHelper.deleteBookmarksStorage()
             // Clear history left after a failed test, before a retry.

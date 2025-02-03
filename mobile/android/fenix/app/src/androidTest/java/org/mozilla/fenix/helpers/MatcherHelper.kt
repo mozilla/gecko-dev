@@ -146,11 +146,17 @@ object MatcherHelper {
         }
     }
 
-    fun assertItemIsEnabledAndVisible(vararg appItems: UiObject) {
+    fun assertItemIsEnabledAndVisible(vararg appItems: UiObject, isEnabled: Boolean = true) {
         for (appItem in appItems) {
-            Log.i(TAG, "assertItemIsEnabledAndVisible: Trying to verify that ${appItem.selector} is visible and enabled")
-            assertTrue(appItem.waitForExists(waitingTime) && appItem.isEnabled)
-            Log.i(TAG, "assertItemIsEnabledAndVisible: Verified ${appItem.selector} is visible and enabled")
+            if (isEnabled) {
+                Log.i(TAG, "assertItemIsEnabledAndVisible: Trying to verify that ${appItem.selector} is visible and enabled")
+                assertTrue(appItem.waitForExists(waitingTime) && appItem.isEnabled)
+                Log.i(TAG, "assertItemIsEnabledAndVisible: Verified ${appItem.selector} is visible and enabled")
+            } else {
+                Log.i(TAG, "assertItemIsEnabledAndVisible: Trying to verify that ${appItem.selector} is not enabled")
+                assertFalse(appItem.isEnabled)
+                Log.i(TAG, "assertItemIsEnabledAndVisible: Verified ${appItem.selector} is not enabled")
+            }
         }
     }
 

@@ -5043,6 +5043,13 @@
     value: true
     mirror: always
 
+  # Control consuming WM_POINTER for touch pointers instead of WM_TOUCH
+-   name: dom.w3c_pointer_events.dispatch_by_pointer_messages.touch
+    type: bool
+    value: @IS_NIGHTLY_BUILD@
+    mirror: always
+
+  # Control whether to fire WidgetTouchEvent from pen pointers for APZ to handle scrolling.
 -   name: dom.w3c_pointer_events.scroll_by_pen.enabled
     type: bool
     value: true
@@ -12095,12 +12102,6 @@
 - name: media.allowed-to-play.enabled
   type: bool
   value: @IS_NIGHTLY_BUILD@
-  mirror: always
-
-# Is support for MediaDevices.ondevicechange enabled?
-- name: media.ondevicechange.enabled
-  type: bool
-  value: true
   mirror: always
 
 # Is support for HTMLMediaElement.seekToNextFrame enabled?

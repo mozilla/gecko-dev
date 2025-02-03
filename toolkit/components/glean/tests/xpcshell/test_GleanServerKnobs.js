@@ -210,3 +210,58 @@ add_task(function test_fog_metrics_disabled_ping() {
   // Reset everything so it doesn't interfere with other tests.
   Services.fog.testResetFOG();
 });
+
+add_task(
+  function test_fog_metrics_collection_disabled_pings_cannot_be_serverknobs_controlled() {
+    // This test should work equally for full builds and artifact builds.
+    Assert.ok("collectionDisabledPing" in GleanPings);
+
+    // This metric's ping is disabled and does not collect data.
+    Glean.testOnly.collectionDisabledCounter.add(1);
+    Assert.equal(
+      undefined,
+      Glean.testOnly.collectionDisabledCounter.testGetValue()
+    );
+
+    // Create and set a feature configuration that would enable the test ping.
+    // However it uses `collection-enabled=false` and cannot be controlled through server knobs.
+    let feature_config = {
+      pings_enabled: {
+        "collection-disabled-ping": true,
+      },
+    };
+    Services.fog.applyServerKnobsConfig(JSON.stringify(feature_config));
+
+    Glean.testOnly.collectionDisabledCounter.add(2);
+    Assert.equal(
+      undefined,
+      Glean.testOnly.collectionDisabledCounter.testGetValue()
+    );
+
+    GleanPings.collectionDisabledPing.setEnabled(true);
+    Glean.testOnly.collectionDisabledCounter.add(3);
+    Assert.equal(3, Glean.testOnly.collectionDisabledCounter.testGetValue());
+
+    // Will be submitted. We can observe that data is cleared afterwards.
+    GleanPings.collectionDisabledPing.submit();
+    Assert.equal(
+      undefined,
+      Glean.testOnly.collectionDisabledCounter.testGetValue()
+    );
+
+    // It uses `collectin-enabled=false` and cannot be controlled through server knobs,
+    // not even for turning it off.
+    feature_config = {
+      pings_enabled: {
+        "collection-disabled-ping": false,
+      },
+    };
+    Services.fog.applyServerKnobsConfig(JSON.stringify(feature_config));
+
+    Glean.testOnly.collectionDisabledCounter.add(4);
+    Assert.equal(4, Glean.testOnly.collectionDisabledCounter.testGetValue());
+
+    // Reset everything so it doesn't interfere with other tests.
+    Services.fog.testResetFOG();
+  }
+);

@@ -70,10 +70,6 @@ void CompositorWidgetChild::UpdateTransparency(TransparencyMode aMode) {
   Unused << SendUpdateTransparency(aMode);
 }
 
-void CompositorWidgetChild::ClearTransparentWindow() {
-  Unused << SendClearTransparentWindow();
-}
-
 mozilla::ipc::IPCResult CompositorWidgetChild::RecvObserveVsync() {
   mVsyncDispatcher->SetCompositorVsyncObserver(mVsyncObserver);
   return IPC_OK();

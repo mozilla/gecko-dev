@@ -53,6 +53,7 @@
     -moz-context-properties: fill, stroke;
     fill: currentColor;
     stroke: currentColor;
+    align-self: center;
   }
 }
 

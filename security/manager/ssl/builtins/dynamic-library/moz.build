@@ -6,7 +6,10 @@
 
 USE_LIBS += ["builtins-static"]
 
-# see notes in ipcclientcerts/dynamic-library/moz.build
+# On Linux (but not when building for Android), this needs to use the C++
+# version to avoid linking against the wrong libc symbols.
+# On Android, this needs to use the C version to avoid multiple definitions
+# of symbols caused by their presence in libgcc and builtins-static.
 
 if CONFIG["OS_ARCH"] == "Linux" and CONFIG["OS_TARGET"] != "Android":
     SOURCES += [

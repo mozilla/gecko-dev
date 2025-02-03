@@ -88,8 +88,6 @@ void CompositorWidgetParent::EndRemoteDrawingInRegion(
       aInvalidRegion.ToUnknownRegion());
 }
 
-bool CompositorWidgetParent::NeedsToDeferEndRemoteDrawing() { return false; }
-
 already_AddRefed<gfx::DrawTarget>
 CompositorWidgetParent::GetBackBufferDrawTarget(gfx::DrawTarget* aScreenTarget,
                                                 const gfx::IntRect& aRect,
@@ -141,27 +139,6 @@ bool CompositorWidgetParent::GetWindowIsFullyOccluded() const {
 mozilla::ipc::IPCResult CompositorWidgetParent::RecvUpdateTransparency(
     const TransparencyMode& aMode) {
   SetTransparencyMode(aMode);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult CompositorWidgetParent::RecvClearTransparentWindow() {
-  gfx::CriticalSectionAutoEnter lock(&mPresentLock);
-
-  RefPtr<DrawTarget> drawTarget = mRemoteBackbufferClient->BorrowDrawTarget();
-  if (!drawTarget) {
-    return IPC_OK();
-  }
-
-  IntSize size = drawTarget->GetSize();
-  if (size.IsEmpty()) {
-    return IPC_OK();
-  }
-
-  drawTarget->ClearRect(Rect(0, 0, size.width, size.height));
-
-  Unused << mRemoteBackbufferClient->PresentDrawTarget(
-      IntRect(0, 0, size.width, size.height));
-
   return IPC_OK();
 }
 

@@ -39,6 +39,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tokenizer.h"
@@ -993,7 +994,7 @@ void TRR::RecordProcessingTime(nsIChannel* aChannel) {
     return;
   }
 
-  Telemetry::AccumulateTimeDelta(Telemetry::DNS_TRR_PROCESSING_TIME, end);
+  glean::dns::trr_processing_time.AccumulateRawDuration(TimeStamp::Now() - end);
 
   LOG(("Processing DoH response took %f ms",
        (TimeStamp::Now() - end).ToMilliseconds()));

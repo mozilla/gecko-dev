@@ -41,6 +41,11 @@ bool JOG::HasCategory(const nsACString& aCategoryName) {
 
 static Maybe<bool> sFoundAndLoadedJogfile;
 
+void JOG::TestReset() {
+  MOZ_ASSERT(NS_IsMainThread());
+  sFoundAndLoadedJogfile = Nothing();
+}
+
 // static
 bool JOG::EnsureRuntimeMetricsRegistered(bool aForce) {
   MOZ_ASSERT(NS_IsMainThread());

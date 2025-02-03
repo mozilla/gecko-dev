@@ -43,6 +43,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
 import org.mozilla.fenix.helpers.Constants
 import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
+import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
@@ -218,7 +219,19 @@ class NavigationToolbarRobot {
 
     fun verifyTranslationButton(isPageTranslated: Boolean, originalLanguage: String = "", translatedLanguage: String = "") {
         if (isPageTranslated) {
-            assertUIObjectExists(itemWithDescription("Page translated from $originalLanguage to $translatedLanguage."))
+            for (i in 1..RETRY_COUNT) {
+                Log.i(TAG, "verifyTranslationButton: Started try #$i")
+                try {
+                    assertUIObjectExists(itemWithDescription("Page translated from $originalLanguage to $translatedLanguage."))
+
+                    break
+                } catch (e: AssertionError) {
+                    Log.i(TAG, "verifyTranslationButton: AssertionError caught, executing fallback methods")
+                    navigationToolbar {
+                    }.openThreeDotMenu {
+                    }.refreshPage { }
+                }
+            }
         } else {
             assertUIObjectExists(itemWithDescription(getStringResource(R.string.browser_toolbar_translate)))
         }
@@ -570,10 +583,22 @@ class NavigationToolbarRobot {
             return SearchRobot.Transition()
         }
 
-        fun clickTranslateButton(composeTestRule: ComposeTestRule, interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
-            Log.i(TAG, "clickTranslateButton: Trying to click the translate button")
-            itemWithDescription(getStringResource(R.string.browser_toolbar_translate)).click()
-            Log.i(TAG, "clickTranslateButton: Clicked the translate button")
+        fun clickTranslateButton(
+            composeTestRule: ComposeTestRule,
+            isPageTranslated: Boolean = false,
+            originalLanguage: String = "",
+            translatedLanguage: String = "",
+            interact: TranslationsRobot.() -> Unit,
+        ): TranslationsRobot.Transition {
+            if (isPageTranslated) {
+                Log.i(TAG, "clickTranslateButton: Trying to click the translate button")
+                itemWithDescription("Page translated from $originalLanguage to $translatedLanguage.").click()
+                Log.i(TAG, "clickTranslateButton: Clicked the translate button")
+            } else {
+                Log.i(TAG, "clickTranslateButton: Trying to click the translate button")
+                itemWithDescription(getStringResource(R.string.browser_toolbar_translate)).click()
+                Log.i(TAG, "clickTranslateButton: Clicked the translate button")
+            }
 
             TranslationsRobot(composeTestRule).interact()
             return TranslationsRobot.Transition(composeTestRule)

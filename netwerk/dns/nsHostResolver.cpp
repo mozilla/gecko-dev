@@ -42,7 +42,7 @@
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -602,7 +602,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
            "host [%s].\n",
            IsMediumPriority(flags) ? "medium" : "low", host.get()));
       if (IS_ADDR_TYPE(type)) {
-        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_OVERFLOW);
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_OVERFLOW);
       }
       // This is a lower priority request and we are swamped, so refuse it.
       rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
@@ -635,8 +635,8 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
         rec->flags = flags;
         rv = NameLookup(rec, lock);
         if (IS_ADDR_TYPE(type)) {
-          Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
-                                METHOD_NETWORK_FIRST);
+          glean::dns::lookup_method.AccumulateSingleSample(
+              METHOD_NETWORK_FIRST);
         }
         if (NS_FAILED(rv) && callback->isInList()) {
           callback->remove();
@@ -657,8 +657,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
       rec->mCallbacks.insertBack(callback);
 
       if (rec && rec->onQueue()) {
-        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
-                              METHOD_NETWORK_SHARED);
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_NETWORK_SHARED);
 
         // Consider the case where we are on a pending queue of
         // lower priority than the request is being made at.
@@ -699,7 +698,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromCache(
   // put reference to host record on stack...
   RefPtr<nsHostRecord> result = aRec;
   if (IS_ADDR_TYPE(aType)) {
-    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_HIT);
+    glean::dns::lookup_method.AccumulateSingleSample(METHOD_HIT);
   }
 
   // For entries that are in the grace period
@@ -711,7 +710,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromCache(
     LOG(("  Negative cache entry for host [%s].\n",
          nsPromiseFlatCString(aHost).get()));
     if (IS_ADDR_TYPE(aType)) {
-      Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_NEGATIVE_HIT);
+      glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
     }
     aStatus = NS_ERROR_UNKNOWN_HOST;
   }
@@ -721,7 +720,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromCache(
 
 already_AddRefed<nsHostRecord> nsHostResolver::FromCachedIPLiteral(
     nsHostRecord* aRec) {
-  Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_LITERAL);
+  glean::dns::lookup_method.AccumulateSingleSample(METHOD_LITERAL);
   RefPtr<nsHostRecord> result = aRec;
   return result.forget();
 }
@@ -731,7 +730,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromIPLiteral(
   // ok, just copy the result into the host record, and be
   // done with it! ;-)
   aAddrRec->addr = MakeUnique<NetAddr>(aAddr);
-  Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_LITERAL);
+  glean::dns::lookup_method.AccumulateSingleSample(METHOD_LITERAL);
   // put reference to host record on stack...
   RefPtr<nsHostRecord> result = aAddrRec;
   return result.forget();
@@ -806,7 +805,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
         if (aRec->negative) {
           aStatus = NS_ERROR_UNKNOWN_HOST;
         }
-        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_HIT);
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_HIT);
         ConditionallyRefreshRecord(aRec, aHost, lock);
       } else if (af == PR_AF_INET6) {
         // For AF_INET6, a new lookup means another AF_UNSPEC
@@ -820,8 +819,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
         result = aRec;
         aRec->negative = true;
         aStatus = NS_ERROR_UNKNOWN_HOST;
-        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
-                              METHOD_NEGATIVE_HIT);
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
       }
     }
   }
@@ -1270,7 +1268,7 @@ nsresult nsHostResolver::ConditionallyRefreshRecord(
     if (rec->IsAddrRecord() && !rec->negative) {
       // negative entries are constantly being refreshed, only
       // track positive grace period induced renewals
-      Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_RENEWAL);
+      glean::dns::lookup_method.AccumulateSingleSample(METHOD_RENEWAL);
     }
   }
   return NS_OK;
@@ -1889,8 +1887,7 @@ void nsHostResolver::ThreadFunc() {
     TimeStamp startTime = TimeStamp::Now();
     bool getTtl = rec->LoadGetTtl();
     TimeDuration inQueue = startTime - rec->mNativeStart;
-    uint32_t ms = static_cast<uint32_t>(inQueue.ToMilliseconds());
-    Telemetry::Accumulate(Telemetry::DNS_NATIVE_QUEUING, ms);
+    glean::dns::native_queuing.AccumulateRawDuration(inQueue);
 
     if (!rec->IsAddrRecord()) {
       LOG(("byType on DNS thread"));

@@ -609,6 +609,10 @@ class nsWindow final : public nsBaseWidget {
   void OnSysColorChanged();
   void OnDPIChanged(int32_t x, int32_t y, int32_t width, int32_t height);
   bool OnPointerEvents(UINT msg, WPARAM wParam, LPARAM lParam);
+  bool OnPenPointerEvents(uint32_t aPointerId, UINT aMsg, WPARAM aWParam,
+                          LPARAM aLParam);
+  bool OnTouchPointerEvents(uint32_t aPointerId, UINT aMsg, WPARAM aWParam,
+                            LPARAM aLParam);
 
   /**
    * Function that registers when the user has been active (used for detecting

@@ -852,11 +852,6 @@ child:
     async PushWithData(nsCString scope, nullable nsIPrincipal principal,
                        nsString messageId, uint8_t[] data);
 
-    /**
-     * Send a `pushsubscriptionchange` event to a service worker in the child.
-     */
-    async PushSubscriptionChange(nsCString scope, nullable nsIPrincipal principal);
-
     async GetFilesResponse(nsID aID, GetFilesResponseResult aResult);
 
     async BlobURLRegistration(nsCString aURI, IPCBlob aBlob,
@@ -1539,12 +1534,6 @@ parent:
      */
     async NotifyPushObserversWithData(nsCString scope, nullable nsIPrincipal principal,
                                       nsString messageId, uint8_t[] data);
-
-    /**
-     * Notify `push-subscription-change` observers in the parent.
-     */
-    async NotifyPushSubscriptionChangeObservers(nsCString scope,
-                                                nullable nsIPrincipal principal);
 
      async GetFilesRequest(nsID aID, nsString aDirectory, bool aRecursiveFlag);
      async DeleteGetFilesRequest(nsID aID);

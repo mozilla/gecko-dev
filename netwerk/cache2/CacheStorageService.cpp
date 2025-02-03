@@ -34,7 +34,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkCache2Metrics.h"
 #include "mozilla/StaticPrefs_network.h"
 
 namespace mozilla::net {
@@ -2234,8 +2234,8 @@ void CacheStorageService::TelemetryRecordEntryCreation(
 
   mPurgeTimeStamps.Remove(key);
 
-  Telemetry::AccumulateTimeDelta(Telemetry::HTTP_CACHE_ENTRY_RELOAD_TIME,
-                                 timeStamp, TimeStamp::NowLoRes());
+  glean::network::http_cache_entry_reload_time.AccumulateRawDuration(
+      TimeStamp::NowLoRes() - timeStamp);
 }
 
 void CacheStorageService::TelemetryRecordEntryRemoval(CacheEntry* entry) {
@@ -2258,10 +2258,10 @@ void CacheStorageService::TelemetryRecordEntryRemoval(CacheEntry* entry) {
   TelemetryPrune(now);
   mPurgeTimeStamps.InsertOrUpdate(key, now);
 
-  Telemetry::Accumulate(Telemetry::HTTP_CACHE_ENTRY_REUSE_COUNT,
-                        entry->UseCount());
-  Telemetry::AccumulateTimeDelta(Telemetry::HTTP_CACHE_ENTRY_ALIVE_TIME,
-                                 entry->LoadStart(), TimeStamp::NowLoRes());
+  glean::network::http_cache_entry_reuse_count.AccumulateSingleSample(
+      entry->UseCount());
+  glean::network::http_cache_entry_alive_time.AccumulateRawDuration(
+      TimeStamp::NowLoRes() - entry->LoadStart());
 }
 
 // nsIMemoryReporter

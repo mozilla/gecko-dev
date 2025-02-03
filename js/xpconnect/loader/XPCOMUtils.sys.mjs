@@ -39,28 +39,6 @@ function redefine(object, prop, value) {
  */
 export var XPCOMUtils = {
   /**
-   * DEPRECATED!
-   *
-   * Use ChromeUtils.defineLazyGetter instead.
-   *
-   * Defines a getter on a specified object that will be created upon first use.
-   *
-   * @param {object} aObject
-   *        The object to define the lazy getter on.
-   * @param {string} aName
-   *        The name of the getter to define on aObject.
-   * @param {Function} aLambda
-   *        A function that returns what the getter should return.  This will
-   *        only ever be called once.
-   */
-  defineLazyGetter(aObject, aName, aLambda) {
-    console.warn(
-      "Please use ChromeUtils.defineLazyGetter instead of XPCOMUtils.defineLazyGetter. XPCOMUtils.defineLazyGetter will be removed soon."
-    );
-    ChromeUtils.defineLazyGetter(aObject, aName, aLambda);
-  },
-
-  /**
    * Defines a getter on a specified object for a script.  The script will not
    * be loaded until first use.
    *

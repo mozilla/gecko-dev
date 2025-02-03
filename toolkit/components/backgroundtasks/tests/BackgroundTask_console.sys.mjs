@@ -11,6 +11,9 @@ export async function runBackgroundTask(_commandLine) {
   const pid = Services.appinfo.processID;
   dump(`CONSOLE-PID:${pid}\n`);
 
+  // Also disable dump to prevent nsXPConnect from logging exceptions to stderr
+  Services.prefs.setBoolPref("browser.dom.window.dump.enabled", false);
+
   console.log("foo");
   console.debug("bar");
   const prefixed = console.createInstance({ prefix: "my-prefix" });
@@ -20,6 +23,12 @@ export async function runBackgroundTask(_commandLine) {
   });
   prefixed.warn("warning");
   prefixed.log("not-logged");
+
+  (async function () {
+    throw new Error("Async exception");
+  })();
+
+  Services.console.logStringMessage("String message");
 
   return 0;
 }

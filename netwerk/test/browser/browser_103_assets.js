@@ -93,11 +93,25 @@ async function test_hint_asset(testName, asset, variant) {
   let gotRequestCount = await fetch(
     "http://example.com/browser/netwerk/test/browser/early_hint_pixel_count.sjs"
   ).then(response => response.json());
-  Assert.equal(
-    numConnectBackRemaining,
-    0,
-    `${testName} (${asset}) no remaining connect back expected`
-  );
+  if (
+    asset === "script" &&
+    variant === "cached" &&
+    numConnectBackRemaining === 1
+  ) {
+    // If the navigation cache is enabled (dom.script_loader.navigation_cache),
+    // the script can be cached in the per-process cache storage, and in that
+    // case the channel isn't opened, and the "earlyhints-connectback"
+    // notification isn't observed.
+    info(
+      `${testName} (${asset}+${variant}) in-memory-cached script's notification is skipped`
+    );
+  } else {
+    Assert.equal(
+      numConnectBackRemaining,
+      0,
+      `${testName} (${asset}+${variant}) no remaining connect back expected`
+    );
+  }
 
   let expectedRequestCount;
   if (variant === "normal") {
@@ -111,7 +125,7 @@ async function test_hint_asset(testName, asset, variant) {
   }
 
   await request_count_checking(
-    `${testName} (${asset})`,
+    `${testName} (${asset}+${variant})`,
     gotRequestCount,
     expectedRequestCount
   );

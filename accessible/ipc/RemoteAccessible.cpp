@@ -1784,18 +1784,6 @@ nsAtom* RemoteAccessible::TagName() const {
   return nullptr;
 }
 
-already_AddRefed<nsAtom> RemoteAccessible::InputType() const {
-  if (mCachedFields) {
-    if (auto inputType =
-            mCachedFields->GetAttribute<RefPtr<nsAtom>>(CacheKey::InputType)) {
-      RefPtr<nsAtom> result = *inputType;
-      return result.forget();
-    }
-  }
-
-  return nullptr;
-}
-
 already_AddRefed<nsAtom> RemoteAccessible::DisplayStyle() const {
   if (RequestDomainsIfInactive(CacheDomain::Style)) {
     return nullptr;

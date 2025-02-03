@@ -18,11 +18,10 @@ add_task(async function test_console_to_mozlog() {
   const lines = [];
   const promise = do_backgroundtask("console", {
     onStdoutLine: (line, _proc) => {
-      dump(`STDOUT: ${line}`);
       lines.push(line);
     },
     extraEnv: {
-      MOZ_LOG: "console:5,my-prefix:2",
+      MOZ_LOG: "console:5,my-prefix:2,PageMessages:5",
     },
   });
   const exitCode = await promise;
@@ -37,12 +36,19 @@ add_task(async function test_console_to_mozlog() {
   const threadPrefix = `[Parent ${pid}: Main Thread]: `;
 
   const expectedLogs = [
+    // MOZ_LOG=console:5
     `I/console log: "foo"`,
     `D/console debug: "bar"`,
+
+    // MOZ_LOG=my-prefix:2
     // Bug 1923985: For now, the console API level isn't synchronized with MOZ_LOG one.
     // shouldLogLog should be false because of my-prefix set to level 2.
     `E/my-prefix error: ({shouldLogError:true, shouldLogLog:true})`,
     `W/my-prefix warn: "warning"`,
+
+    // MOZ_LOG=PageMessages:5
+    `I/PageMessages String message`,
+    `E/PageMessages [JavaScript Error: "Error: Async exception" {file: "resource://testing-common/backgroundtasks/BackgroundTask_console.sys.mjs" line: 28}]`,
   ];
 
   for (const expected of expectedLogs) {

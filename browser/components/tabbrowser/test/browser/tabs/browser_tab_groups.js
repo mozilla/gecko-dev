@@ -600,6 +600,75 @@ add_task(async function test_moveTabBetweenGroups() {
   await removeTabGroup(group2);
 });
 
+add_task(async function test_moveTabToStartOrEnd() {
+  let tab1 = gBrowser.selectedTab;
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.addTabGroup([tab1, tab2]);
+  Assert.equal(tab1._tPos, 0, "tab 1 starts at tab index 0");
+  Assert.equal(tab2._tPos, 1, "tab 2 starts at tab index 1");
+  Assert.equal(
+    tab1.elementIndex,
+    1,
+    "tab 1 starts at element index 1, after the group label"
+  );
+  Assert.equal(
+    tab2.elementIndex,
+    2,
+    "tab 2 starts at element index 2, after tab 1"
+  );
+
+  gBrowser.moveTabToStart(tab1);
+  Assert.ok(
+    !tab1.group,
+    "first tab is not grouped anymore after moving to start"
+  );
+  Assert.ok(
+    tab2.group,
+    "last tab is still grouped after moving first tab to start"
+  );
+  Assert.equal(
+    tab1._tPos,
+    0,
+    "tab 1 remains at tab index 0 after moving to start"
+  );
+  Assert.equal(
+    tab2._tPos,
+    1,
+    "tab 2 remains at tab index 1 after tab 1 moved to start"
+  );
+  Assert.equal(
+    tab1.elementIndex,
+    0,
+    "tab 1 moved to element index 0, before the group label"
+  );
+  Assert.equal(
+    tab2.elementIndex,
+    2,
+    "tab 2 remains at element index 2, after the group label"
+  );
+
+  gBrowser.moveTabToEnd(tab2);
+  Assert.ok(!tab2.group, "last tab is not grouped anymore after moving to end");
+  Assert.equal(
+    tab1._tPos,
+    0,
+    "tab 1 remains at tab index 0 after tab 2 moved to end"
+  );
+  Assert.equal(
+    tab2._tPos,
+    1,
+    "tab 2 remains at tab index 1 after moving to end"
+  );
+  Assert.equal(tab1.elementIndex, 0, "tab 1 remains at element index 0");
+  Assert.equal(
+    tab2.elementIndex,
+    1,
+    "tab 2 moved at element index 1 since the group label is gone"
+  );
+
+  BrowserTestUtils.removeTab(tab2);
+});
+
 add_task(async function test_tabGroupSelect() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");

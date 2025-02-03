@@ -20,6 +20,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsChecked
+import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsEnabledAndVisible
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
@@ -53,10 +54,34 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "clickTranslationsOptionsButton: Clicked the translations options button.")
     }
 
+    fun clickAlwaysOfferToTranslateOption() {
+        Log.i(TAG, "clickAlwaysOfferToTranslateOption: Trying to click the \"Always offer to translate\" option button.")
+        composeTestRule.onNodeWithText(getStringResource(R.string.translation_option_bottom_sheet_always_translate)).performClick()
+        Log.i(TAG, "clickAlwaysOfferToTranslateOption: Clicked the \"Always offer to translate\" options button.")
+    }
+
+    fun clickAlwaysTranslateLanguageOption(languageToTranslate: String) {
+        Log.i(TAG, "clickAlwaysTranslateLanguageOption: Trying to click the \"Always translate $languageToTranslate\" option button.")
+        composeTestRule.onNodeWithText("Always translate $languageToTranslate").performClick()
+        Log.i(TAG, "clickAlwaysTranslateLanguageOption: Clicked the \"Always translate $languageToTranslate\" options button.")
+    }
+
     fun clickNeverTranslateLanguageOption(languageToTranslate: String) {
         Log.i(TAG, "clickNeverTranslateLanguageOption: Trying to click the \"Never translate $languageToTranslate\" option button.")
         composeTestRule.onNodeWithText("Never translate $languageToTranslate").performClick()
         Log.i(TAG, "clickNeverTranslateLanguageOption: Clicked the \"Never translate $languageToTranslate\" options button.")
+    }
+
+    fun clickNeverTranslateThisSiteOption() {
+        Log.i(TAG, "clickNeverTranslateThisSiteOption: Trying to click the \"Never translate this site\" option button.")
+        composeTestRule.onNodeWithText(getStringResource(R.string.translation_option_bottom_sheet_never_translate_site)).performClick()
+        Log.i(TAG, "clickNeverTranslateThisSiteOption: Clicked the \"Never translate this site\" options button.")
+    }
+
+    fun verifyTheAlwaysTranslateLanguageDescription() {
+        Log.i(TAG, "verifyTheAlwaysTranslateLanguageDescription: Trying to verify the \"Overrides offers to translate\" description is displayed.")
+        composeTestRule.onNodeWithText(getStringResource(R.string.translation_option_bottom_sheet_switch_description)).assertIsDisplayed()
+        Log.i(TAG, "verifyTheAlwaysTranslateLanguageDescription: Verified the \"Overrides offers to translate\" description is displayed.")
     }
 
     fun verifyTheNeverTranslateLanguageDescription() {
@@ -65,8 +90,92 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyTheNeverTranslateLanguageDescription: Verified the \"Overrides offers to translate\" description is displayed.")
     }
 
-    fun verifyTheNeverTranslateLanguageOptionState(isChecked: Boolean) {
-        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionState: Trying to verify the \"Overrides offers to translate\" description is displayed.")
+    fun verifyAlwaysOfferToTranslateOptionIsChecked(isChecked: Boolean) {
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsChecked: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsChecked: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsChecked: Trying to verify the \"Always offer to translate\" option is checked.")
+        assertItemIsChecked(
+            mDevice.findObject(
+                UiSelector()
+                    .index(3)
+                    .className("android.view.View"),
+            ),
+            isChecked = isChecked,
+        )
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsChecked: Verified the \"Always offer to translate\" option is checked.")
+    }
+
+    fun verifyAlwaysOfferToTranslateOptionIsEnabled(isEnabled: Boolean) {
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsEnabled: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsEnabled: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsEnabled: Trying to verify the \"Always offer to translate\" option is enabled.")
+        assertItemIsEnabledAndVisible(
+            mDevice.findObject(
+                UiSelector()
+                    .index(3)
+                    .className("android.view.View"),
+            ),
+            isEnabled = isEnabled,
+        )
+        Log.i(TAG, "verifyAlwaysOfferToTranslateOptionIsEnabled: Verified the \"Always offer to translate\" option is enabled.")
+    }
+
+    fun verifyAlwaysTranslateOptionIsChecked(isChecked: Boolean) {
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsChecked: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsChecked: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsChecked: Trying to verify the \"Always translate\" description is checked.")
+        assertItemIsChecked(
+            mDevice.findObject(
+                UiSelector()
+                    .index(4)
+                    .className("android.view.View"),
+            ),
+            isChecked = isChecked,
+        )
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsChecked: Verified the \"Always translate\" description is checked.")
+    }
+
+    fun verifyAlwaysTranslateOptionIsEnabled(isEnabled: Boolean) {
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsEnabled: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsEnabled: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsEnabled: Trying to verify the \"Always translate\" option is enabled.")
+        assertItemIsEnabledAndVisible(
+            mDevice.findObject(
+                UiSelector()
+                    .index(4)
+                    .className("android.view.View"),
+            ),
+            isEnabled = isEnabled,
+        )
+        Log.i(TAG, "verifyAlwaysTranslateOptionIsEnabled: Verified the \"Always translate\" option is enabled.")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    fun verifyTheNeverTranslateThisSiteOptionIsChecked(isChecked: Boolean) {
+        Log.i(TAG, "verifyTheNeverTranslateThisSiteOptionIsChecked: Waiting for $waitingTime ms until the \"Never translate this site\" option exists")
+        composeTestRule.waitUntilExactlyOneExists(hasText(getStringResource(R.string.translation_option_bottom_sheet_never_translate_site)), waitingTime)
+        Log.i(TAG, "verifyTheNeverTranslateThisSiteOptionIsChecked: Waited for $waitingTime ms until the \"Never translate this site\" option exists")
+        Log.i(TAG, "verifyTheNeverTranslateThisSiteOptionIsChecked: Trying to verify the \"Never translate this site\" description is checked.")
+        assertItemIsChecked(
+            mDevice.findObject(
+                UiSelector()
+                    .index(6)
+                    .className("android.view.View"),
+            ),
+            isChecked = isChecked,
+        )
+        Log.i(TAG, "verifyTheNeverTranslateThisSiteOptionIsChecked: Verified the \"Never translate this site\" description is checked.")
+    }
+
+    fun verifyTheNeverTranslateLanguageOptionIsChecked(isChecked: Boolean) {
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsChecked: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsChecked: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsChecked: Trying to verify the \"Never translate\" description is checked.")
         assertItemIsChecked(
             mDevice.findObject(
                 UiSelector()
@@ -75,7 +184,35 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
             ),
             isChecked = isChecked,
         )
-        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionState: Verified the \"Overrides offers to translate\" description is displayed.")
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsChecked: Verified the \"Never translate this site\" description is checked.")
+    }
+
+    fun verifyTheNeverTranslateLanguageOptionIsEnabled(isEnabled: Boolean) {
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsEnabled: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsEnabled: Waited for compose test rule to be idle")
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsEnabled: Trying to verify the \"Never translate this site\" description is enabled.")
+        assertItemIsEnabledAndVisible(
+            mDevice.findObject(
+                UiSelector()
+                    .index(5)
+                    .className("android.view.View"),
+            ),
+            isEnabled = isEnabled,
+        )
+        Log.i(TAG, "verifyTheNeverTranslateLanguageOptionIsEnabled: Verified the \"Never translate this site\" description is enabled.")
+    }
+
+    fun clickTranslateToDropdown() {
+        Log.i(TAG, "clickTranslateToDropdown: Trying to click the \"Translate to\" dropdown.")
+        composeTestRule.onNodeWithText(getStringResource(R.string.translations_bottom_sheet_translate_to)).performClick()
+        Log.i(TAG, "clickTranslateToDropdown: Clicked the \"Translate to\" dropdown.")
+    }
+
+    fun clickTranslateToLanguage(translateToLanguage: String) {
+        Log.i(TAG, "clickTranslateToLanguage: Trying to click the $translateToLanguage \"Translate to\" dropdown option.")
+        composeTestRule.onNodeWithText(translateToLanguage).performClick()
+        Log.i(TAG, "clickTranslateToLanguage: Clicked the $translateToLanguage \"Translate to\" dropdown option.")
     }
 
     class Transition(private val composeTestRule: ComposeTestRule) {

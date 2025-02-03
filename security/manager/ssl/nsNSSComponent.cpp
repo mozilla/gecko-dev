@@ -139,34 +139,8 @@ void TruncateFromLastDirectorySeparator(nsCString& path) {
 }
 
 bool LoadIPCClientCerts() {
-  // This returns the path to the binary currently running, which in most
-  // cases is "plugin-container".
-  UniqueFreePtr<char> pluginContainerPath(BinaryPath::Get());
-  if (!pluginContainerPath) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("failed to get get plugin-container path"));
-    return false;
-  }
-  nsAutoCString ipcClientCertsDirString(pluginContainerPath.get());
-  // On most platforms, ipcclientcerts is in the same directory as
-  // plugin-container. To obtain the path to that directory, truncate from
-  // the last directory separator.
-  // On macOS, plugin-container is in
-  // Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/,
-  // whereas ipcclientcerts is in Firefox.app/Contents/MacOS/. Consequently,
-  // this truncation from the last directory separator has to happen 4 times
-  // total. Normally this would be done using nsIFile APIs, but due to when
-  // this is initialized in the socket process, those aren't available.
-  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-#ifdef XP_MACOSX
-  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-#endif
-  if (!LoadIPCClientCertsModule(ipcClientCertsDirString)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("failed to load ipcclientcerts from '%s'",
-             ipcClientCertsDirString.get()));
+  if (!LoadIPCClientCertsModule()) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("failed to load ipcclientcerts"));
     return false;
   }
   return true;
