@@ -571,24 +571,24 @@ static void reportHandshakeResult(int32_t bytesTransferred, bool wasReading,
 
   uint32_t flags = socketInfo->GetProviderFlags();
   if (!(flags & nsISocketProvider::IS_RETRY)) {
-    Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_RESULT_FIRST_TRY, bucket);
+    glean::ssl_handshake::result_first_try.AccumulateSingleSample(bucket);
   }
 
   if (flags & nsISocketProvider::BE_CONSERVATIVE) {
-    Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_RESULT_CONSERVATIVE, bucket);
+    glean::ssl_handshake::result_conservative.AccumulateSingleSample(bucket);
   }
 
   switch (socketInfo->GetEchExtensionStatus()) {
     case EchExtensionStatus::kGREASE:
-      Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_RESULT_ECH_GREASE, bucket);
+      glean::ssl_handshake::result_ech_grease.AccumulateSingleSample(bucket);
       break;
     case EchExtensionStatus::kReal:
-      Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_RESULT_ECH, bucket);
+      glean::ssl_handshake::result_ech.AccumulateSingleSample(bucket);
       break;
     default:
       break;
   }
-  Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_RESULT, bucket);
+  glean::ssl_handshake::result.AccumulateSingleSample(bucket);
 
   if (bucket == 0) {
     nsCOMPtr<nsITransportSecurityInfo> securityInfo;
@@ -622,7 +622,7 @@ static void reportHandshakeResult(int32_t bytesTransferred, bool wasReading,
       TLSPrivacyResult |= usedPrivateDNS << 2;
       TLSPrivacyResult |= usedECH << 3;
 
-      Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_PRIVACY, TLSPrivacyResult);
+      glean::ssl_handshake::privacy.AccumulateSingleSample(TLSPrivacyResult);
     }
   }
 }

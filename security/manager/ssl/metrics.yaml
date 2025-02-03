@@ -559,3 +559,180 @@ cert_pinning:
       - pinning@mozilla.org
     expires: never
     telemetry_mirror: CERT_PINNING_MOZ_TEST_RESULTS_BY_HOST
+
+ssl_handshake:
+  version:
+    type: custom_distribution
+    description: >
+      Negotiated SSL Version (1=tls1, 2=tls1.1, 3=tls1.2, 4=tls1.3)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_VERSION.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_VERSION
+
+  privacy:
+    type: custom_distribution
+    description: >
+      0th bit - TLS13 used? 1th bit - Revocation Privacy, 2nd bit - DNS Privacy,
+      3rd bit - ECH Privacy
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_PRIVACY.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1788290
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1788290
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_PRIVACY
+
+  result:
+    type: custom_distribution
+    description: >
+      SSL handshake result, 0=success, 1-255=NSS error offset, 256-511=SEC error
+      offset + 256, 512-639=NSPR error offset + 512, 640-670=PKIX error,
+      671=unknown err
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_RESULT.
+    range_min: 0
+    range_max: 672
+    bucket_count: 673
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1331280
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1331280
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_RESULT
+
+  result_first_try:
+    type: custom_distribution
+    description: >
+      SSL handshake result for first-try connections, 0=success, 1-255=NSS error
+      offset, 256-511=SEC error offset + 256, 512-639=NSPR error offset + 512,
+      640-670=PKIX error, 671=unknown err
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_RESULT_FIRST_TRY.
+    range_min: 0
+    range_max: 672
+    bucket_count: 673
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1780014
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1780014
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_RESULT_FIRST_TRY
+
+  result_conservative:
+    type: custom_distribution
+    description: >
+      SSL handshake result for conservative mode connections, 0=success,
+      1-255=NSS error offset, 256-511=SEC error offset + 256, 512-639=NSPR error
+      offset + 512, 640-670=PKIX error, 671=unknown err
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_RESULT_CONSERVATIVE.
+    range_min: 0
+    range_max: 672
+    bucket_count: 673
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1780014
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1780014
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_RESULT_CONSERVATIVE
+
+  result_ech:
+    type: custom_distribution
+    description: >
+      SSL handshake result for connections which used ECH 'Real', 0=success,
+      1-255=NSS error offset, 256-511=SEC error offset + 256, 512-639=NSPR error
+      offset + 512, 640-670=PKIX error, 671=unknown err
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_RESULT_ECH.
+    range_min: 0
+    range_max: 672
+    bucket_count: 673
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_RESULT_ECH
+
+  result_ech_grease:
+    type: custom_distribution
+    description: >
+      SSL handshake result for connections which used ECH GREASE, 0=success,
+      1-255=NSS error offset, 256-511=SEC error offset + 256, 512-639=NSPR error
+      offset + 512, 640-670=PKIX error, 671=unknown err
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_RESULT_ECH_GREASE.
+    range_min: 0
+    range_max: 672
+    bucket_count: 673
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_RESULT_ECH_GREASE
+
+  completed:
+    type: custom_distribution
+    description: >
+      Type of handshake (1=resumption, 2=false started, 3=chose not to false
+      start, 4=not allowed to false start)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_HANDSHAKE_TYPE.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_HANDSHAKE_TYPE

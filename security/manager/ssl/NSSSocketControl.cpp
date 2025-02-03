@@ -147,7 +147,7 @@ void NSSSocketControl::SetHandshakeCompleted() {
     // that means that TLS session resumption must have been used.
     Telemetry::Accumulate(Telemetry::SSL_RESUMED_SESSION,
                           handshakeType == Resumption);
-    Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_TYPE, handshakeType);
+    glean::ssl_handshake::completed.AccumulateSingleSample(handshakeType);
   }
 
   // Remove the plaintext layer as it is not needed anymore.
