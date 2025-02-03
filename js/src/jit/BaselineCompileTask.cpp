@@ -111,8 +111,8 @@ void js::AttachFinishedBaselineCompilations(JSContext* cx,
           AutoUnlockHelperThreadState unlock(lock);
           AutoRealm ar(cx, task->script());
           task->finishOnMainThread(cx);
-          BaselineCompileTask::FinishOffThreadTask(task);
         }
+        BaselineCompileTask::FinishOffThreadTask(task);
       }
     }
     if (!found) {
