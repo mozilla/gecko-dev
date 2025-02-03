@@ -2240,6 +2240,26 @@ void TextLeafRange::ScrollIntoView(uint32_t aScrollType) const {
                                  aScrollType);
 }
 
+nsTArray<TextLeafRange> TextLeafRange::VisibleLines(
+    Accessible* aContainer) const {
+  MOZ_ASSERT(aContainer);
+  // We want to restrict our lines to those visible within aContainer.
+  LayoutDeviceIntRect containerBounds = aContainer->Bounds();
+  nsTArray<TextLeafRange> lines;
+  WalkLineRects([&lines, &containerBounds](TextLeafRange aLine,
+                                           LayoutDeviceIntRect aLineRect) {
+    // XXX This doesn't correctly handle lines that are scrolled out where the
+    // scroll container is a descendant of aContainer. Such lines might
+    // intersect with containerBounds, but the scroll container could be a
+    // descendant of aContainer and should thus exclude this line. See bug
+    // 1945010 for more details.
+    if (aLineRect.Intersects(containerBounds)) {
+      lines.AppendElement(aLine);
+    }
+  });
+  return lines;
+}
+
 bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
   if (mEnd <= mStart) {
     return false;

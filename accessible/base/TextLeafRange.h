@@ -329,6 +329,12 @@ class TextLeafRange final {
 
   MOZ_CAN_RUN_SCRIPT void ScrollIntoView(uint32_t aScrollType) const;
 
+  /**
+   * Returns sub-ranges for all the lines in this range visible within the given
+   * container Accessible.
+   */
+  nsTArray<TextLeafRange> VisibleLines(Accessible* aContainer) const;
+
  private:
   TextLeafPoint mStart;
   TextLeafPoint mEnd;

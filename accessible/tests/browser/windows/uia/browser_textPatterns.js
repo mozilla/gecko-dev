@@ -2209,3 +2209,82 @@ addUiaTask(
   },
   { uiaEnabled: true, uiaDisabled: true }
 );
+
+/**
+ * Test the Text pattern's GetVisibleRanges method.
+ */
+addUiaTask(
+  `
+<div id="div">
+  <p>line1</p>
+  <p>line2</p>
+  <p style="position: absolute; left: -10000px; width: 1px;">line3</p>
+  <p>line4</p>
+</div>
+<!-- We use 0.5lh so the second line is definitely fully scrolled out.
+     With 1lh, it could be partially visible and thus included. -->
+<textarea id="textarea" style="height: 0.5lh;">line5
+line6
+line7</textarea>
+<hr aria-hidden="true" style="height: 100vh;">
+<p>line8</p>
+  `,
+  async function testTextGetVisibleRanges() {
+    await runPython(`
+      global doc, docText, ranges
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      ranges = docText.GetVisibleRanges()
+    `);
+    // XXX This should be 4 once we fix the scrolling case below.
+    is(
+      await runPython(`ranges.Length`),
+      6,
+      "doc has correct number of visible ranges"
+    );
+    is(
+      await runPython(`ranges.GetElement(0).GetText(-1)`),
+      "line1",
+      "range 0 text correct"
+    );
+    is(
+      await runPython(`ranges.GetElement(1).GetText(-1)`),
+      "line2",
+      "range 1 text correct"
+    );
+    // line3 is off-screen and thus not visible.
+    is(
+      await runPython(`ranges.GetElement(2).GetText(-1)`),
+      "line4",
+      "range 2 text correct"
+    );
+    is(
+      await runPython(`ranges.GetElement(3).GetText(-1)`),
+      "line5\n",
+      "range 3 text correct"
+    );
+    // XXX line6 and line7 are scrolled off screen by the textarea, but we
+    // incorrectly return them for now (ranges 4 and 5).
+    // line8 is scrolled off screen by the document.
+
+    await runPython(`
+      textarea = findUiaByDomId(doc, "textarea")
+      textareaText = getUiaPattern(textarea, "Text")
+      global ranges
+      ranges = textareaText.GetVisibleRanges()
+    `);
+    is(
+      await runPython(`ranges.Length`),
+      1,
+      "textarea has correct number of visible ranges"
+    );
+    is(
+      await runPython(`ranges.GetElement(0).GetText(-1)`),
+      "line5\n",
+      "range 0 text correct"
+    );
+    // line6 and line7 are scrolled off screen by the textarea.
+  },
+  // The IA2 -> UIA proxy doesn't support GetVisibleRanges.
+  { uiaEnabled: true, uiaDisabled: false }
+);
