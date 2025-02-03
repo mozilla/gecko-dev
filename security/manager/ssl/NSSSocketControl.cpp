@@ -90,32 +90,27 @@ void NSSSocketControl::NoteTimeUntilReady() {
   }
   mNotedTimeUntilReady = true;
 
-  auto timestampNow = TimeStamp::Now();
+  auto duration = TimeStamp::Now() - mSocketCreationTimestamp;
   if (!(mProviderFlags & nsISocketProvider::IS_RETRY)) {
-    Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY_FIRST_TRY,
-                                   mSocketCreationTimestamp, timestampNow);
+    glean::ssl::time_until_ready_first_try.AccumulateRawDuration(duration);
   }
 
   if (mProviderFlags & nsISocketProvider::BE_CONSERVATIVE) {
-    Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY_CONSERVATIVE,
-                                   mSocketCreationTimestamp, timestampNow);
+    glean::ssl::time_until_ready_conservative.AccumulateRawDuration(duration);
   }
 
   switch (GetEchExtensionStatus()) {
     case EchExtensionStatus::kGREASE:
-      Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY_ECH_GREASE,
-                                     mSocketCreationTimestamp, timestampNow);
+      glean::ssl::time_until_ready_ech_grease.AccumulateRawDuration(duration);
       break;
     case EchExtensionStatus::kReal:
-      Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY_ECH,
-                                     mSocketCreationTimestamp, timestampNow);
+      glean::ssl::time_until_ready_ech.AccumulateRawDuration(duration);
       break;
     default:
       break;
   }
   // This will include TCP and proxy tunnel wait time
-  Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY,
-                                 mSocketCreationTimestamp, timestampNow);
+  glean::ssl::time_until_ready.AccumulateRawDuration(duration);
 
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
           ("[%p] NSSSocketControl::NoteTimeUntilReady\n", mFd));
@@ -138,15 +133,16 @@ void NSSSocketControl::SetHandshakeCompleted() {
                                       : NotAllowedToFalseStart;
     // This will include TCP and proxy tunnel wait time
     if (mKeaGroupName.isSome()) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::SSL_TIME_UNTIL_HANDSHAKE_FINISHED_KEYED_BY_KA,
-          *mKeaGroupName, mSocketCreationTimestamp, TimeStamp::Now());
+      glean::ssl::time_until_handshake_finished_keyed_by_ka.Get(*mKeaGroupName)
+          .AccumulateRawDuration(TimeStamp::Now() - mSocketCreationTimestamp);
     }
 
     // If the handshake is completed for the first time from just 1 callback
     // that means that TLS session resumption must have been used.
-    Telemetry::Accumulate(Telemetry::SSL_RESUMED_SESSION,
-                          handshakeType == Resumption);
+    glean::ssl::resumed_session
+        .EnumGet(static_cast<glean::ssl::ResumedSessionLabel>(handshakeType ==
+                                                              Resumption))
+        .Add();
     glean::ssl_handshake::completed.AccumulateSingleSample(handshakeType);
   }
 
@@ -436,8 +432,8 @@ void NSSSocketControl::SetCertVerificationResult(PRErrorCode errorCode) {
   }
 
   if (mPlaintextBytesRead && !errorCode) {
-    Telemetry::Accumulate(Telemetry::SSL_BYTES_BEFORE_CERT_CALLBACK,
-                          AssertedCast<uint32_t>(mPlaintextBytesRead));
+    glean::ssl::bytes_before_cert_callback.Accumulate(
+        AssertedCast<uint32_t>(mPlaintextBytesRead));
   }
 
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,

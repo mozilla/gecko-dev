@@ -25,7 +25,6 @@
 #include "mozilla/RandomNum.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "mozilla/net/SSLTokensCache.h"
 #include "mozilla/net/SocketProcessChild.h"
@@ -472,8 +471,8 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
     // same buckets as the telemetry below, except that bucket 0 will include
     // all cases where there wasn't an original reason.
     PRErrorCode originalReason = socketInfo->GetTLSIntoleranceReason();
-    Telemetry::Accumulate(Telemetry::SSL_VERSION_FALLBACK_INAPPROPRIATE,
-                          tlsIntoleranceTelemetryBucket(originalReason));
+    glean::ssl::version_fallback_inappropriate.AccumulateSingleSample(
+        tlsIntoleranceTelemetryBucket(originalReason));
 
     socketInfo->ForgetTLSIntolerance();
 
@@ -495,39 +494,48 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
     return false;
   }
 
-  Telemetry::HistogramID pre;
-  Telemetry::HistogramID post;
+  // The difference between _PRE and _POST represents how often we avoided
+  // TLS intolerance fallback due to remembered tolerance.
+
   switch (range.max) {
     case SSL_LIBRARY_VERSION_TLS_1_3:
-      pre = Telemetry::SSL_TLS13_INTOLERANCE_REASON_PRE;
-      post = Telemetry::SSL_TLS13_INTOLERANCE_REASON_POST;
+      glean::ssl::tls13_intolerance_reason_pre.AccumulateSingleSample(reason);
       break;
     case SSL_LIBRARY_VERSION_TLS_1_2:
-      pre = Telemetry::SSL_TLS12_INTOLERANCE_REASON_PRE;
-      post = Telemetry::SSL_TLS12_INTOLERANCE_REASON_POST;
+      glean::ssl::tls12_intolerance_reason_pre.AccumulateSingleSample(reason);
       break;
     case SSL_LIBRARY_VERSION_TLS_1_1:
-      pre = Telemetry::SSL_TLS11_INTOLERANCE_REASON_PRE;
-      post = Telemetry::SSL_TLS11_INTOLERANCE_REASON_POST;
+      glean::ssl::tls11_intolerance_reason_pre.AccumulateSingleSample(reason);
       break;
     case SSL_LIBRARY_VERSION_TLS_1_0:
-      pre = Telemetry::SSL_TLS10_INTOLERANCE_REASON_PRE;
-      post = Telemetry::SSL_TLS10_INTOLERANCE_REASON_POST;
+      glean::ssl::tls10_intolerance_reason_pre.AccumulateSingleSample(reason);
       break;
     default:
       MOZ_CRASH("impossible TLS version");
       return false;
   }
 
-  // The difference between _PRE and _POST represents how often we avoided
-  // TLS intolerance fallback due to remembered tolerance.
-  Telemetry::Accumulate(pre, reason);
-
   if (!socketInfo->RememberTLSIntolerant(err)) {
     return false;
   }
 
-  Telemetry::Accumulate(post, reason);
+  switch (range.max) {
+    case SSL_LIBRARY_VERSION_TLS_1_3:
+      glean::ssl::tls13_intolerance_reason_post.AccumulateSingleSample(reason);
+      break;
+    case SSL_LIBRARY_VERSION_TLS_1_2:
+      glean::ssl::tls12_intolerance_reason_post.AccumulateSingleSample(reason);
+      break;
+    case SSL_LIBRARY_VERSION_TLS_1_1:
+      glean::ssl::tls11_intolerance_reason_post.AccumulateSingleSample(reason);
+      break;
+    case SSL_LIBRARY_VERSION_TLS_1_0:
+      glean::ssl::tls10_intolerance_reason_post.AccumulateSingleSample(reason);
+      break;
+    default:
+      MOZ_CRASH("impossible TLS version");
+      return false;
+  }
 
   return true;
 }

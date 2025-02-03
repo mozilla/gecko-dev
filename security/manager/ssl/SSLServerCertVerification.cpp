@@ -109,7 +109,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/SecurityManagerSslMetrics.h"
@@ -443,7 +442,7 @@ static SECStatus BlockServerCertChangeForSpdy(
 }
 
 void GatherTelemetryForSingleSCT(const ct::VerifiedSCT& verifiedSct) {
-  // See SSL_SCTS_VERIFICATION_STATUS in Histograms.json.
+  // See scts_verification_status in metrics.yaml.
   uint32_t verificationStatus = 0;
   switch (verifiedSct.logState) {
     case ct::CTLogState::Admissible:
@@ -453,8 +452,8 @@ void GatherTelemetryForSingleSCT(const ct::VerifiedSCT& verifiedSct) {
       verificationStatus = 5;
       break;
   }
-  Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS,
-                        verificationStatus);
+  glean::ssl::scts_verification_status.AccumulateSingleSample(
+      verificationStatus);
 }
 
 void GatherCertificateTransparencyTelemetry(
@@ -469,29 +468,29 @@ void GatherCertificateTransparencyTelemetry(
     GatherTelemetryForSingleSCT(sct);
   }
 
-  // See SSL_SCTS_VERIFICATION_STATUS in Histograms.json.
+  // See scts_verification_status in metrics.yaml.
   for (size_t i = 0; i < info.verifyResult.decodingErrors; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS, 0);
+    glean::ssl::scts_verification_status.AccumulateSingleSample(0);
   }
   for (size_t i = 0; i < info.verifyResult.sctsFromUnknownLogs; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS, 2);
+    glean::ssl::scts_verification_status.AccumulateSingleSample(2);
   }
   for (size_t i = 0; i < info.verifyResult.sctsWithInvalidSignatures; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS, 3);
+    glean::ssl::scts_verification_status.AccumulateSingleSample(3);
   }
   for (size_t i = 0; i < info.verifyResult.sctsWithInvalidTimestamps; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS, 4);
+    glean::ssl::scts_verification_status.AccumulateSingleSample(4);
   }
 
-  // See SSL_SCTS_ORIGIN in Histograms.json.
+  // See scts_origin in metrics.yaml.
   for (size_t i = 0; i < info.verifyResult.embeddedSCTs; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_ORIGIN, 1);
+    glean::ssl::scts_origin.AccumulateSingleSample(1);
   }
   for (size_t i = 0; i < info.verifyResult.sctsFromTLSHandshake; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_ORIGIN, 2);
+    glean::ssl::scts_origin.AccumulateSingleSample(2);
   }
   for (size_t i = 0; i < info.verifyResult.sctsFromOCSP; ++i) {
-    Telemetry::Accumulate(Telemetry::SSL_SCTS_ORIGIN, 3);
+    glean::ssl::scts_origin.AccumulateSingleSample(3);
   }
 
   // Handle the histogram of SCTs counts.
@@ -499,15 +498,15 @@ void GatherCertificateTransparencyTelemetry(
       static_cast<uint32_t>(info.verifyResult.verifiedScts.size());
   // Note that sctsCount can also be 0 in case we've received SCT binary data,
   // but it failed to parse (e.g. due to unsupported CT protocol version).
-  Telemetry::Accumulate(Telemetry::SSL_SCTS_PER_CONNECTION, sctsCount);
+  glean::ssl::scts_per_connection.AccumulateSingleSample(sctsCount);
 
   // Report CT Policy compliance by CA.
   if (info.policyCompliance.isSome() &&
       *info.policyCompliance != ct::CTPolicyCompliance::Compliant) {
     int32_t binId = RootCABinNumber(rootCert);
     if (binId != ROOT_CERTIFICATE_HASH_FAILURE) {
-      Telemetry::Accumulate(
-          Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, binId);
+      glean::ssl::ct_policy_non_compliant_connections_by_ca
+          .AccumulateSingleSample(binId);
     }
   }
 }
@@ -529,7 +528,7 @@ static void CollectCertTelemetry(
   glean::cert::ev_status.AccumulateSingleSample(evStatus);
 
   if (aOcspStaplingStatus != CertVerifier::OCSP_STAPLING_NEVER_CHECKED) {
-    Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, aOcspStaplingStatus);
+    glean::ssl::ocsp_stapling.AccumulateSingleSample(aOcspStaplingStatus);
   }
 
   if (aKeySizeStatus != KeySizeStatus::NeverChecked) {
@@ -660,7 +659,7 @@ PRErrorCode AuthCertificateParseResults(
     nsITransportSecurityInfo::OverridableErrorCategory&
         aOverridableErrorCategory) {
   uint32_t probeValue = MapCertErrorToProbeValue(aCertVerificationError);
-  Telemetry::Accumulate(Telemetry::SSL_CERT_VERIFICATION_ERRORS, probeValue);
+  glean::ssl::cert_verification_errors.AccumulateSingleSample(probeValue);
 
   Maybe<nsITransportSecurityInfo::OverridableErrorCategory>
       maybeOverridableErrorCategory =
@@ -703,7 +702,7 @@ PRErrorCode AuthCertificateParseResults(
   if (haveOverride) {
     uint32_t probeValue =
         MapOverridableErrorToProbeValue(aCertVerificationError);
-    Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, probeValue);
+    glean::ssl::cert_error_overrides.AccumulateSingleSample(probeValue);
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("[0x%" PRIx64 "] certificate error overridden", aPtrForLog));
     return 0;
@@ -804,7 +803,7 @@ SSLServerCertVerificationJob::Run() {
   if (result == Success) {
     mozilla::glean::cert_verification_time::success.AccumulateRawDuration(
         elapsed);
-    Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, 1);
+    glean::ssl::cert_error_overrides.AccumulateSingleSample(1);
 
     nsresult rv = mResultTask->Dispatch(
         std::move(builtChainBytesArray), std::move(mPeerCertChain),

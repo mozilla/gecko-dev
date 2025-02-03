@@ -10,7 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/Unused.h"
@@ -615,8 +615,8 @@ void nsCertOverrideService::CountPermanentOverrideTelemetry(
       overrideCount++;
     }
   }
-  Telemetry::Accumulate(Telemetry::SSL_PERMANENT_CERT_ERROR_OVERRIDES,
-                        overrideCount);
+  glean::ssl::permanent_cert_error_overrides.AccumulateSingleSample(
+      overrideCount);
 }
 
 static bool IsDebugger() {

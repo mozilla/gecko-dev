@@ -773,7 +773,7 @@ static void PreliminaryHandshakeDone(PRFileDesc* fd) {
     } else {
       socketControl->SetNegotiatedNPN(nullptr, 0);
     }
-    mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
+    mozilla::glean::ssl::npn_type.AccumulateSingleSample(state);
   } else {
     socketControl->SetNegotiatedNPN(nullptr, 0);
   }
@@ -850,8 +850,8 @@ SECStatus CanFalseStartCallback(PRFileDesc* fd, void* client_data,
   // to the same protocol we previously saw for the server, after the
   // first successful connection to the server.
 
-  Telemetry::Accumulate(Telemetry::SSL_REASONS_FOR_NOT_FALSE_STARTING,
-                        reasonsForNotFalseStarting);
+  glean::ssl::reasons_for_not_false_starting.AccumulateSingleSample(
+      reasonsForNotFalseStarting);
 
   if (reasonsForNotFalseStarting == 0) {
     *canFalseStart = PR_TRUE;
@@ -864,30 +864,28 @@ SECStatus CanFalseStartCallback(PRFileDesc* fd, void* client_data,
   return SECSuccess;
 }
 
-static void AccumulateNonECCKeySize(Telemetry::HistogramID probe,
-                                    uint32_t bits) {
-  unsigned int value = bits < 512      ? 1
-                       : bits == 512   ? 2
-                       : bits < 768    ? 3
-                       : bits == 768   ? 4
-                       : bits < 1024   ? 5
-                       : bits == 1024  ? 6
-                       : bits < 1280   ? 7
-                       : bits == 1280  ? 8
-                       : bits < 1536   ? 9
-                       : bits == 1536  ? 10
-                       : bits < 2048   ? 11
-                       : bits == 2048  ? 12
-                       : bits < 3072   ? 13
-                       : bits == 3072  ? 14
-                       : bits < 4096   ? 15
-                       : bits == 4096  ? 16
-                       : bits < 8192   ? 17
-                       : bits == 8192  ? 18
-                       : bits < 16384  ? 19
-                       : bits == 16384 ? 20
-                                       : 0;
-  Telemetry::Accumulate(probe, value);
+static unsigned int NonECCKeySize(uint32_t bits) {
+  return bits < 512      ? 1
+         : bits == 512   ? 2
+         : bits < 768    ? 3
+         : bits == 768   ? 4
+         : bits < 1024   ? 5
+         : bits == 1024  ? 6
+         : bits < 1280   ? 7
+         : bits == 1280  ? 8
+         : bits < 1536   ? 9
+         : bits == 1536  ? 10
+         : bits < 2048   ? 11
+         : bits == 2048  ? 12
+         : bits < 3072   ? 13
+         : bits == 3072  ? 14
+         : bits < 4096   ? 15
+         : bits == 4096  ? 16
+         : bits < 8192   ? 17
+         : bits == 8192  ? 18
+         : bits < 16384  ? 19
+         : bits == 16384 ? 20
+                         : 0;
 }
 
 // XXX: This attempts to map a bit count to an ECC named curve identifier. In
@@ -896,13 +894,12 @@ static void AccumulateNonECCKeySize(Telemetry::HistogramID probe,
 // available, the mapping would be ambiguous since there could be multiple
 // named curves for a given size (e.g. secp256k1 vs. secp256r1). We punt on
 // that for now. See also NSS bug 323674.
-static void AccumulateECCCurve(Telemetry::HistogramID probe, uint32_t bits) {
-  unsigned int value = bits == 255   ? 29  // Curve25519
-                       : bits == 256 ? 23  // P-256
-                       : bits == 384 ? 24  // P-384
-                       : bits == 521 ? 25  // P-521
-                                     : 0;  // Unknown
-  Telemetry::Accumulate(probe, value);
+static unsigned int ECCCurve(uint32_t bits) {
+  return bits == 255   ? 29  // Curve25519
+         : bits == 256 ? 23  // P-256
+         : bits == 384 ? 24  // P-384
+         : bits == 521 ? 25  // P-521
+                       : 0;  // Unknown
 }
 
 static void AccumulateCipherSuite(const SSLChannelInfo& channelInfo) {
@@ -979,7 +976,7 @@ static void AccumulateCipherSuite(const SSLChannelInfo& channelInfo) {
       break;
   }
   MOZ_ASSERT(value != 0);
-  Telemetry::Accumulate(Telemetry::TLS_CIPHER_SUITE, value);
+  glean::tls::cipher_suite.AccumulateSingleSample(value);
 }
 
 void HandshakeCallback(PRFileDesc* fd, void* client_data) {
@@ -1021,24 +1018,27 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     return;
   }
   // keyExchange null=0, rsa=1, dh=2, fortezza=3, ecdh=4, ecdh_hybrid=8
-  Telemetry::Accumulate(infoObject->IsFullHandshake()
-                            ? Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_FULL
-                            : Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_RESUMED,
-                        channelInfo.keaType);
+  if (infoObject->IsFullHandshake()) {
+    glean::ssl::key_exchange_algorithm_full.AccumulateSingleSample(
+        channelInfo.keaType);
+  } else {
+    glean::ssl::key_exchange_algorithm_resumed.AccumulateSingleSample(
+        channelInfo.keaType);
+  }
 
   if (infoObject->IsFullHandshake()) {
     switch (channelInfo.keaType) {
       case ssl_kea_rsa:
-        AccumulateNonECCKeySize(Telemetry::SSL_KEA_RSA_KEY_SIZE_FULL,
-                                channelInfo.keaKeyBits);
+        glean::ssl::kea_rsa_key_size_full.AccumulateSingleSample(
+            NonECCKeySize(channelInfo.keaKeyBits));
         break;
       case ssl_kea_dh:
-        AccumulateNonECCKeySize(Telemetry::SSL_KEA_DHE_KEY_SIZE_FULL,
-                                channelInfo.keaKeyBits);
+        glean::ssl::kea_dhe_key_size_full.AccumulateSingleSample(
+            NonECCKeySize(channelInfo.keaKeyBits));
         break;
       case ssl_kea_ecdh:
-        AccumulateECCCurve(Telemetry::SSL_KEA_ECDHE_CURVE_FULL,
-                           channelInfo.keaKeyBits);
+        Telemetry::Accumulate(Telemetry::SSL_KEA_ECDHE_CURVE_FULL,
+                              ECCCurve(channelInfo.keaKeyBits));
         break;
       case ssl_kea_ecdh_hybrid:
         break;
@@ -1047,20 +1047,20 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
         break;
     }
 
-    Telemetry::Accumulate(Telemetry::SSL_AUTH_ALGORITHM_FULL,
-                          channelInfo.authType);
+    glean::ssl::auth_algorithm_full.AccumulateSingleSample(
+        channelInfo.authType);
 
     // RSA key exchange doesn't use a signature for auth.
     if (channelInfo.keaType != ssl_kea_rsa) {
       switch (channelInfo.authType) {
         case ssl_auth_rsa:
         case ssl_auth_rsa_sign:
-          AccumulateNonECCKeySize(Telemetry::SSL_AUTH_RSA_KEY_SIZE_FULL,
-                                  channelInfo.authKeyBits);
+          glean::ssl::auth_rsa_key_size_full.AccumulateSingleSample(
+              NonECCKeySize(channelInfo.authKeyBits));
           break;
         case ssl_auth_ecdsa:
-          AccumulateECCCurve(Telemetry::SSL_AUTH_ECDSA_CURVE_FULL,
-                             channelInfo.authKeyBits);
+          glean::ssl::auth_ecdsa_curve_full.AccumulateSingleSample(
+              ECCCurve(channelInfo.authKeyBits));
           break;
         default:
           MOZ_CRASH("impossible auth algorithm");

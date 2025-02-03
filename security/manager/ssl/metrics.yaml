@@ -114,6 +114,27 @@ tls:
       - SSL_ERROR_RX_MALFORMED_HYBRID_KEY_SHARE
       - SSL_ERROR_UNSUPPORTED_VERSION
 
+  cipher_suite:
+    type: custom_distribution
+    description: >
+      Negotiated cipher suite in TLS handshake (see key in AccumulateCipherSuite
+      in nsNSSCallbacks.cpp)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram TLS_CIPHER_SUITE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: TLS_CIPHER_SUITE
+
 cert_compression:
     failures:
       type: labeled_counter
@@ -736,3 +757,719 @@ ssl_handshake:
       - seceng-telemetry@mozilla.com
     expires: never
     telemetry_mirror: SSL_HANDSHAKE_TYPE
+
+ssl:
+  time_until_ready:
+    type: timing_distribution
+    description: >
+      ms of SSL wait time including TCP and proxy tunneling
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_READY.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_READY
+
+  time_until_ready_first_try:
+    type: timing_distribution
+    description: >
+      ms of SSL wait time including TCP and proxy tunneling for first-try
+      connections
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_READY_FIRST_TRY.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_READY_FIRST_TRY
+
+  time_until_ready_conservative:
+    type: timing_distribution
+    description: >
+      ms of SSL wait time including TCP and proxy tunneling for
+      conservative-mode connections
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_READY_CONSERVATIVE.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_READY_CONSERVATIVE
+
+  time_until_ready_ech:
+    type: timing_distribution
+    description: >
+      ms of SSL wait time including TCP and proxy tunneling for connections
+      using ECH 'Real'
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_READY_ECH.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_READY_ECH
+
+  time_until_ready_ech_grease:
+    type: timing_distribution
+    description: >
+      ms of SSL wait time including TCP and proxy tunneling for connections
+      using ECH GREASE
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_READY_ECH_GREASE.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771479
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_READY_ECH_GREASE
+
+  time_until_handshake_finished_keyed_by_ka:
+    type: labeled_timing_distribution
+    description: >
+      ms of SSL wait time for full handshake including TCP and proxy tunneling,
+      keyed by the key exchange algorithm used
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_TIME_UNTIL_HANDSHAKE_FINISHED_KEYED_BY_KA.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513839
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513839
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TIME_UNTIL_HANDSHAKE_FINISHED_KEYED_BY_KA
+
+  bytes_before_cert_callback:
+    type: memory_distribution
+    description: >
+      plaintext bytes read before a server certificate authenticated
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_BYTES_BEFORE_CERT_CALLBACK.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_BYTES_BEFORE_CERT_CALLBACK
+
+  npn_type:
+    type: custom_distribution
+    description: >
+      NPN Results (0=none, 1=negotiated, 2=no-overlap, 3=selected(alpn))
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_NPN_TYPE.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_NPN_TYPE
+
+  resumed_session:
+    type: labeled_counter
+    description: >
+      complete TLS connect that used TLS Session Resumption (collected at same
+      time as SSL_TIME_UNTIL_HANDSHAKE_FINISHED)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram SSL_RESUMED_SESSION.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1340021
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#SSL_RESUMED_SESSION
+
+  key_exchange_algorithm_full:
+    type: custom_distribution
+    description: >
+      SSL Handshake Key Exchange Algorithm for full handshake (null=0, rsa=1,
+      dh=2, fortezza=3, ecdh=4)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_KEY_EXCHANGE_ALGORITHM_FULL.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_KEY_EXCHANGE_ALGORITHM_FULL
+
+  key_exchange_algorithm_resumed:
+    type: custom_distribution
+    description: >
+      SSL Handshake Key Exchange Algorithm for resumed handshake (null=0, rsa=1,
+      dh=2, fortezza=3, ecdh=4)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_KEY_EXCHANGE_ALGORITHM_RESUMED.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_KEY_EXCHANGE_ALGORITHM_RESUMED
+
+  tls13_intolerance_reason_pre:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.3 intolerance, before considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS13_INTOLERANCE_REASON_PRE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS13_INTOLERANCE_REASON_PRE
+
+  tls13_intolerance_reason_post:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.3 intolerance, after considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS13_INTOLERANCE_REASON_POST.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1250568
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS13_INTOLERANCE_REASON_POST
+
+  tls12_intolerance_reason_pre:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.2 intolerance, before considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS12_INTOLERANCE_REASON_PRE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS12_INTOLERANCE_REASON_PRE
+
+  tls12_intolerance_reason_post:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.2 intolerance, after considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS12_INTOLERANCE_REASON_POST.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS12_INTOLERANCE_REASON_POST
+
+  tls11_intolerance_reason_pre:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.1 intolerance, before considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS11_INTOLERANCE_REASON_PRE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS11_INTOLERANCE_REASON_PRE
+
+  tls11_intolerance_reason_post:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.1 intolerance, after considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS11_INTOLERANCE_REASON_POST.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS11_INTOLERANCE_REASON_POST
+
+  tls10_intolerance_reason_pre:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.0 intolerance, before considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS10_INTOLERANCE_REASON_PRE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS10_INTOLERANCE_REASON_PRE
+
+  tls10_intolerance_reason_post:
+    type: custom_distribution
+    description: >
+      Potential TLS 1.0 intolerance, after considering historical info (see
+      tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_TLS10_INTOLERANCE_REASON_POST.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_TLS10_INTOLERANCE_REASON_POST
+
+  version_fallback_inappropriate:
+    type: custom_distribution
+    description: >
+      TLS/SSL version intolerance was falsely detected, server rejected
+      handshake (see tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_VERSION_FALLBACK_INAPPROPRIATE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_VERSION_FALLBACK_INAPPROPRIATE
+
+  kea_rsa_key_size_full:
+    type: custom_distribution
+    description: >
+      RSA KEA (TLS_RSA_*) key size in full handshake
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_KEA_RSA_KEY_SIZE_FULL.
+    range_min: 0
+    range_max: 24
+    bucket_count: 25
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_KEA_RSA_KEY_SIZE_FULL
+
+  kea_dhe_key_size_full:
+    type: custom_distribution
+    description: >
+      DHE KEA (TLS_DHE_*) key size in full handshake
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_KEA_DHE_KEY_SIZE_FULL.
+    range_min: 0
+    range_max: 24
+    bucket_count: 25
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_KEA_DHE_KEY_SIZE_FULL
+
+  kea_ecdhe_curve_full:
+    type: custom_distribution
+    description: >
+      ECDHE KEA (TLS_ECDHE_*) curve (23=P-256, 24=P-384, 25=P-521,
+      29=Curve25519) in full handshake
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_KEA_ECDHE_CURVE_FULL.
+    range_min: 0
+    range_max: 36
+    bucket_count: 37
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_KEA_ECDHE_CURVE_FULL
+
+  auth_algorithm_full:
+    type: custom_distribution
+    description: >
+      SSL Authentication Algorithm (null=0, rsa(KEA)=1, ecdsa=4, rsa(sign)=7) in
+      full handshake
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_AUTH_ALGORITHM_FULL.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_AUTH_ALGORITHM_FULL
+
+  auth_rsa_key_size_full:
+    type: custom_distribution
+    description: >
+      RSA signature key size for TLS_*_RSA_* in full handshake
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_AUTH_RSA_KEY_SIZE_FULL.
+    range_min: 0
+    range_max: 24
+    bucket_count: 25
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_AUTH_RSA_KEY_SIZE_FULL
+
+  auth_ecdsa_curve_full:
+    type: custom_distribution
+    description: >
+      ECDSA signature curve for TLS_*_ECDSA_* in full handshake (23=P-256,
+      24=P-384, 25=P-521)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_AUTH_ECDSA_CURVE_FULL.
+    range_min: 0
+    range_max: 36
+    bucket_count: 37
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_AUTH_ECDSA_CURVE_FULL
+
+  reasons_for_not_false_starting:
+    type: custom_distribution
+    description: >
+      Bitmask of reasons we did not false start when libssl would have let us
+      (see key in nsNSSCallbacks.cpp)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_REASONS_FOR_NOT_FALSE_STARTING.
+    range_min: 0
+    range_max: 512
+    bucket_count: 513
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_REASONS_FOR_NOT_FALSE_STARTING
+
+  ocsp_stapling:
+    type: custom_distribution
+    description: >
+      Status of OCSP stapling on this handshake (1=present, good; 2=none;
+      3=present, expired; 4=present, other error)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_OCSP_STAPLING.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_OCSP_STAPLING
+
+  cert_error_overrides:
+    type: custom_distribution
+    description: >
+      Was a certificate error overridden on this handshake? What was it?
+      (0=unknown error (indicating bug), 1=no, >1=a specific error)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_CERT_ERROR_OVERRIDES.
+    range_min: 0
+    range_max: 24
+    bucket_count: 25
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_CERT_ERROR_OVERRIDES
+
+  cert_verification_errors:
+    type: custom_distribution
+    description: >
+      If certificate verification failed in a TLS handshake, what was the error?
+      (see MapCertErrorToProbeValue in
+      security/manager/ssl/SSLServerCertVerification.cpp and the values in
+      security/pkix/include/pkix/Result.h)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_CERT_VERIFICATION_ERRORS.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1503572
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1503572
+    notification_emails:
+      - jhofmann@mozilla.com
+      - rtestard@mozilla.com
+      - seceng@mozilla.org
+    expires: never
+    telemetry_mirror: SSL_CERT_VERIFICATION_ERRORS
+
+  ct_policy_non_compliant_connections_by_ca:
+    type: custom_distribution
+    description: |
+      Number of successfully established TLS connections NOT compliant with the Certificate Transparency Policy, by CA. See https://searchfox.org/mozilla-central/source/security/manager/ssl/RootHashes.inc for names of CAs. Bucket zero holds CAs not present in the list.
+      This metric was generated to correspond to the Legacy Telemetry enumerated histogram SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2.
+    range_min: 0
+    range_max: 256
+    bucket_count: 257
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1320567
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1320567
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2
+
+  permanent_cert_error_overrides:
+    type: custom_distribution
+    description: >
+      How many permanent certificate overrides a user has stored.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SSL_PERMANENT_CERT_ERROR_OVERRIDES.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 10
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_PERMANENT_CERT_ERROR_OVERRIDES
+
+  scts_origin:
+    type: custom_distribution
+    description: >
+      Origin of Signed Certificate Timestamps received (1=Embedded, 2=TLS
+      handshake extension, 3=Stapled OCSP response)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_SCTS_ORIGIN.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_SCTS_ORIGIN
+
+  scts_per_connection:
+    type: custom_distribution
+    description: >
+      Histogram of Signed Certificate Timestamps per SSL connection, from all
+      sources (embedded / OCSP Stapling / TLS handshake). Bucket 0 counts the
+      cases when no SCTs were received, or none were extracted due to parsing
+      errors.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_SCTS_PER_CONNECTION.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_SCTS_PER_CONNECTION
+
+  scts_verification_status:
+    type: custom_distribution
+    description: >
+      Verification status of Signed Certificate Timestamps received (0=Decoding
+      error, 1=Valid SCT, 2=SCT from unknown log, 3=Invalid SCT signature, 4=SCT
+      timestamp is in the future, 5=Valid SCT from a disqualified log)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SSL_SCTS_VERIFICATION_STATUS.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1293231
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SSL_SCTS_VERIFICATION_STATUS
