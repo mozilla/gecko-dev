@@ -2876,6 +2876,16 @@ static AttachStringChar CanAttachStringChar(const Value& val,
   return AttachStringChar::Yes;
 }
 
+static Int32OperandId EmitGuardToInt32Index(CacheIRWriter& writer,
+                                            const Value& index,
+                                            ValOperandId indexId) {
+  if (index.isInt32()) {
+    return writer.guardToInt32(indexId);
+  }
+  MOZ_ASSERT(index.isDouble());
+  return writer.guardToInt32Index(indexId);
+}
+
 AttachDecision GetPropIRGenerator::tryAttachStringChar(ValOperandId valId,
                                                        ValOperandId indexId) {
   MOZ_ASSERT(idVal_.isInt32());
@@ -2892,7 +2902,7 @@ AttachDecision GetPropIRGenerator::tryAttachStringChar(ValOperandId valId,
   }
 
   StringOperandId strId = writer.guardToString(valId);
-  Int32OperandId int32IndexId = writer.guardToInt32Index(indexId);
+  Int32OperandId int32IndexId = EmitGuardToInt32Index(writer, idVal_, indexId);
   if (attach == AttachStringChar::Linearize) {
     strId = writer.linearizeForCharAccess(strId, int32IndexId);
   }
@@ -4414,7 +4424,7 @@ bool IRGenerator::maybeGuardInt32Index(const Value& index, ValOperandId indexId,
     }
 
     *int32Index = uint32_t(indexSigned);
-    *int32IndexId = writer.guardToInt32Index(indexId);
+    *int32IndexId = EmitGuardToInt32Index(writer, index, indexId);
     return true;
   }
 
@@ -8256,7 +8266,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringChar(
 
   // Guard int32 index.
   ValOperandId indexId = loadArgument(calleeId, ArgumentKind::Arg0);
-  Int32OperandId int32IndexId = writer.guardToInt32Index(indexId);
+  Int32OperandId int32IndexId =
+      EmitGuardToInt32Index(writer, args_[0], indexId);
 
   // Handle relative string indices, if necessary.
   if (kind == StringChar::At) {
@@ -10398,7 +10409,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsIntN() {
 
   // Convert bits to int32.
   ValOperandId bitsId = loadArgument(calleeId, ArgumentKind::Arg0);
-  Int32OperandId int32BitsId = writer.guardToInt32Index(bitsId);
+  Int32OperandId int32BitsId = EmitGuardToInt32Index(writer, args_[0], bitsId);
 
   // Number of bits mustn't be negative.
   writer.guardInt32IsNonNegative(int32BitsId);
@@ -10432,7 +10443,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsUintN() {
 
   // Convert bits to int32.
   ValOperandId bitsId = loadArgument(calleeId, ArgumentKind::Arg0);
-  Int32OperandId int32BitsId = writer.guardToInt32Index(bitsId);
+  Int32OperandId int32BitsId = EmitGuardToInt32Index(writer, args_[0], bitsId);
 
   // Number of bits mustn't be negative.
   writer.guardInt32IsNonNegative(int32BitsId);
@@ -14883,7 +14894,7 @@ AttachDecision ToPropertyKeyIRGenerator::tryAttachNumber() {
 
   ValOperandId valId(writer.setInputOperandId(0));
 
-  Int32OperandId intId = writer.guardToInt32Index(valId);
+  Int32OperandId intId = EmitGuardToInt32Index(writer, val_, valId);
   writer.loadInt32Result(intId);
   writer.returnFromIC();
 
