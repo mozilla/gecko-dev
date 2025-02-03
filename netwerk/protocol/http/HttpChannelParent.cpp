@@ -1369,9 +1369,8 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
     ClassOfService::ToString(classOfServiceFlags, cosString);
     nsAutoCString key(
         nsPrintfCString("%s_%s", protocolVersion.get(), cosString.get()));
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::NETWORK_DNS_END_TO_CONNECT_START_EXP_MS, key,
-        args.timing().domainLookupEnd(), args.timing().connectStart());
+    glean::network::dns_end_to_connect_start_exp.Get(key).AccumulateRawDuration(
+        args.timing().connectStart() - args.timing().domainLookupEnd());
   }
 
   return rv;
@@ -1435,29 +1434,32 @@ HttpChannelParent::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
 
     if (!isLocal) {
       if (!mHasSuspendedByBackPressure) {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2::
-                NotSuspended);
+        glean::network::back_pressure_suspension_rate
+            .EnumGet(
+                glean::network::BackPressureSuspensionRateLabel::eNotsuspended)
+            .Add();
       } else {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2::
-                Suspended);
+        glean::network::back_pressure_suspension_rate
+            .EnumGet(
+                glean::network::BackPressureSuspensionRateLabel::eSuspended)
+            .Add();
 
         // Only analyze non-local suspended cases, which we are interested in.
         nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
-        Telemetry::Accumulate(
-            Telemetry::NETWORK_BACK_PRESSURE_SUSPENSION_CP_TYPE,
+        glean::network::back_pressure_suspension_cp_type.AccumulateSingleSample(
             loadInfo->InternalContentPolicyType());
       }
     } else {
       if (!mHasSuspendedByBackPressure) {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2::
-                NotSuspendedLocal);
+        glean::network::back_pressure_suspension_rate
+            .EnumGet(glean::network::BackPressureSuspensionRateLabel::
+                         eNotsuspendedlocal)
+            .Add();
       } else {
-        AccumulateCategorical(
-            Telemetry::LABELS_NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2::
-                SuspendedLocal);
+        glean::network::back_pressure_suspension_rate
+            .EnumGet(glean::network::BackPressureSuspensionRateLabel::
+                         eSuspendedlocal)
+            .Add();
       }
     }
   }
@@ -1548,9 +1550,8 @@ HttpChannelParent::OnDataAvailable(nsIRequest* aRequest,
       mHasSuspendedByBackPressure = true;
     } else if (!mResumedTimestamp.IsNull()) {
       // Calculate the delay when the first packet arrived after resume
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::NETWORK_BACK_PRESSURE_SUSPENSION_DELAY_TIME_MS,
-          mResumedTimestamp);
+      glean::network::back_pressure_suspension_delay_time.AccumulateRawDuration(
+          TimeStamp::Now() - mResumedTimestamp);
       mResumedTimestamp = TimeStamp();
     }
     mSendWindowSize -= count;

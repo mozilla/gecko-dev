@@ -1010,6 +1010,172 @@ network:
     expires: never
     telemetry_mirror: h#NETWORK_RACE_CACHE_VALIDATION
 
+  back_pressure_suspension_rate:
+    type: labeled_counter
+    description: >
+      Collect whether the resource is suspended by back pressure. And split by
+      local-ness.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2.
+    labels:
+      - Suspended
+      - NotSuspended
+      - SuspendedLocal
+      - NotSuspendedLocal
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1280629
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1494133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1280629
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1494133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#NETWORK_BACK_PRESSURE_SUSPENSION_RATE_V2
+
+  back_pressure_suspension_cp_type:
+    type: custom_distribution
+    description: >
+      Collect the content policy when the resource is non-local and suspended by
+      back pressure (0-44 from nsContentPolicyType in nsIContentPolicy.idl).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram NETWORK_BACK_PRESSURE_SUSPENSION_CP_TYPE.
+    range_min: 0
+    range_max: 64
+    bucket_count: 65
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1487559
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1487559
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_BACK_PRESSURE_SUSPENSION_CP_TYPE
+
+  back_pressure_suspension_delay_time:
+    type: timing_distribution
+    description: >
+      The delay caused by the e10s back pressure suspension(ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_BACK_PRESSURE_SUSPENSION_DELAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1498434
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1498434
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1524552
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1616069
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668513
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700824
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_BACK_PRESSURE_SUSPENSION_DELAY_TIME_MS
+
+  async_open_child_to_transaction_pending_exp:
+    type: labeled_timing_distribution
+    description: >
+      The time spent from HttpChannelChild::AsyncOpen to adding the
+      transactionto the nsHttpConnectionMgr, in milliseconds, keyed by the
+      classOfService flags
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      NETWORK_ASYNC_OPEN_CHILD_TO_TRANSACTION_PENDING_EXP_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1789468
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1789468
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_ASYNC_OPEN_CHILD_TO_TRANSACTION_PENDING_EXP_MS
+
+  response_start_parent_to_content_exp:
+    type: labeled_timing_distribution
+    description: >
+      The time spent relaying response start from the socket thread of the
+      parent process to the content process, in milliseconds, keyed by the
+      classOfService flags
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RESPONSE_START_PARENT_TO_CONTENT_EXP_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1793975
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1793975
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RESPONSE_START_PARENT_TO_CONTENT_EXP_MS
+
+  dns_end_to_connect_start_exp:
+    type: labeled_timing_distribution
+    description: >
+      The time spent from dns resolution to connect start, in milliseconds,
+      keyed by protocol version and the classOfService flags
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_DNS_END_TO_CONNECT_START_EXP_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1791077
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1791077
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_DNS_END_TO_CONNECT_START_EXP_MS
+
+  response_end_parent_to_content:
+    type: labeled_timing_distribution
+    description: >
+      The time spent relaying response completion from the socket thread of the
+      parent process to the content process, in milliseconds, keyed by the
+      classOfService flags
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NETWORK_RESPONSE_END_PARENT_TO_CONTENT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795775
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1795775
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_RESPONSE_END_PARENT_TO_CONTENT_MS
+
 networking:
   http3_enabled:
     type: boolean
