@@ -5,7 +5,18 @@
 
 #include "pkcs11.h"
 
-// see notes in ipcclientcerts/dynamic-library/stub.cpp
+// The build system builds the rust library builtins as a static library
+// called builtins_static. On macOS and Windows, that static library can
+// be linked with an empty file and turned into a shared library with the
+// function C_GetFunctionList exposed.
+// Unfortunately, on Linux, exposing the C_GetFunctionList in the static
+// library doesn't work for some unknown reason. As a workaround, this file
+// declares its own C_GetFunctionList that can be exposed in the shared
+// library. It then calls the function BUILTINSC_GetFunctionList exposed
+// (internally to the linkage in question) by builtins. This enables
+// the build system to ultimately turn builtins into a shared library
+// that exposes a C_GetFunctionList function, meaning it can be used as a
+// PKCS#11 module.
 
 extern "C" {
 

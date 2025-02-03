@@ -10,8 +10,73 @@ use rsclientcerts::util::*;
 use sha2::{Digest, Sha256};
 use std::ffi::c_void;
 
-use crate::FindObjectsFunction;
-use crate::SignFunction;
+type FindObjectsCallback = Option<
+    unsafe extern "C" fn(
+        typ: u8,
+        data_len: usize,
+        data: *const u8,
+        extra_len: usize,
+        extra: *const u8,
+        slot_type: u32,
+        ctx: *mut c_void,
+    ),
+>;
+
+// Wrapper of C DoFindObject function implemented in nsNSSIOLayer.h
+fn DoFindObjectsWrapper(callback: FindObjectsCallback, ctx: &mut FindObjectsContext) {
+    // The function makes the parent process to find certificates and keys and send identifying
+    // information about them over IPC.
+    extern "C" {
+        fn DoFindObjects(callback: FindObjectsCallback, ctx: *mut c_void);
+    }
+
+    unsafe {
+        DoFindObjects(callback, ctx as *mut _ as *mut c_void);
+    }
+}
+
+type SignCallback =
+    Option<unsafe extern "C" fn(data_len: usize, data: *const u8, ctx: *mut c_void)>;
+
+// Wrapper of C DoSign function implemented in nsNSSIOLayer.h
+fn DoSignWrapper(
+    cert_len: usize,
+    cert: *const u8,
+    data_len: usize,
+    data: *const u8,
+    params_len: usize,
+    params: *const u8,
+    callback: SignCallback,
+    ctx: &mut Vec<u8>,
+) {
+    // The function makes the parent to sign the given data using the key corresponding to the
+    // given certificate, using the given parameters.
+    extern "C" {
+        fn DoSign(
+            cert_len: usize,
+            cert: *const u8,
+            data_len: usize,
+            data: *const u8,
+            params_len: usize,
+            params: *const u8,
+            callback: SignCallback,
+            ctx: *mut c_void,
+        );
+    }
+
+    unsafe {
+        DoSign(
+            cert_len,
+            cert,
+            data_len,
+            data,
+            params_len,
+            params,
+            callback,
+            ctx as *mut _ as *mut c_void,
+        );
+    }
+}
 
 pub struct Cert {
     class: Vec<u8>,
@@ -125,7 +190,6 @@ pub struct Key {
     modulus: Option<Vec<u8>>,
     ec_params: Option<Vec<u8>>,
     slot_type: SlotType,
-    sign: SignFunction,
 }
 
 impl Key {
@@ -134,7 +198,6 @@ impl Key {
         ec_params: Option<&[u8]>,
         cert: &[u8],
         slot_type: SlotType,
-        sign: SignFunction,
     ) -> Result<Key, Error> {
         let id = Sha256::digest(cert).to_vec();
         let key_type = if modulus.is_some() { CKK_RSA } else { CKK_EC };
@@ -148,7 +211,6 @@ impl Key {
             modulus: modulus.map(|b| b.to_vec()),
             ec_params: ec_params.map(|b| b.to_vec()),
             slot_type,
-            sign,
         })
     }
 
@@ -261,7 +323,7 @@ impl Sign for Key {
             ),
             None => (0, std::ptr::null()),
         };
-        (self.sign)(
+        DoSignWrapper(
             self.cert.len(),
             self.cert.as_ptr(),
             data.len(),
@@ -269,7 +331,7 @@ impl Sign for Key {
             params_len,
             params,
             Some(sign_callback),
-            &mut signature as *mut _ as *mut c_void,
+            &mut signature,
         );
         if signature.len() > 0 {
             Ok(signature)
@@ -317,23 +379,11 @@ unsafe extern "C" fn find_objects_callback(
             Ok(cert) => find_objects_context.certs.push(cert),
             Err(_) => {}
         },
-        2 => match Key::new(
-            Some(data),
-            None,
-            extra,
-            slot_type,
-            find_objects_context.sign,
-        ) {
+        2 => match Key::new(Some(data), None, extra, slot_type) {
             Ok(key) => find_objects_context.keys.push(key),
             Err(_) => {}
         },
-        3 => match Key::new(
-            None,
-            Some(data),
-            extra,
-            slot_type,
-            find_objects_context.sign,
-        ) {
+        3 => match Key::new(None, Some(data), extra, slot_type) {
             Ok(key) => find_objects_context.keys.push(key),
             Err(_) => {}
         },
@@ -344,27 +394,22 @@ unsafe extern "C" fn find_objects_callback(
 struct FindObjectsContext {
     certs: Vec<Cert>,
     keys: Vec<Key>,
-    sign: SignFunction,
 }
 
 impl FindObjectsContext {
-    fn new(sign: SignFunction) -> FindObjectsContext {
+    fn new() -> FindObjectsContext {
         FindObjectsContext {
             certs: Vec::new(),
             keys: Vec::new(),
-            sign,
         }
     }
 }
 
-pub struct Backend {
-    find_objects: FindObjectsFunction,
-    sign: SignFunction,
-}
+pub struct Backend {}
 
 impl Backend {
-    pub fn new(find_objects: FindObjectsFunction, sign: SignFunction) -> Backend {
-        Backend { find_objects, sign }
+    pub fn new() -> Backend {
+        Backend {}
     }
 }
 
@@ -373,11 +418,8 @@ impl ClientCertsBackend for Backend {
     type Key = Key;
 
     fn find_objects(&self) -> Result<(Vec<Cert>, Vec<Key>), Error> {
-        let mut find_objects_context = FindObjectsContext::new(self.sign);
-        (self.find_objects)(
-            Some(find_objects_callback),
-            &mut find_objects_context as *mut _ as *mut c_void,
-        );
+        let mut find_objects_context = FindObjectsContext::new();
+        DoFindObjectsWrapper(Some(find_objects_callback), &mut find_objects_context);
         Ok((find_objects_context.certs, find_objects_context.keys))
     }
 }

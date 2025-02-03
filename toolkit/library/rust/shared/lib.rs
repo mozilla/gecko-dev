@@ -85,6 +85,8 @@ extern crate fluent_fallback;
 extern crate l10nregistry_ffi;
 extern crate localization_ffi;
 
+extern crate ipcclientcerts;
+
 #[cfg(any(
     target_os = "macos",
     target_os = "ios",
