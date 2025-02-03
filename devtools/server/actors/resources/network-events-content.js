@@ -112,14 +112,22 @@ class NetworkEventContentWatcher {
       return;
     }
 
-    // Only one network request should be created per URI for resources from
-    // the cache
-    const hasURI = Array.from(this.networkEvents.values()).some(
-      networkEvent => networkEvent.uri === channel.URI.spec
-    );
+    if (
+      channel.loadInfo?.externalContentPolicyType !==
+      Ci.nsIContentPolicy.TYPE_SCRIPT
+    ) {
+      // For images and stylesheets from the cache, only one network request
+      // should be created per URI.
+      //
+      // For scripts from the cache, multiple network requests should be
+      // created.
+      const hasURI = Array.from(this.networkEvents.values()).some(
+        networkEvent => networkEvent.uri === channel.URI.spec
+      );
 
-    if (hasURI) {
-      return;
+      if (hasURI) {
+        return;
+      }
     }
 
     this.onNetworkEventAvailable(channel, {
