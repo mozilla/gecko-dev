@@ -2863,16 +2863,6 @@
     "kind": "boolean",
     "description": "Whether or not a new alt-svc mapping would change the target hostname of the existing mapping"
   },
-  "HTTP_RESPONSE_STATUS_CODE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["smayya@mozilla.com"],
-    "bug_numbers": [1896350],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 12,
-    "description": "Http response status (0=200, 1=301, 2=302, 3=304, 4=307, 5=308, 6=400, 7=401, 8=403, 9=404, 10=500, 11=other)"
-  },
   "HTTP_ONSTART_SUSPEND_TOTAL_TIME": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
