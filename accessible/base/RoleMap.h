@@ -1844,4 +1844,17 @@ ROLE(ROWGROUP,
      IsAccessibilityElementRule::IfChildlessWithNameAndFocusable,
      UIA_GroupControlTypeId,
      eNameFromSubtreeIfReqRule)
+
+ROLE(SEARCHBOX,
+     "searchbox",
+     nsGkAtoms::searchbox,
+     ATK_ROLE_ENTRY,
+     NSAccessibilityTextFieldRole,
+     @"AXSearchField",
+     ROLE_SYSTEM_TEXT,
+     ROLE_SYSTEM_TEXT,
+     java::SessionAccessibility::CLASSNAME_EDITTEXT,
+     IsAccessibilityElementRule::Yes,
+     UIA_EditControlTypeId,
+     eNameFromValueRule)
 // clang-format on
