@@ -13,7 +13,6 @@
 [Func="Navigator::HasUserMediaSupport",
  Exposed=Window]
 interface MediaDevices : EventTarget {
-  [Pref="media.ondevicechange.enabled"]
   attribute EventHandler ondevicechange;
   MediaTrackSupportedConstraints getSupportedConstraints();
 
