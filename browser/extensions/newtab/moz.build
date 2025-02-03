@@ -9,4 +9,13 @@ with Files("**"):
 
 SPHINX_TREES["docs"] = "docs"
 
+BROWSER_CHROME_MANIFESTS += [
+    "test/browser/abouthomecache/browser.toml",
+    "test/browser/browser.toml",
+]
+
+XPCSHELL_TESTS_MANIFESTS += [
+    "test/xpcshell/xpcshell.toml",
+]
+
 JAR_MANIFESTS += ["jar.mn"]

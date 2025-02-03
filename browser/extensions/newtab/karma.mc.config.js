@@ -300,11 +300,11 @@ module.exports = function (config) {
             ],
             [
               new RegExp("^resource:///modules/asrouter/"),
-              path.join(__dirname, "../asrouter/modules/"),
+              path.join(__dirname, "../../components/asrouter/modules/"),
             ],
             [
               new RegExp("^resource:///modules/topsites/"),
-              path.join(__dirname, "../topsites/"),
+              path.join(__dirname, "../../components/topsites/"),
             ],
             [
               new RegExp("^resource://gre/modules/SearchShortcuts.sys.mjs"),

@@ -7,15 +7,6 @@
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "New Tab Page")
 
-BROWSER_CHROME_MANIFESTS += [
-    "test/browser/abouthomecache/browser.toml",
-    "test/browser/browser.toml",
-]
-
-XPCSHELL_TESTS_MANIFESTS += [
-    "test/xpcshell/xpcshell.toml",
-]
-
 XPIDL_SOURCES += [
     "nsIAboutNewTabService.idl",
 ]
@@ -28,4 +19,8 @@ EXTRA_JS_MODULES += [
 
 XPCOM_MANIFESTS += [
     "components.conf",
+]
+
+XPCSHELL_TESTS_MANIFESTS += [
+    "test/xpcshell/xpcshell.toml",
 ]
