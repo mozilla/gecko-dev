@@ -6,3 +6,5 @@
 
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "New Tab Page")
+
+SPHINX_TREES["docs"] = "docs"

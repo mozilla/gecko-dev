@@ -65,7 +65,7 @@ Testing
 * `marionette`_
 
 .. _xpcshell: /testing/xpcshell/index.html
-.. _mochitest:  /browser/components/newtab/docs/v2-system-addon/mochitests.html
+.. _mochitest:  /testing/mochitest-plain/index.html
 .. _web-platform: /web-platform/index.html
 .. _gtest: /gtest/index.html
 .. _marionette: /testing/marionette/index.html
