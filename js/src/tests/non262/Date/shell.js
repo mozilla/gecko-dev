@@ -136,8 +136,8 @@ allow_unused: True
 
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].join("|");
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].join("|");
-    const datePart = String.raw `(?:${weekdays}) (?:${months}) \d{2}`;
-    const timePart = String.raw `\d{4,6} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}`;
+    const datePart = String.raw `(?:${weekdays}) (?:${months}) \d{2} -?\d{4,6}`;
+    const timePart = String.raw `\d{2}:\d{2}:\d{2} GMT[+-]\d{4}`;
     const dateTimeRE = new RegExp(String.raw `^(${datePart} ${timePart})(?: \((.+)\))?$`);
 
     function assertDateTime(date, expected, ...alternativeTimeZones) {

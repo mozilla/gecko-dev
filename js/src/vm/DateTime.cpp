@@ -254,7 +254,7 @@ int64_t js::DateTimeInfo::toClampedSeconds(int64_t milliseconds) {
     seconds = MaxTimeT;
   } else if (seconds < MinTimeT) {
     /* Go ahead a day to make localtime work (does not work with 0). */
-    seconds = SecondsPerDay;
+    seconds = MinTimeT + SecondsPerDay;
   }
   return seconds;
 }
