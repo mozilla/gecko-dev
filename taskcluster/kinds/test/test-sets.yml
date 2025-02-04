@@ -283,7 +283,6 @@ windows11-64-2009-ccov-tests:
 # as well as reftest-nogpu
 windows11-2009-tests:
     - mochitest-browser-chrome
-    - mochitest-media
     - telemetry-tests-client
 
 windows11-24h2-tests:
@@ -301,6 +300,7 @@ windows11-24h2-tests:
     - mochitest-chrome
     - mochitest-chrome-gpu
     - mochitest-devtools-chrome
+    - mochitest-media
     - mochitest-plain
     - mochitest-plain-gpu
     - mochitest-remote
