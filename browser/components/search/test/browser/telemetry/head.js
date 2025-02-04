@@ -4,6 +4,7 @@
 ChromeUtils.defineESModuleGetters(this, {
   ADLINK_CHECK_TIMEOUT_MS:
     "resource:///actors/SearchSERPTelemetryChild.sys.mjs",
+  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   CustomizableUITestUtils:
     "resource://testing-common/CustomizableUITestUtils.sys.mjs",

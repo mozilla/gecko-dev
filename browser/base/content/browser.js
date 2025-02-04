@@ -21,7 +21,6 @@ ChromeUtils.defineESModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   AboutReaderParent: "resource:///actors/AboutReaderParent.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   BrowserTelemetryUtils: "resource://gre/modules/BrowserTelemetryUtils.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
@@ -1835,10 +1834,6 @@ var newWindowButtonObserver = {
     }
   },
 };
-
-const BrowserSearch = {};
-
-XPCOMUtils.defineConstant(this, "BrowserSearch", BrowserSearch);
 
 function CreateContainerTabMenu(event) {
   // Do not open context menus within menus.

@@ -48,7 +48,6 @@
   "openHomeDialog",
   "newTabButtonObserver",
   "newWindowButtonObserver",
-  "BrowserSearch",
   "OpenSearchManager",
   "CreateContainerTabMenu",
   "FillHistoryMenu",
@@ -113,7 +112,6 @@
   "AboutNewTab",
   "AboutReaderParent",
   "AddonManager",
-  "BrowserSearchTelemetry",
   "BrowserTelemetryUtils",
   "BrowserUIUtils",
   "BrowserUsageTelemetry",
@@ -269,6 +267,5 @@
   "gFindBar",
   "gFindBarInitialized",
   "gFindBarPromise",
-  "BrowserSearch",
   "SelectableProfileService"
 ]
