@@ -81,6 +81,7 @@ let px = number => number.toFixed(2) + "px";
  */
 export class UrlbarInput {
   #allowBreakout = false;
+  #customizing = false;
 
   /**
    * @param {object} options
@@ -293,7 +294,7 @@ export class UrlbarInput {
       observer.observe(this.textbox.parentNode);
     }
 
-    this.updateLayoutBreakout();
+    this.#updateLayoutBreakout();
 
     this._initCopyCutController();
     this._initPasteAndGo();
@@ -2110,7 +2111,7 @@ export class UrlbarInput {
     return state;
   }
 
-  async updateLayoutBreakout() {
+  async #updateLayoutBreakout() {
     if (!this.#allowBreakout) {
       return;
     }
@@ -2120,7 +2121,7 @@ export class UrlbarInput {
       this.window.addEventListener(
         "fullscreen",
         () => {
-          this.updateLayoutBreakout();
+          this.#updateLayoutBreakout();
         },
         { once: true }
       );
@@ -4766,6 +4767,7 @@ export class UrlbarInput {
   }
 
   _on_customizationstarting() {
+    this.#customizing = true;
     this.blur();
     this.#stopBreakout();
 
@@ -4776,10 +4778,18 @@ export class UrlbarInput {
   // TODO(emilio, bug 1927942): Consider removing this listener and using
   // onCustomizeEnd.
   _on_aftercustomization() {
-    this.updateLayoutBreakout();
+    this.#customizing = false;
+    this.#updateLayoutBreakout();
     this._initCopyCutController();
     this._initPasteAndGo();
     this._initStripOnShare();
+  }
+
+  uiDensityChanged() {
+    if (this.#customizing) {
+      return;
+    }
+    this.#updateLayoutBreakout();
   }
 
   // CustomizableUI might unbind and bind us again, which makes us lose the

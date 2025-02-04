@@ -4179,7 +4179,7 @@ var gUIDensity = {
     }
 
     gBrowser.tabContainer.uiDensityChanged();
-    gURLBar.updateLayoutBreakout();
+    gURLBar.uiDensityChanged();
   },
 };
 
