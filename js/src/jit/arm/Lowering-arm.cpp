@@ -292,13 +292,22 @@ void LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0>* ins,
 template <class LInstr>
 void LIRGeneratorARM::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
                                          MDefinition* lhs, MDefinition* rhs) {
+  LAllocation rhsAlloc;
+  if (rhs->isConstant()) {
+    rhsAlloc = useOrConstantAtStart(rhs);
+  } else {
+    // The operands are int64, but we only care about the lower 32 bits of the
+    // RHS. The code below will load that part and will discard the upper half.
+    rhsAlloc = useLowWordRegisterAtStart(rhs);
+  }
+
   if constexpr (std::is_same_v<LInstr, LShiftI64>) {
     ins->setLhs(useInt64RegisterAtStart(lhs));
-    ins->setRhs(useRegisterOrConstant(rhs));
+    ins->setRhs(rhsAlloc);
     defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
   } else {
     ins->setInput(useInt64RegisterAtStart(lhs));
-    ins->setCount(useRegisterOrConstant(rhs));
+    ins->setCount(rhsAlloc);
     if (!rhs->isConstant()) {
       ins->setTemp0(temp());
     }

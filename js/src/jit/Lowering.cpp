@@ -3544,13 +3544,13 @@ void LIRGenerator::visitWasmWrapU32Index(MWasmWrapU32Index* ins) {
   // be a sign/zero extension).  On 32-bit, it returns the low register of the
   // input, and should generate no code.
 
-  // If this assertion does not hold then using "input" unadorned as an alias
-  // for the low register will not work.
-#if defined(JS_NUNBOX32)
-  static_assert(INT64LOW_INDEX == 0);
+#ifdef JS_64BIT
+  LAllocation index = useRegisterAtStart(input);
+#else
+  LAllocation index = useLowWordRegisterAtStart(input);
 #endif
 
-  auto* lir = new (alloc()) LWasmWrapU32Index(useRegisterAtStart(input));
+  auto* lir = new (alloc()) LWasmWrapU32Index(index);
   defineReuseInput(lir, ins, 0);
 }
 

@@ -98,16 +98,17 @@ void LIRGeneratorX86Shared::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
 #ifdef JS_CODEGEN_X64
   } else if (std::is_same_v<LInstr, LShiftI64>) {
     rhsAlloc = useShiftRegister(rhs);
-#endif
+  } else {
+    rhsAlloc = useFixed(rhs, rcx);
+  }
+#else
   } else {
     // The operands are int64, but we only care about the lower 32 bits of
     // the RHS. On 32-bit, the code below will load that part in ecx and
     // will discard the upper half.
-    ensureDefined(rhs);
-    LUse use(ecx);
-    use.setVirtualRegister(rhs->virtualRegister());
-    rhsAlloc = use;
+    rhsAlloc = useLowWordFixed(rhs, ecx);
   }
+#endif
 
   if constexpr (std::is_same_v<LInstr, LShiftI64>) {
     ins->setLhs(useInt64RegisterAtStart(lhs));

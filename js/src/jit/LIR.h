@@ -45,7 +45,7 @@ static const uint32_t VREG_INCREMENT = 1;
 static const uint32_t THIS_FRAME_ARGSLOT = 0;
 
 #if defined(JS_NUNBOX32)
-#  define BOX_PIECES 2
+static const uint32_t BOX_PIECES = 2;
 static const uint32_t VREG_TYPE_OFFSET = 0;
 static const uint32_t VREG_DATA_OFFSET = 1;
 static const uint32_t TYPE_INDEX = 0;
@@ -53,7 +53,7 @@ static const uint32_t PAYLOAD_INDEX = 1;
 static const uint32_t INT64LOW_INDEX = 0;
 static const uint32_t INT64HIGH_INDEX = 1;
 #elif defined(JS_PUNBOX64)
-#  define BOX_PIECES 1
+static const uint32_t BOX_PIECES = 1;
 #else
 #  error "Unknown!"
 #endif
