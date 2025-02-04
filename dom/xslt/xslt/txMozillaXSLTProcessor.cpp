@@ -550,7 +550,10 @@ already_AddRefed<Document> txMozillaXSLTProcessor::TransformToDocument(
     return nullptr;
   }
 
-  mSource = &aSource;
+  mSource = aSource.CloneNode(true, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
 
   nsCOMPtr<Document> doc;
   rv = TransformToDoc(getter_AddRefs(doc), true);
@@ -718,7 +721,7 @@ nsresult txMozillaXSLTProcessor::TransformToDoc(Document** aResult,
 }
 
 already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
-    nsINode& aSource, Document& aOutput, ErrorResult& aRv) {
+    nsINode& aSource, bool aCloneSource, Document& aOutput, ErrorResult& aRv) {
   if (NS_WARN_IF(NS_FAILED(mCompileResult))) {
     aRv.Throw(mCompileResult);
     return nullptr;
@@ -738,8 +741,17 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
     return nullptr;
   }
 
-  UniquePtr<txXPathNode> sourceNode(
-      txXPathNativeNode::createXPathNode(&aSource));
+  nsCOMPtr<nsINode> source;
+  if (aCloneSource) {
+    source = aSource.CloneNode(true, aRv);
+    if (aRv.Failed()) {
+      return nullptr;
+    }
+  } else {
+    source = &aSource;
+  }
+
+  UniquePtr<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(source));
   if (!sourceNode) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
@@ -1046,7 +1058,7 @@ nsresult txMozillaXSLTProcessor::ensureStylesheet() {
 
   NS_ENSURE_TRUE(mStylesheetDocument, NS_ERROR_NOT_INITIALIZED);
 
-  nsINode* style = mEmbeddedStylesheetRoot;
+  nsCOMPtr<nsINode> style = mEmbeddedStylesheetRoot;
   if (!style) {
     style = mStylesheetDocument;
   }
