@@ -1867,10 +1867,8 @@ export var Bookmarks = Object.freeze({
     }
 
     if (query.url) {
-      if (typeof query.url === "string") {
+      if (typeof query.url === "string" || URL.isInstance(query.url)) {
         query.url = new URL(query.url).href;
-      } else if (URL.isInstance(query.url)) {
-        query.url = query.url.href;
       } else if (query.url instanceof Ci.nsIURI) {
         query.url = query.url.spec;
       } else {

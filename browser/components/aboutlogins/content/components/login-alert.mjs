@@ -101,8 +101,11 @@ export class LoginBreachAlert extends MozLitElement {
   }
 
   get displayHostname() {
-    let url = URL.parse(this.hostname);
-    return url?.hostname ?? this.hostname;
+    try {
+      return new URL(this.hostname).hostname;
+    } catch (err) {
+      return this.hostname;
+    }
   }
 
   render() {

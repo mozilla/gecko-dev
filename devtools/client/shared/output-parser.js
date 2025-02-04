@@ -2027,8 +2027,8 @@ class OutputParser {
    */
   #appendURL(match, url, options) {
     if (options.urlClass) {
-      // Sanitize the URL. Note that if we modify the URL, we just
-      // leave the termination characters. This isn't strictly
+      // Sanitize the URL.  Note that if we modify the URL, we just
+      // leave the termination characters.  This isn't strictly
       // "as-authored", but it makes a bit more sense.
       match = this.#sanitizeURL(match);
       const urlParts = URL_REGEX.exec(match);
@@ -2043,14 +2043,21 @@ class OutputParser {
 
       this.#appendTextNode(leader);
 
+      let href = url;
+      if (options.baseURI) {
+        try {
+          href = new URL(url, options.baseURI).href;
+        } catch (e) {
+          // Ignore.
+        }
+      }
+
       this.#appendNode(
         "a",
         {
           target: "_blank",
           class: options.urlClass,
-          href: options.baseURI
-            ? (URL.parse(url, options.baseURI)?.href ?? url)
-            : url,
+          href,
         },
         body
       );

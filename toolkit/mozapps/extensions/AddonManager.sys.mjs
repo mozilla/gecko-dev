@@ -4981,8 +4981,11 @@ AMTelemetry = {
    *          are defined in `AMO_ATTRIBUTION_DATA_KEYS`. Values are strings.
    */
   parseAttributionDataForAMO(sourceURL) {
-    let searchParams = URL.parse(sourceURL)?.searchParams;
-    if (!searchParams) {
+    let searchParams;
+
+    try {
+      searchParams = new URL(sourceURL).searchParams;
+    } catch {
       return {};
     }
 

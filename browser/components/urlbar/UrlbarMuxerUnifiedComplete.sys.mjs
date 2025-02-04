@@ -985,7 +985,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       );
       if (param) {
         let [key, value] = param.split("=");
-        let searchParams = URL.parse(result.payload.url)?.searchParams;
+        let searchParams;
+        try {
+          ({ searchParams } = new URL(result.payload.url));
+        } catch (error) {}
         if (
           (value === undefined && searchParams?.has(key)) ||
           (value !== undefined && searchParams?.getAll(key).includes(value))

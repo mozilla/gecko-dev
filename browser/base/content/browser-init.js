@@ -203,11 +203,13 @@ var gBrowserInit = {
     // Hack to ensure that the various initial pages favicon is loaded
     // instantaneously, to avoid flickering and improve perceived performance.
     this._callWithURIToLoad(uriToLoad => {
-      let url = URL.parse(uriToLoad);
-      if (!url) {
+      let url;
+      try {
+        url = Services.io.newURI(uriToLoad);
+      } catch (e) {
         return;
       }
-      let nonQuery = url.URI.prePath + url.pathname;
+      let nonQuery = url.prePath + url.filePath;
       if (nonQuery in gPageIcons) {
         gBrowser.setIcon(gBrowser.selectedTab, gPageIcons[nonQuery]);
       }

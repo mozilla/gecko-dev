@@ -1042,9 +1042,13 @@ class MigrationUtils {
       let url = pageInfo.url;
       if (url instanceof Ci.nsIURI) {
         url = pageInfo.url.spec;
+      } else if (typeof url != "string") {
+        pageInfo.url.href;
       }
 
-      if (!URL.canParse(url)) {
+      try {
+        new URL(url);
+      } catch (ex) {
         // This won't save and we won't need to 'undo' it, so ignore this URL.
         continue;
       }

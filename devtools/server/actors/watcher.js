@@ -865,8 +865,12 @@ exports.WatcherActor = class WatcherActor extends Actor {
    * @param {String} newTargetUrl
    */
   async updateDomainSessionDataForServiceWorkers(newTargetUrl) {
-    // If the url could not be parsed the host defaults to an empty string.
-    const host = URL.parse(newTargetUrl)?.host ?? "";
+    let host = "";
+    // Accessing `host` can throw on some URLs with no valid host like about:home.
+    // In such scenario, reset the host to an empty string.
+    try {
+      host = new URL(newTargetUrl).host;
+    } catch (e) {}
 
     ParentProcessWatcherRegistry.addOrSetSessionDataEntry(
       this,

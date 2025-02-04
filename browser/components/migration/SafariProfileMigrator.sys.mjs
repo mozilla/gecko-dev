@@ -106,7 +106,7 @@ Bookmarks.prototype = {
       if (rows) {
         // Convert the rows from our SQLite database into a map from bookmark url to uuid
         for (let row of rows) {
-          let uniqueURL = new URL(row.getResultByName("url")).href;
+          let uniqueURL = Services.io.newURI(row.getResultByName("url")).spec;
 
           // Normalize the URL by removing any trailing slashes. We'll make sure to do
           // the same when doing look-ups during a migration.
@@ -292,9 +292,12 @@ Bookmarks.prototype = {
       } else if (type == "WebBookmarkTypeLeaf" && entry.has("URLString")) {
         // Check we understand this URL before adding it:
         let url = entry.get("URLString");
-        if (!URL.canParse(url)) {
+        try {
+          new URL(url);
+        } catch (ex) {
           console.error(
-            `Ignoring ${url} when importing from Safari because it is not a valid URL.`
+            `Ignoring ${url} when importing from Safari because of exception:`,
+            ex
           );
           continue;
         }

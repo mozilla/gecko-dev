@@ -10,10 +10,10 @@ const TIPPYTOP_JSON_PATH =
  * Get a domain from a url optionally stripping subdomains.
  */
 export function getDomain(url, strip = "www.") {
-  let domain = URL.parse(url)?.hostname;
-  if (!domain) {
-    return "";
-  }
+  let domain = "";
+  try {
+    domain = new URL(url).hostname;
+  } catch (ex) {}
   if (strip === "*") {
     try {
       domain = Services.eTLD.getBaseDomainFromHost(domain);

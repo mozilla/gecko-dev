@@ -259,10 +259,8 @@ export class ContextMenuChild extends JSWindowActorChild {
             let ctx = canvas.getContext("2d");
             ctx.drawImage(target, 0, 0);
             let dataURL = canvas.toDataURL();
-            let url = target.ownerDocument.location;
-            let imageName = url.pathname.substr(
-              url.pathname.lastIndexOf("/") + 1
-            );
+            let url = new URL(target.ownerDocument.location.href).pathname;
+            let imageName = url.substr(url.lastIndexOf("/") + 1);
             return Promise.resolve({ failed: false, dataURL, imageName });
           } catch (e) {
             console.error(e);
@@ -311,7 +309,7 @@ export class ContextMenuChild extends JSWindowActorChild {
     if (href) {
       // Handle SVG links:
       if (typeof href == "object" && href.animVal) {
-        return new URL(href.animVal, this.context.link.baseURI).href;
+        return this._makeURLAbsolute(this.context.link.baseURI, href.animVal);
       }
 
       return href;
@@ -327,7 +325,7 @@ export class ContextMenuChild extends JSWindowActorChild {
       throw new Error("Empty href");
     }
 
-    return new URL(href, this.context.link.baseURI).href;
+    return this._makeURLAbsolute(this.context.link.baseURI, href);
   }
 
   _getLinkURI() {
@@ -436,6 +434,10 @@ export class ContextMenuChild extends JSWindowActorChild {
     }
 
     return urls[0];
+  }
+
+  _makeURLAbsolute(aBase, aUrl) {
+    return Services.io.newURI(aUrl, null, Services.io.newURI(aBase)).spec;
   }
 
   _isProprietaryDRM() {
@@ -996,10 +998,10 @@ export class ContextMenuChild extends JSWindowActorChild {
       const descURL = context.target.getAttribute("longdesc");
 
       if (descURL) {
-        context.imageDescURL = new URL(
-          descURL,
-          context.target.ownerDocument.body.baseURI
-        ).href;
+        context.imageDescURL = this._makeURLAbsolute(
+          context.target.ownerDocument.body.baseURI,
+          descURL
+        );
       }
     } else if (
       this.contentWindow.HTMLCanvasElement.isInstance(context.target)
@@ -1086,7 +1088,10 @@ export class ContextMenuChild extends JSWindowActorChild {
 
         if (computedURL) {
           context.hasBGImage = true;
-          context.bgImageURL = new URL(computedURL, bodyElt.baseURI).href;
+          context.bgImageURL = this._makeURLAbsolute(
+            bodyElt.baseURI,
+            computedURL
+          );
         }
       }
     }
@@ -1172,7 +1177,7 @@ export class ContextMenuChild extends JSWindowActorChild {
 
           if (bgImgUrl) {
             context.hasBGImage = true;
-            context.bgImageURL = new URL(bgImgUrl, elem.baseURI).href;
+            context.bgImageURL = this._makeURLAbsolute(elem.baseURI, bgImgUrl);
           }
         }
       }

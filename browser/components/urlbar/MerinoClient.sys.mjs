@@ -168,9 +168,10 @@ export class MerinoClient {
     if (!endpointString) {
       return [];
     }
-    let url = URL.parse(endpointString);
-    if (!url) {
-      let error = new Error(`${endpointString} is not a valid URL`);
+    let url;
+    try {
+      url = new URL(endpointString);
+    } catch (error) {
       this.logger.error("Error creating endpoint URL", error);
       return [];
     }

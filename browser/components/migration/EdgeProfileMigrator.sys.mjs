@@ -9,8 +9,6 @@ import { MSMigrationUtils } from "resource:///modules/MSMigrationUtils.sys.mjs";
 const EDGE_COOKIE_PATH_OPTIONS = ["", "#!001\\", "#!002\\"];
 const EDGE_COOKIES_SUFFIX = "MicrosoftEdge\\Cookies";
 
-const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ftp:"]);
-
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ESEDBReader: "resource:///modules/ESEDBReader.sys.mjs",
@@ -138,8 +136,14 @@ EdgeTypedURLMigrator.prototype = {
         continue;
       }
 
-      let url = URL.parse(urlString);
-      if (!url || !ALLOWED_PROTOCOLS.has(url.protocol)) {
+      let url;
+      try {
+        url = new URL(urlString);
+        if (!["http:", "https:", "ftp:"].includes(url.protocol)) {
+          continue;
+        }
+      } catch (ex) {
+        console.error(ex);
         continue;
       }
 
@@ -219,27 +223,31 @@ EdgeTypedURLDBMigrator.prototype = {
       Date.now() - MigrationUtils.HISTORY_MAX_AGE_IN_MILLISECONDS
     );
     for (let typedUrlInfo of typedUrls) {
-      let date = typedUrlInfo.AccessDateTimeUTC;
-      if (!date) {
-        date = kDateCutOff;
-      } else if (date < kDateCutOff) {
-        continue;
-      }
+      try {
+        let date = typedUrlInfo.AccessDateTimeUTC;
+        if (!date) {
+          date = kDateCutOff;
+        } else if (date < kDateCutOff) {
+          continue;
+        }
 
-      let url = URL.parse(typedUrlInfo.URL);
-      if (!url || !ALLOWED_PROTOCOLS.has(url.protocol)) {
-        continue;
-      }
+        let url = new URL(typedUrlInfo.URL);
+        if (!["http:", "https:", "ftp:"].includes(url.protocol)) {
+          continue;
+        }
 
-      pageInfos.push({
-        url,
-        visits: [
-          {
-            transition: lazy.PlacesUtils.history.TRANSITIONS.TYPED,
-            date,
-          },
-        ],
-      });
+        pageInfos.push({
+          url,
+          visits: [
+            {
+              transition: lazy.PlacesUtils.history.TRANSITIONS.TYPED,
+              date,
+            },
+          ],
+        });
+      } catch (ex) {
+        console.error(ex);
+      }
     }
     await MigrationUtils.insertVisitsWrapper(pageInfos);
   },
@@ -311,7 +319,9 @@ EdgeReadingListMigrator.prototype = {
     for (let item of readingListItems) {
       let dateAdded = item.AddedDate || new Date();
       // Avoid including broken URLs:
-      if (!URL.canParse(item.URL)) {
+      try {
+        new URL(item.URL);
+      } catch (ex) {
         continue;
       }
       bookmarks.push({ url: item.URL, title: item.Title, dateAdded });
@@ -416,9 +426,11 @@ EdgeBookmarksMigrator.prototype = {
       let bmToInsert;
       // Ignore invalid URLs:
       if (!bookmark.IsFolder) {
-        if (!URL.canParse(bookmark.URL)) {
+        try {
+          new URL(bookmark.URL);
+        } catch (ex) {
           console.error(
-            `Ignoring ${bookmark.URL} when importing from Edge because it is not a valid URL.`
+            `Ignoring ${bookmark.URL} when importing from Edge because of exception: ${ex}`
           );
           continue;
         }

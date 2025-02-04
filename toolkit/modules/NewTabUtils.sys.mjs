@@ -1276,12 +1276,12 @@ var ActivityStreamProvider = {
     if (options.hideWithSearchParam) {
       let [key, value] = options.hideWithSearchParam.split("=");
       links = links.filter(link => {
-        let searchParams = URL.parse(link.url)?.searchParams;
-        if (searchParams) {
+        try {
+          let { searchParams } = new URL(link.url);
           return value === undefined
             ? !searchParams.has(key)
             : !searchParams.getAll(key).includes(value);
-        }
+        } catch (error) {}
         return true;
       });
     }

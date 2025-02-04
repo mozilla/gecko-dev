@@ -1253,7 +1253,7 @@ export class SearchEngine {
     // path of the URL from search config is not percent encoded. Thus, we
     // convert both strings into URL objects to ensure consistent comparisons.
     let url1 = new URL(url.template);
-    let url2 = URL.fromURI(uri);
+    let url2 = new URL(uri.spec);
     if (url1.origin != url2.origin || url1.pathname != url2.pathname) {
       return "";
     }

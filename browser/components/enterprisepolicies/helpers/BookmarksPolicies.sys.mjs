@@ -190,7 +190,7 @@ async function insertBookmark(bookmark) {
   let parentGuid = await getParentGuid(bookmark.Placement, bookmark.Folder);
 
   await lazy.PlacesUtils.bookmarks.insert({
-    url: bookmark.URL.URI,
+    url: Services.io.newURI(bookmark.URL.href),
     title: bookmark.Title,
     guid: lazy.PlacesUtils.generateGuidWithPrefix(
       BookmarksPolicies.BOOKMARK_GUID_PREFIX

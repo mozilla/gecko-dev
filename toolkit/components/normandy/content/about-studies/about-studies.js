@@ -24,7 +24,7 @@ function sendPageEvent(action, data) {
 }
 
 function readOptinParams() {
-  let { searchParams } = new URL(location);
+  let searchParams = new URLSearchParams(new URL(location).search);
   return {
     slug: searchParams.get("optin_slug"),
     branch: searchParams.get("optin_branch"),

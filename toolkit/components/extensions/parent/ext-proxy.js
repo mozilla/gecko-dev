@@ -161,7 +161,7 @@ this.proxy = class extends ExtensionAPIPersistent {
           extensionApi: self,
         }).api(),
 
-        // Leaving as non-persistent. By itself it's not useful since proxy-error
+        // Leaving as non-persistent.  By itself it's not useful since proxy-error
         // is emitted from the proxy filter.
         onError: new EventManager({
           context,
@@ -283,21 +283,15 @@ this.proxy = class extends ExtensionAPIPersistent {
               for (let prop of ["http", "ssl", "socks"]) {
                 let host = value[prop];
                 if (host) {
-                  let valid = true;
-                  // Fixup in case a full url is passed.
-                  if (host.includes("://")) {
-                    host = URL.parse(host)?.host;
-                    if (host) {
-                      value[prop] = host;
+                  try {
+                    // Fixup in case a full url is passed.
+                    if (host.includes("://")) {
+                      value[prop] = new URL(host).host;
                     } else {
-                      valid = false;
+                      // Validate the host value.
+                      new URL(`http://${host}`);
                     }
-                  } else {
-                    // Validate the host value.
-                    valid = URL.canParse(`http://${host}`);
-                  }
-
-                  if (!valid) {
+                  } catch (e) {
                     throw new ExtensionError(
                       `${value[prop]} is not a valid value for ${prop}.`
                     );
@@ -306,7 +300,9 @@ this.proxy = class extends ExtensionAPIPersistent {
               }
 
               if (value.proxyType === "autoConfig" || value.autoConfigUrl) {
-                if (!URL.canParse(value.autoConfigUrl)) {
+                try {
+                  new URL(value.autoConfigUrl);
+                } catch (e) {
                   throw new ExtensionError(
                     `${value.autoConfigUrl} is not a valid value for autoConfigUrl.`
                   );

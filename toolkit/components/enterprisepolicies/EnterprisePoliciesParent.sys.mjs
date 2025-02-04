@@ -427,8 +427,10 @@ EnterprisePoliciesManager.prototype = {
   },
 
   isExemptExecutableExtension(url, extension) {
-    let urlObject = URL.parse(url);
-    if (!urlObject) {
+    let urlObject;
+    try {
+      urlObject = new URL(url);
+    } catch (e) {
       return false;
     }
     let { hostname } = urlObject;

@@ -4597,7 +4597,7 @@ function setToolbarVisibility(
         break;
       case "newtab":
       default: {
-        let currentURI;
+        let currentURI = gBrowser?.currentURI;
         if (!gBrowserInit.domContentLoaded) {
           let uriToLoad = gBrowserInit.uriToLoadPromise;
           if (uriToLoad) {
@@ -4605,13 +4605,10 @@ function setToolbarVisibility(
               // We only care about the first tab being loaded
               uriToLoad = uriToLoad[0];
             }
-            currentURI = URL.parse(uriToLoad)?.URI;
-            if (!currentURI) {
-              currentURI = gBrowser?.currentURI;
-            }
+            try {
+              currentURI = Services.io.newURI(uriToLoad);
+            } catch (ex) {}
           }
-        } else {
-          currentURI = gBrowser.currentURI;
         }
         isVisible = BookmarkingUI.isOnNewTabPage(currentURI);
         break;

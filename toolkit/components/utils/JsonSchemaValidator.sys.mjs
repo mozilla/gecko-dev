@@ -488,8 +488,9 @@ export class JsonSchemaValidator {
           break;
         }
 
-        parsedParam = URL.parse(param);
-        if (parsedParam) {
+        try {
+          parsedParam = new URL(param);
+
           if (parsedParam.protocol == "file:") {
             // Treat the entire file URL as an origin.
             // Note this is stricter than the current Firefox policy,
@@ -508,7 +509,7 @@ export class JsonSchemaValidator {
               valid = true;
             }
           }
-        } else {
+        } catch (ex) {
           lazy.log.error(`Ignoring parameter "${param}" - not a valid origin.`);
           valid = false;
         }
@@ -525,10 +526,10 @@ export class JsonSchemaValidator {
           break;
         }
 
-        parsedParam = URL.parse(param);
-        if (parsedParam) {
+        try {
+          parsedParam = new URL(param);
           valid = true;
-        } else {
+        } catch (ex) {
           if (!param.startsWith("http")) {
             lazy.log.error(
               `Ignoring parameter "${param}" - scheme (http or https) must be specified.`

@@ -86,7 +86,9 @@ class ProviderHeuristicFallback extends UrlbarProvider {
       // to visit or search for it, we provide an alternative searchengine
       // match if the string looks like an alphanumeric origin or an e-mail.
       let str = queryContext.searchString;
-      if (!URL.canParse(str)) {
+      try {
+        new URL(str);
+      } catch (ex) {
         if (
           lazy.UrlbarPrefs.get("keyword.enabled") &&
           (lazy.UrlbarTokenizer.looksLikeOrigin(str, {

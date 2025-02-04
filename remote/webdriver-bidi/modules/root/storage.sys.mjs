@@ -829,7 +829,7 @@ class StorageModule extends RootBiDiModule {
         const hostname = url.hostname;
 
         const principal = Services.scriptSecurityManager.createContentPrincipal(
-          url.URI,
+          Services.io.newURI(url),
           {}
         );
         const isSecureProtocol = principal.isOriginPotentiallyTrustworthy;

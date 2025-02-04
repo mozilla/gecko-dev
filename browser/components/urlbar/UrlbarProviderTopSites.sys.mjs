@@ -311,7 +311,10 @@ class ProviderTopSites extends UrlbarProvider {
 
           if (!engine && site.url) {
             // Look up the engine by its domain.
-            let host = URL.parse(site.url)?.hostname;
+            let host;
+            try {
+              host = new URL(site.url).hostname;
+            } catch (err) {}
             if (host) {
               engine = (
                 await lazy.UrlbarSearchUtils.enginesForDomainPrefix(host)

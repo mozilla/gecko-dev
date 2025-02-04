@@ -209,14 +209,16 @@ export var ManifestProcessor = {
         expectedType: "string",
         trim: false,
       };
+      let scopeURL;
       const startURL = new URL(processedManifest.start_url);
       const defaultScope = new URL(".", startURL).href;
       const value = extractor.extractValue(spec);
       if (value === undefined || value === "") {
         return defaultScope;
       }
-      let scopeURL = URL.parse(value, manifestURL);
-      if (!scopeURL) {
+      try {
+        scopeURL = new URL(value, manifestURL);
+      } catch (e) {
         const warn = domBundle.GetStringFromName("ManifestScopeURLInvalid");
         errors.push({ warn });
         return defaultScope;
@@ -257,8 +259,10 @@ export var ManifestProcessor = {
       if (value === undefined || value === "") {
         return defaultStartURL;
       }
-      let potentialResult = URL.parse(value, manifestURL);
-      if (!potentialResult) {
+      let potentialResult;
+      try {
+        potentialResult = new URL(value, manifestURL);
+      } catch (e) {
         const warn = domBundle.GetStringFromName("ManifestStartURLInvalid");
         errors.push({ warn });
         return defaultStartURL;
@@ -324,8 +328,10 @@ export var ManifestProcessor = {
         return startURL.href;
       }
 
-      let appId = URL.parse(extractedValue, startURL.origin);
-      if (!appId) {
+      let appId;
+      try {
+        appId = new URL(extractedValue, startURL.origin);
+      } catch {
         const warn = domBundle.GetStringFromName("ManifestIdIsInvalid");
         errors.push({ warn });
         return startURL.href;

@@ -107,20 +107,22 @@ export let WebsiteFilter = {
 
   shouldLoad(contentLocation, loadInfo) {
     let contentType = loadInfo.externalContentPolicyType;
-    let url = contentLocation.spec.toLowerCase();
+    let url = contentLocation.spec;
     if (contentLocation.scheme == "view-source") {
-      url = contentLocation.pathQueryRef.toLowerCase();
-    } else if (url.startsWith("about:reader?url=")) {
-      url = decodeURIComponent(url.substr(17));
+      url = contentLocation.pathQueryRef;
+    } else if (url.toLowerCase().startsWith("about:reader")) {
+      url = decodeURIComponent(
+        url.toLowerCase().substr("about:reader?url=".length)
+      );
     }
     if (
       contentType == Ci.nsIContentPolicy.TYPE_DOCUMENT ||
       contentType == Ci.nsIContentPolicy.TYPE_SUBDOCUMENT
     ) {
-      if (this._blockPatterns.matches(url)) {
+      if (this._blockPatterns.matches(url.toLowerCase())) {
         if (
           !this._exceptionsPatterns ||
-          !this._exceptionsPatterns.matches(url)
+          !this._exceptionsPatterns.matches(url.toLowerCase())
         ) {
           return Ci.nsIContentPolicy.REJECT_POLICY;
         }
@@ -143,11 +145,13 @@ export let WebsiteFilter = {
       }
       let location = channel.getResponseHeader("location");
       // location might not be a fully qualified URL
-      let url = URL.parse(location);
-      if (!url) {
-        url = URL.parse(location, channel.URI.spec);
+      let url;
+      try {
+        url = new URL(location);
+      } catch (e) {
+        url = new URL(location, channel.URI.spec);
       }
-      if (url && this._blockPatterns.matches(url.href.toLowerCase())) {
+      if (this._blockPatterns.matches(url.href.toLowerCase())) {
         if (
           !this._exceptionsPatterns ||
           !this._exceptionsPatterns.matches(url.href.toLowerCase())

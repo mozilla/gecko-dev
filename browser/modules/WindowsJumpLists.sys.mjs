@@ -306,7 +306,14 @@ var Builder = class {
    */
   _clearHistory(uriSpecsToRemove) {
     let URIsToRemove = uriSpecsToRemove
-      .map(spec => URL.parse(spec)?.URI)
+      .map(spec => {
+        try {
+          // in case we get a bad uri
+          return Services.io.newURI(spec);
+        } catch (e) {
+          return null;
+        }
+      })
       .filter(uri => !!uri);
 
     if (URIsToRemove.length) {

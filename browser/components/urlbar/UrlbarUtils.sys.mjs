@@ -798,11 +798,12 @@ export var UrlbarUtils = {
    *   if there is no ref and undefined if url is not well-formed.
    */
   extractRefFromUrl(url) {
-    let uri = URL.parse(url)?.URI;
-    if (uri) {
-      return { base: uri.specIgnoringRef, ref: uri.ref };
+    try {
+      let nsUri = Services.io.newURI(url);
+      return { base: nsUri.specIgnoringRef, ref: nsUri.ref };
+    } catch {
+      return { base: url };
     }
-    return { base: url };
   },
 
   /**
@@ -1199,10 +1200,10 @@ export var UrlbarUtils = {
     if (!lazy.UrlbarTokenizer.REGEXP_PREFIX.test(candidate)) {
       candidate = "http://" + candidate;
     }
-
-    url = URL.parse(url);
-    candidate = URL.parse(candidate);
-    if (!url || !candidate) {
+    try {
+      url = new URL(url);
+      candidate = new URL(candidate);
+    } catch (e) {
       return false;
     }
 

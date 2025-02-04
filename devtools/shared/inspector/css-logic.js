@@ -166,19 +166,23 @@ exports.shortSource = function (sheet) {
         : dataUrl[1];
   } else {
     // We try, in turn, the filename, filePath, query string, whole thing
-    const url = URL.parse(sheet.href);
-    if (url) {
-      if (url.pathname) {
-        const index = url.pathname.lastIndexOf("/");
-        if (index !== -1 && index < url.pathname.length) {
-          name = url.pathname.slice(index + 1);
-        } else {
-          name = url.pathname;
-        }
-      } else if (url.query) {
-        name = url.query;
+    let url = {};
+    try {
+      url = new URL(sheet.href);
+    } catch (ex) {
+      // Some UA-provided stylesheets are not valid URLs.
+    }
+
+    if (url.pathname) {
+      const index = url.pathname.lastIndexOf("/");
+      if (index !== -1 && index < url.pathname.length) {
+        name = url.pathname.slice(index + 1);
+      } else {
+        name = url.pathname;
       }
-    } // else some UA-provided stylesheets are not valid URLs.
+    } else if (url.query) {
+      name = url.query;
+    }
   }
 
   try {

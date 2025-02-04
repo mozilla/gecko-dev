@@ -448,10 +448,15 @@ define(function (require, exports, module) {
    *         Whether the token is a URL.
    */
   function isURL(token) {
-    if (!validProtocols.test(token)) {
+    try {
+      if (!validProtocols.test(token)) {
+        return false;
+      }
+      new URL(token);
+      return true;
+    } catch (e) {
       return false;
     }
-    return URL.canParse(token);
   }
 
   /**

@@ -13,7 +13,7 @@ function getSourcemapBaseURL(url, global) {
   } else if (global?.location?.href) {
     // If there is no URL for the source, the map comment is relative to the
     // page being viewed, so we use the document href.
-    sourceMapBaseURL = global.location.href;
+    sourceMapBaseURL = global?.location?.href;
   } else {
     // If there is no valid base, the sourcemap URL will need to be an absolute
     // URL of some kind.
@@ -30,11 +30,12 @@ function getSourcemapBaseURL(url, global) {
   // If the base URL is a blob, we want to resolve relative to the origin
   // that created the blob URL, if there is one.
   if (sourceMapBaseURL.startsWith("blob:")) {
-    const parsedBaseURL = URL.parse(sourceMapBaseURL);
-    if (parsedBaseURL) {
+    try {
+      const parsedBaseURL = new URL(sourceMapBaseURL);
       return parsedBaseURL.origin === "null" ? null : parsedBaseURL.origin;
+    } catch (err) {
+      return null;
     }
-    return null;
   }
 
   return sourceMapBaseURL;

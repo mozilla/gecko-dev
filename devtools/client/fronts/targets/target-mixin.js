@@ -288,12 +288,10 @@ function TargetMixin(parentClass) {
         if (this._title) {
           return this._title;
         }
-        const parsedURL = URL.parse(this._url);
-        if (parsedURL) {
-          return parsedURL.pathname;
-        }
-        // If document URL can't be parsed, fallback to the raw URL.
-        return this._url;
+        return URL.canParse(this._url)
+          ? new URL(this._url).pathname
+          : // If document URL can't be parsed, fallback to the raw URL.
+            this._url;
       }
 
       if (this.isContentProcess) {

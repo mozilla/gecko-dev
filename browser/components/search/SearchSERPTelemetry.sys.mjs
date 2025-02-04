@@ -799,8 +799,9 @@ class TelemetryHandler {
    *     tracking, since they're inside a WeakMap.
    */
   _findBrowserItemForURL(url) {
-    url = URL.parse(url);
-    if (!url) {
+    try {
+      url = new URL(url);
+    } catch (ex) {
       return null;
     }
 
@@ -810,12 +811,13 @@ class TelemetryHandler {
       if (currentBestMatch === Infinity) {
         break;
       }
-      // Make sure to cache the parsed URL object, since there's no reason to
-      // do it twice.
-      trackingURL =
-        candidateItem._trackingURL ||
-        (candidateItem._trackingURL = URL.parse(trackingURL));
-      if (!trackingURL) {
+      try {
+        // Make sure to cache the parsed URL object, since there's no reason to
+        // do it twice.
+        trackingURL =
+          candidateItem._trackingURL ||
+          (candidateItem._trackingURL = new URL(trackingURL));
+      } catch (ex) {
         continue;
       }
       let score = this.compareUrls(url, trackingURL);
@@ -1446,18 +1448,19 @@ class ContentHandler {
           info.nonAdsLinkQueryParamNames.length &&
           info.nonAdsLinkRegexps.some(r => r.test(url))
         ) {
+          let newParsedUrl;
           for (let key of info.nonAdsLinkQueryParamNames) {
             let paramValue = parsedUrl.searchParams.get(key);
             if (paramValue) {
-              let newParsedUrl = /^https?:\/\//.test(paramValue)
-                ? URL.parse(paramValue)
-                : URL.parse(paramValue, parsedUrl.origin);
-              if (newParsedUrl) {
-                parsedUrl = newParsedUrl;
+              try {
+                newParsedUrl = /^https?:\/\//.test(paramValue)
+                  ? new URL(paramValue)
+                  : new URL(paramValue, parsedUrl.origin);
                 break;
-              }
+              } catch (e) {}
             }
           }
+          parsedUrl = newParsedUrl ?? parsedUrl;
         }
 
         // Determine the component type of the link.

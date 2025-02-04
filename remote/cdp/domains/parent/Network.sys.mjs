@@ -273,11 +273,13 @@ export class Network extends Domain {
     }
 
     // Retrieve host. Check domain first because it has precedence.
-    let hostname = cookie.domain ?? "";
+    let hostname = cookie.domain || "";
+    let cookieURL;
     let schemeType = Ci.nsICookie.SCHEME_UNSET;
-    if (!hostname) {
-      let cookieURL = URL.parse(cookie.url);
-      if (!cookieURL) {
+    if (!hostname.length) {
+      try {
+        cookieURL = new URL(cookie.url);
+      } catch (e) {
         return { success: false };
       }
 

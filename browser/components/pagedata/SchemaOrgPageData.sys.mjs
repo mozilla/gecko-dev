@@ -140,11 +140,15 @@ function parseMicrodataProp(propElement) {
       return "";
     }
 
-    let url = URL.parse(
-      urlElement.getAttribute(attr),
-      urlElement.ownerDocument.documentURI
-    );
-    return url ? url.toString() : "";
+    try {
+      let url = new URL(
+        urlElement.getAttribute(attr),
+        urlElement.ownerDocument.documentURI
+      );
+      return url.toString();
+    } catch (e) {
+      return "";
+    }
   };
 
   switch (propElement.localName) {

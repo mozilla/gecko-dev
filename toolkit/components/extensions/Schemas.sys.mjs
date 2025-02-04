@@ -1101,13 +1101,21 @@ class InjectionContext extends Context {
  *
  * Each method either returns a normalized version of the original
  * value, or throws an error if the value is not valid for the given
- * format. The original input is always a string.
+ * format.
  */
 const FORMATS = {
   hostname(string) {
     // TODO bug 1797376: Despite the name, this format is NOT a "hostname",
     // but hostname + port and may fail with IPv6. Use canonicalDomain instead.
-    if (URL.parse(`http://${string}`)?.host !== string) {
+    let valid = true;
+
+    try {
+      valid = new URL(`http://${string}`).host === string;
+    } catch (e) {
+      valid = false;
+    }
+
+    if (!valid) {
       throw new Error(`Invalid hostname ${string}`);
     }
 
@@ -1115,7 +1123,15 @@ const FORMATS = {
   },
 
   canonicalDomain(string) {
-    if (URL.parse(`http://${string}`)?.hostname !== string) {
+    let valid;
+
+    try {
+      valid = new URL(`http://${string}`).hostname === string;
+    } catch (e) {
+      valid = false;
+    }
+
+    if (!valid) {
       // Require the input to be a canonical domain.
       // Rejects obvious non-domains such as URLs,
       // but also catches non-IDN (punycode) domains.
@@ -1135,8 +1151,10 @@ const FORMATS = {
   },
 
   origin(string, context) {
-    let url = URL.parse(string);
-    if (!url) {
+    let url;
+    try {
+      url = new URL(string);
+    } catch (e) {
       throw new Error(`Invalid origin: ${string}`);
     }
     if (!/^https?:/.test(url.protocol)) {
@@ -1160,7 +1178,9 @@ const FORMATS = {
     if (!context.url) {
       // If there's no context URL, return relative URLs unresolved, and
       // skip security checks for them.
-      if (!URL.canParse(string)) {
+      try {
+        new URL(string);
+      } catch (e) {
         return string;
       }
     }
@@ -1179,8 +1199,12 @@ const FORMATS = {
   },
 
   unresolvedRelativeUrl(string) {
-    if (!string.startsWith("//") && !URL.canParse(string)) {
-      return string;
+    if (!string.startsWith("//")) {
+      try {
+        new URL(string);
+      } catch (e) {
+        return string;
+      }
     }
 
     throw new SyntaxError(

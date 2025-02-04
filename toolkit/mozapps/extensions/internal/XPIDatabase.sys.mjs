@@ -430,7 +430,7 @@ export class AddonInternal {
     }
 
     for (const [name, uri] of Object.entries({ installFrom, source })) {
-      if (!installOrigins.includes(URL.fromURI(uri).origin)) {
+      if (!installOrigins.includes(new URL(uri.spec).origin)) {
         logger.warn(
           `Addon ${this.id} Installation not allowed, ${name} "${uri.spec}" is not included in the Addon install_origins`
         );
