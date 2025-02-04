@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import sys
 
 # OS Specifics
 INSTALLER_PATH = os.path.join(os.getcwd(), "installer.dmg")
@@ -13,7 +14,6 @@ if "MOZ_FETCHES_DIR" in os.environ:
 XPCSHELL_NAME = "xpcshell"
 HTTP3SERVER_NAME = "http3server"
 EXE_SUFFIX = ""
-ADJUST_MOUSE_AND_SCREEN = False
 #####
 config = {
     "virtualenv_modules": ["six==1.16.0", "vcversioner==2.16.0.0"],
@@ -211,18 +211,36 @@ config = {
             "enabled": True,
         },
         {
-            "name": "run mouse & screen adjustment script",
+            "name": "verify refresh rate",
             "cmd": [
-                # when configs are consolidated this python path will only show
-                # for windows.
-                "python",
-                "../scripts/external_tools/mouse_and_screen_resolution.py",
-                "--configuration-file",
-                "../scripts/external_tools/machine-configuration.json",
+                sys.executable,
+                os.path.join(
+                    os.getcwd(),
+                    "mozharness",
+                    "external_tools",
+                    "macosx_resolution_refreshrate.py",
+                ),
+                "--check=refresh-rate",
             ],
-            "architectures": ["32bit"],
-            "halt_on_failure": True,
-            "enabled": ADJUST_MOUSE_AND_SCREEN,
+            "architectures": ["64bit"],
+            "halt_on_failure": False,
+            "enabled": True,
+        },
+        {
+            "name": "verify screen resolution",
+            "cmd": [
+                sys.executable,
+                os.path.join(
+                    os.getcwd(),
+                    "mozharness",
+                    "external_tools",
+                    "macosx_resolution_refreshrate.py",
+                ),
+                "--check=resolution",
+            ],
+            "architectures": ["64bit"],
+            "halt_on_failure": False,
+            "enabled": True,
         },
     ],
     "vcs_output_timeout": 1000,
