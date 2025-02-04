@@ -331,6 +331,8 @@ https_first_disabled = true
 ["browser_locationchange_urlbar_edit_dos.js"]
 support-files = ["file_urlbar_edit_dos.html"]
 
+["browser_lossless_encode.js"]
+
 ["browser_middleClick.js"]
 fail-if = ["a11y_checks"] # Bug 1854660 clicked element may not be focusable and/or labeled
 
