@@ -173,10 +173,7 @@ skip-if = [
 ]
 
 ["browser_dbg-react-app.js"]
-skip-if = [
-  "os == 'win'",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1813196
-]
+skip-if = ["tsan"]
 
 ["browser_dbg-react-jsx.js"]
 
