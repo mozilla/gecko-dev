@@ -843,8 +843,20 @@ void BrowserParent::ActorDestroy(ActorDestroyReason why) {
       nsCOMPtr<nsIPrincipal> principal = GetContentPrincipal();
 
       if (principal) {
-        // TODO: Flag out-of-memory crashes appropriately.
-        CrashReport::Deliver(principal, /* aIsOOM */ false);
+        nsAutoCString crash_reason;
+        CrashReporter::GetAnnotation(OtherPid(),
+                                     CrashReporter::Annotation::MozCrashReason,
+                                     crash_reason);
+        // FIXME(arenevier): Find a less fragile way to identify that a crash
+        // was caused by OOM
+        bool is_oom = false;
+        if (crash_reason == "OOM" || crash_reason == "OOM!" ||
+            StringBeginsWith(crash_reason, "[unhandlable oom]"_ns) ||
+            StringBeginsWith(crash_reason, "Unhandlable OOM"_ns)) {
+          is_oom = true;
+        }
+
+        CrashReport::Deliver(principal, is_oom);
       }
     }
   }
