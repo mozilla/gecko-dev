@@ -52,6 +52,10 @@ check_updates () {
           ;;
   esac
 
+  # These files are created by the updater - see toolkit/mozapps/update/updater/updater.cpp
+  if [ -f update/update.status ]; then rm update/update.status; fi
+  if [ -f update/update.log ]; then rm update/update.log; fi
+
   # This check is disabled because we rely on glob expansion here
   # shellcheck disable=SC2086
   if [ -d source/$platform_dirname ]; then
@@ -77,18 +81,33 @@ check_updates () {
     echo "Calling updater: $updater $update_abspath $cwd $cwd 0"
     set -x
     "$updater" "$update_abspath" "$cwd" "$cwd" 0
-    updater_ret=$?
+    # TODO: Check updater return code
+    # updater_ret=$?
     set +x
-    if [ "$updater_ret" -gt 0 ]
-    then
-      echo "TEST-UNEXPECTED-FAIL: update status was not successful: $updater_ret"
-      return $updater_ret
-    fi
     cd ../..
   else
     echo "TEST-UNEXPECTED-FAIL: no dir in source/$platform_dirname"
     return 1
   fi
+
+  # Print updater log
+  cat update/update.log
+
+  # Capture updater status
+  update_status=$(cat update/update.status)
+
+  if [ "$update_status" != "succeeded" ]
+  then
+    echo "TEST-UNEXPECTED-FAIL: update status was not successful: $update_status"
+    return 1
+  fi
+
+  # TODO: Check updater return code
+  # if [ "$updater_ret" -gt 0 ]
+  # then
+  #   echo "TEST-UNEXPECTED-FAIL: update status was not successful: $updater_ret"
+  #   return $updater_ret
+  # fi
 
   # If we were testing an OS X mar on Linux, the unpack step copied the
   # precomplete file from Contents/Resources to the root of the install
