@@ -475,7 +475,7 @@ export var Sanitizer = {
       siteSettings
     );
 
-    Services.prefs.setBoolPref(`privacy.${newContext}.formData`, formData);
+    Services.prefs.setBoolPref(`privacy.${newContext}.formdata`, formData);
 
     // We have to remove the old privacy.sanitize.${context}.hasMigratedToNewPrefs (2) pref
     // if the user has them on their system
@@ -1079,6 +1079,9 @@ async function sanitizeOnShutdown(progress) {
         ),
       privacy_clearOnShutdown_v2_cache: Services.prefs.getBoolPref(
         "privacy.clearOnShutdown_v2.cache"
+      ),
+      privacy_clearOnShutdown_v2_formdata: Services.prefs.getBoolPref(
+        "privacy.clearOnShutdown_v2.formdata"
       ),
       privacy_clearOnShutdown_v2_siteSettings: Services.prefs.getBoolPref(
         "privacy.clearOnShutdown_v2.siteSettings"

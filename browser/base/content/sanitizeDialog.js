@@ -42,18 +42,18 @@ Preferences.addAll([
   { id: "privacy.clearHistory.cookiesAndStorage", type: "bool" },
   { id: "privacy.clearHistory.cache", type: "bool" },
   { id: "privacy.clearHistory.siteSettings", type: "bool" },
-  { id: "privacy.clearHistory.formData", type: "bool" },
+  { id: "privacy.clearHistory.formdata", type: "bool" },
   { id: "privacy.clearSiteData.browsingHistoryAndDownloads", type: "bool" },
   { id: "privacy.clearSiteData.cookiesAndStorage", type: "bool" },
   { id: "privacy.clearSiteData.cache", type: "bool" },
   { id: "privacy.clearSiteData.siteSettings", type: "bool" },
-  { id: "privacy.clearSiteData.formData", type: "bool" },
+  { id: "privacy.clearSiteData.formdata", type: "bool" },
   {
     id: "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads",
     type: "bool",
   },
   { id: "privacy.clearOnShutdown.formdata", type: "bool" },
-  { id: "privacy.clearOnShutdown_v2.formData", type: "bool" },
+  { id: "privacy.clearOnShutdown_v2.formdata", type: "bool" },
   { id: "privacy.clearOnShutdown.downloads", type: "bool" },
   { id: "privacy.clearOnShutdown_v2.downloads", type: "bool" },
   { id: "privacy.clearOnShutdown.cookies", type: "bool" },
@@ -584,7 +584,7 @@ var gSanitizePromptDialog = {
         cookies_and_storage: selectedOptions.includes("cookiesAndStorage"),
         cache: selectedOptions.includes("cache"),
         site_settings: selectedOptions.includes("siteSettings"),
-        form_data: selectedOptions.includes("formData"),
+        form_data: selectedOptions.includes("formdata"),
       });
     }
     // if the dialog was just opened, just report which context it was opened in
