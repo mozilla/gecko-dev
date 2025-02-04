@@ -94,6 +94,7 @@ toolkit/components/nimbus/schemas/ExperimentFeature.schema.json
 toolkit/components/nimbus/schemas/ExperimentFeatureManifest.schema.json
 toolkit/components/nimbus/schemas/NimbusExperiment.schema.json
 toolkit/components/pdfjs/PdfJsDefaultPrefs.js
+toolkit/components/pdfjs/PdfJsOverridePrefs.js
 toolkit/components/uniffi-js/UniFFIGeneratedScaffolding.cpp
 toolkit/components/uniffi-js/UniFFIFixtureScaffolding.cpp
 toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated

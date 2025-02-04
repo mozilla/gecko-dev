@@ -274,8 +274,6 @@ module.exports = [
   "toolkit/components/pdfjs/content/build",
   "toolkit/components/pdfjs/content/web",
 
-  "toolkit/components/pdfjs/PdfJsOverridePrefs.js",
-
   // Uses preprocessing
   "toolkit/components/reader/Readerable.sys.mjs",
 
