@@ -1171,7 +1171,7 @@ pref("privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true);
 pref("privacy.clearOnShutdown_v2.cookiesAndStorage", true);
 pref("privacy.clearOnShutdown_v2.cache", true);
 pref("privacy.clearOnShutdown_v2.siteSettings", false);
-pref("privacy.clearOnShutdown_v2.formData", false);
+pref("privacy.clearOnShutdown_v2.formdata", false);
 
 pref("privacy.cpd.history",                 true);
 pref("privacy.cpd.formdata",                true);
@@ -1191,13 +1191,13 @@ pref("privacy.clearHistory.browsingHistoryAndDownloads", true);
 pref("privacy.clearHistory.cookiesAndStorage", true);
 pref("privacy.clearHistory.cache", true);
 pref("privacy.clearHistory.siteSettings", false);
-pref("privacy.clearHistory.formData", false);
+pref("privacy.clearHistory.formdata", false);
 pref("privacy.clearSiteData.historyFormDataAndDownloads", false);
 pref("privacy.clearSiteData.browsingHistoryAndDownloads", false);
 pref("privacy.clearSiteData.cookiesAndStorage", true);
 pref("privacy.clearSiteData.cache", true);
 pref("privacy.clearSiteData.siteSettings", false);
-pref("privacy.clearSiteData.formData", false);
+pref("privacy.clearSiteData.formdata", false);
 
 pref("privacy.history.custom",              false);
 

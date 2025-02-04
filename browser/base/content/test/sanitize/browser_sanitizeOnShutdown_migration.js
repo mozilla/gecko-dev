@@ -301,7 +301,7 @@ add_task(async function testFormData_historyFalse() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", false],
-      ["privacy.clearOnShutdown_v2.formData", true],
+      ["privacy.clearOnShutdown_v2.formdata", true],
       ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
@@ -315,7 +315,7 @@ add_task(async function testFormData_historyFalse() {
     "historyFormDataAndDownloads should still be false"
   );
   ok(
-    Services.prefs.getBoolPref("privacy.clearOnShutdown_v2.formData"),
+    Services.prefs.getBoolPref("privacy.clearOnShutdown_v2.formdata"),
     "old history pref should be set to true"
   );
 

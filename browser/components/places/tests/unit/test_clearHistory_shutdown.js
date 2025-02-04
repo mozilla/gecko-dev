@@ -55,7 +55,7 @@ add_task(async function test_execute() {
     true
   );
   Services.prefs.setBoolPref(Sanitizer.PREF_SHUTDOWN_BRANCH + "cookies", true);
-  Services.prefs.setBoolPref(Sanitizer.PREF_SHUTDOWN_BRANCH + "formData", true);
+  Services.prefs.setBoolPref(Sanitizer.PREF_SHUTDOWN_BRANCH + "formdata", true);
   Services.prefs.setBoolPref(Sanitizer.PREF_SHUTDOWN_BRANCH + "sessions", true);
   Services.prefs.setBoolPref(
     Sanitizer.PREF_SHUTDOWN_BRANCH + "siteSettings",
