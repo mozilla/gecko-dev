@@ -85,8 +85,12 @@ class SearchRobot {
         }
     }
 
+    /**
+     * Verifies that the sponsored suggestions are displayed.
+     * For regular search suggestions, use [verifySearchSuggestionsAreDisplayed].
+     */
     @OptIn(ExperimentalTestApi::class)
-    fun verifySearchEngineSuggestionResults(
+    fun verifySponsoredSuggestionsResults(
         rule: ComposeTestRule,
         vararg searchSuggestions: String,
         searchTerm: String,
@@ -97,20 +101,20 @@ class SearchRobot {
     ) {
         rule.waitForIdle()
         for (i in 1..RETRY_COUNT) {
-            Log.i(TAG, "verifySearchEngineSuggestionResults: Started try #$i")
+            Log.i(TAG, "verifySponsoredSuggestionsResults: Started try #$i")
             try {
                 for (searchSuggestion in searchSuggestions) {
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to perform \"Close soft keyboard\" action")
+                    Log.i(TAG, "verifySponsoredSuggestionsResults: Trying to perform \"Close soft keyboard\" action")
                     closeSoftKeyboard()
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Performed \"Close soft keyboard\" action")
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists")
+                    Log.i(TAG, "verifySponsoredSuggestionsResults: Performed \"Close soft keyboard\" action")
+                    Log.i(TAG, "verifySponsoredSuggestionsResults: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists")
                     rule.waitUntilExactlyOneExists(hasText(searchSuggestion), waitingTime)
-                    Log.i(TAG, "verifySearchEngineSuggestionResults: Waited for $waitingTime ms until $searchSuggestion search suggestion exists")
+                    Log.i(TAG, "verifySponsoredSuggestionsResults: Waited for $waitingTime ms until $searchSuggestion search suggestion exists")
                 }
 
                 break
             } catch (e: ComposeTimeoutException) {
-                Log.i(TAG, "verifySearchEngineSuggestionResults: AssertionError caught, executing fallback methods")
+                Log.i(TAG, "verifySponsoredSuggestionsResults: AssertionError caught, executing fallback methods")
                 if (i == RETRY_COUNT) {
                     throw e
                 } else {
@@ -130,9 +134,39 @@ class SearchRobot {
             }
         }
         for (searchSuggestion in searchSuggestions) {
-            Log.i(TAG, "verifySearchEngineSuggestionResults: Trying to verify that $searchSuggestion search suggestion exists")
+            Log.i(TAG, "verifySponsoredSuggestionsResults: Trying to verify that $searchSuggestion search suggestion exists")
             rule.onNodeWithText(searchSuggestion).assertIsDisplayed()
-            Log.i(TAG, "verifySearchEngineSuggestionResults: Verified that $searchSuggestion search suggestion exists")
+            Log.i(TAG, "verifySponsoredSuggestionsResults: Verified that $searchSuggestion search suggestion exists")
+        }
+    }
+
+    /**
+     * Verifies that the regular search suggestions are displayed.
+     * For sponsored suggestions, use [verifySponsoredSuggestionsResults].
+     */
+    @OptIn(ExperimentalTestApi::class)
+    fun verifySearchSuggestionsAreDisplayed(rule: ComposeTestRule, vararg searchSuggestions: String) {
+        rule.waitForIdle()
+        for (searchSuggestion in searchSuggestions) {
+            Log.i(
+                TAG,
+                "verifySearchSuggestionsAreDisplayed: Trying to perform \"Close soft keyboard\" action.",
+            )
+            closeSoftKeyboard()
+            Log.i(
+                TAG,
+                "verifySearchSuggestionsAreDisplayed: Performed \"Close soft keyboard\" action.",
+            )
+            Log.i(
+                TAG,
+                "verifySearchSuggestionsAreDisplayed: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists.",
+            )
+            rule.waitUntilExactlyOneExists(hasText(searchSuggestion), waitingTime)
+            rule.onNodeWithText(searchSuggestion).assertIsDisplayed()
+            Log.i(
+                TAG,
+                "verifySearchSuggestionsAreDisplayed: Verified $searchSuggestion search suggestion exists.",
+            )
         }
     }
 

@@ -643,7 +643,7 @@ class BookmarksTest : TestSetup() {
         }.clickSearchButton {
             // Search for a valid term
             typeSearch(firstWebPage.title)
-            verifySearchEngineSuggestionResults(activityTestRule, firstWebPage.url.toString(), searchTerm = firstWebPage.title)
+            verifySearchSuggestionsAreDisplayed(activityTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(activityTestRule, secondWebPage.url.toString())
             // Search for invalid term
             typeSearch("Android")
@@ -695,7 +695,7 @@ class BookmarksTest : TestSetup() {
             typeSearch("generic")
             verifySuggestionsAreNotDisplayed(activityTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(activityTestRule, secondWebPage.url.toString())
-            verifySearchEngineSuggestionResults(activityTestRule, thirdWebPage.url.toString(), searchTerm = "generic")
+            verifySponsoredSuggestionsResults(activityTestRule, thirdWebPage.url.toString(), searchTerm = "generic")
             pressBack()
         }
         bookmarksMenu {

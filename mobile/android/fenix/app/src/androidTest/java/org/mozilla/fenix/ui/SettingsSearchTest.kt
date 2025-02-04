@@ -482,13 +482,7 @@ class SettingsSearchTest : TestSetup() {
             clickSearchSelectorButton()
             selectTemporarySearchMethod("DuckDuckGo")
             typeSearch("mozilla ")
-            verifySearchEngineSuggestionResults(
-                activityTestRule,
-                "mozilla firefox",
-                searchTerm = "mozilla ",
-                shouldUseSearchShort = true,
-                searchEngineName = "DuckDuckGo",
-            )
+            verifySearchSuggestionsAreDisplayed(activityTestRule, "mozilla firefox")
         }.dismissSearchBar {
         }.openThreeDotMenu {
         }.openSettings {
@@ -530,11 +524,7 @@ class SettingsSearchTest : TestSetup() {
             typeSearch("mozilla")
             verifyAllowSuggestionsInPrivateModeDialog()
             allowSuggestionsInPrivateMode()
-            verifySearchEngineSuggestionResults(
-                activityTestRule,
-                "mozilla firefox",
-                searchTerm = "mozilla",
-            )
+            verifySearchSuggestionsAreDisplayed(activityTestRule, "mozilla firefox")
         }.dismissSearchBar {
         }.openThreeDotMenu {
         }.openSettings {

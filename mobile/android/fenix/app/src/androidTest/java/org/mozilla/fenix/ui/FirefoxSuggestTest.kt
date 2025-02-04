@@ -108,7 +108,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = sponsoredKeyWord)
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -130,7 +130,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = sponsoredKeyWord.dropLast(1))
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -152,7 +152,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = sponsoredKeyWord)
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -178,7 +178,7 @@ class FirefoxSuggestTest : TestSetup() {
             }.clickUrlbar {
                 typeSearch(searchTerm = sponsoredKeyWord)
                 deleteSearchKeywordCharacters(numberOfDeletionSteps = 1)
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -203,7 +203,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = nonSponsoredKeyWord)
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -230,7 +230,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = nonSponsoredKeyWord.dropLast(1))
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",
@@ -251,7 +251,7 @@ class FirefoxSuggestTest : TestSetup() {
             navigationToolbar {
             }.clickUrlbar {
                 typeSearch(searchTerm = nonSponsoredKeyWord)
-                verifySearchEngineSuggestionResults(
+                verifySponsoredSuggestionsResults(
                     rule = activityTestRule,
                     searchSuggestions = arrayOf(
                         "Firefox Suggest",

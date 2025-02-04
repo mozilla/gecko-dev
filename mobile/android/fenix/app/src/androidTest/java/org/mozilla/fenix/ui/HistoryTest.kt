@@ -345,7 +345,7 @@ class HistoryTest : TestSetup() {
         }.clickSearchButton {
             // Search for a valid term
             typeSearch(firstWebPage.title)
-            verifySearchEngineSuggestionResults(activityTestRule, firstWebPage.url.toString(), searchTerm = firstWebPage.title)
+            verifySearchSuggestionsAreDisplayed(activityTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(activityTestRule, secondWebPage.url.toString())
             clickClearButton()
             // Search for invalid term
@@ -385,7 +385,7 @@ class HistoryTest : TestSetup() {
             typeSearch("generic")
             verifySuggestionsAreNotDisplayed(activityTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(activityTestRule, secondWebPage.url.toString())
-            verifySearchEngineSuggestionResults(activityTestRule, thirdWebPage.url.toString(), searchTerm = "generic")
+            verifySponsoredSuggestionsResults(activityTestRule, thirdWebPage.url.toString(), searchTerm = "generic")
             pressBack()
         }
         historyMenu {

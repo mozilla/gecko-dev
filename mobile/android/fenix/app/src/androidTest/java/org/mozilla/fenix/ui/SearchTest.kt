@@ -679,14 +679,13 @@ class SearchTest : TestSetup() {
         homeScreen {
         }.openSearch {
             typeSearch("generic")
-            verifySearchEngineSuggestionResults(
-                rule = activityTestRule,
+            verifySearchSuggestionsAreDisplayed(
+                activityTestRule,
                 searchSuggestions = arrayOf(
                     "Firefox Suggest",
                     firstPage.url.toString(),
                     secondPage.url.toString(),
                 ),
-                searchTerm = "generic",
             )
         }
     }
@@ -710,13 +709,12 @@ class SearchTest : TestSetup() {
             clickClearButton()
             typeSearch(searchTerm = "generic")
             verifyTypedToolbarText("generic", exists = true)
-            verifySearchEngineSuggestionResults(
+            verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
                     firstPageUrl.url.toString(),
                     secondPageUrl.url.toString(),
                 ),
-                searchTerm = "generic",
             )
         }.clickSearchSuggestion(firstPageUrl.url.toString()) {
             verifyUrl(firstPageUrl.url.toString())
@@ -771,14 +769,13 @@ class SearchTest : TestSetup() {
             clickClearButton()
             typeSearch(searchTerm = "generic")
             verifyTypedToolbarText("generic", exists = true)
-            verifySearchEngineSuggestionResults(
+            verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
                     "Firefox Suggest",
                     firstPageUrl.url.toString(),
                     secondPageUrl.url.toString(),
                 ),
-                searchTerm = "generic",
             )
         }.clickSearchSuggestion(firstPageUrl.url.toString()) {
             verifyTabCounter("2")
@@ -823,8 +820,8 @@ class SearchTest : TestSetup() {
         }.clickSearchSelectorButton {
             selectTemporarySearchMethod("Bookmarks")
             typeSearch("test")
-            verifySearchEngineSuggestionResults(
-                activityTestRule,
+            verifySearchSuggestionsAreDisplayed(
+                rule = activityTestRule,
                 searchSuggestions = arrayOf(
                     "Firefox Suggest",
                     "Test1",
@@ -832,7 +829,6 @@ class SearchTest : TestSetup() {
                     "Test2",
                     "https://bookmarktest2.com/",
                 ),
-                searchTerm = "test",
             )
         }.dismissSearchBar {
         }.openSearch {
@@ -896,7 +892,7 @@ class SearchTest : TestSetup() {
         }.openNavigationToolbar {
         }.clickUrlbar {
             typeSearch(searchTerm = "test page")
-            verifySearchEngineSuggestionResults(
+            verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
                     "TestSearchEngine search",
@@ -904,7 +900,6 @@ class SearchTest : TestSetup() {
                     "Firefox Suggest",
                     firstPageUrl.url.toString(),
                 ),
-                searchTerm = "test page 1",
             )
             // 2 search engine suggestions and 2 browser suggestions (1 history, 1 bookmark)
             verifySearchSuggestionsCount(activityTestRule, numberOfSuggestions = 4, searchTerm = "test page")

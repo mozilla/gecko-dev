@@ -222,7 +222,7 @@ class BookmarksTestCompose : TestSetup() {
         }.clickSearchButton() {
             // Search for a valid term
             typeSearch(firstWebPage.title)
-            verifySearchEngineSuggestionResults(composeTestRule, firstWebPage.url.toString(), searchTerm = firstWebPage.title)
+            verifySearchSuggestionsAreDisplayed(composeTestRule, firstWebPage.url.toString())
             verifySuggestionsAreNotDisplayed(composeTestRule, secondWebPage.url.toString())
             // Search for invalid term
             typeSearch("Android")
