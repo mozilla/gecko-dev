@@ -246,7 +246,7 @@ export class _RemoteSettingsExperimentLoader {
       );
     }
 
-    lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}`);
+    lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
 
     const recipes = [];
     let loadingError = false;
@@ -596,7 +596,7 @@ export class EnrollmentsContext {
       let validation = this.recipeValidator.validate(recipe);
       if (!validation.valid) {
         console.error(
-          `Could not validate experiment recipe ${recipe.id}: ${JSON.stringify(
+          `Could not validate experiment recipe ${recipe.slug}: ${JSON.stringify(
             validation.errors,
             null,
             2
@@ -628,7 +628,7 @@ export class EnrollmentsContext {
 
       if (!feature.applications.includes(lazy.APP_ID)) {
         lazy.log.debug(
-          `${recipe.id} uses feature ${featureId} which is not enabled for this application (${lazy.APP_ID}) -- skipping`
+          `${recipe.slug} uses feature ${featureId} which is not enabled for this application (${lazy.APP_ID}) -- skipping`
         );
         haveAllFeatures = false;
         break;
@@ -644,9 +644,9 @@ export class EnrollmentsContext {
 
       if (match) {
         const type = recipe.isRollout ? "rollout" : "experiment";
-        lazy.log.debug(`[${type}] ${recipe.id} matched targeting`);
+        lazy.log.debug(`[${type}] ${recipe.slug} matched targeting`);
       } else {
-        lazy.log.debug(`${recipe.id} did not match due to targeting`);
+        lazy.log.debug(`${recipe.slug} did not match due to targeting`);
         this.recipeMismatches.push(recipe.slug);
         return RecipeStatus.TARGETING_MISMATCH;
       }
@@ -664,7 +664,7 @@ export class EnrollmentsContext {
       ) {
         this.missingLocale.push(recipe.slug);
         lazy.log.debug(
-          `${recipe.id} is localized but missing locale ${this.locale}`
+          `${recipe.slug} is localized but missing locale ${this.locale}`
         );
         return RecipeStatus.INVALID;
       }
@@ -681,7 +681,7 @@ export class EnrollmentsContext {
       if (result.missingL10nIds.length) {
         this.missingL10nIds.set(recipe.slug, result.missingL10nIds);
       }
-      lazy.log.debug(`${recipe.id} did not validate`);
+      lazy.log.debug(`${recipe.slug} did not validate`);
       return RecipeStatus.INVALID;
     }
 
@@ -730,7 +730,9 @@ export class EnrollmentsContext {
    */
   async checkTargeting(recipe) {
     if (!recipe.targeting) {
-      lazy.log.debug("No targeting for recipe, so it matches automatically");
+      lazy.log.debug(
+        `No targeting for recipe ${recipe.slug}, so it matches automatically`
+      );
       return true;
     }
 

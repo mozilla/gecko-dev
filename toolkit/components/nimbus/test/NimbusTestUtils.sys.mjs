@@ -373,7 +373,7 @@ export const ExperimentFakes = {
   recipe(slug = lazy.NormandyUtils.generateUuid(), props = {}) {
     return {
       // This field is required for populating remote settings
-      id: lazy.NormandyUtils.generateUuid(),
+      id: slug,
       schemaVersion: "1.7.0",
       appName: "firefox_desktop",
       appId: "firefox-desktop",
@@ -393,6 +393,7 @@ export const ExperimentFakes = {
       featureIds: props?.branches?.[0].features?.map(f => f.featureId) || [
         "testFeature",
       ],
+      targeting: "true",
       ...props,
     };
   },
