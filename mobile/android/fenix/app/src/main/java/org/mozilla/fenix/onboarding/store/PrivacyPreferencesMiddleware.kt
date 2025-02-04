@@ -10,10 +10,10 @@ import mozilla.components.lib.state.MiddlewareContext
 /**
  * [Middleware] that reacts to various [PrivacyPreferencesAction]s and updates any corresponding preferences.
  *
- * @param privacyPreferencesRepository [PrivacyPreferencesRepository] used to access the privacy preferences.
+ * @param repository [PrivacyPreferencesRepository] used to access the privacy preferences.
  */
 class PrivacyPreferencesMiddleware(
-    private val privacyPreferencesRepository: PrivacyPreferencesRepository,
+    private val repository: SimplePrivacyPreferencesRepository,
 ) : Middleware<PrivacyPreferencesState, PrivacyPreferencesAction> {
 
     override fun invoke(
@@ -24,27 +24,22 @@ class PrivacyPreferencesMiddleware(
         next(action)
 
         when (action) {
-            is PrivacyPreferencesAction.Init -> privacyPreferencesRepository.init()
-
             is PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo -> {
-                privacyPreferencesRepository.updatePrivacyPreference(
-                    PrivacyPreferencesRepository.PrivacyPreferenceUpdate(
-                        preferenceType = PrivacyPreferencesRepository.PrivacyPreference.CrashReporting,
-                        value = action.enabled,
-                    ),
+                repository.setPreference(
+                    type = PreferenceType.CrashReporting,
+                    enabled = action.enabled,
                 )
             }
 
             is PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo -> {
-                privacyPreferencesRepository.updatePrivacyPreference(
-                    PrivacyPreferencesRepository.PrivacyPreferenceUpdate(
-                        preferenceType = PrivacyPreferencesRepository.PrivacyPreference.UsageData,
-                        value = action.enabled,
-                    ),
+                repository.setPreference(
+                    type = PreferenceType.UsageData,
+                    enabled = action.enabled,
                 )
             }
 
             // no-ops
+            is PrivacyPreferencesAction.Init,
             is PrivacyPreferencesAction.CrashReportingLearnMore,
             is PrivacyPreferencesAction.UsageDataUserLearnMore,
             -> {}

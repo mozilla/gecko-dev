@@ -11,9 +11,10 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.DialogFragment
 import org.mozilla.fenix.components.lazyStore
-import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.onboarding.ManagePrivacyPreferencesDialog
-import org.mozilla.fenix.onboarding.store.DefaultPrivacyPreferencesRepository
+import org.mozilla.fenix.onboarding.store.DefaultSimplePrivacyPreferencesRepository
+import org.mozilla.fenix.onboarding.store.PreferenceType
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesAction
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesMiddleware
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesState
@@ -29,18 +30,16 @@ import org.mozilla.fenix.theme.FirefoxTheme
 class ManagePrivacyPreferencesDialogFragment : DialogFragment() {
 
     private val store by lazyStore {
+        val repository = DefaultSimplePrivacyPreferencesRepository(
+            settings = requireContext().settings(),
+        )
         PrivacyPreferencesStore(
             initialState = PrivacyPreferencesState(
-                crashReportingEnabled = requireComponents.settings.crashReportAlwaysSend,
-                usageDataEnabled = requireComponents.settings.isTelemetryEnabled,
+                crashReportingEnabled = repository.getPreference(PreferenceType.CrashReporting),
+                usageDataEnabled = repository.getPreference(PreferenceType.UsageData),
             ),
             middlewares = listOf(
-                PrivacyPreferencesMiddleware(
-                    privacyPreferencesRepository = DefaultPrivacyPreferencesRepository(
-                        context = requireContext(),
-                        lifecycleOwner = viewLifecycleOwner,
-                    ),
-                ),
+                PrivacyPreferencesMiddleware(repository),
                 PrivacyPreferencesTelemetryMiddleware(),
             ),
         )

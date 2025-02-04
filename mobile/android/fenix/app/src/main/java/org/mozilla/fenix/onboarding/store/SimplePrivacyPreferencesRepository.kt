@@ -17,7 +17,7 @@ interface SimplePrivacyPreferencesRepository {
      * @param type The type of preference to retrieve.
      * @return Returns `true` if the preference is enabled.
      */
-    fun getPrivacyPreference(type: PreferenceType): Boolean
+    fun getPreference(type: PreferenceType): Boolean
 
     /**
      * Updates a specific preference.
@@ -25,7 +25,7 @@ interface SimplePrivacyPreferencesRepository {
      * @param type The type of preference to modify.
      * @param enabled The new state of the preference.
      */
-    fun setPrivacyPreference(type: PreferenceType, enabled: Boolean)
+    fun setPreference(type: PreferenceType, enabled: Boolean)
 }
 
 /**
@@ -44,14 +44,14 @@ class DefaultSimplePrivacyPreferencesRepository(
     private val settings: Settings,
 ) : SimplePrivacyPreferencesRepository {
 
-    override fun getPrivacyPreference(type: PreferenceType): Boolean {
+    override fun getPreference(type: PreferenceType): Boolean {
         return when (type) {
             PreferenceType.CrashReporting -> settings.crashReportAlwaysSend
             PreferenceType.UsageData -> settings.isTelemetryEnabled
         }
     }
 
-    override fun setPrivacyPreference(
+    override fun setPreference(
         type: PreferenceType,
         enabled: Boolean,
     ) {
