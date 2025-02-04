@@ -731,7 +731,7 @@ class PanZoomControllerTest : BaseSessionTest() {
         // Load a simple vertically scrollable page
         // Query its maximum vertical scroll position for later use
         setupDocument(SIMPLE_SCROLL_TEST_PATH)
-        val scrollMaxY = mainSession.evaluateJS("window.scrollMaxY") as Double
+        val scrollMaxY = (mainSession.evaluateJS("window.scrollMaxY") as Double).toFloat()
 
         // Set up a CompositorScrollDelegate that appends all updates to
         // a local list
@@ -742,9 +742,11 @@ class PanZoomControllerTest : BaseSessionTest() {
             }
         })
 
+        val fuzzyEqual = { a: Float, b: Float -> Math.abs(a - b) <= 1.0 }
+
         // Scroll down to the bottom using touch gestures, and check
         // that the expected scroll updates are reported
-        while (updates.size == 0 || updates[updates.size - 1].scrollY < scrollMaxY) {
+        while (updates.size == 0 || !fuzzyEqual(updates[updates.size - 1].scrollY, scrollMaxY)) {
             pan(25f, 15f)
             mainSession.flushApzRepaints()
         }
@@ -765,7 +767,7 @@ class PanZoomControllerTest : BaseSessionTest() {
 
         // Scroll back up to the top using script, and check that
         // the expected scroll updates are reported
-        while (updates.size == 0 || updates[updates.size - 1].scrollY > 0) {
+        while (updates.size == 0 || !fuzzyEqual(updates[updates.size - 1].scrollY, 0.0f)) {
             mainSession.evaluateJS("window.scrollBy(0, -10)")
             mainSession.flushApzRepaints()
         }
