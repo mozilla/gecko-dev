@@ -1243,8 +1243,6 @@ impl<'a> SceneBuilder<'a> {
 
         self.clip_tree_builder.push_clip_chain(Some(info.space_and_clip.clip_chain_id), false);
 
-        let external_scroll_offset = self.current_external_scroll_offset(spatial_node_index);
-
         // TODO(gw): This is the only remaining call site that relies on ClipId parenting, remove me!
         self.add_rect_clip_node(
             ClipId::root(iframe_pipeline_id),
@@ -1258,12 +1256,10 @@ impl<'a> SceneBuilder<'a> {
 
         self.id_to_index_mapper_stack.push(NodeIdToIndexMapper::default());
 
-        let mut bounds = self.snap_rect(
+        let bounds = self.normalize_scroll_offset_and_snap_rect(
             &info.bounds,
             spatial_node_index,
         );
-
-        bounds = bounds.translate(external_scroll_offset);
 
         let spatial_node_index = self.push_reference_frame(
             SpatialId::root_reference_frame(iframe_pipeline_id),
@@ -1341,36 +1337,35 @@ impl<'a> SceneBuilder<'a> {
         let spatial_node_index = self.get_space(common.spatial_id);
 
         // If no bounds rect is given, default to clip rect.
-        let (rect, clip_rect) = if common.flags.contains(PrimitiveFlags::ANTIALISED) {
-            (bounds.unwrap_or(common.clip_rect), common.clip_rect)
+        let mut clip_rect = common.clip_rect;
+        let mut prim_rect = bounds.unwrap_or(clip_rect);
+        let unsnapped_rect = self.normalize_rect_scroll_offset(&prim_rect, spatial_node_index);
+
+        // If antialiased, no need to snap but we still need to remove the
+        // external scroll offset (it's applied later during frame building,
+        // so that we don't intern to a different hash and invalidate content
+        // in picture caches unnecessarily).
+        if common.flags.contains(PrimitiveFlags::ANTIALISED) {
+            prim_rect = self.normalize_rect_scroll_offset(&prim_rect, spatial_node_index);
+            clip_rect = self.normalize_rect_scroll_offset(&clip_rect, spatial_node_index);
         } else {
-            let clip_rect = self.snap_rect(
-                &common.clip_rect,
+            clip_rect = self.normalize_scroll_offset_and_snap_rect(
+                &clip_rect,
                 spatial_node_index,
             );
 
-            let rect = bounds.map_or(clip_rect, |bounds| {
-                self.snap_rect(
-                    &bounds,
-                    spatial_node_index,
-                )
-            });
-
-            (rect, clip_rect)
-        };
-
-        let current_offset = self.current_external_scroll_offset(spatial_node_index);
-
-        let rect = rect.translate(current_offset);
-        let clip_rect = clip_rect.translate(current_offset);
-        let unsnapped_rect = bounds.unwrap_or(common.clip_rect).translate(current_offset);
+            prim_rect = self.normalize_scroll_offset_and_snap_rect(
+                &prim_rect,
+                spatial_node_index,
+            );
+        }
 
         let clip_node_id = self.get_clip_node(
             common.clip_chain_id,
         );
 
         let layout = LayoutPrimitiveInfo {
-            rect,
+            rect: prim_rect,
             clip_rect,
             flags: common.flags,
         };
@@ -1389,11 +1384,29 @@ impl<'a> SceneBuilder<'a> {
         )
     }
 
-    pub fn snap_rect(
+    // Remove the effect of the external scroll offset embedded in the display list
+    // coordinates by Gecko. This ensures that we don't necessarily invalidate picture
+    // cache tiles due to the embedded scroll offsets.
+    fn normalize_rect_scroll_offset(
+        &mut self,
+        rect: &LayoutRect,
+        spatial_node_index: SpatialNodeIndex,
+    ) -> LayoutRect {
+        let current_offset = self.current_external_scroll_offset(spatial_node_index);
+
+        rect.translate(current_offset)
+    }
+
+    // Remove external scroll offset and snap a rect. The external scroll offset must
+    // be removed first, as it may be fractional (which we don't want to affect the
+    // snapping behavior during scene building).
+    fn normalize_scroll_offset_and_snap_rect(
         &mut self,
         rect: &LayoutRect,
         target_spatial_node: SpatialNodeIndex,
     ) -> LayoutRect {
+        let rect = self.normalize_rect_scroll_offset(rect, target_spatial_node);
+
         self.snap_to_device.set_target_spatial_node(
             target_spatial_node,
             self.spatial_tree,
@@ -1522,14 +1535,11 @@ impl<'a> SceneBuilder<'a> {
                 profile_scope!("hit_test");
 
                 let spatial_node_index = self.get_space(info.spatial_id);
-                let current_offset = self.current_external_scroll_offset(spatial_node_index);
 
-                let mut rect = self.snap_rect(
+                let rect = self.normalize_scroll_offset_and_snap_rect(
                     &info.rect,
                     spatial_node_index,
                 );
-
-                rect = rect.translate(current_offset);
 
                 let layout = LayoutPrimitiveInfo {
                     rect,
@@ -2820,13 +2830,11 @@ impl<'a> SceneBuilder<'a> {
         points_range: ItemRange<LayoutPoint>,
     ) {
         let spatial_node_index = self.get_space(spatial_id);
-        let external_scroll_offset = self.current_external_scroll_offset(spatial_node_index);
 
-        let mut snapped_mask_rect = self.snap_rect(
+        let snapped_mask_rect = self.normalize_scroll_offset_and_snap_rect(
             &image_mask.rect,
             spatial_node_index,
         );
-        snapped_mask_rect = snapped_mask_rect.translate(external_scroll_offset);
 
         let points: Vec<LayoutPoint> = points_range.iter().collect();
 
@@ -2870,14 +2878,11 @@ impl<'a> SceneBuilder<'a> {
         clip_rect: &LayoutRect,
     ) {
         let spatial_node_index = self.get_space(spatial_id);
-        let external_scroll_offset = self.current_external_scroll_offset(spatial_node_index);
 
-        let mut snapped_clip_rect = self.snap_rect(
+        let snapped_clip_rect = self.normalize_scroll_offset_and_snap_rect(
             clip_rect,
             spatial_node_index,
         );
-
-        snapped_clip_rect = snapped_clip_rect.translate(external_scroll_offset);
 
         let item = ClipItemKey {
             kind: ClipItemKeyKind::rectangle(snapped_clip_rect, ClipMode::Clip),
@@ -2905,14 +2910,11 @@ impl<'a> SceneBuilder<'a> {
         clip: &ComplexClipRegion,
     ) {
         let spatial_node_index = self.get_space(spatial_id);
-        let external_scroll_offset = self.current_external_scroll_offset(spatial_node_index);
 
-        let mut snapped_region_rect = self.snap_rect(
+        let snapped_region_rect = self.normalize_scroll_offset_and_snap_rect(
             &clip.rect,
             spatial_node_index,
         );
-
-        snapped_region_rect = snapped_region_rect.translate(external_scroll_offset);
 
         let item = ClipItemKey {
             kind: ClipItemKeyKind::rounded_rect(
