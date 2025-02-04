@@ -5787,6 +5787,10 @@
         initialBrowsingContextGroupId: linkedBrowser.browsingContext?.group.id,
         skipAnimation: true,
         index: aIndex,
+        tabGroup:
+          typeof aIndex == "number" && aIndex > -1
+            ? this.tabs.at(aIndex)?.group
+            : null,
         createLazyBrowser,
       };
 
