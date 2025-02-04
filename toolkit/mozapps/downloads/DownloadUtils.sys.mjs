@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
 /**
  * This module provides the DownloadUtils object which contains useful methods
  * for downloads such as displaying file sizes, transfer times, and download
@@ -52,6 +54,14 @@ const TIME_UNITS = [
 // These are the maximum values for seconds, minutes, hours corresponding
 // with TIME_UNITS without the last item
 const TIME_SIZES = [60, 60, 24];
+
+const lazy = {};
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "IDNService",
+  "@mozilla.org/network/idn-service;1",
+  "nsIIDNService"
+);
 
 var localeNumberFormatCache = new Map();
 function getLocaleNumberFormat(fractionDigits) {
@@ -385,15 +395,9 @@ export var DownloadUtils = {
    * @return A pair: [display host for the URI string, full host name]
    */
   getURIHost: function DU_getURIHost(aURIString) {
-    let idnService = Cc["@mozilla.org/network/idn-service;1"].getService(
-      Ci.nsIIDNService
-    );
-
     // Get a URI that knows about its components
-    let uri;
-    try {
-      uri = Services.io.newURI(aURIString);
-    } catch (ex) {
+    let uri = URL.parse(aURIString)?.URI;
+    if (!uri) {
       return ["", ""];
     }
 
@@ -402,8 +406,8 @@ export var DownloadUtils = {
       uri = uri.innermostURI;
     }
 
-    if (uri.scheme == "blob") {
-      let origin = new URL(uri.spec).origin;
+    if (uri.schemeIs("blob")) {
+      let origin = URL.fromURI(uri).origin;
       // Origin can be "null" for blob URIs from a sandbox.
       if (origin != "null") {
         // `newURI` can throw (like for null) and throwing here breaks...
@@ -431,14 +435,14 @@ export var DownloadUtils = {
       let baseDomain = Services.eTLD.getBaseDomain(uri);
 
       // Convert base domain for display
-      displayHost = idnService.convertToDisplayIDN(baseDomain);
+      displayHost = lazy.IDNService.convertToDisplayIDN(baseDomain);
     } catch (e) {
       // Default to the host name
       displayHost = fullHost;
     }
 
     // Check if we need to show something else for the host
-    if (uri.scheme == "file") {
+    if (uri.schemeIs("file")) {
       // Display special text for file protocol
       displayHost = l10n.formatValueSync("download-utils-done-file-scheme");
       fullHost = displayHost;
