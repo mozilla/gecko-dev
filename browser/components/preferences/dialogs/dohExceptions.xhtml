@@ -11,6 +11,7 @@
   data-l10n-id="permissions-exceptions-doh-window"
   data-l10n-attrs="title, style"
   persist="width height"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     id="exceptionDialog"
@@ -40,9 +41,9 @@
 
     <keyset>
       <key
+        id="key_close"
         data-l10n-id="permissions-close-key"
         modifiers="accel"
-        oncommand="window.close();"
       />
     </keyset>
 
@@ -59,20 +60,13 @@
         data-l10n-id="permissions-doh-entry-field"
       />
       <hbox align="start">
-        <html:input
-          id="url"
-          type="text"
-          style="flex: 1"
-          oninput="gDoHExceptionsManager.onExceptionInput();"
-          onkeypress="gDoHExceptionsManager.onExceptionKeyPress(event);"
-        />
+        <html:input id="url" type="text" style="flex: 1" />
       </hbox>
       <hbox pack="end">
         <button
           id="btnAddException"
           disabled="true"
           data-l10n-id="permissions-doh-add-exception"
-          oncommand="gDoHExceptionsManager.addException();"
         />
       </hbox>
       <separator class="thin" />
@@ -82,15 +76,9 @@
           data-l10n-id="permissions-doh-col"
           style="flex: 3 3 auto; width: 0"
           data-isCurrentSortCol="true"
-          onclick="gDoHExceptionsManager.buildExceptionList(event.target)"
         />
       </listheader>
-      <richlistbox
-        id="permissionsBox"
-        selected="false"
-        onkeypress="gDoHExceptionsManager.onListBoxKeyPress(event);"
-        onselect="gDoHExceptionsManager.onListBoxSelect();"
-      />
+      <richlistbox id="permissionsBox" selected="false" />
     </vbox>
 
     <hbox class="actionButtons">
@@ -98,12 +86,10 @@
         id="removeException"
         disabled="true"
         data-l10n-id="permissions-doh-remove"
-        oncommand="gDoHExceptionsManager.onExceptionDelete();"
       />
       <button
         id="removeAllExceptions"
         data-l10n-id="permissions-doh-remove-all"
-        oncommand="gDoHExceptionsManager.onAllExceptionsDelete();"
       />
     </hbox>
   </dialog>

@@ -17,11 +17,28 @@ var gDoHExceptionsManager = {
     this._btnAddException = document.getElementById("btnAddException");
     this._removeButton = document.getElementById("removeException");
     this._removeAllButton = document.getElementById("removeAllExceptions");
+
     this._list = document.getElementById("permissionsBox");
+    this._list.addEventListener("keypress", event =>
+      this.onListBoxKeyPress(event)
+    );
+    this._list.addEventListener("select", () => this.onListBoxSelect());
 
     this._urlField = document.getElementById("url");
-    this.onExceptionInput();
+    this._urlField.addEventListener("input", () => this.onExceptionInput());
+    this._urlField.addEventListener("keypress", event =>
+      this.onExceptionKeyPress(event)
+    );
 
+    document
+      .getElementById("siteCol")
+      .addEventListener("click", event =>
+        this.buildExceptionList(event.target)
+      );
+
+    document.addEventListener("command", this);
+
+    this.onExceptionInput();
     this._loadExceptions();
     this.buildExceptionList();
 
@@ -34,6 +51,24 @@ var gDoHExceptionsManager = {
     document.getElementById("exceptionDialog").getButton("accept").disabled =
       this._prefLocked;
     this._urlField.disabled = this._prefLocked;
+  },
+
+  handleEvent(event) {
+    switch (event.target.id) {
+      case "key_close":
+        window.close();
+        break;
+
+      case "btnAddException":
+        this.addException();
+        break;
+      case "removeException":
+        this.onExceptionDelete();
+        break;
+      case "removeAllExceptions":
+        this.onAllExceptionsDelete();
+        break;
+    }
   },
 
   _loadExceptions() {
