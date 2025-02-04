@@ -235,19 +235,39 @@ add_task(async function test_keyboard_shortcut() {
 
   key.doCommand();
 
+  Assert.ok(
+    !Services.prefs.getBoolPref(enabled),
+    "Keyboard shortcut doesn't flip the pref"
+  );
+  Assert.ok(
+    !SidebarController.isOpen,
+    "Keyboard shortcut doesn't Open chatbot if disabled"
+  );
+
+  await SpecialPowers.pushPrefEnv({ set: [[enabled, true]] });
+  key.doCommand();
+
   Assert.ok(Services.prefs.getBoolPref(enabled), "Enabled with keyboard");
   Assert.ok(SidebarController.isOpen, "Opened chatbot with keyboard");
 
   key.doCommand();
 
   Assert.ok(!SidebarController.isOpen, "Closed chatbot with keyboard");
+
+  Assert.ok(
+    Services.prefs.getBoolPref(enabled),
+    "Keyboard shortcut doesn't flip the pref"
+  );
+
   const events = Glean.genaiChatbot.keyboardShortcut.testGetValue();
-  Assert.equal(events.length, 2, "Got 2 keyboard events");
+  Assert.equal(events.length, 3, "Got 3 keyboard events");
   Assert.equal(events[0].extra.enabled, "false", "Initially disabled");
   Assert.equal(events[0].extra.sidebar, "", "Initially closed");
   Assert.equal(events[1].extra.enabled, "true", "Already enabled");
+  Assert.equal(events[1].extra.sidebar, "", "Still closed");
+  Assert.equal(events[2].extra.enabled, "true", "Still enabled");
   Assert.equal(
-    events[1].extra.sidebar,
+    events[2].extra.sidebar,
     "viewGenaiChatSidebar",
     "Already opened"
   );
