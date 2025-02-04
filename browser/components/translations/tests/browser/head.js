@@ -464,14 +464,19 @@ class TranslationsBencher {
     }
 
     /**
-     * Logs the median value of each collected metric to the console.
+     * Logs the median value along with the individual values from all
+     * test runs for each collected metric to the console.
      * The log is then picked up by the perftest infrastructure.
      * The logged data must match the schema defined in the test file.
      */
     reportMetrics() {
-      const reportedMetrics = {};
+      const reportedMetrics = [];
       for (const [name, values] of Object.entries(this.#metrics)) {
-        reportedMetrics[name] = median(values);
+        reportedMetrics.push({
+          name,
+          values,
+          value: median(values),
+        });
       }
       info(`perfMetrics | ${JSON.stringify(reportedMetrics)}`);
     }
