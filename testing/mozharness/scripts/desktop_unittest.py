@@ -1444,26 +1444,29 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     final_env = copy.copy(env)
 
                     finish_video = threading.Event()
-                    do_video_recording = os.getenv("MOZ_RECORD_TEST")
-                    if do_video_recording:
+                    video_recording_thread = None
+                    if os.getenv("MOZ_RECORD_TEST"):
+                        video_recording_target = None
                         if sys.platform == "linux":
-                            target = do_gnome_video_recording
+                            video_recording_target = do_gnome_video_recording
                         elif sys.platform == "darwin":
-                            target = do_macos_video_recording
+                            video_recording_target = do_macos_video_recording
+
+                        if video_recording_target:
+                            video_recording_thread = threading.Thread(
+                                target=video_recording_target,
+                                args=(
+                                    suite,
+                                    env["MOZ_UPLOAD_DIR"],
+                                    finish_video,
+                                ),
+                            )
+                            self.info("Starting recording thread {}".format(suite))
+                            video_recording_thread.start()
                         else:
                             self.warning(
                                 "Screen recording not implemented for this platform"
                             )
-                        thread = threading.Thread(
-                            target=target,
-                            args=(
-                                suite,
-                                env["MOZ_UPLOAD_DIR"],
-                                finish_video,
-                            ),
-                        )
-                        self.info("Starting recording thread {}".format(suite))
-                        thread.start()
 
                     if self.per_test_coverage:
                         self.set_coverage_env(final_env)
@@ -1491,10 +1494,10 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     #    findings for harness/suite errors <- DesktopUnittestOutputParser
                     # 3) checking to see if the return code is in success_codes
 
-                    if do_video_recording:
+                    if video_recording_thread:
                         self.info("Stopping recording thread {}".format(suite))
                         finish_video.set()
-                        thread.join()
+                        video_recording_thread.join()
                         self.info("Stopped recording thread {}".format(suite))
 
                     success_codes = None
