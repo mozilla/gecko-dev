@@ -50,6 +50,17 @@ function checkPasswordCardFields(megalist) {
   }
 }
 
+async function waitForPasswordConceal(passwordLine) {
+  const concealedPromise = BrowserTestUtils.waitForMutationCondition(
+    passwordLine,
+    {
+      attributeFilter: ["inputtype"],
+    },
+    () => passwordLine.loginLine.getAttribute("inputtype") === "password"
+  );
+  return concealedPromise;
+}
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -154,6 +165,7 @@ add_task(async function test_login_line_commands() {
 
 add_task(async function test_passwords_menu_external_links() {
   const passwordsSidebar = await openPasswordsSidebar();
+  await waitForSnapshots();
   const menu = passwordsSidebar.querySelector("panel-list");
   const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
 
@@ -200,6 +212,7 @@ async function waitForMigrationWizard() {
 
 add_task(async function test_passwords_menu_import_from_browser() {
   const passwordsSidebar = await openPasswordsSidebar();
+  await waitForSnapshots();
   const menu = passwordsSidebar.querySelector("panel-list");
   const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
 
@@ -212,5 +225,44 @@ add_task(async function test_passwords_menu_import_from_browser() {
   ok(wizard, "migration wizard opened");
   BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  SidebarController.hide();
+});
+
+add_task(async function test_passwords_visibility_when_view_shown() {
+  const login = TEST_LOGIN_1;
+  await LoginTestUtils.addLogin(login);
+
+  let megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+
+  info("Test that reopening the sidebar should have password concealed.");
+  let passwordCard = megalist.querySelector("password-card");
+  await waitForReauth(async () => {
+    return await waitForPasswordReveal(passwordCard.passwordLine);
+  });
+
+  info("Hide the sidebar");
+  SidebarController.hide();
+  await BrowserTestUtils.waitForCondition(() => {
+    return !SidebarController.isOpen;
+  }, "Sidebar did not close.");
+
+  info("Open sidebar and check visibility of password field");
+  megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+  passwordCard = megalist.querySelector("password-card");
+  await waitForPasswordConceal(passwordCard.passwordLine);
+  ok(true, "Password is hidden.");
+
+  info(
+    "Test that switching panels then switching back to Passwords should have password concealed."
+  );
+  await SidebarController.show("viewBookmarksSidebar");
+  megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+  passwordCard = megalist.querySelector("password-card");
+  await waitForPasswordConceal(passwordCard.passwordLine);
+  ok(true, "Password is hidden.");
+
   SidebarController.hide();
 });

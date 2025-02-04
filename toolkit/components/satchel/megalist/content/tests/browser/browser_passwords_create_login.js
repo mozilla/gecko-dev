@@ -36,17 +36,6 @@ function addLogin(megalist, { origin, username, password }) {
   saveButton.buttonEl.click();
 }
 
-function waitForSnapshots() {
-  info("Wait for headers.");
-  const sidebar = document.getElementById("sidebar");
-  const megalistComponent =
-    sidebar.contentDocument.querySelector("megalist-alpha");
-  return BrowserTestUtils.waitForCondition(
-    () => megalistComponent.header,
-    "Megalist header loaded."
-  );
-}
-
 function waitForPopup(megalist, element) {
   info(`Wait for ${element} popup`);
   const loginForm = megalist.querySelector("login-form");
