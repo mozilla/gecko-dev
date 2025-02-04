@@ -36,18 +36,18 @@ class nsMaybeWeakPtr {
     return *this;
   }
 
-  bool operator==(const nsMaybeWeakPtr<T>& other) const {
-    return mPtr == other.mPtr;
+  bool operator==(const nsMaybeWeakPtr<T>& aOther) const {
+    return mPtr == aOther.mPtr;
   }
 
   nsISupports* GetRawValue() const { return mPtr.get(); }
   bool IsWeak() const { return mWeak; }
 
-  const nsCOMPtr<T> GetValue() const;
+  nsCOMPtr<T> GetValue() const;
 
  private:
   nsCOMPtr<nsISupports> mPtr;
-  bool mWeak;
+  bool mWeak = false;
 };
 
 // nsMaybeWeakPtrArray is an array of MaybeWeakPtr objects, that knows how to
@@ -56,7 +56,7 @@ class nsMaybeWeakPtr {
 
 template <class T>
 class nsMaybeWeakPtrArray : public CopyableTArray<nsMaybeWeakPtr<T>> {
-  typedef nsTArray<nsMaybeWeakPtr<T>> MaybeWeakArray;
+  using MaybeWeakArray = nsTArray<nsMaybeWeakPtr<T>>;
 
   nsresult SetMaybeWeakPtr(nsMaybeWeakPtr<T>& aRef, T* aElement,
                            bool aOwnsWeak) {
@@ -117,7 +117,7 @@ class nsMaybeWeakPtrArray : public CopyableTArray<nsMaybeWeakPtr<T>> {
 };
 
 template <class T>
-const nsCOMPtr<T> nsMaybeWeakPtr<T>::GetValue() const {
+nsCOMPtr<T> nsMaybeWeakPtr<T>::GetValue() const {
   if (!mPtr) {
     return nullptr;
   }
@@ -160,10 +160,10 @@ inline void ImplCycleCollectionTraverse(
 // Call a method on each element in the array, but only if the element is
 // non-null.
 
-#define ENUMERATE_WEAKARRAY(array, type, method)                          \
-  for (uint32_t array_idx = 0; array_idx < array.Length(); ++array_idx) { \
-    const nsCOMPtr<type>& e = array.ElementAt(array_idx).GetValue();      \
-    if (e) e->method;                                                     \
+#define ENUMERATE_WEAKARRAY(array, type, method)                            \
+  for (uint32_t array_idx = 0; array_idx < (array).Length(); ++array_idx) { \
+    const nsCOMPtr<type>& e = (array).ElementAt(array_idx).GetValue();      \
+    if (e) e->method;                                                       \
   }
 
 #endif
