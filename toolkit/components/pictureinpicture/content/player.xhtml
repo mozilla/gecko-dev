@@ -12,6 +12,7 @@
       >
   <head>
     <meta charset="utf-8"/>
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:"/>
     <link rel="stylesheet" href="chrome://global/skin/pictureinpicture/player.css"/>
     <link rel="localization" href="toolkit/pictureinpicture/pictureinpicture.ftl"/>
     <link rel="localization" href="browser/browserSets.ftl"/>
@@ -21,8 +22,8 @@
 
   <body>
     <xul:commandset>
-      <xul:command id="View:PictureInPicture" oncommand="Player.onCommand(event);"/>
-      <xul:command id="View:Fullscreen" oncommand="Player.fullscreenModeToggle(event);"/>
+      <xul:command id="View:PictureInPicture"/>
+      <xul:command id="View:Fullscreen"/>
     </xul:commandset>
 
     <xul:keyset>

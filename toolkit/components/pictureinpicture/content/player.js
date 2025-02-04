@@ -134,6 +134,7 @@ let Player = {
   WINDOW_EVENTS: [
     "click",
     "contextmenu",
+    "command",
     "dblclick",
     "keydown",
     "mouseup",
@@ -378,6 +379,17 @@ let Player = {
         }
         break;
       }
+
+      case "command":
+        switch (event.target.id) {
+          case "View:PictureInPicture":
+            this.onCommand(event);
+            break;
+          case "View:Fullscreen":
+            this.fullscreenModeToggle(event);
+            break;
+        }
+        break;
 
       case "contextmenu": {
         event.preventDefault();
