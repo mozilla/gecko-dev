@@ -372,7 +372,7 @@ def glean_source(command_context, cargo_toml, content, patch=None):
     print("Vendoring it for you:\n")
     print("  mach vendor rust --force --ignore-modified")
     print("\nYou can commit the local changes afterwards:\n")
-    print("  git add Cargo.toml Cargo.lock vendor/rust")
+    print("  git add Cargo.toml Cargo.lock third_party/rust")
     print("  git commit -m 'Local Glean development'")
     print("")
 
