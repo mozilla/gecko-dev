@@ -5,6 +5,8 @@
 :root {
   --panelui-subview-transition-duration: 150ms;
 
+  --panel-item-hover-bgcolor: var(--button-background-color-hover);
+  --panel-item-active-bgcolor: var(--button-background-color-active);
   --panel-banner-item-color: var(--button-text-color);
   --panel-banner-item-background-color: var(--button-background-color);
   --panel-banner-item-hover-bgcolor: var(--button-background-color-hover);
@@ -244,8 +246,7 @@ panelview {
 
 .panel-info-button {
   appearance: none;
-  color: var(--button-text-color-ghost);
-  background-color: var(--button-background-color-ghost);
+  color: inherit;
   padding: 0;
   border-radius: var(--toolbarbutton-border-radius);
   flex-shrink: 0;
@@ -255,14 +256,12 @@ panelview {
   }
 
   &:hover {
-    color: var(--button-text-color-ghost-hover);
-    background-color: var(--button-background-color-ghost-hover);
+    background-color: var(--panel-item-hover-bgcolor);
   }
 
   &:not(:hover)[checked],
   &:hover:active {
-    color: var(--button-text-color-ghost-active);
-    background-color: var(--button-background-color-ghost-active);
+    background-color: var(--panel-item-active-bgcolor);
   }
 
   &:focus-visible {
@@ -312,18 +311,16 @@ panelview {
 
   :is(menu, menuitem) {
     &[disabled] {
-      color: var(--button-text-color-ghost-disabled);
-      background-color: var(--button-background-color-ghost-disabled);
-      opacity: var(--button-opacity-disabled);
+      color: var(--text-color-disabled);
     }
 
     &:not([disabled])[_moz-menuactive] {
-      color: var(--button-text-color-ghost-hover);
-      background-color: var(--button-background-color-ghost-hover);
+      color: inherit;
+      background-color: var(--panel-item-hover-bgcolor);
 
       &:active {
-        color: var(--button-text-color-ghost-active);
-        background-color: var(--button-background-color-ghost-active);
+        color: inherit;
+        background-color: var(--panel-item-active-bgcolor);
       }
     }
 
@@ -695,18 +692,15 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
     > #appMenu-fxa-label2 {
       padding: 6px 12px;
-      color: var(--button-text-color);
       background-color: var(--button-background-color);
       font-size: 0.8em;
       font-weight: 600;
 
       &:hover {
-        color: var(--button-text-color-hover);
         background-color: var(--button-background-color-hover);
       }
 
       &:hover:active {
-        color: var(--button-text-color-active);
         background-color: var(--button-background-color-active);
       }
     }
@@ -1203,6 +1197,10 @@ panelview .toolbarbutton-1,
   /* toolbarbuttons default to centered, but we don't want that for subviews. */
   justify-content: flex-start;
 
+  &[disabled="true"] {
+    color: var(--text-color-disabled);
+  }
+
   /* We don't always display: none this item, and if it has forced width (like above)
   * or margin, that impacts the position of the label. Fix:
   */
@@ -1311,27 +1309,14 @@ panelview .toolbarbutton-1,
   outline: var(--focus-outline);
 }
 
-#appMenu-zoomReduce-button2,
-#appMenu-zoomEnlarge-button2 {
-  > .toolbarbutton-icon {
-    -moz-context-properties: fill, stroke;
-    color: var(--button-text-color);
-    fill: currentColor;
-    /* the stroke color is used to fill the circle in the icon */
-    stroke: var(--button-background-color);
-    border-radius: 50%;
-    padding: 0;
-  }
-
-  &:not([disabled]):hover > .toolbarbutton-icon {
-    color: var(--button-text-color-hover);
-    stroke: var(--button-background-color-hover);
-  }
-
-  &:not([disabled]):active:hover > .toolbarbutton-icon {
-    color: var(--button-text-color-hover);
-    stroke: var(--button-background-color-active);
-  }
+#appMenu-zoomReduce-button2 > .toolbarbutton-icon,
+#appMenu-zoomEnlarge-button2 > .toolbarbutton-icon {
+  -moz-context-properties: fill, stroke;
+  fill: var(--button-text-color);
+  /* the stroke color is used to fill the circle in the icon */
+  stroke: var(--button-background-color);
+  border-radius: 50%;
+  padding: 0;
 }
 
 #appMenu-zoomReset-button2 > .toolbarbutton-text,
@@ -1341,20 +1326,37 @@ panelview .toolbarbutton-1,
 
 #appMenu-fullscreen-button2 > .toolbarbutton-icon {
   padding: 1px;
-  color: var(--button-text-color);
   background-color: var(--button-background-color);
+}
+
+#appMenu-zoomReduce-button2:not([disabled]):hover > .toolbarbutton-icon,
+#appMenu-zoomEnlarge-button2:not([disabled]):hover > .toolbarbutton-icon {
+  stroke: var(--panel-item-hover-bgcolor);
 }
 
 #appMenu-zoomReset-button2:not([disabled]):hover > .toolbarbutton-text,
 #appMenu-fullscreen-button2:not([disabled]):hover > .toolbarbutton-icon {
-  color: var(--button-text-color-hover);
-  background-color: var(--button-background-color-hover);
+  background-color: var(--panel-item-hover-bgcolor);
 }
 
-#appMenu-zoomReset-button2:not([disabled]):hover:active > .toolbarbutton-text,
-#appMenu-fullscreen-button2:not([disabled]):hover:active > .toolbarbutton-icon {
-  color: var(--button-text-color-active);
-  background-color: var(--button-background-color-active);
+#appMenu-zoomReset-button2:not([disabled]):active:hover > .toolbarbutton-text,
+#appMenu-fullscreen-button2:not([disabled]):active:hover > .toolbarbutton-icon {
+  background-color: var(--panel-item-active-bgcolor);
+}
+
+#appMenu-zoomReduce-button2:not([disabled]),
+#appMenu-zoomEnlarge-button2:not([disabled]) {
+  &:hover {
+    > .toolbarbutton-icon {
+      stroke: var(--panel-item-hover-bgcolor);
+    }
+  }
+
+  &:active:hover {
+    > .toolbarbutton-icon {
+      stroke: var(--panel-item-active-bgcolor);
+    }
+  }
 }
 
 /**
@@ -1472,27 +1474,20 @@ panelview .toolbarbutton-1 {
     [overflowedItem=true]
   ) > toolbarbutton
 ) {
-  color: var(--button-text-color-ghost);
-  background-color: var(--button-background-color-ghost);
-
   &:focus-visible {
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-inset);
   }
 
-  &[disabled] {
-    color: var(--button-text-color-ghost-disabled);
-    background-color: var(--button-background-color-ghost-disabled);
-    opacity: var(--button-opacity-disabled);
-  }
-
+  /* hover styles for not-disabled, not-active buttons */
   &:not([disabled]):hover {
-    color: var(--button-text-color-ghost-hover);
-    background-color: var(--button-background-color-ghost-hover);
+    color: inherit;
+    background-color: var(--panel-item-hover-bgcolor);
 
+    /* hovered-and-active styles for not-disabled buttons */
     &:active {
-      color: var(--button-text-color-ghost-active);
-      background-color: var(--button-background-color-ghost-active);
+      color: inherit;
+      background-color: var(--panel-item-active-bgcolor);
       box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
     }
   }
@@ -1982,6 +1977,10 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   &[isinfocollapsed="false"] {
     background: radial-gradient(circle farthest-side at top right, #03b1f4, #0556cd);
     color: #fff;
+    /* Set custom hover/focus/active states on the info button,
+       to make them more visible on the header background */
+    --panel-item-hover-bgcolor: #0005;
+    --panel-item-active-bgcolor: #0007;
 
      &:-moz-locale-dir(rtl) {
       background: radial-gradient(circle farthest-side at top left, #03b1f4, #0556cd);

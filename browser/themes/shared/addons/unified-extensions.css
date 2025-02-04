@@ -6,12 +6,10 @@
   /* uei = unified extensions item */
   --uei-icon-size: 32px;
   --uei-attention-dot-size: 8px;
-  --uei-button-bgcolor: var(--button-background-color-ghost);
-  --uei-button-color: var(--button-text-color-ghost);
-  --uei-button-hover-bgcolor: var(--button-background-color-ghost-hover);
-  --uei-button-hover-color: var(--button-text-color-ghost-hover);
-  --uei-button-active-bgcolor: var(--button-background-color-ghost-active);
-  --uei-button-active-color: var(--button-text-color-ghost-active);
+  --uei-button-hover-bgcolor: var(--panel-item-hover-bgcolor);
+  --uei-button-hover-color: inherit;
+  --uei-button-active-bgcolor: var(--panel-item-active-bgcolor);
+  --uei-button-active-color: inherit;
   --uei-button-attention-dot-color: var(--attention-dot-color);
 
   &[uidensity="compact"] {
@@ -162,19 +160,15 @@ unified-extensions-item {
     padding: var(--arrowpanel-menuitem-padding-inline);
     border: 1px solid transparent;
     border-radius: var(--arrowpanel-menuitem-border-radius);
-    color: var(--uei-button-color);
-    background-color: var(--uei-button-bgcolor);
   }
 
   /* Background color, outline, and shadow on the icon to allow the clickable
    * padding on the button to remain invisible */
   &:hover > .toolbarbutton-icon {
-    color: var(--uei-button-hover-color);
     background-color: var(--uei-button-hover-bgcolor);
   }
 
   &:hover:active > .toolbarbutton-icon {
-    color: var(--uei-button-active-color);
     background-color: var(--uei-button-active-bgcolor);
     box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
   }
