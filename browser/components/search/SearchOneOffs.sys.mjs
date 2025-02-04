@@ -5,11 +5,10 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
 });
-
-const EMPTY_ADD_ENGINES = [];
 
 /**
  * Defines the search one-off button elements. These are displayed at the bottom
@@ -371,10 +370,6 @@ export class SearchOneOffs {
     }
   }
 
-  _getAddEngines() {
-    return this.window.gBrowser.selectedBrowser.engines || EMPTY_ADD_ENGINES;
-  }
-
   get _maxInlineAddEngines() {
     return 3;
   }
@@ -407,7 +402,9 @@ export class SearchOneOffs {
       return;
     }
 
-    const addEngines = this._getAddEngines();
+    const addEngines = lazy.OpenSearchManager.getEngines(
+      this.window.gBrowser.selectedBrowser
+    );
 
     // Return early if the engines and panel width have not changed.
     if (this.popup && this._textbox) {

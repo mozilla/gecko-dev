@@ -5167,17 +5167,18 @@ class AddSearchEngineHelper {
   }
 
   /**
-   * Invoked by browser when the list of available engines changes.
+   * Invoked by OpenSearchManager when the list of available engines changes.
    *
-   * @param {object} browser The invoking browser.
+   * @param {object} browser The current browser.
+   * @param {object} engines The updated list of available engines.
    */
-  setEnginesFromBrowser(browser) {
+  setEnginesFromBrowser(browser, engines) {
     this.browsingContext = browser.browsingContext;
     // Make a copy of the array for state comparison.
-    let engines = browser.engines?.slice() || [];
+    engines = engines.slice();
     if (!this._sameEngines(this.engines, engines)) {
       this.engines = engines;
-      this.shortcutButtons.updateWebEngines(engines);
+      this.shortcutButtons.updateWebEngines();
     }
   }
 

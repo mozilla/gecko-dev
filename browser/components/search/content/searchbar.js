@@ -128,7 +128,7 @@
               this._textbox.popup.updateHeader();
               // Refresh the display (updating icon, etc)
               this.updateDisplay();
-              BrowserSearch.updateOpenSearchBadge();
+              OpenSearchManager.updateOpenSearchBadge(window);
             })
             .catch(status =>
               console.error(

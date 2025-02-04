@@ -50,6 +50,7 @@ ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   nsContextMenu: "chrome://browser/content/nsContextMenu.sys.mjs",
   OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.sys.mjs",
+  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
@@ -1836,148 +1837,6 @@ var newWindowButtonObserver = {
 };
 
 const BrowserSearch = {
-  init() {
-    Services.obs.addObserver(this, "browser-search-engine-modified");
-  },
-
-  uninit() {
-    Services.obs.removeObserver(this, "browser-search-engine-modified");
-  },
-
-  observe(engine, topic, data) {
-    // There are two kinds of search engine objects, nsISearchEngine objects and
-    // plain { uri, title, icon } objects.  `engine` in this method is the
-    // former.  The browser.engines and browser.hiddenEngines arrays are the
-    // latter, and they're the engines offered by the the page in the browser.
-    //
-    // The two types of engines are currently related by their titles/names,
-    // although that may change; see bug 335102.
-    let engineName = engine.wrappedJSObject.name;
-    switch (data) {
-      case "engine-removed":
-        // An engine was removed from the search service.  If a page is offering
-        // the engine, then the engine needs to be added back to the corresponding
-        // browser's offered engines.
-        this._addMaybeOfferedEngine(engineName);
-        break;
-      case "engine-added":
-        // An engine was added to the search service.  If a page is offering the
-        // engine, then the engine needs to be removed from the corresponding
-        // browser's offered engines.
-        this._removeMaybeOfferedEngine(engineName);
-        break;
-    }
-  },
-
-  _addMaybeOfferedEngine(engineName) {
-    let selectedBrowserOffersEngine = false;
-    for (let browser of gBrowser.browsers) {
-      for (let i = 0; i < (browser.hiddenEngines || []).length; i++) {
-        if (browser.hiddenEngines[i].title == engineName) {
-          if (!browser.engines) {
-            browser.engines = [];
-          }
-          browser.engines.push(browser.hiddenEngines[i]);
-          browser.hiddenEngines.splice(i, 1);
-          if (browser == gBrowser.selectedBrowser) {
-            selectedBrowserOffersEngine = true;
-          }
-          break;
-        }
-      }
-    }
-    if (selectedBrowserOffersEngine) {
-      this.updateOpenSearchBadge();
-    }
-  },
-
-  _removeMaybeOfferedEngine(engineName) {
-    let selectedBrowserOffersEngine = false;
-    for (let browser of gBrowser.browsers) {
-      for (let i = 0; i < (browser.engines || []).length; i++) {
-        if (browser.engines[i].title == engineName) {
-          if (!browser.hiddenEngines) {
-            browser.hiddenEngines = [];
-          }
-          browser.hiddenEngines.push(browser.engines[i]);
-          browser.engines.splice(i, 1);
-          if (browser == gBrowser.selectedBrowser) {
-            selectedBrowserOffersEngine = true;
-          }
-          break;
-        }
-      }
-    }
-    if (selectedBrowserOffersEngine) {
-      this.updateOpenSearchBadge();
-    }
-  },
-
-  addEngine(browser, engine) {
-    if (!Services.search.hasSuccessfullyInitialized) {
-      // We haven't finished initialising search yet. This means we can't
-      // call getEngineByName here. Since this is only on start-up and unlikely
-      // to happen in the normal case, we'll just return early rather than
-      // trying to handle it asynchronously.
-      return;
-    }
-    // Check to see whether we've already added an engine with this title
-    if (browser.engines) {
-      if (browser.engines.some(e => e.title == engine.title)) {
-        return;
-      }
-    }
-
-    var hidden = false;
-    // If this engine (identified by title) is already in the list, add it
-    // to the list of hidden engines rather than to the main list.
-    if (Services.search.getEngineByName(engine.title)) {
-      hidden = true;
-    }
-
-    var engines = (hidden ? browser.hiddenEngines : browser.engines) || [];
-
-    engines.push({
-      uri: engine.href,
-      title: engine.title,
-      get icon() {
-        return browser.mIconURL;
-      },
-    });
-
-    if (hidden) {
-      browser.hiddenEngines = engines;
-    } else {
-      browser.engines = engines;
-      if (browser == gBrowser.selectedBrowser) {
-        this.updateOpenSearchBadge();
-      }
-    }
-  },
-
-  /**
-   * Update the browser UI to show whether or not additional engines are
-   * available when a page is loaded or the user switches tabs to a page that
-   * has search engines.
-   */
-  updateOpenSearchBadge() {
-    gURLBar.addSearchEngineHelper.setEnginesFromBrowser(
-      gBrowser.selectedBrowser
-    );
-
-    var searchBar = this.searchBar;
-    if (!searchBar) {
-      return;
-    }
-
-    var engines = gBrowser.selectedBrowser.engines;
-    if (engines && engines.length) {
-      searchBar.setAttribute("addengines", "true");
-    } else {
-      searchBar.removeAttribute("addengines");
-    }
-  },
-
   /**
    * Returns the search bar element if it is present in the toolbar, null otherwise.
    */
@@ -2788,8 +2647,7 @@ var XULBrowserWindow = {
       aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK
     ) {
       if (aRequest && aWebProgress.isTopLevel) {
-        // clear out search-engine data
-        browser.engines = null;
+        OpenSearchManager.clearEngines(browser);
       }
 
       this.isBusy = true;
@@ -3191,7 +3049,7 @@ var XULBrowserWindow = {
   },
 
   asyncUpdateUI() {
-    BrowserSearch.updateOpenSearchBadge();
+    OpenSearchManager.updateOpenSearchBadge(window);
   },
 
   onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {
@@ -3709,7 +3567,7 @@ var TabsProgressListener = {
     if (browser == gBrowser.selectedBrowser) {
       // If the "Add Search Engine" page action is in the urlbar, its image
       // needs to be set to the new icon, so call updateOpenSearchBadge.
-      BrowserSearch.updateOpenSearchBadge();
+      OpenSearchManager.updateOpenSearchBadge(window);
     }
   },
 };

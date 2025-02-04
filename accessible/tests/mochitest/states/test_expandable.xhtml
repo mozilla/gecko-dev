@@ -58,11 +58,6 @@
       gQueue.invoke(); // Will call SimpleTest.finish();
     }
 
-    // This is the hacks needed to use a searchbar without browser.js.
-    var BrowserSearch = {
-      updateOpenSearchBadge() {}
-    };
-
     SimpleTest.waitForExplicitFinish();
 
     // Register 'test-a11y-search' autocomplete search.

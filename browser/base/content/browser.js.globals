@@ -49,6 +49,7 @@
   "newTabButtonObserver",
   "newWindowButtonObserver",
   "BrowserSearch",
+  "OpenSearchManager",
   "CreateContainerTabMenu",
   "FillHistoryMenu",
   "toOpenWindowByType",

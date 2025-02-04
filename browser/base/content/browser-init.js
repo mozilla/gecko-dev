@@ -285,7 +285,6 @@ var gBrowserInit = {
     Win10TabletModeUpdater.init();
     CombinedStopReload.ensureInitialized();
     gPrivateBrowsingUI.init();
-    BrowserSearch.init();
     BrowserPageActions.init();
     if (gToolbarKeyNavEnabled) {
       ToolbarKeyboardNavigator.init();
@@ -1076,8 +1075,6 @@ var gBrowserInit = {
     if (gToolbarKeyNavEnabled) {
       ToolbarKeyboardNavigator.uninit();
     }
-
-    BrowserSearch.uninit();
 
     NewTabPagePreloading.removePreloadedBrowser(window);
 

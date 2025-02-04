@@ -3,10 +3,14 @@
 
 /* eslint-disable mozilla/no-arbitrary-setTimeout */
 
+ChromeUtils.defineESModuleGetters(this, {
+  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+});
+
 // Bug 1588193 - BrowserTestUtils.waitForContentEvent now resolves slightly
 // earlier than before, so it no longer suffices to only wait for a single event
-// tick before checking if browser.engines has been updated. Instead we use a 1s
-// timeout, which may cause the test to take more time.
+// tick before checking if the available engines has been updated. Instead we use
+// a 1s timeout, which may cause the test to take more time.
 requestLongerTimeout(2);
 
 add_task(async function () {
@@ -82,18 +86,18 @@ async function searchDiscovery() {
     await promiseLinkAdded;
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    if (browser.engines) {
-      info(`Found ${browser.engines.length} engines`);
-      info(`First engine title: ${browser.engines[0].title}`);
+    let engines = OpenSearchManager.getEngines(browser);
+    if (engines.length) {
+      info(`Found ${engines.length} engines`);
+      info(`First engine title: ${engines[0].title}`);
       let hasEngine = testCase.count
-        ? browser.engines[0].title == testCase.title &&
-          browser.engines.length == testCase.count
-        : browser.engines[0].title == testCase.title;
-      ok(hasEngine, testCase.text);
-      browser.engines = null;
+        ? engines[0].title == testCase.title && engines.length == testCase.count
+        : engines[0].title == testCase.title;
+      Assert.ok(hasEngine, testCase.text);
     } else {
-      ok(!testCase.pass, testCase.text);
+      Assert.ok(!testCase.pass, testCase.text);
     }
+    OpenSearchManager.clearEngines(browser);
   }
 
   info("Test multiple engines with the same title");
@@ -121,12 +125,12 @@ async function searchDiscovery() {
   await promiseLinkAdded;
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  ok(browser.engines, "has engines");
-  is(browser.engines.length, 1, "only one engine");
-  is(
-    browser.engines[0].uri,
+  let engines = OpenSearchManager.getEngines(browser);
+  Assert.equal(engines.length, 1, "only one engine");
+  Assert.equal(
+    engines[0].uri,
     "https://first.mozilla.com/search.xml",
     "first engine wins"
   );
-  browser.engines = null;
+  OpenSearchManager.clearEngines(browser);
 }

@@ -29,7 +29,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
     lazy.UrlbarPrefs.addObserver(this);
     // Override the SearchOneOffs.sys.mjs value for the Address Bar.
     this.disableOneOffsHorizontalKeyNavigation = true;
-    this._webEngines = [];
     this.addEventListener("rebuild", this);
   }
 
@@ -45,12 +44,8 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
 
   /**
    * Invoked when Web provided search engines list changes.
-   *
-   * @param {Array} engines Array of Web provided search engines. Each engine
-   *        is defined as  { icon, name, tooltip, uri }.
    */
-  updateWebEngines(engines) {
-    this._webEngines = engines;
+  updateWebEngines() {
     this.invalidateCache();
     if (this.view.isOpen) {
       this._rebuild();
@@ -479,15 +474,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
     ) {
       this.invalidateCache();
     }
-  }
-
-  /**
-   * Overrides _getAddEngines to return engines that can be added.
-   *
-   * @returns {Array} engines
-   */
-  _getAddEngines() {
-    return this._webEngines;
   }
 
   /**

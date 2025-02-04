@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
@@ -369,7 +370,9 @@ export class SearchModeSwitcher {
     let remoteContainer = this.#input.document.createXULElement("vbox");
     frag.appendChild(remoteContainer);
 
-    let openSearchEngines = browser.selectedBrowser.engines ?? [];
+    let openSearchEngines = lazy.OpenSearchManager.getEngines(
+      browser.selectedBrowser
+    );
     openSearchEngines = openSearchEngines.slice(0, MAX_OPENSEARCH_ENGINES);
 
     let engines = [];

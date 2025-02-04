@@ -14,6 +14,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
+  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -157,8 +158,11 @@ class ProviderContextualSearch extends ActionsProvider {
     }
 
     // Lastly match any openSearch
-    if (browser?.engines?.length) {
-      return { type: OPEN_SEARCH_ENGINE, engine: browser.engines[0] };
+    if (browser) {
+      let openSearchEngines = lazy.OpenSearchManager.getEngines(browser);
+      if (openSearchEngines.length) {
+        return { type: OPEN_SEARCH_ENGINE, engine: openSearchEngines[0] };
+      }
     }
 
     return null;
