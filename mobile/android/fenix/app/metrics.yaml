@@ -2461,9 +2461,11 @@ metrics:
     send_in_pings:
       - metrics
       - usage-reporting
+      - baseline
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/960
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1941007
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1067#issuecomment-474598673
       - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
@@ -2478,6 +2480,8 @@ metrics:
     metadata:
       tags:
         - Settings
+    no_lint:
+      - BASELINE_PING
   set_as_default_browser_native_prompt_shown:
     type: event
     description: >
