@@ -27,6 +27,9 @@ BT_DATA = Path(HERE, "data", "browsertime-results", "browsertime.json")
 BT_DATA_VIDEO = Path(HERE, "data", "browsertime-results-video", "browsertime.json")
 DMG = Path(HERE, "data", "firefox.dmg")
 MOZINFO = Path(HERE, "data", "mozinfo.json")
+MOCHITEST_DATA = Path(
+    HERE, "data", "perfherder-metrics-samples", "mochitest-metrics-sample.json"
+)
 
 
 @contextlib.contextmanager

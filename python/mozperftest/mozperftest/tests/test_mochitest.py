@@ -65,6 +65,55 @@ def test_mochitest_metrics(*mocked):
 
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
 @mock.patch("mozperftest.utils.ON_TRY", new=False)
+def test_mochitest_multi_metrics(*mocked):
+    mach_cmd, metadata, env = running_env(
+        tests=[str(EXAMPLE_MOCHITEST_TEST)],
+        mochitest_extra_args=[],
+    )
+
+    sys = env.layers[SYSTEM]
+    mochitest = env.layers[TEST]
+
+    with mock.patch("moztest.resolve.TestResolver") as test_resolver_mock, mock.patch(
+        "mozperftest.test.functionaltestrunner.load_class_from_path"
+    ) as load_class_path_mock, mock.patch(
+        "mozperftest.test.functionaltestrunner.mozlog.formatters.MachFormatter.__new__"
+    ) as formatter_mock, mock.patch(
+        "mozperftest.test.mochitest.install_requirements_file"
+    ):
+        formatter_mock.return_value = lambda x: x
+
+        def test_print(*args, **kwargs):
+            log_processor = kwargs.get("custom_handler")
+            log_processor.__call__(
+                'perfMetrics | [{ "name": "fake", "values": [0], "value": 10 }]'
+            )
+            return 0
+
+        test_mock = mock.MagicMock()
+        test_mock.test = test_print
+        load_class_path_mock.return_value = test_mock
+
+        test_resolver_mock.resolve_metadata.return_value = (1, 1)
+        mach_cmd._spawn.return_value = test_resolver_mock
+        try:
+            with sys as s, mochitest as m:
+                m(s(metadata))
+        finally:
+            shutil.rmtree(mach_cmd._mach_context.state_dir)
+
+    res = metadata.get_results()
+    assert len(res) == 1
+    assert res[0]["name"] == "test_mochitest.html"
+    results = res[0]["results"]
+
+    assert results[0]["name"] == "fake"
+    assert results[0]["values"] == [0]
+    assert results[0]["value"] == 10
+
+
+@mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
+@mock.patch("mozperftest.utils.ON_TRY", new=False)
 def test_mochitest_profiling(*mocked):
     mach_cmd, metadata, env = running_env(
         tests=[str(EXAMPLE_MOCHITEST_TEST)],

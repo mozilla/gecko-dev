@@ -14,6 +14,7 @@ from mozperftest.tests.support import (
     BT_DATA,
     EXAMPLE_TEST,
     HERE,
+    MOCHITEST_DATA,
     get_running_env,
     temp_file,
 )
@@ -76,6 +77,82 @@ def test_perfherder():
     # Check if only firstPaint metrics were obtained
     for subtest in output["suites"][0]["subtests"]:
         assert "firstPaint" in subtest["name"]
+
+
+def test_perfherder_test_settings():
+    options = {
+        "perfherder": True,
+        "perfherder-stats": True,
+        "perfherder-prefix": "",
+        "perfherder-metrics": [
+            metric_fields(
+                "name:mochitest-metric1,shouldAlert:True,lowerIsBetter:False,unit:cli-unit"
+            ),
+            metric_fields("mochitest-metric2"),
+            metric_fields("name:mochitest-metric3,lowerIsBetter:True"),
+            metric_fields("mochitest-metric4"),
+            metric_fields("mochitest-metric5"),
+        ],
+        "perfherder-timestamp": 1.0,
+    }
+
+    print(options)
+    metrics, metadata, env = setup_env(options)
+
+    metadata.clear_results()
+    with MOCHITEST_DATA.open() as f:
+        metadata.add_result(json.loads(f.read()))
+
+    with temp_file() as output:
+        env.set_arg("output", output)
+        with metrics as m, silence():
+            m(metadata)
+        output_file = metadata.get_output()
+        with open(output_file) as f:
+            output = json.loads(f.read())
+
+    # Check some metadata
+    assert output["application"]["name"] == "firefox"
+    assert output["framework"]["name"] == "mozperftest"
+    assert output["pushTimestamp"] == 1.0
+
+    # Check some numbers in our data
+    assert len(output["suites"]) == 1
+    assert len(output["suites"][0]["subtests"]) == 5
+    assert not any("value" in suite for suite in output["suites"])
+
+    # Check if only mochitest metrics were obtained
+    checked = 0
+    for subtest in output["suites"][0]["subtests"]:
+        assert "mochitest-metric" in subtest["name"]
+
+        if subtest["name"] == "mochitest-metric1":
+            assert subtest.get("value") == 227.67
+            assert subtest.get("unit") == "cli-unit"
+            assert subtest.get("shouldAlert")
+            assert not subtest.get("lowerIsBetter")
+            checked += 1
+        elif subtest["name"] == "mochitest-metric2":
+            # Default with no CLI arg is False
+            assert subtest.get("value") == 1662.995
+            assert subtest.get("unit") == "metric-unit"
+            checked += 1
+        elif subtest["name"] == "mochitest-metric3":
+            # CLI args should be overriden
+            assert not subtest.get("shouldAlert")
+            assert not subtest.get("lowerIsBetter")
+            checked += 1
+        elif subtest["name"] == "mochitest-metric4":
+            # Setting from test should be False
+            assert not subtest.get("shouldAlert")
+            assert subtest.get("lowerIsBetter")
+            checked += 1
+        elif subtest["name"] == "mochitest-metric5":
+            # Setting from test should be True
+            assert subtest.get("shouldAlert")
+            checked += 1
+
+    assert checked == 5
 
 
 def test_perfherder_simple_names():

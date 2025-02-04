@@ -1,0 +1,33 @@
+{
+    "name": "browser_translations_perf_es_en.js",
+    "framework": {
+        "name": "mozperftest"
+    },
+    "transformer": "mozperftest.test.mochitest:MochitestData",
+    "results": [{
+        "name": "mochitest-metric1",
+        "values": [225.342, 229.998],
+        "value": 227.67
+    }, {
+        "shouldAlert": false,
+        "name": "mochitest-metric2",
+        "values": [1618.147, 1707.843, 1707.843],
+        "value": 1662.995,
+        "unit": "metric-unit"
+    }, {
+        "name": "mochitest-metric3",
+        "values": [2555.386, 2697.035],
+        "value": 2626.2105,
+        "lowerIsBetter": false
+    }, {
+        "shouldAlert": false,
+        "name": "mochitest-metric4",
+        "values": [281.95, 281.962],
+        "value": 281.956
+    }, {
+        "shouldAlert": true,
+        "name": "mochitest-metric5",
+        "values": [4.066, 4.291],
+        "value": 4.1785
+    }]
+}
