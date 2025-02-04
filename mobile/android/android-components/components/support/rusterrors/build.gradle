@@ -35,5 +35,6 @@ dependencies {
     implementation project(':support-base')
 }
 
+apply from: '../../../android-lint.gradle'
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, project.name, project.ext.description)
