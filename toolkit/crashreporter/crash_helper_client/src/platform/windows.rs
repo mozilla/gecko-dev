@@ -22,20 +22,26 @@ use windows_sys::Win32::{
 use crate::CrashHelperClient;
 
 impl CrashHelperClient {
-    pub(crate) fn new(program: *const BreakpadChar) -> Result<CrashHelperClient> {
-        let pid = CrashHelperClient::spawn_crash_helper(program)?;
+    pub(crate) fn new(
+        program: *const BreakpadChar,
+        user_app_data_dir: *const u16,
+    ) -> Result<CrashHelperClient> {
+        let pid = CrashHelperClient::spawn_crash_helper(program, user_app_data_dir)?;
         let connector = IPCConnector::connect(process::id())?;
 
         Ok(CrashHelperClient { connector, pid })
     }
 
-    fn spawn_crash_helper(program: *const u16) -> Result<Pid> {
+    fn spawn_crash_helper(program: *const u16, user_app_data_dir: *const u16) -> Result<Pid> {
         let pid = unsafe { GetCurrentProcessId() };
         let program = <OsString as BreakpadString>::from_ptr(program);
+        let user_app_data_dir = <OsString as BreakpadString>::from_ptr(user_app_data_dir);
         let mut cmd_line = OsString::from("\"");
         cmd_line.push(program);
         cmd_line.push("\" \"");
         cmd_line.push(pid.to_string());
+        cmd_line.push("\" \"");
+        cmd_line.push(user_app_data_dir);
         cmd_line.push("\"\0");
         let mut cmd_line: Vec<u16> = cmd_line.encode_wide().collect();
 
