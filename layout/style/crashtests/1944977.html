@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<style>
+@keyframes highlight {
+  to { background-position: 0; }
+}
+
+mark {
+  animation: linear forwards highlight;
+  animation-timeline: view(60% 20%);
+  background: linear-gradient(to right, teal 50%, orange 50%);
+  background-position: 100%;
+  background-size: 200% 100%;
+}
+</style>
+<body>
+  <div style="height: 600vh"></div>
+  <div style="content-visibility: auto;">
+    <p><mark>Text</mark></p>
+  </div>
+</body>
