@@ -31,6 +31,10 @@ namespace xsimd
 
 #if XSIMD_WITH_AVX512CD
 
+#if !XSIMD_WITH_AVX512F
+#error "architecture inconsistency: avx512bw requires avx512f"
+#endif
+
     namespace types
     {
         template <class T>

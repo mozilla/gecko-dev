@@ -33,6 +33,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_FMA3_AVX
+
+#if !XSIMD_WITH_AVX
+#error "architecture inconsistency: fma3+avx requires avx"
+#endif
+
     namespace types
     {
 

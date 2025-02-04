@@ -33,6 +33,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_SSE4_1
+
+#if !XSIMD_WITH_SSSE3
+#error "architecture inconsistency: sse4.1 requires ssse3"
+#endif
+
     namespace types
     {
         XSIMD_DECLARE_SIMD_REGISTER_ALIAS(sse4_1, ssse3);

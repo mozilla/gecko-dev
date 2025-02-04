@@ -29,6 +29,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_AVX2
+
+#if !XSIMD_WITH_AVX
+#error "architecture inconsistency: avx2 requires avx"
+#endif
+
     namespace types
     {
         XSIMD_DECLARE_SIMD_REGISTER_ALIAS(avx2, avx);

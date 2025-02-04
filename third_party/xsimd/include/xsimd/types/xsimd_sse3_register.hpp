@@ -33,6 +33,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_SSE3
+
+#if !XSIMD_WITH_SSE2
+#error "architecture inconsistency: sse3 requires sse2"
+#endif
+
     namespace types
     {
 

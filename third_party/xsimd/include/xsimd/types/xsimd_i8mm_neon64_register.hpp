@@ -33,6 +33,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_I8MM_NEON64
+
+#if !XSIMD_WITH_NEON64
+#error "architecture inconsistency: i8mm+neon64 requires neon64"
+#endif
+
     namespace types
     {
 

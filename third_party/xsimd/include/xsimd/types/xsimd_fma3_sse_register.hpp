@@ -33,6 +33,11 @@ namespace xsimd
     };
 
 #if XSIMD_WITH_FMA3_SSE
+
+#if !XSIMD_WITH_SSE4_2
+#error "architecture inconsistency: fma3+sse4.2 requires sse4.2"
+#endif
+
     namespace types
     {
 

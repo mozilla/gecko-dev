@@ -34,6 +34,10 @@ namespace xsimd
 
 #if XSIMD_WITH_AVX
 
+#if !XSIMD_WITH_SSE4_2
+#error "architecture inconsistency: avx requires sse4.2"
+#endif
+
 #include <immintrin.h>
 
 namespace xsimd

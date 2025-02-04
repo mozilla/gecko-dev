@@ -32,6 +32,10 @@ namespace xsimd
 
 #if XSIMD_WITH_NEON64
 
+#if !XSIMD_WITH_NEON
+#error "architecture inconsistency: neon64 requires neon"
+#endif
+
     namespace types
     {
         XSIMD_DECLARE_SIMD_REGISTER_ALIAS(neon64, neon);

@@ -34,6 +34,10 @@ namespace xsimd
 
 #if XSIMD_WITH_AVX512VNNI_AVX512VBMI
 
+#if !XSIMD_WITH_AVX512VBMI
+#error "architecture inconsistency: avx512vnni+avx512vbmi requires avx512vbmi"
+#endif
+
     namespace types
     {
         template <class T>
