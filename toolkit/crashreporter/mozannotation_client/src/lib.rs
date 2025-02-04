@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use nsstring::nsCString;
 use std::{
     alloc::{self, Layout},
     cmp::min,
@@ -305,6 +304,10 @@ fn store_annotation<T>(id: u32, contents: AnnotationContents, address: *const T)
 
     old
 }
+
+// Dummy definition so that we don't have to import the nsstring crate.
+#[allow(non_camel_case_types)]
+pub struct nsCString {}
 
 /// Register a pointer to an nsCString string.
 ///
