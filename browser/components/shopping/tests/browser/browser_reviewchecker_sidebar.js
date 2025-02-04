@@ -444,3 +444,44 @@ add_task(async function test_no_reliability_available() {
     "surface_no_review_reliability_available"
   );
 });
+
+add_task(async function test_close_sidebar_after_opt_out() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.optedIn", 1]],
+  });
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async () => {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    info("Waiting for sidebar to update.");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      Assert.ok(shoppingContainer, "Review Checker is loaded");
+
+      await shoppingContainer.updateComplete;
+
+      let shoppingSettings = shoppingContainer.settingsEl;
+      Assert.ok(shoppingSettings, "Got the shopping-settings element");
+
+      let optOutButton = shoppingSettings.optOutButtonEl;
+      Assert.ok(optOutButton, "There should be an opt-out button");
+
+      optOutButton.click();
+    });
+
+    let rcSidebarPanelOpen =
+      SidebarController.isOpen &&
+      SidebarController.currentID == "viewReviewCheckerSidebar";
+    Assert.ok(
+      !rcSidebarPanelOpen,
+      "Review Checker panel is closed after pressing the opt-out button"
+    );
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
