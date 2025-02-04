@@ -6,11 +6,9 @@ import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 
 import { SidebarPage } from "./sidebar-page.mjs";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
-  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
-});
+const { XPCOMUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/XPCOMUtils.sys.mjs"
+);
 
 const l10nMap = new Map([
   ["viewGenaiChatSidebar", "sidebar-menu-genai-chat-label"],
@@ -20,23 +18,52 @@ const l10nMap = new Map([
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
 ]);
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
+const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
     super();
     this.activeExtIndex = 0;
-    this.visibility = Services.prefs.getStringPref(
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this.#prefValues,
+      "visibility",
       VISIBILITY_SETTING_PREF,
-      "always-show"
+      "always-show",
+      (_aPreference, _previousValue, newValue) => {
+        this.visibility = newValue;
+      }
     );
-    this.verticalTabsEnabled = lazy.CustomizableUI.verticalTabsEnabled;
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this.#prefValues,
+      "isPositionStart",
+      POSITION_SETTING_PREF,
+      true,
+      (_aPreference, _previousValue, newValue) => {
+        this.isPositionStart = newValue;
+      }
+    );
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this.#prefValues,
+      "verticalTabsEnabled",
+      TAB_DIRECTION_SETTING_PREF,
+      false,
+      (_aPreference, _previousValue, newValue) => {
+        this.verticalTabsEnabled = newValue;
+      }
+    );
+    this.visibility = this.#prefValues.visibility;
+    this.isPositionStart = this.#prefValues.isPositionStart;
+    this.verticalTabsEnabled = this.#prefValues.verticalTabsEnabled;
     this.boundObserve = (...args) => this.observe(...args);
   }
+
+  #prefValues = {};
 
   static properties = {
     activeExtIndex: { type: Number },
     visibility: { type: String },
+    isPositionStart: { type: Boolean },
     verticalTabsEnabled: { type: Boolean },
   };
 
@@ -53,8 +80,6 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().addEventListener("SidebarItemAdded", this);
     this.getWindow().addEventListener("SidebarItemChanged", this);
     this.getWindow().addEventListener("SidebarItemRemoved", this);
-    Services.prefs.addObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
-    Services.obs.addObserver(this.boundObserve, "tabstrip-orientation-change");
   }
 
   disconnectedCallback() {
@@ -62,33 +87,6 @@ export class SidebarCustomize extends SidebarPage {
     this.getWindow().removeEventListener("SidebarItemAdded", this);
     this.getWindow().removeEventListener("SidebarItemChanged", this);
     this.getWindow().removeEventListener("SidebarItemRemoved", this);
-    Services.obs.removeObserver(
-      this.boundObserve,
-      "tabstrip-orientation-change"
-    );
-    Services.prefs.removeObserver(VISIBILITY_SETTING_PREF, this.boundObserve);
-  }
-
-  observe(subject, topic, prefName) {
-    switch (topic) {
-      case "nsPref:changed":
-        switch (prefName) {
-          case VISIBILITY_SETTING_PREF:
-            this.visibility = Services.prefs.getStringPref(
-              VISIBILITY_SETTING_PREF,
-              "always-show"
-            );
-            break;
-        }
-        break;
-      case "tabstrip-orientation-change":
-        this.verticalTabsEnabled = lazy.CustomizableUI.verticalTabsEnabled;
-        break;
-    }
-  }
-
-  get sidebarLauncher() {
-    return this.getWindow().document.querySelector("sidebar-launcher");
   }
 
   get fluentStrings() {
@@ -212,9 +210,7 @@ export class SidebarCustomize extends SidebarPage {
     SidebarController.reversePosition();
     Glean.sidebarCustomize.sidebarPosition.record({
       position:
-        SidebarController._positionStart !== this.getWindow().RTL_UI
-          ? "left"
-          : "right",
+        this.isPositionStart !== this.getWindow().RTL_UI ? "left" : "right",
     });
   }
 
@@ -280,7 +276,7 @@ export class SidebarCustomize extends SidebarPage {
             name="position"
             data-l10n-id=${document.dir == "rtl" ? "sidebar-show-on-the-left" : "sidebar-show-on-the-right"}
             @change=${this.reversePosition}
-            ?checked=${!this.getWindow().SidebarController._positionStart}
+            ?checked=${!this.isPositionStart}
         ></moz-checkbox>
         </moz-fieldset>
         <moz-fieldset class="customize-group" data-l10n-id="sidebar-customize-firefox-tools-header">
