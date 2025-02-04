@@ -8,6 +8,8 @@ import android.graphics.Bitmap
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.feature.addons.Addon
 import mozilla.components.lib.state.State
+import mozilla.components.support.ktx.kotlin.isAboutUrl
+import mozilla.components.support.ktx.kotlin.isContentUrl
 
 /**
  * Value type that represents the state of the menu.
@@ -24,7 +26,20 @@ data class MenuState(
     val customTabSessionId: String? = null,
     val extensionMenuState: ExtensionMenuState = ExtensionMenuState(),
     val isDesktopMode: Boolean = false,
-) : State
+) : State {
+
+    /**
+     * Check whether to enable the WebCompat Reporter menu button. The reporter is not accessible
+     * from about and content URLs.
+     */
+    val isWebCompatEnabled: Boolean
+        get() {
+            val url = browserMenuState?.selectedTab?.content?.url
+            val isAboutUrl = url?.isAboutUrl() ?: false
+            val isContentUrl = url?.isContentUrl() ?: false
+            return !isAboutUrl && !isContentUrl
+        }
+}
 
 /**
  * Value type that represents the state of the browser menu.

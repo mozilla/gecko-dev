@@ -54,6 +54,57 @@ class MenuStoreTest {
     }
 
     @Test
+    fun `WHEN the selected tab is an internet URL THEN the WebCompat reporter should be enabled`() {
+        val selectedTab = TabSessionState(
+            id = "tabId1",
+            content = ContentState(
+                url = "www.mozilla.com",
+            ),
+        )
+        val state = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = selectedTab,
+            ),
+        )
+
+        assertTrue(state.isWebCompatEnabled)
+    }
+
+    @Test
+    fun `WHEN the selected tab is a content URL THEN the WebCompat reporter should be disabled`() {
+        val selectedTab = TabSessionState(
+            id = "tabId1",
+            content = ContentState(
+                url = "content://pdf.pdf",
+            ),
+        )
+        val state = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = selectedTab,
+            ),
+        )
+
+        assertFalse(state.isWebCompatEnabled)
+    }
+
+    @Test
+    fun `WHEN the selected tab is an about URL THEN the WebCompat reporter should be disabled`() {
+        val selectedTab = TabSessionState(
+            id = "tabId1",
+            content = ContentState(
+                url = "about:about",
+            ),
+        )
+        val state = MenuState(
+            browserMenuState = BrowserMenuState(
+                selectedTab = selectedTab,
+            ),
+        )
+
+        assertFalse(state.isWebCompatEnabled)
+    }
+
+    @Test
     fun `GIVEN a browser menu state update WHEN copying the browser menu state THEN return the updated browser menu state`() {
         val selectedTab = TabSessionState(
             id = "tabId1",

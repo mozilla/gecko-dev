@@ -139,6 +139,16 @@ fun String.isIpv4OrIpv6(): Boolean {
 fun String.isUrl() = URLStringUtils.isURLLike(this)
 
 /**
+ * Checks if this String is a URL of a content resource.
+ */
+fun String.isContentUrl() = this.startsWith("content://")
+
+/**
+ * Checks if this String is an about URL.
+ */
+fun String.isAboutUrl() = this.startsWith("about:")
+
+/**
  * Checks if this String is a URL of an extension page.
  */
 fun String.isExtensionUrl() = this.startsWith("moz-extension://")

@@ -303,6 +303,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         isTranslationEngineSupported &&
                             FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
                     val isPdf = selectedTab?.content?.isPdf ?: false
+                    val isWebCompatEnabled by store.observeAsState(store.state.isWebCompatEnabled) {
+                        it.isWebCompatEnabled
+                    }
                     val isReaderable = selectedTab?.readerState?.readerable ?: false
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
@@ -588,6 +591,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                                 ToolsSubmenu(
                                     isPdf = isPdf,
+                                    isWebCompatEnabled = isWebCompatEnabled,
                                     isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     isReaderable = isReaderable,
                                     isReaderViewActive = isReaderViewActive,

@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.menu.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -22,6 +23,7 @@ import org.mozilla.fenix.theme.Theme
 @Composable
 internal fun ToolsSubmenu(
     isPdf: Boolean,
+    isWebCompatEnabled: Boolean,
     isWebCompatReporterSupported: Boolean,
     isReaderable: Boolean,
     isReaderViewActive: Boolean,
@@ -97,6 +99,7 @@ internal fun ToolsSubmenu(
                 MenuItem(
                     label = stringResource(id = R.string.browser_menu_webcompat_reporter),
                     beforeIconPainter = painterResource(id = R.drawable.mozac_ic_lightbulb_24),
+                    state = if (isWebCompatEnabled) MenuItemState.ENABLED else MenuItemState.DISABLED,
                     onClick = onWebCompatReporterClick,
                 )
             }
@@ -201,6 +204,7 @@ private fun ToolsSubmenuPreview() {
         ) {
             ToolsSubmenu(
                 isPdf = false,
+                isWebCompatEnabled = true,
                 isWebCompatReporterSupported = false,
                 isReaderable = true,
                 isReaderViewActive = false,
@@ -233,6 +237,7 @@ private fun ToolsSubmenuPrivatePreview() {
         ) {
             ToolsSubmenu(
                 isPdf = false,
+                isWebCompatEnabled = true,
                 isWebCompatReporterSupported = true,
                 isReaderable = true,
                 isReaderViewActive = false,

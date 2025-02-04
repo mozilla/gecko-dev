@@ -55,6 +55,30 @@ class StringTest {
     }
 
     @Test
+    fun `GIVEN a content URL WHEN calling isContentUrl THEN true is returned`() {
+        val url = "content://contenturl"
+        assertTrue(url.isContentUrl())
+    }
+
+    @Test
+    fun `GIVEN an internet URL WHEN calling isContentUrl THEN false is returned`() {
+        val url = "https://mozilla.org"
+        assertFalse(url.isContentUrl())
+    }
+
+    @Test
+    fun `GIVEN an about URL WHEN calling isAboutUrl THEN true is returned`() {
+        val url = "about:about"
+        assertTrue(url.isAboutUrl())
+    }
+
+    @Test
+    fun `GIVEN an internet URL WHEN calling isAboutUrl THEN false is returned`() {
+        val url = "https://mozilla.org"
+        assertFalse(url.isAboutUrl())
+    }
+
+    @Test
     fun toNormalizedUrl() {
         val expectedUrl = "http://mozilla.org"
         assertEquals(expectedUrl, "http://mozilla.org".toNormalizedUrl())
