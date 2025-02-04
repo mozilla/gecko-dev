@@ -1260,14 +1260,6 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
   }
 
   auto it = mExternalTextures.find(data->mLastSubmittedTextureId.ref());
-
-  // ExternalTexture is still in use as no readback
-  if (data->mUseExternalTextureInSwapChain && it != mExternalTextures.end()) {
-    auto& externalTexture = it->second;
-    externalTexture->GetSnapshot(shmem, aSize);
-    return IPC_OK();
-  }
-
   // External texture is already invalid and posted to RemoteTextureMap
   if (it == mExternalTextures.end()) {
     if (!mRemoteTextureOwner || !mRemoteTextureOwner->IsRegistered(aOwnerId)) {
