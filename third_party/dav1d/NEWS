@@ -1,3 +1,23 @@
+Changes for 1.5.1 'Sonic':
+--------------------------
+
+1.5.1 is a minor release of dav1d, focusing on optimizations and stack reduction:
+
+ - Rewrite of the looprestoration (SGR, wiener) to reduce stack usage
+ - Rewrite of {put,prep}_scaled functions
+
+Now, the required stack space for dav1d should be: 62 KB on x86_64 and
+58KB on arm and aarch64.
+
+ - Improvements on the SSSE3 SGR
+ - Improvements on ARM32/ARM64 looprestoration optimizations
+ - RISC-V: blend optimizations for high bitdepth
+ - Power9: blend optimizations for 8bpc
+ - Port RISC-V to POSIX/non-Linux OS
+ - AArch64: Add Neon implementation of load_tmvs
+ - Fix a rare, but possible deadlock, in flush()
+
+
 Changes for 1.5.0 'Sonic':
 --------------------------
 

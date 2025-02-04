@@ -25,9 +25,24 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "src/arm/asm-offsets.h"
 #include "src/cpu.h"
 #include "src/refmvs.h"
 
+#if ARCH_AARCH64
+CHECK_OFFSET(refmvs_frame, iw8, RMVSF_IW8);
+CHECK_OFFSET(refmvs_frame, ih8, RMVSF_IH8);
+CHECK_OFFSET(refmvs_frame, mfmv_ref, RMVSF_MFMV_REF);
+CHECK_OFFSET(refmvs_frame, mfmv_ref2cur, RMVSF_MFMV_REF2CUR);
+CHECK_OFFSET(refmvs_frame, mfmv_ref2ref, RMVSF_MFMV_REF2REF);
+CHECK_OFFSET(refmvs_frame, n_mfmvs, RMVSF_N_MFMVS);
+CHECK_OFFSET(refmvs_frame, rp_ref, RMVSF_RP_REF);
+CHECK_OFFSET(refmvs_frame, rp_proj, RMVSF_RP_PROJ);
+CHECK_OFFSET(refmvs_frame, rp_stride, RMVSF_RP_STRIDE);
+CHECK_OFFSET(refmvs_frame, n_tile_threads, RMVSF_N_TILE_THREADS);
+#endif
+
+decl_load_tmvs_fn(dav1d_load_tmvs_neon);
 decl_save_tmvs_fn(dav1d_save_tmvs_neon);
 decl_splat_mv_fn(dav1d_splat_mv_neon);
 
@@ -36,6 +51,9 @@ static ALWAYS_INLINE void refmvs_dsp_init_arm(Dav1dRefmvsDSPContext *const c) {
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
+#if ARCH_AARCH64
+    c->load_tmvs = dav1d_load_tmvs_neon;
+#endif
     c->save_tmvs = dav1d_save_tmvs_neon;
     c->splat_mv = dav1d_splat_mv_neon;
 }
