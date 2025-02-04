@@ -251,6 +251,10 @@ MOZ_EXPORT struct xkb_keymap* xkb_keymap_new_from_string(
   return NULL;
 }
 
+MOZ_EXPORT struct xkb_keymap* xkb_keymap_ref(struct xkb_keymap* keymap) {
+  return NULL;
+}
+
 MOZ_EXPORT void xkb_keymap_unref(struct xkb_keymap* keymap) {}
 
 MOZ_EXPORT const char* xkb_keymap_layout_get_name(struct xkb_keymap* keymap,
@@ -261,4 +265,9 @@ MOZ_EXPORT const char* xkb_keymap_layout_get_name(struct xkb_keymap* keymap,
 MOZ_EXPORT xkb_mod_index_t xkb_keymap_mod_get_index(struct xkb_keymap* keymap,
                                                     const char* name) {
   return XKB_MOD_INVALID;
+}
+
+MOZ_EXPORT int xkb_keymap_key_repeats(struct xkb_keymap* keymap,
+                                      xkb_keycode_t kc) {
+  return 0;
 }

@@ -342,7 +342,12 @@ static void keyboard_handle_leave(void* data, struct wl_keyboard* keyboard,
 
 static void keyboard_handle_key(void* data, struct wl_keyboard* keyboard,
                                 uint32_t serial, uint32_t time, uint32_t key,
-                                uint32_t state) {}
+                                uint32_t state) {
+  // hardware key code is +8.
+  // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.41/gdk/wayland/gdkdevice-wayland.c#L2341
+  KeymapWrapper::KeyboardHandlerForWayland(serial, key + 8, state);
+}
+
 static void keyboard_handle_modifiers(void* data, struct wl_keyboard* keyboard,
                                       uint32_t serial, uint32_t mods_depressed,
                                       uint32_t mods_latched,
@@ -367,6 +372,7 @@ void nsWaylandDisplay::ClearKeyboard() {
   if (mKeyboard) {
     wl_keyboard_destroy(mKeyboard);
     mKeyboard = nullptr;
+    KeymapWrapper::ClearKeymap();
   }
 }
 

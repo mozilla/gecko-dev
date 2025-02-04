@@ -207,9 +207,13 @@ class KeymapWrapper {
   static void SetFocusOut(wl_surface* aFocusSurface);
   static void GetFocusInfo(wl_surface** aFocusSurface, uint32_t* aFocusSerial);
 
-  static void SetKeyboard(wl_keyboard* aKeyboard);
-  static wl_keyboard* GetKeyboard();
-  static void ClearKeyboard();
+  /**
+   * Key repeat helpers for Wayland
+   */
+  static void KeyboardHandlerForWayland(uint32_t aSerial,
+                                        uint32_t aHardwareKeycode,
+                                        uint32_t aState);
+  static void ClearKeymap();
 
   /**
    * EnsureInstance() is provided on Wayland to register Wayland callbacks
@@ -350,11 +354,23 @@ class KeymapWrapper {
   enum RepeatState { NOT_PRESSED, FIRST_PRESS, REPEATING };
   static RepeatState sRepeatState;
 
+#ifdef MOZ_WAYLAND
+  xkb_keymap* mXkbKeymap = nullptr;
+  static uint32_t sLastRepeatableSerial;
+#endif
+
   /**
    * IsAutoRepeatableKey() returns true if the key supports auto repeat.
    * Otherwise, false.
    */
   bool IsAutoRepeatableKey(guint aHardwareKeyCode);
+
+#ifdef MOZ_WAYLAND
+  /**
+   * Set current xkb_keymap to detect auto repeat key on Wayland.
+   */
+  void SetKeymap(xkb_keymap* aKeymap);
+#endif
 
   /**
    * Signal handlers.
