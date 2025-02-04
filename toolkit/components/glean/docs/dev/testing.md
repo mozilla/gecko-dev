@@ -27,14 +27,14 @@ To run all the things, here's the tl;dr:
 
 An often-overlooked first line of testing is "what do the logs say?".
 To turn on logging for FOG, use any of the following:
-* Run Firefox with `RUST_LOG="fog_control,fog,glean_core"`.
+* Run Firefox with `RUST_LOG="fog_control,firefox_on_glean,glean_core"`.
     * On some platforms this will use terminal colours to indicate log level.
-* Run Firefox with `MOZ_LOG="timestamp,sync,glean::*:5,fog::*:5,fog_control::*:5,glean_core::*:5"`.
+* Run Firefox with `MOZ_LOG="timestamp,sync,glean::*:5,firefox_on_glean::*:5,fog_control::*:5,glean_core::*:5"`.
 * Set the following prefs:
     * `logging.config.timestamp` to `true`
     * `logging.config.sync` to `true`
     * `logging.fog_control::*` to `5`
-    * `logging.fog::*` to `5`
+    * `logging.firefox_on_glean::*` to `5`
     * `logging.glean::*` to `5`
     * `logging.glean_core::*` to `5`
     * `logging.config.clear_on_startup` to `false` (or all these prefs will be cleared on startup)
@@ -238,3 +238,10 @@ For example, to echo to stdout:
 **Note:** Running the `tt(c)` suite in this way ignored skip directives in the manifest.
 This means that you might run tests that are not expected to succeed on your platform.
 Check `toolkit/components/telemetry/tests/marionette/tests/client/manifest.ini` for details.
+
+## Artifact-build-only failures -- testing JOG
+
+In the event of artifact-build-only failures, you may need to test
+the runtime metric registration subsystem, [JOG](jog).
+
+[Its documentation](jog) has detailed instructions on how to go about doing this.

@@ -83,6 +83,32 @@ This shouldn't happen if you keep your artifact and non-artifact objdirs segrega
 If, despite doing things properly you still see this or something else odd, then that's a bug.
 Please [file it in Toolkit :: Telemetry][file-bug]
 
+## Testing
+
+JOG's units are tested in tests in
+{searchfox}`toolkit/components/glean/tests`
+which either puppet JOG's internals directly
+or convince Firefox Desktop that it's running in artifact mode through the
+`telemetry.fog.artifact_build` pref ([details](./preferences)).
+
+To test JOG in full, you need a jogfile.
+The current ([bug 1945537](https://bugzilla.mozilla.org/show_bug.cgi?id=1945537))
+best way to get one is to
+[build in artifact mode][artifact-build].
+The `jogfile.json` can be found at `objdir-artifact/dist/bin/jogfile.json`.
+
+To integration-test changes to the compiled internals of JOG,
+you can copy the artifact build's `jogfile.json`
+to your full build's `objdir/dist/bin/`
+and then run your tests with JOG enabled e.g.
+
+```
+./mach mochitest --setpref telemetry.fog.artifact_build=true path/to/test.js
+```
+
+To ensure it's working, enable JOG logging with
+`MOZ_LOG=timestamp,sync,jog:5`.
+
 [artifact-build]: https://firefox-source-docs.mozilla.org/contributing/build/artifact_builds.html
 [glean-js]: https://mozilla.github.io/glean/book/user/adding-glean-to-your-project/javascript.html
 [impl-bug]: https://bugzilla.mozilla.org/show_bug.cgi?id=1698184
