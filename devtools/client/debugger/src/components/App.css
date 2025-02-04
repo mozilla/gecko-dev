@@ -69,6 +69,11 @@ button:hover {
     var(--editor-footer-height);
   max-height: 100%;
   overflow-y: auto;
+  container-type: inline-size;
+
+  .source-header {
+    width: 100cqw;
+  }
 }
 
 .editor-notification-footer {
