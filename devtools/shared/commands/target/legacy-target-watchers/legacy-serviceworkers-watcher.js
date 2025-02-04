@@ -289,13 +289,12 @@ class LegacyServiceWorkersWatcher extends LegacyWorkersWatcher {
     // For local tabs, we match ServiceWorkerRegistrations and the target
     // if they share the same hostname for their "url" properties.
     const targetDomain = this.#currentTargetURL.hostname;
-    try {
-      const registrationDomain = new URL(registration.url).hostname;
+    const registrationDomain = URL.parse(registration.url)?.hostname;
+    if (registrationDomain) {
       return registrationDomain === targetDomain;
-    } catch (e) {
-      // XXX: Some registrations have an empty URL.
-      return false;
     }
+    // XXX: Some registrations have an empty URL.
+    return false;
   }
 }
 

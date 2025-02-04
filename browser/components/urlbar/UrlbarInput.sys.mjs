@@ -854,12 +854,7 @@ export class UrlbarInput {
       result: selectedResult || this._resultForCurrentValue || null,
     });
 
-    let isValidUrl = false;
-    try {
-      new URL(url);
-      isValidUrl = true;
-    } catch (ex) {}
-    if (isValidUrl) {
+    if (URL.canParse(url)) {
       // Annotate if the untrimmed value contained a scheme, to later potentially
       // be upgraded by schemeless HTTPS-First.
       openParams.schemelessInput = this.#getSchemelessInput(
@@ -2808,9 +2803,8 @@ export class UrlbarInput {
         return result.payload.url;
       }
 
-      try {
-        uri = Services.io.newURI(this._untrimmedValue);
-      } catch (ex) {
+      uri = URL.parse(this._untrimmedValue)?.URI;
+      if (!uri) {
         return selectedVal;
       }
     }
@@ -2846,10 +2840,11 @@ export class UrlbarInput {
     // Unless decodeURLsOnCopy is set. Do not encode data: URIs.
     if (!lazy.UrlbarPrefs.get("decodeURLsOnCopy") && !uri.schemeIs("data")) {
       try {
-        new URL(selectedVal);
-        // Use encodeURI instead of URL.href because we don't want
-        // trailing slash.
-        selectedVal = encodeURI(selectedVal);
+        if (URL.canParse(selectedVal)) {
+          // Use encodeURI instead of URL.href because we don't want
+          // trailing slash.
+          selectedVal = encodeURI(selectedVal);
+        }
       } catch (ex) {
         // URL is invalid. Return original selected value.
       }
@@ -3375,10 +3370,9 @@ export class UrlbarInput {
       return null;
     }
     let strippedURI = null;
-    let uri = null;
 
     // Error check occurs during isClipboardURIValid
-    uri = Services.io.newURI(copyString);
+    let uri = Services.io.newURI(copyString);
     try {
       strippedURI = lazy.QueryStringStripper.stripForCopyOrShare(uri);
     } catch (e) {
@@ -3402,14 +3396,8 @@ export class UrlbarInput {
     if (!copyString) {
       return false;
     }
-    // throws if the selected string is not a valid URI
-    try {
-      Services.io.newURI(copyString);
-    } catch (e) {
-      return false;
-    }
 
-    return true;
+    return URL.canParse(copyString);
   }
 
   /**
@@ -4781,7 +4769,7 @@ function getDroppableData(event) {
   }
   // The URL bar automatically handles inputs with newline characters,
   // so we can get away with treating text/x-moz-url flavours as text/plain.
-  if (links.length && links[0].url) {
+  if (links[0]?.url) {
     event.preventDefault();
     let href = links[0].url;
     if (lazy.UrlbarUtils.stripUnsafeProtocolOnPaste(href) != href) {
@@ -4791,13 +4779,13 @@ function getDroppableData(event) {
       return null;
     }
 
-    try {
-      // If this throws, checkLoadURStrWithPrincipal would also throw,
-      // as that's what it does with things that don't pass the IO
-      // service's newURI constructor without fixup. It's conceivable we
-      // may want to relax this check in the future (so e.g. www.foo.com
-      // gets fixed up), but not right now.
-      let url = new URL(href);
+    // If this fails, checkLoadURIStrWithPrincipal would also fail,
+    // as that's what it does with things that don't pass the IO
+    // service's newURI constructor without fixup. It's conceivable we
+    // may want to relax this check in the future (so e.g. www.foo.com
+    // gets fixed up), but not right now.
+    let url = URL.parse(href);
+    if (url) {
       // If we succeed, try to pass security checks. If this works, return the
       // URL object. If the *security checks* fail, return null.
       try {
@@ -4812,9 +4800,8 @@ function getDroppableData(event) {
       } catch (ex) {
         return null;
       }
-    } catch (ex) {
-      // We couldn't make a URL out of this. Continue on, and return text below.
     }
+    // We couldn't make a URL out of this. Continue on, and return text below.
   }
   // Handle as text.
   return event.dataTransfer.getData("text/plain");

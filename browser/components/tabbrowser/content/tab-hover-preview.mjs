@@ -98,19 +98,19 @@ export default class TabHoverPreviewPanel {
   }
 
   getPrettyURI(uri) {
-    try {
-      let url = new URL(uri);
-      if (url.protocol == "about:" && url.pathname == "reader") {
-        url = new URL(url.searchParams.get("url"));
-      }
-
-      if (url.protocol === "about:") {
-        return url.href;
-      }
-      return `${url.hostname}`.replace(/^w{3}\./, "");
-    } catch {
+    let url = URL.parse(uri);
+    if (!url) {
       return uri;
     }
+
+    if (url.protocol == "about:" && url.pathname == "reader") {
+      url = URL.parse(url.searchParams.get("url"));
+    }
+
+    if (url?.protocol === "about:") {
+      return url.href;
+    }
+    return url ? url.hostname.replace(/^w{3}\./, "") : uri;
   }
 
   _hasValidWireframeState(tab) {

@@ -2625,12 +2625,9 @@ export class nsContextMenu {
       return "";
     }
 
-    try {
-      // If the underlying link text is a URL, we should not offer to translate.
-      new URL(linkText);
+    if (URL.canParse(linkText)) {
+      // The underlying link text is a URL, we should not offer to translate.
       return "";
-    } catch {
-      // A URL could not be parsed from the unerlying link text.
     }
 
     // Since the underlying link text is not a URL, we should offer to translate it.

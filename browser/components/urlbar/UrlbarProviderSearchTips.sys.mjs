@@ -491,11 +491,8 @@ async function isDefaultEngineHomepage(urlStr) {
     return false;
   }
 
-  // The URL object throws if the string isn't a valid URL.
-  let url;
-  try {
-    url = new URL(urlStr);
-  } catch (e) {
+  let url = URL.parse(urlStr);
+  if (!url) {
     return false;
   }
 

@@ -9,11 +9,8 @@
  * The initial path must be an full URI with a protocol (i.e. http://).
  */
 exports.joinURI = (initialPath, ...paths) => {
-  let url;
-
-  try {
-    url = new URL(initialPath);
-  } catch (e) {
+  let url = URL.parse(initialPath);
+  if (!url) {
     return null;
   }
 

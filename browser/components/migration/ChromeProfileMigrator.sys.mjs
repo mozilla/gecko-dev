@@ -451,6 +451,7 @@ export class ChromeProfileMigrator extends MigratorBase {
 
         let logins = [];
         let fallbackCreationDate = new Date();
+        const kValidSchemes = new Set(["https", "http", "ftp"]);
         for (let row of rows) {
           try {
             let origin_url = lazy.NetUtil.newURI(
@@ -458,7 +459,6 @@ export class ChromeProfileMigrator extends MigratorBase {
             );
             // Ignore entries for non-http(s)/ftp URLs because we likely can't
             // use them anyway.
-            const kValidSchemes = new Set(["https", "http", "ftp"]);
             if (!kValidSchemes.has(origin_url.scheme)) {
               continue;
             }

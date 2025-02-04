@@ -93,11 +93,7 @@ export var Heartbeat = class {
     }
 
     if (options.learnMoreUrl) {
-      try {
-        options.learnMoreUrl = new URL(options.learnMoreUrl);
-      } catch (e) {
-        options.learnMoreUrl = null;
-      }
+      options.learnMoreUrl = URL.parse(options.learnMoreUrl);
     }
 
     this.chromeWindow = chromeWindow;

@@ -33,7 +33,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   300
 );
 
-const ALLOWED_SCHEMES = ["http", "https", "data", "blob"];
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "data:", "blob:"]);
 
 /**
  * Shifts the first element out of the set.
@@ -358,8 +358,7 @@ export const PageDataService = new (class PageDataService extends EventEmitter {
    *   The url of the page.
    */
   async pageLoaded(actor, url) {
-    let uri = Services.io.newURI(url);
-    if (!ALLOWED_SCHEMES.includes(uri.scheme)) {
+    if (!ALLOWED_PROTOCOLS.has(new URL(url).protocol)) {
       return;
     }
 

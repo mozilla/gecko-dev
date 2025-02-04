@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   RemoteAgent: "chrome://remote/content/components/RemoteAgent.sys.mjs",
+  truncate: "chrome://remote/content/shared/Format.sys.mjs",
   UserPromptHandler:
     "chrome://remote/content/shared/webdriver/UserPromptHandler.sys.mjs",
 });
@@ -277,31 +278,21 @@ export class Proxy {
         throw new lazy.error.InvalidArgumentError(`${host} contains a scheme`);
       }
 
+      // To parse the host a scheme has to be added temporarily.
+      // If the returned value for the port is an empty string it
+      // could mean no port or the default port for this scheme was
+      // specified. In such a case parse again with a different
+      // scheme to ensure we filter out the default port.
       let url;
-      try {
-        // To parse the host a scheme has to be added temporarily.
-        // If the returned value for the port is an empty string it
-        // could mean no port or the default port for this scheme was
-        // specified. In such a case parse again with a different
-        // scheme to ensure we filter out the default port.
-        url = new URL("http://" + host);
-        if (url.port == "") {
-          url = new URL("https://" + host);
+      for (let _url of [`http://${host}`, `https://${host}`]) {
+        url = URL.parse(_url);
+        if (!url) {
+          throw new lazy.error.InvalidArgumentError(
+            lazy.truncate`Expected "url" to be a valid URL, got ${_url}`
+          );
         }
-      } catch (e) {
-        throw new lazy.error.InvalidArgumentError(e.message);
-      }
-
-      let hostname = stripBracketsFromIpv6Hostname(url.hostname);
-
-      // If the port hasn't been set, use the default port of
-      // the selected scheme (except for socks which doesn't have one).
-      let port = parseInt(url.port);
-      if (!Number.isInteger(port)) {
-        if (scheme === "socks") {
-          port = null;
-        } else {
-          port = Services.io.getDefaultPort(scheme);
+        if (url.port != "") {
+          break;
         }
       }
 
@@ -315,6 +306,19 @@ export class Proxy {
         throw new lazy.error.InvalidArgumentError(
           `${host} was not of the form host[:port]`
         );
+      }
+
+      let hostname = stripBracketsFromIpv6Hostname(url.hostname);
+
+      // If the port hasn't been set, use the default port of
+      // the selected scheme (except for socks which doesn't have one).
+      let port = parseInt(url.port);
+      if (!Number.isInteger(port)) {
+        if (scheme === "socks") {
+          port = null;
+        } else {
+          port = Services.io.getDefaultPort(scheme);
+        }
       }
 
       return [hostname, port];

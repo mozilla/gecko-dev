@@ -559,16 +559,12 @@ export class URLChecker {
    * @returns {string} - Normalized URL.
    */
   normalizeLocalhost(url) {
-    try {
-      const parsedURL = new URL(url);
-      if (parsedURL.hostname === "localhost") {
-        // Normalize to only scheme and localhost without port or user info
-        return `${parsedURL.protocol}//localhost/`;
-      }
-      return url;
-    } catch (error) {
-      return url;
+    const parsedURL = URL.parse(url);
+    if (parsedURL?.hostname === "localhost") {
+      // Normalize to only scheme and localhost without port or user info
+      return `${parsedURL.protocol}//localhost/`;
     }
+    return url;
   }
 
   /**

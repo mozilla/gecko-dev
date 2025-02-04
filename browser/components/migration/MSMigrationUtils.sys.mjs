@@ -638,13 +638,11 @@ WindowsVaultFormPasswords.prototype = {
           }
           let url =
             item.contents.pResourceElement.contents.itemValue.readString();
-          let realURL;
-          try {
-            realURL = Services.io.newURI(url);
-          } catch (ex) {
-            /* leave realURL as null */
-          }
-          if (!realURL || !["http", "https", "ftp"].includes(realURL.scheme)) {
+          let realURL = URL.parse(url);
+          if (
+            !realURL ||
+            !["http:", "https:", "ftp:"].includes(realURL.protocol)
+          ) {
             // Ignore items for non-URLs or URLs that aren't HTTP(S)/FTP
             continue;
           }
@@ -690,7 +688,7 @@ WindowsVaultFormPasswords.prototype = {
           logins.push({
             username,
             password,
-            origin: realURL.prePath,
+            origin: realURL.URI.prePath,
             timeCreated: creation,
           });
 

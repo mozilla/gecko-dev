@@ -89,15 +89,16 @@ class ProviderClipboard extends UrlbarProvider {
   }
 
   #validUrl(clipboardVal) {
-    try {
-      let givenUrl;
-      givenUrl = new URL(clipboardVal);
-      if (givenUrl.protocol == "http:" || givenUrl.protocol == "https:") {
-        return givenUrl.href;
-      }
-    } catch (ex) {
+    let givenUrl = URL.parse(clipboardVal);
+    if (!givenUrl) {
       // Not a valid URI.
+      return null;
     }
+
+    if (givenUrl.protocol == "http:" || givenUrl.protocol == "https:") {
+      return givenUrl.href;
+    }
+
     return null;
   }
 

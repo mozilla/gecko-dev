@@ -122,7 +122,9 @@ function serializeNode(aNode) {
 
   if (PlacesUtils.nodeIsURI(aNode)) {
     // Check for url validity.
-    new URL(aNode.uri);
+    if (!URL.canParse(aNode.uri)) {
+      throw new Error(aNode.uri + " is not a valid URL");
+    }
     data.type = PlacesUtils.TYPE_X_MOZ_PLACE;
     data.uri = aNode.uri;
     if (aNode.tags) {
@@ -501,7 +503,7 @@ export var PlacesUtils = {
   },
 
   /**
-   * Converts a string or n URL object to an nsIURI.
+   * Converts a string or an URL object to an nsIURI.
    *
    * @param url (URL) or (String)
    *        the URL to convert.
@@ -1142,33 +1144,31 @@ export var PlacesUtils = {
           if (!uriString) {
             continue;
           }
-          let titleString = "";
-          if (parts.length > i + 1) {
-            titleString = parts[i + 1];
-          } else {
-            // for drag and drop of files, try to use the leafName as title
-            try {
-              titleString = Services.io
-                .newURI(uriString)
-                .QueryInterface(Ci.nsIURL).fileName;
-            } catch (ex) {}
-          }
-
+          let uri = null;
           try {
-            let uri = Services.io.newURI(uriString);
-            if (uri.scheme != "place") {
-              validNodes.push({
-                uri: uriString,
-                title: titleString ? titleString : uriString,
-                type: this.TYPE_X_MOZ_URL,
-              });
-            }
+            uri = Services.io.newURI(uriString);
           } catch (e) {
             console.error(e);
             invalidNodes.push({
               uri: uriString,
             });
           }
+          if (!uri || uri.scheme == "place") {
+            continue;
+          }
+          let titleString = "";
+          if (parts.length > i + 1) {
+            titleString = parts[i + 1];
+          } else if (uri instanceof Ci.nsIURL) {
+            // for drag and drop of files, use the fileName as title
+            titleString = uri.fileName;
+          }
+
+          validNodes.push({
+            uri: uriString,
+            title: titleString || uriString,
+            type: this.TYPE_X_MOZ_URL,
+          });
         }
         break;
       }
@@ -1661,10 +1661,9 @@ export var PlacesUtils = {
       switch (type) {
         case PlacesUtils.bookmarks.TYPE_BOOKMARK: {
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE;
-          // If this throws due to an invalid url, the item will be skipped.
-          try {
-            item.uri = new URL(aRow.getResultByName("url")).href;
-          } catch (ex) {
+          // If this fails due to an invalid url, the item will be skipped.
+          item.uri = URL.parse(aRow.getResultByName("url"))?.href;
+          if (!item.uri) {
             let error = new Error("Invalid bookmark URL");
             error.becauseInvalidURL = true;
             throw error;
@@ -2941,14 +2940,15 @@ function promiseKeywordsCache() {
         let brokenKeywords = [];
         for (let row of rows) {
           let keyword = row.getResultByName("keyword");
-          try {
+          let url = URL.parse(row.getResultByName("url"));
+          if (url) {
             let entry = {
               keyword,
-              url: new URL(row.getResultByName("url")),
+              url,
               postData: row.getResultByName("post_data") || null,
             };
             cache.set(keyword, entry);
-          } catch (ex) {
+          } else {
             // The url is invalid, don't load the keyword and remove it, or it
             // would break the whole keywords API.
             brokenKeywords.push(keyword);

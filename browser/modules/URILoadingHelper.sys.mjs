@@ -504,9 +504,7 @@ export const URILoadingHelper = {
     if (where == "current") {
       targetBrowser = params.targetBrowser || w.gBrowser.selectedBrowser;
       loadInBackground = false;
-      try {
-        uriObj = Services.io.newURI(url);
-      } catch (e) {}
+      uriObj = URL.parse(url)?.URI;
 
       // In certain tabs, we restrict what if anything may replace the loaded
       // page. If a load request bounces off for the currently selected tab,

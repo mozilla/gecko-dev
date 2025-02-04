@@ -382,10 +382,8 @@ class _UrlbarSearchTermsPersistence {
    *   first matched query parameter to be persisted.
    */
   isDefaultPage(currentURI, provider) {
-    let searchParams;
-    try {
-      searchParams = new URL(currentURI.spec).searchParams;
-    } catch (ex) {
+    let { searchParams } = URL.fromURI(currentURI);
+    if (!searchParams.size) {
       return false;
     }
     if (provider.includeParams) {

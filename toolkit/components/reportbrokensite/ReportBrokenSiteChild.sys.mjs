@@ -363,15 +363,15 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
       });
 
       // If the user enters a URL unrelated to the current tab,
-      // don't bother sending a screnshot or logs/etc
+      // don't bother sending a screenshot or logs/etc
       let sendRecordedPageSpecificDetails = false;
-      try {
-        const givenUri = new URL(reportUrl);
-        const recordedUri = new URL(url);
+      const givenUri = URL.parse(reportUrl);
+      const recordedUri = URL.parse(url);
+      if (givenUri && recordedUri) {
         sendRecordedPageSpecificDetails =
           givenUri.origin == recordedUri.origin &&
           givenUri.pathname == recordedUri.pathname;
-      } catch (_) {}
+      }
 
       if (sendRecordedPageSpecificDetails) {
         payload.screenshot = screenshot;

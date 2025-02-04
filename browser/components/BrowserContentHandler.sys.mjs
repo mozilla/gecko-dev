@@ -44,7 +44,7 @@ ChromeUtils.defineLazyGetter(lazy, "gWindowsAlertsService", () => {
 });
 
 // One-time startup homepage override configurations
-const ONCE_DOMAINS = ["mozilla.org", "firefox.com"];
+const ONCE_DOMAINS = new Set(["mozilla.org", "firefox.com"]);
 const ONCE_PREF = "browser.startup.homepage_override.once";
 
 // Index of Private Browsing icon in firefox.exe
@@ -1023,20 +1023,18 @@ nsBrowserContentHandler.prototype = {
           overridePage = url
             .split("|")
             .map(val => {
-              try {
-                return new URL(val);
-              } catch (ex) {
+              let parsed = URL.parse(val);
+              if (!parsed) {
                 // Invalid URL, so filter out below
-                console.error("Invalid once url:", ex);
-                return null;
+                console.error(`Invalid once url: ${val}`);
               }
+              return parsed;
             })
             .filter(
               parsed =>
-                parsed &&
-                parsed.protocol == "https:" &&
+                parsed?.protocol == "https:" &&
                 // Only accept exact hostname or subdomain; without port
-                ONCE_DOMAINS.includes(
+                ONCE_DOMAINS.has(
                   Services.eTLD.getBaseDomainFromHost(parsed.host)
                 )
             )

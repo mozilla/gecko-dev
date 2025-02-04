@@ -358,10 +358,8 @@ this.runtime = class extends ExtensionAPIPersistent {
             return Promise.resolve();
           }
 
-          let uri;
-          try {
-            uri = new URL(url);
-          } catch (e) {
+          let uri = URL.parse(url);
+          if (!uri) {
             return Promise.reject({
               message: `Invalid URL: ${JSON.stringify(url)}`,
             });

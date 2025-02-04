@@ -259,7 +259,7 @@ interface WebExtensionPolicy {
   static WebExtensionPolicy? getByHostname(ByteString hostname);
 
   /**
-   * Returns the currently-active policy for the extension extension URI, or
+   * Returns the currently-active policy for the extension URI, or
    * null if the URI is not an extension URI, or no policy is currently active
    * for it.
    */
