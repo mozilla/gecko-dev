@@ -34,6 +34,8 @@ import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.android.content.getColorFromAttr
+import mozilla.components.support.ktx.kotlin.isAboutUrl
+import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
@@ -208,6 +210,16 @@ open class DefaultToolbarMenu(
             isEngineSupported == true &&
                 FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
         } ?: false
+    }
+
+    /**
+     * Return whether Report Broken Site menu item is visible
+     */
+    private fun shouldShowWebCompatReporter(): Boolean {
+        val url = store.state.selectedTab?.content?.url
+        val isAboutUrl = url?.isAboutUrl() ?: false
+        val isContentUrl = url?.isContentUrl() ?: false
+        return !isAboutUrl && !isContentUrl
     }
     // End of predicates //
 
@@ -439,7 +451,7 @@ open class DefaultToolbarMenu(
                 openInRegularTabItem.apply { visible = ::shouldShowOpenInRegularTab },
                 customizeReaderView.apply { visible = ::shouldShowReaderViewCustomization },
                 openInApp.apply { visible = ::shouldShowOpenInApp },
-                reportBrokenSite,
+                reportBrokenSite.apply { visible = ::shouldShowWebCompatReporter },
                 BrowserMenuDivider(),
                 addToHomeScreenItem.apply { visible = ::canAddToHomescreen },
                 addAppToHomeScreenItem.apply { visible = ::canAddAppToHomescreen },
