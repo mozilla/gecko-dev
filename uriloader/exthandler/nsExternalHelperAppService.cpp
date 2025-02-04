@@ -601,7 +601,8 @@ static const nsExtraMimeTypeEntry extraMimeEntries[] = {
     {AUDIO_AAC, "aac", "AAC Audio"},
     {AUDIO_FLAC, "flac", "FLAC Audio"},
     {AUDIO_MIDI, "mid", "Standard MIDI Audio"},
-    {APPLICATION_WASM, "wasm", "WebAssembly Module"}};
+    {APPLICATION_WASM, "wasm", "WebAssembly Module"},
+    {"application/epub+zip", "epub", "Electronic publication (EPUB)"}};
 
 static const nsDefaultMimeTypeEntry sForbiddenPrimaryExtensions[] = {
     {IMAGE_JPEG, "jfif"}};
