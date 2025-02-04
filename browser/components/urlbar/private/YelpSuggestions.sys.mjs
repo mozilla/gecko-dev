@@ -173,9 +173,9 @@ export class YelpSuggestions extends SuggestProvider {
     let resultProperties = {
       isRichSuggestion: true,
       showFeedbackMenu: true,
+      isBestMatch: lazy.UrlbarPrefs.get("yelpSuggestPriority"),
     };
-    suggestion.is_top_pick = lazy.UrlbarPrefs.get("yelpSuggestPriority");
-    if (!suggestion.is_top_pick) {
+    if (!resultProperties.isBestMatch) {
       let suggestedIndex = lazy.UrlbarPrefs.get("yelpSuggestNonPriorityIndex");
       if (suggestedIndex !== null) {
         resultProperties.isSuggestedIndexRelativeToGroup = true;

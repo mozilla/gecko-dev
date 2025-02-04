@@ -30,7 +30,6 @@ const MERINO_SUGGESTIONS = [
     url: "https://example.com/merino-addon",
     title: "title",
     description: "description",
-    is_top_pick: true,
     custom_details: {
       amo: {
         rating: "5",

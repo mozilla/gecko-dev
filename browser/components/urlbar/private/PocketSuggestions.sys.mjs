@@ -74,9 +74,11 @@ export class PocketSuggestions extends SuggestProvider {
       }
     }
 
+    // Merino will set `is_top_pick` if the suggestion should be a best match.
+    let isBestMatch = !!suggestion.is_top_pick;
+
     if (suggestion.source == "rust") {
-      suggestion.is_top_pick = suggestion.isTopPick;
-      delete suggestion.isTopPick;
+      isBestMatch = suggestion.isTopPick;
 
       // The Rust component doesn't implement these properties. For now we use
       // dummy values. See issue #5878 in application-services.
@@ -94,12 +96,13 @@ export class PocketSuggestions extends SuggestProvider {
     url.searchParams.set("utm_content", "treatment");
 
     let resultProperties = {
+      isBestMatch,
       isRichSuggestion: true,
-      richSuggestionIconSize: suggestion.is_top_pick ? 24 : 16,
+      richSuggestionIconSize: isBestMatch ? 24 : 16,
       showFeedbackMenu: true,
     };
 
-    if (!suggestion.is_top_pick) {
+    if (!isBestMatch) {
       let suggestedIndex = lazy.UrlbarPrefs.get("pocketSuggestIndex");
       if (suggestedIndex !== null) {
         resultProperties.isSuggestedIndexRelativeToGroup = true;
@@ -115,10 +118,10 @@ export class PocketSuggestions extends SuggestProvider {
           url: url.href,
           originalUrl: suggestion.url,
           title: [suggestion.title, lazy.UrlbarUtils.HIGHLIGHT.TYPED],
-          description: suggestion.is_top_pick ? suggestion.description : "",
+          description: isBestMatch ? suggestion.description : "",
           // Use the favicon for non-best matches so the icon exactly matches
           // the Pocket favicon in the user's history and tabs.
-          icon: suggestion.is_top_pick
+          icon: isBestMatch
             ? "chrome://global/skin/icons/pocket.svg"
             : "chrome://global/skin/icons/pocket-favicon.ico",
           shouldShowUrl: true,

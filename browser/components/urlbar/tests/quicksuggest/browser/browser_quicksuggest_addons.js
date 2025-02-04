@@ -28,7 +28,6 @@ const TEST_MERINO_SUGGESTIONS = [
         guid: "first@addon",
       },
     },
-    is_top_pick: true,
   },
   {
     provider: "amo",
@@ -43,8 +42,6 @@ const TEST_MERINO_SUGGESTIONS = [
         guid: "second@addon",
       },
     },
-    is_sponsored: true,
-    is_top_pick: false,
   },
   {
     provider: "amo",
@@ -59,7 +56,6 @@ const TEST_MERINO_SUGGESTIONS = [
         guid: "third@addon",
       },
     },
-    is_top_pick: false,
   },
   {
     provider: "amo",
