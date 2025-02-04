@@ -117,5 +117,6 @@ add_task(async function () {
     `Popup position was updated`
   );
 
+  await closePreviewForToken(dbg, privateStaticTokenEl, "popup");
   await resume(dbg);
 });
