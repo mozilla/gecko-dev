@@ -10,7 +10,7 @@ export default {
   title: "UI Widgets/Card",
   component: "moz-card",
   parameters: {
-    status: "in-development",
+    status: "stable",
     fluent: `
 moz-card-heading =
   .heading = This is the label
