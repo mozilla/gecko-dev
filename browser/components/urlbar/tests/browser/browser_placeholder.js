@@ -377,9 +377,15 @@ add_task(async function test_change_default_engine_updates_placeholder() {
   );
 
   info("Show search engine removal info bar");
-  await BrowserSearch.removalOfSearchEngineNotificationBox(
+  BrowserUtils.callModulesFromCategory(
+    "search-service-notification",
+    "search-engine-removal",
     extraEngine.name,
     appDefaultEngine.name
+  );
+  await TestUtils.waitForCondition(
+    () => gNotificationBox.getNotificationWithValue("search-engine-removal"),
+    "Waiting for message to be displayed"
   );
   const notificationBox = gNotificationBox.getNotificationWithValue(
     "search-engine-removal"

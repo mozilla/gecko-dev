@@ -48,6 +48,8 @@ support-files = [
 
 ["browser_defaultPrivate_nimbus.js"]
 
+["browser_displayNotification.js"]
+
 ["browser_google_behavior.js"]
 
 ["browser_hiddenOneOffs_diacritics.js"]

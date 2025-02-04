@@ -14,3 +14,5 @@ category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.
 category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup
 category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys.mjs ReportBrokenSite.init
 category browser-window-delayed-startup resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.init
+
+category search-service-notification resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.showSearchServiceNotification

@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AppProvidedSearchEngine:
     "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   AddonSearchEngine: "resource://gre/modules/AddonSearchEngine.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   IgnoreLists: "resource://gre/modules/IgnoreLists.sys.mjs",
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
@@ -3603,8 +3604,7 @@ export class SearchService {
    * Shows an infobar to notify the user their default search engine has been
    * removed and replaced by a new default search engine.
    *
-   * This method is prefixed with _ rather than # because it is
-   * called in a test.
+   * This indirection exists to simplify tests.
    *
    * @param {string} prevCurrentEngineName
    *   The name of the previous default engine that will be replaced.
@@ -3615,8 +3615,9 @@ export class SearchService {
     prevCurrentEngineName,
     newCurrentEngineName
   ) {
-    let win = Services.wm.getMostRecentBrowserWindow();
-    win.BrowserSearch.removalOfSearchEngineNotificationBox(
+    lazy.BrowserUtils.callModulesFromCategory(
+      "search-service-notification",
+      "search-engine-removal",
       prevCurrentEngineName,
       newCurrentEngineName
     );

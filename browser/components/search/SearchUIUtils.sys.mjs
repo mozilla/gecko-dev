@@ -17,6 +17,7 @@ ChromeUtils.defineLazyGetter(lazy, "SearchUIUtilsL10n", () => {
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
@@ -41,6 +42,84 @@ export var SearchUIUtils = {
       case "engine-default-private":
         this.updatePlaceholderNamePreference(engine, true);
         break;
+    }
+  },
+
+  /**
+   * This function is called by the category manager for the
+   * `search-service-notification` category.
+   *
+   * It allows the SearchService (in toolkit) to display
+   * notifications in the browser for certain events.
+   *
+   * @param {string} notificationType
+   *   Determines the function displaying the notification.
+   * @param  {...any} args
+   *   The arguments for that function.
+   */
+  showSearchServiceNotification(notificationType, ...args) {
+    switch (notificationType) {
+      case "search-engine-removal":
+        this.removalOfSearchEngineNotificationBox(...args);
+        break;
+    }
+  },
+
+  /**
+   * Infobar to notify the user's search engine has been removed
+   * and replaced with an application default search engine.
+   *
+   * @param {string} oldEngine
+   *   name of the engine to be moved and replaced.
+   * @param {string} newEngine
+   *   name of the application default engine to replaced the removed engine.
+   */
+  async removalOfSearchEngineNotificationBox(oldEngine, newEngine) {
+    let win = lazy.BrowserWindowTracker.getTopWindow();
+
+    let buttons = [
+      {
+        "l10n-id": "remove-search-engine-button",
+        primary: true,
+        callback() {
+          const notificationBox = win.gNotificationBox.getNotificationWithValue(
+            "search-engine-removal"
+          );
+          win.gNotificationBox.removeNotification(notificationBox);
+        },
+      },
+      {
+        supportPage: "search-engine-removal",
+      },
+    ];
+
+    await win.gNotificationBox.appendNotification(
+      "search-engine-removal",
+      {
+        label: {
+          "l10n-id": "removed-search-engine-message2",
+          "l10n-args": { oldEngine, newEngine },
+        },
+        priority: win.gNotificationBox.PRIORITY_SYSTEM,
+      },
+      buttons
+    );
+
+    // _updatePlaceholderFromDefaultEngine only updates the pref if the search service
+    // hasn't finished initializing, so we explicitly update it here to be sure.
+    SearchUIUtils.updatePlaceholderNamePreference(
+      await Services.search.getDefault(),
+      false
+    );
+    SearchUIUtils.updatePlaceholderNamePreference(
+      await Services.search.getDefaultPrivate(),
+      true
+    );
+
+    for (let openWin of lazy.BrowserWindowTracker.orderedWindows) {
+      openWin.gURLBar
+        ?._updatePlaceholderFromDefaultEngine(false)
+        .catch(console.error);
     }
   },
 
