@@ -5,17 +5,14 @@
 package org.mozilla.fenix.onboarding.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.flow.emptyFlow
+import junit.framework.TestCase.assertEquals
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.test.mock
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
-import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 
 @RunWith(AndroidJUnit4::class)
@@ -37,47 +34,41 @@ class PrivacyPreferencesMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN init called with no preferences WHEN middleware is invoked THEN only the repo is initialized`() {
-        `when`(repository.privacyPreferenceUpdates).thenReturn(emptyFlow())
+    fun `WHEN data usage update action is invoked THEN new value is set in repository`() {
+        var dataUsageEnabled = true
+        val middleware = PrivacyPreferencesMiddleware(
+            repository = object : PrivacyPreferencesRepository {
+                override fun getPreference(type: PreferenceType) = false
 
-        middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
-
-        verifyNoInteractions(context)
-        verify(repository).init()
-    }
-
-    @Test
-    fun `GIVEN init called with preferences WHEN middleware is invoked THEN the repo is initialized`() {
-        middleware.invoke(context, {}, PrivacyPreferencesAction.Init)
-
-        verify(repository).init()
-        verifyNoMoreInteractions(repository)
-    }
-
-    @Test
-    fun `GIVEN crash reporting called WHEN middleware is invoked THEN the repo is updated`() {
-        val action = PrivacyPreferencesAction.CrashReportingPreferenceUpdatedTo(true)
-        middleware.invoke(context, {}, action)
-
-        verify(repository).updatePrivacyPreference(
-            PrivacyPreferencesRepository.PrivacyPreferenceUpdate(
-                preferenceType = PrivacyPreferencesRepository.PrivacyPreference.CrashReporting,
-                value = action.enabled,
-            ),
+                override fun setPreference(type: PreferenceType, enabled: Boolean) {
+                    dataUsageEnabled = enabled
+                }
+            },
         )
+
+        val updatedDataUsageEnabled = !dataUsageEnabled
+        middleware.invoke(context, {}, PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(enabled = updatedDataUsageEnabled))
+
+        assertEquals(updatedDataUsageEnabled, dataUsageEnabled)
     }
 
     @Test
-    fun `GIVEN usage data called WHEN middleware is invoked THEN the repo is updated`() {
-        val action = PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(true)
-        middleware.invoke(context, {}, action)
+    fun `WHEN crash reporting update action is invoked THEN new value is set in repository`() {
+        var crashReportEnabled = true
+        val middleware = PrivacyPreferencesMiddleware(
+            repository = object : PrivacyPreferencesRepository {
+                override fun getPreference(type: PreferenceType) = false
 
-        verify(repository).updatePrivacyPreference(
-            PrivacyPreferencesRepository.PrivacyPreferenceUpdate(
-                preferenceType = PrivacyPreferencesRepository.PrivacyPreference.UsageData,
-                value = action.enabled,
-            ),
+                override fun setPreference(type: PreferenceType, enabled: Boolean) {
+                    crashReportEnabled = enabled
+                }
+            },
         )
+
+        val updatedCrashReportEnabled = !crashReportEnabled
+        middleware.invoke(context, {}, PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(enabled = updatedCrashReportEnabled))
+
+        assertEquals(updatedCrashReportEnabled, crashReportEnabled)
     }
 
     @Test

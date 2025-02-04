@@ -13,7 +13,7 @@ import mozilla.components.lib.state.MiddlewareContext
  * @param repository [PrivacyPreferencesRepository] used to access the privacy preferences.
  */
 class PrivacyPreferencesMiddleware(
-    private val repository: SimplePrivacyPreferencesRepository,
+    private val repository: PrivacyPreferencesRepository,
 ) : Middleware<PrivacyPreferencesState, PrivacyPreferencesAction> {
 
     override fun invoke(

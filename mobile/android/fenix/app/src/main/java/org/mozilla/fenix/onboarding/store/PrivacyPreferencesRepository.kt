@@ -9,7 +9,7 @@ import org.mozilla.fenix.utils.Settings
 /**
  * The repository for managing user privacy preferences set during onboarding.
  */
-interface SimplePrivacyPreferencesRepository {
+interface PrivacyPreferencesRepository {
 
     /**
      * Retrieves the state of a specific preference.
@@ -36,13 +36,13 @@ enum class PreferenceType {
 }
 
 /**
- * The default implementation of [SimplePrivacyPreferencesRepository].
+ * The default implementation of [PrivacyPreferencesRepository].
  *
  * @param settings The [Settings] instance for accessing and modifying privacy-related settings.
  */
-class DefaultSimplePrivacyPreferencesRepository(
+class DefaultPrivacyPreferencesRepository(
     private val settings: Settings,
-) : SimplePrivacyPreferencesRepository {
+) : PrivacyPreferencesRepository {
 
     override fun getPreference(type: PreferenceType): Boolean {
         return when (type) {
