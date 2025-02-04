@@ -10,18 +10,26 @@ export default {
   component: "moz-input-color",
   argTypes: {},
   parameters: {
-    status: "stable",
+    status: "in-development",
+    fluent: `
+moz-input-color-label =
+  .label = Background
+    `,
   },
 };
 
-const Template = ({ value, label }) => {
+const Template = ({ value, label, l10nId }) => {
   return html`
-    <moz-input-color value=${value} label=${label}></moz-input-color>
+    <moz-input-color
+      value=${value}
+      label=${label}
+      data-l10n-id=${l10nId}
+    ></moz-input-color>
   `;
 };
 
 export const Default = Template.bind({});
 Default.args = {
   value: "#7293C9",
-  label: "Background",
+  l10nId: "moz-input-color-label",
 };
