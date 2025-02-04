@@ -510,7 +510,7 @@ add_task(async function test_prefFlips() {
       Services.prefs.deleteBranch(prefName);
     }
 
-    await assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     sandbox.restore();
@@ -1589,7 +1589,7 @@ add_task(async function test_prefFlips_unenrollment() {
       info(`Unenrolling from ${computedSlug}\n`);
       manager.unenroll(computedSlug, "cleanup");
     }
-    await assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     info("Cleaning up prefs...");
@@ -2046,7 +2046,7 @@ add_task(async function test_prefFlip_setPref_restore() {
     info("Checking expected prefs...");
     checkExpectedPrefBranches(expectedPrefs);
 
-    await assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     info("Cleaning up prefs...");

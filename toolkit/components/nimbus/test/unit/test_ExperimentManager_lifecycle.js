@@ -341,6 +341,7 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
     },
     firefoxLabsTitle: "title",
     firefoxLabsDescription: "description",
+    firefoxLabsDescriptionLinks: null,
     firefoxLabsGroup: "group",
     requiresRestart: false,
   });
@@ -352,6 +353,7 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
     },
     firefoxLabsTitle: null,
     firefoxLabsDescription: null,
+    firefoxLabsDescriptionLinks: null,
     firefoxLabsGroup: null,
     requiresRestart: false,
   });

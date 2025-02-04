@@ -124,6 +124,23 @@
       ],
       "description": "The title shown in Firefox Labs (Fluent ID)"
     },
+    "firefoxLabsDescriptionLinks": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Links that will be used with the firefoxLabsDescription Fluent ID. May be null for Firefox Labs Opt-In recipes that do not use links."
+    },
     "firefoxLabsDescription": {
       "anyOf": [
         {

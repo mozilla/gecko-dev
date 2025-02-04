@@ -636,6 +636,7 @@ export class _ExperimentManager {
       isFirefoxLabsOptIn,
       firefoxLabsTitle,
       firefoxLabsDescription,
+      firefoxLabsDescriptionLinks = null,
       firefoxLabsGroup,
       requiresRestart = false,
     },
@@ -694,6 +695,7 @@ export class _ExperimentManager {
         isFirefoxLabsOptIn,
         firefoxLabsTitle,
         firefoxLabsDescription,
+        firefoxLabsDescriptionLinks,
         firefoxLabsGroup,
         requiresRestart,
       });

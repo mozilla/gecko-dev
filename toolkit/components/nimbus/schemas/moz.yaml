@@ -9,8 +9,8 @@ origin:
   description: "Schemas used by Mozilla Nimbus and related projects."
   url: "https://github.com/mozilla/experimenter"
   license: "MPL-2.0"
-  revision: "9603a8b9b0b2b0ac9cd5d8b41cb24e140e9aecfa"
-  release: "version 2024.12.2"
+  revision: "fa4a7e30a18e5288121bed4a137a3f7cabb6110a"
+  release: "version 2025.1.1"
 
 vendoring:
   url: "https://github.com/mozilla/experimenter"
