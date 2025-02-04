@@ -852,7 +852,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         .title-label {
           -webkit-line-clamp: 2;
           white-space: wrap;
-          word-break: break-all;
+          word-break: break-word;
         }
       }
     }

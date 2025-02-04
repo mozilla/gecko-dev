@@ -1450,7 +1450,7 @@ main section {
 .top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label {
   -webkit-line-clamp: 2;
   white-space: wrap;
-  word-break: break-all;
+  word-break: break-word;
 }
 
 @keyframes fade-up-tt {
