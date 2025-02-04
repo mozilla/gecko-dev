@@ -533,7 +533,6 @@ function accessibleTask(doc, task, options = {}) {
                 gBrowser,
                 "about:blank",
                 {
-                  allowInheritPrincipal: true,
                   forceNotRemote: true,
                 }
               );
