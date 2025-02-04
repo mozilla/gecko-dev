@@ -76,11 +76,12 @@ impl CrashHelperClient {
 #[no_mangle]
 pub unsafe extern "C" fn crash_helper_launch(
     helper_name: *const BreakpadChar,
+    user_app_data_dir: *const BreakpadChar,
     minidump_path: *const BreakpadChar,
     breakpad_raw_data: BreakpadRawData,
     release_channel: *const c_char,
 ) -> *mut CrashHelperClient {
-    if let Ok(crash_helper) = CrashHelperClient::new(helper_name) {
+    if let Ok(crash_helper) = CrashHelperClient::new(helper_name, user_app_data_dir) {
         let minidump_path = <OsString as BreakpadString>::from_ptr(minidump_path);
         let breakpad_data = BreakpadData::new(breakpad_raw_data);
         let release_channel = CStr::from_ptr(release_channel);

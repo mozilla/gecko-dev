@@ -51,9 +51,13 @@ impl IPCServer {
                         .connectors
                         .get_mut(index)
                         .expect("Invalid connector index");
-                    let _res = Self::handle_message(connector, &header, generator);
-                    // TODO: Errors at this level are always survivable, but we
-                    // should probably log them.
+                    let res = Self::handle_message(connector, &header, generator);
+                    if let Err(error) = res {
+                        log::error!(
+                            "Error {error} while handling a message of {:?} kind",
+                            header.kind
+                        );
+                    }
                 }
                 IPCEvent::Disconnect(index) => {
                     let connector = self
