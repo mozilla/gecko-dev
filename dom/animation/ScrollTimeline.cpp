@@ -237,6 +237,15 @@ void ScrollTimeline::UnregisterFromScrollSource() {
     return;
   }
 
+  // If we are trying to unregister this timeline from the scheduler in
+  // ProgressTimelineScheduler::ScheduleAnimations(), we have to unregister this
+  // after we finish the scheduling, to avoid mutating the hashtset
+  // and destroying the scheduler here.
+  if (scheduler->IsInScheduling()) {
+    mState = TimelineState::PendingRemove;
+    return;
+  }
+
   scheduler->RemoveTimeline(this);
   if (scheduler->IsEmpty()) {
     ProgressTimelineScheduler::Destroy(mSource.mElement,
@@ -304,6 +313,41 @@ void ProgressTimelineScheduler::Destroy(
   auto* data = aElement->GetAnimationData();
   MOZ_ASSERT(data);
   data->ClearProgressTimelineScheduler(aPseudoRequest);
+}
+
+/* static */
+void ProgressTimelineScheduler::ScheduleAnimations(
+    const Element* aElement, const PseudoStyleRequest& aRequest) {
+  auto* scheduler = Get(aElement, aRequest);
+  if (!scheduler) {
+    return;
+  }
+
+  // Note: We only need to handle the removal. It's impossible to iterate the
+  // non-existing timelines and add them into the hashset.
+  nsTArray<ScrollTimeline*> timelinesToBeRemoved;
+
+  scheduler->mIsInScheduling = true;
+  for (auto iter = scheduler->mTimelines.iter(); !iter.done(); iter.next()) {
+    auto* timeline = iter.get();
+    const auto state = timeline->ScheduleAnimations();
+    if (state == ScrollTimeline::TimelineState::PendingRemove) {
+      timelinesToBeRemoved.AppendElement(timeline);
+    }
+  }
+  MOZ_ASSERT(Get(aElement, aRequest), "Make sure the scheduler still exists");
+  scheduler->mIsInScheduling = false;
+
+  // In the common case, this array is empty. It could be non-empty only when
+  // we change the content-visibility in their Tick()s.
+  for (auto* timeline : timelinesToBeRemoved) {
+    timeline->ResetState();
+    scheduler->RemoveTimeline(timeline);
+  }
+
+  if (scheduler->IsEmpty()) {
+    ProgressTimelineScheduler::Destroy(aElement, aRequest);
+  }
 }
 
 }  // namespace mozilla::dom
