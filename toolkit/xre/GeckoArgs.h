@@ -213,7 +213,7 @@ static CommandLineArg<bool> sPluginNativeEvent{"-pluginNativeEvent",
 static CommandLineArg<UniqueFileHandle> sCrashReporter{"-crashReporter",
                                                        "crashreporter"};
 static CommandLineArg<uint64_t> sCrashHelperPid{"-crashHelperPid",
-                                                 "crashhelperpid"};
+                                                "crashhelperpid"};
 #else
 static CommandLineArg<const char*> sCrashReporter{"-crashReporter",
                                                   "crashreporter"};

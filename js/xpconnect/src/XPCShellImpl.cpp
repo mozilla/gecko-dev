@@ -130,13 +130,12 @@ class XPCShellDirProvider : public nsIDirectoryServiceProvider2 {
 };
 
 #ifdef XP_WIN
-class MOZ_STACK_CLASS
-AutoAudioSession{public : AutoAudioSession(){widget::StartAudioSession();
-}
+class MOZ_STACK_CLASS AutoAudioSession {
+ public:
+  AutoAudioSession() { widget::StartAudioSession(); }
 
-~AutoAudioSession() { widget::StopAudioSession(); }
-}
-;
+  ~AutoAudioSession() { widget::StopAudioSession(); }
+};
 #endif
 
 #define EXITCODE_RUNTIME_ERROR 3
