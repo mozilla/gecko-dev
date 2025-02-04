@@ -36,11 +36,11 @@ skip-if = [
 
 ["test_moz_checkbox.html"]
 
-["test_moz_color_input.html"]
-
 ["test_moz_fieldset.html"]
 
 ["test_moz_five_star.html"]
+
+["test_moz_input_color.html"]
 
 ["test_moz_input_search.html"]
 
