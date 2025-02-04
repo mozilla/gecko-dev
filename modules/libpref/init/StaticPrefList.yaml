@@ -4663,6 +4663,11 @@
   value: false
   mirror: always
 
+- name: dom.text_fragments.create_text_fragment.timeout_seconds
+  type: uint32_t
+  value: 5
+  mirror: always
+
 - name: dom.textMetrics.actualBoundingBox.enabled
   type: RelaxedAtomicBool
   value: true

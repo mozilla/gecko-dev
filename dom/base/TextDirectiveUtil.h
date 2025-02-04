@@ -10,6 +10,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/TimeStamp.h"
 #include "nsStringFwd.h"
 
 class nsIURI;
@@ -244,6 +245,20 @@ class TextDirectiveUtil final {
    */
   static RangeBoundary CreateRangeBoundaryByMovingOffsetFromRangeStart(
       nsRange* aRange, uint32_t aLogicalOffset);
+};
+
+class TimeoutWatchdog final {
+ public:
+  TimeoutWatchdog()
+      : mStartTime(TimeStamp::Now()),
+        mDuration(TimeDuration::FromSeconds(
+            StaticPrefs::
+                dom_text_fragments_create_text_fragment_timeout_seconds())) {}
+  bool IsDone() const { return TimeStamp::Now() - mStartTime > mDuration; }
+
+ private:
+  TimeStamp mStartTime;
+  TimeDuration mDuration;
 };
 }  // namespace mozilla::dom
 
