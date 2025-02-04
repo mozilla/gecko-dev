@@ -514,7 +514,7 @@ typedef JSObject* (*WebIDLDeserializer)(JSContext* aCx,
                                         nsIGlobalObject* aGlobal,
                                         JSStructuredCloneReader* aReader);
 
-typedef nsWrapperCache* (*WrapperCacheGetter)(JS::Handle<JSObject*> aObj);
+using WrapperCacheGetter = nsWrapperCache* (*)(JSObject*);
 
 // Special JSClass for reflected DOM objects.
 struct DOMJSClass {

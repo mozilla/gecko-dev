@@ -1263,6 +1263,18 @@ static bool NativeInterface2JSObjectAndThrowIfFailed(
   return true;
 }
 
+/* static */
+size_t binding_detail::NeedsQIToWrapperCache::ObjectMoved(JSObject* aObj,
+                                                          JSObject* aOld) {
+  JS::AutoAssertGCCallback inCallback;
+  nsWrapperCache* cache = GetWrapperCache(aObj);
+  if (cache) {
+    cache->UpdateWrapper(aObj, aOld);
+  }
+
+  return 0;
+}
+
 bool TryPreserveWrapper(JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(IsDOMObject(obj));
 

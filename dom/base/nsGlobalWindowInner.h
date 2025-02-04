@@ -77,7 +77,7 @@ class nsGlobalWindowOuter;
 class nsDOMWindowUtils;
 class nsIUserIdleService;
 struct nsRect;
-
+class nsWindowRoot;
 class nsWindowSizes;
 
 class IdleRequestExecutor;

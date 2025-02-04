@@ -75,7 +75,7 @@ class nsGlobalWindowObserver;
 class nsGlobalWindowInner;
 class nsDOMWindowUtils;
 struct nsRect;
-
+class nsWindowRoot;
 class nsWindowSizes;
 
 namespace mozilla {
