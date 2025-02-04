@@ -40,14 +40,10 @@ function runScriptSubprocess(script, args) {
   if (!bin.exists()) {
     do_throw("Can't find xpcshell binary");
   }
-  var grebind = ds.get("GreBinD", Ci.nsIFile);
-  if (!grebind.exists()) {
-    do_throw("Could not find binary dir");
-  }
 
   var file = do_get_file(script);
   var proc = new Process(bin);
-  var procArgs = ["-g", grebind.path, file.path].concat(args);
+  var procArgs = [file.path].concat(args);
 
   proc.run(false, procArgs, procArgs.length);
 

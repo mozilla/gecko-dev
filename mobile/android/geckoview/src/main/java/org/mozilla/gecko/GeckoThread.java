@@ -5,12 +5,9 @@
 
 package org.mozilla.gecko;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -329,30 +326,9 @@ public class GeckoThread extends Thread {
 
     if (!isChildProcess()) {
       GeckoSystemStateListener.getInstance().initialize(context);
-      startCrashHelper(context);
     }
 
     loadGeckoLibs(context);
-  }
-
-  private static void startCrashHelper(final Context context) {
-    try {
-      // Native crashes are reported through pipes, so we don't have to
-      // do anything special for that.
-      @SuppressWarnings("unchecked")
-      final Class<? extends Service> cls =
-          (Class<? extends Service>) Class.forName("org.mozilla.gecko.crashhelper.CrashHelper");
-      final Intent i = new Intent(context, cls);
-      i.putExtra("ClientPid", Process.myPid());
-
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        context.startForegroundService(i);
-      } else {
-        context.startService(i);
-      }
-    } catch (final ClassNotFoundException e) {
-      Log.w(LOGTAG, "Couldn't find the crash helper class");
-    }
   }
 
   private String[] getMainProcessArgs() {

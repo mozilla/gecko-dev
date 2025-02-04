@@ -109,9 +109,8 @@ extern crate rust_minidump_writer_linux;
 
 #[cfg(feature = "crashreporter")]
 extern crate mozannotation_client;
-
 #[cfg(feature = "crashreporter")]
-extern crate crash_helper_client;
+extern crate mozannotation_server;
 
 #[cfg(feature = "webmidi_midir_impl")]
 extern crate midir_impl;

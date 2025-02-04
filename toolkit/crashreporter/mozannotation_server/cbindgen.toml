@@ -8,14 +8,8 @@ braces = "SameLine"
 line_length = 100
 tab_width = 2
 language = "C++"
-include_guard = "crash_helper_ffi_generated_h"
+include_guard = "mozannotation_server_ffi_generated_h"
+includes = ["nsString.h", "nsTArrayForwardDeclare.h"]
 
-[defines]
-"target_os = android" = "MOZ_WIDGET_ANDROID"
-"target_os = linux" = "XP_LINUX"
-"target_os = macos" = "XP_MACOSX"
-"target_os = windows" = "XP_WIN"
-
-[parse]
-parse_deps = true
-include = ["crash_helper_common"]
+[export.rename]
+"ThinVec" = "nsTArray"

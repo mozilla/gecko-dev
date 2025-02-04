@@ -1586,7 +1586,6 @@ ${RemoveDefaultBrowserAgentShortcut}
   Push "nssdbm3.dll"
   Push "mozsqlite3.dll"
   Push "xpcom.dll"
-  Push "crashhelper.exe"
   Push "crashreporter.exe"
   Push "default-browser-agent.exe"
   Push "nmhproxy.exe"
