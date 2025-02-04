@@ -1677,14 +1677,14 @@ void MacroAssembler::atomicFetchOp64(Synchronization, AtomicOp op,
 // ========================================================================
 // Convert floating point.
 
-bool MacroAssembler::convertUInt64ToDoubleNeedsTemp() { return HasSSE3(); }
+bool MacroAssembler::convertUInt64ToDoubleNeedsTemp() { return false; }
 
 void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
                                            Register temp) {
+  MOZ_ASSERT(temp == Register::Invalid());
+
   // SUBPD needs SSE2, HADDPD needs SSE3.
   if (!HasSSE3()) {
-    MOZ_ASSERT(temp == Register::Invalid());
-
     // Zero the dest register to break dependencies, see convertInt32ToDouble.
     zeroDouble(dest);
 
