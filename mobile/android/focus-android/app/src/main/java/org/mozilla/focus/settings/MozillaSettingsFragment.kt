@@ -11,6 +11,7 @@ import org.mozilla.focus.R
 import org.mozilla.focus.browser.LocalizedContent
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.requireComponents
+import org.mozilla.focus.ext.showCrashReports
 import org.mozilla.focus.ext.showToolbar
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.Screen
@@ -86,6 +87,10 @@ class MozillaSettingsFragment :
                 requireComponents.appStore.dispatch(
                     AppAction.OpenSettings(Screen.Settings.Page.Licenses),
                 )
+            }
+
+            resources.getString(R.string.pref_key_crash_reports) -> {
+                context?.showCrashReports()
             }
         }
         return super.onPreferenceTreeClick(preference)
