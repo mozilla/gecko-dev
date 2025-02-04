@@ -1,6 +1,6 @@
-use std::{marker::PhantomData, mem::MaybeUninit, sync::Once};
+use std::marker::PhantomData;
 
-use crate::Error;
+use crate::{utilities::OnceLock, Error};
 
 pub(crate) struct JobToken(PhantomData<()>);
 
@@ -34,19 +34,14 @@ impl JobTokenServer {
     ///    that has to be static so that it will be shared by all cc
     ///    compilation.
     fn new() -> &'static Self {
-        static INIT: Once = Once::new();
-        static mut JOBSERVER: MaybeUninit<JobTokenServer> = MaybeUninit::uninit();
+        // TODO: Replace with a OnceLock once MSRV is 1.70
+        static JOBSERVER: OnceLock<JobTokenServer> = OnceLock::new();
 
-        unsafe {
-            INIT.call_once(|| {
-                let server = inherited_jobserver::JobServer::from_env()
-                    .map(Self::Inherited)
-                    .unwrap_or_else(|| Self::InProcess(inprocess_jobserver::JobServer::new()));
-                JOBSERVER = MaybeUninit::new(server);
-            });
-            // TODO: Poor man's assume_init_ref, as that'd require a MSRV of 1.55.
-            &*JOBSERVER.as_ptr()
-        }
+        JOBSERVER.get_or_init(|| {
+            unsafe { inherited_jobserver::JobServer::from_env() }
+                .map(Self::Inherited)
+                .unwrap_or_else(|| Self::InProcess(inprocess_jobserver::JobServer::new()))
+        })
     }
 }
 
@@ -56,19 +51,17 @@ pub(crate) enum ActiveJobTokenServer {
 }
 
 impl ActiveJobTokenServer {
-    pub(crate) fn new() -> Result<Self, Error> {
+    pub(crate) fn new() -> Self {
         match JobTokenServer::new() {
             JobTokenServer::Inherited(inherited_jobserver) => {
-                inherited_jobserver.enter_active().map(Self::Inherited)
+                Self::Inherited(inherited_jobserver.enter_active())
             }
-            JobTokenServer::InProcess(inprocess_jobserver) => {
-                Ok(Self::InProcess(inprocess_jobserver))
-            }
+            JobTokenServer::InProcess(inprocess_jobserver) => Self::InProcess(inprocess_jobserver),
         }
     }
 
-    pub(crate) async fn acquire(&self) -> Result<JobToken, Error> {
-        match &self {
+    pub(crate) async fn acquire(&mut self) -> Result<JobToken, Error> {
+        match self {
             Self::Inherited(jobserver) => jobserver.acquire().await,
             Self::InProcess(jobserver) => Ok(jobserver.acquire().await),
         }
@@ -139,32 +132,40 @@ mod inherited_jobserver {
             }
         }
 
-        pub(super) fn enter_active(&self) -> Result<ActiveJobServer<'_>, Error> {
-            ActiveJobServer::new(self)
+        pub(super) fn enter_active(&self) -> ActiveJobServer<'_> {
+            ActiveJobServer {
+                jobserver: self,
+                helper_thread: None,
+            }
+        }
+    }
+
+    struct HelperThread {
+        inner: jobserver::HelperThread,
+        /// When rx is dropped, all the token stored within it will be dropped.
+        rx: mpsc::Receiver<io::Result<jobserver::Acquired>>,
+    }
+
+    impl HelperThread {
+        fn new(jobserver: &JobServer) -> Result<Self, Error> {
+            let (tx, rx) = mpsc::channel();
+
+            Ok(Self {
+                rx,
+                inner: jobserver.inner.clone().into_helper_thread(move |res| {
+                    let _ = tx.send(res);
+                })?,
+            })
         }
     }
 
     pub(crate) struct ActiveJobServer<'a> {
         jobserver: &'a JobServer,
-        helper_thread: jobserver::HelperThread,
-        /// When rx is dropped, all the token stored within it will be dropped.
-        rx: mpsc::Receiver<io::Result<jobserver::Acquired>>,
+        helper_thread: Option<HelperThread>,
     }
 
     impl<'a> ActiveJobServer<'a> {
-        fn new(jobserver: &'a JobServer) -> Result<Self, Error> {
-            let (tx, rx) = mpsc::channel();
-
-            Ok(Self {
-                rx,
-                helper_thread: jobserver.inner.clone().into_helper_thread(move |res| {
-                    let _ = tx.send(res);
-                })?,
-                jobserver,
-            })
-        }
-
-        pub(super) async fn acquire(&self) -> Result<JobToken, Error> {
+        pub(super) async fn acquire(&mut self) -> Result<JobToken, Error> {
             let mut has_requested_token = false;
 
             loop {
@@ -173,26 +174,41 @@ mod inherited_jobserver {
                     break Ok(JobToken::new());
                 }
 
-                // Cold path, no global implicit token, obtain one
-                match self.rx.try_recv() {
-                    Ok(res) => {
-                        let acquired = res?;
+                match self.jobserver.inner.try_acquire() {
+                    Ok(Some(acquired)) => {
                         acquired.drop_without_releasing();
                         break Ok(JobToken::new());
                     }
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        break Err(Error::new(
-                            ErrorKind::JobserverHelpThreadError,
-                            "jobserver help thread has returned before ActiveJobServer is dropped",
-                        ))
-                    }
-                    Err(mpsc::TryRecvError::Empty) => {
-                        if !has_requested_token {
-                            self.helper_thread.request_token();
-                            has_requested_token = true;
+                    Ok(None) => YieldOnce::default().await,
+                    Err(err) if err.kind() == io::ErrorKind::Unsupported => {
+                        // Fallback to creating a help thread with blocking acquire
+                        let helper_thread = if let Some(thread) = self.helper_thread.as_ref() {
+                            thread
+                        } else {
+                            self.helper_thread
+                                .insert(HelperThread::new(self.jobserver)?)
+                        };
+
+                        match helper_thread.rx.try_recv() {
+                            Ok(res) => {
+                                let acquired = res?;
+                                acquired.drop_without_releasing();
+                                break Ok(JobToken::new());
+                            }
+                            Err(mpsc::TryRecvError::Disconnected) => break Err(Error::new(
+                                ErrorKind::JobserverHelpThreadError,
+                                "jobserver help thread has returned before ActiveJobServer is dropped",
+                            )),
+                            Err(mpsc::TryRecvError::Empty) => {
+                                if !has_requested_token {
+                                    helper_thread.inner.request_token();
+                                    has_requested_token = true;
+                                }
+                                YieldOnce::default().await
+                            }
                         }
-                        YieldOnce::default().await
                     }
+                    Err(err) => break Err(err.into()),
                 }
             }
         }
