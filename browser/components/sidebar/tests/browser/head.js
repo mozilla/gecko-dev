@@ -141,3 +141,8 @@ async function toggleSidebarPanel(win, commandID) {
   win.SidebarController.toggle(commandID);
   await promiseFocused;
 }
+
+// Reset the Glean events after each test.
+registerCleanupFunction(() => {
+  Services.fog.testResetFOG();
+});

@@ -273,6 +273,10 @@ var SidebarController = {
     return this._uninitializing;
   },
 
+  get inPopup() {
+    return !window.toolbar.visible;
+  },
+
   get sidebarContainer() {
     if (!this._sidebarContainer) {
       // This is the *parent* of the `sidebar-main` component.
@@ -493,7 +497,7 @@ var SidebarController = {
   },
 
   getUIState() {
-    return this._state.getProperties();
+    return this.inPopup ? null : this._state.getProperties();
   },
 
   /**
@@ -798,6 +802,11 @@ var SidebarController = {
    * If loading a sidebar was delayed on startup, start the load now.
    */
   async startDelayedLoad() {
+    if (this.inPopup) {
+      this._state.launcherVisible = false;
+      return;
+    }
+
     let sourceWindow = window.opener;
     // No source window means this is the initial window.  If we're being
     // opened from another window, check that it is one we might open a sidebar
@@ -1078,6 +1087,9 @@ var SidebarController = {
   },
 
   async handleToolbarButtonClick() {
+    if (this.inPopup || this.uninitializing) {
+      return;
+    }
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
     }
@@ -1088,7 +1100,7 @@ var SidebarController = {
    * Update `checked` state and tooltip text of the toolbar button.
    */
   updateToolbarButton(toolbarButton = this.toolbarButton) {
-    if (!toolbarButton) {
+    if (!toolbarButton || this.inPopup) {
       return;
     }
     if (!this.sidebarRevampEnabled) {
@@ -1218,6 +1230,9 @@ var SidebarController = {
   },
 
   addOrUpdateExtension(commandID, extension) {
+    if (this.inPopup) {
+      return;
+    }
     if (this.toolsAndExtensions.has(commandID)) {
       // Update existing extension
       let extensionToUpdate = this.toolsAndExtensions.get(commandID);
@@ -1414,6 +1429,9 @@ var SidebarController = {
    * @param {string} commandID
    */
   removeExtension(commandID) {
+    if (this.inPopup) {
+      return;
+    }
     const sidebar = this.sidebars.get(commandID);
     if (!sidebar) {
       return;
@@ -1439,6 +1457,9 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async show(commandID, triggerNode) {
+    if (this.inPopup) {
+      return false;
+    }
     if (this.currentID) {
       // If there is currently a panel open, we are about to hide it in order
       // to show another one, so record a "hide" event on the current panel.
@@ -1473,6 +1494,9 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async showInitially(commandID) {
+    if (this.inPopup) {
+      return false;
+    }
     this._recordPanelToggle(commandID, true);
 
     // Extensions without private window access wont be in the
@@ -1780,7 +1804,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController.POSITION_START_PREF,
   true,
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.uninitializing) {
+    if (!SidebarController.uninitializing && !SidebarController.inPopup) {
       SidebarController.setPosition();
       SidebarController.recordPositionSetting(newValue);
     }
@@ -1816,7 +1840,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.main.tools",
   "aichat,syncedtabs,history",
   () => {
-    if (!SidebarController.uninitializing) {
+    if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.refreshTools();
     }
   }
@@ -1827,7 +1851,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.visibility",
   "always-show",
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.uninitializing) {
+    if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.recordVisibilitySetting(newValue);
       SidebarController._state.revampVisibility = newValue;
       SidebarController._state.updateVisibility(
@@ -1845,7 +1869,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.verticalTabs",
   false,
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.uninitializing) {
+    if (!SidebarController.uninitializing && !SidebarController.inPopup) {
       SidebarController.recordTabsLayoutSetting(newValue);
       Services.prefs.setStringPref(
         SidebarController.VISIBILITY_PREF,

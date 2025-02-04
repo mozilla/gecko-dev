@@ -16,7 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 add_setup(async () => {
-  Services.fog.testResetFOG();
   SidebarController.init();
   await TestUtils.waitForTick();
 });

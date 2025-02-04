@@ -5156,7 +5156,9 @@ var SessionStoreInternal = {
     }
 
     const sidebarUIState = aWindow.SidebarController.getUIState();
-    winData.sidebar = structuredClone(sidebarUIState);
+    if (sidebarUIState) {
+      winData.sidebar = structuredClone(sidebarUIState);
+    }
 
     let workspaceID = aWindow.getWorkspaceID();
     if (workspaceID) {
