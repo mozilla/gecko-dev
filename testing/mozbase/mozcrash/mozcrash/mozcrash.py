@@ -202,6 +202,8 @@ ABORT_SIGNATURES = (
     "rust_begin_unwind",
     # This started showing up when we enabled dumping inlined functions
     "MOZ_Crash(char const*, int, char const*)",
+    # This also appears as an inlined function after bug 1858670
+    "MOZ_CrashSequence(void*, long)",
     "<alloc::boxed::Box<F,A> as core::ops::function::Fn<Args>>::call",
 )
 
