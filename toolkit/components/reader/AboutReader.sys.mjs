@@ -1038,10 +1038,10 @@ AboutReader.prototype = {
     }
 
     if (this._colorScheme == "custom") {
-      const colorInputs = this._doc.querySelectorAll("moz-input-color");
+      const colorInputs = this._doc.querySelectorAll("color-input");
       colorInputs.forEach(input => {
         // Set document body styles to pref values.
-        let property = input.getAttribute("name");
+        let property = input.getAttribute("prop-name");
         let pref = `reader.custom_colors.${property}`;
         let customColor = Services.prefs.getStringPref(pref, "");
         // If customColor is truthy, set the value from pref.
@@ -1130,27 +1130,30 @@ AboutReader.prototype = {
 
   _setupColorInput(prop) {
     let doc = this._doc;
-    let input = doc.createElement("moz-input-color");
-    input.setAttribute("name", prop);
-    let labelL10nId = `about-reader-custom-colors-${prop}2`;
+    let input = doc.createElement("color-input");
+    input.setAttribute("prop-name", prop);
+    let labelL10nId = `about-reader-custom-colors-${prop}`;
     input.setAttribute("data-l10n-id", labelL10nId);
 
     let pref = `reader.custom_colors.${prop}`;
     let customColor = Services.prefs.getStringPref(pref, "");
     // Set the swatch color from prefs if one has been set.
-    let defaultColor = customColor || DEFAULT_COLORS[prop];
-    input.setAttribute("value", defaultColor);
+    if (customColor) {
+      input.setAttribute("color", customColor);
+    } else {
+      let defaultColor = DEFAULT_COLORS[prop];
+      input.setAttribute("color", defaultColor);
+    }
 
     // Attach event listener to update the pref and page colors on input.
-    input.addEventListener("input", e => {
+    input.addEventListener("color-picked", e => {
       const cssPropToUpdate = `--custom-theme-${prop}`;
-      const { value: updatedValue } = e.originalTarget;
-      this._doc.body.style.setProperty(cssPropToUpdate, updatedValue);
+      this._doc.body.style.setProperty(cssPropToUpdate, e.detail);
 
       const prefToUpdate = `reader.custom_colors.${prop}`;
-      lazy.AsyncPrefs.set(prefToUpdate, updatedValue);
+      lazy.AsyncPrefs.set(prefToUpdate, e.detail);
 
-      if (updatedValue != DEFAULT_COLORS[prop].toLowerCase()) {
+      if (e.detail != DEFAULT_COLORS[prop].toLowerCase()) {
         this._toggleColorsResetButton(true);
       }
     });
@@ -1184,9 +1187,9 @@ AboutReader.prototype = {
 
   _resetCustomColors() {
     // Need to reset prefs, page colors, and color inputs.
-    const colorInputs = this._doc.querySelectorAll("moz-input-color");
+    const colorInputs = this._doc.querySelectorAll("color-input");
     colorInputs.forEach(input => {
-      let property = input.getAttribute("name");
+      let property = input.getAttribute("prop-name");
       let pref = `reader.custom_colors.${property}`;
       lazy.AsyncPrefs.set(pref, "");
 
@@ -1195,7 +1198,7 @@ AboutReader.prototype = {
       this._doc.body.style.setProperty(cssProp, "");
 
       let defaultColor = DEFAULT_COLORS[property];
-      input.setAttribute("value", defaultColor);
+      input.setAttribute("color", defaultColor);
     });
     this._toggleColorsResetButton(false);
   },
