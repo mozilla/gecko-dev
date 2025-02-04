@@ -3822,6 +3822,10 @@ void av1_get_one_pass_rt_params(AV1_COMP *cpi, FRAME_TYPE *const frame_type,
     resize_reset_rc(cpi, resize_pending_params->width,
                     resize_pending_params->height, cm->width, cm->height);
   }
+  if (svc->temporal_layer_id == 0) {
+    rc->num_col_blscroll_last_tl0 = 0;
+    rc->num_row_blscroll_last_tl0 = 0;
+  }
   // Set the GF interval and update flag.
   if (!rc->rtc_external_ratectrl)
     set_gf_interval_update_onepass_rt(cpi, *frame_type);

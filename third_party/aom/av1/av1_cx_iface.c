@@ -1084,7 +1084,6 @@ static void set_encoder_config(AV1EncoderConfig *oxcf,
   AlgoCfg *const algo_cfg = &oxcf->algo_cfg;
   ToolCfg *const tool_cfg = &oxcf->tool_cfg;
 
-  const int is_vbr = cfg->rc_end_usage == AOM_VBR;
   oxcf->profile = cfg->g_profile;
   oxcf->max_threads = (int)cfg->g_threads;
 
@@ -1167,9 +1166,9 @@ static void set_encoder_config(AV1EncoderConfig *oxcf,
   rc_cfg->cq_level = av1_quantizer_to_qindex(extra_cfg->cq_level);
   rc_cfg->under_shoot_pct = cfg->rc_undershoot_pct;
   rc_cfg->over_shoot_pct = cfg->rc_overshoot_pct;
-  rc_cfg->maximum_buffer_size_ms = is_vbr ? 240000 : cfg->rc_buf_sz;
-  rc_cfg->starting_buffer_level_ms = is_vbr ? 60000 : cfg->rc_buf_initial_sz;
-  rc_cfg->optimal_buffer_level_ms = is_vbr ? 60000 : cfg->rc_buf_optimal_sz;
+  rc_cfg->maximum_buffer_size_ms = cfg->rc_buf_sz;
+  rc_cfg->starting_buffer_level_ms = cfg->rc_buf_initial_sz;
+  rc_cfg->optimal_buffer_level_ms = cfg->rc_buf_optimal_sz;
   // Convert target bandwidth from Kbit/s to Bit/s
   rc_cfg->target_bandwidth = 1000 * cfg->rc_target_bitrate;
   rc_cfg->drop_frames_water_mark = cfg->rc_dropframe_thresh;

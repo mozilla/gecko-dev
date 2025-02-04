@@ -35,6 +35,7 @@ list(APPEND AOM_TEST_DATA_FILE_NAMES
             "niklas_1280_720_30.y4m"
             "rush_hour_444.y4m"
             "screendata.y4m"
+            "screendata.1920_1080.y4m"
             "niklas_640_480_30.yuv"
             "vase10x10.yuv"
             "vase10x10_tiles.txt"

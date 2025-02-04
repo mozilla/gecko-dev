@@ -1078,6 +1078,39 @@ class DatarateTestSVC
 #endif
   }
 
+  virtual void BasicRateTargetingSVC2TL1SLScreenDropFrame1920x1080Test() {
+    cfg_.rc_buf_initial_sz = 50;
+    cfg_.rc_buf_optimal_sz = 50;
+    cfg_.rc_buf_sz = 100;
+    cfg_.rc_dropframe_thresh = 30;
+    cfg_.rc_min_quantizer = 0;
+    cfg_.rc_max_quantizer = 52;
+    cfg_.rc_end_usage = AOM_CBR;
+    cfg_.g_lag_in_frames = 0;
+    cfg_.g_error_resilient = 0;
+
+    ::libaom_test::Y4mVideoSource video("screendata.1920_1080.y4m", 0, 60);
+
+    const int bitrate_array[2] = { 60, 100 };
+    cfg_.rc_target_bitrate = bitrate_array[GET_PARAM(4)];
+    ResetModel();
+    screen_mode_ = 1;
+    number_temporal_layers_ = 2;
+    number_spatial_layers_ = 1;
+    target_layer_bitrate_[0] = 60 * cfg_.rc_target_bitrate / 100;
+    target_layer_bitrate_[1] = cfg_.rc_target_bitrate;
+    ASSERT_NO_FATAL_FAILURE(RunLoop(&video));
+#if CONFIG_AV1_DECODER
+    // Top temporal layers are non_reference, so exclude them from
+    // mismatch count, since loopfilter/cdef is not applied for these on
+    // encoder side, but is always applied on decoder.
+    // This means 150 = #frames(300) - #TL2_frames(150).
+    // We use LE for screen since loopfilter level can become very small
+    // or zero and then the frame is not a mismatch.
+    EXPECT_LE(GetMismatchFrames(), 150u);
+#endif
+  }
+
   virtual void BasicRateTargetingSVC1TL3SLScreenTest() {
     cfg_.rc_buf_initial_sz = 500;
     cfg_.rc_buf_optimal_sz = 500;
@@ -2649,6 +2682,14 @@ TEST_P(DatarateTestSVC, BasicRateTargetingSVC3TL1SLScreen) {
 // values of rc_buf_initial/optimal/sz to trigger postencode frame drop.
 TEST_P(DatarateTestSVC, BasicRateTargetingSVC2TL1SLScreenDropFrame) {
   BasicRateTargetingSVC2TL1SLScreenDropFrameTest();
+}
+
+// Check basic rate targeting for CBR, for 2 temporal layers, 1 spatial
+// for screen mode, with frame dropper on at low bitrates. Use small
+// values of rc_buf_initial/optimal/sz to trigger postencode frame drop.
+// Use 1920x1080 clip.
+TEST_P(DatarateTestSVC, BasicRateTargetingSVC2TL1SLScreenDropFrame1920x1080) {
+  BasicRateTargetingSVC2TL1SLScreenDropFrame1920x1080Test();
 }
 
 // Check basic rate targeting for CBR, for 3 spatial layers, 1 temporal

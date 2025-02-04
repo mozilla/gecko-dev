@@ -2318,8 +2318,9 @@ int main(int argc, const char **argv_) {
                 "match input format.\n",
                 stream->config.cfg.g_profile);
       }
-      if ((global.show_psnr == 2) && (stream->config.cfg.g_input_bit_depth ==
-                                      stream->config.cfg.g_bit_depth)) {
+      if (global.show_psnr == 2 &&
+          stream->config.cfg.g_input_bit_depth ==
+              (unsigned int)stream->config.cfg.g_bit_depth) {
         fprintf(stderr,
                 "Warning: --psnr==2 and --psnr==1 will provide same "
                 "results when input bit-depth == stream bit-depth, "

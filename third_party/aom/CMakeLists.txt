@@ -333,6 +333,12 @@ if(CONFIG_AV1_ENCODER)
   # libaom static library.
   if(BUILD_SHARED_LIBS)
     target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} aom_static)
+    # TODO: https://aomedia.issues.chromium.org/391715078 - This condition can
+    # be removed after aom_av1_rc restricts its symbol visibility.
+    if(CYGWIN OR MINGW)
+      target_link_options(aom_av1_rc ${AOM_LIB_LINK_TYPE}
+                          LINKER:--allow-multiple-definition)
+    endif()
   else()
     target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} aom)
   endif()
@@ -858,8 +864,8 @@ if(BUILD_SHARED_LIBS)
   # errors (don't use it with AddressSanitizer)." See
   # https://clang.llvm.org/docs/AddressSanitizer.html#usage. Similarly, see
   # https://clang.llvm.org/docs/MemorySanitizer.html#usage.
-  if(NOT WIN32
-     AND NOT APPLE
+  if(NOT
+     (APPLE OR CYGWIN OR WIN32)
      AND NOT (CMAKE_C_COMPILER_ID MATCHES "Clang" AND SANITIZE))
     # The -z defs linker option reports unresolved symbol references from object
     # files when building a shared library.

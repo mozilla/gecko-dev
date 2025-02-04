@@ -75,6 +75,8 @@ if(NOT AOM_TARGET_CPU)
     set(AOM_TARGET_CPU "arm64")
   elseif(cpu_lowercase MATCHES "^ppc")
     set(AOM_TARGET_CPU "ppc")
+  elseif(cpu_lowercase MATCHES "^riscv")
+    set(AOM_TARGET_CPU "riscv")
   else()
     message(WARNING "The architecture ${CMAKE_SYSTEM_PROCESSOR} is not "
                     "supported, falling back to the generic target")

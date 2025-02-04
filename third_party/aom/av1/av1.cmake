@@ -445,6 +445,9 @@ list(APPEND AOM_AV1_ENCODER_INTRIN_SSE4_2
 
 list(APPEND AOM_AV1_COMMON_INTRIN_VSX "${AOM_ROOT}/av1/common/ppc/cfl_ppc.c")
 
+list(APPEND AOM_AV1_COMMON_INTRIN_RVV
+            "${AOM_ROOT}/av1/common/riscv/cdef_block_rvv.c")
+
 if(CONFIG_THREE_PASS)
   list(APPEND AOM_AV1_ENCODER_SOURCES "${AOM_ROOT}/av1/encoder/thirdpass.c"
               "${AOM_ROOT}/av1/encoder/thirdpass.h")
@@ -819,6 +822,13 @@ function(setup_av1_targets)
     if(AOM_AV1_COMMON_INTRIN_VSX)
       add_intrinsics_object_library("-mvsx -maltivec" "vsx" "aom_av1_common"
                                     "AOM_AV1_COMMON_INTRIN_VSX")
+    endif()
+  endif()
+
+  if(HAVE_RVV)
+    if(AOM_AV1_COMMON_INTRIN_RVV)
+      add_intrinsics_object_library("-march=rv64gcv" "rvv" "aom_av1_common"
+                                    "AOM_AV1_COMMON_INTRIN_RVV")
     endif()
   endif()
 
