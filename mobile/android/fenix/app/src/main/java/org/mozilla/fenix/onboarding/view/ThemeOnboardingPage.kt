@@ -126,7 +126,7 @@ fun ThemeOnboardingPage(
             PrimaryButton(
                 text = primaryButton.text,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .width(width = FirefoxTheme.layout.size.maxWidth.small)
                     .semantics { testTag = title + "onboarding_card.positive_button" },
                 onClick = { primaryButton.onClick() },
             )

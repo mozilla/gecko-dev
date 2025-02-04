@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -110,7 +109,7 @@ fun TermsOfServiceOnboardingPage(
                     PrimaryButton(
                         text = primaryButton.text,
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .width(width = FirefoxTheme.layout.size.maxWidth.small)
                             .semantics { testTag = title + "onboarding_card.positive_button" },
                         onClick = primaryButton.onClick,
                     )

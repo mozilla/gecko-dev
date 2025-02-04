@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
@@ -31,7 +31,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.button.PrimaryButton
@@ -142,7 +142,7 @@ fun OnboardingPage(
             ) {
                 PrimaryButton(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(width = FirefoxTheme.layout.size.maxWidth.small)
                         .semantics {
                             testTag = pageState.title + "onboarding_card.positive_button"
                         },
@@ -154,7 +154,7 @@ fun OnboardingPage(
                     Spacer(modifier = Modifier.height(8.dp))
                     SecondaryButton(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .width(width = FirefoxTheme.layout.size.maxWidth.small)
                             .semantics {
                                 testTag = pageState.title + "onboarding_card.negative_button"
                             },
@@ -183,7 +183,7 @@ fun imageHeight(boxWithConstraintsScope: BoxWithConstraintsScope): Dp {
     return boxWithConstraintsScope.maxHeight.times(imageHeightRatio)
 }
 
-@LightDarkPreview
+@FlexibleWindowLightDarkPreview
 @Composable
 private fun OnboardingPagePreview() {
     FirefoxTheme {
