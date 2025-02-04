@@ -1130,17 +1130,6 @@ export class SearchEngine {
     }
   }
 
-  // Where the engine is being loaded from: will return the URI's spec if the
-  // engine is being downloaded and does not yet have a file. This is only used
-  // for logging and error messages.
-  get _location() {
-    if (this._uri) {
-      return this._uri.spec;
-    }
-
-    return this._loadPath;
-  }
-
   /**
    * Whether or not this engine is provided by the application, e.g. it is
    * in the list of configured search engines.

@@ -107,7 +107,6 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
 export async function loadAndParseOpenSearchEngine(sourceURI, lastModified) {
   if (!sourceURI) {
     throw Components.Exception(
-      sourceURI,
       "Must have URI when calling _install!",
       Cr.NS_ERROR_UNEXPECTED
     );

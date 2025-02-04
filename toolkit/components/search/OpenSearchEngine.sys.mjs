@@ -126,7 +126,7 @@ export class OpenSearchEngine extends SearchEngine {
     let updateURL = this._getURLOfType(lazy.SearchUtils.URL_TYPE.OPENSEARCH);
     let updateURI =
       updateURL && updateURL._hasRelation("self")
-        ? updateURL.getSubmission("", this).uri
+        ? updateURL.getSubmission("", this.queryCharset).uri
         : lazy.SearchUtils.makeURI(this._updateURL);
     return updateURI;
   }
@@ -185,13 +185,11 @@ export class OpenSearchEngine extends SearchEngine {
    */
   #setEngineData(data) {
     let name = data.name.trim();
-    if (!this._engineToUpdate) {
-      if (Services.search.getEngineByName(name)) {
-        throw Components.Exception(
-          "Found a duplicate engine",
-          Ci.nsISearchService.ERROR_DUPLICATE_ENGINE
-        );
-      }
+    if (Services.search.getEngineByName(name)) {
+      throw Components.Exception(
+        "Found a duplicate engine",
+        Ci.nsISearchService.ERROR_DUPLICATE_ENGINE
+      );
     }
 
     this._name = name;

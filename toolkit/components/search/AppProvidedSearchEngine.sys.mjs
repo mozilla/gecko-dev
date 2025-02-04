@@ -432,7 +432,6 @@ export class AppProvidedSearchEngine extends SearchEngine {
   constructor({ config, settings }) {
     super({
       loadPath: "[app]" + config.identifier,
-      isAppProvided: true,
       id: config.identifier,
     });
 
@@ -749,7 +748,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
     this.#prevEngineInfo.forEach((_value, key) => {
       let newValue;
       if (key == "submissionURL") {
-        newValue = this.submissionURL ?? this.getSubmission("foo").uri.spec;
+        newValue = this.getSubmission("foo").uri.spec;
       } else {
         newValue = this[key];
       }
