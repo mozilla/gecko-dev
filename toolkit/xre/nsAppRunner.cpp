@@ -1589,6 +1589,18 @@ nsXULAppInfo::GetDrawInTitlebar(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::GetCaretBlinkCount(int32_t* aResult) {
+  *aResult = LookAndFeel::CaretBlinkCount();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetCaretBlinkTime(int32_t* aResult) {
+  *aResult = LookAndFeel::CaretBlinkTime();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::GetDesktopEnvironment(nsACString& aDesktopEnvironment) {
 #ifdef MOZ_WIDGET_GTK
   aDesktopEnvironment.Assign(GetDesktopEnvironmentIdentifier());

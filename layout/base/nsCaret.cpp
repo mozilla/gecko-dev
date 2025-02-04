@@ -601,13 +601,6 @@ nsCaret::NotifySelectionChanged(Document*, Selection* aDomSel, int16_t aReason,
 }
 
 void nsCaret::ResetBlinking() {
-  using IntID = LookAndFeel::IntID;
-
-  // The default caret blinking rate (in ms of blinking interval)
-  constexpr uint32_t kDefaultBlinkRate = 500;
-  // The default caret blinking count (-1 for "never stop blinking")
-  constexpr int32_t kDefaultBlinkCount = -1;
-
   mIsBlinkOn = true;
 
   if (mReadOnly || !IsVisible()) {
@@ -615,19 +608,17 @@ void nsCaret::ResetBlinking() {
     return;
   }
 
-  const auto blinkRate =
-      LookAndFeel::GetInt(IntID::CaretBlinkTime, kDefaultBlinkRate);
-
-  if (blinkRate <= 0) {
+  const auto blinkTime = LookAndFeel::CaretBlinkTime();
+  if (blinkTime <= 0) {
     StopBlinking();
     return;
   }
 
-  mBlinkCount = LookAndFeel::GetInt(IntID::CaretBlinkCount, kDefaultBlinkCount);
+  mBlinkCount = LookAndFeel::CaretBlinkCount();
   if (!mBlinkTimer) {
     mBlinkTimer = NS_NewTimer();
   }
-  mBlinkTimer->InitWithNamedFuncCallback(CaretBlinkCallback, this, blinkRate,
+  mBlinkTimer->InitWithNamedFuncCallback(CaretBlinkCallback, this, blinkTime,
                                          nsITimer::TYPE_REPEATING_SLACK,
                                          "CaretBlinkCallback");
 }
