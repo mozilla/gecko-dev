@@ -4946,10 +4946,9 @@ void HTMLEditor::DoContentInserted(nsIContent* aChild,
   //     be deleted at least during the call.
   RefPtr<HTMLEditor> kungFuDeathGrip(this);
 
-  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
-  if (NS_WARN_IF(!editActionData.CanHandle())) {
-    return;
-  }
+  // Do not create AutoEditActionDataSetter here because it grabs `Selection`,
+  // but that appear in the profile. If you need to create to it in some cases,
+  // you should do it in the minimum scope.
 
   if (ShouldReplaceRootElement()) {
     // Forget maybe disconnected root element right now because nobody should
@@ -5026,10 +5025,9 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentWillBeRemoved(
   //     deleted during the call.
   RefPtr<HTMLEditor> kungFuDeathGrip(this);
 
-  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
-  if (NS_WARN_IF(!editActionData.CanHandle())) {
-    return;
-  }
+  // Do not create AutoEditActionDataSetter here because it grabs `Selection`,
+  // but that appear in the profile. If you need to create to it in some cases,
+  // you should do it in the minimum scope.
 
   // FYI: mRootElement may be the <body> of the document or the root element.
   // Therefore, we don't need to check it across shadow DOM boundaries.
