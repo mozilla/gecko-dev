@@ -4625,7 +4625,7 @@
 # This enables the SVGPathSegment APIs
 - name: dom.svg.pathSegment.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # For area and anchor elements with target=_blank and no rel set to
