@@ -18,7 +18,7 @@ const TEST_URI = `
 
 // Indentation is important. A strict check will be done against the clipboard content.
 const EXPECTED_CLIPBOARD = `
-/* Inline #0 | data:text/html;charset=utf-8,${TEST_URI} */
+/* Inline | data:text/html;charset=utf-8,${TEST_URI} */
 
 div {
   /* color: red; */

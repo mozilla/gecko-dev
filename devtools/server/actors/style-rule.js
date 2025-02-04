@@ -269,14 +269,11 @@ class StyleRuleActor extends Actor {
       const inspectorActor = this.pageStyle.inspector;
       const resourceId =
         this.pageStyle.styleSheetsManager.getStyleSheetResourceId(sheet);
-      const styleSheetIndex =
-        this.pageStyle.styleSheetsManager.getStyleSheetIndex(resourceId);
       data.source = {
         // Inline stylesheets have a null href; Use window URL instead.
         type: sheet.href ? "stylesheet" : "inline",
         href: sheet.href || inspectorActor.window.location.toString(),
         id: resourceId,
-        index: styleSheetIndex,
         // Whether the stylesheet lives in a different frame than the host document.
         isFramed: inspectorActor.window !== inspectorActor.window.top,
       };

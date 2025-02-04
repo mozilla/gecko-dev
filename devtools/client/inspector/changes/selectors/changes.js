@@ -145,7 +145,7 @@ function getChangesTree(state, filter = {}) {
 
 // For inline stylesheet sources, the stylesheet index and host document URL are used:
 //
-// /* Inline #1 | https://example.com */
+// /* Inline | https://example.com */
 //
 // .selector {
 //  /* property: oldvalue; */
