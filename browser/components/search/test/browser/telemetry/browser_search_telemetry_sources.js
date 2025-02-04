@@ -298,7 +298,7 @@ add_task(async function test_source_searchbar() {
     async () => {
       tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
-      let sb = BrowserSearch.searchBar;
+      let sb = document.getElementById("searchbar");
       // Write the search query in the searchbar.
       sb.focus();
       sb.value = "searchSuggestion";

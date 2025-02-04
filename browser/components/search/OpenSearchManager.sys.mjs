@@ -133,7 +133,7 @@ class _OpenSearchManager {
       engines || []
     );
 
-    let searchBar = win.BrowserSearch.searchBar;
+    let searchBar = win.document.getElementById("searchbar");
     if (!searchBar) {
       return;
     }

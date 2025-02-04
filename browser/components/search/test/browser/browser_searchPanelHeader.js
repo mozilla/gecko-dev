@@ -16,7 +16,7 @@ add_setup(async function () {
   await gCUITestUtils.addSearchBar();
   win = await BrowserTestUtils.openNewBrowserWindow();
 
-  searchBar = win.BrowserSearch.searchBar;
+  searchBar = win.document.getElementById("searchbar");
   searchPopup = win.document.getElementById("PopupSearchAutoComplete");
   searchIcon = searchBar.querySelector(".searchbar-search-button");
 

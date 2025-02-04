@@ -48,7 +48,7 @@ function assertSearchStringIsNotInUrlbar(searchString) {
 // the search term should not show in the URL bar.
 add_task(async function search_bar_on() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  await gCUITestUtils.addSearchBar();
+  let searchBar = await gCUITestUtils.addSearchBar();
 
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(
     tab.linkedBrowser,
@@ -56,7 +56,6 @@ add_task(async function search_bar_on() {
     `https://www.example.com/?q=${SEARCH_STRING}`
   );
 
-  let searchBar = BrowserSearch.searchBar;
   searchBar.value = SEARCH_STRING;
   searchBar.focus();
   EventUtils.synthesizeKey("KEY_Enter");

@@ -132,7 +132,7 @@ async function testSearchEngine(engineDetails) {
     base.replace("{code}", engineDetails.codes.submission),
     "Check search URL for 'foo'"
   );
-  let sb = BrowserSearch.searchBar;
+  let sb = document.getElementById("searchbar");
 
   let engineTests = [
     {

@@ -18,11 +18,11 @@ add_task(async function test_composition_with_focus() {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "https://example.com");
 
   info("Focus on the search bar");
-  const searchBarTextBox = BrowserSearch.searchBar.textbox;
+  const searchBarTextBox = document.getElementById("searchbar").textbox;
   EventUtils.synthesizeMouseAtCenter(searchBarTextBox, {});
   is(
     document.activeElement,
-    BrowserSearch.searchBar.textbox,
+    document.getElementById("searchbar").textbox,
     "The text box of search bar has focus"
   );
 
@@ -40,7 +40,7 @@ add_task(async function test_composition_with_focus() {
   EventUtils.synthesizeMouseAtCenter(searchBarTextBox, {});
   is(
     document.activeElement,
-    BrowserSearch.searchBar.textbox,
+    document.getElementById("searchbar").textbox,
     "The textbox of search bar has focus again"
   );
 
@@ -67,7 +67,7 @@ add_task(async function test_composition_with_focus() {
   });
   is(
     document.activeElement,
-    BrowserSearch.searchBar.textbox,
+    document.getElementById("searchbar").textbox,
     "The search bar still has focus"
   );
 

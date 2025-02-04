@@ -1838,13 +1838,6 @@ var newWindowButtonObserver = {
 
 const BrowserSearch = {
   /**
-   * Returns the search bar element if it is present in the toolbar, null otherwise.
-   */
-  get searchBar() {
-    return document.getElementById("searchbar");
-  },
-
-  /**
    * Infobar to notify the user's search engine has been removed
    * and replaced with an application default search engine.
    *

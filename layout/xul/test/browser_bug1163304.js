@@ -2,9 +2,10 @@ const { CustomizableUITestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/CustomizableUITestUtils.sys.mjs"
 );
 let gCUITestUtils = new CustomizableUITestUtils(window);
+let searchBar;
 
 add_task(async function test_setup() {
-  await gCUITestUtils.addSearchBar();
+  searchBar = await gCUITestUtils.addSearchBar();
   registerCleanupFunction(() => {
     gCUITestUtils.removeSearchBar();
   });
@@ -12,10 +13,10 @@ add_task(async function test_setup() {
 
 add_task(async function () {
   const promiseFocusInSearchBar = BrowserTestUtils.waitForEvent(
-    BrowserSearch.searchBar.textbox,
+    searchBar.textbox,
     "focus"
   );
-  BrowserSearch.searchBar.focus();
+  searchBar.focus();
   await promiseFocusInSearchBar;
 
   let DOMWindowUtils = EventUtils._getDOMWindowUtils();
@@ -33,7 +34,7 @@ add_task(async function () {
   await (async () => {
     async function tryToOpen() {
       try {
-        BrowserSearch.searchBar.focus();
+        searchBar.focus();
         EventUtils.synthesizeKey("KEY_F4");
         await TestUtils.waitForCondition(
           () => searchPopup.state == "open",

@@ -180,11 +180,11 @@ export var SearchUIUtils = {
       }
     };
 
-    let searchBar = window.BrowserSearch.searchBar;
+    let searchBar = window.document.getElementById("searchbar");
     let placement =
       lazy.CustomizableUI.getPlacementOfWidget("search-container");
     let focusSearchBar = () => {
-      searchBar = window.BrowserSearch.searchBar;
+      searchBar = window.document.getElementById("searchbar");
       searchBar.select();
       focusUrlBarIfSearchFieldIsNotActive(searchBar);
     };

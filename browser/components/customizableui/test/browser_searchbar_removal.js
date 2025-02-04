@@ -17,12 +17,12 @@ add_task(async function checkSearchBarPresent() {
   );
 
   Assert.ok(
-    BrowserSearch.searchBar,
+    document.getElementById("searchbar"),
     "Search bar should be present in the Nav bar"
   );
   SearchWidgetTracker._updateSearchBarVisibilityBasedOnUsage();
   Assert.ok(
-    !BrowserSearch.searchBar,
+    !document.getElementById("searchbar"),
     "Search bar should not be present in the Nav bar"
   );
   Assert.ok(

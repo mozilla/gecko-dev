@@ -50,7 +50,7 @@ add_task(async function test_support_toolbar_field_properties() {
 
   let fields = [
     document.querySelector("#urlbar-background"),
-    BrowserSearch.searchBar,
+    document.getElementById("searchbar"),
   ].filter(field => {
     let bounds = field.getBoundingClientRect();
     return bounds.width > 0 && bounds.height > 0;

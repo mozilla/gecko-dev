@@ -106,7 +106,7 @@ async function typeInSearchField(browser, text, fieldName) {
 
 async function searchInSearchbar(inputText, win = window) {
   await new Promise(r => waitForFocus(r, win));
-  let sb = win.BrowserSearch.searchBar;
+  let sb = win.document.getElementById("searchbar");
   // Write the search query in the searchbar.
   sb.focus();
   sb.value = inputText;

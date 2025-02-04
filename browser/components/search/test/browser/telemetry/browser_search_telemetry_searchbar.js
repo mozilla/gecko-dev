@@ -7,6 +7,7 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 let suggestionEngine;
+let searchBar;
 
 function checkHistogramResults(resultIndexes, expected, histogram) {
   for (let [i, val] of Object.entries(resultIndexes.values)) {
@@ -35,7 +36,7 @@ function checkHistogramResults(resultIndexes, expected, histogram) {
  *        The options to use for the click.
  */
 function clickSearchbarSuggestion(entryName, clickOptions = {}) {
-  let richlistbox = BrowserSearch.searchBar.textbox.popup.richlistbox;
+  let richlistbox = searchBar.textbox.popup.richlistbox;
   let richlistitem = Array.prototype.find.call(
     richlistbox.children,
     item => item.getAttribute("ac-value") == entryName
@@ -47,7 +48,7 @@ function clickSearchbarSuggestion(entryName, clickOptions = {}) {
 }
 
 add_setup(async function () {
-  await gCUITestUtils.addSearchBar();
+  searchBar = await gCUITestUtils.addSearchBar();
   const url = getRootDirectory(gTestPath) + "telemetrySearchSuggestions.xml";
   suggestionEngine = await SearchTestUtils.installOpenSearchEngine({ url });
 
