@@ -10,10 +10,9 @@
   type="child"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="gFxaPairDeviceDialog.init();"
-  onunload="gFxaPairDeviceDialog.uninit()"
   data-l10n-id="fxa-pair-device-dialog-sync2"
   data-l10n-attrs="style"
+  csp="default-src chrome:; img-src chrome: data:; style-src chrome: 'unsafe-inline';"
 >
   <dialog id="fxaPairDeviceDialog1" buttons="accept">
     <linkset>
@@ -59,7 +58,7 @@
         <vbox align="center" id="qrWrapper" pairing-status="loading">
           <box id="qrContainer"></box>
           <box id="qrSpinner"></box>
-          <vbox id="qrError" onclick="gFxaPairDeviceDialog.startPairingFlow();">
+          <vbox id="qrError">
             <image id="refresh-qr" />
             <label
               class="qr-error-text"

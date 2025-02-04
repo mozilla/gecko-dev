@@ -35,6 +35,11 @@ const MIN_PAIRING_LOADING_TIME_MS = 1000;
  */
 var gFxaPairDeviceDialog = {
   init() {
+    window.addEventListener("unload", () => this.uninit());
+    document
+      .getElementById("qrError")
+      .addEventListener("click", () => this.startPairingFlow());
+
     this._resetBackgroundQR();
     // We let the modal show itself before eventually showing a primary-password dialog later.
     Services.tm.dispatchToMainThread(() => this.startPairingFlow());
@@ -140,3 +145,5 @@ var gFxaPairDeviceDialog = {
     }
   },
 };
+
+window.addEventListener("load", () => gFxaPairDeviceDialog.init());
