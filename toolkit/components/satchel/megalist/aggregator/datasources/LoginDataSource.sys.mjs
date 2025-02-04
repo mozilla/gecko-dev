@@ -39,6 +39,11 @@ const ALERT_VALUES = {
   none: 2,
 };
 
+export const DISPLAY_MODES = {
+  ALERTS: "DisplayAlerts",
+  ALL: "DisplayAll",
+};
+
 const VIEW_MODES = {
   LIST: "List",
   ADD: "Add",
@@ -78,7 +83,7 @@ export class LoginDataSource extends DataSourceBase {
   #enabled;
   #header;
   #exportPasswordsStrings;
-  #sortId;
+  #displayMode;
 
   constructor(...args) {
     super(...args);
@@ -169,11 +174,7 @@ export class LoginDataSource extends DataSourceBase {
           url: PREFERENCES_URL,
         },
         { id: "Help", label: "passwords-command-help", url: SUPPORT_URL },
-        { id: "SortByName", label: "passwords-command-sort-name" },
-        {
-          id: "SortByAlerts",
-          label: "passwords-command-sort-alerts",
-        },
+        { id: "UpdateDisplayMode" },
         { id: "OpenLink" }
       );
       this.#header.executeImport = async () =>
@@ -206,17 +207,11 @@ export class LoginDataSource extends DataSourceBase {
           strings.passwordsExportFilePickerCsvFilterTitle,
       };
 
-      this.#header.executeSortByName = () => {
-        if (this.#sortId !== "name") {
-          this.#sortId = "name";
+      this.#header.executeUpdateDisplayMode = displayMode => {
+        if (this.#displayMode !== displayMode) {
+          this.#displayMode = displayMode;
           this.#reloadDataSource();
-        }
-      };
-
-      this.#header.executeSortByAlerts = async () => {
-        if (this.#sortId !== "alerts") {
-          this.#sortId = "alerts";
-          this.#reloadDataSource();
+          this.setDisplayMode(this.#displayMode);
         }
       };
 
@@ -376,7 +371,7 @@ export class LoginDataSource extends DataSourceBase {
       });
 
       // Sort by origin, then by username, then by GUID
-      this.#sortId = "name";
+      this.#displayMode = DISPLAY_MODES.ALL;
       Services.obs.addObserver(this, "passwordmgr-storage-changed");
       Services.prefs.addObserver("signon.rememberSignons", this);
       Services.prefs.addObserver(
@@ -777,7 +772,9 @@ export class LoginDataSource extends DataSourceBase {
     );
 
     const filteredLogins =
-      this.#sortId === "alerts" ? breachedOrVulnerableLogins : logins;
+      this.#displayMode === DISPLAY_MODES.ALERTS
+        ? breachedOrVulnerableLogins
+        : logins;
 
     filteredLogins.forEach(login => {
       // Similar domains will be grouped together
@@ -803,7 +800,7 @@ export class LoginDataSource extends DataSourceBase {
 
       const domain = parts.reverse().join(".");
       const lineId =
-        this.#sortId === "alerts"
+        this.#displayMode === DISPLAY_MODES.ALERTS
           ? `${alertValue}:${domain}:${login.username}:${login.guid}`
           : `${domain}:${login.username}:${login.guid}`;
 

@@ -166,6 +166,10 @@ export class MegalistViewModel {
     this.#messageToView("SetNotification", notification);
   }
 
+  setDisplayMode(displayMode) {
+    this.#messageToView("SetDisplayMode", displayMode);
+  }
+
   discardChangesConfirmed() {
     this.#messageToView("DiscardChangesConfirmed");
   }

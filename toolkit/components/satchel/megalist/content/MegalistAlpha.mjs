@@ -24,8 +24,8 @@ import "chrome://global/content/megalist/components/login-form/login-form.mjs";
 import "chrome://global/content/megalist/components/notification-message-bar/notification-message-bar.mjs";
 
 const DISPLAY_MODES = {
-  ALERTS: "SortByAlerts",
-  ALL: "SortByName",
+  ALERTS: "DisplayAlerts",
+  ALL: "DisplayAll",
 };
 
 const VIEW_MODES = {
@@ -73,7 +73,7 @@ export class MegalistAlpha extends MozLitElement {
   connectedCallback() {
     super.connectedCallback();
     this.#messageToViewModel("Refresh");
-    this.#sendCommand(this.displayMode);
+    this.#sendCommand("UpdateDisplayMode", { value: this.displayMode });
   }
 
   async getUpdateComplete() {
@@ -136,7 +136,7 @@ export class MegalistAlpha extends MozLitElement {
 
   #onRadioButtonChange(e) {
     this.displayMode = e.target.value;
-    this.#sendCommand(this.displayMode);
+    this.#sendCommand("UpdateDisplayMode", { value: this.displayMode });
   }
 
   #onCancelLoginForm() {
@@ -199,6 +199,15 @@ export class MegalistAlpha extends MozLitElement {
   receiveSetNotification(notification) {
     this.notification = notification;
     this.viewMode = notification.viewMode ?? this.viewMode;
+  }
+
+  receiveSetDisplayMode(displayMode) {
+    if (this.displayMode !== displayMode) {
+      this.displayMode = displayMode;
+      const radioBtnId =
+        displayMode === DISPLAY_MODES.ALL ? "allLogins" : "alerts";
+      this.shadowRoot.querySelector(`#${radioBtnId}`).checked = true;
+    }
   }
 
   receiveReauthResponse(isAuthorized) {

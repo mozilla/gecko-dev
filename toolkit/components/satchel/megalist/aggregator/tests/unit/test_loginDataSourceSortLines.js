@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { LoginDataSource } = ChromeUtils.importESModule(
+const { LoginDataSource, DISPLAY_MODES } = ChromeUtils.importESModule(
   "resource://gre/modules/megalist/aggregator/datasources/LoginDataSource.sys.mjs"
 );
 
@@ -161,6 +161,7 @@ add_task(async function test_loginDataSourceSortByAlerts() {
     refreshSingleLineOnScreen: () => {},
     refreshAllLinesOnScreen: () => {},
     setLayout: () => {},
+    setDisplayMode: () => {},
   });
 
   await TestUtils.waitForCondition(
@@ -173,7 +174,7 @@ add_task(async function test_loginDataSourceSortByAlerts() {
   storageJSON.addPotentiallyVulnerablePassword(vulnerableLogin);
 
   const header = loginDataSource.enumerateLines().next().value;
-  header.executeSortByAlerts();
+  header.executeUpdateDisplayMode(DISPLAY_MODES.ALERTS);
 
   await TestUtils.waitForCondition(() => {
     return loginDataSource.doneReloadDataSource;

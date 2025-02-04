@@ -72,6 +72,10 @@ export class DataSourceBase {
     this.#aggregatorApi.setNotification(notification);
   }
 
+  setDisplayMode(displayMode) {
+    this.#aggregatorApi.setDisplayMode(displayMode);
+  }
+
   discardChangesConfirmed() {
     this.#aggregatorApi.discardChangesConfirmed();
   }
