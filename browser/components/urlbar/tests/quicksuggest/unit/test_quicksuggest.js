@@ -1422,17 +1422,6 @@ add_task(async function sponsoredPriority_sponsoredIndex() {
   });
 });
 
-add_task(async function sponsoredPriority_position() {
-  await doSponsoredPriorityTest({
-    nimbusSettings: { quickSuggestAllowPositionInSuggestions: true },
-    searchWord: SPONSORED_SEARCH_STRING,
-    remoteSettingsData: [
-      Object.assign({}, REMOTE_SETTINGS_RESULTS[0], { position: 2 }),
-    ],
-    expectedMatches: [expectedSponsoredPriorityResult()],
-  });
-});
-
 async function doSponsoredPriorityTest({
   remoteSettingsConfig = {},
   nimbusSettings = {},
@@ -1466,6 +1455,13 @@ async function doSponsoredPriorityTest({
   });
 
   await cleanUpNimbusEnable();
+  await QuickSuggestTestUtils.setRemoteSettingsRecords([
+    {
+      type: "data",
+      attachment: REMOTE_SETTINGS_RESULTS,
+    },
+  ]);
+  await QuickSuggestTestUtils.setConfig(QuickSuggestTestUtils.DEFAULT_CONFIG);
 }
 
 // When a Suggest best match and a tab-to-search (TTS) are shown in the same
@@ -1543,84 +1539,6 @@ add_task(async function tabToSearch() {
   await extension.unload();
 
   UrlbarPrefs.clear("tabToSearch.onboard.interactionsLeft");
-  Services.prefs.clearUserPref("browser.search.suggest.enabled");
-  Services.prefs.clearUserPref("browser.urlbar.quicksuggest.sponsoredPriority");
-});
-
-// `suggestion.position` should be ignored when the suggestion is a best match.
-add_task(async function position() {
-  // We'll use a sponsored priority result as the best match result. Different
-  // types of Suggest results can appear as best matches, and they all should
-  // have the same behavior.
-  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
-  await QuickSuggestTestUtils.forceSync();
-
-  Services.prefs.setBoolPref(
-    "browser.urlbar.quicksuggest.sponsoredPriority",
-    true
-  );
-
-  // Disable search suggestions so we don't hit the network.
-  Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
-
-  // Set the remote settings data with a suggestion containing a position.
-  UrlbarPrefs.set("quicksuggest.allowPositionInSuggestions", true);
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: [
-        {
-          ...REMOTE_SETTINGS_RESULTS[0],
-          position: 9,
-        },
-      ],
-    },
-  ]);
-
-  let context = createContext(SPONSORED_SEARCH_STRING, {
-    isPrivate: false,
-  });
-
-  // Add some visits to fill up the view.
-  let maxResultCount = UrlbarPrefs.get("maxRichResults");
-  let visitResults = [];
-  for (let i = 0; i < maxResultCount; i++) {
-    let url = `http://example.com/${SPONSORED_SEARCH_STRING}-${i}`;
-    await PlacesTestUtils.addVisits(url);
-    visitResults.unshift(
-      makeVisitResult(context, {
-        uri: url,
-        title: `test visit for ${url}`,
-      })
-    );
-  }
-
-  // Do a search.
-  await check_results({
-    context,
-    matches: [
-      // search heuristic
-      makeSearchResult(context, {
-        engineName: Services.search.defaultEngine.name,
-        engineIconUri: await Services.search.defaultEngine.getIconURL(),
-        heuristic: true,
-      }),
-      // best match whose backing suggestion has a `position`
-      expectedSponsoredPriorityResult(),
-      // visits
-      ...visitResults.slice(0, maxResultCount - 2),
-    ],
-  });
-
-  await cleanupPlaces();
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: REMOTE_SETTINGS_RESULTS,
-    },
-  ]);
-
-  UrlbarPrefs.clear("quicksuggest.allowPositionInSuggestions");
   Services.prefs.clearUserPref("browser.search.suggest.enabled");
   Services.prefs.clearUserPref("browser.urlbar.quicksuggest.sponsoredPriority");
 });

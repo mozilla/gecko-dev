@@ -564,10 +564,6 @@ pref("browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts", 0);
 pref("browser.urlbar.quicksuggest.sponsoredIndex", 0);
 pref("browser.urlbar.quicksuggest.nonSponsoredIndex", -1);
 
-// Whether quick suggest results can be shown in position specified in the
-// suggestions.
-pref("browser.urlbar.quicksuggest.allowPositionInSuggestions", true);
-
 // Whether non-sponsored quick suggest results are subject to impression
 // frequency caps.
 pref("browser.urlbar.quicksuggest.impressionCaps.nonSponsoredEnabled", false);

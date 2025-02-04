@@ -36,9 +36,6 @@ skip-if = ["true"] # Bug 1880214
 
 ["test_quicksuggest_pocket.js"]
 
-["test_quicksuggest_positionInSuggestions.js"]
-skip-if = ["true"] # Bug 1880214
-
 ["test_quicksuggest_relevanceRanking.js"]
 
 ["test_quicksuggest_scoreMap.js"]

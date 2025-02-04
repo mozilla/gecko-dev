@@ -177,7 +177,6 @@ class ProviderTopSites extends UrlbarProvider {
     );
     sites = sites.slice(0, numTopSites);
 
-    let index = 1;
     sites = sites.map(link => {
       let site = {
         type: link.searchTopSite ? "search" : "url",
@@ -202,10 +201,8 @@ class ProviderTopSites extends UrlbarProvider {
           sponsoredTileId: sponsored_tile_id,
           sponsoredImpressionUrl: sponsored_impression_url,
           sponsoredClickUrl: sponsored_click_url,
-          position: index,
         };
       }
-      index++;
       return site;
     });
 

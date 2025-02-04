@@ -230,10 +230,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether we show the Actions section in about:preferences.
   ["quickactions.showPrefs", false],
 
-  // Whether quick suggest results can be shown in position specified in the
-  // suggestions.
-  ["quicksuggest.allowPositionInSuggestions", true],
-
   // When non-zero, this is the character-count threshold (inclusive) for
   // showing AMP suggestions as top picks. If an AMP suggestion is triggered by
   // a keyword at least this many characters long, it will be shown as a top

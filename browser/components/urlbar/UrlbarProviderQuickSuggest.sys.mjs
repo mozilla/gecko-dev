@@ -373,11 +373,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.isRichSuggestion = true;
         result.richSuggestionIconSize ||= 52;
         result.suggestedIndex = 1;
-      } else if (
-        !isNaN(suggestion.position) &&
-        lazy.UrlbarPrefs.get("quickSuggestAllowPositionInSuggestions")
-      ) {
-        result.suggestedIndex = suggestion.position;
       } else {
         result.isSuggestedIndexRelativeToGroup = true;
         if (!result.payload.isSponsored) {
