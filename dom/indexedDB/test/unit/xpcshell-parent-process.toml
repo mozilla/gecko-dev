@@ -56,9 +56,9 @@ skip-if = ["tsan"]
 
 ["test_database_onclose.js"]
 
-["test_file_copy_failure.js"]
-
 ["test_fileListUpgrade.js"]
+
+["test_file_copy_failure.js"]
 
 ["test_globalObjects_ipc.js"]
 skip-if = ["os == 'android'"]
@@ -119,6 +119,9 @@ skip-if = [
 
 ["test_transaction_durability.js"]
 run-sequentially = "very high failure rate in parallel"
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]
 
 ["test_unexpectedDirectory.js"]
 

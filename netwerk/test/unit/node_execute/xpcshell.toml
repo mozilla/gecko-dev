@@ -2,4 +2,7 @@
 
 ["test_node_execute_loop.js"]
 run-sequentially = "node server exceptions dont replay well"
-skip-if = ["verify"] # running it once hangs forever so don't run it in a loop.
+skip-if = [
+  "verify", # running it once hangs forever so don't run it in a loop.
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]

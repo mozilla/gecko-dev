@@ -48,8 +48,10 @@ skip-if = [
 
 ["test_error_codes.js"]
 run-sequentially = "Hardcoded 4444 port."
-# Bug 1018414: hardcoded localhost doesn't work properly on some OS X installs
-skip-if = ["os == 'mac'"]
+skip-if = [
+  "os == 'mac'", # Bug 1018414: hardcoded localhost doesn't work properly on some OS X installs
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]
 
 ["test_generate_xpath.js"]
 head = "head_xml.js"

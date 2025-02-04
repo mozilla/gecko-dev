@@ -10,8 +10,11 @@ support-files = ["broadcast_handler.sys.mjs"]
 # This used to be hasNode, but that caused too many issues with tests being
 # silently disabled, so now we explicitly call out the platforms not known
 # to have node installed.
-skip-if = ["os == 'android'"]
 run-sequentially = "This will delete all existing push subscriptions."
+skip-if = [
+  "os == 'android'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]
 
 ["test_clear_forgetAboutSite.js"]
 
@@ -44,6 +47,9 @@ skip-if = ["true"]
 
 ["test_permissions.js"]
 run-sequentially = "This will delete all existing push subscriptions."
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]
 
 ["test_quota_exceeded.js"]
 
@@ -98,8 +104,11 @@ run-sequentially = "This will delete all existing push subscriptions."
 ["test_unregister_error.js"]
 
 ["test_unregister_invalid_json.js"]
-skip-if = ["os == 'win'"] # Bug 1627379
 run-sequentially = "very high failure rate in parallel"
+skip-if = [
+  "os == 'win'", # Bug 1627379
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+]
 
 ["test_unregister_not_found.js"]
 
