@@ -2643,14 +2643,10 @@ class NavigationDelegateTest : BaseSessionTest() {
 
     @Test
     fun mainProcessSwitching() {
-        processSwitchingTest("about:config")
+        processSwitchingTest("about:about")
     }
 
     private fun processSwitchingTest(url: String) {
-        val settings = sessionRule.runtime.settings
-        val aboutConfigEnabled = settings.aboutConfigEnabled
-        settings.aboutConfigEnabled = true
-
         var currentUrl: String? = null
         mainSession.delegateUntilTestEnd(object : NavigationDelegate {
             override fun onLocationChange(
@@ -2724,8 +2720,6 @@ class NavigationDelegateTest : BaseSessionTest() {
             mainSession.active,
             equalTo(true),
         )
-
-        settings.aboutConfigEnabled = aboutConfigEnabled
     }
 
     @Test fun setLocationHash() {
