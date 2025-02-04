@@ -331,10 +331,6 @@ class ChromeUtils {
       nsIRFPTargetSetIDL* aOverriddenFingerprintingSettings,
       const Optional<bool>& aIsPBM);
 
-  static void SanitizeTelemetryFileURL(GlobalObject& aGlobal,
-                                       const nsACString& aURL,
-                                       FileNameTypeDetails& aFileTypeDetails);
-
 #ifdef MOZ_WMF_CDM
   static already_AddRefed<Promise> GetWMFContentDecryptionModuleInformation(
       GlobalObject& aGlobal, ErrorResult& aRv);

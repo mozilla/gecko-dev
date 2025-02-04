@@ -14,9 +14,9 @@ add_task(async function test_blocks_event_handlers() {
   });
 
   is(
-    Glean.security.cspViolationBrowser.testGetValue(),
+    Glean.security.cspViolationInternalPage.testGetValue(),
     null,
-    `No telemetry should have been recorded yet for cspViolationBrowser`
+    `No telemetry should have been recorded yet for cspViolationInternalPage`
   );
 
   window.dont_run_me = function () {
@@ -48,17 +48,27 @@ add_task(async function test_blocks_event_handlers() {
     "sourceFile matches"
   );
 
-  let testValue = Glean.security.cspViolationBrowser.testGetValue();
+  let testValue = Glean.security.cspViolationInternalPage.testGetValue();
   is(testValue.length, 1, "Should have telemetry for one violation");
   let extra = testValue[0].extra;
   is(extra.directive, "script-src-attr", "violation's `directive` is correct");
+  is(extra.selftype, "chromeuri", "violation's `selftype` is correct");
+  is(
+    extra.selfdetails,
+    "chrome://browser/content/browser.xhtml",
+    "violation's `selfdetails` is correct"
+  );
   is(extra.sourcetype, "chromeuri", "violation's `sourcetype` is correct");
   ok(
     extra.sourcedetails.endsWith("browser_csp_blocks_event_handlers.js"),
     "violation's `sourcedetails` is correct"
   );
   is(extra.blockeduritype, "inline", "violation's `blockeduritype` is correct");
-  is(extra.blockeduridetails, "", "violation's `blockeduridetails` is correct");
+  is(
+    extra.blockeduridetails,
+    undefined,
+    "violation's `blockeduridetails` is correct"
+  );
   is(extra.linenumber, "31", "violation's `linenumber` is correct");
   is(extra.columnnumber, "8", "violation's `columnnumber` is correct");
   is(extra.sample, "dont_run_me()", "violation's sample is correct");

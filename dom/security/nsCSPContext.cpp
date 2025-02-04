@@ -1439,11 +1439,6 @@ void nsCSPContext::RecordInternalViolationTelemetry(
   nsAutoCString selfURISpec;
   mSelfURI->GetSpec(selfURISpec);
 
-  // Temporarily skip this until we remove csp_violation_browser.
-  if (selfURISpec.EqualsLiteral("chrome://browser/content/browser.xhtml")) {
-    return;
-  }
-
   glean::security::CspViolationInternalPageExtra extra;
   extra.directive = Some(NS_ConvertUTF16toUTF8(aInit.mEffectiveDirective));
 
