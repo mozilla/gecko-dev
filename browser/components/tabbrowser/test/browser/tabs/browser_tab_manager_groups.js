@@ -399,11 +399,14 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
   let groupId = "test-group";
 
   let otherWindow = await BrowserTestUtils.openNewBrowserWindow();
+  let initialTab = otherWindow.gBrowser.tabs[0];
   await createTestGroup({
     id: groupId,
     label: "Test Group",
     targetWin: otherWindow,
   });
+  // remove the initial tab to test context menu disabling
+  BrowserTestUtils.removeTab(initialTab, { animate: false });
   otherWindow.gTabsPanel.init();
   let allTabsMenu = await openTabsMenu();
 
@@ -419,6 +422,13 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     gBrowser.tabContainer,
     "TabGroupCreate"
   );
+  Assert.ok(
+    menu.querySelector("#open-tab-group-context-menu_moveToNewWindow").disabled,
+    "'Move to New Window' is disabled"
+  );
+  menu.hidePopup();
+  await addTabTo(otherWindow.gBrowser);
+  menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
   menu.querySelector("#open-tab-group-context-menu_moveToThisWindow").click();
   await waitForGroup;
 
@@ -450,6 +460,11 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
   waitForGroup = BrowserTestUtils.waitForEvent(
     gBrowser.tabContainer,
     "TabGroupRemoved"
+  );
+  Assert.ok(
+    !menu.querySelector("#open-tab-group-context-menu_moveToNewWindow")
+      .disabled,
+    "'Move to New Window' is enabled"
   );
   let waitForWindow = BrowserTestUtils.waitForNewWindow();
   menu.querySelector("#open-tab-group-context-menu_moveToNewWindow").click();
