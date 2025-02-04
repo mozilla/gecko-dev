@@ -1375,6 +1375,12 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
       break;
   }
 
+  // The way we set up both resize and window pos event listeners means that if
+  // we find a matching position on e.g. resize, then resolve, then a geometry
+  // change comes in, then the window pos listener runs, we might try to
+  // incorrectly reset the position without this check.
+  let foundMatch = false;
+
   // We retry on each iteration because on Linux, when combined with some
   // sizemode changes (e.g. unmaximizing), the size request might get lost
   // and we might get resized to the restored size / position.
@@ -1382,6 +1388,10 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
     lazy.logger.trace(
       `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
     );
+    if (foundMatch) {
+      lazy.logger.trace(`Already found a previous match for this request`);
+      return true;
+    }
     let sizeMatches = true;
     let posMatches = true;
     if (
@@ -1408,6 +1418,7 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
     }
     if (sizeMatches && posMatches) {
       lazy.logger.trace(`Requested window geometry matches`);
+      foundMatch = true;
       return true;
     }
     return false;
