@@ -73,7 +73,6 @@
 
 .treeTable .treeRow.hasChildren > .treeLabelCell > .treeLabel:hover {
   cursor: pointer;
-  text-decoration: underline;
 }
 
 /* :not(.selected) is used because row selection styles should have
