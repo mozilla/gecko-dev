@@ -430,7 +430,10 @@
 }
 
 .weatherCity {
+  -webkit-line-clamp: 1;
   text-overflow: ellipsis;
+  overflow: hidden;
+  word-break: break-word;
   font-size: var(--font-size-small);
 }
 
