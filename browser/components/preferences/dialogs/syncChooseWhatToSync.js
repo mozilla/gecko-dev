@@ -57,3 +57,5 @@ let gSyncChooseWhatToSync = {
     }
   },
 };
+
+window.addEventListener("load", () => gSyncChooseWhatToSync.init());
