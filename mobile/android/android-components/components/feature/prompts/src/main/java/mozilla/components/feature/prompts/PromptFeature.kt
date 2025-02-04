@@ -230,6 +230,10 @@ class PromptFeature private constructor(
     internal val activePromptsToDismiss =
         Collections.newSetFromMap(WeakHashMap<PromptDialogFragment, Boolean>())
 
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal var previousPromptRequest: PromptRequest? = null
+    private var lastPromptRequest: PromptRequest? = null
+
     constructor(
         activity: Activity,
         store: BrowserStore,
@@ -615,6 +619,9 @@ class PromptFeature private constructor(
             promptRequest.executeIfWindowedPrompt { exitFullscreenUsecase(it.id) }
         }
 
+        previousPromptRequest = lastPromptRequest
+        lastPromptRequest = promptRequest
+
         when (promptRequest) {
             is File -> {
                 emitPromptDisplayedFact(promptName = "FilePrompt")
@@ -633,6 +640,11 @@ class PromptFeature private constructor(
                 if (!isLoginAutofillEnabled()) {
                     return
                 }
+
+                if (previousPromptRequest is SaveLoginPrompt) {
+                    return
+                }
+
                 if (promptRequest.generatedPassword != null) {
                     if (shouldAutomaticallyShowSuggestedPassword.invoke()) {
                         onFirstTimeEngagedWithSignup.invoke()
@@ -904,7 +916,6 @@ class PromptFeature private constructor(
 
                     return
                 }
-
                 SaveLoginDialogFragment.newInstance(
                     sessionId = session.id,
                     promptRequestUID = promptRequest.uid,

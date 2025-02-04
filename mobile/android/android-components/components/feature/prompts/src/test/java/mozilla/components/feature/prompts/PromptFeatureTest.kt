@@ -2038,6 +2038,48 @@ class PromptFeatureTest {
     }
 
     @Test
+    fun `WHEN login prompt is received AND previous prompt is save login THEN the select login prompt is not shown`() {
+        val loginPickerView: AutocompletePrompt<Login> = mock()
+
+        val login =
+            Login(guid = "A", origin = "origin", username = "user123", password = "password123")
+
+        val feature =
+            PromptFeature(
+                activity = mock<Activity>(),
+                store = store,
+                fragmentManager = fragmentManager,
+                tabsUseCases = mock(),
+                exitFullscreenUsecase = mock(),
+                loginDelegate = object : LoginDelegate {
+                    override val loginPickerView = loginPickerView
+                    override val onManageLogins = {}
+                },
+                fileUploadsDirCleaner = mock(),
+                onNeedToRequestPermissions = { },
+            )
+        feature.loginPicker = loginPicker
+        val onLoginDismiss: () -> Unit = {}
+        val onLoginConfirm: (Login) -> Unit = {}
+        val onLoginEntryConfirm: (LoginEntry) -> Unit = {}
+
+        val selectLoginRequest =
+            PromptRequest.SelectLoginPrompt(listOf(login), null, onLoginConfirm, onLoginDismiss)
+
+        feature.previousPromptRequest = PromptRequest.SaveLoginPrompt(
+            0,
+            listOf(login.toEntry()),
+            onLoginEntryConfirm,
+            onLoginDismiss,
+        )
+
+        feature.start()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, selectLoginRequest))
+            .joinBlocking()
+        verify(loginPicker, never()).handleSelectLoginRequest(selectLoginRequest)
+    }
+
+    @Test
     fun `When page is refreshed login dialog is dismissed`() {
         val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature =
