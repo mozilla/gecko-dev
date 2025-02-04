@@ -595,6 +595,9 @@ bool FontFaceImpl::GetAttributes(gfxUserFontAttributes& aAttr) {
   if (Servo_FontFaceRule_GetFontStyle(data, &styleDesc)) {
     aAttr.mRangeFlags &= ~gfxFontEntry::RangeFlags::eAutoSlantStyle;
     switch (styleDesc.tag) {
+      case StyleComputedFontStyleDescriptor::Tag::Normal:
+        aAttr.mStyle = SlantStyleRange(FontSlantStyle::NORMAL);
+        break;
       case StyleComputedFontStyleDescriptor::Tag::Italic:
         aAttr.mStyle = SlantStyleRange(FontSlantStyle::ITALIC);
         break;
