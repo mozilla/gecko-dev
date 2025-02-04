@@ -1848,13 +1848,18 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
     return AdjustEndOfLine().FindTextAttrsStart(aDirection, aIncludeOrigin);
   }
   const bool isRemote = mAcc->IsRemote();
-  RefPtr<const AccAttributes> lastAttrs =
-      isRemote ? mAcc->AsRemote()->GetCachedTextAttributes()
-               : GetTextAttributesLocalAcc();
+  RefPtr<const AccAttributes> lastAttrs;
+  if (mAcc->IsText()) {
+    lastAttrs = isRemote ? mAcc->AsRemote()->GetCachedTextAttributes()
+                         : GetTextAttributesLocalAcc();
+  }
   if (aIncludeOrigin && aDirection == eDirNext && mOffset == 0) {
+    if (!mAcc->IsText()) {
+      // Anything other than text breaks an attrs run.
+      return *this;
+    }
     // Even when searching forward, the only way to know whether the origin is
     // the start of a text attrs run is to compare with the previous sibling.
-    // Anything other than text breaks an attrs run.
     TextLeafPoint point;
     point.mAcc = mAcc->PrevSibling();
     if (!point.mAcc || !point.mAcc->IsText()) {
@@ -1909,7 +1914,7 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
     RefPtr<const AccAttributes> attrs =
         isRemote ? point.mAcc->AsRemote()->GetCachedTextAttributes()
                  : point.GetTextAttributesLocalAcc();
-    if (attrs && lastAttrs && !attrs->Equal(lastAttrs)) {
+    if (!lastAttrs || (attrs && !attrs->Equal(lastAttrs))) {
       // The attributes change here. If we're moving forward, we want to return
       // this point.
       if (aDirection == eDirNext) {
