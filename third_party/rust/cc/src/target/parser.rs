@@ -14,7 +14,7 @@ struct TargetInfoParserInner {
     os: Box<str>,
     env: Box<str>,
     abi: Box<str>,
-    unversioned_llvm_target: Box<str>,
+    llvm_target: Box<str>,
 }
 
 impl TargetInfoParserInner {
@@ -80,8 +80,8 @@ impl TargetInfoParserInner {
             .unwrap_or_else(|_| String::default().into_boxed_str());
 
         // Prefer `rustc`'s LLVM target triple information.
-        let unversioned_llvm_target = match fallback_target {
-            Some(ft) => ft.unversioned_llvm_target.to_string(),
+        let llvm_target = match fallback_target {
+            Some(ft) => ft.llvm_target.to_string(),
             None => llvm::guess_llvm_target_triple(full_arch, &vendor, &os, &env, &abi),
         };
 
@@ -92,7 +92,7 @@ impl TargetInfoParserInner {
             os,
             env,
             abi,
-            unversioned_llvm_target: unversioned_llvm_target.into_boxed_str(),
+            llvm_target: llvm_target.into_boxed_str(),
         })
     }
 }
@@ -114,7 +114,7 @@ impl TargetInfoParser {
                 os,
                 env,
                 abi,
-                unversioned_llvm_target,
+                llvm_target,
             }) => Ok(TargetInfo {
                 full_arch,
                 arch,
@@ -122,7 +122,7 @@ impl TargetInfoParser {
                 os,
                 env,
                 abi,
-                unversioned_llvm_target,
+                llvm_target,
             }),
             Err(e) => Err(e.clone()),
         }

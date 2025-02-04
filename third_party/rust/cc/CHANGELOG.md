@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.11](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.10...cc-v1.2.11) - 2025-01-31
+
+### Other
+
+- Fix more flag inheritance ([#1380](https://github.com/rust-lang/cc-rs/pull/1380))
+- Include wrapper args. in `stdout` family heuristics to restore classifying `clang --driver-mode=cl` as `Msvc { clang_cl: true }` ([#1378](https://github.com/rust-lang/cc-rs/pull/1378))
+- Constrain `-Clto` and `-Cembed-bitcode` flag inheritance to be `clang`-only ([#1379](https://github.com/rust-lang/cc-rs/pull/1379))
+- Pass deployment target with `-m*-version-min=` ([#1339](https://github.com/rust-lang/cc-rs/pull/1339))
+- Regenerate target info ([#1376](https://github.com/rust-lang/cc-rs/pull/1376))
+
 ## [1.2.10](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.9...cc-v1.2.10) - 2025-01-17
 
 ### Other

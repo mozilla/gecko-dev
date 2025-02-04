@@ -1,32 +1,3 @@
-use std::borrow::Cow;
-
-use super::TargetInfo;
-
-impl<'a> TargetInfo<'a> {
-    /// The versioned LLVM/Clang target triple.
-    pub(crate) fn versioned_llvm_target(&self, version: Option<&str>) -> Cow<'a, str> {
-        if let Some(version) = version {
-            // Only support versioned Apple targets for now.
-            assert_eq!(self.vendor, "apple");
-
-            let mut components = self.unversioned_llvm_target.split("-");
-            let arch = components.next().expect("llvm_target should have arch");
-            let vendor = components.next().expect("llvm_target should have vendor");
-            let os = components.next().expect("LLVM target should have os");
-            let environment = components.next();
-            assert_eq!(components.next(), None, "too many LLVM target components");
-
-            Cow::Owned(if let Some(env) = environment {
-                format!("{arch}-{vendor}-{os}{version}-{env}")
-            } else {
-                format!("{arch}-{vendor}-{os}{version}")
-            })
-        } else {
-            Cow::Borrowed(self.unversioned_llvm_target)
-        }
-    }
-}
-
 /// Rust and Clang don't really agree on naming, so do a best-effort
 /// conversion to support out-of-tree / custom target-spec targets.
 pub(crate) fn guess_llvm_target_triple(

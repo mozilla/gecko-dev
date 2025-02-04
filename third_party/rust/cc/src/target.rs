@@ -44,7 +44,10 @@ pub(crate) struct TargetInfo<'a> {
     /// This is the same as the value of `cfg!(target_abi)`.
     pub abi: &'a str,
     /// The unversioned LLVM/Clang target triple.
-    unversioned_llvm_target: &'a str,
+    ///
+    /// NOTE: You should never need to match on this explicitly, use the other
+    /// fields on [`TargetInfo`] instead.
+    pub llvm_target: &'a str,
 }
 
 impl FromStr for TargetInfo<'_> {

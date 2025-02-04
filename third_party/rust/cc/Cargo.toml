@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.63"
 name = "cc"
-version = "1.2.10"
+version = "1.2.11"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = false
 exclude = [

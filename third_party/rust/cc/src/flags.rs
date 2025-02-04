@@ -16,7 +16,6 @@ pub(crate) struct RustcCodegenFlags<'a> {
     relocation_model: Option<&'a str>,
     embed_bitcode: Option<bool>,
     force_frame_pointers: Option<bool>,
-    link_dead_code: Option<bool>,
     no_redzone: Option<bool>,
     soft_float: Option<bool>,
 }
@@ -138,8 +137,6 @@ impl<'this> RustcCodegenFlags<'this> {
             "-Cforce-frame-pointers" => {
                 self.force_frame_pointers = value.map_or(Some(true), arg_to_bool)
             }
-            // https://doc.rust-lang.org/rustc/codegen-options/index.html#link-dead-code
-            "-Clink-dead-code" => self.link_dead_code = value.map_or(Some(true), arg_to_bool),
             // https://doc.rust-lang.org/rustc/codegen-options/index.html#no-redzone
             "-Cno-redzone" => self.no_redzone = value.map_or(Some(true), arg_to_bool),
             // https://doc.rust-lang.org/rustc/codegen-options/index.html#soft-float
@@ -180,53 +177,40 @@ impl<'this> RustcCodegenFlags<'this> {
         // Flags shared between clang and gnu
         if clang_or_gnu {
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mbranch-protection
+            // https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html#index-mbranch-protection (Aarch64)
+            // https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html#index-mbranch-protection-1 (ARM)
+            // https://developer.arm.com/documentation/101754/0619/armclang-Reference/armclang-Command-line-Options/-mbranch-protection
             if let Some(value) = self.branch_protection {
                 push_if_supported(
                     format!("-mbranch-protection={}", value.replace(",", "+")).into(),
                 );
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mcmodel
+            // https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html (several archs, search for `-mcmodel=`).
+            // FIXME(madsmtm): Parse the model, to make sure we pass the correct value (depending on arch).
             if let Some(value) = self.code_model {
                 push_if_supported(format!("-mcmodel={value}").into());
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fno-vectorize
+            // https://gcc.gnu.org/onlinedocs/gnat_ugn/Vectorization-of-loops.html
             if self.no_vectorize_loops {
                 push_if_supported("-fno-vectorize".into());
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fno-slp-vectorize
+            // https://gcc.gnu.org/onlinedocs/gnat_ugn/Vectorization-of-loops.html
             if self.no_vectorize_slp {
                 push_if_supported("-fno-slp-vectorize".into());
             }
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mguard
-            if let Some(value) = self.control_flow_guard {
-                let cc_val = match value {
-                    "y" | "yes" | "on" | "true" | "checks" => Some("cf"),
-                    "nochecks" => Some("cf-nochecks"),
-                    "n" | "no" | "off" | "false" => Some("none"),
-                    _ => None,
-                };
-                if let Some(cc_val) = cc_val {
-                    push_if_supported(format!("-mguard={cc_val}").into());
-                }
-            }
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-flto
-            if let Some(value) = self.lto {
-                let cc_val = match value {
-                    "y" | "yes" | "on" | "true" | "fat" => Some("full"),
-                    "thin" => Some("thin"),
-                    _ => None,
-                };
-                if let Some(cc_val) = cc_val {
-                    push_if_supported(format!("-flto={cc_val}").into());
-                }
-            }
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fPIC
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fPIE
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mdynamic-no-pic
             if let Some(value) = self.relocation_model {
                 let cc_flag = match value {
+                    // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fPIC
+                    // https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#index-fPIC
                     "pic" => Some("-fPIC"),
+                    // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fPIE
+                    // https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#index-fPIE
                     "pie" => Some("-fPIE"),
+                    // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mdynamic-no-pic
+                    // https://gcc.gnu.org/onlinedocs/gcc/RS_002f6000-and-PowerPC-Options.html#index-mdynamic-no-pic
                     "dynamic-no-pic" => Some("-mdynamic-no-pic"),
                     _ => None,
                 };
@@ -234,13 +218,9 @@ impl<'this> RustcCodegenFlags<'this> {
                     push_if_supported(cc_flag.into());
                 }
             }
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fembed-bitcode
-            if let Some(value) = self.embed_bitcode {
-                let cc_val = if value { "all" } else { "off" };
-                push_if_supported(format!("-fembed-bitcode={cc_val}").into());
-            }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fno-omit-frame-pointer
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fomit-frame-pointer
+            // https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#index-fomit-frame-pointer
             if let Some(value) = self.force_frame_pointers {
                 let cc_flag = if value {
                     "-fno-omit-frame-pointer"
@@ -249,23 +229,24 @@ impl<'this> RustcCodegenFlags<'this> {
                 };
                 push_if_supported(cc_flag.into());
             }
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-dead_strip
-            if let Some(false) = self.link_dead_code {
-                push_if_supported("-dead_strip".into());
-            }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mno-red-zone
+            // https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html#index-mno-red-zone
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mred-zone
+            // https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html#index-mred-zone
             if let Some(value) = self.no_redzone {
                 let cc_flag = if value { "-mno-red-zone" } else { "-mred-zone" };
                 push_if_supported(cc_flag.into());
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-msoft-float
-            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mno-soft-float
+            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mhard-float
+            // https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html (several archs, search for `-msoft-float`).
+            // https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html (several archs, search for `-mhard-float`).
             if let Some(value) = self.soft_float {
                 let cc_flag = if value {
                     "-msoft-float"
                 } else {
-                    "-mno-soft-float"
+                    // Do not use -mno-soft-float, that's basically just an alias for -mno-implicit-float.
+                    "-mhard-float"
                 };
                 push_if_supported(cc_flag.into());
             }
@@ -284,6 +265,36 @@ impl<'this> RustcCodegenFlags<'this> {
                 // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fprofile-use
                 if let Some(value) = self.profile_use {
                     push_if_supported(format!("-fprofile-use={value}").into());
+                }
+
+                // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fembed-bitcode
+                if let Some(value) = self.embed_bitcode {
+                    let cc_val = if value { "all" } else { "off" };
+                    push_if_supported(format!("-fembed-bitcode={cc_val}").into());
+                }
+
+                // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-flto
+                if let Some(value) = self.lto {
+                    let cc_val = match value {
+                        "y" | "yes" | "on" | "true" | "fat" => Some("full"),
+                        "thin" => Some("thin"),
+                        _ => None,
+                    };
+                    if let Some(cc_val) = cc_val {
+                        push_if_supported(format!("-flto={cc_val}").into());
+                    }
+                }
+                // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mguard
+                if let Some(value) = self.control_flow_guard {
+                    let cc_val = match value {
+                        "y" | "yes" | "on" | "true" | "checks" => Some("cf"),
+                        "nochecks" => Some("cf-nochecks"),
+                        "n" | "no" | "off" | "false" => Some("none"),
+                        _ => None,
+                    };
+                    if let Some(cc_val) = cc_val {
+                        push_if_supported(format!("-mguard={cc_val}").into());
+                    }
                 }
             }
             ToolFamily::Gnu { .. } => {}
@@ -476,7 +487,6 @@ mod tests {
                 control_flow_guard: Some("yes"),
                 embed_bitcode: Some(false),
                 force_frame_pointers: Some(true),
-                link_dead_code: Some(true),
                 lto: Some("false"),
                 no_redzone: Some(true),
                 no_vectorize_loops: true,
