@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.autofill.ui.search
 
-import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -15,7 +14,6 @@ import mozilla.components.feature.autofill.R
 /**
  * Adapter for showing a list of logins.
  */
-@SuppressLint("NotifyDataSetChanged")
 internal class LoginsAdapter(
     private val onLoginSelected: (Login) -> Unit,
 ) : ListAdapter<Login, LoginViewHolder>(LoginsDiffCallback) {
