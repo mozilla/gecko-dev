@@ -90,8 +90,9 @@ class ProviderHistoryUrlHeuristic extends UrlbarProvider {
     const connection = await lazy.PlacesUtils.promiseLargeCacheDBConnection();
     const resultSet = await connection.executeCached(
       `
-      SELECT url, title, frecency
-      FROM moz_places
+      SELECT url, IIF(last_visit_date NOTNULL, h.title, b.title) AS _title, frecency
+      FROM moz_places h
+      LEFT JOIN moz_bookmarks b ON b.fk = h.id
       WHERE
         url_hash IN (
           hash('https://' || :strippedURL),
@@ -101,11 +102,11 @@ class ProviderHistoryUrlHeuristic extends UrlbarProvider {
         )
         AND frecency <> 0
       ORDER BY
-        title IS NOT NULL DESC,
-        title || '/' <> :strippedURL DESC,
-        url = :inputedURL DESC,
-        frecency DESC,
-        id DESC
+        _title NOTNULL DESC,
+        _title || '/' <> :strippedURL DESC,
+        h.url = :inputedURL DESC,
+        h.frecency DESC,
+        h.id DESC
       LIMIT 1
       `,
       { inputedURL, strippedURL }
@@ -115,7 +116,7 @@ class ProviderHistoryUrlHeuristic extends UrlbarProvider {
       return null;
     }
 
-    const title = resultSet[0].getResultByName("title");
+    const title = resultSet[0].getResultByName("_title");
     if (!title) {
       return null;
     }
