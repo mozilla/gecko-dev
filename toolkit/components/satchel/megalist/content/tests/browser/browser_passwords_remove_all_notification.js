@@ -71,3 +71,58 @@ add_task(async function test_passwords_remove_all_notification() {
   SidebarController.hide();
   Services.prompt = originalPromptService;
 });
+
+add_task(
+  async function test_passwords_remove_all_notification_while_updating_login() {
+    if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+      ok(true, "Cannot test OSAuth.");
+      return;
+    }
+
+    const megalist = await openPasswordsSidebar();
+    await addMockPasswords();
+    await checkAllLoginsRendered(megalist);
+    await BrowserTestUtils.waitForCondition(
+      () => megalist.querySelector(".second-row"),
+      "Second row failed to render"
+    );
+
+    const passwordCard = megalist.querySelector("password-card");
+    info("Click on the edit button on the first password card.");
+    await waitForReauth(() => passwordCard.editBtn.click());
+    await BrowserTestUtils.waitForCondition(
+      () => megalist.querySelector("login-form"),
+      "Login form failed to render"
+    );
+
+    const originalPromptService = Services.prompt;
+    Services.prompt = {
+      confirmEx(
+        win,
+        title,
+        message,
+        _flags,
+        _button0,
+        _button1,
+        _button2,
+        _checkLabel,
+        _checkValue
+      ) {
+        info(`Prompt title ${title}`);
+        info(`Prompt message ${message}`);
+        return 0;
+      },
+    };
+
+    await clickRemoveAllPasswords(megalist);
+    await waitForNotification(megalist, "delete-login-success");
+    ok(true, "Notification is shown.");
+
+    await checkEmptyState(".no-logins-card-content", megalist);
+    ok(true, "Empty state rendered after logins are removed.");
+
+    info("Closing the sidebar");
+    SidebarController.hide();
+    Services.prompt = originalPromptService;
+  }
+);

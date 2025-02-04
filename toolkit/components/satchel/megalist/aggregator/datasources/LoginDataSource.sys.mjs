@@ -490,6 +490,7 @@ export class LoginDataSource extends DataSourceBase {
       this.setNotification({
         id: "delete-login-success",
         l10nArgs: { total },
+        viewMode: VIEW_MODES.LIST,
       });
     }
   }
