@@ -726,6 +726,18 @@ class NPZCSupport final
     return std::make_pair(angle, radius);
   }
 
+  static void SetTiltXY(float aOrientation, float aTilt,
+                        SingleTouchData& aSingleTouchData) {
+    float r = sinf(aTilt);
+    float z = cosf(aTilt);
+
+    float x = atan2f(sinf(-aOrientation) * r, z);
+    float y = atan2f(cosf(-aOrientation) * r, z);
+
+    aSingleTouchData.mTiltX = int32_t(floorf(x * 180.0 / M_PI));
+    aSingleTouchData.mTiltY = int32_t(floorf(y * 180.0 / M_PI));
+  }
+
   void HandleMotionEvent(
       const java::PanZoomController::NativeProvider::LocalRef& aInstance,
       jni::Object::Param aEventData, float aScreenX, float aScreenY,
@@ -806,6 +818,7 @@ class NPZCSupport final
     nsTArray<float> y(eventData->Y()->GetElements());
     nsTArray<float> orientation(eventData->Orientation()->GetElements());
     nsTArray<float> pressure(eventData->Pressure()->GetElements());
+    nsTArray<float> tilt(eventData->Tilt()->GetElements());
     nsTArray<float> toolMajor(eventData->ToolMajor()->GetElements());
     nsTArray<float> toolMinor(eventData->ToolMinor()->GetElements());
 
@@ -813,6 +826,7 @@ class NPZCSupport final
     MOZ_ASSERT(y.Length() == pointerCount);
     MOZ_ASSERT(orientation.Length() == pointerCount);
     MOZ_ASSERT(pressure.Length() == pointerCount);
+    MOZ_ASSERT(tilt.Length() == pointerCount);
     MOZ_ASSERT(toolMajor.Length() == pointerCount);
     MOZ_ASSERT(toolMinor.Length() == pointerCount);
 
@@ -823,6 +837,7 @@ class NPZCSupport final
       ScreenIntPoint point(int32_t(floorf(x[i])), int32_t(floorf(y[i])));
       SingleTouchData singleTouchData(pointerId[i], point, radius, orien,
                                       pressure[i]);
+      SetTiltXY(orientation[i], tilt[i], singleTouchData);
 
       for (size_t historyIndex = 0; historyIndex < historySize;
            historyIndex++) {

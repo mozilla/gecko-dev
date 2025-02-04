@@ -216,6 +216,7 @@ public class PanZoomController {
     public final float y[];
     public final float orientation[];
     public final float pressure[];
+    public final float tilt[];
     public final float toolMajor[];
     public final float toolMinor[];
 
@@ -238,6 +239,7 @@ public class PanZoomController {
       y = new float[count];
       orientation = new float[count];
       pressure = new float[count];
+      tilt = new float[count];
       toolMajor = new float[count];
       toolMinor = new float[count];
 
@@ -271,6 +273,7 @@ public class PanZoomController {
 
         orientation[i] = coords.orientation;
         pressure[i] = coords.pressure;
+        tilt[i] = coords.getAxisValue(MotionEvent.AXIS_TILT);
 
         // If we are converting to CSS pixels, we should adjust the radii as well.
         toolMajor[i] = coords.toolMajor;
