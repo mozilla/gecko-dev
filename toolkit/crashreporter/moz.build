@@ -25,6 +25,11 @@ UNIFIED_SOURCES = [
 FINAL_LIBRARY = "xul"
 
 if CONFIG["MOZ_CRASHREPORTER"]:
+    if CONFIG["OS_ARCH"] != "WINNT":
+        USE_LIBS += [
+            "breakpad_client",
+        ]
+
     if CONFIG["OS_ARCH"] == "WINNT":
         DIRS += [
             "breakpad-windows-libxul",
@@ -53,10 +58,6 @@ if CONFIG["MOZ_CRASHREPORTER"]:
             "google-breakpad/src/processor",
         ]
 
-        UNIFIED_SOURCES += [
-            "linux_utils.cc",
-        ]
-
         EXPORTS += [
             "linux_utils.h",
         ]
@@ -66,13 +67,15 @@ if CONFIG["MOZ_CRASHREPORTER"]:
 
     if CONFIG["OS_TARGET"] != "Android":
         DIRS += ["client/app"]
-
-    if CONFIG["OS_TARGET"] == "Android":
+    else:
         DIRS += ["minidump-analyzer/android"]
 
     DIRS += [
+        "breakpad_wrapper",
+        "crash_helper",
+        "crash_helper_client",
+        "crash_helper_server",
         "mozannotation_client",
-        "mozannotation_server",
     ]
 
     TEST_DIRS += ["test"]
@@ -115,7 +118,9 @@ if CONFIG["MOZ_CRASHREPORTER"]:
         "google-breakpad/src",
     ]
 
-    USE_LIBS += ["jsoncpp"]
+    USE_LIBS += [
+        "jsoncpp",
+    ]
 
     PYTHON_UNITTEST_MANIFESTS += [
         "tools/python.toml",
