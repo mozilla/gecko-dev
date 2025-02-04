@@ -345,6 +345,7 @@ FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
     : mPrincipal(aPrincipal),
       mLoadGroup(aLoadGroup),
       mRequest(std::move(aRequest)),
+      mODAMutex("FetchDriver::mODAMutex"),
       mMainThreadEventTarget(aMainThreadEventTarget),
       mCookieJarSettings(aCookieJarSettings),
       mPerformanceStorage(aPerformanceStorage),
@@ -1458,7 +1459,10 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
                              uint64_t aOffset, uint32_t aCount) {
   // NB: This can be called on any thread!  But we're guaranteed that it is
   // called between OnStartRequest and OnStopRequest, so we don't need to worry
-  // about races.
+  // about races for the members accessed in OnStartRequest, OnStopRequest,
+  // FailWithNetworkError and member functions accessed before opening the
+  // channel. However, we have a possibility of a race from
+  // FetchDriverAbortActions
 
   if (!mPipeOutputStream) {
     // We ignore the body for HEAD/CONNECT requests.
@@ -1472,9 +1476,13 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
 
   if (mNeedToObserveOnDataAvailable) {
     mNeedToObserveOnDataAvailable = false;
-    if (mObserver) {
+    RefPtr<FetchDriverObserver> observer;
+    {
+      MutexAutoLock lock(mODAMutex);
       // Need to keep mObserver alive.
-      RefPtr<FetchDriverObserver> observer = mObserver;
+      observer = mObserver;
+    }
+    if (observer) {
       if (NS_IsMainThread()) {
         observer->OnDataAvailable();
       } else {
@@ -1871,8 +1879,13 @@ void FetchDriver::RunAbortAlgorithm() { FetchDriverAbortActions(Signal()); }
 
 void FetchDriver::FetchDriverAbortActions(AbortSignalImpl* aSignalImpl) {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  RefPtr<FetchDriverObserver> observer;
+  {
+    MutexAutoLock lock(mODAMutex);
+    observer = std::move(mObserver);
+  }
 
-  if (mObserver) {
+  if (observer) {
 #ifdef DEBUG
     mResponseAvailableCalled = true;
 #endif
@@ -1880,8 +1893,7 @@ void FetchDriver::FetchDriverAbortActions(AbortSignalImpl* aSignalImpl) {
     if (aSignalImpl) {
       reason.set(aSignalImpl->RawReason());
     }
-    mObserver->OnResponseEnd(FetchDriverObserver::eAborted, reason);
-    mObserver = nullptr;
+    observer->OnResponseEnd(FetchDriverObserver::eAborted, reason);
   }
 
   if (mChannel) {
