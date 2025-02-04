@@ -382,6 +382,10 @@ class PresShell final : public nsStubDocumentObserver,
 
   bool CanHandleUserInputEvents(WidgetGUIEvent* aGUIEvent);
 
+  void ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
+                                     const nsRect& aPositionFixedRect,
+                                     ScrollFlags aScrollFlags);
+
  public:
   /**
    * Updates pending layout, assuming reasonable (up-to-date, or mid-update for
