@@ -3411,12 +3411,12 @@ void MacroAssembler::patchNopToCall(uint8_t* call, uint8_t* target) {
   *reinterpret_cast<Instr*>(p + 6) = jalr_;
 }
 void MacroAssembler::Pop(Register reg) {
-  ma_pop(reg);
+  pop(reg);
   adjustFrame(-int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Pop(FloatRegister f) {
-  ma_pop(f);
+  pop(f);
   adjustFrame(-int32_t(sizeof(double)));
 }
 
@@ -3472,23 +3472,17 @@ void MacroAssembler::PushBoxed(FloatRegister reg) {
 }
 
 void MacroAssembler::Push(Register reg) {
-  ma_push(reg);
+  push(reg);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(const Imm32 imm) {
-  UseScratchRegisterScope temps(this);
-  Register scratch = temps.Acquire();
-  ma_li(scratch, imm);
-  ma_push(scratch);
+  push(imm);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(const ImmWord imm) {
-  UseScratchRegisterScope temps(this);
-  Register scratch = temps.Acquire();
-  ma_li(scratch, imm);
-  ma_push(scratch);
+  push(imm);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
@@ -3497,15 +3491,12 @@ void MacroAssembler::Push(const ImmPtr imm) {
 }
 
 void MacroAssembler::Push(const ImmGCPtr ptr) {
-  UseScratchRegisterScope temps(this);
-  Register scratch = temps.Acquire();
-  ma_li(scratch, ptr);
-  ma_push(scratch);
+  push(ptr);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(FloatRegister f) {
-  ma_push(f);
+  push(f);
   adjustFrame(int32_t(sizeof(double)));
 }
 

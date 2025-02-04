@@ -1608,19 +1608,17 @@ void MacroAssembler::flush() {}
 // Stack manipulation functions.
 
 void MacroAssembler::Push(Register reg) {
-  ma_push(reg);
+  push(reg);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(const Imm32 imm) {
-  ma_li(ScratchRegister, imm);
-  ma_push(ScratchRegister);
+  push(imm);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(const ImmWord imm) {
-  ma_li(ScratchRegister, imm);
-  ma_push(ScratchRegister);
+  push(imm);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
@@ -1629,23 +1627,22 @@ void MacroAssembler::Push(const ImmPtr imm) {
 }
 
 void MacroAssembler::Push(const ImmGCPtr ptr) {
-  ma_li(ScratchRegister, ptr);
-  ma_push(ScratchRegister);
+  push(ptr);
   adjustFrame(int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Push(FloatRegister f) {
-  ma_push(f);
+  push(f);
   adjustFrame(int32_t(f.pushSize()));
 }
 
 void MacroAssembler::Pop(Register reg) {
-  ma_pop(reg);
+  pop(reg);
   adjustFrame(-int32_t(sizeof(intptr_t)));
 }
 
 void MacroAssembler::Pop(FloatRegister f) {
-  ma_pop(f);
+  pop(f);
   adjustFrame(-int32_t(f.pushSize()));
 }
 

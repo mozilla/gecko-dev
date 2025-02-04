@@ -4276,6 +4276,7 @@ void MacroAssembler::Push(const ImmGCPtr ptr) {
 }
 
 void MacroAssembler::Push(FloatRegister reg) {
+  MOZ_ASSERT(reg.isFloat(), "simd128 not supported");
   VFPRegister r = VFPRegister(reg);
   ma_vpush(VFPRegister(reg));
   adjustFrame(r.size());
@@ -4292,6 +4293,7 @@ void MacroAssembler::Pop(Register reg) {
 }
 
 void MacroAssembler::Pop(FloatRegister reg) {
+  MOZ_ASSERT(reg.isFloat(), "simd128 not supported");
   ma_vpop(reg);
   adjustFrame(-reg.size());
 }

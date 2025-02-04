@@ -802,7 +802,8 @@ void CodeGeneratorX86::visitOutOfLineTruncateFloat32(
 
     saveVolatile(output);
 
-    masm.Push(input);
+    // Push always pushes a 64-bit double.
+    masm.Push(input.asDouble());
 
     if (gen->compilingWasm()) {
       masm.setupWasmABICall();
@@ -825,7 +826,7 @@ void CodeGeneratorX86::visitOutOfLineTruncateFloat32(
     }
 
     masm.storeCallInt32Result(output);
-    masm.Pop(input);
+    masm.Pop(input.asDouble());
 
     restoreVolatile(output);
 

@@ -674,7 +674,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
       ma_push(reg);
     }
   }
-  void push(FloatRegister reg) { ma_vpush(VFPRegister(reg)); }
+  void push(FloatRegister reg) {
+    MOZ_ASSERT(reg.isFloat(), "simd128 not supported");
+    ma_vpush(VFPRegister(reg));
+  }
   void pushWithPadding(Register reg, const Imm32 extraSpace) {
     ScratchRegisterScope scratch(asMasm());
     Imm32 totSpace = Imm32(extraSpace.value + 4);
@@ -689,7 +692,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   }
 
   void pop(Register reg) { ma_pop(reg); }
-  void pop(FloatRegister reg) { ma_vpop(VFPRegister(reg)); }
+  void pop(FloatRegister reg) {
+    MOZ_ASSERT(reg.isFloat(), "simd128 not supported");
+    ma_vpop(VFPRegister(reg));
+  }
 
   void popN(Register reg, Imm32 extraSpace) {
     ScratchRegisterScope scratch(asMasm());

@@ -508,9 +508,15 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
     ma_push(scratch2);
   }
   void push(Register reg) { ma_push(reg); }
-  void push(FloatRegister reg) { ma_push(reg); }
+  void push(FloatRegister reg) {
+    MOZ_ASSERT(reg.isDouble(), "float32 and simd128 not supported");
+    ma_push(reg);
+  }
   void pop(Register reg) { ma_pop(reg); }
-  void pop(FloatRegister reg) { ma_pop(reg); }
+  void pop(FloatRegister reg) {
+    MOZ_ASSERT(reg.isDouble(), "float32 and simd128 not supported");
+    ma_pop(reg);
+  }
 
   // Emit a branch that can be toggled to a non-operation. On LOONG64 we use
   // "andi" instruction to toggle the branch.
