@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
-import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+import { html } from "../vendor/lit.all.mjs";
+import { MozLitElement } from "../lit-utils.mjs";
 
 /**
- * @tagname color-input
+ * @tagname moz-input-color
  * @property {string} color - The initial color value as a hex code.
  * @property {string} propName - The property that the color input sets.
  * @property {string} l10nId - l10nId for label text.
  */
-export default class ColorInput extends MozLitElement {
+export default class MozInputColor extends MozLitElement {
   static properties = {
     color: { type: String },
     propName: { type: String, attribute: "prop-name" },
@@ -44,7 +44,7 @@ export default class ColorInput extends MozLitElement {
     return html`
       <link
         rel="stylesheet"
-        href="chrome://global/content/reader/color-input.css"
+        href="chrome://global/content/elements/moz-input-color.css"
       />
       <div class="color-input-container" @click="${this.handleClick}">
         <input
@@ -66,4 +66,4 @@ export default class ColorInput extends MozLitElement {
     `;
   }
 }
-customElements.define("color-input", ColorInput);
+customElements.define("moz-input-color", MozInputColor);

@@ -1038,7 +1038,7 @@ AboutReader.prototype = {
     }
 
     if (this._colorScheme == "custom") {
-      const colorInputs = this._doc.querySelectorAll("color-input");
+      const colorInputs = this._doc.querySelectorAll("moz-input-color");
       colorInputs.forEach(input => {
         // Set document body styles to pref values.
         let property = input.getAttribute("prop-name");
@@ -1130,7 +1130,7 @@ AboutReader.prototype = {
 
   _setupColorInput(prop) {
     let doc = this._doc;
-    let input = doc.createElement("color-input");
+    let input = doc.createElement("moz-input-color");
     input.setAttribute("prop-name", prop);
     let labelL10nId = `about-reader-custom-colors-${prop}`;
     input.setAttribute("data-l10n-id", labelL10nId);
@@ -1187,7 +1187,7 @@ AboutReader.prototype = {
 
   _resetCustomColors() {
     // Need to reset prefs, page colors, and color inputs.
-    const colorInputs = this._doc.querySelectorAll("color-input");
+    const colorInputs = this._doc.querySelectorAll("moz-input-color");
     colorInputs.forEach(input => {
       let property = input.getAttribute("prop-name");
       let pref = `reader.custom_colors.${property}`;
