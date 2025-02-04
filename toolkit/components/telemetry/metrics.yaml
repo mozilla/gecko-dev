@@ -358,3 +358,82 @@ browser.timings:
     expires: never
     unit: ms
     telemetry_mirror: BROWSER_TIMINGS_LAST_SHUTDOWN
+
+onboarding_opt_out:
+  # The `onboarding-opt-out` ping does not include any info sections, and
+  # therefore needs to capture experiments and rollouts independently.  This
+  # data layout agrees with the `nimbus-targeting-context` ping for ease of
+  # analysis.
+  active_experiments:
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+      - jrediger@mozilla.com
+      - loines@mozilla.com
+      - dberry@mozilla.com
+    send_in_pings:
+      - onboarding-opt-out
+    description: >
+      The slugs of the actively enrolled experiments.
+    data_sensitivity:
+      - interaction
+    type: object
+    structure:
+      type: array
+      items:
+        type: string
+
+  active_rollouts:
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+      - jrediger@mozilla.com
+      - loines@mozilla.com
+      - dberry@mozilla.com
+    send_in_pings:
+      - onboarding-opt-out
+    description: >
+      The slugs of the actively enrolled rollouts.
+    data_sensitivity:
+      - interaction
+    type: object
+    structure:
+      type: array
+      items:
+        type: string
+
+  enrollments_map:
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942194
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+      - jrediger@mozilla.com
+      - loines@mozilla.com
+      - dberry@mozilla.com
+    send_in_pings:
+      - onboarding-opt-out
+    description: >
+      Information about historic enrollments, including the branches enrolled.
+    data_sensitivity:
+      - technical
+    type: object
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          experimentSlug:
+            type: string
+          branchSlug:
+            type: string
