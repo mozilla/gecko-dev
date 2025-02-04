@@ -46,6 +46,7 @@ const notificationShell = ({
         link,
         () =>
           html`<a
+            part="support-link"
             slot="support-link"
             data-l10n-id=${link.dataL10nId}
             href=${link.url}

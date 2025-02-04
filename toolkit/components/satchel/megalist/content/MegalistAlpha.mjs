@@ -378,6 +378,7 @@ export class MegalistAlpha extends MozLitElement {
               () => html`
                 <li>
                   <notification-message-bar
+                    exportparts="support-link"
                     .notification=${{
                       ...notification,
                       onButtonClick: handleButtonClick,
@@ -677,6 +678,7 @@ export class MegalistAlpha extends MozLitElement {
 
     return html`
       <notification-message-bar
+        exportparts="support-link"
         .notification=${this.notification}
         .onDismiss=${() => {
           this.notification = null;
