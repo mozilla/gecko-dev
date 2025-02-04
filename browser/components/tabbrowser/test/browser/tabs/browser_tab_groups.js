@@ -2028,6 +2028,33 @@ add_task(async function test_adoptTab() {
   await BrowserTestUtils.closeWindow(newWin, { animate: false });
 });
 
+add_task(async function test_insertAfterCurrent() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.insertAfterCurrent", true]],
+  });
+
+  let group = gBrowser.addTabGroup([gBrowser.selectedTab]);
+  let extraTab = BrowserTestUtils.addTab(gBrowser, "about:robots", {
+    skipAnimation: true,
+  });
+  let newTabPromise = BrowserTestUtils.waitForEvent(window, "TabOpen");
+  BrowserCommands.openTab();
+  let { target: newTab } = await newTabPromise;
+
+  Assert.equal(newTab.group, group, "new tab added to current group");
+  Assert.equal(
+    group.tabs.indexOf(newTab),
+    1,
+    "new tab added as second tab to group"
+  );
+
+  group.ungroupTabs();
+  BrowserTestUtils.removeTab(newTab);
+  BrowserTestUtils.removeTab(extraTab);
+
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_bug1936015() {
   // Checks that groups are properly deleted if the group was created before
   // the user switches between vertical and horizontal tabs.

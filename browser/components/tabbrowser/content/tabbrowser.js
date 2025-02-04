@@ -3699,6 +3699,9 @@
           let lastRelatedTab =
             openerTab && this._lastRelatedTabMap.get(openerTab);
           let previousTab = lastRelatedTab || openerTab || this.selectedTab;
+          if (!tabGroup) {
+            tabGroup = previousTab.group;
+          }
           if (
             Services.prefs.getBoolPref(
               "browser.tabs.insertAfterCurrentExceptPinned"
