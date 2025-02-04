@@ -20,11 +20,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarBackupState",
   BACKUP_STATE_PREF
 );
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "verticalTabsEnabled",
   "sidebar.verticalTabs",
-  false
+  false,
+  (pref, oldVal, newVal) => {
+    SidebarManager.handleVerticalTabsPrefChange(newVal);
+  }
 );
 
 export const SidebarManager = {
@@ -74,7 +78,16 @@ export const SidebarManager = {
       );
     });
 
-    if (!lazy.verticalTabsEnabled) {
+    this.handleVerticalTabsPrefChange(lazy.verticalTabsEnabled);
+  },
+
+  /**
+   * Adjust for a change to the verticalTabs pref.
+   */
+  handleVerticalTabsPrefChange(isEnabled) {
+    if (isEnabled) {
+      Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
+    } else {
       Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "hide-sidebar");
     }
   },

@@ -154,6 +154,11 @@ add_task(async function test_toggle_vertical_tabs_from_a_tab() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
   });
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "hide-sidebar",
+    "Sanity check the visibilty pref is updated when verticalTabs are disabled"
+  );
 
   info("Enable vertical tabs from a tab.");
   const tabContextMenu = document.getElementById("tabContextMenu");
@@ -170,6 +175,11 @@ add_task(async function test_toggle_vertical_tabs_from_a_tab() {
     () => gBrowser.tabContainer.verticalMode,
     "Vertical tabs are enabled."
   );
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "always-show",
+    "Sanity check the visibilty pref is updated when verticalTabs are enabled"
+  );
 
   info("Disable vertical tabs from a tab.");
   await openAndWaitForContextMenu(tabContextMenu, gBrowser.selectedTab, () => {
@@ -184,6 +194,11 @@ add_task(async function test_toggle_vertical_tabs_from_a_tab() {
     () => !gBrowser.tabContainer.verticalMode,
     "Vertical tabs are disabled."
   );
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "hide-sidebar",
+    "Sanity check the visibilty pref is updated when verticalTabs are disabled"
+  );
 
   await SpecialPowers.popPrefEnv();
 });
@@ -192,6 +207,11 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
   });
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "hide-sidebar",
+    "Sanity check the visibilty pref when verticalTabs are disabled"
+  );
 
   info("Enable vertical tabs from the toolbar.");
   const toolbarContextMenu = document.getElementById("toolbar-context-menu");
@@ -216,6 +236,11 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   await TestUtils.waitForCondition(
     () => gBrowser.tabContainer.verticalMode,
     "Vertical tabs are enabled."
+  );
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "always-show",
+    "Sanity check the visibilty pref when verticalTabs are enabled"
   );
 
   // Open customize sidebar panel from context menu
@@ -249,6 +274,11 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   await TestUtils.waitForCondition(
     () => !gBrowser.tabContainer.verticalMode,
     "Vertical tabs are disabled."
+  );
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "hide-sidebar",
+    "Sanity check the visibilty pref when verticalTabs are disabled"
   );
 
   window.SidebarController.hide();
