@@ -2277,17 +2277,27 @@ export class UrlbarInput {
   observe(subject, topic, data) {
     switch (topic) {
       case lazy.SearchUtils.TOPIC_ENGINE_MODIFIED: {
+        let engine = subject.QueryInterface(Ci.nsISearchEngine);
         switch (data) {
           case lazy.SearchUtils.MODIFIED_TYPE.CHANGED:
           case lazy.SearchUtils.MODIFIED_TYPE.REMOVED: {
             let searchMode = this.searchMode;
-            let engine = subject.QueryInterface(Ci.nsISearchEngine);
             if (searchMode?.engineName == engine.name) {
               // Exit search mode if the current search mode engine was removed.
               this.searchMode = searchMode;
             }
             break;
           }
+          case lazy.SearchUtils.MODIFIED_TYPE.DEFAULT:
+            if (this.#searchInitComplete && !this.isPrivate) {
+              this._updatePlaceholder(engine.name);
+            }
+            break;
+          case lazy.SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE:
+            if (this.#searchInitComplete && this.isPrivate) {
+              this._updatePlaceholder(engine.name);
+            }
+            break;
         }
         break;
       }
@@ -3704,11 +3714,10 @@ export class UrlbarInput {
     let { engineName, source, isGeneralPurposeEngine } = searchMode || {};
 
     // As an optimization, bail if the given search mode is null but search mode
-    // is already inactive.  Otherwise browser_preferences_usage.js fails due to
+    // is already inactive. Otherwise, browser_preferences_usage.js fails due to
     // accessing the browser.urlbar.placeholderName pref (via the call to
-    // BrowserSearch.initPlaceHolder below) too many times.  That test does not
-    // enter search mode, but it triggers many calls to this method with a null
-    // search mode, via setURI.
+    // initPlaceHolder below) too many times. That test does not enter search mode,
+    // but it triggers many calls to this method with a null search mode, via setURI.
     if (!engineName && !source && !this.hasAttribute("searchmode")) {
       return;
     }
@@ -3723,7 +3732,7 @@ export class UrlbarInput {
         // This will throw before DOMContentLoaded in
         // PrivateBrowsingUtils.privacyContextFromWindow because
         // aWindow.docShell is null.
-        this.window.BrowserSearch.initPlaceHolder(true);
+        this.initPlaceHolder(true);
       } catch (ex) {}
       this.removeAttribute("searchmode");
       return;
@@ -3763,6 +3772,141 @@ export class UrlbarInput {
     }
 
     this.searchModeSwitcher?.onSearchModeChanged();
+  }
+
+  /**
+   * Initializes the urlbar placeholder to the pre-saved engine name. We do this
+   * via a preference, to avoid needing to synchronously init the search service.
+   *
+   * This should be called around the time of DOMContentLoaded, so that it is
+   * initialized quickly before the user sees anything.
+   *
+   * Note: If the preference doesn't exist, we don't do anything as the default
+   * placeholder is a string which doesn't have the engine name; however, this
+   * can be overridden using the `force` parameter.
+   *
+   * @param {boolean} force If true and the preference doesn't exist, the
+   *                        placeholder will be set to the default version
+   *                        without an engine name ("Search or enter address").
+   */
+  initPlaceHolder(force = false) {
+    let prefName =
+      "browser.urlbar.placeholderName" + (this.isPrivate ? ".private" : "");
+    let engineName = Services.prefs.getStringPref(prefName, "");
+    if (engineName || force) {
+      // We can do this directly, since we know we're at DOMContentLoaded.
+      this._setPlaceholder(engineName);
+    }
+  }
+
+  /**
+   * Asynchronously changes the urlbar placeholder to the name of the default
+   * engine according to the search service when it is initialized.
+   *
+   * This should be called around the time of MozAfterPaint. Since the
+   * placeholder was already initialized to the pre-saved engine name by
+   * initPlaceHolder when this is called, the update is delayed to avoid
+   * confusing the user.
+   */
+  delayedStartupInit() {
+    this._updatePlaceholderFromDefaultEngine(this.isPrivate, true).then(() => {
+      this.#searchInitComplete = true;
+    });
+  }
+
+  /**
+   * This is a wrapper around '_updatePlaceholder' that uses the appropriate
+   * default engine to get the engine name. This also saves the current engine
+   * name in preferences for the next restart.
+   *
+   * @param {boolean} [delayUpdate]  Set to true, to delay update until the
+   *                                 placeholder is not displayed.
+   */
+  async _updatePlaceholderFromDefaultEngine(delayUpdate = false) {
+    const getDefault = this.isPrivate
+      ? Services.search.getDefaultPrivate
+      : Services.search.getDefault;
+    let defaultEngine = await getDefault();
+    if (!this.#searchInitComplete) {
+      // If we haven't finished initializing, ensure the placeholder
+      // preference is set for the next startup.
+      lazy.SearchUIUtils.updatePlaceholderNamePreference(
+        defaultEngine,
+        this.isPrivate
+      );
+    }
+    this._updatePlaceholder(defaultEngine.name, delayUpdate);
+  }
+
+  /**
+   * Updates the URLBar placeholder for the specified engine, delaying the
+   * update if required.
+   *
+   * Note: The engine name will only be displayed for application-provided
+   * engines, as we know they should have short names.
+   *
+   * @param {string}  engineName     The search engine name to use for the update.
+   * @param {boolean} [delayUpdate]  Set to true to delay update until the
+   *                                 placeholder is not displayed.
+   */
+  _updatePlaceholder(engineName, delayUpdate = false) {
+    if (!engineName) {
+      throw new Error("Expected an engineName to be specified");
+    }
+
+    const engine = Services.search.getEngineByName(engineName);
+    if (!engine.isAppProvided) {
+      // Set the engine name to an empty string for non-default engines, which'll
+      // make sure we display the default placeholder string.
+      engineName = "";
+    }
+
+    // Only delay if requested, and we're not displaying text in the URL bar
+    // currently.
+    if (delayUpdate && !this.value) {
+      // Delays changing the URL Bar placeholder until the user is not going to be
+      // seeing it, e.g. when there is a value entered in the bar, or if there is
+      // a tab switch to a tab which has a url loaded. We delay the update until
+      // the user is out of search mode since an alternative placeholder is used
+      // in search mode.
+      let placeholderUpdateListener = () => {
+        if (this.value && !this.searchMode) {
+          // By the time the user has switched, they may have changed the engine
+          // again, so we need to call this function again but with the
+          // new engine name.
+          // No need to await for this to finish, we're in a listener here anyway.
+          this._updatePlaceholderFromDefaultEngine(false);
+          this.removeEventListener("input", placeholderUpdateListener);
+          this.window.gBrowser.tabContainer.removeEventListener(
+            "TabSelect",
+            placeholderUpdateListener
+          );
+        }
+      };
+
+      this.addEventListener("input", placeholderUpdateListener);
+      this.window.gBrowser.tabContainer.addEventListener(
+        "TabSelect",
+        placeholderUpdateListener
+      );
+    } else if (!this.searchMode) {
+      this._setPlaceholder(engineName);
+    }
+  }
+
+  /**
+   * Sets the URLBar placeholder to either something based on the engine name,
+   * or the default placeholder.
+   *
+   * @param {string} name
+   * The name of the engine or an empty string to use the default placeholder.
+   */
+  _setPlaceholder(name) {
+    this.document.l10n.setAttributes(
+      this.inputField,
+      name ? "urlbar-placeholder-with-name" : "urlbar-placeholder",
+      name ? { name } : undefined
+    );
   }
 
   /**
@@ -4759,6 +4903,12 @@ export class UrlbarInput {
         this._isKeyDownWithMetaAndLeft)
     );
   }
+
+  /**
+   * Whether the search service has initialized and the placeholder
+   * has been update with the correct default engine.
+   */
+  #searchInitComplete = false;
 }
 
 /**

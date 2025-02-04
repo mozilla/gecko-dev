@@ -130,7 +130,7 @@ add_task(async function test_delayed_update_placeholder() {
   // if the engine is changed by the user then the placeholder is always updated
   // straight away. As we want to test the delay update here, we remove the
   // listener and call the placeholder update manually with the delay flag.
-  Services.obs.removeObserver(BrowserSearch, "browser-search-engine-modified");
+  Services.obs.removeObserver(gURLBar, "browser-search-engine-modified");
 
   // Since we can't easily test for startup changes, we'll at least test the delay
   // of update for the placeholder works.
@@ -149,7 +149,7 @@ add_task(async function test_delayed_update_placeholder() {
     Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   );
   // Pretend we've "initialized".
-  BrowserSearch._updateURLBarPlaceholder(extraEngine.name, false, true);
+  gURLBar._updatePlaceholder(extraEngine.name, true);
 
   Assert.equal(
     gURLBar.placeholder,
@@ -172,7 +172,7 @@ add_task(async function test_delayed_update_placeholder() {
     appDefaultEngine,
     Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   );
-  BrowserSearch._updateURLBarPlaceholder(appDefaultEngine.name, false, true);
+  gURLBar._updatePlaceholder(appDefaultEngine.name, true);
 
   Assert.equal(
     gURLBar.placeholder,
@@ -193,7 +193,7 @@ add_task(async function test_delayed_update_placeholder() {
   );
 
   // Now check when we have a URL displayed, the placeholder is updated straight away.
-  BrowserSearch._updateURLBarPlaceholder(extraEngine.name, false);
+  gURLBar._updatePlaceholder(extraEngine.name);
 
   await TestUtils.waitForCondition(
     () => gURLBar.placeholder == noEngineString,
@@ -205,7 +205,7 @@ add_task(async function test_delayed_update_placeholder() {
     "Placeholder should be the default."
   );
 
-  Services.obs.addObserver(BrowserSearch, "browser-search-engine-modified");
+  Services.obs.addObserver(gURLBar, "browser-search-engine-modified", true);
 });
 
 add_task(async function test_private_window_no_separate_engine() {
@@ -370,7 +370,7 @@ add_task(async function test_change_default_engine_updates_placeholder() {
 
   // Simulate the placeholder not having changed due to the delayed update
   // on startup.
-  BrowserSearch._setURLBarPlaceholder("");
+  gURLBar._setPlaceholder("");
   await TestUtils.waitForCondition(
     () => gURLBar.placeholder == noEngineString,
     "The placeholder should have been reset."

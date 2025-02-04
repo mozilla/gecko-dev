@@ -1836,23 +1836,8 @@ var newWindowButtonObserver = {
 };
 
 const BrowserSearch = {
-  _searchInitComplete: false,
-
   init() {
     Services.obs.addObserver(this, "browser-search-engine-modified");
-  },
-
-  delayedStartupInit() {
-    // Asynchronously initialize the search service if necessary, to get the
-    // current engine for working out the placeholder.
-    this._updateURLBarPlaceholderFromDefaultEngine(
-      PrivateBrowsingUtils.isWindowPrivate(window),
-      // Delay the update for this until so that we don't change it while
-      // the user is looking at it / isn't expecting it.
-      true
-    ).then(() => {
-      this._searchInitComplete = true;
-    });
   },
 
   uninit() {
@@ -1880,22 +1865,6 @@ const BrowserSearch = {
         // engine, then the engine needs to be removed from the corresponding
         // browser's offered engines.
         this._removeMaybeOfferedEngine(engineName);
-        break;
-      case "engine-default":
-        if (
-          this._searchInitComplete &&
-          !PrivateBrowsingUtils.isWindowPrivate(window)
-        ) {
-          this._updateURLBarPlaceholder(engineName, false);
-        }
-        break;
-      case "engine-default-private":
-        if (
-          this._searchInitComplete &&
-          PrivateBrowsingUtils.isWindowPrivate(window)
-        ) {
-          this._updateURLBarPlaceholder(engineName, true);
-        }
         break;
     }
   },
@@ -1944,131 +1913,8 @@ const BrowserSearch = {
     }
   },
 
-  /**
-   * Initializes the urlbar placeholder to the pre-saved engine name. We do this
-   * via a preference, to avoid needing to synchronously init the search service.
-   *
-   * This should be called around the time of DOMContentLoaded, so that it is
-   * initialized quickly before the user sees anything.
-   *
-   * Note: If the preference doesn't exist, we don't do anything as the default
-   * placeholder is a string which doesn't have the engine name; however, this
-   * can be overridden using the `force` parameter.
-   *
-   * @param {Boolean} force If true and the preference doesn't exist, the
-   *                        placeholder will be set to the default version
-   *                        without an engine name ("Search or enter address").
-   */
-  initPlaceHolder(force = false) {
-    const prefName =
-      "browser.urlbar.placeholderName" +
-      (PrivateBrowsingUtils.isWindowPrivate(window) ? ".private" : "");
-    let engineName = Services.prefs.getStringPref(prefName, "");
-    if (engineName || force) {
-      // We can do this directly, since we know we're at DOMContentLoaded.
-      this._setURLBarPlaceholder(engineName);
-    }
-  },
-
-  /**
-   * This is a wrapper around '_updateURLBarPlaceholder' that uses the
-   * appropriate default engine to get the engine name.
-   *
-   * @param {Boolean} isPrivate      Set to true if this is a private window.
-   * @param {Boolean} [delayUpdate]  Set to true, to delay update until the
-   *                                 placeholder is not displayed.
-   */
-  async _updateURLBarPlaceholderFromDefaultEngine(
-    isPrivate,
-    delayUpdate = false
-  ) {
-    const getDefault = isPrivate
-      ? Services.search.getDefaultPrivate
-      : Services.search.getDefault;
-    let defaultEngine = await getDefault();
-    if (!this._searchInitComplete) {
-      // If we haven't finished initialising, ensure the placeholder
-      // preference is set for the next startup.
-      SearchUIUtils.updatePlaceholderNamePreference(defaultEngine, isPrivate);
-    }
-    this._updateURLBarPlaceholder(defaultEngine.name, isPrivate, delayUpdate);
-  },
-
-  /**
-   * Updates the URLBar placeholder for the specified engine, delaying the
-   * update if required. This also saves the current engine name in preferences
-   * for the next restart.
-   *
-   * Note: The engine name will only be displayed for built-in engines, as we
-   * know they should have short names.
-   *
-   * @param {String}  engineName     The search engine name to use for the update.
-   * @param {Boolean} isPrivate      Set to true if this is a private window.
-   * @param {Boolean} [delayUpdate]  Set to true, to delay update until the
-   *                                 placeholder is not displayed.
-   */
-  _updateURLBarPlaceholder(engineName, isPrivate, delayUpdate = false) {
-    if (!engineName) {
-      throw new Error("Expected an engineName to be specified");
-    }
-
-    const engine = Services.search.getEngineByName(engineName);
-    if (!engine.isAppProvided) {
-      // Set the engine name to an empty string for non-default engines, which'll
-      // make sure we display the default placeholder string.
-      engineName = "";
-    }
-
-    // Only delay if requested, and we're not displaying text in the URL bar
-    // currently.
-    if (delayUpdate && !gURLBar.value) {
-      // Delays changing the URL Bar placeholder until the user is not going to be
-      // seeing it, e.g. when there is a value entered in the bar, or if there is
-      // a tab switch to a tab which has a url loaded. We delay the update until
-      // the user is out of search mode since an alternative placeholder is used
-      // in search mode.
-      let placeholderUpdateListener = () => {
-        if (gURLBar.value && !gURLBar.searchMode) {
-          // By the time the user has switched, they may have changed the engine
-          // again, so we need to call this function again but with the
-          // new engine name.
-          // No need to await for this to finish, we're in a listener here anyway.
-          this._updateURLBarPlaceholderFromDefaultEngine(isPrivate, false);
-          gURLBar.removeEventListener("input", placeholderUpdateListener);
-          gBrowser.tabContainer.removeEventListener(
-            "TabSelect",
-            placeholderUpdateListener
-          );
-        }
-      };
-
-      gURLBar.addEventListener("input", placeholderUpdateListener);
-      gBrowser.tabContainer.addEventListener(
-        "TabSelect",
-        placeholderUpdateListener
-      );
-    } else if (!gURLBar.searchMode) {
-      this._setURLBarPlaceholder(engineName);
-    }
-  },
-
-  /**
-   * Sets the URLBar placeholder to either something based on the engine name,
-   * or the default placeholder.
-   *
-   * @param {String} name The name of the engine to use, an empty string if to
-   *                      use the default placeholder.
-   */
-  _setURLBarPlaceholder(name) {
-    document.l10n.setAttributes(
-      gURLBar.inputField,
-      name ? "urlbar-placeholder-with-name" : "urlbar-placeholder",
-      name ? { name } : undefined
-    );
-  },
-
   addEngine(browser, engine) {
-    if (!this._searchInitComplete) {
+    if (!Services.search.hasSuccessfullyInitialized) {
       // We haven't finished initialising search yet. This means we can't
       // call getEngineByName here. Since this is only on start-up and unlikely
       // to happen in the normal case, we'll just return early rather than
@@ -2428,10 +2274,7 @@ const BrowserSearch = {
     );
 
     // Update engine name in the placeholder to the new default engine name.
-    this._updateURLBarPlaceholderFromDefaultEngine(
-      PrivateBrowsingUtils.isWindowPrivate(window),
-      false
-    ).catch(console.error);
+    gURLBar._updatePlaceholderFromDefaultEngine(false).catch(console.error);
   },
 };
 
