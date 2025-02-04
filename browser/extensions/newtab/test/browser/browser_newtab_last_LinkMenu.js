@@ -92,7 +92,7 @@ add_task(async function test_newtab_last_LinkMenu() {
         content.document.querySelector(
           ".top-site-outer:nth-child(2n) .context-menu-button"
         ),
-      "Wait for the Pocket card and button"
+      "Wait for the topsite card and button"
     );
     const topsiteOuter = content.document.querySelector(
       ".top-site-outer:nth-child(2n)"
@@ -105,7 +105,7 @@ add_task(async function test_newtab_last_LinkMenu() {
 
     await ContentTaskUtils.waitForCondition(
       () => topsiteOuter.classList.contains("active"),
-      "Wait for the menu to be active"
+      "Wait for the topsite menu to be active"
     );
 
     is(
@@ -124,7 +124,7 @@ add_task(async function test_newtab_last_LinkMenu() {
         content.document.querySelector(
           ".ds-card:nth-child(1n) .context-menu-button"
         ),
-      "Wait for the Pocket card and button"
+      "Wait for the story card and button"
     );
 
     const dsCard = content.document.querySelector(".ds-card:nth-child(1n)");
@@ -134,7 +134,7 @@ add_task(async function test_newtab_last_LinkMenu() {
 
     await ContentTaskUtils.waitForCondition(
       () => dsCard.classList.contains("active"),
-      "Wait for the menu to be active"
+      "Wait for the story menu to be active"
     );
 
     is(

@@ -59,6 +59,8 @@ export class ContextMenuButton extends React.PureComponent {
           onKeyDown={this.onKeyDown}
           onClick={this.onClick}
           ref={refFunction}
+          tabIndex={this.props.tabIndex || 0}
+          onFocus={this.props.onFocus}
         />
         {showContextMenu
           ? React.cloneElement(children, {

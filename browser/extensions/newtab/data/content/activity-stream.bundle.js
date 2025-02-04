@@ -2265,7 +2265,9 @@ class ContextMenuButton extends (external_React_default()).PureComponent {
       className: "context-menu-button icon",
       onKeyDown: this.onKeyDown,
       onClick: this.onClick,
-      ref: refFunction
+      ref: refFunction,
+      tabIndex: this.props.tabIndex || 0,
+      onFocus: this.props.onFocus
     }), showContextMenu ? /*#__PURE__*/external_React_default().cloneElement(children, {
       keyboardAccess: contextMenuKeyboard,
       onUpdate: this.onUpdate
@@ -8081,18 +8083,20 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       onDrop: this.onDragEvent,
       onDragOver: this.onDragEvent,
       onDragEnter: this.onDragEvent,
-      onDragLeave: this.onDragEvent
+      onDragLeave: this.onDragEvent,
+      ref: this.props.setRef
     }, draggableProps), /*#__PURE__*/external_React_default().createElement("div", {
       className: "top-site-inner"
     }, /*#__PURE__*/external_React_default().createElement("a", {
       className: "top-site-button",
       href: link.searchTopSite ? undefined : link.url,
-      tabIndex: "0",
+      tabIndex: this.props.tabIndex,
       onKeyPress: this.onKeyPress,
       onClick: onClick,
       draggable: true,
       "data-is-sponsored-link": !!link.sponsored_tile_id,
-      title: title
+      title: title,
+      onFocus: this.props.onFocus
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "tile",
       "aria-hidden": true
@@ -8312,13 +8316,18 @@ class TopSite extends (external_React_default()).PureComponent {
       onClick: this.onLinkClick,
       onDragEvent: this.props.onDragEvent,
       className: `${props.className || ""}${isContextMenuOpen ? " active" : ""}`,
-      title: title
+      title: title,
+      setPref: this.props.setPref,
+      tabIndex: this.props.tabIndex,
+      onFocus: this.props.onFocus
     }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement(ContextMenuButton, {
       tooltip: "newtab-menu-content-tooltip",
       tooltipArgs: {
         title
       },
-      onUpdate: this.onMenuUpdate
+      onUpdate: this.onMenuUpdate,
+      tabIndex: this.props.tabIndex,
+      onFocus: this.props.onFocus
     }, /*#__PURE__*/external_React_default().createElement(LinkMenu, {
       dispatch: props.dispatch,
       index: props.index,
@@ -8360,7 +8369,9 @@ class TopSitePlaceholder extends (external_React_default()).PureComponent {
       ...addButtonProps
     } : {}, {
       className: `placeholder ${this.props.className || ""} ${this.props.isAddButton ? "add-button" : ""}`,
-      isDraggable: false
+      setPref: this.props.setPref,
+      isDraggable: false,
+      tabIndex: this.props.tabIndex
     }));
   }
 }
@@ -8371,7 +8382,8 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       draggedIndex: null,
       draggedSite: null,
       draggedTitle: null,
-      topSitesPreview: null
+      topSitesPreview: null,
+      focusedIndex: 0
     };
   }
   constructor(props) {
@@ -8379,6 +8391,10 @@ class _TopSiteList extends (external_React_default()).PureComponent {
     this.state = _TopSiteList.DEFAULT_STATE;
     this.onDragEvent = this.onDragEvent.bind(this);
     this.onActivate = this.onActivate.bind(this);
+    this.onWrapperFocus = this.onWrapperFocus.bind(this);
+    this.onTopsiteFocus = this.onTopsiteFocus.bind(this);
+    this.onWrapperBlur = this.onWrapperBlur.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     if (this.state.draggedSite) {
@@ -8520,6 +8536,34 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       activeIndex: index
     });
   }
+  onKeyDown(e) {
+    if (this.state.activeIndex || this.state.activeIndex === 0) {
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      // prevent the page from scrolling up/down while navigating.
+      e.preventDefault();
+    }
+    if (this.focusedRef?.nextSibling?.querySelector("a") && e.key === "ArrowDown") {
+      this.focusedRef.nextSibling.querySelector("a").tabIndex = 0;
+      this.focusedRef.nextSibling.querySelector("a").focus();
+    }
+    if (this.focusedRef?.previousSibling?.querySelector("a") && e.key === "ArrowUp") {
+      this.focusedRef.previousSibling.querySelector("a").tabIndex = 0;
+      this.focusedRef.previousSibling.querySelector("a").focus();
+    }
+  }
+  onWrapperFocus() {
+    this.focusRef?.addEventListener("keydown", this.onKeyDown);
+  }
+  onWrapperBlur() {
+    this.focusRef?.removeEventListener("keydown", this.onKeyDown);
+  }
+  onTopsiteFocus(focusIndex) {
+    this.setState(() => ({
+      focusedIndex: focusIndex
+    }));
+  }
   render() {
     const {
       props
@@ -8558,7 +8602,14 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       if (!link || props.App.isForStartupCache && isSponsored(link) || topSites[i]?.isAddButton) {
         if (link) {
           topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps, {
-            isAddButton: topSites[i] && topSites[i].isAddButton
+            isAddButton: topSites[i] && topSites[i].isAddButton,
+            setRef: i === this.state.focusedIndex ? el => {
+              this.focusedRef = el;
+            } : () => {},
+            tabIndex: i === this.state.focusedIndex ? 0 : -1,
+            onFocus: () => {
+              this.onTopsiteFocus(i);
+            }
           }));
         }
       } else {
@@ -8568,7 +8619,14 @@ class _TopSiteList extends (external_React_default()).PureComponent {
           onActivate: this.onActivate
         }, slotProps, commonProps, {
           colors: props.colors,
-          shortcutsRefresh: shortcutsRefresh
+          shortcutsRefresh: shortcutsRefresh,
+          setRef: i === this.state.focusedIndex ? el => {
+            this.focusedRef = el;
+          } : () => {},
+          tabIndex: i === this.state.focusedIndex ? 0 : -1,
+          onFocus: () => {
+            this.onTopsiteFocus(i);
+          }
         }));
       }
       topSitesUI.push(topSiteLink);
@@ -8576,6 +8634,13 @@ class _TopSiteList extends (external_React_default()).PureComponent {
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "top-sites-list-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("ul", {
+      role: "group",
+      "aria-label": "Shortcuts",
+      onFocus: this.onWrapperFocus,
+      onBlur: this.onWrapperBlur,
+      ref: el => {
+        this.focusRef = el;
+      },
       className: `top-sites-list${this.state.draggedSite ? " dnd-active" : ""}`
     }, topSitesUI));
   }

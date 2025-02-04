@@ -349,6 +349,7 @@ export class TopSiteLink extends React.PureComponent {
         onDragOver={this.onDragEvent}
         onDragEnter={this.onDragEvent}
         onDragLeave={this.onDragEvent}
+        ref={this.props.setRef}
         {...draggableProps}
       >
         <div className="top-site-inner">
@@ -357,12 +358,13 @@ export class TopSiteLink extends React.PureComponent {
           <a
             className="top-site-button"
             href={link.searchTopSite ? undefined : link.url}
-            tabIndex="0"
+            tabIndex={this.props.tabIndex}
             onKeyPress={this.onKeyPress}
             onClick={onClick}
             draggable={true}
             data-is-sponsored-link={!!link.sponsored_tile_id}
             title={title}
+            onFocus={this.props.onFocus}
           >
             <div className="tile" aria-hidden={true}>
               <div
@@ -619,12 +621,17 @@ export class TopSite extends React.PureComponent {
           isContextMenuOpen ? " active" : ""
         }`}
         title={title}
+        setPref={this.props.setPref}
+        tabIndex={this.props.tabIndex}
+        onFocus={this.props.onFocus}
       >
         <div>
           <ContextMenuButton
             tooltip="newtab-menu-content-tooltip"
             tooltipArgs={{ title }}
             onUpdate={this.onMenuUpdate}
+            tabIndex={this.props.tabIndex}
+            onFocus={this.props.onFocus}
           >
             <LinkMenu
               dispatch={props.dispatch}
@@ -676,7 +683,9 @@ export class TopSitePlaceholder extends React.PureComponent {
         className={`placeholder ${this.props.className || ""} ${
           this.props.isAddButton ? "add-button" : ""
         }`}
+        setPref={this.props.setPref}
         isDraggable={false}
+        tabIndex={this.props.tabIndex}
       />
     );
   }
@@ -690,6 +699,7 @@ export class _TopSiteList extends React.PureComponent {
       draggedSite: null,
       draggedTitle: null,
       topSitesPreview: null,
+      focusedIndex: 0,
     };
   }
 
@@ -698,6 +708,10 @@ export class _TopSiteList extends React.PureComponent {
     this.state = _TopSiteList.DEFAULT_STATE;
     this.onDragEvent = this.onDragEvent.bind(this);
     this.onActivate = this.onActivate.bind(this);
+    this.onWrapperFocus = this.onWrapperFocus.bind(this);
+    this.onTopsiteFocus = this.onTopsiteFocus.bind(this);
+    this.onWrapperBlur = this.onWrapperBlur.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -860,6 +874,44 @@ export class _TopSiteList extends React.PureComponent {
     this.setState({ activeIndex: index });
   }
 
+  onKeyDown(e) {
+    if (this.state.activeIndex || this.state.activeIndex === 0) {
+      return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      // prevent the page from scrolling up/down while navigating.
+      e.preventDefault();
+    }
+
+    if (
+      this.focusedRef?.nextSibling?.querySelector("a") &&
+      e.key === "ArrowDown"
+    ) {
+      this.focusedRef.nextSibling.querySelector("a").tabIndex = 0;
+      this.focusedRef.nextSibling.querySelector("a").focus();
+    }
+    if (
+      this.focusedRef?.previousSibling?.querySelector("a") &&
+      e.key === "ArrowUp"
+    ) {
+      this.focusedRef.previousSibling.querySelector("a").tabIndex = 0;
+      this.focusedRef.previousSibling.querySelector("a").focus();
+    }
+  }
+
+  onWrapperFocus() {
+    this.focusRef?.addEventListener("keydown", this.onKeyDown);
+  }
+  onWrapperBlur() {
+    this.focusRef?.removeEventListener("keydown", this.onKeyDown);
+  }
+  onTopsiteFocus(focusIndex) {
+    this.setState(() => ({
+      focusedIndex: focusIndex,
+    }));
+  }
+
   render() {
     const { props } = this;
     const prefs = props.Prefs.values;
@@ -909,6 +961,17 @@ export class _TopSiteList extends React.PureComponent {
               {...slotProps}
               {...commonProps}
               isAddButton={topSites[i] && topSites[i].isAddButton}
+              setRef={
+                i === this.state.focusedIndex
+                  ? el => {
+                      this.focusedRef = el;
+                    }
+                  : () => {}
+              }
+              tabIndex={i === this.state.focusedIndex ? 0 : -1}
+              onFocus={() => {
+                this.onTopsiteFocus(i);
+              }}
             />
           );
         }
@@ -922,6 +985,17 @@ export class _TopSiteList extends React.PureComponent {
             {...commonProps}
             colors={props.colors}
             shortcutsRefresh={shortcutsRefresh}
+            setRef={
+              i === this.state.focusedIndex
+                ? el => {
+                    this.focusedRef = el;
+                  }
+                : () => {}
+            }
+            tabIndex={i === this.state.focusedIndex ? 0 : -1}
+            onFocus={() => {
+              this.onTopsiteFocus(i);
+            }}
           />
         );
       }
@@ -931,6 +1005,13 @@ export class _TopSiteList extends React.PureComponent {
     return (
       <div className="top-sites-list-wrapper">
         <ul
+          role="group"
+          aria-label="Shortcuts"
+          onFocus={this.onWrapperFocus}
+          onBlur={this.onWrapperBlur}
+          ref={el => {
+            this.focusRef = el;
+          }}
           className={`top-sites-list${
             this.state.draggedSite ? " dnd-active" : ""
           }`}
