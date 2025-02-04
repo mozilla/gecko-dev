@@ -16746,7 +16746,7 @@
 # This enables discard processing
 - name: svg.discard.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Tweak which elements are allowed in <svg:use> subtrees, and in which
