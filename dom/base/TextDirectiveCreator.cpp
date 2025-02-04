@@ -764,6 +764,7 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
 Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
 TextDirectiveCreator::FindAllMatchingCandidates() {
   ErrorResult rv;
+  nsTArray<TextDirectiveCandidate> textDirectiveMatches;
 
   if (mTextDirective.UseExactMatch()) {
     Result<nsString, ErrorResult> rangeContent =
@@ -776,9 +777,11 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     if (MOZ_UNLIKELY(maybeRangeMatches.isErr())) {
       return maybeRangeMatches.propagateErr();
     }
+    if (mWatchdog.IsDone()) {
+      return textDirectiveMatches;
+    }
     auto rangeMatches = maybeRangeMatches.unwrap();
-    nsTArray<TextDirectiveCandidate> textDirectiveMatches(
-        rangeMatches.Length());
+    textDirectiveMatches.SetCapacity(rangeMatches.Length());
     for (const auto& rangeMatch : rangeMatches) {
       auto candidate = TextDirectiveCandidate::CreateFromInputRange(rangeMatch);
       if (MOZ_UNLIKELY(candidate.isErr())) {
@@ -801,6 +804,10 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
   }
   auto startRangeMatches = maybeStartRangeMatches.unwrap();
 
+  if (mWatchdog.IsDone()) {
+    return textDirectiveMatches;
+  }
+
   Result<nsString, ErrorResult> endRangeContent =
       TextDirectiveUtil::RangeContentAsString(mTextDirective.EndRange());
   if (MOZ_UNLIKELY(endRangeContent.isErr())) {
@@ -812,13 +819,21 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     return maybeEndRangeMatches.propagateErr();
   }
   auto endRangeMatchesArray = maybeEndRangeMatches.unwrap();
+
+  if (mWatchdog.IsDone()) {
+    return textDirectiveMatches;
+  }
+
   nsDeque<nsRange> endRangeMatches;
   for (auto& element : endRangeMatchesArray) {
     endRangeMatches.Push(element.get());
   }
-  nsTArray<TextDirectiveCandidate> textDirectiveCandidates(
-      startRangeMatches.Length());
+
+  size_t counter = 0;
   for (const auto& matchStartRange : startRangeMatches) {
+    if (++counter % 100 == 0 && mWatchdog.IsDone()) {
+      return textDirectiveMatches;
+    }
     for (auto* matchEndRange : endRangeMatches) {
       Maybe<int32_t> compare = nsContentUtils::ComparePoints(
           matchStartRange->EndRef(), matchEndRange->StartRef());
@@ -831,10 +846,10 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
       if (MOZ_UNLIKELY(candidate.isErr())) {
         return candidate.propagateErr();
       }
-      textDirectiveCandidates.AppendElement(candidate.unwrap());
+      textDirectiveMatches.AppendElement(candidate.unwrap());
     }
   }
-  return textDirectiveCandidates;
+  return textDirectiveMatches;
 }
 
 Result<nsTArray<RefPtr<nsRange>>, ErrorResult>
@@ -848,7 +863,11 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
     return Err(std::move(rv));
   }
   nsTArray<RefPtr<nsRange>> matchingRanges;
+  size_t counter = 0;
   while (!searchRange->Collapsed()) {
+    if (++counter % 100 == 0 && mWatchdog.IsDone()) {
+      return matchingRanges;
+    }
     RefPtr<nsRange> searchResult = TextDirectiveUtil::FindStringInRange(
         searchRange, aSearchQuery, true, true);
     if (!searchResult) {
@@ -881,6 +900,12 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
 Result<nsCString, ErrorResult>
 TextDirectiveCreator::CreateTextDirectiveFromMatches(
     const nsTArray<TextDirectiveCandidate>& aTextDirectiveMatches) {
+  if (mWatchdog.IsDone()) {
+    TEXT_FRAGMENT_LOG(
+        "Hitting {}s timeout.",
+        StaticPrefs::dom_text_fragments_create_text_fragment_timeout_seconds());
+    return nsCString{};
+  }
   TextDirectiveCandidate currentCandidate = std::move(mTextDirective);
   if (aTextDirectiveMatches.IsEmpty()) {
     TEXT_FRAGMENT_LOG(
@@ -909,6 +934,13 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
   size_t loopCounter = 0;
   while (!matches.IsEmpty()) {
     ++loopCounter;
+    if (mWatchdog.IsDone()) {
+      TEXT_FRAGMENT_LOG(
+          "Hitting {}s timeout.",
+          StaticPrefs::
+              dom_text_fragments_create_text_fragment_timeout_seconds());
+      return nsCString{};
+    }
     TEXT_FRAGMENT_LOG(
         "Entering loop {}. {} matches left. Current candidate state:\n",
         loopCounter, matches.Length());

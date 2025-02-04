@@ -9,6 +9,7 @@
 
 #include <tuple>
 #include "RangeBoundary.h"
+#include "TextDirectiveUtil.h"
 #include "nsStringFwd.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
@@ -296,6 +297,15 @@ class TextDirectiveCreator final {
   RefPtr<nsRange> mInputRange;
   TextDirectiveCandidate mTextDirective;
   RangeContentCache mRangeContentCache;
+
+  /**
+   * The watchdog ensures that the algorithm exits after a defined time
+   * duration, to ensure that the main thread is not blocked for too long.
+   *
+   * The duration is defined by the pref
+   * `dom.text_fragments.create_text_fragment.timeout`.
+   */
+  TimeoutWatchdog mWatchdog;
 };
 }  // namespace mozilla::dom
 #endif
