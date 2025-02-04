@@ -463,7 +463,82 @@ UiaTextRange::FindAttribute(TEXTATTRIBUTEID aAttributeId, VARIANT aVal,
 STDMETHODIMP
 UiaTextRange::FindText(__RPC__in BSTR aText, BOOL aBackward, BOOL aIgnoreCase,
                        __RPC__deref_out_opt ITextRangeProvider** aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  MOZ_ASSERT(range.Start() <= range.End(), "Range must be valid to proceed.");
+
+  // We can't find anything in an empty range.
+  if (range.Start() == range.End()) {
+    return S_OK;
+  }
+
+  // Iterate over the range's leaf segments and append each leaf's text. Keep
+  // track of the indices in the built string, associating them with the
+  // Accessible pointer whose text begins at that index.
+  nsTArray<std::pair<int32_t, Accessible*>> indexToAcc;
+  nsAutoString rangeText;
+  for (const TextLeafRange leafSegment : range) {
+    Accessible* startAcc = leafSegment.Start().mAcc;
+    MOZ_ASSERT(startAcc, "Start acc of leaf segment was unexpectedly null.");
+    indexToAcc.EmplaceBack(rangeText.Length(), startAcc);
+    startAcc->AppendTextTo(rangeText);
+  }
+
+  // Find the search string's start position in the text of the range, ignoring
+  // case if requested.
+  const nsDependentString searchStr{aText};
+  const int32_t startIndex = [&]() {
+    if (aIgnoreCase) {
+      ToLowerCase(rangeText);
+      nsAutoString searchStrLower;
+      ToLowerCase(searchStr, searchStrLower);
+      return aBackward ? rangeText.RFind(searchStrLower)
+                       : rangeText.Find(searchStrLower);
+    } else {
+      return aBackward ? rangeText.RFind(searchStr) : rangeText.Find(searchStr);
+    }
+  }();
+  if (startIndex == kNotFound) {
+    return S_OK;
+  }
+  const int32_t endIndex = startIndex + searchStr.Length();
+
+  // Binary search for the (index, Accessible*) pair where the index is as large
+  // as possible without exceeding the size of the search index. The associated
+  // Accessible* is the Accessible for the resulting TextLeafPoint.
+  auto GetNearestAccLessThanIndex = [&indexToAcc](int32_t aIndex) {
+    MOZ_ASSERT(aIndex >= 0, "Search index is less than 0.");
+    auto itr =
+        std::lower_bound(indexToAcc.begin(), indexToAcc.end(), aIndex,
+                         [](const std::pair<int32_t, Accessible*>& aPair,
+                            int32_t aIndex) { return aPair.first <= aIndex; });
+    MOZ_ASSERT(itr != indexToAcc.begin(),
+               "Iterator is unexpectedly at the beginning.");
+    --itr;
+    return itr;
+  };
+
+  // Calculate the TextLeafPoint for the start and end of the found text.
+  auto itr = GetNearestAccLessThanIndex(startIndex);
+  Accessible* foundTextStart = itr->second;
+  const int32_t offsetFromStart = startIndex - itr->first;
+  const TextLeafPoint rangeStart{foundTextStart, offsetFromStart};
+
+  itr = GetNearestAccLessThanIndex(endIndex);
+  Accessible* foundTextEnd = itr->second;
+  const int32_t offsetFromEndAccStart = endIndex - itr->first;
+  const TextLeafPoint rangeEnd{foundTextEnd, offsetFromEndAccStart};
+
+  TextLeafRange resultRange{rangeStart, rangeEnd};
+  RefPtr uiaRange = new UiaTextRange(resultRange);
+  uiaRange.forget(aRetVal);
+  return S_OK;
 }
 
 template <TEXTATTRIBUTEID Attr>

@@ -2288,3 +2288,85 @@ line7</textarea>
   // The IA2 -> UIA proxy doesn't support GetVisibleRanges.
   { uiaEnabled: true, uiaDisabled: false }
 );
+
+/**
+ * Test the TextRange pattern's FindText method.
+ */
+addUiaTask(
+  `<div id="container"><b>abc</b>TEST<div id="inner">def</div>TEST<p>ghi</p></div>`,
+  async function testTextRangeFromChild() {
+    await runPython(`
+      global doc, docText, container, range
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      container = findUiaByDomId(doc, "container")
+      range = docText.RangeFromChild(container)
+    `);
+    // The IA2 -> UIA bridge inserts a space at the end of the text.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`range.GetText(-1)`),
+        `abcTESTdefTESTghi`,
+        "doc returned correct range for container"
+      );
+    }
+    info("Finding 'abc', searching from the start");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("abc", False, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "abc", "range text correct");
+
+    info("Finding 'abc', searching from the end");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("abc", True, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "abc", "range text correct");
+
+    info("Finding 'ghi', searching from the start");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("ghi", False, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "ghi", "range text correct");
+
+    info("Finding 'ghi', searching from the end");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("ghi", True, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "ghi", "range text correct");
+
+    info("Finding 'TEST', searching from the start");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("TEST", False, False)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "TEST", "range text correct");
+    info("Finding 'TEST', searching from the end");
+    await runPython(`
+      global subrange2
+      subrange2 = range.FindText("TEST", True, False)
+      `);
+    is(await runPython(`subrange2.GetText(-1)`), "TEST", "range text correct");
+    ok(
+      !(await runPython(`subrange.compare(subrange2)`)),
+      "ranges are not equal"
+    );
+
+    info("Finding 'test', searching from the start, case-sensitive");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("test", False, False)
+      `);
+    ok(await runPython(`not subrange`), "range not found");
+    info("Finding 'test', searching from the start, case-insensitive");
+    await runPython(`
+      global subrange
+      subrange = range.FindText("test", False, True)
+      `);
+    is(await runPython(`subrange.GetText(-1)`), "TEST", "range text correct");
+  },
+  { uiaEnabled: true, uiaDisabled: true }
+);
