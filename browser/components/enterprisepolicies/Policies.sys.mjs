@@ -509,12 +509,13 @@ export var Policies = {
 
   ContentAnalysis: {
     onBeforeAddons(manager, param) {
-      if ("PipePathName" in param) {
-        setAndLockPref(
-          "browser.contentanalysis.pipe_path_name",
-          param.PipePathName
-        );
-      }
+      // For security reasons, all of the Content Analysis related prefs should be locked in
+      // this method, even if the values aren't specified in Enterprise Policies.
+      setPrefIfPresentAndLock(
+        param,
+        "PipePathName",
+        "browser.contentanalysis.pipe_path_name"
+      );
       if ("AgentTimeout" in param) {
         if (!Number.isInteger(param.AgentTimeout)) {
           lazy.log.error(
@@ -526,28 +527,29 @@ export var Policies = {
             param.AgentTimeout
           );
         }
+      } else {
+        Services.prefs.lockPref("browser.contentanalysis.agent_timeout");
       }
-      if ("AllowUrlRegexList" in param) {
-        setAndLockPref(
-          "browser.contentanalysis.allow_url_regex_list",
-          param.AllowUrlRegexList
-        );
-      }
-      if ("DenyUrlRegexList" in param) {
-        setAndLockPref(
-          "browser.contentanalysis.deny_url_regex_list",
-          param.DenyUrlRegexList
-        );
-      }
-      if ("AgentName" in param) {
-        setAndLockPref("browser.contentanalysis.agent_name", param.AgentName);
-      }
-      if ("ClientSignature" in param) {
-        setAndLockPref(
-          "browser.contentanalysis.client_signature",
-          param.ClientSignature
-        );
-      }
+      setPrefIfPresentAndLock(
+        param,
+        "AllowUrlRegexList",
+        "browser.contentanalysis.allow_url_regex_list"
+      );
+      setPrefIfPresentAndLock(
+        param,
+        "DenyUrlRegexList",
+        "browser.contentanalysis.deny_url_regex_list"
+      );
+      setPrefIfPresentAndLock(
+        param,
+        "AgentName",
+        "browser.contentanalysis.agent_name"
+      );
+      setPrefIfPresentAndLock(
+        param,
+        "ClientSignature",
+        "browser.contentanalysis.client_signature"
+      );
       if ("DefaultResult" in param) {
         if (
           !Number.isInteger(param.DefaultResult) ||
@@ -563,6 +565,8 @@ export var Policies = {
             param.DefaultResult
           );
         }
+      } else {
+        Services.prefs.lockPref("browser.contentanalysis.default_result");
       }
       let boolPrefs = [
         ["IsPerUser", "is_per_user"],
@@ -575,6 +579,8 @@ export var Policies = {
             `browser.contentanalysis.${pref[1]}`,
             !!param[pref[0]]
           );
+        } else {
+          Services.prefs.lockPref(`browser.contentanalysis.${pref[1]}`);
         }
       }
       let interceptionPointPrefs = [
@@ -585,8 +591,6 @@ export var Policies = {
       ];
       if ("InterceptionPoints" in param) {
         for (let pref of interceptionPointPrefs) {
-          // Need to set and lock this value even if the enterprise
-          // policy isn't set so users can't change it
           let value = true;
           if (pref[0] in param.InterceptionPoints) {
             if ("Enabled" in param.InterceptionPoints[pref[0]]) {
@@ -598,6 +602,12 @@ export var Policies = {
             value
           );
         }
+      } else {
+        for (let pref of interceptionPointPrefs) {
+          Services.prefs.lockPref(
+            `browser.contentanalysis.interception_point.${pref[1]}.enabled`
+          );
+        }
       }
       if ("Enabled" in param) {
         let enabled = !!param.Enabled;
@@ -606,6 +616,10 @@ export var Policies = {
           Ci.nsIContentAnalysis
         );
         ca.isSetByEnterprisePolicy = true;
+      } else {
+        // Probably not strictly necessary, but let's lock everything
+        // to be consistent.
+        Services.prefs.lockPref("browser.contentanalysis.enabled");
       }
     },
   },
@@ -2650,6 +2664,28 @@ export var Policies = {
  */
 export function setAndLockPref(prefName, prefValue) {
   PoliciesUtils.setDefaultPref(prefName, prefValue, true);
+}
+
+/**
+ *
+ * setPrefIfPresentAndLock
+ *
+ * Sets the pref to the value param[paramKey] if that exists. Either
+ * way, the pref is locked.
+ *
+ * @param {object} param
+ *        Object with pref values
+ * @param {string} paramKey
+ *        The key to look up the value in param
+ * @param {string} prefName
+ *        The pref to be changed
+ */
+function setPrefIfPresentAndLock(param, paramKey, prefName) {
+  if (paramKey in param) {
+    setAndLockPref(prefName, param[paramKey]);
+  } else {
+    Services.prefs.lockPref(prefName);
+  }
 }
 
 /**
