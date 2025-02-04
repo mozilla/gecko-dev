@@ -761,9 +761,6 @@ void mozJSModuleLoader::SetModuleOptions(CompileOptions& aOptions) {
 
   // Top level await is not supported in synchronously loaded modules.
   aOptions.topLevelAwait = false;
-
-  // Make all top-level `vars` available in `ModuleEnvironmentObject`.
-  aOptions.deoptimizeModuleGlobalVars = true;
 }
 
 /* static */
