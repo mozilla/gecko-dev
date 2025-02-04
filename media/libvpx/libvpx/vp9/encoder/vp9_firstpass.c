@@ -3015,11 +3015,6 @@ static void define_gf_group(VP9_COMP *cpi, int gf_start_show_idx) {
       int show_idx = gf_start_show_idx + j;
       const FIRSTPASS_STATS *frame_stats =
           fps_get_frame_stats(first_pass_info, show_idx);
-      // TODO(b/345831640): Why do we set gop_coding_frames as the upperbound of
-      // the for loop here? gop_coding_frames does not reflect the "show frame
-      // count" in a GOP. Therefore, it's possible to get a NULL pointer from
-      // fps_get_frame_stats(). Here we mitigate the issue using break whenever
-      // frame_stats == NULL. Show we set the upperbound to show frame count?
       if (frame_stats == NULL) {
         if (cpi->ext_ratectrl.ready &&
             (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_GOP) != 0 &&
@@ -3031,9 +3026,7 @@ static void define_gf_group(VP9_COMP *cpi, int gf_start_show_idx) {
           // computing gf_group_err which will be used to compute gf_group_bits
           // for libvpx internal rate control. Since ext_ratectrl is using
           // external rate control module, this part becomes non-critical.
-          // Hence, we can safely turn off this error reporting. In the future,
-          // we should refactor the code so that this part is not used by
-          // ext_ratectrl.
+          // Hence, we can safely turn off this error reporting.
           break;
         }
         vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
