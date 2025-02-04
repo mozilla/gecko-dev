@@ -82,7 +82,6 @@ module.exports = [
   "browser/extensions/webcompat/data/ua_overrides.js",
 
   // Ignore newtab files
-  "browser/extensions/newtab/data/",
   "browser/extensions/newtab/logs/",
 
   // Ignore devtools debugger files which aren't intended for linting.
