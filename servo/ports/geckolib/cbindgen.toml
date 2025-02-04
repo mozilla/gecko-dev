@@ -1076,6 +1076,12 @@ renaming_overrides_prefixing = true
  float ToMilliseconds() const { return seconds * 1000.0f; }
 """
 
+"ComputedFontStyleDescriptor" = """
+  inline static StyleComputedFontStyleDescriptor Normal() {
+    return StyleComputedFontStyleDescriptor::Oblique(0, 0);
+  }
+"""
+
 "FontFaceSourceTechFlags" = """
   inline static StyleFontFaceSourceTechFlags Empty() {
     return StyleFontFaceSourceTechFlags{0};

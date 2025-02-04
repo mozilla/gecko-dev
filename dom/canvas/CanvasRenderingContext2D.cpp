@@ -4219,8 +4219,6 @@ bool CanvasRenderingContext2D::SetFontInternalDisconnected(
   // In the OffscreenCanvas case we don't have the context necessary to call
   // GetFontStyleForServo(), as we do in the main-thread canvas context, so
   // instead we borrow ParseFontShorthandForMatching to parse the attribute.
-  StyleComputedFontStyleDescriptor style(
-      StyleComputedFontStyleDescriptor::Normal());
   StyleFontFamilyList list;
   gfxFontStyle fontStyle;
   float size = 0.0f;
