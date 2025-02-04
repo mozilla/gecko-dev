@@ -135,23 +135,28 @@ impl PingType {
         this
     }
 
-    pub(crate) fn name(&self) -> &str {
+    /// Get the name of this Ping
+    pub fn name(&self) -> &str {
         &self.0.name
     }
 
-    pub(crate) fn include_client_id(&self) -> bool {
+    /// Whether the client ID will be included in the assembled ping when submitting.
+    pub fn include_client_id(&self) -> bool {
         self.0.include_client_id
     }
 
-    pub(crate) fn send_if_empty(&self) -> bool {
+    /// Whether the ping should be sent if empty.
+    pub fn send_if_empty(&self) -> bool {
         self.0.send_if_empty
     }
 
-    pub(crate) fn precise_timestamps(&self) -> bool {
+    /// Whether the ping will include precise timestamps for the start/end time.
+    pub fn precise_timestamps(&self) -> bool {
         self.0.precise_timestamps
     }
 
-    pub(crate) fn include_info_sections(&self) -> bool {
+    /// Whether client/ping_info sections will be included in this ping.
+    pub fn include_info_sections(&self) -> bool {
         self.0.include_info_sections
     }
 
@@ -194,12 +199,27 @@ impl PingType {
         self.0.enabled.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn follows_collection_enabled(&self) -> bool {
+    /// Whether the `enabled` field of this ping is set. Note that there are
+    /// multiple other reasons why a ping may or may not be enabled. See
+    /// `PingType::new` and `PingType::enabled` for more details.
+    pub fn naively_enabled(&self) -> bool {
+        self.0.enabled.load(Ordering::Relaxed)
+    }
+
+    /// Whether this ping follows the `collection_enabled` flag
+    /// See InnerPing member documentation for further details.
+    pub fn follows_collection_enabled(&self) -> bool {
         self.0.follows_collection_enabled.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn schedules_pings(&self) -> &[String] {
+    /// Other pings that should be scheduled when this ping is sent.
+    pub fn schedules_pings(&self) -> &[String] {
         &self.0.schedules_pings
+    }
+
+    /// Reason codes that this ping can send.
+    pub fn reason_codes(&self) -> &[String] {
+        &self.0.reason_codes
     }
 
     /// Submits the ping for eventual uploading.
@@ -288,15 +308,20 @@ impl PingType {
                     return false;
                 }
 
+                const BUILTIN_PINGS: [&str; 4] =
+                    ["baseline", "metrics", "events", "deletion-request"];
+
                 // This metric is recorded *after* the ping is collected (since
                 // that is the only way to know *if* it will be submitted). The
                 // implication of this is that the count for a metrics ping will
                 // be included in the *next* metrics ping.
-                glean
-                    .additional_metrics
-                    .pings_submitted
-                    .get(ping.name)
-                    .add_sync(glean, 1);
+                if BUILTIN_PINGS.contains(&ping.name) {
+                    glean
+                        .additional_metrics
+                        .pings_submitted
+                        .get(ping.name)
+                        .add_sync(glean, 1);
+                }
 
                 if let Err(e) = ping_maker.store_ping(glean.get_data_path(), &ping) {
                     log::warn!(

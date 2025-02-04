@@ -430,9 +430,9 @@ fn correct_order() {
     fn discriminant(metric: &metrics::Metric) -> u32 {
         let ser = bincode::serialize(metric).unwrap();
         (ser[0] as u32)
-        | (ser[1] as u32) << 8
-        | (ser[2] as u32) << 16
-        | (ser[3] as u32) << 24
+        | ((ser[1] as u32) << 8)
+        | ((ser[2] as u32) << 16)
+        | ((ser[3] as u32) << 24)
     }
 
     // One of every metric type. The values are arbitrary and don't matter.

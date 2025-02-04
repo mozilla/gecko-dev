@@ -35,7 +35,10 @@ use configuration::DEFAULT_GLEAN_ENDPOINT;
 pub use configuration::{Builder as ConfigurationBuilder, Configuration};
 pub use core_metrics::ClientInfoMetrics;
 pub use glean_core::{
-    metrics::{Datetime, DistributionData, MemoryUnit, Rate, RecordedEvent, TimeUnit, TimerId},
+    metrics::{
+        Datetime, DistributionData, MemoryUnit, MetricIdentifier, Rate, RecordedEvent, TimeUnit,
+        TimerId,
+    },
     traits, CommonMetricData, Error, ErrorType, Glean, HistogramType, LabeledMetricData, Lifetime,
     PingRateLimit, RecordedExperiment, Result,
 };

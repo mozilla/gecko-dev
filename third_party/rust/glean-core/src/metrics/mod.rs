@@ -232,6 +232,25 @@ pub trait MetricType {
     }
 }
 
+/// A [`MetricIdentifier`] describes an interface for retrieving an
+/// identifier (category, name, label) for a metric
+pub trait MetricIdentifier<'a> {
+    /// Retrieve the category, name and (maybe) label of the metric
+    fn get_identifiers(&'a self) -> (&'a str, &'a str, Option<&'a str>);
+}
+
+// Provide a blanket implementation for MetricIdentifier for all the types
+// that implement MetricType.
+impl<'a, T> MetricIdentifier<'a> for T
+where
+    T: MetricType,
+{
+    fn get_identifiers(&'a self) -> (&'a str, &'a str, Option<&'a str>) {
+        let meta = &self.meta().inner;
+        (&meta.category, &meta.name, meta.dynamic_label.as_deref())
+    }
+}
+
 impl Metric {
     /// Gets the ping section the metric fits into.
     ///

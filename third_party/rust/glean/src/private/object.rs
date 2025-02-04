@@ -4,7 +4,7 @@
 
 use std::marker::PhantomData;
 
-use glean_core::metrics::JsonValue;
+use glean_core::metrics::{JsonValue, MetricIdentifier};
 use glean_core::traits;
 
 use crate::ErrorType;
@@ -23,6 +23,12 @@ use crate::ErrorType;
 pub struct ObjectMetric<K> {
     pub(crate) inner: glean_core::metrics::ObjectMetric,
     object_type: PhantomData<K>,
+}
+
+impl<'a, K> MetricIdentifier<'a> for ObjectMetric<K> {
+    fn get_identifiers(&'a self) -> (&'a str, &'a str, Option<&'a str>) {
+        self.inner.get_identifiers()
+    }
 }
 
 impl<K: traits::ObjectSerialize> ObjectMetric<K> {

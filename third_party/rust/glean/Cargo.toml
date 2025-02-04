@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean"
-version = "63.0.0"
+version = "63.1.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -60,6 +60,10 @@ name = "memory_distribution_buffered"
 path = "tests/memory_distribution_buffered.rs"
 
 [[test]]
+name = "metric_metadata"
+path = "tests/metric_metadata.rs"
+
+[[test]]
 name = "never_init"
 path = "tests/never_init.rs"
 
@@ -99,7 +103,7 @@ path = "tests/upload_timing.rs"
 version = "0.5"
 
 [dependencies.glean-core]
-version = "63.0.0"
+version = "63.1.0"
 
 [dependencies.inherent]
 version = "1"

@@ -163,6 +163,9 @@ fn test_pings_submitted_metric() {
     let metrics_ping = new_test_ping(&mut glean, "metrics");
     let baseline_ping = new_test_ping(&mut glean, "baseline");
 
+    let custom_ping = PingType::new("custom", true, true, true, true, true, vec![], vec![], true);
+    glean.register_ping_type(&custom_ping);
+
     // We need to store a metric as an empty ping is not stored.
     let counter = CounterMetric::new(CommonMetricData {
         name: "counter".into(),
@@ -173,6 +176,8 @@ fn test_pings_submitted_metric() {
     counter.add_sync(&glean, 1);
 
     assert!(metrics_ping.submit_sync(&glean, None));
+    // A custom ping is just never recorded.
+    assert!(custom_ping.submit_sync(&glean, None));
 
     // Check recording in the metrics ping
     assert_eq!(
@@ -182,6 +187,10 @@ fn test_pings_submitted_metric() {
     assert_eq!(
         None,
         pings_submitted.get("baseline").get_value(&glean, "metrics")
+    );
+    assert_eq!(
+        None,
+        pings_submitted.get("custom").get_value(&glean, "metrics")
     );
 
     // Check recording in the baseline ping
@@ -195,6 +204,10 @@ fn test_pings_submitted_metric() {
             .get("baseline")
             .get_value(&glean, "baseline")
     );
+    assert_eq!(
+        None,
+        pings_submitted.get("custom").get_value(&glean, "baseline")
+    );
 
     // Trigger 2 baseline pings.
     // This should record a count of 2 baseline pings in the metrics ping, but
@@ -202,6 +215,8 @@ fn test_pings_submitted_metric() {
     // baseline ping recorded in the baseline ping itsef.
     assert!(baseline_ping.submit_sync(&glean, None));
     assert!(baseline_ping.submit_sync(&glean, None));
+    // A custom ping is just never recorded.
+    assert!(custom_ping.submit_sync(&glean, None));
 
     // Check recording in the metrics ping
     assert_eq!(
@@ -216,6 +231,12 @@ fn test_pings_submitted_metric() {
             .get("baseline")
             .get_value(&glean, Some("metrics"))
     );
+    assert_eq!(
+        None,
+        pings_submitted
+            .get("custom")
+            .get_value(&glean, Some("metrics"))
+    );
 
     // Check recording in the baseline ping
     assert_eq!(
@@ -228,6 +249,12 @@ fn test_pings_submitted_metric() {
         Some(1),
         pings_submitted
             .get("baseline")
+            .get_value(&glean, Some("baseline"))
+    );
+    assert_eq!(
+        None,
+        pings_submitted
+            .get("custom")
             .get_value(&glean, Some("baseline"))
     );
 }

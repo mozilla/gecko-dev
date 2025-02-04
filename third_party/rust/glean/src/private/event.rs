@@ -5,7 +5,7 @@
 use inherent::inherent;
 use std::{collections::HashMap, marker::PhantomData};
 
-use glean_core::traits;
+use glean_core::{metrics::MetricIdentifier, traits};
 
 use crate::{ErrorType, RecordedEvent};
 
@@ -23,6 +23,12 @@ use crate::{ErrorType, RecordedEvent};
 pub struct EventMetric<K> {
     pub(crate) inner: glean_core::metrics::EventMetric,
     extra_keys: PhantomData<K>,
+}
+
+impl<'a, K> MetricIdentifier<'a> for EventMetric<K> {
+    fn get_identifiers(&'a self) -> (&'a str, &'a str, Option<&'a str>) {
+        self.inner.get_identifiers()
+    }
 }
 
 impl<K: traits::ExtraKeys> EventMetric<K> {

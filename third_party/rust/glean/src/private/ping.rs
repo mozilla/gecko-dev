@@ -94,6 +94,55 @@ impl PingType {
         self.inner.submit(reason.map(|s| s.to_string()))
     }
 
+    /// Get the name of this Ping
+    pub fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    /// Whether the client ID will be included in the assembled ping when submitting.
+    pub fn include_client_id(&self) -> bool {
+        self.inner.include_client_id()
+    }
+
+    /// Whether the ping should be sent if empty.
+    pub fn send_if_empty(&self) -> bool {
+        self.inner.send_if_empty()
+    }
+
+    /// Whether the ping will include precise timestamps for the start/end time.
+    pub fn precise_timestamps(&self) -> bool {
+        self.inner.precise_timestamps()
+    }
+
+    /// Whether client/ping_info sections will be included in this ping.
+    pub fn include_info_sections(&self) -> bool {
+        self.inner.include_info_sections()
+    }
+
+    /// Whether the `enabled` field of this ping is set. Note that whether or
+    /// not a ping is actually enabled is dependent upon the underlying glean
+    /// instance settings, and `follows_collection_enabled`. In other words,
+    /// a Ping might actually be enabled even if the enabled field is not
+    /// set (with this function returning `false`).
+    pub fn naively_enabled(&self) -> bool {
+        self.inner.naively_enabled()
+    }
+
+    /// Whether this ping follows the `collection_enabled` (aka `upload_enabled`) flag.
+    pub fn follows_collection_enabled(&self) -> bool {
+        self.inner.follows_collection_enabled()
+    }
+
+    /// Other pings that should be scheduled when this ping is sent.
+    pub fn schedules_pings(&self) -> &[String] {
+        self.inner.schedules_pings()
+    }
+
+    /// Reason codes that this ping can send.
+    pub fn reason_codes(&self) -> &[String] {
+        self.inner.reason_codes()
+    }
+
     /// **Test-only API**
     ///
     /// Attach a callback to be called right before a new ping is submitted.
