@@ -20,8 +20,8 @@ template <class T>
 class nsMaybeWeakPtr {
  public:
   nsMaybeWeakPtr() = default;
-  MOZ_IMPLICIT nsMaybeWeakPtr(T* aRef) : mPtr(aRef), mWeak(false) {}
-  MOZ_IMPLICIT nsMaybeWeakPtr(const nsCOMPtr<nsIWeakReference>& aRef)
+  explicit nsMaybeWeakPtr(T* aRef) : mPtr(aRef), mWeak(false) {}
+  explicit nsMaybeWeakPtr(const nsCOMPtr<nsIWeakReference>& aRef)
       : mPtr(aRef), mWeak(true) {}
 
   nsMaybeWeakPtr<T>& operator=(T* aRef) {
@@ -38,6 +38,12 @@ class nsMaybeWeakPtr {
 
   bool operator==(const nsMaybeWeakPtr<T>& aOther) const {
     return mPtr == aOther.mPtr;
+  }
+
+  bool operator==(T* const& aStrong) const { return !mWeak && mPtr == aStrong; }
+
+  bool operator==(const nsCOMPtr<nsIWeakReference>& aWeak) const {
+    return mWeak && mPtr == aWeak;
   }
 
   nsISupports* GetRawValue() const { return mPtr.get(); }
