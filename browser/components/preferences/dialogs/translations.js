@@ -118,6 +118,9 @@ var gTranslationsSettings = {
     Services.prefs.addObserver(ALWAYS_TRANSLATE_LANGS_PREF, this);
     Services.prefs.addObserver(NEVER_TRANSLATE_LANGS_PREF, this);
 
+    window.addEventListener("unload", this);
+    document.addEventListener("command", this);
+
     // Build trees from the arrays.
     this._alwaysTranslateLangsTree = new Tree(
       "alwaysTranslateLanguagesTree",
@@ -131,6 +134,15 @@ var gTranslationsSettings = {
       "neverTranslateSitesTree",
       this._neverTranslateSites
     );
+
+    for (let { tree } of [
+      this._alwaysTranslateLangsTree,
+      this._neverTranslateLangsTree,
+      this._neverTranslateSiteTree,
+    ]) {
+      tree.addEventListener("keypress", this);
+      tree.addEventListener("select", this);
+    }
 
     // Ensure the UI for each group is in the correct state.
     this.onSelectAlwaysTranslateLanguage();
@@ -276,6 +288,66 @@ var gTranslationsSettings = {
           break;
         }
       }
+    }
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "unload":
+        this.removeObservers();
+        break;
+      case "command":
+        switch (event.target.id) {
+          case "key_close":
+            window.close();
+            break;
+
+          case "removeAlwaysTranslateLanguage":
+            this.onRemoveAlwaysTranslateLanguage();
+            break;
+          case "removeAllAlwaysTranslateLanguages":
+            this.onRemoveAllAlwaysTranslateLanguages();
+            break;
+          case "removeNeverTranslateLanguage":
+            this.onRemoveNeverTranslateLanguage();
+            break;
+          case "removeAllNeverTranslateLanguages":
+            this.onRemoveAllNeverTranslateLanguages();
+            break;
+          case "removeNeverTranslateSite":
+            this.onRemoveNeverTranslateSite();
+            break;
+          case "removeAllNeverTranslateSites":
+            this.onRemoveAllNeverTranslateSites();
+            break;
+        }
+        break;
+      case "keypress":
+        switch (event.currentTarget.id) {
+          case "alwaysTranslateLanguagesTree":
+            this.onAlwaysTranslateLanguageKeyPress(event);
+            break;
+          case "neverTranslateLanguagesTree":
+            this.onNeverTranslateLanguageKeyPress(event);
+            break;
+          case "neverTranslateSitesTree":
+            this.onNeverTranslateSiteKeyPress(event);
+            break;
+        }
+        break;
+      case "select":
+        switch (event.currentTarget.id) {
+          case "alwaysTranslateLanguagesTree":
+            this.onSelectAlwaysTranslateLanguage();
+            break;
+          case "neverTranslateLanguagesTree":
+            this.onSelectNeverTranslateLanguage();
+            break;
+          case "neverTranslateSitesTree":
+            this.onSelectNeverTranslateSite();
+            break;
+        }
+        break;
     }
   },
 
@@ -452,3 +524,5 @@ var gTranslationsSettings = {
     Services.prefs.removeObserver(NEVER_TRANSLATE_LANGS_PREF, this);
   },
 };
+
+window.addEventListener("load", () => gTranslationsSettings.onLoad());

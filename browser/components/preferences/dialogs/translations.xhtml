@@ -10,9 +10,8 @@
   data-l10n-attrs="title, style"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="gTranslationsSettings.onLoad();"
-  onunload="gTranslationsSettings.removeObservers();"
   persist="width height"
+  csp="default-src chrome:; style-src chrome: 'unsafe-inline';"
 >
   <dialog
     buttons="accept"
@@ -33,9 +32,9 @@
 
     <keyset>
       <key
+        id="key_close"
         data-l10n-id="translations-settings-close-key"
         modifiers="accel"
-        oncommand="window.close();"
       />
     </keyset>
 
@@ -52,8 +51,6 @@
           flex="1"
           style="height: 12em"
           hidecolumnpicker="true"
-          onkeypress="gTranslationsSettings.onAlwaysTranslateLanguageKeyPress(event)"
-          onselect="gTranslationsSettings.onSelectAlwaysTranslateLanguage();"
         >
           <treecols>
             <treecol
@@ -70,12 +67,10 @@
           id="removeAlwaysTranslateLanguage"
           disabled="true"
           data-l10n-id="translations-settings-remove-language-button"
-          oncommand="gTranslationsSettings.onRemoveAlwaysTranslateLanguage();"
         />
         <button
           id="removeAllAlwaysTranslateLanguages"
           data-l10n-id="translations-settings-remove-all-languages-button"
-          oncommand="gTranslationsSettings.onRemoveAllAlwaysTranslateLanguages();"
         />
       </hbox>
       <separator />
@@ -91,8 +86,6 @@
           flex="1"
           style="height: 12em"
           hidecolumnpicker="true"
-          onkeypress="gTranslationsSettings.onNeverTranslateLanguageKeyPress(event)"
-          onselect="gTranslationsSettings.onSelectNeverTranslateLanguage();"
         >
           <treecols>
             <treecol
@@ -109,12 +102,10 @@
           id="removeNeverTranslateLanguage"
           disabled="true"
           data-l10n-id="translations-settings-remove-language-button"
-          oncommand="gTranslationsSettings.onRemoveNeverTranslateLanguage();"
         />
         <button
           id="removeAllNeverTranslateLanguages"
           data-l10n-id="translations-settings-remove-all-languages-button"
-          oncommand="gTranslationsSettings.onRemoveAllNeverTranslateLanguages();"
         />
       </hbox>
       <separator />
@@ -130,8 +121,6 @@
           flex="1"
           style="height: 12em"
           hidecolumnpicker="true"
-          onkeypress="gTranslationsSettings.onNeverTranslateSiteKeyPress(event)"
-          onselect="gTranslationsSettings.onSelectNeverTranslateSite();"
         >
           <treecols>
             <treecol
@@ -148,12 +137,10 @@
           id="removeNeverTranslateSite"
           disabled="true"
           data-l10n-id="translations-settings-remove-site-button"
-          oncommand="gTranslationsSettings.onRemoveNeverTranslateSite();"
         />
         <button
           id="removeAllNeverTranslateSites"
           data-l10n-id="translations-settings-remove-all-sites-button"
-          oncommand="gTranslationsSettings.onRemoveAllNeverTranslateSites();"
         />
       </hbox>
     </vbox>
