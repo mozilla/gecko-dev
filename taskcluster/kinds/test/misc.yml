@@ -61,8 +61,6 @@ test-verify:
                 by-test-platform:
                     # do not run on ccov or asan or shippable or wayland
                     .*(-ccov|-asan|-shippable|-wayland).*: []
-                    # we prefer -qr platforms with fis, no need to run on both
-                    (?!.*(-ccov|-asan|-shippable))(?!.*-qr).*: []
                     # do not run on mozilla-central, beta or release: usually just confirms earlier results
                     android.*: ['integration']
                     default: []
@@ -70,8 +68,6 @@ test-verify:
                 by-test-platform:
                     # do not run on ccov or asan or shippable or wayland
                     .*(-ccov|-asan|-shippable|-wayland).*: []
-                    # we prefer -qr platforms with fis, no need to run on both
-                    (?!.*(-ccov|-asan|-shippable))(?!.*-qr).*: []
                     # do not run on mozilla-central, beta or release: usually just confirms earlier results
                     android.*: []
                     default: ['integration']
