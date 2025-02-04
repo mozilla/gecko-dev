@@ -3,6 +3,7 @@ subsuite = "a11y"
 skip-if = [
   "os != 'win'",
   "headless",
+  "artifact",
 ]
 support-files = [
   "head.js",
