@@ -12,11 +12,13 @@ import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.icons.generator.DefaultIconGenerator
 import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.feature.search.ext.createSearchEngine
+import mozilla.components.feature.tab.collections.TabCollectionStorage
 import okhttp3.mockwebserver.MockWebServer
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.TAG
@@ -180,6 +182,23 @@ object MockBrowserDataHelper {
             appContext.components.useCases.topSitesUseCase.addPinnedSites(websiteTitle, websiteURL)
             restartApp(activityTestRule)
             Log.i(TAG, "addTopSite: Added a pinned site to the home screen.")
+        }
+    }
+
+    /**
+     * Creates a new collection with the provided tabs.
+     *
+     * @param tabInfo Pairs of URLs and titles of the tabs to add to the collection.
+     * @param title The title of the collection to create.
+     */
+    fun createCollection(vararg tabInfo: Pair<String, String>, title: String) {
+        runBlocking {
+            val tabs =
+                tabInfo.map { (tabUrl, tabTitle) ->
+                    createTab(url = tabUrl, title = tabTitle)
+                }
+
+            TabCollectionStorage(context).createCollection(title, tabs)
         }
     }
 }
