@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Λήψη και εκτέλεση μοντέλων AI στη συσκευή</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Να επιτρέπεται σε μη επαληθευμένα σενάρια τρίτων η πρόσβαση στα δεδομένα σας</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Τα μη επαληθευμένα σενάρια μπορούν να θέσουν σε κίνδυνο την ασφάλεια και το απόρρητό σας. Να εκτελείτε σενάρια μόνο από επεκτάσεις ή πηγές που εμπιστεύεστε.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Επέκταση εργαλείων προγραμματιστή για πρόσβαση στα δεδομένα σας στις ανοικτές καρτέλες</string>
     <!-- The version on of add-on. -->

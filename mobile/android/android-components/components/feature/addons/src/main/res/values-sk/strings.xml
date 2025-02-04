@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Sťahovať a spúšťať modely AI na zariadení</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Povoliť neovereným skriptom tretích strán prístup k vašim údajom</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Neoverené skripty môžu predstavovať riziká pre bezpečnosť a súkromie. Spúšťajte skripty iba z rozšírení alebo zdrojov, ktorým dôverujete.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšíriť vývojárske nástroje a získať prístup k vašim údajom v otvorených kartách</string>
     <!-- The version on of add-on. -->

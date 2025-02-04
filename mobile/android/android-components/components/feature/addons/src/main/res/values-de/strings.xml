@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Laden Sie KI-Modelle herunter und führen Sie diese auf Ihrem Gerät aus</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Nicht verifizierten Skripten von Drittanbietern den Zugriff auf Ihre Daten erlauben</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Nicht verifizierte Skripte können Risiken für Sicherheit und Datenschutz darstellen. Führen Sie nur Skripte von Erweiterungen oder Quellen aus, denen Sie vertrauen.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Entwicklerwerkzeuge erweitern, sodass Zugriff auf offene Tabs besteht</string>
     <!-- The version on of add-on. -->

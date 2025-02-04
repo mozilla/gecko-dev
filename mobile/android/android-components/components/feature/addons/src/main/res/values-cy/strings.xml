@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Llwythwch i lawr a rhedeg modelau AI ar eich dyfais</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Caniatáu i sgriptiau trydydd parti heb eu gwirio gael mynediad i\'ch data</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Gall sgriptiau heb eu gwirio achosi risgiau diogelwch a phreifatrwydd. Cofiwch redeg dim ond sgriptiau o estyniadau neu ffynonellau rydych chi\'n ymddiried ynddyn nhw.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Estyn offer datblygwyr i gael mynediad i’ch data mewn tabiau agored</string>
     <!-- The version on of add-on. -->

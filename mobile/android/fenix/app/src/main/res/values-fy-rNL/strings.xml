@@ -618,6 +618,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Om de browser te helpen ferbetterjen, ferstjoert Firefox diagnostyske en ynteraksjegegevens nei Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Beheare</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Help ús Firefox groeie te litten</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">As jo diele hoe’t jo Firefox ûntdutsen hawwe en dat jo it brûke, helpe jo ús ús browser oan mear minsken te yntrodusearjen.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Diel minimale gegevens mei Mozilla’s marketingtechnologypartners. Dizze gegevens wurde nea ferkocht of brûkt om jo advertinsjes te toanen.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hoe’t wy gegevens brûke</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Befêstigje en begjinne mei sneupen</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Kies in arkbalkepleatsing</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1058,16 +1068,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Gebrûks- en technyske gegevens</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technyske en ynteraksjegegevens</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Technyske en ynteraksjegegevens ferstjoere</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Mear ynfo</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Dielt gegevens oer prestaasjes, gebrûk, hardware en oanpassingen fan jo browser mei Mozilla om %1$s te helpen ferbetterjen</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Gegevens oer jo apparaat, hardwarekonfiguraasje en gebrûk helpt ús de funksjes, prestaasjes en stabiliteit fan Firefox te ferbetterjen.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketinggegevens</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Mjitgegevens fan kampanje</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Dielt basale gebrûksgegevens mei Adjust, ús leveransier fan mobile marketing</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Diel ynformaasje oer hoe’t jo Firefox ûntdutsen hawwe mei de marketingpartners fan Mozilla. Dit helpt ús Firefox groeie te litten en in better ynternet te bouwen</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Diel mei Mozilla\'s marketingtechnologypartners hoe’t jo Firefox ûntdutsen hawwe en dat jo it brûke.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Mear ynfo oer marketinggegevens</string>
 
@@ -1244,6 +1263,10 @@
     <string name="studies_active">Aktyf</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s kin sa no en dan ûndersiken ynstallearje en útfiere.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Probearje funksjes en ideeën eardat se foar elkenien beskikber binne.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Undersiken ynstallearje en útfiere</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Mear ynfo</string>
     <!-- Dialog message shown after removing a study -->

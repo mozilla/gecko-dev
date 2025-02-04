@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Sćehńće a wuwjedźće Modele KI na swojim graće</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Njepřepruwowanym skriptam třećich poskićowarjow přistup k wašim datam dowolić</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Njepřepruwowane skripty móža rizika za wěstotu a priwatnosć być. Wuwjedźće jenož skripty z rozšěrjenjow abo žórłow, kotrymž dowěrjeće.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšěrće wuwiwarske nastroje, zo byšće přistup k swojim datam we wočinjenych rajtarkach měł</string>
     <!-- The version on of add-on. -->

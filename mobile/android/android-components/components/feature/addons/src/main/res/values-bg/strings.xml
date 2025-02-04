@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Изтеглете и използвайте модели за AI на устройството</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Разрешаване на непроверени скриптове от трети страни да имат достъп до вашите данни</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Непроверените скриптове могат да представляват рискове за сигурността и поверителността. Изпълнявайте само скриптове от разширения или източници, на които имате доверие.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Разширяване на развойните инструменти с достъп до данните ви от отворените раздели</string>
     <!-- The version on of add-on. -->
