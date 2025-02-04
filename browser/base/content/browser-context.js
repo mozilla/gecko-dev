@@ -217,7 +217,8 @@ document.addEventListener(
           break;
         case "context-searchselect": {
           let { searchTerms, usePrivate, principal, csp } = event.target;
-          BrowserSearch.loadSearchFromContext(
+          SearchUIUtils.loadSearchFromContext(
+            window,
             searchTerms,
             usePrivate,
             principal,
@@ -228,7 +229,8 @@ document.addEventListener(
         }
         case "context-searchselect-private": {
           let { searchTerms, principal, csp } = event.target;
-          BrowserSearch.loadSearchFromContext(
+          SearchUIUtils.loadSearchFromContext(
+            window,
             searchTerms,
             true,
             principal,

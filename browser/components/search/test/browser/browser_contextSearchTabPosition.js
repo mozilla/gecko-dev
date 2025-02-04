@@ -44,14 +44,16 @@ add_task(async function test() {
 
   BrowserTestUtils.addTab(gBrowser, "about:blank");
 
-  BrowserSearch.loadSearchFromContext(
+  SearchUIUtils.loadSearchFromContext(
+    window,
     "mozilla",
     false,
     Services.scriptSecurityManager.getSystemPrincipal(),
     Services.scriptSecurityManager.getSystemPrincipal().csp,
     new PointerEvent("click")
   );
-  BrowserSearch.loadSearchFromContext(
+  SearchUIUtils.loadSearchFromContext(
+    window,
     "firefox",
     false,
     Services.scriptSecurityManager.getSystemPrincipal(),
