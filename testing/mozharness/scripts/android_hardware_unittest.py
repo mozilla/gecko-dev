@@ -125,6 +125,16 @@ class AndroidHardwareTest(
                 "help": "Flags to run with jittest (all, debug, etc.).",
             },
         ],
+        [
+            ["--tag"],
+            {
+                "action": "append",
+                "default": [],
+                "dest": "test_tags",
+                "help": "Filter out tests that don't have the given tag. Can be used multiple "
+                "times in which case the test must contain at least one of the given tags.",
+            },
+        ],
     ] + copy.deepcopy(testing_config_options)
 
     def __init__(self, require_config_file=False):
@@ -166,6 +176,7 @@ class AndroidHardwareTest(
         self.disable_fission = c.get("disable_fission")
         self.extra_prefs = c.get("extra_prefs")
         self.jittest_flags = c.get("jittest_flags")
+        self.test_tags = c.get("test_tags")
 
     def query_abs_dirs(self):
         if self.abs_dirs:
@@ -243,6 +254,7 @@ class AndroidHardwareTest(
             "error_summary_file": error_summary_file,
             "xpcshell_extra": c.get("xpcshell_extra", ""),
             "jittest_flags": self.jittest_flags,
+            "test_tags": self.test_tags,
         }
 
         user_paths = json.loads(os.environ.get("MOZHARNESS_TEST_PATHS", '""'))
@@ -294,6 +306,8 @@ class AndroidHardwareTest(
             cmd.append("--disable-fission")
 
         cmd.extend(["--setpref={}".format(p) for p in self.extra_prefs])
+
+        cmd.extend(["--tag={}".format(t) for t in self.test_tags])
 
         try_options, try_tests = self.try_args(self.test_suite)
         if try_options:
