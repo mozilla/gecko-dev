@@ -408,13 +408,22 @@ class MatcherCastImpl<T, Matcher<U>> {
   }
 
  private:
-  class Impl : public MatcherInterface<T> {
+  // If it's possible to implicitly convert a `const T&` to U, then `Impl` can
+  // take that as input to avoid a copy. Otherwise, such as when `T` is a
+  // non-const reference type or a type explicitly constructible only from a
+  // non-const reference, then `Impl` must use `T` as-is (potentially copying).
+  using ImplArgT =
+      typename std::conditional<std::is_convertible<const T&, const U&>::value,
+                                const T&, T>::type;
+
+  class Impl : public MatcherInterface<ImplArgT> {
    public:
     explicit Impl(const Matcher<U>& source_matcher)
         : source_matcher_(source_matcher) {}
 
     // We delegate the matching logic to the source matcher.
-    bool MatchAndExplain(T x, MatchResultListener* listener) const override {
+    bool MatchAndExplain(ImplArgT x,
+                         MatchResultListener* listener) const override {
       using FromType = typename std::remove_cv<typename std::remove_pointer<
           typename std::remove_reference<T>::type>::type>::type;
       using ToType = typename std::remove_cv<typename std::remove_pointer<
@@ -431,9 +440,8 @@ class MatcherCastImpl<T, Matcher<U>> {
 
       // Do the cast to `U` explicitly if necessary.
       // Otherwise, let implicit conversions do the trick.
-      using CastType =
-          typename std::conditional<std::is_convertible<T&, const U&>::value,
-                                    T&, U>::type;
+      using CastType = typename std::conditional<
+          std::is_convertible<ImplArgT&, const U&>::value, ImplArgT&, U>::type;
 
       return source_matcher_.MatchAndExplain(static_cast<CastType>(x),
                                              listener);
@@ -528,18 +536,16 @@ inline Matcher<T> SafeMatcherCast(const M& polymorphic_matcher_or_value) {
 // safely convert a Matcher<U> to a Matcher<T> (i.e. Matcher is
 // contravariant): just keep a copy of the original Matcher<U>, convert the
 // argument from type T to U, and then pass it to the underlying Matcher<U>.
-// The only exception is when U is a reference and T is not, as the
+// The only exception is when U is a non-const reference and T is not, as the
 // underlying Matcher<U> may be interested in the argument's address, which
-// is not preserved in the conversion from T to U.
+// cannot be preserved in the conversion from T to U (since a copy of the input
+// T argument would be required to provide a non-const reference U).
 template <typename T, typename U>
 inline Matcher<T> SafeMatcherCast(const Matcher<U>& matcher) {
   // Enforce that T can be implicitly converted to U.
   static_assert(std::is_convertible<const T&, const U&>::value,
-                "T must be implicitly convertible to U");
-  // Enforce that we are not converting a non-reference type T to a reference
-  // type U.
-  static_assert(std::is_reference<T>::value || !std::is_reference<U>::value,
-                "cannot convert non reference arg to reference");
+                "T must be implicitly convertible to U (and T must be a "
+                "non-const reference if U is a non-const reference)");
   // In case both T and U are arithmetic types, enforce that the
   // conversion is not lossy.
   typedef GTEST_REMOVE_REFERENCE_AND_CONST_(T) RawT;
@@ -2275,6 +2281,9 @@ class ResultOfMatcher {
   class Impl : public MatcherInterface<T> {
     using ResultType = decltype(CallableTraits<Callable>::template Invoke<T>(
         std::declval<CallableStorageType>(), std::declval<T>()));
+    using InnerType = std::conditional_t<
+        std::is_lvalue_reference<ResultType>::value,
+        const typename std::remove_reference<ResultType>::type&, ResultType>;
 
    public:
     template <typename M>
@@ -2282,7 +2291,7 @@ class ResultOfMatcher {
          const CallableStorageType& callable, const M& matcher)
         : result_description_(result_description),
           callable_(callable),
-          matcher_(MatcherCast<ResultType>(matcher)) {}
+          matcher_(MatcherCast<InnerType>(matcher)) {}
 
     void DescribeTo(::std::ostream* os) const override {
       if (result_description_.empty()) {
@@ -2312,7 +2321,7 @@ class ResultOfMatcher {
       // takes a non-const reference as argument.
       // Also, specifying template argument explicitly is needed because T could
       // be a non-const reference (e.g. Matcher<Uncopyable&>).
-      ResultType result =
+      InnerType result =
           CallableTraits<Callable>::template Invoke<T>(callable_, obj);
       return MatchPrintAndExplain(result, matcher_, listener);
     }
@@ -2325,7 +2334,7 @@ class ResultOfMatcher {
     // use stateful callables with ResultOf(), which doesn't guarantee
     // how many times the callable will be invoked.
     mutable CallableStorageType callable_;
-    const Matcher<ResultType> matcher_;
+    const Matcher<InnerType> matcher_;
   };  // class Impl
 
   const std::string result_description_;
@@ -3290,6 +3299,11 @@ template <typename T>
 auto UnpackStructImpl(const T& t, std::make_index_sequence<19>, char) {
   const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s] = t;
   return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s);
+}
+template <typename T>
+auto UnpackStructImpl(const T& u, std::make_index_sequence<20>, char) {
+  const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t] = u;
+  return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t);
 }
 #endif  // defined(__cpp_structured_bindings)
 
