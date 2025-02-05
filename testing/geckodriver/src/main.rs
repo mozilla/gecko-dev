@@ -256,7 +256,6 @@ fn parse_args(args: &ArgMatches) -> ProgramResult<Operation> {
         allow_origins: allow_origins.clone(),
         jsdebugger: args.get_flag("jsdebugger"),
         android_storage,
-        system_access: args.get_flag("enable_system_access"),
     };
     Ok(Operation::Server {
         log_level,
@@ -364,12 +363,6 @@ fn make_command() -> Command {
                 .value_parser(clap::builder::ValueParser::new(Url::parse))
                 .value_name("ALLOW_ORIGINS")
                 .help("List of request origins to allow. These must be formatted as scheme://host:port. By default any request with an origin header is rejected. If --allow-origins is provided then only exactly those origins are allowed."),
-        )
-        .arg(
-            Arg::new("allow_system_access")
-                .long("allow-system-access")
-                .action(ArgAction::SetTrue)
-                .help("Enable privileged access to the application's parent process"),
         )
         .arg(
             Arg::new("android_storage")

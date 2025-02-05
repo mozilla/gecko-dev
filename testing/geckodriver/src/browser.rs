@@ -107,7 +107,6 @@ impl LocalBrowser {
         options: FirefoxOptions,
         marionette_port: u16,
         jsdebugger: bool,
-        system_access: bool,
         profile_root: Option<&Path>,
     ) -> WebDriverResult<LocalBrowser> {
         let binary = options.binary.ok_or_else(|| {
@@ -154,9 +153,6 @@ impl LocalBrowser {
         runner.arg("--marionette");
         if jsdebugger {
             runner.arg("--jsdebugger");
-        }
-        if system_access {
-            runner.arg("--remote-allow-system-access");
         }
         if let Some(args) = options.args.as_ref() {
             runner.args(args);
@@ -278,12 +274,11 @@ impl RemoteBrowser {
         options: FirefoxOptions,
         marionette_port: u16,
         websocket_port: Option<u16>,
-        system_access: bool,
         profile_root: Option<&Path>,
     ) -> WebDriverResult<RemoteBrowser> {
         let android_options = options.android.unwrap();
 
-        let handler = AndroidHandler::new(&android_options, marionette_port, system_access, websocket_port)?;
+        let handler = AndroidHandler::new(&android_options, marionette_port, websocket_port)?;
 
         // Profile management.
         let (mut profile, is_custom_profile) = match options.profile {

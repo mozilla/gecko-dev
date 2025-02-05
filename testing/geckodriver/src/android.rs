@@ -83,8 +83,6 @@ pub struct AndroidHandler {
     pub marionette_host_port: u16,
     pub marionette_target_port: u16,
 
-    pub system_access: bool,
-
     // Port forwarding for WebSocket connections (WebDriver BiDi and CDP)
     pub websocket_port: Option<u16>,
 }
@@ -148,7 +146,6 @@ impl AndroidHandler {
     pub fn new(
         options: &AndroidOptions,
         marionette_host_port: u16,
-        system_access: bool,
         websocket_port: Option<u16>,
     ) -> Result<AndroidHandler> {
         // We need to push profile.pathbuf to a safe space on the device.
@@ -260,7 +257,6 @@ impl AndroidHandler {
             marionette_host_port,
             marionette_target_port: MARIONETTE_TARGET_PORT,
             options: options.clone(),
-            system_access,
             websocket_port,
         })
     }
@@ -336,10 +332,6 @@ impl AndroidHandler {
             env: Mapping::new(),
         };
 
-        if self.system_access {
-            let mut arg = vec!("--remote-allow-system-access".to_string());
-            config.args.append(&mut arg);
-        }
         config.args.append(&mut args.unwrap_or_default());
 
         for (key, value) in envs {
@@ -498,13 +490,10 @@ mod test {
 
     fn run_handler_storage_test(package: &str, storage: AndroidStorageInput) {
         let options = AndroidOptions::new(package.to_owned(), storage);
-        let handler = AndroidHandler::new(&options, 4242, true, None).expect("has valid Android handler");
+        let handler = AndroidHandler::new(&options, 4242, None).expect("has valid Android handler");
 
         assert_eq!(handler.options, options);
-        assert_eq!(handler.marionette_host_port, 4242);
         assert_eq!(handler.process.package, package);
-        assert_eq!(handler.system_access, true);
-        assert_eq!(handler.websocket_port, None);
 
         let expected_config_path = UnixPathBuf::from(format!(
             "/data/local/tmp/{}-geckoview-config.yaml",
