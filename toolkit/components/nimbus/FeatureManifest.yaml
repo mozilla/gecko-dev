@@ -938,6 +938,27 @@ newtabLayoutExperiment:
       description: >-
         Variant B in layouts experiment.
 
+newtabCustomWallpaper:
+  description: >-
+    Modify the wallpaper selection feature to support user-uploaded custom wallpaper images
+  owner: mcrawford@mozilla.com
+  hasExposure: false
+  variables:
+    uploadWallpaper:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled
+      description: >-
+        Turns on and off ability to upload a custom wallpaper.
+    colorPicker:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled
+      description: >-
+        Turns on and off background color picker.
+
 newtabShortcutsExperiment:
   description: >-
     Adjusting sizes and spacing of new tab shortcuts.
