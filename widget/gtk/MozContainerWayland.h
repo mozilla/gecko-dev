@@ -58,8 +58,6 @@ struct wl_egl_window* moz_container_wayland_get_egl_window(
     MozContainer* container);
 
 gboolean moz_container_wayland_has_egl_window(MozContainer* container);
-bool moz_container_wayland_egl_window_set_size(MozContainer* container,
-                                               nsIntSize aScaledSize);
 void moz_container_wayland_add_or_fire_initial_draw_callback(
     MozContainer* container, const std::function<void(void)>& initial_draw_cb);
 

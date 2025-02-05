@@ -79,6 +79,9 @@ extern mozilla::LazyLogModule gWidgetWaylandLog;
 #  define LOG_ENABLED()                                         \
     (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Debug) || \
      MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Debug))
+#  define LOG_ENABLED_VERBOSE()                                   \
+    (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Verbose) || \
+     MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Verbose))
 #  define LOG_WAYLAND(...) \
     MOZ_LOG(gWidgetWaylandLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 

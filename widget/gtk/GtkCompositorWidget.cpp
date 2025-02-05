@@ -110,7 +110,8 @@ EGLNativeWindowType GtkCompositorWidget::GetEGLNativeWindow() {
 bool GtkCompositorWidget::SetEGLNativeWindowSize(
     const LayoutDeviceIntSize& aEGLWindowSize) {
 #if defined(MOZ_WAYLAND)
-  if (mWidget) {
+  // We explicitly need to set EGL window size on Wayland only.
+  if (GdkIsWaylandDisplay() && mWidget) {
     return mWidget->SetEGLNativeWindowSize(aEGLWindowSize);
   }
 #endif

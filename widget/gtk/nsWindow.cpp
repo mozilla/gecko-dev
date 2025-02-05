@@ -9611,28 +9611,31 @@ nsWindow* nsWindow::GetFocusedWindow() { return gFocusWindow; }
 #ifdef MOZ_WAYLAND
 bool nsWindow::SetEGLNativeWindowSize(
     const LayoutDeviceIntSize& aEGLWindowSize) {
-  if (!GdkIsWaylandDisplay() || !mIsMapped) {
+  // SetEGLNativeWindowSize() is Wayland only call.
+  MOZ_ASSERT(GdkIsWaylandDisplay());
+
+  if (!mIsMapped) {
     return true;
   }
 
-  float scale = FractionalScaleFactor();
 #  ifdef MOZ_LOGGING
-  if (LOG_ENABLED()) {
+  if (LOG_ENABLED_VERBOSE()) {
+    float scale = FractionalScaleFactor();
     static uintptr_t lastSizeLog = 0;
     uintptr_t sizeLog =
         uintptr_t(this) + aEGLWindowSize.width + aEGLWindowSize.height + scale +
         aEGLWindowSize.width / scale + aEGLWindowSize.height / scale;
     if (lastSizeLog != sizeLog) {
       lastSizeLog = sizeLog;
-      LOG("nsWindow::SetEGLNativeWindowSize() %d x %d scale %f (unscaled "
+      LOGVERBOSE(
+          "nsWindow::SetEGLNativeWindowSize() %d x %d scale %f (unscaled "
           "%f x %f)",
           aEGLWindowSize.width, aEGLWindowSize.height, scale,
           aEGLWindowSize.width / scale, aEGLWindowSize.height / scale);
     }
   }
 #  endif
-  return moz_container_wayland_egl_window_set_size(
-      mContainer, aEGLWindowSize.ToUnknownSize());
+  return mSurface->SetEGLWindowSize(aEGLWindowSize.ToUnknownSize());
 }
 #endif
 

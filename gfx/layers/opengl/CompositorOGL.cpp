@@ -745,10 +745,11 @@ Maybe<IntRect> CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
     MakeCurrent(ForceMakeCurrent);
 
     mWidgetSize = LayoutDeviceIntSize::FromUnknownSize(rect.Size());
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WAYLAND
     if (mWidget && mWidget->AsGTK()) {
+      // Wayland only check we have correct window size to avoid
+      // rendering artifacts.
       if (!mWidget->AsGTK()->SetEGLNativeWindowSize(mWidgetSize)) {
-        // We don't have correct window size to paint into.
         return Nothing();
       }
     }

@@ -88,11 +88,11 @@ bool RenderCompositorEGL::BeginFrame() {
         << "We don't have EGLSurface to draw into. Called too early?";
     return false;
   }
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WAYLAND
   if (mWidget->AsGTK()) {
     if (!mWidget->AsGTK()->SetEGLNativeWindowSize(GetBufferSize())) {
-      // It's possible that GtkWidget is hidden on Wayland; e.g. maybe it's
-      // just been closed. So, we can't draw into it right now.
+      // Wayland only check we have correct window size to avoid
+      // rendering artifacts.
       return false;
     }
   }
