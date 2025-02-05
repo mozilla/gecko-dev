@@ -3514,6 +3514,18 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // have on-screen cells.
       LocalAccessible* prevParentRow = nullptr;
       for (nsIFrame* frame : frames) {
+        if (frame->IsInlineFrame() && !frame->IsPrimaryFrame()) {
+          // This is a line other than the first line in an inline element. Even
+          // though there are multiple frames for this element (one per line),
+          // there is only a single Accessible with bounds encompassing all the
+          // frames. We don't have any additional information about the
+          // individual continuation frames in our cache. Thus, we don't want
+          // this Accessible to appear before leaves on other lines which are
+          // later in the `frames` array. Otherwise, when hit testing, this
+          // Accessible will match instead of those leaves. We will add this
+          // Accessible when we get to its primary frame later.
+          continue;
+        }
         nsIContent* content = frame->GetContent();
         if (!content) {
           continue;

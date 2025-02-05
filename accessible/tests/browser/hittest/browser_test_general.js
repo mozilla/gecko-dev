@@ -132,6 +132,24 @@ async function runTests(browser, accDoc) {
     wrappedTextLeafFirstMark,
     wrappedTextLeafFirstMark.firstChild
   );
+  const wrappedTextNestedInlineP = findAccessibleChildByID(
+    accDoc,
+    "wrappedTextNestedInlineP"
+  );
+  const wrappedTextNestedInlineEm = findAccessibleChildByID(
+    accDoc,
+    "wrappedTextNestedInlineEm"
+  );
+  const wrappedTextNestedInlineStrong = findAccessibleChildByID(
+    accDoc,
+    "wrappedTextNestedInlineStrong"
+  );
+  await hitTest(
+    browser,
+    wrappedTextNestedInlineP,
+    wrappedTextNestedInlineEm,
+    wrappedTextNestedInlineStrong.firstChild
+  );
 
   info("Testing image");
   const imageP = findAccessibleChildByID(accDoc, "imageP");
@@ -192,6 +210,10 @@ addAccessibleTask(
     <mark id="wrappedTextLeafFirstMark">a</mark><a href="https://example.com/">b cd</a>
   </p>
 
+  <p id="wrappedTextNestedInlineP" style="width: 1ch; font-family: monospace;">
+    <em id="wrappedTextNestedInlineEm"><strong id="wrappedTextNestedInlineStrong">y </strong>z</em>
+  </p>
+  
   <p id="imageP">
     <img id="image" src="http://example.com/a11y/accessible/tests/mochitest/letters.gif">
   </p>
