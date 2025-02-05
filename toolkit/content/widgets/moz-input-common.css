@@ -25,6 +25,10 @@
     --input-margin-block-adjust: var(--space-xsmall) 0;
   }
 
+  :host([inputlayout="block"]:not(:state(has-label), :state(has-description))) {
+    --input-margin-block-adjust: 0;
+  }
+
   @media (forced-colors) {
     :host([disabled]) {
       color: GrayText;

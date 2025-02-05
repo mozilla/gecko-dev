@@ -18,8 +18,14 @@ import MozInputText from "chrome://global/content/elements/moz-input-text.mjs";
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {string} placeholder - Text to display when the input has no value.
+ * @property {string} ariaLabel
+ *  The aria-label text for cases where there is no visible label.
  */
 export default class MozInputSearch extends MozInputText {
+  static properties = {
+    ariaLabel: { type: String, mapped: true },
+  };
+
   inputStylesTemplate() {
     return html`${super.inputStylesTemplate()}`;
   }
@@ -35,6 +41,7 @@ export default class MozInputSearch extends MozInputText {
         ?disabled=${this.disabled}
         accesskey=${ifDefined(this.accessKey)}
         placeholder=${ifDefined(this.placeholder)}
+        aria-label=${ifDefined(this.ariaLabel ?? undefined)}
         aria-describedby="description"
         @input=${this.handleInput}
         @change=${this.redispatchEvent}

@@ -37,6 +37,10 @@
 
       is(backgroundImage, searchIcon, "Search icon is set as a background-image of Input element.");
     });
+
+    add_task(async function testMozInputSearchAriaLabel() {
+      await testHelpers.verifyAriaLabel("moz-input-search");
+    });
   </script>
 </head>
 <body>
