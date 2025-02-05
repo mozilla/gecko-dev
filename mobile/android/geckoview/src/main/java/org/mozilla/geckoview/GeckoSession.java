@@ -3066,11 +3066,14 @@ public class GeckoSession {
   }
 
   /**
-   * Request analysis of product's reviews for a given product URL.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Request analysis of
+   * product's reviews for a given product URL.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of review analysis object.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<ReviewAnalysis> requestAnalysis(@NonNull final String url) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3081,11 +3084,14 @@ public class GeckoSession {
   }
 
   /**
-   * Request the creation of an analysis of product's reviews for a given product URL.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Request the creation of
+   * an analysis of product's reviews for a given product URL.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of status of analysis.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<String> requestCreateAnalysis(@NonNull final String url) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3094,11 +3100,14 @@ public class GeckoSession {
   }
 
   /**
-   * Request the status of the current analysis of product's reviews for a given product URL.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Request the status of
+   * the current analysis of product's reviews for a given product URL.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of status of analysis.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<AnalysisStatusResponse> requestAnalysisStatus(
       @NonNull final String url) {
@@ -3110,11 +3119,14 @@ public class GeckoSession {
   }
 
   /**
-   * Poll for the status of the current analysis of product's reviews for a given product URL.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Poll for the status of
+   * the current analysis of product's reviews for a given product URL.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of status of analysis.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<String> pollForAnalysisCompleted(@NonNull final String url) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3123,11 +3135,14 @@ public class GeckoSession {
   }
 
   /**
-   * Send a click event to the Ad Attribution API.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Send a click event to
+   * the Ad Attribution API.
    *
    * @param aid Ad id of the recommended product.
    * @return a {@link GeckoResult} result of whether or not sending the event was successful.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<Boolean> sendClickAttributionEvent(@NonNull final String aid) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3136,11 +3151,14 @@ public class GeckoSession {
   }
 
   /**
-   * Send an impression event to the Ad Attribution API.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Send an impression event
+   * to the Ad Attribution API.
    *
    * @param aid Ad id of the recommended product.
    * @return a {@link GeckoResult} result of whether or not sending the event was successful.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<Boolean> sendImpressionAttributionEvent(@NonNull final String aid) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3149,11 +3167,14 @@ public class GeckoSession {
   }
 
   /**
-   * Send a placement event to the Ad Attribution API.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Send a placement event
+   * to the Ad Attribution API.
    *
    * @param aid Ad id of the recommended product.
    * @return a {@link GeckoResult} result of whether or not sending the event was successful.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<Boolean> sendPlacementAttributionEvent(@NonNull final String aid) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3162,11 +3183,14 @@ public class GeckoSession {
   }
 
   /**
-   * Request product recommendations given a specific product url.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Request product
+   * recommendations given a specific product url.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of product recommendations.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<List<Recommendation>> requestRecommendations(
       @NonNull final String url) {
@@ -3188,12 +3212,15 @@ public class GeckoSession {
   }
 
   /**
-   * Report that a product is back in stock.
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Report that a product is
+   * back in stock.
    *
    * @param url The URL of the product page.
    * @return a {@link GeckoResult} result of whether reporting a product is back in stock was
    *     successful.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   @AnyThread
   public @NonNull GeckoResult<String> reportBackInStock(@NonNull final String url) {
     final GeckoBundle bundle = new GeckoBundle(1);
@@ -3772,8 +3799,13 @@ public class GeckoSession {
     }
   }
 
-  /** Contains information about the analysis of a product's reviews. */
+  /**
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Contains information
+   * about the analysis of a product's reviews.
+   */
   @AnyThread
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   public static class ReviewAnalysis {
     /** Analysis URL. */
     @Nullable public final String analysisURL;
@@ -4048,8 +4080,13 @@ public class GeckoSession {
     }
   }
 
-  /** Contains information about a product recommendation. */
+  /**
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Contains information
+   * about a product recommendation.
+   */
   @AnyThread
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   public static class Recommendation {
     /** Analysis URL. */
     @NonNull public final String analysisUrl;
@@ -4264,8 +4301,13 @@ public class GeckoSession {
     }
   }
 
-  /** Contains information about a product's analysis status response. */
+  /**
+   * This method is scheduled for deprecation, see Bug 1941470 for details. Contains information
+   * about a product's analysis status response.
+   */
   @AnyThread
+  @Deprecated
+  @DeprecationSchedule(id = "session-shopping", version = 139)
   public static class AnalysisStatusResponse {
     /** Status of the analysis. */
     @NonNull public final String status;

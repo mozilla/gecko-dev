@@ -8,9 +8,6 @@ import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.Settings
-import mozilla.components.concept.engine.shopping.ProductAnalysis
-import mozilla.components.concept.engine.shopping.ProductAnalysisStatus
-import mozilla.components.concept.engine.shopping.ProductRecommendation
 import mozilla.components.concept.engine.translate.TranslationOptions
 import org.json.JSONObject
 
@@ -69,54 +66,6 @@ internal class FakeEngineSession(
 
     override fun checkForPdfViewer(
         onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestProductRecommendations(
-        url: String,
-        onResult: (List<ProductRecommendation>) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestProductAnalysis(
-        url: String,
-        onResult: (ProductAnalysis) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun reanalyzeProduct(
-        url: String,
-        onResult: (String) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestAnalysisStatus(
-        url: String,
-        onResult: (ProductAnalysisStatus) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendClickAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendImpressionAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendPlacementAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun reportBackInStock(
-        url: String,
-        onResult: (String) -> Unit,
         onException: (Throwable) -> Unit,
     ) {}
 

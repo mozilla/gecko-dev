@@ -12,9 +12,6 @@ import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.shopping.ProductAnalysis
-import mozilla.components.concept.engine.shopping.ProductAnalysisStatus
-import mozilla.components.concept.engine.shopping.ProductRecommendation
 import mozilla.components.concept.engine.translate.TranslationOptions
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.mock
@@ -1018,54 +1015,6 @@ open class DummyEngineSession : EngineSession() {
 
     override fun getWebCompatInfo(
         onResult: (JSONObject) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestProductRecommendations(
-        url: String,
-        onResult: (List<ProductRecommendation>) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestProductAnalysis(
-        url: String,
-        onResult: (ProductAnalysis) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun reanalyzeProduct(
-        url: String,
-        onResult: (String) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun requestAnalysisStatus(
-        url: String,
-        onResult: (ProductAnalysisStatus) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendClickAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendImpressionAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun sendPlacementAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    ) {}
-
-    override fun reportBackInStock(
-        url: String,
-        onResult: (String) -> Unit,
         onException: (Throwable) -> Unit,
     ) {}
 

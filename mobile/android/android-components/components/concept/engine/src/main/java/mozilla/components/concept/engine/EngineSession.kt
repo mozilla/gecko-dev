@@ -15,9 +15,6 @@ import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.shopping.ProductAnalysis
-import mozilla.components.concept.engine.shopping.ProductAnalysisStatus
-import mozilla.components.concept.engine.shopping.ProductRecommendation
 import mozilla.components.concept.engine.translate.TranslationEngineState
 import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.concept.engine.translate.TranslationOperation
@@ -909,104 +906,6 @@ abstract class EngineSession(
      * @param onException callback invoked if there was an error getting the response.
      */
     abstract fun getWebCompatInfo(onResult: (JSONObject) -> Unit, onException: (Throwable) -> Unit)
-
-    /**
-     * Requests product recommendations given a specific product url.
-     *
-     * @param onResult callback invoked if the engine API returned a valid response. Please note
-     * that the response can be null - which can indicate a bug, a miscommunication
-     * or other unexpected failure.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun requestProductRecommendations(
-        url: String,
-        onResult: (List<ProductRecommendation>) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Requests the analysis results for a given product page URL.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun requestProductAnalysis(
-        url: String,
-        onResult: (ProductAnalysis) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Requests the reanalysis of a product for a given product page URL.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun reanalyzeProduct(
-        url: String,
-        onResult: (String) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Requests the status of a product analysis for a given product page URL.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun requestAnalysisStatus(
-        url: String,
-        onResult: (ProductAnalysisStatus) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Sends a click attribution event for a given product aid.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun sendClickAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Sends an impression attribution event for a given product aid.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun sendImpressionAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Sends a placement attribution event for a given product aid.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun sendPlacementAttributionEvent(
-        aid: String,
-        onResult: (Boolean) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
-
-    /**
-     * Reports when a product is back in stock.
-     *
-     * @param onResult callback invoked if the engine API returns a valid response.
-     * @param onException callback invoked if there was an error getting the response.
-     */
-    abstract fun reportBackInStock(
-        url: String,
-        onResult: (String) -> Unit,
-        onException: (Throwable) -> Unit,
-    )
 
     /**
      * Requests the [EngineSession] to translate the current session's contents.
