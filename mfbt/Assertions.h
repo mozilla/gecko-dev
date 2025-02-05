@@ -313,13 +313,13 @@ static inline void MOZ_CrashSequence(void* aAddress, intptr_t aLine) {
  * MOZ_CRASH() calls whose rationale is non-obvious; don't use it if it's
  * obvious why we're crashing.
  *
- * If we're a DEBUG build and we crash at a MOZ_CRASH which provides an
- * explanation-string, we print the string to stderr.  Otherwise, we don't
- * print anything; this is because we want MOZ_CRASH to be 100% safe in release
- * builds, and it's hard to print to stderr safely when memory might have been
- * corrupted.
+ * If we're a DEBUG, ASAN or FUZZING build and we crash at a MOZ_CRASH which
+ * provides an explanation-string, we print the string to stderr.  Otherwise,
+ * we don't print anything; this is because we want MOZ_CRASH to be 100% safe
+ * in release builds, and it's hard to print to stderr safely when memory might
+ * have been corrupted.
  */
-#if !(defined(DEBUG) || defined(FUZZING))
+#if !(defined(DEBUG) || defined(MOZ_ASAN) || defined(FUZZING))
 #  define MOZ_CRASH(...)                                                      \
     do {                                                                      \
       MOZ_FUZZING_HANDLE_CRASH_EVENT4("MOZ_CRASH", __FILE__, __LINE__, NULL); \
@@ -364,7 +364,7 @@ static inline void MOZ_CrashSequence(void* aAddress, intptr_t aLine) {
 static MOZ_ALWAYS_INLINE_EVEN_DEBUG MOZ_COLD MOZ_NORETURN void MOZ_Crash(
     const char* aFilename, int aLine, const char* aReason) {
   MOZ_FUZZING_HANDLE_CRASH_EVENT4("MOZ_CRASH", aFilename, aLine, aReason);
-#if defined(DEBUG) || defined(FUZZING)
+#if defined(DEBUG) || defined(MOZ_ASAN) || defined(FUZZING)
   MOZ_ReportCrash(aReason, aFilename, aLine);
 #endif
   MOZ_CRASH_ANNOTATE(aReason);
