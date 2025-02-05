@@ -40,8 +40,13 @@ add_task(async function test_stylesheet() {
     await setupCachedListener(topContext);
     await loadCachedResource(topContext, type);
 
+    const isNavigationCacheEnabled = Services.prefs.getBoolPref(
+      "dom.script_loader.navigation_cache"
+    );
+    const useTODO = type === "script" && !isNavigationCacheEnabled;
+
     cachedEventCount = await getCachedResourceEventCount(topContext);
-    (type === "script" ? todo_is : is)(
+    (useTODO ? todo_is : is)(
       cachedEventCount,
       1,
       `[${type}] 1 cached event received for the second load`
@@ -52,7 +57,7 @@ add_task(async function test_stylesheet() {
     await loadCachedResource(iframeContext, type);
 
     cachedEventCount = await getCachedResourceEventCount(topContext);
-    (type === "script" ? todo_is : is)(
+    (useTODO ? todo_is : is)(
       cachedEventCount,
       1,
       `[${type}] No new event for the top context`
@@ -94,7 +99,7 @@ add_task(async function test_stylesheet() {
         `[${type}] 1 event received for the frame context`
       );
     } else {
-      (type === "script" ? todo_is : is)(
+      (useTODO ? todo_is : is)(
         iframeCachedEventCount,
         1,
         `[${type}] 1 event received for the frame context`
