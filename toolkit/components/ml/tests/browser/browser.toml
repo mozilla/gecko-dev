@@ -7,6 +7,8 @@ support-files = [
 
 ["browser_ml_cache.js"]
 
+["browser_ml_cluster_algos.js"]
+
 ["browser_ml_end_to_end.js"]
 skip-if = [
   "coverage", # Skips if running under test-coverage
@@ -18,6 +20,6 @@ skip-if = [
 
 ["browser_ml_engine_process.js"]
 
-["browser_ml_utils.js"]
-
 ["browser_ml_nlp_utils.js"]
+
+["browser_ml_utils.js"]

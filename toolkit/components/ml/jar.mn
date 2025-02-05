@@ -4,6 +4,7 @@
 
 # For the vendored lib, see https://bugzilla.mozilla.org/show_bug.cgi?id=1890946
 toolkit.jar:
+    content/global/ml/ClusterAlgos.sys.mjs                (content/ClusterAlgos.sys.mjs)
     content/global/ml/EngineProcess.sys.mjs     	      (content/EngineProcess.sys.mjs)
     content/global/ml/MLEngine.worker.mjs       	      (content/MLEngine.worker.mjs)
     content/global/ml/MLEngine.html             	      (content/MLEngine.html)
