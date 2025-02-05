@@ -205,6 +205,11 @@ namespace layers {
   RemoteTextureOwnerId ownerId;
 };
 
+[Comparable] struct SurfaceDescriptorCanvasSurface {
+  uint32_t managerId;
+  uintptr_t surfaceId;
+};
+
 [Comparable] union SurfaceDescriptor {
   SurfaceDescriptorBuffer;
   SurfaceDescriptorD3D10;
@@ -219,6 +224,7 @@ namespace layers {
   SurfaceDescriptorRemoteTexture;
   SurfaceDescriptorDcompSurface;
   SurfaceDescriptorExternalImage;
+  SurfaceDescriptorCanvasSurface;
   null_t;
 };
 

@@ -720,6 +720,11 @@ class SourceSurface : public SupportsThreadSafeWeakPtr<SourceSurface> {
     return nullptr;
   }
 
+  /** Tries to generate a SurfaceDescriptor for the surface, if possible. */
+  virtual bool GetSurfaceDescriptor(layers::SurfaceDescriptor& aDesc) const {
+    return false;
+  }
+
  protected:
   friend class StoredPattern;
 

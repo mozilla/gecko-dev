@@ -52,6 +52,10 @@ class CanvasManagerParent final : public PCanvasManagerParent {
       const Maybe<RawId>& aCommandEncoderId,
       webgl::FrontBufferSnapshotIpc* aResult);
 
+  static already_AddRefed<DataSourceSurface> GetCanvasSurface(
+      dom::ContentParentId aContentId, uint32_t aManagerId,
+      uintptr_t aSurfaceId);
+
  private:
   static void ShutdownInternal();
   static void DisableRemoteCanvasInternal();

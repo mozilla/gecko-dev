@@ -150,6 +150,13 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
     return mRecordedSurface->ExtractSubrect(aRect);
   }
 
+  bool GetSurfaceDescriptor(SurfaceDescriptor& aDesc) const final {
+    aDesc = SurfaceDescriptorCanvasSurface(
+        static_cast<gfx::CanvasManagerChild*>(mCanvasChild->Manager())->Id(),
+        uintptr_t(gfx::ReferencePtr(this)));
+    return true;
+  }
+
  private:
   void EnsureDataSurfaceOnMainThread() {
     // The data can only be retrieved on the main thread.

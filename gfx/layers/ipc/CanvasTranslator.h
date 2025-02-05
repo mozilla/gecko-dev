@@ -291,6 +291,14 @@ class CanvasTranslator final : public gfx::InlineTranslator,
 
   void GetDataSurface(uint64_t aSurfaceRef);
 
+  /**
+   * Wait for a canvas to produce the designated surface. If necessary,
+   * this may flush out canvas commands to ensure the surface is created.
+   * This should only be called from within the canvas task queue thread
+   * so that it can force event processing to occur if necessary.
+   */
+  already_AddRefed<gfx::DataSourceSurface> WaitForSurface(uintptr_t aId);
+
   static void Shutdown();
 
  private:
@@ -464,6 +472,11 @@ class CanvasTranslator final : public gfx::InlineTranslator,
 
   RefPtr<ipc::SharedMemory> mHeaderShmem;
   Header* mHeader = nullptr;
+  // Limit event processing to stop at the designated checkpoint, rather than
+  // proceed beyond it. This also forces processing to continue, even when it
+  // would normally have been interrupted, so long as not error is produced and
+  // so long as the checkpoint has not yet been reached.
+  int64_t mFlushCheckpoint = 0;
 
   struct CanvasShmem {
     RefPtr<ipc::SharedMemory> shmem;

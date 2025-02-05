@@ -399,6 +399,32 @@ void CanvasTranslator::GetDataSurface(uint64_t aSurfaceRef) {
   }
 }
 
+already_AddRefed<gfx::DataSourceSurface> CanvasTranslator::WaitForSurface(
+    uintptr_t aId) {
+  // If it's not safe to flush the event queue, then don't try to wait.
+  if (!gfx::gfxVars::UseAcceleratedCanvas2D() ||
+      !UsePendingCanvasTranslatorEvents() || !IsInTaskQueue()) {
+    return nullptr;
+  }
+  ReferencePtr idRef(aId);
+  if (!HasSourceSurface(idRef)) {
+    // If the surface doesn't exist yet, that may be because the events
+    // that produce it still need to be processed. Flush out any events
+    // currently in the queue, that by now should have been placed in
+    // the queue but for which processing has not yet occurred..
+    mFlushCheckpoint = mHeader->eventCount;
+    HandleCanvasTranslatorEvents();
+    mFlushCheckpoint = 0;
+    // If there is still no surface, then it is unlikely to be produced
+    // now, so give up.
+    if (!HasSourceSurface(idRef)) {
+      return nullptr;
+    }
+  }
+  // The surface exists, so get its data.
+  return LookupSourceSurface(idRef)->GetDataSurface();
+}
+
 void CanvasTranslator::RecycleBuffer() {
   mCanvasShmems.emplace(std::move(mCurrentShmem));
   NextBuffer();
@@ -561,7 +587,12 @@ void CanvasTranslator::CheckAndSignalWriter() {
 }
 
 bool CanvasTranslator::HasPendingEvent() {
-  return mHeader->processedCount < mHeader->eventCount;
+  int64_t limit = mHeader->eventCount;
+  if (mFlushCheckpoint) {
+    // Limit event processing to not exceed the checkpoint.
+    limit = std::min(limit, mFlushCheckpoint);
+  }
+  return mHeader->processedCount < limit;
 }
 
 bool CanvasTranslator::ReadPendingEvent(EventType& aEventType) {
@@ -574,6 +605,13 @@ bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
   if (mHeader->readerState == State::Paused) {
     Flush();
     return false;
+  }
+
+  if (mFlushCheckpoint) {
+    // If trying to advance to a checkpoint, then don't wait for any new events
+    // to be queued. The checkpoint should exist within only events that are
+    // already pending.
+    return HasPendingEvent() && ReadPendingEvent(aEventType);
   }
 
   uint32_t spinCount = mMaxSpinCount;
@@ -673,15 +711,23 @@ bool CanvasTranslator::TranslateRecording() {
 
     mHeader->processedCount++;
 
-    const auto maxDurationMs = 100;
-    const auto now = TimeStamp::Now();
-    const auto waitDurationMs =
-        static_cast<uint32_t>((now - start).ToMilliseconds());
-
-    if (UsePendingCanvasTranslatorEvents() && waitDurationMs > maxDurationMs &&
-        mHeader->readerState != State::Paused) {
-      return true;
+    if (UsePendingCanvasTranslatorEvents() &&
+        mHeader->readerState != State::Paused && !mFlushCheckpoint) {
+      const auto maxDurationMs = 100;
+      const auto now = TimeStamp::Now();
+      const auto waitDurationMs =
+          static_cast<uint32_t>((now - start).ToMilliseconds());
+      if (waitDurationMs > maxDurationMs) {
+        return true;
+      }
     }
+  }
+
+  // If there is a checkpoint, and we processed past the checkpoint, then return
+  // true here to ensure translation resumes later from after the checkpoint.
+  if (mFlushCheckpoint && mHeader->readerState != State::Paused &&
+      mHeader->processedCount >= mFlushCheckpoint) {
+    return true;
   }
 
   return false;

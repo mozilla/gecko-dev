@@ -237,4 +237,22 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
   return IPC_OK();
 }
 
+/* static */ already_AddRefed<DataSourceSurface>
+CanvasManagerParent::GetCanvasSurface(dom::ContentParentId aContentId,
+                                      uint32_t aManagerId,
+                                      uintptr_t aSurfaceId) {
+  for (CanvasManagerParent* manager : sManagers) {
+    if (manager->mContentId == aContentId && manager->mId == aManagerId) {
+      for (const auto& canvas : manager->ManagedPCanvasParent()) {
+        RefPtr<layers::CanvasTranslator> ct =
+            static_cast<layers::CanvasTranslator*>(canvas);
+        if (RefPtr<DataSourceSurface> surf = ct->WaitForSurface(aSurfaceId)) {
+          return surf.forget();
+        }
+      }
+    }
+  }
+  return nullptr;
+}
+
 }  // namespace mozilla::gfx
