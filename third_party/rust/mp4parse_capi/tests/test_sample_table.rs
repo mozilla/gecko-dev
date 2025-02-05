@@ -156,7 +156,7 @@ fn parse_sample_table_with_elst() {
         assert_eq!(track_info.track_type, Mp4parseTrackType::Audio);
 
         // Check audio sample table
-        let mut is_fragmented_file: u8 = std::u8::MAX;
+        let mut is_fragmented_file: u8 = u8::MAX;
         rv = mp4parse_is_fragmented(parser, track_info.track_id, &mut is_fragmented_file);
         assert_eq!(rv, Mp4parseStatus::Ok);
         assert_eq!(is_fragmented_file, 0);
@@ -225,7 +225,7 @@ fn parse_sample_table_with_negative_ctts() {
         assert_eq!(rv, Mp4parseStatus::Ok);
         assert_eq!(track_info.track_type, Mp4parseTrackType::Video);
 
-        let mut is_fragmented_file: u8 = std::u8::MAX;
+        let mut is_fragmented_file: u8 = u8::MAX;
         rv = mp4parse_is_fragmented(parser, track_info.track_id, &mut is_fragmented_file);
         assert_eq!(rv, Mp4parseStatus::Ok);
         assert_eq!(is_fragmented_file, 0);

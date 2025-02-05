@@ -78,7 +78,7 @@ log = "0.4"
 num-traits = "0.2.14"
 
 [dependencies.fallible_collections]
-version = "0.4"
+version = "0.4.9"
 features = ["std_io"]
 
 [dependencies.mp4parse]
