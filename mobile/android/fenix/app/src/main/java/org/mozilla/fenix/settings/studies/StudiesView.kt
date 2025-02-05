@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.experiments.nimbus.internal.EnrolledExperiment
 import org.mozilla.fenix.GleanMetrics.Preferences
 import org.mozilla.fenix.R
@@ -53,7 +52,9 @@ class StudiesView(
         provideStudiesSwitch().isChecked = settings.isExperimentationEnabled
         provideStudiesSwitch().setOnClickListener {
             val isChecked = provideStudiesSwitch().isChecked
-            Preferences.studiesPreferenceEnabled.record(NoExtras())
+            Preferences.studiesPreferenceEnabled.record(
+                Preferences.StudiesPreferenceEnabledExtra(isChecked),
+            )
             provideStudiesTitle().text = getSwitchCheckedTitle()
 
             settings.isExperimentationEnabled = isChecked

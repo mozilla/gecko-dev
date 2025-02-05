@@ -3592,12 +3592,19 @@ preferences:
     type: event
     description: >
       An event indicating whether or not the user has studies enabled.
+    extra_keys:
+      enabled:
+        type: boolean
+        description: |
+          Whether or not studies is enabled from Settings screen.
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/22192
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1930868
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/22193
       - https://github.com/mozilla-mobile/fenix/pull/27068#issuecomment-1251509973
       - https://github.com/mozilla-mobile/firefox-android/pull/3319
+      - https://phabricator.services.mozilla.com/D236728
     data_sensitivity:
       - interaction
     notification_emails:

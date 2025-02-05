@@ -35,12 +35,12 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             if (key == getPreferenceKey(R.string.pref_key_telemetry)) {
                 if (context.settings().isTelemetryEnabled) {
                     context.components.analytics.metrics.start(MetricServiceType.Data)
+                    context.settings().isExperimentationEnabled = true
+                    requireComponents.nimbus.sdk.globalUserParticipation = true
                 } else {
                     context.components.analytics.metrics.stop(MetricServiceType.Data)
-                    if (context.settings().isExperimentationEnabled) {
-                        context.settings().isExperimentationEnabled = false
-                        requireComponents.nimbus.sdk.globalUserParticipation = false
-                    }
+                    context.settings().isExperimentationEnabled = false
+                    requireComponents.nimbus.sdk.globalUserParticipation = false
                 }
                 updateStudiesSection()
                 // Reset experiment identifiers on both opt-in and opt-out; it's likely
