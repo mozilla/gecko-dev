@@ -341,6 +341,14 @@ MediaResult MP4VideoInfo::Update(const Mp4parseTrackInfo* track,
   mImage.width = video->sample_info[0].image_width;
   mImage.height = video->sample_info[0].image_height;
   mRotation = ToSupportedRotation(video->rotation);
+  if (video->pixel_aspect_ratio > 0) {
+    double width = mImage.Width() * video->pixel_aspect_ratio;
+    // Only apply the change is the value is valid.
+    if (width <= std::numeric_limits<int32_t>::max()) {
+      mPixelAspectRatio = Some(video->pixel_aspect_ratio);
+      mDisplay.width = static_cast<int32_t>(width);
+    }
+  }
   Mp4parseByteData extraData = video->sample_info[0].extra_data;
   // If length is 0 we append nothing
   mExtraData->AppendElements(extraData.data, extraData.length);
