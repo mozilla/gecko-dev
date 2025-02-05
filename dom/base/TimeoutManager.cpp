@@ -203,8 +203,9 @@ TimeDuration TimeoutManager::MinSchedulingDelay() const {
   }
 
   // do not throttle workers if dom_workers_throttling is disabled
-  if (!GetInnerWindow() && StaticPrefs::dom_workers_timeoutmanager() &&
-      !StaticPrefs::dom_workers_throttling_enabled()) {
+  if (!GetInnerWindow() &&
+      StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
+      !StaticPrefs::dom_workers_throttling_enabled_AtStartup()) {
     return TimeDuration();
   }
 
@@ -1275,8 +1276,9 @@ ThrottleTimeoutsCallback::Notify(nsITimer* aTimer) {
 
 bool TimeoutManager::BudgetThrottlingEnabled(bool aIsBackground) const {
   // do not throttle workers if dom_workers_throttling is disabled
-  if (!GetInnerWindow() && StaticPrefs::dom_workers_timeoutmanager() &&
-      !StaticPrefs::dom_workers_throttling_enabled()) {
+  if (!GetInnerWindow() &&
+      StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
+      !StaticPrefs::dom_workers_throttling_enabled_AtStartup()) {
     return false;
   }
 

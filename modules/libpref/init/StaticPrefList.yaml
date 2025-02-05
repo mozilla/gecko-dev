@@ -4416,14 +4416,14 @@
   mirror: always
 
 - name: dom.workers.throttling.enabled
-  type: RelaxedAtomicBool
+  type: bool
   value: false
-  mirror: always
+  mirror: once
 
 - name: dom.workers.timeoutmanager
-  type: RelaxedAtomicBool
+  type: bool
   value: false
-  mirror: always
+  mirror: once
 
 - name: dom.workers.serialized-sab-access
   type: RelaxedAtomicBool
