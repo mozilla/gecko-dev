@@ -6,7 +6,6 @@ package org.mozilla.fenix
 
 import android.app.ActivityManager
 import android.content.Context
-import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.StrictMode
@@ -17,6 +16,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration.Builder
 import androidx.work.Configuration.Provider
@@ -120,8 +120,8 @@ private const val RAM_THRESHOLD_MEGABYTES = 1024
 private const val BYTES_TO_MEGABYTES_CONVERSION = 1024.0 * 1024.0
 
 /**
- *The main application class for Fenix. Records data to measure initialization performance.
- *  Installs [CrashReporter], initializes [Glean]  in fenix builds and setup Megazord in the main process.
+ * The main application class for Fenix. Records data to measure initialization performance.
+ * Installs [CrashReporter], initializes [Glean] in fenix builds and setup [Megazord] in the main process.
  */
 @Suppress("Registered", "TooManyFunctions", "LargeClass")
 open class FenixApplication : LocaleAwareApplication(), Provider {
@@ -341,7 +341,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                             frecencyConfig = TopSitesFrecencyConfig(
                                 FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
                             ) {
-                                !Uri.parse(it.url)
+                                !it.url.toUri()
                                     .containsQueryParameters(components.settings.frecencyFilterQuery)
                             },
                             providerConfig = TopSitesProviderConfig(
@@ -979,7 +979,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         CustomizeHome.contile.set(settings.showContileFeature)
     }
 
-    protected fun recordOnInit() {
+    private fun recordOnInit() {
         // This gets called by more than one process. Ideally we'd only run this in the main process
         // but the code to check which process we're in crashes because the Context isn't valid yet.
         //
