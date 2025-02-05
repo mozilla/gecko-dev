@@ -138,11 +138,14 @@ async function testColorsFocus() {
         );
 
         // Simulate changing a color to make the reset button visible.
-        let colorInput = doc.querySelector("color-input");
+        let colorInput = doc.querySelector("moz-input-color");
         let shadowRoot = colorInput.shadowRoot;
         let input = shadowRoot.querySelector("input");
         input.value = "#123456";
-        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(
+          new Event("input", { bubbles: true, composed: true })
+        );
+        
 
         // Wait for the reset button to become visible.
         await ContentTaskUtils.waitForCondition(() => {

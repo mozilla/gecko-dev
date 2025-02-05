@@ -2,46 +2,70 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-.color-input-container {
+
+
+:host {
+  --moz-input-color-swatch-size: 24px;
+
   display: flex;
-  position: relative;
-  justify-content: flex-start;
   align-items: center;
-  gap: var(--space-small);
-  min-height: 46px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  padding: 0 var(--space-small);
-  border-radius: var(--border-radius-small);
 }
 
-.color-input-container:hover {
-  background-color: var(--toolbar-button-background-hover);
-}
-
-#color-swatch:focus-visible {
-  outline: none;
-}
-
-.color-input-container:focus-within {
-  outline: 2px solid var(--primary-color);
-  outline-offset: var(--focus-outline-offset);
-}
-
-.icon-container {
+label {
   display: flex;
-  margin-inline: auto var(--space-xsmall);
+  align-self: stretch;
+  align-items: center;
+  flex-grow: 1;
+  padding-inline: var(--space-medium);
+  padding-block: var(--space-small);
+  gap: var(--space-small);
+  cursor: pointer;
+  border: var(--border-width) solid var(--border-color-interactive);
+  border-radius: var(--border-radius-medium);
+  background-color: var(--button-background-color-ghost);
 }
 
-#color-swatch {
+
+label:hover {
+  border-color: var(--border-color-interactive-hover);
+  background-color: var(--button-background-color-ghost-hover);
+}
+
+label:hover:active {
+  border-color: var(--border-color-interactive-active);
+  background-color: var(--button-background-color-ghost-active)
+}
+
+
+label:focus-within {
+  outline: var(--focus-outline);
+}
+
+label span {
+  flex-grow: 1;
+}
+
+.swatch {
   appearance: none;
-  width: 34px;
-  height: 34px;
+  width: var(--moz-input-color-swatch-size);
+  height: var(--moz-input-color-swatch-size);
   background-color: transparent;
   border: none;
   cursor: pointer;
+  padding: initial;
 }
 
-#color-swatch::-moz-color-swatch {
+.swatch:focus-visible {
+  outline: none;
+}
+
+.swatch::-moz-color-swatch {
   border-radius: var(--border-radius-circle);
-  border: 1px solid rgba(0, 0, 0, 0.25);
+  border: var(--border-width) solid var(--border-color-deemphasized);
+  box-sizing: border-box;
+}
+
+.icon {
+  -moz-context-properties: fill;
+   fill: var(--icon-color);
 }
