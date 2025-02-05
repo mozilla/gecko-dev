@@ -1,7 +1,7 @@
 diff --git a/arm/arm_init.c b/arm/arm_init.c
 --- a/arm/arm_init.c
 +++ b/arm/arm_init.c
-@@ -41,7 +41,7 @@
+@@ -40,7 +40,7 @@
       /* ARM Neon is expected to be available on the target CPU architecture. */
  #    error "PNG_ARM_NEON_CHECK_SUPPORTED must not be defined on this CPU arch"
  #  elif defined(__linux__)
@@ -13,8 +13,8 @@ diff --git a/arm/arm_init.c b/arm/arm_init.c
 diff --git a/arm/filter_neon.S b/arm/filter_neon.S
 --- a/arm/filter_neon.S
 +++ b/arm/filter_neon.S
-@@ -10,6 +10,12 @@
-  * and license in png.h
+@@ -26,6 +26,12 @@
+  * will be raised otherwise.
   */
  
 +/* These are required because Mozilla's moz.build system doesn't pass
