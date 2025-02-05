@@ -152,6 +152,10 @@ class WaylandSurface final {
   void CommitLocked(const WaylandSurfaceLock& aProofOfLock,
                     bool aForceCommit = false, bool aForceDisplayFlush = false);
 
+  void EnableDMABufFormatsLocked(
+      const WaylandSurfaceLock& aProofOfLock,
+      const std::function<void(DMABufFormats*)>& aFormatRefreshCB);
+
   // Place this WaylandSurface above aLowerSurface
   void PlaceAboveLocked(const WaylandSurfaceLock& aProofOfLock,
                         WaylandSurfaceLock& aLowerSurfaceLock);
@@ -244,6 +248,8 @@ class WaylandSurface final {
       const WaylandSurfaceLock& aProofOfLock) {
     mFrameCallbackForceCommit = true;
   }
+
+  RefPtr<DMABufFormats> GetDMABufFormats() const { return mFormats; }
 
   GdkWindow* GetGdkWindow() const;
 
@@ -448,6 +454,13 @@ class WaylandSurface final {
   // mFractionalScaleCallback is called from
   // wp_fractional_scale_v1_add_listener when scale is changed.
   std::function<void(void)> mFractionalScaleCallback = []() {};
+
+  bool mUseDMABufFormats = false;
+  // Wayland display notifies us when available DRM formats are are changed.
+  // For instance if wl_surface becomes fullscreen we may get DRM formats
+  // for direct scanout.
+  std::function<void(DMABufFormats*)> mDMABufFormatRefreshCallback;
+  RefPtr<DMABufFormats> mFormats;
 };
 
 }  // namespace mozilla::widget

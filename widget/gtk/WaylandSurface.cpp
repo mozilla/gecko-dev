@@ -453,6 +453,25 @@ bool WaylandSurface::CreateViewportLocked(
   return !!mViewport;
 }
 
+void WaylandSurface::EnableDMABufFormatsLocked(
+    const WaylandSurfaceLock& aProofOfLock,
+    const std::function<void(DMABufFormats*)>& aFormatRefreshCB) {
+  mUseDMABufFormats = true;
+  mDMABufFormatRefreshCallback = aFormatRefreshCB;
+
+  // We'll set up on Map
+  if (!mIsMapped) {
+    return;
+  }
+
+  mFormats = CreateDMABufFeedbackFormats(mSurface, aFormatRefreshCB);
+  if (!mFormats) {
+    LOGWAYLAND(
+        "WaylandSurface::SetDMABufFormatsLocked(): Failed to get DMABuf "
+        "formats!");
+  }
+}
+
 bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
                                wl_surface* aParentWLSurface,
                                WaylandSurfaceLock* aParentWaylandSurfaceLock,
@@ -531,6 +550,10 @@ bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
                /* aForceDisplayFlush */ true);
 
   mIsMapped = true;
+
+  if (mUseDMABufFormats) {
+    EnableDMABufFormatsLocked(aProofOfLock, mDMABufFormatRefreshCallback);
+  }
 
   LOGWAYLAND("    created surface %p ID %d", (void*)mSurface,
              wl_proxy_get_id((struct wl_proxy*)mSurface));
@@ -619,6 +642,7 @@ void WaylandSurface::UnmapLocked(const WaylandSurfaceLock& aProofOfLock) {
   MozClearPointer(mFractionalScaleListener, wp_fractional_scale_v1_destroy);
   MozClearPointer(mSubsurface, wl_subsurface_destroy);
   mParentSurface = nullptr;
+  mFormats = nullptr;
 
   // We can't release mSurface if it's used by Gdk for frame callback routing.
   if (!mIsPendingGdkCleanup) {
