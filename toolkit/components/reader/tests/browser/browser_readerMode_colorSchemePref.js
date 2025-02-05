@@ -145,7 +145,6 @@ async function testColorsFocus() {
         input.dispatchEvent(
           new Event("input", { bubbles: true, composed: true })
         );
-        
 
         // Wait for the reset button to become visible.
         await ContentTaskUtils.waitForCondition(() => {
