@@ -19,6 +19,7 @@ const { isBrowsingContextPartOfContext } = ChromeUtils.importESModule(
 );
 const { SUPPORTED_DATA } = SessionDataHelpers;
 const { TARGET_CONFIGURATION } = SUPPORTED_DATA;
+const LOG_DISABLED = -1;
 
 // List of options supported by this target configuration actor.
 /* eslint sort-keys: "error" */
@@ -106,6 +107,8 @@ class TargetConfigurationActor extends Actor {
 
   // Value of `logging.console` pref, before starting recording JS Traces
   #consolePrefValue;
+  // Value of `logging.PageMessages` pref, before starting recording JS Traces
+  #pageMessagesPrefValue;
 
   form() {
     return {
@@ -518,12 +521,21 @@ class TargetConfigurationActor extends Actor {
    */
   _setTracerOptions(options) {
     if (!options) {
-      if (this.#consolePrefValue === -1) {
+      if (this.#consolePrefValue === LOG_DISABLED) {
         Services.prefs.clearUserPref("logging.console");
       } else {
         Services.prefs.setIntPref("logging.console", this.#consolePrefValue);
       }
       this.#consolePrefValue = undefined;
+      if (this.#pageMessagesPrefValue === LOG_DISABLED) {
+        Services.prefs.clearUserPref("logging.PageMessages");
+      } else {
+        Services.prefs.setIntPref(
+          "logging.PageMessages",
+          this.#pageMessagesPrefValue
+        );
+      }
+      this.#pageMessagesPrefValue = undefined;
       return;
     }
     // Enable `MOZ_LOG=console:5` via the logging.console so that all console API calls
@@ -531,13 +543,17 @@ class TargetConfigurationActor extends Actor {
     //
     // We do this from here as TargetConfiguration runs in the parent process,
     // where we can set preferences. Whereas the profiler tracer actor runs in the content process.
-    const LOG_DISABLED = -1;
     const LOG_VERBOSE = 5;
     this.#consolePrefValue = Services.prefs.getIntPref(
       "logging.console",
       LOG_DISABLED
     );
     Services.prefs.setIntPref("logging.console", LOG_VERBOSE);
+    this.#pageMessagesPrefValue = Services.prefs.getIntPref(
+      "logging.PageMessages",
+      LOG_DISABLED
+    );
+    Services.prefs.setIntPref("logging.PageMessages", LOG_VERBOSE);
   }
 }
 
