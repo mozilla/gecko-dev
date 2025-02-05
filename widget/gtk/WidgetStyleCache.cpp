@@ -60,18 +60,6 @@ static GtkWidget* CreateScrollbarWidget(WidgetNodeType aAppearance,
   return widget;
 }
 
-static GtkWidget* CreateCheckboxWidget() {
-  GtkWidget* widget = gtk_check_button_new_with_label("M");
-  AddToWindowContainer(widget);
-  return widget;
-}
-
-static GtkWidget* CreateRadiobuttonWidget() {
-  GtkWidget* widget = gtk_radio_button_new_with_label(nullptr, "M");
-  AddToWindowContainer(widget);
-  return widget;
-}
-
 static GtkWidget* CreateMenuPopupWidget() {
   GtkWidget* widget = gtk_menu_new();
   GtkStyleContext* style = gtk_widget_get_style_context(widget);
@@ -682,12 +670,8 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateWindowWidget();
     case MOZ_GTK_WINDOW_CONTAINER:
       return CreateWindowContainerWidget();
-    case MOZ_GTK_CHECKBUTTON_CONTAINER:
-      return CreateCheckboxWidget();
     case MOZ_GTK_PROGRESSBAR:
       return CreateProgressWidget();
-    case MOZ_GTK_RADIOBUTTON_CONTAINER:
-      return CreateRadiobuttonWidget();
     case MOZ_GTK_SCROLLBAR_VERTICAL:
       return CreateScrollbarWidget(aAppearance, GTK_ORIENTATION_VERTICAL);
     case MOZ_GTK_MENUPOPUP:
@@ -1017,14 +1001,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
       style = CreateChildCSSNode(GTK_STYLE_CLASS_SLIDER,
                                  MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
       break;
-    case MOZ_GTK_RADIOBUTTON:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_RADIO,
-                                 MOZ_GTK_RADIOBUTTON_CONTAINER);
-      break;
-    case MOZ_GTK_CHECKBUTTON:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_CHECK,
-                                 MOZ_GTK_CHECKBUTTON_CONTAINER);
-      break;
     case MOZ_GTK_PROGRESS_TROUGH:
       /* Progress bar background (trough) */
       style = CreateChildCSSNode(GTK_STYLE_CLASS_TROUGH, MOZ_GTK_PROGRESSBAR);
@@ -1155,14 +1131,6 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
     case MOZ_GTK_SCROLLBAR_THUMB_VERTICAL:
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLBAR_VERTICAL,
                                       GTK_STYLE_CLASS_SLIDER);
-      break;
-    case MOZ_GTK_RADIOBUTTON:
-      style = CreateSubStyleWithClass(MOZ_GTK_RADIOBUTTON_CONTAINER,
-                                      GTK_STYLE_CLASS_RADIO);
-      break;
-    case MOZ_GTK_CHECKBUTTON:
-      style = CreateSubStyleWithClass(MOZ_GTK_CHECKBUTTON_CONTAINER,
-                                      GTK_STYLE_CLASS_CHECK);
       break;
     case MOZ_GTK_PROGRESS_TROUGH:
       style =
