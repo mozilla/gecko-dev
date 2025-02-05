@@ -251,18 +251,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
     case StyleAppearance::Radio:
       aGtkWidgetType = MOZ_GTK_RADIOBUTTON;
       break;
-    case StyleAppearance::Spinner:
-      aGtkWidgetType = MOZ_GTK_SPINBUTTON;
-      break;
-    case StyleAppearance::SpinnerUpbutton:
-      aGtkWidgetType = MOZ_GTK_SPINBUTTON_UP;
-      break;
-    case StyleAppearance::SpinnerDownbutton:
-      aGtkWidgetType = MOZ_GTK_SPINBUTTON_DOWN;
-      break;
-    case StyleAppearance::SpinnerTextfield:
-      aGtkWidgetType = MOZ_GTK_SPINBUTTON_ENTRY;
-      break;
     case StyleAppearance::Range: {
       if (IsRangeHorizontal(aFrame)) {
         if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_HORIZONTAL;
@@ -1108,17 +1096,6 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
         result.height = height;
       }
     } break;
-    case StyleAppearance::Spinner:
-      // hard code these sizes
-      result.width = 14;
-      result.height = 26;
-      break;
-    case StyleAppearance::SpinnerUpbutton:
-    case StyleAppearance::SpinnerDownbutton:
-      // hard code these sizes
-      result.width = 14;
-      result.height = 13;
-      break;
     default:
       break;
   }
@@ -1187,10 +1164,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::TabScrollArrowBack:
     case StyleAppearance::TabScrollArrowForward:
     case StyleAppearance::Tooltip:
-    case StyleAppearance::Spinner:
-    case StyleAppearance::SpinnerUpbutton:
-    case StyleAppearance::SpinnerDownbutton:
-    case StyleAppearance::SpinnerTextfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:

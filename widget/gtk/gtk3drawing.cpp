@@ -723,71 +723,6 @@ static void moz_gtk_draw_styled_frame(GtkStyleContext* style, cairo_t* cr,
   }
 }
 
-static gint moz_gtk_inner_spin_paint(cairo_t* cr, GdkRectangle* rect,
-                                     GtkWidgetState* state,
-                                     GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_SPINBUTTON, state->image_scale, direction,
-                      GetStateFlagsFromGtkWidgetState(state));
-
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-
-  /* hard code these values */
-  GdkRectangle arrow_rect;
-  arrow_rect.width = 6;
-  arrow_rect.height = 6;
-
-  // align spin to the left
-  arrow_rect.x = rect->x;
-
-  // up button
-  arrow_rect.y = rect->y + (rect->height - arrow_rect.height) / 2 - 3;
-  gtk_render_arrow(style, cr, ARROW_UP, arrow_rect.x, arrow_rect.y,
-                   arrow_rect.width);
-
-  // down button
-  arrow_rect.y = rect->y + (rect->height - arrow_rect.height) / 2 + 3;
-  gtk_render_arrow(style, cr, ARROW_DOWN, arrow_rect.x, arrow_rect.y,
-                   arrow_rect.width);
-
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_spin_paint(cairo_t* cr, GdkRectangle* rect,
-                               GtkWidgetState* state,
-                               GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_SPINBUTTON, state->image_scale, direction);
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_spin_updown_paint(cairo_t* cr, GdkRectangle* rect,
-                                      gboolean isDown, GtkWidgetState* state,
-                                      GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_SPINBUTTON, state->image_scale, direction,
-                      GetStateFlagsFromGtkWidgetState(state));
-
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-
-  /* hard code these values */
-  GdkRectangle arrow_rect;
-  arrow_rect.width = 6;
-  arrow_rect.height = 6;
-  arrow_rect.x = rect->x + (rect->width - arrow_rect.width) / 2;
-  arrow_rect.y = rect->y + (rect->height - arrow_rect.height) / 2;
-  arrow_rect.y += isDown ? -1 : 1;
-
-  gtk_render_arrow(style, cr, isDown ? ARROW_DOWN : ARROW_UP, arrow_rect.x,
-                   arrow_rect.y, arrow_rect.width);
-
-  return MOZ_GTK_SUCCESS;
-}
-
 /* See gtk_range_draw() for reference.
  */
 static gint moz_gtk_scale_paint(cairo_t* cr, GdkRectangle* rect,
@@ -1595,11 +1530,6 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
     case MOZ_GTK_PROGRESSBAR:
       w = GetWidget(MOZ_GTK_PROGRESSBAR);
       break;
-    case MOZ_GTK_SPINBUTTON_ENTRY:
-    case MOZ_GTK_SPINBUTTON_UP:
-    case MOZ_GTK_SPINBUTTON_DOWN:
-      w = GetWidget(MOZ_GTK_SPINBUTTON);
-      break;
     case MOZ_GTK_SCALE_HORIZONTAL:
     case MOZ_GTK_SCALE_VERTICAL:
       w = GetWidget(widget);
@@ -1641,8 +1571,6 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
     case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
     case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE:
     /* These widgets have no borders.*/
-    case MOZ_GTK_INNER_SPIN_BUTTON:
-    case MOZ_GTK_SPINBUTTON:
     case MOZ_GTK_WINDOW_DECORATION:
     case MOZ_GTK_WINDOW_DECORATION_SOLID:
     case MOZ_GTK_RESIZER:
@@ -1993,20 +1921,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
     case MOZ_GTK_SCALE_THUMB_VERTICAL:
       return moz_gtk_scale_thumb_paint(cr, rect, state, (GtkOrientation)flags,
                                        direction);
-    case MOZ_GTK_INNER_SPIN_BUTTON:
-      return moz_gtk_inner_spin_paint(cr, rect, state, direction);
-    case MOZ_GTK_SPINBUTTON:
-      return moz_gtk_spin_paint(cr, rect, state, direction);
-    case MOZ_GTK_SPINBUTTON_UP:
-    case MOZ_GTK_SPINBUTTON_DOWN:
-      return moz_gtk_spin_updown_paint(
-          cr, rect, (widget == MOZ_GTK_SPINBUTTON_DOWN), state, direction);
-    case MOZ_GTK_SPINBUTTON_ENTRY: {
-      GtkStyleContext* style =
-          GetStyleContext(MOZ_GTK_SPINBUTTON_ENTRY, state->image_scale,
-                          direction, GetStateFlagsFromGtkWidgetState(state));
-      return moz_gtk_entry_paint(cr, rect, state, style, widget);
-    }
     case MOZ_GTK_TREEVIEW:
       return moz_gtk_treeview_paint(cr, rect, state, direction);
     case MOZ_GTK_ENTRY:

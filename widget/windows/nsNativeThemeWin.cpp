@@ -65,9 +65,7 @@ bool nsNativeThemeWin::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
   return Theme::IsWidgetAlwaysNonNative(aFrame, aAppearance) ||
          aAppearance == StyleAppearance::Checkbox ||
          aAppearance == StyleAppearance::Radio ||
-         aAppearance == StyleAppearance::MozMenulistArrowButton ||
-         aAppearance == StyleAppearance::SpinnerUpbutton ||
-         aAppearance == StyleAppearance::SpinnerDownbutton;
+         aAppearance == StyleAppearance::MozMenulistArrowButton;
 }
 
 auto nsNativeThemeWin::IsWidgetNonNative(

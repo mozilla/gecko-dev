@@ -133,12 +133,6 @@ static GtkWidget* CreateButtonArrowWidget() {
   return widget;
 }
 
-static GtkWidget* CreateSpinWidget() {
-  GtkWidget* widget = gtk_spin_button_new(nullptr, 1, 0);
-  AddToWindowContainer(widget);
-  return widget;
-}
-
 static GtkWidget* CreateEntryWidget() {
   GtkWidget* widget = gtk_entry_new();
   AddToWindowContainer(widget);
@@ -704,8 +698,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateExpanderWidget();
     case MOZ_GTK_FRAME:
       return CreateFrameWidget();
-    case MOZ_GTK_SPINBUTTON:
-      return CreateSpinWidget();
     case MOZ_GTK_BUTTON:
       return CreateButtonWidget();
     case MOZ_GTK_TOGGLE_BUTTON:
@@ -1040,11 +1032,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
     case MOZ_GTK_PROGRESS_CHUNK:
       style = CreateChildCSSNode("progress", MOZ_GTK_PROGRESS_TROUGH);
       break;
-    case MOZ_GTK_SPINBUTTON_ENTRY:
-      // TODO - create from CSS node
-      style =
-          CreateSubStyleWithClass(MOZ_GTK_SPINBUTTON, GTK_STYLE_CLASS_ENTRY);
-      break;
     case MOZ_GTK_SCROLLED_WINDOW:
       // TODO - create from CSS node
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLED_WINDOW,
@@ -1185,10 +1172,6 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
       style = CreateSubStyleWithClass(MOZ_GTK_PROGRESSBAR,
                                       GTK_STYLE_CLASS_PROGRESSBAR);
       gtk_style_context_remove_class(style, GTK_STYLE_CLASS_TROUGH);
-      break;
-    case MOZ_GTK_SPINBUTTON_ENTRY:
-      style =
-          CreateSubStyleWithClass(MOZ_GTK_SPINBUTTON, GTK_STYLE_CLASS_ENTRY);
       break;
     case MOZ_GTK_SCROLLED_WINDOW:
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLED_WINDOW,

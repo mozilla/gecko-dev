@@ -149,12 +149,6 @@ enum WidgetNodeType : int {
   /* Paints a GtkScale thumb. */
   MOZ_GTK_SCALE_THUMB_HORIZONTAL,
   MOZ_GTK_SCALE_THUMB_VERTICAL,
-  /* Paints a GtkSpinButton */
-  MOZ_GTK_INNER_SPIN_BUTTON,
-  MOZ_GTK_SPINBUTTON,
-  MOZ_GTK_SPINBUTTON_UP,
-  MOZ_GTK_SPINBUTTON_DOWN,
-  MOZ_GTK_SPINBUTTON_ENTRY,
   /* Paints a GtkEntry. */
   MOZ_GTK_ENTRY,
   /* Paints a GtkExpander. */
