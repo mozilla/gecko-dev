@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DMABufLibWrapper.h"
+#  include "DMABufFormats.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
-#  include "DMABufFormats.h"
 #endif
 #include "base/message_loop.h"    // for MessageLoop
 #include "mozilla/gfx/Logging.h"  // for gfxCriticalNote
