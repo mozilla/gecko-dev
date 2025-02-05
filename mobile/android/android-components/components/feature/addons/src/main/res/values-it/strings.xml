@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Scaricare ed eseguire modelli di intelligenza artificiale sul dispositivo</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Consentire a script di terze parti non verificati di accedere ai tuoi dati</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Script non verificati possono comportare rischi per la sicurezza e la privacy. Esegui script solo da estensioni o fonti affidabili.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Consentire agli strumenti di sviluppo di accedere ai dati delle schede</string>
     <!-- The version on of add-on. -->

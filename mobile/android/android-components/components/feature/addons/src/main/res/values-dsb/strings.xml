@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Ześěgniśo a wuwjeźćo Modele KI na swójom rěźe</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Njepśeglědanym skriptam tśeśich póbitowarjow pśistup k wašym datam dowóliś</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Njepśeglědane skripty mógu rizika za wěstotu a priwatnosć byś. Wuwjeźćo jano skripty z rozšyrjenjow abo žrědłow, kótarymž dowěriśo.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšyŕśo wuwijarske rědy, aby pśistup k swójim datam we wócynjonych rejtarikach měł</string>
     <!-- The version on of add-on. -->

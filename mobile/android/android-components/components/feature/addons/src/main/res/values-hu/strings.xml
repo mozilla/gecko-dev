@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">MI modellek letöltése és futtatása az eszközön</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Engedélyezés, hogy nem ellenőrzött harmadik féltől származó parancsfájlok hozzáférjenek az adataihoz</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">A nem ellenőrzött parancsfájlok biztonsági és adatvédelmi kockázatot jelenthetnek. Csak olyan kiegészítőkből vagy forrásokból futtasson parancsfájlokat, melyekben megbízik.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Fejlesztőeszközök kinyitása, hogy elérje a nyitott lapokon lévő adatokat</string>
     <!-- The version on of add-on. -->

@@ -352,6 +352,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla nake´e sani daa a íyo tiñu jee jia´a va´a %1$s nuu kuaiyo daa yo.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">Ping a ni\'i ntaka kivɨ</string>
+    <string name="preference_daily_usage_ping_description">Ya\'a chinei Mozilla kuni naja ñivɨ ni\'i ya\'a.</string>
+    <string name="preference_daily_usage_ping_learn_more">Ka´vi kue´eka</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Tutu xítu</string>
 
@@ -602,6 +607,9 @@
 
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Náxitá sɨ´ɨ nnánuku</string>
+
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Nakasɨ da inka pestaña</string>
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
@@ -1096,4 +1104,11 @@
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget nte nu pantalla xinañu´u</string>
 
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Staka ne íchi sikɨ jee ni\'i gesto íchi yata saa kuvi kene</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Staka ne íchi sikɨ jee kuaxin íchi yata sa kene</string>
+</resources>
