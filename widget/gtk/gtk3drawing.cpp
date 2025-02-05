@@ -1305,42 +1305,6 @@ static gint moz_gtk_tabpanels_paint(cairo_t* cr, GdkRectangle* rect,
   return MOZ_GTK_SUCCESS;
 }
 
-static gint moz_gtk_tab_scroll_arrow_paint(cairo_t* cr, GdkRectangle* rect,
-                                           GtkWidgetState* state,
-                                           GtkArrowType arrow_type,
-                                           GtkTextDirection direction) {
-  GtkStyleContext* style;
-  gdouble arrow_angle;
-  gint arrow_size = MIN(rect->width, rect->height);
-  gint x = rect->x + (rect->width - arrow_size) / 2;
-  gint y = rect->y + (rect->height - arrow_size) / 2;
-
-  if (direction == GTK_TEXT_DIR_RTL) {
-    arrow_type =
-        (arrow_type == GTK_ARROW_LEFT) ? GTK_ARROW_RIGHT : GTK_ARROW_LEFT;
-  }
-  switch (arrow_type) {
-    case GTK_ARROW_LEFT:
-      arrow_angle = ARROW_LEFT;
-      break;
-    case GTK_ARROW_RIGHT:
-      arrow_angle = ARROW_RIGHT;
-      break;
-    case GTK_ARROW_DOWN:
-      arrow_angle = ARROW_DOWN;
-      break;
-    default:
-      arrow_angle = ARROW_UP;
-      break;
-  }
-  if (arrow_type != GTK_ARROW_NONE) {
-    style = GetStyleContext(MOZ_GTK_TAB_SCROLLARROW, state->image_scale,
-                            direction, GetStateFlagsFromGtkWidgetState(state));
-    gtk_render_arrow(style, cr, arrow_angle, x, y, arrow_size);
-  }
-  return MOZ_GTK_SUCCESS;
-}
-
 static gint moz_gtk_header_bar_paint(WidgetNodeType widgetType, cairo_t* cr,
                                      GdkRectangle* rect,
                                      GtkWidgetState* state) {
@@ -1500,7 +1464,6 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
     case MOZ_GTK_WINDOW_DECORATION_SOLID:
     case MOZ_GTK_RESIZER:
     case MOZ_GTK_TOOLBARBUTTON_ARROW:
-    case MOZ_GTK_TAB_SCROLLARROW:
       return MOZ_GTK_SUCCESS;
     default:
       g_warning("Unsupported widget type: %d", widget);
@@ -1814,9 +1777,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
                                widget);
     case MOZ_GTK_TABPANELS:
       return moz_gtk_tabpanels_paint(cr, rect, state, direction);
-    case MOZ_GTK_TAB_SCROLLARROW:
-      return moz_gtk_tab_scroll_arrow_paint(cr, rect, state,
-                                            (GtkArrowType)flags, direction);
     case MOZ_GTK_TOOLBARBUTTON_ARROW:
       return moz_gtk_arrow_paint(cr, rect, state, (GtkArrowType)flags,
                                  direction);

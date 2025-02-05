@@ -1089,8 +1089,7 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
     }
     case MOZ_GTK_NOTEBOOK:
     case MOZ_GTK_NOTEBOOK_HEADER:
-    case MOZ_GTK_TABPANELS:
-    case MOZ_GTK_TAB_SCROLLARROW: {
+    case MOZ_GTK_TABPANELS: {
       // TODO - create from CSS node
       GtkWidget* widget = GetWidget(MOZ_GTK_NOTEBOOK);
       return gtk_widget_get_style_context(widget);
@@ -1203,8 +1202,7 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
       break;
     case MOZ_GTK_NOTEBOOK:
     case MOZ_GTK_NOTEBOOK_HEADER:
-    case MOZ_GTK_TABPANELS:
-    case MOZ_GTK_TAB_SCROLLARROW: {
+    case MOZ_GTK_TABPANELS: {
       GtkWidget* widget = GetWidget(MOZ_GTK_NOTEBOOK);
       return gtk_widget_get_style_context(widget);
     }

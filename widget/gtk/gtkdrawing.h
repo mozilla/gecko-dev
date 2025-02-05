@@ -183,8 +183,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_TAB_BOTTOM,
   /* Paints the background and border of a GtkNotebook. */
   MOZ_GTK_TABPANELS,
-  /* Paints a GtkArrow for a GtkNotebook. flags is a GtkArrowType. */
-  MOZ_GTK_TAB_SCROLLARROW,
   /* Paints the expander and border of a GtkTreeView */
   MOZ_GTK_TREEVIEW,
   /* Paints the border of a GtkTreeView */
