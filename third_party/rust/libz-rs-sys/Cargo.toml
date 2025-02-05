@@ -33,7 +33,7 @@ path = "src/lib.rs"
 
 [dependencies.zlib-rs]
 version = "0.2.1"
-path = "../zlib-rs"
+path = '..\zlib-rs'
 default-features = false
 
 [features]
