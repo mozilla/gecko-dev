@@ -2046,7 +2046,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
             output.AppendFloat(v);
           } else {
             nsCString format;
-            MakeFormatString(format, integer, mantissa, 'f');
+            MakeFormatString(format, integer, std::min(mantissa, 15), 'f');
             output.AppendPrintf(format.get(), v);
           }
         }
