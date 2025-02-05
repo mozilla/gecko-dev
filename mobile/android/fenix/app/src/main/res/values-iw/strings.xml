@@ -2087,6 +2087,8 @@
     <string name="about_privacy_notice">הצהרת פרטיות</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">ידיעת הזכויות שלך</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">תנאי שימוש</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">מידע רישוי</string>
 

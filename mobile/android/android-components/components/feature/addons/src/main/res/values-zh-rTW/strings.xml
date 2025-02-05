@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">下載 AI 模型，並在您的裝置上執行</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">允許未驗證的第三方指令碼存取您的資料</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">未經驗證的指令碼，可能會造成安全性與隱私風險。請只執行來自可信的擴充套件或來源的指令碼。</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">讓開發者工具可存取您在開啟分頁中的資料</string>
     <!-- The version on of add-on. -->

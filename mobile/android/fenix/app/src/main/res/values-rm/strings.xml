@@ -605,6 +605,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Per meglierar il navigatur, trametta Firefox datas da diagnosa e d’interacziun a Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Administrar</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ans gida a far crescher Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Sche ti ans fas a savair co ti has scuvert Firefox e che ti dovras il program, ans gidas ti a mussar il navigatur ad in public pli grond.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Cundivida datas minimalas cun ils partenaris da tecnologia da marketing da Mozilla. Questas datas na vegnan mai vendidas u utilisadas per ta mussar reclamas.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Co nus utilisain las datas</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confermar e cumenzar a navigar</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Tscherna ina posiziun per la trav d’utensils</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1045,16 +1055,25 @@
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Datas tecnicas e statisticas davart l\'utilisaziun</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Datas tecnicas e d’interacziun</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Trametter datas tecnicas e d’interacziun</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ulteriuras infurmaziuns</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Cundivida datas davart prestaziun, utilisaziun, hardware e persunalisaziun da tes navigatur cun Mozilla per gidar a meglierar %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Datas davart tes apparat, la configuraziun da la hardware e l’utilisaziun, ans gidan a meglierar funcziuns, la prestaziun e la stabilitad da Firefox.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Datas da marketing</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Datas statisticas da campagnas</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Cundivida datas d\'utilisaziun da basa cun Adjust, noss purschider da marketing mobil</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Fa a savair ils partenaris da marketing da Mozilla co ti has scuvert Firefox. Quai ans gida a sviluppar Firefox e crear in meglier internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Fa a savair noss partenaris da tecnologia da marketing da Mozilla co ti has scuvert Firefox e che ti dovras il program.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Ulteriuras infurmaziuns davart datas da marketing</string>
 
@@ -1231,6 +1250,10 @@
     <string name="studies_active">Activs</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s po installar ed exequir studis da temp en temp.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Emprova novas funcziuns ed ideas avant ch’ellas stettian a disposiziun a mintgin.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Installar ed exequir studis</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Ulteriuras infurmaziuns</string>
     <!-- Dialog message shown after removing a study -->

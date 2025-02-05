@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">AI-modellen downloaden en op uw apparaat uitvoeren</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Niet-geverifieerde scripts van derden toegang tot uw gegevens geven</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Niet-geverifieerde scripts kunnen beveiligings- en privacyrisico’s met zich meebrengen. Voer alleen scripts uit van extensies of bronnen die u vertrouwt.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ontwikkelaarshulpmiddelen uitbreiden om uw gegevens in open tabbladen te benaderen</string>
     <!-- The version on of add-on. -->

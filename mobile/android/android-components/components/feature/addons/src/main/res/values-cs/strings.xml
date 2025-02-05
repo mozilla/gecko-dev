@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Stahovat a spouštět modely AI na zařízení</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Povolit neověřeným skriptům třetích stran přístup k vašim údajům</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Neověřené skripty mohou představovat bezpečnostní rizika a rizika pro soukromí. Spouštějte skripty pouze z rozšíření nebo zdrojů, kterým důvěřujete.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšířit nástroje pro vývojáře a získat přístup k vašim datům v otevřených panelech</string>
     <!-- The version on of add-on. -->

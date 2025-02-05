@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Моделҳои зеҳни сунъӣ «AI»-ро боргирӣ кунед ва дар дастгоҳи худ иҷро намоед</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Ба скриптҳои тасдиқнашудаи тарафи сеюм иҷозат диҳед, ки ба маълумоти шумо дастрасӣ пайдо намоянд</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Скриптҳои тасдиқнашуда метавонанд ба амният ва махфияти шумо ҳар гуна хатарҳоро ба вуҷуд оранд. Танҳо скриптҳоро аз васеъшавиҳо ё манбаъҳое, ки шумо ба он эътимод доред, иҷро кунед.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Васеъкунии абзорҳои барномасозӣ барои дастрас кардани маълумоти шумо дар варақаҳои кушодашуда</string>
     <!-- The version on of add-on. -->

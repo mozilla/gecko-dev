@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Scarricari e abbiari mudeḍḍi NA nnô to dispusitivu</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Pirmèttiri a script terzi nun virificati di accèdiri ê to dati</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">I prugrammi nun virificati ponnu èssiri un rìsicu pâ sicurizza e pâ privatizza. Abbìa sulu prugrammi di stinneri o funti chi ài fiducia.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Pirmèttiri ê stigghi di sbiluppu l\'accessu ê dati dî schedi</string>
     <!-- The version on of add-on. -->

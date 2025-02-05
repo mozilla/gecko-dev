@@ -75,7 +75,7 @@
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Permitir que scripts de terceros no verificados accedan a tus datos</string>
     <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
-    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Los scripts no verificados pueden representar riesgos de seguridad y privacidad. Solo ejecute scripts de extensiones o fuentes en las que confíe.</string>
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Los scripts no verificados pueden representar riesgos de seguridad y privacidad. Solo ejecutá scripts de extensiones o fuentes en las que confíés.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ampliar las herramientas para desarrolladores para acceder a tus datos en las pestañas abiertas</string>
     <!-- The version on of add-on. -->

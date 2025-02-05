@@ -2082,6 +2082,8 @@
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Spoznajte svoje pravice</string>
 
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Pogoji uporabe</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Podatki o dovoljenjih</string>
     <!-- About page link text to open a screen with libraries that are used -->

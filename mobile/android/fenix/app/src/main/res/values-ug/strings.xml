@@ -2082,6 +2082,8 @@
     <string name="about_privacy_notice">شەخسىيەت ئۇقتۇرۇشى</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">ھوقۇقىڭىزنى بىلىۋېلىڭ</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">ئىشلىتىش شەرتلىرى</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">ئىجازەت ئۇچۇرى</string>
 
