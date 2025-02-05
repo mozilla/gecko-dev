@@ -74,3 +74,26 @@ add_task(async function test_blankPage_5xx() {
     "Service Unavailable"
   );
 });
+
+add_task(async function test_emptyPage_viewSource() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.http.blank_page_with_error_response.enabled", false]],
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    `view-source:${BLANK_PAGE}?status=503&message=Service%20Unavailable`,
+    true // wait for the load to complete
+  );
+  let browser = tab.linkedBrowser;
+
+  await SpecialPowers.spawn(browser, [], () => {
+    const doc = content.document;
+    ok(
+      !doc.documentURI.startsWith("about:neterror"),
+      "Should not be showing error page since the scheme is view-source"
+    );
+  });
+
+  BrowserTestUtils.removeTab(tab);
+});

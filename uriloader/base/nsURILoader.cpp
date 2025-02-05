@@ -140,11 +140,16 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest* request) {
       rv = httpChannel->GetContentLength(&contentLength);
 
       if (NS_SUCCEEDED(rv) && contentLength == 0) {
-        if (responseCode >= 500) {
-          return NS_ERROR_NET_ERROR_RESPONSE;
-        }
-        if (responseCode >= 400) {
-          return NS_ERROR_NET_EMPTY_RESPONSE;
+        nsCOMPtr<nsIURI> uri;
+        rv = httpChannel->GetURI(getter_AddRefs(uri));
+        // Bug 1944984: Avoid error page on view-source views of empty pages
+        if (NS_FAILED(rv) || !uri->SchemeIs("view-source")) {
+          if (responseCode >= 500) {
+            return NS_ERROR_NET_ERROR_RESPONSE;
+          }
+          if (responseCode >= 400) {
+            return NS_ERROR_NET_EMPTY_RESPONSE;
+          }
         }
       }
     }
