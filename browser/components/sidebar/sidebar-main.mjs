@@ -382,7 +382,7 @@ export default class SidebarMain extends MozLitElement {
       aria-pressed="${isActiveView}"
       view=${action.view}
       @click=${async () => await this.showView(action.view)}
-      title=${!this.expanded ? tooltip : nothing}
+      title=${tooltip}
       .iconSrc=${action.iconUrl}
       ?extension=${action.view?.includes("-sidebar-action")}
       extensionId=${ifDefined(action.extensionId)}
