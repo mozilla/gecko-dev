@@ -36,8 +36,7 @@ function getFontPreviewData(font, doc, options) {
 
   const canvas = doc.createElementNS(XHTML_NS, "canvas");
   const ctx = canvas.getContext("2d");
-  const fontValue =
-    fontStyle + " " + previewFontSize + "px " + font + ", serif";
+  const fontValue = `${fontStyle} ${previewFontSize}px "${font}", serif`;
 
   // Get the correct preview text measurements and set the canvas dimensions
   ctx.font = fontValue;
