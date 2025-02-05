@@ -1,6 +1,9 @@
 [DEFAULT]
 firefox-appdir = "browser"
 
+["test_FaviconProvider.js"]
+support-files = ["favicon.png"]
+
 ["test_TippyTopProvider.js"]
 
 ["test_top_sites.js"]
