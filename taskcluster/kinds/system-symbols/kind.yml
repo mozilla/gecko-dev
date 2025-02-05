@@ -295,6 +295,7 @@ tasks:
             fetch:
                 - symbol-scrapers
             toolchain:
+                - linux64-cabextract
                 - linux64-7zz
     alpine:
         description: Extract Alpine Linux system symbols found in crashreports

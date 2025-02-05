@@ -476,6 +476,17 @@ fix-stacks:
         artifact-name: 7z-src.tar.zst
         add-prefix: 7zz/
 
+cabextract:
+    description: cabextract 1.11 source code
+    fetch:
+        type: static-url
+        url: https://www.cabextract.org.uk/cabextract-1.11.tar.gz
+        sha256: b5546db1155e4c718ff3d4b278573604f30dd64c3c5bfd4657cd089b823a3ac6
+        size: 489656
+        artifact-name: cabextract-src.tar.zst
+        strip-components: 1
+        add-prefix: cabextract/
+
 winchecksec:
     description: winchecksec source code
     fetch:
@@ -633,11 +644,11 @@ cargo-vet:
         revision: a8f88ddd75f4a10ab9427e8c4a8bec1603ef860b
 
 symbol-scrapers:
-    description: Linux distribution symbol scraper source
+    description: System symbols scraper source
     fetch:
         type: git
         repo: https://github.com/mozilla/symbol-scrapers
-        revision: 760f81a0e2d3720cd4795bdced8926ef7977856c
+        revision: 1a3fbe2724ee4587d44740a6a33ae7aa36cc7f71
 
 xz-5.4.4:
     description: xz 5.4.4 source code

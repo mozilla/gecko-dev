@@ -27,6 +27,7 @@ tasks-from:
     - 7zz.yml
     - android.yml
     - cargo-vet.yml
+    - cabextract.yml
     - cbindgen.yml
     - clang-tidy.yml
     - clang.yml

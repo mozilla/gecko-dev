@@ -1,0 +1,27 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    attributes:
+        local-toolchain: true
+    description: "cabextract toolchain build"
+    worker:
+        max-run-time: 1800
+    worker-type: b-linux-gcp
+    run:
+        script: build-cabextract.sh
+        toolchain-artifact: public/build/cabextract.tar.zst
+    fetches:
+        fetch:
+            - cabextract
+
+linux64-cabextract:
+    treeherder:
+        symbol: TL(cbx)
+    run:
+        arguments: ['x86_64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - sysroot-x86_64-linux-gnu
