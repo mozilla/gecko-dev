@@ -70,16 +70,26 @@
   padding: 0;
   margin: 0;
   list-style: none;
+  /* This is the main grid on the <ul> that the <li> will use as subgrid */
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-column-gap: 10px;
 }
 
 .font {
-  border: 1px solid var(--theme-splitter-color);
-  border-width: 0 0 1px 0;
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-column-gap: 10px;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
   padding: 10px 20px;
-  overflow: auto;
+  word-break: break-all;
+
+  & + .font {
+    border-block-start: 1px solid var(--theme-splitter-color);
+  }
+
+  .font-name {
+    white-space: normal;
+  }
 }
 
 #font-container .theme-twisty {
@@ -133,6 +143,9 @@
 
 .font-group .font-name {
   white-space: unset;
+  /* Some font-name can be very long, holding some kind of serial numbers and configuration.
+     Make sure the string wraps properly to prevent horizontal scrollbars. */
+  word-break: break-all;
 }
 
 .font-group .font-name::after {
