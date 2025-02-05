@@ -7,6 +7,8 @@
 #include "gtest/gtest.h"
 
 #include "AudioGenerator.h"
+#include "libwebrtcglue/SystemTime.h"
+#include "libwebrtcglue/WebrtcEnvironmentWrapper.h"
 #include "MediaEngineWebRTCAudio.h"
 #include "MediaTrackGraphImpl.h"
 #include "PrincipalHandle.h"
@@ -66,6 +68,9 @@ TEST(TestAudioInputProcessing, Buffering)
   RefPtr track = AudioProcessingTrack::Create(graph);
 
   auto aip = MakeRefPtr<AudioInputProcessing>(channels);
+  auto envWrapper = WebrtcEnvironmentWrapper::Create(
+      mozilla::dom::RTCStatsTimestampMaker::Create());
+  aip->SetEnvironmentWrapper(track, std::move(envWrapper));
 
   const size_t frames = 72;
 
@@ -234,6 +239,10 @@ TEST(TestAudioInputProcessing, ProcessDataWithDifferentPrincipals)
   RefPtr track = AudioProcessingTrack::Create(graph);
 
   auto aip = MakeRefPtr<AudioInputProcessing>(channels);
+  auto envWrapper = WebrtcEnvironmentWrapper::Create(
+      mozilla::dom::RTCStatsTimestampMaker::Create());
+  aip->SetEnvironmentWrapper(track, std::move(envWrapper));
+
   AudioGenerator<AudioDataValue> generator(channels, rate);
 
   RefPtr<nsIPrincipal> dummy_principal =
@@ -347,6 +356,9 @@ TEST(TestAudioInputProcessing, Downmixing)
   RefPtr track = AudioProcessingTrack::Create(graph);
 
   auto aip = MakeRefPtr<AudioInputProcessing>(channels);
+  auto envWrapper = WebrtcEnvironmentWrapper::Create(
+      mozilla::dom::RTCStatsTimestampMaker::Create());
+  aip->SetEnvironmentWrapper(track, std::move(envWrapper));
 
   const size_t frames = 44100;
 
