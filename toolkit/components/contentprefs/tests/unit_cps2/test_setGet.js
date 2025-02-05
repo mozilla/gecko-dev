@@ -224,11 +224,26 @@ add_task(async function setSetsCurrentDate() {
 
 add_task(async function maxLength() {
   const MAX_LENGTH = Ci.nsIContentPrefService2.GROUP_NAME_MAX_LENGTH;
-  const LONG_DATA_URL = `data:,${new Array(MAX_LENGTH).fill("x").join("")}`;
-  await set(LONG_DATA_URL, "foo", 1);
+
+  let count = Math.ceil(MAX_LENGTH / "subdomain.".length);
+  const HTTP_URL = `http://${"subdomain.".repeat(count)}.com`;
+  await set(HTTP_URL, "foo", 1);
   await getOK(
-    [LONG_DATA_URL, "foo"],
+    [HTTP_URL, "foo"],
     1,
-    LONG_DATA_URL.substring(0, MAX_LENGTH - 1)
+    HTTP_URL.substr("http://".length, MAX_LENGTH - 1)
   );
+});
+
+add_task(async function coalesceDataURLs() {
+  const DATA_URL1 = "data:text/plain,Hello";
+  const DATA_URL2 = "data:text/plain,Goodbye";
+  const DATA_URL3 = "data:,Another test";
+  const DATA_URL4 = "data:text/html,Another test";
+  await set(DATA_URL4, "foo", 4);
+  await set(DATA_URL1, "foo", 1);
+  await getOK([DATA_URL1, "foo"], 1, "data:text/plain");
+  await getOK([DATA_URL2, "foo"], 1, "data:text/plain");
+  await getOK([DATA_URL3, "foo"], 1, "data:text/plain");
+  await getOK([DATA_URL4, "foo"], 4, "data:text/html");
 });
