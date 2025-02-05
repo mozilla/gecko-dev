@@ -153,8 +153,10 @@ nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin) {
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_TRY(
-      nsContentUtils::GetWebExposedOriginSerialization(aPrincipal, aOrigin));
+  nsAutoCString origin;
+  MOZ_TRY(aPrincipal->GetOrigin(origin));
+
+  CopyUTF8toUTF16(origin, aOrigin);
 
   return NS_OK;
 }

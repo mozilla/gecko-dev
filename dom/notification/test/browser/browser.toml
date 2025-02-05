@@ -8,3 +8,6 @@ support-files = [
   "empty.html",
   "file_userContextId_openWindow.js",
 ]
+
+["browser_userContextId_tag.js"]
+support-files = ["empty.html"]
