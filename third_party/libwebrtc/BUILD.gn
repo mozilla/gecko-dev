@@ -619,6 +619,7 @@ if (!build_with_chromium) {
 
     if (build_with_mozilla) {
       deps += [
+        "api/audio:builtin_audio_processing_builder",
         "api/environment:environment_factory",
         "api/video:video_frame",
         "api/video:video_rtp_headers",
