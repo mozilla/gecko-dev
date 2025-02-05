@@ -2455,6 +2455,7 @@ interface nsIMemoryReporterManager extends nsISupports {
   unblockRegistrationAndRestoreOriginalReporters(): void;
   registerStrongReporterEvenIfBlocked(aReporter: nsIMemoryReporter): void;
   getReports(handleReport: nsIHandleReportCallback, handleReportData: nsISupports, finishReporting: nsIFinishReportingCallback, finishReportingData: nsISupports, anonymize: boolean): void;
+  getReportsExtended(handleReport: nsIHandleReportCallback, handleReportData: nsISupports, finishReporting: nsIFinishReportingCallback, finishReportingData: nsISupports, anonymize: boolean, minimizeMemoryUsage: boolean, DMDDumpIdent: string): void;
   readonly vsize: i64;
   readonly vsizeMaxContiguous: i64;
   readonly resident: i64;
@@ -11660,6 +11661,7 @@ interface nsIDNSHTTPSSVCRecord extends nsISupports {
   readonly ttl: u32;
   IsTRR(): boolean;
   GetAllRecordsWithEchConfig(aNoHttp2: boolean, aNoHttp3: boolean, aCName: string, aAllRecordsHaveEchConfig: OutParam<boolean>, aAllRecordsInH3ExcludedList: OutParam<boolean>): nsISVCBRecord[];
+  GetAllRecords(aNoHttp2: boolean, aNoHttp3: boolean, aCName: string): nsISVCBRecord[];
 }
 
 // https://searchfox.org/mozilla-central/source/netwerk/dns/nsIDNSListener.idl
@@ -12585,6 +12587,7 @@ interface nsIAutoCompleteSimpleSearch extends nsIAutoCompleteSearch {
 
 interface nsIMLUtils extends nsISupports {
   hasEnoughMemoryToInfer(aModelSizeInMemory: u64, aThresholdPercentage: u32, aMinMemoryRequirement: u64): boolean;
+  getNumPhysicalCores(): u8;
 }
 
 // https://searchfox.org/mozilla-central/source/toolkit/components/finalizationwitness/nsIFinalizationWitnessService.idl
@@ -14822,6 +14825,7 @@ interface nsIAccessibleRole extends nsISupports {
   readonly ROLE_TIME: 137;
   readonly ROLE_GRID: 138;
   readonly ROLE_ROWGROUP: 139;
+  readonly ROLE_SEARCHBOX: 140;
 }
 
 // https://searchfox.org/mozilla-central/source/accessible/interfaces/nsIAccessibleScrollingEvent.idl

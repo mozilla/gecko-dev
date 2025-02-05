@@ -10,6 +10,7 @@
 interface Principal extends nsIPrincipal {}
 interface URI extends nsIURI {}
 interface WindowProxy extends Window {}
+interface MozChannel extends nsIChannel {}
 
 type HTMLCollectionOf<T> = any;
 type IsInstance<T> = (obj: any) => obj is T;
@@ -860,11 +861,6 @@ interface FileInfo {
     permissions?: number;
     size?: number;
     type?: FileType;
-}
-
-interface FileNameTypeDetails {
-    fileNameDetails?: string;
-    fileNameType: string;
 }
 
 interface FilePropertyBag extends BlobPropertyBag {
@@ -7426,7 +7422,7 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     mozSetImageElement(aImageElementId: string, aImageElement: Element | null): void;
     notifyUserGestureActivation(): void;
     open(unused1?: string, unused2?: string): Document;
-    open(url: string | URL, name: string, features: string): WindowProxy | null;
+    open(url: string, name: string, features: string): WindowProxy | null;
     queryCommandEnabled(commandId: string): boolean;
     queryCommandIndeterm(commandId: string): boolean;
     queryCommandState(commandId: string): boolean;
@@ -12050,13 +12046,52 @@ interface InspectorFontFace {
     readonly rule: CSSFontFaceRule | null;
     readonly srcIndex: number;
     getFeatures(): InspectorFontFeature[];
+    getNameString(id: number): string;
     getVariationAxes(): InspectorVariationAxis[];
     getVariationInstances(): InspectorVariationInstance[];
+    readonly NAME_ID_COPYRIGHT: 0;
+    readonly NAME_ID_FAMILY: 1;
+    readonly NAME_ID_SUBFAMILY: 2;
+    readonly NAME_ID_UNIQUE: 3;
+    readonly NAME_ID_FULL: 4;
+    readonly NAME_ID_VERSION: 5;
+    readonly NAME_ID_POSTSCRIPT: 6;
+    readonly NAME_ID_TRADEMARK: 7;
+    readonly NAME_ID_MANUFACTURER: 8;
+    readonly NAME_ID_DESIGNER: 9;
+    readonly NAME_ID_DESCRIPTION: 10;
+    readonly NAME_ID_VENDOR_URL: 11;
+    readonly NAME_ID_DESIGNER_URL: 12;
+    readonly NAME_ID_LICENSE: 13;
+    readonly NAME_ID_LICENSE_URL: 14;
+    readonly NAME_ID_TYPOGRAPHIC_FAMILY: 16;
+    readonly NAME_ID_TYPOGRAPHIC_SUBFAMILY: 17;
+    readonly NAME_ID_COMPATIBLE_FULL: 18;
+    readonly NAME_ID_SAMPLE_TEXT: 19;
 }
 
 declare var InspectorFontFace: {
     prototype: InspectorFontFace;
     new(): InspectorFontFace;
+    readonly NAME_ID_COPYRIGHT: 0;
+    readonly NAME_ID_FAMILY: 1;
+    readonly NAME_ID_SUBFAMILY: 2;
+    readonly NAME_ID_UNIQUE: 3;
+    readonly NAME_ID_FULL: 4;
+    readonly NAME_ID_VERSION: 5;
+    readonly NAME_ID_POSTSCRIPT: 6;
+    readonly NAME_ID_TRADEMARK: 7;
+    readonly NAME_ID_MANUFACTURER: 8;
+    readonly NAME_ID_DESIGNER: 9;
+    readonly NAME_ID_DESCRIPTION: 10;
+    readonly NAME_ID_VENDOR_URL: 11;
+    readonly NAME_ID_DESIGNER_URL: 12;
+    readonly NAME_ID_LICENSE: 13;
+    readonly NAME_ID_LICENSE_URL: 14;
+    readonly NAME_ID_TYPOGRAPHIC_FAMILY: 16;
+    readonly NAME_ID_TYPOGRAPHIC_SUBFAMILY: 17;
+    readonly NAME_ID_COMPATIBLE_FULL: 18;
+    readonly NAME_ID_SAMPLE_TEXT: 19;
     isInstance: IsInstance<InspectorFontFace>;
 };
 
@@ -12921,9 +12956,9 @@ interface Location {
     port: string;
     protocol: string;
     search: string;
-    assign(url: string | URL): void;
+    assign(url: string): void;
     reload(forceget?: boolean): void;
-    replace(url: string | URL): void;
+    replace(url: string): void;
 }
 
 declare var Location: {
@@ -16748,7 +16783,7 @@ declare var SVGAnimatedRect: {
 
 interface SVGAnimatedString {
     readonly animVal: string;
-    baseVal: string;
+    baseVal: TrustedScriptURL | string;
 }
 
 declare var SVGAnimatedString: {
@@ -24705,7 +24740,6 @@ declare namespace ChromeUtils {
     function releaseAssert(condition: boolean, message?: string): void;
     function requestProcInfo(): Promise<ParentProcInfoDictionary>;
     function resetLastExternalProtocolIframeAllowed(): void;
-    function sanitizeTelemetryFileURL(url: string): FileNameTypeDetails;
     function saveHeapSnapshot(boundaries?: HeapSnapshotBoundaries): string;
     function saveHeapSnapshotGetId(boundaries?: HeapSnapshotBoundaries): string;
     function setPerfStatsCollectionMask(aCollectionMask: number): void;

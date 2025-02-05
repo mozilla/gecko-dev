@@ -67,6 +67,10 @@ interface nsIXPCComponents_Exception {
   ): nsIException;
 }
 
+interface nsIXPCComponents_ID {
+  (uuid: string): nsID
+}
+
 interface nsIXPCComponents_utils_Sandbox {
   (principal: nsIPrincipal | nsIPrincipal[], options: object): typeof globalThis;
 }

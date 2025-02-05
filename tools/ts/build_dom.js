@@ -27,6 +27,7 @@ const HEADER = `/**
 interface Principal extends nsIPrincipal {}
 interface URI extends nsIURI {}
 interface WindowProxy extends Window {}
+interface MozChannel extends nsIChannel {}
 
 type HTMLCollectionOf<T> = any;
 type IsInstance<T> = (obj: any) => obj is T;
