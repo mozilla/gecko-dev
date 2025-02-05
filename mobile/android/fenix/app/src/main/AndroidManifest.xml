@@ -59,7 +59,7 @@
         android:supportsRtl="true"
         android:theme="@style/NormalTheme"
         android:usesCleartextTraffic="true"
-        android:enableOnBackInvokedCallback="true"
+        android:enableOnBackInvokedCallback="@bool/enableOnBackInvokedCallback"
         tools:ignore="UnusedAttribute">
 
         <profileable
