@@ -15,12 +15,10 @@ namespace mozilla {
 
 /* static */ RefPtr<WebrtcEnvironmentWrapper> WebrtcEnvironmentWrapper::Create(
     const dom::RTCStatsTimestampMaker& aTimestampMaker) {
-
   RefPtr<WebrtcEnvironmentWrapper> wrapper = new WebrtcEnvironmentWrapper(
       MakeUnique<webrtc::RtcEventLogNull>(),
       MakeUnique<SharedThreadPoolWebRtcTaskQueueFactory>(),
-      WrapUnique(new webrtc::MozTrialsConfig()),
-      aTimestampMaker);
+      WrapUnique(new webrtc::MozTrialsConfig()), aTimestampMaker);
 
   return wrapper;
 }

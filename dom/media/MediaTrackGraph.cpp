@@ -2384,9 +2384,7 @@ void MediaTrack::Destroy() {
   mMainThreadDestroyed = true;
 }
 
-uint64_t MediaTrack::GetWindowId() const {
-  return GraphImpl()->mWindowID;
-}
+uint64_t MediaTrack::GetWindowId() const { return GraphImpl()->mWindowID; }
 
 TrackTime MediaTrack::GetEnd() const {
   return mSegment ? mSegment->GetDuration() : 0;
