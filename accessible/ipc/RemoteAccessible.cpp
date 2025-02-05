@@ -487,7 +487,14 @@ bool RemoteAccessible::ContainsPoint(int32_t aX, int32_t aY) {
     MOZ_ASSERT(lineEnd >= lineStart);
     nsRect lineRect = GetCachedCharRect(lineStart);
     if (lineEnd > lineStart) {
-      lineRect.UnionRect(lineRect, GetCachedCharRect(lineEnd));
+      nsRect lineEndRect = GetCachedCharRect(lineEnd);
+      if (lineEndRect.IsEmpty() && lineEnd - 1 > lineStart) {
+        // The line feed character at the end of a line in pre-formatted text
+        // doesn't have a useful rect. Use the previous character. Otherwise,
+        // lineRect won't span the line of text and we'll miss characters.
+        lineEndRect = GetCachedCharRect(lineEnd - 1);
+      }
+      lineRect.UnionRect(lineRect, lineEndRect);
     }
     if (BoundsWithOffset(Some(lineRect), true).Contains(aX, aY)) {
       return true;
