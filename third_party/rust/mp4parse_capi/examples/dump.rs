@@ -1,4 +1,5 @@
 use log::info;
+use mp4parse::ParseStrictness;
 use mp4parse_capi::*;
 use std::env;
 use std::fs::File;

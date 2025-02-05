@@ -374,7 +374,6 @@ class VideoInfo : public TrackInfo {
     mImageRect = aOther.mImageRect;
     mAlphaPresent = aOther.mAlphaPresent;
     mFrameRate = aOther.mFrameRate;
-    mPixelAspectRatio = aOther.mPixelAspectRatio;
   };
 
   bool operator==(const VideoInfo& rhs) const;
@@ -484,10 +483,6 @@ class VideoInfo : public TrackInfo {
 
   Maybe<int32_t> GetFrameRate() const { return mFrameRate; }
   void SetFrameRate(int32_t aRate) { mFrameRate = Some(aRate); }
-
-  // Some formats include pixel aspect ratio information, such as the `pasp` box
-  // in MP4.
-  Maybe<float> mPixelAspectRatio;
 
  private:
   friend struct IPC::ParamTraits<VideoInfo>;
