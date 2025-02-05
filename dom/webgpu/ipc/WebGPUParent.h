@@ -186,6 +186,10 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   ffi::WGPUGlobal* GetContext() const { return mContext.get(); }
 
+  bool IsDeviceActive(const RawId aDeviceId) {
+    return mActiveDeviceIds.Contains(aDeviceId);
+  }
+
  private:
   static void MapCallback(uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);
@@ -231,6 +235,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   // Store a set of DeviceIds that have been SendDeviceLost. We use this to
   // limit each Device to one DeviceLost message.
   nsTHashSet<RawId> mLostDeviceIds;
+
+  // Store active DeviceIds
+  nsTHashSet<RawId> mActiveDeviceIds;
 
   // Shared handle of wgpu device's fence.
   std::unordered_map<RawId, RefPtr<gfx::FileHandleWrapper>> mDeviceFenceHandles;

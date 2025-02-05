@@ -1269,13 +1269,18 @@ pub extern "C" fn wgpu_vkimage_create_with_dma_buf(
 
 #[no_mangle]
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-pub unsafe extern "C" fn wgpu_vkimage_delete(
+pub unsafe extern "C" fn wgpu_vkimage_destroy(
     global: &Global,
     device_id: id::DeviceId,
-    handle: *mut VkImageHandle,
+    handle: &VkImageHandle,
 ) {
-    let handle = Box::from_raw(handle);
     handle.destroy(global, device_id);
+}
+
+#[no_mangle]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+pub unsafe extern "C" fn wgpu_vkimage_delete(handle: *mut VkImageHandle) {
+    let _ = Box::from_raw(handle);
 }
 
 #[no_mangle]
