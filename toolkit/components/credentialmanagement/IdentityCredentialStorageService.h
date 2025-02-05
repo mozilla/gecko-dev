@@ -72,11 +72,13 @@ class IdentityCredentialStorageService final
   static nsresult ValidatePrincipal(nsIPrincipal* aPrincipal);
 
   // Helper functions to initialize the database connections. Also makes sure
-  // the tables are present and have up to date schemas.
+  // the tables are present and have up to date schemas. If file is nullptr,
+  // use the in-memory database "icsprivatedb". If retry is true, allow a retry
+  // on failure.
   nsresult GetMemoryDatabaseConnection();
   nsresult GetDiskDatabaseConnection();
   static nsresult GetDatabaseConnectionInternal(
-      mozIStorageConnection** aDatabase, nsIFile* aFile);
+      mozIStorageConnection** aDatabase, nsIFile* aFile, bool aRetry);
 
   // Helper function for the Get*DatabaseConnection functions to ensure the
   // tables are present and have up to date schemas.

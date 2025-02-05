@@ -240,18 +240,18 @@ nsresult IdentityCredentialStorageService::ValidatePrincipal(
 
 nsresult IdentityCredentialStorageService::GetMemoryDatabaseConnection() {
   return IdentityCredentialStorageService::GetDatabaseConnectionInternal(
-      getter_AddRefs(mMemoryDatabaseConnection), nullptr);
+      getter_AddRefs(mMemoryDatabaseConnection), nullptr, false);
 }
 
 nsresult IdentityCredentialStorageService::GetDiskDatabaseConnection() {
   NS_ENSURE_TRUE(mDatabaseFile, NS_ERROR_NULL_POINTER);
   return IdentityCredentialStorageService::GetDatabaseConnectionInternal(
-      getter_AddRefs(mDiskDatabaseConnection), mDatabaseFile);
+      getter_AddRefs(mDiskDatabaseConnection), mDatabaseFile, true);
 }
 
 // static
 nsresult IdentityCredentialStorageService::GetDatabaseConnectionInternal(
-    mozIStorageConnection** aDatabase, nsIFile* aFile) {
+    mozIStorageConnection** aDatabase, nsIFile* aFile, bool aRetry) {
   NS_ENSURE_TRUE(aDatabase, NS_ERROR_UNEXPECTED);
   NS_ENSURE_STATE(!(*aDatabase));
   nsCOMPtr<mozIStorageService> storage =
@@ -279,7 +279,14 @@ nsresult IdentityCredentialStorageService::GetDatabaseConnectionInternal(
   NS_ENSURE_TRUE(*aDatabase, NS_ERROR_UNEXPECTED);
   bool ready = false;
   (*aDatabase)->GetConnectionReady(&ready);
-  NS_ENSURE_TRUE(ready, NS_ERROR_UNEXPECTED);
+  if (!ready && aRetry) {
+    rv = aFile->Remove(false);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return IdentityCredentialStorageService::GetDatabaseConnectionInternal(
+        aDatabase, aFile, false);
+  } else {
+    NS_ENSURE_TRUE(ready, NS_ERROR_UNEXPECTED);
+  }
   rv = EnsureTable(*aDatabase);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
