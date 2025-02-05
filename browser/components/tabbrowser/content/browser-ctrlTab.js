@@ -542,18 +542,18 @@ var ctrlTab = {
     this.selected.focus();
     this._selectedIndex = -1;
 
-    // Track mouse movement after a brief delay so that the item that happens
-    // to be under the mouse pointer initially won't be selected unintentionally.
+    // Wait for two animation frames before tracking mouse movement as we might
+    // get a synthetic mousemove event when a Ctrl-Tab item happens to be under
+    // the mouse pointer initially as the panel opens, which we don't want to
+    // interpret as the user selecting that item.
     this._trackMouseOver = false;
-    setTimeout(
-      function (self) {
-        if (self.isOpen) {
-          self._trackMouseOver = true;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (this.isOpen) {
+          this._trackMouseOver = true;
         }
-      },
-      0,
-      this
-    );
+      });
+    });
   },
 
   suspendGUI: function ctrlTab_suspendGUI() {
