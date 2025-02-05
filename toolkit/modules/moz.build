@@ -343,6 +343,7 @@ for var in (
     "MOZ_JXL",
     "MOZ_SYSTEM_POLICIES",
     "MOZ_SELECTABLE_PROFILES",
+    "BROWSER_NEWTAB_AS_ADDON",
 ):
     DEFINES[f"{var}_BOOL"] = "true" if CONFIG[var] else "false"
 

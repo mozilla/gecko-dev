@@ -19,6 +19,12 @@ imply_option("MOZ_APP_ID", "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}")
 imply_option("MOZ_DEVTOOLS", "all")
 imply_option("BROWSER_CHROME_URL", "chrome://browser/content/browser.xhtml")
 
+option(
+    "--enable-browser-newtab-as-addon",
+    help="Enable packaging newtab as a built-in addon",
+)
+set_config("BROWSER_NEWTAB_AS_ADDON", True, when="--enable-browser-newtab-as-addon")
+
 with only_when(target_has_linux_kernel & compile_environment):
     option(env="MOZ_NO_PIE_COMPAT", help="Enable non-PIE wrapper")
 
