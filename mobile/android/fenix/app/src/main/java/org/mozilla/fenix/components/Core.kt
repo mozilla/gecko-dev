@@ -575,7 +575,7 @@ class Core(
                     ),
                 ),
             ),
-            maxCacheAgeInSeconds = CONTILE_MAX_CACHE_AGE,
+            maxCacheAgeInSeconds = MARS_TOP_SITES_MAX_CACHE_AGE,
         )
     }
 
@@ -717,6 +717,7 @@ class Core(
         private const val RECENTLY_CLOSED_MAX = 10
         const val HISTORY_METADATA_MAX_AGE_IN_MS = 14 * 24 * 60 * 60 * 1000 // 14 days
         private const val CONTILE_MAX_CACHE_AGE = 3600L // 60 minutes
+        private const val MARS_TOP_SITES_MAX_CACHE_AGE = 1800L // 30 minutes
         const val HISTORY_SEARCH_ENGINE_ID = "history_search_engine_id"
         const val BOOKMARKS_SEARCH_ENGINE_ID = "bookmarks_search_engine_id"
         const val TABS_SEARCH_ENGINE_ID = "tabs_search_engine_id"
