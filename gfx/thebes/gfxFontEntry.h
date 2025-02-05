@@ -232,9 +232,7 @@ class gfxFontEntry {
   bool IsLocalUserFont() const { return mIsLocalUserFont; }
   bool IsFixedPitch() const { return mFixedPitch; }
   bool IsItalic() const { return SlantStyle().Min().IsItalic(); }
-  // IsOblique returns true if the oblique angle is non-zero; 'oblique 0deg'
-  // is synonymous with 'normal' and will return false here.
-  bool IsOblique() const { return !IsUpright() && !IsItalic(); }
+  bool IsOblique() const { return SlantStyle().Min().IsOblique(); }
   bool IsUpright() const { return SlantStyle().Min().IsNormal(); }
   inline bool SupportsItalic();  // defined below, because of RangeFlags use
   inline bool SupportsBold();

@@ -6,7 +6,7 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::animated::ToAnimatedZero;
-use crate::{One, Zero};
+use crate::One;
 use byteorder::{BigEndian, ReadBytesExt};
 use cssparser::Parser;
 use std::fmt::{self, Write};
@@ -208,18 +208,13 @@ impl Parse for FontTag {
     ToResolvedValue,
     ToShmem,
 )]
-#[value_info(other_values = "normal")]
 pub enum FontStyle<Angle> {
-    // Note that 'oblique 0deg' represents 'normal', and will serialize as such.
-    #[value_info(starts_with_keyword)]
-    Oblique(Angle),
+    #[animation(error)]
+    Normal,
     #[animation(error)]
     Italic,
-}
-
-impl<Angle: Zero> FontStyle<Angle> {
-    /// Return the 'normal' value, which is represented as 'oblique 0deg'.
-    pub fn normal() -> Self { Self::Oblique(Angle::zero()) }
+    #[value_info(starts_with_keyword)]
+    Oblique(Angle),
 }
 
 /// A generic value for the `font-size-adjust` property.

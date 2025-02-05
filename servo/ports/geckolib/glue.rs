@@ -5429,11 +5429,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         FontStyle => {
-            specified::FontStyle::Specified(if value == structs::NS_FONT_STYLE_ITALIC {
+            style::values::specified::FontStyle::Specified(if value == structs::NS_FONT_STYLE_ITALIC {
                 FontStyle::Italic
             } else {
                 debug_assert_eq!(value, structs::NS_FONT_STYLE_NORMAL);
-                FontStyle::normal()
+                FontStyle::Normal
             })
         },
         FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
@@ -8555,6 +8555,7 @@ pub unsafe extern "C" fn Servo_ParseFontShorthandForMatching(
     };
 
     *style = match *specified_font_style {
+        GenericFontStyle::Normal => FontStyle::NORMAL,
         GenericFontStyle::Italic => FontStyle::ITALIC,
         GenericFontStyle::Oblique(ref angle) => FontStyle::oblique(angle.degrees()),
     };

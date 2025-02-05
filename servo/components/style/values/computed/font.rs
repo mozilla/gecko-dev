@@ -1050,8 +1050,8 @@ impl ToComputedValue for specified::MathDepth {
 
 /// - Use a signed 8.8 fixed-point value (representable range -128.0..128)
 ///
-/// Values of <angle> below -90 or above 90 are not permitted, so we use an out
-/// of range value to represent `italic`.
+/// Values of <angle> below -90 or above 90 not permitted, so we use out of
+/// range values to represent normal | oblique
 pub const FONT_STYLE_FRACTION_BITS: u16 = 8;
 
 /// This is an alias which is useful mostly as a cbindgen / C++ inference
@@ -1060,9 +1060,10 @@ pub type FontStyleFixedPoint = FixedPoint<i16, FONT_STYLE_FRACTION_BITS>;
 
 /// The computed value of `font-style`.
 ///
-/// - Define angle of zero degrees as `normal`
-/// - Define out-of-range value 100 degrees as `italic`
-/// - Other values represent `oblique <angle>`
+/// - Define out of range values min value (-128.0) as meaning 'normal'
+/// - Define max value (127.99609375) as 'italic'
+/// - Other values represent 'oblique <angle>'
+/// - Note that 'oblique 0deg' is distinct from 'normal' (should it be?)
 ///
 /// cbindgen:derive-lt
 /// cbindgen:derive-lte
@@ -1085,14 +1086,13 @@ pub type FontStyleFixedPoint = FixedPoint<i16, FONT_STYLE_FRACTION_BITS>;
 pub struct FontStyle(FontStyleFixedPoint);
 
 impl FontStyle {
-    /// The `normal` keyword, equal to `oblique` with angle zero.
+    /// The normal keyword.
     pub const NORMAL: FontStyle = FontStyle(FontStyleFixedPoint {
-        value: 0 << FONT_STYLE_FRACTION_BITS,
+        value: 100 << FONT_STYLE_FRACTION_BITS,
     });
-
     /// The italic keyword.
     pub const ITALIC: FontStyle = FontStyle(FontStyleFixedPoint {
-        value: 100 << FONT_STYLE_FRACTION_BITS,
+        value: 101 << FONT_STYLE_FRACTION_BITS,
     });
 
     /// The default angle for `font-style: oblique`.
@@ -1121,6 +1121,7 @@ impl FontStyle {
 
     /// Returns the oblique angle for this style.
     pub fn oblique_degrees(&self) -> f32 {
+        debug_assert_ne!(*self, Self::NORMAL);
         debug_assert_ne!(*self, Self::ITALIC);
         self.0.to_float()
     }
@@ -1137,12 +1138,12 @@ impl ToCss for FontStyle {
         if *self == Self::ITALIC {
             return dest.write_str("italic");
         }
-        dest.write_str("oblique")?;
-        if *self != Self::OBLIQUE {
-            // It's not the default oblique amount, so append the angle in degrees.
-            dest.write_char(' ')?;
-            Angle::from_degrees(self.oblique_degrees()).to_css(dest)?;
+        if *self == Self::OBLIQUE {
+            return dest.write_str("oblique");
         }
+        dest.write_str("oblique ")?;
+        let angle = Angle::from_degrees(self.oblique_degrees());
+        angle.to_css(dest)?;
         Ok(())
     }
 }
@@ -1152,6 +1153,12 @@ impl ToAnimatedValue for FontStyle {
 
     #[inline]
     fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
+        if self == Self::NORMAL {
+            // This allows us to animate between normal and oblique values. Per spec,
+            // https://drafts.csswg.org/css-fonts-4/#font-style-prop:
+            //   Animation type: by computed value type; 'normal' animates as 'oblique 0deg'
+            return generics::FontStyle::Oblique(Angle::from_degrees(0.0));
+        }
         if self == Self::ITALIC {
             return generics::FontStyle::Italic;
         }
@@ -1161,8 +1168,16 @@ impl ToAnimatedValue for FontStyle {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         match animated {
+            generics::FontStyle::Normal => Self::NORMAL,
             generics::FontStyle::Italic => Self::ITALIC,
-            generics::FontStyle::Oblique(ref angle) => Self::oblique(angle.degrees()),
+            generics::FontStyle::Oblique(ref angle) => {
+                if angle.degrees() == 0.0 {
+                    // Reverse the conversion done in to_animated_value()
+                    Self::NORMAL
+                } else {
+                    Self::oblique(angle.degrees())
+                }
+            },
         }
     }
 }
