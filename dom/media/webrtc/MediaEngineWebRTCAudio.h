@@ -19,6 +19,7 @@ namespace mozilla {
 
 class AudioInputProcessing;
 class AudioProcessingTrack;
+class WebrtcEnvironmentWrapper;
 
 // This class is created and used exclusively on the Media Manager thread, with
 // exactly two exceptions:
@@ -194,6 +195,9 @@ class AudioInputProcessing : public AudioDataListener {
   // For testing:
   bool HadAECAndDrift() const { return mHadAECAndDrift; }
 
+  void SetEnvironmentWrapper(AudioProcessingTrack* aTrack,
+                             RefPtr<WebrtcEnvironmentWrapper> aEnvWrapper);
+
  private:
   ~AudioInputProcessing() = default;
   webrtc::AudioProcessing::Config ConfigForPrefs(
@@ -275,6 +279,7 @@ class AudioInputProcessing : public AudioDataListener {
       mInterleavedBuffer;
   // Tracks the pending frames with paired principals piled up in packetizer.
   std::deque<std::pair<TrackTime, PrincipalHandle>> mChunksInPacketizer;
+  RefPtr<WebrtcEnvironmentWrapper> mEnvWrapper;
 };
 
 // MediaTrack subclass tailored for MediaEngineWebRTCMicrophoneSource.

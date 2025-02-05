@@ -8,7 +8,9 @@
 #include "nss.h"
 #include "ssl.h"
 
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/scoped_refptr.h"
 #include "AudioSegment.h"
 #include "Canonicals.h"
@@ -28,6 +30,7 @@
 #include "SharedBuffer.h"
 #include "MediaTransportHandler.h"
 #include "WebrtcCallWrapper.h"
+#include "WebrtcEnvironmentWrapper.h"
 #include "PeerConnectionCtx.h"
 
 #define GTEST_HAS_RTTI 0
@@ -431,11 +434,12 @@ void WaitFor(TimeDuration aDuration) {
       "WaitFor(TimeDuration aDuration)"_ns, [&] { return done; });
 }
 
-webrtc::AudioState::Config CreateAudioStateConfig() {
+webrtc::AudioState::Config CreateAudioStateConfig(
+    const webrtc::Environment& aEnv) {
   webrtc::AudioState::Config audio_state_config;
   audio_state_config.audio_mixer = webrtc::AudioMixerImpl::Create();
-  webrtc::AudioProcessingBuilder audio_processing_builder;
-  audio_state_config.audio_processing = audio_processing_builder.Create();
+  webrtc::BuiltinAudioProcessingBuilder audio_processing_builder;
+  audio_state_config.audio_processing = audio_processing_builder.Build(aEnv);
   audio_state_config.audio_device_module = new webrtc::FakeAudioDeviceModule();
   return audio_state_config;
 }
@@ -446,8 +450,11 @@ class MediaPipelineTest : public ::testing::Test {
       : main_task_queue_(
             WrapUnique<TaskQueueWrapper<DeletionPolicy::NonBlocking>>(
                 new MainAsCurrent())),
+        env_wrapper_(WebrtcEnvironmentWrapper::Create(
+            mozilla::dom::RTCStatsTimestampMaker::Create())),
         shared_state_(MakeAndAddRef<SharedWebrtcState>(
-            AbstractThread::MainThread(), CreateAudioStateConfig(),
+            AbstractThread::MainThread(),
+            CreateAudioStateConfig(env_wrapper_->Environment()),
             already_AddRefed(
                 webrtc::CreateBuiltinAudioDecoderFactory().release()),
             WrapUnique(new webrtc::MozTrialsConfig()))),
@@ -567,6 +574,7 @@ class MediaPipelineTest : public ::testing::Test {
   // main_task_queue_ has this type to make sure it goes through Delete() when
   // we're destroyed.
   UniquePtr<TaskQueueWrapper<DeletionPolicy::NonBlocking>> main_task_queue_;
+  const RefPtr<WebrtcEnvironmentWrapper> env_wrapper_;
   const RefPtr<SharedWebrtcState> shared_state_;
   TestAgentSend p1_;
   TestAgentReceive p2_;

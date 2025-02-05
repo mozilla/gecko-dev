@@ -14,13 +14,17 @@
 #include "MediaTrackConstraints.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorNames.h"
+#include "nsGlobalWindowInner.h"
 #include "nsIDUtils.h"
 #include "transport/runnable_utils.h"
 #include "Tracing.h"
+#include "libwebrtcglue/WebrtcEnvironmentWrapper.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/Logging.h"
 
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_factory.h"
+#include "api/environment/environment_factory.h"
 #include "common_audio/include/audio_util.h"
 #include "modules/audio_processing/include/audio_processing.h"
 
@@ -1174,6 +1178,13 @@ TrackTime AudioInputProcessing::NumBufferedFrames(
   return mSegment.GetDuration();
 }
 
+void AudioInputProcessing::SetEnvironmentWrapper(
+    AudioProcessingTrack* aTrack,
+    RefPtr<WebrtcEnvironmentWrapper> aEnvWrapper) {
+  aTrack->AssertOnGraphThread();
+  mEnvWrapper = std::move(aEnvWrapper);
+}
+
 void AudioInputProcessing::EnsurePacketizer(AudioProcessingTrack* aTrack) {
   aTrack->AssertOnGraphThread();
   MOZ_ASSERT(mEnabled);
@@ -1238,8 +1249,9 @@ void AudioInputProcessing::EnsureAudioProcessing(AudioProcessingTrack* aTrack) {
     LOG("Track %p AudioInputProcessing %p creating AudioProcessing. "
         "aec+drift: %s",
         aTrack, this, haveAECAndDrift ? "Y" : "N");
+    MOZ_ASSERT(mEnvWrapper);
     mHadAECAndDrift = haveAECAndDrift;
-    AudioProcessingBuilder builder;
+    BuiltinAudioProcessingBuilder builder;
     builder.SetConfig(ConfigForPrefs(mSettings));
     if (haveAECAndDrift) {
       // Setting an EchoControlFactory always enables AEC, overriding
@@ -1249,7 +1261,7 @@ void AudioInputProcessing::EnsureAudioProcessing(AudioProcessingTrack* aTrack) {
       builder.SetEchoControlFactory(
           std::make_unique<EchoCanceller3Factory>(aec3Config));
     }
-    mAudioProcessing.reset(builder.Create().release());
+    mAudioProcessing.reset(builder.Build(mEnvWrapper->Environment()).release());
   }
 }
 
@@ -1297,10 +1309,16 @@ void AudioProcessingTrack::SetInputProcessing(
   if (IsDestroyed()) {
     return;
   }
+
+  RefPtr<WebrtcEnvironmentWrapper> envWrapper =
+      WebrtcEnvironmentWrapper::Create(dom::RTCStatsTimestampMaker::Create(
+          nsGlobalWindowInner::GetInnerWindowWithId(GetWindowId())));
+
   QueueControlMessageWithNoShutdown(
-      [self = RefPtr{this}, this,
-       inputProcessing = std::move(aInputProcessing)]() mutable {
+      [self = RefPtr{this}, this, inputProcessing = std::move(aInputProcessing),
+       envWrapper = std::move(envWrapper)]() mutable {
         TRACE("AudioProcessingTrack::SetInputProcessingImpl");
+        inputProcessing->SetEnvironmentWrapper(self, std::move(envWrapper));
         SetInputProcessingImpl(std::move(inputProcessing));
       });
 }

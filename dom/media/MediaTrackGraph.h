@@ -404,6 +404,8 @@ class MediaTrack : public mozilla::LinkedListElement<MediaTrack> {
     return mMainThreadDestroyed;
   }
 
+  uint64_t GetWindowId() const;
+
   friend class MediaTrackGraphImpl;
   friend class MediaInputPort;
   friend class AudioNodeExternalInputTrack;
