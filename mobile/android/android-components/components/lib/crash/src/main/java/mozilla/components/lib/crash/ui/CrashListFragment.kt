@@ -4,12 +4,13 @@
 
 package mozilla.components.lib.crash.ui
 
+import android.content.Intent
 import android.database.sqlite.SQLiteBlobTooBigException
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -33,7 +34,7 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
 
         val emptyView = view.findViewById<TextView>(R.id.mozac_lib_crash_empty)
 
-        val adapter = CrashListAdapter(reporter, ::onSelection)
+        val adapter = CrashListAdapter(::onShareCrashClicked, ::onCrashServiceSelected)
         listView.adapter = adapter
 
         val dividerItemDecoration = DividerItemDecoration(
@@ -43,23 +44,27 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
         listView.addItemDecoration(dividerItemDecoration)
 
         try {
-            database.crashDao().getCrashesWithReports().observe(
-                viewLifecycleOwner,
-                Observer { list ->
-                    if (list.isEmpty()) {
-                        emptyView.visibility = View.VISIBLE
-                    } else {
-                        adapter.updateList(list)
-                    }
-                },
-            )
+            database.crashDao().getCrashesWithReports().observe(viewLifecycleOwner) { list ->
+                adapter.submitList(list.map { it.toCrash(reporter) })
+                emptyView.isGone = list.isNotEmpty()
+            }
         } catch (e: SQLiteBlobTooBigException) {
             /* recover by deleting all entries */
             database.crashDao().deleteAll()
         }
     }
 
-    private fun onSelection(url: String) {
-        (requireActivity() as AbstractCrashListActivity).onCrashServiceSelected(url)
+    private fun onCrashServiceSelected(entity: DisplayableCrash.Report) {
+        entity.url?.let {
+            (requireActivity() as AbstractCrashListActivity).onCrashServiceSelected(it)
+        }
+    }
+
+    private fun onShareCrashClicked(crash: DisplayableCrash) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, crash.toString())
+        }
+        requireActivity().startActivity(Intent.createChooser(intent, "DisplayableCrash"))
     }
 }
