@@ -70,10 +70,10 @@ class SettingsPrivacyTest : TestSetup() {
             verifyUsageAndTechnicalDataToggle(true)
 
             clickStudiesOption()
-            verifyStudiesToggle(false)
-            // Turning to true
-            clickStudiesToggle()
             verifyStudiesToggle(true)
+            // Turning to false
+            clickStudiesToggle()
+            verifyStudiesToggle(false)
         }
     }
 
