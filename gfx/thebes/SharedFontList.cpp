@@ -233,7 +233,7 @@ void Family::AddFaces(FontList* aList, const nsTArray<Face::InitData>& aFaces) {
       if (f.mWeight.Min().IsBold()) {
         slot |= kBoldMask;
       }
-      if (f.mStyle.Min().IsItalic() || f.mStyle.Min().IsOblique()) {
+      if (!f.mStyle.Min().IsNormal()) {
         slot |= kItalicMask;
       }
       if (slots[slot]) {
@@ -604,7 +604,7 @@ void Family::SetFacePtrs(FontList* aList, nsTArray<Pointer>& aFaces) {
       if (f->mWeight.Min().IsBold()) {
         slot |= kBoldMask;
       }
-      if (f->mStyle.Min().IsItalic() || f->mStyle.Min().IsOblique()) {
+      if (!f->mStyle.Min().IsNormal()) {
         slot |= kItalicMask;
       }
       if (!slots[slot].IsNull()) {
