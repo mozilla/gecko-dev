@@ -57,7 +57,7 @@ fn check_loop_count(path: &str, expected_loop_count: i64) {
         Mp4parseAvifLoopMode::LoopByCount => {
             assert_eq!(info.loop_count.to_i64(), Some(expected_loop_count))
         }
-        Mp4parseAvifLoopMode::LoopInfinitely => assert_eq!(expected_loop_count, std::i64::MIN),
+        Mp4parseAvifLoopMode::LoopInfinitely => assert_eq!(expected_loop_count, i64::MIN),
     }
 
     unsafe { mp4parse_avif_free(parser) };
@@ -95,7 +95,7 @@ fn loop_four_times_due_to_ceiling() {
 
 #[test]
 fn loop_forever() {
-    check_loop_count("tests/loop_forever.avif", std::i64::MIN);
+    check_loop_count("tests/loop_forever.avif", i64::MIN);
 }
 
 #[test]

@@ -128,13 +128,13 @@ impl<'a, T> OffsetReader<'a, T> {
     }
 }
 
-impl<'a, T> Offset for OffsetReader<'a, T> {
+impl<T> Offset for OffsetReader<'_, T> {
     fn offset(&self) -> u64 {
         self.offset
     }
 }
 
-impl<'a, T: Read> Read for OffsetReader<'a, T> {
+impl<T: Read> Read for OffsetReader<'_, T> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let bytes_read = self.reader.read(buf)?;
         trace!("Read {} bytes at offset {}", bytes_read, self.offset);
@@ -1173,6 +1173,7 @@ pub struct VideoSampleEntry {
     pub height: u16,
     pub codec_specific: VideoCodecSpecific,
     pub protection_info: TryVec<ProtectionSchemeInfoBox>,
+    pub pixel_aspect_ratio: Option<f32>,
 }
 
 /// Represent a Video Partition Codec Configuration 'vpcC' box (aka vp9). The meaning of each
@@ -2000,9 +2001,9 @@ enum ConstructionMethod {
 /// Describes a region where a item specified by an `ItemLocationBoxItem` is stored.
 /// The offset is `u64` since that's the maximum possible size and since the relative
 /// nature of `DataBox` means this can still possibly succeed even in the case
-/// that the raw value exceeds std::usize::MAX on platforms where that type is smaller
+/// that the raw value exceeds usize::MAX on platforms where that type is smaller
 /// than u64. However, `len` is stored as a `usize` since no value larger than
-/// `std::usize::MAX` can be used in a successful indexing operation in rust.
+/// `usize::MAX` can be used in a successful indexing operation in rust.
 /// `extent_index` is omitted since it's only used for ConstructionMethod::Item which
 /// is currently not implemented.
 #[derive(Clone, Debug)]
@@ -2138,7 +2139,7 @@ struct BoxIter<'a, T: 'a> {
     src: &'a mut T,
 }
 
-impl<'a, T: Read> BoxIter<'a, T> {
+impl<T: Read> BoxIter<'_, T> {
     fn new(src: &mut T) -> BoxIter<T> {
         BoxIter { src }
     }
@@ -2156,19 +2157,19 @@ impl<'a, T: Read> BoxIter<'a, T> {
     }
 }
 
-impl<'a, T: Read> Read for BMFFBox<'a, T> {
+impl<T: Read> Read for BMFFBox<'_, T> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.content.read(buf)
     }
 }
 
-impl<'a, T: Read> TryRead for BMFFBox<'a, T> {
+impl<T: Read> TryRead for BMFFBox<'_, T> {
     fn try_read_to_end(&mut self, buf: &mut TryVec<u8>) -> std::io::Result<usize> {
         fallible_collections::try_read_up_to(self, self.bytes_left(), buf)
     }
 }
 
-impl<'a, T: Offset> Offset for BMFFBox<'a, T> {
+impl<T: Offset> Offset for BMFFBox<'_, T> {
     fn offset(&self) -> u64 {
         self.content.get_ref().offset()
     }
@@ -2183,12 +2184,12 @@ impl<'a, T: Read> BMFFBox<'a, T> {
         &self.head
     }
 
-    fn box_iter<'b>(&'b mut self) -> BoxIter<BMFFBox<'a, T>> {
+    fn box_iter(&mut self) -> BoxIter<BMFFBox<'a, T>> {
         BoxIter::new(self)
     }
 }
 
-impl<'a, T> Drop for BMFFBox<'a, T> {
+impl<T> Drop for BMFFBox<'_, T> {
     fn drop(&mut self) {
         if self.content.limit() > 0 {
             let name: FourCC = From::from(self.head.name);
@@ -2206,10 +2207,7 @@ impl<'a, T> Drop for BMFFBox<'a, T> {
 ///
 /// See ISOBMFF (ISO 14496-12:2020) § 4.2
 fn read_box_header<T: ReadBytesExt>(src: &mut T) -> Result<BoxHeader> {
-    let size32 = match be_u32(src) {
-        Ok(v) => v,
-        Err(error) => return Err(error),
-    };
+    let size32 = be_u32(src)?;
     let name = BoxType::from(be_u32(src)?);
     let size = match size32 {
         // valid only for top-level box and indicates it's the last box in the file.  usually mdat.
@@ -2267,7 +2265,7 @@ fn read_fullbox_extra<T: ReadBytesExt>(src: &mut T) -> Result<(u8, u32)> {
     let flags_c = src.read_u8()?;
     Ok((
         version,
-        u32::from(flags_a) << 16 | u32::from(flags_b) << 8 | u32::from(flags_c),
+        (u32::from(flags_a) << 16) | (u32::from(flags_b) << 8) | u32::from(flags_c),
     ))
 }
 
@@ -2484,7 +2482,7 @@ pub fn read_avif<T: Read>(f: &mut T, strictness: ParseStrictness) -> Result<Avif
             return Status::MultipleAlpha.into();
         }
 
-        let premultiplied_alpha = alpha_item_id.map_or(false, |alpha_item_id| {
+        let premultiplied_alpha = alpha_item_id.is_some_and(|alpha_item_id| {
             item_references.iter().any(|iref| {
                 iref.from_item_id == primary_item_id
                     && iref.to_item_id == alpha_item_id
@@ -2623,7 +2621,7 @@ pub fn read_avif<T: Read>(f: &mut T, strictness: ParseStrictness) -> Result<Avif
 
     // Returns true iff `id` is `Some` and there is no corresponding property for it
     let missing_property_for = |id: Option<ItemId>, property: BoxType| -> bool {
-        id.map_or(false, |id| {
+        id.is_some_and(|id| {
             item_properties
                 .get(id, property)
                 .map_or(true, |opt| opt.is_none())
@@ -4338,7 +4336,7 @@ fn parse_mdhd<T: Read>(
 )> {
     let mdhd = read_mdhd(f)?;
     let duration = match mdhd.duration {
-        std::u64::MAX => None,
+        u64::MAX => None,
         duration => Some(TrackScaledTime::<u64>(duration, track.id)),
     };
     if mdhd.timescale == 0 {
@@ -4509,8 +4507,8 @@ fn read_mvhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MovieHeaderBox> {
         1 => be_u64(src)?,
         0 => {
             let d = be_u32(src)?;
-            if d == std::u32::MAX {
-                std::u64::MAX
+            if d == u32::MAX {
+                u64::MAX
             } else {
                 u64::from(d)
             }
@@ -4636,8 +4634,8 @@ fn read_mdhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MediaHeaderBox> {
                 // upcasting, we need to preserve the special all-1s
                 // ("unknown") case by hand.
                 let d = be_u32(src)?;
-                if d == std::u32::MAX {
-                    std::u64::MAX
+                if d == u32::MAX {
+                    u64::MAX
                 } else {
                     u64::from(d)
                 }
@@ -5431,14 +5429,13 @@ fn read_hdlr<T: Read>(src: &mut BMFFBox<T>, strictness: ParseStrictness) -> Resu
 
     match std::str::from_utf8(src.read_into_try_vec()?.as_slice()) {
         Ok(name) => {
-            match name.bytes().position(|b| b == b'\0') {
-                None => fail_with_status_if(
+            // `name` must be nul-terminated and any trailing bytes after the first nul ignored.
+            // See https://github.com/MPEGGroup/FileFormat/issues/35
+            if !name.bytes().any(|b| b == b'\0') {
+                fail_with_status_if(
                     strictness != ParseStrictness::Permissive,
                     Status::HdlrNameNoNul,
-                )?,
-                // `name` must be nul-terminated and any trailing bytes after the first nul ignored.
-                // See https://github.com/MPEGGroup/FileFormat/issues/35
-                Some(_) => (),
+                )?;
             }
         }
         Err(_) => fail_with_status_if(
@@ -5484,6 +5481,7 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
 
     // Skip clap/pasp/etc. for now.
     let mut codec_specific = None;
+    let mut pixel_aspect_ratio = None;
     let mut protection_info = TryVec::new();
     let mut iter = src.box_iter();
     while let Some(mut b) = iter.next_box()? {
@@ -5590,6 +5588,16 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
                 debug!("{:?} (hvcc)", hvcc);
                 codec_specific = Some(VideoCodecSpecific::HEVCConfig(hvcc));
             }
+            BoxType::PixelAspectRatioBox => {
+                let pasp = read_pasp(&mut b)?;
+                let aspect_ratio = pasp.h_spacing as f32 / pasp.v_spacing as f32;
+                let is_valid_aspect_ratio = |value: f32| -> bool { value > 0.0 && value < 10.0 };
+                // Only set pixel_aspect_ratio if it is valid
+                if is_valid_aspect_ratio(aspect_ratio) {
+                    pixel_aspect_ratio = Some(aspect_ratio);
+                }
+                debug!("Parsed pasp box: {:?}, PAR {:?}", pasp, pixel_aspect_ratio);
+            }
             _ => {
                 debug!("Unsupported video codec, box {:?} found", b.head.name);
                 skip_box_content(&mut b)?;
@@ -5607,6 +5615,7 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
                 height,
                 codec_specific,
                 protection_info,
+                pixel_aspect_ratio,
             })
         }),
     )
@@ -6291,10 +6300,10 @@ mod media_data_box_tests {
 
     #[test]
     fn extent_with_length_which_overflows_usize() {
-        let mdat = DataBox::at_offset(std::u64::MAX - 1, vec![1; 5]);
+        let mdat = DataBox::at_offset(u64::MAX - 1, vec![1; 5]);
         let extent = Extent::WithLength {
-            offset: std::u64::MAX,
-            len: std::usize::MAX,
+            offset: u64::MAX,
+            len: usize::MAX,
         };
 
         assert!(mdat.get(&extent).is_none());
@@ -6304,10 +6313,8 @@ mod media_data_box_tests {
     // because the range end is unbounded, we don't calculate it.
     #[test]
     fn extent_to_end_which_overflows_usize() {
-        let mdat = DataBox::at_offset(std::u64::MAX - 1, vec![1; 5]);
-        let extent = Extent::ToEnd {
-            offset: std::u64::MAX,
-        };
+        let mdat = DataBox::at_offset(u64::MAX - 1, vec![1; 5]);
+        let extent = Extent::ToEnd { offset: u64::MAX };
 
         assert_eq!(mdat.get(&extent), Some(&[1, 1, 1, 1][..]));
     }
