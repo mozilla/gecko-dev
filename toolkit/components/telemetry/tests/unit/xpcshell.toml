@@ -141,6 +141,7 @@ run-if = ["os == 'win'"]
 ["test_UsageReporting.js"]
 tags = "coverage"
 run-if = ["appname == 'firefox'"]
+skip-if = ["artifact"] # See bug 1945662.
 
 ["test_UserInteraction.js"]
 
