@@ -258,6 +258,15 @@ class WaylandSurface final {
   void SetParentLocked(const WaylandSurfaceLock& aProofOfLock,
                        RefPtr<WaylandSurface> aParent);
 
+  bool EnableColorManagementLocked(const WaylandSurfaceLock& aProofOfLock);
+
+  static void ImageDescriptionFailed(
+      void* aData, struct xx_image_description_v4* aImageDescription,
+      uint32_t aCause, const char* aMsg);
+  static void ImageDescriptionReady(
+      void* aData, struct xx_image_description_v4* aImageDescription,
+      uint32_t aIdentity);
+
  private:
   ~WaylandSurface();
 
@@ -390,10 +399,6 @@ class WaylandSurface final {
   // Frame callback handlers called only once
   std::vector<FrameCallback> mOneTimeFrameCallbackHandlers;
 
-  xx_color_management_surface_v4* mColorSurface = nullptr;
-  xx_image_description_v4* mImageDescription = nullptr;
-  xx_image_description_creator_params_v4* mImageCreatorParams = nullptr;
-
   // WaylandSurface is used from Compositor/Rendering/Main threads.
   mozilla::Mutex mMutex{"WaylandSurface"};
   WaylandSurfaceLock* mSurfaceLock = nullptr;
@@ -461,6 +466,11 @@ class WaylandSurface final {
   // for direct scanout.
   std::function<void(DMABufFormats*)> mDMABufFormatRefreshCallback;
   RefPtr<DMABufFormats> mFormats;
+
+  // HDR support
+  bool mHDRSet = false;
+  xx_color_management_surface_v4* mColorSurface = nullptr;
+  xx_image_description_v4* mImageDescription = nullptr;
 };
 
 }  // namespace mozilla::widget
