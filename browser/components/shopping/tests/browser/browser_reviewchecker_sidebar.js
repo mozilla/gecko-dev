@@ -27,7 +27,6 @@ add_task(async function test_integrated_sidebar() {
   await BrowserTestUtils.withNewTab(CONTENT_PAGE, async function (browser) {
     const { document } = browser.ownerGlobal;
     let sidebar = document.querySelector("sidebar-main");
-    await sidebar.updateComplete;
     let reviewCheckerButton = await TestUtils.waitForCondition(
       () =>
         sidebar.shadowRoot.querySelector(
