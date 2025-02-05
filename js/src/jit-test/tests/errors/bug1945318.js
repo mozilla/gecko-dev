@@ -1,4 +1,4 @@
-// |jit-test| --setpref=experimental.error_capture_stack_trace
+// |jit-test| skip-if: getBuildConfiguration("release_or_beta"); --setpref=experimental.error_capture_stack_trace
 function not_called() {
 
 }
