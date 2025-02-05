@@ -122,10 +122,12 @@ add_task(async () => {
       "http://example.org/empty"
     );
 
-    await contentPage.spawn([], () =>
+    await contentPage.spawn([], () => {
       // eslint-disable-next-line no-undef
-      content.windowUtils.clearSharedStyleSheetCache()
-    );
+      content.windowUtils.clearSharedStyleSheetCache();
+      // eslint-disable-next-line no-undef
+      content.windowUtils.clearSharedScriptCache();
+    });
 
     await contentPage.close();
 

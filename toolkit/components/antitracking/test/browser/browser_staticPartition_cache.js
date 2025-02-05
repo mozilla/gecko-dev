@@ -102,8 +102,9 @@ add_task(async function () {
       tab.linkedBrowser,
       [argObj],
       async function (arg) {
-        // The CSS cache needs to be cleared in-process.
+        // The CSS/JS cache needs to be cleared in-process.
         content.windowUtils.clearSharedStyleSheetCache();
+        content.windowUtils.clearSharedScriptCache();
 
         let videoURL = arg.urlPrefix + "file_thirdPartyChild.video.webm";
         let audioURL = arg.urlPrefix + "file_thirdPartyChild.audio.ogg";

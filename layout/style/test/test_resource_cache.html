@@ -36,6 +36,7 @@ async function testReload({ src, clearCache, cacheable, desc }) {
 
   if (clearCache) {
     gWindowUtils.clearSharedStyleSheetCache();
+    gWindowUtils.clearSharedScriptCache();
   }
 
   // Reload the iframe and wait for reload.
@@ -71,6 +72,7 @@ async function reset() {
 
   // Clear cache.
   gWindowUtils.clearSharedStyleSheetCache();
+  gWindowUtils.clearSharedScriptCache();
 }
 
 async function doTest() {

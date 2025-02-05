@@ -91,8 +91,9 @@ async function cleanup() {
     });
   }
 
-  // Ensure we clear the stylesheet cache so that we re-classify.
+  // Ensure we clear the stylesheet/JS cache so that we re-classify.
   SpecialPowers.DOMWindowUtils.clearSharedStyleSheetCache();
+  SpecialPowers.DOMWindowUtils.clearSharedScriptCache();
 
   await clearServiceWorker();
 }

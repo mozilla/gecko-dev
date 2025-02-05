@@ -60,6 +60,7 @@
         async function clearCache(){
             info("Clearing Cache");
             SpecialPowers.DOMWindowUtils.clearSharedStyleSheetCache();
+            SpecialPowers.DOMWindowUtils.clearSharedScriptCache();
             await ChromeTask.spawn(null,(()=>{
                 Services.cache2.clear();
             }));
