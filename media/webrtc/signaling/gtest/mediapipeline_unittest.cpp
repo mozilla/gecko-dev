@@ -256,12 +256,13 @@ class LoopbackTransport : public MediaTransportHandler {
 
 class TestAgent {
  public:
-  explicit TestAgent(const RefPtr<SharedWebrtcState>& aSharedState)
+  explicit TestAgent(const RefPtr<WebrtcEnvironmentWrapper>& aEnvWrapper,
+                     const RefPtr<SharedWebrtcState>& aSharedState)
       : control_(aSharedState->mCallWorkerThread),
         audio_config_(109, "opus", 48000, 2, false),
         call_(WebrtcCallWrapper::Create(
-            mozilla::dom::RTCStatsTimestampMaker::Create(), nullptr,
-            aSharedState)),
+            aEnvWrapper, mozilla::dom::RTCStatsTimestampMaker::Create(),
+            nullptr, aSharedState)),
         audio_conduit_(
             AudioSessionConduit::Create(call_, test_utils->sts_target())),
         transport_(new LoopbackTransport) {
@@ -356,8 +357,9 @@ class TestAgent {
 
 class TestAgentSend : public TestAgent {
  public:
-  explicit TestAgentSend(const RefPtr<SharedWebrtcState>& aSharedState)
-      : TestAgent(aSharedState) {
+  explicit TestAgentSend(const RefPtr<WebrtcEnvironmentWrapper>& aEnvWrapper,
+                         const RefPtr<SharedWebrtcState>& aSharedState)
+      : TestAgent(aEnvWrapper, aSharedState) {
     control_.Update([&](auto& aControl) {
       aControl.mAudioSendCodec = Some(audio_config_);
     });
@@ -385,8 +387,9 @@ class TestAgentSend : public TestAgent {
 
 class TestAgentReceive : public TestAgent {
  public:
-  explicit TestAgentReceive(const RefPtr<SharedWebrtcState>& aSharedState)
-      : TestAgent(aSharedState) {
+  explicit TestAgentReceive(const RefPtr<WebrtcEnvironmentWrapper>& aEnvWrapper,
+                            const RefPtr<SharedWebrtcState>& aSharedState)
+      : TestAgent(aEnvWrapper, aSharedState) {
     control_.Update([&](auto& aControl) {
       std::vector<AudioCodecConfig> codecs;
       codecs.push_back(audio_config_);
@@ -438,6 +441,7 @@ webrtc::AudioState::Config CreateAudioStateConfig(
     const webrtc::Environment& aEnv) {
   webrtc::AudioState::Config audio_state_config;
   audio_state_config.audio_mixer = webrtc::AudioMixerImpl::Create();
+
   webrtc::BuiltinAudioProcessingBuilder audio_processing_builder;
   audio_state_config.audio_processing = audio_processing_builder.Build(aEnv);
   audio_state_config.audio_device_module = new webrtc::FakeAudioDeviceModule();
@@ -458,8 +462,8 @@ class MediaPipelineTest : public ::testing::Test {
             already_AddRefed(
                 webrtc::CreateBuiltinAudioDecoderFactory().release()),
             WrapUnique(new webrtc::MozTrialsConfig()))),
-        p1_(shared_state_),
-        p2_(shared_state_) {}
+        p1_(env_wrapper_, shared_state_),
+        p2_(env_wrapper_, shared_state_) {}
 
   ~MediaPipelineTest() {
     p1_.Shutdown();

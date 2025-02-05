@@ -10,6 +10,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/media/MediaUtils.h"
 #include "WebrtcCallWrapper.h"
+#include "WebrtcEnvironmentWrapper.h"
 #include "PeerConnectionCtx.h"
 
 // libwebrtc
@@ -351,7 +352,8 @@ class MockCallWrapper : public mozilla::WebrtcCallWrapper {
           aShutdownTicket)
       : mozilla::WebrtcCallWrapper(
             std::move(aSharedState), std::move(aVideoBitrateAllocatorFactory),
-            std::move(aEventLog), std::move(aTaskQueueFactory), aTimestampMaker,
+            mozilla::WebrtcEnvironmentWrapper::Create(aTimestampMaker),
+            aTimestampMaker,
             std::move(aShutdownTicket)) {}
 
   static RefPtr<MockCallWrapper> Create() {

@@ -31,6 +31,7 @@
 #include "libwebrtcglue/AudioConduit.h"
 #include "libwebrtcglue/VideoConduit.h"
 #include "libwebrtcglue/WebrtcCallWrapper.h"
+#include "libwebrtcglue/WebrtcEnvironmentWrapper.h"
 #include "MediaTrackGraph.h"
 #include "transport/runnable_utils.h"
 #include "IPeerConnection.h"
@@ -4640,8 +4641,9 @@ already_AddRefed<dom::RTCRtpTransceiver> PeerConnectionImpl::CreateTransceiver(
     dom::MediaStreamTrack* aSendTrack, bool aAddTrackMagic, ErrorResult& aRv) {
   PeerConnectionCtx* ctx = PeerConnectionCtx::GetInstance();
   if (!mCall) {
+    auto envWrapper = WebrtcEnvironmentWrapper::Create(GetTimestampMaker());
     mCall = WebrtcCallWrapper::Create(
-        GetTimestampMaker(),
+        std::move(envWrapper), GetTimestampMaker(),
         media::ShutdownBlockingTicket::Create(
             u"WebrtcCallWrapper shutdown blocker"_ns,
             NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__),
