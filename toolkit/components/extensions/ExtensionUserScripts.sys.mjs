@@ -48,7 +48,10 @@ class Store {
     // databases, but we cannot due to bug 1807010. So the directory name
     // chosen here differs from those that use rkv in other places, such as
     // ExtensionPermissions.sys.mjs and ExtensionScriptingStore.sys.mjs.
-    const storePath = PathUtils.join(PathUtils.profileDir, "extension-scripts");
+    const storePath = PathUtils.join(
+      PathUtils.profileDir,
+      "extension-store-userscripts"
+    );
     await IOUtils.makeDirectory(storePath);
     this._store = await lazy.KeyValueService.getOrCreateWithOptions(
       storePath,
@@ -108,6 +111,10 @@ class Store {
 
   async deleteRange(fromKey, toKey) {
     await this.lazyInit();
+
+    // TODO bug 1919530: Use efficient deleteRange if we switch to skv:
+    // return this._store.deleteRange(fromKey, toKey);
+
     // skv supports deleteRange() with bug 1919674, but rkv does not. So as
     // part of deletion, we have to query the values despite not needing it.
     const enumerator = await this._store.enumerate(fromKey, toKey);
@@ -117,8 +124,6 @@ class Store {
       pairs.push([key, null]);
     }
     return this._store.writeMany(pairs);
-    // TODO bug 1919530: Use efficient deleteRange if we switch to skv:
-    // return this._store.deleteRange(fromKey, toKey);
   }
 }
 
