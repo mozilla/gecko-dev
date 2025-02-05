@@ -66,7 +66,6 @@ class DRMFormat final {
   AutoTArray<uint64_t, 15> mModifiers;
 };
 
-#ifdef MOZ_WAYLAND
 class DMABufFormats;
 using DMABufFormatsCallback = std::function<void(DMABufFormats*)>;
 
@@ -74,11 +73,13 @@ class DMABufFormats final {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DMABufFormats)
 
+#ifdef MOZ_WAYLAND
   void InitFeedback(zwp_linux_dmabuf_v1* aDMABuf,
                     const DMABufFormatsCallback& aFormatRefreshCB,
                     wl_surface* aSurface = nullptr);
   void InitV3(zwp_linux_dmabuf_v1* aDMABuf);
   void InitV3Done();
+#endif
 
   DMABufFeedback* GetDMABufFeedback() { return mDMABufFeedback.get(); }
   DMABufFeedback* GetPendingDMABufFeedback();
@@ -93,16 +94,18 @@ class DMABufFormats final {
   ~DMABufFormats();
 
   DMABufFormatsCallback mFormatRefreshCallback;
+#ifdef MOZ_WAYLAND
   zwp_linux_dmabuf_feedback_v1* mWaylandFeedback = nullptr;
+#endif
 
   UniquePtr<DMABufFeedback> mDMABufFeedback;
   UniquePtr<DMABufFeedback> mPendingDMABufFeedback;
 };
 
+#ifdef MOZ_WAYLAND
 RefPtr<DMABufFormats> CreateDMABufFeedbackFormats(
     wl_surface* aSurface,
     const std::function<void(DMABufFormats*)>& aFormatRefreshCB = nullptr);
-
 #endif
 
 }  // namespace mozilla::widget
