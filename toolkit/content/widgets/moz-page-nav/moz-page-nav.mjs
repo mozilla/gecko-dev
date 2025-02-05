@@ -29,7 +29,7 @@ export default class MozPageNav extends MozLitElement {
   };
 
   static queries = {
-    headingEl: "#page-nav-header",
+    headingEl: "#page-nav-heading",
     primaryNavGroupSlot: ".primary-nav-group slot",
     secondaryNavGroupSlot: "#secondary-nav-group slot",
   };
@@ -103,16 +103,18 @@ export default class MozPageNav extends MozLitElement {
         href="chrome://global/content/elements/moz-page-nav.css"
       />
       <nav class=${classMap({ "has-nav-icons": hasNavIcons })}>
-        <div class="page-nav-header-wrapper">
+        <div class="page-nav-heading-wrapper">
           <div class="logo"></div>
-          <h1 class="page-nav-header" id="page-nav-header">${this.heading}</h1>
+          <h1 class="page-nav-heading" id="page-nav-heading">
+            ${this.heading}
+          </h1>
         </div>
         <slot name="subheading"></slot>
         <div
           class="primary-nav-group"
           role="tablist"
           aria-orientation="vertical"
-          aria-labelledby="page-nav-header"
+          aria-labelledby="page-nav-heading"
         >
           <slot
             @change-view=${this.onChangeView}
