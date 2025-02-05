@@ -54,7 +54,7 @@ function setMinimumPolicyVersion(aNewPolicyVersion) {
   );
 }
 
-add_task(async function test_setup() {
+add_setup(async function test_setup() {
   // Addon manager needs a profile directory
   do_get_profile(true);
   await loadAddonManager(
@@ -92,15 +92,19 @@ add_task(
 
     Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
 
-    let startupTimeout = 0;
-    fakeShowPolicyTimeout(
-      (callback, timeout) => (startupTimeout = timeout),
-      () => {}
-    );
+    let promiseTimeout = () =>
+      new Promise(resolve => {
+        fakeShowPolicyTimeout(
+          (_callback, timeout) => resolve(timeout),
+          () => {}
+        );
+      });
+    let p, startupTimeout;
+
     TelemetryReportingPolicy.reset();
-
+    p = promiseTimeout();
     Services.obs.notifyObservers(null, "sessionstore-windows-restored");
-
+    startupTimeout = await p;
     Assert.equal(
       startupTimeout,
       FIRST_RUN_TIMEOUT_MSEC,
@@ -109,7 +113,9 @@ add_task(
 
     // Run again, and check that we actually wait only 10 seconds.
     TelemetryReportingPolicy.reset();
+    p = promiseTimeout();
     Services.obs.notifyObservers(null, "sessionstore-windows-restored");
+    startupTimeout = await p;
     Assert.equal(
       startupTimeout,
       OTHER_RUNS_TIMEOUT_MSEC,
