@@ -186,35 +186,60 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
     const browserWindows = lazy.closedTabsFromAllWindowsEnabled
       ? lazy.SessionStore.getWindows(currentWindow)
       : [currentWindow];
-    for (const sourceWindow of browserWindows) {
-      let tabData = lazy.SessionStore.getClosedTabDataForWindow(sourceWindow);
-      let closedTabGroupsById = getClosedTabGroupsById();
+    const closedTabGroupsById = getClosedTabGroupsById();
 
+    const undoAllInTabData = function (tabData, tabMethod, tabGroupMethod) {
       while (tabData.length) {
         let currentTabGroupId = tabData[0].state.groupId;
 
         if (currentTabGroupId && closedTabGroupsById.has(currentTabGroupId)) {
           let currentTabGroup = closedTabGroupsById.get(currentTabGroupId);
-          tabData.splice(0, currentTabGroup.tabs.length);
-          lazy.SessionStore.undoCloseTabGroup(
-            sourceWindow,
-            currentTabGroupId,
-            currentWindow
-          );
+          let splicedTabs = tabData.splice(0, currentTabGroup.tabs.length);
+          tabGroupMethod(splicedTabs);
         } else {
-          tabData.splice(0, 1);
-          lazy.SessionStore.undoCloseTab(sourceWindow, 0, currentWindow);
+          let splicedTabs = tabData.splice(0, 1);
+          tabMethod(splicedTabs[0]);
         }
       }
+    };
+
+    for (const sourceWindow of browserWindows) {
+      let tabData = lazy.SessionStore.getClosedTabDataForWindow(sourceWindow);
+
+      undoAllInTabData(
+        tabData,
+        _tabs => {
+          lazy.SessionStore.undoCloseTab(sourceWindow, 0, currentWindow);
+        },
+        tabs => {
+          lazy.SessionStore.undoCloseTabGroup(
+            sourceWindow,
+            tabs[0].state.groupId,
+            currentWindow
+          );
+        }
+      );
     }
     if (lazy.closedTabsFromClosedWindowsEnabled) {
-      for (let tabData of lazy.SessionStore.getClosedTabDataFromClosedWindows()) {
-        lazy.SessionStore.undoClosedTabFromClosedWindow(
-          { sourceClosedId: tabData.sourceClosedId },
-          tabData.closedId,
-          currentWindow
-        );
-      }
+      let tabData = lazy.SessionStore.getClosedTabDataFromClosedWindows();
+
+      undoAllInTabData(
+        tabData,
+        tab => {
+          lazy.SessionStore.undoCloseTabFromClosedWindow(
+            { sourceClosedId: tab.sourceClosedId },
+            tab.closedId,
+            currentWindow
+          );
+        },
+        tabs => {
+          lazy.SessionStore.undoCloseTabGroup(
+            { sourceClosedId: tabs[0].sourceClosedId },
+            tabs[0].state.groupId,
+            currentWindow
+          );
+        }
+      );
     }
   },
 

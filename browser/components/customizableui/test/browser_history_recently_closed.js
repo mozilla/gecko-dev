@@ -55,6 +55,28 @@ async function openRecentlyClosedTabsMenu(doc = window.document) {
   return closeTabsPanel;
 }
 
+function makeTabState(url) {
+  return {
+    entries: [{ url, triggeringPrincipal_base64 }],
+  };
+}
+
+function makeClosedTabState(url, { groupId, closedInTabGroup = false } = {}) {
+  return {
+    title: url,
+    closedInTabGroupId: closedInTabGroup ? groupId : null,
+    state: {
+      entries: [
+        {
+          url,
+          triggeringPrincipal_base64,
+        },
+      ],
+      groupId,
+    },
+  };
+}
+
 function resetClosedTabsAndWindows() {
   // Clear the lists of closed windows and tabs.
   Services.obs.notifyObservers(null, "browser:purge-session-history");
@@ -212,48 +234,50 @@ add_task(async function testRecentlyClosedRestoreAllTabs() {
     "https://example.com/",
     "https://example.org/",
   ];
-  const closedTabGroupUrls = ["about:logo", "about:mozilla"];
-  const closedTabGroupId = "1234567890-1";
-  const windowState = {
-    tabs: [
+
+  const closedTabGroupInOpenWindowUrls = ["about:logo", "about:logo"];
+  const closedTabGroupInOpenWindowId = "1234567890-1";
+
+  const closedTabGroupInClosedWindowUrls = ["about:robots", "about:robots"];
+  const closedTabGroupInClosedWindowId = "1234567890-2";
+
+  await SessionStoreTestUtils.promiseBrowserState({
+    windows: [
       {
-        entries: [{ url: "about:mozilla", triggeringPrincipal_base64 }],
-      },
-    ],
-    _closedTabs: closedTabUrls.map(url => ({
-      title: url,
-      state: {
-        entries: [
+        tabs: [makeTabState("about:mozilla")],
+        _closedTabs: closedTabUrls.map(makeClosedTabState),
+        closedGroups: [
           {
-            url,
-            triggeringPrincipal_base64,
+            collapsed: false,
+            color: "blue",
+            id: closedTabGroupInOpenWindowId,
+            name: "closed-in-open-window",
+            tabs: closedTabGroupInOpenWindowUrls.map(url =>
+              makeClosedTabState(url, { groupId: closedTabGroupInOpenWindowId })
+            ),
           },
         ],
       },
-    })),
-    closedGroups: [
+    ],
+    _closedWindows: [
       {
-        collapsed: false,
-        color: "blue",
-        id: closedTabGroupId,
-        name: "",
-        tabs: closedTabGroupUrls.map(url => ({
-          title: url,
-          state: {
-            entries: [
-              {
-                url,
-                triggeringPrincipal_base64,
-              },
-            ],
-            groupId: closedTabGroupId,
+        tabs: [makeTabState("about:mozilla")],
+        _closedTabs: [],
+        closedGroups: [
+          {
+            collapsed: false,
+            color: "red",
+            id: closedTabGroupInClosedWindowId,
+            name: "closed-in-closed-window",
+            tabs: closedTabGroupInClosedWindowUrls.map(url =>
+              makeClosedTabState(url, {
+                groupId: closedTabGroupInClosedWindowId,
+              })
+            ),
           },
-        })),
+        ],
       },
     ],
-  };
-  await SessionStoreTestUtils.promiseBrowserState({
-    windows: [windowState],
   });
 
   is(gBrowser.visibleTabs.length, 1, "We start with one tab open");
@@ -300,19 +324,36 @@ add_task(async function testRecentlyClosedRestoreAllTabs() {
 
   is(
     gBrowser.tabs.length,
-    initialTabCount + closedTabUrls.length + closedTabGroupUrls.length,
+    initialTabCount +
+      closedTabUrls.length +
+      closedTabGroupInOpenWindowUrls.length +
+      closedTabGroupInClosedWindowUrls.length,
     "The expected number of closed tabs were restored"
   );
   is(
-    gBrowser.tabGroups.length,
-    1,
-    "The expected number of closed tab groups were restored"
+    gBrowser.tabGroups[0].id,
+    closedTabGroupInOpenWindowId,
+    "Closed tab group in open window was restored"
   );
+  closedTabGroupInOpenWindowUrls.forEach((expectedUrl, index) => {
+    is(
+      gBrowser.tabGroups[0].tabs[index].linkedBrowser.currentURI.spec,
+      expectedUrl,
+      `Closed tab group in open window tab #${index} has correct URL`
+    );
+  });
   is(
-    gBrowser.tabGroups[0].tabs.length,
-    2,
-    "The expected number of tabs were restored to the tab group"
+    gBrowser.tabGroups[1].id,
+    closedTabGroupInClosedWindowId,
+    "Closed tab group in closed window was restored"
   );
+  closedTabGroupInClosedWindowUrls.forEach((expectedUrl, index) => {
+    is(
+      gBrowser.tabGroups[1].tabs[index].linkedBrowser.currentURI.spec,
+      expectedUrl,
+      `Closed tab group in closed window tab #${index} has correct URL`
+    );
+  });
 
   // clean up extra tabs
   while (gBrowser.tabs.length > 1) {
@@ -609,28 +650,18 @@ add_task(async function testRecentlyClosedTabsFromManyWindows() {
   await resetClosedTabsAndWindows();
   const ORIG_STATE = SessionStore.getBrowserState();
 
-  const _makeTab = function (url) {
-    return {
-      title: url,
-      state: {
-        entries: [
-          {
-            url,
-            triggeringPrincipal_base64,
-          },
-        ],
-      },
-    };
-  };
   await SessionStoreTestUtils.promiseBrowserState({
     windows: [
       {
-        tabs: [_makeTab("about:mozilla")],
-        _closedTabs: [_makeTab("about:mozilla"), _makeTab("about:mozilla")],
+        tabs: [makeTabState("about:mozilla")],
+        _closedTabs: [
+          makeClosedTabState("about:mozilla"),
+          makeClosedTabState("about:mozilla"),
+        ],
       },
       {
-        tabs: [_makeTab("about:mozilla")],
-        _closedTabs: [_makeTab("about:robots")],
+        tabs: [makeTabState("about:mozilla")],
+        _closedTabs: [makeClosedTabState("about:robots")],
       },
     ],
   });
@@ -663,7 +694,7 @@ add_task(async function testRecentlyClosedTabsFromManyWindows() {
   await closedObjectsChangePromise;
 
   Assert.equal(
-    gBrowser.tabs[0].linkedBrowser.currentURI.spec,
+    gBrowser.tabs[1].linkedBrowser.currentURI.spec,
     "about:robots",
     "Closed tab from the second window is opened"
   );
@@ -679,43 +710,30 @@ add_task(async function testTabsFromGroupClosedBeforeGroupDeleted() {
 
   await resetClosedTabsAndWindows();
   const ORIG_STATE = SessionStore.getBrowserState();
-
   const GROUP_ID = "1234567890-1";
-  const _makeTab = function (url, { groupId, closedInTabGroup = false } = {}) {
-    return {
-      title: url,
-      closedInTabGroupId: closedInTabGroup ? groupId : null,
-      state: {
-        entries: [
-          {
-            url,
-            triggeringPrincipal_base64,
-          },
-        ],
-        groupId,
-      },
-    };
-  };
+
   await SessionStoreTestUtils.promiseBrowserState({
     windows: [
       {
-        tabs: [_makeTab("about:blank")],
-        _closedTabs: [_makeTab("about:mozilla", { groupId: GROUP_ID })],
+        tabs: [makeTabState("about:blank")],
+        _closedTabs: [
+          makeClosedTabState("about:mozilla", { groupId: GROUP_ID }),
+        ],
         closedGroups: [
           {
             id: GROUP_ID,
             color: "blue",
             name: "tab-group",
             tabs: [
-              _makeTab("about:mozilla", {
+              makeClosedTabState("about:mozilla", {
                 groupId: GROUP_ID,
                 closedInTabGroup: true,
               }),
-              _makeTab("about:mozilla", {
+              makeClosedTabState("about:mozilla", {
                 groupId: GROUP_ID,
                 closedInTabGroup: true,
               }),
-              _makeTab("about:mozilla", {
+              makeClosedTabState("about:mozilla", {
                 groupId: GROUP_ID,
                 closedInTabGroup: true,
               }),
