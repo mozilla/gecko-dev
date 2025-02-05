@@ -11,6 +11,7 @@
 
 #include "base/platform_thread.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsTHashMap.h"
 #include "nsHashKeys.h"
@@ -38,6 +39,8 @@ class FileDescriptor;
 class SandboxBroker final : private SandboxBrokerCommon,
                             public PlatformThread::Delegate {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SandboxBroker)
+
   enum Perms {
     MAY_ACCESS = 1 << 0,
     MAY_READ = 1 << 1,
@@ -131,10 +134,9 @@ class SandboxBroker final : private SandboxBrokerCommon,
   // Constructing a broker involves creating a socketpair and a
   // background thread to handle requests, so it can fail.  If this
   // returns nullptr, do not use the value of aClientFdOut.
-  static UniquePtr<SandboxBroker> Create(UniquePtr<const Policy> aPolicy,
-                                         int aChildPid,
-                                         ipc::FileDescriptor& aClientFdOut);
-  virtual ~SandboxBroker();
+  static already_AddRefed<SandboxBroker> Create(
+      UniquePtr<const Policy> aPolicy, int aChildPid,
+      ipc::FileDescriptor& aClientFdOut);
 
  private:
   PlatformThreadHandle mThread;
@@ -146,6 +148,8 @@ class SandboxBroker final : private SandboxBrokerCommon,
   PathMap mSymlinkMap;
 
   SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid, int& aClientFd);
+  ~SandboxBroker() override;
+
   void ThreadMain(void) override;
   void AuditPermissive(int aOp, int aFlags, uint64_t aId, int aPerms,
                        const char* aPath);

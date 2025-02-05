@@ -121,7 +121,7 @@ class SocketProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   bool mChannelClosed;
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  UniquePtr<SandboxBroker> mSandboxBroker;
+  RefPtr<SandboxBroker> mSandboxBroker;
 #endif
 };
 

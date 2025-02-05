@@ -157,7 +157,7 @@ class UtilityProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   bool mLaunchCompleted = false;
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  UniquePtr<SandboxBroker> mSandboxBroker{};
+  RefPtr<SandboxBroker> mSandboxBroker{};
 #endif
 };
 
