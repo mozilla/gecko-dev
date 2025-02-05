@@ -10019,10 +10019,112 @@ function SectionContextMenu({
     }
   }));
 }
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/InlineTopicSelection/InlineTopicSelection.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
+
+/**
+ * Shows a list of recommended topics with visual indication whether
+ * the user follows some of the topics (active, blue, selected topics)
+ * or is yet to do so (neutrally-coloured topics with a "plus" button).
+ *
+ * @returns {React.Element}
+ */
+function InlineTopicSelection() {
+  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const following = prefs[PREF_FOLLOWED_SECTIONS] ? prefs[PREF_FOLLOWED_SECTIONS].split(", ") : [];
+  // Stub out topics, will replace with server topics
+  const topics = [{
+    label: "Politics",
+    id: "government"
+  }, {
+    label: "Sports",
+    id: "sports"
+  }, {
+    label: "Life Hacks",
+    id: "society"
+  }, {
+    label: "Food",
+    id: "food"
+  }, {
+    label: "Tech",
+    id: "tech"
+  }, {
+    label: "Travel",
+    id: "travel"
+  }, {
+    label: "Health",
+    id: "health"
+  }, {
+    label: "Money",
+    id: "finance"
+  }, {
+    label: "Science",
+    id: "education-science"
+  }, {
+    label: "Home & Garden",
+    id: "home"
+  }, {
+    label: "Entertainment",
+    id: "arts"
+  }];
+
+  // Updates user preferences as they follow or unfollow topics
+  // by selecting them from the list
+  function handleChange(e) {
+    const {
+      name: topic,
+      checked
+    } = e.target;
+    let updatedTopics = following;
+    if (checked) {
+      updatedTopics = updatedTopics.length ? [...updatedTopics, topic] : [topic];
+    } else {
+      updatedTopics = updatedTopics.filter(t => t !== topic);
+    }
+    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
+  }
+  return /*#__PURE__*/external_React_default().createElement("section", {
+    className: "inline-selection-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("h2", null, "Follow topics to personalize your feed"), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "inline-selection-copy"
+  }, "We will bring you personalized content, all while respecting your privacy. You'll have powerful control over what content you see and what you don't."), /*#__PURE__*/external_React_default().createElement("ul", {
+    className: "topic-list"
+  }, topics.map(topic => {
+    const checked = following.includes(topic.id);
+    return /*#__PURE__*/external_React_default().createElement("li", {
+      key: topic.id
+    }, /*#__PURE__*/external_React_default().createElement("label", null, /*#__PURE__*/external_React_default().createElement("input", {
+      type: "checkbox",
+      id: topic.id,
+      name: topic.id,
+      checked: checked,
+      "aria-checked": checked,
+      onChange: handleChange,
+      tabIndex: -1
+    }), /*#__PURE__*/external_React_default().createElement("span", {
+      className: "topic-item-label"
+    }, topic.label), /*#__PURE__*/external_React_default().createElement("div", {
+      className: `topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`
+    })));
+  })), /*#__PURE__*/external_React_default().createElement("p", null, /*#__PURE__*/external_React_default().createElement("a", {
+    href: prefs["support.url"],
+    "data-l10n-id": "newtab-topic-selection-privacy-link"
+  })));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -10038,10 +10140,12 @@ const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED = "discoverystream.sections.car
 const PREF_SECTIONS_PERSONALIZATION_ENABLED = "discoverystream.sections.personalization.enabled";
 const CardSections_PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const CardSections_PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
-const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
+const CardSections_PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
+const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.sections.topicSelection.enabled";
+const PREF_TOPIC_SELECTION_POSITION = "discoverystream.sections.topicSelection.position";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: []
@@ -10106,7 +10210,7 @@ function CardSection({
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
-  const followedSectionsPref = prefs[PREF_FOLLOWED_SECTIONS] || "";
+  const followedSectionsPref = prefs[CardSections_PREF_FOLLOWED_SECTIONS] || "";
   const blockedSectionsPref = prefs[PREF_BLOCKED_SECTIONS] || "";
   const {
     saveToPocketCard
@@ -10140,7 +10244,7 @@ function CardSection({
   // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
   const mayHaveCombinedThumbsUpDown = mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
   const onFollowClick = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, [...followedSections, sectionKey].join(", ")));
+    dispatch(actionCreators.SetPref(CardSections_PREF_FOLLOWED_SECTIONS, [...followedSections, sectionKey].join(", ")));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "FOLLOW_SECTION",
@@ -10152,7 +10256,7 @@ function CardSection({
     }));
   }, [dispatch, followedSections, sectionKey, sectionPosition]);
   const onUnfollowClick = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, [...followedSections.filter(item => item !== sectionKey)].join(", ")));
+    dispatch(actionCreators.SetPref(CardSections_PREF_FOLLOWED_SECTIONS, [...followedSections.filter(item => item !== sectionKey)].join(", ")));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "UNFOLLOW_SECTION",
@@ -10287,6 +10391,9 @@ function CardSections({
   ctaButtonSponsors
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
+  const topicSelectionEnabled = prefs[PREF_TOPIC_SELECTION_ENABLED];
+  const topicSelectionPosition = prefs[PREF_TOPIC_SELECTION_POSITION];
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
@@ -10308,7 +10415,8 @@ function CardSections({
   })) : /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-section-wrapper"
   }, sections.map((section, sectionPosition) => {
-    return /*#__PURE__*/external_React_default().createElement(CardSection, {
+    const shouldRenderTopicSelection = sectionPosition === topicSelectionPosition && personalizationEnabled && topicSelectionEnabled;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, shouldRenderTopicSelection && /*#__PURE__*/external_React_default().createElement(InlineTopicSelection, null), /*#__PURE__*/external_React_default().createElement(CardSection, {
       key: `section-${section.sectionKey}`,
       sectionPosition: sectionPosition,
       section: section,
@@ -10319,7 +10427,7 @@ function CardSections({
       spocMessageVariant: spocMessageVariant,
       ctaButtonVariant: ctaButtonVariant,
       ctaButtonSponsors: ctaButtonSponsors
-    });
+    }));
   }));
 }
 

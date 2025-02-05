@@ -184,6 +184,16 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
+            /**
+             * Tests for inline topic selection are coming in a follow-up task
+             */
+            "content-src/components/DiscoveryStreamComponents/InlineTopicSelection/*.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
               {
                 statements: 98.25,

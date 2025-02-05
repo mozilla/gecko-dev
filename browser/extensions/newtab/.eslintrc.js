@@ -31,6 +31,7 @@ module.exports = {
         "content-src/components/CustomizeMenu/**",
         "content-src/components/WallpapersSection/**",
         "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx",
+        "content-src/components/DiscoveryStreamComponents/InlineTopicSelection/InlineTopicSelection.jsx",
       ],
       rules: {
         "jsx-a11y/anchor-has-content": "off",

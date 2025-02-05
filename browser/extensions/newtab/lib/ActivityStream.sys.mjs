@@ -588,6 +588,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.topicSelection.position",
+    {
+      title: "index position of inline topic selection",
+      value: 1,
+    },
+  ],
+  [
     "discoverystream.spoc-positions",
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",

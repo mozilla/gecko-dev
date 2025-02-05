@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
 import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
+import { InlineTopicSelection } from "../InlineTopicSelection/InlineTopicSelection";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
@@ -22,6 +23,10 @@ const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
+const PREF_TOPIC_SELECTION_ENABLED =
+  "discoverystream.sections.topicSelection.enabled";
+const PREF_TOPIC_SELECTION_POSITION =
+  "discoverystream.sections.topicSelection.position";
 
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
@@ -310,6 +315,9 @@ function CardSections({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
+  const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
+  const topicSelectionEnabled = prefs[PREF_TOPIC_SELECTION_ENABLED];
+  const topicSelectionPosition = prefs[PREF_TOPIC_SELECTION_POSITION];
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
@@ -333,19 +341,27 @@ function CardSections({
   ) : (
     <div className="ds-section-wrapper">
       {sections.map((section, sectionPosition) => {
+        const shouldRenderTopicSelection =
+          sectionPosition === topicSelectionPosition &&
+          personalizationEnabled &&
+          topicSelectionEnabled;
+
         return (
-          <CardSection
-            key={`section-${section.sectionKey}`}
-            sectionPosition={sectionPosition}
-            section={section}
-            dispatch={dispatch}
-            type={type}
-            firstVisibleTimestamp={firstVisibleTimestamp}
-            is_collection={is_collection}
-            spocMessageVariant={spocMessageVariant}
-            ctaButtonVariant={ctaButtonVariant}
-            ctaButtonSponsors={ctaButtonSponsors}
-          />
+          <>
+            {shouldRenderTopicSelection && <InlineTopicSelection />}
+            <CardSection
+              key={`section-${section.sectionKey}`}
+              sectionPosition={sectionPosition}
+              section={section}
+              dispatch={dispatch}
+              type={type}
+              firstVisibleTimestamp={firstVisibleTimestamp}
+              is_collection={is_collection}
+              spocMessageVariant={spocMessageVariant}
+              ctaButtonVariant={ctaButtonVariant}
+              ctaButtonSponsors={ctaButtonSponsors}
+            />
+          </>
         );
       })}
     </div>
