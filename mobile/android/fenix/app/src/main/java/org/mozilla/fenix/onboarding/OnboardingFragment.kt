@@ -8,6 +8,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -35,7 +36,7 @@ import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isDefaultBrowserPromptSupported
-import org.mozilla.fenix.ext.isLargeWindow
+import org.mozilla.fenix.ext.isLargeScreenSize
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.requireComponents
@@ -120,7 +121,7 @@ class OnboardingFragment : Fragment() {
             onFinish(null)
         }
 
-        if (!isLargeWindow()) {
+        if (!isLargeScreenSize()) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         val filter = IntentFilter(WidgetPinnedReceiver.ACTION)
@@ -154,9 +155,19 @@ class OnboardingFragment : Fragment() {
         hideToolbar()
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (!isLargeScreenSize()) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        if (!isLargeWindow()) {
+        if (!isLargeScreenSize()) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(pinAppWidgetReceiver)
