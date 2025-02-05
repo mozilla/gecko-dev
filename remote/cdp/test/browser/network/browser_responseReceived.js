@@ -224,6 +224,11 @@ add_task(async function documentNavigationWithResource({ client }) {
 });
 
 function configureHistory(client, total) {
+  // NOTE: Given the event semantics for the cached scripts are not well-defined
+  //       especially for in-memory cache, clear the script cache before each
+  //       test in order to avoid the unexpected interaction between tests.
+  ChromeUtils.clearScriptCache();
+
   const RESPONSE = "Network.responseReceived";
 
   const { Network } = client;
