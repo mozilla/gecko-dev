@@ -269,9 +269,14 @@ static inline void MOZ_CrashSequence(void* aAddress, intptr_t aLine) {
       "str %1,[%0];\n"  // Write the line number to the crashing address
       :                 // no output registers
       : "r"(aAddress), "r"(aLine));
-#    elif defined(__riscv)
+#    elif defined(__riscv) && (__riscv_xlen == 64)
   asm volatile(
-      "sw %1,0(%0);\n"  // Write the line number to the crashing address
+      "sd %1,0(%0);\n"  // Write the line number to the crashing address
+      :                 // no output registers
+      : "r"(aAddress), "r"(aLine));
+#    elif defined(__sparc__) && defined(__arch64__)
+  asm volatile(
+      "stx %1,[%0];\n"  // Write the line number to the crashing address
       :                 // no output registers
       : "r"(aAddress), "r"(aLine));
 #    else
