@@ -872,7 +872,7 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           break;
 
         case nsIAccessibleEvent::EVENT_HIDE:
-          ipcDoc->AppendMutationEventData(
+          ipcDoc->PushMutationEventData(
               HideEventData{id, aEvent->IsFromUserInput()});
           break;
 
@@ -899,7 +899,7 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           // reorder events on the application acc aren't necessary to tell the
           // parent about new top level documents.
           if (!aEvent->GetAccessible()->IsApplication()) {
-            ipcDoc->AppendMutationEventData(
+            ipcDoc->PushMutationEventData(
                 ReorderEventData{id, aEvent->GetEventType()});
           }
           break;
@@ -920,7 +920,7 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
         case nsIAccessibleEvent::EVENT_TEXT_INSERTED:
         case nsIAccessibleEvent::EVENT_TEXT_REMOVED: {
           AccTextChangeEvent* event = downcast_accEvent(aEvent);
-          ipcDoc->AppendMutationEventData(TextChangeEventData{
+          ipcDoc->PushMutationEventData(TextChangeEventData{
               id, event->ModifiedText(), event->GetStartOffset(),
               event->GetLength(), event->IsTextInserted(),
               event->IsFromUserInput()});
@@ -3353,7 +3353,7 @@ void LocalAccessible::SendCache(uint64_t aCacheDomain,
   nsTArray<CacheData> data;
   data.AppendElement(CacheData(ID(), fields));
   if (aAppendEventData) {
-    ipcDoc->AppendMutationEventData(
+    ipcDoc->PushMutationEventData(
         CacheEventData{std::move(aUpdateType), std::move(data)});
   } else {
     ipcDoc->SendCache(aUpdateType, data);
