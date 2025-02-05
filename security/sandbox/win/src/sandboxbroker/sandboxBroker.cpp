@@ -280,6 +280,20 @@ static void AddDeveloperRepoDirToPolicy(sandbox::TargetPolicy* aPolicy) {
   }
 }
 
+#if defined(MOZ_PROFILE_GENERATE)
+// It should only be allowed on instrumented builds, never on production
+// builds.
+static void AddLLVMProfilePathDirectoryToPolicy(
+    sandbox::TargetPolicy* aPolicy) {
+  std::wstring parentPath;
+  if (GetLlvmProfileDir(parentPath)) {
+    aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                     sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                     parentPath.c_str());
+  }
+}
+#endif
+
 #undef WSTRING
 
 static void EnsureAppLockerAccess(sandbox::TargetPolicy* aPolicy) {
@@ -367,6 +381,10 @@ Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
 
   // Enable the child process to write log files when setup
   AddMozLogRulesToPolicy(mPolicy, aEnvironment);
+
+#if defined(MOZ_PROFILE_GENERATE)
+  AddLLVMProfilePathDirectoryToPolicy(mPolicy);
+#endif
 
   if (!mozilla::IsPackagedBuild()) {
     AddDeveloperRepoDirToPolicy(mPolicy);
