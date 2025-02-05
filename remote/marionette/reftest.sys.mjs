@@ -367,7 +367,8 @@ reftest.Runner = class {
     let done = false;
 
     while (stack.length && !done) {
-      let [lhsUrl, rhsUrl, references, relation, extras = {}] = stack.pop();
+      let [lhsUrl, rhsUrl, stackframeReferences, relation, extras = {}] =
+        stack.pop();
       result.message += `Testing ${lhsUrl} ${relation} ${rhsUrl}\n`;
 
       let comparison;
@@ -414,9 +415,9 @@ reftest.Runner = class {
       }
 
       if (comparison.passed) {
-        if (references.length) {
-          for (let i = references.length - 1; i >= 0; i--) {
-            let item = references[i];
+        if (stackframeReferences.length) {
+          for (let i = stackframeReferences.length - 1; i >= 0; i--) {
+            let item = stackframeReferences[i];
             stack.push([rhsUrl, ...item]);
           }
         } else {
