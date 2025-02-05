@@ -5765,7 +5765,7 @@ static nscoord ContentContribution(
   auto childAxis = isOrthogonal ? GetOrthogonalAxis(aAxis) : aAxis;
   if (size == NS_INTRINSIC_ISIZE_UNKNOWN && childAxis == LogicalAxis::Block) {
     // We need to reflow the child to find its BSize contribution.
-    // XXX this will give mostly correct results for now (until bug 1174569).
+    // XXX this will give mostly correct results for now (until bug 1300366).
     nscoord availISize = INFINITE_ISIZE_COORD;
     nscoord availBSize = NS_UNCONSTRAINEDSIZE;
     // The next two variables are MinSizeClamp values in the child's axes.
