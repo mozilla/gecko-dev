@@ -134,6 +134,7 @@ class DMABufSurface {
   void SetColorRange(mozilla::gfx::ColorRange aColorRange) {
     mColorRange = aColorRange;
   };
+  virtual bool IsHDRSurface() { return false; }
 
   void FenceSet();
   void FenceWait();
@@ -401,7 +402,10 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   void SetTransferFunction(mozilla::gfx::TransferFunction aTransferFunction) {
     mTransferFunction = aTransferFunction;
   }
-  bool IsHDRSurface() { return true; };
+  bool IsHDRSurface() override {
+    return mColorPrimaries == mozilla::gfx::ColorSpace2::BT2020 &&
+           mTransferFunction == mozilla::gfx::TransferFunction::PQ;
+  }
 
   DMABufSurfaceYUV();
 
