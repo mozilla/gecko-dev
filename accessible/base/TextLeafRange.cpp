@@ -470,19 +470,46 @@ FindDOMTextOffsetAttributes(LocalAccessible* aAcc, int32_t aRenderedStart,
           {SelectionType::eSpellCheck, nsGkAtoms::spelling},
           {SelectionType::eTargetText, nsGkAtoms::mark},
       };
-  result.SetCapacity(std::size(kSelectionTypesToAttributes));
+  size_t highlightCount = frameSel->HighlightSelectionCount();
+  result.SetCapacity(std::size(kSelectionTypesToAttributes) + highlightCount);
+
+  auto appendRanges = [&](dom::Selection* aDomSel, nsStaticAtom* aAttr) {
+    nsTArray<dom::AbstractRange*> domRanges;
+    aDomSel->GetAbstractRangesForIntervalArray(
+        node, contentStart, node, contentEnd, aAllowAdjacent, &domRanges);
+    if (!domRanges.IsEmpty()) {
+      result.AppendElement(std::make_pair(std::move(domRanges), aAttr));
+    }
+  };
+
   for (auto [selType, attr] : kSelectionTypesToAttributes) {
     dom::Selection* domSel = frameSel->GetSelection(selType);
     if (!domSel) {
       continue;
     }
-    nsTArray<dom::AbstractRange*> domRanges;
-    domSel->GetAbstractRangesForIntervalArray(
-        node, contentStart, node, contentEnd, aAllowAdjacent, &domRanges);
-    if (!domRanges.IsEmpty()) {
-      result.AppendElement(std::make_pair(std::move(domRanges), attr));
-    }
+    appendRanges(domSel, attr);
   }
+
+  for (size_t h = 0; h < highlightCount; ++h) {
+    RefPtr<dom::Selection> domSel = frameSel->HighlightSelection(h);
+    MOZ_ASSERT(domSel);
+    nsStaticAtom* attr = nullptr;
+    MOZ_ASSERT(domSel->HighlightSelectionData().mHighlight);
+    switch (domSel->HighlightSelectionData().mHighlight->Type()) {
+      case dom::HighlightType::Highlight:
+        attr = nsGkAtoms::mark;
+        break;
+      case dom::HighlightType::Spelling_error:
+        attr = nsGkAtoms::spelling;
+        break;
+      case dom::HighlightType::Grammar_error:
+        attr = nsGkAtoms::grammar;
+        break;
+    }
+    MOZ_ASSERT(attr);
+    appendRanges(domSel, attr);
+  }
+
   return result;
 }
 
@@ -1471,7 +1498,10 @@ TextLeafPoint TextLeafPoint::FindClusterSameAcc(nsDirection aDirection,
 
 void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   auto expose = [aAttrs](nsAtom* aAttr) {
-    if (aAttr == nsGkAtoms::spelling) {
+    if (aAttr == nsGkAtoms::spelling || aAttr == nsGkAtoms::grammar) {
+      // XXX We don't correctly handle exposure of overlapping spelling and
+      // grammar errors. See bug 1944217. For now, we expose the one we most
+      // recently encountered.
       aAttrs->SetAttribute(nsGkAtoms::invalid, aAttr);
     } else if (aAttr == nsGkAtoms::mark) {
       aAttrs->SetAttribute(aAttr, true);

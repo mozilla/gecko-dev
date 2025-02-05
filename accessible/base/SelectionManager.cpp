@@ -203,7 +203,8 @@ void SelectionManager::ProcessSelectionChanged(SelData* aSelData) {
 bool SelectionManager::SelectionRangeChanged(SelectionType aType,
                                              const dom::AbstractRange& aRange) {
   if (aType != SelectionType::eSpellCheck &&
-      aType != SelectionType::eTargetText) {
+      aType != SelectionType::eTargetText &&
+      aType != SelectionType::eHighlight) {
     // We don't need to handle range changes for this selection type.
     return false;
   }
