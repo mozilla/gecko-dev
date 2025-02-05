@@ -173,7 +173,7 @@ struct IPDLParamTraits<mozilla::webgl::TexUnpackBlobDesc> final {
     WriteParam(writer, in.structuredSrcSize);
     MOZ_RELEASE_ASSERT(!in.image);
     WriteIPDLParam(writer, actor, std::move(in.sd));
-    MOZ_RELEASE_ASSERT(!in.dataSurf);
+    MOZ_RELEASE_ASSERT(!in.sourceSurf);
     WriteParam(writer, in.unpacking);
     WriteParam(writer, in.applyUnpackTransforms);
   }

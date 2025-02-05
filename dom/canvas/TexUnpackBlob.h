@@ -46,7 +46,8 @@ Maybe<std::string> BlitPreventReason(int32_t level, const ivec3& offset,
                                      const webgl::PackingInfo&,
                                      const TexUnpackBlobDesc&,
                                      OptionalRenderableFormatBits,
-                                     bool sameColorSpace);
+                                     bool sameColorSpace,
+                                     bool allowConversion = false);
 
 class TexUnpackBlob {
  public:

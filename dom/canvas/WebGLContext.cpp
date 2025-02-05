@@ -630,6 +630,13 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
   const auto UploadableSdTypes = [&]() {
     webgl::EnumMask<layers::SurfaceDescriptor::Type> types;
     types[layers::SurfaceDescriptor::TSurfaceDescriptorBuffer] = true;
+    // Only support canvas surface interchange if using AC2D. This guarantees
+    // that WebGL and AC2D commands are sequenced and processed on the same
+    // thread, so that there is no mal-ordering between AC2D and WebGL
+    // processing. We can flush out AC2D commands to produce a surface in time
+    // for WebGL to use without requiring any blocking to occur.
+    types[layers::SurfaceDescriptor::TSurfaceDescriptorCanvasSurface] =
+        gfx::gfxVars::UseAcceleratedCanvas2D();
     // This is conditional on not using the Compositor thread because we may
     // need to synchronize with the RDD process over the PVideoBridge protocol
     // to wait for the texture to be available in the compositor process. We

@@ -1136,7 +1136,7 @@ struct TexUnpackBlobDesc final {
   Maybe<uvec2> structuredSrcSize;
   RefPtr<layers::Image> image;
   Maybe<layers::SurfaceDescriptor> sd;
-  RefPtr<gfx::DataSourceSurface> dataSurf;
+  RefPtr<gfx::SourceSurface> sourceSurf;
 
   webgl::PixelUnpackStateWebgl unpacking;
   bool applyUnpackTransforms = true;

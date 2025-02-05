@@ -9,6 +9,7 @@
 #include "GLContext.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/gfx/CanvasManagerParent.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/SharedSurfacesParent.h"
@@ -324,6 +325,11 @@ static bool SDIsExternalImage(const layers::SurfaceDescriptor& sd) {
              wr::ExternalImageSource::SharedSurfaces;
 }
 
+static bool SDIsCanvasSurface(const layers::SurfaceDescriptor& sd) {
+  return sd.type() ==
+         layers::SurfaceDescriptor::TSurfaceDescriptorCanvasSurface;
+}
+
 // static
 std::unique_ptr<TexUnpackBlob> TexUnpackBlob::Create(
     const TexUnpackBlobDesc& desc) {
@@ -350,12 +356,12 @@ std::unique_ptr<TexUnpackBlob> TexUnpackBlob::Create(
       // if it can be mapped as a framebuffer, whereas the Shmem is still CPU
       // data.
       if (SDIsRGBBuffer(*desc.sd) || SDIsNullRemoteDecoder(*desc.sd) ||
-          SDIsExternalImage(*desc.sd)) {
+          SDIsExternalImage(*desc.sd) || SDIsCanvasSurface(*desc.sd)) {
         return new TexUnpackSurface(desc);
       }
       return new TexUnpackImage(desc);
     }
-    if (desc.dataSurf) {
+    if (desc.sourceSurf) {
       return new TexUnpackSurface(desc);
     }
 
@@ -678,12 +684,12 @@ bool TexUnpackImage::Validate(const WebGLContext* const webgl,
     return false;
   }
   const auto& elemSize = *mDesc.structuredSrcSize;
-  if (mDesc.dataSurf) {
-    const auto& surfSize = mDesc.dataSurf->GetSize();
+  if (mDesc.sourceSurf) {
+    const auto& surfSize = mDesc.sourceSurf->GetSize();
     const auto surfSize2 = ivec2::FromSize(surfSize)->StaticCast<uvec2>();
     if (uvec2{elemSize.x, elemSize.y} != surfSize2) {
       gfxCriticalError()
-          << "TexUnpackImage mismatched structuredSrcSize for dataSurf.";
+          << "TexUnpackImage mismatched structuredSrcSize for sourceSurf.";
       return false;
     }
   }
@@ -696,7 +702,7 @@ Maybe<std::string> BlitPreventReason(
     const int32_t level, const ivec3& offset, const GLenum internalFormat,
     const webgl::PackingInfo& pi, const TexUnpackBlobDesc& desc,
     const OptionalRenderableFormatBits optionalRenderableFormatBits,
-    bool sameColorSpace) {
+    bool sameColorSpace, bool allowConversion) {
   const auto& size = desc.size;
   const auto& unpacking = desc.unpacking;
 
@@ -717,7 +723,7 @@ Maybe<std::string> BlitPreventReason(
 
       const bool srcIsPremult = (desc.srcAlphaType == gfxAlphaType::Premult);
       const auto& dstIsPremult = unpacking.premultiplyAlpha;
-      if (srcIsPremult == dstIsPremult) return nullptr;
+      if (srcIsPremult == dstIsPremult || allowConversion) return nullptr;
 
       if (dstIsPremult) {
         return "UNPACK_PREMULTIPLY_ALPHA_WEBGL is not true";
@@ -958,12 +964,12 @@ bool TexUnpackSurface::Validate(const WebGLContext* const webgl,
     return false;
   }
   const auto& elemSize = *mDesc.structuredSrcSize;
-  if (mDesc.dataSurf) {
-    const auto& surfSize = mDesc.dataSurf->GetSize();
+  if (mDesc.sourceSurf) {
+    const auto& surfSize = mDesc.sourceSurf->GetSize();
     const auto surfSize2 = ivec2::FromSize(surfSize)->StaticCast<uvec2>();
     if (uvec2{elemSize.x, elemSize.y} != surfSize2) {
       gfxCriticalError()
-          << "TexUnpackSurface mismatched structuredSrcSize for dataSurf.";
+          << "TexUnpackSurface mismatched structuredSrcSize for sourceSurf.";
       return false;
     }
   }
@@ -1021,6 +1027,18 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
         gfxCriticalNote << "TexUnpackSurface failed to get ExternalImage";
         return false;
       }
+    } else if (SDIsCanvasSurface(sd)) {
+      // The canvas surface resides on a 2D canvas within the same content
+      // process as the WebGL canvas. Query it for the surface.
+      const auto& sdc = sd.get_SurfaceDescriptorCanvasSurface();
+      uint32_t managerId = sdc.managerId();
+      uintptr_t surfaceId = sdc.surfaceId();
+      surf = gfx::CanvasManagerParent::GetCanvasSurface(webgl->GetContentId(),
+                                                        managerId, surfaceId);
+      if (!surf) {
+        gfxCriticalNote << "TexUnpackSurface failed to get CanvasSurface";
+        return false;
+      }
     } else {
       MOZ_ASSERT_UNREACHABLE("Unexpected surface descriptor!");
     }
@@ -1029,8 +1047,13 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
                             "DataSourceSurface for Shmem.";
       return false;
     }
-  } else {
-    surf = mDesc.dataSurf;
+  } else if (mDesc.sourceSurf) {
+    surf = mDesc.sourceSurf->GetDataSurface();
+    if (!surf) {
+      gfxCriticalError() << "TexUnpackSurface failed to get data for "
+                            "sourceSurf.";
+      return false;
+    }
   }
 
   ////
