@@ -193,7 +193,7 @@ class QATests(SnapTestsBase):
         """
 
         if (
-            self.update_channel() in ("release", "beta")
+            self.update_channel() in ("release")
             and self.version_major() >= "134"
             and self.is_debug_build()
         ):
