@@ -391,7 +391,11 @@ media-gpu:
                         "windows" in task["test-platform"]
                         && "hw" in task["test-platform"]
                     )
-                    || "macosx" in task["test-platform"]
+                    || "macosx" in task["test-platform"] ||
+                    (
+                        "android" in task["test-platform"]
+                        && "hw" in task["test-platform"]
+                    )
                 '
     merge:
         worker:
