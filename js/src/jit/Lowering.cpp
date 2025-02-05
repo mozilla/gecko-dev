@@ -5744,11 +5744,18 @@ void LIRGenerator::visitMegamorphicLoadSlot(MMegamorphicLoadSlot* ins) {
 void LIRGenerator::visitMegamorphicLoadSlotPermissive(
     MMegamorphicLoadSlotPermissive* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+  static_assert(CallTempReg0 != IonGenericCallCalleeReg);
+  static_assert(CallTempReg0 != IonGenericCallArgcReg);
+  static_assert(CallTempReg4 != IonGenericCallCalleeReg);
+  static_assert(CallTempReg4 != IonGenericCallArgcReg);
+
   auto* lir = new (alloc()) LMegamorphicLoadSlotPermissive(
       useRegisterAtStart(ins->object()), tempFixed(CallTempReg0),
-      tempFixed(CallTempReg1), tempFixed(CallTempReg2));
+      tempFixed(IonGenericCallCalleeReg), tempFixed(IonGenericCallArgcReg),
+      tempFixed(CallTempReg4));
   defineReturn(lir, ins);
   assignSafepoint(lir, ins);
+  lirGraph_.addExtraSafepointUses(1);
 }
 
 void LIRGenerator::visitMegamorphicLoadSlotByValue(
@@ -5767,12 +5774,27 @@ void LIRGenerator::visitMegamorphicLoadSlotByValuePermissive(
     MMegamorphicLoadSlotByValuePermissive* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
   MOZ_ASSERT(ins->idVal()->type() == MIRType::Value);
+#ifdef JS_CODEGEN_X86
   auto* lir = new (alloc()) LMegamorphicLoadSlotByValuePermissive(
       useRegisterAtStart(ins->object()), useBoxAtStart(ins->idVal()),
-      tempFixed(CallTempReg0), tempFixed(CallTempReg1),
-      tempFixed(CallTempReg2));
+      tempFixed(CallTempReg0), tempFixed(IonGenericCallCalleeReg),
+      tempFixed(IonGenericCallArgcReg));
   defineReturn(lir, ins);
   assignSafepoint(lir, ins);
+#else
+  static_assert(CallTempReg0 != IonGenericCallCalleeReg);
+  static_assert(CallTempReg0 != IonGenericCallArgcReg);
+  static_assert(CallTempReg4 != IonGenericCallCalleeReg);
+  static_assert(CallTempReg4 != IonGenericCallArgcReg);
+
+  auto* lir = new (alloc()) LMegamorphicLoadSlotByValuePermissive(
+      useRegisterAtStart(ins->object()), useBoxAtStart(ins->idVal()),
+      tempFixed(CallTempReg0), tempFixed(IonGenericCallCalleeReg),
+      tempFixed(IonGenericCallArgcReg), tempFixed(CallTempReg4));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+  lirGraph_.addExtraSafepointUses(1);
+#endif
 }
 
 void LIRGenerator::visitMegamorphicStoreSlot(MMegamorphicStoreSlot* ins) {
