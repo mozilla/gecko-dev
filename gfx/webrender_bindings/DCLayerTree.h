@@ -450,7 +450,6 @@ class DCSurfaceVideo : public DCSurface {
   RefPtr<RenderTextureHost> mPrevTexture;
   RefPtr<RenderTextureHostUsageInfo> mRenderTextureHostUsageInfo;
   int mSlowPresentCount = 0;
-  bool mFirstPresent = true;
   const UINT mSwapChainBufferCount;
   bool mUseVpAutoHDR = false;
   bool mVpAutoHDRFailed = false;
