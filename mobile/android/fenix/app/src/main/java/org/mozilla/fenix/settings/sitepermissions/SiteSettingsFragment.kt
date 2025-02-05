@@ -9,16 +9,13 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.Navigation
 import androidx.preference.Preference
 import androidx.preference.Preference.OnPreferenceClickListener
-import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import mozilla.components.browser.state.action.DefaultDesktopModeAction
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Autoplay
 import org.mozilla.fenix.R
-import org.mozilla.fenix.browser.desktopmode.DefaultDesktopModeFeatureFlagImpl
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
@@ -33,8 +30,6 @@ import org.mozilla.fenix.settings.requirePreference
  */
 @SuppressWarnings("TooManyFunctions")
 class SiteSettingsFragment : PreferenceFragmentCompat() {
-
-    private val defaultDesktopModeFeatureFlag by lazy { DefaultDesktopModeFeatureFlagImpl() }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.site_permissions_preferences, rootKey)
@@ -58,23 +53,15 @@ class SiteSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun bindDesktopMode() {
-        if (defaultDesktopModeFeatureFlag.isDesktopModeEnabled()) {
-            requirePreference<SwitchPreference>(R.string.pref_key_desktop_browsing).apply {
-                icon?.setTint(ContextCompat.getColor(context, R.color.fx_mobile_icon_color_primary))
-                isChecked = requireComponents.core.store.state.desktopMode
-                isPersistent = false
-                onPreferenceChangeListener =
-                    Preference.OnPreferenceChangeListener { _, _ ->
-                        requireComponents.core.store.dispatch(DefaultDesktopModeAction.ToggleDesktopMode)
-                        true
-                    }
-            }
-        } else {
-            // Remove the preference category if the feature is not enabled
-            val preferenceScreen: PreferenceScreen =
-                requirePreference(R.string.pref_key_site_permissions_preference_screen)
-            val contentPreferenceCategory: PreferenceCategory = requirePreference(R.string.pref_key_category_content)
-            preferenceScreen.removePreference(contentPreferenceCategory)
+        requirePreference<SwitchPreference>(R.string.pref_key_desktop_browsing).apply {
+            icon?.setTint(ContextCompat.getColor(context, R.color.fx_mobile_icon_color_primary))
+            isChecked = requireComponents.core.store.state.desktopMode
+            isPersistent = false
+            onPreferenceChangeListener =
+                Preference.OnPreferenceChangeListener { _, _ ->
+                    requireComponents.core.store.dispatch(DefaultDesktopModeAction.ToggleDesktopMode)
+                    true
+                }
         }
     }
 

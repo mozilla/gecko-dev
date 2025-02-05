@@ -421,8 +421,6 @@
     <string name="pref_key_app_is_onboarding_set_as_default_displayed" translatable="false">pref_key_app_is_onboarding_set_as_default_displayed</string>
 
     <string name="pref_key_desktop_browsing" translatable="false">pref_key_desktop_browsing</string>
-    <string name="pref_key_category_content" translatable="false">pref_key_category_content</string>
-    <string name="pref_key_site_permissions_preference_screen" translatable="false">pref_key_site_permissions_preference_screen</string>
 
     <!-- Crash reporting -->
     <string name="pref_key_crash_reporting_cutoff_date" translatable="false">pref_key_crash_reporting_cutoff_date</string>
