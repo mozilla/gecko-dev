@@ -21,6 +21,10 @@ namespace mozilla::widget {
 class DMABufFormatTable;
 class DMABufFeedback;
 
+#ifndef DRM_FORMAT_MOD_INVALID
+#  define DRM_FORMAT_MOD_INVALID ((1ULL << 56) - 1)
+#endif
+
 // DRMFormat (fourcc) and available modifiers for it.
 // Modifiers are sorted from the most preffered one.
 class DRMFormat final {
@@ -44,7 +48,11 @@ class DRMFormat final {
     MOZ_ASSERT(!IsFormatModifierSupported(aModifier), "Added modifier twice?");
     mModifiers.AppendElement(aModifier);
   }
-  bool UseModifiers() const { return !mModifiers.IsEmpty(); }
+  bool UseModifiers() const {
+    // Don't use modifiers if we don't have any or we have an invalid one.
+    return !(mModifiers.IsEmpty() || (mModifiers.Length() == 1 ||
+                                      mModifiers[0] == DRM_FORMAT_MOD_INVALID));
+  }
   const uint64_t* GetModifiers(uint32_t& aModifiersNum) {
     aModifiersNum = mModifiers.Length();
     return mModifiers.Elements();
@@ -78,6 +86,8 @@ class DMABufFormats final {
 
   DRMFormat* GetFormat(uint32_t aFormat, bool aRequestScanoutFormat = false);
   DMABufFormats();
+
+  void EnsureBasicFormats();
 
  private:
   ~DMABufFormats();

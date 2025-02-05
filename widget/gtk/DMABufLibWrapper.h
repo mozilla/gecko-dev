@@ -23,10 +23,6 @@ extern mozilla::LazyLogModule gDmabufLog;
 #  define LOGDMABUF(args)
 #endif /* MOZ_LOGGING */
 
-#ifndef DRM_FORMAT_MOD_INVALID
-#  define DRM_FORMAT_MOD_INVALID ((1ULL << 56) - 1)
-#endif
-
 namespace mozilla {
 namespace widget {
 
@@ -221,11 +217,9 @@ class DMABufDevice {
  private:
   void Configure();
 
-#ifdef MOZ_WAYLAND
   void LoadFormatModifiers();
   void SetModifiersToGfxVars();
   void GetModifiersFromGfxVars();
-#endif
 
   // Two basic formats, always present.
   RefPtr<DRMFormat> mFormatRGBA;

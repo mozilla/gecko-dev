@@ -108,6 +108,7 @@ class nsWaylandDisplay {
   }
   RefPtr<DMABufFormats> GetDMABufFormats() const { return mFormats; }
   bool HasDMABufFeedback() const { return mDmabufIsFeedback; }
+  void EnsureDMABufFormats();
 
   ~nsWaylandDisplay();
 

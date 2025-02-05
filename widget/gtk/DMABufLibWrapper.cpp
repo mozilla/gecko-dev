@@ -217,9 +217,7 @@ void DMABufDevice::Configure() {
     return;
   }
 
-#ifdef MOZ_WAYLAND
   LoadFormatModifiers();
-#endif
 
   LOGDMABUF(("DMABuf is enabled"));
 }
@@ -243,12 +241,18 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
          gfx::gfxVars::UseDMABufWebGL();
 }
 
-#ifdef MOZ_WAYLAND
 void DMABufDevice::SetModifiersToGfxVars() {
-  RefPtr<DMABufFormats> formats = WaylandDisplayGet()->GetDMABufFormats();
-  if (!formats) {
-    return;
+  RefPtr<DMABufFormats> formats;
+#ifdef MOZ_WAYLAND
+  if (GdkIsWaylandDisplay()) {
+    formats = WaylandDisplayGet()->GetDMABufFormats();
   }
+#endif
+  if (!formats) {
+    formats = new DMABufFormats();
+    formats->EnsureBasicFormats();
+  }
+
   if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888)) {
     mFormatRGBX = new DRMFormat(*format);
     gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
@@ -265,15 +269,16 @@ void DMABufDevice::GetModifiersFromGfxVars() {
   mFormatRGBX =
       new DRMFormat(GBM_FORMAT_ARGB8888, gfxVars::DMABufModifiersARGB());
 }
-#endif
 
 void DMABufDevice::DisableDMABufWebGL() { sUseWebGLDmabufBackend = false; }
 
 RefPtr<DRMFormat> DMABufDevice::GetDRMFormat(int32_t aFOURCCFormat) {
   switch (aFOURCCFormat) {
     case GBM_FORMAT_XRGB8888:
+      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBX, "Missing RGBX dmabuf format!");
       return mFormatRGBX;
     case GBM_FORMAT_ARGB8888:
+      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBA, "Missing RGBA dmabuf format!");
       return mFormatRGBA;
     default:
       gfxCriticalNoteOnce << "DMABufDevice::GetDRMFormat() unknow format: "
@@ -282,11 +287,7 @@ RefPtr<DRMFormat> DMABufDevice::GetDRMFormat(int32_t aFOURCCFormat) {
   }
 }
 
-#ifdef MOZ_WAYLAND
 void DMABufDevice::LoadFormatModifiers() {
-  if (!GdkIsWaylandDisplay()) {
-    return;
-  }
   if (XRE_IsParentProcess()) {
     MOZ_ASSERT(NS_IsMainThread());
     SetModifiersToGfxVars();
@@ -294,7 +295,6 @@ void DMABufDevice::LoadFormatModifiers() {
     GetModifiersFromGfxVars();
   }
 }
-#endif
 
 DMABufDevice* GetDMABufDevice() {
   static StaticAutoPtr<DMABufDevice> sDmaBufDevice;

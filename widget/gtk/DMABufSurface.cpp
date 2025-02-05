@@ -557,6 +557,8 @@ bool DMABufSurfaceRGBA::Create(int aWidth, int aHeight,
                                                      : GBM_FORMAT_XRGB8888;
   RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
   if (!format) {
+    LOGDMABUF(("DMABufSurfaceRGBA::Create(): Missing drm format 0x%x!",
+               mFOURCCFormat));
     return false;
   }
   return Create(aWidth, aHeight, format, aDMABufSurfaceFlags);
