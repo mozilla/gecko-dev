@@ -12,7 +12,7 @@ task-defaults:
         by-platform:
             linux1804-64.*: t-linux-xlarge-source
             macosx1015-64.*: t-osx-1015-r8
-            windows11-64.*: win11-64-2009-source
+            windows11-64.*: win11-64-24h2-source
     worker:
         by-platform:
             linux1804-64.*:
