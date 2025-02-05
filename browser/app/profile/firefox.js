@@ -1049,6 +1049,8 @@ pref("browser.tabs.groups.enabled", true);
 #else
 pref("browser.tabs.groups.enabled", false);
 #endif
+pref("browser.tabs.groups.smart.enabled", false);
+
 pref("browser.tabs.groups.dragOverThresholdPercent", 20);
 pref("browser.tabs.groups.dragOverDelayMS", 120);
 pref("browser.tabs.dragdrop.moveOverThresholdPercent", 70);
