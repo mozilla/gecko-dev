@@ -210,14 +210,3 @@ function waitForPasswordReveal(passwordLine) {
   passwordLine.revealBtn.click();
   return revealBtnPromise;
 }
-
-function waitForSnapshots() {
-  info("Wait for headers.");
-  const sidebar = document.getElementById("sidebar");
-  const megalistComponent =
-    sidebar.contentDocument.querySelector("megalist-alpha");
-  return BrowserTestUtils.waitForCondition(
-    () => megalistComponent.header,
-    "Megalist header loaded."
-  );
-}
