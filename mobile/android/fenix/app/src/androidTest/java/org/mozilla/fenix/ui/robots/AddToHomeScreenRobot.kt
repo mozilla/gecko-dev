@@ -17,7 +17,7 @@ import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
@@ -120,4 +120,4 @@ private fun confirmAddToHomeScreenButton() =
 private fun shortcutTextField() =
     itemWithResId("$packageName:id/shortcut_text")
 private fun shortcutTitle(title: String) =
-    itemWithResIdAndText("$packageName:id/shortcut_text", title)
+    itemWithResIdContainingText("$packageName:id/shortcut_text", title)

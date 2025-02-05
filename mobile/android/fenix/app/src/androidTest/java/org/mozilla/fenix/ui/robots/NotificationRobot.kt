@@ -20,6 +20,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
@@ -162,6 +163,12 @@ class NotificationRobot {
                 scrollToEnd()
             }
         }
+    }
+
+    fun expandMultipleDownloadNotification(notificationItem: String) {
+        Log.i(TAG, "expandMultipleDownloadNotification: Trying to expand notification: $notificationItem using a swipe down action")
+        itemWithResIdContainingText("com.android.systemui:id/notification_title", notificationItem).swipeDown(10)
+        Log.i(TAG, "expandMultipleDownloadNotification: Expanded notification: $notificationItem using a swipe down action")
     }
 
     // Performs swipe action on download system notifications

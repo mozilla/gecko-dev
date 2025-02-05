@@ -1107,6 +1107,15 @@ class BrowserRobot {
         return searchBar.getText()
     }
 
+    fun selectToAlwaysOpenDownloadedFileWithApp(appName: String) {
+        Log.i(TAG, "selectToAlwaysOpenDownloadedFileWithApp: Trying to click $appName from the \"Open with\" prompt")
+        itemWithResIdContainingText("android:id/text1", appName).click()
+        Log.i(TAG, "selectToAlwaysOpenDownloadedFileWithApp: Clicked $appName from the \"Open with\" prompt")
+        Log.i(TAG, "selectToAlwaysOpenDownloadedFileWithApp: Trying to click the \"Always\" button from the \"Open with\" prompt")
+        itemWithResId("android:id/button_always").click()
+        Log.i(TAG, "selectToAlwaysOpenDownloadedFileWithApp: Clicked the \"Always\" button from the \"Open with\" prompt")
+    }
+
     class Transition {
         fun openThreeDotMenu(interact: ThreeDotMenuMainRobot.() -> Unit): ThreeDotMenuMainRobot.Transition {
             Log.i(TAG, "openThreeDotMenu: Waiting for device to be idle for $waitingTime ms")

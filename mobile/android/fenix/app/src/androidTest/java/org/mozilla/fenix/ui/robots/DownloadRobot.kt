@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onFirst
@@ -183,7 +184,7 @@ class DownloadRobot {
         Log.i(TAG, "deleteDownloadedItem: Clicked the trash bin icon to delete downloaded file: $fileName")
     }
 
-    fun clickDownloadedItem(testRule: HomeActivityComposeTestRule, fileName: String) {
+    fun clickDownloadedItem(testRule: ComposeTestRule, fileName: String) {
         Log.i(TAG, "clickDownloadedItem: Trying to click downloaded file: $fileName")
         testRule.onNodeWithTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.$fileName")
             .performClick()
