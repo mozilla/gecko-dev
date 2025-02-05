@@ -604,6 +604,10 @@ class Selection final : public nsSupportsWeakReference,
   void SetHighlightSelectionData(
       HighlightSelectionData aHighlightSelectionData);
 
+  const HighlightSelectionData& HighlightSelectionData() const {
+    return mHighlightData;
+  }
+
   /**
    * See documentation of `GetRangesForInterval` in Selection.webidl.
    *
@@ -1123,7 +1127,7 @@ class Selection final : public nsSupportsWeakReference,
   CachedOffsetForFrame* mCachedOffsetForFrame;
   nsDirection mDirection;
   const SelectionType mSelectionType;
-  HighlightSelectionData mHighlightData;
+  struct HighlightSelectionData mHighlightData;
   UniquePtr<SelectionCustomColors> mCustomColors;
 
   // Non-zero if we don't want any changes we make to the selection to be
