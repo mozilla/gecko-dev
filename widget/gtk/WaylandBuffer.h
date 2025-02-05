@@ -52,31 +52,30 @@ class WaylandBuffer {
   virtual void DestroyGLResources() {};
   virtual gfx::SurfaceFormat GetSurfaceFormat() = 0;
 
-  LayoutDeviceIntSize GetSize() { return mSize; };
-  bool IsMatchingSize(const LayoutDeviceIntSize& aSize) {
+  LayoutDeviceIntSize GetSize() const { return mSize; };
+  bool IsMatchingSize(const LayoutDeviceIntSize& aSize) const {
     return aSize == mSize;
   }
 
-  bool IsAttached() { return !!mSurface; }
+  bool IsAttached() const { return mIsAttachedToCompositor; }
+  void SetAttachedLocked(WaylandSurfaceLock& aSurfaceLock) {
+    mIsAttachedToCompositor = true;
+  }
+
+  bool IsAttachedToSurface(WaylandSurface* aWaylandSurface);
+
+  bool Matches(wl_buffer* aBuffer) { return aBuffer == mWLBuffer; }
 
   // Lend wl_buffer to WaylandSurface to attach.
-  // We store reference to WaylandSurface unless we don't have
-  // wl_buffer available.
-  //
-  // At also marks buffer as attached.
-  wl_buffer* BorrowBuffer(RefPtr<WaylandSurface> aWaylandSurface);
+  wl_buffer* BorrowBuffer(WaylandSurfaceLock& aSurfaceLock);
 
-  // Return lended buffer, called by aWaylandSurface.
-  void ReturnBuffer(RefPtr<WaylandSurface> aWaylandSurface);
+  // Return lended buffer.
+  void ReturnBufferDetached(WaylandSurfaceLock& aSurfaceLock);
 
-  // Called by Wayland compostor when buffer is released/deleted by
-  // Wayland compostor.
-  //
-  // There are two cases how buffer can be detached:
-  // 1) detach call from Wayland compostor, wl_buffer may be kept around.
-  // 2) detach from WaylandSurface - internal wl_buffer is deleted,
-  //    for instance on Unmap when wl_surface becomes invisible.
-  void BufferDetachedCallbackHandler(wl_buffer* aBuffer, bool aWlBufferDeleted);
+  // Return lended buffer which is still used by Wayland compostor.
+  void ReturnBufferAttached(WaylandSurfaceLock& aSurfaceLock);
+
+  void ClearSyncHandler();
 
  protected:
   explicit WaylandBuffer(const LayoutDeviceIntSize& aSize);
@@ -89,14 +88,6 @@ class WaylandBuffer {
   // memory, doesn't affect actual buffer content but only connection
   // to Wayland compositor.
   void DeleteWlBuffer();
-  wl_buffer* GetWlBuffer() { return mWLBuffer; }
-  bool HasWlBuffer() { return !!mWLBuffer; }
-
-  bool IsWaitingToBufferDelete() const { return !!mBufferDeleteSyncCallback; }
-
-  // We need to protect buffer release sequence as it can happen
-  // from Main thread (Wayland compositor) and Rendering thread.
-  mozilla::Mutex mBufferReleaseMutex{"WaylandBufferRelease"};
 
   // wl_buffer delete is not atomic, we need to wait until it's finished.
   wl_callback* mBufferDeleteSyncCallback = nullptr;
@@ -105,9 +96,17 @@ class WaylandBuffer {
   // and passes it to wayland compositor by wl_surface object.
   wl_buffer* mWLBuffer = nullptr;
 
+  // Wayland buffer is tied to WaylandSurface.
+  // We keep reference to WaylandSurface until WaylandSurface returns the
+  // buffer.
+  RefPtr<WaylandSurface> mAttachedToSurface;
+
+  // Indicates that wl_buffer is actively used by Wayland compositor.
+  // We can't delete such wl_buffer.
+  mozilla::Atomic<bool, mozilla::Relaxed> mIsAttachedToCompositor{false};
+
   LayoutDeviceIntSize mSize;
-  // WaylandSurface where we're attached to.
-  RefPtr<WaylandSurface> mSurface;
+
   static gfx::SurfaceFormat sFormat;
 };
 
@@ -125,8 +124,8 @@ class WaylandBufferSHM final : public WaylandBuffer {
   }
 
   void Clear();
-  size_t GetBufferAge() { return mBufferAge; };
-  RefPtr<WaylandShmPool> GetShmPool() { return mShmPool; }
+  size_t GetBufferAge() const { return mBufferAge; };
+  RefPtr<WaylandShmPool> GetShmPool() const { return mShmPool; }
 
   void IncrementBufferAge() { mBufferAge++; };
   void ResetBufferAge() { mBufferAge = 0; };
