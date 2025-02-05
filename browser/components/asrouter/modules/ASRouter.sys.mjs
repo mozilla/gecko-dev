@@ -2115,7 +2115,7 @@ export class _ASRouter {
       privateBrowserOpener.browsingContext.currentWindowGlobal
         .getActor("AboutPrivateBrowsing")
         .sendAsyncMessage("ShowDevToolsMessage", msg);
-    }, 100);
+    }, 200);
 
     return privateBrowserOpener;
   }

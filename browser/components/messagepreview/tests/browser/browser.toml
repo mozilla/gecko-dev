@@ -1,0 +1,24 @@
+[DEFAULT]
+support-files = [
+  "head.js",
+]
+
+prefs = [
+  "browser.newtabpage.activity-stream.asrouter.devtoolsEnabled=true",
+]
+
+["browser_messagepreview_receivemessage.js"]
+
+["browser_messagepreview_show_bookmarks_bar.js"]
+
+["browser_messagepreview_show_cfr.js"]
+
+["browser_messagepreview_show_featurecallout.js"]
+
+["browser_messagepreview_show_infobar.js"]
+
+["browser_messagepreview_show_invalidmessage.js"]
+
+["browser_messagepreview_show_privatebrowsing.js"]
+
+["browser_messagepreview_show_spotlight.js"]

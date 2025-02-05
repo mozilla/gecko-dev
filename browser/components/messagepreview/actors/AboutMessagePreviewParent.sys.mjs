@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   BookmarksBarButton: "resource:///modules/asrouter/BookmarksBarButton.sys.mjs",
   CFRPageActions: "resource:///modules/asrouter/CFRPageActions.sys.mjs",
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   FeatureCalloutBroker:
     "resource:///modules/asrouter/FeatureCalloutBroker.sys.mjs",
   InfoBar: "resource:///modules/asrouter/InfoBar.sys.mjs",
@@ -59,7 +60,13 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
   }
 
   showBookmarksBarButton(message, browser) {
-    lazy.BookmarksBarButton.showBookmarksBarButton(message, browser);
+    //ensure the bookmarks bar is open
+    lazy.CustomizableUI.setToolbarVisibility(
+      lazy.CustomizableUI.AREA_BOOKMARKS,
+      true
+    );
+    //and then send the message
+    lazy.BookmarksBarButton.showBookmarksBarButton(browser, message);
   }
 
   showCFR(message, browser) {
@@ -113,7 +120,18 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
     }
   }
 
-  async showMessage(data) {
+  /**
+   * Chooses the appropriate messaging system function for showing
+   * the message, based on the template passed in data
+   *
+   * @param {string} data - a string containing the message JSON
+   * @param {boolean} validationEnabled - whether or not to run
+   * schema validation on the message JSON. Should be false in
+   * tests so that we don't have to pass real messages or call
+   * the validation function.
+   */
+
+  async showMessage(data, validationEnabled = true) {
     let message;
     try {
       message = JSON.parse(data);
@@ -122,16 +140,17 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
       return;
     }
 
-    const schema = await fetch(
-      "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json",
-      { credentials: "omit" }
-    ).then(rsp => rsp.json());
-
-    const result = JsonSchema.validate(message, schema);
-    if (!result.valid) {
-      console.error(
-        `Invalid message: ${JSON.stringify(result.errors, undefined, 2)}`
-      );
+    if (validationEnabled) {
+      const schema = await fetch(
+        "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json",
+        { credentials: "omit" }
+      ).then(rsp => rsp.json());
+      const result = JsonSchema.validate(message, schema);
+      if (!result.valid) {
+        console.error(
+          `Invalid message: ${JSON.stringify(result.errors, undefined, 2)}`
+        );
+      }
     }
 
     const browser =
@@ -161,11 +180,12 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
   }
 
   receiveMessage(message) {
-    const { name, data } = message;
+    // validationEnabled is used for testing
+    const { name, data, validationEnabled } = message;
 
     switch (name) {
       case "MessagePreview:SHOW_MESSAGE":
-        this.showMessage(data);
+        this.showMessage(data, validationEnabled);
         return;
       case "MessagePreview:CHANGE_THEME": {
         const theme = data.isDark ? SWITCH_THEMES.LIGHT : SWITCH_THEMES.DARK;
