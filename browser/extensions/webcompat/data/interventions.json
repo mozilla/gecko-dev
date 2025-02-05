@@ -752,10 +752,6 @@
   "1774005": {
     "label": "Sites relying on window.InstallTrigger",
     "bugs": {
-      "1788277": {
-        "issue": "broken-meetings",
-        "matches": ["*://*.webex.com/*"]
-      },
       "1793761": {
         "issue": "broken-layout",
         "matches": ["*://www.schoolnutritionandfitness.com/*"]
