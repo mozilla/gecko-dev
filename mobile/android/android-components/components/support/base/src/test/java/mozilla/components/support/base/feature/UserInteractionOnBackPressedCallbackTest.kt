@@ -25,6 +25,7 @@ class UserInteractionOnBackPressedCallbackTest {
     private lateinit var fragment: Fragment
     private lateinit var childFragmentManager: FragmentManager
     private lateinit var interactionFragment: Fragment
+    private lateinit var secondInteractionFragment: Fragment
 
     @Before
     fun setup() {
@@ -34,6 +35,7 @@ class UserInteractionOnBackPressedCallbackTest {
         childFragmentManager = mock()
 
         interactionFragment = mock(Fragment::class.java, withSettings().extraInterfaces(UserInteractionHandler::class.java))
+        secondInteractionFragment = mock(Fragment::class.java, withSettings().extraInterfaces(UserInteractionHandler::class.java))
 
         `when`(fragmentManager.primaryNavigationFragment).thenReturn(fragment)
         `when`(fragment.childFragmentManager).thenReturn(childFragmentManager)
@@ -51,6 +53,31 @@ class UserInteractionOnBackPressedCallbackTest {
 
         verify(fragmentManager, never()).popBackStack()
         verify(dispatcher, never()).onBackPressed()
+        assertTrue(userInteractionCallback.isEnabled)
+    }
+
+    @Test
+    fun `GIVEN first fragment handles back press WHEN back pressed THEN second fragment not triggered`() {
+        `when`(childFragmentManager.fragments).thenReturn(listOf(interactionFragment, secondInteractionFragment))
+        `when`((interactionFragment as UserInteractionHandler).onBackPressed()).thenReturn(true)
+
+        userInteractionCallback.isEnabled = true
+        userInteractionCallback.handleOnBackPressed()
+
+        verify((secondInteractionFragment as UserInteractionHandler), never()).onBackPressed()
+        assertTrue(userInteractionCallback.isEnabled)
+    }
+
+    @Test
+    fun `GIVEN first fragment does not handle back press WHEN back pressed THEN second fragment is triggered`() {
+        `when`(childFragmentManager.fragments).thenReturn(listOf(interactionFragment, secondInteractionFragment))
+        `when`((interactionFragment as UserInteractionHandler).onBackPressed()).thenReturn(false)
+        `when`((secondInteractionFragment as UserInteractionHandler).onBackPressed()).thenReturn(true)
+
+        userInteractionCallback.isEnabled = true
+        userInteractionCallback.handleOnBackPressed()
+
+        verify((secondInteractionFragment as UserInteractionHandler)).onBackPressed()
         assertTrue(userInteractionCallback.isEnabled)
     }
 

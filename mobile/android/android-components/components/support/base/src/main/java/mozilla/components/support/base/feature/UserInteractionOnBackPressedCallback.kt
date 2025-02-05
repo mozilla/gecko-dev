@@ -31,25 +31,21 @@ open class UserInteractionOnBackPressedCallback(
     private val dispatcher: OnBackPressedDispatcher,
 ) : OnBackPressedCallback(false) {
     override fun handleOnBackPressed() {
-        var onBackPressedHandled = false
-
         fragmentManager.primaryNavigationFragment?.childFragmentManager?.fragments?.forEach {
             if (it is UserInteractionHandler && it.onBackPressed()) {
-                onBackPressedHandled = true
+                return
             }
         }
 
-        if (!onBackPressedHandled) {
-            val backStackCount =
-                fragmentManager.primaryNavigationFragment?.childFragmentManager?.backStackEntryCount ?: 0
-            if (backStackCount == 0) {
-                // NB: Disabling the callback enables the default system handling of the back navigation.
-                // In this case it means closing the current activity
-                this.isEnabled = false
-                dispatcher.onBackPressed()
-            } else {
-                fragmentManager.popBackStack()
-            }
+        val backStackCount =
+            fragmentManager.primaryNavigationFragment?.childFragmentManager?.backStackEntryCount ?: 0
+        if (backStackCount == 0) {
+            // NB: Disabling the callback enables the default system handling of the back navigation.
+            // In this case it means closing the current activity
+            this.isEnabled = false
+            dispatcher.onBackPressed()
+        } else {
+            fragmentManager.popBackStack()
         }
     }
 }
