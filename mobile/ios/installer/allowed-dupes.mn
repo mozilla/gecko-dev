@@ -14,7 +14,7 @@ res/table-remove-column.gif
 res/table-remove-row.gif
 
 res/multilocale.txt
-update.locale
+default.locale
 
 components/httpd.sys.mjs
 chrome/remote/content/server/httpd.sys.mjs

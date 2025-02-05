@@ -349,6 +349,6 @@ class OmniJarSubFormatter(PiecemealFormatter):
             "dictionaries",
             "hyphenation",
             "localization",
-            "update.locale",
+            "default.locale",
             "contentaccessible",
         ]

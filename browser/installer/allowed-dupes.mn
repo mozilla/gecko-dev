@@ -51,7 +51,7 @@ res/table-remove-column.gif
 res/table-remove-row.gif
 
 res/multilocale.txt
-update.locale
+default.locale
 
 # Bug 1451016 - Nightly-only PaymentRequest & Form Autofill code sharing.
 browser/features/formautofill@mozilla.org/chrome/content/editAddress.xhtml

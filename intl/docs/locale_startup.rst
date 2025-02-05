@@ -22,7 +22,7 @@ Data Sources
 
 There are three primary sources that become available during the bootstrap.
 
-1) Packaged locale lists stored in files :js:`update.locale` and :js:`multilocale.txt`.
+1) Packaged locale lists stored in files :js:`default.locale` and :js:`multilocale.txt`.
 
 2) User preferences read from the profile.
 
@@ -60,7 +60,7 @@ are being read, so the data is being fetched using packaged preferences.
 
 In case of Desktop Firefox the :js:`intl.locale.requested` pref will be not set,
 which means Gecko will use the default locale which is retrieved from
-:js:`update.locale` file (also packaged).
+:js:`default.locale` file (also packaged).
 
 This means that the initial result of language negotiation is between packaged
 locales as available and the default requested locale.

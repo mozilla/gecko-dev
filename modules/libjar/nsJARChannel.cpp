@@ -1068,13 +1068,6 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
       return;
     }
 
-    // See bug 1695560. "update.locale" with
-    // NS_ERROR_FILE_NOT_FOUND is filtered out.
-    if (fileName.EqualsLiteral("omni.ja!/update.locale") &&
-        aStatus == NS_ERROR_FILE_NOT_FOUND) {
-      return;
-    }
-
     glean::zero_byte_load::LoadOthersExtra extra = {
         .cancelReason = Some(aCanceledReason),
         .cancelled = Some(aCanceled),

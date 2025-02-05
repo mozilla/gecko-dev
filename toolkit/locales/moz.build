@@ -20,10 +20,10 @@ FINAL_TARGET_FILES.res += [
     "!multilocale.txt",
 ]
 
-LOCALIZED_GENERATED_FILES += ["update.locale"]
-update_locale = LOCALIZED_GENERATED_FILES["update.locale"]
-update_locale.script = "generate_update_locale.py"
-LOCALIZED_FILES += ["!update.locale"]
+LOCALIZED_GENERATED_FILES += ["default.locale"]
+default_locale = LOCALIZED_GENERATED_FILES["default.locale"]
+default_locale.script = "generate_default_locale.py"
+LOCALIZED_FILES += ["!default.locale"]
 
 LOCALIZED_GENERATED_FILES += ["locale.ini"]
 LOCALIZED_GENERATED_FILES["locale.ini"].script = "generate_locale_ini.py"

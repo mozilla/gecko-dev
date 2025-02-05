@@ -66,7 +66,6 @@ exclude = [
   "toolkit/components/featuregates",
   "toolkit/content/tests/chrome/file_about_networking_wsh.py",
   "toolkit/library/build/dependentlibs.py",
-  "toolkit/locales/generate_update_locale.py",
   "toolkit/mozapps",
   "toolkit/moz.configure",
   "toolkit/nss.configure",

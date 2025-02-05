@@ -16,7 +16,7 @@
 
 [@AB_CD@]
 @BINPATH@/@PREF_DIR@/mobile-l10n.js
-@BINPATH@/update.locale
+@BINPATH@/default.locale
 #ifdef MOZ_UPDATER
 @BINPATH@/updater.ini
 #endif

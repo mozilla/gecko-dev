@@ -14,7 +14,7 @@ res/table-remove-column.gif
 res/table-remove-row.gif
 
 res/multilocale.txt
-update.locale
+default.locale
 
 #ifdef MOZ_ANDROID_FAT_AAR_ARCHITECTURES
 defaults/pref/arm64-v8a/geckoview-prefs.js

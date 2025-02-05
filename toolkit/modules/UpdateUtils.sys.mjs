@@ -19,7 +19,7 @@ const PER_INSTALLATION_PREFS_PLATFORMS = ["win"];
 // located in the update directory which makes it a common setting across all
 // application profiles and allows the Background Update Agent to read it.
 const FILE_UPDATE_CONFIG_JSON = "update-config.json";
-const FILE_UPDATE_LOCALE = "update.locale";
+const FILE_DEFAULT_LOCALE = "default.locale";
 const PREF_APP_DISTRIBUTION = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION = "distribution.version";
 
@@ -116,8 +116,8 @@ export var UpdateUtils = {
   },
 
   /**
-   * Gets the locale from the update.locale file for replacing %LOCALE% in the
-   * update url. The update.locale file can be located in the application
+   * Gets the locale from the default.locale file for replacing %LOCALE% in the
+   * update url. The default.locale file can be located in the application
    * directory or the GRE directory with preference given to it being located in
    * the application directory.
    */
@@ -127,7 +127,7 @@ export var UpdateUtils = {
     }
 
     for (let res of ["app", "gre"]) {
-      const url = "resource://" + res + "/" + FILE_UPDATE_LOCALE;
+      const url = `resource://${res}/${FILE_DEFAULT_LOCALE}`;
       let data;
       try {
         data = await fetch(url);
@@ -139,12 +139,10 @@ export var UpdateUtils = {
         return (this._locale = locale.trim());
       }
     }
-    if (AppConstants.MOZ_UPDATER) {
-      console.error(
-        FILE_UPDATE_LOCALE,
-        " file doesn't exist in either the application or GRE directories"
-      );
-    }
+    console.error(
+      FILE_DEFAULT_LOCALE,
+      " file doesn't exist in either the application or GRE directories"
+    );
 
     return (this._locale = null);
   },

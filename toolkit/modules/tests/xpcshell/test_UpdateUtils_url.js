@@ -271,6 +271,7 @@ add_task(async function test_build_target() {
 
 // url constructed with %LOCALE%
 // Bug 488936 added the update.locale file that stores the update locale
+// Bug 1936528 renamed it as default.locale
 add_task(async function test_locale() {
   // The code that gets the locale accesses the profile which is only available
   // after calling do_get_profile in xpcshell tests. This prevents an error from

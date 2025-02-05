@@ -471,7 +471,7 @@ ARCHIVE_FILES = {
                 "*.toml",
                 "localization/**",
                 "modules/**",
-                "update.locale",
+                "default.locale",
                 "greprefs.js",
             ],
             "dest": "bin",

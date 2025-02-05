@@ -21,7 +21,7 @@ NON_CHROME = set(
         "defaults/profile",
         "defaults/pref*/*-l10n.js",
         "locale.ini",
-        "update.locale",
+        "default.locale",
         "updater.ini",
         "extensions/langpack-*@*",
         "distribution/extensions/langpack-*@*",
