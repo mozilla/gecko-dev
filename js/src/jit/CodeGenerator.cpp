@@ -4704,14 +4704,11 @@ void CodeGenerator::visitMegamorphicLoadSlotPermissive(
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
   Register temp2 = ToRegister(lir->temp2());
-  Register temp3 = ToRegister(lir->temp3());
   ValueOperand output = ToOutValue(lir);
 
-  masm.movePtr(obj, temp3);
-
-  Label done, getter, nullGetter;
+  Label cacheHit;
   masm.emitMegamorphicCacheLookup(lir->mir()->name(), obj, temp0, temp1, temp2,
-                                  output, &done, &getter);
+                                  output, &cacheHit);
 
   masm.movePropertyKey(lir->mir()->name(), temp1);
   pushArg(temp2);
@@ -4722,17 +4719,7 @@ void CodeGenerator::visitMegamorphicLoadSlotPermissive(
                       MegamorphicCacheEntry*, MutableHandleValue);
   callVM<Fn, GetPropMaybeCached>(lir);
 
-  masm.jump(&done);
-
-  masm.bind(&getter);
-
-  emitCallMegamorphicGetter(lir, output, temp3, temp1, temp2, &nullGetter);
-  masm.jump(&done);
-
-  masm.bind(&nullGetter);
-  masm.moveValue(UndefinedValue(), output);
-
-  masm.bind(&done);
+  masm.bind(&cacheHit);
 }
 
 void CodeGenerator::visitMegamorphicLoadSlotByValue(
@@ -4793,20 +4780,9 @@ void CodeGenerator::visitMegamorphicLoadSlotByValuePermissive(
   Register temp2 = ToRegister(lir->temp2());
   ValueOperand output = ToOutValue(lir);
 
-  // If we have enough registers available, we can call getters directly from
-  // jitcode. On x86, we have to call into the VM.
-#ifndef JS_CODEGEN_X86
-  Label done, getter, nullGetter;
-  Register temp3 = ToRegister(lir->temp3());
-  masm.movePtr(obj, temp3);
-
+  Label cacheHit;
   masm.emitMegamorphicCacheLookupByValue(idVal, obj, temp0, temp1, temp2,
-                                         output, &done, &getter);
-#else
-  Label done;
-  masm.emitMegamorphicCacheLookupByValue(idVal, obj, temp0, temp1, temp2,
-                                         output, &done);
-#endif
+                                         output, &cacheHit);
 
   pushArg(temp2);
   pushArg(idVal);
@@ -4816,18 +4792,7 @@ void CodeGenerator::visitMegamorphicLoadSlotByValuePermissive(
                       MegamorphicCacheEntry*, MutableHandleValue);
   callVM<Fn, GetElemMaybeCached>(lir);
 
-#ifndef JS_CODEGEN_X86
-  masm.jump(&done);
-  masm.bind(&getter);
-
-  emitCallMegamorphicGetter(lir, output, temp3, temp1, temp2, &nullGetter);
-  masm.jump(&done);
-
-  masm.bind(&nullGetter);
-  masm.moveValue(UndefinedValue(), output);
-#endif
-
-  masm.bind(&done);
+  masm.bind(&cacheHit);
 }
 
 void CodeGenerator::visitMegamorphicStoreSlot(LMegamorphicStoreSlot* lir) {
@@ -5320,44 +5285,6 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
   }
   masm.initializeBigInt64(type, output, input, maybeTemp64);
   masm.bind(ool->rejoin());
-}
-
-void CodeGenerator::emitCallMegamorphicGetter(
-    LInstruction* lir, ValueOperand accessorAndOutput, Register obj,
-    Register calleeScratch, Register argcScratch, Label* nullGetter) {
-  MOZ_ASSERT(calleeScratch == IonGenericCallCalleeReg);
-  MOZ_ASSERT(argcScratch == IonGenericCallArgcReg);
-
-  masm.unboxNonDouble(accessorAndOutput, calleeScratch,
-                      JSVAL_TYPE_PRIVATE_GCTHING);
-
-  masm.loadPtr(Address(calleeScratch, GetterSetter::offsetOfGetter()),
-               calleeScratch);
-  masm.branchTestPtr(Assembler::Zero, calleeScratch, calleeScratch, nullGetter);
-  masm.loadPtr(Address(calleeScratch, JSFunction::offsetOfJitInfoOrScript()),
-               argcScratch);
-
-  if (JitStackValueAlignment > 1) {
-    masm.reserveStack(sizeof(Value) * (JitStackValueAlignment - 1));
-  }
-  masm.pushValue(JSVAL_TYPE_OBJECT, obj);
-
-  masm.checkStackAlignment();
-
-  masm.move32(Imm32(0), argcScratch);
-  ensureOsiSpace();
-
-  TrampolinePtr genericCallStub =
-      gen->jitRuntime()->getIonGenericCallStub(IonGenericCallKind::Call);
-  uint32_t callOffset = masm.callJit(genericCallStub);
-  markSafepointAt(callOffset, lir);
-
-  masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
-
-  masm.moveValue(JSReturnOperand, accessorAndOutput);
-
-  masm.setFramePushed(frameSize());
-  emitRestoreStackPointerFromFP();
 }
 
 void CodeGenerator::visitInt64ToBigInt(LInt64ToBigInt* lir) {

@@ -3806,7 +3806,7 @@
   result_type: BoxedValue
   operands:
     object: WordSized
-  num_temps: 4
+  num_temps: 3
   call_instruction: true
   mir_op: true
 
@@ -3815,11 +3815,7 @@
   operands:
     object: WordSized
     id: BoxedValue
-#ifdef JS_CODEGEN_X86
   num_temps: 3
-#else
-  num_temps: 4
-#endif
   call_instruction: true
   mir_op: true
 

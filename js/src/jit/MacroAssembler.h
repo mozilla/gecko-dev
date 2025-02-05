@@ -5766,8 +5766,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void emitExtractValueFromMegamorphicCacheEntry(
       Register obj, Register entry, Register scratch1, Register scratch2,
-      ValueOperand output, Label* cacheHit, Label* cacheMiss,
-      Label* cacheHitGetter);
+      ValueOperand output, Label* cacheHit, Label* cacheMiss);
 
   template <typename IdOperandType>
   void emitMegamorphicCacheLookupByValueCommon(
@@ -5777,8 +5776,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void emitMegamorphicCacheLookup(PropertyKey id, Register obj,
                                   Register scratch1, Register scratch2,
                                   Register outEntryPtr, ValueOperand output,
-                                  Label* cacheHit,
-                                  Label* cacheHitGetter = nullptr);
+                                  Label* cacheHit);
 
   // NOTE: |id| must either be a ValueOperand or a Register. If it is a
   // Register, we assume that it is an atom.
@@ -5786,8 +5784,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void emitMegamorphicCacheLookupByValue(IdOperandType id, Register obj,
                                          Register scratch1, Register scratch2,
                                          Register outEntryPtr,
-                                         ValueOperand output, Label* cacheHit,
-                                         Label* cacheHitGetter = nullptr);
+                                         ValueOperand output, Label* cacheHit);
 
   void emitMegamorphicCacheLookupExists(ValueOperand id, Register obj,
                                         Register scratch1, Register scratch2,

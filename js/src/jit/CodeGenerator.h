@@ -353,11 +353,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                         Register output, Register maybeTemp,
                         Register64 maybeTemp64 = Register64::Invalid());
 
-  void emitCallMegamorphicGetter(LInstruction* lir,
-                                 ValueOperand accessorAndOutput, Register obj,
-                                 Register calleeScratch, Register argcScratch,
-                                 Label* nullGetter);
-
   template <size_t NumDefs>
   void emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir);
 
