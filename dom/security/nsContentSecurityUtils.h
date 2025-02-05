@@ -89,6 +89,7 @@ class nsContentSecurityUtils {
 
 #if defined(DEBUG)
   static void AssertAboutPageHasCSP(mozilla::dom::Document* aDocument);
+  static void AssertChromePageHasCSP(mozilla::dom::Document* aDocument);
 #endif
 
   static bool ValidateScriptFilename(JSContext* cx, const char* aFilename);
