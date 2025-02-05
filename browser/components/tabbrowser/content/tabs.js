@@ -1398,7 +1398,8 @@
         winHeight /= screenCssToDesktopScale;
 
         let props = { screenX: left, screenY: top, suppressanimation: 1 };
-        if (AppConstants.platform != "win") {
+        if (AppConstants.platform == "macosx") {
+          // TODO(emilio): Figure out if we need this at all on mac.
           props.outerWidth = winWidth;
           props.outerHeight = winHeight;
         }
