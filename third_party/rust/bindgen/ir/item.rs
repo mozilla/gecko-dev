@@ -85,6 +85,7 @@ pub(crate) trait HasTypeParamInArray {
     fn has_type_param_in_array(&self, ctx: &BindgenContext) -> bool;
 }
 
+#[allow(dead_code)]
 /// A trait for determining if some IR thing has float or not.
 pub(crate) trait HasFloat {
     /// Returns `true` if the thing has float, and `false` otherwise.
