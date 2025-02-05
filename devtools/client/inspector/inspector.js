@@ -163,6 +163,7 @@ function Inspector(toolbox, commands) {
   this._onTargetSelected = this._onTargetSelected.bind(this);
   this._onWillNavigate = this._onWillNavigate.bind(this);
   this._updateSearchResultsLabel = this._updateSearchResultsLabel.bind(this);
+  this._onSearchLabelClick = this._onSearchLabelClick.bind(this);
 
   this.onDetached = this.onDetached.bind(this);
   this.onHostChanged = this.onHostChanged.bind(this);
@@ -518,7 +519,9 @@ Inspector.prototype = {
       this._search = new InspectorSearch(
         this,
         this.searchBox,
-        this.searchClearButton
+        this.searchClearButton,
+        this.searchPrevButton,
+        this.searchNextButton
       );
     }
 
@@ -653,15 +656,32 @@ Inspector.prototype = {
     this.searchResultsContainer = this.panelDoc.getElementById(
       "inspector-searchlabel-container"
     );
+    this.searchNavigationContainer = this.panelDoc.getElementById(
+      "inspector-searchnavigation-container"
+    );
+    this.searchPrevButton = this.panelDoc.getElementById(
+      "inspector-searchnavigation-button-prev"
+    );
+    this.searchNextButton = this.panelDoc.getElementById(
+      "inspector-searchnavigation-button-next"
+    );
     this.searchResultsLabel = this.panelDoc.getElementById(
       "inspector-searchlabel"
     );
+
+    this.searchResultsLabel.addEventListener("click", this._onSearchLabelClick);
 
     this.searchBox.addEventListener("focus", this.listenForSearchEvents, {
       once: true,
     });
 
     this.createSearchBoxShortcuts();
+  },
+
+  _onSearchLabelClick() {
+    // Focus on the search box as the search label
+    // appears to be "inside" input
+    this.searchBox.focus();
   },
 
   listenForSearchEvents() {
@@ -715,8 +735,10 @@ Inspector.prototype = {
           result.resultsIndex + 1,
           result.resultsLength
         );
+        this.searchNavigationContainer.hidden = false;
       } else {
         str = INSPECTOR_L10N.getStr("inspector.searchResultsNone");
+        this.searchNavigationContainer.hidden = true;
       }
 
       this.searchResultsContainer.hidden = false;
@@ -1780,6 +1802,11 @@ Inspector.prototype = {
     this.sidebar = null;
     this.store = null;
     this.telemetry = null;
+    this.searchResultsLabel.removeEventListener(
+      "click",
+      this._onSearchLabelClick
+    );
+    this.searchResultsLabel = null;
   },
 
   _destroyMarkup() {

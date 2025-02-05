@@ -23,23 +23,35 @@ const MAX_SUGGESTIONS = 15;
  *        search input will be taken.
  * @param {DOMNode} clearBtn
  *        The clear button in the input field that will clear the input value.
+ * @param {DOMNode} prevBtn
+ *        The prev button in the search label that will move
+ *        selection to previous match.
+ * @param {DOMNode} nextBtn
+ *        The next button in the search label that will move
+ *        selection to next match.
  *
  * Emits the following events:
  * - search-cleared: when the search box is emptied
  * - search-result: when a search is made and a result is selected
  */
-function InspectorSearch(inspector, input, clearBtn) {
+function InspectorSearch(inspector, input, clearBtn, prevBtn, nextBtn) {
   this.inspector = inspector;
   this.searchBox = input;
   this.searchClearButton = clearBtn;
+  this.searchPrevButton = prevBtn;
+  this.searchNextButton = nextBtn;
   this._lastSearched = null;
 
   this._onKeyDown = this._onKeyDown.bind(this);
   this._onInput = this._onInput.bind(this);
+  this.findPrev = this.findPrev.bind(this);
+  this.findNext = this.findNext.bind(this);
   this._onClearSearch = this._onClearSearch.bind(this);
 
   this.searchBox.addEventListener("keydown", this._onKeyDown, true);
   this.searchBox.addEventListener("input", this._onInput, true);
+  this.searchPrevButton.addEventListener("click", this.findPrev, true);
+  this.searchNextButton.addEventListener("click", this.findNext, true);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
 
   this.autocompleter = new SelectorAutocompleter(inspector, input);
@@ -52,8 +64,12 @@ InspectorSearch.prototype = {
   destroy() {
     this.searchBox.removeEventListener("keydown", this._onKeyDown, true);
     this.searchBox.removeEventListener("input", this._onInput, true);
+    this.searchPrevButton.removeEventListener("click", this.findPrev, true);
+    this.searchNextButton.removeEventListener("click", this.findNext, true);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);
     this.searchBox = null;
+    this.searchPrevButton = null;
+    this.searchNextButton = null;
     this.searchClearButton = null;
     this.autocompleter.destroy();
   },
@@ -121,6 +137,14 @@ InspectorSearch.prototype = {
       this._onSearch(event.shiftKey);
       event.preventDefault();
     }
+  },
+
+  findNext() {
+    this._onSearch();
+  },
+
+  findPrev() {
+    this._onSearch(true);
   },
 
   _onClearSearch() {

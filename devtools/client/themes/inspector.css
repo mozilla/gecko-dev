@@ -86,15 +86,55 @@ window {
 
 #inspector-searchlabel-container {
   display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 #inspector-searchlabel-container[hidden] {
   display: none;
 }
 
+#inspector-searchnavigation-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+#inspector-searchnavigation-container[hidden] {
+  display: none;
+}
+
+#inspector-searchnavigation-container
+  .inspector-searchnavigation-buttons::before {
+  background-size: 16px;
+  margin-inline: 0;
+}
+
+#inspector-searchnavigation-button-prev::before {
+  background-image: url("chrome://devtools/content/debugger/images/arrow-up.svg");
+}
+
+#inspector-searchnavigation-button-next::before {
+  background-image: url("chrome://devtools/content/debugger/images/arrow-down.svg");
+}
+
 #inspector-searchlabel {
   padding: 0 3px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  user-select: none;
+  color: var(--theme-text-color-alt);
+}
+
+#inspector-search {
+  container: search-container / inline-size;
+}
+
+@container search-container (inline-size < 200px) {
+  #inspector-searchlabel {
+    display: none;
+  }
 }
 
 /* Add element toolbar button */

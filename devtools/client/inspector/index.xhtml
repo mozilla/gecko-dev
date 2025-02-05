@@ -101,16 +101,28 @@
               type="search"
               data-localization="placeholder=inspectorSearchHTML.label3"
             />
+            <div id="inspector-searchlabel-container" hidden="">
+              <span id="inspector-searchlabel"></span>
+              <div id="inspector-searchnavigation-container" hidden="">
+                <button
+                  class="inspector-searchnavigation-buttons devtools-button"
+                  id="inspector-searchnavigation-button-prev"
+                  data-localization="title=inspectorSearchHTML.prevButton.title"
+                ></button>
+                <button
+                  class="inspector-searchnavigation-buttons devtools-button"
+                  id="inspector-searchnavigation-button-next"
+                  data-localization="title=inspectorSearchHTML.nextButton.title"
+                ></button>
+              </div>
+              <div class="devtools-separator"></div>
+            </div>
             <button
               id="inspector-searchinput-clear"
               class="devtools-searchinput-clear"
               hidden=""
               data-localization="title=inspectorSearchHTML.clearButton.title"
             ></button>
-          </div>
-          <div id="inspector-searchlabel-container" hidden="">
-            <div class="devtools-separator"></div>
-            <span id="inspector-searchlabel"></span>
           </div>
           <div class="devtools-separator"></div>
           <button
