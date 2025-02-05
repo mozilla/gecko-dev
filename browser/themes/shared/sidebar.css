@@ -110,6 +110,13 @@
     @media (-moz-overlay-scrollbars) {
       --splitter-width: 2px;
     }
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not (-moz-bool-pref: "sidebar.verticalTabs") {
+      &#sidebar-launcher-splitter {
+        display: none;
+      }
+    }
   }
 }
 
