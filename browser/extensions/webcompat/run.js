@@ -4,26 +4,20 @@
 
 "use strict";
 
-/* globals AboutCompatBroker, AVAILABLE_INJECTIONS, AVAILABLE_SHIMS,
-           AVAILABLE_PIP_OVERRIDES, AVAILABLE_UA_OVERRIDES, CUSTOM_FUNCTIONS,
-           Injections, Shims, UAOverrides */
+/* globals AboutCompatBroker, AVAILABLE_SHIMS,
+           CUSTOM_FUNCTIONS, Interventions, Shims */
 
-let injections, shims, uaOverrides;
+let interventions, shims;
 
-try {
-  injections = new Injections(AVAILABLE_INJECTIONS, CUSTOM_FUNCTIONS);
-  injections.bootup();
-} catch (e) {
-  console.error("Injections failed to start", e);
-  injections = undefined;
-}
+const AVAILABLE_INTERVENTIONS =
+#include data/interventions.json
 
 try {
-  uaOverrides = new UAOverrides(AVAILABLE_UA_OVERRIDES);
-  uaOverrides.bootup();
+  interventions = new Interventions(AVAILABLE_INTERVENTIONS, CUSTOM_FUNCTIONS);
+  interventions.bootup();
 } catch (e) {
-  console.error("UA overrides failed to start", e);
-  uaOverrides = undefined;
+  console.error("Interventions failed to start", e);
+  interventions = undefined;
 }
 
 try {
@@ -35,9 +29,8 @@ try {
 
 try {
   const aboutCompatBroker = new AboutCompatBroker({
-    injections,
+    interventions,
     shims,
-    uaOverrides,
   });
   aboutCompatBroker.bootup();
 } catch (e) {

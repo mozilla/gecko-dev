@@ -9,6 +9,9 @@ DEFINES["MOZ_APP_MAXVERSION"] = CONFIG["MOZ_APP_MAXVERSION"]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"] += [
     "manifest.json",
+]
+
+FINAL_TARGET_PP_FILES.features["webcompat@mozilla.org"] += [
     "run.js",
 ]
 
@@ -25,11 +28,6 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["about-compat"] += [
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["data"] += [
     "data/interventions.json",
     "data/shims.js",
-]
-
-FINAL_TARGET_PP_FILES.features["webcompat@mozilla.org"]["data"] += [
-    "data/injections.js",
-    "data/ua_overrides.js",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["experiment-apis"] += [
@@ -194,15 +192,14 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["lib"] += [
     "lib/about_compat_broker.js",
     "lib/custom_functions.js",
-    "lib/injections.js",
     "lib/intervention_helpers.js",
+    "lib/interventions.js",
     "lib/messaging_helper.js",
     "lib/module_shim.js",
     "lib/requestStorageAccess_helper.js",
     "lib/shim_messaging_helper.js",
     "lib/shims.js",
     "lib/ua_helpers.js",
-    "lib/ua_overrides.js",
 ]
 
 XPCOM_MANIFESTS += [

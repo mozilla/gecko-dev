@@ -77,9 +77,8 @@ module.exports = [
   // Generated data files
   "browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.sys.mjs",
 
-  // JS files using the #include pre-processor macro, leading to syntax errors.
-  "browser/extensions/webcompat/data/injections.js",
-  "browser/extensions/webcompat/data/ua_overrides.js",
+  // JS file using the #include pre-processor macro, leading to syntax errors.
+  "browser/extensions/webcompat/run.js",
 
   // Ignore newtab files
   "browser/extensions/newtab/logs/",

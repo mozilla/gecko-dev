@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "136.7.0",
+  "version": "137.0.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -85,14 +85,11 @@
       "lib/ua_helpers.js",
       "lib/intervention_helpers.js",
       "lib/requestStorageAccess_helper.js",
-      "data/injections.js",
       "data/shims.js",
-      "data/ua_overrides.js",
       "lib/about_compat_broker.js",
       "lib/custom_functions.js",
-      "lib/injections.js",
+      "lib/interventions.js",
       "lib/shims.js",
-      "lib/ua_overrides.js",
       "run.js"
     ]
   },

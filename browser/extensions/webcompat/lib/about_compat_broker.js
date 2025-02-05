@@ -8,17 +8,17 @@
 
 class AboutCompatBroker {
   constructor(bindings) {
-    this._injections = bindings.injections;
-    this._uaOverrides = bindings.uaOverrides;
+    this._interventions = bindings.interventions;
     this._shims = bindings.shims;
 
-    if (!this._injections && !this._uaOverrides && !this._shims) {
-      throw new Error("No interventions; about:compat broker is not needed");
+    if (!this._interventions && !this._shims) {
+      throw new Error(
+        "No interventions or shims; about:compat broker is not needed"
+      );
     }
 
     this.portsToAboutCompatTabs = this.buildPorts();
-    this._injections?.bindAboutCompatBroker(this);
-    this._uaOverrides?.bindAboutCompatBroker(this);
+    this._interventions?.bindAboutCompatBroker(this);
     this._shims?.bindAboutCompatBroker(this);
   }
 
@@ -41,21 +41,20 @@ class AboutCompatBroker {
     return { broadcast };
   }
 
-  filterOverrides(overrides) {
-    return overrides
-      .filter(override => override.availableOnPlatform)
-      .map(override => {
-        const { id, active, bugs, hidden } = override;
-        let domain = override.label || override.domain;
-        let bug = override.bug || Object.keys(bugs)[0];
+  filterInterventions(interventions) {
+    return interventions
+      .filter(intervention => intervention.availableOnPlatform)
+      .map(intervention => {
+        const { id, active, bugs, hidden } = intervention;
+        let domain = intervention.label;
+        let bug = Object.keys(bugs)[0];
         return { id, active, bug, domain, hidden };
       });
   }
 
   getInterventionById(id) {
     for (const [type, things] of Object.entries({
-      overrides: this._uaOverrides?.getAvailableOverrides() || [],
-      interventions: this._injections?.getAvailableInjections() || [],
+      interventions: this._interventions?.getAvailableInterventions() || [],
       shims: this._shims?.getAvailableShims() || [],
     })) {
       for (const what of things) {
@@ -74,9 +73,7 @@ class AboutCompatBroker {
           const id = msg.id;
           const { type, what } = this.getInterventionById(id);
           if (!what) {
-            return Promise.reject(
-              `No such override or intervention to toggle: ${id}`
-            );
+            return Promise.reject(`No such intervention to toggle: ${id}`);
           }
           const active = type === "shims" ? !what.disabledReason : what.active;
           this.portsToAboutCompatTabs
@@ -85,17 +82,9 @@ class AboutCompatBroker {
               switch (type) {
                 case "interventions": {
                   if (active) {
-                    await this._injections?.disableInjection(what);
+                    await this._interventions?.disableIntervention(what);
                   } else {
-                    await this._injections?.enableInjection(what);
-                  }
-                  break;
-                }
-                case "overrides": {
-                  if (active) {
-                    await this._uaOverrides?.disableOverride(what);
-                  } else {
-                    await this._uaOverrides?.enableOverride(what);
+                    await this._interventions?.enableIntervention(what);
                   }
                   break;
                 }
@@ -119,16 +108,10 @@ class AboutCompatBroker {
         }
         case "getAllInterventions": {
           return Promise.resolve({
-            overrides:
-              (this._uaOverrides?.isEnabled() &&
-                this.filterOverrides(
-                  this._uaOverrides?.getAvailableOverrides()
-                )) ||
-              false,
             interventions:
-              (this._injections?.isEnabled() &&
-                this.filterOverrides(
-                  this._injections?.getAvailableInjections()
+              (this._interventions?.isEnabled() &&
+                this.filterInterventions(
+                  this._interventions?.getAvailableInterventions()
                 )) ||
               false,
             shims: this._shims?.getAvailableShims() || false,

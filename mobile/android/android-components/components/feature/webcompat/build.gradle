@@ -47,11 +47,10 @@ tasks.register("syncWebcompatExtension", Sync) {
     // processed for Desktop builds. The filter below pre-processes the files
     // that include these directives.
     filesMatching([
-        '**/data/injections.js',
-        '**/data/ua_overrides.js'
+        '**/run.js',
     ]) {
         filter(ReplaceTokens, beginToken: '', endToken: '', tokens: [
-            '#include interventions.json': rootProject.file('browser/extensions/webcompat/data/interventions.json').text.trim(),
+            '#include data/interventions.json': rootProject.file('browser/extensions/webcompat/data/interventions.json').text.trim(),
         ])
     }
 }
