@@ -489,7 +489,6 @@ void PeerConnectionCtx::AddPeerConnection(const std::string& aKey,
   if (mPeerConnections.empty()) {
     AudioState::Config audioStateConfig;
     audioStateConfig.audio_mixer = new rtc::RefCountedObject<DummyAudioMixer>();
-    AudioProcessingBuilder audio_processing_builder;
     audioStateConfig.audio_processing =
         new rtc::RefCountedObject<DummyAudioProcessing>();
     audioStateConfig.audio_device_module =
