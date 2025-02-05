@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <script type="module" src="chrome://global/content/elements/moz-page-nav.mjs"></script>
+  <script type="module" src="chrome://global/content/elements/moz-input-search.mjs"></script>
 </head>
 <style>
 body {
@@ -360,8 +361,20 @@ function isActiveElement(expectedActiveEl) {
       "The first page nav button is still selected"
     )
 
-    await SpecialPowers.popPrefEnv();
-  });
-</script>
+      await SpecialPowers.popPrefEnv();
+    });
+
+    add_task(async function test_supports_subheading_slot() {
+      let searchInput = document.createElement("moz-input-search");
+      searchInput.placeholder = "This goes in the slot";
+      searchInput.ariaLabel = "Some label";
+      searchInput.slot = "subheading";
+      mozPageNav.append(searchInput);
+
+      let slot = mozPageNav.shadowRoot.querySelector("slot[name='subheading']");
+      ok(slot, "The nav contains a subheading slot.")
+      is(slot.assignedNodes()[0], searchInput, "The search input is in the subheading slot.");
+    });
+  </script>
 </body>
 </html>
