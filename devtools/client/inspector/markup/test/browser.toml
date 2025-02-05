@@ -323,6 +323,8 @@ skip-if = ["true"] # Bug 1706833, times out waiting for context menu to open
 
 ["browser_markup_search_01.js"]
 
+["browser_markup_search_html.js"]
+
 ["browser_markup_shadowdom.js"]
 
 ["browser_markup_shadowdom_clickreveal.js"]
