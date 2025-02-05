@@ -965,6 +965,15 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
     unblocksOnOptIn: ["*://www.tiktok.com/*"],
   },
+  {
+    id: "FingerpringJSBotd",
+    platform: "all",
+    name: "FingerprintJS Bot Detection",
+    bug: "1925995",
+    file: "botd.mjs",
+    matches: ["*://openfpcdn.io/botd/v1"],
+    onlyIfBlockedByETP: true,
+  },
 ];
 
 module.exports = AVAILABLE_SHIMS;

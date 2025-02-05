@@ -133,6 +133,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
     "shims/blogger.js",
     "shims/bloggerAccount.js",
     "shims/bmauth.js",
+    "shims/botd.mjs",
     "shims/branch.js",
     "shims/chartbeat.js",
     "shims/crave-ca.js",
