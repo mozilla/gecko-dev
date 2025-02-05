@@ -18,6 +18,14 @@ const { PlacesDBUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PlacesDBUtils.sys.mjs"
 );
 
+const lazy = {};
+
+ChromeUtils.defineLazyGetter(lazy, "PlacesFrecencyRecalculator", () => {
+  return Cc["@mozilla.org/places/frecency-recalculator;1"].getService(
+    Ci.nsIObserver
+  ).wrappedJSObject;
+});
+
 /**
  * Base class for the table display. Handles table layout and updates.
  */
@@ -376,6 +384,77 @@ const placesStatsHandler = new (class extends TableViewer {
   }
 })();
 
+/**
+ * Places database with frecency scores.
+ */
+const placesViewerHandler = new (class extends TableViewer {
+  title = "Places Viewer";
+  cssGridTemplateColumns = "fit-content(100%) repeat(5, max-content);";
+  #db = null;
+  #maxRows = 100;
+
+  /**
+   * @see TableViewer.columnMap
+   */
+  columnMap = new Map([
+    ["url", { header: "URL" }],
+    ["title", { header: "Title" }],
+    ["frecency", { header: "Frecency" }],
+    [
+      "recalc_frecency",
+      {
+        header: "Recalc Frecency",
+      },
+    ],
+    [
+      "alt_frecency",
+      {
+        header: "Alt Frecency",
+      },
+    ],
+    [
+      "recalc_alt_frecency",
+      {
+        header: "Recalc Alt Frecency",
+      },
+    ],
+  ]);
+
+  async #getRows(query, columns = [...this.columnMap.keys()]) {
+    if (!this.#db) {
+      this.#db = await PlacesUtils.promiseDBConnection();
+    }
+    let rows = await this.#db.executeCached(query);
+    return rows.map(r => {
+      let result = {};
+      for (let column of columns) {
+        result[column] = r.getResultByName(column);
+      }
+      return result;
+    });
+  }
+
+  /**
+   * Loads the current metadata from the database and updates the display.
+   */
+  async updateDisplay() {
+    let rows = await this.#getRows(
+      `
+        SELECT
+          url,
+          title,
+          frecency,
+          recalc_frecency,
+          alt_frecency,
+          recalc_alt_frecency
+        FROM moz_places
+        ORDER BY last_visit_date DESC
+        LIMIT ${this.#maxRows}`
+    );
+    this.displayData(rows);
+  }
+})();
+
 function checkPrefs() {
   if (
     !Services.prefs.getBoolPref("browser.places.interactions.enabled", false)
@@ -401,6 +480,9 @@ function show(selectedButton) {
       break;
     case "places-stats":
       (gCurrentHandler = placesStatsHandler).start();
+      break;
+    case "places-viewer":
+      (gCurrentHandler = placesViewerHandler).start();
       break;
   }
 }
@@ -472,6 +554,15 @@ function setupListeners() {
 
     downloadFile(rows, "text/csv", "csv");
   });
+
+  // Allow users to force frecency to update instead of waiting for an idle
+  // event.
+  document
+    .getElementById("recalc-alt-frecency")
+    .addEventListener("click", async e => {
+      e.preventDefault();
+      lazy.PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+    });
 }
 
 checkPrefs();
