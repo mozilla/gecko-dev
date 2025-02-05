@@ -2076,7 +2076,6 @@ pref("sidebar.revamp.round-content-area", false);
 #endif
 pref("sidebar.animation.enabled", true);
 pref("sidebar.animation.duration-ms", 200);
-pref("sidebar.animation.expand-on-hover.duration-ms", 400);
 pref("sidebar.main.tools", "aichat,syncedtabs,history");
 pref("sidebar.verticalTabs", false);
 pref("sidebar.visibility", "always-show");
@@ -2084,7 +2083,6 @@ pref("sidebar.visibility", "always-show");
 // as a backup to restore the sidebar UI state when a user has PPB mode on
 // or has history cleared on browser close.
 pref("sidebar.backupState", "{}");
-pref("sidebar.expandOnHover", false);
 
 pref("browser.ml.chat.enabled", true);
 pref("browser.ml.chat.hideLocalhost", true);

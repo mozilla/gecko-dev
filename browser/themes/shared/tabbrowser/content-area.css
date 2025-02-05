@@ -40,11 +40,6 @@
   }
 }
 
-/* Needed to ensure #sidebar-wrapper is full height when vertical tabs are not enabled */
-#browser {
-  position: relative;
-}
-
 #browser,
 #tabbrowser-tabbox,
 #tabbrowser-tabpanels,

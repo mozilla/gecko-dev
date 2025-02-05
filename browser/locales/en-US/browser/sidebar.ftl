@@ -58,10 +58,6 @@ sidebar-show-on-the-right =
   .label = Move sidebar to the right
 sidebar-show-on-the-left =
   .label = Move sidebar to the left
-# Option to automatically expand the collapsed sidebar when the mouse pointer
-# hovers over it.
-expand-sidebar-on-hover =
-  .label = Expand sidebar on hover
 
 ## Labels for sidebar context menu items
 

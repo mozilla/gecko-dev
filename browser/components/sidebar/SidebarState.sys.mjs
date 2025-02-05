@@ -33,8 +33,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
  *   Current width of the sidebar launcher.
  * @property {number} expandedLauncherWidth
  *   Width that the sidebar launcher should expand to.
- * @property {number} collapsedLauncherWidth
- *   Width that the sidebar launcher should collapse to.
  */
 
 const LAUNCHER_MINIMUM_WIDTH = 100;
@@ -54,7 +52,6 @@ export class SidebarState {
     launcherExpanded: false,
     launcherDragActive: false,
     launcherHoverActive: false,
-    collapsedLauncherWidth: undefined,
   };
   #previousLauncherVisible = undefined;
 
@@ -183,10 +180,6 @@ export class SidebarState {
       expandedLauncherWidth: convertToInt(this.expandedLauncherWidth),
       launcherExpanded: this.launcherExpanded,
       launcherVisible: this.launcherVisible,
-      collapsedLauncherWidth:
-        typeof this.collapsedLauncherWidth === "number"
-          ? Math.round(this.collapsedLauncherWidth)
-          : this.collapsedLauncherWidth,
     };
   }
 
@@ -225,8 +218,7 @@ export class SidebarState {
   updateVisibility(
     visible,
     openedByToolbarButton = false,
-    onToolbarButtonRemoval = false,
-    forceExpandValue = null
+    onToolbarButtonRemoval = false
   ) {
     switch (this.revampVisibility) {
       case "hide-sidebar":
@@ -256,10 +248,8 @@ export class SidebarState {
         this.launcherVisible = visible;
         break;
       case "always-show":
-      case "expand-on-hover":
         this.launcherVisible = true;
-        this.launcherExpanded =
-          forceExpandValue !== null ? forceExpandValue : !this.launcherExpanded;
+        this.launcherExpanded = !this.launcherExpanded;
         break;
     }
   }
@@ -309,6 +299,8 @@ export class SidebarState {
     this.#props.launcherDragActive = active;
     if (active) {
       this.#launcherEl.toggleAttribute("customWidth", true);
+    } else if (!lazy.verticalTabsEnabled) {
+      this.launcherExpanded = false;
     } else if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
       // Snap back to collapsed state when the new width is too narrow.
       this.launcherExpanded = false;
@@ -319,14 +311,6 @@ export class SidebarState {
       // Store the user-preferred launcher width.
       this.expandedLauncherWidth = this.launcherWidth;
     }
-  }
-
-  get launcherHoverActive() {
-    return this.#props.launcherHoverActive;
-  }
-
-  set launcherHoverActive(active) {
-    this.#props.launcherHoverActive = active;
   }
 
   get launcherWidth() {
@@ -357,14 +341,6 @@ export class SidebarState {
   set expandedLauncherWidth(width) {
     this.#props.expandedLauncherWidth = width;
     this.#updateLauncherWidth();
-  }
-
-  get collapsedLauncherWidth() {
-    return this.#props.collapsedLauncherWidth;
-  }
-
-  set collapsedLauncherWidth(width) {
-    this.#props.collapsedLauncherWidth = width;
   }
 
   /**

@@ -55,7 +55,7 @@ sidebar:
     type: string
     lifetime: application
     description: >
-      Setting for sidebar display (either "always", "expand-on-hover", or "hide").
+      Setting for sidebar display (either "always" or "hide").
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
     data_reviews:
@@ -627,22 +627,3 @@ sidebar.customize:
       - vsabino@mozilla.com
     send_in_pings:
       - events
-  expand_on_hover_enabled:
-    type: event
-    description: >
-      User clicked on the checkbox corresponding to expand on hover on sidebar customization settings.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1930201
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D233098
-    data_sensitivity:
-      - interaction
-    expires: never
-    notification_emails:
-      - vsabino@mozilla.com
-    send_in_pings:
-      - events
-    extra_keys:
-      checked:
-        type: boolean
-        description: Whether the box was checked.

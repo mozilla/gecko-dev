@@ -88,10 +88,6 @@ moz-checkbox {
   > moz-checkbox:last-of-type {
     padding-block: 0;
   }
-
-  &[disabled]::part(label) {
-    opacity: 0.5;
-  }
 }
 
 .no-label::part(label) {
