@@ -12850,6 +12850,14 @@ class BaseContent extends (external_React_default()).PureComponent {
       return;
     }
     const prefs = this.props.Prefs.values;
+    const {
+      showSearch
+    } = prefs;
+    if (!showSearch) {
+      // Bug 1944718: Only apply fixed-search logic
+      // if search is visible.
+      return;
+    }
     const logoAlwaysVisible = prefs["logowordmark.alwaysVisible"];
     const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
     const layoutsVariantBEnabled = prefs["newtabLayouts.variant-b"];
