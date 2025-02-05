@@ -525,9 +525,6 @@ document.addEventListener(
 
     mainPopupSet.addEventListener("popuphidden", event => {
       switch (event.target.id) {
-        case "tabContextMenu":
-          TabContextMenu.contextTab = null;
-          break;
         case "full-page-translations-panel-settings-menupopup":
           FullPageTranslationsPanel.handleSettingsPopupHiddenEvent();
           break;

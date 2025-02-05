@@ -8232,21 +8232,21 @@ var TabContextMenu = {
     });
   },
   updateContextMenu(aPopupMenu) {
-    let tab =
+    let triggerTab =
       aPopupMenu.triggerNode &&
       (aPopupMenu.triggerNode.tab || aPopupMenu.triggerNode.closest("tab"));
-
-    this.contextTab = tab || gBrowser.selectedTab;
+    this.contextTab = triggerTab || gBrowser.selectedTab;
     this.contextTab.addEventListener("TabAttrModified", this);
-    aPopupMenu.addEventListener("popuphiding", this);
+    aPopupMenu.addEventListener("popuphidden", this);
 
-    let disabled = gBrowser.tabs.length == 1;
-    let multiselectionContext = this.contextTab.multiselected;
-    let contextTabs = multiselectionContext
+    this.multiselected = this.contextTab.multiselected;
+    this.contextTabs = this.multiselected
       ? gBrowser.selectedTabs
       : [this.contextTab];
+
+    let disabled = gBrowser.tabs.length == 1;
     let tabCountInfo = JSON.stringify({
-      tabCount: contextTabs.length,
+      tabCount: this.contextTabs.length,
     });
 
     var menuItems = aPopupMenu.getElementsByAttribute(
@@ -8299,7 +8299,7 @@ var TabContextMenu = {
     let contextUngroupTab = document.getElementById("context_ungroupTab");
 
     if (gBrowser._tabGroupsEnabled) {
-      let groupableTabs = contextTabs.filter(t => !t.pinned);
+      let groupableTabs = this.contextTabs.filter(t => !t.pinned);
       let selectedGroupCount = new Set(
         // the filter is necessary to remove the "null" group
         groupableTabs.map(t => t.group).filter(g => g)
@@ -8377,14 +8377,14 @@ var TabContextMenu = {
     }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.
-    document.getElementById("context_reloadTab").hidden = multiselectionContext;
+    document.getElementById("context_reloadTab").hidden = this.multiselected;
     document.getElementById("context_reloadSelectedTabs").hidden =
-      !multiselectionContext;
+      !this.multiselected;
     let unloadTabItem = document.getElementById("context_unloadTab");
     if (gBrowser._unloadTabInContextMenu) {
       // linkedPanel is false if the tab is already unloaded
       // Cannot unload about: pages, etc., so skip browsers that are not remote
-      let unloadableTabs = contextTabs.filter(
+      let unloadableTabs = this.contextTabs.filter(
         t => t.linkedPanel && t.linkedBrowser?.isRemoteBrowser
       );
       unloadTabItem.hidden = unloadableTabs.length === 0;
@@ -8398,27 +8398,27 @@ var TabContextMenu = {
 
     // Show Play Tab menu item if the tab has attribute activemedia-blocked
     document.getElementById("context_playTab").hidden = !(
-      this.contextTab.activeMediaBlocked && !multiselectionContext
+      this.contextTab.activeMediaBlocked && !this.multiselected
     );
     document.getElementById("context_playSelectedTabs").hidden = !(
-      this.contextTab.activeMediaBlocked && multiselectionContext
+      this.contextTab.activeMediaBlocked && this.multiselected
     );
 
     // Only one of pin/unpin/multiselect-pin/multiselect-unpin should be visible
     let contextPinTab = document.getElementById("context_pinTab");
-    contextPinTab.hidden = this.contextTab.pinned || multiselectionContext;
+    contextPinTab.hidden = this.contextTab.pinned || this.multiselected;
     let contextUnpinTab = document.getElementById("context_unpinTab");
-    contextUnpinTab.hidden = !this.contextTab.pinned || multiselectionContext;
+    contextUnpinTab.hidden = !this.contextTab.pinned || this.multiselected;
     let contextPinSelectedTabs = document.getElementById(
       "context_pinSelectedTabs"
     );
     contextPinSelectedTabs.hidden =
-      this.contextTab.pinned || !multiselectionContext;
+      this.contextTab.pinned || !this.multiselected;
     let contextUnpinSelectedTabs = document.getElementById(
       "context_unpinSelectedTabs"
     );
     contextUnpinSelectedTabs.hidden =
-      !this.contextTab.pinned || !multiselectionContext;
+      !this.contextTab.pinned || !this.multiselected;
 
     // Move Tab items
     let contextMoveTabOptions = document.getElementById(
@@ -8438,8 +8438,7 @@ var TabContextMenu = {
     );
     let visibleTabs = gBrowser.visibleTabs;
     let lastVisibleTab = visibleTabs.at(-1);
-    let tabsToMove = contextTabs;
-    let lastTabToMove = tabsToMove.at(-1);
+    let lastTabToMove = this.contextTabs.at(-1);
 
     let isLastPinnedTab = false;
     if (lastTabToMove.pinned) {
@@ -8452,19 +8451,18 @@ var TabContextMenu = {
       allSelectedTabsAdjacent;
     let contextMoveTabToStart = document.getElementById("context_moveToStart");
     let isFirstTab =
-      !tabsToMove[0].group &&
-      (tabsToMove[0] == visibleTabs[0] ||
-        tabsToMove[0] == visibleTabs[gBrowser.pinnedTabCount]);
+      !this.contextTabs[0].group &&
+      (this.contextTabs[0] == visibleTabs[0] ||
+        this.contextTabs[0] == visibleTabs[gBrowser.pinnedTabCount]);
     contextMoveTabToStart.disabled = isFirstTab && allSelectedTabsAdjacent;
 
     document.getElementById("context_openTabInWindow").disabled =
       this.contextTab.hasAttribute("customizemode");
 
     // Only one of "Duplicate Tab"/"Duplicate Tabs" should be visible.
-    document.getElementById("context_duplicateTab").hidden =
-      multiselectionContext;
+    document.getElementById("context_duplicateTab").hidden = this.multiselected;
     document.getElementById("context_duplicateTabs").hidden =
-      !multiselectionContext;
+      !this.multiselected;
 
     let closeTabsToTheStartItem = document.getElementById(
       "context_closeTabsToTheStart"
@@ -8511,7 +8509,7 @@ var TabContextMenu = {
     closeTabsToTheEndItem.disabled = noTabsToEnd;
 
     // Disable "Close other Tabs" if there are no unpinned tabs.
-    let unpinnedTabsToClose = multiselectionContext
+    let unpinnedTabsToClose = this.multiselected
       ? gBrowser.openTabs.filter(
           t => !t.multiselected && !t.pinned && !t.hidden
         ).length
@@ -8546,13 +8544,13 @@ var TabContextMenu = {
     // Hide "Bookmark Tab…" for multiselection.
     // Update its state if visible.
     let bookmarkTab = document.getElementById("context_bookmarkTab");
-    bookmarkTab.hidden = multiselectionContext;
+    bookmarkTab.hidden = this.multiselected;
 
     // Show "Bookmark Selected Tabs" in a multiselect context and hide it otherwise.
     let bookmarkMultiSelectedTabs = document.getElementById(
       "context_bookmarkSelectedTabs"
     );
-    bookmarkMultiSelectedTabs.hidden = !multiselectionContext;
+    bookmarkMultiSelectedTabs.hidden = !this.multiselected;
 
     let toggleMute = document.getElementById("context_toggleMuteTab");
     let toggleMultiSelectMute = document.getElementById(
@@ -8560,8 +8558,8 @@ var TabContextMenu = {
     );
 
     // Only one of mute_unmute_tab/mute_unmute_selected_tabs should be visible
-    toggleMute.hidden = multiselectionContext;
-    toggleMultiSelectMute.hidden = !multiselectionContext;
+    toggleMute.hidden = this.multiselected;
+    toggleMultiSelectMute.hidden = !this.multiselected;
 
     const isMuted = this.contextTab.hasAttribute("muted");
     document.l10n.setAttributes(
@@ -8600,9 +8598,11 @@ var TabContextMenu = {
 
   handleEvent(aEvent) {
     switch (aEvent.type) {
-      case "popuphiding":
+      case "popuphidden":
         if (aEvent.target.id == "tabContextMenu") {
           this.contextTab.removeEventListener("TabAttrModified", this);
+          this.contextTab = null;
+          this.contextTabs = null;
         }
         break;
       case "TabAttrModified": {
@@ -8622,9 +8622,8 @@ var TabContextMenu = {
     });
   },
   duplicateSelectedTabs() {
-    let tabsToDuplicate = gBrowser.selectedTabs;
-    let newIndex = tabsToDuplicate[tabsToDuplicate.length - 1]._tPos + 1;
-    for (let tab of tabsToDuplicate) {
+    let newIndex = this.contextTabs.at(-1)._tPos + 1;
+    for (let tab of this.contextTabs) {
       let newTab = SessionStore.duplicateTab(window, tab);
       gBrowser.moveTabTo(newTab, newIndex++);
     }
@@ -8633,11 +8632,8 @@ var TabContextMenu = {
     let userContextId = parseInt(
       event.target.getAttribute("data-usercontextid")
     );
-    let reopenedTabs = this.contextTab.multiselected
-      ? gBrowser.selectedTabs
-      : [this.contextTab];
 
-    for (let tab of reopenedTabs) {
+    for (let tab of this.contextTabs) {
       if (tab.getAttribute("usercontextid") == userContextId) {
         continue;
       }
@@ -8703,18 +8699,14 @@ var TabContextMenu = {
   },
 
   explicitUnloadTabs() {
-    if (this.contextTab.multiselected) {
-      gBrowser.explicitUnloadTabs(gBrowser.selectedTabs);
-    } else {
-      gBrowser.explicitUnloadTabs([this.contextTab]);
-    }
+    gBrowser.explicitUnloadTabs(this.contextTabs);
   },
 
   moveTabsToNewGroup() {
-    gBrowser.addTabGroup(
-      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab],
-      { insertBefore: this.contextTab, showCreateUI: true }
-    );
+    gBrowser.addTabGroup(this.contextTabs, {
+      insertBefore: this.contextTab,
+      showCreateUI: true,
+    });
 
     // When using the tab context menu to create a group from the all tabs
     // panel, make sure we close that panel so that it doesn't obscure the tab
@@ -8723,19 +8715,13 @@ var TabContextMenu = {
   },
 
   moveTabsToGroup(group) {
-    group.addTabs(
-      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab]
-    );
+    group.addTabs(this.contextTabs);
     group.ownerGlobal.focus();
   },
 
   ungroupTabs() {
-    if (this.contextTab.multiselected) {
-      for (let i = gBrowser.selectedTabs.length - 1; i >= 0; i--) {
-        gBrowser.ungroupTab(gBrowser.selectedTabs[i]);
-      }
-    } else {
-      gBrowser.ungroupTab(this.contextTab);
+    for (let i = this.contextTabs.length - 1; i >= 0; i--) {
+      gBrowser.ungroupTab(this.contextTabs[i]);
     }
   },
 };
