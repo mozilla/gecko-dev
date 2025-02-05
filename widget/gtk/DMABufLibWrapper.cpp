@@ -246,8 +246,9 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
 #ifdef MOZ_WAYLAND
 void DMABufDevice::SetModifiersToGfxVars() {
   RefPtr<DMABufFormats> formats = WaylandDisplayGet()->GetDMABufFormats();
-  MOZ_RELEASE_ASSERT(formats, "Missing dmabuf formats!");
-
+  if (!formats) {
+    return;
+  }
   if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888)) {
     mFormatRGBX = new DRMFormat(*format);
     gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
@@ -271,10 +272,8 @@ void DMABufDevice::DisableDMABufWebGL() { sUseWebGLDmabufBackend = false; }
 RefPtr<DRMFormat> DMABufDevice::GetDRMFormat(int32_t aFOURCCFormat) {
   switch (aFOURCCFormat) {
     case GBM_FORMAT_XRGB8888:
-      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBX, "Missing RGBX dmabuf format!");
       return mFormatRGBX;
     case GBM_FORMAT_ARGB8888:
-      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBA, "Missing RGBA dmabuf format!");
       return mFormatRGBA;
     default:
       gfxCriticalNoteOnce << "DMABufDevice::GetDRMFormat() unknow format: "

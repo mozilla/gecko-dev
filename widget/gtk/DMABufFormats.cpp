@@ -151,6 +151,7 @@ class DMABufFeedback final {
     }
   }
   DRMFormat* GetFormat(uint32_t aFormat, bool aRequestScanoutFormat) {
+    MOZ_ASSERT(!mPendingTranche);
     for (const auto& tranche : mTranches) {
       if (aRequestScanoutFormat && !tranche->IsScanout()) {
         continue;
@@ -305,8 +306,9 @@ static const struct zwp_linux_dmabuf_v1_listener dmabuf_v3_listener = {
 
 DRMFormat* DMABufFormats::GetFormat(uint32_t aFormat,
                                     bool aRequestScanoutFormat) {
-  MOZ_DIAGNOSTIC_ASSERT(mDMABufFeedback);
-  return mDMABufFeedback->GetFormat(aFormat, aRequestScanoutFormat);
+  return mDMABufFeedback
+             ? mDMABufFeedback->GetFormat(aFormat, aRequestScanoutFormat)
+             : nullptr;
 }
 
 void DMABufFormats::InitFeedback(zwp_linux_dmabuf_v1* aDMABuf,
@@ -333,29 +335,6 @@ void DMABufFormats::InitV3Done() {
   LOGDMABUF(("DMABufFormats::Init() v.3 Done"));
   GetPendingDMABufFeedback()->PendingTrancheDone();
   PendingDMABufFeedbackDone();
-}
-
-void DMABufFormats::EnsureBasicFormats() {
-  MOZ_DIAGNOSTIC_ASSERT(!mPendingDMABufFeedback,
-                        "Can't add extra formats during init!");
-  if (!mDMABufFeedback) {
-    mDMABufFeedback = MakeUnique<DMABufFeedback>();
-  }
-  if (!GetFormat(GBM_FORMAT_XRGB8888)) {
-    LOGDMABUF(
-        ("DMABufFormats::EnsureBasicFormats(): GBM_FORMAT_XRGB8888 is missing, "
-         "adding."));
-    mDMABufFeedback->PendingTranche()->AddFormat(GBM_FORMAT_XRGB8888,
-                                                 DRM_FORMAT_MOD_INVALID);
-  }
-  if (!GetFormat(GBM_FORMAT_ARGB8888)) {
-    LOGDMABUF(
-        ("DMABufFormats::EnsureBasicFormats(): GBM_FORMAT_ARGB8888 is missing, "
-         "adding."));
-    mDMABufFeedback->PendingTranche()->AddFormat(GBM_FORMAT_ARGB8888,
-                                                 DRM_FORMAT_MOD_INVALID);
-  }
-  mDMABufFeedback->PendingTrancheDone();
 }
 
 DMABufFormats::DMABufFormats() {}
