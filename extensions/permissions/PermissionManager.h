@@ -651,10 +651,6 @@ class PermissionManager final : public nsIPermissionManager,
 
   void CompleteMigrations();
 
-  // Initialize service used for importing default permissions from remote
-  // settings
-  void InitRemotePermissionService();
-
   bool mMemoryOnlyDB;
 
   nsTHashtable<PermissionHashKey> mPermissionTable;

@@ -782,7 +782,6 @@ nsresult PermissionManager::Init() {
   nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
   if (observerService) {
     observerService->AddObserver(this, "profile-do-change", true);
-    observerService->AddObserver(this, "profile-after-change", true);
     observerService->AddObserver(this, "testonly-reload-permissions-from-disk",
                                  true);
   }
@@ -1716,7 +1715,6 @@ PermissionManager::AddDefaultFromPrincipal(nsIPrincipal* aPrincipal,
                                            const nsACString& aType,
                                            uint32_t aPermission) {
   ENSURE_NOT_CHILD_PROCESS;
-  MOZ_ASSERT(mState == eReady);
 
   bool isValidPermissionPrincipal = false;
   nsresult rv = ShouldHandlePrincipalForPermission(aPrincipal,
@@ -2804,8 +2802,6 @@ NS_IMETHODIMP PermissionManager::Observe(nsISupports* aSubject,
     // profile startup is complete, and we didn't have the permissions file
     // before; init the db from the new location
     InitDB(false);
-  } else if (!nsCRT::strcmp(aTopic, "profile-after-change")) {
-    InitRemotePermissionService();
   } else if (!nsCRT::strcmp(aTopic, "testonly-reload-permissions-from-disk")) {
     // Testing mechanism to reload all permissions from disk. Because the
     // permission manager automatically initializes itself at startup, tests
@@ -2817,7 +2813,6 @@ NS_IMETHODIMP PermissionManager::Observe(nsISupports* aSubject,
     RemoveAllFromMemory();
     CloseDB(eNone);
     InitDB(false);
-    InitRemotePermissionService();
   } else if (!nsCRT::strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY)) {
     PerformIdleDailyMaintenance();
   }
@@ -3262,33 +3257,6 @@ void PermissionManager::CompleteRead() {
                      &entry.mOrigin);
     Unused << NS_WARN_IF(NS_FAILED(rv));
   }
-}
-
-void PermissionManager::InitRemotePermissionService() {
-  // Check if this service is disabled by pref, and abort if it is.
-  if (!StaticPrefs::permissions_manager_remote_enabled()) {
-    return;
-  }
-
-  // Also abort if we are in a background task. We do not want to call remote
-  // settings there, because we do not want to pollute the background task
-  // profile, and because we don't need the remote permissions there anyways.
-#ifdef MOZ_BACKGROUNDTASKS
-  if (BackgroundTasks::IsBackgroundTaskMode()) {
-    return;
-  }
-#endif
-
-  NS_DispatchToCurrentThreadQueue(
-      NS_NewRunnableFunction(
-          "RemotePermissionService::Init",
-          [&] {
-            nsCOMPtr<nsIRemotePermissionService> remotePermissionService =
-                do_GetService(NS_REMOTEPERMISSIONSERVICE_CONTRACTID);
-            NS_ENSURE_TRUE_VOID(remotePermissionService);
-            remotePermissionService->Init();
-          }),
-      EventQueuePriority::Idle);
 }
 
 void PermissionManager::MaybeAddReadEntryFromMigration(
