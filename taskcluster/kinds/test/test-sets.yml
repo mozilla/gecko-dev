@@ -279,10 +279,8 @@ windows11-64-2009-ccov-tests:
     - web-platform-tests-webcodecs
     - web-platform-tests-eme
 
-# this remains as we have an issue on msix(mda) tasks
-# as well as reftest-nogpu
+# we only have an issue with 2 newly added telemetry tests
 windows11-2009-tests:
-    - mochitest-browser-chrome
     - telemetry-tests-client
 
 windows11-24h2-tests:
@@ -295,6 +293,7 @@ windows11-24h2-tests:
     - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
+    - mochitest-browser-chrome
     - mochitest-browser-media
     - mochitest-browser-translations
     - mochitest-chrome
