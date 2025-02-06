@@ -700,12 +700,11 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
                                                 void** aData, uint32_t* aLen) {
   MOZ_CLIPBOARD_LOG("%s: overload taking IDataObject*.", __FUNCTION__);
 
-  nsresult result = NS_ERROR_FAILURE;
   *aData = nullptr;
   *aLen = 0;
 
   if (!aDataObject) {
-    return result;
+    return NS_ERROR_FAILURE;
   }
 
   UINT const format = aFormat;
@@ -765,7 +764,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
           uint32_t allocLen = 0;
           if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
             *aLen = strlen(reinterpret_cast<char*>(*aData));
-            result = NS_OK;
+            return NS_OK;
           }
         } break;
 
@@ -780,26 +779,26 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
           uint32_t allocLen = 0;
           if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
             *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) * 2;
-            result = NS_OK;
+            return NS_OK;
           }
         } break;
 
         case CF_DIBV5:
           if (aMIMEImageFormat) {
             uint32_t allocLen = 0;
-            const char* clipboardData;
+            const char* clipboardData = nullptr;
+            auto const _freeClipboardData =
+                mozilla::MakeScopeExit([&]() { free((void*)clipboardData); });
+
             if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, (void**)&clipboardData,
                                            &allocLen))) {
               nsCOMPtr<imgIContainer> container;
               nsCOMPtr<imgITools> imgTools =
                   do_CreateInstance("@mozilla.org/image/tools;1");
-              result = imgTools->DecodeImageFromBuffer(
+              MOZ_TRY(imgTools->DecodeImageFromBuffer(
                   clipboardData, allocLen,
                   nsLiteralCString(IMAGE_BMP_MS_CLIPBOARD),
-                  getter_AddRefs(container));
-              if (NS_FAILED(result)) {
-                break;
-              }
+                  getter_AddRefs(container)));
 
               nsAutoCString mimeType;
               if (strcmp(aMIMEImageFormat, kJPGImageMime) == 0) {
@@ -809,19 +808,16 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
               }
 
               nsCOMPtr<nsIInputStream> inputStream;
-              result = imgTools->EncodeImage(container, mimeType, u""_ns,
-                                             getter_AddRefs(inputStream));
-              if (NS_FAILED(result)) {
-                break;
-              }
+              MOZ_TRY(imgTools->EncodeImage(container, mimeType, u""_ns,
+                                            getter_AddRefs(inputStream)));
 
               if (!inputStream) {
-                result = NS_ERROR_FAILURE;
-                break;
+                return NS_ERROR_FAILURE;
               }
 
               *aData = inputStream.forget().take();
               *aLen = sizeof(nsIInputStream*);
+              return NS_OK;
             }
           }
           break;
@@ -831,22 +827,23 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
           // single data object. In order to match mozilla's D&D apis, we
           // just pull out the file at the requested index, pretending as
           // if there really are multiple drag items.
-          HDROP dropFiles = (HDROP)GlobalLock(stm.hGlobal);
+          ScopedOLELock<HDROP> dropFiles(stm.hGlobal);
 
-          UINT numFiles = ::DragQueryFileW(dropFiles, 0xFFFFFFFF, nullptr, 0);
+          UINT numFiles =
+              ::DragQueryFileW(dropFiles.get(), 0xFFFFFFFF, nullptr, 0);
           NS_ASSERTION(numFiles > 0, "File drop flavor, but no files...hmmmm");
           NS_ASSERTION(aIndex < numFiles,
                        "Asked for a file index out of range of list");
           if (numFiles > 0) {
-            UINT fileNameLen = ::DragQueryFileW(dropFiles, aIndex, nullptr, 0);
+            UINT fileNameLen =
+                ::DragQueryFileW(dropFiles.get(), aIndex, nullptr, 0);
             wchar_t* buffer = reinterpret_cast<wchar_t*>(
                 moz_xmalloc((fileNameLen + 1) * sizeof(wchar_t)));
-            ::DragQueryFileW(dropFiles, aIndex, buffer, fileNameLen + 1);
+            ::DragQueryFileW(dropFiles.get(), aIndex, buffer, fileNameLen + 1);
             *aData = buffer;
             *aLen = fileNameLen * sizeof(char16_t);
-            result = NS_OK;
+            return NS_OK;
           }
-          GlobalUnlock(stm.hGlobal);
 
         } break;
 
@@ -855,35 +852,28 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
               fe.cfFormat == fileDescriptorFlavorW) {
             nsAutoString tempPath;
 
-            LPFILEGROUPDESCRIPTOR fgdesc =
-                static_cast<LPFILEGROUPDESCRIPTOR>(GlobalLock(stm.hGlobal));
+            ScopedOLELock<LPFILEGROUPDESCRIPTOR> fgdesc(stm.hGlobal);
             if (fgdesc) {
-              result = GetTempFilePath(
-                  nsDependentString((fgdesc->fgd)[aIndex].cFileName), tempPath);
-              GlobalUnlock(stm.hGlobal);
+              MOZ_TRY(GetTempFilePath(
+                  nsDependentString((fgdesc->fgd)[aIndex].cFileName),
+                  tempPath));
             }
-            if (NS_FAILED(result)) {
-              break;
-            }
-            result = SaveStorageOrStream(aDataObject, aIndex, tempPath);
-            if (NS_FAILED(result)) {
-              break;
-            }
+
+            MOZ_TRY(SaveStorageOrStream(aDataObject, aIndex, tempPath));
+
             wchar_t* buffer = reinterpret_cast<wchar_t*>(
                 moz_xmalloc((tempPath.Length() + 1) * sizeof(wchar_t)));
             wcscpy(buffer, tempPath.get());
             *aData = buffer;
             *aLen = tempPath.Length() * sizeof(wchar_t);
-            result = NS_OK;
-            break;
+            return NS_OK;
           }
 
           if (fe.cfFormat == fileFlavor) {
             NS_WARNING(
                 "Mozilla doesn't yet understand how to read this type of "
                 "file flavor");
-            result = NS_ERROR_FAILURE;
-            break;
+            return NS_ERROR_FAILURE;
           }
 
           // Get the data out of the global data handle. The size we
@@ -938,7 +928,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
       break;
   }  // switch (stm.tymed)
 
-  return result;
+  return NS_ERROR_FAILURE;
 }
 
 //-------------------------------------------------------------------------
