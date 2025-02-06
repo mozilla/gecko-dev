@@ -46,7 +46,6 @@ fun initializeGlean(applicationContext: Context, logger: Logger, isTelemetryUplo
         delayPingLifetimeIo = FxNimbus.features.glean.value().delayPingLifetimeIo,
         pingLifetimeThreshold = FxNimbus.features.glean.value().pingLifetimeThreshold,
         pingLifetimeMaxTime = FxNimbus.features.glean.value().pingLifetimeMaxTime,
-        pingSchedule = mapOf("baseline" to listOf("usage-reporting")),
     )
 
     // Since Glean v63.0.0, custom pings need to be registered prior to Glean init
