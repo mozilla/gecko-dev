@@ -1097,8 +1097,12 @@ inline bool StyleFontWeight::IsBold() const { return *this >= BOLD_THRESHOLD; }
 
 inline bool StyleFontStyle::IsItalic() const { return *this == ITALIC; }
 
+inline bool StyleFontStyle::IsOblique() const {
+  return !IsItalic() && !IsNormal();
+}
+
 inline float StyleFontStyle::ObliqueAngle() const {
-  MOZ_ASSERT(!IsItalic());
+  MOZ_ASSERT(IsOblique());
   return ToFloat();
 }
 
