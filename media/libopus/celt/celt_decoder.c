@@ -261,8 +261,8 @@ static void deemphasis_stereo_simple(celt_sig *in[], opus_val16 *pcm, int N, con
    {
       celt_sig tmp0, tmp1;
       /* Add VERY_SMALL to x[] first to reduce dependency chain. */
-      tmp0 = x0[j] + VERY_SMALL + m0;
-      tmp1 = x1[j] + VERY_SMALL + m1;
+      tmp0 = SATURATE(x0[j] + VERY_SMALL + m0, SIG_SAT);
+      tmp1 = SATURATE(x1[j] + VERY_SMALL + m1, SIG_SAT);
       m0 = MULT16_32_Q15(coef0, tmp0);
       m1 = MULT16_32_Q15(coef0, tmp1);
       pcm[2*j  ] = SCALEOUT(SIG2WORD16(tmp0));
@@ -314,7 +314,7 @@ void deemphasis(celt_sig *in[], opus_val16 *pcm, int N, int C, int downsample, c
          opus_val16 coef3 = coef[3];
          for (j=0;j<N;j++)
          {
-            celt_sig tmp = x[j] + m + VERY_SMALL;
+            celt_sig tmp = SATURATE(x[j] + m + VERY_SMALL, SIG_SAT);
             m = MULT16_32_Q15(coef0, tmp)
                           - MULT16_32_Q15(coef1, x[j]);
             tmp = SHL32(MULT16_32_Q15(coef3, tmp), 2);
@@ -328,7 +328,7 @@ void deemphasis(celt_sig *in[], opus_val16 *pcm, int N, int C, int downsample, c
          /* Shortcut for the standard (non-custom modes) case */
          for (j=0;j<N;j++)
          {
-            celt_sig tmp = x[j] + VERY_SMALL + m;
+            celt_sig tmp = SATURATE(x[j] + VERY_SMALL + m, SIG_SAT);
             m = MULT16_32_Q15(coef0, tmp);
             scratch[j] = tmp;
          }
@@ -340,7 +340,7 @@ void deemphasis(celt_sig *in[], opus_val16 *pcm, int N, int C, int downsample, c
          {
             for (j=0;j<N;j++)
             {
-               celt_sig tmp = x[j] + m + VERY_SMALL;
+               celt_sig tmp = SATURATE(x[j] + m + VERY_SMALL, SIG_SAT);
                m = MULT16_32_Q15(coef0, tmp);
                y[j*C] = SAT16(ADD32(y[j*C], SCALEOUT(SIG2WORD16(tmp))));
             }
@@ -349,7 +349,7 @@ void deemphasis(celt_sig *in[], opus_val16 *pcm, int N, int C, int downsample, c
          {
             for (j=0;j<N;j++)
             {
-               celt_sig tmp = x[j] + VERY_SMALL + m;
+               celt_sig tmp = SATURATE(x[j] + VERY_SMALL + m, SIG_SAT);
                m = MULT16_32_Q15(coef0, tmp);
                y[j*C] = SCALEOUT(SIG2WORD16(tmp));
             }
@@ -641,10 +641,10 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM
    loss_duration = st->loss_duration;
    start = st->start;
 #ifdef ENABLE_DEEP_PLC
-   noise_based = start != 0 || (lpcnet->fec_fill_pos == 0 && (st->skip_plc || loss_duration >= 80));
-#else
-   noise_based = loss_duration >= 40 || start != 0 || st->skip_plc;
+   if (lpcnet != NULL) noise_based = start != 0 || (lpcnet->fec_fill_pos == 0 && (st->skip_plc || loss_duration >= 80));
+   else
 #endif
+   noise_based = loss_duration >= 40 || start != 0 || st->skip_plc;
    if (noise_based)
    {
       /* Noise-based PLC/CNG */
@@ -710,7 +710,7 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM
       if (loss_duration == 0)
       {
 #ifdef ENABLE_DEEP_PLC
-        if (lpcnet->loaded) update_plc_state(lpcnet, decode_mem, &st->plc_preemphasis_mem, C);
+        if (lpcnet != NULL && lpcnet->loaded) update_plc_state(lpcnet, decode_mem, &st->plc_preemphasis_mem, C);
 #endif
          st->last_pitch_index = pitch_index = celt_plc_pitch_search(decode_mem, C, st->arch);
       } else {
@@ -903,7 +903,7 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM
       } while (++c<C);
 
 #ifdef ENABLE_DEEP_PLC
-      if (lpcnet->loaded && (st->complexity >= 5 || lpcnet->fec_fill_pos > 0)) {
+      if (lpcnet != NULL && lpcnet->loaded && (st->complexity >= 5 || lpcnet->fec_fill_pos > 0)) {
          float overlap_mem;
          int samples_needed16k;
          celt_sig *buf;
@@ -1286,7 +1286,7 @@ int celt_decode_with_ec_dred(CELTDecoder * OPUS_RESTRICT st, const unsigned char
 
    if (anti_collapse_on)
       anti_collapse(mode, X, collapse_masks, LM, C, N,
-            start, end, oldBandE, oldLogE, oldLogE2, pulses, st->rng, st->arch);
+            start, end, oldBandE, oldLogE, oldLogE2, pulses, st->rng, 0, st->arch);
 
    if (silence)
    {

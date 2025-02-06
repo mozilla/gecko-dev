@@ -1572,7 +1572,6 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
 
    /* Can't produce more than 1275 output bytes */
    nbCompressedBytes = IMIN(nbCompressedBytes,1275);
-   nbAvailableBytes = nbCompressedBytes - nbFilledBytes;
 
    if (st->vbr && st->bitrate!=OPUS_BITRATE_MAX)
    {
@@ -1593,10 +1592,12 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
       {
          nbCompressedBytes = IMAX(2, IMIN(nbCompressedBytes,
                (tmp+4*mode->Fs)/(8*mode->Fs)-!!st->signalling));
-         ec_enc_shrink(enc, nbCompressedBytes);
+         if (enc != NULL)
+            ec_enc_shrink(enc, nbCompressedBytes);
       }
       effectiveBytes = nbCompressedBytes - nbFilledBytes;
    }
+   nbAvailableBytes = nbCompressedBytes - nbFilledBytes;
    equiv_rate = ((opus_int32)nbCompressedBytes*8*50 << (3-LM)) - (40*C+20)*((400>>LM) - 50);
    if (st->bitrate != OPUS_BITRATE_MAX)
       equiv_rate = IMIN(equiv_rate, st->bitrate - (40*C+20)*((400>>LM) - 50));
@@ -1687,7 +1688,7 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
    {
       int enabled;
       int qg;
-      enabled = ((st->lfe&&nbAvailableBytes>3) || nbAvailableBytes>12*C) && !hybrid && !silence && !st->disable_pf
+      enabled = ((st->lfe&&nbAvailableBytes>3) || nbAvailableBytes>12*C) && !hybrid && !silence && tell+16<=total_bits && !st->disable_pf
             && st->complexity >= 5;
 
       prefilter_tapset = st->tapset_decision;
@@ -2006,6 +2007,8 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
          /*printf("%f %d %f %d\n\n", st->analysis.tonality, st->spread_decision, st->analysis.tonality_slope, st->tapset_decision);*/
       }
       ec_enc_icdf(enc, st->spread_decision, spread_icdf, 5);
+   } else {
+      st->spread_decision = SPREAD_NORMAL;
    }
 
    /* For LFE, everything interesting is in the first band */
@@ -2272,7 +2275,7 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
       if (anti_collapse_on)
       {
          anti_collapse(mode, X, collapse_masks, LM, C, N,
-               start, end, oldBandE, oldLogE, oldLogE2, pulses, st->rng, st->arch);
+               start, end, oldBandE, oldLogE, oldLogE2, pulses, st->rng, 1, st->arch);
       }
 
       c=0; do {

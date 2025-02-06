@@ -798,7 +798,7 @@ opus_val16 compute_stereo_width(const opus_val16 *pcm, int frame_size, opus_int3
       corr = SHR32(frac_div32(mem->XY,EPSILON+MULT16_16(sqrt_xx,sqrt_yy)),16);
       /* Approximate loudness difference */
       ldiff = MULT16_16(Q15ONE, ABS16(qrrt_xx-qrrt_yy))/(EPSILON+qrrt_xx+qrrt_yy);
-      width = MULT16_16_Q15(celt_sqrt(QCONST32(1.f,30)-MULT16_16(corr,corr)), ldiff);
+      width = MULT16_16_Q15(MIN16(Q15ONE, celt_sqrt(QCONST32(1.f,30)-MULT16_16(corr,corr))), ldiff);
       /* Smoothing over one second */
       mem->smoothed_width += (width-mem->smoothed_width)/frame_rate;
       /* Peak follower */
