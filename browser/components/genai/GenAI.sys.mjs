@@ -450,8 +450,7 @@ export const GenAI = {
 
     const aiActionButton =
       selectionShortcutActionPanel.querySelector("#ai-action-button");
-    aiActionButton.iconSrc =
-      "chrome://mozapps/skin/extensions/category-discover.svg";
+    aiActionButton.iconSrc = "chrome://global/skin/icons/highlights.svg";
     const buttonActiveState = "icon";
     const buttonDefaultState = "icon ghost";
 
