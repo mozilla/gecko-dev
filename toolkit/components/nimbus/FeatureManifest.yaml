@@ -692,20 +692,26 @@ preonboarding:
       type: json
       fallbackPref: browser.preonboarding.screens
       description: Content to show in the onboarding flow
-    disableFirstRunPolicyTab:
-      type: boolean
-      fallbackPref: browser.preonboarding.disableFirstRunPolicyTab
-      description: Should a background tab load the first run policy URL?
     requireAction:
       type: boolean
       fallbackPref: browser.preonboarding.requireAction
       description: >-
         When showModal is enabled, should action be required to proceed (show as a window modal with dismiss using the ESC key disabled)?
-    interactionPref:
-      type: string
-      fallbackPref: browser.preonboarding.interactionPref
+    currentPolicyVersion:
+      type: int
+      fallbackPref: datareporting.policy.currentPolicyVersion
       description: >-
-        Name of a boolean pref that indicates whether the preonboarding modal has been interacted with. If a value is provided, the modal will appear on every startup until the pref is set to true (typically via interaction with the modal's primary CTA).
+        The current policy version displayed by this preonboarding modal.
+    minimumPolicyVersion:
+      type: int
+      fallbackPref: datareporting.policy.minimumPolicyVersion
+      description: >-
+        The minimum policy version which the user must have accepted to not see the preonboarding modal.
+    firstRunURL:
+      type: string
+      fallbackPref: datareporting.policy.firstRunURL
+      description: >-
+        URL of browser tab to be opened on first run instead of infobar.
 
 moreFromMozilla:
   description: "New page on about:preferences to suggest more Mozilla products"
