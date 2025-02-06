@@ -11,6 +11,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [activeNotifications](#activenotifications)
 * [addonsInfo](#addonsinfo)
 * [addressesSaved](#addressessaved)
+* [alltabsButtonAreaType](#alltabsButtonAreaType)
 * [archBits](#archbits)
 * [attachedFxAOAuthClients](#attachedfxaoauthclients)
 * [attributionData](#attributiondata)
@@ -1018,6 +1019,10 @@ is no distribution associated with the build.
 ### `fxViewButtonAreaType`
 
 A string of the name of the container where the Firefox View button is shown, null if the button has been removed.
+
+### `alltabsButtonAreaType`
+
+A string of the name of the container where the Tab Overflow button (or All Tabs button) is shown, null if the button has been removed.
 
 ### `hasMigratedBookmarks`
 

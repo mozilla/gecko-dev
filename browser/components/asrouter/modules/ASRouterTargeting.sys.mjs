@@ -1005,6 +1005,11 @@ const TargetingGetters = {
     return button.areaType;
   },
 
+  get alltabsButtonAreaType() {
+    let button = lazy.CustomizableUI.getWidget("alltabs-button");
+    return button.areaType;
+  },
+
   isDefaultHandler: {
     get html() {
       return QueryCache.getters.isDefaultHTMLHandler.get();

@@ -438,7 +438,7 @@ const MESSAGES = () => {
         transitions: false,
         screens: [
           {
-            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT_ALLTABS_BUTTON",
             anchors: [
               {
                 selector: "#alltabs-button",
@@ -476,7 +476,67 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
+      trigger: {
+        id: "tabGroupSaved",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT_URLBAR",
+            anchors: [
+              {
+                selector: ".urlbar-input-box",
+                panel_position: {
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id:
+                  "tab-groups-onboarding-saved-groups-no-alltabs-button-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
       trigger: {
         id: "tabGroupSaved",
       },
@@ -500,10 +560,10 @@ const MESSAGES = () => {
             id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
             anchors: [
               {
-                selector: "#alltabs-button",
+                selector: ".urlbar-input-box",
                 panel_position: {
-                  anchor_attachment: "bottomcenter",
-                  callout_attachment: "topright",
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
                 },
               },
             ],
@@ -520,7 +580,7 @@ const MESSAGES = () => {
                 alignment: "top",
               },
               title: {
-                string_id: "tab-groups-onboarding-saved-groups-title",
+                string_id: "tab-groups-onboarding-create-group-title",
               },
               primary_button: {
                 label: {
