@@ -9,7 +9,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-  ExperimentStore: "resource://nimbus/lib/ExperimentStore.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsExperimentLoader:
@@ -739,10 +738,9 @@ ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
   return lazy.ExperimentManager;
 });
 
-ChromeUtils.defineLazyGetter(ExperimentAPI, "_store", function () {
-  return IS_MAIN_PROCESS
-    ? lazy.ExperimentManager.store
-    : new lazy.ExperimentStore();
+Object.defineProperty(ExperimentAPI, "_store", {
+  configurable: true,
+  get: () => ExperimentAPI._manager.store,
 });
 
 ChromeUtils.defineLazyGetter(
