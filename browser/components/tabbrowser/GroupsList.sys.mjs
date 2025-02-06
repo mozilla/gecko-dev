@@ -176,9 +176,7 @@ export class GroupsPanel {
       );
       button.dataset.command = "allTabsGroupView_restoreGroup";
     } else {
-      button.classList.add(
-        group.collapsed ? "tab-group-icon-collapsed" : "tab-group-icon"
-      );
+      button.classList.add("tab-group-icon");
       button.dataset.command = "allTabsGroupView_selectGroup";
     }
     button.setAttribute("flex", "1");
