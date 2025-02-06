@@ -14,6 +14,9 @@ const {
 const Provider = createFactory(
   require("resource://devtools/client/shared/vendor/react-redux.js").Provider
 );
+const {
+  visibilityHandlerStore,
+} = require("resource://devtools/client/shared/redux/visibilityHandlerStore.js");
 const App = createFactory(
   require("resource://devtools/client/netmonitor/src/components/App.js")
 );
@@ -73,7 +76,11 @@ NetMonitorApp.prototype = {
     });
 
     // Render the root Application component.
-    render(Provider({ store }, app), this.mount);
+    //
+    // Also wrap the store in order to pause store update notifications while the panel is hidden.
+    // (this can't be done from create-store as it is loaded from the toolbox, without the browser loader
+    //  and isn't bound to the netmonitor document)
+    render(Provider({ store: visibilityHandlerStore(store) }, app), this.mount);
   },
 
   /**

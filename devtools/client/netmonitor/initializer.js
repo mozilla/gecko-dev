@@ -19,9 +19,6 @@ const require = (window.windowRequire = BrowserLoader({
 }).require);
 
 const {
-  NetMonitorAPI,
-} = require("resource://devtools/client/netmonitor/src/api.js");
-const {
   NetMonitorApp,
 } = require("resource://devtools/client/netmonitor/src/app.js");
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
@@ -95,6 +92,9 @@ if (window.location.protocol === "chrome:" && url.search.length > 1) {
         commands,
       };
 
+      const {
+        NetMonitorAPI,
+      } = require("resource://devtools/client/netmonitor/src/api.js");
       const api = new NetMonitorAPI();
       await api.connect(toolbox);
       const app = window.initialize(api);
