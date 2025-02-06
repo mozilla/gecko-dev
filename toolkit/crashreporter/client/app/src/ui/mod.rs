@@ -111,6 +111,7 @@ pub fn error_dialog<M: std::fmt::Debug>(config: &Config, message: M) {
 pub enum SubmitState {
     #[default]
     Initial,
+    WaitingHardwareTests,
     InProgress,
     Success,
     Failure,
@@ -128,6 +129,7 @@ pub struct ReportCrashUI {
 pub struct ReportCrashUIState {
     pub send_report: data::Synchronized<bool>,
     pub include_address: data::Synchronized<bool>,
+    pub test_hardware: data::Synchronized<bool>,
     pub show_details: data::Synchronized<bool>,
     pub details: data::Synchronized<String>,
     pub comment: data::OnDemand<String>,
@@ -143,11 +145,13 @@ impl ReportCrashUI {
     ) -> Self {
         let send_report = data::Synchronized::new(initial_settings.submit_report);
         let include_address = data::Synchronized::new(initial_settings.include_url);
+        let test_hardware = data::Synchronized::new(initial_settings.test_hardware);
 
         ReportCrashUI {
             state: Arc::new(ThreadBound::new(ReportCrashUIState {
                 send_report,
                 include_address,
+                test_hardware,
                 show_details: Default::default(),
                 details: Default::default(),
                 comment: Default::default(),
@@ -182,6 +186,7 @@ impl ReportCrashUI {
             send_report,
             include_address,
             show_details,
+            test_hardware,
             details,
             comment,
             submit_state,
@@ -196,6 +201,11 @@ impl ReportCrashUI {
             let v = *v;
             logic.push(move |s| s.settings.borrow_mut().include_url = v);
         }});
+        test_hardware.on_change(cc! { (logic) move |v| {
+            let v = *v;
+            logic.push(move |s| {s.settings.borrow_mut().test_hardware = v;
+            s.update_memtest_setting();});
+        }});
 
         let input_enabled = submit_state.mapped(|s| s == &SubmitState::Initial);
         let send_report_and_input_enabled =
@@ -204,6 +214,7 @@ impl ReportCrashUI {
         let submit_status_text = submit_state.mapped(cc! { (config) move |s| {
             config.string(match s {
                 SubmitState::Initial => "crashreporter-submit-status",
+                SubmitState::WaitingHardwareTests => "crashreporter-submit-waiting-hardware-tests",
                 SubmitState::InProgress => "crashreporter-submit-in-progress",
                 SubmitState::Success => "crashreporter-submit-success",
                 SubmitState::Failure => "crashreporter-submit-failure",
@@ -211,6 +222,7 @@ impl ReportCrashUI {
         }});
 
         let progress_visible = submit_state.mapped(|s| s == &SubmitState::InProgress);
+        let hardware_test_checkbox_visible = data::Synchronized::new(self.config.run_memtest);
 
         let details_window = ui! {
             Window["crash-details-window"] title(config.string("crashreporter-view-report-title"))
@@ -237,7 +249,10 @@ impl ReportCrashUI {
                     Label text(config.string("crashreporter-apology")) bold(true),
                     Label text(config.string("crashreporter-crashed-and-restore")),
                     Label text(config.string("crashreporter-plea")),
-                    Checkbox["send"] checked(send_report) label(config.string("crashreporter-send-report"))
+                    Checkbox["test-hardware"] checked(test_hardware)
+                        label(config.string("crashreporter-checkbox-test-hardware"))
+                        enabled(&input_enabled) visible(&hardware_test_checkbox_visible),
+                    Checkbox["send"] checked(send_report) label(config.string("crashreporter-checkbox-send-report"))
                         enabled(&input_enabled),
                     VBox margin_start(20) spacing(5) halign(Alignment::Fill) valign(Alignment::Fill) {
                         Button["details"] enabled(&send_report_and_input_enabled) on_click(cc! { (config, details, show_details, logic) move || {
@@ -259,7 +274,7 @@ impl ReportCrashUI {
                                 halign(Alignment::Fill) valign(Alignment::Fill)
                         },
                         Checkbox["include-url"] checked(include_address)
-                            label(config.string("crashreporter-include-url")) enabled(&send_report_and_input_enabled),
+                            label(config.string("crashreporter-checkbox-include-url")) enabled(&send_report_and_input_enabled),
                         Label text(&submit_status_text) margin_top(20),
                         Progress halign(Alignment::Fill) visible(&progress_visible),
                     },

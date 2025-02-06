@@ -32,6 +32,8 @@ pub struct Config {
     pub dump_all_threads: bool,
     /// Whether to delete the dump files after submission.
     pub delete_dump: bool,
+    /// Whether to run memtest while ui is shown
+    pub run_memtest: bool,
     /// The data directory.
     pub data_dir: Option<PathBuf>,
     /// The events directory.
@@ -84,6 +86,7 @@ impl Config {
         self.auto_submit = env_bool(ekey!("AUTO_SUBMIT"));
         self.dump_all_threads = env_bool(ekey!("DUMP_ALL_THREADS"));
         self.delete_dump = !env_bool(ekey!("NO_DELETE_DUMP"));
+        self.run_memtest = env_bool(ekey!("RUN_MEMTEST"));
         self.data_dir = env_path(ekey!("DATA_DIRECTORY"));
         self.events_dir = env_path(ekey!("EVENTS_DIRECTORY"));
         self.ping_dir = env_path(ekey!("PING_DIRECTORY"));

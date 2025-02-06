@@ -14,7 +14,7 @@ use crate::std::{
     fs::{MockFS, MockFiles},
     io::ErrorKind,
     mock,
-    process::Command,
+    process::{Command, Output},
     sync::{
         atomic::{AtomicUsize, Ordering::Relaxed},
         Arc,
@@ -102,6 +102,12 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
                             "SomeNestedJson": { "foo": "bar" },
                             "URL": "https://url.example.com"
                         }"#;
+macro_rules! MOCK_MINIDUMP_EXTRA_COMPACT {
+    () => {{
+        let value: serde_json::Value = serde_json::from_str(MOCK_MINIDUMP_EXTRA).unwrap();
+        serde_json::to_string(&value).unwrap()
+    }};
+}
 
 // Actual content doesn't matter, aside from the hash that is generated.
 const MOCK_MINIDUMP_FILE: &[u8] = &[1, 2, 3, 4];
@@ -185,7 +191,7 @@ impl GuiTest {
             )
             .add_file_result(
                 "minidump.extra",
-                Ok(MOCK_MINIDUMP_EXTRA.into()),
+                Ok(MOCK_MINIDUMP_EXTRA_COMPACT!().into()),
                 current_system_time(),
             );
 
@@ -341,8 +347,20 @@ impl AssertFiles {
     pub fn pending(&mut self) -> &mut Self {
         let dmp = self.data("pending/minidump.dmp");
         self.inner
-            .check(self.data("pending/minidump.extra"), MOCK_MINIDUMP_EXTRA)
+            .check(
+                self.data("pending/minidump.extra"),
+                MOCK_MINIDUMP_EXTRA_COMPACT!(),
+            )
             .check_bytes(dmp, MOCK_MINIDUMP_FILE);
+        self
+    }
+
+    /// Assert that a crash is pending according to the filesystem, with updated files.
+    pub fn pending_with_change(&mut self, new_dmp: &[u8], new_extra: &str) -> &mut Self {
+        let dmp = self.data("pending/minidump.dmp");
+        self.inner
+            .check(self.data("pending/minidump.extra"), new_extra)
+            .check_bytes(dmp, new_dmp);
         self
     }
 
@@ -609,6 +627,7 @@ fn no_submit() {
         Settings {
             submit_report: true,
             include_url: false,
+            test_hardware: false,
         }
         .to_string(),
     );
@@ -641,6 +660,7 @@ fn no_submit() {
         .saved_settings(Settings {
             submit_report: false,
             include_url: false,
+            test_hardware: false,
         })
         .pending();
 }
@@ -910,6 +930,7 @@ fn include_url() {
             Settings {
                 submit_report: true,
                 include_url: setting,
+                test_hardware: false,
             }
             .to_string(),
         );
@@ -927,6 +948,193 @@ fn include_url() {
             interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
         });
     }
+}
+
+#[test]
+fn persistent_settings() {
+    let mut test = GuiTest::new();
+    test.run(|interact| {
+        interact.element("include-url", |_style, c: &model::Checkbox| {
+            c.checked.set(false)
+        });
+        interact.element("send", |_style, c: &model::Checkbox| c.checked.set(false));
+        interact.element("test-hardware", |_style, c: &model::Checkbox| {
+            c.checked.set(false)
+        });
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+
+    test.assert_files()
+        .saved_settings(Settings {
+            submit_report: false,
+            include_url: false,
+            test_hardware: false,
+        })
+        .pending();
+}
+
+#[test]
+fn send_memtest_output() {
+    let mut test = GuiTest::new();
+    test.config.run_memtest = true;
+    let invoked = Counter::new();
+    let mock_invoked = invoked.clone();
+    test.mock
+        .set(
+            // memtest is the only expected process spawned using current exe
+            Command::mock("work_dir/crashreporter"),
+            Box::new(|cmd| assert_mock_memtest(cmd)),
+        )
+        .set(
+            net::report::MockReport,
+            Box::new(move |report| {
+                mock_invoked.inc();
+                assert_eq!(
+                    report.extra.get("MemtestOutput").and_then(|v| v.as_str()),
+                    Some("memtest output")
+                );
+                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+            }),
+        );
+    test.run(|interact| {
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+
+    invoked.assert_one();
+}
+
+#[test]
+fn add_memtest_output_to_extra() {
+    let mut test = GuiTest::new();
+    test.config.run_memtest = true;
+    test.files.add_dir("data_dir").add_file(
+        "data_dir/crashreporter_settings.json",
+        Settings {
+            submit_report: false,
+            include_url: false,
+            test_hardware: true,
+        }
+        .to_string(),
+    );
+    test.mock.set(
+        Command::mock("work_dir/crashreporter"),
+        Box::new(|cmd| assert_mock_memtest(cmd)),
+    );
+    test.run(|interact| {
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+
+    let mut value: serde_json::Value = serde_json::from_str(MOCK_MINIDUMP_EXTRA).unwrap();
+    value["MemtestOutput"] = "memtest output".into();
+    let new_extra = serde_json::to_string(&value).unwrap();
+
+    test.assert_files()
+        .saved_settings(Settings {
+            submit_report: false,
+            include_url: false,
+            test_hardware: true,
+        })
+        .pending_with_change(MOCK_MINIDUMP_FILE, &new_extra);
+}
+
+#[test]
+fn toggle_memtest_spawn() {
+    let mut test = GuiTest::new();
+    test.config.run_memtest = true;
+    test.files.add_dir("data_dir").add_file(
+        "data_dir/crashreporter_settings.json",
+        Settings {
+            submit_report: true,
+            include_url: false,
+            test_hardware: false,
+        }
+        .to_string(),
+    );
+    let invoked = Counter::new();
+    let mock_invoked = invoked.clone();
+    test.mock
+        .set(
+            Command::mock("work_dir/crashreporter"),
+            Box::new(|cmd| assert_mock_memtest(cmd)),
+        )
+        .set(
+            net::report::MockReport,
+            Box::new(move |report| {
+                mock_invoked.inc();
+                assert_eq!(
+                    report.extra.get("MemtestOutput").and_then(|v| v.as_str()),
+                    Some("memtest output")
+                );
+                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+            }),
+        );
+    test.run(|interact| {
+        interact.element("test-hardware", |_style, c: &model::Checkbox| {
+            c.checked.set(true)
+        });
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+
+    invoked.assert_one();
+}
+
+#[test]
+fn toggle_memtest_kill() {
+    let mut test = GuiTest::new();
+    test.config.run_memtest = true;
+    test.files.add_dir("data_dir").add_file(
+        "data_dir/crashreporter_settings.json",
+        Settings {
+            submit_report: true,
+            include_url: false,
+            test_hardware: true,
+        }
+        .to_string(),
+    );
+    let ran_process = Counter::new();
+    let mock_ran_process = ran_process.clone();
+    test.mock
+        .set(
+            Command::mock("work_dir/crashreporter"),
+            Box::new(move |cmd| {
+                // To allow accurate count of ran_process, Early return when spawning
+                if cmd.spawning {
+                    return Ok(crate::std::process::success_output());
+                }
+                mock_ran_process.inc();
+                assert_mock_memtest(cmd)
+            }),
+        )
+        .set(
+            net::report::MockReport,
+            Box::new(move |report| {
+                assert!(report.extra.get("MemtestOutput").is_none());
+                Ok(Ok(format!("CrashID={MOCK_REMOTE_CRASH_ID}")))
+            }),
+        );
+    test.run(|interact| {
+        interact.element("test-hardware", |_style, c: &model::Checkbox| {
+            c.checked.set(false)
+        });
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+
+    ran_process.assert_one();
+}
+
+fn assert_mock_memtest(cmd: &Command) -> std::io::Result<Output> {
+    use ::std::borrow::Borrow;
+    assert_eq!(cmd.args.len(), 3);
+    assert_eq!(cmd.args[0], "--memtest");
+    assert!(cmd.args[1].to_string_lossy().parse::<u32>().is_ok());
+    assert!(serde_json::from_str::<memtest::MemtestRunnerArgs>(
+        cmd.args[2].to_string_lossy().borrow()
+    )
+    .is_ok());
+
+    let mut output = crate::std::process::success_output();
+    output.stdout = "memtest output".into();
+    Ok(output)
 }
 
 #[test]
