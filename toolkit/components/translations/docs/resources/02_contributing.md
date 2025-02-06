@@ -18,10 +18,14 @@ to provide helpful information regarding contributing to Translations.
 ---
 ## Source Code
 
-The primary source code for Translations lives in the following directories:
+The primary source code for Translations in Firefox lives in the following directories:
 
-> **[toolkit/components/translations]**
-> **[browser/components/translations]**
+> * **[browser/components/translations]**
+> * **[toolkit/components/translations]**
+
+The primary code for model training and inference lives in GitHub in the following repository:
+
+> * **[mozilla/translations]**
 
 ---
 ## Architecture
@@ -131,6 +135,7 @@ We have previously experimented with using the [fastText] language detector, but
 
 
 <!-- Hyperlinks -->
+[browser/components/translations]: https://searchfox.org/mozilla-central/search?q=&path=browser%2Fcomponents%2Ftranslations&case=false&regexp=false
 [Bugzilla]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Cloud%20Services&component=Server%3A%20Remote%20Settings
 [Child]: https://searchfox.org/mozilla-central/search?q=TranslationsChild
 [CLD2]: https://github.com/CLD2Owners/cld2
@@ -149,10 +154,11 @@ We have previously experimented with using the [fastText] language detector, but
 [importScripts()]: https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
 [JSWindowActors]: https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html#jswindowactor
 [minify]: https://github.com/tdewolff/minify
+[mozilla/translations]: https://github.com/mozilla/translations
 [Parent]: https://searchfox.org/mozilla-central/search?q=TranslationsParent
 [Step 3]: https://remote-settings.readthedocs.io/en/latest/getting-started.html#create-a-new-official-type-of-remote-settings
 [remote-settings-devtools]: https://github.com/mozilla-extensions/remote-settings-devtools/releases
 [Remote Settings]: https://remote-settings.readthedocs.io/en/latest/
-[toolkit/components/translations]: https://searchfox.org/mozilla-central/search?q=toolkit%2Fcomponents%2Ftranslations
+[toolkit/components/translations]: https://searchfox.org/mozilla-central/search?q=&path=toolkit%2Fcomponents%2Ftranslations&case=false&regexp=false
 [WASM]: https://webassembly.org/
 [Workers]: https://searchfox.org/mozilla-central/search?q=%2Ftranslations.*worker&path=&case=false&regexp=true
