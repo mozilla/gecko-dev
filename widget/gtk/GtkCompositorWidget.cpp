@@ -130,17 +130,18 @@ LayoutDeviceIntRegion GtkCompositorWidget::GetTransparentRegion() {
 #ifdef MOZ_WAYLAND
 RefPtr<mozilla::layers::NativeLayerRoot>
 GtkCompositorWidget::GetNativeLayerRoot() {
+#  if 0
   if (gfx::gfxVars::UseWebRenderCompositor()) {
     if (!mNativeLayerRoot) {
-      LOG("GtkCompositorWidget::GetNativeLayerRoot [%p] create",
+      LOG("GtkCompositorWidget::GetNativeLayerRoot [%p] create\n",
           (void*)mWidget.get());
       MOZ_ASSERT(mWidget && mWidget->GetMozContainer());
       mNativeLayerRoot = layers::NativeLayerRootWayland::Create(
           MOZ_WL_SURFACE(mWidget->GetMozContainer()));
-      mNativeLayerRoot->Init();
     }
     return mNativeLayerRoot;
   }
+#  endif
   return nullptr;
 }
 #endif

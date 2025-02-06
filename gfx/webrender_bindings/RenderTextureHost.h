@@ -40,7 +40,6 @@ class RenderMacIOSurfaceTextureHost;
 class RenderBufferTextureHost;
 class RenderTextureHostSWGL;
 class RenderTextureHostWrapper;
-class RenderDMABUFTextureHost;
 
 void ActivateBindAndTexParameteri(gl::GLContext* aGL, GLenum aActiveTexture,
                                   GLenum aBindTarget, GLuint aBindTexture);
@@ -142,10 +141,6 @@ class RenderTextureHost {
   virtual RenderTextureHostSWGL* AsRenderTextureHostSWGL() { return nullptr; }
 
   virtual RenderDcompSurfaceTextureHost* AsRenderDcompSurfaceTextureHost() {
-    return nullptr;
-  }
-
-  virtual RenderDMABUFTextureHost* AsRenderDMABUFTextureHost() {
     return nullptr;
   }
 
