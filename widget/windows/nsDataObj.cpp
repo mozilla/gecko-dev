@@ -1480,11 +1480,26 @@ HRESULT nsDataObj::GetPreferredDropEffect(FORMATETC& aFE, STGMEDIUM& aSTG) {
 //-----------------------------------------------------
 HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
                            STGMEDIUM& aSTG) {
-  void* data = nullptr;
+  // assignDataToStg
+  //
+  // Helper function to fill the STG with a block of data.
+  auto const assignDataToStg = [&aSTG](void* data, size_t extent) -> HRESULT {
+    aSTG.tymed = TYMED_HGLOBAL;
+    aSTG.pUnkForRelease = nullptr;
+
+    ScopedOLEMemory<char[]> hGlobalMemory(extent);
+    if (hGlobalMemory) {
+      auto dest = hGlobalMemory.lock();
+      memcpy(dest.get(), data, extent);
+    }
+
+    aSTG.hGlobal = hGlobalMemory.forget();
+
+    return S_OK;
+  };
 
   const nsPromiseFlatCString& flavorStr = PromiseFlatCString(aDataFlavor);
 
-  // NOTE: CreateDataFromPrimitive creates new memory, that needs to be deleted
   nsCOMPtr<nsISupports> genericDataWrapper;
   nsresult rv = mTransferable->GetTransferData(
       flavorStr.get(), getter_AddRefs(genericDataWrapper));
@@ -1492,84 +1507,77 @@ HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
     return E_FAIL;
   }
 
-  uint32_t len;
-  nsPrimitiveHelpers::CreateDataFromPrimitive(
-      nsDependentCString(flavorStr.get()), genericDataWrapper, &data, &len);
+  // data is a possibly-wide NUL-terminated string. len is its strlen() -- not
+  // its allocation length!
+  auto const [data, len] = [&]() {
+    void* data = nullptr;
+    uint32_t len;
+    nsPrimitiveHelpers::CreateDataFromPrimitive(
+        nsDependentCString(flavorStr.get()), genericDataWrapper, &data, &len);
+    return std::tuple{data, size_t(len)};
+  }();
   if (!data) return E_FAIL;
 
-  HGLOBAL hGlobalMemory = nullptr;
+  // CreateDataFromPrimitive allocates memory; free it on exit.
+  auto const _release_data =
+      mozilla::MakeScopeExit([data = data]() { ::free(data); });
 
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  // We play games under the hood and advertise flavors that we know we
-  // can support, only they require a bit of conversion or munging of the data.
-  // Do that here.
+  // We play games under the hood and advertise flavors that we know we can
+  // support, only they require a bit of conversion or munging of the data. Do
+  // that here.
   //
   // The transferable gives us data that is null-terminated, but this isn't
-  // reflected in the |len| parameter. Windoze apps expect this null to be there
+  // reflected in the |len| parameter. Windows apps expect this null to be there
   // so bump our data buffer by the appropriate size to account for the null
   // (one char for CF_TEXT, one char16_t for CF_UNICODETEXT).
-  DWORD allocLen = (DWORD)len;
+
   if (aFE.cfFormat == CF_TEXT) {
     // Someone is asking for text/plain; convert the unicode (assuming it's
     // present) to text with the correct platform encoding.
     size_t bufferSize = sizeof(char) * (len + 2);
     char* plainTextData = static_cast<char*>(moz_xmalloc(bufferSize));
+    auto const _release =
+        mozilla::MakeScopeExit([plainTextData]() { ::free(plainTextData); });
+
     char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
     int32_t plainTextLen =
         WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)castedUnicode, len / 2 + 1,
                             plainTextData, bufferSize, NULL, NULL);
-    // replace the unicode data with our plaintext data. Recall that
-    // |plainTextLen| doesn't include the null in the length.
-    free(data);
+
     if (plainTextLen) {
-      data = plainTextData;
-      allocLen = plainTextLen;
-    } else {
-      free(plainTextData);
-      NS_WARNING("Oh no, couldn't convert unicode to plain text");
-      return S_OK;
+      return assignDataToStg(plainTextData, plainTextLen);
     }
-  } else if (aFE.cfFormat == nsClipboard::GetHtmlClipboardFormat()) {
+
+    NS_WARNING("Oh no, couldn't convert unicode to plain text");
+    return S_OK;
+  }
+
+  if (aFE.cfFormat == nsClipboard::GetHtmlClipboardFormat()) {
     // Someone is asking for win32's HTML flavor. Convert our html fragment
     // from unicode to UTF-8 then put it into a format specified by msft.
     NS_ConvertUTF16toUTF8 converter(reinterpret_cast<char16_t*>(data));
     char* utf8HTML = nullptr;
     nsresult rv =
         BuildPlatformHTML(converter.get(), &utf8HTML);  // null terminates
+    auto const _release =
+        mozilla::MakeScopeExit([utf8HTML]() { ::free(utf8HTML); });
 
-    free(data);
     if (NS_SUCCEEDED(rv) && utf8HTML) {
-      // replace the unicode data with our HTML data. Don't forget the null.
-      data = utf8HTML;
-      allocLen = strlen(utf8HTML) + sizeof(char);
-    } else {
-      NS_WARNING("Oh no, couldn't convert to HTML");
-      return S_OK;
+      // return our HTML data. Don't forget the null.
+      return assignDataToStg(utf8HTML, strlen(utf8HTML) + sizeof(char));
     }
-  } else if (aFE.cfFormat != nsClipboard::GetCustomClipboardFormat()) {
-    // we assume that any data that isn't caught above is unicode. This may
-    // be an erroneous assumption, but is true so far.
-    allocLen += sizeof(char16_t);
+
+    NS_WARNING("Oh no, couldn't convert to HTML");
+    return S_OK;
   }
 
-  hGlobalMemory = (HGLOBAL)GlobalAlloc(GMEM_MOVEABLE, allocLen);
+  // We assume that any data-format that isn't caught above can be satisfied by
+  // Unicode text. (This may be an erroneous assumption, but seems to have been
+  // true so far.)
+  bool const excludeNull =
+      aFE.cfFormat == nsClipboard::GetCustomClipboardFormat();
 
-  // Copy text to Global Memory Area
-  if (hGlobalMemory) {
-    char* dest = reinterpret_cast<char*>(GlobalLock(hGlobalMemory));
-    char* source = reinterpret_cast<char*>(data);
-    memcpy(dest, source, allocLen);  // copies the null as well
-    GlobalUnlock(hGlobalMemory);
-  }
-  aSTG.hGlobal = hGlobalMemory;
-
-  // Now, delete the memory that was created by CreateDataFromPrimitive (or our
-  // text/plain data)
-  free(data);
-
-  return S_OK;
+  return assignDataToStg(data, len + (excludeNull ? 0 : sizeof(char16_t)));
 }
 
 //-----------------------------------------------------
