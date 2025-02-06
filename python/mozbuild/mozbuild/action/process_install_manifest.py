@@ -107,16 +107,23 @@ def main(argv):
 
     elapsed = time.monotonic() - start
 
-    print(
-        COMPLETE.format(
-            elapsed=elapsed,
-            dest=args.destdir,
-            existing=result.existing_files_count,
-            updated=result.updated_files_count,
-            rm_files=result.removed_files_count,
-            rm_dirs=result.removed_directories_count,
+    if (
+        result.updated_files_count
+        + result.removed_files_count
+        + result.removed_directories_count
+        > 0
+        or os.environ.get("BUILD_VERBOSE_LOG")
+    ):
+        print(
+            COMPLETE.format(
+                elapsed=elapsed,
+                dest=args.destdir,
+                existing=result.existing_files_count,
+                updated=result.updated_files_count,
+                rm_files=result.removed_files_count,
+                rm_dirs=result.removed_directories_count,
+            )
         )
-    )
 
 
 if __name__ == "__main__":
