@@ -360,6 +360,10 @@ void MacroAssembler::and32(Imm32 imm, Register dest) {
   ma_and(dest, dest, imm);
 }
 
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
+}
+
 void MacroAssembler::and32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -404,6 +408,10 @@ void MacroAssembler::andPtr(Register src, Register dest) {
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) {
   ma_and(dest, dest, imm);
+}
+
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
 }
 
 void MacroAssembler::branch8(Condition cond, const Address& lhs, Imm32 rhs,
@@ -1783,6 +1791,10 @@ void MacroAssembler::or32(Register src, Register dest) {
 
 void MacroAssembler::or32(Imm32 imm, Register dest) { ma_or(dest, dest, imm); }
 
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
+
 void MacroAssembler::or32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -1819,6 +1831,10 @@ void MacroAssembler::orPtr(Register src, Register dest) {
 }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { ma_or(dest, dest, imm); }
+
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
 
 void MacroAssembler::patchSub32FromStackPtr(CodeOffset offset, Imm32 imm) {
   DEBUG_PRINTF("patchSub32FromStackPtr at offset %lu with immediate %d\n",
@@ -2171,6 +2187,10 @@ void MacroAssembler::xor32(Imm32 imm, Register dest) {
   ma_xor(dest, dest, imm);
 }
 
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
+}
+
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -2213,6 +2233,10 @@ void MacroAssembler::xorPtr(Register src, Register dest) {
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) {
   ma_xor(dest, dest, imm);
+}
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
 }
 //}}} check_macroassembler_style
 

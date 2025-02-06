@@ -1059,12 +1059,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void and32(Register src, Register dest) PER_SHARED_ARCH;
   inline void and32(Imm32 imm, Register dest) PER_SHARED_ARCH;
-  inline void and32(Imm32 imm, Register src, Register dest) DEFINED_ON(arm64);
+  inline void and32(Imm32 imm, Register src, Register dest) PER_SHARED_ARCH;
   inline void and32(Imm32 imm, const Address& dest) PER_SHARED_ARCH;
   inline void and32(const Address& src, Register dest) PER_SHARED_ARCH;
 
   inline void andPtr(Register src, Register dest) PER_ARCH;
   inline void andPtr(Imm32 imm, Register dest) PER_ARCH;
+  inline void andPtr(Imm32 imm, Register src, Register dest) PER_ARCH;
 
   inline void and64(Imm64 imm, Register64 dest) PER_ARCH;
   inline void or64(Imm64 imm, Register64 dest) PER_ARCH;
@@ -1072,10 +1073,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void or32(Register src, Register dest) PER_SHARED_ARCH;
   inline void or32(Imm32 imm, Register dest) PER_SHARED_ARCH;
+  inline void or32(Imm32 imm, Register src, Register dest) PER_SHARED_ARCH;
   inline void or32(Imm32 imm, const Address& dest) PER_SHARED_ARCH;
 
   inline void orPtr(Register src, Register dest) PER_ARCH;
   inline void orPtr(Imm32 imm, Register dest) PER_ARCH;
+  inline void orPtr(Imm32 imm, Register src, Register dest) PER_ARCH;
 
   inline void and64(Register64 src, Register64 dest) PER_ARCH;
   inline void or64(Register64 src, Register64 dest) PER_ARCH;
@@ -1083,11 +1086,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void xor32(Register src, Register dest) PER_SHARED_ARCH;
   inline void xor32(Imm32 imm, Register dest) PER_SHARED_ARCH;
+  inline void xor32(Imm32 imm, Register src, Register dest) PER_SHARED_ARCH;
   inline void xor32(Imm32 imm, const Address& dest) PER_SHARED_ARCH;
   inline void xor32(const Address& src, Register dest) PER_SHARED_ARCH;
 
   inline void xorPtr(Register src, Register dest) PER_ARCH;
   inline void xorPtr(Imm32 imm, Register dest) PER_ARCH;
+  inline void xorPtr(Imm32 imm, Register src, Register dest) PER_ARCH;
 
   inline void and64(const Operand& src, Register64 dest)
       DEFINED_ON(x64, mips64, loong64, riscv64);

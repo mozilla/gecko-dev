@@ -55,6 +55,10 @@ void MacroAssembler::and32(Register src, Register dest) {
 
 void MacroAssembler::and32(Imm32 imm, Register dest) { ma_and(dest, imm); }
 
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
+}
+
 void MacroAssembler::and32(Imm32 imm, const Address& dest) {
   load32(dest, SecondScratchReg);
   ma_and(SecondScratchReg, imm);
@@ -70,6 +74,10 @@ void MacroAssembler::or32(Register src, Register dest) { ma_or(dest, src); }
 
 void MacroAssembler::or32(Imm32 imm, Register dest) { ma_or(dest, imm); }
 
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
+
 void MacroAssembler::or32(Imm32 imm, const Address& dest) {
   load32(dest, SecondScratchReg);
   ma_or(SecondScratchReg, imm);
@@ -79,6 +87,10 @@ void MacroAssembler::or32(Imm32 imm, const Address& dest) {
 void MacroAssembler::xor32(Register src, Register dest) { ma_xor(dest, src); }
 
 void MacroAssembler::xor32(Imm32 imm, Register dest) { ma_xor(dest, imm); }
+
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
+}
 
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
   load32(dest, SecondScratchReg);

@@ -136,9 +136,11 @@ void MacroAssembler::and32(Register src, Register dest) {
   ma_and(src, dest, SetCC);
 }
 
-void MacroAssembler::and32(Imm32 imm, Register dest) {
+void MacroAssembler::and32(Imm32 imm, Register dest) { and32(imm, dest, dest); }
+
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_and(imm, dest, scratch, SetCC);
+  ma_and(imm, src, dest, scratch, SetCC);
 }
 
 void MacroAssembler::and32(Imm32 imm, const Address& dest) {
@@ -161,8 +163,12 @@ void MacroAssembler::and32(const Address& src, Register dest) {
 void MacroAssembler::andPtr(Register src, Register dest) { ma_and(src, dest); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) {
+  andPtr(imm, dest, dest);
+}
+
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_and(imm, dest, scratch);
+  ma_and(imm, src, dest, scratch);
 }
 
 void MacroAssembler::and64(Imm64 imm, Register64 dest) {
@@ -194,9 +200,11 @@ void MacroAssembler::xor64(Imm64 imm, Register64 dest) {
 
 void MacroAssembler::or32(Register src, Register dest) { ma_orr(src, dest); }
 
-void MacroAssembler::or32(Imm32 imm, Register dest) {
+void MacroAssembler::or32(Imm32 imm, Register dest) { or32(imm, dest, dest); }
+
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_orr(imm, dest, scratch);
+  ma_orr(imm, src, dest, scratch);
 }
 
 void MacroAssembler::or32(Imm32 imm, const Address& dest) {
@@ -210,9 +218,11 @@ void MacroAssembler::or32(Imm32 imm, const Address& dest) {
 
 void MacroAssembler::orPtr(Register src, Register dest) { ma_orr(src, dest); }
 
-void MacroAssembler::orPtr(Imm32 imm, Register dest) {
+void MacroAssembler::orPtr(Imm32 imm, Register dest) { orPtr(imm, dest, dest); }
+
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_orr(imm, dest, scratch);
+  ma_orr(imm, src, dest, scratch);
 }
 
 void MacroAssembler::and64(Register64 src, Register64 dest) {
@@ -234,9 +244,11 @@ void MacroAssembler::xor32(Register src, Register dest) {
   ma_eor(src, dest, SetCC);
 }
 
-void MacroAssembler::xor32(Imm32 imm, Register dest) {
+void MacroAssembler::xor32(Imm32 imm, Register dest) { xor32(imm, dest, dest); }
+
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_eor(imm, dest, scratch, SetCC);
+  ma_eor(imm, src, dest, scratch, SetCC);
 }
 
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
@@ -259,8 +271,12 @@ void MacroAssembler::xor32(const Address& src, Register dest) {
 void MacroAssembler::xorPtr(Register src, Register dest) { ma_eor(src, dest); }
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) {
+  xorPtr(imm, dest, dest);
+}
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
   ScratchRegisterScope scratch(*this);
-  ma_eor(imm, dest, scratch);
+  ma_eor(imm, src, dest, scratch);
 }
 
 // ===============================================================

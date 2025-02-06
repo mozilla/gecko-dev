@@ -69,6 +69,13 @@ void MacroAssembler::and32(Register src, Register dest) { andl(src, dest); }
 
 void MacroAssembler::and32(Imm32 imm, Register dest) { andl(imm, dest); }
 
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  andl(imm, dest);
+}
+
 void MacroAssembler::and32(Imm32 imm, const Address& dest) {
   andl(imm, Operand(dest));
 }
@@ -81,6 +88,13 @@ void MacroAssembler::or32(Register src, Register dest) { orl(src, dest); }
 
 void MacroAssembler::or32(Imm32 imm, Register dest) { orl(imm, dest); }
 
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  orl(imm, dest);
+}
+
 void MacroAssembler::or32(Imm32 imm, const Address& dest) {
   orl(imm, Operand(dest));
 }
@@ -88,6 +102,13 @@ void MacroAssembler::or32(Imm32 imm, const Address& dest) {
 void MacroAssembler::xor32(Register src, Register dest) { xorl(src, dest); }
 
 void MacroAssembler::xor32(Imm32 imm, Register dest) { xorl(imm, dest); }
+
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  xorl(imm, dest);
+}
 
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
   xorl(imm, Operand(dest));
