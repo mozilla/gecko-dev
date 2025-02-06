@@ -22292,8 +22292,7 @@ void CodeGenerator::visitFuzzilliHashT(LFuzzilliHashT* ins) {
     }
 
     case MIRType::Boolean: {
-      masm.move32(ToRegister(value), scratch);
-      masm.add32(Imm32(3), scratch);
+      masm.add32(Imm32(3), ToRegister(value), scratch);
       masm.convertInt32ToDouble(scratch, scratchFloat);
       masm.fuzzilliHashDouble(scratchFloat, output, scratch);
       break;

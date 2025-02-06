@@ -3034,8 +3034,7 @@ void BaselineCacheIRCompiler::pushStandardArguments(
     // We use a scratch register to avoid clobbering argc, which is an input
     // reg.
     Register countReg = scratch;
-    masm.move32(argcReg, countReg);
-    masm.add32(Imm32(additionalArgc), countReg);
+    masm.add32(Imm32(additionalArgc), argcReg, countReg);
 
     // Align the stack such that the JitFrameLayout is aligned on the
     // JitStackAlignment.
