@@ -27,7 +27,7 @@ pub(crate) struct UserActivityObserver {
 /// Listens to Firefox Desktop's `user-interaction-(in)active` topics,
 /// debouncing them before calling into the Glean SDK Client Activity API.
 /// See
-/// [the docs](https://firefox-source-docs.mozilla.org/toolkit/components/glean/builtin_pings.html)
+/// [the docs](https://firefox-source-docs.mozilla.org/toolkit/components/glean/dev/builtin_pings.html)
 /// for more info.
 #[allow(non_snake_case)]
 impl UserActivityObserver {

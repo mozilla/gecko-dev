@@ -92,7 +92,7 @@ def main(args):
             print(
                 dedent(
                     """
-            See https://firefox-source-docs.mozilla.org/setup/linux_build.html#installingpython
+            See https://firefox-source-docs.mozilla.org/setup/linux_build.html#install-python
             for guidance on how to install Python on your system.
             """
                 ).strip()

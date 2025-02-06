@@ -36,7 +36,7 @@ You are building GeckoView. After your build completes, you can open
 the top source directory in Android Studio directly and build using Gradle.
 See the documentation at
 
-https://firefox-source-docs.mozilla.org/mobile/android/geckoview/contributor/geckoview-quick-start.html#build-using-android-studio
+https://firefox-source-docs.mozilla.org/mobile/android/index.html#build-using-android-studio
 =============
 """.strip()
 

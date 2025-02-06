@@ -11,7 +11,7 @@ setup(
     name=PACKAGE_NAME,
     version=PACKAGE_VERSION,
     description="Library to generate and view performance data in the Firefox Profiler",
-    long_description="see https://firefox-source-docs.mozilla.org/mozgeckoprofiler/index.html",
+    long_description="see https://firefox-source-docs.mozilla.org/mozbase/mozgeckoprofiler.html",
     classifiers=[
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",

@@ -37,6 +37,6 @@ Code formatting on Raptor
 *************************
 As Raptor is a Mozilla project we follow the general Python coding style:
 
-* https://firefox-source-docs.mozilla.org/tools/lint/coding-style/coding_style_python.html
+* https://firefox-source-docs.mozilla.org/code-quality/coding-style/coding_style_python.html
 
 `black <https://github.com/psf/black/>`_ is the tool used to reformat the Python code.

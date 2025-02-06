@@ -1858,7 +1858,7 @@ and greater.
 
 [README]: https://github.com/mozilla/geckodriver/blob/master/README.md
 [crash reports]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/CrashReports.html>
-[usage documentation]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/Usage.html#Running-Firefox-in-an-container-based-package>
+[usage documentation]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/Usage.html#running-firefox-in-a-container-based-package>
 [Browser Toolbox]: https://developer.mozilla.org/en-US/docs/Tools/Browser_Toolbox
 [WebDriver conformance]: https://wpt.fyi/results/webdriver/tests?label=experimental
 [`webSocketUrl`]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/webSocketUrl
@@ -1869,8 +1869,8 @@ and greater.
 [Fission]: https://wiki.mozilla.org/Project_Fission
 [Capabilities]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Capabilities.html
 [Flags]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html
-[`--allow-hosts`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#code-allow-hosts-var-allow-hosts-var-code
-[`--allow-origins`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#code-allow-origins-var-allow-origins-var-code
+[`--allow-hosts`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#allow-hosts-allow-hosts
+[`--allow-origins`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#allow-origins-allow-origins
 [enable remote debugging on the Android device]: https://developers.google.com/web/tools/chrome-devtools/remote-debugging
 [macOS notarization]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Notarization.html
 [Rust]: https://rustup.rs/
