@@ -35,14 +35,17 @@ export class RemotePermissionService {
   QueryInterface = ChromeUtils.generateQI(["nsIRemotePermissionService"]);
 
   #rs = RemoteSettings(COLLECTION_NAME);
-  #onSyncCallback = null;
   #initialized = Promise.withResolvers();
   #allowedPermissionValues = ALLOWED_PERMISSION_VALUES;
 
+  constructor() {
+    this.init();
+  }
+
   /**
    * Asynchonously import all default permissions from remote settings into the
-   * permission manager. Also, if not already done, set up remote settings event
-   * listener to keep remote permissions in sync.
+   * permission manager and set up remote settings event listener to keep
+   * remote permissions in sync.
    */
   async init() {
     try {
@@ -53,9 +56,7 @@ export class RemotePermissionService {
       if (
         !Services.prefs.getBoolPref("permissions.manager.remote.enabled", false)
       ) {
-        throw Error(
-          "Tried to initialize remote permission service despite being disabled by pref"
-        );
+        return;
       }
 
       let remotePermissions = await this.#rs.get();
@@ -63,15 +64,7 @@ export class RemotePermissionService {
         this.#addDefaultPermission(permission);
       }
 
-      // Init could be called multiple times if the permission manager is
-      // reinitializing itself due to "testonly-reload-permissions-from-disk"
-      // being emitted. In that case, we don't shouldn't set up the RS listener
-      // again. We may also land in that situtation when "profile-do-change" is
-      // emitted.
-      if (!this.#onSyncCallback) {
-        this.#onSyncCallback = this.#onSync.bind(this);
-        this.#rs.on("sync", this.#onSyncCallback);
-      }
+      this.#rs.on("sync", this.#onSync.bind(this));
 
       this.#initialized.resolve();
     } catch (e) {
