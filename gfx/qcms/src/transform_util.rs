@@ -62,12 +62,17 @@ pub fn clamp_float(a: f32) -> f32 {
 //XXX: is the above a good restriction to have?
 // the output range of this functions is 0..1
 pub fn lut_interp_linear(mut input_value: f64, table: &[u16]) -> f32 {
+    if table.is_empty() {
+        return input_value as f32;
+    }
+
     input_value *= (table.len() - 1) as f64;
 
     let upper: i32 = input_value.ceil() as i32;
     let lower: i32 = input_value.floor() as i32;
-    let value: f32 = ((table[upper as usize] as f64) * (1. - (upper as f64 - input_value))
-        + (table[lower as usize] as f64 * (upper as f64 - input_value)))
+    let value: f32 = ((table[(upper as usize).min(table.len() - 1)] as f64)
+        * (1. - (upper as f64 - input_value))
+        + (table[(lower as usize).min(table.len() - 1)] as f64 * (upper as f64 - input_value)))
         as f32;
     /* scale the value */
     value * (1.0 / 65535.0)
@@ -120,53 +125,51 @@ pub fn lut_interp_linear_float(mut value: f32, table: &[f32]) -> f32 {
     /* scale the value */
     value
 }
-fn compute_curve_gamma_table_type1(gamma: u16) -> Box<[f32; 256]> {
-    let mut gamma_table = Box::new([0.0; 256]);
+
+fn compute_curve_gamma_table_type1(gamma_table: &mut [f32; 256], gamma: u16) {
     let gamma_float: f32 = u8Fixed8Number_to_float(gamma);
-    for i in 0..256 {
+    for (i, g) in gamma_table.iter_mut().enumerate() {
         // 0..1^(0..255 + 255/256) will always be between 0 and 1
-        gamma_table[i] = (i as f64 / 255.0f64).powf(gamma_float as f64) as f32;
+        *g = (i as f64 / 255.0f64).powf(gamma_float as f64) as f32;
     }
-    gamma_table
 }
-fn compute_curve_gamma_table_type2(table: &[u16]) -> Box<[f32; 256]> {
-    let mut gamma_table = Box::new([0.0; 256]);
-    for i in 0..256 {
-        gamma_table[i] = lut_interp_linear(i as f64 / 255.0f64, table);
+
+fn compute_curve_gamma_table_type2(gamma_table: &mut [f32; 256], table: &[u16]) {
+    for (i, g) in gamma_table.iter_mut().enumerate() {
+        *g = lut_interp_linear(i as f64 / 255.0f64, table);
     }
-    gamma_table
 }
-fn compute_curve_gamma_table_type_parametric(params: &[f32]) -> Box<[f32; 256]> {
+
+fn compute_curve_gamma_table_type_parametric(gamma_table: &mut [f32; 256], params: &[f32]) {
     let params = Param::new(params);
-    let mut gamma_table = Box::new([0.0; 256]);
-    for i in 0..256 {
+    for (i, g) in gamma_table.iter_mut().enumerate() {
         let X = i as f32 / 255.;
-        gamma_table[i] = clamp_float(params.eval(X));
+        *g = clamp_float(params.eval(X));
     }
+}
+
+fn compute_curve_gamma_table_type0(gamma_table: &mut [f32; 256]) {
+    for (i, g) in gamma_table.iter_mut().enumerate() {
+        *g = (i as f64 / 255.0f64) as f32;
+    }
+}
+
+#[inline(always)]
+pub(crate) fn build_input_gamma_table(TRC: &curveType) -> [f32; 256] {
+    let mut gamma_table = [0.; 256];
+    match TRC {
+        curveType::Parametric(params) => {
+            compute_curve_gamma_table_type_parametric(&mut gamma_table, params)
+        }
+        curveType::Curve(data) => match data.len() {
+            0 => compute_curve_gamma_table_type0(&mut gamma_table),
+            1 => compute_curve_gamma_table_type1(&mut gamma_table, data[0]),
+            _ => compute_curve_gamma_table_type2(&mut gamma_table, data),
+        },
+    };
     gamma_table
 }
 
-fn compute_curve_gamma_table_type0() -> Box<[f32; 256]> {
-    let mut gamma_table = Box::new([0.0; 256]);
-    for i in 0..256 {
-        gamma_table[i] = (i as f64 / 255.0f64) as f32;
-    }
-    gamma_table
-}
-pub(crate) fn build_input_gamma_table(TRC: Option<&curveType>) -> Option<Box<[f32; 256]>> {
-    let TRC = match TRC {
-        Some(TRC) => TRC,
-        None => return None,
-    };
-    Some(match TRC {
-        curveType::Parametric(params) => compute_curve_gamma_table_type_parametric(params),
-        curveType::Curve(data) => match data.len() {
-            0 => compute_curve_gamma_table_type0(),
-            1 => compute_curve_gamma_table_type1(data[0]),
-            _ => compute_curve_gamma_table_type2(data),
-        },
-    })
-}
 pub fn build_colorant_matrix(p: &Profile) -> Matrix {
     let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
     result.m[0][0] = s15Fixed16Number_to_float(p.redColorant.X);
@@ -475,7 +478,8 @@ pub(crate) fn compute_precache(trc: &curveType, output: &mut [u8; PRECACHE_OUTPU
             let mut gamma_table_uint: [u16; 256] = [0; 256];
 
             let mut inverted_size: usize = 256;
-            let gamma_table = compute_curve_gamma_table_type_parametric(params);
+            let mut gamma_table = [0.; 256];
+            compute_curve_gamma_table_type_parametric(&mut gamma_table, params);
             let mut i: u16 = 0u16;
             while (i as i32) < 256 {
                 gamma_table_uint[i as usize] = (gamma_table[i as usize] * 65535f32) as u16;

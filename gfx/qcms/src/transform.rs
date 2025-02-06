@@ -1385,15 +1385,10 @@ pub fn transform_create(
             transform.transform_fn = Some(qcms_transform_data_bgra_out_lut)
         }
         //XXX: avoid duplicating tables if we can
-        transform.input_gamma_table_r = build_input_gamma_table(input.redTRC.as_deref());
-        transform.input_gamma_table_g = build_input_gamma_table(input.greenTRC.as_deref());
-        transform.input_gamma_table_b = build_input_gamma_table(input.blueTRC.as_deref());
-        if transform.input_gamma_table_r.is_none()
-            || transform.input_gamma_table_g.is_none()
-            || transform.input_gamma_table_b.is_none()
-        {
-            return None;
-        }
+        transform.input_gamma_table_r = Some(Box::new(build_input_gamma_table(input.redTRC.as_deref()?)));
+        transform.input_gamma_table_g = Some(Box::new(build_input_gamma_table(input.greenTRC.as_deref()?)));
+        transform.input_gamma_table_b = Some(Box::new(build_input_gamma_table(input.blueTRC.as_deref()?)));
+
         /* build combined colorant matrix */
 
         let in_matrix: Matrix = build_colorant_matrix(input);
@@ -1426,8 +1421,7 @@ pub fn transform_create(
         transform.matrix[1][2] = result_0.m[2][1];
         transform.matrix[2][2] = result_0.m[2][2]
     } else if input.color_space == GRAY_SIGNATURE {
-        transform.input_gamma_table_gray = build_input_gamma_table(input.grayTRC.as_deref());
-        transform.input_gamma_table_gray.as_ref()?;
+        transform.input_gamma_table_gray = Some(Box::new(build_input_gamma_table(input.grayTRC.as_deref()?)));
         if precache {
             if out_type == RGB8 {
                 transform.transform_fn = Some(qcms_transform_data_gray_out_precache)

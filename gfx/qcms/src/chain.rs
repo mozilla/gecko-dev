@@ -23,7 +23,7 @@ use crate::{
     iccread::LAB_SIGNATURE,
     iccread::RGB_SIGNATURE,
     iccread::XYZ_SIGNATURE,
-    iccread::{lutType, lutmABType, Profile, CMYK_SIGNATURE},
+    iccread::{curveType, lutType, lutmABType, Profile, CMYK_SIGNATURE},
     matrix::Matrix,
     s15Fixed16Number_to_float,
     transform_util::clamp_float,
@@ -491,7 +491,19 @@ static void qcms_transform_module_tetra_clut(struct qcms_modular_transform *tran
 */
 
 struct GammaTable {
-    input_clut_table: [Box<[f32; 256]>; 3],
+    input_clut_table: [[f32; 256]; 3],
+}
+
+impl GammaTable {
+    pub fn from_curves(curve: [&curveType; 3]) -> Box<Self> {
+        Box::new(Self {
+            input_clut_table: [
+                build_input_gamma_table(curve[0]),
+                build_input_gamma_table(curve[1]),
+                build_input_gamma_table(curve[2]),
+            ],
+        })
+    }
 }
 
 impl ModularTransform for GammaTable {
@@ -499,9 +511,9 @@ impl ModularTransform for GammaTable {
         let mut out_r: f32;
         let mut out_g: f32;
         let mut out_b: f32;
-        let input_clut_table_r = &*self.input_clut_table[0];
-        let input_clut_table_g = &*self.input_clut_table[1];
-        let input_clut_table_b = &*self.input_clut_table[2];
+        let input_clut_table_r = &self.input_clut_table[0];
+        let input_clut_table_g = &self.input_clut_table[1];
+        let input_clut_table_b = &self.input_clut_table[2];
 
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let in_r: f32 = src[0];
@@ -623,13 +635,11 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
             //XXX: We don't currently support clut that are not squared!
             return None;
         }
-        transforms.push(Box::new(GammaTable {
-            input_clut_table: [
-                build_input_gamma_table(lut.a_curves[0].as_deref())?,
-                build_input_gamma_table(lut.a_curves[1].as_deref())?,
-                build_input_gamma_table(lut.a_curves[2].as_deref())?,
-            ],
-        }));
+        transforms.push(GammaTable::from_curves([
+            lut.a_curves[0].as_deref()?,
+            lut.a_curves[1].as_deref()?,
+            lut.a_curves[2].as_deref()?,
+        ]));
 
         let clut_length = (lut.num_grid_points[0] as usize).pow(3) * 3;
         assert_eq!(clut_length, clut_table.len());
@@ -645,13 +655,11 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
         // M curve imples the presence of a Matrix
 
         // Prepare M curve
-        transforms.push(Box::new(GammaTable {
-            input_clut_table: [
-                build_input_gamma_table(lut.m_curves[0].as_deref())?,
-                build_input_gamma_table(lut.m_curves[1].as_deref())?,
-                build_input_gamma_table(lut.m_curves[2].as_deref())?,
-            ],
-        }));
+        transforms.push(GammaTable::from_curves([
+            lut.m_curves[0].as_deref()?,
+            lut.m_curves[1].as_deref()?,
+            lut.m_curves[2].as_deref()?,
+        ]));
 
         // Prepare Matrix
         let mut transform = Box::new(MatrixTranslate::default());
@@ -664,13 +672,11 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
 
     if lut.b_curves[0].is_some() {
         // Prepare B curve
-        transforms.push(Box::new(GammaTable {
-            input_clut_table: [
-                build_input_gamma_table(lut.b_curves[0].as_deref())?,
-                build_input_gamma_table(lut.b_curves[1].as_deref())?,
-                build_input_gamma_table(lut.b_curves[2].as_deref())?,
-            ],
-        }));
+        transforms.push(GammaTable::from_curves([
+            lut.b_curves[0].as_deref()?,
+            lut.b_curves[1].as_deref()?,
+            lut.b_curves[2].as_deref()?,
+        ]));
     } else {
         // B curve is mandatory
         return None;
@@ -803,13 +809,11 @@ fn modular_transform_create_input(input: &Profile) -> Option<Vec<Box<dyn Modular
             return None;
         }
     } else {
-        transforms.push(Box::new(GammaTable {
-            input_clut_table: [
-                build_input_gamma_table(input.redTRC.as_deref())?,
-                build_input_gamma_table(input.greenTRC.as_deref())?,
-                build_input_gamma_table(input.blueTRC.as_deref())?,
-            ],
-        }));
+        transforms.push(GammaTable::from_curves([
+            input.redTRC.as_deref()?,
+            input.greenTRC.as_deref()?,
+            input.blueTRC.as_deref()?,
+        ]));
 
         transforms.push(Box::new(MatrixTransform {
             matrix: Matrix {
