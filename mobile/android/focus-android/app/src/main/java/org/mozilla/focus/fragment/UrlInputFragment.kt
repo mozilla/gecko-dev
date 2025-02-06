@@ -511,7 +511,7 @@ class UrlInputFragment :
 
             val isUrl = URLStringUtils.isURLLike(input)
             if (isUrl) {
-                openUrl(URLStringUtils.toNormalizedURL(input))
+                openUrl(input)
             } else {
                 search(input)
             }
@@ -544,7 +544,7 @@ class UrlInputFragment :
             search(query)
         } else {
             if (URLStringUtils.isURLLike(query)) {
-                openUrl(URLStringUtils.toNormalizedURL(query))
+                openUrl(query)
             } else {
                 search(query)
             }
@@ -570,7 +570,8 @@ class UrlInputFragment :
     }
 
     private fun openUrl(url: String) {
-        when (url) {
+        val normalizedUrl = URLStringUtils.toNormalizedURL(url)
+        when (normalizedUrl) {
             "focus:about" -> {
                 requireComponents.appStore.dispatch(
                     AppAction.OpenSettings(Screen.Settings.Page.About),
@@ -581,15 +582,20 @@ class UrlInputFragment :
 
         val tab = tab
         if (tab != null) {
-            requireComponents.sessionUseCases.loadUrl(url, tab.id)
+            requireComponents.sessionUseCases.loadUrl(
+                normalizedUrl,
+                tab.id,
+                originalInput = url,
+            )
 
             requireComponents.appStore.dispatch(AppAction.FinishEdit(tab.id))
         } else {
             requireComponents.tabsUseCases.addTab(
-                url,
+                normalizedUrl,
                 source = SessionState.Source.Internal.UserEntered,
                 selectTab = true,
                 private = true,
+                originalInput = url,
             )
         }
 

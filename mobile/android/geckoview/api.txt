@@ -1270,6 +1270,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoSession.Loader data(@NonNull String, @Nullable String);
     method @NonNull public GeckoSession.Loader flags(int);
     method @NonNull public GeckoSession.Loader headerFilter(int);
+    method @NonNull public GeckoSession.Loader originalInput(@Nullable String);
     method @NonNull public GeckoSession.Loader referrer(@NonNull GeckoSession);
     method @NonNull public GeckoSession.Loader referrer(@NonNull Uri);
     method @NonNull public GeckoSession.Loader referrer(@NonNull String);
