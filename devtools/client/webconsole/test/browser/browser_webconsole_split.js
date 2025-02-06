@@ -88,6 +88,11 @@ add_task(async function () {
     const splitterHeight = splitterVisibility ? 1 : 0;
     const openedConsolePanel = toolbox.currentToolId === "webconsole";
     const menuLabel = await getMenuLabel(toolbox);
+    const isConsoleVisible =
+      webconsolePanel.ownerGlobal.getComputedStyle(webconsolePanel)
+        .visibility == "visible";
+    const isDeckVisible =
+      deck.ownerGlobal.getComputedStyle(deck).visibility == "visible";
 
     return {
       deckHeight,
@@ -97,6 +102,8 @@ add_task(async function () {
       splitterHeight,
       openedConsolePanel,
       menuLabel,
+      isConsoleVisible,
+      isDeckVisible,
     };
   }
 
@@ -166,9 +173,12 @@ add_task(async function () {
     );
     Assert.greater(
       currentUIState.webconsoleHeight,
-      0,
-      "Web console has a height > 0 when console is split"
+      75,
+      "Web console height is at least set to its minimal height"
     );
+    ok(currentUIState.isDeckVisible, "Deck is visible when console is split");
+
+    ok(currentUIState.isConsoleVisible, "Web console is visible");
     ok(
       !currentUIState.openedConsolePanel,
       "The console panel is not the current tool"
@@ -188,14 +198,19 @@ add_task(async function () {
     );
     is(
       currentUIState.deckHeight,
-      0,
-      "Deck has a height == 0 when console is opened."
+      currentUIState.webconsoleHeight,
+      "Deck has the same height as console"
     );
     is(
       currentUIState.webconsoleHeight,
       currentUIState.containerHeight,
       "Web console is full height."
     );
+    ok(
+      !currentUIState.isDeckVisible,
+      "Deck is hidden when the Web console is opened"
+    );
+    ok(currentUIState.isConsoleVisible, "Web console is visible.");
     ok(
       currentUIState.openedConsolePanel,
       "The console panel is the current tool"
@@ -217,14 +232,19 @@ add_task(async function () {
     );
     is(
       currentUIState.deckHeight,
-      0,
-      "Deck has a height == 0 when console is opened."
+      currentUIState.webconsoleHeight,
+      "Deck has the same height as console"
     );
     is(
       currentUIState.webconsoleHeight,
       currentUIState.containerHeight,
       "Web console is full height."
     );
+    ok(
+      !currentUIState.isDeckVisible,
+      "Deck is hidden when the Web console is opened"
+    );
+    ok(currentUIState.isConsoleVisible, "Web console is visible.");
     ok(
       currentUIState.openedConsolePanel,
       "The console panel is the current tool"
@@ -252,6 +272,8 @@ add_task(async function () {
       0,
       "Web console has a height > 0 when console is split"
     );
+    ok(currentUIState.isDeckVisible, "Deck is visible when console is split");
+    ok(currentUIState.isConsoleVisible, "Web console is visible.");
     ok(
       !currentUIState.openedConsolePanel,
       "The console panel is not the current tool"
@@ -274,11 +296,11 @@ add_task(async function () {
       currentUIState.containerHeight,
       "Deck has a height > 0 by default"
     );
-    is(
-      currentUIState.webconsoleHeight,
-      0,
-      "Web console is collapsed by default"
+    ok(
+      currentUIState.isDeckVisible,
+      "Deck is visible when the Web console is closed"
     );
+    ok(!currentUIState.isConsoleVisible, "Web console is hidden.");
     ok(
       !currentUIState.openedConsolePanel,
       "The console panel is not the current tool"
@@ -307,6 +329,8 @@ add_task(async function () {
       0,
       "Web console has a height > 0 when console is split"
     );
+    ok(currentUIState.isDeckVisible, "Deck is visible when console is split");
+    ok(currentUIState.isConsoleVisible, "Web console is visible.");
     is(
       Math.round(
         currentUIState.deckHeight +
@@ -336,10 +360,10 @@ add_task(async function () {
       currentUIState.containerHeight,
       "Deck has a height > 0 after toggling"
     );
-    is(
-      currentUIState.webconsoleHeight,
-      0,
-      "Web console is collapsed after toggling"
+    ok(currentUIState.isDeckVisible, "Deck is visible when console is closed");
+    ok(
+      !currentUIState.isConsoleVisible,
+      "Web console is hidden after toggling."
     );
     ok(
       !currentUIState.openedConsolePanel,
