@@ -123,14 +123,6 @@ export class ContextMenuParent extends JSWindowActorParent {
     });
   }
 
-  getTextDirective() {
-    return this.sendQuery("ContextMenu:GetTextDirective");
-  }
-
-  removeAllTextFragments() {
-    return this.sendQuery("ContextMenu:RemoveAllTextFragments");
-  }
-
   /**
    * Handles opening of the context menu for the appropraite browser.
    *
