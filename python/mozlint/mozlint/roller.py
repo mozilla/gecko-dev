@@ -9,7 +9,6 @@ import os
 import signal
 import sys
 import time
-import traceback
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import _python_exit as futures_atexit
 from itertools import chain
@@ -36,13 +35,15 @@ from .types import supported_types
 SHUTDOWN = False
 orig_sigint = signal.getsignal(signal.SIGINT)
 
-logger = logging.getLogger("mozlint")
+# Logger passed down into subprocesses
+logger = logging.getLogger("lint")
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-    "%(asctime)s.%(msecs)d %(lintname)s (%(pid)s) | %(message)s", "%H:%M:%S"
-)
+formatter = logging.Formatter("%(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+# Adapter for parent process.
+log = logging.LoggerAdapter(logger, {"lintname": "mozlint", "pid": os.getpid()})
 
 
 def _run_worker(config, paths, **lintargs):
@@ -79,10 +80,10 @@ def _run_worker(config, paths, **lintargs):
         elif isinstance(res, list):
             res = res or []
         else:
-            print("Unexpected type received")
+            log.error("Unexpected type received")
             assert False
     except Exception:
-        traceback.print_exc()
+        log.exception(f"{config['name']} failed")
         res = 1
     except (KeyboardInterrupt, SystemExit):
         return result
@@ -189,13 +190,13 @@ class LintRoller(object):
         self.exclude = exclude or []
 
         if lintargs.get("show_verbose"):
+            formatter = logging.Formatter(
+                "%(asctime)s.%(msecs)d %(lintname)s (%(pid)s) | %(message)s", "%H:%M:%S"
+            )
+            logger.handlers[0].setFormatter(formatter)
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.WARNING)
-
-        self.log = logging.LoggerAdapter(
-            logger, {"lintname": "mozlint", "pid": os.getpid()}
-        )
 
     def read(self, paths):
         """Parse one or more linters and add them to the registry.
@@ -226,7 +227,7 @@ class LintRoller(object):
                 setupargs.update(self._setupargs)
                 setupargs["name"] = linter["name"]
                 setupargs["log"] = logging.LoggerAdapter(
-                    self.log, {"lintname": linter["name"]}
+                    logger, {"lintname": linter["name"]}
                 )
                 if virtualenv_manager is not None:
                     setupargs["virtualenv_manager"] = virtualenv_manager
@@ -237,12 +238,12 @@ class LintRoller(object):
                     )
                     or 0
                 )
-                self.log.debug(
+                log.debug(
                     f"setup for {linter['name']} finished in "
                     f"{round(time.monotonic() - start_time, 2)} seconds"
                 )
             except Exception:
-                traceback.print_exc()
+                log.exception(f"{linter['name']} setup failed")
                 res = 1
 
             if res > 0:
@@ -256,8 +257,8 @@ class LintRoller(object):
         self.linters = [l for l in self.linters if l["name"] not in self.result.skipped]
 
         if self.result.failed_setup:
-            print(
-                "error: problem with lint setup, skipping {}".format(
+            log.error(
+                "problem with lint setup, skipping {}".format(
                     ", ".join(sorted(self.result.failed_setup))
                 )
             )
@@ -340,9 +341,10 @@ class LintRoller(object):
             paths = set(paths)
 
         if not self.vcs and (workdir or outgoing):
-            print(
-                "error: '{}' is not a known repository, can't use "
-                "--workdir or --outgoing".format(self.lintargs["root"])
+            log.error(
+                "'{}' is not a known repository, can't use --workdir or --outgoing".format(
+                    self.lintargs["root"]
+                )
             )
 
         # Calculate files from VCS
@@ -359,13 +361,14 @@ class LintRoller(object):
                         self.vcs.get_outgoing_files("AM", upstream=upstream)
                     )
                 except MissingUpstreamRepo:
-                    print(
-                        "warning: could not find default push, specify a remote for --outgoing"
+                    log.warning(
+                        "could not find default push, specify a remote for --outgoing"
                     )
         except CalledProcessError as e:
-            print("error running: {}".format(" ".join(e.cmd)))
+            msg = f"command failed: {' '.join(e.cmd)}"
             if e.output:
-                print(e.output)
+                msg = f"{msg}\n{e.output}"
+            log.error(msg)
 
         if not (paths or vcs_paths) and (workdir or outgoing):
             if os.environ.get("MOZ_AUTOMATION") and not os.environ.get(
@@ -376,7 +379,7 @@ class LintRoller(object):
                     "missing explicit paths?"
                 )
 
-            print("warning: no files linted")
+            log.warning("no files linted")
             return self.result
 
         # Make sure all paths are absolute. Join `paths` to cwd and `vcs_paths` to root.
@@ -420,7 +423,7 @@ class LintRoller(object):
             """
             [f.cancel() for f in futures]
             executor.shutdown(wait=True)
-            print("\nwarning: not all files were linted")
+            log.warning("\nnot all files were linted")
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         signal.signal(signal.SIGINT, _parent_sigint_handler)

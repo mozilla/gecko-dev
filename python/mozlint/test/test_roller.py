@@ -118,7 +118,7 @@ def test_roll_with_no_files_to_lint(lint, linters, capfd):
     assert len(result.failed) == 0
 
     out, err = capfd.readouterr()
-    assert "warning: no files linted" in out
+    assert "WARNING: no files linted" in err
 
 
 def test_roll_with_invalid_extension(lint, linters, filedir):
@@ -293,7 +293,7 @@ def test_keyboard_interrupt():
 
     out = proc.communicate()[0]
     print(out)
-    assert "warning: not all files were linted" in out
+    assert "WARNING: \nnot all files were linted" in out
     assert "2 problems" in out
     assert "Traceback" not in out
 
@@ -385,10 +385,8 @@ def test_setup(lint, linters, filedir, capfd):
     lint.read(linters("setup", "setupfailed", "setupraised"))
     lint.setup()
     out, err = capfd.readouterr()
-    assert "setup passed" in out
-    assert "setup failed" in out
-    assert "setup raised" in out
-    assert "error: problem with lint setup, skipping" in out
+    assert "oh no setup failed" in err
+    assert "ERROR: problem with lint setup, skipping" in err
     assert lint.result.failed_setup == set(["SetupFailedLinter", "SetupRaisedLinter"])
 
 
