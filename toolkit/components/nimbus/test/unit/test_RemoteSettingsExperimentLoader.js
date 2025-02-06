@@ -337,9 +337,9 @@ add_task(async function test_experiment_optin_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const recipe = ExperimentFakes.recipe("foo", { targeting: "false" });
 

@@ -28,13 +28,11 @@ add_task(async function testPolicyDisablesNimbus() {
     "Policy engine is active"
   );
 
-  const manager = ExperimentFakes.manager();
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
   await manager.onStartup();
 
   Assert.ok(!manager.studiesEnabled, "ExperimentManager is disabled");
-
-  const loader = ExperimentFakes.rsLoader();
-  loader.manager = manager;
 
   const setTimerStub = sinon.stub(loader, "setTimer");
   const updateRecipes = sinon.stub(loader, "updateRecipes");

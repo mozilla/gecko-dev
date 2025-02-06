@@ -1092,9 +1092,9 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
     },
   });
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sinon
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -1170,9 +1170,9 @@ add_task(async function test_reenroll_rollout_resized() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const rollout = ExperimentFakes.recipe("rollout", {
     isRollout: true,
@@ -1233,9 +1233,9 @@ add_task(async function test_experiment_reenroll() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const experiment = ExperimentFakes.recipe("experiment");
   experiment.bucketConfig = {
@@ -1275,9 +1275,9 @@ add_task(async function test_rollout_reenroll_optout() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const rollout = ExperimentFakes.recipe("experiment", { isRollout: true });
   rollout.bucketConfig = {
@@ -1313,9 +1313,9 @@ add_task(async function test_active_and_past_experiment_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const cleanupFeatures = ExperimentTestUtils.addTestFeatures(
     new ExperimentFeature("feature-a", {
@@ -1494,9 +1494,9 @@ add_task(async function test_enrollment_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   const cleanupFeatures = ExperimentTestUtils.addTestFeatures(
     new ExperimentFeature("feature-a", {
@@ -1718,9 +1718,9 @@ add_task(
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
-    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
+    await loader.enable();
 
     sandbox.stub(loader.remoteSettingsClients.experiments, "get").resolves([]);
 
@@ -1764,9 +1764,9 @@ add_task(
       },
     });
 
-    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
+    await loader.enable();
 
     sandbox
       .stub(loader.remoteSettingsClients.experiments, "get")
@@ -1874,9 +1874,9 @@ add_task(async function test_updateRecipes_secure() {
 
     sinon.stub(loader, "setTimer");
 
-    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
+    await loader.enable();
 
     sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
@@ -1947,9 +1947,9 @@ add_task(async function test_updateRecipesClearsOptIns() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -2000,9 +2000,9 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -2058,9 +2058,9 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -2111,9 +2111,9 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -2166,9 +2166,9 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
