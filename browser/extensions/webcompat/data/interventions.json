@@ -1945,23 +1945,6 @@
       }
     ]
   },
-  "1879879": {
-    "label": "developers.pinterest.com",
-    "bugs": {
-      "1879879": {
-        "issue": "broken-layout",
-        "matches": ["*://developers.pinterest.com/docs/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1879879-developers.pinterest.com-list-alignment-fix.css"]
-        }
-      }
-    ]
-  },
   "1881922": {
     "label": "helpdeskgeek.com",
     "bugs": {
