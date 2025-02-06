@@ -267,7 +267,8 @@ void nsLineBox::List(FILE* out, const char* aPrefix,
 
   if (HasFloats()) {
     fprintf_stderr(out, "%s> floats <\n", aPrefix);
-    ListFloats(out, pfx.get(), mInlineData->mFloats, aFlags.contains(nsIFrame::ListFlag::OnlyListDeterministicInfo));
+    ListFloats(out, pfx.get(), mInlineData->mFloats,
+               aFlags.contains(nsIFrame::ListFlag::OnlyListDeterministicInfo));
   }
   fprintf_stderr(out, "%s>\n", aPrefix);
 }

@@ -8576,7 +8576,8 @@ std::string nsIFrame::ConvertToString(const LogicalSize& aSize,
 void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
                            ListFlags aFlags) const {
   aTo += aPrefix;
-  const bool onlyDeterministic = aFlags.contains(ListFlag::OnlyListDeterministicInfo);
+  const bool onlyDeterministic =
+      aFlags.contains(ListFlag::OnlyListDeterministicInfo);
   aTo += ListTag(onlyDeterministic);
   if (HasView()) {
     aTo += " [view";
@@ -8588,8 +8589,7 @@ void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
       aTo += nsPrintfCString(" parent=%p", static_cast<void*>(GetParent()));
     }
     if (GetNextSibling()) {
-      aTo +=
-          nsPrintfCString(" next=%p", static_cast<void*>(GetNextSibling()));
+      aTo += nsPrintfCString(" next=%p", static_cast<void*>(GetNextSibling()));
     }
   }
   if (GetPrevContinuation()) {

@@ -986,7 +986,7 @@ class nsIFrame : public nsQueryFrame {
 
   /** Also forward GetVisitedDependentColor to the style */
   template <typename T, typename S>
-  nscolor GetVisitedDependentColor(T S::*aField) {
+  nscolor GetVisitedDependentColor(T S::* aField) {
     return mComputedStyle->GetVisitedDependentColor(aField);
   }
 
@@ -5564,7 +5564,11 @@ class nsIFrame : public nsQueryFrame {
   void ListTag(FILE* out) const { fputs(ListTag().get(), out); }
   nsAutoCString ListTag(bool aListOnlyDeterministic = false) const;
 
-  enum class ListFlag{TraverseSubdocumentFrames, DisplayInCSSPixels, OnlyListDeterministicInfo};
+  enum class ListFlag {
+    TraverseSubdocumentFrames,
+    DisplayInCSSPixels,
+    OnlyListDeterministicInfo
+  };
   using ListFlags = mozilla::EnumSet<ListFlag>;
 
   template <typename T>
@@ -5582,12 +5586,15 @@ class nsIFrame : public nsQueryFrame {
                                      ListFlags aFlags);
 
   template <typename T>
-  static void ListPtr(nsACString& aTo, const ListFlags& aFlags, const T* aPtr, const char* aPrefix = "=") {
-    ListPtr(aTo, aFlags.contains(ListFlag::OnlyListDeterministicInfo), aPtr, aPrefix);
+  static void ListPtr(nsACString& aTo, const ListFlags& aFlags, const T* aPtr,
+                      const char* aPrefix = "=") {
+    ListPtr(aTo, aFlags.contains(ListFlag::OnlyListDeterministicInfo), aPtr,
+            aPrefix);
   }
 
   template <typename T>
-  static void ListPtr(nsACString& aTo, bool aSkip, const T* aPtr, const char* aPrefix = "=") {
+  static void ListPtr(nsACString& aTo, bool aSkip, const T* aPtr,
+                      const char* aPrefix = "=") {
     if (aSkip) {
       return;
     }

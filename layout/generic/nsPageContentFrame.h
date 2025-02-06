@@ -49,7 +49,8 @@ class nsPageContentFrame final : public mozilla::ViewportFrame {
 #ifdef DEBUG_FRAME_DUMP
   // Debugging
   nsresult GetFrameName(nsAString& aResult) const override;
-  void ExtraContainerFrameInfo(nsACString& aTo, bool aListOnlyDeterministic) const override;
+  void ExtraContainerFrameInfo(nsACString& aTo,
+                               bool aListOnlyDeterministic) const override;
 #endif
 
  protected:
