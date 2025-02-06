@@ -12,4 +12,5 @@ DevToolsModules(
     "create-store.js",
     "subscriber.js",
     "visibility-handler-connect.js",
+    "visibilityHandlerStore.js",
 )

@@ -11,7 +11,7 @@ const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-t
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const {
   connect,
-} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
+} = require("resource://devtools/client/shared/vendor/react-redux.js");
 const { PluralForm } = require("resource://devtools/shared/plural-form.js");
 const {
   getDisplayedMessagesSummary,

@@ -10,7 +10,7 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.js");
 const {
   connect,
-} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
+} = require("resource://devtools/client/shared/vendor/react-redux.js");
 const {
   div,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");

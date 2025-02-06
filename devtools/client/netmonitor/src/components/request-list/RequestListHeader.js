@@ -13,7 +13,7 @@ const dom = require("resource://devtools/client/shared/vendor/react-dom-factorie
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const {
   connect,
-} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
+} = require("resource://devtools/client/shared/vendor/react-redux.js");
 const {
   getTheme,
   addThemeObserver,
