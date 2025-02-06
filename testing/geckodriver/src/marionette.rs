@@ -102,6 +102,7 @@ pub(crate) struct MarionetteSettings {
     pub(crate) websocket_port: u16,
     pub(crate) allow_hosts: Vec<Host>,
     pub(crate) allow_origins: Vec<Url>,
+    pub(crate) system_access: bool,
 
     /// Brings up the Browser Toolbox when starting Firefox,
     /// letting you debug internals.
@@ -203,6 +204,7 @@ impl MarionetteHandler {
                 options,
                 marionette_port,
                 websocket_port,
+                self.settings.system_access,
                 self.settings.profile_root.as_deref(),
             )?)
         } else if !self.settings.connect_existing {
@@ -210,6 +212,7 @@ impl MarionetteHandler {
                 options,
                 marionette_port,
                 self.settings.jsdebugger,
+                self.settings.system_access,
                 self.settings.profile_root.as_deref(),
             )?)
         } else {
