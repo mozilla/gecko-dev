@@ -2107,6 +2107,8 @@
 
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Μάθετε τα δικαιώματά σας</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Όροι χρήσης</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Πληροφορίες άδειας</string>
     <!-- About page link text to open a screen with libraries that are used -->

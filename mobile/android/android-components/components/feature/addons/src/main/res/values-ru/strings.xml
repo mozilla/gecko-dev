@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Загрузите и запускайте модели ИИ на вашем устройстве</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Разрешить непроверенным сторонним скриптам доступ к вашим данным</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Непроверенные скрипты могут представлять угрозу безопасности и конфиденциальности. Запускайте скрипты только из расширений или источников, которым вы доверяете.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Расширение доступа инструментов разработчика к вашим данным в открытых вкладках</string>
     <!-- The version on of add-on. -->

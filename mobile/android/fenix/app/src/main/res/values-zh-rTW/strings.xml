@@ -2121,6 +2121,8 @@
     <string name="about_privacy_notice">隱私權公告</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">了解您的權利</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">使用條款</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">授權資訊</string>
     <!-- About page link text to open a screen with libraries that are used -->

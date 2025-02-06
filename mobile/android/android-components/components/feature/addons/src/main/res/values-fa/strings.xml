@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">دریافت و اجرای مدل‌های هوش مصنوعی بر روی دستگاه شما</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">اجازه دادن به اسکریپت‌های شخص ثالث تایید نشده برای دسترسی به داده‌های شما</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">اسکریپت‌های تایید نشده می‌توانند خطرات امنیتی و حفظ حریم خصوصی ایجاد کنند. فقط اسکریپت‌هایی را از افزونه‌ها یا منابعی که به آن‌ها اعتماد دارید، اجرا کنید.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">گسترش ابزارتوسعه‌دهندگان برای دسترسی به داده‌های شما بر روی زبانه‌های باز</string>
     <!-- The version on of add-on. -->

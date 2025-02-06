@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">下载 AI 模型到您的设备并运行</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">允许未经验证的第三方脚本访问您的数据</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">未经验证的脚本可能带来安全和隐私风险。请确保只运行来自可信扩展或来源的脚本。</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">让开发者工具可以存取您打开的标签页中的数据</string>
     <!-- The version on of add-on. -->

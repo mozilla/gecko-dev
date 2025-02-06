@@ -2099,6 +2099,8 @@
     <string name="about_privacy_notice">Vyhlásenie o ochrane osobných údajov</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Spoznajte svoje práva</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Podmienky používania</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informácie o licenciách</string>
     <!-- About page link text to open a screen with libraries that are used -->

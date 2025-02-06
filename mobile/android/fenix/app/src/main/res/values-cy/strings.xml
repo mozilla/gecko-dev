@@ -596,15 +596,15 @@
     <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
     <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">Trwy barhau, rydych yn cytuno i %1$s Firefox.</string>
     <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
-    <string name="onboarding_term_of_service_line_one_2">Drwy barhau, rydych yn cytuno i\'r %1$s.</string>
+    <string name="onboarding_term_of_service_line_one_2">Drwy barhau, rydych yn cytuno i %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Amodau Gwasanaeth</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
-    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Telerau Defnyddio Firefox</string>
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Amodau Defnyddio Firefox</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
     <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Mae Firefox yn ofalus o\'ch preifatrwydd. Darllenwch fwy yn ein %1$s.</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
-    <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Mae Firefox yn poeni am eich preifatrwydd. Dysgwch fwy yn ein %1$s.</string>
+    <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Mae Firefox yn pryderu am eich preifatrwydd. Dysgwch fwy yn ein %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">Hysbysiad Preifatrwydd</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
@@ -1072,7 +1072,7 @@
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Mae’n rhannu data perfformiad, defnydd, caledwedd a chyfaddasu eich porwr gyda Mozilla er mwyn gwella %1$s</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Mae data am eich dyfais, cyfluniad caledwedd, a defnydd yn ein helpu i wella nodweddion, perfformiad a sefydlogrwydd Firefox.</string>
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Mae data am eich dyfais, ffurfweddiad caledwedd, a defnydd yn ein helpu i wella nodweddion, perfformiad a sefydlogrwydd Firefox.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Data marchnata</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
@@ -1088,8 +1088,8 @@
     <string name="preferences_marketing_data_learn_more">Dysgwch fwy am ddata marchnata</string>
 
     <!-- Preference switch for daily usage ping data collection -->
-    <string name="preferences_daily_usage_ping_title">Defnydd dyddiol ping</string>
-    <string name="preferences_daily_usage_ping_description">Mae hyn yn helpu Mozilla amcangyfrif defnyddwyr gweithredol.</string>
+    <string name="preferences_daily_usage_ping_title">Ping defnydd dyddiol</string>
+    <string name="preferences_daily_usage_ping_description">Mae hyn yn helpu Mozilla i amcangyfrif defnyddwyr gweithredol.</string>
     <string name="preferences_daily_usage_ping_learn_more">Dysgwch fwy am ping defnydd dyddiol</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Yn anfon adroddiadau chwalu\'n awtomatig</string>
@@ -3186,5 +3186,5 @@
     <!-- The default content description for the eye trailing icon button in TextField -->
     <string name="text_field_eye_trailing_icon_default_content_description">Dangos testun cudd</string>
     <!-- The default content description for the cross trailing icon button in TextField -->
-    <string name="text_field_cross_trailing_icon_default_content_description">Testun clir</string>
+    <string name="text_field_cross_trailing_icon_default_content_description">Clirio testun</string>
 </resources>

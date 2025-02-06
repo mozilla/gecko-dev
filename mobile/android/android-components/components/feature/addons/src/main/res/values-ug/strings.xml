@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">سۈنئىي ئەقىل مودېلىنى ئۈسكۈنىڭىزگە چۈشۈرۈپ ئىجرا قىلىڭ</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">دەلىللەنمىگەن ئۈچىنچى تەرەپ قوليازمىلىرىنىڭ سانلىق مەلۇماتلىرىڭىزنى زىيارەت قىلىشىغا يول قويىدۇ</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">دەلىللەنمىگەن قوليازما بىخەتەرلىك ۋە مەخپىيەتلىك خەۋپى ئېلىپ كېلىدۇ. پەقەت كېڭەيتىلمە ياكى ئىشەنچلىك مەنبەلەردىن كەلگەن قوليازمىنى ئىجرا قىلىڭ.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ئىجادكارلار قورالى سىز ئاچقان بەتكۈچتىكى سانلىق مەلۇماتلارنى زىيارەت قىلالايدۇ</string>
     <!-- The version on of add-on. -->

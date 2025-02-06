@@ -622,13 +622,13 @@
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ayúdanos a hacer crecer a Firefox</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Cuando compartes cómo descubriste Firefox y cómo lo usás, nos ayudas a presentar nuestro navegador a más personas.</string>
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Cuando compartís cómo descubriste Firefox y cómo lo usás, nos ayudas a presentar nuestro navegador a más personas.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Comparte datos mínimos con los socios de tecnología de marketing de Mozilla. Estos datos nunca se venden ni se utilizan para mostrarte anuncios.</string>
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Compartí datos mínimos con los socios de tecnología de marketing de Mozilla. Estos datos nunca se venden ni se utilizan para mostrarte anuncios.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Como usamos los datos</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
-    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirma y empieza a navegar</string>
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmá y empezá a navegar</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Elegí la ubicación de la barra de herramientas</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1094,7 +1094,7 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Compart información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir una mejor Internet</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Comparte con los socios de tecnología de marketing de Mozilla cómo descubriste Firefox y lo usas.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Compartí con los socios de tecnología de marketing de Mozilla cómo descubriste Firefox y lo usás.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Conocer más sobre datos de marketing</string>
 

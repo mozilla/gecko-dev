@@ -627,6 +627,8 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">为帮助改进浏览器，Firefox 会向 Mozilla 发送诊断和交互数据。%1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">管理</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">助力壮大 Firefox</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">分享您发现 Firefox 的途径及使用方式，可帮助我们将这款浏览器介绍给更多用户。</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
@@ -2130,6 +2132,8 @@
     <string name="about_privacy_notice">隐私声明</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">了解您的权利</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">使用条款</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">许可信息</string>
     <!-- About page link text to open a screen with libraries that are used -->

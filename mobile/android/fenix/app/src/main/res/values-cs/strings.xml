@@ -1257,6 +1257,8 @@
     <string name="studies_active">Aktivní</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s může čas od času instalovat a spouštět studie.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Vyzkoušejte funkce a nápady dříve, než budou veřejně dostupné.</string>
     <!-- Title of the Studies data preference -->
     <string name="studies_title" tools:ignore="UnusedResources">Instalovat a spouštět studie</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -2093,6 +2095,8 @@
     <string name="about_privacy_notice">Zásady ochrany osobních údajů</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Poznejte svá práva</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Podmínky použití</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informace o licenci</string>
     <!-- About page link text to open a screen with libraries that are used -->

@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">הורדה והרצת מודולי AI במכשיר שלך</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">לאפשר לתסריטי צד שלישי לא מאומתים לגשת לנתונים שלך</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">תסריטים שאינם מאומתים עלולים להוות סיכוני אבטחה ופרטיות. יש להריץ תסריטים מהרחבות או מקורות מהימנים בלבד.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">הרחבת כלי הפיתוח לקבלת גישה לנתונים שלך בלשוניות פתוחות</string>
     <!-- The version on of add-on. -->
