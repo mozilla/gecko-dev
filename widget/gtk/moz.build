@@ -65,6 +65,7 @@ UNIFIED_SOURCES += [
     "AsyncGtkClipboardRequest.cpp",
     "CompositorWidgetChild.cpp",
     "CompositorWidgetParent.cpp",
+    "DMABufFormats.cpp",
     "DMABufLibWrapper.cpp",
     "DMABufSurface.cpp",
     "GfxInfo.cpp",
@@ -109,7 +110,6 @@ SOURCES += [
 
 if CONFIG["MOZ_WAYLAND"]:
     UNIFIED_SOURCES += [
-        "DMABufFormats.cpp",
         "MozContainerWayland.cpp",
         "nsClipboardWayland.cpp",
         "nsWaylandDisplay.cpp",

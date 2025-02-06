@@ -97,7 +97,6 @@ class DMABufFormats final {
 #ifdef MOZ_WAYLAND
   zwp_linux_dmabuf_feedback_v1* mWaylandFeedback = nullptr;
 #endif
-
   UniquePtr<DMABufFeedback> mDMABufFeedback;
   UniquePtr<DMABufFeedback> mPendingDMABufFeedback;
 };
