@@ -368,7 +368,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]",
+                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]:not([pinned])",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
