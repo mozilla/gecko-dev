@@ -70,7 +70,7 @@ class nsContainerFrame : public nsSplittableFrame {
                             const char* aPrefix = "") const override;
   void ListChildLists(FILE* aOut, const char* aPrefix, ListFlags aFlags,
                       ChildListIDs aSkippedListIDs) const;
-  virtual void ExtraContainerFrameInfo(nsACString& aTo) const;
+  virtual void ExtraContainerFrameInfo(nsACString& aTo, bool aListOnlyDeterministic) const;
 #endif
 
   // nsContainerFrame methods

@@ -10647,7 +10647,9 @@ void nsTextFrame::List(FILE* out, const char* aPrefix, ListFlags aFlags) const {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
 
-  str += nsPrintfCString(" [run=%p]", static_cast<void*>(mTextRun));
+  if (!aFlags.contains(ListFlag::OnlyListDeterministicInfo)) {
+    str += nsPrintfCString(" [run=%p]", static_cast<void*>(mTextRun));
+  }
 
   // Output the first/last content offset and prev/next in flow info
   bool isComplete = uint32_t(GetContentEnd()) == GetContent()->TextLength();

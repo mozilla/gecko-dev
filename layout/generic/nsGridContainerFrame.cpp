@@ -10043,9 +10043,12 @@ nsresult nsGridContainerFrame::GetFrameName(nsAString& aResult) const {
   return MakeFrameName(u"GridContainer"_ns, aResult);
 }
 
-void nsGridContainerFrame::ExtraContainerFrameInfo(nsACString& aTo) const {
+void nsGridContainerFrame::ExtraContainerFrameInfo(
+    nsACString& aTo, bool aListOnlyDeterministic) const {
   if (const void* const subgrid = GetProperty(Subgrid::Prop())) {
-    aTo += nsPrintfCString(" [subgrid=%p]", subgrid);
+    aTo += "[subgrid";
+    ListPtr(aTo, aListOnlyDeterministic, subgrid);
+    aTo += "]";
   }
 }
 
