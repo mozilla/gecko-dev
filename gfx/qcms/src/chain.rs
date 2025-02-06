@@ -144,20 +144,21 @@ impl ModularTransform for XYZtoLAB {
         }
     }
 }
-#[derive(Default)]
+
 struct ClutOnly {
-    clut: Option<Vec<f32>>,
+    clut: Box<[f32]>,
     grid_size: u16,
 }
+
 impl ModularTransform for ClutOnly {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
         let xy_len: i32 = 1;
         let x_len: i32 = self.grid_size as i32;
         let len: i32 = x_len * x_len;
 
-        let r_table = &self.clut.as_ref().unwrap()[0..];
-        let g_table = &self.clut.as_ref().unwrap()[1..];
-        let b_table = &self.clut.as_ref().unwrap()[2..];
+        let r_table = &self.clut[0..];
+        let g_table = &self.clut[1..];
+        let b_table = &self.clut[2..];
 
         let CLU = |table: &[f32], x, y, z| table[((x * len + y * x_len + z * xy_len) * 3) as usize];
 
@@ -608,10 +609,9 @@ impl ModularTransform for MatrixTransform {
 fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularTransform>>> {
     let mut transforms: Vec<Box<dyn ModularTransform>> = Vec::new();
     if lut.a_curves[0].is_some() {
-        let clut_length: usize;
         // If the A curve is present this also implies the
         // presence of a CLUT.
-        lut.clut_table.as_ref()?;
+        let clut_table = lut.clut_table.as_deref()?;
 
         // Prepare A curve.
         let mut transform = Box::new(GammaTable::default());
@@ -629,14 +629,14 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
             return None;
         }
         transforms.push(transform);
+        let clut_length = (lut.num_grid_points[0] as usize).pow(3) * 3;
+        assert_eq!(clut_length, clut_table.len());
 
         // Prepare CLUT
-        let mut transform = Box::new(ClutOnly::default());
-        clut_length = (lut.num_grid_points[0] as usize).pow(3) * 3;
-        assert_eq!(clut_length, lut.clut_table.as_ref().unwrap().len());
-        transform.clut = lut.clut_table.clone();
-        transform.grid_size = lut.num_grid_points[0] as u16;
-        transforms.push(transform);
+        transforms.push(Box::new(ClutOnly {
+            clut: clut_table.into(),
+            grid_size: lut.num_grid_points[0] as u16,
+        }));
     }
 
     if lut.m_curves[0].is_some() {
