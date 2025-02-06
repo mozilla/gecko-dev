@@ -68,8 +68,9 @@ bool nsNativeThemeWin::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
          aAppearance == StyleAppearance::MozMenulistArrowButton;
 }
 
-auto nsNativeThemeWin::IsWidgetNonNative(
-    nsIFrame* aFrame, StyleAppearance aAppearance) -> NonNative {
+auto nsNativeThemeWin::IsWidgetNonNative(nsIFrame* aFrame,
+                                         StyleAppearance aAppearance)
+    -> NonNative {
   if (IsWidgetAlwaysNonNative(aFrame, aAppearance)) {
     return NonNative::Always;
   }

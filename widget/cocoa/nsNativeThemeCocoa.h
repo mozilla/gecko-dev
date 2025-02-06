@@ -133,12 +133,12 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   };
 
   enum Widget : uint8_t {
-    eColorFill,       // mozilla::gfx::sRGBColor
-    eCheckbox,        // CheckboxOrRadioParams
-    eRadio,           // CheckboxOrRadioParams
-    eButton,          // ButtonParams
-    eDropdown,        // DropdownParams
-    eSegment,         // SegmentParams
+    eColorFill,  // mozilla::gfx::sRGBColor
+    eCheckbox,   // CheckboxOrRadioParams
+    eRadio,      // CheckboxOrRadioParams
+    eButton,     // ButtonParams
+    eDropdown,   // DropdownParams
+    eSegment,    // SegmentParams
     eSeparator,
     eStatusBar,  // bool
     eGroupBox,
