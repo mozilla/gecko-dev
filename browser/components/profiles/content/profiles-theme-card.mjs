@@ -40,18 +40,31 @@ export class ProfilesThemeCard extends MozLitElement {
       return null;
     }
 
+    // We're using the theme's `dataL10nId` to serve as a
+    // unique ID to use with `aria-labelledby`.
     return html`<link
         rel="stylesheet"
         href="chrome://browser/content/profiles/profiles-theme-card.css"
       />
-      <moz-card class="theme-card" tabindex="0" @keydown=${this.handleKeydown}>
+      <moz-card
+        class="theme-card"
+        tabindex="0"
+        role="radio"
+        aria-labelledby="${this.theme.dataL10nId}"
+        aria-checked=${this.selected ? "true" : "false"}
+        @keydown=${this.handleKeydown}
+      >
         <div class="theme-content">
           <div class="img-holder">
             <img
               src="chrome://browser/content/profiles/assets/theme-selector-background.svg"
             />
           </div>
-          <div class="theme-name" data-l10n-id="${this.theme.dataL10nId}"></div>
+          <div
+            class="theme-name"
+            id="${this.theme.dataL10nId}"
+            data-l10n-id="${this.theme.dataL10nId}"
+          ></div>
         </div>
       </moz-card>`;
   }
