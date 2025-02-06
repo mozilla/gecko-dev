@@ -30,6 +30,7 @@ pref("pdfjs.disableRange", false);
 pref("pdfjs.disableStream", false);
 pref("pdfjs.enableAltText", false);
 pref("pdfjs.enableAltTextModelDownload", true);
+pref("pdfjs.enableAutoLinking", true);
 pref("pdfjs.enableGuessAltText", true);
 pref("pdfjs.enableHWA", false);
 pref("pdfjs.enableHighlightFloatingButton", false);
