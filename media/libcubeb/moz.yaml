@@ -18,6 +18,7 @@ vendoring:
   vendor-directory: media/libcubeb
   patches:
     - 0001-disable-aaudio-before-android-31.patch
+    - 0002-remove-wasapi-timeout.patch
   skip-vendoring-steps:
     - update-moz-build
   exclude:
