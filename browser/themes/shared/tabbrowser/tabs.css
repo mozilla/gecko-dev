@@ -1013,7 +1013,12 @@
   }
 
   input[name="tab-group-color"] {
-    display: none;
+     width: 0;
+     height: 0;
+     opacity: 0;
+     margin: 0;
+     position: absolute;
+     pointer-events: none;
   }
 
   .tab-group-editor-swatch {
