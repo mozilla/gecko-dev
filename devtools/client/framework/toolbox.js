@@ -2785,7 +2785,6 @@ Toolbox.prototype = {
       iframe.setAttribute("flex", 1);
       iframe.setAttribute("forceOwnRefreshDriver", "");
       iframe.tooltip = "aHTMLTooltip";
-      iframe.style.visibility = "hidden";
 
       gDevTools.emit(id + "-init", this, iframe);
       this.emit(id + "-init", iframe);
@@ -2794,13 +2793,9 @@ Toolbox.prototype = {
       if (!iframe.parentNode) {
         const vbox = this.doc.getElementById("toolbox-panel-" + id);
         vbox.appendChild(iframe);
-        vbox.visibility = "visible";
       }
 
       const onLoad = async () => {
-        // Prevent flicker while loading by waiting to make visible until now.
-        iframe.style.visibility = "visible";
-
         // Try to set the dir attribute as early as possible.
         this.setIframeDocumentDir(iframe);
 
@@ -3011,7 +3006,6 @@ Toolbox.prototype = {
 
     // and select the right iframe
     const toolboxPanels = this.doc.querySelectorAll(".toolbox-panel");
-    this.selectSingleNode(toolboxPanels, "toolbox-panel-" + id);
 
     this.lastUsedToolId = this.currentToolId;
     this.currentToolId = id;
@@ -3021,6 +3015,10 @@ Toolbox.prototype = {
     }
 
     return this.loadTool(id, options).then(panel => {
+      // Only select the panel once it is loaded to prevent showing it
+      // while it is bootstrapping and prevent blinks
+      this.selectSingleNode(toolboxPanels, "toolbox-panel-" + id);
+
       // focus the tool's frame to start receiving key events
       this.focusTool(id);
 

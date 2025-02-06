@@ -597,9 +597,9 @@
 /* Toolbox panels */
 
 .toolbox-panel {
-  display: flex;
-  flex: 1;
-  visibility: collapse;
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
 }
 
 .toolbox-panel[selected] {
@@ -654,6 +654,7 @@
 }
 
 #toolbox-deck {
+  position: relative;
   min-height: 75px;
   /* Set large flex to allow the toolbox-panel-webconsole to have a
      height set to a small value without flexing to fill up extra
