@@ -292,10 +292,6 @@
     <string name="browser_menu_tools">Parabot</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Balik deui ka ménu utama</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Pintonan Pamaca, Tarjamah, Citak, Bagikeun, Buka aplikasia</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Pintonan Pamaca, Citak, Bagikeun, Buka aplikasi</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Teundeun</string>
@@ -857,14 +853,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Lenyepan</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Data pamakéan jeung téknis</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Bagikeun kinerja, pamakéan, data hadwér jeung kustomisasi ngeunaan pamaluruh anjeun ka Mozilla pikeun mantuan sangkan %1$s leuwih hadé</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Data pamasaran</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Bagikeun data pamakéan dasar ka Adjust, péndor pamasaran ider kami</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kirimkeun laporan kagagalan kalawan otomatis</string>
 

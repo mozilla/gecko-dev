@@ -302,10 +302,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Иарктәуп амыругақәа рмениу адаҟьа</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Иарктәуп иҷыдоу абларҭа амениу адаҟьа</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Аԥхьаратә режим, Аиҭагара, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Аԥхьаратә режим, Акьыԥхьра, Ацеиҩшара, Апрограмма аартра</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Ахьчара</string>
@@ -874,14 +870,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Еиҳаны аилкаара</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Ахархәареи атехникатә дыррақәеи</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Убраузер аусура, ахархәара, ахархәага, архиарақәа ирызку адыррақәа Mozilla ацхыраарала %1$s еиҳагьы еиӷьны аҟаҵараҿы иҳацхраарц азы</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Амаркетингтә дыррақәа</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Ихадоу ахархәаратә дыррақәа ҳмобильтә маркетинг аиқәыршәаҩ Аиқәыршәара еицашәыцеиҩышәша</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аиԥҟьара аҳасабырбақәа автоматикала идәықәҵатәуп</string>
 

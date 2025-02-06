@@ -326,10 +326,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Serrar il menu dals utensils</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Serrar il menu per la persunalisaziun da tabs</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Modus da lectura, translatar, stampar, cundivider, avrir app</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Vista da lectura, stampar, cundivider, avrir app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Modus da lectura, translaziun, %s, stampar, cundivider, avrir app</string>
@@ -1052,8 +1048,6 @@
     <string name="exceptions_empty_message_learn_more_link">Ulteriuras infurmaziuns</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Datas tecnicas e statisticas davart l\'utilisaziun</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Datas tecnicas e d’interacziun</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Trametter datas tecnicas e d’interacziun</string>
@@ -1067,8 +1061,6 @@
     <string name="preferences_marketing_data">Datas da marketing</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Datas statisticas da campagnas</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Cundivida datas d\'utilisaziun da basa cun Adjust, noss purschider da marketing mobil</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Fa a savair ils partenaris da marketing da Mozilla co ti has scuvert Firefox. Quai ans gida a sviluppar Firefox e crear in meglier internet</string>
     <!-- Preference description for marketing data collection.

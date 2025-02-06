@@ -478,16 +478,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Batafsil maʼlumot</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Texnik va foydalanishga oid maʼlumotlar</string>
-
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Samaradorlik, foydalanish statistikasi va moslash maʼlumotlarini Mozillaga ulashish orqali siz %1$s brauzerini yaxshilashda yordam berasiz</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketing maʼlumotlari</string>
-
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Asosiy foydalanish maʼlumotlarini mobil marketing boʻyicha taʼminotchimiz Adjust bilan baham koʻradi</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Tadqiqotlar</string>

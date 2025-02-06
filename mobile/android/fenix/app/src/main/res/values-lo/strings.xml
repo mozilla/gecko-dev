@@ -201,6 +201,9 @@
     <string name="browser_menu_extensions_banner_onboarding_header">ສ້າງ %s ເປັນຂອງທ່ານເອງ</string>
     <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_header">ທ່ານໄດ້ຕິດຕັ້ງສ່ວນຂະຫຍາຍ, ແຕ່ບໍ່ໄດ້ເປີດໃຊ້ງານ</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">ສ່ວນຂະຫຍາຍເພີ່ມລະດັບການທ່ອງເວັບຂອງທ່ານ, ຈາກການປ່ຽນແປງວິທີທີ່ %s ເບິ່ງ ແລະ ປະຕິບັດໄປສູ່ການເພີ່ມຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ.</string>
     <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
      The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_body">ເພື່ອໃຊ້ສ່ວນຂະຫຍາຍ, ໃຫ້ເປີດໃຊ້ພວກມັນໃນການຕັ້ງຄ່າ ຫຼື ໂດຍການເລືອກ “%s” ຂ້າງລຸ່ມນີ້.</string>
@@ -241,6 +244,8 @@
     <string name="browser_menu_add_to_homescreen_2">ເພີ່ມໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
     <string name="browser_menu_add_app_to_homescreen_2">ເພີ່ມແອັບໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">ອຸປະກອນ Xiaomi ອາດຈະຕ້ອງການການອະນຸຍາດພິເສດເພື່ອເພີ່ມທາງລັດໃສ່ໜ້າຈໍຫຼັກ. ກະລຸນາກວດເບິ່ງການຕັ້ງຄ່າຂອງທ່ານ.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resync</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -303,6 +308,8 @@
     <string name="browser_menu_new_in_firefox">ໃໝ່ໃນ %1$s</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">ສະຫຼັບໄປຫາເວັບໄຊເດັສທັອບ</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">ປ່ຽນໄປຫາເວັບໄຊທ໌ມືຖື</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">ເຄື່ອງມື</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
@@ -810,15 +817,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ການໃຊ້ງານ ແລະ ຂໍ້ມູນທາງເຕັກນິກ</string>
-
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ແບ່ງປັນການນຳໃຊ້ຂໍ້ມູນພື້ນຖານດ້ວຍ Adjust ຜູ້ໃຫ້ສະຫນອງດ້ານການຕະຫຼາດໂທລະສັບຂອງພວກເຮົາ</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">ການສຶກສາ</string>

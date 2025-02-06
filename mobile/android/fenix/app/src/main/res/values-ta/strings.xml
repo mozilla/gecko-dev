@@ -286,8 +286,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">மேலும் அறிய</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">பயனளவு மற்றும் தொழில்நுட்ப தரவு</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s உலாவியைச் சிறந்ததாக்க உங்களுடைய உலாவிப் பற்றிய செயல்திறன், பயனளவு, வன்பொருள் மற்றும் தனிப்பயனாக்க தரவுகளை மொசில்லாவுடன் பகிர்கிறது</string>
     <!-- Preference switch for marketing data collection -->

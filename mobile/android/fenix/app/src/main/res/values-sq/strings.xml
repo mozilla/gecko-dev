@@ -328,10 +328,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Mbyllni fletën e menusë së mjeteve</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Mbyllni fletën e menusë së skedave vetjake</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Pamje Lexuesi, Përktheni, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Pamje Lexuesi, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Pamje Lexuesi, Përktheni, %s, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
@@ -1034,8 +1030,6 @@
     <string name="exceptions_empty_message_learn_more_link">Mësoni më tepër</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Të dhëna përdorimi dhe teknike</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Të dhëna teknike dhe ndërveprimesh</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Mësoni më tepër</string>
@@ -1043,8 +1037,6 @@
     <string name="preferences_usage_data_description">I jep Mozilla-s të dhëna rreth funksionimit, përdorimit, hardware-it dhe përshtatjeve të shfletuesit tuaj, për ta ndihmuar në përmirësimin e %1$s-ut</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Të dhëna marketingu</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">I jep Adjust-it, tregtuesit tonë të marketingut për platforma celulare, të dhëna elementare mbi përdorimin</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Ndani me partnerë marketingu të Mozilla-s informacion se si e zbuluat Firefox-in. Kjo na ndihmon të fuqizojmë Firefox-in dhe të ndërtojmë një internet më të mirë</string>
     <!-- Learn more link for marketing data preference -->

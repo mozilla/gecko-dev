@@ -339,10 +339,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Emboty tembiporu poravorã kuatiarogue</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Emboty tendayke poravorã mba’eteéva</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Moñe’ẽrã jehechaha, moñe’ẽasa, monguatia, moherakuã, tembiporu’i mbojuruja</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Moñe’ẽrã jehechaha, monguatia, moherakuã, tembiporu’i mbojuruja</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Moñe’ẽha rechaha, ñe’ẽasa, %s, monguatia, moherakuã, embojuruja tembiporu’i</string>
@@ -620,6 +616,9 @@
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Ta’ãnga %1$s rembiporu rupápe</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ani ko’ág̃a</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Eiporavo peteĩ téma</string>
 
@@ -638,6 +637,9 @@
 
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Téma ra’ãnga %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ani ko’ág̃a</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1038,8 +1040,6 @@
     <string name="exceptions_empty_message_learn_more_link">Kuaave</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Jeporu ha mba’ekuaarã aporekogua</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Mba’ekuaarã aporekogua ha ñomongeta</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Eikuaave</string>
@@ -1047,11 +1047,11 @@
     <string name="preferences_usage_data_description">Emoherakuã mba’ekuaarã apopy, jeporu, hardware ha kundahára mboava Mozilla ndive orepytyvõ hag̃ua oikoporãvévo %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Mba’ekuaarã jehepyme’ẽrã</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Emoherakuã mba’ekuaarã ojeporúva Adjust ndive, ore marketing me’ẽhára</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Eikuaave marketing mba’ekuaarã</string>
 
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_title">Emondo marandu jejavy rehegua</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Emondo marandu jejavy rehegua</string>
 
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Emoherakuã, ijehegui oñepyrũvo, mba’ekuaarã jejavy rehegua Mozilla ndive oiko rire jejavy</string>
@@ -1370,6 +1370,9 @@
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Mondo</string>
 
+
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Mboty</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

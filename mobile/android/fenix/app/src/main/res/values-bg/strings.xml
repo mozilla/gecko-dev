@@ -335,10 +335,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Затваряне на менюто с инструменти</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Затваряне на менюто с раздел по избор</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Изглед за четене, превод, отпечатване, споделяне, отваряне на приложение</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Изглед за четене, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Изглед за четене, Превод, %s, Отпечатване, Споделяне, Отваряне на приложение</string>
@@ -1062,8 +1058,6 @@
     <string name="exceptions_empty_message_learn_more_link">Научете повече</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Употреба и технически данни</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Технически данни и данни за взаимодействие</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Изпращане на технически данни и данни за взаимодействие</string>
@@ -1077,8 +1071,6 @@
     <string name="preferences_marketing_data">Маркетингови данни</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Данни от измерване на кампания</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Споделя данни за употребата с Adjust, нашия доставчик на мобилен маркетинг</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Споделете информация за това как сте открили Firefox с маркетинговите партньори на Mozilla. Това ни помага да развием Firefox и да изградим по-добър интернет</string>
     <!-- Preference description for marketing data collection.

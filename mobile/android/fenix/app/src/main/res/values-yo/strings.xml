@@ -436,14 +436,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Kọ́ si</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Lílò àti dátà iṣẹ́ ọnà</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Pípolówó dátà</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Pín ìlò dátà ìpìnlẹ̀ pẹ̀lú Adjust, òǹtajà ìtajà alágbéká wa</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Àwọn àyẹ̀wò</string>

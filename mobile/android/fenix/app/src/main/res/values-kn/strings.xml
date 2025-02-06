@@ -230,8 +230,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ಬಳಕೆ ಮತ್ತು ತಾಂತ್ರಿಕ ಡೇಟಾ</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s ಅನ್ನು ಉತ್ತಮಗೊಳಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡಲು ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನ ಕಾರ್ಯಕ್ಷಮತೆ, ಬಳಕೆ, ಯಂತ್ರಾಂಶ ಮತ್ತು ಗ್ರಾಹಕೀಕರಣ ಡೇಟಾವನ್ನು ಮೊಜಿಲ್ಲಾದೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ</string>
     <!-- Preference switch for marketing data collection -->

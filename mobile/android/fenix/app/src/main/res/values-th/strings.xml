@@ -329,10 +329,6 @@
     <string name="browser_tools_menu_handlebar_content_description">ปิดแผ่นเมนูเครื่องมือ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ปิดแผ่นเมนูแท็บกำหนดเอง</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">มุมมองผู้อ่าน, พิมพ์, แบ่งปัน, เปิดแอป</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">มุมมองผู้อ่าน แปล %s พิมพ์ แบ่งปัน เปิดแอป</string>
@@ -1064,8 +1060,6 @@
     <string name="exceptions_empty_message_learn_more_link">เรียนรู้เพิ่มเติม</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">การใช้งานและข้อมูลทางเทคนิค</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">ข้อมูลทางเทคนิคและการโต้ตอบ</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">ส่งข้อมูลทางเทคนิคและการโต้ตอบ</string>
@@ -1077,8 +1071,6 @@
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">ข้อมูลเกี่ยวกับอุปกรณ์ของคุณ การกำหนดค่าฮาร์ดแวร์ และการใช้งานของคุณช่วยปรับปรุงคุณลักษณะ ประสิทธิภาพ และเสถียรภาพของ Firefox</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ข้อมูลการตลาด</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">แบ่งปันข้อมูลการใช้งานพื้นฐานกับ Adjust ผู้จำหน่ายการตลาดมือถือของเรา</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">แบ่งปันข้อมูลว่าคุณค้นพบ Firefox ได้อย่างไรกับพันธมิตรด้านการตลาดของ Mozilla การกระทำนี้ช่วยเราพัฒนา Firefox และสร้างอินเทอร์เน็ตที่ดีขึ้นได้</string>
     <!-- Learn more link for marketing data preference -->

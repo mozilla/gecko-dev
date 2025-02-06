@@ -734,14 +734,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Tetamäx ch\'aqa\' chik</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Okisanem chuqa\' samajel taq tzij</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Takomonij ri na\'oj pa ruwi\' rub\'eyal nisamäj, ri rokisaxik, ch\'akulakem chuqa\' richinaxik awokik\'amaya\'l rik\'in Mozilla richin chi ri %1$s nel ütz</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketin tzij</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Ke\'ichinäx nab\'ey taq tzij ye\'okisäx pa Adjust, ya\'öl qamarkentin richin oyonib\'äl</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Taq tijonïk</string>

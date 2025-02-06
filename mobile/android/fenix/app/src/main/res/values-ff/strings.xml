@@ -339,9 +339,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Ɓeydu humpito</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Kuutorogol e keɓe karalle</string>
-
     <!-- Turn On Sync Preferences -->
     <!-- Header of the Sync and save your data preference view -->
     <string name="preferences_sync_2">Sanngoɗin ngam daɗnude keɓe maa</string>

@@ -295,10 +295,6 @@
     <string name="browser_tools_menu_handlebar_content_description">මෙවලම් වට්ටෝරු පත්‍රය වසන්න</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">අභිරුචි පටිති වට්ටෝරු පත්‍රය වසන්න</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">කියවීමේ දැක්ම, පරිවර්තනය, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">කියවීමේ දැක්ම, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">කියවීමේ දැක්ම, පරිවර්තනය, %s, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
@@ -896,16 +892,12 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">තව දැනගන්න</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">භාවිතය සහ තාක්‍ෂණික දත්ත</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">තව දැනගන්න</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s දියුණු කිරීම සඳහා ඔබගේ අතිරික්සුවෙහි කාර්ය සාධනය, භාවිතය, දෘඩාංග හා රුචිකරණය පිළිබඳ දත්ත මොසිල්ලා සමඟ බෙදා ගැනෙයි</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">අලෙවිකරණ දත්ත</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">අපගේ ජංගම අලෙවිකරණ විකුණුම්කරු වන ඇජස්ට් සමඟ මූලික භාවිත දත්ත බෙදා ගැනෙයි</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">අධ්‍යන</string>

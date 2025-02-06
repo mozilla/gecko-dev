@@ -222,9 +222,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">વધુ શીખો</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ઉપયોગ અને તકનીકી ડેટા</string>
-
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">ફરીથી કનેક્ટ થવા માટે સાઇન ઇન કરો</string>
     <!-- Preference for removing FxA account -->

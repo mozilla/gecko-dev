@@ -320,10 +320,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Chiuji u minù dî stigghi</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Chiuji u minù dâ pirsunalizzazzioni dî schedi</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Mudalità di littura, Traduci, Stampa, Sparti, Grapi app</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Mudalità di littura, Stampa, Sparti, Grapi app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Mudalità di littura, Traduci, %s, Stampa, Sparti, Grapi app</string>
@@ -1030,9 +1026,6 @@
     <string name="exceptions_empty_message_learn_more_link">Cchiù nfurmazzioni</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dati tècnici e d\'usu</string>
-
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Dati tècnici e di ntirazzioni</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Manna dati tècnici e di ntirazzioni</string>
@@ -1046,8 +1039,6 @@
     <string name="preferences_marketing_data">Dati di màrketing</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dati di misurazzioni dî campagni</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Sparti dati di basi cu Adjust, u nostru furnituri di màrketing mòbbili</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sparti nfurmazzioni ncapu a comu scupristi Firefox chî cumpagni di màrketing di Mozilla. Chistu n\'ajuta a fari crìsciri Firefox e custrujiri na riti megghiu</string>
     <!-- Preference description for marketing data collection.

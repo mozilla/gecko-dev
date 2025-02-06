@@ -312,10 +312,6 @@
     <string name="browser_tools_menu_handlebar_content_description">An siota airson clàr-taice nan innealan a dhùnadh</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">An siota airson clàr-taice nan tabaichean gnàthaichte a dhùnadh</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Sealladh an leughadair, eadar-theangaich, clò-bhuail, co-roinn, fosgail aplacaid</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Sealladh an leughadair, clò-bhuail, co-roinn, fosgail aplacaid</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Sàbhail</string>
@@ -900,14 +896,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Barrachd fiosrachaidh</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Cleachdadh is dàta teicnigeach</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Cuiridh seo dàta air dèanadas, cleachdadh, bathar-cruaidh agus gnàthachadh a’ bhrabhsair agad dha Mozilla ach an urrainn dhuinn %1$s a dhèanamh nas fheàrr fhathast</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dàta margaideachd</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Co-roinnidh seo dàta bunasach a’ cleachdaidh le Adjust, an reiceadair margaideachd mobile againn</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Cuir aithisgean tuislidh gu fèin-obrachail</string>
 

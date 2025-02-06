@@ -326,10 +326,6 @@
     <string name="browser_tools_menu_handlebar_content_description">የመሳሪያዎች ምናሌ ገፅን ዝጋ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ብጁ የትር ምናሌ ገፅን ዝጋ</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">የአንባቢ እይታ፣ ትርጉም፣ ማተም፣ አጋራ፣ መተግበሪያ ከፋች</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">የአንባቢ እይታ፣ ማተም፣ አጋራ፣ መተግበሪያ ከፋች</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">የአንባቢ እይታ፣ ተርጉም፣ %s፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
@@ -995,14 +991,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ተጨማሪ ይወቁ</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">የአጠቃቀም እና ቴክኒካዊ ውሂብ</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s የተሻለ ለማድረግ እንዲረዳን የአሳሽዎን የአፈጻጸም፣ የአጠቃቀም፣ የሃርድዌር እና የማበጀት ውሂብ ለሞዚላ ያጋራል</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">የግብይት ውሂብ</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">የሞባይል ግብይት አቅራቢያችን ከሆነው ከአጀስት ጋር መሰረታዊ የአጠቃቀም መረጃን ያካፍላል</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">የብልሽት ሪፖርቶችን በራስ-ሰር አስገባ</string>
 

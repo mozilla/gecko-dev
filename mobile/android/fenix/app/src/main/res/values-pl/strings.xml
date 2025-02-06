@@ -331,10 +331,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Zamknij menu narzędzi</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Zamknij menu niestandardowej karty</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Widok poprawionej czytelności, przetłumacz, drukuj, udostępnij, otwórz w aplikacji</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Widok poprawionej czytelności, drukuj, udostępnij, otwórz w aplikacji</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Widok poprawionej czytelności, przetłumacz, %s, drukuj, udostępnij, otwórz w aplikacji</string>
@@ -1056,8 +1052,6 @@
     <string name="exceptions_empty_message_learn_more_link">Więcej informacji</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dane techniczne i o użytkowaniu</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Dane techniczne i o interakcjach</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Więcej informacji</string>
@@ -1065,8 +1059,6 @@
     <string name="preferences_usage_data_description">Udostępnia Mozilli dane o wydajności, użytkowaniu, modyfikacjach przeglądarki oraz o sprzęcie, na którym działa, ułatwiając nam ulepszanie przeglądarki %1$s.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dane marketingowe</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Udostępnia podstawowe dane o użyciu firmie Adjust, naszemu dostawcy marketingu mobilnego.</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Udostępnia informacje o tym, jak użytkownik odkrył Firefoksa partnerom marketingowym Mozilli. Pomaga nam to rozwijać Firefoksa i budować lepszy Internet.</string>
     <!-- Learn more link for marketing data preference -->

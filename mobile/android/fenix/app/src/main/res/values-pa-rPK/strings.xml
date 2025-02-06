@@ -287,10 +287,6 @@
     <string name="browser_menu_switch_to_mobile_site">موبائیل سائیٹ لئی سوئچ کرو</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">سند</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">ریڈر جھلک، اُلتھا، چھاپݨا، شعر کرنا، ایپ کھولھݨا</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">ریڈر جھلک، چھاپݨا، شعر کرنا، ایپ کھولھݨا</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">سنبھالو
@@ -840,14 +836,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ہور جاݨو</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ورتوں تے تکنیکی ڈیٹا</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">سانوں %1$s ودھیا بݨاوݨ لئی آپݨے براؤزر دی کارگزاری، ورتوں، ہارڈویئر تے پسند بدلݨ دا ڈیٹا سانجھا کرو</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">مارکیٹنگ ڈیٹا</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">کجھ انکول بݨا کے مڈھلا ورتوں ڈیٹا ساڈے موبائیل مارکیٹنگ وینڈر نال سانجھا کردا اے</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">گھوکھاں</string>

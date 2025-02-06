@@ -318,10 +318,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Siere il menù dai struments</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Siere il menù pe personalizazion des schedis</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Viodude di leture, traduzion, stampe, condivision, vierzi app</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Viodude di leture, stampe, condivision, vierzi app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Salve</string>
@@ -919,14 +915,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Plui informazions</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dâts tecnics e di utilizazion</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Al condivît cun Mozilla informazions su prestazions, utilizazion, hardware e personalizazions dal navigadôr par judânus a miorâ %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dâts di comercializazion</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Al condivît i dâts di utilizazion di base cun Adjust, il nestri furnidôr di comercializazion mobile</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Mande in automatic lis segnalazions di colàs</string>
 

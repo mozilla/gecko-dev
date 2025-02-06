@@ -328,11 +328,7 @@
     <string name="browser_tools_menu_handlebar_content_description">ხელსაწყოების მენიუს ფურცლის დახურვა</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">მორგებული ჩანართის ფურცლის დახურვა</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">წაკითხვის ხედი, თარგმნა, ამობეჭდვა, გაზიარება, აპის გახსნა</string>
 
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">წაკითხვის ხედი, თარგმნა, ამობეჭდვა, გაზიარება, აპის გახსნა</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">საკითხავი ხედი, თარგმნა, %s, ბეჭდვა, გაზიარება, აპის გახსნა</string>
@@ -1057,8 +1053,6 @@
     <string name="exceptions_empty_message_learn_more_link">ვრცლად</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">გამოყენებისა და ტექნიკური მონაცემები</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">ტექნიკური და გამოყენების მონაცემები</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">ტექნიკური და გამოყენების მონაცემების გაგზავნა</string>
@@ -1073,8 +1067,6 @@
     <string name="preferences_marketing_data">მარკეტინგული მონაცემები</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">გაცნობითი საქმიანობის საზომი</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">გამოყენების გამარტივებულ მონაცემებს გაეცნობა Adjust, რომელიც მობილურ მარკეტინგში გვიწევს მომსახურებას</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">გაუზიარეთ სხვებს, თუ როგორ აღმოაჩინეთ Firefox, Mozilla-ს მარკეტინგული მოკავშირეების მეშვეობით. ეს გვეხმარება, გავაუმჯობესოთ Firefox განვითარებასა და უკეთესი ინტერნეტის შექმნაში</string>
     <!-- Preference description for marketing data collection.
