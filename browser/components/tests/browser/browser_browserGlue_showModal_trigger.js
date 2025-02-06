@@ -9,14 +9,11 @@ XPCOMUtils.defineLazyServiceGetters(this, {
 const { SpecialMessageActions } = ChromeUtils.importESModule(
   "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
-const { Policy, TelemetryReportingPolicy } = ChromeUtils.importESModule(
+const { TelemetryReportingPolicyImpl } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
 );
-const { TelemetryUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/TelemetryUtils.sys.mjs"
-);
 
-const TEST_SCREENS = [
+const TEST_SCREEN = [
   {
     id: "TEST_SCREEN",
     content: {
@@ -27,68 +24,39 @@ const TEST_SCREENS = [
   },
 ];
 
-const TEST_SCREEN_SELECTOR = `.onboardingContainer .screen.${TEST_SCREENS[0].id}`;
+const TEST_SCREEN_SELECTOR = `.onboardingContainer .screen.${TEST_SCREEN[0].id}`;
 
 async function waitForClick(selector, win) {
   await TestUtils.waitForCondition(() => win.document.querySelector(selector));
   win.document.querySelector(selector).click();
 }
 
-// Fake dismissing a modal dialog.
-function fakeInteractWithModal() {
-  Services.obs.notifyObservers(
-    null,
-    "datareporting:notify-data-policy:interacted"
-  );
-}
-
-async function showPreonboardingModal({
-  screens = TEST_SCREENS,
+async function showPreonboardingModal(
+  screens = "",
+  disableFirstRunPolicyTab = false,
   requireAction = false,
-} = {}) {
+  isFirstRun = true,
+  interactionRequiredPref = false
+) {
   const PREFS_TO_SET = [
     ["browser.preonboarding.enabled", true],
-    ["browser.preonboarding.screens", JSON.stringify(screens)],
+    ["browser.preonboarding.screens", screens],
+    [
+      "browser.preonboarding.disableFirstRunPolicyTab",
+      disableFirstRunPolicyTab,
+    ],
     ["browser.preonboarding.requireAction", requireAction],
-    ["browser.preonboarding.minimumPolicyVersion", 900],
-    ["browser.preonboarding.currentPolicyVersion", 900],
+    ["browser.preonboarding.interactionPref", interactionRequiredPref],
     ["browser.startup.homepage_override.mstone", ""],
     ["startup.homepage_welcome_url", "about:welcome"],
-    ["toolkit.telemetry.log.level", "trace"],
-  ];
-  const PREFS_TO_CLEAR = [
-    [TelemetryUtils.Preferences.AcceptedPolicyDate],
-    [TelemetryUtils.Preferences.AcceptedPolicyVersion],
-    [TelemetryUtils.Preferences.BypassNotification],
   ];
   await SpecialPowers.pushPrefEnv({
     set: PREFS_TO_SET,
-    clear: PREFS_TO_CLEAR,
   });
 
-  // Pick up configuration from Nimbus feature.
-  TelemetryReportingPolicy.reset();
-  await Policy.fakeSessionRestoreNotification();
+  BrowserHandler.firstRunProfile = isFirstRun;
 
-  let completed = false;
-  let p = BROWSER_GLUE._maybeShowDefaultBrowserPrompt().then(
-    () => (completed = true)
-  );
-
-  Assert.equal(
-    completed,
-    false,
-    "The default browser prompt invocation waits for the user to be notified"
-  );
-
-  fakeInteractWithModal();
-  await p;
-
-  Assert.equal(
-    completed,
-    true,
-    "The default browser prompt invocation waits for the user to be notified"
-  );
+  await BROWSER_GLUE._maybeShowDefaultBrowserPrompt();
 
   registerCleanupFunction(async () => {
     PREFS_TO_SET.forEach(pref => Services.prefs.clearUserPref(pref[0]));
@@ -98,8 +66,8 @@ async function showPreonboardingModal({
 
 add_task(async function show_preonboarding_modal() {
   let messageSpy = sinon.spy(SpecialMessageActions, "handleAction");
-  let showModalSpy = sinon.spy(Policy, "showModal");
-  await showPreonboardingModal();
+  let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+  await showPreonboardingModal(JSON.stringify(TEST_SCREEN));
 
   sinon.assert.called(showModalSpy);
 
@@ -121,6 +89,11 @@ add_task(async function show_preonboarding_modal() {
   Assert.ok(
     !!win.document.querySelector(TEST_SCREEN_SELECTOR),
     "Modal renders with custom screen"
+  );
+
+  Assert.ok(
+    TelemetryReportingPolicyImpl._openFirstRunPage(),
+    "Privacy notice will show"
   );
 
   Assert.equal(
@@ -133,31 +106,24 @@ add_task(async function show_preonboarding_modal() {
   sinon.restore();
 });
 
-add_task(async function can_disable_closing_via_esc() {
+add_task(async function can_disable_showing_privacy_tab_and_closing_via_esc() {
   let messageSpy = sinon.spy(SpecialMessageActions, "handleAction");
-  let showModalSpy = sinon.spy(Policy, "showModal");
-  await showPreonboardingModal({ requireAction: true });
+  let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+  await showPreonboardingModal(JSON.stringify(TEST_SCREEN), true, true);
 
   sinon.assert.called(showModalSpy);
 
   const [win] = await TestUtils.topicObserved("subdialog-loaded");
-
-  Assert.equal(
-    Cc["@mozilla.org/browser/clh;1"]
-      .getService(Ci.nsIBrowserHandler)
-      .getFirstWindowArgs(),
-    "about:welcome",
-    "First window will be about:welcome"
-  );
 
   // Wait for screen content to render
   await TestUtils.waitForCondition(() =>
     win.document.querySelector(TEST_SCREEN_SELECTOR)
   );
 
-  Assert.ok(
-    !!win.document.querySelector(TEST_SCREEN_SELECTOR),
-    "Modal renders with custom screen"
+  Assert.notEqual(
+    TelemetryReportingPolicyImpl._openFirstRunPage(),
+    true,
+    "Privacy notice tab will not show"
   );
 
   Assert.equal(
@@ -169,3 +135,50 @@ add_task(async function can_disable_closing_via_esc() {
   await win.close();
   sinon.restore();
 });
+
+add_task(
+  async function modal_should_show_when_not_first_run_if_interaction_pref_is_set() {
+    let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+    await showPreonboardingModal(
+      JSON.stringify(TEST_SCREEN),
+      true,
+      true,
+      false,
+      "messaging-system-action.modal-cleared"
+    );
+
+    sinon.assert.called(showModalSpy);
+
+    const [win] = await TestUtils.topicObserved("subdialog-loaded");
+
+    // Wait for screen content to render
+    await TestUtils.waitForCondition(() =>
+      win.document.querySelector(TEST_SCREEN_SELECTOR)
+    );
+
+    Assert.ok(
+      !!win.document.querySelector(TEST_SCREEN_SELECTOR),
+      "Modal renders with custom screen"
+    );
+
+    await win.close();
+    sinon.restore();
+  }
+);
+
+add_task(
+  async function modal_should_not_show_when_not_first_run_if_interaction_pref_is_not_set() {
+    let showModalSpy = sinon.spy(BROWSER_GLUE, "_showPreOnboardingModal");
+    await showPreonboardingModal(
+      JSON.stringify(TEST_SCREEN),
+      true,
+      true,
+      false
+    );
+
+    sinon.assert.notCalled(showModalSpy);
+    Assert.ok(true, "Preonboarding modal will not show");
+
+    sinon.restore();
+  }
+);

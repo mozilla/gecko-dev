@@ -99,8 +99,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
-  TelemetryReportingPolicy:
-    "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   TabUnloader: "resource:///modules/TabUnloader.sys.mjs",
@@ -2936,10 +2934,6 @@ BrowserGlue.prototype = {
           // before Glean takes actions.
           await lazy.UsageReporting.ensureInitialized();
 
-          // If needed, delay initializing FOG until policy interaction is
-          // completed.  See comments in `TelemetryReportingPolicy`.
-          await lazy.TelemetryReportingPolicy.ensureUserIsNotified();
-
           Services.fog.initializeFOG();
 
           // Register Glean to listen for experiment updates releated to the
@@ -4709,12 +4703,24 @@ BrowserGlue.prototype = {
   },
 
   async _maybeShowDefaultBrowserPrompt() {
-    // Ensuring the user is notified arranges the following ordering.  Highest
-    // priority is datareporting policy modal, if present.  Second highest
-    // priority is the upgrade dialog, which can include a "primary browser"
-    // request and is limited in various ways, e.g., major upgrades.
-    await lazy.TelemetryReportingPolicy.ensureUserIsNotified();
-
+    // Highest priority is the preonboarding modal
+    // Second highest priority is the upgrade dialog, which can include a "primary
+    // browser" request and is limited in various ways, e.g., major upgrades.
+    const preonboardingCompletionRequired =
+      lazy.NimbusFeatures.preonboarding.getVariable("interactionPref")
+        ? !Services.prefs.getBoolPref(
+            lazy.NimbusFeatures.preonboarding.getVariable("interactionPref"),
+            false
+          )
+        : false;
+    if (
+      (lazy.BrowserHandler.firstRunProfile ||
+        preonboardingCompletionRequired) &&
+      lazy.NimbusFeatures.preonboarding.getVariable("enabled")
+    ) {
+      this._showPreOnboardingModal();
+      return;
+    }
     const dialogVersion = 106;
     const dialogVersionPref = "browser.startup.upgradeDialog.version";
     const dialogReason = await (async () => {

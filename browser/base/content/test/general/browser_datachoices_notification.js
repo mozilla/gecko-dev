@@ -165,7 +165,6 @@ function assertCoherentInitialState() {
 }
 
 add_task(async function test_single_window() {
-  TelemetryReportingPolicy.reset();
   clearAcceptedPolicy();
 
   // Close all the notifications, then try to trigger the data choices infobar.

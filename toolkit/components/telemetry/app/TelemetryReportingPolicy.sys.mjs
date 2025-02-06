@@ -11,7 +11,6 @@ import { TelemetryUtils } from "resource://gre/modules/TelemetryUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   TelemetrySend: "resource://gre/modules/TelemetrySend.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
@@ -55,9 +54,6 @@ export var Policy = {
       null
     );
   },
-  showModal: async data => {
-    return TelemetryReportingPolicyImpl._showModal(data);
-  },
 };
 
 /**
@@ -74,12 +70,9 @@ export var Policy = {
  * it should call `onUserNotifyFailed`.
  *
  * @param {Object} aLog The log object used to log the error in case of failures.
- * @param {function} aResolve Promise-like callback function, invoked with
- *                            `true` (complete) or `false` (error).
  */
-function NotifyPolicyRequest(aLog, aResolve) {
+function NotifyPolicyRequest(aLog) {
   this._log = aLog;
-  this._resolve = aResolve;
 }
 
 NotifyPolicyRequest.prototype = Object.freeze({
@@ -87,7 +80,7 @@ NotifyPolicyRequest.prototype = Object.freeze({
    * Called when the user is notified of the policy.
    */
   onUserNotifyComplete() {
-    this._resolve(true);
+    return TelemetryReportingPolicyImpl._userNotified();
   },
 
   /**
@@ -98,7 +91,6 @@ NotifyPolicyRequest.prototype = Object.freeze({
    */
   onUserNotifyFailed(error) {
     this._log.error("onUserNotifyFailed - " + error);
-    this._resolve(false);
   },
 });
 
@@ -149,13 +141,6 @@ export var TelemetryReportingPolicy = {
   },
 
   /**
-   * Test only method, used to check if the policy should notify in tests.
-   */
-  testShouldNotify() {
-    return TelemetryReportingPolicyImpl._shouldNotify();
-  },
-
-  /**
    * Test only method, used to check if user is notified of the policy in tests.
    */
   testIsUserNotified() {
@@ -176,13 +161,9 @@ export var TelemetryReportingPolicy = {
     TelemetryReportingPolicyImpl._isFirstRun = undefined;
     TelemetryReportingPolicyImpl.isFirstRun();
   },
-
-  async ensureUserIsNotified() {
-    return TelemetryReportingPolicyImpl.ensureUserIsNotified();
-  },
 };
 
-var TelemetryReportingPolicyImpl = {
+export var TelemetryReportingPolicyImpl = {
   _logger: null,
   // Keep track of the notification status if user wasn't notified already.
   _notificationInProgress: false,
@@ -191,11 +172,6 @@ var TelemetryReportingPolicyImpl = {
   // Keep track of the first session state, as the related preference
   // is flipped right after the browser starts.
   _isFirstRun: undefined,
-  // Ensure notification flow is idempotent.
-  _ensureUserIsNotifiedPromise: undefined,
-  // Nimbus `preonboarding` feature variables.  Set in response to
-  // `sessionstore-window-restored`; immutable there-after.
-  _nimbusVariables: null,
 
   get _log() {
     if (!this._logger) {
@@ -357,7 +333,6 @@ var TelemetryReportingPolicyImpl = {
   reset() {
     this.shutdown();
     this._isFirstRun = undefined;
-    this._ensureUserIsNotifiedPromise = undefined;
     return this.setup();
   },
 
@@ -470,20 +445,15 @@ var TelemetryReportingPolicyImpl = {
 
   /**
    * Show the data choices infobar if needed.
-   *
-   * @param {function} resolve invoked with `true` if user was notified, `false`
-   * if user was not notified.
    */
-  _showInfobar(resolve) {
+  _showInfobar() {
     if (!this._shouldNotify()) {
-      this._log.trace("_showInfobar - User already notified, nothing to do.");
-      resolve(false);
       return;
     }
 
     this._log.trace("_showInfobar - User not notified, notifying now.");
     this._notificationInProgress = true;
-    let request = new NotifyPolicyRequest(this._log, resolve);
+    let request = new NotifyPolicyRequest(this._log);
     Observers.notify("datareporting:notify-data-policy:request", request);
   },
 
@@ -510,10 +480,6 @@ var TelemetryReportingPolicyImpl = {
 
   /**
    * Try to open the privacy policy in a background tab instead of showing the infobar.
-   *
-   * @return {Promise<boolean>} Resolves to `true` if the user was notified via
-   *                            background tab, `false` if we should fallback to
-   *                            an infobar.
    */
   async _openFirstRunPage() {
     if (!this._shouldNotify()) {
@@ -541,129 +507,69 @@ var TelemetryReportingPolicyImpl = {
       return false;
     }
 
-    return new Promise(resolve => {
-      // We'll consider the user notified once the privacy policy has been loaded
-      // in a background tab even if that tab hasn't been selected.
-      let tab;
-      let progressListener = {};
-      progressListener.onStateChange = (
-        aBrowser,
-        aWebProgress,
-        aRequest,
-        aStateFlags
-      ) => {
+    // We'll consider the user notified once the privacy policy has been loaded
+    // in a background tab even if that tab hasn't been selected.
+    let tab;
+    let progressListener = {};
+    progressListener.onStateChange = (
+      aBrowser,
+      aWebProgress,
+      aRequest,
+      aStateFlags
+    ) => {
+      if (
+        aWebProgress.isTopLevel &&
+        tab &&
+        tab.linkedBrowser == aBrowser &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK
+      ) {
+        let uri = aBrowser.documentURI;
         if (
-          aWebProgress.isTopLevel &&
-          tab &&
-          tab.linkedBrowser == aBrowser &&
-          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK
+          uri &&
+          !/^about:(blank|neterror|certerror|blocked)/.test(uri.spec)
         ) {
-          removeListeners();
-
-          let uri = aBrowser.documentURI;
-          if (
-            uri &&
-            !/^about:(blank|neterror|certerror|blocked)/.test(uri.spec)
-          ) {
-            resolve(true);
-          } else {
-            this._log.info("Failed to load first-run page.");
-            resolve(false);
-          }
+          this._userNotified();
+        } else {
+          this._log.info(
+            "Failed to load first-run page. Falling back to infobar."
+          );
+          this._showInfobar();
         }
-      };
+        removeListeners();
+      }
+    };
 
-      let removeListeners = () => {
-        win.removeEventListener("unload", removeListeners);
-        win.gBrowser.removeTabsProgressListener(progressListener);
-      };
+    let removeListeners = () => {
+      win.removeEventListener("unload", removeListeners);
+      win.gBrowser.removeTabsProgressListener(progressListener);
+    };
 
-      win.addEventListener("unload", removeListeners);
-      win.gBrowser.addTabsProgressListener(progressListener);
+    win.addEventListener("unload", removeListeners);
+    win.gBrowser.addTabsProgressListener(progressListener);
 
+    let res = await lazy.NimbusFeatures.preonboarding.getAllVariables();
+    if (!res?.disableFirstRunPolicyTab) {
       tab = win.gBrowser.addTab(firstRunPolicyURL, {
         inBackground: true,
         triggeringPrincipal:
           Services.scriptSecurityManager.getSystemPrincipal(),
       });
-    });
-  },
-
-  observe(aSubject, aTopic) {
-    if (aTopic == "sessionstore-windows-restored") {
-      this._delayedSetup();
+      return true;
     }
+    return false;
   },
 
-  /**
-   * Handle initialization/configuration that happens at
-   * `sessionstore-windows-restored` time.
-   */
-  _delayedSetup() {
-    // We're ready to make decisions about how to notify the user.  We only read
-    // the Nimbus features once, so that Nimbus features changing doesn't yield
-    // inconsistent results.  We also configure the datareporting policy Gecko
-    // preferences based on the Nimbus `preonboarding` feature variables.  This
-    // makes sense because we don't have support for re-notifying a user
-    // _during_ the Firefox process lifetime; right now, we only notify the user
-    // at Firefox startup.
-    this._configureFromNimbus();
+  async observe(aSubject, aTopic) {
+    if (aTopic != "sessionstore-windows-restored") {
+      return;
+    }
 
     if (this.isFirstRun()) {
       // We're performing the first run, flip firstRun preference for subsequent runs.
       Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
-    }
-
-    if (!this._shouldNotify()) {
-      this._log.trace(
-        `observe: user has already been notified, no further action required`
-      );
-      return;
-    }
-
-    this.ensureUserIsNotified().then(() => {
-      this._log.debug("_delayedSetup: marking user notified");
-      this._userNotified();
-    });
-  },
-
-  async _waitForUserIsNotified() {
-    if (!this._shouldNotify()) {
-      this._log.trace(
-        `_waitForUserIsNotified: user has already been notified, no further action required`
-      );
-      return;
-    }
-
-    if (this._nimbusVariables.enabled && this._nimbusVariables.screens) {
-      if (await this._notifyUserViaMessagingSystem()) {
-        this._log.trace(
-          `_waitForUserIsNotified: user notified via Messaging System`
-        );
-        return;
-      }
-      `_waitForUserIsNotified: user not notified via Messaging System, falling back to legacy notification`;
-    }
-
-    await this._notifyUserViaTabOrInfobar();
-  },
-
-  /**
-   * Notify user of privacy policy via background tab or (possibly after falling
-   * back) via infobar.  The user is considered notified after the background
-   * tab is loaded without error, or after the user has been shown (but not
-   * necessarily interacted with) an infobar.
-   *
-   * @return {Promise<void>} Resolves after user is notified.
-   */
-  async _notifyUserViaTabOrInfobar() {
-    if (this.isFirstRun()) {
       try {
         if (await this._openFirstRunPage()) {
-          this._log.trace(
-            `_notifyUserViaTabOrInfobar: user notified via browser tab`
-          );
           return;
         }
       } catch (e) {
@@ -676,139 +582,10 @@ var TelemetryReportingPolicyImpl = {
       ? NOTIFICATION_DELAY_FIRST_RUN_MSEC
       : NOTIFICATION_DELAY_NEXT_RUNS_MSEC;
 
-    this._log.trace(
-      `_notifyUserViaTabOrInfobar: notifying user via infobar after ${delay} milliseconds`
+    this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
+      // Calling |canUpload| eventually shows the infobar, if needed.
+      () => this._showInfobar(),
+      delay
     );
-
-    let p = new Promise(resolve => {
-      this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
-        // Calling |canUpload| eventually shows the infobar, if needed.
-        () => this._showInfobar(resolve),
-        delay
-      );
-    });
-    await p;
-  },
-
-  /**
-   * If the preonboarding feature does not require interaction, resolve
-   * immediately.  If the preonboarding feature does require interaction and the
-   * required interaction has been completed, resolve immediately.  Otherwise,
-   * wait until the required interaction is completed.
-   *
-   * @return Promise<void>
-   * @throws {Error} when called before `sessionstore-windows-restored` notification.
-   */
-  async ensureUserIsNotified() {
-    if (!this._ensureUserIsNotifiedPromise) {
-      this._ensureUserIsNotifiedPromise = this._waitForUserIsNotified();
-    }
-
-    return this._ensureUserIsNotifiedPromise;
-  },
-
-  /**
-   * Capture Nimbus configuration: record feature variables for future use and
-   * set Gecko preferences based on values.
-   */
-  _configureFromNimbus() {
-    this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
-
-    if (this._nimbusVariables.enabled) {
-      if ("currentPolicyVersion" in this._nimbusVariables) {
-        this._log.trace(
-          `_configureFromNimbus: setting currentPolicyVersion from Nimbus feature (${this._nimbusVariables.currentPolicyVersion})`
-        );
-        Services.prefs.setIntPref(
-          TelemetryUtils.Preferences.CurrentPolicyVersion,
-          this._nimbusVariables.currentPolicyVersion
-        );
-      }
-      if ("minimumPolicyVersion" in this._nimbusVariables) {
-        this._log.trace(
-          `_configureFromNimbus: setting minimumPolicyVersion from Nimbus feature (${this._nimbusVariables.minimumPolicyVersion})`
-        );
-        Services.prefs.setIntPref(
-          TelemetryUtils.Preferences.MinimumPolicyVersion,
-          this._nimbusVariables.minimumPolicyVersion
-        );
-      }
-      if ("firstRunURL" in this._nimbusVariables) {
-        this._log.trace(
-          `_configureFromNimbus: setting firstRunURL from Nimbus feature ('${this._nimbusVariables.firstRunURL}')`
-        );
-        Services.prefs.setCharPref(
-          TelemetryUtils.Preferences.FirstRunURL,
-          this._nimbusVariables.firstRunURL
-        );
-      }
-    } else {
-      this._log.trace(
-        `_configureFromNimbus: Nimbus feature disabled, not setting preferences`
-      );
-    }
-  },
-
-  async _showModal(data) {
-    const { BrowserWindowTracker } = ChromeUtils.importESModule(
-      "resource:///modules/BrowserWindowTracker.sys.mjs"
-    );
-    const { SpecialMessageActions } = ChromeUtils.importESModule(
-      "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
-    );
-
-    let win = BrowserWindowTracker.getTopWindow();
-
-    const config = {
-      type: "SHOW_SPOTLIGHT",
-      data: {
-        content: {
-          template: "multistage",
-          id: data?.id || "PRE_ONBOARDING_MODAL",
-          backdrop: data?.backdrop,
-          screens: data.screens,
-          UTMTerm: data?.UTMTerm,
-          disableEscClose: data?.requireAction,
-          // displayed as a window modal by default
-        },
-      },
-    };
-
-    SpecialMessageActions.handleAction(config, win);
-    this._notificationInProgress = true;
-
-    return true;
-  },
-
-  /**
-   * Notify the user via the Firefox Messaging System (e.g., a modal dialog) and
-   * wait for user interaction.
-   *
-   * User interaction is signaled by the
-   * `datareporting:notify-data-policy:interacted` observer notification.
-   *
-   * @return {Promise<boolean>} `true` if user was notified, `false` to fallback
-   * to legacy tab/infobar notification.
-   */
-  async _notifyUserViaMessagingSystem() {
-    let p = lazy.BrowserUtils.promiseObserved(
-      "datareporting:notify-data-policy:interacted"
-    );
-
-    if (!(await Policy.showModal(this._nimbusVariables))) {
-      this._log.trace(
-        "_notifyUserViaModal: notification was not displayed, falling back to legacy notification"
-      );
-      return false;
-    }
-
-    this._log.trace(
-      "_notifyUserViaModal: modal displayed, waiting for user interaction"
-    );
-    await p;
-
-    this._log.trace("_notifyUserViaModal: user interacted with modal");
-
-    return true;
   },
 };

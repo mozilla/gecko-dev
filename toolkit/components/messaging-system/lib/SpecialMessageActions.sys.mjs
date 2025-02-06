@@ -722,12 +722,6 @@ export const SpecialMessageActions = {
       case "SET_BOOKMARKS_TOOLBAR_VISIBILITY":
         this.setBookmarksToolbarVisibility(window, action.data?.visibility);
         break;
-      case "DATAREPORTING_NOTIFY_DATA_POLICY_INTERACTED":
-        Services.obs.notifyObservers(
-          null,
-          "datareporting:notify-data-policy:interacted"
-        );
-        break;
       case "CREATE_NEW_SELECTABLE_PROFILE":
         this.createAndOpenProfile();
         break;

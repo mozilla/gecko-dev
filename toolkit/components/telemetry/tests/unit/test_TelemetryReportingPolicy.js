@@ -6,17 +6,14 @@
 
 "use strict";
 
-ChromeUtils.defineESModuleGetters(this, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
-  sinon: "resource://testing-common/Sinon.sys.mjs",
-});
-
-const { Policy, TelemetryReportingPolicy } = ChromeUtils.importESModule(
+const { TelemetryReportingPolicy } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
+);
+const { TelemetryReportingPolicyImpl } = ChromeUtils.importESModule(
+  "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
+);
+const { UpdateUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/UpdateUtils.sys.mjs"
 );
 
 const TEST_CHANNEL = "TestChannelABC";
@@ -25,6 +22,9 @@ const PREF_MINIMUM_CHANNEL_POLICY_VERSION =
   TelemetryUtils.Preferences.MinimumPolicyVersion + ".channel-" + TEST_CHANNEL;
 
 function fakeShowPolicyTimeout(set, clear) {
+  let { Policy } = ChromeUtils.importESModule(
+    "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
+  );
   Policy.setShowInfobarTimeout = set;
   Policy.clearShowInfobarTimeout = clear;
 }
@@ -33,14 +33,6 @@ function fakeResetAcceptedPolicy() {
   Services.prefs.clearUserPref(TelemetryUtils.Preferences.AcceptedPolicyDate);
   Services.prefs.clearUserPref(
     TelemetryUtils.Preferences.AcceptedPolicyVersion
-  );
-}
-
-// Fake dismissing a modal dialog.
-function fakeInteractWithModal() {
-  Services.obs.notifyObservers(
-    null,
-    "datareporting:notify-data-policy:interacted"
   );
 }
 
@@ -65,24 +57,7 @@ function setMinimumPolicyVersion(aNewPolicyVersion) {
   );
 }
 
-function unsetMinimumPolicyVersion() {
-  const CHANNEL_NAME = UpdateUtils.getUpdateChannel(false);
-  // We might have channel-dependent minimum policy versions.
-  const CHANNEL_DEPENDENT_PREF =
-    TelemetryUtils.Preferences.MinimumPolicyVersion +
-    ".channel-" +
-    CHANNEL_NAME;
-
-  // Does the channel-dependent pref exist? If so, unset it.
-  if (Services.prefs.getIntPref(CHANNEL_DEPENDENT_PREF, undefined)) {
-    Services.prefs.clearUserPref(CHANNEL_DEPENDENT_PREF);
-  }
-
-  // And the common one.
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.MinimumPolicyVersion);
-}
-
-add_setup(async function test_setup() {
+add_task(async function test_setup() {
   // Addon manager needs a profile directory
   do_get_profile(true);
   await loadAddonManager(
@@ -104,10 +79,6 @@ add_setup(async function test_setup() {
   );
 
   TelemetryReportingPolicy.setup();
-
-  // Needed to interact with Nimbus.
-  await ExperimentManager.onStartup();
-  await ExperimentAPI.ready();
 });
 
 add_task(
@@ -124,30 +95,50 @@ add_task(
 
     Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
 
-    let promiseTimeout = () =>
-      new Promise(resolve => {
-        fakeShowPolicyTimeout(
-          (_callback, timeout) => resolve(timeout),
-          () => {}
-        );
-      });
-    let p, startupTimeout;
-
+    let startupTimeout = 0;
+    fakeShowPolicyTimeout(
+      (callback, timeout) => (startupTimeout = timeout),
+      () => {}
+    );
     TelemetryReportingPolicy.reset();
-    p = promiseTimeout();
+
+    function waitForObserver(topic) {
+      return new Promise(resolve => {
+        const originalObserve = TelemetryReportingPolicyImpl.observe;
+        TelemetryReportingPolicyImpl.observe = async function (
+          aSubject,
+          aTopic
+        ) {
+          try {
+            await originalObserve.call(this, aSubject, aTopic);
+          } finally {
+            if (aTopic === topic) {
+              TelemetryReportingPolicyImpl.observe = originalObserve;
+              resolve();
+            }
+          }
+        };
+      });
+    }
+
+    const firstRunPromise = waitForObserver("sessionstore-windows-restored");
     Services.obs.notifyObservers(null, "sessionstore-windows-restored");
-    startupTimeout = await p;
+    await firstRunPromise;
+
     Assert.equal(
       startupTimeout,
       FIRST_RUN_TIMEOUT_MSEC,
       "The infobar display timeout should be 60s on the first run."
     );
 
+    TelemetryReportingPolicy.reset();
+    const secondRunPromise = waitForObserver("sessionstore-windows-restored");
+    Services.obs.notifyObservers(null, "sessionstore-windows-restored");
+    await secondRunPromise;
+
     // Run again, and check that we actually wait only 10 seconds.
     TelemetryReportingPolicy.reset();
-    p = promiseTimeout();
     Services.obs.notifyObservers(null, "sessionstore-windows-restored");
-    startupTimeout = await p;
     Assert.equal(
       startupTimeout,
       OTHER_RUNS_TIMEOUT_MSEC,
@@ -441,226 +432,4 @@ add_task(async function test_canSend() {
   );
 
   await PingServer.stop();
-});
-
-add_task(async function test_feature_prefs() {
-  // Verify that feature values impact Gecko preferences at
-  // `sessionstore-windows-restored` time, but not afterward.
-  function assertPrefs(
-    currentPolicyVersion,
-    minimumPolicyVersion,
-    firstRunURL
-  ) {
-    Assert.equal(
-      Services.prefs.getIntPref(
-        TelemetryUtils.Preferences.CurrentPolicyVersion
-      ),
-      currentPolicyVersion,
-      "datareporting.policy.currentPolicyVersion is set"
-    );
-
-    Assert.equal(
-      Services.prefs.getIntPref(
-        TelemetryUtils.Preferences.MinimumPolicyVersion
-      ),
-      minimumPolicyVersion,
-      "datareporting.policy.minimumPolicyVersion is set"
-    );
-
-    Assert.equal(
-      Services.prefs.getCharPref(TelemetryUtils.Preferences.FirstRunURL),
-      firstRunURL,
-      "datareporting.policy.firstRunURL is set"
-    );
-  }
-
-  unsetMinimumPolicyVersion();
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.CurrentPolicyVersion);
-
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
-    {
-      featureId: NimbusFeatures.preonboarding.featureId,
-      value: {
-        enabled: true,
-        currentPolicyVersion: 900,
-        minimumPolicyVersion: 899,
-        firstRunURL: "http://mochi.test/v900",
-      },
-    },
-    { isRollout: false }
-  );
-
-  Assert.ok(NimbusFeatures.preonboarding.getVariable("enabled"));
-
-  // Before `sessionstore-windows-restored`, nothing is configured.
-  TelemetryReportingPolicy.reset();
-
-  Assert.ok(
-    !Services.prefs.prefHasUserValue(
-      TelemetryUtils.Preferences.CurrentPolicyVersion
-    ),
-    "datareporting.policy.currentPolicyVersion is not set"
-  );
-
-  Assert.ok(
-    !Services.prefs.prefHasUserValue(
-      TelemetryUtils.Preferences.MinimumPolicyVersion
-    ),
-    "datareporting.policy.minimumPolicyVersion is not set"
-  );
-
-  Assert.ok(
-    !Services.prefs.prefHasUserValue(TelemetryUtils.Preferences.FirstRunURL),
-    "datareporting.policy.firstRunURL is not set"
-  );
-
-  // After `sessionstore-windows-restored`, values are adopted.
-  await Policy.fakeSessionRestoreNotification();
-  assertPrefs(900, 899, "http://mochi.test/v900");
-
-  // Unenroll.  Values remain, for consistency while Firefox is running.
-  doCleanup();
-  Assert.ok(!NimbusFeatures.preonboarding.getVariable("enabled"));
-  assertPrefs(900, 899, "http://mochi.test/v900");
-
-  // Updating the Nimbus feature does nothing (without `sessionstore-windows-restored`).
-  doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
-    {
-      featureId: NimbusFeatures.preonboarding.featureId,
-      value: {
-        enabled: true,
-        currentPolicyVersion: 901,
-        minimumPolicyVersion: 900,
-        firstRunURL: "http://mochi.test/v901",
-      },
-    },
-    { isRollout: false }
-  );
-  Assert.ok(NimbusFeatures.preonboarding.getVariable("enabled"));
-  assertPrefs(900, 899, "http://mochi.test/v900");
-  doCleanup();
-});
-
-async function doOneModalFlow(version) {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
-    {
-      featureId: NimbusFeatures.preonboarding.featureId,
-      value: {
-        enabled: true,
-        currentPolicyVersion: version,
-        minimumPolicyVersion: version,
-        firstRunURL: `http://mochi.test/v${version}`,
-        // Needed to opt into the modal flow, but not actually used in this test.
-        screens: [{ id: "test" }],
-      },
-    },
-    { isRollout: false }
-  );
-
-  let displayStub = sinon.stub(Policy, "showModal").returns(true);
-
-  // This will notify the user via a modal.
-  TelemetryReportingPolicy.reset();
-  await Policy.fakeSessionRestoreNotification();
-
-  Assert.equal(displayStub.callCount, 1, "showModal is invoked");
-
-  Assert.equal(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    false,
-    "Before interaction, the user should be reported as not notified"
-  );
-
-  let completed = false;
-  let p = TelemetryReportingPolicy.ensureUserIsNotified().then(
-    () => (completed = true)
-  );
-
-  Assert.equal(
-    completed,
-    false,
-    "The notification promise should not resolve before the user interacts"
-  );
-
-  fakeInteractWithModal();
-
-  await p;
-
-  Assert.equal(
-    completed,
-    true,
-    "The notification promise should resolve after user interacts"
-  );
-
-  Assert.equal(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    true,
-    "After interaction, the state should be notified."
-  );
-
-  doCleanup();
-
-  sinon.restore();
-}
-
-add_task(async function test_modal_flow_before_notification() {
-  // Test the `--first-startup` flow.  Suppose the user has not been notified.
-  // Verify that when the Nimbus feature is configured, the modal branch is
-  // taken, that the ensure promise waits, and that the observer notification
-  // resolves the ensure promise.
-
-  fakeResetAcceptedPolicy();
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
-
-  await doOneModalFlow(900);
-
-  // The user accepted the version from the experiment/rollout.
-  Assert.equal(
-    Services.prefs.getIntPref(TelemetryUtils.Preferences.AcceptedPolicyVersion),
-    900
-  );
-});
-
-add_task(async function test_modal_flow_after_notification() {
-  // Test the existing user flow.  Suppose the user **has** been notified, but
-  // is then enrolled into an experiment which configures the Nimbus feature.
-  // Verify that the modal branch is taken, that the ensure promise waits, and
-  // that the observer notification resolves the ensure promise.
-
-  unsetMinimumPolicyVersion();
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.CurrentPolicyVersion);
-
-  fakeResetAcceptedPolicy();
-  Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
-
-  TelemetryReportingPolicy.reset();
-
-  // Showing the notification bar should make the user notified.
-  fakeNow(2012, 11, 11);
-  TelemetryReportingPolicy.testInfobarShown();
-  Assert.ok(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    "User is notified after seeing the legacy infobar"
-  );
-
-  Assert.ok(
-    Services.prefs.getIntPref(
-      TelemetryUtils.Preferences.AcceptedPolicyVersion
-    ) < 900,
-    "Before, the user has not accepted experiment/rollout version"
-  );
-
-  // This resets, witnesses `sessionstore-windows-restored`, and fakes the modal flow.
-  await doOneModalFlow(900);
-
-  Assert.ok(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    "User is notified after seeing the experiment modal"
-  );
-
-  Assert.equal(
-    Services.prefs.getIntPref(TelemetryUtils.Preferences.AcceptedPolicyVersion),
-    900,
-    "After, the user has accepted the experiment/rollout version."
-  );
 });
