@@ -522,24 +522,42 @@ class JSTerm extends Component {
       cm.on("paste", (_, event) => this.props.onPaste(event));
       cm.on("drop", (_, event) => this.props.onPaste(event));
 
-      this.node.addEventListener("keydown", event => {
-        if (event.keyCode === KeyCodes.DOM_VK_ESCAPE) {
-          if (this.autocompletePopup.isOpen) {
-            this.clearCompletion();
-            event.preventDefault();
-            event.stopPropagation();
-          }
-
+      this.#abortController = new AbortController();
+      const signal = this.#abortController.signal;
+      doc.addEventListener(
+        "visibilitychange",
+        () => {
           if (
-            this.props.autocompleteData &&
-            this.props.autocompleteData.getterPath
+            doc.visibilityState == "hidden" &&
+            this.autocompletePopup.isOpen
           ) {
-            this.props.autocompleteClear();
-            event.preventDefault();
-            event.stopPropagation();
+            this.autocompletePopup.hidePopup();
           }
-        }
-      });
+        },
+        { signal }
+      );
+      this.node.addEventListener(
+        "keydown",
+        event => {
+          if (event.keyCode === KeyCodes.DOM_VK_ESCAPE) {
+            if (this.autocompletePopup.isOpen) {
+              this.clearCompletion();
+              event.preventDefault();
+              event.stopPropagation();
+            }
+
+            if (
+              this.props.autocompleteData &&
+              this.props.autocompleteData.getterPath
+            ) {
+              this.props.autocompleteClear();
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }
+        },
+        { signal }
+      );
 
       this.resizeObserver = new ResizeObserver(() => {
         // If we don't have the node reference, or if the node isn't connected
@@ -571,6 +589,9 @@ class JSTerm extends Component {
       this.props.editorMode !== nextProps.editorMode
     );
   }
+
+  // AbortController to cancel all event listener on destroy.
+  #abortController = null;
 
   /**
    * Do all the imperative work needed after a Redux store update.
@@ -1471,6 +1492,11 @@ class JSTerm extends Component {
     if (this.autocompletePopup) {
       this.autocompletePopup.destroy();
       this.autocompletePopup = null;
+    }
+
+    if (this.#abortController) {
+      this.#abortController.abort();
+      this.#abortController = null;
     }
 
     if (this.editor) {
