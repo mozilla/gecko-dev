@@ -292,7 +292,7 @@ class nsWindow final : public nsBaseWidget {
   InputContext GetInputContext() override;
   TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
   void SetTransparencyMode(TransparencyMode aMode) override;
-  TransparencyMode GetTransparencyMode() override;
+  TransparencyMode GetTransparencyMode() override { return mTransparencyMode; }
   void SetCustomTitlebar(bool) override;
   void SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) override;
   void UpdateWindowDraggingRegion(
@@ -634,14 +634,6 @@ class nsWindow final : public nsBaseWidget {
       mozilla::Maybe<POINT> aEventPoint = mozilla::Nothing());
   static bool DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam,
                              LPARAM inLParam, LRESULT* outResult);
-
-  /**
-   * Window transparency helpers
-   */
-  void SetWindowTranslucencyInner(TransparencyMode aMode);
-  TransparencyMode GetWindowTranslucencyInner() const {
-    return mTransparencyMode;
-  }
   bool IsSimulatedClientArea(int32_t clientX, int32_t clientY);
   bool IsWindowButton(int32_t hitTestResult);
 
