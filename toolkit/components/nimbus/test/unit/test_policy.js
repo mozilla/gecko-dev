@@ -39,7 +39,7 @@ add_task(async function testPolicyDisablesNimbus() {
   const setTimerStub = sinon.stub(loader, "setTimer");
   const updateRecipes = sinon.stub(loader, "updateRecipes");
 
-  await loader.init();
+  await loader.enable();
 
   Assert.ok(
     !loader._initialized,

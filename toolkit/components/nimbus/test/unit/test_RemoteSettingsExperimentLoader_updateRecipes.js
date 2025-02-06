@@ -42,7 +42,7 @@ add_task(async function test_updateRecipes_activeExperiments() {
   sandbox.stub(manager.store, "ready").resolves();
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([recipe]);
 
-  await loader.init();
+  await loader.enable();
 
   ok(onRecipe.calledOnce, "Should match active experiments");
 
@@ -65,7 +65,7 @@ add_task(async function test_updateRecipes_isFirstRun() {
 
   // Pretend to be in the first startup
   FirstStartup._state = FirstStartup.IN_PROGRESS;
-  await loader.init();
+  await loader.enable();
 
   Assert.ok(onRecipe.calledOnce, "Should match first run");
 
@@ -110,7 +110,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   sandbox.stub(manager.store, "ready").resolves();
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
-  await loader.init();
+  await loader.enable();
   ok(onRecipe.notCalled, "Should not call .onRecipe for invalid recipes");
 
   await assertEmptyStore(manager.store);
@@ -158,7 +158,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   sandbox.stub(manager.store, "ready").resolves();
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
-  await loader.init();
+  await loader.enable();
   ok(onRecipe.notCalled, "Should not call onRecipe for invalid recipe");
 
   await assertEmptyStore(manager.store, { cleanup: true });
@@ -180,7 +180,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
   sandbox.stub(manager.store, "ready").resolves();
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
-  await loader.init();
+  await loader.enable();
   ok(onRecipe.notCalled, "Should not call .onRecipe for invalid recipe");
 
   await assertEmptyStore(manager.store, { cleanup: true });
@@ -207,7 +207,7 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   sinon.stub(manager.store, "ready").resolves();
   sinon.spy(loader, "updateRecipes");
 
-  await loader.init();
+  await loader.enable();
 
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
@@ -325,7 +325,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   sinon.stub(manager.store, "ready").resolves();
   sinon.spy(loader, "updateRecipes");
 
-  await loader.init();
+  await loader.enable();
 
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
@@ -439,7 +439,7 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   sinon.stub(manager, "onRecipe");
   sinon.stub(manager.store, "ready").resolves();
 
-  await loader.init();
+  await loader.enable();
   ok(manager.onRecipe.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
   ok(
@@ -585,7 +585,7 @@ add_task(async function test_updateRecipes_validationTelemetry() {
 
     const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
 
-    await loader.init();
+    await loader.enable();
 
     Assert.equal(
       telemetrySpy.callCount,
@@ -684,7 +684,7 @@ add_task(async function test_updateRecipes_validationDisabled() {
     const finalizeStub = sinon.stub(manager, "onFinalize");
     const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
 
-    await loader.init();
+    await loader.enable();
 
     Assert.equal(
       telemetrySpy.callCount,
@@ -740,7 +740,7 @@ add_task(async function test_updateRecipes_appId() {
   sinon.stub(manager.store, "ready").resolves();
 
   info("Testing updateRecipes() with the default application ID");
-  await loader.init();
+  await loader.enable();
 
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
@@ -824,7 +824,7 @@ add_task(async function test_updateRecipes_withPropNotInManifest() {
   sinon.stub(loader.manager, "onRecipe").resolves();
   sinon.stub(loader.manager, "onFinalize");
 
-  await loader.init();
+  await loader.enable();
 
   ok(
     loader.manager.onRecipe.calledWith(PASS_FILTER_RECIPE, "rs-loader"),
@@ -866,7 +866,7 @@ add_task(async function test_updateRecipes_recipeAppId() {
   sinon.stub(manager, "onFinalize");
   sinon.stub(manager.store, "ready").resolves();
 
-  await loader.init();
+  await loader.enable();
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
     onFinalizeCalled(manager.onFinalize, "rs-loader", {
@@ -945,7 +945,7 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
     sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
     sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
-    await loader.init();
+    await loader.enable();
     ok(
       manager.onRecipe.calledOnceWith(optOutRecipe, "rs-loader", true),
       "should call .onRecipe for opt-out recipe"
@@ -1013,7 +1013,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   );
   const checkSpy = sinon.spy(EnrollmentsContext.prototype, "checkRecipe");
 
-  await loader.init();
+  await loader.enable();
   ok(targetingSpy.calledOnce, "Should have checked targeting for recipe");
   ok(
     !(await targetingSpy.returnValues[0]),
@@ -1092,7 +1092,7 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
     },
   });
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1170,7 +1170,7 @@ add_task(async function test_reenroll_rollout_resized() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1233,7 +1233,7 @@ add_task(async function test_experiment_reenroll() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1275,7 +1275,7 @@ add_task(async function test_rollout_reenroll_optout() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1313,7 +1313,7 @@ add_task(async function test_active_and_past_experiment_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1494,7 +1494,7 @@ add_task(async function test_enrollment_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -1700,7 +1700,7 @@ add_task(async function test_update_experiments_ordered_by_published_date() {
     ]);
   sandbox.stub(manager.store, "ready").resolves();
 
-  await loader.init();
+  await loader.enable();
 
   ok(onRecipe.getCall(0).calledWithMatch({ slug: "foo" }, "rs-loader"));
   ok(onRecipe.getCall(1).calledWithMatch({ slug: "bar" }, "rs-loader"));
@@ -1718,7 +1718,7 @@ add_task(
 
     sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
-    await loader.init();
+    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
 
@@ -1764,7 +1764,7 @@ add_task(
       },
     });
 
-    await loader.init();
+    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
 
@@ -1874,7 +1874,7 @@ add_task(async function test_updateRecipes_secure() {
 
     sinon.stub(loader, "setTimer");
 
-    await loader.init();
+    await loader.enable();
     await manager.onStartup();
     await manager.store.ready();
 
@@ -1947,7 +1947,7 @@ add_task(async function test_updateRecipesClearsOptIns() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -2000,7 +2000,7 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -2058,7 +2058,7 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -2111,7 +2111,7 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -2166,7 +2166,7 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   const manager = loader.manager;
 
   sandbox.stub(loader, "setTimer");
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
@@ -2189,7 +2189,6 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   await loader.updateRecipes();
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in re-enrolled");
 
-  manager.store._deleteForTests("opt-in");
-
+  manager.unenroll("opt-in");
   await assertEmptyStore(manager.store);
 });

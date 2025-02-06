@@ -49,7 +49,7 @@ add_task(async function test_init() {
   sinon.stub(loader, "setTimer");
   sinon.stub(loader, "updateRecipes").resolves();
 
-  await loader.init();
+  await loader.enable();
   ok(loader.setTimer.calledOnce, "should call .setTimer");
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
 });
@@ -60,7 +60,7 @@ add_task(async function test_init_with_opt_in() {
   sinon.stub(loader, "updateRecipes").resolves();
 
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, false);
-  await loader.init();
+  await loader.enable();
   equal(
     loader.setTimer.callCount,
     0,
@@ -68,7 +68,7 @@ add_task(async function test_init_with_opt_in() {
   );
 
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
-  await loader.init();
+  await loader.enable();
   ok(loader.setTimer.calledOnce, "should call .setTimer");
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
 });
@@ -91,7 +91,7 @@ add_task(async function test_updateRecipes() {
   sinon.stub(loader.manager, "onRecipe").resolves();
   sinon.stub(loader.manager, "onFinalize");
 
-  await loader.init();
+  await loader.enable();
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(
     loader.manager.onRecipe.callCount,
@@ -126,7 +126,7 @@ add_task(async function test_updateRecipes_someMismatch() {
   sinon.stub(loader.manager, "onRecipe").resolves();
   sinon.stub(loader.manager, "onFinalize");
 
-  await loader.init();
+  await loader.enable();
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(
     loader.manager.onRecipe.callCount,
@@ -163,7 +163,7 @@ add_task(async function test_updateRecipes_forFirstStartup() {
     .stub(loader.manager, "createTargetingContext")
     .returns({ isFirstStartup: true });
 
-  await loader.init({ isFirstStartup: true });
+  await loader.enable({ isFirstStartup: true });
 
   ok(loader.manager.onRecipe.calledOnce, "should pass the targeting filter");
 });
@@ -182,7 +182,7 @@ add_task(async function test_updateRecipes_forNoneFirstStartup() {
     .stub(loader.manager, "createTargetingContext")
     .returns({ isFirstStartup: false });
 
-  await loader.init({ isFirstStartup: true });
+  await loader.enable({ isFirstStartup: true });
 
   ok(
     loader.manager.onRecipe.calledOnce,
@@ -324,7 +324,7 @@ add_task(async function test_enrollment_changed_notification() {
   sinon.stub(loader.manager, "onRecipe").resolves();
   sinon.stub(loader.manager, "onFinalize");
 
-  await loader.init();
+  await loader.enable();
   await enrollmentChanged;
   ok(loader.updateRecipes.called, "should call .updateRecipes");
 });
@@ -337,7 +337,7 @@ add_task(async function test_experiment_optin_targeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  await loader.init();
+  await loader.enable();
   await manager.onStartup();
   await manager.store.ready();
 
