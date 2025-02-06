@@ -318,6 +318,10 @@ var allowlist = [
   {
     file: "resource://gre/localization/en-US/netwerk/necko.ftl",
   },
+
+  // To be used in Bug 1945210 - Integrate the Rust based search engine selector
+  // with desktop code.
+  { file: "resource://gre/modules/RustSearch.sys.mjs" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD) {

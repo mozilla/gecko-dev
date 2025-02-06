@@ -9,6 +9,16 @@
 
 # TODO: Upgrade the TOML crate and switch to array of tables syntax.
 
+[search.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
+enable = true
+# These are exceptions to the async wrapping.  These functions must not be `await`ed.
+main_thread = [
+  "SearchEngineSelector.new",
+  "SearchEngineSelector.clear_search_config",
+  "SearchEngineSelector.filter_engine_configuration",
+  "SearchEngineSelector.set_search_config",
+]
 
 [suggest.async_wrappers]
 # All functions/methods are wrapped to be async by default and must be `await`ed.

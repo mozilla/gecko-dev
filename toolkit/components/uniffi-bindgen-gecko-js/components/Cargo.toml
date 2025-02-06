@@ -18,6 +18,7 @@ harness = false
 [dependencies]
 uniffi = { workspace = true }
 tabs = "0.1"
+search = "0.1"
 suggest = "0.1"
 relevancy = "0.1"
 webext-storage = "0.1"

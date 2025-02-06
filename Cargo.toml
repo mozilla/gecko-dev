@@ -227,6 +227,7 @@ objc = { git = "https://github.com/glandium/rust-objc", rev = "4de89f5aa9851ceca
 # application-services overrides to make updating them all simpler.
 interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }
 relevancy = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }
+search = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }
 sql-support = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }
 suggest = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }
 sync15 = { git = "https://github.com/mozilla/application-services", rev = "25934715ecc08fc922c80797c637dea64ee742d1" }

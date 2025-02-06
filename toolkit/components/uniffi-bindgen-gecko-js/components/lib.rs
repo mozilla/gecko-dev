@@ -7,6 +7,7 @@ mod reexport_appservices_uniffi_scaffolding {
     relevancy::uniffi_reexport_scaffolding!();
     suggest::uniffi_reexport_scaffolding!();
     webext_storage::uniffi_reexport_scaffolding!();
+    search::uniffi_reexport_scaffolding!();
 }
 
 // Define extern "C" versions of these UniFFI functions, so that they can be called from C++
