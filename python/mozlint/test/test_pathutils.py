@@ -123,6 +123,12 @@ def assert_paths(a, b):
             "exclude": [],
             "expected": [],
         },
+        {
+            "paths": ["a.py"],
+            "include": ["a.js"],
+            "exclude": [],
+            "expected": [],
+        },
     ),
 )
 def test_filterpaths(test):
