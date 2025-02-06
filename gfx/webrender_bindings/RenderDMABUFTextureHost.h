@@ -24,6 +24,8 @@ class RenderDMABUFTextureHost final : public RenderTextureHostSWGL {
  public:
   explicit RenderDMABUFTextureHost(DMABufSurface* aSurface);
 
+  RenderDMABUFTextureHost* AsRenderDMABUFTextureHost() override { return this; }
+  gfx::IntSize GetSize(uint8_t aChannelIndex) const;
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) override;
   void Unlock() override;
   void ClearCachedResources() override;
@@ -32,6 +34,7 @@ class RenderDMABUFTextureHost final : public RenderTextureHostSWGL {
     return mSurface->GetWidth() * mSurface->GetHeight() *
            BytesPerPixel(mSurface->GetFormat());
   }
+  RefPtr<DMABufSurface> GetSurface() { return mSurface; }
 
   // RenderTextureHostSWGL
   gfx::SurfaceFormat GetFormat() const override;
