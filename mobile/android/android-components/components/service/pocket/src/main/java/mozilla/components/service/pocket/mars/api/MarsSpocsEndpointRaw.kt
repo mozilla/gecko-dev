@@ -17,6 +17,7 @@ import mozilla.components.concept.fetch.Request.Body
 import mozilla.components.concept.fetch.Request.Method
 import mozilla.components.concept.fetch.Response
 import mozilla.components.concept.fetch.isSuccess
+import mozilla.components.service.pocket.BuildConfig
 import mozilla.components.service.pocket.logger
 import mozilla.components.service.pocket.mars.api.MarsSpocsEndpointRaw.Companion.newInstance
 import mozilla.components.service.pocket.recommendations.api.ContentRecommendationEndpointRaw.Companion.newInstance
@@ -27,6 +28,7 @@ import org.json.JSONObject
 import java.io.IOException
 
 internal const val MARS_ENDPOINT_BASE_URL = "https://ads.mozilla.org/v1/"
+internal const val MARS_ENDPOINT_STAGING_BASE_URL = "https://ads.allizom.org/v1/"
 internal const val MARS_ENDPOINT_ADS_PATH = "ads"
 internal const val MARS_ENDPOINT_DELETE_USER_PATH = "delete_user"
 
@@ -57,7 +59,7 @@ internal class MarsSpocsEndpointRaw internal constructor(
     @WorkerThread
     fun getSponsoredStories(): String? {
         val url = Uri.Builder()
-            .encodedPath(MARS_ENDPOINT_BASE_URL + MARS_ENDPOINT_ADS_PATH)
+            .encodedPath(baseUrl + MARS_ENDPOINT_ADS_PATH)
             .build()
             .toString()
         val request = Request(
@@ -149,5 +151,24 @@ internal class MarsSpocsEndpointRaw internal constructor(
             client: Client,
             config: MarsSpocsRequestConfig,
         ) = MarsSpocsEndpointRaw(client, config)
+
+        /**
+         * Convenience variable for checking whether the current build is a debug build and
+         * overwriting for tests.
+         */
+        @VisibleForTesting
+        internal var isDebugBuild = BuildConfig.DEBUG
+
+        /**
+         * Returns the MARS endpoint base URL for fetching sponsored content given whether or not
+         * this is a development or production build environment.
+         */
+        @VisibleForTesting
+        internal val baseUrl
+            get() = if (isDebugBuild) {
+                MARS_ENDPOINT_STAGING_BASE_URL
+            } else {
+                MARS_ENDPOINT_BASE_URL
+            }
     }
 }
