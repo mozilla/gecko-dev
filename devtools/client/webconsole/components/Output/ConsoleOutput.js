@@ -11,7 +11,7 @@ const {
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const {
   connect,
-} = require("resource://devtools/client/shared/vendor/react-redux.js");
+} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
 const {
   initialize,
 } = require("resource://devtools/client/webconsole/actions/ui.js");

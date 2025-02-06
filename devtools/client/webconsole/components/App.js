@@ -15,7 +15,7 @@ loader.lazyRequireGetter(
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const {
   connect,
-} = require("resource://devtools/client/shared/vendor/react-redux.js");
+} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
 
 const actions = require("resource://devtools/client/webconsole/actions/index.js");
 const {

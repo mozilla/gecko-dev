@@ -14,7 +14,7 @@ const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-t
 
 const {
   connect,
-} = require("resource://devtools/client/shared/vendor/react-redux.js");
+} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
 
 const {
   L10N,

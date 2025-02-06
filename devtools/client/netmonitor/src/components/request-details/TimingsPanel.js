@@ -6,7 +6,7 @@
 
 const {
   connect,
-} = require("resource://devtools/client/shared/vendor/react-redux.js");
+} = require("resource://devtools/client/shared/redux/visibility-handler-connect.js");
 const {
   Component,
 } = require("resource://devtools/client/shared/vendor/react.js");
