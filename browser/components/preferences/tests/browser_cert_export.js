@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { getPEMString } = ChromeUtils.importESModule(
+  "resource://gre/modules/psm/pippki.sys.mjs"
+);
+
 var MockFilePicker = SpecialPowers.MockFilePicker;
 
 function createTemporarySaveDirectory() {
@@ -114,12 +118,12 @@ async function checkCertExportWorks(
 add_task(setupTest);
 
 add_task(async function checkCertPEMExportWorks() {
-  let expectedContents = dialogWin.getPEMString(expectedCert);
+  let expectedContents = getPEMString(expectedCert);
   await checkCertExportWorks(0, /* 0 = PEM */ "utf-8", expectedContents);
 });
 
 add_task(async function checkCertPEMChainExportWorks() {
-  let expectedContents = dialogWin.getPEMString(expectedCert);
+  let expectedContents = getPEMString(expectedCert);
   await checkCertExportWorks(
     1, // 1 = PEM chain, but the chain is of length 1
     "utf-8",
