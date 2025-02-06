@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import os
 import subprocess
 import sys
 
@@ -49,9 +48,8 @@ def execute_node_cmd(node_cmd_list):
     """
 
     try:
-        if os.environ.get("BUILD_VERBOSE_LOG"):
-            print('Executing "{}"'.format(shell_quote(*node_cmd_list)), file=sys.stderr)
-            sys.stderr.flush()
+        print('Executing "{}"'.format(shell_quote(*node_cmd_list)), file=sys.stderr)
+        sys.stderr.flush()
 
         # We need to redirect stderr to a pipe because
         # https://github.com/nodejs/node/issues/14752 causes issues with make.
