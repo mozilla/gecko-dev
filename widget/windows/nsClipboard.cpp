@@ -47,6 +47,7 @@
 #include "nsMimeTypes.h"
 #include "imgITools.h"
 #include "imgIContainer.h"
+#include "WinOLELock.h"
 #include "WinUtils.h"
 
 /* static */
@@ -166,18 +167,17 @@ nsresult nsClipboard::CreateNativeDataObject(
 
 static nsresult StoreValueInDataObject(nsDataObj* aObj,
                                        LPCWSTR aClipboardFormat, DWORD value) {
-  HGLOBAL hGlobalMemory = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(DWORD));
+  ScopedOLEMemory<DWORD> hGlobalMemory;
   if (!hGlobalMemory) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  DWORD* pdw = (DWORD*)::GlobalLock(hGlobalMemory);
-  *pdw = value;
-  ::GlobalUnlock(hGlobalMemory);
+
+  *hGlobalMemory.lock() = value;
 
   STGMEDIUM stg;
   stg.tymed = TYMED_HGLOBAL;
   stg.pUnkForRelease = nullptr;
-  stg.hGlobal = hGlobalMemory;
+  stg.hGlobal = hGlobalMemory.forget();
 
   FORMATETC fe;
   SET_FORMATETC(fe, ::RegisterClipboardFormat(aClipboardFormat), 0,
@@ -574,54 +574,57 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void** aData,
   MOZ_CLIPBOARD_LOG("%s", __FUNCTION__);
 
   // Allocate a new memory buffer and copy the data from global memory.
-  // Recall that win98 allocates to nearest DWORD boundary. As a safety
-  // precaution, allocate an extra 3 bytes (but don't report them in |aLen|!)
-  // and null them out to ensure that all of our NS_strlen calls will succeed.
-  // NS_strlen operates on char16_t, so we need 3 NUL bytes to ensure it finds
-  // a full NUL char16_t when |*aLen| is odd.
-  nsresult result = NS_ERROR_FAILURE;
+  //
+  // Some callers of this function call `NS_strlen(char16_t*)` on the returned
+  // data buffer -- even though there's no guarantee that the data is a wide
+  // string, let alone NUL-terminated. As a safety precaution, allocate a
+  // slightly longer buffer than necessary, and append three bytes' worth of
+  // NUL.
+  //
+  // (These bytes are not reported in *aLen, so callers which sensibly use that
+  // as a limit will not need to worry about stray trailing bytes.)
+
   if (aHGBL != nullptr) {
-    LPSTR lpStr = (LPSTR)GlobalLock(aHGBL);
+    ScopedOLELock<CHAR[]> lpStr(aHGBL);
     mozilla::CheckedInt<uint32_t> allocSize =
-        mozilla::CheckedInt<uint32_t>(GlobalSize(aHGBL)) + 3;
+        mozilla::CheckedInt<uint32_t>(lpStr.size()) + 3;
     if (!allocSize.isValid()) {
       return NS_ERROR_INVALID_ARG;
     }
     char* data = static_cast<char*>(malloc(allocSize.value()));
-    if (data) {
-      uint32_t size = allocSize.value() - 3;
-      memcpy(data, lpStr, size);
-      // null terminate for safety
-      data[size] = data[size + 1] = data[size + 2] = '\0';
+    if (!data) return NS_ERROR_FAILURE;
 
-      GlobalUnlock(aHGBL);
-      *aData = data;
-      *aLen = size;
+    std::copy(lpStr.begin(), lpStr.end(), data);
 
-      result = NS_OK;
-    }
-  } else {
-    // We really shouldn't ever get here
-    // but just in case
-    *aData = nullptr;
-    *aLen = 0;
-    LPVOID lpMsgBuf;
+    // null terminate for safety
+    std::fill_n(data + lpStr.size(), 3, '\0');
 
-    FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
-        GetLastError(),
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  // Default language
-        (LPWSTR)&lpMsgBuf, 0, nullptr);
+    *aData = data;
+    *aLen = lpStr.size();
 
-    // Display the string.
-    MessageBoxW(nullptr, (LPCWSTR)lpMsgBuf, L"GetLastError",
-                MB_OK | MB_ICONINFORMATION);
-
-    // Free the buffer.
-    LocalFree(lpMsgBuf);
+    return NS_OK;
   }
 
-  return result;
+  // We really shouldn't ever get here
+  // but just in case
+  *aData = nullptr;
+  *aLen = 0;
+
+  LPVOID lpMsgBuf;
+  ::FormatMessageW(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+      GetLastError(),
+      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  // Default language
+      (LPWSTR)&lpMsgBuf, 0, nullptr);
+
+  // Display the string.
+  ::MessageBoxW(nullptr, (LPCWSTR)lpMsgBuf, L"GetLastError",
+                MB_OK | MB_ICONINFORMATION);
+
+  // Free the buffer.
+  ::LocalFree(lpMsgBuf);
+
+  return NS_ERROR_FAILURE;
 }
 
 //-------------------------------------------------------------------------
