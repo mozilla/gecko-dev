@@ -287,16 +287,6 @@ nsContentTreeOwner::GetPersistence(bool* aPersistPosition, bool* aPersistSize,
 }
 
 NS_IMETHODIMP
-nsContentTreeOwner::GetTabCount(uint32_t* aResult) {
-  if (mAppWindow) {
-    return mAppWindow->GetTabCount(aResult);
-  }
-
-  *aResult = 0;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsContentTreeOwner::GetHasPrimaryContent(bool* aResult) {
   NS_ENSURE_STATE(mAppWindow);
   return mAppWindow->GetHasPrimaryContent(aResult);

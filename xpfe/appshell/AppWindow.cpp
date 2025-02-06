@@ -2582,15 +2582,6 @@ void AppWindow::SizeShellToWithLimit(int32_t aDesiredWidth,
   mDominantClientSize = true;
 }
 
-nsresult AppWindow::GetTabCount(uint32_t* aResult) {
-  if (mXULBrowserWindow) {
-    return mXULBrowserWindow->GetTabCount(aResult);
-  }
-
-  *aResult = 0;
-  return NS_OK;
-}
-
 nsresult AppWindow::GetInitialOpenWindowInfo(
     nsIOpenWindowInfo** aOpenWindowInfo) {
   NS_ENSURE_ARG_POINTER(aOpenWindowInfo);
