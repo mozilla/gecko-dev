@@ -454,3 +454,14 @@ multi-profile-spotlight-cta = Create a profile
 multi-profile-callout-title = Create different profiles for work and fun
 multi-profile-callout-subtitle = Profiles let you keep your browsing info, like search history and passwords, totally separate.
 multi-profile-callout-cta = Create a profile
+
+## Desktop to Mobile Adoption feature callout strings
+
+# If translating the headline is challenging, consider using a simplified alternative as a reference: 'Sync your browsing with Firefox for mobile.'
+desktop-to-mobile-headline = Download, sync, and go!
+
+# The phrase, 'on the go', is used to describe when people are very busy and are traveling from place to place.
+desktop-to-mobile-subtitle = Scan the QR code to download { -brand-product-name } for mobile. Once installed, select “Sync to mobile” to access your passwords, bookmarks, and more on the go.
+
+dismiss-button-label = Dismiss
+sync-to-mobile-button-label = Sync to mobile
