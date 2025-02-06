@@ -1599,6 +1599,69 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   return E_FAIL;
 }
 
+static HRESULT AssignDropfile(STGMEDIUM& aSTG, nsAString const& aPath) {
+  // Struct describing the data in the OLE memory space. Marginally cleaner than
+  // completely-manual pointer manipulation.
+  struct DFWithPaths {
+    DROPFILES dropfiles;
+    // An epsilon-terminated list of NUL-terminated strings.
+    // See the CF_HDROP shell clipboard format for more info.
+    WCHAR paths[];
+  };
+
+  // C++ doesn't have a dependent-type system robust enough for ScopedOLEMemory
+  // to handle a struct-with-flexible-array-member well, so we eschew it here
+  // for the less-strongly-typed (and slightly more awkward) nsAutoGlobalMem.
+  size_t const allocSize =
+      // Size of the initial header block...
+      sizeof(DFWithPaths) +
+      // ... size of the first path...
+      ((aPath.Length() + 1) * sizeof(WCHAR)) +
+      // ... and size of the terminating empty string.
+      sizeof(L"");
+
+  nsAutoGlobalMem hGlobalMemory(
+      nsHGLOBAL(::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, allocSize)));
+
+  if (!hGlobalMemory) {
+    return E_FAIL;
+  }
+
+  {
+    ScopedOLELock<DFWithPaths*> pDFWithPaths(hGlobalMemory.get());
+
+    // First, populate the dropfile structure...
+    DROPFILES* pDropFile = &pDFWithPaths->dropfiles;
+    pDropFile->pFiles =
+        offsetof(DFWithPaths, paths) - offsetof(DFWithPaths, dropfiles);
+    pDropFile->fNC = 0;
+    pDropFile->pt.x = 0;
+    pDropFile->pt.y = 0;
+    pDropFile->fWide = TRUE;
+
+    // ... then copy the filename into `paths`.
+    WCHAR* dest = pDFWithPaths->paths;
+    WCHAR* after_dest [[maybe_unused]] =
+        std::copy_n(aPath.BeginReading(), aPath.Length(), dest);
+
+    // Two NULs are needed after the file name; the GMEM_ZEROINIT above should
+    // provide them.
+    size_t const offset [[maybe_unused]] =
+        (char*)after_dest - (char*)pDFWithPaths.get();
+    MOZ_ASSERT(allocSize - offset == sizeof(WCHAR) * 2);
+    MOZ_ASSERT(after_dest[0] == L'\0');
+    MOZ_ASSERT(after_dest[1] == L'\0');
+  }
+
+  aSTG = {
+      .tymed = TYMED_HGLOBAL,
+      .hGlobal = hGlobalMemory.disown(),
+      .pUnkForRelease = nullptr,
+  };
+
+  return S_OK;
+}
+
 HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   nsresult rv;
   nsCOMPtr<nsISupports> genericDataWrapper;
@@ -1610,44 +1673,11 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   nsCOMPtr<nsIFile> file(do_QueryInterface(genericDataWrapper));
   if (!file) return E_FAIL;
 
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
   nsAutoString path;
   rv = file->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  uint32_t allocLen = path.Length() + 2;
-  HGLOBAL hGlobalMemory = nullptr;
-  char16_t* dest;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure
-  pDropFile->pFiles = sizeof(DROPFILES);  // Offset to start of file name string
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure
-  dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(), (allocLen - 1) * sizeof(char16_t));
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 HRESULT nsDataObj::DropImage(FORMATETC& /* aFE */, STGMEDIUM& aSTG) {
@@ -1750,44 +1780,7 @@ HRESULT nsDataObj::DropImage(FORMATETC& /* aFE */, STGMEDIUM& aSTG) {
   rv = mCachedTempFile->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  // Two null characters are needed to terminate the file name list.
-  HGLOBAL hGlobalMemory = nullptr;
-
-  uint32_t allocLen = path.Length() + 2;
-
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure.
-  pDropFile->pFiles =
-      sizeof(DROPFILES);  // Offset to start of file name char array.
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure.
-  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(),
-         (allocLen - 1) *
-             sizeof(char16_t));  // Copies the null character in path as well.
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
@@ -1844,44 +1837,7 @@ HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   rv = mCachedTempFile->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  uint32_t allocLen = path.Length() + 2;
-
-  // Two null characters are needed to terminate the file name list.
-  HGLOBAL hGlobalMemory = nullptr;
-
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure.
-  pDropFile->pFiles =
-      sizeof(DROPFILES);  // Offset to start of file name char array.
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure.
-  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(),
-         (allocLen - 1) *
-             sizeof(char16_t));  // Copies the null character in path as well.
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 //-----------------------------------------------------
