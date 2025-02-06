@@ -467,20 +467,6 @@ class nsFrameSelection final {
   }
 
   /**
-   * Returns the number of highlight selections.
-   */
-  size_t HighlightSelectionCount() const {
-    return mHighlightSelections.Length();
-  }
-
-  /**
-   * Get a highlight selection by index. The index must be valid.
-   */
-  RefPtr<mozilla::dom::Selection> HighlightSelection(size_t aIndex) const {
-    return mHighlightSelections[aIndex].second();
-  }
-
-  /**
    * @brief Adds a highlight selection for `aHighlight`.
    */
   MOZ_CAN_RUN_SCRIPT void AddHighlightSelection(

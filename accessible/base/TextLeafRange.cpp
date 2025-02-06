@@ -470,46 +470,19 @@ FindDOMTextOffsetAttributes(LocalAccessible* aAcc, int32_t aRenderedStart,
           {SelectionType::eSpellCheck, nsGkAtoms::spelling},
           {SelectionType::eTargetText, nsGkAtoms::mark},
       };
-  size_t highlightCount = frameSel->HighlightSelectionCount();
-  result.SetCapacity(std::size(kSelectionTypesToAttributes) + highlightCount);
-
-  auto appendRanges = [&](dom::Selection* aDomSel, nsStaticAtom* aAttr) {
-    nsTArray<dom::AbstractRange*> domRanges;
-    aDomSel->GetAbstractRangesForIntervalArray(
-        node, contentStart, node, contentEnd, aAllowAdjacent, &domRanges);
-    if (!domRanges.IsEmpty()) {
-      result.AppendElement(std::make_pair(std::move(domRanges), aAttr));
-    }
-  };
-
+  result.SetCapacity(std::size(kSelectionTypesToAttributes));
   for (auto [selType, attr] : kSelectionTypesToAttributes) {
     dom::Selection* domSel = frameSel->GetSelection(selType);
     if (!domSel) {
       continue;
     }
-    appendRanges(domSel, attr);
-  }
-
-  for (size_t h = 0; h < highlightCount; ++h) {
-    RefPtr<dom::Selection> domSel = frameSel->HighlightSelection(h);
-    MOZ_ASSERT(domSel);
-    nsStaticAtom* attr = nullptr;
-    MOZ_ASSERT(domSel->HighlightSelectionData().mHighlight);
-    switch (domSel->HighlightSelectionData().mHighlight->Type()) {
-      case dom::HighlightType::Highlight:
-        attr = nsGkAtoms::mark;
-        break;
-      case dom::HighlightType::Spelling_error:
-        attr = nsGkAtoms::spelling;
-        break;
-      case dom::HighlightType::Grammar_error:
-        attr = nsGkAtoms::grammar;
-        break;
+    nsTArray<dom::AbstractRange*> domRanges;
+    domSel->GetAbstractRangesForIntervalArray(
+        node, contentStart, node, contentEnd, aAllowAdjacent, &domRanges);
+    if (!domRanges.IsEmpty()) {
+      result.AppendElement(std::make_pair(std::move(domRanges), attr));
     }
-    MOZ_ASSERT(attr);
-    appendRanges(domSel, attr);
   }
-
   return result;
 }
 
@@ -1498,10 +1471,7 @@ TextLeafPoint TextLeafPoint::FindClusterSameAcc(nsDirection aDirection,
 
 void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   auto expose = [aAttrs](nsAtom* aAttr) {
-    if (aAttr == nsGkAtoms::spelling || aAttr == nsGkAtoms::grammar) {
-      // XXX We don't correctly handle exposure of overlapping spelling and
-      // grammar errors. See bug 1944217. For now, we expose the one we most
-      // recently encountered.
+    if (aAttr == nsGkAtoms::spelling) {
       aAttrs->SetAttribute(nsGkAtoms::invalid, aAttr);
     } else if (aAttr == nsGkAtoms::mark) {
       aAttrs->SetAttribute(aAttr, true);
@@ -1531,21 +1501,22 @@ void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   if (!offsetAttrs) {
     return;
   }
-  // offsetAttrs is sorted by mStartOffset, but ranges can overlap each other.
-  // Thus, we must check all ranges with an encompassing start offset.
-  for (const TextOffsetAttribute& range : *offsetAttrs) {
-    if (range.mStartOffset > mOffset) {
-      // offsetAttrs is sorted by mStartOffset. Therefor, there aren't any
-      // ranges of interest after this.
-      break;
+  auto compare = [this](const TextOffsetAttribute& aItem) {
+    if (aItem.mStartOffset <= mOffset &&
+        (mOffset < aItem.mEndOffset || aItem.mEndOffset == -1)) {
+      return 0;
     }
-    if (range.mEndOffset != TextOffsetAttribute::kOutsideLeaf &&
-        range.mEndOffset <= mOffset) {
-      // range ends inside mAcc but before mOffset, so it doesn't encompass us.
-      continue;
+    if (aItem.mStartOffset > mOffset) {
+      return -1;
     }
-    // mOffset is within range.
-    expose(range.mAttribute);
+    return 1;
+  };
+  // With our compare function, EqualRange will find any item which includes
+  // mOffset.
+  auto [lower, upper] =
+      EqualRange(*offsetAttrs, 0, offsetAttrs->Length(), compare);
+  for (auto i = lower; i < upper; ++i) {
+    expose((*offsetAttrs)[i].mAttribute);
   }
 }
 
@@ -1555,6 +1526,15 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
     return TextLeafPoint();
   }
   if (LocalAccessible* acc = mAcc->AsLocal()) {
+    // We want to find both start and end points, so we pass true for
+    // aAllowAdjacent.
+    auto ranges =
+        aDirection == eDirNext
+            ? FindDOMTextOffsetAttributes(
+                  acc, mOffset, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT,
+                  /* aAllowAdjacent */ true)
+            : FindDOMTextOffsetAttributes(acc, 0, mOffset,
+                                          /* aAllowAdjacent */ true);
     nsINode* node = acc->GetNode();
     // There are multiple selection types. The ranges for each selection type
     // are sorted, but the ranges aren't sorted between selection types.
@@ -1563,11 +1543,6 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
     // each selection type.
     int32_t dest = -1;
     if (aDirection == eDirNext) {
-      // We want to find both start and end points, so we pass true for
-      // aAllowAdjacent.
-      auto ranges = FindDOMTextOffsetAttributes(
-          acc, mOffset, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT,
-          /* aAllowAdjacent */ true);
       for (auto& [domRanges, attr] : ranges) {
         for (dom::AbstractRange* domRange : domRanges) {
           if (domRange->GetStartContainer() == node) {
@@ -1576,14 +1551,8 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
             if (aIncludeOrigin && matchOffset == mOffset) {
               return *this;
             }
-            if (matchOffset > mOffset) {
-              if (dest == -1 || matchOffset <= dest) {
-                dest = matchOffset;
-              }
-              // ranges is sorted by start, so there can't be a closer range
-              // offset after this. This is the only case where we can break
-              // out of the loop. In the cases below, we must keep iterating
-              // because the end offsets aren't sorted.
+            if (matchOffset > mOffset && (dest == -1 || matchOffset <= dest)) {
+              dest = matchOffset;
               break;
             }
           }
@@ -1595,13 +1564,12 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
             }
             if (matchOffset > mOffset && (dest == -1 || matchOffset <= dest)) {
               dest = matchOffset;
+              break;
             }
           }
         }
       }
     } else {
-      auto ranges = FindDOMTextOffsetAttributes(acc, 0, mOffset,
-                                                /* aAllowAdjacent */ true);
       for (auto& [domRanges, attr] : ranges) {
         for (dom::AbstractRange* domRange : Reversed(domRanges)) {
           if (domRange->GetEndContainer() == node) {
@@ -1612,6 +1580,7 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
             }
             if (matchOffset < mOffset && (dest == -1 || matchOffset >= dest)) {
               dest = matchOffset;
+              break;
             }
           }
           if (domRange->GetStartContainer() == node) {
@@ -1622,6 +1591,7 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
             }
             if (matchOffset < mOffset && (dest == -1 || matchOffset >= dest)) {
               dest = matchOffset;
+              break;
             }
           }
         }
@@ -1647,57 +1617,52 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
   if (!offsetAttrs) {
     return TextLeafPoint();
   }
-  // offsetAttrs is sorted by mStartOffset, but ranges can overlap each other.
-  // Therefore, we must consider all ranges with an encompassing start offset.
-  // An earlier range might end after a later range, so we keep track of the
-  // closest offset in the dest variable and adjust that as we iterate.
-  int32_t dest = -1;
-  for (const TextOffsetAttribute& range : *offsetAttrs) {
-    // Although range end offsets are exclusive, we must still treat them as a
-    // boundary, since the end of a range still means a change in text
-    // attributes and text offset attribute ranges do not have to be adjacent.
-    if (aIncludeOrigin &&
-        (range.mStartOffset == mOffset || range.mEndOffset == mOffset)) {
+  auto compare = [this](const TextOffsetAttribute& aItem) {
+    // We want to match both start and end offsets, so we use <=
+    // aItem.mEndOffset.
+    if (aItem.mStartOffset <= mOffset &&
+        (mOffset <= aItem.mEndOffset || aItem.mEndOffset == -1)) {
+      return 0;
+    }
+    if (aItem.mStartOffset > mOffset) {
+      return -1;
+    }
+    return 1;
+  };
+  size_t index;
+  if (BinarySearchIf(*offsetAttrs, 0, offsetAttrs->Length(), compare, &index)) {
+    // mOffset is within or the end of an offset attribute.
+    if (aIncludeOrigin && ((*offsetAttrs)[index].mStartOffset == mOffset ||
+                           (*offsetAttrs)[index].mEndOffset == mOffset)) {
       return *this;
     }
+    // Check the boundaries of the offset attribute containing mOffset.
     if (aDirection == eDirNext) {
-      if (range.mStartOffset > mOffset) {
-        if (dest == -1 || range.mStartOffset < dest) {
-          // range.mStartOffset is the closest offset we've seen thus far.
-          dest = range.mStartOffset;
-        }
-        // offsetAttrs is sorted by mStartOffset, so there can't be a closer
-        // range offset after this.
-        break;
+      if ((*offsetAttrs)[index].mEndOffset > mOffset) {
+        MOZ_ASSERT((*offsetAttrs)[index].mEndOffset != -1);
+        return TextLeafPoint(mAcc, (*offsetAttrs)[index].mEndOffset);
       }
-      if (range.mEndOffset > mOffset &&
-          (dest == -1 || range.mEndOffset < dest)) {
-        // range.mEndOffset is the closest offset we've seen thus far.
-        dest = range.mEndOffset;
-      }
-    } else {
-      if (range.mEndOffset != TextOffsetAttribute::kOutsideLeaf &&
-          range.mEndOffset < mOffset && range.mEndOffset > dest) {
-        // range.mEndOffset is the closest offset we've seen thus far.
-        dest = range.mEndOffset;
-      }
-      if (range.mStartOffset >= mOffset) {
-        // offsetAttrs is sorted by mStartOffset, so any range hereafter is in
-        // the wrong direction.
-        break;
-      }
-      if (range.mStartOffset != TextOffsetAttribute::kOutsideLeaf &&
-          range.mStartOffset > dest) {
-        // range.mStartOffset is the closest offset we've seen thus far.
-        dest = range.mStartOffset;
-      }
+      // We don't want the origin, so move to the next offset attribute after
+      // mOffset.
+      ++index;
+    } else if ((*offsetAttrs)[index].mStartOffset < mOffset &&
+               (*offsetAttrs)[index].mStartOffset != -1) {
+      return TextLeafPoint(mAcc, (*offsetAttrs)[index].mStartOffset);
     }
   }
-  if (dest == -1) {
-    // There's no boundary in the requested direction.
-    return TextLeafPoint();
+  // index points at the next offset attribute after mOffset.
+  if (aDirection == eDirNext) {
+    if (offsetAttrs->Length() == index) {
+      return TextLeafPoint();  // No offset attribute boundary after us.
+    }
+    return TextLeafPoint(mAcc, (*offsetAttrs)[index].mStartOffset);
   }
-  return TextLeafPoint(mAcc, dest);
+  if (index == 0) {
+    return TextLeafPoint();  // No offset attribute boundary before us.
+  }
+  // Decrement index so it points at an offset attribute before mOffset.
+  --index;
+  return TextLeafPoint(mAcc, (*offsetAttrs)[index].mEndOffset);
 }
 
 TextLeafPoint TextLeafPoint::NeighborLeafPoint(
@@ -1787,7 +1752,10 @@ nsTArray<TextOffsetAttribute> TextLeafPoint::GetTextOffsetAttributes(
         // This range overlaps aAcc, but starts before it.
         // This can only happen for the first range.
         MOZ_ASSERT(domRange == *domRanges.begin());
-        data.mStartOffset = TextOffsetAttribute::kOutsideLeaf;
+        // Using -1 here means this won't be treated as the start of an
+        // attribute range, while still indicating that we're within a text
+        // offset attribute.
+        data.mStartOffset = -1;
       }
       if (domRange->GetEndContainer() == node) {
         data.mEndOffset = static_cast<int32_t>(ContentToRenderedOffset(
@@ -1796,7 +1764,7 @@ nsTArray<TextOffsetAttribute> TextLeafPoint::GetTextOffsetAttributes(
         // This range overlaps aAcc, but ends after it.
         // This can only happen for the last range.
         MOZ_ASSERT(domRange == *domRanges.rbegin());
-        data.mEndOffset = TextOffsetAttribute::kOutsideLeaf;
+        data.mEndOffset = -1;
       }
     }
   }
