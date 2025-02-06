@@ -169,7 +169,7 @@ class StringTest {
     @Test
     fun sanitizeURL() {
         val expectedUrl = "http://mozilla.org"
-        assertEquals(expectedUrl, "\nhttp://mozilla.org\n".sanitizeURL())
+        assertEquals(expectedUrl, "\nhttp://mozi\nlla.org\n".sanitizeURL())
     }
 
     @Test
