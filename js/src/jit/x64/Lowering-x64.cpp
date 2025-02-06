@@ -6,6 +6,8 @@
 
 #include "jit/x64/Lowering-x64.h"
 
+#include "mozilla/CheckedInt.h"
+
 #include "jit/Lowering.h"
 #include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
@@ -281,6 +283,19 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   defineInt64(lir, ins);
 }
 
+static bool CanUseInt32OrInt64Constant(MDefinition* value) {
+  MOZ_ASSERT(IsIntType(value->type()));
+  if (!value->isConstant()) {
+    return false;
+  }
+  if (value->type() == MIRType::Int64) {
+    // Immediate needs to fit into int32 for direct to memory move on x64.
+    return mozilla::CheckedInt32(value->toConstant()->toInt64()).isValid();
+  }
+  MOZ_ASSERT(value->type() == MIRType::Int32);
+  return true;
+}
+
 void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
@@ -298,8 +313,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
       valueAlloc = useRegisterOrConstantAtStart(value);
       break;
     case Scalar::Int64:
-      // No way to encode an int64-to-memory move on x64.
-      if (value->isConstant() && value->type() != MIRType::Int64) {
+      if (CanUseInt32OrInt64Constant(value)) {
         valueAlloc = useOrConstantAtStart(value);
       } else {
         valueAlloc = useRegisterAtStart(value);
