@@ -250,17 +250,18 @@ void DMABufDevice::SetModifiersToGfxVars() {
 #endif
   if (!formats) {
     formats = new DMABufFormats();
-    formats->EnsureBasicFormats();
   }
+  formats->EnsureBasicFormats();
 
-  if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888)) {
-    mFormatRGBX = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
-  }
-  if (DRMFormat* format = formats->GetFormat(GBM_FORMAT_ARGB8888)) {
-    mFormatRGBA = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersARGB(*format->GetModifiers());
-  }
+  DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888);
+  MOZ_DIAGNOSTIC_ASSERT(format, "Missing GBM_FORMAT_XRGB8888 dmabuf format!");
+  mFormatRGBX = new DRMFormat(*format);
+  gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
+
+  format = formats->GetFormat(GBM_FORMAT_ARGB8888);
+  MOZ_DIAGNOSTIC_ASSERT(format, "Missing GBM_FORMAT_ARGB8888 dmabuf format!");
+  mFormatRGBA = new DRMFormat(*format);
+  gfxVars::SetDMABufModifiersARGB(*format->GetModifiers());
 }
 
 void DMABufDevice::GetModifiersFromGfxVars() {
