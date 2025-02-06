@@ -2297,21 +2297,6 @@
       }
     ]
   },
-  "1898992": {
-    "label": "asp.attenix.co.il",
-    "bugs": {
-      "1898992": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://asp.attenix.co.il/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["change_Firefox_to_FireFox"]
-      }
-    ]
-  },
   "1898994": {
     "label": "eportal.uestc.edu.cn",
     "bugs": {
