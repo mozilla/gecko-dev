@@ -297,7 +297,8 @@ WINDOW_EVENT(hashchange, eHashChange,
              eBasicEventClass)
 WINDOW_EVENT(languagechange, eLanguageChange,
              EventNameType_HTMLBodyOrFramesetOnly, eBasicEventClass)
-WINDOW_EVENT(message, eMessage, EventNameType_HTMLBodyOrFramesetOnly, eBasicEventClass)
+WINDOW_EVENT(message, eMessage, EventNameType_HTMLBodyOrFramesetOnly,
+             eBasicEventClass)
 WINDOW_EVENT(rtctransform, eRTCTransform, EventNameType_None, eBasicEventClass)
 WINDOW_EVENT(messageerror, eMessageError, EventNameType_HTMLBodyOrFramesetOnly,
              eBasicEventClass)
