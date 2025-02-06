@@ -406,7 +406,7 @@ export function gradient(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                96, // external_types:uniffi_uniffi_fixture_external_types_fn_func_gradient
+                100, // external_types:uniffi_uniffi_fixture_external_types_fn_func_gradient
                 FfiConverterOptionalTypeLine.lower(value),
             )
         }
@@ -443,7 +443,7 @@ export function intersection(ln1,ln2) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                97, // external_types:uniffi_uniffi_fixture_external_types_fn_func_intersection
+                101, // external_types:uniffi_uniffi_fixture_external_types_fn_func_intersection
                 FfiConverterTypeLine.lower(ln1),
                 FfiConverterTypeLine.lower(ln2),
             )
@@ -472,7 +472,7 @@ export function moveSpriteToOrigin(sprite) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                98, // external_types:uniffi_uniffi_fixture_external_types_fn_func_move_sprite_to_origin
+                102, // external_types:uniffi_uniffi_fixture_external_types_fn_func_move_sprite_to_origin
                 FfiConverterTypeSprite.lower(sprite),
             )
         }

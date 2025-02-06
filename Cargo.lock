@@ -2490,6 +2490,7 @@ name = "gkrust-uniffi-components"
 version = "0.1.0"
 dependencies = [
  "relevancy",
+ "search",
  "suggest",
  "tabs",
  "uniffi",
@@ -5702,6 +5703,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "search"
+version = "0.1.0"
+source = "git+https://github.com/mozilla/application-services?rev=25934715ecc08fc922c80797c637dea64ee742d1#25934715ecc08fc922c80797c637dea64ee742d1"
+dependencies = [
+ "error-support",
+ "firefox-versioning",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "thiserror 1.999.999",
+ "uniffi",
 ]
 
 [[package]]
