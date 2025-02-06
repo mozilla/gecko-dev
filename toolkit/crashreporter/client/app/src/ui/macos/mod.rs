@@ -28,14 +28,14 @@ use super::model::{self, Alignment, Application, Element, TypedElement};
 use crate::data::Property;
 use cocoa::{
     INSApplication, INSBox, INSButton, INSColor, INSControl, INSFont, INSLayoutAnchor,
-    INSLayoutConstraint, INSLayoutDimension, INSMenu, INSMenuItem, INSObject, INSProcessInfo,
-    INSProgressIndicator, INSRunLoop, INSScrollView, INSStackView, INSText, INSTextContainer,
-    INSTextField, INSTextView, INSView, INSWindow, NSArray_NSArrayCreation,
-    NSAttributedString_NSExtendedAttributedString, NSDictionary_NSDictionaryCreation,
-    NSMutableParagraphStyle_, NSRunLoop_NSRunLoopConveniences, NSStackView_NSStackViewGravityAreas,
-    NSString_NSStringExtensionMethods, NSTextField_NSTextFieldConvenience,
-    NSView_NSConstraintBasedLayoutInstallingConstraints, NSView_NSConstraintBasedLayoutLayering,
-    PNSObject,
+    INSLayoutConstraint, INSLayoutDimension, INSMenu, INSMenuItem, INSMutableParagraphStyle,
+    INSObject, INSProcessInfo, INSProgressIndicator, INSRunLoop, INSScrollView, INSStackView,
+    INSText, INSTextContainer, INSTextField, INSTextView, INSView, INSWindow,
+    NSArray_NSArrayCreation, NSAttributedString_NSExtendedAttributedString,
+    NSDictionary_NSDictionaryCreation, NSRunLoop_NSRunLoopConveniences,
+    NSStackView_NSStackViewGravityAreas, NSString_NSStringExtensionMethods,
+    NSTextField_NSTextFieldConvenience, NSView_NSConstraintBasedLayoutInstallingConstraints,
+    NSView_NSConstraintBasedLayoutLayering, PNSObject,
 };
 use once_cell::sync::Lazy;
 
