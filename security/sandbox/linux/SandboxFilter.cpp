@@ -743,9 +743,6 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
         .CASES((PR_CAPBSET_READ),  // libcap.so.2 loaded by libpulse.so.0
                                    // queries for capabilities
                Error(EINVAL))
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 
@@ -1004,9 +1001,6 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
             .Case(F_GETFL, Allow())
             .Case(F_SETFL, If((flags & ~allowed_flags) == 0, Allow())
                                .Else(InvalidSyscall()))
-#if defined(MOZ_PROFILE_GENERATE)
-            .Case(F_SETLKW, Allow())
-#endif
             // Not much different from other forms of dup(), and commonly used.
             .Case(F_DUPFD_CLOEXEC, Allow())
             .Default(SandboxPolicyBase::EvaluateSyscall(sysno));
@@ -2101,9 +2095,6 @@ class SocketProcessSandboxPolicy final : public SandboxPolicyCommon {
                 PR_SET_DUMPABLE,  // Crash reporting
                 PR_SET_PTRACER),  // Debug-mode crash handling
                Allow())
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 
@@ -2203,9 +2194,6 @@ class UtilitySandboxPolicy : public SandboxPolicyCommon {
         .CASES((PR_CAPBSET_READ),  // libcap.so.2 loaded by libpulse.so.0
                                    // queries for capabilities
                Error(EINVAL))
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 

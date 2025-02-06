@@ -35,10 +35,6 @@
 #include "nsNetCID.h"
 #include "prenv.h"
 
-#if defined(MOZ_PROFILE_GENERATE)
-#  include <string>
-#endif
-
 #ifdef ANDROID
 #  include "cutils/properties.h"
 #endif
@@ -421,25 +417,6 @@ static void AddGLDependencies(SandboxBroker::Policy* policy) {
   // server, because headless GL (e.g., Mesa GBM) may not need it.
 }
 
-// Assums this is an absolute path, SandboxBroker does not like relative paths:
-// RealPath() will try to get the absolute path of the llvm profile path to open
-// for writing but this will return errno=2 because the file does not exists, so
-// sandbox will not allow for its creation.
-//
-// Forcing expecting an absolute path will be enough to make sure it can be
-// allowed.
-//
-// It should only be allowed on instrumented builds, never on production
-// builds.
-#if defined(MOZ_PROFILE_GENERATE)
-static void AddLLVMProfilePathDirectory(SandboxBroker::Policy* aPolicy) {
-  std::string parentPath;
-  if (GetLlvmProfileDir(parentPath)) {
-    aPolicy->AddFutureDir(rdwrcr, parentPath.c_str());
-  }
-}
-#endif  // defined(MOZ_PROFILE_GENERATE)
-
 void SandboxBrokerPolicyFactory::InitContentPolicy() {
   const bool headless =
       StaticPrefs::security_sandbox_content_headless_AtStartup();
@@ -796,10 +773,6 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
     policy->AddPath(rdonly, "/sys/module/amdgpu");
   }
 
-#if defined(MOZ_PROFILE_GENERATE)
-  AddLLVMProfilePathDirectory(policy);
-#endif
-
   mCommonContentPolicy.reset(policy);
 }
 
@@ -989,10 +962,6 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
   policy->AddPath(rdwr, "/dev/nvhost-vic");
 #endif  // defined(__aarch64__)
 
-#if defined(MOZ_PROFILE_GENERATE)
-  AddLLVMProfilePathDirectory(policy.get());
-#endif
-
   if (policy->IsEmpty()) {
     policy = nullptr;
   }
@@ -1047,10 +1016,6 @@ SandboxBrokerPolicyFactory::GetSocketProcessPolicy(int aPid) {
       policy->AddTree(rdonly, tmpPath.get());
     }
   }
-
-#if defined(MOZ_PROFILE_GENERATE)
-  AddLLVMProfilePathDirectory(policy.get());
-#endif
 
   if (policy->IsEmpty()) {
     policy = nullptr;
@@ -1109,10 +1074,6 @@ SandboxBrokerPolicyFactory::GetUtilityProcessPolicy(int aPid) {
       policy->AddTree(rdonly, tmpPath.get());
     }
   }
-
-#if defined(MOZ_PROFILE_GENERATE)
-  AddLLVMProfilePathDirectory(policy.get());
-#endif
 
   if (policy->IsEmpty()) {
     policy = nullptr;

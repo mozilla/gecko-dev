@@ -3,9 +3,6 @@
 set -ex
 
 mkdir -p /builds/worker/artifacts/
-# for PGO logs
-export UPLOAD_PATH=/builds/worker/artifacts/
-
 mkdir -p /builds/worker/.local/state/snapcraft/
 ln -s /builds/worker/artifacts /builds/worker/.local/state/snapcraft/log
 

@@ -61,11 +61,6 @@ SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
   mFileDesc = fds[0];
   aClientFd = fds[1];
 
-  // When the thread will start it may already be too late to correctly care
-  // about reference handling. Make sure the increment happens before the thread
-  // is created to avoid races. Details in SandboxBroker::ThreadMain().
-  NS_ADDREF_THIS();
-
   if (!PlatformThread::Create(0, this, &mThread)) {
     SANDBOX_LOG_ERRNO("SandboxBroker: thread creation failed");
     close(mFileDesc);
@@ -75,12 +70,12 @@ SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
   }
 }
 
-already_AddRefed<SandboxBroker> SandboxBroker::Create(
+UniquePtr<SandboxBroker> SandboxBroker::Create(
     UniquePtr<const Policy> aPolicy, int aChildPid,
     ipc::FileDescriptor& aClientFdOut) {
   int clientFd;
-  // Can't use MakeRefPtr here because the constructor is private.
-  RefPtr<SandboxBroker> rv(
+  // Can't use MakeUnique here because the constructor is private.
+  UniquePtr<SandboxBroker> rv(
       new SandboxBroker(std::move(aPolicy), aChildPid, clientFd));
   if (clientFd < 0) {
     rv = nullptr;
@@ -89,7 +84,7 @@ already_AddRefed<SandboxBroker> SandboxBroker::Create(
     // the fd; instead, transfer ownership:
     aClientFdOut = ipc::FileDescriptor(UniqueFileHandle(clientFd));
   }
-  return rv.forget();
+  return rv;
 }
 
 SandboxBroker::~SandboxBroker() {
@@ -98,15 +93,9 @@ SandboxBroker::~SandboxBroker() {
     return;
   }
 
-  // Join() on the same thread while working with errno EDEADLK is technically
-  // not POSIX compliant:
-  // https://pubs.opengroup.org/onlinepubs/9799919799/functions/pthread_join.html#:~:text=refers%20to%20the%20calling%20thread
-  if (mThread != pthread_self()) {
-    shutdown(mFileDesc, SHUT_RD);
-    // The thread will now get EOF even if the client hasn't exited.
-    PlatformThread::Join(mThread);
-  }
-
+  shutdown(mFileDesc, SHUT_RD);
+  // The thread will now get EOF even if the client hasn't exited.
+  PlatformThread::Join(mThread);
   // Now that the thread has exited, the fd will no longer be accessed.
   close(mFileDesc);
   // Having ensured that this object outlives the thread, this
@@ -612,25 +601,6 @@ void SandboxBroker::ThreadMain(void) {
   PlatformThread::SetName(threadName);
 
   AUTO_PROFILER_REGISTER_THREAD(threadName);
-
-  // The gtest SandboxBrokerMisc.* will loop and create / destroy SandboxBroker
-  // taking a RefPtr<SandboxBroker> that gets destructed when getting out of
-  // scope.
-  //
-  // Because Create() will start this thread we get into a situation where:
-  //  - SandboxBrokerMisc creates SandboxBroker
-  //    RefPtr = 1
-  //  - SandboxBrokerMisc gtest is leaving the scope so destructor got called
-  //    RefPtr = 0
-  //  - this thread starts and add a new reference via that RefPtr
-  //    RefPtr = 1
-  //  - destructor does its job and closes the FD which triggers EOF and ends
-  //    the while {} here
-  //  - thread ends and gets out of scope so destructor gets called
-  //    RefPtr = 0
-  //
-  // NS_ADDREF_THIS() / dont_AddRef(this) avoid this.
-  RefPtr<SandboxBroker> deathGrip = dont_AddRef(this);
 
   // Permissive mode can only be enabled through an environment variable,
   // therefore it is sufficient to fetch the value once
