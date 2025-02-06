@@ -445,10 +445,8 @@ size_t GetGtkHeaderBarButtonLayout(mozilla::Span<ButtonLayout>,
 /**
  * Get size of CSD window extents.
  *
- * aIsPopup: [IN] Get decoration size for popup or toplevel window.
- *
  * returns: Calculated (or estimated) decoration size of given aGtkWindow.
  */
-GtkBorder GetCSDDecorationSize(bool aIsPopup);
+GtkBorder GetTopLevelCSDDecorationSize();
 
 #endif

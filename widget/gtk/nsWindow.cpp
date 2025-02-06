@@ -920,7 +920,7 @@ bool nsWindow::GetCSDDecorationOffset(int* aDx, int* aDy) {
   if (!DrawsToCSDTitlebar()) {
     return false;
   }
-  GtkBorder decorationSize = GetCSDDecorationSize(IsPopup());
+  GtkBorder decorationSize = GetTopLevelCSDDecorationSize();
   *aDx = decorationSize.left;
   *aDy = decorationSize.top;
   return true;
@@ -3277,10 +3277,9 @@ void nsWindow::RecomputeBounds() {
       if (!ToplevelUsesCSD()) {
         return LayoutDeviceIntMargin();
       }
-      // FIXME: This needs to account for the gtk-inserted headerbar.
       GtkBorder decorationRect{0};
       if (mSizeMode == nsSizeMode_Normal) {
-        decorationRect = GetCSDDecorationSize(IsPopup());
+        decorationRect = GetTopLevelCSDDecorationSize();
       }
       if (!mDrawInTitlebar) {
         decorationRect.top += moz_gtk_get_titlebar_preferred_height();
