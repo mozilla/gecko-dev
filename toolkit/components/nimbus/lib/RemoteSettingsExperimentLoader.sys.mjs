@@ -501,8 +501,13 @@ export class _RemoteSettingsExperimentLoader {
    * Sets a timer to update recipes every this.intervalInSeconds
    */
   setTimer() {
+    if (!this._enabled) {
+      // Don't enable the timer if we're disabled and the interval pref changes.
+      return;
+    }
     if (this.intervalInSeconds === 0) {
       // Used in tests where we want to turn this mechanism off
+      lazy.timerManager.unregisterTimer(TIMER_NAME);
       return;
     }
     // The callbacks will be called soon after the timer is registered
