@@ -73,6 +73,7 @@
       "isFirefoxLabsOptIn": false,
       "firefoxLabsTitle": null,
       "firefoxLabsDescription": null,
+      "firefoxLabsDescriptionLinks": null,
       "firefoxLabsGroup": null,
       "requiresRestart": false
     },
@@ -404,6 +405,7 @@
       "isFirefoxLabsOptIn": false,
       "firefoxLabsTitle": null,
       "firefoxLabsDescription": null,
+      "firefoxLabsDescriptionLinks": null,
       "firefoxLabsGroup": null,
       "requiresRestart": false
     },
@@ -593,6 +595,7 @@
       "isFirefoxLabsOptIn": false,
       "firefoxLabsTitle": null,
       "firefoxLabsDescription": null,
+      "firefoxLabsDescriptionLinks": null,
       "firefoxLabsGroup": null,
       "requiresRestart": false
     }
