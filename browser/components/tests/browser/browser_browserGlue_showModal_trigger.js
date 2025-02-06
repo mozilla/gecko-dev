@@ -9,8 +9,11 @@ XPCOMUtils.defineLazyServiceGetters(this, {
 const { SpecialMessageActions } = ChromeUtils.importESModule(
   "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
-const { TelemetryReportingPolicyImpl } = ChromeUtils.importESModule(
+const { TelemetryReportingPolicy } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
+);
+const { TelemetryUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/TelemetryUtils.sys.mjs"
 );
 
 const TEST_SCREEN = [
@@ -49,12 +52,25 @@ async function showPreonboardingModal(
     ["browser.preonboarding.interactionPref", interactionRequiredPref],
     ["browser.startup.homepage_override.mstone", ""],
     ["startup.homepage_welcome_url", "about:welcome"],
+    [TelemetryUtils.Preferences.FirstRun, isFirstRun],
+  ];
+  const PREFS_TO_CLEAR = [
+    [TelemetryUtils.Preferences.AcceptedPolicyDate],
+    [TelemetryUtils.Preferences.AcceptedPolicyVersion],
+    [TelemetryUtils.Preferences.BypassNotification],
   ];
   await SpecialPowers.pushPrefEnv({
     set: PREFS_TO_SET,
+    clear: PREFS_TO_CLEAR,
   });
 
   BrowserHandler.firstRunProfile = isFirstRun;
+
+  Assert.equal(
+    !TelemetryReportingPolicy.testShouldNotify(),
+    disableFirstRunPolicyTab,
+    "Privacy notice respects disableFirstRunPolicyTab"
+  );
 
   await BROWSER_GLUE._maybeShowDefaultBrowserPrompt();
 
@@ -91,11 +107,6 @@ add_task(async function show_preonboarding_modal() {
     "Modal renders with custom screen"
   );
 
-  Assert.ok(
-    TelemetryReportingPolicyImpl._openFirstRunPage(),
-    "Privacy notice will show"
-  );
-
   Assert.equal(
     messageSpy.firstCall.args[0].data.content.disableEscClose,
     false,
@@ -118,12 +129,6 @@ add_task(async function can_disable_showing_privacy_tab_and_closing_via_esc() {
   // Wait for screen content to render
   await TestUtils.waitForCondition(() =>
     win.document.querySelector(TEST_SCREEN_SELECTOR)
-  );
-
-  Assert.notEqual(
-    TelemetryReportingPolicyImpl._openFirstRunPage(),
-    true,
-    "Privacy notice tab will not show"
   );
 
   Assert.equal(
