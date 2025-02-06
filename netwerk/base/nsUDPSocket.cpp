@@ -9,7 +9,7 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/HoldDropJSObjects.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 
 #include "MockNetworkLayer.h"
 #include "nsQueryObject.h"
@@ -760,30 +760,26 @@ void nsUDPSocket::CloseSocket() {
 
       if (gSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
         PRIntervalTime now = PR_IntervalNow();
+        TimeDuration delta = TimeDuration::FromMilliseconds(
+            PR_IntervalToMilliseconds(now - closeStarted));
         if (gIOService->IsNetTearingDown()) {
-          Telemetry::Accumulate(Telemetry::PRCLOSE_UDP_BLOCKING_TIME_SHUTDOWN,
-                                PR_IntervalToMilliseconds(now - closeStarted));
-
+          glean::networking::prclose_udp_blocking_time_shutdown
+              .AccumulateRawDuration(delta);
         } else if (PR_IntervalToSeconds(
                        now - gIOService->LastConnectivityChange()) < 60) {
-          Telemetry::Accumulate(
-              Telemetry::PRCLOSE_UDP_BLOCKING_TIME_CONNECTIVITY_CHANGE,
-              PR_IntervalToMilliseconds(now - closeStarted));
-
+          glean::networking::prclose_udp_blocking_time_connectivity_change
+              .AccumulateRawDuration(delta);
         } else if (PR_IntervalToSeconds(
                        now - gIOService->LastNetworkLinkChange()) < 60) {
-          Telemetry::Accumulate(
-              Telemetry::PRCLOSE_UDP_BLOCKING_TIME_LINK_CHANGE,
-              PR_IntervalToMilliseconds(now - closeStarted));
-
+          glean::networking::prclose_udp_blocking_time_link_change
+              .AccumulateRawDuration(delta);
         } else if (PR_IntervalToSeconds(
                        now - gIOService->LastOfflineStateChange()) < 60) {
-          Telemetry::Accumulate(Telemetry::PRCLOSE_UDP_BLOCKING_TIME_OFFLINE,
-                                PR_IntervalToMilliseconds(now - closeStarted));
-
+          glean::networking::prclose_udp_blocking_time_offline
+              .AccumulateRawDuration(delta);
         } else {
-          Telemetry::Accumulate(Telemetry::PRCLOSE_UDP_BLOCKING_TIME_NORMAL,
-                                PR_IntervalToMilliseconds(now - closeStarted));
+          glean::networking::prclose_udp_blocking_time_normal
+              .AccumulateRawDuration(delta);
         }
       }
     }
