@@ -574,10 +574,11 @@ impl ModularTransform for MatrixTranslate {
         }
     }
 }
-#[derive(Default)]
+
 struct MatrixTransform {
     matrix: Matrix,
 }
+
 impl ModularTransform for MatrixTransform {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
         let mut mat: Matrix = Matrix { m: [[0.; 3]; 3] };
@@ -688,11 +689,9 @@ fn modular_transform_create_lut(lut: &lutType) -> Option<Vec<Box<dyn ModularTran
     let mut transforms: Vec<Box<dyn ModularTransform>> = Vec::new();
 
     let clut_length: usize;
-    let mut transform = Box::new(MatrixTransform::default());
-
-    transform.matrix = build_lut_matrix(lut);
-    if true {
-        transforms.push(transform);
+    transforms.push(Box::new(MatrixTransform {
+        matrix: build_lut_matrix(lut),
+    }));
 
         // Prepare input curves
         let mut transform = Box::new(Clut3x3::default());
@@ -729,8 +728,6 @@ fn modular_transform_create_lut(lut: &lutType) -> Option<Vec<Box<dyn ModularTran
         );
         transforms.push(transform);
         return Some(transforms);
-    }
-    None
 }
 
 fn modular_transform_create_lut4x3(lut: &lutType) -> Vec<Box<dyn ModularTransform>> {
@@ -821,26 +818,25 @@ fn modular_transform_create_input(input: &Profile) -> Option<Vec<Box<dyn Modular
             return None;
         } else {
             transforms.push(transform);
-
-            let mut transform = Box::new(MatrixTransform::default());
-            transform.matrix.m[0][0] = 1. / 1.999_969_5;
-            transform.matrix.m[0][1] = 0.0;
-            transform.matrix.m[0][2] = 0.0;
-            transform.matrix.m[1][0] = 0.0;
-            transform.matrix.m[1][1] = 1. / 1.999_969_5;
-            transform.matrix.m[1][2] = 0.0;
-            transform.matrix.m[2][0] = 0.0;
-            transform.matrix.m[2][1] = 0.0;
-            transform.matrix.m[2][2] = 1. / 1.999_969_5;
-            transforms.push(transform);
-
-            let mut transform = Box::new(MatrixTransform::default());
-            transform.matrix = build_colorant_matrix(input);
-            transforms.push(transform);
         }
+
+        transforms.push(Box::new(MatrixTransform {
+            matrix: Matrix {
+                m: [
+                    [1. / 1.999_969_5, 0.0, 0.0],
+                    [0.0, 1. / 1.999_969_5, 0.0],
+                    [0.0, 0.0, 1. / 1.999_969_5],
+                ],
+            },
+        }));
+
+        transforms.push(Box::new(MatrixTransform {
+            matrix: build_colorant_matrix(input),
+        }));
     }
     Some(transforms)
 }
+
 fn modular_transform_create_output(out: &Profile) -> Option<Vec<Box<dyn ModularTransform>>> {
     let mut transforms = Vec::new();
     if let Some(B2A0) = &out.B2A0 {
@@ -866,21 +862,19 @@ fn modular_transform_create_output(out: &Profile) -> Option<Vec<Box<dyn ModularT
     } else if let (Some(redTRC), Some(greenTRC), Some(blueTRC)) =
         (&out.redTRC, &out.greenTRC, &out.blueTRC)
     {
-        let mut transform = Box::new(MatrixTransform::default());
-        transform.matrix = build_colorant_matrix(out).invert()?;
-        transforms.push(transform);
+        transforms.push(Box::new(MatrixTransform {
+            matrix: build_colorant_matrix(out).invert()?,
+        }));
 
-        let mut transform = Box::new(MatrixTransform::default());
-        transform.matrix.m[0][0] = 1.999_969_5;
-        transform.matrix.m[0][1] = 0.0;
-        transform.matrix.m[0][2] = 0.0;
-        transform.matrix.m[1][0] = 0.0;
-        transform.matrix.m[1][1] = 1.999_969_5;
-        transform.matrix.m[1][2] = 0.0;
-        transform.matrix.m[2][0] = 0.0;
-        transform.matrix.m[2][1] = 0.0;
-        transform.matrix.m[2][2] = 1.999_969_5;
-        transforms.push(transform);
+        transforms.push(Box::new(MatrixTransform {
+            matrix: Matrix {
+                m: [
+                    [1.999_969_5, 0.0, 0.0],
+                    [0.0, 1.999_969_5, 0.0],
+                    [0.0, 0.0, 1.999_969_5],
+                ],
+            },
+        }));
 
         let mut transform = Box::new(GammaLut::default());
         transform.output_gamma_lut_r = Some(build_output_lut(redTRC)?);
