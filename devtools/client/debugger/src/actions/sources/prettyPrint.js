@@ -290,7 +290,7 @@ function selectPrettyLocation(prettySource) {
  * @returns Promise
  *          A promise that resolves to the Pretty print/original source object.
  */
-export async function prettyPrintSource(source, thunkArgs) {
+export async function doPrettyPrintSource(source, thunkArgs) {
   const { dispatch, getState } = thunkArgs;
   recordEvent("pretty_print");
 
@@ -335,7 +335,7 @@ export async function prettyPrintSource(source, thunkArgs) {
 
 // Use memoization in order to allow calling this actions many times
 // while ensuring creating the pretty source only once.
-const memoizedPrettyPrintSource = memoizeableAction("setSymbols", {
+export const prettyPrintSource = memoizeableAction("prettyPrintSource", {
   getValue: (source, { getState }) => {
     // Lookup for an already existing pretty source
     const url = getPrettyOriginalSourceURL(source);
@@ -348,12 +348,12 @@ const memoizedPrettyPrintSource = memoizeableAction("setSymbols", {
     return fulfilled(s);
   },
   createKey: source => source.id,
-  action: (source, thunkArgs) => prettyPrintSource(source, thunkArgs),
+  action: (source, thunkArgs) => doPrettyPrintSource(source, thunkArgs),
 });
 
 export function prettyPrintAndSelectSource(source) {
   return async ({ dispatch }) => {
-    const prettySource = await dispatch(memoizedPrettyPrintSource(source));
+    const prettySource = await dispatch(prettyPrintSource(source));
 
     // Select the pretty/original source based on the location we may
     // have had against the minified/generated source.
@@ -363,7 +363,7 @@ export function prettyPrintAndSelectSource(source) {
     // * fetching symbols/inline scope
     // * fetching breakable lines
     //
-    // This isn't part of memoizedTogglePrettyPrint/doTogglePrettyPrint
+    // This isn't part of prettyPrintSource/doPrettyPrintSource
     // because if the source is already pretty printed, the memoization
     // would avoid trying to update to the mapped location based
     // on current location on the minified source.

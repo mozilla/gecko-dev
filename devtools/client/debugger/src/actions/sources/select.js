@@ -9,7 +9,7 @@
 
 import { setSymbols } from "../sources/symbols";
 import { setInScopeLines } from "../ast/index";
-import { prettyPrintAndSelectSource } from "./prettyPrint";
+import { prettyPrintSource, prettyPrintAndSelectSource } from "./prettyPrint";
 import { addTab, closeTab } from "../tabs";
 import { loadSourceText } from "./loadSourceText";
 import { setBreakableLines } from "./breakableLines";
@@ -162,21 +162,26 @@ async function mayBeSelectMappedSource(location, keepContext, thunkArgs) {
   if (keepContext) {
     // Pretty print source may not be registered yet and getRelatedMapLocation may not return it.
     // Wait for the pretty print source to be fully processed.
+    const sourceHasPrettyTab = hasPrettyTab(getState(), location.source);
     if (
       !location.source.isOriginal &&
       shouldSelectOriginalLocation &&
-      hasPrettyTab(getState(), location.source)
+      sourceHasPrettyTab
     ) {
-      // Note that prettyPrintAndSelectSource has already been called a bit before when this generated source has been added
+      // Note that prettyPrintSource has already been called a bit before when this generated source has been added
       // but it is a slow operation and is most likely not resolved yet.
-      // prettyPrintAndSelectSource uses memoization to avoid doing the operation more than once, while waiting from both callsites.
-      await dispatch(prettyPrintAndSelectSource(location.source));
+      // prettyPrintSource uses memoization to avoid doing the operation more than once, while waiting from both callsites.
+      await dispatch(prettyPrintSource(location.source));
     }
     if (shouldSelectOriginalLocation != location.source.isOriginal) {
-      // Only try to map if the source is mapped. i.e. is original source or a bundle with a valid source map comment
+      // Only try to map the location if the source is mapped:
+      // - mapping from original to generated, if this is original source
+      // - mapping from generated to original, if the generated source has a source map URL comment
+      // - mapping from compressed to pretty print, if the compressed source has a matching pretty print tab opened
       if (
         location.source.isOriginal ||
-        isSourceActorWithSourceMap(getState(), location.sourceActor.id)
+        isSourceActorWithSourceMap(getState(), location.sourceActor.id) ||
+        sourceHasPrettyTab
       ) {
         // getRelatedMapLocation will convert to the related generated/original location.
         // i.e if the original location is passed, the related generated location will be returned and vice versa.
@@ -277,7 +282,6 @@ export function selectLocation(
     if (!tabExists(getState(), source.id)) {
       dispatch(addTab(source, sourceActor));
     }
-
     dispatch(
       setSelectedLocation(
         location,

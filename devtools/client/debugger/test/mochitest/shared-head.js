@@ -1973,6 +1973,9 @@ const selectors = {
   previewPopupInvokeGetterButton: ".preview-popup .invoke-getter",
   previewPopupObjectNumber: ".preview-popup .objectBox-number",
   previewPopupObjectObject: ".preview-popup .objectBox-object",
+  previewPopupObjectFunction: ".preview-popup .objectBox-function",
+  previewPopupObjectFunctionJumpToDefinition:
+    ".preview-popup .objectBox-function .jump-definition",
   sourceTreeRootNode: ".sources-panel .node .window",
   sourceTreeFolderNode: ".sources-panel .node .folder",
   excludePatternsInput: ".project-text-search .exclude-patterns-field input",
