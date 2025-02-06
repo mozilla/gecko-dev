@@ -34,17 +34,22 @@ unpack_build () {
                 echo "installing $pkg_file"
                 ../common/unpack-diskimage.sh "$pkg_file" mnt "$dir_name"
             else
-                7z x ../"$pkg_file" > /dev/null
+                echo "Unpacking $pkg_file with dmg and hfsplus"
+                # These commands are very verbose, so we redirect to /dev/null
+                dmg extract ../"$pkg_file" hfsimg > /dev/null
+                hfsplus hfsimg extractall > /dev/null
+                # Remove unnecessary files
+                # ' '               /Application shortcut inside the dmg
+                # .background       dmg background picture
+                # .DS_Store         MacOS attribute file
+                # .VolumeIcon.icns  dmg icon
+                # hfsimg            hfs image created with dmg extract
+                rm -rf ' ' .background .DS_Store .VolumeIcon.icns hfsimg
                 if [ "$(find . -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ]
                 then
                     echo "Couldn't find .app package"
                     return 1
                 fi
-                unpack_dir=$(ls -1)
-                unpack_dir=$(ls -d "${unpack_dir}")
-                mv "${unpack_dir}"/*.app .
-                rm -rf "${unpack_dir}"
-                appdir=$(ls -1)
                 appdir=$(ls -d ./*.app)
                 if [ -d "${mac_update_settings_dir_override}" ]; then
                     cp "${mac_update_settings_dir_override}/update-settings.ini" "${appdir}/update-settings.ini"
