@@ -875,52 +875,57 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
             *aData = buffer;
             *aLen = tempPath.Length() * sizeof(wchar_t);
             result = NS_OK;
-          } else if (fe.cfFormat == fileFlavor) {
+            break;
+          }
+
+          if (fe.cfFormat == fileFlavor) {
             NS_WARNING(
                 "Mozilla doesn't yet understand how to read this type of "
                 "file flavor");
-          } else {
-            // Get the data out of the global data handle. The size we
-            // return should not include the null because the other
-            // platforms don't use nulls, so just return the length we get
-            // back from strlen(), since we know CF_UNICODETEXT is null
-            // terminated. Recall that GetGlobalData() returns the size of
-            // the allocated buffer, not the size of the data (on 98, these
-            // are not the same) so we can't use that.
-            //
-            // NOTE: we are assuming that anything that falls into this
-            //        default case is unicode. As we start to get more
-            //        kinds of binary data, this may become an incorrect
-            //        assumption. Stay tuned.
-            uint32_t allocLen = 0;
-            if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
-              if (fe.cfFormat == GetHtmlClipboardFormat()) {
-                // CF_HTML is actually UTF8, not unicode, so disregard the
-                // assumption above. We have to check the header for the
-                // actual length, and we'll do that in FindPlatformHTML().
-                // For now, return the allocLen. This case is mostly to
-                // ensure we don't try to call strlen on the buffer.
-                *aLen = allocLen;
-              } else if (fe.cfFormat == GetCustomClipboardFormat()) {
-                // Binary data
-                *aLen = allocLen;
-              } else if (fe.cfFormat == preferredDropEffect) {
-                // As per the MSDN doc entitled: "Shell Clipboard Formats"
-                // CFSTR_PREFERREDDROPEFFECT should return a DWORD
-                // Reference:
-                // http://msdn.microsoft.com/en-us/library/bb776902(v=vs.85).aspx
-                NS_ASSERTION(allocLen == sizeof(DWORD),
-                             "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
-                *aLen = allocLen;
-              } else {
-                *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) *
-                        sizeof(char16_t);
-              }
-              result = NS_OK;
+            result = NS_ERROR_FAILURE;
+            break;
+          }
+
+          // Get the data out of the global data handle. The size we
+          // return should not include the null because the other
+          // platforms don't use nulls, so just return the length we get
+          // back from strlen(), since we know CF_UNICODETEXT is null
+          // terminated. Recall that GetGlobalData() returns the size of
+          // the allocated buffer, not the size of the data (on 98, these
+          // are not the same) so we can't use that.
+          //
+          // NOTE: we are assuming that anything that falls into this
+          //        default case is unicode. As we start to get more
+          //        kinds of binary data, this may become an incorrect
+          //        assumption. Stay tuned.
+          uint32_t allocLen = 0;
+          if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
+            if (fe.cfFormat == GetHtmlClipboardFormat()) {
+              // CF_HTML is actually UTF8, not unicode, so disregard the
+              // assumption above. We have to check the header for the
+              // actual length, and we'll do that in FindPlatformHTML().
+              // For now, return the allocLen. This case is mostly to
+              // ensure we don't try to call strlen on the buffer.
+              *aLen = allocLen;
+            } else if (fe.cfFormat == GetCustomClipboardFormat()) {
+              // Binary data
+              *aLen = allocLen;
+            } else if (fe.cfFormat == preferredDropEffect) {
+              // As per the MSDN doc entitled: "Shell Clipboard Formats"
+              // CFSTR_PREFERREDDROPEFFECT should return a DWORD
+              // Reference:
+              // http://msdn.microsoft.com/en-us/library/bb776902(v=vs.85).aspx
+              NS_ASSERTION(allocLen == sizeof(DWORD),
+                           "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
+              *aLen = allocLen;
+            } else {
+              *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) *
+                      sizeof(char16_t);
             }
+            return NS_OK;
           }
         } break;
-      }  // switch
+      }  // switch (fe.cfFormat)
     } break;
 
     case TYMED_GDI: {
@@ -931,7 +936,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
 
     default:
       break;
-  }  // switch
+  }  // switch (stm.tymed)
 
   return result;
 }
