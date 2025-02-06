@@ -58,7 +58,7 @@ exclude = [
 resolver = "2"
 
 [workspace.package]
-rust-version = "1.76.0"
+rust-version = "1.82.0"
 
 [workspace.dependencies]
 # Shared across multiple UniFFI consumers.
