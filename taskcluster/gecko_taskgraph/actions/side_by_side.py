@@ -93,7 +93,7 @@ def side_by_side_action(parameters, graph_config, input, task_group_id, task_id)
     pageload job (via support action).
 
     To execute this action locally follow the documentation here:
-    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    https://taskcluster-taskgraph.readthedocs.io/en/latest/howto/create-actions.html#testing-actions
     """
     task = get_task_definition(task_id)
     decision_task_id, full_task_graph, label_to_taskid, _ = fetch_graph_and_labels(

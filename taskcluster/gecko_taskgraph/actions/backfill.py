@@ -111,7 +111,7 @@ def backfill_action(parameters, graph_config, input, task_group_id, task_id):
     This action takes a task ID and schedules it on previous pushes (via support action).
 
     To execute this action locally follow the documentation here:
-    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    https://taskcluster-taskgraph.readthedocs.io/en/latest/howto/create-actions.html#testing-actions
     """
     task = get_task_definition(task_id)
     pushes = get_pushes_from_params_input(parameters, input)
@@ -282,7 +282,7 @@ def add_task_with_original_manifests(
     The push in which we want to schedule a new task is defined by the parameters object.
 
     To execute this action locally follow the documentation here:
-    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    https://taskcluster-taskgraph.readthedocs.io/en/latest/howto/create-actions.html#testing-actions
     """
     # This step takes a lot of time when executed locally
     logger.info("Retreving the full task graph and labels.")
@@ -336,7 +336,7 @@ def backfill_all_browsertime(parameters, graph_config, input, task_group_id, tas
     This action takes a revision and schedules it on previous pushes (via support action).
 
     To execute this action locally follow the documentation here:
-    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    https://taskcluster-taskgraph.readthedocs.io/en/latest/howto/create-actions.html#testing-actions
     """
     pushes = get_pushes(
         project=parameters["head_repository"],
@@ -423,7 +423,7 @@ def add_all_browsertime(parameters, graph_config, input, task_group_id, task_id)
     The push in which we want to schedule a new task is defined by the parameters object.
 
     To execute this action locally follow the documentation here:
-    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    https://taskcluster-taskgraph.readthedocs.io/en/latest/howto/create-actions.html#testing-actions
     """
     logger.info("Retreving the full task graph and labels.")
     decision_task_id, full_task_graph, label_to_taskid, _ = fetch_graph_and_labels(
