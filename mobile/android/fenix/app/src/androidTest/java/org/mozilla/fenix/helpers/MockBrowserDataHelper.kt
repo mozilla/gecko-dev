@@ -173,15 +173,20 @@ object MockBrowserDataHelper {
     /**
      * Adds a new pinned site to the app home screen.
      *
-     * @param websiteTitle The title of the website.
-     * @param websiteURL The URL of the website.
+     * @param webPageMetadata A pair of website title and URL.
      */
-    fun addPinnedSite(websiteTitle: String, websiteURL: String, activityTestRule: HomeActivityIntentTestRule) {
+    fun addPinnedSite(vararg webPageMetadata: Pair<String, String>, activityTestRule: HomeActivityIntentTestRule) {
         runBlocking {
-            Log.i(TAG, "addTopSite: Trying to add a pinned site to the home screen.")
-            appContext.components.useCases.topSitesUseCase.addPinnedSites(websiteTitle, websiteURL)
+            for (metadata in webPageMetadata) {
+                Log.i(TAG, "addTopSite: Trying to add a pinned site to the home screen.")
+                appContext.components.useCases.topSitesUseCase.addPinnedSites(
+                    metadata.first,
+                    metadata.second,
+                )
+                Log.i(TAG, "addTopSite: Added a pinned site to the home screen.")
+            }
+            // Sometimes a restart is needed to ensure the pinned site is displayed on the home screen.
             restartApp(activityTestRule)
-            Log.i(TAG, "addTopSite: Added a pinned site to the home screen.")
         }
     }
 

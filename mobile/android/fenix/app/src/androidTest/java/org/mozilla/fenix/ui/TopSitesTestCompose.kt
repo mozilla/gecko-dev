@@ -71,8 +71,7 @@ class TopSitesTestCompose : TestSetup() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 
@@ -98,8 +97,7 @@ class TopSitesTestCompose : TestSetup() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 
@@ -121,8 +119,7 @@ class TopSitesTestCompose : TestSetup() {
         val newPageTitle = generateRandomString(5)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 
@@ -145,8 +142,7 @@ class TopSitesTestCompose : TestSetup() {
         val newPageTitle = generateRandomString(5)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 
@@ -166,8 +162,7 @@ class TopSitesTestCompose : TestSetup() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 
@@ -192,8 +187,7 @@ class TopSitesTestCompose : TestSetup() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            defaultWebPage.title,
-            defaultWebPage.url.toString(),
+            Pair(defaultWebPage.title, defaultWebPage.url.toString()),
             activityTestRule = composeTestRule.activityRule,
         )
 

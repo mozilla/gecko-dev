@@ -10,6 +10,7 @@ import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.Constants.defaultTopSitesList
 import org.mozilla.fenix.helpers.DataGenerationHelper.getSponsoredShortcutTitle
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.helpers.MockBrowserDataHelper
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.homeScreen
@@ -154,11 +155,13 @@ class SponsoredShortcutsTest : TestSetup() {
     // No sponsored shortcuts should be displayed if there are 8 pinned top sites
     @Test
     fun verifySponsoredShortcutsListWithEightPinnedSitesTest() {
-        val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
-        val secondWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 2)
-        val thirdWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 3)
-        val fourthWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 4)
-        val fifthWebPage = TestAssetHelper.getLoremIpsumAsset(mockWebServer)
+        val pagesList = listOf(
+            TestAssetHelper.getGenericAsset(mockWebServer, 1),
+            TestAssetHelper.getGenericAsset(mockWebServer, 2),
+            TestAssetHelper.getGenericAsset(mockWebServer, 3),
+            TestAssetHelper.getGenericAsset(mockWebServer, 4),
+            TestAssetHelper.getLoremIpsumAsset(mockWebServer),
+        )
 
         homeScreen {
             sponsoredShortcutTitle = getSponsoredShortcutTitle(2)
@@ -166,45 +169,16 @@ class SponsoredShortcutsTest : TestSetup() {
 
             verifySponsoredShortcutDetails(sponsoredShortcutTitle, 2)
             verifySponsoredShortcutDetails(sponsoredShortcutTitle2, 3)
-        }.openNavigationToolbar {
-        }.enterURLAndEnterToBrowser(firstWebPage.url) {
-            verifyPageContent(firstWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-        }.addToFirefoxHome {
-        }.goToHomescreen {
-            verifyExistingTopSitesTabs(firstWebPage.title)
-        }.openNavigationToolbar {
-        }.enterURLAndEnterToBrowser(secondWebPage.url) {
-            verifyPageContent(secondWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-        }.addToFirefoxHome {
-        }.goToHomescreen {
-            verifyExistingTopSitesTabs(secondWebPage.title)
-        }.openNavigationToolbar {
-        }.enterURLAndEnterToBrowser(thirdWebPage.url) {
-            verifyPageContent(thirdWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-        }.addToFirefoxHome {
-        }.goToHomescreen {
-            verifyExistingTopSitesTabs(thirdWebPage.title)
-        }.openNavigationToolbar {
-        }.enterURLAndEnterToBrowser(fourthWebPage.url) {
-            verifyPageContent(fourthWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-        }.addToFirefoxHome {
-        }.goToHomescreen {
-            verifyExistingTopSitesTabs(fourthWebPage.title)
-        }.openNavigationToolbar {
-        }.enterURLAndEnterToBrowser(fifthWebPage.url) {
-            verifyPageContent(fifthWebPage.content)
-        }.openThreeDotMenu {
-            expandMenuFully()
-        }.addToFirefoxHome {
-        }.goToHomescreen {
+
+            MockBrowserDataHelper.addPinnedSite(
+                Pair(pagesList[0].title, pagesList[0].url.toString()),
+                Pair(pagesList[1].title, pagesList[1].url.toString()),
+                Pair(pagesList[2].title, pagesList[2].url.toString()),
+                Pair(pagesList[3].title, pagesList[3].url.toString()),
+                Pair(pagesList[4].title, pagesList[4].url.toString()),
+                activityTestRule = activityIntentTestRule,
+            )
+
             verifySponsoredShortcutDoesNotExist(sponsoredShortcutTitle, 2)
             verifySponsoredShortcutDoesNotExist(sponsoredShortcutTitle2, 3)
         }

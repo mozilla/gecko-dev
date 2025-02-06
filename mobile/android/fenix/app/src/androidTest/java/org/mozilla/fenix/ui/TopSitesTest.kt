@@ -68,8 +68,7 @@ class TopSitesTest : TestSetup() {
         val webPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
@@ -94,8 +93,7 @@ class TopSitesTest : TestSetup() {
         val webPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
@@ -117,8 +115,7 @@ class TopSitesTest : TestSetup() {
         val newPageTitle = generateRandomString(5)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
@@ -141,8 +138,7 @@ class TopSitesTest : TestSetup() {
         val newPageTitle = generateRandomString(5)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
@@ -162,8 +158,7 @@ class TopSitesTest : TestSetup() {
         val webPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
@@ -188,8 +183,7 @@ class TopSitesTest : TestSetup() {
         val webPage = getGenericAsset(mockWebServer, 1)
 
         MockBrowserDataHelper.addPinnedSite(
-            webPage.title,
-            webPage.url.toString(),
+            Pair(webPage.title, webPage.url.toString()),
             activityTestRule = activityIntentTestRule.activityRule,
         )
 
