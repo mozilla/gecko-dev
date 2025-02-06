@@ -98,12 +98,14 @@ contentblocking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946406
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946406
     notification_emails:
       - seceng-telemetry@mozilla.com
-    expires: 138
+    expires: 150
     telemetry_mirror: CANVAS_FINGERPRINTING_PER_TAB
 
   font_fingerprinting_per_tab:
@@ -119,12 +121,14 @@ contentblocking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946406
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1847990
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912169
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946406
     notification_emails:
       - seceng-telemetry@mozilla.com
-    expires: 138
+    expires: 150
     telemetry_mirror: h#FONT_FINGERPRINTING_PER_TAB
 
   storage_access_granted_count:
