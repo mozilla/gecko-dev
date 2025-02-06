@@ -36,10 +36,6 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://*.arcsivr.com/*"]
       },
-      "1944006": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://*.co2meter.com/*"]
-      },
       "1944007": {
         "issue": "broken-interactive-elements",
         "matches": ["*://*.discountcoffee.co.uk/*"]
