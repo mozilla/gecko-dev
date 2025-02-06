@@ -11787,17 +11787,15 @@ const NEWTAB_DARK_THEME = {
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-function Logo({
-  isAprilFoolsLogo
-}) {
+function Logo() {
   return /*#__PURE__*/external_React_default().createElement("h1", {
     className: "logo-and-wordmark-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: `logo-and-wordmark ${isAprilFoolsLogo ? "april-fools" : ""}`,
+    className: "logo-and-wordmark",
     role: "img",
     "data-l10n-id": "newtab-logo-and-wordmark"
   }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: `logo ${isAprilFoolsLogo ? "april-fools" : ""}`
+    className: "logo"
   }), /*#__PURE__*/external_React_default().createElement("div", {
     className: "wordmark"
   })));
@@ -11925,9 +11923,7 @@ class _Search extends (external_React_default()).PureComponent {
     const wrapperClassName = ["search-wrapper", this.props.disable && "search-disabled", this.props.fakeFocus && "fake-focus"].filter(v => v).join(" ");
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: wrapperClassName
-    }, this.props.showLogo && /*#__PURE__*/external_React_default().createElement(Logo, {
-      isAprilFoolsLogo: this.props.Prefs.values["newtabLogo.aprilfools"]
-    }), !this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
+    }, this.props.showLogo && /*#__PURE__*/external_React_default().createElement(Logo, null), !this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "search-inner-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("input", {
       id: "newtab-search-text",
@@ -13386,9 +13382,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Search_Search, Base_extends({
       showLogo: noSectionsEnabled || prefs["logowordmark.alwaysVisible"],
       handoffEnabled: searchHandoffEnabled
-    }, props.Search)))), !prefs.showSearch && layoutsVariantAorB && !noSectionsEnabled && /*#__PURE__*/external_React_default().createElement(Logo, {
-      isAprilFoolsLogo: this.props.Prefs.values["newtabLogo.aprilfools"]
-    }), /*#__PURE__*/external_React_default().createElement("div", {
+    }, props.Search)))), !prefs.showSearch && layoutsVariantAorB && !noSectionsEnabled && /*#__PURE__*/external_React_default().createElement(Logo, null), /*#__PURE__*/external_React_default().createElement("div", {
       className: `body-wrapper${initialized ? " on" : ""}`
     }, isDiscoveryStream ? /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
       className: "borderless-error"

@@ -1852,9 +1852,6 @@ pref("browser.newtabpage.activity-stream.newtabShortcuts.refresh", false);
 pref("browser.newtabpage.activity-stream.newtabAdSize.variant-a", false);
 pref("browser.newtabpage.activity-stream.newtabAdSize.variant-b", false);
 
-// April Fools experiment
-pref("browser.newtabpage.activity-stream.newtabLogo.aprilfools", false);
-
 // Activity Stream prefs that control to which page to redirect
 #ifndef RELEASE_OR_BETA
   pref("browser.newtabpage.activity-stream.debug", false);

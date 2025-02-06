@@ -973,20 +973,6 @@ newtabShortcutsExperiment:
       description: >-
         Adjusting sizes and spacing of new tab shortcuts.
 
-newtabAprilFools:
-  description: >-
-    Replaces logo and wordmark for April Fools Day.
-  owner: achurchwell@mozilla.com
-  hasExposure: false
-  variables:
-    isAprilFools:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.newtabLogo.aprilfools
-      description: >-
-        Replaces logo and wordmark for April Fools Day.
-
 newtabSponsoredContent:
   description: >-
     Change and control the sponsored content on newtab.

@@ -132,11 +132,7 @@ export class _Search extends React.PureComponent {
 
     return (
       <div className={wrapperClassName}>
-        {this.props.showLogo && (
-          <Logo
-            isAprilFoolsLogo={this.props.Prefs.values["newtabLogo.aprilfools"]}
-          />
-        )}
+        {this.props.showLogo && <Logo />}
         {!this.props.handoffEnabled && (
           <div className="search-inner-wrapper">
             <input

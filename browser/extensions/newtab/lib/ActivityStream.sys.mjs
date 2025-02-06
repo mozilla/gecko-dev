@@ -344,13 +344,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "newtabLogo.aprilfools",
-    {
-      title: "Show an April Fools version of the logo",
-      value: false,
-    },
-  ],
-  [
     "topSitesRows",
     {
       title: "Number of rows of Top Sites to display",

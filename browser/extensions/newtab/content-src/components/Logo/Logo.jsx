@@ -4,15 +4,15 @@
 
 import React from "react";
 
-function Logo({ isAprilFoolsLogo }) {
+function Logo() {
   return (
     <h1 className="logo-and-wordmark-wrapper">
       <div
-        className={`logo-and-wordmark ${isAprilFoolsLogo ? "april-fools" : ""}`}
+        className="logo-and-wordmark"
         role="img"
         data-l10n-id="newtab-logo-and-wordmark"
       >
-        <div className={`logo ${isAprilFoolsLogo ? "april-fools" : ""}`} />
+        <div className="logo" />
         <div className="wordmark" />
       </div>
     </h1>

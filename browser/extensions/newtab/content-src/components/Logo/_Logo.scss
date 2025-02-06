@@ -1,18 +1,3 @@
-// Special April Fools Day logo treatment.
-.april-fools {
-  .logo.april-fools {
-    background-image: url('chrome://activity-stream/content/data/content/assets/april-fools-fox.png');
-    background-size: 64px;
-    width: 64px;
-    height: 64px;
-    transition: transform 0.5s ease-in-out;
-
-    &:hover {
-      transform: rotate(360deg);
-    }
-  }
-}
-
 .logo-and-wordmark-wrapper {
   // Override default h1 margins
   margin-block: 0;
