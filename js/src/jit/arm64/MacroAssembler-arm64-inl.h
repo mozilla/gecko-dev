@@ -699,8 +699,12 @@ void MacroAssembler::maxDouble(FloatRegister other, FloatRegister srcDest,
 // Shift functions
 
 void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
+  lshiftPtr(imm, dest, dest);
+}
+
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  Lsl(ARMRegister(dest, 64), ARMRegister(dest, 64), imm.value);
+  Lsl(ARMRegister(dest, 64), ARMRegister(src, 64), imm.value);
 }
 
 void MacroAssembler::lshiftPtr(Register shift, Register dest) {
@@ -730,13 +734,16 @@ void MacroAssembler::flexibleLshift32(Register src, Register dest) {
 }
 
 void MacroAssembler::lshift32(Imm32 imm, Register dest) {
+  lshift32(imm, dest, dest);
+}
+
+void MacroAssembler::lshift32(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 32);
-  Lsl(ARMRegister(dest, 32), ARMRegister(dest, 32), imm.value);
+  Lsl(ARMRegister(dest, 32), ARMRegister(src, 32), imm.value);
 }
 
 void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
-  MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  Lsr(ARMRegister(dest, 64), ARMRegister(dest, 64), imm.value);
+  rshiftPtr(imm, dest, dest);
 }
 
 void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
@@ -761,13 +768,22 @@ void MacroAssembler::flexibleRshift32(Register src, Register dest) {
 }
 
 void MacroAssembler::rshift32(Imm32 imm, Register dest) {
+  rshift32(imm, dest, dest);
+}
+
+void MacroAssembler::rshift32(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 32);
-  Lsr(ARMRegister(dest, 32), ARMRegister(dest, 32), imm.value);
+  Lsr(ARMRegister(dest, 32), ARMRegister(src, 32), imm.value);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
+  rshiftPtrArithmetic(imm, dest, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  Asr(ARMRegister(dest, 64), ARMRegister(dest, 64), imm.value);
+  Asr(ARMRegister(dest, 64), ARMRegister(src, 64), imm.value);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
@@ -784,8 +800,13 @@ void MacroAssembler::rshift32Arithmetic(Register shift, Register dest) {
 }
 
 void MacroAssembler::rshift32Arithmetic(Imm32 imm, Register dest) {
+  rshift32Arithmetic(imm, dest, dest);
+}
+
+void MacroAssembler::rshift32Arithmetic(Imm32 imm, Register src,
+                                        Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 32);
-  Asr(ARMRegister(dest, 32), ARMRegister(dest, 32), imm.value);
+  Asr(ARMRegister(dest, 32), ARMRegister(src, 32), imm.value);
 }
 
 void MacroAssembler::flexibleRshift32Arithmetic(Register src, Register dest) {

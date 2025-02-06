@@ -454,12 +454,34 @@ void MacroAssembler::lshift32(Imm32 shift, Register srcDest) {
   shll(shift, srcDest);
 }
 
+void MacroAssembler::lshift32(Imm32 shift, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  shll(shift, dest);
+}
+
 void MacroAssembler::rshift32(Imm32 shift, Register srcDest) {
   shrl(shift, srcDest);
 }
 
+void MacroAssembler::rshift32(Imm32 shift, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  shrl(shift, dest);
+}
+
 void MacroAssembler::rshift32Arithmetic(Imm32 shift, Register srcDest) {
   sarl(shift, srcDest);
+}
+
+void MacroAssembler::rshift32Arithmetic(Imm32 shift, Register src,
+                                        Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  sarl(shift, dest);
 }
 
 // ===============================================================

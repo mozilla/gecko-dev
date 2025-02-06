@@ -425,6 +425,10 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   lshift32(imm, dest);
 }
 
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
+  lshift32(imm, src, dest);
+}
+
 void MacroAssembler::lshiftPtr(Register shift, Register srcDest) {
   lshift32(shift, srcDest);
 }
@@ -469,6 +473,10 @@ void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
   rshift32(imm, dest);
 }
 
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
+  rshift32(imm, src, dest);
+}
+
 void MacroAssembler::rshiftPtr(Register shift, Register srcDest) {
   rshift32(shift, srcDest);
 }
@@ -511,6 +519,11 @@ void MacroAssembler::rshift64(Register shift, Register64 srcDest) {
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   rshift32Arithmetic(imm, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
+  rshift32Arithmetic(imm, src, dest);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Register shift, Register srcDest) {

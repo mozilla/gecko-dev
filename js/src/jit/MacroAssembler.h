@@ -1398,14 +1398,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // in the range [0,31].
 
   inline void lshift32(Imm32 shift, Register srcDest) PER_SHARED_ARCH;
+  inline void lshift32(Imm32 shift, Register src,
+                       Register dest) PER_SHARED_ARCH;
   inline void rshift32(Imm32 shift, Register srcDest) PER_SHARED_ARCH;
+  inline void rshift32(Imm32 shift, Register src,
+                       Register dest) PER_SHARED_ARCH;
   inline void rshift32Arithmetic(Imm32 shift, Register srcDest) PER_SHARED_ARCH;
+  inline void rshift32Arithmetic(Imm32 shift, Register src,
+                                 Register dest) PER_SHARED_ARCH;
 
   inline void lshiftPtr(Imm32 imm, Register dest) PER_ARCH;
+  inline void lshiftPtr(Imm32 imm, Register src, Register dest) PER_ARCH;
   inline void rshiftPtr(Imm32 imm, Register dest) PER_ARCH;
-  inline void rshiftPtr(Imm32 imm, Register src, Register dest)
-      DEFINED_ON(arm64);
+  inline void rshiftPtr(Imm32 imm, Register src, Register dest) PER_ARCH;
   inline void rshiftPtrArithmetic(Imm32 imm, Register dest) PER_ARCH;
+  inline void rshiftPtrArithmetic(Imm32 imm, Register src,
+                                  Register dest) PER_ARCH;
 
   inline void lshift64(Imm32 imm, Register64 dest) PER_ARCH;
   inline void rshift64(Imm32 imm, Register64 dest) PER_ARCH;
