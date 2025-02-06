@@ -2034,7 +2034,6 @@ public class GeckoSession {
     private @LoadFlags int mLoadFlags = LOAD_FLAGS_NONE;
     private boolean mIsDataUri;
     private @HeaderFilter int mHeaderFilter = HEADER_FILTER_CORS_SAFELISTED;
-    private @Nullable String mOriginalInput;
 
     private static @NonNull String createDataUri(
         @NonNull final byte[] bytes, @Nullable final String mimeType) {
@@ -2221,19 +2220,6 @@ public class GeckoSession {
       mLoadFlags = flags;
       return this;
     }
-
-    /**
-     * If this load originates from the address bar, sets the original user input before it got
-     * fixed up to a URI.
-     *
-     * @param originalInput original user address bar input.
-     * @return this {@link Loader} instance.
-     */
-    @NonNull
-    public Loader originalInput(final @Nullable String originalInput) {
-      mOriginalInput = originalInput;
-      return this;
-    }
   }
 
   /**
@@ -2313,10 +2299,6 @@ public class GeckoSession {
 
               if (request.mHeaders != null) {
                 msg.putBundle("headers", request.mHeaders);
-              }
-
-              if (request.mOriginalInput != null) {
-                msg.putString("originalInput", request.mOriginalInput);
               }
 
               mEventDispatcher.dispatch("GeckoView:LoadUri", msg);

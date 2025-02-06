@@ -109,7 +109,6 @@ internal class LinkingMiddleware(
                 parent = parentEngineSession,
                 loadFlags = tab.engineState.initialLoadFlags,
                 additionalHeaders = tab.engineState.initialAdditionalHeaders,
-                originalInput = tab.originalInput,
             )
         }
 
@@ -122,14 +121,12 @@ internal class LinkingMiddleware(
         parent: EngineSession? = null,
         loadFlags: EngineSession.LoadUrlFlags,
         additionalHeaders: Map<String, String>? = null,
-        originalInput: String? = null,
     ) = scope.launch {
         engineSession.loadUrl(
             url = url,
             parent = parent,
             flags = loadFlags,
             additionalHeaders = additionalHeaders,
-            originalInput = originalInput,
         )
     }
 

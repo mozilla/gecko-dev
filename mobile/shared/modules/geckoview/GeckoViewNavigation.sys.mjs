@@ -167,7 +167,7 @@ export class GeckoViewNavigation extends GeckoViewModule {
       case "GeckoView:GotoHistoryIndex":
         this.browser.gotoIndex(aData.index);
         break;
-      case "GeckoView:LoadUri": {
+      case "GeckoView:LoadUri":
         const {
           uri,
           referrerUri,
@@ -175,7 +175,6 @@ export class GeckoViewNavigation extends GeckoViewModule {
           flags,
           headers,
           headerFilter,
-          originalInput,
         } = aData;
 
         let navFlags = convertFlags(flags);
@@ -244,15 +243,6 @@ export class GeckoViewNavigation extends GeckoViewModule {
           }
         }
 
-        let schemelessInput = 0;
-        if (originalInput) {
-          schemelessInput =
-            !originalInput.toLowerCase().startsWith("http://") &&
-            uri.toLowerCase().startsWith("http://")
-              ? Ci.nsILoadInfo.SchemelessInputTypeSchemeless
-              : Ci.nsILoadInfo.SchemelessInputTypeSchemeful;
-        }
-
         // For any navigation here, we should have an appropriate triggeringPrincipal:
         //
         // 1) If we have a referring session, triggeringPrincipal is the contentPrincipal from the
@@ -275,10 +265,8 @@ export class GeckoViewNavigation extends GeckoViewModule {
           triggeringPrincipal,
           headers: additionalHeaders,
           csp,
-          schemelessInput,
         });
         break;
-      }
       case "GeckoView:Reload":
         // At the moment, GeckoView only supports one reload, which uses
         // nsIWebNavigation.LOAD_FLAGS_NONE flag, and the telemetry doesn't

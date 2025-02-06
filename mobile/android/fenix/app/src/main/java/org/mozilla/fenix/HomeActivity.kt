@@ -1216,13 +1216,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                     flags = flags,
                     private = private,
                     historyMetadata = historyMetadata,
-                    originalInput = searchTermOrURL,
                 )
             } else {
                 components.useCases.sessionUseCases.loadUrl(
                     url = searchTermOrURL.toNormalizedUrl(),
                     flags = flags,
-                    originalInput = searchTermOrURL,
                 )
             }
         } else {

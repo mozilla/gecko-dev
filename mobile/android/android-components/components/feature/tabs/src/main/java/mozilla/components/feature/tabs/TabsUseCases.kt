@@ -123,23 +123,13 @@ class TabsUseCases(
          *
          * @param url The URL to be loaded in the new tab.
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
-         * @param originalInput If the user entered a URL, this is the
-         * original user input before any fixups were applied to it.
          */
         override operator fun invoke(
             url: String,
             flags: LoadUrlFlags,
             additionalHeaders: Map<String, String>?,
-            originalInput: String?,
         ) {
-            this.invoke(
-                url,
-                selectTab = true,
-                startLoading = true,
-                parentId = null,
-                flags = flags,
-                originalInput = originalInput,
-            )
+            this.invoke(url, selectTab = true, startLoading = true, parentId = null, flags = flags)
         }
 
         /**
@@ -161,8 +151,6 @@ class TabsUseCases(
          * @param isSearch whether or not the provided URL is the result of a search.
          * @param searchEngineName The search engine name.
          * @param additionalHeaders The extra headers to use when loading the provided URL.
-         * @param originalInput If the user entered a URL, this is the
-         * original user input before any fixups were applied to it.
          * @return The ID of the created tab.
          */
         operator fun invoke(
@@ -180,7 +168,6 @@ class TabsUseCases(
             isSearch: Boolean = false,
             searchEngineName: String? = null,
             additionalHeaders: Map<String, String>? = null,
-            originalInput: String? = null,
         ): String {
             val tab = createTab(
                 url = url,
@@ -194,7 +181,6 @@ class TabsUseCases(
                 initialAdditionalHeaders = additionalHeaders,
                 historyMetadata = historyMetadata,
                 desktopMode = store.state.desktopMode,
-                originalInput = originalInput,
             )
 
             store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))
