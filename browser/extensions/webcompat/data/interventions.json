@@ -2144,23 +2144,6 @@
       }
     ]
   },
-  "1895994": {
-    "label": "www.softrans.ro",
-    "bugs": {
-      "1895994": {
-        "issue": "broken-scrolling",
-        "matches": ["*://*.softrans.ro/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "content_scripts": {
-          "css": ["bug1895994-softtrans.ro-unlock-scrolling.css"]
-        }
-      }
-    ]
-  },
   "1896349": {
     "label": "vivaldi.com",
     "bugs": {
