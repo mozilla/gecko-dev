@@ -306,6 +306,9 @@ export class nsContextMenu {
       let canSpell = InlineSpellCheckerUI.canSpellCheck && this.canSpellCheck;
       this.showItem("spell-check-enabled", canSpell);
     }
+
+    this.hasTextFragments = context.hasTextFragments;
+    this.textFragmentURL = null;
   } // setContext
 
   hiding(aXulMenu) {
@@ -351,6 +354,7 @@ export class nsContextMenu {
     this.initScreenshotItem();
     this.initPasswordControlItems();
     this.initPDFItems();
+    this.initTextFragmentItems();
 
     this.showHideSeparators(aXulMenu);
     if (!aXulMenu.showHideSeparators) {
@@ -424,6 +428,69 @@ export class nsContextMenu {
     );
     this.setItemAttr("context-pdfjs-selectall", "disabled", isEmpty);
     this.setItemAttr("context-sep-pdfjs-selectall", "disabled", isEmpty);
+  }
+
+  initTextFragmentItems() {
+    const shouldShow =
+      Services.prefs.getBoolPref(
+        "dom.text_fragments.create_text_fragment.enabled",
+        false
+      ) &&
+      lazy.STRIP_ON_SHARE_ENABLED &&
+      !(this.inPDFViewer || this.inFrame) &&
+      this.isContentSelected;
+    this.showItem("context-copy-link-to-highlight", shouldShow);
+    this.showItem("context-copy-clean-link-to-highlight", shouldShow);
+
+    // disables both options by default, while API tries to build a text fragment
+    this.setItemAttr("context-copy-link-to-highlight", "disabled", true);
+    this.setItemAttr("context-copy-clean-link-to-highlight", "disabled", true);
+
+    // Only show remove option if there are text fragments on the page.
+    this.showItem("context-sep-highlights", this.hasTextFragments);
+    this.showItem("context-remove-all-highlights", this.hasTextFragments);
+  }
+
+  async getTextDirective() {
+    if (
+      !Services.prefs.getBoolPref(
+        "dom.text_fragments.create_text_fragment.enabled",
+        false
+      )
+    ) {
+      return;
+    }
+    this.textFragmentURL = await this.actor.getTextDirective();
+
+    // enable menu items when a text fragment can be built
+    if (this.textFragmentURL) {
+      this.setItemAttr("context-copy-link-to-highlight", "disabled", false);
+
+      // only enables the clean link based on preference and canStripForShare()
+      // this follows the same pattern as https://bugzilla.mozilla.org/show_bug.cgi?id=1895334
+      let canNotStripTextFragmentParams =
+        lazy.STRIP_ON_SHARE_CAN_DISABLE &&
+        !this.#canStripParams(this.getLinkURI(this.textFragmentURL));
+
+      this.setItemAttr(
+        "context-copy-clean-link-to-highlight",
+        "disabled",
+        canNotStripTextFragmentParams
+      );
+    }
+  }
+
+  async removeAllTextFragments() {
+    await this.actor.removeAllTextFragments();
+  }
+
+  copyLinkToHighlight(stripSiteTracking = false) {
+    if (stripSiteTracking) {
+      const uri = this.getLinkURI(this.textFragmentURL);
+      this.copyStrippedLink(uri);
+    } else {
+      this.copyLink(this.textFragmentURL);
+    }
   }
 
   initOpenItems() {
@@ -2227,9 +2294,9 @@ export class nsContextMenu {
     );
   }
 
-  copyLink() {
+  copyLink(url = this.linkURL) {
     // If we're in a view source tab, remove the view-source: prefix
-    let linkURL = this.linkURL.replace(/^view-source:/, "");
+    let linkURL = url.replace(/^view-source:/, "");
     lazy.clipboard.copyString(
       linkURL,
       this.actor.manager.browsingContext.currentWindowGlobal
@@ -2237,12 +2304,12 @@ export class nsContextMenu {
   }
 
   /**
-   * Copies a stripped version of this.linkURI to the clipboard.
+   * Copies a stripped version of a URI to the clipboard.
    * 'Stripped' means that query parameters for tracking/ link decoration
    * that are known to us will be removed from the URI.
    */
-  copyStrippedLink() {
-    let strippedLinkURI = this.getStrippedLink();
+  copyStrippedLink(uri = this.linkURI) {
+    let strippedLinkURI = this.getStrippedLink(uri);
     let strippedLinkURL =
       Services.io.createExposableURI(strippedLinkURI)?.displaySpec;
     if (strippedLinkURL) {
@@ -2329,9 +2396,9 @@ export class nsContextMenu {
     return node;
   }
 
-  getLinkURI() {
+  getLinkURI(url = this.linkURL) {
     try {
-      return this.window.makeURI(this.linkURL);
+      return this.window.makeURI(url);
     } catch (ex) {
       // e.g. empty URL string
     }
@@ -2345,23 +2412,21 @@ export class nsContextMenu {
    * or the original URI if we could not strip any query parameter.
    *
    */
-  getStrippedLink() {
-    if (!this.linkURI) {
+  getStrippedLink(uri = this.linkURI) {
+    if (!uri) {
       return null;
     }
     let strippedLinkURI = null;
     try {
-      strippedLinkURI = lazy.QueryStringStripper.stripForCopyOrShare(
-        this.linkURI
-      );
+      strippedLinkURI = lazy.QueryStringStripper.stripForCopyOrShare(uri);
     } catch (e) {
       console.warn(`getStrippedLink: ${e.message}`);
-      return this.linkURI;
+      return uri;
     }
 
     // If nothing can be stripped, we return the original URI
     // so the feature can still be used.
-    return strippedLinkURI ?? this.linkURI;
+    return strippedLinkURI ?? uri;
   }
 
   /**
@@ -2369,12 +2434,12 @@ export class nsContextMenu {
    * @returns {Boolean}
    *
    */
-  #canStripParams() {
-    if (!this.linkURI) {
+  #canStripParams(uri = this.linkURI) {
+    if (!uri) {
       return false;
     }
     try {
-      return lazy.QueryStringStripper.canStripForShare(this.linkURI);
+      return lazy.QueryStringStripper.canStripForShare(uri);
     } catch (e) {
       console.warn("canStripForShare failed!", e);
       return false;
