@@ -59,7 +59,7 @@ where
         BoxSize::Long(size) => assert_eq!(size, section.size()),
         BoxSize::Auto => {
             assert!(
-                section.size() <= u64::from(u32::max_value()),
+                section.size() <= u64::from(u32::MAX),
                 "Tried to use a long box with BoxSize::Auto"
             );
             box_size.set_const(section.size());
@@ -335,7 +335,7 @@ fn read_mdhd_unknown_duration() {
         s.B32(0)
             .B32(0)
             .B32(1234) // timescale
-            .B32(::std::u32::MAX) // duration
+            .B32(u32::MAX) // duration
             .B32(0)
     });
     let mut iter = super::BoxIter::new(&mut stream);
@@ -344,7 +344,7 @@ fn read_mdhd_unknown_duration() {
     assert_eq!(stream.head.size, 32);
     let parsed = super::read_mdhd(&mut stream).unwrap();
     assert_eq!(parsed.timescale, 1234);
-    assert_eq!(parsed.duration, ::std::u64::MAX);
+    assert_eq!(parsed.duration, u64::MAX);
 }
 
 #[test]
@@ -411,7 +411,7 @@ fn read_mvhd_unknown_duration() {
         s.B32(0)
             .B32(0)
             .B32(1234)
-            .B32(::std::u32::MAX)
+            .B32(u32::MAX)
             .append_repeated(0, 80)
     });
     let mut iter = super::BoxIter::new(&mut stream);
@@ -420,7 +420,7 @@ fn read_mvhd_unknown_duration() {
     assert_eq!(stream.head.size, 108);
     let parsed = super::read_mvhd(&mut stream).unwrap();
     assert_eq!(parsed.timescale, 1234);
-    assert_eq!(parsed.duration, ::std::u64::MAX);
+    assert_eq!(parsed.duration, u64::MAX);
 }
 
 #[test]
@@ -688,7 +688,7 @@ fn make_dfla(
             }
         };
         let block_type = (block_type as u32) & 0x7f;
-        s.B32(flag << 31 | block_type << 24 | size)
+        s.B32((flag << 31) | (block_type << 24) | size)
             .append_bytes(data)
     })
 }
@@ -1361,6 +1361,6 @@ fn read_to_end_() {
 
 #[test]
 fn read_to_end_oom() {
-    let mut src = b"1234567890".take(std::isize::MAX.try_into().expect("isize < u64"));
+    let mut src = b"1234567890".take(isize::MAX.try_into().expect("isize < u64"));
     assert!(src.read_into_try_vec().is_err());
 }
