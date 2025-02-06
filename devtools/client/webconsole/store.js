@@ -42,6 +42,9 @@ const performanceMarker = require("resource://devtools/client/webconsole/middlew
 const {
   thunk,
 } = require("resource://devtools/client/shared/redux/middleware/thunk.js");
+const {
+  visibilityHandlerStore,
+} = require("resource://devtools/client/shared/redux/visibilityHandlerStore.js");
 
 // Enhancers
 const enableBatching = require("resource://devtools/client/webconsole/enhancers/batching.js");
@@ -111,7 +114,7 @@ function configureStore(webConsoleUI, options = {}) {
     eventTelemetry.bind(null, options.telemetry)
   );
 
-  return createStore(
+  const store = createStore(
     createRootReducer(),
     initialState,
     compose(
@@ -123,6 +126,9 @@ function configureStore(webConsoleUI, options = {}) {
       enableBatching()
     )
   );
+
+  // Also wrap the store in order to pause store update notifications while the panel is hidden.
+  return visibilityHandlerStore(store);
 }
 
 function createRootReducer() {
