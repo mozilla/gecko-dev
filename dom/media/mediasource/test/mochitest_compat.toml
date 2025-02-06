@@ -1,7 +1,7 @@
 [DEFAULT]
 subsuite = "media"
 tags = "media-engine-compatible media-gpu"
-prefs = ["media.wmf.hevc.enabled=1"] # for test_MediaSource_hevc_mp4
+prefs = ["media.hevc.enabled=1"] # for test_MediaSource_hevc_mp4
 support-files = [
   "mediasource.js",
   "seek.webm",

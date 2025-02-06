@@ -482,7 +482,7 @@ media::DecodeSupportSet WMFDecoderModule::SupportsMimeType(
 
 /* static */
 bool WMFDecoderModule::IsHEVCSupported() {
-  return sForceEnableHEVC || StaticPrefs::media_wmf_hevc_enabled() == 1;
+  return sForceEnableHEVC || StaticPrefs::media_hevc_enabled();
 }
 
 /* static */

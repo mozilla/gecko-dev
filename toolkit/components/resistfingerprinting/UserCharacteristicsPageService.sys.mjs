@@ -1026,7 +1026,7 @@ export class UserCharacteristicsPageService {
       "media.ogg.enabled",
       "media.opus.enabled",
       "media.mp4.enabled",
-      "media.wmf.hevc.enabled",
+      "media.hevc.enabled",
       "media.webm.enabled",
       "media.av1.enabled",
       "media.encoder.webm.enabled",
