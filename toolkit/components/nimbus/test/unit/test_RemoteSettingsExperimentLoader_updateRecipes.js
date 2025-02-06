@@ -197,7 +197,6 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   const badRecipe = { ...recipe };
   delete badRecipe.branches;
 
-  sinon.stub(loader, "setTimer");
   sinon.stub(manager, "onRecipe");
   sinon.stub(manager, "onFinalize");
 
@@ -315,7 +314,6 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   };
   delete badRecipe.branches[1].features[0].value.template;
 
-  sinon.stub(loader, "setTimer");
   sinon.stub(manager, "onRecipe");
   sinon.stub(manager, "onFinalize");
 
@@ -430,7 +428,6 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
 
   sinon.spy(loader, "updateRecipes");
   sinon.spy(EnrollmentsContext.prototype, "_generateVariablesOnlySchema");
-  sinon.stub(loader, "setTimer");
   sinon
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
@@ -573,7 +570,6 @@ add_task(async function test_updateRecipes_validationTelemetry() {
     const loader = ExperimentFakes.rsLoader();
     const manager = loader.manager;
 
-    sinon.stub(loader, "setTimer");
     sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves([recipe]);
@@ -671,7 +667,6 @@ add_task(async function test_updateRecipes_validationDisabled() {
     const loader = ExperimentFakes.rsLoader();
     const manager = loader.manager;
 
-    sinon.stub(loader, "setTimer");
     sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves([recipe]);
@@ -730,7 +725,6 @@ add_task(async function test_updateRecipes_appId() {
     ],
   });
 
-  sinon.stub(loader, "setTimer");
   sinon
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
@@ -857,7 +851,6 @@ add_task(async function test_updateRecipes_recipeAppId() {
     ],
   });
 
-  sinon.stub(loader, "setTimer");
   sinon
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
@@ -934,7 +927,6 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
     const loader = ExperimentFakes.rsLoader();
     const manager = loader.manager;
 
-    sinon.stub(loader, "setTimer");
     sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves([invalidRecipe, optOutRecipe]);
@@ -995,7 +987,6 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sinon.stub(loader, "setTimer");
   sinon
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
@@ -1872,8 +1863,6 @@ add_task(async function test_updateRecipes_secure() {
 
     const onRecipe = sinon.stub(manager, "onRecipe");
 
-    sinon.stub(loader, "setTimer");
-
     await manager.onStartup();
     await manager.store.ready();
     await loader.enable();
@@ -1946,7 +1935,6 @@ add_task(async function test_updateRecipesClearsOptIns() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sandbox.stub(loader, "setTimer");
   await manager.onStartup();
   await manager.store.ready();
   await loader.enable();
@@ -1999,7 +1987,6 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sandbox.stub(loader, "setTimer");
   await manager.onStartup();
   await manager.store.ready();
   await loader.enable();
@@ -2057,7 +2044,6 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sandbox.stub(loader, "setTimer");
   await manager.onStartup();
   await manager.store.ready();
   await loader.enable();
@@ -2110,7 +2096,6 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sandbox.stub(loader, "setTimer");
   await manager.onStartup();
   await manager.store.ready();
   await loader.enable();
@@ -2165,7 +2150,6 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  sandbox.stub(loader, "setTimer");
   await manager.onStartup();
   await manager.store.ready();
   await loader.enable();
