@@ -491,7 +491,7 @@ static void qcms_transform_module_tetra_clut(struct qcms_modular_transform *tran
 */
 
 struct GammaTable {
-    input_clut_table: [Option<Box<[f32]>>; 3],
+    input_clut_table: [Box<[f32; 256]>; 3],
 }
 
 impl ModularTransform for GammaTable {
@@ -499,17 +499,17 @@ impl ModularTransform for GammaTable {
         let mut out_r: f32;
         let mut out_g: f32;
         let mut out_b: f32;
-        let input_clut_table_r = self.input_clut_table[0].as_ref().unwrap();
-        let input_clut_table_g = self.input_clut_table[1].as_ref().unwrap();
-        let input_clut_table_b = self.input_clut_table[2].as_ref().unwrap();
+        let input_clut_table_r = &*self.input_clut_table[0];
+        let input_clut_table_g = &*self.input_clut_table[1];
+        let input_clut_table_b = &*self.input_clut_table[2];
 
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let in_r: f32 = src[0];
             let in_g: f32 = src[1];
             let in_b: f32 = src[2];
-            out_r = lut_interp_linear_float(in_r, input_clut_table_r);
-            out_g = lut_interp_linear_float(in_g, input_clut_table_g);
-            out_b = lut_interp_linear_float(in_b, input_clut_table_b);
+            out_r = lut_interp_linear_float(in_r, &input_clut_table_r[..]);
+            out_g = lut_interp_linear_float(in_g, &input_clut_table_g[..]);
+            out_b = lut_interp_linear_float(in_b, &input_clut_table_b[..]);
 
             dest[0] = clamp_float(out_r);
             dest[1] = clamp_float(out_g);
@@ -625,9 +625,9 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
         }
         transforms.push(Box::new(GammaTable {
             input_clut_table: [
-                build_input_gamma_table(lut.a_curves[0].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.a_curves[1].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.a_curves[2].as_deref()).map(|x| (x as Box<[f32]>)),
+                build_input_gamma_table(lut.a_curves[0].as_deref())?,
+                build_input_gamma_table(lut.a_curves[1].as_deref())?,
+                build_input_gamma_table(lut.a_curves[2].as_deref())?,
             ],
         }));
 
@@ -647,9 +647,9 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
         // Prepare M curve
         transforms.push(Box::new(GammaTable {
             input_clut_table: [
-                build_input_gamma_table(lut.m_curves[0].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.m_curves[1].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.m_curves[2].as_deref()).map(|x| (x as Box<[f32]>)),
+                build_input_gamma_table(lut.m_curves[0].as_deref())?,
+                build_input_gamma_table(lut.m_curves[1].as_deref())?,
+                build_input_gamma_table(lut.m_curves[2].as_deref())?,
             ],
         }));
 
@@ -666,9 +666,9 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
         // Prepare B curve
         transforms.push(Box::new(GammaTable {
             input_clut_table: [
-                build_input_gamma_table(lut.b_curves[0].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.b_curves[1].as_deref()).map(|x| (x as Box<[f32]>)),
-                build_input_gamma_table(lut.b_curves[2].as_deref()).map(|x| (x as Box<[f32]>)),
+                build_input_gamma_table(lut.b_curves[0].as_deref())?,
+                build_input_gamma_table(lut.b_curves[1].as_deref())?,
+                build_input_gamma_table(lut.b_curves[2].as_deref())?,
             ],
         }));
     } else {
@@ -805,9 +805,9 @@ fn modular_transform_create_input(input: &Profile) -> Option<Vec<Box<dyn Modular
     } else {
         transforms.push(Box::new(GammaTable {
             input_clut_table: [
-                Some(build_input_gamma_table(input.redTRC.as_deref()).map(|x| (x as Box<[f32]>))?),
-                Some(build_input_gamma_table(input.greenTRC.as_deref()).map(|x| (x as Box<[f32]>))?),
-                Some(build_input_gamma_table(input.blueTRC.as_deref()).map(|x| (x as Box<[f32]>))?),
+                build_input_gamma_table(input.redTRC.as_deref())?,
+                build_input_gamma_table(input.greenTRC.as_deref())?,
+                build_input_gamma_table(input.blueTRC.as_deref())?,
             ],
         }));
 
