@@ -271,6 +271,9 @@ class LintRoller(object):
         if "fix" in self.lintargs and self.lintargs["fix"]:
             return False
 
+        if self.lintargs.get("stdin_filename"):
+            return False
+
         # Lint the whole tree when a `support-file` is modified.
         return any(
             os.path.isfile(p) and mozpath.match(p, pattern)

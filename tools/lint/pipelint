@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""
+This script is a wrapper around `./mach lint` that aims to facilitate fixing a
+single file from stdin, and dumping the changed file to stdout.
+
+It exists to redirect stdout to stderr, so we can be sure that mach or mozlint
+won't ever dump logs to stdout which would then end up being incorporated into
+a file.
+"""
+
+import importlib.machinery
+import importlib.util
+import sys
+import tempfile
+from pathlib import Path
+
+# Redirect all stdout to stderr
+old_stdout = sys.stdout
+sys.stdout = sys.stderr
+
+REPO_ROOT = Path(__file__).parent.parent.parent
+
+
+mach_path = REPO_ROOT / "mach"
+loader = importlib.machinery.SourceFileLoader("mach", str(mach_path))
+spec = importlib.util.spec_from_loader("mach", loader)
+assert spec
+assert spec.loader
+
+mach = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mach)
+
+assert len(sys.argv) == 2
+with tempfile.NamedTemporaryFile(mode="w+") as temp:
+    args = [
+        "lint",
+        "--fix",
+        "--stdin-filename",
+        sys.argv[1],
+        "--dump-stdin-file",
+        temp.name,
+    ]
+
+    try:
+        mach.main(args)
+    except SystemExit:
+        pass
+
+    # Restore stdout and dump the file.
+    sys.stdout = old_stdout
+    print(temp.read())
