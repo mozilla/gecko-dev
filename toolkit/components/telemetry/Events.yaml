@@ -3999,6 +3999,26 @@ profiles:
     expiry_version: never
     products:
       - "firefox"
+  delete:
+    objects: ["cancel", "confirm", "displayed"]
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+    description: >
+      Recorded when the user loads and interacts with the
+      "about:deleteprofile" profile delete confirmation page. See Glean
+      probe definitions for details. The value varies depending on the
+      object.
+    notification_emails:
+      - "cmkm@mozilla.com"
+      - "dtownsend@mozilla.com"
+      - "jhirsch@mozilla.com"
+      - "nbaumgardner@mozilla.com"
+    bug_numbers:
+      - 1927608
+    expiry_version: never
+    products:
+      - "firefox"
   existing:
     objects: ["alert", "avatar", "closed", "deleted", "displayed", "learn_more", "name", "theme"]
     release_channel_collection: opt-out
