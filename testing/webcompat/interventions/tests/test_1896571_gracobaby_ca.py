@@ -22,11 +22,11 @@ async def check_can_scroll(client):
 
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
-async def test_enabled(client, in_headless_mode):
+async def test_enabled(client):
     assert await check_can_scroll(client)
 
 
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
-async def test_disabled(client, in_headless_mode):
+async def test_disabled(client):
     assert not await check_can_scroll(client)

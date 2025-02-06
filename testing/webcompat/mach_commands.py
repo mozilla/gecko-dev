@@ -359,7 +359,7 @@ def webcompat_addon(command_context):
     src = os.path.join(command_context.topsrcdir, "browser", "extensions", "webcompat")
 
     # We use #include directives in the system addon's moz.build (to inject our JSON config
-    # into ua_overrides.js and injections.js), so we must do that here to make a working XPI.
+    # into interventions.js), so we must do that here to make a working XPI.
     tmpdir_kwargs = {}
     if sys.version_info.major >= 3 and sys.version_info.minor >= 10:
         tmpdir_kwargs["ignore_cleanup_errors"] = True
@@ -384,8 +384,7 @@ def webcompat_addon(command_context):
                     f.write("\n")
 
         shutil.copytree(src, src_copy, dirs_exist_ok=True)
-        process_includes("data/injections.js")
-        process_includes("data/ua_overrides.js")
+        process_includes("run.js")
 
         dst = os.path.join(
             command_context.virtualenv_manager.virtualenv_root, "webcompat.xpi"

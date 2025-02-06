@@ -151,8 +151,10 @@ def bug_number(request):
 
 
 @pytest.fixture
-def in_headless_mode(request):
-    return request.config.getoption("headless")
+def in_headless_mode(request, session):
+    # Android cannot be headless even if we request it on the commandline.
+    if session.capabilities["platformName"] == "android":
+        return False
 
 
 @pytest.fixture

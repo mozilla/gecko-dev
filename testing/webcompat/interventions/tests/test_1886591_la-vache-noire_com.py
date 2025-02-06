@@ -10,6 +10,7 @@ async def is_cookie_banner_visible(client):
     cookies = client.await_css(COOKIES_CSS, is_displayed=True)
     return client.execute_script(
         """
+        document.body.style.overflow = "hidden"; // hide scrollbars for consistency
         const b = arguments[0].getBoundingClientRect();
         return window.innerHeight - b.y == b.height;
     """,
