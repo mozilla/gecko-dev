@@ -195,16 +195,16 @@ static void DumpTextRunsRecur(nsIDocShell* aDocShell, FILE* out) {
 }
 
 NS_IMETHODIMP
-nsLayoutDebuggingTools::DumpFrames() {
+nsLayoutDebuggingTools::DumpFrames(uint8_t aFlags) {
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
-  DumpFramesRecur(mDocShell, stdout);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsLayoutDebuggingTools::DumpFramesInCSSPixels() {
-  NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
-  DumpFramesRecur(mDocShell, stdout, nsIFrame::ListFlag::DisplayInCSSPixels);
+  nsIFrame::ListFlags flags{};
+  if (aFlags & nsILayoutDebuggingTools::DUMP_FRAME_FLAGS_CSS_PIXELS) {
+    flags += nsIFrame::ListFlag::DisplayInCSSPixels;
+  }
+  if (aFlags & nsILayoutDebuggingTools::DUMP_FRAME_FLAGS_DETERMINISTIC) {
+    flags += nsIFrame::ListFlag::OnlyListDeterministicInfo;
+  }
+  DumpFramesRecur(mDocShell, stdout, flags);
   return NS_OK;
 }
 
