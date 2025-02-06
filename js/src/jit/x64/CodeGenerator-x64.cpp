@@ -728,8 +728,8 @@ void CodeGeneratorX64::visitOutOfLineTruncate(OutOfLineTruncate* ool) {
   masm.moveDoubleToGPR64(input, Register64(output));
 
   // Extract the exponent.
-  masm.movePtr(output, temp);
-  masm.rshiftPtr(Imm32(mozilla::FloatingPoint<double>::kExponentShift), temp);
+  masm.rshiftPtr(Imm32(mozilla::FloatingPoint<double>::kExponentShift), output,
+                 temp);
   masm.and32(Imm32(ShiftedExponentBits), temp);
 #ifdef DEBUG
   // The biased exponent must be at least `1023 + 63`, because otherwise
