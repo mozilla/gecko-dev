@@ -80,7 +80,7 @@ def _run_worker(config, paths, **lintargs):
         elif isinstance(res, list):
             res = res or []
         else:
-            log.error("Unexpected type received")
+            log.error(f"Unexpected result type received: {type(res)}")
             assert False
     except Exception:
         log.exception(f"{config['name']} failed")
@@ -371,7 +371,7 @@ class LintRoller(object):
             msg = f"command failed: {' '.join(e.cmd)}"
             if e.output:
                 msg = f"{msg}\n{e.output}"
-            log.error(msg)
+            log.exception(msg)
 
         if not (paths or vcs_paths) and (workdir or outgoing):
             if os.environ.get("MOZ_AUTOMATION") and not os.environ.get(
