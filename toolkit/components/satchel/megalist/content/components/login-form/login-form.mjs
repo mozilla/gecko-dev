@@ -94,7 +94,7 @@ export class LoginForm extends MozLitElement {
 
     const loginForm = {
       origin: this.originValue || this.originField.input.value,
-      username: this.usernameField.input.value,
+      username: this.usernameField.input.value.trim(),
       password: this.passwordField.value,
     };
     this.onSaveClick(loginForm);
