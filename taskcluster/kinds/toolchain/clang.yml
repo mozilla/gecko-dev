@@ -111,7 +111,7 @@ macosx64-clang-14-raw:
             - clang-14
         toolchain:
             - linux64-clang-14-stage1
-            - macosx64-sdk-toolchain
+            - macosx64-sdk-13.3
 
 linux64-clang-19-mingw-x86:
     description: "MinGW-Clang 19 x86 toolchain build"

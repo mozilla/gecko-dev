@@ -34,7 +34,7 @@ aarch64-unknown-linux-gnu)
     else
         export MACOSX_DEPLOYMENT_TARGET=10.12
     fi
-    MACOS_SYSROOT=$MOZ_FETCHES_DIR/MacOSX14.4.sdk
+    MACOS_SYSROOT=$MOZ_FETCHES_DIR/MacOSX15.0.sdk
     export RUSTFLAGS="-Clinker=$MOZ_FETCHES_DIR/clang/bin/clang++ -C link-arg=-isysroot -C link-arg=$MACOS_SYSROOT -C link-arg=-fuse-ld=lld -C link-arg=--target=$TARGET"
     export CC="$MOZ_FETCHES_DIR/clang/bin/clang"
     export CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"

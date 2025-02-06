@@ -117,7 +117,7 @@ tasks:
             toolchain:
                 - linux64-rust-macos
                 - linux64-clang-14
-                - macosx64-sdk
+                - macosx64-sdk-13.3
                 - wrench-deps
             macosx64-clang-14:
                 - artifact: clang.tar.zst
