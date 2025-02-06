@@ -16,7 +16,6 @@ import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.PocketStory.SponsoredContentCallbacks
-import mozilla.components.service.pocket.PocketStory.SponsoredContentFrequencyCaps
 import mozilla.components.service.pocket.ext.getCurrentFlightImpressions
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -253,6 +252,50 @@ class DefaultPocketStoriesControllerTest {
     }
 
     @Test
+    fun `WHEN a sponsored content is shown THEN update the State and record telemetry`() {
+        val store = spyk(AppStore())
+        val controller = createController(appStore = store)
+        val sponsoredContent = SponsoredContent(
+            url = "https://firefox.com",
+            title = "Firefox",
+            callbacks = SponsoredContentCallbacks(
+                clickUrl = "https://firefox.com/click",
+                impressionUrl = "https://firefox.com/impression",
+            ),
+            imageUrl = "https://test.com/image1.jpg",
+            domain = "firefox.com",
+            excerpt = "Mozilla Firefox",
+            sponsor = "Mozilla",
+            blockKey = "1",
+            caps = mockk(relaxed = true),
+            priority = 3,
+        )
+
+        mockkStatic("mozilla.components.service.pocket.ext.PocketStoryKt") {
+            every { sponsoredContent.getCurrentFlightImpressions() } returns listOf(2L, 3L, 7L)
+
+            controller.handleStoryShown(sponsoredContent, storyPosition = Triple(1, 2, 3))
+
+            assertEquals(1, Pocket.homeRecsSpocShown.testGetValue()!!.size)
+
+            val data = Pocket.homeRecsSpocShown.testGetValue()!!.single().extra
+            assertEquals(2, data?.size)
+            assertEquals("1x2", data?.entries?.first { it.key == "position" }?.value)
+            assertEquals("4", data?.entries?.first { it.key == "times_shown" }?.value)
+
+            verify {
+                store.dispatch(
+                    ContentRecommendationsAction.PocketStoriesShown(
+                        impressions = listOf(
+                            PocketImpression(story = sponsoredContent, position = 3),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `WHEN new stories are shown THEN update the State and record telemetry`() {
         val store = spyk(AppStore())
         val controller = createController(appStore = store)
@@ -435,20 +478,32 @@ class DefaultPocketStoriesControllerTest {
             excerpt = "Mozilla Firefox",
             sponsor = "Mozilla",
             blockKey = "1",
-            caps = SponsoredContentFrequencyCaps(
-                currentImpressions = listOf(2L, 3L),
-                flightCount = 10,
-                flightPeriod = 86400,
-            ),
+            caps = mockk(relaxed = true),
             priority = 3,
         )
         val controller = createController()
 
-        controller.handleStoryClicked(sponsoredContent, storyPosition = Triple(2, 3, 4))
+        assertNull(Pocket.homeRecsSpocClicked.testGetValue())
 
-        verify {
-            homeActivity.openToBrowserAndLoad(sponsoredContent.url, true, BrowserDirection.FromHome)
-            marsUseCases.recordInteraction(sponsoredContent.callbacks.clickUrl)
+        mockkStatic("mozilla.components.service.pocket.ext.PocketStoryKt") {
+            every { sponsoredContent.getCurrentFlightImpressions() } returns listOf(2L, 3L)
+
+            controller.handleStoryClicked(sponsoredContent, storyPosition = Triple(2, 3, 4))
+
+            assertEquals(1, Pocket.homeRecsSpocClicked.testGetValue()!!.size)
+            val data = Pocket.homeRecsSpocClicked.testGetValue()!!.single().extra
+            assertEquals(2, data?.size)
+            assertEquals("2x3", data?.entries?.first { it.key == "position" }?.value)
+            assertEquals("3", data?.entries?.first { it.key == "times_shown" }?.value)
+
+            verify {
+                homeActivity.openToBrowserAndLoad(
+                    sponsoredContent.url,
+                    true,
+                    BrowserDirection.FromHome,
+                )
+                marsUseCases.recordInteraction(sponsoredContent.callbacks.clickUrl)
+            }
         }
     }
 
