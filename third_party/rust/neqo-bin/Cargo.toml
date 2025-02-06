@@ -23,7 +23,7 @@ autotests = false
 autobenches = false
 description = "A basic QUIC HTTP/0.9 and HTTP/3 client and server."
 homepage = "https://github.com/mozilla/neqo/"
-readme = '..\README.md'
+readme = "../README.md"
 keywords = [
     "quic",
     "http3",

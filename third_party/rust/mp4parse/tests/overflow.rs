@@ -5,12 +5,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #[test]
-#[allow(arithmetic_overflow)]
 #[should_panic(expected = "attempt to add with overflow")]
 fn overflow_protection() {
-    let edge = u32::MAX;
+    let edge = u32::max_value();
     assert_eq!(0u32, edge + 1);
 
-    let edge = u64::MAX;
+    let edge = u64::max_value();
     assert_eq!(0u64, edge + 1);
 }

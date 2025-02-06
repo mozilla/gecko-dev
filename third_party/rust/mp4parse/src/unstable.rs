@@ -285,7 +285,7 @@ struct TimeOffsetIterator<'a> {
     track_id: usize,
 }
 
-impl Iterator for TimeOffsetIterator<'_> {
+impl<'a> Iterator for TimeOffsetIterator<'a> {
     type Item = i64;
 
     #[allow(clippy::reversed_empty_ranges)]
@@ -320,7 +320,7 @@ impl Iterator for TimeOffsetIterator<'_> {
     }
 }
 
-impl TimeOffsetIterator<'_> {
+impl<'a> TimeOffsetIterator<'a> {
     fn next_offset_time(&mut self) -> TrackScaledTime<i64> {
         match self.next() {
             Some(v) => TrackScaledTime::<i64>(v, self.track_id),
@@ -342,7 +342,7 @@ struct TimeToSampleIterator<'a> {
     track_id: usize,
 }
 
-impl Iterator for TimeToSampleIterator<'_> {
+impl<'a> Iterator for TimeToSampleIterator<'a> {
     type Item = u32;
 
     #[allow(clippy::reversed_empty_ranges)]
@@ -363,7 +363,7 @@ impl Iterator for TimeToSampleIterator<'_> {
     }
 }
 
-impl TimeToSampleIterator<'_> {
+impl<'a> TimeToSampleIterator<'a> {
     fn next_delta(&mut self) -> TrackScaledTime<i64> {
         match self.next() {
             Some(v) => TrackScaledTime::<i64>(i64::from(v), self.track_id),
@@ -405,7 +405,7 @@ struct SampleToChunkIterator<'a> {
     remain_chunk_count: u32, // total chunk number from 'stco'.
 }
 
-impl Iterator for SampleToChunkIterator<'_> {
+impl<'a> Iterator for SampleToChunkIterator<'a> {
     type Item = (u32, u32);
 
     fn next(&mut self) -> Option<(u32, u32)> {
@@ -428,7 +428,7 @@ impl Iterator for SampleToChunkIterator<'_> {
     }
 }
 
-impl SampleToChunkIterator<'_> {
+impl<'a> SampleToChunkIterator<'a> {
     #[allow(clippy::reversed_empty_ranges)]
     fn locate(&mut self) -> std::ops::Range<u32> {
         loop {
