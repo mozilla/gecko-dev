@@ -19,9 +19,14 @@ add_setup(async () => {
     set: [
       [SIDEBAR_TAB_DIRECTION_PREF, true],
       [SIDEBAR_BUTTON_INTRODUCED_PREF, false],
-      [SIDEBAR_VISIBILITY_PREF, "always-show"],
     ],
   });
+  Assert.equal(
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
+    "always-show",
+    "Sanity check the visibilty pref when verticalTabs are enabled"
+  );
+
   let navbarDefaults = gAreas.get("nav-bar").get("defaultPlacements");
   let hadSavedState = !!CustomizableUI.getTestOnlyInternalProp("gSavedState");
   if (!hadSavedState) {
@@ -179,6 +184,13 @@ add_task(async function test_states_for_hide_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_TAB_DIRECTION_PREF, false]],
   });
+
+  Assert.equal(
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
+    "hide-sidebar",
+    "Sanity check the visibilty pref when verticalTabs are disabled"
+  );
+
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { SidebarController } = win;
   const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
@@ -221,12 +233,8 @@ add_task(async function test_states_for_hide_sidebar() {
   };
 
   // Hide the sidebar
-  info("Check default hidden state.");
-  await checkStates({ hidden: false });
-  info("Hide sidebar using the toolbar button.");
-  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  info("Check the launcher is initially hidden");
   await checkStates({ hidden: true });
-
   info("Show sidebar using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkStates({ hidden: false });
@@ -297,7 +305,7 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
     );
   };
 
-  // Hide the sidebar
+  // Check initial sidebar state - it should be hidden
   info("Check default hidden state.");
   await checkStates({ hidden: true, expanded: false });
   info("Show expanded sidebar using the toolbar button.");
