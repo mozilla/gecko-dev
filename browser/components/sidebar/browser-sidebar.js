@@ -1980,7 +1980,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
-
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampVisibility",
@@ -1990,21 +1989,19 @@ XPCOMUtils.defineLazyPreferenceGetter(
     if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.toggleExpandOnHover(newValue === "expand-on-hover");
       SidebarController.recordVisibilitySetting(newValue);
-      if (SidebarController._state) {
-        const isVerticalTabs = SidebarController.sidebarVerticalTabsEnabled;
-        SidebarController._state.revampVisibility = newValue;
-        SidebarController._state.updateVisibility(
-          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
-          false,
-          false,
-          newValue !== "expand-on-hover"
-        );
-      }
+      SidebarController._state.revampVisibility = newValue;
+      SidebarController._state.updateVisibility(
+        (newValue != "hide-sidebar" &&
+          SidebarController.sidebarVerticalTabsEnabled) ||
+          !SidebarController.sidebarVerticalTabsEnabled,
+        false,
+        false,
+        newValue !== "expand-on-hover"
+      );
       SidebarController.updateToolbarButton();
     }
   }
 );
-
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarVerticalTabsEnabled",
@@ -2013,6 +2010,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.uninitializing && !SidebarController.inPopup) {
       SidebarController.recordTabsLayoutSetting(newValue);
+      Services.prefs.setStringPref(
+        SidebarController.VISIBILITY_PREF,
+        newValue ? "always-show" : "hide-sidebar"
+      );
     }
   }
 );
