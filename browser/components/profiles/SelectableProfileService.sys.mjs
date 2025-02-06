@@ -120,10 +120,6 @@ class SelectableProfileServiceClass {
   }
 
   get isEnabled() {
-    if (!Services.policies.isAllowed("profileManagement")) {
-      return false;
-    }
-
     // If a storeID has been assigned then profiles may have been created so force us on. Also
     // covers the case when the selector is shown at startup and we don't have preferences
     // available.

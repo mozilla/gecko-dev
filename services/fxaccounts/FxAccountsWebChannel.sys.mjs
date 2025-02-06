@@ -94,9 +94,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "browserProfilesEnabled",
   "browser.profiles.enabled",
-  false,
-  null,
-  () => lazy.SelectableProfileService.isEnabled
+  false
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
