@@ -4445,7 +4445,7 @@ void Selection::SetColors(const nsAString& aForegroundColor,
 void Selection::ResetColors() { mCustomColors = nullptr; }
 
 void Selection::SetHighlightSelectionData(
-    HighlightSelectionData aHighlightSelectionData) {
+    dom::HighlightSelectionData aHighlightSelectionData) {
   MOZ_ASSERT(mSelectionType == SelectionType::eHighlight);
   mHighlightData = std::move(aHighlightSelectionData);
 }

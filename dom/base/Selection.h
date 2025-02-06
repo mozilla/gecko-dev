@@ -602,7 +602,11 @@ class Selection final : public nsSupportsWeakReference,
    * This includes the highlight name as well as its priority and type.
    */
   void SetHighlightSelectionData(
-      HighlightSelectionData aHighlightSelectionData);
+      dom::HighlightSelectionData aHighlightSelectionData);
+
+  const dom::HighlightSelectionData& HighlightSelectionData() const {
+    return mHighlightData;
+  }
 
   /**
    * See documentation of `GetRangesForInterval` in Selection.webidl.
@@ -1123,7 +1127,7 @@ class Selection final : public nsSupportsWeakReference,
   CachedOffsetForFrame* mCachedOffsetForFrame;
   nsDirection mDirection;
   const SelectionType mSelectionType;
-  HighlightSelectionData mHighlightData;
+  dom::HighlightSelectionData mHighlightData;
   UniquePtr<SelectionCustomColors> mCustomColors;
 
   // Non-zero if we don't want any changes we make to the selection to be
