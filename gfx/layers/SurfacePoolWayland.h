@@ -31,8 +31,9 @@ class SurfacePoolWayland final : public SurfacePool {
 
   explicit SurfacePoolWayland(size_t aPoolSizeLimit);
 
-  RefPtr<widget::WaylandBuffer> ObtainBufferFromPool(const gfx::IntSize& aSize,
-                                                     gl::GLContext* aGL);
+  RefPtr<widget::WaylandBuffer> ObtainBufferFromPool(
+      const gfx::IntSize& aSize, gl::GLContext* aGL,
+      RefPtr<widget::DRMFormat> aFormat);
   void ReturnBufferToPool(const RefPtr<widget::WaylandBuffer>& aBuffer);
   void EnforcePoolSizeLimit();
   void CollectPendingSurfaces();
@@ -103,7 +104,8 @@ class SurfacePoolHandleWayland final : public SurfacePoolHandle {
     return this;
   }
 
-  RefPtr<widget::WaylandBuffer> ObtainBufferFromPool(const gfx::IntSize& aSize);
+  RefPtr<widget::WaylandBuffer> ObtainBufferFromPool(
+      const gfx::IntSize& aSize, RefPtr<widget::DRMFormat> aFormat);
   void ReturnBufferToPool(const RefPtr<widget::WaylandBuffer>& aBuffer);
   Maybe<GLuint> GetFramebufferForBuffer(
       const RefPtr<widget::WaylandBuffer>& aBuffer, bool aNeedsDepthBuffer);
