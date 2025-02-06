@@ -15,8 +15,20 @@ function visibilityHandlerStore(store) {
     /**
      * Override to pause calling `listener` function while the panel is hidden.
      * The function will be called once when the panel is shown.
+     *
+     * @param {Function} listener
+     * @param {Object} options
+     * @param {Boolean} options.ignoreVisibility
+     *        If true, bypass this helper to listen to all store updates,
+     *        regarless of panel visibility. This is useful for tests.
      */
-    subscribe(listener) {
+    subscribe(listener, { ignoreVisibility = false } = {}) {
+      // Test may pass a custom flag to ignore the visibility handler and listener
+      // to all state changes regarless of panel's visibility.
+      if (ignoreVisibility) {
+        return store.subscribe(listener);
+      }
+
       function onVisibilityChange() {
         if (document.visibilityState == "visible") {
           // Force an update to resume updates when the panel becomes visible again
