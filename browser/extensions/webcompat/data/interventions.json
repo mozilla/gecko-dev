@@ -2524,21 +2524,6 @@
       }
     ]
   },
-  "1903970": {
-    "label": "www.unimedlitoral.com.br",
-    "bugs": {
-      "1903970": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://www.unimedlitoral.com.br/agendaonline/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
   "1909448": {
     "label": "fire.honeywell.com",
     "bugs": {
