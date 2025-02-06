@@ -104,6 +104,7 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
   bool captureProfile = false;
   nsString profileFilename;
   bool paged = false;
+  bool deterministicFrameDumping = false;
 
   rv = HandleFlagWithOptionalArgument(aCmdLine, u"layoutdebug"_ns,
                                       u"about:blank"_ns, url, flagPresent);
@@ -123,6 +124,10 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aCmdLine->HandleFlag(u"paged"_ns, false, &paged);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aCmdLine->HandleFlag(u"deterministic-frame-dumping"_ns, false,
+                            &deterministicFrameDumping);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMutableArray> argsArray = nsArray::Create();
@@ -161,6 +166,11 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  if (deterministicFrameDumping) {
+    rv = AppendArg(argsArray, u"deterministic-frame-dumping"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsCOMPtr<nsIWindowWatcher> wwatch =
       do_GetService(NS_WINDOWWATCHER_CONTRACTID);
   NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
@@ -184,6 +194,9 @@ nsLayoutDebugCLH::GetHelpInfo(nsACString& aResult) {
       "                     Debugger using the Gecko Profiler, and save the\n"
       "                     profile to the specified file (which defaults to\n"
       "                     profile.json).\n"
-      "  --paged Layout the page in paginated mode.\n");
+      "  --paged Layout the page in paginated mode.\n"
+      "  --deterministic-frame-dumping Toggle option to only include\n"
+      "                                deterministic information in frame dumps,\n"
+      "                                for ease of diffing.\n");
   return NS_OK;
 }

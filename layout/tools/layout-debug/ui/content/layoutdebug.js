@@ -298,6 +298,7 @@ function parseArguments() {
     autoclose: false,
     delay: 0,
     paged: false,
+    deterministicFrameDumping: false,
   };
   if (window.arguments) {
     args.url = window.arguments[0];
@@ -311,6 +312,8 @@ function parseArguments() {
         args.profileFilename = RegExp.$1;
       } else if (/^paged$/.test(arg)) {
         args.paged = true;
+      } else if (/^deterministic-frame-dumping$/.test(arg)) {
+        args.deterministicFrameDumping = true;
       } else {
         throw `Unknown option ${arg}`;
       }
@@ -397,6 +400,8 @@ function OnLDBLoad() {
     loadStringURI(gArgs.url);
   }
 
+  gDebugger._deterministicFrameDumping = gArgs.deterministicFrameDumping;
+
   // Some command line arguments may toggle menu items. Call this after
   // processing all the arguments.
   checkPersistentMenus();
@@ -416,6 +421,7 @@ function checkPersistentMenus() {
   checkPersistentMenu("crossingEventDumping");
   checkPersistentMenu("reflowCounts");
   checkPersistentMenu("pagedMode");
+  checkPersistentMenu("deterministicFrameDumping");
 }
 
 function dumpProfile() {
