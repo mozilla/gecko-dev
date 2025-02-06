@@ -84,6 +84,20 @@ class TrustedRecursiveResolverTest : BaseSessionTest() {
         )
     }
 
+    @Test fun defaultRecursiveResolverUrl() {
+        val settings = sessionRule.runtime.settings
+        val defaultRecursiveResolverUriPerf = "network.trr.default_provider_uri"
+
+        val exampleValue = "https://mozilla.cloudflare-dns.com/dns-query"
+        settings.setDefaultRecursiveResolverUri(exampleValue)
+        val prefValue = (sessionRule.getPrefs(defaultRecursiveResolverUriPerf)[0] as String)
+        assertThat(
+            "Setting custom default TRR Uri should work",
+            prefValue,
+            `is`(exampleValue),
+        )
+    }
+
     @Test fun excludedDomains() {
         val settings = sessionRule.runtime.settings
         val excludedDomainsPref = "network.trr.excluded-domains"
