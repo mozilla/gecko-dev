@@ -1771,6 +1771,23 @@ nsresult Database::InitTempEntities() {
   rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_METADATA_AFTERDELETE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (StaticPrefs::places_frecency_pages_alternative_featureGate_AtStartup()) {
+    int32_t viewTimeSeconds = StaticPrefs::
+        places_frecency_pages_alternative_interactions_viewTimeSeconds_AtStartup();
+    int32_t viewTimeIfManyKeypressesSeconds = StaticPrefs::
+        places_frecency_pages_alternative_interactions_viewTimeIfManyKeypressesSeconds_AtStartup();
+    int32_t manyKeypresses = StaticPrefs::
+        places_frecency_pages_alternative_interactions_manyKeypresses_AtStartup();
+
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_METADATA_AFTERINSERT_TRIGGER(
+        viewTimeSeconds, viewTimeIfManyKeypressesSeconds, manyKeypresses));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_METADATA_AFTERUPDATE_TRIGGER(
+        viewTimeSeconds, viewTimeIfManyKeypressesSeconds, manyKeypresses));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   // Create triggers to remove rows with empty json
   rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PLACES_EXTRA_AFTERUPDATE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);

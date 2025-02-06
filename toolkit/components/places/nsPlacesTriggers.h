@@ -341,6 +341,48 @@
         "); "                                                          \
         "END")
 
+#  define CREATE_PLACES_METADATA_AFTERINSERT_TRIGGER(                        \
+      TOTAL_VIEW_TIME, TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES) \
+    nsPrintfCString(                                                         \
+        "CREATE TEMP TRIGGER moz_places_metadata_afterinsert_trigger "       \
+        "AFTER INSERT ON moz_places_metadata "                               \
+        "FOR EACH ROW "                                                      \
+        "WHEN NEW.total_view_time >= %d "                                    \
+        "OR (NEW.total_view_time >= %d "                                     \
+        "AND NEW.key_presses >= %d) "                                        \
+        "BEGIN "                                                             \
+        "UPDATE moz_places "                                                 \
+        "SET recalc_alt_frecency = 1 "                                       \
+        "WHERE id = NEW.place_id; "                                          \
+        "END",                                                               \
+        TOTAL_VIEW_TIME, TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES)
+
+#  define CREATE_PLACES_METADATA_AFTERUPDATE_TRIGGER(                         \
+      TOTAL_VIEW_TIME, TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES)  \
+    nsPrintfCString(                                                          \
+        "CREATE TEMP TRIGGER moz_places_metadata_afterupdate_trigger "        \
+        "AFTER UPDATE ON moz_places_metadata "                                \
+        "FOR EACH ROW "                                                       \
+        "WHEN "                                                               \
+        "  (OLD.total_view_time < %d AND NEW.total_view_time >= %d) "         \
+        "  OR (OLD.total_view_time < %d AND NEW.total_view_time >= %d "       \
+        "    AND OLD.key_presses >= %d) "                                     \
+        "  OR (OLD.total_view_time >= %d "                                    \
+        "    AND OLD.key_presses < %d AND NEW.key_presses >= %d) "            \
+        "  OR (OLD.total_view_time < %d AND NEW.total_view_time >= %d "       \
+        "    AND OLD.key_presses < %d AND NEW.key_presses >= %d) "            \
+        "BEGIN "                                                              \
+        "UPDATE moz_places "                                                  \
+        "SET recalc_alt_frecency = 1 "                                        \
+        "WHERE id = NEW.place_id; "                                           \
+        "END",                                                                \
+        TOTAL_VIEW_TIME, TOTAL_VIEW_TIME, TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, \
+        TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES,                 \
+        TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES,                 \
+        MANY_KEY_PRESSES, TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES,                 \
+        TOTAL_VIEW_TIME_IF_MANY_KEYPRESSES, MANY_KEY_PRESSES,                 \
+        MANY_KEY_PRESSES)
+
 // since moz_places_extra is really just storing json, there could be a
 // scenario where we have a valid row but empty json -- we should make sure
 // we have triggers to remove any such rows

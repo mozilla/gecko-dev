@@ -108,6 +108,9 @@ skip-if = ["os == 'linux'"] # Bug 821781
 
 ["test_frecency_decay.js"]
 
+["test_frecency_interactions.js"]
+prefs = ["places.frecency.pages.alternative.featureGate=true"]
+
 ["test_frecency_observers.js"]
 
 ["test_frecency_origins_alternative.js"]

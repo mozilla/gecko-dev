@@ -480,9 +480,13 @@ class AlternativeFrecencyHelper {
       // Object containing variables influencing the calculation.
       // Any change to this object will cause a full recalculation on restart.
       variables: {
-        // Current version of origins alternative frecency.
+        // Current version of pages alternative frecency.
         //  ! IMPORTANT: Always bump up when making changes to the algorithm.
-        version: 2,
+        version: 3,
+        veryHighWeight: Services.prefs.getIntPref(
+          "places.frecency.pages.alternative.veryHighWeight",
+          200
+        ),
         highWeight: Services.prefs.getIntPref(
           "places.frecency.pages.alternative.highWeight",
           100
@@ -620,7 +624,7 @@ class AlternativeFrecencyHelper {
 
   async #recalculateSomePagesAlternativeFrecencies({ chunkSize }) {
     lazy.logger.trace(
-      `Recalculate ${chunkSize} alternative pages frecency values`
+      `Recalculate ${chunkSize * 2} alternative pages frecency values`
     );
     // Since it takes a long period of time to recalculate frecency of all the
     // pages, due to the high number of them, we artificially increase the

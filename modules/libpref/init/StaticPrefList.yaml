@@ -15025,6 +15025,16 @@
   value: false
   mirror: once
 
+- name: places.frecency.pages.alternative.maxDaysFromToday
+  type: uint32_t
+  value: 60
+  mirror: once
+
+- name: places.frecency.pages.alternative.veryHighWeight
+  type: uint32_t
+  value: 200
+  mirror: once
+
 - name: places.frecency.pages.alternative.highWeight
   type: uint32_t
   value: 100
@@ -15048,6 +15058,35 @@
 - name: places.frecency.pages.alternative.numSampledVisits
   type: uint32_t
   value: 10
+  mirror: once
+
+- name: places.frecency.pages.alternative.interactions.numInteractions
+  type: uint32_t
+  value: 20
+  mirror: once
+
+# Max difference allowed between a visit and an interaction.
+- name: places.frecency.pages.alternative.interactions.maxVisitGapSeconds
+  type: uint32_t
+  value: 20 * 60
+  mirror: once
+
+# Minimum time required to upgrade a visit score.
+- name: places.frecency.pages.alternative.interactions.viewTimeSeconds
+  type: uint32_t
+  value: 60
+  mirror: once
+
+# Minimum time required to upgrade a visit score of a visit
+# provided there is a minimum threshold of keypresses.
+- name: places.frecency.pages.alternative.interactions.viewTimeIfManyKeypressesSeconds
+  type: uint32_t
+  value: 20
+  mirror: once
+
+- name: places.frecency.pages.alternative.interactions.manyKeypresses
+  type: uint32_t
+  value: 50
   mirror: once
 
 # Whether flooding prevention feature is enabled or not.

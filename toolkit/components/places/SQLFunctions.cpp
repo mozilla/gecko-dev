@@ -829,9 +829,75 @@ CalculateAltFrecencyFunction::OnFunctionCall(mozIStorageValueArray* aArguments,
       "lambda (lambda) AS ( "
       "  SELECT ln(2) / :halfLifeDays "
       "), "
+      "interactions AS ( "
+      "  SELECT "
+      "    place_id, "
+      "    created_at * 1000 AS visit_date "
+      "  FROM "
+      "    moz_places_metadata "
+      "  WHERE "
+      "    place_id = :pageId "
+      // The view time preferences are in seconds while the total view time is
+      // in milliseconds.
+      "      AND (total_view_time >= :viewTimeSeconds * 1000 "
+      "        OR (total_view_time >= :viewTimeIfManyKeypressesSeconds * 1000 "
+      "          AND key_presses >= :manyKeypresses)) "
+      "  ORDER BY created_at DESC "
+      "  LIMIT :numInteractions "
+      "), "
+      "visit_interaction AS ( "
+      "  SELECT "
+      "    vs.id, "
+      "    vs.from_visit, "
+      "    vs.place_id, "
+      "    vs.visit_date, "
+      "    vs.visit_type, "
+      "    vs.session, "
+      "    vs.source, "
+      "    ( "
+      "      SELECT EXISTS ( "
+      "        SELECT 1 "
+      "        FROM interactions i "
+      "        WHERE vs.visit_date BETWEEN "
+      // Visit dates are in microseconds while the visit gap is in seconds.
+      "          i.visit_date - :maxVisitGapSeconds * 1000000 "
+      "            AND i.visit_date + :maxVisitGapSeconds * 1000000 "
+      "      ) "
+      "    ) AS is_interesting "
+      "  FROM moz_historyvisits vs "
+      "  WHERE place_id = :pageId "
+      "    AND vs.visit_date BETWEEN "
+      "      strftime('%s', 'now', :maxDaysFromToday) * 1000000 "
+      "        AND strftime('%s', 'now', '+1 day') * 1000000 "
+      "  UNION ALL "
+      "  SELECT "
+      "    NULL AS id, "
+      "    0 AS from_visit, "
+      "    i.place_id, "
+      "    i.visit_date, "
+      "    1 AS visit_type, "
+      "    0 AS session, "
+      "    0 AS source, "
+      "    1 AS is_interesting "
+      "  FROM interactions i "
+      "  WHERE NOT EXISTS ( "
+      "    SELECT 1 FROM moz_historyvisits vs "
+      "    WHERE  place_id = :pageId "
+      "      AND vs.visit_date BETWEEN "
+      "        i.visit_date - :maxVisitGapSeconds * 1000000 "
+      "        AND i.visit_date + :maxVisitGapSeconds * 1000000 "
+      "  ) "
+      "  ORDER BY visit_date DESC "
+      "  LIMIT :numSampledVisits "
+      "), "
       "visits (days, weight) AS ( "
       "  SELECT "
       "    v.visit_date / 86400000000, "
+      // A visit is given a score based on a variety of factors, such as
+      // whether it was a bookmark, how the user got to the page, and whether
+      // or not it was a redirect. The score will be boosted if the visit was
+      // interesting and it was not a redirect. A visit is interesting if a user
+      // spent a lot of time viewing the page or they typed a lot of keypresses.
       "    (SELECT CASE "
       "      WHEN IFNULL(s.visit_type, v.visit_type) = 3 "  // from a bookmark
       "        OR v.source = 2 "                            // is a bookmark
@@ -839,22 +905,27 @@ CalculateAltFrecencyFunction::OnFunctionCall(mozIStorageValueArray* aArguments,
       "          AND v.source <> 3 "                           // not a search
       "          AND t.id IS NULL AND NOT :isRedirect "        // not a redirect
       "        ) "
-      "      THEN :highWeight "
+      "      THEN "
+      "        CASE "
+      "          WHEN v.is_interesting = 1 THEN :veryHighWeight "
+      "          ELSE :highWeight "
+      "        END "
       "      WHEN t.id IS NULL AND NOT :isRedirect "  // not a redirect
       "       AND IFNULL(s.visit_type, v.visit_type) NOT IN (4, 8, 9) "
-      "      THEN :mediumWeight "
+      "      THEN "
+      "        CASE "
+      "          WHEN v.is_interesting = 1 THEN :highWeight "
+      "          ELSE :mediumWeight "
+      "         END "
       "      ELSE :lowWeight "
       "     END) "
-      "  FROM moz_historyvisits v "
+      "  FROM visit_interaction v "
       // If it's a redirect target, use the visit_type of the source.
       "  LEFT JOIN moz_historyvisits s ON s.id = v.from_visit "
       "                               AND v.visit_type IN (5,6) "
       // If it's a redirect, use a low weight.
       "  LEFT JOIN moz_historyvisits t ON t.from_visit = v.id "
       "                               AND t.visit_type IN (5,6) "
-      "  WHERE v.place_id = :pageId "
-      "  ORDER BY v.visit_date DESC "
-      "  LIMIT :numSampledVisits "
       "), "
       "bookmark (days, weight) AS ( "
       "  SELECT dateAdded / 86400000000, 100 "
@@ -913,6 +984,42 @@ CalculateAltFrecencyFunction::OnFunctionCall(mozIStorageValueArray* aArguments,
   rv = stmt->BindInt64ByName(
       "highWeight"_ns,
       StaticPrefs::places_frecency_pages_alternative_highWeight_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "veryHighWeight"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_veryHighWeight_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCString maxDaysFromToday = nsPrintfCString(
+      "-%d days",
+      StaticPrefs::
+          places_frecency_pages_alternative_maxDaysFromToday_AtStartup());
+  rv = stmt->BindUTF8StringByName("maxDaysFromToday"_ns, maxDaysFromToday);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "numInteractions"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_interactions_numInteractions_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "maxVisitGapSeconds"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_interactions_maxVisitGapSeconds_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "viewTimeSeconds"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_interactions_viewTimeSeconds_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "manyKeypresses"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_interactions_manyKeypresses_AtStartup());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(
+      "viewTimeIfManyKeypressesSeconds"_ns,
+      StaticPrefs::
+          places_frecency_pages_alternative_interactions_viewTimeIfManyKeypressesSeconds_AtStartup());
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool hasResult = false;
