@@ -677,25 +677,6 @@
       }
     ]
   },
-  "1753461": {
-    "label": "serieson.naver.com",
-    "bugs": {
-      "1753461": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://serieson.naver.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["mac", "windows"],
-        "ua_string": ["Chrome_with_FxQuantum"]
-      },
-      {
-        "platforms": ["linux"],
-        "ua_string": ["change_OS_to_Windows"]
-      }
-    ]
-  },
   "1769762": {
     "label": "tiktok.com",
     "bugs": {
