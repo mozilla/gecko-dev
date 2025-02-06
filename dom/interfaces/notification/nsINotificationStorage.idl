@@ -72,7 +72,6 @@ interface nsINotificationStorage : nsISupports
            in AString body,
            in AString tag,
            in AString icon,
-           in AString alertName,
            in AString data,
            in AString serviceWorkerRegistrationScope);
 

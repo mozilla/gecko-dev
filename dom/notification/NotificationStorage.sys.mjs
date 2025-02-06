@@ -77,7 +77,6 @@ export class NotificationStorage {
     body,
     tag,
     icon,
-    alertName,
     data,
     serviceWorkerRegistrationScope
   ) {
@@ -90,7 +89,6 @@ export class NotificationStorage {
       body,
       tag,
       icon,
-      alertName,
       timestamp: new Date().getTime(),
       origin,
       data,

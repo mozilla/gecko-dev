@@ -164,8 +164,7 @@ nsresult NotificationParent::Show() {
   // XXX(krosylight): Non-persistent notifications probably don't need this
   nsAutoString alertName;
   GetAlertName(alertName);
-  nsresult rv =
-      PersistNotification(mPrincipal, mId, alertName, mOptions, mScope);
+  nsresult rv = PersistNotification(mPrincipal, mId, mOptions, mScope);
   if (NS_FAILED(rv)) {
     NS_WARNING("Could not persist Notification");
   }

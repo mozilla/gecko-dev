@@ -71,7 +71,6 @@ void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
                       const nsString& aId, nsString& aResult);
 
 nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                             const nsString& aAlertName,
                              const IPCNotificationOptions& aOptions,
                              const nsString& aScope);
 nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId);
