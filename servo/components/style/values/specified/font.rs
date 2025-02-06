@@ -257,18 +257,13 @@ impl ToCss for SpecifiedFontStyle {
         W: Write,
     {
         match *self {
+            generics::FontStyle::Normal => dest.write_str("normal"),
             generics::FontStyle::Italic => dest.write_str("italic"),
             generics::FontStyle::Oblique(ref angle) => {
-                // Not angle.is_zero() because we don't want to serialize
-                // `oblique calc(0deg)` as `normal`.
-                if *angle == Angle::zero() {
-                    dest.write_str("normal")?;
-                } else {
-                    dest.write_str("oblique")?;
-                    if *angle != Self::default_angle() {
-                        dest.write_char(' ')?;
-                        angle.to_css(dest)?;
-                    }
+                dest.write_str("oblique")?;
+                if *angle != Self::default_angle() {
+                    dest.write_char(' ')?;
+                    angle.to_css(dest)?;
                 }
                 Ok(())
             },
@@ -282,7 +277,7 @@ impl Parse for SpecifiedFontStyle {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(try_match_ident_ignore_ascii_case! { input,
-            "normal" => generics::FontStyle::normal(),
+            "normal" => generics::FontStyle::Normal,
             "italic" => generics::FontStyle::Italic,
             "oblique" => {
                 let angle = input.try_parse(|input| Self::parse_angle(context, input))
@@ -299,12 +294,16 @@ impl ToComputedValue for SpecifiedFontStyle {
 
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
         match *self {
+            Self::Normal => computed::FontStyle::NORMAL,
             Self::Italic => computed::FontStyle::ITALIC,
             Self::Oblique(ref angle) => computed::FontStyle::oblique(angle.degrees()),
         }
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        if *computed == computed::FontStyle::NORMAL {
+            return Self::Normal;
+        }
         if *computed == computed::FontStyle::ITALIC {
             return Self::Italic;
         }
@@ -376,7 +375,7 @@ impl FontStyle {
     /// Return the `normal` value.
     #[inline]
     pub fn normal() -> Self {
-        FontStyle::Specified(generics::FontStyle::normal())
+        FontStyle::Specified(generics::FontStyle::Normal)
     }
 
     system_font_methods!(FontStyle, font_style);
