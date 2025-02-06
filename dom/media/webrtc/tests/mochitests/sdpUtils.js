@@ -57,7 +57,7 @@ var sdputils = {
 
   findExtmapIdsUrnsDirections(sdp) {
     var sdpExtmap = [];
-    extmapRegEx = /^a=extmap:([0-9+])([A-Za-z/]*) ([A-Za-z0-9_:\-\/\.]+)/gm;
+    extmapRegEx = /^a=extmap:([0-9+])([A-Za-z/]*) ([A-Za-z0-9_:#\-\/\.]+)/gm;
     // must call exec on the regex to get each match in the string
     while ((searchResults = extmapRegEx.exec(sdp)) !== null) {
       // returned array has the matched text as the first item,

@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 
+#include "mozilla/StaticPrefs_media.h"
 #include "transport/logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/UniquePtr.h"
@@ -457,12 +458,22 @@ std::vector<SdpExtmapAttributeList::Extmap> JsepSessionImpl::GetRtpExtensions(
     const SdpMediaSection& msection) {
   std::vector<SdpExtmapAttributeList::Extmap> result;
   JsepMediaType mediaType = JsepMediaType::kNone;
+  const auto direction = msection.GetDirection();
+  const auto includes_send = direction == SdpDirectionAttribute::kSendrecv ||
+                             direction == SdpDirectionAttribute::kSendonly;
   switch (msection.GetMediaType()) {
     case SdpMediaSection::kAudio:
       mediaType = JsepMediaType::kAudio;
       break;
     case SdpMediaSection::kVideo:
       mediaType = JsepMediaType::kVideo;
+      // We need to add the dependency descriptor extension for simulcast
+      if (includes_send && StaticPrefs::media_peerconnection_video_use_dd() &&
+          msection.GetAttributeList().HasAttribute(
+              SdpAttribute::kSimulcastAttribute)) {
+        AddVideoRtpExtension(webrtc::RtpExtension::kDependencyDescriptorUri,
+                             SdpDirectionAttribute::kSendonly);
+      }
       if (msection.GetAttributeList().HasAttribute(
               SdpAttribute::kRidAttribute)) {
         // We need RID support
