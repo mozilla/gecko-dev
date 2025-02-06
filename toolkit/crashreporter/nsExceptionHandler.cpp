@@ -25,10 +25,8 @@
 #include "mozilla/RuntimeExceptionModule.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/ToString.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 
@@ -1505,21 +1503,6 @@ static void WriteCrashEventFile(time_t crashTime, const char* crashTimeString,
   }
 }
 
-void SetUpMemtestEnv() {
-  if (StaticPrefs::browser_crashReporter_memtest()) {
-    const char* env = "MOZ_CRASHREPORTER_RUN_MEMTEST=1";
-    PR_SetEnv(env);
-
-    auto memtestKindsLock = StaticPrefs::browser_crashReporter_memtestKinds();
-    if (!memtestKindsLock->IsEmpty()) {
-      char* env = strdup(
-          ("MOZ_CRASHREPORTER_MEMTEST_KINDS=" + ToString(*memtestKindsLock))
-              .c_str());
-      PR_SetEnv(env);
-    }
-  }
-}
-
 // Callback invoked from breakpad's exception handler, this writes out the
 // last annotations after a crash occurs and launches the crash reporter client.
 //
@@ -1599,8 +1582,6 @@ bool MinidumpCallback(
 #endif
     WriteAnnotationsForMainProcessCrash(apiData, addrInfo, crashTime);
   }
-
-  SetUpMemtestEnv();
 
   if (doReport && isSafeToDump && !BackgroundTasks::IsBackgroundTaskMode()) {
     // We launch the crash reporter client/dialog only if we've been explicitly

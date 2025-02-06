@@ -1106,7 +1106,6 @@ dependencies = [
  "libloading",
  "lmdb-rkv-sys",
  "log",
- "memtest",
  "minidump-analyzer",
  "mozbuild",
  "mozilla-central-workspace-hack",
@@ -1114,7 +1113,6 @@ dependencies = [
  "once_cell",
  "phf",
  "phf_codegen",
- "rand",
  "serde",
  "serde_json",
  "sha2",
@@ -3856,22 +3854,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "memtest"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bed41e50ce7d03d5e6383ab595861761401eba4bf7bdf5c65c7cc30ae40f2d69"
-dependencies = [
- "anyhow",
- "libc",
- "num_cpus",
- "rand",
- "serde",
- "serde_json",
- "tracing",
- "windows",
 ]
 
 [[package]]

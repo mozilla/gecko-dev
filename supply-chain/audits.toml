@@ -3126,12 +3126,6 @@ who = "Gabriele Svelto <gsvelto@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.8.0 -> 0.9.0"
 
-[[audits.memtest]]
-who = "Brian Tsoi <brian.s.tsoi@gmail.com>"
-criteria = "safe-to-deploy"
-version = "0.1.2"
-notes = "This crate is written and maintained by Mozilla employees."
-
 [[audits.metal]]
 who = "Jim Blandy <jimb@red-bean.com>"
 criteria = "safe-to-deploy"
