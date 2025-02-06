@@ -2188,7 +2188,7 @@
     },
     "interventions": [
       {
-        "platforms": ["all"],
+        "platforms": ["desktop"],
         "ua_string": ["add_Chrome"]
       }
     ]
