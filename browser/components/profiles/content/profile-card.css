@@ -18,17 +18,13 @@
   background-color: var(--button-background-color);
   box-shadow: var(--box-shadow-10);
 
-  /* The profile card acts like a button but we don't want the hover styles to
-   * apply to the card when we are hovering the child button elements. */
-  &:hover:not(:has(moz-button:hover)) {
+  &:hover {
     background-color: var(--button-background-color-hover);
     border-color: var(--button-border-color-hover);
     color: var(--button-text-color-hover);
   }
 
-  /* The profile card acts like a button but we don't want the active styles to
-   * apply to the card when we are active on the child button elements. */
-  &:hover:active:not(:has(moz-button:hover:active)) {
+  &:hover:active {
     background-color: var(--button-background-color-active);
     border-color: var(--button-border-color-active);
     color: var(--button-text-color-active);
