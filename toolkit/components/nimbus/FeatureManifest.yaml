@@ -608,6 +608,53 @@ urlbar:
       setPref:
         branch: user
         pref: "places.frecency.pages.alternative.halfLifeDays"
+    pagesMaxVisitGap:
+      description: >-
+        The maximum allowed time (in seconds) between when a visit was recorded
+        and when an interaction occurs for them to be paired. This accounts
+        for slight discrepancies in their timestamps.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.interactions.maxVisitGapSeconds"
+    pagesNumInteractions:
+      description: >-
+        The number of recent interactions that should be examined.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.interactions.numInteractions"
+    pagesViewTimeSeconds:
+      description: >-
+        The minimum allowed time (in seconds) a page was viewed before upgrading
+        the score of a visit.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.interactions.viewTimeSeconds"
+    pageViewTimeIfManyKeypressesSeconds:
+      description: >-
+        The minimum allowed time (in seconds) a page was viewed before checking
+        the manyKeypresses threshold.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.interactions.viewTimeIfManyKeypressesSeconds"
+    manyKeypresses:
+      description: >-
+        The minimum number of keypresses typed before upgrading the score
+        of a visit.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.interactions.manyKeypresses"
+    pagesVeryHighWeight:
+      description: >-
+        The weight to use for the very high importance bucket.
+      type: int
+      setPref:
+        branch: user
+        pref: "places.frecency.pages.alternative.veryHighWeight"
     pagesHighWeight:
       description: >-
         The weight to use for the high importance bucket.
