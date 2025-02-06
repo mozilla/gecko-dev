@@ -41,6 +41,20 @@ struct TextPoint final {
     return mContainer == aPoint.mContainer && mOffset == aPoint.mOffset;
   }
   bool operator<(const TextPoint& aPoint) const;
+
+  /**
+   * Return 0 if the two points are equal, -1 if this is before aOther, 1 if
+   * this is after aOther.
+   */
+  int Compare(const TextPoint& aOther) const {
+    if (*this == aOther) {
+      return 0;
+    }
+    if (*this < aOther) {
+      return -1;
+    }
+    return 1;
+  }
 };
 
 /**

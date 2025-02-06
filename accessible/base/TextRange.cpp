@@ -79,7 +79,10 @@ bool TextPoint::operator<(const TextPoint& aPoint) const {
     // We compare its end offset in aPoint.mContainer with aPoint.mOffset.
     Accessible* child = parents1.ElementAt(pos1 - 1);
     MOZ_ASSERT(child->Parent() == aPoint.mContainer);
-    return child->EndOffset() < static_cast<uint32_t>(aPoint.mOffset);
+    // If the offsets are equal, aPoint points to an ancestor embedded object
+    // for this. aPoint should be treated as earlier in the text. This is why we
+    // use <= here.
+    return child->EndOffset() <= static_cast<uint32_t>(aPoint.mOffset);
   }
 
   if (pos2 != 0) {
@@ -89,7 +92,10 @@ bool TextPoint::operator<(const TextPoint& aPoint) const {
     // We compare its start offset in mContainer with mOffset.
     Accessible* child = parents2.ElementAt(pos2 - 1);
     MOZ_ASSERT(child->Parent() == mContainer);
-    return static_cast<uint32_t>(mOffset) < child->StartOffset();
+    // If the offsets are equal, aPoint points to an ancestor embedded object
+    // for this. aPoint should be treated as earlier in the text. This is why we
+    // use <= here.
+    return static_cast<uint32_t>(mOffset) <= child->StartOffset();
   }
 
   NS_ERROR("Broken tree?!");
