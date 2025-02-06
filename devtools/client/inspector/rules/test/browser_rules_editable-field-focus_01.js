@@ -29,7 +29,15 @@ add_task(async function () {
   info("Click on the selector of the inline style ('element')");
   let ruleEditor = getRuleViewRuleEditor(view, 0);
   const onFocus = once(ruleEditor.element, "focus", true);
+
+  // We intentionally turn off this a11y check, because the following click
+  // is purposefully targeting the non-interactive selector to make sure it
+  // also adds a rule declaration, but the a11y check can be disabled as it's
+  // only an additional way to add a declaration.
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
   ruleEditor.selectorText.click();
+  AccessibilityUtils.resetEnv();
+
   await onFocus;
   assertEditor(
     view,

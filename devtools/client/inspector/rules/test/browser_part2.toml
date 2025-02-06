@@ -305,6 +305,7 @@ skip-if = ["!fission"]
 ["browser_rules_search-filter-computed-list_04.js"]
 
 ["browser_rules_search-filter-computed-list_expander.js"]
+fail-if = ["a11y_checks"] # Bugs 1946333 clicked span.ruleview-expander.theme-twisty is not accessible
 
 ["browser_rules_search-filter-media-queries-layers.js"]
 
@@ -377,6 +378,7 @@ skip-if = ["!fission"]
 ["browser_rules_shapes-toggle_basic-shapes-default.js"]
 
 ["browser_rules_shorthand-overridden-lists.js"]
+fail-if = ["a11y_checks"] # Bugs 1946333 clicked span.ruleview-expander.theme-twisty is not accessible
 
 ["browser_rules_shorthand-overridden-lists_01.js"]
 
