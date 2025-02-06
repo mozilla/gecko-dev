@@ -14093,8 +14093,7 @@ void CodeGenerator::visitFromCodePoint(LFromCodePoint* lir) {
       masm.store16(temp1, Address(temp0, 0));
 
       // Inlined unicode::TrailSurrogate(uint32_t).
-      masm.move32(codePoint, temp1);
-      masm.and32(Imm32(0x3FF), temp1);
+      masm.and32(Imm32(0x3FF), codePoint, temp1);
       masm.or32(Imm32(unicode::TrailSurrogateMin), temp1);
 
       masm.store16(temp1, Address(temp0, sizeof(char16_t)));
@@ -14715,8 +14714,7 @@ void CodeGenerator::visitCharCodeToUpperCase(LCharCodeToUpperCase* lir) {
   masm.load8ZeroExtend(BaseIndex(output, temp, TimesOne), temp);
 
   // (code & ((1 << shift) - 1)
-  masm.move32(code, output);
-  masm.and32(Imm32((1 << shift) - 1), output);
+  masm.and32(Imm32((1 << shift) - 1), code, output);
 
   // (index << shift) + (code & ((1 << shift) - 1))
   masm.lshift32(Imm32(shift), temp);

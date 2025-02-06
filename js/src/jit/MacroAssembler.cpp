@@ -1781,11 +1781,7 @@ void MacroAssembler::branchSurrogate(Assembler::Condition cond, Register src,
                               ? unicode::LeadSurrogateMin
                               : unicode::TrailSurrogateMin;
 
-  if (src != scratch) {
-    move32(src, scratch);
-  }
-
-  and32(Imm32(SurrogateMask), scratch);
+  and32(Imm32(SurrogateMask), src, scratch);
   branch32(cond, scratch, Imm32(SurrogateMin), label);
 }
 
@@ -1985,9 +1981,7 @@ void MacroAssembler::loadInt32ToStringWithBase(
       uint32_t shift = mozilla::FloorLog2(base);
 
       rshift32(Imm32(shift), input, scratch1);
-
-      move32(input, scratch2);
-      and32(Imm32((uint32_t(1) << shift) - 1), scratch2);
+      and32(Imm32((uint32_t(1) << shift) - 1), input, scratch2);
     } else {
       // The following code matches CodeGenerator::visitUDivOrModConstant()
       // for x86-shared. Also see Hacker's Delight 2nd edition, chapter 10-8
@@ -6999,8 +6993,7 @@ void MacroAssembler::branchWasmSTVIsSubtypeDynamicDepth(
 }
 
 void MacroAssembler::extractWasmAnyRefTag(Register src, Register dest) {
-  movePtr(src, dest);
-  andPtr(Imm32(int32_t(wasm::AnyRef::TagMask)), dest);
+  andPtr(Imm32(int32_t(wasm::AnyRef::TagMask)), src, dest);
 }
 
 void MacroAssembler::untagWasmAnyRef(Register src, Register dest,
@@ -7209,8 +7202,7 @@ void MacroAssembler::convertObjectToWasmAnyRef(Register src, Register dest) {
 
 void MacroAssembler::convertStringToWasmAnyRef(Register src, Register dest) {
   // JS strings require a tag.
-  movePtr(src, dest);
-  orPtr(Imm32(int32_t(wasm::AnyRefTag::String)), dest);
+  orPtr(Imm32(int32_t(wasm::AnyRefTag::String)), src, dest);
 }
 
 void MacroAssembler::branchObjectIsWasmGcObject(bool isGcObject, Register src,
@@ -7743,8 +7735,7 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
 #endif
 
   // Load the chunk address in temp2.
-  movePtr(temp1, temp2);
-  andPtr(Imm32(int32_t(~gc::ChunkMask)), temp2);
+  andPtr(Imm32(int32_t(~gc::ChunkMask)), temp1, temp2);
 
   // If the GC thing is in the nursery, we don't need to barrier it.
   if (type == MIRType::Value || type == MIRType::Object ||
@@ -9120,8 +9111,7 @@ void MacroAssembler::maybeLoadIteratorFromShape(Register obj, Register dest,
   loadPtr(Address(shapeAndProto, Shape::offsetOfCachePtr()), dest);
 
   // Check if it's an iterator.
-  movePtr(dest, temp3);
-  andPtr(Imm32(ShapeCachePtr::MASK), temp3);
+  andPtr(Imm32(ShapeCachePtr::MASK), dest, temp3);
   branch32(Assembler::NotEqual, temp3, Imm32(ShapeCachePtr::ITERATOR), failure);
 
   // If we've cached an iterator, |obj| must be a native object.
