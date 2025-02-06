@@ -105,12 +105,15 @@ class Interventions {
 
     const skipped = [];
 
+    const { version } = await browser.runtime.getBrowserInfo();
+    const cleanVersion = parseFloat(version.match(/\d+(\.\d+)?/)[0]);
+
     const { os } = await browser.runtime.getPlatformInfo();
     this.currentPlatform = os;
 
     for (const config of this._availableInterventions) {
       for (const intervention of config.interventions) {
-        if (await InterventionHelpers.shouldSkip(intervention)) {
+        if (await InterventionHelpers.shouldSkip(intervention, cleanVersion)) {
           continue;
         }
         if (!(await InterventionHelpers.checkPlatformMatches(intervention))) {
@@ -137,7 +140,7 @@ class Interventions {
         "Skipping",
         skipped.length,
         "un-needed interventions",
-        skipped
+        skipped.sort()
       );
     }
 

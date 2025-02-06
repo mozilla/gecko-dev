@@ -2523,6 +2523,7 @@
     "interventions": [
       {
         "platforms": ["desktop"],
+        "max_version": 134,
         "content_scripts": {
           "css": ["bug1901000-eyebuydirect.ca-fix-paypal-button.css"]
         }
