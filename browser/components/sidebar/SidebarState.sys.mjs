@@ -286,9 +286,10 @@ export class SidebarState {
       this.#props.launcherExpanded = false;
       return;
     }
+    const previousExpanded = this.#props.launcherExpanded;
     this.#props.launcherExpanded = expanded;
     this.#launcherEl.expanded = expanded;
-    if (expanded) {
+    if (expanded && !previousExpanded) {
       Glean.sidebar.expand.record();
     }
     // Marking the tab container element as expanded or not simplifies the CSS logic
