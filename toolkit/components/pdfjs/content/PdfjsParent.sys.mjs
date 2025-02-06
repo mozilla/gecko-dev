@@ -23,7 +23,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
-  IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
+  ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -343,8 +343,11 @@ export class PdfjsParent extends JSWindowActorParent {
       // TODO: Temporary workaround to delete the model from the cache.
       //       See bug 1908941.
       await lazy.EngineProcess.destroyMLEngine();
-      const cache = await lazy.IndexedDBCache.init();
-      await cache.deleteModels({
+
+      // Deleting all models linked to IMAGE_TO_TEXT_TASK is safe because this is a
+      // Mozilla specific task name.
+      const hub = new lazy.ModelHub();
+      await hub.deleteModels({
         taskName: service,
       });
     } catch (e) {
