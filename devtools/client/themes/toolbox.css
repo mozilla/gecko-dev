@@ -613,25 +613,8 @@
  * attribute.
  */
 .toolbox-panel *,
-#toolbox-panel-webconsole[collapsed] * {
+#toolbox-panel-webconsole[hidden] * {
   -moz-user-focus: ignore;
-}
-
-#toolbox-panel-webconsole {
-  min-height: 75px;
-  flex: 1 auto;
-}
-
-#toolbox-panel-webconsole[collapsed],
-#toolbox-deck[collapsed] {
-  height: 0 !important;
-  min-height: 0 !important;
-}
-
-#toolbox-deck:not([collapsed]),
-#toolbox-panel-webconsole[expanded] {
-  /* Override the splitter-set height and flex instead */
-  height: auto !important;
 }
 
 /**
@@ -640,6 +623,31 @@
  */
 .toolbox-panel[selected] * {
   -moz-user-focus: normal;
+}
+
+/* This is the container of #toolbox-deck and #toolbox-panel-webconsole */
+.panels-and-console {
+  position: relative;
+}
+
+#toolbox-panel-webconsole {
+  min-height: 75px;
+}
+
+:is(
+  #toolbox-panel-webconsole,
+  #toolbox-deck
+)[hidden] {
+  visibility: hidden;
+}
+
+/* The Web Console panel will be expanded when showing it
+   as any other tool, in full height.
+   i.e. not as split console */
+#toolbox-panel-webconsole[expanded] {
+  position: absolute;
+  inset: 0;
+  visibility: visible;
 }
 
 .toolbox-panel-iframe {
@@ -656,11 +664,7 @@
 #toolbox-deck {
   position: relative;
   min-height: 75px;
-  /* Set large flex to allow the toolbox-panel-webconsole to have a
-     height set to a small value without flexing to fill up extra
-     space. There must be a flex on both to ensure that the console
-     panel itself is sized properly */
-  flex: 10000 10000;
+  flex: 1;
 }
 
 #toolbox-container:focus {
