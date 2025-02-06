@@ -29,8 +29,8 @@ by your working copy:
     {}
 
 To fix this, either rebase onto the latest mozilla-central or pass in
--p/--parameters. For more information on how to define parameters, see:
-https://firefox-source-docs.mozilla.org/taskcluster/taskcluster/mach.html#parameters
+-p/--parameters. For more information on how to define parameters, see
+the --parameters argument in `./mach taskgraph target --help`.
 """
 
 
