@@ -2073,7 +2073,10 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
   }
 
   // Unregister all the BlobURLs registered by the ContentChild.
-  BlobURLProtocolHandler::RemoveDataEntries(mBlobURLs);
+  for (uint32_t i = 0; i < mBlobURLs.Length(); ++i) {
+    BlobURLProtocolHandler::RemoveDataEntry(mBlobURLs[i]);
+  }
+
   mBlobURLs.Clear();
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
@@ -5839,39 +5842,19 @@ void ContentParent::BroadcastBlobURLRegistration(const nsACString& aURI,
 
 /* static */
 void ContentParent::BroadcastBlobURLUnregistration(
-    const nsTArray<BroadcastBlobURLUnregistrationRequest>& aRequests,
+    const nsACString& aURI, nsIPrincipal* aPrincipal,
     ContentParent* aIgnoreThisCP) {
-  struct DataRequest {
-    const BroadcastBlobURLUnregistrationRequest& mRequest;
-    uint64_t mOriginHash;
-    bool mToBeSent;
-  };
+  uint64_t originHash = ComputeLoadedOriginHash(aPrincipal);
 
-  nsTArray<DataRequest> dataRequests(aRequests.Length());
-  for (const BroadcastBlobURLUnregistrationRequest& request : aRequests) {
-    uint64_t originHash = ComputeLoadedOriginHash(request.principal());
+  bool toBeSent =
+      BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(aPrincipal);
 
-    bool toBeSent = BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(
-        request.principal());
-
-    dataRequests.AppendElement(DataRequest{request, originHash, toBeSent});
-  }
+  nsCString uri(aURI);
 
   for (auto* cp : AllProcesses(eLive)) {
-    if (cp == aIgnoreThisCP) {
-      continue;
-    }
-
-    nsTArray<nsCString> urls;
-    for (const DataRequest& data : dataRequests) {
-      if (data.mToBeSent ||
-          cp->mLoadedOriginHashes.Contains(data.mOriginHash)) {
-        urls.AppendElement(data.mRequest.url());
-      }
-    }
-
-    if (!urls.IsEmpty()) {
-      Unused << cp->SendBlobURLUnregistration(urls);
+    if (cp != aIgnoreThisCP &&
+        (toBeSent || cp->mLoadedOriginHashes.Contains(originHash))) {
+      Unused << cp->SendBlobURLUnregistration(uri);
     }
   }
 }
@@ -5904,22 +5887,17 @@ mozilla::ipc::IPCResult ContentParent::RecvStoreAndBroadcastBlobURLRegistration(
 
 mozilla::ipc::IPCResult
 ContentParent::RecvUnstoreAndBroadcastBlobURLUnregistration(
-    const nsTArray<BroadcastBlobURLUnregistrationRequest>& aRequests) {
-  nsTArray<nsCString> uris;
-
-  for (const BroadcastBlobURLUnregistrationRequest& request : aRequests) {
-    if (!ValidatePrincipal(request.principal(),
-                           {ValidatePrincipalOptions::AllowSystem})) {
-      LogAndAssertFailedPrincipalValidationInfo(request.principal(), __func__);
-    }
-
-    uris.AppendElement(request.url());
-    mBlobURLs.RemoveElement(request.url());
+    const nsACString& aURI, nsIPrincipal* aPrincipal) {
+  if (!aPrincipal) {
+    return IPC_FAIL(this, "No principal");
   }
 
-  BroadcastBlobURLUnregistration(aRequests, this);
-  BlobURLProtocolHandler::RemoveDataEntries(uris, false /* Don't broadcast */);
-
+  if (!ValidatePrincipal(aPrincipal, {ValidatePrincipalOptions::AllowSystem})) {
+    LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
+  }
+  BlobURLProtocolHandler::RemoveDataEntry(aURI, false /* Don't broadcast */);
+  BroadcastBlobURLUnregistration(aURI, aPrincipal, this);
+  mBlobURLs.RemoveElement(aURI);
   return IPC_OK();
 }
 

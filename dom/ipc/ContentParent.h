@@ -563,7 +563,7 @@ class ContentParent final : public PContentParent,
       const nsCString& aPartitionKey, ContentParent* aIgnoreThisCP = nullptr);
 
   static void BroadcastBlobURLUnregistration(
-      const nsTArray<BroadcastBlobURLUnregistrationRequest>& aRequests,
+      const nsACString& aURI, nsIPrincipal* aPrincipal,
       ContentParent* aIgnoreThisCP = nullptr);
 
   mozilla::ipc::IPCResult RecvStoreAndBroadcastBlobURLRegistration(
@@ -571,7 +571,7 @@ class ContentParent final : public PContentParent,
       const nsCString& aPartitionKey);
 
   mozilla::ipc::IPCResult RecvUnstoreAndBroadcastBlobURLUnregistration(
-      const nsTArray<BroadcastBlobURLUnregistrationRequest>& aRequests);
+      const nsACString& aURI, nsIPrincipal* aPrincipal);
 
   virtual int32_t Pid() const override;
 
