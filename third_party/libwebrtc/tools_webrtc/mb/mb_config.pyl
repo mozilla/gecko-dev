@@ -144,7 +144,7 @@
         'dummy_audio_file_devices_no_protobuf':
         'dummy_audio_file_devices_no_protobuf_android_arm',
         'rtti_no_sctp': 'rtti_no_sctp_android_arm',
-	'disable_trace_events': 'disable_trace_events_android_arm',
+        'disable_trace_events': 'disable_trace_events_android_arm',
         'perfetto': 'perfetto_android_arm',
       },
       'android_arm_rel': 'android_release_bot_arm',
@@ -309,7 +309,7 @@
       'release_bot',
       'x86',
       'h265',
-     ],
+    ],
     'asan_lsan_clang_release_bot_x64': [
       'asan',
       'lsan',
@@ -336,10 +336,8 @@
       'disable_trace_events',
       'release_bot',
     ],
-    'disable_trace_events_x64':
-    ['x64', 'disable_trace_events', 'release_bot'],
-    'disable_trace_events_x86':
-    ['x86', 'disable_trace_events', 'release_bot'],
+    'disable_trace_events_x64': ['x64', 'disable_trace_events', 'release_bot'],
+    'disable_trace_events_x86': ['x86', 'disable_trace_events', 'release_bot'],
     'dummy_audio_file_devices_no_protobuf_android_arm': [
       'android',
       'arm',
@@ -352,24 +350,53 @@
     ['debug_bot', 'x64', 'dummy_audio_file_devices', 'no_protobuf'],
     'dummy_audio_file_devices_no_protobuf_x86':
     ['debug_bot', 'x86', 'dummy_audio_file_devices', 'no_protobuf'],
-    'ios_debug_bot_arm64':
-    ['ios', 'debug_bot', 'arm64', 'no_ios_code_signing', 'xctest'],
-    'ios_debug_bot_x64': ['ios', 'debug_bot', 'x64', 'xctest'],
+    'ios_debug_bot_arm64': [
+      'ios',
+      'ios_simulator',
+      'debug_bot',
+      'arm64',
+      'no_ios_code_signing',
+      'xctest',
+    ],
+    'ios_debug_bot_x64': [
+      'ios',
+      'ios_simulator',
+      'debug_bot',
+      'x64',
+      'xctest',
+    ],
     'ios_internal_debug_bot_arm64': [
-      'ios', 'debug_bot', 'arm64', 'ios_code_signing_identity_description',
-      'xctest'
+      'ios',
+      'ios_device',
+      'debug_bot',
+      'arm64',
+      'ios_code_signing_identity_description',
+      'xctest',
     ],
     'ios_internal_pure_release_bot_arm64': [
-      'ios', 'pure_release_bot', 'arm64',
-      'ios_code_signing_identity_description', 'xctest',
+      'ios',
+      'ios_device',
+      'pure_release_bot',
+      'arm64',
+      'ios_code_signing_identity_description',
+      'xctest',
       'rtc_objc_test_prefix',
     ],
     'ios_internal_release_bot_arm64': [
-      'ios', 'release_bot', 'arm64', 'ios_code_signing_identity_description',
-      'xctest'
+      'ios',
+      'ios_device',
+      'release_bot',
+      'arm64',
+      'ios_code_signing_identity_description',
+      'xctest',
     ],
     'ios_release_bot_arm64': [
-      'ios', 'release_bot', 'arm64', 'no_ios_code_signing', 'xctest',
+      'ios',
+      'ios_simulator',
+      'release_bot',
+      'arm64',
+      'no_ios_code_signing',
+      'xctest',
     ],
     'libfuzzer_asan_release_bot_x64': [
       'asan',
@@ -399,10 +426,10 @@
       'arm',
       'chromium_base_dependency',
       'perfetto',
-      'release_bot'
+      'release_bot',
     ],
-    'perfetto_x64': [ 'x64', 'perfetto', 'release_bot'],
-    'perfetto_x86': [ 'x86', 'perfetto', 'release_bot'],
+    'perfetto_x64': ['x64', 'perfetto', 'release_bot'],
+    'perfetto_x86': ['x86', 'perfetto', 'release_bot'],
     'pure_release_bot_x64': ['openh264', 'pure_release_bot', 'x64', 'h265'],
     'pure_release_bot_x86': ['openh264', 'pure_release_bot', 'x86', 'h265'],
     'release_bot_arm': ['openh264', 'release_bot', 'arm', 'h265'],
@@ -424,12 +451,10 @@
     'rtti_no_sctp_x64': ['debug_bot', 'x64', 'rtti', 'no_sctp'],
     'tsan_clang_release_bot_x64':
     ['tsan', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'],
-    'ubsan_clang_release_bot_x64': [
-      'ubsan', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'
-    ],
-    'ubsan_vptr_clang_release_bot_x64': [
-      'ubsan_vptr', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'
-    ],
+    'ubsan_clang_release_bot_x64':
+    ['ubsan', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'],
+    'ubsan_vptr_clang_release_bot_x64':
+    ['ubsan_vptr', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'],
     'win_asan_clang_release_bot_x64': [
       'asan',
       'clang',
@@ -543,6 +568,12 @@
     },
     'ios_code_signing_identity_description': {
       'gn_args': 'ios_code_signing_identity_description="Apple Development"',
+    },
+    'ios_device': {
+      'gn_args': 'target_environment="device"'
+    },
+    'ios_simulator': {
+      'gn_args': 'target_environment="simulator"'
     },
     'libfuzzer': {
       # TODO(b/42223878): use_fuzztest_wrapper adds a dependency to //base.
