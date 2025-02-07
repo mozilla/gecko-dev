@@ -48,4 +48,4 @@ with tempfile.NamedTemporaryFile(mode="w+") as temp:
 
     # Restore stdout and dump the file.
     sys.stdout = old_stdout
-    print(temp.read())
+    print(temp.read(), end="")
