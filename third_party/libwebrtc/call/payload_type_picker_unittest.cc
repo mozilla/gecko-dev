@@ -13,9 +13,13 @@
 #include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
+
+using testing::Eq;
+using testing::Ne;
 
 TEST(PayloadTypePicker, PayloadTypeAssignmentWorks) {
   // Note: This behavior is due to be deprecated and removed.
@@ -174,4 +178,27 @@ TEST(PayloadTypePicker, RecordedValueExcluded) {
   EXPECT_NE(47, result.value());
 }
 
+TEST(PayloadTypePicker, ChoosingH264Profiles) {
+  // No opinion on whether these are right or wrong, just that their
+  // behavior is consistent.
+  PayloadTypePicker picker;
+  cricket::Codec h264_constrained = cricket::CreateVideoCodec(SdpVideoFormat(
+      cricket::kH264CodecName, {{cricket::kH264FmtpProfileLevelId, "42e01f"},
+                                {cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                                {cricket::kH264FmtpPacketizationMode, "1"}}));
+  cricket::Codec h264_high_1f = cricket::CreateVideoCodec(SdpVideoFormat(
+      cricket::kH264CodecName, {{cricket::kH264FmtpProfileLevelId, "640c1f"},
+                                {cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                                {cricket::kH264FmtpPacketizationMode, "1"}}));
+  cricket::Codec h264_high_2a = cricket::CreateVideoCodec(SdpVideoFormat(
+      cricket::kH264CodecName, {{cricket::kH264FmtpProfileLevelId, "640c2a"},
+                                {cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                                {cricket::kH264FmtpPacketizationMode, "1"}}));
+  PayloadType pt_constrained =
+      picker.SuggestMapping(h264_constrained, nullptr).value();
+  PayloadType pt_high_1f = picker.SuggestMapping(h264_high_1f, nullptr).value();
+  PayloadType pt_high_2a = picker.SuggestMapping(h264_high_2a, nullptr).value();
+  EXPECT_THAT(pt_constrained, Ne(pt_high_1f));
+  EXPECT_THAT(pt_high_1f, Eq(pt_high_2a));
+}
 }  // namespace webrtc
