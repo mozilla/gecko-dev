@@ -12,5 +12,7 @@ skip-if = ["os == 'android' && processor == 'x86_64'"]
 ["test_child_docshell.js"]
 skip-if = ["os == 'android' && processor == 'x86_64'"]
 
+["test_headless_content_process.js"]
+
 ["test_sharedMap.js"]
 skip-if = ["os == 'android' && processor == 'x86_64'"]

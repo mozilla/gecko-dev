@@ -2192,6 +2192,35 @@ void ChromeUtils::UnregisterProcessActor(const GlobalObject& aGlobal,
 }
 
 /* static */
+already_AddRefed<Promise> ChromeUtils::EnsureHeadlessContentProcess(
+    const GlobalObject& aGlobal, const nsACString& aRemoteType,
+    ErrorResult& aRv) {
+  if (!XRE_IsParentProcess()) {
+    aRv.ThrowNotAllowedError(
+        "ensureHeadlessContentProcess() may only be called in the parent "
+        "process");
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  ContentParent::GetNewOrUsedBrowserProcessAsync(aRemoteType)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise](UniqueContentParentKeepAlive&& aKeepAlive) {
+            nsCOMPtr<nsIContentParentKeepAlive> jsKeepAlive =
+                WrapContentParentKeepAliveForJS(std::move(aKeepAlive));
+            promise->MaybeResolve(jsKeepAlive);
+          },
+          [promise](nsresult aError) { promise->MaybeReject(aError); });
+  return promise.forget();
+}
+
+/* static */
 bool ChromeUtils::IsClassifierBlockingErrorCode(GlobalObject& aGlobal,
                                                 uint32_t aError) {
   return net::UrlClassifierFeatureFactory::IsClassifierBlockingErrorCode(

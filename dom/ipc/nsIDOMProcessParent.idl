@@ -56,3 +56,21 @@ interface nsIDOMProcessParent: nsISupports {
    */
   readonly attribute ACString remoteType;
 };
+
+/**
+ * Reference counted and cycle collected interface to expose a
+ * UniqueContentParentKeepAlive to chrome JS.
+ */
+[scriptable, builtinclass, uuid(b43907bd-e40d-4bf5-a85e-866998beb7a9)]
+interface nsIContentParentKeepAlive: nsISupports {
+  /**
+   * Underlying nsIDOMProcessParent which is being kept alive.
+   */
+  readonly attribute nsIDOMProcessParent domProcess;
+
+  /**
+   * Invalidate this nsIContentParentKeepAlive, dropping the keep alive
+   * and ContentParent reference without waiting for the object to be gc/cc-ed.
+   */
+  void invalidateKeepAlive();
+};

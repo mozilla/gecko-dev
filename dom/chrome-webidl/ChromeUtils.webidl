@@ -4,6 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+interface nsIContentParentKeepAlive;
 interface nsIDOMProcessChild;
 interface nsIDOMProcessParent;
 interface Principal;
@@ -677,6 +678,22 @@ partial namespace ChromeUtils {
 
   [ChromeOnly]
   undefined unregisterProcessActor(UTF8String aName);
+
+  /**
+   * Ensure a content process with the given remote type is running, and return
+   * a "KeepAlive" object for it. While this object is kept alive, the
+   * process will not intentionally exit.
+   *
+   * This follows the same process selection logic as creating a remote browser,
+   * allowing up to `dom.ipc.processCount.<aRemoteType>` processes (default 1)
+   * to be created per remote type. Once the limit has been reached, a new
+   * KeepAlive for an existing process will be returned instead.
+   *
+   * This can be used to start a content process for non-browser use cases, such
+   * as running sandboxed JS/WASM operations in a content process.
+   */
+  [ChromeOnly, Throws]
+  Promise<nsIContentParentKeepAlive> ensureHeadlessContentProcess(UTF8String aRemoteType);
 
   [ChromeOnly]
   // aError should a nsresult.
