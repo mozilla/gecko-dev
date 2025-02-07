@@ -103,6 +103,24 @@ H26xPacketBuffer::H26xPacketBuffer(bool h264_idr_only_keyframes_allowed)
   last_continuous_in_sequence_.fill(std::numeric_limits<int64_t>::min());
 }
 
+H26xPacketBuffer::InsertResult H26xPacketBuffer::InsertPadding(
+    uint16_t unwrapped_seq_num) {
+  int64_t* last_continuous_unwrapped_seq_num =
+      GetContinuousSequence(last_continuous_in_sequence_, unwrapped_seq_num);
+  if (last_continuous_unwrapped_seq_num == nullptr) {
+    last_continuous_in_sequence_[last_continuous_in_sequence_index_] =
+        unwrapped_seq_num;
+    last_continuous_unwrapped_seq_num =
+        &last_continuous_in_sequence_[last_continuous_in_sequence_index_];
+    last_continuous_in_sequence_index_ =
+        (last_continuous_in_sequence_index_ + 1) %
+        last_continuous_in_sequence_.size();
+  } else {
+    *last_continuous_unwrapped_seq_num = unwrapped_seq_num;
+  }
+  return {};
+}
+
 H26xPacketBuffer::InsertResult H26xPacketBuffer::InsertPacket(
     std::unique_ptr<Packet> packet) {
   RTC_DCHECK(packet->video_header.codec == kVideoCodecH264 ||

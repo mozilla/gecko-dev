@@ -309,7 +309,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   // This function assumes that it's being called from only one thread.
   void ParseAndHandleEncapsulatingHeader(const RtpPacketReceived& packet)
       RTC_RUN_ON(packet_sequence_checker_);
-  void NotifyReceiverOfEmptyPacket(uint16_t seq_num)
+  void NotifyReceiverOfEmptyPacket(uint16_t seq_num, bool is_h26x)
       RTC_RUN_ON(packet_sequence_checker_);
   bool IsRedEnabled() const;
   void InsertSpsPpsIntoTracker(uint8_t payload_type)
@@ -328,6 +328,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
       const absl::variant<FrameInstrumentationSyncData,
                           FrameInstrumentationData>& frame_instrumentation_data,
       int spatial_idx);
+
+  bool IsH26xPayloadType(uint8_t payload_type) const
+      RTC_RUN_ON(packet_sequence_checker_);
 
   const Environment env_;
   TaskQueueBase* const worker_queue_;
@@ -420,6 +423,11 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   // Maps a payload type to a map of out-of-band supplied codec parameters.
   std::map<uint8_t, webrtc::CodecParameterMap> pt_codec_params_
       RTC_GUARDED_BY(packet_sequence_checker_);
+
+  // Maps payload type to the VideoCodecType.
+  std::map<uint8_t, webrtc::VideoCodecType> pt_codec_
+      RTC_GUARDED_BY(packet_sequence_checker_);
+
   int16_t last_payload_type_ RTC_GUARDED_BY(packet_sequence_checker_) = -1;
 
   bool has_received_frame_ RTC_GUARDED_BY(packet_sequence_checker_);

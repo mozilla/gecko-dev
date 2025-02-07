@@ -956,7 +956,19 @@ TEST_P(RtpVideoStreamReceiver2TestH264, ForceSpsPpsIdrIsKeyframe) {
                                                     idr_video_header, 0);
 }
 
-TEST_F(RtpVideoStreamReceiver2Test, PaddingInMediaStream) {
+class RtpVideoStreamReceiver2TestPadding
+    : public RtpVideoStreamReceiver2Test,
+      public ::testing::WithParamInterface<std::string> {
+ protected:
+  RtpVideoStreamReceiver2TestPadding()
+      : RtpVideoStreamReceiver2Test(GetParam()) {}
+};
+
+INSTANTIATE_TEST_SUITE_P(PaddingInMediaStreamAndH26xPacketBuffer,
+                         RtpVideoStreamReceiver2TestPadding,
+                         Values("", "WebRTC-Video-H26xPacketBuffer/Enabled/"));
+
+TEST_P(RtpVideoStreamReceiver2TestPadding, PaddingInMediaStream) {
   RtpPacketReceived rtp_packet;
   RTPVideoHeader video_header = GetDefaultH264VideoHeader();
   rtc::CopyOnWriteBuffer data({'1', '2', '3'});
@@ -991,6 +1003,64 @@ TEST_F(RtpVideoStreamReceiver2Test, PaddingInMediaStream) {
   rtp_packet.SetSequenceNumber(5);
   rtp_video_stream_receiver_->OnReceivedPayloadData({}, rtp_packet,
                                                     video_header, 0);
+}
+
+TEST_P(RtpVideoStreamReceiver2TestPadding, EmptyPaddingInMediaStream) {
+  constexpr int kH264PayloadType = 98;
+  RtpPacketReceived rtp_packet_idr, rtp_packet_padding, rtp_packet_slice;
+  // Example Stap-A packet with SPS, PPS, and IDR.
+  std::vector<uint8_t> raw_rtp_with_sps_pps_idr{
+      0x80, 0xe2, 0x13, 0xba, 0x87, 0xa0, 0x0a, 0x8a, 0x00, 0x00, 0x6f,
+      0x00, 0x78, 0x00, 0x19, 0x67, 0x42, 0x40, 0x29, 0x95, 0xb8, 0x78,
+      0x2f, 0xf9, 0x70, 0x11, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00,
+      0x03, 0x00, 0x78, 0x8d, 0xa1, 0xc3, 0x2e, 0x00, 0x04, 0x68, 0xce,
+      0x3c, 0x80, 0x00, 0x07, 0x05, 0x88, 0x80, 0x03, 0x53, 0xff, 0xff};
+  // Example Empty padding packet next Idr.
+  std::vector<uint8_t> raw_rtp_empty_padding{
+      0x80, 0x62, 0x13, 0xbb, 0x87, 0xa0, 0x21, 0x0a, 0x00, 0x00, 0x6f, 0x00};
+  // Example Single NALU packet with slice.
+  std::vector<uint8_t> raw_rtp_slice(
+      {0x80, 0xE2, 0x13, 0xbc, 0x87, 0xa0, 0x21, 0x0a, 0x00, 0x00, 0x6f,
+       0x00, 0x01, 0x9a, 0x02, 0x3f, 0xc1, 0x48, 0x9a, 0xeb, 0xea, 0xff});
+
+  // Example EncodedFrame with SPS, PPS, and IDR.
+  std::vector<uint8_t> expect_frame_with_sps_pps_idr{
+      0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x40, 0x29, 0x95, 0xb8, 0x78, 0x2f,
+      0xf9, 0x70, 0x11, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00,
+      0x78, 0x8d, 0xa1, 0xc3, 0x2e, 0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x3c,
+      0x80, 0x00, 0x00, 0x00, 0x01, 0x05, 0x88, 0x80, 0x03, 0x53, 0xff, 0xff};
+  // Example EncodedFrame with slice.
+  std::vector<uint8_t> expect_frame_with_slice{0x00, 0x00, 0x00, 0x01, 0x01,
+                                               0x9a, 0x02, 0x3f, 0xc1, 0x48,
+                                               0x9a, 0xeb, 0xea, 0xff};
+  rtp_packet_idr.Parse(raw_rtp_with_sps_pps_idr.data(),
+                       raw_rtp_with_sps_pps_idr.size());
+  rtp_packet_padding.Parse(raw_rtp_empty_padding.data(),
+                           raw_rtp_empty_padding.size());
+  rtp_packet_slice.Parse(raw_rtp_slice.data(), raw_rtp_slice.size());
+
+  // Prepare the receiver for H264.
+  webrtc::CodecParameterMap codec_params;
+  rtp_video_stream_receiver_->AddReceiveCodec(kH264PayloadType, kVideoCodecH264,
+                                              codec_params, false);
+  rtp_video_stream_receiver_->StartReceive();
+
+  // Expect IDR frame.
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(
+      expect_frame_with_sps_pps_idr.data(),
+      expect_frame_with_sps_pps_idr.size());
+  EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_));
+
+  rtp_video_stream_receiver_->OnRtpPacket(rtp_packet_idr);
+
+  rtp_video_stream_receiver_->OnRtpPacket(rtp_packet_padding);
+
+  // Expect single NALU frame.
+  mock_on_complete_frame_callback_.ClearExpectedBitstream();
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(
+      expect_frame_with_slice.data(), expect_frame_with_slice.size());
+  EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_));
+  rtp_video_stream_receiver_->OnRtpPacket(rtp_packet_slice);
 }
 
 TEST_F(RtpVideoStreamReceiver2Test, RequestKeyframeIfFirstFrameIsDelta) {
