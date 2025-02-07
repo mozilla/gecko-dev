@@ -11,8 +11,6 @@ import("../../webrtc.gni")
 rtc_library("time_controller") {
   testonly = true
   sources = [
-    "external_time_controller.cc",
-    "external_time_controller.h",
     "real_time_controller.cc",
     "real_time_controller.h",
     "simulated_task_queue.cc",
@@ -48,7 +46,6 @@ if (rtc_include_tests) {
   rtc_library("time_controller_unittests") {
     testonly = true
     sources = [
-      "external_time_controller_unittest.cc",
       "simulated_time_controller_unittest.cc",
       "time_controller_conformance_test.cc",
     ]

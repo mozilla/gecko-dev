@@ -17,10 +17,6 @@
 
 namespace webrtc {
 
-// Creates a time coltroller that wraps `alarm`.
-std::unique_ptr<TimeController> CreateTimeController(
-    ControlledAlarmClock* alarm);
-
 // Creates a time controller that runs in simulated time.
 std::unique_ptr<TimeController> CreateSimulatedTimeController();
 

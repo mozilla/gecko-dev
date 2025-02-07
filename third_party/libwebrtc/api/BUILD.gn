@@ -1595,7 +1595,6 @@ if (rtc_include_tests) {
       "rtp_parameters_unittest.cc",
       "scoped_refptr_unittest.cc",
       "sequence_checker_unittest.cc",
-      "test/create_time_controller_unittest.cc",
       "test/peerconnection_quality_test_fixture_unittest.cc",
     ]
 

@@ -62,28 +62,5 @@ class TimeController {
             TimeDelta max_duration = TimeDelta::Seconds(5));
 };
 
-// Interface for telling time, scheduling an event to fire at a particular time,
-// and waiting for time to pass.
-class ControlledAlarmClock {
- public:
-  virtual ~ControlledAlarmClock() = default;
-
-  // Gets a clock that tells the alarm clock's notion of time.
-  virtual Clock* GetClock() = 0;
-
-  // Schedules the alarm to fire at `deadline`.
-  // An alarm clock only supports one deadline. Calls to `ScheduleAlarmAt` with
-  // an earlier deadline will reset the alarm to fire earlier.Calls to
-  // `ScheduleAlarmAt` with a later deadline are ignored. Returns true if the
-  // deadline changed, false otherwise.
-  virtual bool ScheduleAlarmAt(Timestamp deadline) = 0;
-
-  // Sets the callback that should be run when the alarm fires.
-  virtual void SetCallback(std::function<void()> callback) = 0;
-
-  // Waits for `duration` to pass, according to the alarm clock.
-  virtual void Sleep(TimeDelta duration) = 0;
-};
-
 }  // namespace webrtc
 #endif  // API_TEST_TIME_CONTROLLER_H_
