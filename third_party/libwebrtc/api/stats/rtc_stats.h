@@ -103,7 +103,7 @@ class RTC_EXPORT RTCStats {
   virtual std::vector<Attribute> AttributesImpl(
       size_t additional_capacity) const;
 
-  std::string const id_;
+  std::string id_;
   Timestamp timestamp_;
 };
 
