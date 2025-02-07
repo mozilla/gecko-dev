@@ -698,32 +698,19 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return observer->error().ok();
   }
 
-  void AddCorruptionDetectionHeader() {
-    SetGeneratedSdpMunger(
-        [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
-          for (ContentInfo& content : sdp->description()->contents()) {
-            cricket::MediaContentDescription* media =
-                content.media_description();
-            // Corruption detection is only a valid RTP header extension for
-            // video stream.
-            if (media->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
-              continue;
-            }
-            cricket::RtpHeaderExtensions extensions =
-                media->rtp_header_extensions();
-
-            // Find a valid id.
-            int id = extensions.size();
-            while (IdExists(extensions, id)) {
-              ++id;
-            }
-
-            extensions.push_back(RtpExtension(
-                RtpExtension::kCorruptionDetectionUri, id, /*encrypt=*/true));
-            media->set_rtp_header_extensions(extensions);
-            break;
-          }
-        });
+  void NegotiateCorruptionDetectionHeader() {
+    for (const auto& transceiver : pc()->GetTransceivers()) {
+      if (transceiver->media_type() != cricket::MEDIA_TYPE_VIDEO) {
+        continue;
+      }
+      auto extensions = transceiver->GetHeaderExtensionsToNegotiate();
+      for (auto& extension : extensions) {
+        if (extension.uri == RtpExtension::kCorruptionDetectionUri) {
+          extension.direction = RtpTransceiverDirection::kSendRecv;
+        }
+      }
+      transceiver->SetHeaderExtensionsToNegotiate(extensions);
+    }
   }
 
   uint32_t GetCorruptionScoreCount() {

@@ -4119,15 +4119,15 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   ConnectFakeSignaling();
 
-  // Munge the corruption detection header extension into the SDP.
-  // If caller adds corruption detection header extension to its SDP offer, it
-  // will receive it from the callee.
-  caller()->AddCorruptionDetectionHeader();
-
   // Do normal offer/answer and wait for some frames to be received in each
   // direction, and `corruption_score` to be aggregated.
   caller()->AddAudioVideoTracks();
   callee()->AddAudioVideoTracks();
+  // Negotiate the corruption detection header extension in SDP.
+  // If caller adds corruption detection header extension to its SDP offer, it
+  // will receive it from the callee.
+  caller()->NegotiateCorruptionDetectionHeader();
+
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
   ASSERT_TRUE_WAIT(caller()->GetCorruptionScoreCount() > 0, kMaxWaitForStatsMs);
@@ -4174,16 +4174,18 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   ConnectFakeSignaling();
 
-  // Munge the corruption detection header extension into the SDP.
-  // If caller adds corruption detection header extension to its SDP offer, it
-  // will receive it from the callee.
-  caller()->AddCorruptionDetectionHeader();
-  callee()->AddCorruptionDetectionHeader();
 
   // Do normal offer/answer and wait for some frames to be received in each
   // direction, and `corruption_score` to be aggregated.
   caller()->AddAudioVideoTracks();
   callee()->AddAudioVideoTracks();
+
+  // Negotiate the corruption detection header extension in SDP.
+  // If caller adds corruption detection header extension to its SDP offer, it
+  // will receive it from the callee.
+  caller()->NegotiateCorruptionDetectionHeader();
+  callee()->NegotiateCorruptionDetectionHeader();
+
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
   ASSERT_TRUE_WAIT(caller()->GetCorruptionScoreCount() > 0, kMaxWaitForStatsMs);
@@ -4221,11 +4223,11 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   ConnectFakeSignaling();
 
-  // Munge the corruption detection header extension into the SDP.
+  // Negotiate the corruption detection header extension in SDP.
   // If caller adds corruption detection header extension to its SDP offer, it
   // will receive it from the callee.
-  caller()->AddCorruptionDetectionHeader();
-  callee()->AddCorruptionDetectionHeader();
+  caller()->NegotiateCorruptionDetectionHeader();
+  callee()->NegotiateCorruptionDetectionHeader();
 
   // Do normal offer/answer and wait for some frames to be received in each
   // direction, and `corruption_score` to be aggregated.
