@@ -385,11 +385,8 @@ deps = {
       'condition': 'checkout_android',
       'dep_type': 'cipd',
   },
-  # Used for building libFuzzers (only supports Linux).
-  'src/third_party/libFuzzer/src': {
-    'url': 'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/compiler-rt/lib/fuzzer.git@e31b99917861f891308269c36a32363b120126bb',
-    'condition': 'checkout_linux',
-  },
+  'src/third_party/libFuzzer/src':
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/compiler-rt/lib/fuzzer.git@e31b99917861f891308269c36a32363b120126bb',
   'src/third_party/fuzztest/src':
     'https://chromium.googlesource.com/external/github.com/google/fuzztest.git@8bd3142058af42d4605da7f2bc8d6dfc2c97e123',
   'src/third_party/libjpeg_turbo':
