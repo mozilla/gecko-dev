@@ -15,14 +15,10 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "api/scoped_refptr.h"
-#include "api/units/time_delta.h"
-#include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"
-#include "api/video/video_frame_type.h"
 #include "api/video/video_sink_interface.h"
 #include "api/video_codecs/video_decoder.h"
 #include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
@@ -46,12 +42,7 @@ class VideoStreamDecoder : public VCMReceiveCallback {
   ~VideoStreamDecoder() override;
 
   // Implements VCMReceiveCallback.
-  int32_t FrameToRender(VideoFrame& video_frame,
-                        std::optional<uint8_t> qp,
-                        TimeDelta decode_time,
-                        VideoContentType content_type,
-                        VideoFrameType frame_type) override;
-  int32_t OnFrameToRender(const struct FrameToRender& arguments) override;
+  int32_t OnFrameToRender(const FrameToRender& arguments) override;
   void OnDroppedFrames(uint32_t frames_dropped) override;
   void OnIncomingPayloadType(int payload_type) override;
   void OnDecoderInfoChanged(
