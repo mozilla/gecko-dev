@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Sæktu og keyrðu gervigreindarlíkön á tækinu þínu</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Leyfa óstaðfestum skriftum frá utanaðkomandi aðilum að fá aðgang að gögnunum þínum</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Óstaðfestar skriftur geta valdið öryggis- og persónuverndaráhættu. Keyrðu aðeins skriftur frá viðbótum eða uppruna sem þú treystir.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Veita þróunartólum aðgang að gögnum þínum í opnum flipum</string>
     <!-- The version on of add-on. -->

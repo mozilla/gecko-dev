@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Lataa ja suorita AI-malleja laitteellasi</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Salli vahvistamattomien kolmannen osapuolen komentosarjojen pääsy tietoihisi</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Vahvistamattomat komentosarjat voivat aiheuttaa turvallisuus- ja tietosuojariskejä. Suorita komentosarjoja vain laajennuksista tai lähteistä, joihin luotat.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Laajenna kehitystyökaluja käyttämään avoimissa välilehdissä olevia tietoja</string>
     <!-- The version on of add-on. -->
