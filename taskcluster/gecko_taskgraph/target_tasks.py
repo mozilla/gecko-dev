@@ -11,8 +11,15 @@ from datetime import datetime, timedelta
 
 import requests
 from redo import retry
+from taskgraph import create
 from taskgraph.target_tasks import register_target_task
-from taskgraph.util.taskcluster import find_task_id, parse_time
+from taskgraph.util.parameterization import resolve_timestamps
+from taskgraph.util.taskcluster import (
+    find_task_id,
+    get_artifact,
+    get_task_definition,
+    parse_time,
+)
 
 from gecko_taskgraph import GECKO, try_option_syntax
 from gecko_taskgraph.util.attributes import (
@@ -21,7 +28,7 @@ from gecko_taskgraph.util.attributes import (
 )
 from gecko_taskgraph.util.hg import find_hg_revision_push_info, get_hg_commit_message
 from gecko_taskgraph.util.platforms import platform_family
-from gecko_taskgraph.util.taskcluster import find_task
+from gecko_taskgraph.util.taskcluster import find_task, insert_index
 
 logger = logging.getLogger(__name__)
 
@@ -1074,7 +1081,7 @@ def target_tasks_searchfox(full_task_graph, parameters, graph_config):
     """Select tasks required for indexing Firefox for Searchfox web site each day"""
     index_path = (
         f"{graph_config['trust-domain']}.v2.{parameters['project']}.revision."
-        f"{parameters['head_rev']}.taskgraph.decision-searchfox-index"
+        f"{parameters['head_rev']}.searchfox-index"
     )
     if os.environ.get("MOZ_AUTOMATION"):
         print(
@@ -1088,11 +1095,21 @@ def target_tasks_searchfox(full_task_graph, parameters, graph_config):
                 raise
             print(f"Index {index_path} doesn't exist.")
         else:
-            # Assume expiry of the downstream searchfox tasks is the same as that of the cron decision task
-            expiry = parse_time(task["expires"])
-            if expiry > datetime.utcnow() + timedelta(days=7):
-                print("Skipping index tasks")
-                return []
+            # Find the earlier expiration time of existing tasks
+            taskdef = get_task_definition(task["taskId"])
+            task_graph = get_artifact(task["taskId"], "public/task-graph.json")
+            if task_graph:
+                base_time = parse_time(taskdef["created"])
+                first_expiry = min(
+                    resolve_timestamps(base_time, t["task"]["expires"])
+                    for t in task_graph.values()
+                )
+                expiry = parse_time(first_expiry)
+                if expiry > datetime.utcnow() + timedelta(days=7):
+                    print("Skipping index tasks")
+                    return []
+        if not create.testing:
+            insert_index(index_path, os.environ["TASK_ID"], use_proxy=True)
 
     return [
         "searchfox-linux64-searchfox/debug",
