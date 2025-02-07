@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/5/LICENSE
 
 // Define search commands. Depends on dialog.js or another
 // implementation of the openDialog method.
@@ -18,6 +18,9 @@
     mod(CodeMirror);
 })(function(CodeMirror) {
   "use strict";
+
+  // default search panel location
+  CodeMirror.defineOption("search", {bottom: false});
 
   function searchOverlay(query, caseInsensitive) {
     if (typeof query == "string")
@@ -63,12 +66,13 @@
       selectValueOnOpen: true,
       closeOnEnter: false,
       onClose: function() { clearSearch(cm); },
-      onKeyDown: onKeyDown
+      onKeyDown: onKeyDown,
+      bottom: cm.options.search.bottom
     });
   }
 
   function dialog(cm, text, shortText, deflt, f) {
-    if (cm.openDialog) cm.openDialog(text, f, {value: deflt, selectValueOnOpen: true});
+    if (cm.openDialog) cm.openDialog(text, f, {value: deflt, selectValueOnOpen: true, bottom: cm.options.search.bottom});
     else f(prompt(shortText, deflt));
   }
 
@@ -100,8 +104,6 @@
     return query;
   }
 
-  var queryDialog;
-
   function startSearch(cm, state, query) {
     state.queryText = query;
     state.query = parseQuery(query);
@@ -115,22 +117,6 @@
   }
 
   function doSearch(cm, rev, persistent, immediate) {
-    if (!queryDialog) {
-      let doc = cm.getWrapperElement().ownerDocument;
-      let inp = doc.createElement("input");
-
-      inp.type = "search";
-      inp.placeholder = cm.l10n("findCmd.promptMessage");
-      inp.style.marginInlineStart = "1em";
-      inp.style.marginInlineEnd = "1em";
-      inp.style.flexGrow = "1";
-      inp.addEventListener("focus", () => inp.select());
-
-      queryDialog = doc.createElement("div");
-      queryDialog.appendChild(inp);
-      queryDialog.style.display = "flex";
-    }
-
     var state = getSearchState(cm);
     if (state.query) return findNext(cm, rev);
     var q = cm.getSelection() || state.lastQuery;
@@ -153,7 +139,7 @@
             (hiding = dialog).style.opacity = .4
         })
       };
-      persistentDialog(cm, queryDialog, q, searchNext, function(event, query) {
+      persistentDialog(cm, getQueryDialog(cm), q, searchNext, function(event, query) {
         var keyName = CodeMirror.keyName(event)
         var extra = cm.getOption('extraKeys'), cmd = (extra && extra[keyName]) || CodeMirror.keyMap[cm.getOption("keyMap")][keyName]
         if (cmd == "findNext" || cmd == "findPrev" ||
@@ -171,7 +157,7 @@
         findNext(cm, rev);
       }
     } else {
-      dialog(cm, queryDialog, "Search for:", q, function(query) {
+      dialog(cm, getQueryDialog(cm), "Search for:", q, function(query) {
         if (query && !state.query) cm.operation(function() {
           startSearch(cm, state, query);
           state.posFrom = state.posTo = cm.getCursor();
@@ -203,6 +189,48 @@
     if (state.annotate) { state.annotate.clear(); state.annotate = null; }
   });}
 
+  function el(tag, attrs) {
+    var element = tag ? document.createElement(tag) : document.createDocumentFragment();
+    for (var key in attrs) {
+      element[key] = attrs[key];
+    }
+    for (var i = 2; i < arguments.length; i++) {
+      var child = arguments[i]
+      element.appendChild(typeof child == "string" ? document.createTextNode(child) : child);
+    }
+    return element;
+  }
+
+  function getQueryDialog(cm)  {
+    var label = el("label", {className: "CodeMirror-search-label"},
+                   cm.phrase("Search:"),
+                   el("input", {type: "text", "style": "width: 10em", className: "CodeMirror-search-field",
+                                id: "CodeMirror-search-field"}));
+    label.setAttribute("for","CodeMirror-search-field");
+    return el("", null, label, " ",
+              el("span", {style: "color: #666", className: "CodeMirror-search-hint"},
+                 cm.phrase("(Use /re/ syntax for regexp search)")));
+  }
+  function getReplaceQueryDialog(cm) {
+    return el("", null, " ",
+              el("input", {type: "text", "style": "width: 10em", className: "CodeMirror-search-field"}), " ",
+              el("span", {style: "color: #666", className: "CodeMirror-search-hint"},
+                 cm.phrase("(Use /re/ syntax for regexp search)")));
+  }
+  function getReplacementQueryDialog(cm) {
+    return el("", null,
+              el("span", {className: "CodeMirror-search-label"}, cm.phrase("With:")), " ",
+              el("input", {type: "text", "style": "width: 10em", className: "CodeMirror-search-field"}));
+  }
+  function getDoReplaceConfirm(cm) {
+    return el("", null,
+              el("span", {className: "CodeMirror-search-label"}, cm.phrase("Replace?")), " ",
+              el("button", {}, cm.phrase("Yes")), " ",
+              el("button", {}, cm.phrase("No")), " ",
+              el("button", {}, cm.phrase("All")), " ",
+              el("button", {}, cm.phrase("Stop")));
+  }
+
   function replaceAll(cm, query, text) {
     cm.operation(function() {
       for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
@@ -217,47 +245,14 @@
   function replace(cm, all) {
     if (cm.getOption("readOnly")) return;
     var query = cm.getSelection() || getSearchState(cm).lastQuery;
-
-    let doc = cm.getWrapperElement().ownerDocument;
-
-    // `searchLabel` is used as part of `replaceQueryFragment` and as a separate
-    // argument by itself, so it should be cloned.
-    let searchLabel = doc.createElement("span");
-    searchLabel.classList.add("CodeMirror-search-label");
-    searchLabel.textContent = all ? "Replace all:" : "Replace:";
-
-    let replaceQueryFragment = doc.createDocumentFragment();
-    replaceQueryFragment.appendChild(searchLabel.cloneNode(true));
-
-    let searchField = doc.createElement("input");
-    searchField.setAttribute("type", "text");
-    searchField.setAttribute("style", "width: 10em");
-    searchField.classList.add("CodeMirror-search-field");
-    replaceQueryFragment.appendChild(searchField);
-
-    let searchHint = doc.createElement("span");
-    searchHint.setAttribute("style", "color: #888");
-    searchHint.classList.add("CodeMirror-search-hint");
-    searchHint.textContent = "(Use /re/ syntax for regexp search)";
-    replaceQueryFragment.appendChild(searchHint);
-
-    dialog(cm, replaceQueryFragment, searchLabel, query, function(query) {
+    var dialogText = all ? cm.phrase("Replace all:") : cm.phrase("Replace:")
+    var fragment = el("", null,
+                      el("span", {className: "CodeMirror-search-label"}, dialogText),
+                      getReplaceQueryDialog(cm))
+    dialog(cm, fragment, dialogText, query, function(query) {
       if (!query) return;
       query = parseQuery(query);
-
-      let replacementQueryFragment = doc.createDocumentFragment();
-
-      let replaceWithLabel = searchLabel.cloneNode(false);
-      replaceWithLabel.textContent = "With:";
-      replacementQueryFragment.appendChild(replaceWithLabel);
-
-      let replaceField = doc.createElement("input");
-      replaceField.setAttribute("type", "text");
-      replaceField.setAttribute("style", "width: 10em");
-      replaceField.classList.add("CodeMirror-search-field");
-      replacementQueryFragment.appendChild(replaceField);
-
-      dialog(cm, replacementQueryFragment, "Replace with:", "", function(text) {
+      dialog(cm, getReplacementQueryDialog(cm), cm.phrase("Replace with:"), "", function(text) {
         text = parseString(text)
         if (all) {
           replaceAll(cm, query, text)
@@ -272,31 +267,8 @@
                   (start && cursor.from().line == start.line && cursor.from().ch == start.ch)) return;
             }
             cm.setSelection(cursor.from(), cursor.to());
-            cm.scrollIntoView({ from: cursor.from(), to: cursor.to() });
-
-            let replaceConfirmFragment = doc.createDocumentFragment();
-
-            let replaceConfirmLabel = searchLabel.cloneNode(false);
-            replaceConfirmLabel.textContent = "Replace?";
-            replaceConfirmFragment.appendChild(replaceConfirmLabel);
-
-            let yesButton = doc.createElement("button");
-            yesButton.textContent = "Yes";
-            replaceConfirmFragment.appendChild(yesButton);
-
-            let noButton = doc.createElement("button");
-            noButton.textContent = "No";
-            replaceConfirmFragment.appendChild(noButton);
-
-            let allButton = doc.createElement("button");
-            allButton.textContent = "All";
-            replaceConfirmFragment.appendChild(allButton);
-
-            let stopButton = doc.createElement("button");
-            stopButton.textContent = "Stop";
-            replaceConfirmFragment.appendChild(stopButton);
-
-            confirmDialog(cm, replaceConfirmFragment, "Replace?",
+            cm.scrollIntoView({from: cursor.from(), to: cursor.to()});
+            confirmDialog(cm, getDoReplaceConfirm(cm), cm.phrase("Replace?"),
                           [function() {doReplace(match);}, advance,
                            function() {replaceAll(cm, query, text)}]);
           };
