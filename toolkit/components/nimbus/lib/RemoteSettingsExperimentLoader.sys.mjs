@@ -37,7 +37,6 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 const COLLECTION_ID_FALLBACK = "nimbus-desktop-experiments";
-const ENABLED_PREF = "messaging-system.rsexperimentloader.enabled";
 const TARGETING_CONTEXT_TELEMETRY_ENABLED_PREF =
   "nimbus.telemetry.targetingContextEnabled";
 
@@ -145,14 +144,6 @@ export class _RemoteSettingsExperimentLoader {
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
-      "enabled",
-      ENABLED_PREF,
-      false,
-      this.onEnabledPrefChange.bind(this)
-    );
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
       "intervalInSeconds",
       RUN_INTERVAL_PREF,
       21600,
@@ -183,7 +174,7 @@ export class _RemoteSettingsExperimentLoader {
   async init(options = {}) {
     const { forceSync = false } = options;
 
-    if (this._initialized || !this.enabled || !this.studiesEnabled) {
+    if (this._initialized || !this.studiesEnabled) {
       return;
     }
 
@@ -484,14 +475,15 @@ export class _RemoteSettingsExperimentLoader {
   }
 
   /**
-   * Handles feature status based on feature pref and STUDIES_OPT_OUT_PREF.
-   * Changing any of them to false will turn off any recipe fetching and
+   * Handles feature status based on STUDIES_OPT_OUT_PREF.
+   *
+   * Changing this pref to false will turn off any recipe fetching and
    * processing.
    */
   onEnabledPrefChange() {
-    if (this._initialized && !(this.enabled && this.studiesEnabled)) {
+    if (this._initialized && !this.studiesEnabled) {
       this.uninit();
-    } else if (!this._initialized && this.enabled && this.studiesEnabled) {
+    } else if (!this._initialized && this.studiesEnabled) {
       // If the feature pref is turned on then turn on recipe processing.
       // If the opt in pref is turned on then turn on recipe processing only if
       // the feature pref is also enabled.
