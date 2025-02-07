@@ -38,6 +38,7 @@
 #include "api/scoped_refptr.h"
 #include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/video/resolution.h"
@@ -55,6 +56,7 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/wait_until.h"
 
 using ::testing::AllOf;
 using ::testing::Each;
@@ -71,36 +73,6 @@ namespace webrtc {
 namespace {
 
 constexpr TimeDelta kDefaultTimeout = TimeDelta::Seconds(5);
-
-MATCHER(IsRtcOk, "") {
-  if (!arg.ok()) {
-    *result_listener << "Expected OK, got " << arg.error().message();
-    return false;
-  }
-  return true;
-}
-
-template <typename Fn, typename Matcher>
-auto WaitForCondition(const Fn& fn,
-                      Matcher matcher,
-                      TimeDelta timeout = kDefaultTimeout)
-    -> RTCErrorOr<decltype(fn())> {
-  testing::StringMatchResultListener listener;
-  int64_t start = rtc::SystemTimeMillis();
-  auto result = fn();
-  if (testing::ExplainMatchResult(matcher, result, &listener)) {
-    return result;
-  }
-  do {
-    rtc::Thread::Current()->ProcessMessages(0);
-    rtc::Thread::Current()->SleepMs(1);
-    result = fn();
-    if (testing::ExplainMatchResult(matcher, result, &listener)) {
-      return result;
-    }
-  } while (rtc::SystemTimeMillis() < start + timeout.ms());
-  return RTCError(RTCErrorType::INTERNAL_ERROR, listener.str());
-}
 
 // Most tests pass in 20-30 seconds, but some tests take longer such as AV1
 // requiring additional ramp-up time (https://crbug.com/webrtc/15006) or SVC
@@ -993,7 +965,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // Since the standard API is configuring simulcast we get three outbound-rtps,
   // and two are active.
   ASSERT_THAT(
-      WaitForCondition(
+      WaitUntil(
           [&] {
             std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
                 GetStats(local_pc_wrapper)
@@ -1005,7 +977,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
             }
             return bytes_sent;
           },
-          AllOf(SizeIs(3), Each(Gt(0))), kLongTimeoutForRampingUp),
+          AllOf(SizeIs(3), Each(Gt(0))), {.timeout = kLongTimeoutForRampingUp}),
       IsRtcOk());
   rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
   ASSERT_TRUE(report);
@@ -1031,7 +1003,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // Deactivate the active layer.
   parameters.encodings[2].active = false;
   EXPECT_TRUE(sender->SetParameters(parameters).ok());
-  ASSERT_THAT(WaitForCondition(
+  ASSERT_THAT(WaitUntil(
                   [&]() {
                     return GetStats(local_pc_wrapper)
                         ->GetStatsOfType<RTCOutboundRtpStreamStats>();

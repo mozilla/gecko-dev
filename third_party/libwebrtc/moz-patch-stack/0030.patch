@@ -206,7 +206,7 @@ index 373e029de9..8e1550ce04 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 9cab2b0f5b..1bb82bbd03 100644
+index 02dbe8da60..388ec39994 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -44,6 +44,9 @@ rtc_source_set("enable_media") {
@@ -298,7 +298,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
  
  rtc_source_set("frame_transformer_interface") {
    visibility = [ "*" ]
-@@ -582,6 +611,7 @@ rtc_source_set("peer_network_dependencies") {
+@@ -595,6 +624,7 @@ rtc_source_set("peer_network_dependencies") {
  }
  
  rtc_source_set("peer_connection_quality_test_fixture_api") {
@@ -306,7 +306,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
    visibility = [ "*" ]
    testonly = true
    sources = [ "test/peerconnection_quality_test_fixture.h" ]
-@@ -627,6 +657,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
+@@ -640,6 +670,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -314,7 +314,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
  
  rtc_source_set("frame_generator_api") {
    visibility = [ "*" ]
-@@ -749,6 +780,7 @@ rtc_library("create_frame_generator") {
+@@ -762,6 +793,7 @@ rtc_library("create_frame_generator") {
    ]
  }
  
@@ -322,7 +322,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
  rtc_library("create_peer_connection_quality_test_frame_generator") {
    visibility = [ "*" ]
    testonly = true
-@@ -766,6 +798,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
+@@ -779,6 +811,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
      "units:time_delta",
    ]
  }
@@ -330,7 +330,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -950,6 +983,7 @@ rtc_source_set("refcountedbase") {
+@@ -963,6 +996,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index 9cab2b0f5b..1bb82bbd03 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -975,6 +1009,7 @@ rtc_library("ice_transport_factory") {
+@@ -988,6 +1022,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }
@@ -1229,7 +1229,7 @@ index b18114f107..3ca6994c81 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index d5a5314f0e..4034e3f067 100644
+index 09bfbf8785..9c15c23833 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -229,6 +229,7 @@ rtc_library("audio_test_common") {
@@ -1271,7 +1271,7 @@ index d5a5314f0e..4034e3f067 100644
      sources += [ "testsupport/jpeg_frame_writer.cc" ]
    } else {
      sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-@@ -1290,6 +1298,7 @@ if (!build_with_chromium) {
+@@ -1297,6 +1305,7 @@ if (!build_with_chromium) {
    }
  }
  
@@ -1279,7 +1279,7 @@ index d5a5314f0e..4034e3f067 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1303,6 +1312,7 @@ if (!build_with_chromium && is_android) {
+@@ -1310,6 +1319,7 @@ if (!build_with_chromium && is_android) {
      ]
    }
  }

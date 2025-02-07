@@ -56,4 +56,7 @@ specific_include_rules = {
   "videocodec_test_fixture\.h": [
     "+modules/video_coding/codecs/h264/include/h264_globals.h",
   ],
+  "rtc_error_matchers\.h": [
+    "+test/gmock.h",
+  ],
 }
