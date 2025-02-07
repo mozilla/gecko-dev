@@ -31,7 +31,7 @@ function run() {
           'getTotalLength() on element id="path1" returned the wrong value');
 
   let r1 = document.getElementById("r1");
-  is(r1.getTotalLength(), 200, "getTotalLength() should work for non-rendered element");
+  is(r1.getTotalLength(), 210, "getTotalLength() should work for non-rendered element");
 
   let r2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   r2.setAttribute("width", 200);

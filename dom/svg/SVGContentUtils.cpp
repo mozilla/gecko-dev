@@ -393,9 +393,16 @@ bool SVGContentUtils::EstablishesViewport(const nsIContent* aContent) {
   // Although SVG 1.1 states that <image> is an element that establishes a
   // viewport, this is really only for the document it references, not
   // for any child content, which is what this function is used for.
-  return aContent &&
-         aContent->IsAnyOfSVGElements(nsGkAtoms::svg, nsGkAtoms::foreignObject,
-                                      nsGkAtoms::symbol);
+  if (!aContent) {
+    return false;
+  }
+  // A symbol element only establishes a viewport if it is instanced by a use
+  // element.
+  if (aContent->IsSVGElement(nsGkAtoms::symbol) &&
+      aContent->IsInSVGUseShadowTree()) {
+    return true;
+  }
+  return aContent->IsAnyOfSVGElements(nsGkAtoms::svg, nsGkAtoms::foreignObject);
 }
 
 SVGViewportElement* SVGContentUtils::GetNearestViewportElement(

@@ -79,8 +79,8 @@ function runTest() {
   is((function() { try { return g4.getCTM().e; } catch (e) { return e; } })(), 1, "g4.getCTM().e");
   is((function() { try { return g4.getCTM().f; } catch (e) { return e; } })(), 2, "g4.getCTM().f");
   // symbolRect.nearestViewportElement == sym
-  is((function() { try { return symbolRect.getCTM().e; } catch (e) { return e; } })(), 70, "symbolRect.getCTM().e");
-  is((function() { try { return symbolRect.getCTM().f; } catch (e) { return e; } })(), 80, "symbolRect.getCTM().f");
+  is((function() { try { return symbolRect.getCTM().e; } catch (e) { return e; } })(), 71, "symbolRect.getCTM().e");
+  is((function() { try { return symbolRect.getCTM().f; } catch (e) { return e; } })(), 82, "symbolRect.getCTM().f");
   // fO.nearestViewportElement == <svg> with no 'id'
   is((function() { try { return fO.getCTM().e; } catch (e) { return e; } })(), 2, "fO.getCTM().e");
   is((function() { try { return fO.getCTM().f; } catch (e) { return e; } })(), 3, "fO.getCTM().f");

@@ -28,7 +28,6 @@ function runTest() {
   var outer = doc.getElementById("outer");
   var g2 = doc.getElementById("g2");
   var g3 = doc.getElementById("g3");
-  var sym = doc.getElementById("sym");
   var symbolRect = doc.getElementById("symbolRect");
 
   <!-- ownerSVGElement -->
@@ -47,7 +46,7 @@ function runTest() {
   is(outer.viewportElement, null, "outer.viewportElement");
   is(g2.viewportElement, outer, "g2.viewportElement");
   is(g3.viewportElement, null, "g3.viewportElement");
-  is(symbolRect.viewportElement, sym, "symbolRect.viewportElement");
+  is(symbolRect.viewportElement, root, "symbolRect.viewportElement");
 
   SimpleTest.finish();
 }
