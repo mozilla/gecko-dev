@@ -317,7 +317,6 @@ data class Addon(
             "privacy" to R.string.mozac_feature_addons_permissions_privacy_description,
             "<all_urls>" to R.string.mozac_feature_addons_permissions_all_urls_description,
             "tabs" to R.string.mozac_feature_addons_permissions_tabs_description,
-            "unlimitedStorage" to R.string.mozac_feature_addons_permissions_unlimited_storage_description,
             "webNavigation" to R.string.mozac_feature_addons_permissions_web_navigation_description,
             "bookmarks" to R.string.mozac_feature_addons_permissions_bookmarks_description,
             "browserSettings" to R.string.mozac_feature_addons_permissions_browser_setting_description,
