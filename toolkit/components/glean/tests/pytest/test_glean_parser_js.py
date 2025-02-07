@@ -30,7 +30,7 @@ def test_all_metric_types():
     UPDATE_EXPECT=1 mach test toolkit/components/glean/tests/pytest
     """
 
-    options = {"allow_reserved": False}
+    options = {"allow_reserved": False, "is_local_build": False}
     input_files = [
         Path(path.join(path.dirname(__file__), x))
         for x in ["metrics_test.yaml", "metrics2_test.yaml"]

@@ -39,31 +39,41 @@ def generate_ping_ids(objs):
     return lambda ping_name: ping_id_mapping[ping_name]
 
 
-def generate_metric_ids(objs):
+def generate_metric_ids(objs, options):
     """
     Return a lookup function for metric IDs per metric object.
 
     :param objs: A tree of metrics as returned from `parser.parse_objects`.
     """
 
-    # Metric ID 0 is reserved (but unused) right now.
-    metric_ids = {0}
-
     # Mapping from a tuple of (category name, metric name) to the metric's numeric ID
     metric_id_mapping = {}
-    for category_name, metrics in objs.items():
-        if category_name == "tags":
-            continue
-        for metric in metrics.values():
-            metric_id = (
-                int(sha1(str.encode(metric.identifier())).hexdigest(), 16) % 2**25
-            )
-            # Avoid collisions by incrementing the number until we find an unused id.
-            while metric_id in metric_ids:
-                metric_id = (metric_id + 1) % 2**25
-            assert metric_id < 2**25
-            metric_ids.add(metric_id)
-            metric_id_mapping[(category_name, metric.name)] = metric_id
+
+    if options.get("is_local_build"):
+        # Metric ID 0 is reserved (but unused) right now.
+        metric_ids = {0}
+
+        for category_name, metrics in objs.items():
+            if category_name == "tags":
+                continue
+            for metric in metrics.values():
+                metric_id = (
+                    int(sha1(str.encode(metric.identifier())).hexdigest(), 16) % 2**25
+                )
+                # Avoid collisions by incrementing the number until we find an unused id.
+                while metric_id in metric_ids:
+                    metric_id = (metric_id + 1) % 2**25
+                assert metric_id < 2**25
+                metric_ids.add(metric_id)
+                metric_id_mapping[(category_name, metric.name)] = metric_id
+    else:
+        # Metric ID 0 is reserved (but unused) right now.
+        metric_id = 1
+
+        for category_name, metrics in objs.items():
+            for metric in metrics.values():
+                metric_id_mapping[(category_name, metric.name)] = metric_id
+                metric_id += 1
 
     return lambda metric: metric_id_mapping[(metric.category, metric.name)]
 

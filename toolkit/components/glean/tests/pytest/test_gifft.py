@@ -28,7 +28,7 @@ def test_gifft_codegen():
     UPDATE_EXPECT=1 mach test toolkit/components/glean/tests/pytest
     """
 
-    options = {"allow_reserved": False}
+    options = {"allow_reserved": False, "is_local_build": False}
     here_path = Path(path.dirname(__file__))
     input_files = [here_path / "metrics_test.yaml"]
 
@@ -37,7 +37,9 @@ def test_gifft_codegen():
     for probe_type in ("Event", "Histogram", "Scalar"):
         output_fd = io.StringIO()
         cpp_fd = io.StringIO()
-        run_glean_parser.output_gifft_map(output_fd, probe_type, all_objs, cpp_fd)
+        run_glean_parser.output_gifft_map(
+            output_fd, probe_type, all_objs, cpp_fd, options
+        )
 
         expect(here_path / f"gifft_output_{probe_type}", output_fd.getvalue())
 
