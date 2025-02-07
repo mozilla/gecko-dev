@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '17db06ef3c97c2b0e8544774ad8fd499cc4dd7a6',
+  'chromium_revision': 'a8c0dedd37024128580e241af0d6c47ba97e6dc6',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -33,7 +33,7 @@ vars = {
 
   # By default, download the fuchsia sdk from the public sdk directory.
   'fuchsia_sdk_cipd_prefix': 'fuchsia/sdk/core/',
-  'fuchsia_version': 'version:26.20241213.3.1',
+  'fuchsia_version': 'version:26.20241220.3.1',
   # By default, download the fuchsia images from the fuchsia GCS bucket.
   'fuchsia_images_bucket': 'fuchsia',
   'checkout_fuchsia': False,
@@ -64,9 +64,9 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@fe7fa415c0edcf3fc082e7ed1ec4f7277343fc78',
+    'https://chromium.googlesource.com/chromium/src/base@cee24df3afcd636a60a049838a2ff3f87381dbb5',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@336a4b5795fe8b19391b57cf88da436361d4b431',
+    'https://chromium.googlesource.com/chromium/src/build@f90338c09728596345126a0348b2c6821c61bce6',
   'src/buildtools':
     'https://chromium.googlesource.com/chromium/src/buildtools@c1b2946e54cd596882f29a9dc1f98cbc7ccff301',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@96b721b3b38a62f9cdc160b738b89e510e06e61f',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@9a9909ffb4d6ee318132d88afd45d7c5b1d273ba',
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@322759cc3cfcd26ef765827712d18fdd8c6dcdca',
+    'https://chromium.googlesource.com/chromium/src/testing@9b91b94c6e67ab067eb6ffcc204b1ca4bd613698',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@e74a2dcad58895c41400af22f3073155e28f528f',
+    'https://chromium.googlesource.com/chromium/src/third_party@6f5c3d0750273da2355776f1ca4e4ec50c51cbca',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -303,7 +303,7 @@ deps = {
   'src/third_party/crc32c/src':
     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@d3d60ac6e0f16780bcfcc825385e1d338801a558',
   'src/third_party/depot_tools':
-    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@5327157a5fce9ab180a9f4935012329ae4118b08',
+    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@19548ed7a2290475d7aaf0d09cb00170df541c33',
   'src/third_party/ffmpeg':
     'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@d10a0f8bf5ddcce572df95105152bc74041cae0c',
   'src/third_party/flatbuffers/src':
@@ -402,7 +402,7 @@ deps = {
       'condition': 'checkout_android',
   },
   'src/third_party/perfetto':
-    'https://android.googlesource.com/platform/external/perfetto.git@aa9d7f1eb1622c52d36710a3d45088e119ecd151',
+    'https://android.googlesource.com/platform/external/perfetto.git@276f2749be96bb7b7677796a33eb3e9df36ec248',
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
   'src/third_party/libvpx/source/libvpx':
@@ -461,7 +461,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@692a5c9e6a87b9a251d9eb0fca300aa9ab86af56',
+    'https://chromium.googlesource.com/chromium/src/tools@87aac29040213356b8bc024cfa19ec4752c27a88',
 
   'src/third_party/espresso': {
       'packages': [
@@ -598,15 +598,15 @@ deps = {
       'packages': [
         {
           'package': 'infra/tools/luci/cas/${{platform}}',
-          'version': 'git_revision:cde70f87137f7a20bfc3c8d0c03a25c29932a790',
+          'version': 'git_revision:320a8df0f7934159fda7721f3b507e707531d284',
         },
         {
           'package': 'infra/tools/luci/isolate/${{platform}}',
-          'version': 'git_revision:cde70f87137f7a20bfc3c8d0c03a25c29932a790',
+          'version': 'git_revision:320a8df0f7934159fda7721f3b507e707531d284',
         },
         {
           'package': 'infra/tools/luci/swarming/${{platform}}',
-          'version': 'git_revision:cde70f87137f7a20bfc3c8d0c03a25c29932a790',
+          'version': 'git_revision:320a8df0f7934159fda7721f3b507e707531d284',
         }
       ],
       'dep_type': 'cipd',
