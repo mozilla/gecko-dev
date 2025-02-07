@@ -8,6 +8,7 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import mozilla.components.service.pocket.ext.recordNewImpression
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
@@ -193,11 +194,21 @@ internal object ContentRecommendationsReducer {
                     }
                 }
 
+                val sponsoredContentShown = stories.filterIsInstance<SponsoredContent>()
+                val updatedSponsoredContents = state.recommendationState.sponsoredContents.map { spoc ->
+                    if (sponsoredContentShown.contains(spoc)) {
+                        spoc.recordNewImpression()
+                    } else {
+                        spoc
+                    }
+                }
+
                 state.copyWithRecommendationsState {
                     it.copy(
                         pocketStoriesCategories = updatedCategories,
                         pocketSponsoredStories = updatedSponsoredStories,
                         contentRecommendations = updatedRecommendations,
+                        sponsoredContents = updatedSponsoredContents,
                     )
                 }
             }

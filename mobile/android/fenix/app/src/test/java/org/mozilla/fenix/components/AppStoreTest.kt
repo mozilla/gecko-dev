@@ -654,6 +654,59 @@ class AppStoreTest {
     }
 
     @Test
+    fun `WHEN sponsored contents are shown THEN update the impressions of sponsored contents`() = runTest {
+        val sponsoredContent = SponsoredContent(
+            url = "https://firefox.com",
+            title = "Firefox",
+            callbacks = SponsoredContentCallbacks(
+                clickUrl = "https://firefox.com/click",
+                impressionUrl = "https://firefox.com/impression",
+            ),
+            imageUrl = "https://test.com/image1.jpg",
+            domain = "firefox.com",
+            excerpt = "Mozilla Firefox",
+            sponsor = "Mozilla",
+            blockKey = "1",
+            caps = SponsoredContentFrequencyCaps(
+                currentImpressions = listOf(1, 2),
+                flightCount = 10,
+                flightPeriod = 86400,
+            ),
+            priority = 3,
+        )
+        val sponsoredContent2 = sponsoredContent.copy(url = "https://firefox.com/2")
+        val sponsoredContent3 = sponsoredContent.copy(url = "https://firefox.com/3")
+        val sponsoredContent4 = sponsoredContent.copy(url = "https://firefox.com/4")
+        appStore = AppStore(
+            AppState(
+                recommendationState = ContentRecommendationsState(
+                    sponsoredContents = listOf(
+                        sponsoredContent,
+                        sponsoredContent2,
+                        sponsoredContent3,
+                        sponsoredContent4,
+                    ),
+                ),
+            ),
+        )
+
+        appStore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                impressions = listOf(
+                    PocketImpression(story = sponsoredContent, position = 0),
+                    PocketImpression(story = sponsoredContent3, position = 2),
+                ),
+            ),
+        ).join()
+
+        assertEquals(4, appStore.state.recommendationState.sponsoredContents.size)
+        assertEquals(3, appStore.state.recommendationState.sponsoredContents[0].caps.currentImpressions.size)
+        assertEquals(2, appStore.state.recommendationState.sponsoredContents[1].caps.currentImpressions.size)
+        assertEquals(3, appStore.state.recommendationState.sponsoredContents[2].caps.currentImpressions.size)
+        assertEquals(2, appStore.state.recommendationState.sponsoredContents[3].caps.currentImpressions.size)
+    }
+
+    @Test
     fun `WHEN content recommendations are shown THEN update the impressions of recommendations`() = runTest {
         val recommendation1 = ContentRecommendation(
             corpusItemId = "0",
