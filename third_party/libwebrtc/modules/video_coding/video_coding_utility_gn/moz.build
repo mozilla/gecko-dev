@@ -32,6 +32,7 @@ LOCAL_INCLUDES += [
 
 UNIFIED_SOURCES += [
     "/third_party/libwebrtc/modules/video_coding/utility/bandwidth_quality_scaler.cc",
+    "/third_party/libwebrtc/modules/video_coding/utility/corruption_detection_settings_generator.cc",
     "/third_party/libwebrtc/modules/video_coding/utility/decoded_frames_history.cc",
     "/third_party/libwebrtc/modules/video_coding/utility/frame_dropper.cc",
     "/third_party/libwebrtc/modules/video_coding/utility/framerate_controller_deprecated.cc",
