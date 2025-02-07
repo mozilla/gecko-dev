@@ -8464,6 +8464,7 @@ void Document::EndLoad() {
   // only assert if nothing stopped the load on purpose
   if (!mParserAborted) {
     nsContentSecurityUtils::AssertAboutPageHasCSP(this);
+    nsContentSecurityUtils::AssertChromePageHasCSP(this);
   }
 #endif
 

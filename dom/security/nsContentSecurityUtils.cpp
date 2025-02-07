@@ -41,10 +41,10 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/glean/DomSecurityMetrics.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "LoadInfo.h"
-#include "mozilla/StaticPrefs_extensions.h"
-#include "mozilla/StaticPrefs_dom.h"
 #include "nsIConsoleService.h"
 #include "nsIStringBundle.h"
 
@@ -1739,6 +1739,111 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
     MOZ_ASSERT(false, "Unchecked CSP directive found on internal page.");
   }
 }
+
+/* static */
+void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
+  nsCOMPtr<nsIURI> documentURI = aDocument->GetDocumentURI();
+  if (!documentURI->SchemeIs("chrome")) {
+    return;
+  }
+
+  // We load a lot of SVG images from chrome:.
+  if (aDocument->IsBeingUsedAsImage() || aDocument->IsLoadedAsData()) {
+    return;
+  }
+
+  nsAutoCString spec;
+  documentURI->GetSpec(spec);
+
+  nsCOMPtr<nsIContentSecurityPolicy> csp = aDocument->GetCsp();
+  uint32_t count = 0;
+  if (csp) {
+    static_cast<nsCSPContext*>(csp.get())->GetPolicyCount(&count);
+  }
+  if (count != 0) {
+    return;
+  }
+
+  static nsLiteralCString sAllowedChromePagesWithNoCSP[] = {
+      "chrome://browser/content/default-bookmarks.html"_ns,
+      "chrome://browser/content/places/interactionsViewer.html"_ns,
+      "chrome://browser/content/safeMode.xhtml"_ns,
+      "chrome://browser/content/shopping/review-checker.xhtml"_ns,
+      "chrome://browser/content/webext-panels.xhtml"_ns,
+      "chrome://browser/content/webrtcIndicator.xhtml"_ns,
+      "chrome://devtools/content/accessibility/index.html"_ns,
+      "chrome://devtools/content/debugger/index.html"_ns,
+      "chrome://devtools/content/dom/index.html"_ns,
+      "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
+      "chrome://devtools/content/framework/toolbox-options.html"_ns,
+      "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
+      "chrome://devtools/content/inspector/index.xhtml"_ns,
+      "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
+      "chrome://devtools/content/memory/index.xhtml"_ns,
+      "chrome://devtools/content/netmonitor/index.html"_ns,
+      "chrome://devtools/content/performance-new/panel/index.xhtml"_ns,
+      "chrome://devtools/content/responsive/toolbar.xhtml"_ns,
+      "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
+      "chrome://devtools/content/shared/webextension-fallback.html"_ns,
+      "chrome://devtools/content/storage/index.xhtml"_ns,
+      "chrome://devtools/content/styleeditor/index.xhtml"_ns,
+      "chrome://devtools/content/webconsole/index.html"_ns,
+      "chrome://devtools/skin/images/alert.svg"_ns,
+      "chrome://extensions/content/dummy.xhtml"_ns,
+      "chrome://formautofill/content/editAddress.xhtml"_ns,
+      "chrome://formautofill/content/editCreditCard.xhtml"_ns,
+      "chrome://formautofill/content/manageAddresses.xhtml"_ns,
+      "chrome://formautofill/content/manageCreditCards.xhtml"_ns,
+      "chrome://geckoview/content/geckoview.xhtml"_ns,
+      "chrome://gfxsanity/content/sanityparent.html"_ns,
+      "chrome://gfxsanity/content/sanitytest.html"_ns,
+      "chrome://global/content/alerts/alert.xhtml"_ns,
+      "chrome://global/content/appPicker.xhtml"_ns,
+      "chrome://global/content/backgroundPageThumbs.xhtml"_ns,
+      "chrome://global/content/datepicker.xhtml"_ns,
+      "chrome://global/content/megalist/megalist.html"_ns,
+      "chrome://global/content/selectDialog.xhtml"_ns,
+      "chrome://global/content/timepicker.xhtml"_ns,
+      "chrome://global/content/win.xhtml"_ns,
+      "chrome://global/skin/in-content/info-pages.css"_ns,
+      "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
+      "chrome://mozapps/content/downloads/unknownContentType.xhtml"_ns,
+      "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
+      "chrome://mozapps/content/handling/permissionDialog.xhtml"_ns,
+      "chrome://mozapps/content/preferences/changemp.xhtml"_ns,
+      "chrome://mozapps/content/update/history.xhtml"_ns,
+      "chrome://mozapps/content/update/updateElevation.xhtml"_ns,
+      "chrome://pippki/content/certManager.xhtml"_ns,
+      "chrome://pippki/content/clientauthask.xhtml"_ns,
+      "chrome://pippki/content/deletecert.xhtml"_ns,
+      "chrome://pippki/content/device_manager.xhtml"_ns,
+      "chrome://pippki/content/downloadcert.xhtml"_ns,
+      "chrome://pippki/content/editcacert.xhtml"_ns,
+      "chrome://pippki/content/exceptionDialog.xhtml"_ns,
+      "chrome://pippki/content/load_device.xhtml"_ns,
+      "chrome://pippki/content/setp12password.xhtml"_ns,
+      // Test files
+      "chrome://mochikit/"_ns,
+      "chrome://mochitests/"_ns,
+      "chrome://reftest/"_ns,
+      "chrome://remote/content/marionette/"_ns,
+  };
+
+  for (const nsLiteralCString& entry : sAllowedChromePagesWithNoCSP) {
+    if (StringBeginsWith(spec, entry)) {
+      return;
+    }
+  }
+
+  // CSP for browser.xhtml has been disabled
+  if (spec.EqualsLiteral("chrome://browser/content/browser.xhtml") &&
+      !StaticPrefs::security_browser_xhtml_csp_enabled()) {
+    return;
+  }
+
+  MOZ_CRASH_UNSAFE_PRINTF("Document (%s) does not have a CSP!", spec.get());
+}
+
 #endif
 
 /* static */
