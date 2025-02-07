@@ -10,7 +10,7 @@ add_task(async function test_removalMessage() {
   );
 
   BrowserUtils.callModulesFromCategory(
-    "search-service-notification",
+    { categoryName: "search-service-notification" },
     "search-engine-removal",
     "Engine 1",
     "Engine 2"

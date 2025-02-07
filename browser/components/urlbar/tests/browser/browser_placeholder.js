@@ -378,7 +378,7 @@ add_task(async function test_change_default_engine_updates_placeholder() {
 
   info("Show search engine removal info bar");
   BrowserUtils.callModulesFromCategory(
-    "search-service-notification",
+    { categoryName: "search-service-notification" },
     "search-engine-removal",
     extraEngine.name,
     appDefaultEngine.name

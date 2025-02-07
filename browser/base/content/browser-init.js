@@ -416,7 +416,10 @@ var gBrowserInit = {
     WebAuthnPromptHelper.init();
 
     BrowserUtils.callModulesFromCategory(
-      "browser-window-delayed-startup",
+      {
+        categoryName: "browser-window-delayed-startup",
+        profilerMarker: "delayed-startup-task",
+      },
       window
     );
 

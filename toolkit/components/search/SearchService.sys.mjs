@@ -3616,7 +3616,7 @@ export class SearchService {
     newCurrentEngineName
   ) {
     lazy.BrowserUtils.callModulesFromCategory(
-      "search-service-notification",
+      { categoryName: "search-service-notification" },
       "search-engine-removal",
       prevCurrentEngineName,
       newCurrentEngineName

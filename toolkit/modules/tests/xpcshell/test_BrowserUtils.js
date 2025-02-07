@@ -306,7 +306,7 @@ add_task(async function test_callModulesFromCategory() {
 
   try {
     // There's nothing in this category right now so this should be a no-op.
-    BrowserUtils.callModulesFromCategory(CATEGORY, "Hello");
+    BrowserUtils.callModulesFromCategory({ categoryName: CATEGORY }, "Hello");
   } catch (ex) {
     Assert.ok(false, `Should not have thrown but received an exception ${ex}`);
   }
@@ -339,7 +339,7 @@ add_task(async function test_callModulesFromCategory() {
 
   // This entry will cause an observer topic to notify, so ensure that happens.
   let moduleResult = rvFromModule(OBSTOPIC1);
-  BrowserUtils.callModulesFromCategory(CATEGORY, "Hello");
+  BrowserUtils.callModulesFromCategory({ categoryName: CATEGORY }, "Hello");
   Assert.equal(
     Cu.isESModuleLoaded(MODULE1),
     true,
@@ -363,7 +363,7 @@ add_task(async function test_callModulesFromCategory() {
     rvFromModule(OBSTOPIC2),
   ]);
 
-  BrowserUtils.callModulesFromCategory(CATEGORY, "Hello");
+  BrowserUtils.callModulesFromCategory({ categoryName: CATEGORY }, "Hello");
   Assert.deepEqual(
     ["Hello", "Hello"],
     await moduleResult,
@@ -378,11 +378,24 @@ add_task(async function test_callModulesFromCategory() {
   Services.obs.addObserver(ob, OBSTOPIC1);
 
   moduleResult = rvFromModule(OBSTOPIC2);
-  BrowserUtils.callModulesFromCategory(CATEGORY, "Hello");
+  BrowserUtils.callModulesFromCategory({ categoryName: CATEGORY }, "Hello");
   Assert.equal(
     "Hello",
     await moduleResult,
     "Second module should still be called."
   );
+
+  let idleResult = null;
+  let idlePromise = TestUtils.topicObserved(OBSTOPIC2).then(([_subj, data]) => {
+    idleResult = data;
+    return data;
+  });
+  BrowserUtils.callModulesFromCategory(
+    { categoryName: CATEGORY, idleDispatch: true },
+    "Hello"
+  );
+  Assert.equal(idleResult, null, "Idle calls should not happen immediately.");
+  Assert.equal("Hello", await idlePromise, "Idle calls should run eventually.");
+
   Services.obs.removeObserver(ob, OBSTOPIC1);
 });

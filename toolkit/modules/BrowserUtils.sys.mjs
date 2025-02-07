@@ -38,18 +38,9 @@ ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
             if (!Object.hasOwn(this.cachedModules, module)) {
               this.cachedModules[module] = ChromeUtils.importESModule(module);
             }
-            let fn = async (...args) => {
-              try {
-                // This await doesn't do much as the caller won't await us,
-                // but means we can catch and report any exceptions.
-                await this.cachedModules[module][objName][method](...args);
-              } catch (ex) {
-                console.error(
-                  `Error in processing ${categoryName} for ${objName}`
-                );
-                console.error(ex);
-              }
-            };
+            let fn = (...args) =>
+              this.cachedModules[module][objName][method](...args);
+            fn._descriptiveName = value;
             return fn;
           } catch (ex) {
             console.error(
@@ -475,13 +466,64 @@ export var BrowserUtils = {
    * abstract away the actual work of invoking the modules/services.
    * Different in that it's JS-only and will invoke methods in modules
    * instead of using XPCOM services.
+   *
+   * The main benefits of using this over direct calls are:
+   * - error handling (one consumer throwing an exception doesn't stop the
+   *   others being called)
+   * - dependency injection (callsite doesn't have to [lazy] import half
+   *   the world to call all the methods)
+   * - performance/bootstrapping using build-time registration, when
+   *   compared to nsIObserver or events: with nsIObserver/handleEvent,
+   *   you'd have to call addObserver or addEventListener somewhere, which
+   *   means either loading your code early (bad for performance) or burdening
+   *   other code that already runs early with adding your handlers (not great
+   *   for code cleanliness).
+   *
+   * @param {Object} options
+   * @param {string} options.categoryName
+   *        What category's consumers to call
+   * @param {boolean} [options.idleDispatch=false]
+   *        If set to true, call each consumer in an idle task.
+   * @param {string} [options.profilerMarker=""]
+   *        If specified, will create a profiler marker with the provided
+   *        identifier for each consumer.
+   * @param {...any} args
+   *        Arguments to pass to the consumers.
    */
-  callModulesFromCategory(categoryName, ...args) {
+  callModulesFromCategory(
+    { categoryName, profilerMarker = "", idleDispatch = false },
+    ...args
+  ) {
+    // Use an async function for profiler markers and error handling.
+    // Note that we deliberately don't await at the top level, so we
+    // can guarantee all consumers get run/queued.
+    let callSingleListener = async fn => {
+      let startTime = profilerMarker ? Cu.now() : 0;
+      try {
+        await fn(...args);
+      } catch (ex) {
+        console.error(
+          `Error in processing ${categoryName} for ${fn._descriptiveName}`
+        );
+        console.error(ex);
+      }
+      if (profilerMarker) {
+        ChromeUtils.addProfilerMarker(
+          profilerMarker,
+          startTime,
+          fn._descriptiveName
+        );
+      }
+    };
+
     for (let listener of lazy.CatManListenerManager.getListeners(
       categoryName
     )) {
-      // Note that we deliberately do not await anything here.
-      listener(...args);
+      if (idleDispatch) {
+        ChromeUtils.idleDispatch(() => callSingleListener(listener));
+      } else {
+        callSingleListener(listener);
+      }
     }
   },
 
