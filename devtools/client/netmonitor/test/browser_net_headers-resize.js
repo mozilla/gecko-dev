@@ -25,16 +25,13 @@ async function testForGivenDir(dir) {
   const initialColumnData = Services.prefs.getCharPref(
     "devtools.netmonitor.columnsData"
   );
-  let visibleColumns = JSON.parse(
-    Services.prefs.getCharPref("devtools.netmonitor.visibleColumns")
-  );
 
   // Init network monitor
   const { monitor } = await initNetMonitor(SIMPLE_URL, {
     requestCount: 1,
   });
   info("Starting test... ");
-
+  let visibleColumns = getCurrentVisibleColumns(monitor);
   const { document, windowRequire, store } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   store.dispatch(Actions.batchEnable(false));
@@ -108,9 +105,7 @@ async function testForGivenDir(dir) {
   columnsData = JSON.parse(
     Services.prefs.getCharPref("devtools.netmonitor.columnsData")
   );
-  visibleColumns = JSON.parse(
-    Services.prefs.getCharPref("devtools.netmonitor.visibleColumns")
-  );
+  visibleColumns = getCurrentVisibleColumns(monitor);
 
   checkColumnsData(columnsData, "contentSize", 50);
   checkColumnsData(columnsData, "waterfall", 50);

@@ -272,6 +272,10 @@ const RESPONSE_HEADERS = [
 
 const HEADERS = [
   {
+    name: "override",
+    canFilter: false,
+  },
+  {
     name: "status",
     label: "status3",
     canFilter: true,

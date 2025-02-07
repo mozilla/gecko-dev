@@ -75,6 +75,11 @@ loader.lazyGetter(this, "RequestListColumnMethod", function () {
     require("resource://devtools/client/netmonitor/src/components/request-list/RequestListColumnMethod.js")
   );
 });
+loader.lazyGetter(this, "RequestListColumnOverride", function () {
+  return createFactory(
+    require("resource://devtools/client/netmonitor/src/components/request-list/RequestListColumnOverride.js")
+  );
+});
 loader.lazyGetter(this, "RequestListColumnProtocol", function () {
   return createFactory(
     require("resource://devtools/client/netmonitor/src/components/request-list/RequestListColumnProtocol.js")
@@ -181,6 +186,7 @@ const UPDATED_REQ_PROPS = [
  * in that list are passed as props verbatim.
  */
 const COLUMN_COMPONENTS = [
+  { column: "override", ColumnComponent: RequestListColumnOverride },
   { column: "status", ColumnComponent: RequestListColumnStatus },
   { column: "method", ColumnComponent: RequestListColumnMethod },
   {
@@ -254,27 +260,28 @@ class RequestListItem extends Component {
   static get propTypes() {
     return {
       blocked: PropTypes.bool,
-      connector: PropTypes.object.isRequired,
       columns: PropTypes.object.isRequired,
-      item: PropTypes.object.isRequired,
-      index: PropTypes.number.isRequired,
-      isSelected: PropTypes.bool.isRequired,
-      isVisible: PropTypes.bool.isRequired,
+      connector: PropTypes.object.isRequired,
       firstRequestStartedMs: PropTypes.number.isRequired,
       fromCache: PropTypes.bool,
+      item: PropTypes.object.isRequired,
+      index: PropTypes.number.isRequired,
+      intersectionObserver: PropTypes.object,
+      isSelected: PropTypes.bool.isRequired,
+      isVisible: PropTypes.bool.isRequired,
       networkActionOpen: PropTypes.bool,
       networkDetailsOpen: PropTypes.bool,
-      onInitiatorBadgeMouseDown: PropTypes.func.isRequired,
+      onContextMenu: PropTypes.func.isRequired,
       onDoubleClick: PropTypes.func.isRequired,
       onDragStart: PropTypes.func.isRequired,
-      onContextMenu: PropTypes.func.isRequired,
       onFocusedNodeChange: PropTypes.func,
+      onInitiatorBadgeMouseDown: PropTypes.func.isRequired,
       onMouseDown: PropTypes.func.isRequired,
       onSecurityIconMouseDown: PropTypes.func.isRequired,
       onWaterfallMouseDown: PropTypes.func.isRequired,
+      overriddenUrl: PropTypes.string,
       requestFilterTypes: PropTypes.object.isRequired,
       selectedActionBarTabId: PropTypes.string,
-      intersectionObserver: PropTypes.object,
       waterfallScale: PropTypes.number,
     };
   }
@@ -317,7 +324,8 @@ class RequestListItem extends Component {
         nextProps.item
       ) ||
       !propertiesEqual(UPDATED_REQ_PROPS, this.props, nextProps) ||
-      this.props.columns !== nextProps.columns
+      this.props.columns !== nextProps.columns ||
+      nextProps.overriddenUrl !== this.props.overriddenUrl
     );
   }
 

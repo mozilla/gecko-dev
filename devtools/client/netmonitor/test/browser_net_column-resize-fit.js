@@ -10,9 +10,6 @@ add_task(async function () {
   // Reset visibleColumns so we only get the default ones
   // and not all that are set in head.js
   Services.prefs.clearUserPref("devtools.netmonitor.visibleColumns");
-  const visibleColumns = JSON.parse(
-    Services.prefs.getCharPref("devtools.netmonitor.visibleColumns")
-  );
   // Init network monitor
   const { monitor } = await initNetMonitor(SIMPLE_URL, {
     requestCount: 1,
@@ -20,6 +17,8 @@ add_task(async function () {
   info("Starting test... ");
 
   const { document } = monitor.panelWin;
+
+  const visibleColumns = getCurrentVisibleColumns(monitor);
 
   // Wait for network events (to have some requests in the table)
   const wait = waitForNetworkEvents(monitor, 1);

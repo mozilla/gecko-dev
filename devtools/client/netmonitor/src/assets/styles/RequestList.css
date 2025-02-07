@@ -225,6 +225,10 @@
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+#requests-list-override-button:hover {
+  background-color: unset;
+}
+
 .requests-list-header-button > .button-text,
 .message-list-header-button > .button-text {
   display: inline-block;

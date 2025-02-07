@@ -196,7 +196,8 @@ Services.prefs.setCharPref(
 
 Services.prefs.setCharPref(
   "devtools.netmonitor.columnsData",
-  '[{"name":"status","minWidth":30,"width":5},' +
+  '[{"name":"override","minWidth":20,"width":2},' +
+    '{"name":"status","minWidth":30,"width":5},' +
     '{"name":"method","minWidth":30,"width":5},' +
     '{"name":"domain","minWidth":30,"width":10},' +
     '{"name":"file","minWidth":30,"width":25},' +
@@ -1694,4 +1695,19 @@ function resizeWaterfallColumn(
     { type: "mouseup" },
     win
   );
+}
+
+function getCurrentVisibleColumns(monitor) {
+  const { store, windowRequire } = monitor.panelWin;
+  const { getColumns, getVisibleColumns, hasOverride } = windowRequire(
+    "devtools/client/netmonitor/src/selectors/index"
+  );
+  const hasOverrideState = hasOverride(monitor.toolbox.store.getState());
+  const visibleColumns = getVisibleColumns(
+    getColumns(store.getState(), hasOverrideState)
+  );
+
+  // getVisibleColumns returns an array of arrays [name, isVisible=true], flatten
+  // to return name.
+  return visibleColumns.map(([name]) => name);
 }
