@@ -80,6 +80,41 @@ TEST(CodecComparatorsTest, StaticPayloadTypesIgnoreName) {
   EXPECT_TRUE(MatchesWithCodecRules(codec_1, codec_2));
 }
 
+TEST(CodecComparatorsTest, MatchesWithReferenceAttributesRed) {
+  // Test that RED codecs' reference attributes get parsed correctly.
+  Codec codec_1 =
+      cricket::CreateAudioCodec(101, cricket::kRedCodecName, 48000, 2);
+  codec_1.SetParam(cricket::kCodecParamNotInNameValueFormat, "100/100");
+  Codec codec_2 =
+      cricket::CreateAudioCodec(102, cricket::kRedCodecName, 48000, 2);
+  codec_2.SetParam(cricket::kCodecParamNotInNameValueFormat, "101/101");
+  // Mixed codecs in RED
+  Codec codec_3 =
+      cricket::CreateAudioCodec(103, cricket::kRedCodecName, 48000, 2);
+  codec_3.SetParam(cricket::kCodecParamNotInNameValueFormat, "100/101");
+  // Identical codecs always match.
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_1, codec_1));
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_2, codec_2));
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_3, codec_3));
+  // Mismatched reference codec lists.
+  EXPECT_FALSE(MatchesWithReferenceAttributes(codec_1, codec_2));
+  EXPECT_FALSE(MatchesWithReferenceAttributes(codec_1, codec_3));
+  EXPECT_FALSE(MatchesWithReferenceAttributes(codec_2, codec_3));
+  // Overflow of longer lists are ignored.
+  // Overlong list - overflow should be ignored.
+  Codec codec_4 =
+      cricket::CreateAudioCodec(103, cricket::kRedCodecName, 48000, 2);
+  codec_4.SetParam(cricket::kCodecParamNotInNameValueFormat, "100/100/101/102");
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_4, codec_4));
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_1, codec_4));
+  // Broken syntax will cause a non-match with anything except itself.
+  Codec codec_5 =
+      cricket::CreateAudioCodec(103, cricket::kRedCodecName, 48000, 2);
+  codec_5.SetParam(cricket::kCodecParamNotInNameValueFormat, "");
+  EXPECT_TRUE(MatchesWithReferenceAttributes(codec_5, codec_5));
+  EXPECT_FALSE(MatchesWithReferenceAttributes(codec_1, codec_5));
+}
+
 struct TestParams {
   std::string name;
   SdpVideoFormat codec1;

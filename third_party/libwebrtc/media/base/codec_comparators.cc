@@ -9,6 +9,7 @@
  */
 #include "media/base/codec_comparators.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -181,34 +182,34 @@ bool MatchesWithReferenceAttributesAndComparator(
       return true;
     }
     if (has_parameters_1 && has_parameters_2) {
-      // Different levels of redundancy between offer and answer are
+      // Different levels of redundancy between offer and answer are OK
       // since RED is considered to be declarative.
       std::vector<absl::string_view> redundant_payloads_1 =
           rtc::split(red_parameters_1->second, '/');
       std::vector<absl::string_view> redundant_payloads_2 =
           rtc::split(red_parameters_2->second, '/');
-      if (redundant_payloads_1.size() > 0 && redundant_payloads_2.size() > 0) {
-        // Mixed reference codecs (i.e. 111/112) are not supported.
-        for (size_t i = 1; i < redundant_payloads_1.size(); i++) {
-          if (redundant_payloads_1[i] != redundant_payloads_1[0]) {
-            return false;
-          }
-        }
-        for (size_t i = 1; i < redundant_payloads_2.size(); i++) {
-          if (redundant_payloads_2[i] != redundant_payloads_2[0]) {
-            return false;
-          }
-        }
+      // note: rtc::split returns at least 1 string even on empty strings.
+      size_t smallest_size =
+          std::min(redundant_payloads_1.size(), redundant_payloads_2.size());
+      // If the smaller list is equivalent to the longer list, we consider them
+      // equivalent even if size differs.
+      for (size_t i = 0; i < smallest_size; i++) {
         int red_value_1;
         int red_value_2;
-        if (rtc::FromString(redundant_payloads_1[0], &red_value_1) &&
-            rtc::FromString(redundant_payloads_2[0], &red_value_2)) {
-          if (reference_comparator(red_value_1, red_value_2)) {
-            return true;
+        if (rtc::FromString(redundant_payloads_1[i], &red_value_1) &&
+            rtc::FromString(redundant_payloads_2[i], &red_value_2)) {
+          if (!reference_comparator(red_value_1, red_value_2)) {
+            return false;
           }
+        } else {
+          // At least one parameter was not an integer.
+          // This is a syntax error, but we allow it here if the whole parameter
+          // equals the other parameter, in order to not generate more errors
+          // by duplicating the bad parameter.
+          return red_parameters_1->second == red_parameters_2->second;
         }
-        return false;
       }
+      return true;
     }
     if (!has_parameters_1 && !has_parameters_2) {
       // Both parameters are missing. Happens for video RED.
