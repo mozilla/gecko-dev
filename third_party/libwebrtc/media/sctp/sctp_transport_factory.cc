@@ -11,6 +11,7 @@
 #include "media/sctp/sctp_transport_factory.h"
 
 #include "api/environment/environment.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/system/unused.h"
 
 #ifdef WEBRTC_HAVE_DCSCTP
@@ -25,9 +26,8 @@ SctpTransportFactory::SctpTransportFactory(rtc::Thread* network_thread)
 }
 
 std::unique_ptr<SctpTransportInternal>
-SctpTransportFactory::CreateSctpTransport(
-    const webrtc::Environment& env,
-    rtc::PacketTransportInternal* transport) {
+SctpTransportFactory::CreateSctpTransport(const webrtc::Environment& env,
+                                          DtlsTransportInternal* transport) {
   std::unique_ptr<SctpTransportInternal> result;
 #ifdef WEBRTC_HAVE_DCSCTP
   result = std::unique_ptr<SctpTransportInternal>(

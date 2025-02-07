@@ -454,7 +454,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return data_channels_;
   }
 
-  const MockDataChannelObserver* data_observer() const {
+  MockDataChannelObserver* data_observer() const {
     if (data_observers_.size() == 0) {
       return nullptr;
     }
@@ -740,6 +740,11 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return 0;
   }
 
+  void set_connection_change_callback(
+      std::function<void(PeerConnectionInterface::PeerConnectionState)> func) {
+    connection_change_callback_ = std::move(func);
+  }
+
  private:
   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
@@ -778,11 +783,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
             modified_config, std::move(dependencies));
     return peer_connection_or_error.ok() ? peer_connection_or_error.MoveValue()
                                          : nullptr;
-  }
-
-  void set_signaling_message_receiver(
-      SignalingMessageReceiver* signaling_message_receiver) {
-    signaling_message_receiver_ = signaling_message_receiver;
   }
 
   void set_signaling_delay_ms(int delay_ms) { signaling_delay_ms_ = delay_ms; }
@@ -962,6 +962,12 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
 
   // SignalingMessageReceiver callbacks.
+ public:
+  void set_signaling_message_receiver(
+      SignalingMessageReceiver* signaling_message_receiver) {
+    signaling_message_receiver_ = signaling_message_receiver;
+  }
+
   void ReceiveSdpMessage(SdpType type, const std::string& msg) override {
     if (type == SdpType::kOffer) {
       HandleIncomingOffer(msg);
@@ -982,6 +988,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     EXPECT_TRUE(result.value().ok());
   }
 
+ private:
   // PeerConnectionObserver callbacks.
   void OnSignalingChange(
       PeerConnectionInterface::SignalingState new_state) override {
@@ -1021,9 +1028,13 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
       PeerConnectionInterface::IceConnectionState new_state) override {
     standardized_ice_connection_state_history_.push_back(new_state);
   }
+
   void OnConnectionChange(
       PeerConnectionInterface::PeerConnectionState new_state) override {
     peer_connection_state_history_.push_back(new_state);
+    if (connection_change_callback_) {
+      connection_change_callback_(new_state);
+    }
   }
 
   void OnIceGatheringChange(
@@ -1072,6 +1083,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     SendIceMessage(candidate->sdp_mid(), candidate->sdp_mline_index(), ice_sdp);
     last_candidate_gathered_ = candidate->candidate();
   }
+
   void OnIceCandidateError(const std::string& address,
                            int port,
                            const std::string& url,
@@ -1171,6 +1183,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   uint64_t audio_samples_stat_ = 0;
   uint64_t audio_concealed_stat_ = 0;
   std::string rtp_stats_id_;
+
+  std::function<void(PeerConnectionInterface::PeerConnectionState)>
+      connection_change_callback_ = nullptr;
 
   ScopedTaskSafety task_safety_;
 

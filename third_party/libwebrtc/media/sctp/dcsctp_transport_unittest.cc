@@ -11,20 +11,27 @@
 #include "media/sctp/dcsctp_transport.h"
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/transport/data_channel_transport_interface.h"
+#include "net/dcsctp/public/dcsctp_options.h"
+#include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/public/mock_dcsctp_socket.h"
 #include "net/dcsctp/public/mock_dcsctp_socket_factory.h"
 #include "net/dcsctp/public/types.h"
-#include "p2p/base/fake_packet_transport.h"
+#include "p2p/dtls/fake_dtls_transport.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 
 using ::testing::_;
 using ::testing::ByMove;
-using ::testing::DoAll;
 using ::testing::ElementsAre;
 using ::testing::InSequence;
 using ::testing::Invoke;
@@ -35,6 +42,9 @@ using ::testing::ReturnPointee;
 namespace webrtc {
 
 namespace {
+
+constexpr char kTransportName[] = "transport";
+constexpr int kComponent = 77;
 
 const PriorityValue kDefaultPriority = PriorityValue(Priority::kLow);
 
@@ -58,7 +68,7 @@ static_assert(!std::is_abstract_v<MockDataChannelSink>);
 class Peer {
  public:
   Peer()
-      : fake_packet_transport_("transport"),
+      : fake_dtls_transport_(kTransportName, kComponent),
         simulated_clock_(1000),
         env_(CreateEnvironment(&simulated_clock_)) {
     auto socket_ptr = std::make_unique<dcsctp::MockDcSctpSocket>();
@@ -71,13 +81,13 @@ class Peer {
         .WillOnce(Return(ByMove(std::move(socket_ptr))));
 
     sctp_transport_ = std::make_unique<webrtc::DcSctpTransport>(
-        env_, rtc::Thread::Current(), &fake_packet_transport_,
+        env_, rtc::Thread::Current(), &fake_dtls_transport_,
         std::move(mock_dcsctp_socket_factory));
     sctp_transport_->SetDataChannelSink(&sink_);
     sctp_transport_->SetOnConnectedCallback([this]() { sink_.OnConnected(); });
   }
 
-  rtc::FakePacketTransport fake_packet_transport_;
+  cricket::FakeDtlsTransport fake_dtls_transport_;
   webrtc::SimulatedClock simulated_clock_;
   Environment env_;
   dcsctp::MockDcSctpSocket* socket_;
@@ -89,7 +99,7 @@ class Peer {
 TEST(DcSctpTransportTest, OpenSequence) {
   rtc::AutoThread main_thread;
   Peer peer_a;
-  peer_a.fake_packet_transport_.SetWritable(true);
+  peer_a.fake_dtls_transport_.SetWritable(true);
 
   EXPECT_CALL(*peer_a.socket_, Connect)
       .Times(1)
@@ -107,8 +117,8 @@ TEST(DcSctpTransportTest, CloseSequence) {
   rtc::AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
-  peer_a.fake_packet_transport_.SetDestination(&peer_b.fake_packet_transport_,
-                                               false);
+  peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
+                                             false);
   {
     InSequence sequence;
 
@@ -153,8 +163,8 @@ TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
   rtc::AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
-  peer_a.fake_packet_transport_.SetDestination(&peer_b.fake_packet_transport_,
-                                               false);
+  peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
+                                             false);
   {
     InSequence sequence;
 

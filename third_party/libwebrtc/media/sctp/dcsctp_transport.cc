@@ -11,24 +11,39 @@
 #include "media/sctp/dcsctp_transport.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/data_channel_interface.h"
+#include "api/dtls_transport_interface.h"
 #include "api/environment/environment.h"
 #include "api/priority.h"
-#include "media/base/media_channel.h"
+#include "api/rtc_error.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/data_channel_transport_interface.h"
+#include "media/sctp/sctp_transport_internal.h"
+#include "net/dcsctp/public/dcsctp_message.h"
+#include "net/dcsctp/public/dcsctp_options.h"
+#include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/public/dcsctp_socket_factory.h"
 #include "net/dcsctp/public/packet_observer.h"
 #include "net/dcsctp/public/text_pcap_packet_observer.h"
+#include "net/dcsctp/public/timeout.h"
 #include "net/dcsctp/public/types.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/socket.h"
@@ -119,15 +134,16 @@ bool IsEmptyPPID(dcsctp::PPID ppid) {
 
 DcSctpTransport::DcSctpTransport(const Environment& env,
                                  rtc::Thread* network_thread,
-                                 rtc::PacketTransportInternal* transport)
+                                 cricket::DtlsTransportInternal* transport)
     : DcSctpTransport(env,
                       network_thread,
                       transport,
                       std::make_unique<dcsctp::DcSctpSocketFactory>()) {}
+
 DcSctpTransport::DcSctpTransport(
     const Environment& env,
     rtc::Thread* network_thread,
-    rtc::PacketTransportInternal* transport,
+    cricket::DtlsTransportInternal* transport,
     std::unique_ptr<dcsctp::DcSctpSocketFactory> socket_factory)
     : network_thread_(network_thread),
       transport_(transport),
@@ -168,7 +184,7 @@ void DcSctpTransport::SetDataChannelSink(DataChannelSink* sink) {
 }
 
 void DcSctpTransport::SetDtlsTransport(
-    rtc::PacketTransportInternal* transport) {
+    cricket::DtlsTransportInternal* transport) {
   RTC_DCHECK_RUN_ON(network_thread_);
   DisconnectTransportSignals();
   transport_ = transport;
@@ -662,6 +678,11 @@ void DcSctpTransport::ConnectTransportSignals() {
       data_channel_sink_->OnTransportClosed({});
     }
   });
+  transport_->SubscribeDtlsTransportState(
+      this, [this](cricket::DtlsTransportInternal* transport,
+                   DtlsTransportState state) {
+        OnDtlsTransportState(transport, state);
+      });
 }
 
 void DcSctpTransport::DisconnectTransportSignals() {
@@ -672,6 +693,7 @@ void DcSctpTransport::DisconnectTransportSignals() {
   transport_->SignalWritableState.disconnect(this);
   transport_->DeregisterReceivedPacketCallback(this);
   transport_->SetOnCloseCallback(nullptr);
+  transport_->UnsubscribeDtlsTransportState(this);
 }
 
 void DcSctpTransport::OnTransportWritableState(
@@ -680,8 +702,28 @@ void DcSctpTransport::OnTransportWritableState(
   RTC_DCHECK_EQ(transport_, transport);
   RTC_DLOG(LS_VERBOSE) << debug_name_
                        << "->OnTransportWritableState(), writable="
-                       << transport->writable();
+                       << transport->writable() << " socket: "
+                       << (socket_ ? std::to_string(
+                                         static_cast<int>(socket_->state()))
+                                   : "UNSET");
   MaybeConnectSocket();
+}
+
+void DcSctpTransport::OnDtlsTransportState(
+    cricket::DtlsTransportInternal* transport,
+    webrtc::DtlsTransportState state) {
+  if (state == DtlsTransportState::kNew && socket_) {
+    // IF DTLS restart (DtlsTransportState::kNew)
+    // THEN
+    //   restart socket so that we send an SCPT init
+    //   before any outgoing messages. This is needed
+    //   after DTLS fingerprint changed since peer will discard
+    //   messages with crypto derived from old fingerprint.
+    RTC_DLOG(LS_INFO) << debug_name_ << " DTLS restart";
+    dcsctp::DcSctpOptions options = socket_->options();
+    socket_.reset();
+    Start(options.local_port, options.remote_port, options.max_message_size);
+  }
 }
 
 void DcSctpTransport::OnTransportReadPacket(

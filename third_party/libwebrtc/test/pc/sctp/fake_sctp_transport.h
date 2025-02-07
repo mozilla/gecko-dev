@@ -25,7 +25,7 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
  public:
   void SetOnConnectedCallback(std::function<void()> callback) override {}
   void SetDataChannelSink(webrtc::DataChannelSink* sink) override {}
-  void SetDtlsTransport(rtc::PacketTransportInternal* transport) override {}
+  void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override {}
   bool Start(int local_port, int remote_port, int max_message_size) override {
     local_port_.emplace(local_port);
     remote_port_.emplace(remote_port);
@@ -73,7 +73,7 @@ class FakeSctpTransportFactory : public webrtc::SctpTransportFactoryInterface {
  public:
   std::unique_ptr<cricket::SctpTransportInternal> CreateSctpTransport(
       const webrtc::Environment& env,
-      rtc::PacketTransportInternal*) override {
+      cricket::DtlsTransportInternal*) override {
     last_fake_sctp_transport_ = new FakeSctpTransport();
     return std::unique_ptr<cricket::SctpTransportInternal>(
         last_fake_sctp_transport_);

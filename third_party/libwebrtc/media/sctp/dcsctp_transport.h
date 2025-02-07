@@ -27,6 +27,7 @@
 #include "net/dcsctp/public/types.h"
 #include "net/dcsctp/timer/task_queue_timeout.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/network/received_packet.h"
@@ -44,17 +45,17 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
  public:
   DcSctpTransport(const Environment& env,
                   rtc::Thread* network_thread,
-                  rtc::PacketTransportInternal* transport);
+                  cricket::DtlsTransportInternal* transport);
   DcSctpTransport(const Environment& env,
                   rtc::Thread* network_thread,
-                  rtc::PacketTransportInternal* transport,
+                  cricket::DtlsTransportInternal* transport,
                   std::unique_ptr<dcsctp::DcSctpSocketFactory> socket_factory);
   ~DcSctpTransport() override;
 
   // cricket::SctpTransportInternal
   void SetOnConnectedCallback(std::function<void()> callback) override;
   void SetDataChannelSink(DataChannelSink* sink) override;
-  void SetDtlsTransport(rtc::PacketTransportInternal* transport) override;
+  void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override;
   bool Start(int local_sctp_port,
              int remote_sctp_port,
              int max_message_size) override;
@@ -102,10 +103,12 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
   void OnTransportWritableState(rtc::PacketTransportInternal* transport);
   void OnTransportReadPacket(rtc::PacketTransportInternal* transport,
                              const rtc::ReceivedPacket& packet);
+  void OnDtlsTransportState(cricket::DtlsTransportInternal* transport,
+                            webrtc::DtlsTransportState);
   void MaybeConnectSocket();
 
   rtc::Thread* network_thread_;
-  rtc::PacketTransportInternal* transport_;
+  cricket::DtlsTransportInternal* transport_;
   Environment env_;
   Random random_;
 

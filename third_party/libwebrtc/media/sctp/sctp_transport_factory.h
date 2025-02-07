@@ -26,7 +26,7 @@ class SctpTransportFactory : public webrtc::SctpTransportFactoryInterface {
 
   std::unique_ptr<SctpTransportInternal> CreateSctpTransport(
       const webrtc::Environment& env,
-      rtc::PacketTransportInternal* transport) override;
+      DtlsTransportInternal* transport) override;
 
  private:
   rtc::Thread* network_thread_;

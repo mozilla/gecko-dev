@@ -10,17 +10,22 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <cstdlib>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/data_channel_interface.h"
 #include "api/dtls_transport_interface.h"
+#include "api/jsep.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/sctp_transport_interface.h"
 #include "api/stats/rtc_stats_report.h"
@@ -30,6 +35,7 @@
 #include "p2p/base/transport_info.h"
 #include "pc/media_session.h"
 #include "pc/session_description.h"
+#include "pc/test/fake_rtc_certificate_generator.h"
 #include "pc/test/integration_test_helpers.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/copy_on_write_buffer.h"
@@ -38,6 +44,7 @@
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
+#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
@@ -1215,6 +1222,111 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
   ASSERT_TRUE_WAIT(callee()->data_observer()->IsOpen(), kDefaultTimeout);
   caller()->pc()->Close();
   ASSERT_TRUE_WAIT(!callee()->data_observer()->IsOpen(), kDefaultTimeout);
+}
+
+TEST_F(DataChannelIntegrationTestUnifiedPlan, DtlsRestart) {
+  RTCConfiguration config;
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
+  PeerConnectionDependencies dependencies(nullptr);
+  std::unique_ptr<FakeRTCCertificateGenerator> cert_generator(
+      new FakeRTCCertificateGenerator());
+  cert_generator->use_alternate_key();
+  dependencies.cert_generator = std::move(cert_generator);
+  auto callee2 = CreatePeerConnectionWrapper("Callee2", nullptr, &config,
+                                             std::move(dependencies), nullptr,
+                                             /*reset_encoder_factory=*/false,
+                                             /*reset_decoder_factory=*/false);
+  ConnectFakeSignaling();
+
+  DataChannelInit dc_init;
+  dc_init.negotiated = true;
+  dc_init.id = 77;
+  caller()->CreateDataChannel("label", &dc_init);
+  callee()->CreateDataChannel("label", &dc_init);
+  callee2->CreateDataChannel("label", &dc_init);
+
+  std::unique_ptr<SessionDescriptionInterface> offer;
+  callee()->SetReceivedSdpMunger(
+      [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+        offer = sdp->Clone();
+      });
+  callee()->SetGeneratedSdpMunger(
+      [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+        SetSdpType(sdp, SdpType::kPrAnswer);
+      });
+  std::unique_ptr<SessionDescriptionInterface> answer;
+  caller()->SetReceivedSdpMunger(
+      [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+        answer = sdp->Clone();
+      });
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_FALSE(HasFailure());
+  EXPECT_EQ(caller()->pc()->signaling_state(),
+            PeerConnectionInterface::kHaveRemotePrAnswer);
+  EXPECT_EQ(callee()->pc()->signaling_state(),
+            PeerConnectionInterface::kHaveLocalPrAnswer);
+  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, caller()->data_channel()->state(),
+                 kDefaultTimeout);
+  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, callee()->data_channel()->state(),
+                 kDefaultTimeout);
+
+  callee2->set_signaling_message_receiver(caller());
+
+  std::atomic<int> caller_sent_on_dc(0);
+  caller()->set_connection_change_callback(
+      [&](PeerConnectionInterface::PeerConnectionState new_state) {
+        if (new_state ==
+            PeerConnectionInterface::PeerConnectionState::kConnected) {
+          caller()->data_channel()->SendAsync(
+              DataBuffer("KESO"), [&](RTCError err) {
+                caller_sent_on_dc.store(err.ok() ? 1 : -1);
+              });
+        }
+      });
+
+  std::atomic<int> callee2_sent_on_dc(0);
+  callee2->set_connection_change_callback(
+      [&](PeerConnectionInterface::PeerConnectionState new_state) {
+        if (new_state ==
+                PeerConnectionInterface::PeerConnectionState::kConnected &&
+            callee2->data_channel()->state() == DataChannelInterface::kOpen) {
+          callee2->data_channel()->SendAsync(
+              DataBuffer("KENT"), [&](RTCError err) {
+                callee2_sent_on_dc.store(err.ok() ? 1 : -1);
+              });
+        }
+      });
+
+  callee2->data_observer()->set_state_change_callback(
+      [&](DataChannelInterface::DataState new_state) {
+        if (callee2->pc()->peer_connection_state() ==
+                PeerConnectionInterface::PeerConnectionState::kConnected &&
+            new_state == DataChannelInterface::kOpen) {
+          callee2->data_channel()->SendAsync(
+              DataBuffer("KENT"), [&](RTCError err) {
+                callee2_sent_on_dc.store(err.ok() ? 1 : -1);
+              });
+        }
+      });
+
+  std::string offer_sdp;
+  EXPECT_TRUE(offer->ToString(&offer_sdp));
+  callee2->ReceiveSdpMessage(SdpType::kOffer, offer_sdp);
+  EXPECT_EQ(caller()->pc()->signaling_state(),
+            PeerConnectionInterface::kStable);
+  EXPECT_EQ(callee2->pc()->signaling_state(), PeerConnectionInterface::kStable);
+
+  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
+                 caller()->pc()->peer_connection_state(), kDefaultTimeout);
+  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
+                 callee2->pc()->peer_connection_state(), kDefaultTimeout);
+
+  ASSERT_TRUE_WAIT(caller_sent_on_dc.load() != 0, kDefaultTimeout);
+  ASSERT_TRUE_WAIT(callee2_sent_on_dc.load() != 0, kDefaultTimeout);
+  EXPECT_EQ_WAIT("KENT", caller()->data_observer()->last_message(),
+                 kDefaultTimeout);
+  EXPECT_EQ_WAIT("KESO", callee2->data_observer()->last_message(),
+                 kDefaultTimeout);
 }
 
 #endif  // WEBRTC_HAVE_SCTP
