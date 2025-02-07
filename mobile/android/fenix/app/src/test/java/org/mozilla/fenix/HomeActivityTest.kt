@@ -14,6 +14,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
+import mozilla.components.service.pocket.PocketStoriesService
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.toSafeIntent
 import org.junit.Assert.assertEquals
@@ -228,6 +229,22 @@ class HomeActivityTest {
             activity.collectOSNavigationTelemetry()
 
             assertFalse(NavigationBar.osNavigationUsesGestures.testGetValue()!!)
+        }
+    }
+
+    @Test
+    fun `WHEN Pocket sponsored stories profile is migrated to MARS API THEN delete the old Pocket profile`() {
+        val pocketStoriesService: PocketStoriesService = mockk(relaxed = true)
+        every { testContext.settings() } returns Settings(testContext)
+        every { activity.applicationContext } returns testContext
+        testContext.settings().hasPocketSponsoredStoriesProfileMigrated = false
+
+        activity.migratePocketSponsoredStoriesProfile(pocketStoriesService)
+
+        assertTrue(testContext.settings().hasPocketSponsoredStoriesProfileMigrated)
+
+        verify {
+            pocketStoriesService.deleteProfile()
         }
     }
 }

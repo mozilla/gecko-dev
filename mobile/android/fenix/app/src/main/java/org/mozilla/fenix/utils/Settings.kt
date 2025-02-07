@@ -1684,6 +1684,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Whether or not the profile ID used in the sponsored stories communications with the Pocket
+     * endpoint has been migrated to the MARS endpoint.
+     */
+    var hasPocketSponsoredStoriesProfileMigrated by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_pocket_sponsored_stories_profile_migrated),
+        default = false,
+    )
+
+    /**
      * Indicates if Merino content recommendations should be shown.
      */
     var showContentRecommendations by lazyFeatureFlagPreference(
