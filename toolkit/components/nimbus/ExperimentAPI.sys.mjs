@@ -102,7 +102,7 @@ export const ExperimentAPI = {
       }
 
       try {
-        await lazy.RemoteSettingsExperimentLoader.init();
+        await lazy.RemoteSettingsExperimentLoader.enable();
       } catch (e) {
         lazy.log.error(
           "Failed to initialize RemoteSettingsExperimentLoader:",
@@ -116,7 +116,7 @@ export const ExperimentAPI = {
    * Wait for the ExperimentAPI to become ready.
    *
    * NB: This method will not initialize the ExperimentAPI. This is intentional
-   * and doing so breaks a lot of tests due to initializing the
+   * and doing so breaks a lot of tests due to enabling the
    * RemoteSettingsExperimentLoader et al.
    *
    * @returns {Promise}

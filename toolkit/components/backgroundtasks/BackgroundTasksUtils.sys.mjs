@@ -308,7 +308,7 @@ export var BackgroundTasksUtils = {
     }
 
     try {
-      await lazy.RemoteSettingsExperimentLoader.init({ forceSync: true });
+      await lazy.RemoteSettingsExperimentLoader.enable({ forceSync: true });
     } catch (err) {
       lazy.log.error(
         "Failed to initialize RemoteSettingsExperimentLoader:",

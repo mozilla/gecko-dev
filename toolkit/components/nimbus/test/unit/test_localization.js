@@ -870,7 +870,7 @@ add_task(async function test_updateRecipes() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.init();
+  await loader.enable();
 
   await manager.onStartup();
   await manager.store.ready();
@@ -918,7 +918,7 @@ async function test_updateRecipes_missingLocale({
     featureValidationOptOut,
   });
 
-  await loader.init();
+  await loader.enable();
 
   await manager.onStartup();
   await manager.store.ready();
@@ -1007,7 +1007,7 @@ add_task(async function test_updateRecipes_missingEntry() {
     },
   });
 
-  await loader.init();
+  await loader.enable();
 
   await manager.onStartup();
   await manager.store.ready();
@@ -1119,7 +1119,7 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.init();
+  await loader.enable();
 
   await manager.onStartup();
   await manager.store.ready();
@@ -1271,7 +1271,7 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.init();
+  await loader.enable();
 
   await manager.onStartup();
   await manager.store.ready();
