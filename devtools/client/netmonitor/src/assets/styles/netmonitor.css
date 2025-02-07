@@ -82,3 +82,23 @@ body,
 .network-monitor > div[dragging="true"] {
   filter: opacity(50%);
 }
+
+/* Show the network override icon */
+
+.tab-response-overridden #response-tab::before,
+.requests-list-override.request-override-enabled::before {
+  content: "";
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+  border-radius: 100%;
+  /* Colors should be synced with .img.override::after
+     from devtools/client/debugger/src/components/shared/SourceIcon.css */
+  background-color: var(--purple-30);
+  outline: 1px solid var(--theme-sidebar-background);
+  margin-inline-end: 5px;
+}
+
+.tab-response-overridden #response-tab::before {
+  margin-top: 4px;
+}

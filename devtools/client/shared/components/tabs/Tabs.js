@@ -310,6 +310,7 @@ define(function (require, exports) {
             id,
             className: tabClassName,
             title,
+            tooltip,
             badge,
             showBadge,
           } = tab.props;
@@ -340,7 +341,7 @@ define(function (require, exports) {
               {
                 id: id ? id + "-tab" : "tab-" + index,
                 tabIndex: isTabSelected ? 0 : -1,
-                title,
+                title: tooltip || title,
                 "aria-controls": id ? id + "-panel" : "panel-" + index,
                 "aria-selected": isTabSelected,
                 role: "tab",
