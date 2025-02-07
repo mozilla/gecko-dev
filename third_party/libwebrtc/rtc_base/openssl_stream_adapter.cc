@@ -106,6 +106,40 @@ void TimeCallbackForTesting(const SSL* ssl, struct timeval* out_clock) {
 }
 #endif
 
+uint16_t GetMaxVersion(SSLMode ssl_mode, SSLProtocolVersion version) {
+  switch (ssl_mode) {
+    case SSL_MODE_TLS:
+      switch (version) {
+        default:
+        case SSL_PROTOCOL_NOT_GIVEN:
+        case SSL_PROTOCOL_TLS_10:
+        case SSL_PROTOCOL_TLS_11:
+        case SSL_PROTOCOL_TLS_12:
+          return TLS1_2_VERSION;
+        case SSL_PROTOCOL_TLS_13:
+#ifdef TLS1_3_VERSION
+          return TLS1_3_VERSION;
+#else
+          return TLS1_2_VERSION;
+#endif
+      }
+    case SSL_MODE_DTLS:
+      switch (version) {
+        default:
+        case SSL_PROTOCOL_NOT_GIVEN:
+        case SSL_PROTOCOL_DTLS_10:
+        case SSL_PROTOCOL_DTLS_12:
+          return DTLS1_2_VERSION;
+        case SSL_PROTOCOL_DTLS_13:
+#ifdef DTLS1_3_VERSION
+          return DTLS1_3_VERSION;
+#else
+          return DTLS1_2_VERSION;
+#endif
+      }
+  }
+}
+
 }  // namespace
 
 //////////////////////////////////////////////////////////////////////
@@ -344,6 +378,11 @@ SSLProtocolVersion OpenSSLStreamAdapter::GetSslVersion() const {
     } else if (ssl_version == DTLS1_2_VERSION) {
       return SSL_PROTOCOL_DTLS_12;
     }
+#ifdef DTLS1_3_VERSION
+    if (ssl_version == DTLS1_3_VERSION) {
+      return SSL_PROTOCOL_DTLS_13;
+    }
+#endif
   } else {
     if (ssl_version == TLS1_VERSION) {
       return SSL_PROTOCOL_TLS_10;
@@ -352,6 +391,11 @@ SSLProtocolVersion OpenSSLStreamAdapter::GetSslVersion() const {
     } else if (ssl_version == TLS1_2_VERSION) {
       return SSL_PROTOCOL_TLS_12;
     }
+#ifdef TLS1_3_VERSION
+    if (ssl_version == TLS1_3_VERSION) {
+      return SSL_PROTOCOL_TLS_13;
+    }
+#endif
   }
 
   return SSL_PROTOCOL_NOT_GIVEN;
@@ -938,8 +982,8 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
 
   SSL_CTX_set_min_proto_version(
       ctx, ssl_mode_ == SSL_MODE_DTLS ? DTLS1_2_VERSION : TLS1_2_VERSION);
-  SSL_CTX_set_max_proto_version(
-      ctx, ssl_mode_ == SSL_MODE_DTLS ? DTLS1_2_VERSION : TLS1_2_VERSION);
+  SSL_CTX_set_max_proto_version(ctx,
+                                GetMaxVersion(ssl_mode_, ssl_max_version_));
 
 #ifdef OPENSSL_IS_BORINGSSL
   // SSL_CTX_set_current_time_cb is only supported in BoringSSL.

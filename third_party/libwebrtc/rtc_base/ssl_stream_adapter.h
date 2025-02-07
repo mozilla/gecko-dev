@@ -92,8 +92,10 @@ enum SSLProtocolVersion {
   SSL_PROTOCOL_TLS_10 = 0,  // Deprecated and no longer supported.
   SSL_PROTOCOL_TLS_11 = 1,  // Deprecated and no longer supported.
   SSL_PROTOCOL_TLS_12 = 2,
+  SSL_PROTOCOL_TLS_13 = 3,
   SSL_PROTOCOL_DTLS_10 = 1,  // Deprecated and no longer supported.
   SSL_PROTOCOL_DTLS_12 = SSL_PROTOCOL_TLS_12,
+  SSL_PROTOCOL_DTLS_13 = SSL_PROTOCOL_TLS_13,
 };
 enum class SSLPeerCertificateDigestError {
   NONE,
