@@ -232,12 +232,20 @@ add_task(async function test_customize_visibility_setting() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const panel = await showCustomizePanel(win);
   ok(!panel.visibilityInput.checked, "Always show is enabled by default.");
+  ok(
+    !win.SidebarController.sidebarContainer.hidden,
+    "Launcher is shown by default."
+  );
   EventUtils.synthesizeMouseAtCenter(
     panel.visibilityInput,
     {},
     win.SidebarController.browser.contentWindow
   );
   ok(panel.visibilityInput.checked, "Hide sidebar is enabled.");
+  ok(
+    win.SidebarController.sidebarContainer.hidden,
+    "Launcher is hidden by default."
+  );
   await deferredPrefChange.promise;
   const newPrefValue = Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF);
   is(newPrefValue, "hide-sidebar", "Visibility preference updated.");
@@ -245,6 +253,10 @@ add_task(async function test_customize_visibility_setting() {
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   const newPanel = await showCustomizePanel(newWin);
   ok(newPanel.visibilityInput.checked, "Visibility setting persists.");
+  ok(
+    win.SidebarController.sidebarContainer.hidden,
+    "Launcher is hidden by default in new window."
+  );
 
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
