@@ -282,6 +282,7 @@ add_task(async function test_remote_fetch_on_updateRecipes() {
     "app.update.lastUpdateTime.rs-experiment-loader-timer"
   );
 
+  RemoteSettingsExperimentLoader._enabled = true;
   RemoteSettingsExperimentLoader.setTimer();
 
   await BrowserTestUtils.waitForCondition(
@@ -293,7 +294,6 @@ add_task(async function test_remote_fetch_on_updateRecipes() {
   Assert.equal(updateRecipesStub.firstCall.args[0], "timer", "Called by timer");
   sandbox.restore();
   // This will un-register the timer
-  RemoteSettingsExperimentLoader._enabled = true;
   RemoteSettingsExperimentLoader.disable();
   Services.prefs.clearUserPref(
     "app.update.lastUpdateTime.rs-experiment-loader-timer"
