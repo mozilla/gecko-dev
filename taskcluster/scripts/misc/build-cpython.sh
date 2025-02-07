@@ -83,6 +83,7 @@ case `uname -s` in
         cp /usr/local/opt/openssl/lib/libssl*.dylib ${work_dir}/python/lib/
         cp /usr/local/opt/openssl/lib/libcrypto*.dylib ${work_dir}/python/lib/
         cp ${xz_prefix}/lib/liblzma.dylib ${work_dir}/python/lib/
+        cp ${xz_prefix}/lib/liblzma.5.dylib ${work_dir}/python/lib/
 
         # Instruct the loader to search for the lib in rpath instead of the one used during linking
         install_name_tool -change /usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib @rpath/libssl.1.1.dylib ${work_dir}/python/lib/python3.*/lib-dynload/_ssl.cpython-3*-darwin.so
