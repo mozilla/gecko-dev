@@ -98,6 +98,7 @@ DIRS += [
     "/third_party/libwebrtc/api/units/time_delta_gn",
     "/third_party/libwebrtc/api/units/timestamp_gn",
     "/third_party/libwebrtc/api/video/builtin_video_bitrate_allocator_factory_gn",
+    "/third_party/libwebrtc/api/video/corruption_detection_filter_settings_gn",
     "/third_party/libwebrtc/api/video/encoded_frame_gn",
     "/third_party/libwebrtc/api/video/encoded_image_gn",
     "/third_party/libwebrtc/api/video/frame_buffer_gn",
