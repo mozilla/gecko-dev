@@ -196,8 +196,7 @@ nsLayoutDebugCLH::GetHelpInfo(nsACString& aResult) {
       "                     profile.json).\n"
       "  --paged Layout the page in paginated mode.\n"
       "  --deterministic-frame-dumping Toggle option to only include\n"
-      "                                deterministic information in frame "
-      "dumps,\n"
-      "                                for ease of diffing.\n");
+      "                                deterministic information in frame\n"
+      "                                dumps, for ease of diffing.\n");
   return NS_OK;
 }
