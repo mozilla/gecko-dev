@@ -22,17 +22,42 @@ export class GroupsPanel {
           this.#showAll = false;
           this.panelMultiView = this.view.panelMultiView;
           this.#populate();
+          this.#addObservers();
+          this.win.addEventListener("unload", this);
         }
         break;
       case "PanelMultiViewHidden":
         if ((this.panelMultiView = event.target)) {
           this.#cleanup();
+          this.#removeObservers();
           this.panelMultiView = null;
         }
-
+        break;
+      case "unload":
+        this.#removeObservers();
         break;
       case "command":
         this.#handleCommand(event);
+        break;
+    }
+  }
+
+  #addObservers() {
+    Services.obs.addObserver(this, "sessionstore-closed-objects-changed");
+    Services.obs.addObserver(this, "browser-tabgroup-removed-from-dom");
+  }
+
+  #removeObservers() {
+    Services.obs.removeObserver(this, "sessionstore-closed-objects-changed");
+    Services.obs.removeObserver(this, "browser-tabgroup-removed-from-dom");
+  }
+
+  observe(aSubject, aTopic) {
+    switch (aTopic) {
+      case "sessionstore-closed-objects-changed":
+      case "browser-tabgroup-removed-from-dom":
+        this.#cleanup();
+        this.#populate();
         break;
     }
   }
@@ -61,7 +86,7 @@ export class GroupsPanel {
 
   #setupListeners() {
     this.view.addEventListener("command", this);
-    this.view.panelMultiView.addEventListener("PanelMultiViewHidden", this);
+    this.panelMultiView.addEventListener("PanelMultiViewHidden", this);
   }
 
   #cleanup() {
