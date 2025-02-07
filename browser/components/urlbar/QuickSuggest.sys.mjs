@@ -155,11 +155,13 @@ class _QuickSuggest {
   /**
    * Initializes Suggest. It's safe to call more than once.
    */
-  init() {
-    if (this.#featuresByName.size) {
-      // Already initialized.
+  async init() {
+    if (this.#initStarted) {
       return;
     }
+    this.#initStarted = true;
+
+    await lazy.UrlbarPrefs.updateFirefoxSuggestScenario();
 
     // Create an instance of each feature and keep it in `#featuresByName`.
     for (let [name, uri] of Object.entries(FEATURES)) {
@@ -453,6 +455,8 @@ class _QuickSuggest {
       feature.update();
     }
   }
+
+  #initStarted = false;
 
   // Maps from Suggest feature class names to feature instances.
   #featuresByName = new Map();

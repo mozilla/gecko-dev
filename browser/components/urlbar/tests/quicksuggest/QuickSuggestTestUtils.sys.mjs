@@ -9,6 +9,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettingsServer:
@@ -180,7 +181,13 @@ class _QuickSuggestTestUtils {
     config = DEFAULT_CONFIG,
     prefs = [],
   } = {}) {
-    prefs.push(["quicksuggest.enabled", true]);
+    this.#log("ensureQuickSuggestInit", "Started");
+
+    this.#log("ensureQuickSuggestInit", "Awaiting ExperimentManager.onStartup");
+    await lazy.ExperimentManager.onStartup();
+
+    this.#log("ensureQuickSuggestInit", "Awaiting ExperimentAPI.ready");
+    await lazy.ExperimentAPI.ready();
 
     // Make a Map from collection name to the array of records that should be
     // added to that collection.
@@ -196,10 +203,7 @@ class _QuickSuggestTestUtils {
     }, new Map());
 
     // Set up the local remote settings server.
-    this.#log(
-      "ensureQuickSuggestInit",
-      "Started, preparing remote settings server"
-    );
+    this.#log("ensureQuickSuggestInit", "Preparing remote settings server");
     if (!this.#remoteSettingsServer) {
       this.#remoteSettingsServer = new lazy.RemoteSettingsServer();
     }
@@ -223,7 +227,9 @@ class _QuickSuggestTestUtils {
       "ensureQuickSuggestInit",
       "Calling QuickSuggest.init() and setting prefs"
     );
-    lazy.QuickSuggest.init();
+    await this.waitForScenarioUpdated();
+    await lazy.QuickSuggest.init();
+    prefs.push(["quicksuggest.enabled", true]);
     for (let [name, value] of prefs) {
       lazy.UrlbarPrefs.set(name, value);
     }

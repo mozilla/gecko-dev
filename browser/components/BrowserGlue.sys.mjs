@@ -1896,8 +1896,6 @@ BrowserGlue.prototype = {
 
     lazy.ProcessHangMonitor.init();
 
-    lazy.UrlbarPrefs.updateFirefoxSuggestScenario();
-
     // A channel for "remote troubleshooting" code...
     let channel = new lazy.WebChannel(
       "remote-troubleshooting",
