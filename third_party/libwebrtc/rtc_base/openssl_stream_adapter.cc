@@ -797,7 +797,11 @@ void OpenSSLStreamAdapter::SetTimeout(int delay_ms) {
             Error("DTLSv1_handle_timeout", res, -1, true);
             return webrtc::TimeDelta::PlusInfinity();
           }
-          ContinueSSL();
+          // We check the timer even after SSL_CONNECTED,
+          // but ContinueSSL() is only needed when SSL_CONNECTING
+          if (state_ == SSL_CONNECTING) {
+            ContinueSSL();
+          }
         } else {
           RTC_DCHECK_NOTREACHED();
         }
@@ -860,7 +864,7 @@ int OpenSSLStreamAdapter::ContinueSSL() {
 
   switch (ssl_error) {
     case SSL_ERROR_NONE:
-      RTC_DLOG(LS_VERBOSE) << " -- success";
+      RTC_DLOG(LS_INFO) << " -- success";
       // By this point, OpenSSL should have given us a certificate, or errored
       // out if one was missing.
       RTC_DCHECK(peer_cert_chain_ || !GetClientAuthEnabled());
@@ -878,16 +882,11 @@ int OpenSSLStreamAdapter::ContinueSSL() {
         FireEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
       }
       break;
-    case SSL_ERROR_WANT_READ: {
-      RTC_DLOG(LS_VERBOSE) << " -- error want read";
-      struct timeval timeout;
-      if (DTLSv1_get_timeout(ssl_, &timeout)) {
-        int delay = timeout.tv_sec * 1000 + timeout.tv_usec / 1000;
-        SetTimeout(delay);
-      }
-    } break;
+    case SSL_ERROR_WANT_READ:
+      RTC_DLOG(LS_INFO) << " -- error when we want to read";
+      break;
     case SSL_ERROR_WANT_WRITE:
-      RTC_DLOG(LS_VERBOSE) << " -- error want write";
+      RTC_DLOG(LS_INFO) << " -- error when we want to write";
       break;
     case SSL_ERROR_ZERO_RETURN:
     default: {
@@ -903,6 +902,12 @@ int OpenSSLStreamAdapter::ContinueSSL() {
       }
       return (ssl_error != 0) ? ssl_error : -1;
     }
+  }
+
+  struct timeval timeout;
+  if (DTLSv1_get_timeout(ssl_, &timeout)) {
+    int delay = timeout.tv_sec * 1000 + timeout.tv_usec / 1000;
+    SetTimeout(delay);
   }
 
   return 0;
