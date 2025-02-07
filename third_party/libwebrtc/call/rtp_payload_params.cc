@@ -483,6 +483,10 @@ void RtpPayloadParams::H264ToGeneric(const CodecSpecificInfoH264& h264_info,
                         temporal_index, DecodeTargetIndication::kNotPresent);
   std::fill(it, generic.decode_target_indications.end(),
             DecodeTargetIndication::kSwitch);
+  generic.chain_diffs = {
+      (is_keyframe || last_frame_id_[0][0] < 0)
+          ? 0
+          : static_cast<int>(frame_id - last_frame_id_[0][0])};
 
   if (is_keyframe) {
     RTC_DCHECK_EQ(temporal_index, 0);

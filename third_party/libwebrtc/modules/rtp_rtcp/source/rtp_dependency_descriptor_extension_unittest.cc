@@ -132,5 +132,48 @@ TEST(RtpDependencyDescriptorExtensionTest, FailsToWriteInvalidDescriptor) {
                                                        descriptor));
 }
 
+TEST(RtpDependencyDescriptorExtensionTest,
+     FailsToWriteWhenNumberOfChainsMismatch) {
+  uint8_t buffer[256];
+  FrameDependencyStructure structure;
+  structure.num_decode_targets = 2;
+  structure.num_chains = 2;
+  structure.templates = {
+      FrameDependencyTemplate().T(0).Dtis("SR").ChainDiffs({2, 2})};
+  DependencyDescriptor descriptor;
+  descriptor.frame_dependencies = structure.templates[0];
+
+  // Structure has 2 chains, but frame provide 1 chain diff,
+  descriptor.frame_dependencies.chain_diffs = {2};
+
+  EXPECT_EQ(
+      RtpDependencyDescriptorExtension::ValueSize(structure, 0b11, descriptor),
+      0u);
+  EXPECT_FALSE(RtpDependencyDescriptorExtension::Write(buffer, structure, 0b11,
+                                                       descriptor));
+}
+
+TEST(RtpDependencyDescriptorExtensionTest,
+     FailsToWriteWhenNumberOfDecodeTargetsMismatch) {
+  uint8_t buffer[256];
+  FrameDependencyStructure structure;
+  structure.num_decode_targets = 2;
+  structure.num_chains = 2;
+  structure.templates = {
+      FrameDependencyTemplate().T(0).Dtis("SR").ChainDiffs({2, 2})};
+  DependencyDescriptor descriptor;
+  descriptor.frame_dependencies = structure.templates[0];
+
+  // Structure has 2 decode targets, but frame provide 1 indication,
+  descriptor.frame_dependencies.decode_target_indications = {
+      DecodeTargetIndication::kSwitch};
+
+  EXPECT_EQ(
+      RtpDependencyDescriptorExtension::ValueSize(structure, 0b11, descriptor),
+      0u);
+  EXPECT_FALSE(RtpDependencyDescriptorExtension::Write(buffer, structure, 0b11,
+                                                       descriptor));
+}
+
 }  // namespace
 }  // namespace webrtc

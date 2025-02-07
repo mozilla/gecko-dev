@@ -1308,7 +1308,7 @@ TEST_F(RtpVideoStreamReceiver2DependencyDescriptorTest, UnwrapsFrameId) {
   deltaframe1_descriptor.frame_number = 0xfffe;
 
   DependencyDescriptor deltaframe2_descriptor;
-  deltaframe1_descriptor.frame_dependencies = stream_structure.templates[1];
+  deltaframe2_descriptor.frame_dependencies = stream_structure.templates[1];
   deltaframe2_descriptor.frame_number = 0x0002;
 
   // Parser should unwrap frame ids correctly even if packets were reordered by
