@@ -63,9 +63,16 @@ def test_mochitest_metrics(*mocked):
     assert results[0]["values"] == [0]
 
 
+@pytest.mark.parametrize(
+    "multimetrics_output",
+    [
+        ('{ "name": "fake", "values": [0], "value": 10 }'),
+        ('{ "name": "fake", "values": [0] }'),
+    ],
+)
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
 @mock.patch("mozperftest.utils.ON_TRY", new=False)
-def test_mochitest_multi_metrics(*mocked):
+def test_mochitest_multi_metrics(multimetrics_output):
     mach_cmd, metadata, env = running_env(
         tests=[str(EXAMPLE_MOCHITEST_TEST)],
         mochitest_extra_args=[],
@@ -85,9 +92,7 @@ def test_mochitest_multi_metrics(*mocked):
 
         def test_print(*args, **kwargs):
             log_processor = kwargs.get("custom_handler")
-            log_processor.__call__(
-                'perfMetrics | [{ "name": "fake", "values": [0], "value": 10 }]'
-            )
+            log_processor.__call__("perfMetrics | [" + multimetrics_output + "]")
             return 0
 
         test_mock = mock.MagicMock()
@@ -109,7 +114,9 @@ def test_mochitest_multi_metrics(*mocked):
 
     assert results[0]["name"] == "fake"
     assert results[0]["values"] == [0]
-    assert results[0]["value"] == 10
+
+    if results[0].get("value"):
+        assert results[0]["value"] == 10
 
 
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)

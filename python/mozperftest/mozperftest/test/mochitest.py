@@ -38,7 +38,7 @@ class MochitestData:
                 {"file": "mochitest", "value": value, "xaxis": xaxis}
                 for xaxis, value in enumerate(data["values"])
             ],
-            "value": data["value"],
+            "value": data.get("value", None),
             "unit": data.get("unit", None),
             "shouldAlert": data.get("shouldAlert", None),
             "lowerIsBetter": data.get("lowerIsBetter", None),
