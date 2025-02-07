@@ -4943,10 +4943,10 @@ main section {
     padding: var(--space-large);
   }
   .ds-section-grid.ds-card-grid .col-1-small .img-wrapper {
-    width: 125px;
+    width: 100px;
     flex-shrink: 0;
     flex-grow: 0;
-    aspect-ratio: 1/1;
+    aspect-ratio: 5/6;
   }
   .ds-section-grid.ds-card-grid .col-1-small .img-wrapper .ds-image.img {
     width: 100%;
@@ -5121,10 +5121,10 @@ main section {
     padding: var(--space-large);
   }
   .ds-section-grid.ds-card-grid .col-2-small .img-wrapper {
-    width: 125px;
+    width: 100px;
     flex-shrink: 0;
     flex-grow: 0;
-    aspect-ratio: 1/1;
+    aspect-ratio: 5/6;
   }
   .ds-section-grid.ds-card-grid .col-2-small .img-wrapper .ds-image.img {
     width: 100%;
@@ -5300,10 +5300,10 @@ main section {
     padding: var(--space-large);
   }
   .ds-section-grid.ds-card-grid .col-3-small .img-wrapper {
-    width: 125px;
+    width: 100px;
     flex-shrink: 0;
     flex-grow: 0;
-    aspect-ratio: 1/1;
+    aspect-ratio: 5/6;
   }
   .ds-section-grid.ds-card-grid .col-3-small .img-wrapper .ds-image.img {
     width: 100%;
@@ -5478,10 +5478,10 @@ main section {
     padding: var(--space-large);
   }
   .ds-section-grid.ds-card-grid .col-4-small .img-wrapper {
-    width: 125px;
+    width: 100px;
     flex-shrink: 0;
     flex-grow: 0;
-    aspect-ratio: 1/1;
+    aspect-ratio: 5/6;
   }
   .ds-section-grid.ds-card-grid .col-4-small .img-wrapper .ds-image.img {
     width: 100%;
