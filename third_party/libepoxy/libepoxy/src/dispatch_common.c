@@ -783,6 +783,9 @@ epoxy_egl_get_current_gl_context_api(void)
 {
     EGLint curapi;
 
+    if (!api.egl_handle)
+        return EGL_NONE;
+
     if (eglQueryContext(eglGetCurrentDisplay(), eglGetCurrentContext(),
 			EGL_CONTEXT_CLIENT_TYPE, &curapi) == EGL_FALSE) {
 	(void)eglGetError();
