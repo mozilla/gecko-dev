@@ -864,6 +864,8 @@ void nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
       InitPositionFromAnchorAlign(anchor, align);
     }
   }
+  mUntransformedPopupAnchor = mPopupAnchor;
+  mUntransformedPopupAlignment = mPopupAlignment;
 
   if (aAttributesOverride) {
     // Use |left| and |top| dimension attributes to position the popup if

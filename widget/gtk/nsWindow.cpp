@@ -2434,8 +2434,8 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
   int8_t anchorAlign = POPUPALIGNMENT_BOTTOMRIGHT;
   if (anchored) {
     // See nsMenuPopupFrame::AdjustPositionForAnchorAlign.
-    popupAlign = popupFrame->GetPopupAlignment();
-    anchorAlign = popupFrame->GetPopupAnchor();
+    popupAlign = popupFrame->GetUntransformedPopupAlignment();
+    anchorAlign = popupFrame->GetUntransformedPopupAnchor();
   }
   if (isRTL) {
     popupAlign = -popupAlign;
