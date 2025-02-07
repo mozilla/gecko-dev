@@ -108,9 +108,6 @@ webrtc_fuzzer_test("dtls_utils_fuzzer") {
     "../../api:array_view",
     "../../p2p:dtls_utils",
   ]
-
-  # Seed from boringssl DTLS corpus.
-  seed_corpus = "../../third_party/boringssl/src/fuzz/dtls_client_corpus"
 }
 
 webrtc_fuzzer_test("vp8_qp_parser_fuzzer") {
