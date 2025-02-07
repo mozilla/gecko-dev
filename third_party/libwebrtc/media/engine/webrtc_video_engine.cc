@@ -261,15 +261,28 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
   // TODO: https://issues.webrtc.org/360058654 - stop assigning PTs here.
   webrtc::PayloadTypePicker pt_mapper;
   std::vector<Codec> output_codecs;
-  webrtc::RTCErrorOr<std::vector<Codec>> result =
-      AssignPayloadTypes(supported_formats, pt_mapper, trials);
-  RTC_DCHECK(result.ok());
-  output_codecs = result.MoveValue();
-  if (include_rtx) {
+  for (const auto& supported_format : supported_formats) {
     webrtc::RTCErrorOr<std::vector<Codec>> result =
-        AddRtx(output_codecs, pt_mapper);
+        AssignPayloadTypes({supported_format}, pt_mapper, trials);
     RTC_DCHECK(result.ok());
-    return result.MoveValue();
+    if (result.ok()) {
+      for (const auto& codec : result.value()) {
+        if (include_rtx) {
+          // This will return both primary and rtx if there is rtx.
+          result = AddRtx({codec}, pt_mapper);
+          if (result.ok()) {
+            for (const auto& codec : result.value()) {
+              output_codecs.push_back(codec);
+            }
+          } else {
+            output_codecs.push_back(codec);
+          }
+
+        } else {
+          output_codecs.push_back(codec);
+        }
+      }
+    }
   }
   return output_codecs;
 }

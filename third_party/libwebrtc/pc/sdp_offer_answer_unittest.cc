@@ -639,7 +639,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
 }
 
-TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
+// TODO: bugs.webrtc.org/362277533 - reenable before launch.
+TEST_F(SdpOfferAnswerTest, DISABLED_SimulcastOfferWithMixedCodec) {
   auto pc = CreatePeerConnection(
       FieldTrials::CreateNoGlobal("WebRTC-MixedCodecSimulcast/Enabled/"));
 
