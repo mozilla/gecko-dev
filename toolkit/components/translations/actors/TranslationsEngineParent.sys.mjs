@@ -4,6 +4,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   TranslationsTelemetry:
     "chrome://global/content/translations/TranslationsTelemetry.sys.mjs",
@@ -17,7 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * The translations engine is in its own content process. This actor handles the
  * marshalling of the data such as the engine payload and port passing.
  */
-export class TranslationsEngineParent extends JSProcessActorParent {
+export class TranslationsEngineParent extends JSWindowActorParent {
   /**
    * Keep track of the live actors by InnerWindowID.
    *
@@ -25,20 +26,16 @@ export class TranslationsEngineParent extends JSProcessActorParent {
    */
   #translationsParents = new Map();
 
-  /**
-   * Set by EngineProcess when creating the TranslationsEngineParent.
-   * Keeps the "inference" process alive until it is cleared.
-   *
-   * NOTE: Invalidating this keepAlive does not guarantee that the process will
-   * exit, and this actor may be re-used if it does not (e.g. because the
-   * inference process was kept alive by MLEngine).
-   *
-   * @type {nsIContentParentKeepAlive | null}
-   */
-  processKeepAlive = null;
-
   async receiveMessage({ name, data }) {
     switch (name) {
+      case "TranslationsEngine:Ready":
+        if (!lazy.EngineProcess.resolveTranslationsEngineParent) {
+          throw new Error(
+            "Unable to find the resolve function for when the translations engine is ready."
+          );
+        }
+        lazy.EngineProcess.resolveTranslationsEngineParent(this);
+        return undefined;
       case "TranslationsEngine:RequestEnginePayload": {
         const { languagePair } = data;
         const payloadPromise =
@@ -86,15 +83,9 @@ export class TranslationsEngineParent extends JSProcessActorParent {
         return undefined;
       }
       case "TranslationsEngine:DestroyEngineProcess":
-        if (this.processKeepAlive) {
-          ChromeUtils.addProfilerMarker(
-            "EngineProcess",
-            {},
-            `Dropping TranslationsEngine "inference" process keep-alive`
-          );
-          this.processKeepAlive.invalidateKeepAlive();
-          this.processKeepAlive = null;
-        }
+        lazy.EngineProcess.destroyTranslationsEngine().catch(error =>
+          console.error(error)
+        );
         return undefined;
       default:
         return undefined;

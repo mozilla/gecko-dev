@@ -94,7 +94,7 @@ const ONE_GiB = 1024 * 1024 * 1024;
  * The engine child is responsible for the life cycle and instantiation of the local
  * machine learning inference engine.
  */
-export class MLEngineChild extends JSProcessActorChild {
+export class MLEngineChild extends JSWindowActorChild {
   /**
    * The cached engines.
    *
@@ -126,6 +126,8 @@ export class MLEngineChild extends JSProcessActorChild {
             /* replacement */ false
           );
         }
+        this.#engineDispatchers = null;
+        this.#engineStatuses = null;
         break;
       }
     }
@@ -181,19 +183,10 @@ export class MLEngineChild extends JSProcessActorChild {
       }
 
       this.#engineStatuses.set(engineId, "CREATING");
-
-      const dispatcher = new EngineDispatcher(this, port, options);
-      this.#engineDispatchers.set(engineId, dispatcher);
-
-      // When the pipeline is mocked typically in unit tests, the WASM files are
-      // mocked.  In these cases, the pipeline is not resolved during
-      // initialization to allow the test to work.
-      //
-      // NOTE: This is done after adding to #engineDispatchers to ensure other
-      // async calls see the new dispatcher.
-      if (!lazy.PipelineOptions.isMocked(pipelineOptions)) {
-        await dispatcher.ensureInferenceEngineIsReady();
-      }
+      this.#engineDispatchers.set(
+        engineId,
+        await EngineDispatcher.initialize(this, port, options)
+      );
 
       this.#engineStatuses.set(engineId, "READY");
       port.postMessage({
@@ -205,6 +198,14 @@ export class MLEngineChild extends JSProcessActorChild {
         type: "EnginePort:EngineReady",
         error,
       });
+    }
+  }
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "DOMContentLoaded":
+        this.sendAsyncMessage("MLEngine:Ready");
+        break;
     }
   }
 
@@ -251,6 +252,9 @@ export class MLEngineChild extends JSProcessActorChild {
    * @param {boolean} replacement - Flag indicating whether the engine is being replaced.
    */
   removeEngine(engineId, shutDownIfEmpty, replacement) {
+    if (!this.#engineDispatchers) {
+      return;
+    }
     this.#engineDispatchers.delete(engineId);
     this.#engineStatuses.delete(engineId);
 
@@ -423,6 +427,29 @@ class EngineDispatcher {
   async ensureInferenceEngineIsReady() {
     this.#engine = await this.#engine;
     this.#status = "READY";
+  }
+
+  /**
+   * Initialize an Engine Dispatcher
+   *
+   * @param {MLEngineChild} mlEngineChild
+   * @param {MessagePort} port
+   * @param {PipelineOptions} pipelineOptions
+   */
+  static async initialize(mlEngineChild, port, pipelineOptions) {
+    const dispatcher = new EngineDispatcher(
+      mlEngineChild,
+      port,
+      pipelineOptions
+    );
+
+    // When the pipeline is mocked typically in unit tests, the WASM files are mocked.
+    // In these cases, the pipeline is not resolved during initialization to allow the test to work.
+    if (!lazy.PipelineOptions.isMocked(pipelineOptions)) {
+      await dispatcher.ensureInferenceEngineIsReady();
+    }
+
+    return dispatcher;
   }
 
   handleInitProgressStatus(port, notificationsData) {
