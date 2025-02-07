@@ -27,7 +27,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   ProxyPolicies: "resource:///modules/policies/ProxyPolicies.sys.mjs",
-  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
 });
 
@@ -1435,7 +1435,7 @@ export var Policies = {
   FirefoxSuggest: {
     onBeforeAddons(manager, param) {
       (async () => {
-        await lazy.UrlbarPrefs.firefoxSuggestScenarioStartupPromise;
+        await lazy.QuickSuggest.initPromise;
         if ("WebSuggestions" in param) {
           PoliciesUtils.setDefaultPref(
             "browser.urlbar.suggest.quicksuggest.nonsponsored",

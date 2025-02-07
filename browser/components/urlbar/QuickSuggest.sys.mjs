@@ -80,6 +80,14 @@ class _QuickSuggest {
   }
 
   /**
+   * @returns {Promise}
+   *   Resolved when Suggest initialization finishes.
+   */
+  get initPromise() {
+    return this.#initResolvers.promise;
+  }
+
+  /**
    * @returns {Array}
    *   Enabled Suggest backends.
    */
@@ -157,6 +165,7 @@ class _QuickSuggest {
    */
   async init() {
     if (this.#initStarted) {
+      await this.initPromise;
       return;
     }
     this.#initStarted = true;
@@ -198,6 +207,8 @@ class _QuickSuggest {
     this.#updateAll();
     lazy.NimbusFeatures.urlbar.onUpdate(() => this.#updateAll());
     lazy.UrlbarPrefs.addObserver(this);
+
+    this.#initResolvers.resolve();
   }
 
   /**
@@ -457,6 +468,7 @@ class _QuickSuggest {
   }
 
   #initStarted = false;
+  #initResolvers = Promise.withResolvers();
 
   // Maps from Suggest feature class names to feature instances.
   #featuresByName = new Map();
