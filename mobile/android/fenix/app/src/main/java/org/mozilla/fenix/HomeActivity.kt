@@ -66,6 +66,7 @@ import mozilla.components.feature.media.ext.findActiveMediaTab
 import mozilla.components.feature.privatemode.notification.PrivateNotificationFeature
 import mozilla.components.feature.search.BrowserStoreSearchAdapter
 import mozilla.components.service.fxa.sync.SyncReason
+import mozilla.components.service.pocket.PocketStoriesService
 import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.UserInteractionOnBackPressedCallback
@@ -525,6 +526,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 components.core.pocketStoriesService.startPeriodicStoriesRefresh()
             }
 
+            if (settings().marsAPIEnabled && !settings().hasPocketSponsoredStoriesProfileMigrated) {
+                migratePocketSponsoredStoriesProfile(components.core.pocketStoriesService)
+            }
+
             if (settings().showPocketSponsoredStories) {
                 if (settings().marsAPIEnabled) {
                     components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
@@ -574,6 +579,16 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         StartupTimeline.onActivityCreateEndHome(this) // DO NOT MOVE ANYTHING BELOW HERE.
+    }
+
+    /**
+     * Deletes the user's existing sponsored stories profile as part of the migration to the
+     * MARS API.
+     */
+    @VisibleForTesting
+    internal fun migratePocketSponsoredStoriesProfile(pocketStoriesService: PocketStoriesService) {
+        pocketStoriesService.deleteProfile()
+        settings().hasPocketSponsoredStoriesProfileMigrated = true
     }
 
     private fun checkAndExitPiP() {
