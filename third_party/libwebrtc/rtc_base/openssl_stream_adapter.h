@@ -31,6 +31,7 @@
 #else
 #include "rtc_base/openssl_identity.h"
 #endif
+#include "api/field_trials_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
@@ -70,7 +71,8 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
  public:
   OpenSSLStreamAdapter(
       std::unique_ptr<StreamInterface> stream,
-      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error);
+      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
+      const webrtc::FieldTrialsView* field_trials = nullptr);
   ~OpenSSLStreamAdapter() override;
 
   void SetIdentity(std::unique_ptr<SSLIdentity> identity) override;
@@ -244,6 +246,11 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
 
   // Rollout killswitch for disabling session tickets.
   const bool disable_handshake_ticket_;
+
+  // 0 == Disabled
+  // 1 == Max
+  // 2 == Enabled (both min and max)
+  const int force_dtls_13_ = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////////

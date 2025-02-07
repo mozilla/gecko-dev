@@ -395,6 +395,10 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
     dictionary_writer_synced_callback_list_.RemoveReceivers(tag);
   }
 
+  virtual const webrtc::FieldTrialsView* field_trials() const {
+    return nullptr;
+  }
+
  protected:
   void SendGatheringStateEvent() {
     gathering_state_callback_list_.Send(this);

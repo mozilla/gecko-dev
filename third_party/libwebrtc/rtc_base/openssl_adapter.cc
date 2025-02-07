@@ -63,7 +63,6 @@
 #include "rtc_base/openssl_utility.h"
 #include "rtc_base/strings/str_join.h"
 #include "rtc_base/thread.h"
-#include "system_wrappers/include/field_trial.h"
 
 //////////////////////////////////////////////////////////////////////
 // SocketBIO

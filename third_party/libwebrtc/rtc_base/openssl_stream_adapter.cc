@@ -58,7 +58,6 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
-#include "system_wrappers/include/field_trial.h"
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 #error "webrtc requires at least OpenSSL version 1.1.0, to support DTLS-SRTP"
@@ -138,6 +137,28 @@ uint16_t GetMaxVersion(SSLMode ssl_mode, SSLProtocolVersion version) {
 #endif
       }
   }
+}
+
+constexpr int kForceDtls13Off = 0;
+#ifdef DTLS1_3_VERSION
+constexpr int kForceDtls13Enabled = 1;
+constexpr int kForceDtls13Only = 2;
+#endif
+
+int GetForceDtls13(const webrtc::FieldTrialsView* field_trials) {
+  if (field_trials == nullptr) {
+    return kForceDtls13Off;
+  }
+#ifdef DTLS1_3_VERSION
+  auto mode = field_trials->Lookup("WebRTC-ForceDtls13");
+  RTC_LOG(LS_WARNING) << "WebRTC-ForceDtls13: " << mode;
+  if (mode == "Enabled") {
+    return kForceDtls13Enabled;
+  } else if (mode == "Only") {
+    return kForceDtls13Only;
+  }
+#endif
+  return kForceDtls13Off;
 }
 
 }  // namespace
@@ -264,7 +285,8 @@ static long stream_ctrl(BIO* b, int cmd, long num, void* ptr) {
 
 OpenSSLStreamAdapter::OpenSSLStreamAdapter(
     std::unique_ptr<StreamInterface> stream,
-    absl::AnyInvocable<void(SSLHandshakeError)> handshake_error)
+    absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
+    const webrtc::FieldTrialsView* field_trials)
     : stream_(std::move(stream)),
       handshake_error_(std::move(handshake_error)),
       owner_(rtc::Thread::Current()),
@@ -276,8 +298,12 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
       ssl_ctx_(nullptr),
       ssl_mode_(SSL_MODE_DTLS),
       ssl_max_version_(SSL_PROTOCOL_DTLS_12),
-      disable_handshake_ticket_(!webrtc::field_trial::IsDisabled(
-          "WebRTC-DisableTlsSessionTicketKillswitch")) {
+      disable_handshake_ticket_(
+          (field_trials == nullptr)
+              ? true
+              : !field_trials->IsDisabled(
+                    "WebRTC-DisableTlsSessionTicketKillswitch")),
+      force_dtls_13_(GetForceDtls13(field_trials)) {
   stream_->SetEventCallback(
       [this](int events, int err) { OnEvent(events, err); });
 }
@@ -988,6 +1014,15 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
   auto min_version =
       ssl_mode_ == SSL_MODE_DTLS ? DTLS1_2_VERSION : TLS1_2_VERSION;
   auto max_version = GetMaxVersion(ssl_mode_, ssl_max_version_);
+#ifdef DTLS1_3_VERSION
+  if (force_dtls_13_ == kForceDtls13Enabled) {
+    max_version = DTLS1_3_VERSION;
+  } else if (force_dtls_13_ == kForceDtls13Only) {
+    min_version = DTLS1_3_VERSION;
+    max_version = DTLS1_3_VERSION;
+  }
+#endif
+
   SSL_CTX_set_min_proto_version(ctx, min_version);
   SSL_CTX_set_max_proto_version(ctx, max_version);
 

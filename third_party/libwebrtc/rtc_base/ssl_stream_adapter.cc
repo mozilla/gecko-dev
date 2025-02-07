@@ -82,9 +82,10 @@ bool IsGcmCryptoSuite(int crypto_suite) {
 
 std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
     std::unique_ptr<StreamInterface> stream,
-    absl::AnyInvocable<void(SSLHandshakeError)> handshake_error) {
-  return std::make_unique<OpenSSLStreamAdapter>(std::move(stream),
-                                                std::move(handshake_error));
+    absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
+    const webrtc::FieldTrialsView* field_trials) {
+  return std::make_unique<OpenSSLStreamAdapter>(
+      std::move(stream), std::move(handshake_error), field_trials);
 }
 
 bool SSLStreamAdapter::IsBoringSsl() {

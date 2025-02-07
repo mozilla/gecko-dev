@@ -363,7 +363,8 @@ bool DtlsTransport::SetupDtls() {
 
     dtls_ = rtc::SSLStreamAdapter::Create(
         std::move(downward),
-        [this](rtc::SSLHandshakeError error) { OnDtlsHandshakeError(error); });
+        [this](rtc::SSLHandshakeError error) { OnDtlsHandshakeError(error); },
+        ice_transport_->field_trials());
     if (!dtls_) {
       RTC_LOG(LS_ERROR) << ToString() << ": Failed to create DTLS adapter.";
       return false;

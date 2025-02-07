@@ -22,6 +22,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/field_trials_view.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_identity.h"
@@ -123,7 +124,8 @@ class SSLStreamAdapter : public StreamInterface {
   // Caller is responsible for freeing the returned object.
   static std::unique_ptr<SSLStreamAdapter> Create(
       std::unique_ptr<StreamInterface> stream,
-      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error = nullptr);
+      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error = nullptr,
+      const webrtc::FieldTrialsView* field_trials = nullptr);
 
   SSLStreamAdapter() = default;
   ~SSLStreamAdapter() override = default;
