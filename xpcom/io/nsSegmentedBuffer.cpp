@@ -10,6 +10,8 @@
 #include "nsThreadUtils.h"
 #include "mozilla/ScopeExit.h"
 
+static constexpr uint32_t kSegmentedBufferFreeOMTThreshold = 128;
+
 nsresult nsSegmentedBuffer::Init(uint32_t aSegmentSize) {
   if (mSegmentArrayCount != 0) {
     return NS_ERROR_FAILURE;  // initialized more than once
@@ -19,7 +21,8 @@ nsresult nsSegmentedBuffer::Init(uint32_t aSegmentSize) {
   return NS_OK;
 }
 
-char* nsSegmentedBuffer::AppendNewSegment() {
+char* nsSegmentedBuffer::AppendNewSegment(
+    mozilla::UniqueFreePtr<char> aSegment) {
   if (!mSegmentArray) {
     uint32_t bytes = mSegmentArrayCount * sizeof(char*);
     mSegmentArray = (char**)moz_xmalloc(bytes);
@@ -51,7 +54,7 @@ char* nsSegmentedBuffer::AppendNewSegment() {
     mSegmentArrayCount = newArraySize.value();
   }
 
-  char* seg = (char*)malloc(mSegmentSize);
+  char* seg = aSegment ? aSegment.release() : (char*)malloc(mSegmentSize);
   if (!seg) {
     return nullptr;
   }
@@ -60,28 +63,27 @@ char* nsSegmentedBuffer::AppendNewSegment() {
   return seg;
 }
 
-bool nsSegmentedBuffer::DeleteFirstSegment() {
+mozilla::UniqueFreePtr<char> nsSegmentedBuffer::PopFirstSegment() {
   NS_ASSERTION(mSegmentArray[mFirstSegmentIndex] != nullptr,
                "deleting bad segment");
-  FreeOMT(mSegmentArray[mFirstSegmentIndex]);
+  mozilla::UniqueFreePtr<char> segment(mSegmentArray[mFirstSegmentIndex]);
   mSegmentArray[mFirstSegmentIndex] = nullptr;
   int32_t last = ModSegArraySize(mLastSegmentIndex - 1);
   if (mFirstSegmentIndex == last) {
     mLastSegmentIndex = last;
-    return true;
   } else {
     mFirstSegmentIndex = ModSegArraySize(mFirstSegmentIndex + 1);
-    return false;
   }
+  return segment;
 }
 
-bool nsSegmentedBuffer::DeleteLastSegment() {
+mozilla::UniqueFreePtr<char> nsSegmentedBuffer::PopLastSegment() {
   int32_t last = ModSegArraySize(mLastSegmentIndex - 1);
   NS_ASSERTION(mSegmentArray[last] != nullptr, "deleting bad segment");
-  FreeOMT(mSegmentArray[last]);
+  mozilla::UniqueFreePtr<char> segment(mSegmentArray[last]);
   mSegmentArray[last] = nullptr;
   mLastSegmentIndex = last;
-  return (bool)(mLastSegmentIndex == mFirstSegmentIndex);
+  return segment;
 }
 
 bool nsSegmentedBuffer::ReallocLastSegment(size_t aNewSize) {
@@ -95,75 +97,31 @@ bool nsSegmentedBuffer::ReallocLastSegment(size_t aNewSize) {
   return false;
 }
 
-void nsSegmentedBuffer::Empty() {
-  auto clearMembers = mozilla::MakeScopeExit([&] {
-    mSegmentArray = nullptr;
-    mSegmentArrayCount = NS_SEGMENTARRAY_INITIAL_COUNT;
-    mFirstSegmentIndex = mLastSegmentIndex = 0;
-  });
+void nsSegmentedBuffer::Clear() {
+  // Clear out the buffer's members back to their initial state.
+  uint32_t arrayCount =
+      std::exchange(mSegmentArrayCount, NS_SEGMENTARRAY_INITIAL_COUNT);
+  char** segmentArray = std::exchange(mSegmentArray, nullptr);
+  mFirstSegmentIndex = mLastSegmentIndex = 0;
 
-  // If mSegmentArray is null, there's no need to actually free anything
-  if (!mSegmentArray) {
-    return;
-  }
-
-  // Dispatch a task that frees up the array. This may run immediately or on
-  // a background thread.
-  FreeOMT([segmentArray = mSegmentArray, arrayCount = mSegmentArrayCount]() {
-    for (uint32_t i = 0; i < arrayCount; i++) {
+  auto freeSegmentArray = [arrayCount, segmentArray]() {
+    for (uint32_t i = 0; i < arrayCount; ++i) {
       if (segmentArray[i]) {
         free(segmentArray[i]);
       }
     }
     free(segmentArray);
-  });
-}
+  };
 
-void nsSegmentedBuffer::FreeOMT(void* aPtr) {
-  FreeOMT([aPtr]() { free(aPtr); });
-}
-
-void nsSegmentedBuffer::FreeOMT(std::function<void()>&& aTask) {
-  if (!NS_IsMainThread()) {
-    aTask();
-    return;
-  }
-
-  if (mFreeOMT) {
-    // There is a runnable pending which will handle this object
-    if (mFreeOMT->AddTask(std::move(aTask)) > 1) {
-      return;
+  if (segmentArray) {
+    // If we have a small number of entries, free them synchronously. In some
+    // rare cases, `nsSegmentedBuffer` may be gigantic, in which case it should
+    // be freed async in a background task to avoid janking this thread.
+    if (arrayCount < kSegmentedBufferFreeOMTThreshold ||
+        NS_FAILED(NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+            "nsSegmentedBuffer::Clear", freeSegmentArray)))) {
+      freeSegmentArray();
     }
-  } else {
-    mFreeOMT = mozilla::MakeRefPtr<FreeOMTPointers>();
-    mFreeOMT->AddTask(std::move(aTask));
-  }
-
-  if (!mIOThread) {
-    mIOThread = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
-  }
-
-  // During the shutdown we are not able to obtain the IOThread and/or the
-  // dispatching of runnable fails.
-  if (!mIOThread || NS_FAILED(mIOThread->Dispatch(NS_NewRunnableFunction(
-                        "nsSegmentedBuffer::FreeOMT",
-                        [obj = mFreeOMT]() { obj->FreeAll(); })))) {
-    mFreeOMT->FreeAll();
-  }
-}
-
-void nsSegmentedBuffer::FreeOMTPointers::FreeAll() {
-  // Take all the tasks from the object. If AddTask is called after we release
-  // the lock, then another runnable will be dispatched for that task. This is
-  // necessary to avoid blocking the main thread while memory is being freed.
-  nsTArray<std::function<void()>> tasks = [this]() {
-    auto t = mTasks.Lock();
-    return std::move(*t);
-  }();
-
-  // Finally run all the tasks to free memory.
-  for (auto& task : tasks) {
-    task();
   }
 }
 

@@ -8,34 +8,34 @@
 
 using namespace mozilla;
 
-TEST(SegmentedBuffer, AppendAndDelete)
+TEST(SegmentedBuffer, AppendAndPop)
 {
   auto buf = MakeUnique<nsSegmentedBuffer>();
   buf->Init(4);
   char* seg;
-  bool empty;
+  mozilla::UniqueFreePtr<char> poppedSeg;
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(!empty) << "DeleteFirstSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(!empty) << "DeleteFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
   seg = buf->AppendNewSegment();
   EXPECT_TRUE(seg) << "AppendNewSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(!empty) << "DeleteFirstSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(!empty) << "DeleteFirstSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(!empty) << "DeleteFirstSegment failed";
-  empty = buf->DeleteFirstSegment();
-  EXPECT_TRUE(empty) << "DeleteFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
+  poppedSeg = buf->PopFirstSegment();
+  EXPECT_TRUE(poppedSeg) << "PopFirstSegment failed";
 }

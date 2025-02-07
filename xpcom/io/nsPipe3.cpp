@@ -128,9 +128,10 @@ class CallbackHolder {
 
 //-----------------------------------------------------------------------------
 
-// this class is used to delay notifications until the end of a particular
-// scope.  it helps avoid the complexity of issuing callbacks while inside
-// a critical section.
+// This class is used to delay notifications until the end of a particular
+// scope. It helps to avoid the complexity of issuing callbacks while inside
+// a critical section. It also holds a list of segments that have become
+// obsolete during that particular scope to be bulk-freed later.
 class nsPipeEvents {
  public:
   nsPipeEvents() = default;
@@ -140,8 +141,13 @@ class nsPipeEvents {
     mCallbacks.AppendElement(std::move(aCallback));
   }
 
+  inline void FreeSegment(mozilla::UniqueFreePtr<char> aSegment) {
+    mSegmentsToFree.AppendElement(std::move(aSegment));
+  }
+
  private:
-  nsTArray<CallbackHolder> mCallbacks;
+  AutoTArray<CallbackHolder, 4> mCallbacks;
+  AutoTArray<mozilla::UniqueFreePtr<char>, 4> mSegmentsToFree;
 };
 
 //-----------------------------------------------------------------------------
@@ -353,6 +359,7 @@ class nsPipe final {
                    char*& aCursor, char*& aLimit)
       MOZ_REQUIRES(mReentrantMonitor);
   SegmentChangeResult AdvanceReadSegment(nsPipeReadState& aReadState,
+                                         nsPipeEvents& aEvents,
                                          const ReentrantMonitorAutoEnter& ev)
       MOZ_REQUIRES(mReentrantMonitor);
   bool ReadSegmentBeingWritten(nsPipeReadState& aReadState)
@@ -666,7 +673,8 @@ void nsPipe::AdvanceReadCursor(nsPipeReadState& aReadState,
       // Advance the segment position.  If we have read any segments from the
       // advance buffer then we can potentially notify blocked writers.
       mOutput.Monitor().AssertCurrentThreadIn();
-      if (AdvanceReadSegment(aReadState, mon) == SegmentAdvanceBufferRead &&
+      if (AdvanceReadSegment(aReadState, events, mon) ==
+              SegmentAdvanceBufferRead &&
           mOutput.OnOutputWritable(events) == NotifyMonitor) {
         mon.NotifyAll();
       }
@@ -677,7 +685,8 @@ void nsPipe::AdvanceReadCursor(nsPipeReadState& aReadState,
 }
 
 SegmentChangeResult nsPipe::AdvanceReadSegment(
-    nsPipeReadState& aReadState, const ReentrantMonitorAutoEnter& ev) {
+    nsPipeReadState& aReadState, nsPipeEvents& aEvents,
+    const ReentrantMonitorAutoEnter& ev) {
   // Calculate how many segments are buffered for this stream to start.
   uint32_t startBufferSegments = GetBufferSegmentCount(aReadState, ev);
 
@@ -706,7 +715,7 @@ SegmentChangeResult nsPipe::AdvanceReadSegment(
     }
 
     // done with this segment
-    mBuffer.DeleteFirstSegment();
+    aEvents.FreeSegment(mBuffer.PopFirstSegment());
     LOG(("III deleting first segment\n"));
   }
 
@@ -770,7 +779,7 @@ void nsPipe::DrainInputStream(nsPipeReadState& aReadState,
     // Don't bother checking if this results in an advance buffer segment
     // read.  Since we are draining the entire stream we will read an
     // advance buffer segment no matter what.
-    AdvanceReadSegment(aReadState, mon);
+    AdvanceReadSegment(aReadState, aEvents, mon);
   }
 
   // Force the stream into an empty state.  Make sure mAvailable, mCursor, and
@@ -1155,6 +1164,17 @@ nsPipeEvents::~nsPipeEvents() {
     callback.Notify();
   }
   mCallbacks.Clear();
+
+  // free segments which are no longer required. use a background task if we're
+  // freeing a large number of segments to avoid blocking the current thread.
+  if (mSegmentsToFree.Length() > 128) {
+    NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+        "nsPipe FreeSegments",
+        [segments = std::move(mSegmentsToFree)]() mutable {
+          segments.Clear();
+        }));
+  }
+  mSegmentsToFree.Clear();
 }
 
 //-----------------------------------------------------------------------------

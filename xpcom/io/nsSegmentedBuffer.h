@@ -15,6 +15,7 @@
 #include "nsError.h"
 #include "nsTArray.h"
 #include "mozilla/DataMutex.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 class nsIEventTarget;
 
@@ -27,23 +28,25 @@ class nsSegmentedBuffer {
         mFirstSegmentIndex(0),
         mLastSegmentIndex(0) {}
 
-  ~nsSegmentedBuffer() { Empty(); }
+  ~nsSegmentedBuffer() { Clear(); }
 
   nsresult Init(uint32_t aSegmentSize);
 
-  char* AppendNewSegment();  // pushes at end
+  // pushes at end
+  // aSegment must either be null or at least mSegmentSize bytes large.
+  char* AppendNewSegment(mozilla::UniqueFreePtr<char> aSegment = nullptr);
 
-  // returns true if no more segments remain:
-  bool DeleteFirstSegment();  // pops from beginning
+  // pops from beginning, and returns the segment
+  mozilla::UniqueFreePtr<char> PopFirstSegment();
 
-  // returns true if no more segments remain:
-  bool DeleteLastSegment();  // pops from beginning
+  // pops from end, and returns the segment
+  mozilla::UniqueFreePtr<char> PopLastSegment();
 
   // Call Realloc() on last segment.  This is used to reduce memory
   // consumption when data is not an exact multiple of segment size.
   bool ReallocLastSegment(size_t aNewSize);
 
-  void Empty();  // frees all segments
+  void Clear();  // frees all segments
 
   inline uint32_t GetSegmentCount() {
     if (mFirstSegmentIndex <= mLastSegmentIndex) {
@@ -79,38 +82,6 @@ class nsSegmentedBuffer {
   uint32_t mSegmentArrayCount;
   int32_t mFirstSegmentIndex;
   int32_t mLastSegmentIndex;
-
- private:
-  class FreeOMTPointers {
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FreeOMTPointers)
-
-   public:
-    FreeOMTPointers() : mTasks("nsSegmentedBuffer::FreeOMTPointers") {}
-
-    void FreeAll();
-
-    // Adds a task to the array. Returns the size of the array.
-    size_t AddTask(std::function<void()>&& aTask) {
-      auto tasks = mTasks.Lock();
-      tasks->AppendElement(std::move(aTask));
-      return tasks->Length();
-    }
-
-   private:
-    ~FreeOMTPointers() = default;
-
-    mozilla::DataMutex<nsTArray<std::function<void()>>> mTasks;
-  };
-
-  void FreeOMT(void* aPtr);
-  void FreeOMT(std::function<void()>&& aTask);
-
-  nsCOMPtr<nsIEventTarget> mIOThread;
-
-  // This object is created the first time we need to dispatch to another thread
-  // to free segments. It is only freed when the nsSegmentedBufer is destroyed
-  // or when the runnable is finally handled and its refcount goes to 0.
-  RefPtr<FreeOMTPointers> mFreeOMT;
 };
 
 // NS_SEGMENTARRAY_INITIAL_SIZE: This number needs to start out as a
