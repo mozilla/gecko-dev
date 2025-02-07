@@ -54,6 +54,18 @@ loader.lazyRequireGetter(
   "resource://devtools/client/netmonitor/src/har/har-menu-utils.js",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  ["setNetworkOverride", "removeNetworkOverride"],
+  "resource://devtools/client/framework/actions/index.js",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "getOverriddenUrl",
+  "resource://devtools/client/netmonitor/src/selectors/index.js",
+  true
+);
 
 const { OS } = Services.appinfo;
 
@@ -304,6 +316,9 @@ class RequestListContextMenu {
       url,
     } = clickedRequest;
 
+    const toolbox = this.props.connector.getToolbox();
+    const isOverridden = !!getOverriddenUrl(toolbox.store.getState(), url);
+
     const copySubMenu = this.createCopySubMenu(clickedRequest, requests);
     const newEditAndResendPref = Services.prefs.getBoolPref(
       "devtools.netmonitor.features.newEditAndResend"
@@ -313,7 +328,7 @@ class RequestListContextMenu {
       {
         label: L10N.getStr("netmonitor.context.copyValue"),
         accesskey: L10N.getStr("netmonitor.context.copyValue.accesskey"),
-        visible: !!clickedRequest,
+        visible: true,
         submenu: copySubMenu,
       },
       {
@@ -335,7 +350,6 @@ class RequestListContextMenu {
         label: L10N.getStr("netmonitor.context.saveResponseAs"),
         accesskey: L10N.getStr("netmonitor.context.saveResponseAs.accesskey"),
         visible: !!(
-          clickedRequest &&
           (responseContentAvailable || responseContent) &&
           mimeType &&
           // Websockets and server-sent events don't have a real 'response' for us to save
@@ -352,7 +366,7 @@ class RequestListContextMenu {
         id: "request-list-context-resend-only",
         label: L10N.getStr("netmonitor.context.resend.label"),
         accesskey: L10N.getStr("netmonitor.context.resend.accesskey"),
-        visible: !!(clickedRequest && !isCustom),
+        visible: !isCustom,
         click: () => {
           if (!newEditAndResendPref) {
             cloneRequest(id);
@@ -367,7 +381,7 @@ class RequestListContextMenu {
         id: "request-list-context-edit-resend",
         label: L10N.getStr("netmonitor.context.editAndResend"),
         accesskey: L10N.getStr("netmonitor.context.editAndResend.accesskey"),
-        visible: !!(clickedRequest && !isCustom),
+        visible: !isCustom,
         click: () => {
           this.fetchRequestHeaders(id).then(() => {
             if (!newEditAndResendPref) {
@@ -380,6 +394,7 @@ class RequestListContextMenu {
           });
         },
       },
+      // Request blocking
       {
         id: "request-list-context-block-url",
         label: L10N.getStr("netmonitor.context.blockURL"),
@@ -407,6 +422,27 @@ class RequestListContextMenu {
             openRequestBlockingAndDisableUrls(clickedRequest.url);
           }
         },
+      },
+      // Request overrides
+      {
+        id: "request-list-context-set-override",
+        label: L10N.getStr("netmonitor.context.setOverride"),
+        accesskey: L10N.getStr("netmonitor.context.setOverride.accesskey"),
+        visible: !isOverridden && (responseContentAvailable || responseContent),
+        click: async () => {
+          const content = await this.getResponseContent(id, responseContent);
+          toolbox.store.dispatch(
+            setNetworkOverride(toolbox.commands, url, content, window)
+          );
+        },
+      },
+      {
+        id: "request-list-context-remove-override",
+        label: L10N.getStr("netmonitor.context.removeOverride"),
+        accesskey: L10N.getStr("netmonitor.context.removeOverride.accesskey"),
+        visible: isOverridden,
+        click: () =>
+          toolbox.store.dispatch(removeNetworkOverride(toolbox.commands, url)),
       },
       {
         type: "separator",
@@ -762,16 +798,12 @@ class RequestListContextMenu {
     copyString(formDataURI(mimeType, encoding, text));
   }
 
-  /**
-   * Save response as.
-   */
-  async saveResponseAs(id, url, responseContent) {
+  async getResponseContent(id, responseContent) {
     responseContent =
       responseContent ||
       (await this.props.connector.requestData(id, "responseContent"));
 
     const { encoding, text } = responseContent.content;
-    const fileName = getUrlBaseName(url);
     let data;
     if (encoding === "base64") {
       const decoded = atob(text);
@@ -782,7 +814,16 @@ class RequestListContextMenu {
     } else {
       data = new TextEncoder().encode(text);
     }
-    saveAs(window, data, fileName);
+    return data;
+  }
+
+  /**
+   * Save response as.
+   */
+  async saveResponseAs(id, url, responseContent) {
+    const fileName = getUrlBaseName(url);
+    const content = await this.getResponseContent(id, responseContent);
+    saveAs(window, content, fileName);
   }
 
   /**

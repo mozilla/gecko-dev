@@ -5,21 +5,20 @@
 "use strict";
 
 const {
-  createFactory,
+  createElement,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const {
   render,
   unmountComponentAtNode,
 } = require("resource://devtools/client/shared/vendor/react-dom.js");
-const Provider = createFactory(
-  require("resource://devtools/client/shared/vendor/react-redux.js").Provider
-);
+const Provider =
+  require("resource://devtools/client/shared/vendor/react-redux.js").Provider;
+const ToolboxProvider = require("resource://devtools/client/framework/store-provider.js");
 const {
   visibilityHandlerStore,
 } = require("resource://devtools/client/shared/redux/visibilityHandlerStore.js");
-const App = createFactory(
-  require("resource://devtools/client/netmonitor/src/components/App.js")
-);
+
+const App = require("resource://devtools/client/netmonitor/src/components/App.js");
 const {
   EVENTS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
@@ -66,21 +65,30 @@ NetMonitorApp.prototype = {
     const { actions, connector, store } = this.api;
 
     const sourceMapURLService = toolbox.sourceMapURLService;
-    const app = App({
-      actions,
-      connector,
-      openLink,
-      openSplitConsole,
-      sourceMapURLService,
-      toolboxDoc: toolbox.doc,
-    });
 
     // Render the root Application component.
-    //
-    // Also wrap the store in order to pause store update notifications while the panel is hidden.
-    // (this can't be done from create-store as it is loaded from the toolbox, without the browser loader
-    //  and isn't bound to the netmonitor document)
-    render(Provider({ store: visibilityHandlerStore(store) }, app), this.mount);
+    render(
+      createElement(
+        Provider,
+        // Also wrap the store in order to pause store update notifications while the panel is hidden.
+        // (this can't be done from create-store as it is loaded from the toolbox, without the browser loader
+        //  and isn't bound to the netmonitor document)
+        { store: visibilityHandlerStore(store) },
+        createElement(
+          ToolboxProvider,
+          { store: toolbox.store },
+          createElement(App, {
+            actions,
+            connector,
+            openLink,
+            openSplitConsole,
+            sourceMapURLService,
+            toolboxDoc: toolbox.doc,
+          })
+        )
+      ),
+      this.mount
+    );
   },
 
   /**
