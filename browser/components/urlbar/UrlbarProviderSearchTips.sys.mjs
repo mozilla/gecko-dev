@@ -34,11 +34,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
-// The possible tips to show.  These names (except NONE) are used in the names
-// of keys in the `urlbar.tips` keyed scalar telemetry (see telemetry.rst).
-// Don't modify them unless you've considered that.  If you do modify them or
-// add new tips, then you are also adding new `urlbar.tips` keys and therefore
-// need an expanded data collection review.
+// The possible tips to show.
 const TIPS = {
   NONE: "",
   ONBOARD: "searchTip_onboard",
@@ -216,8 +212,6 @@ class ProviderSearchTips extends UrlbarProvider {
         };
         break;
     }
-
-    Glean.urlbar.tips[`${tip}-shown`].add(1);
 
     addCallback(this, result);
   }

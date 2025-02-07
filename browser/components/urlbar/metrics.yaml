@@ -729,23 +729,6 @@ urlbar:
     expires: never
     telemetry_mirror: URLBAR_ENGAGEMENT
 
-  tips:
-    type: labeled_counter
-    description: >
-      A keyed uint recording how many times particular tips are shown in
-      the Urlbar and how often their confirm and help buttons are pressed.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar urlbar.tips.
-    bugs:
-      - https://bugzil.la/1608461
-    data_reviews:
-      - https://bugzil.la/1608461
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-      - adw@mozilla.com
-    expires: never
-    telemetry_mirror: URLBAR_TIPS
-
 # Replacement for PingCentre "quicksuggest-block|impression|click" pings.
 quick_suggest:
   ping_type:

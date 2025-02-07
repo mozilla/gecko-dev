@@ -245,25 +245,19 @@ class ProviderTabToSearch extends UrlbarProvider {
 
   onImpression(state, queryContext, controller, providerVisibleResults) {
     try {
-      let regularResultCount = 0;
-      let onboardingResultCount = 0;
       providerVisibleResults.forEach(({ result }) => {
         if (result.type === UrlbarUtils.RESULT_TYPE.DYNAMIC) {
           let scalarKey = lazy.UrlbarSearchUtils.getSearchModeScalarKey({
             engineName: result?.payload.engine,
           });
           Glean.urlbarTabtosearch.impressionsOnboarding[scalarKey].add(1);
-          onboardingResultCount += 1;
         } else if (result.type === UrlbarUtils.RESULT_TYPE.SEARCH) {
           let scalarKey = lazy.UrlbarSearchUtils.getSearchModeScalarKey({
             engineName: result?.payload.engine,
           });
           Glean.urlbarTabtosearch.impressions[scalarKey].add(1);
-          regularResultCount += 1;
         }
       });
-      Glean.urlbar.tips["tabtosearch-shown"].add(regularResultCount);
-      Glean.urlbar.tips["tabtosearch_onboard-shown"].add(onboardingResultCount);
     } catch (ex) {
       // If your test throws this error or causes another test to throw it, it
       // is likely because your test showed a tab-to-search result but did not

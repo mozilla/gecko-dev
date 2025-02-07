@@ -146,6 +146,8 @@ urlbar.persistedsearchterms.view_count
 urlbar.tips
 ~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   This is a keyed scalar whose values are uints and are incremented each time a
   tip result is shown, a tip is picked, and a tip's help button is picked. The
   keys are:
@@ -220,6 +222,13 @@ urlbar.tips
     Incremented when the user picks the redirect search tip.
   - ``searchTip_redirect-shown``
     Incremented when the redirect search tip is shown.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.tips`` telemetry mirrored to Glean. (See bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.tips`` telemetry and Glean ``urlbar.tips`` telemetry
+      removed completely. (See bug 1932716)
 
 urlbar.searchmode.*
 ~~~~~~~~~~~~~~~~~~~

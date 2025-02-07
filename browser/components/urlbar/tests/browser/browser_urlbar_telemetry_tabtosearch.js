@@ -219,12 +219,6 @@ async function impressions_test(isOnboarding) {
     let scalars = TelemetryTestUtils.getProcessScalars("parent", true);
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      1
-    );
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
       isOnboarding
         ? "urlbar.tabtosearch.impressions_onboarding"
         : "urlbar.tabtosearch.impressions",
@@ -251,12 +245,6 @@ async function impressions_test(isOnboarding) {
     // different onboarding result and now we increment
     // tabtosearch_onboard-shown.
     scalars = TelemetryTestUtils.getProcessScalars("parent", true);
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      2
-    );
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
       isOnboarding
@@ -293,12 +281,6 @@ async function impressions_test(isOnboarding) {
     scalars = TelemetryTestUtils.getProcessScalars("parent", true);
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      3
-    );
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
       isOnboarding
         ? "urlbar.tabtosearch.impressions_onboarding"
         : "urlbar.tabtosearch.impressions",
@@ -328,12 +310,6 @@ async function impressions_test(isOnboarding) {
     scalars = TelemetryTestUtils.getProcessScalars("parent", true);
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      4
-    );
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
       isOnboarding
         ? "urlbar.tabtosearch.impressions_onboarding"
         : "urlbar.tabtosearch.impressions",
@@ -342,7 +318,7 @@ async function impressions_test(isOnboarding) {
       4
     );
 
-    // See javadoc for UrlbarProviderTabToSearch.onEngagement for
+    // See jsdoc for UrlbarProviderTabToSearch.onEngagement for
     // discussion about retained results.
     info("Reopen the result set with retained results. Record impression.");
     await UrlbarTestUtils.promisePopupOpen(window, () => {
@@ -351,12 +327,6 @@ async function impressions_test(isOnboarding) {
     await checkForTabToSearchResult(`${ENGINE_NAME}2`, isOnboarding);
     await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
     scalars = TelemetryTestUtils.getProcessScalars("parent", true);
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      5
-    );
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
       isOnboarding
@@ -395,12 +365,6 @@ async function impressions_test(isOnboarding) {
     await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
     // We clear the scalar this time.
     scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      "urlbar.tips",
-      isOnboarding ? "tabtosearch_onboard-shown" : "tabtosearch-shown",
-      7
-    );
     TelemetryTestUtils.assertKeyedScalar(
       scalars,
       isOnboarding

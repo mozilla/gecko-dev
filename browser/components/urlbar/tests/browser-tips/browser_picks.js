@@ -13,7 +13,6 @@ add_setup(async function () {
   registerCleanupFunction(() => {
     window.windowUtils.disableNonTestMouseEvents(false);
   });
-  Services.telemetry.clearScalars();
 });
 
 add_task(async function enter_mainButton_url() {
@@ -141,34 +140,6 @@ async function doTest({ click, buttonUrl = undefined, helpUrl = undefined }) {
     );
   }
 
-  // Now pick the target and wait for provider.onEngagement to be called
-  // and the URL to load if necessary.
-  let loadPromise;
-  if (buttonUrl || helpUrl) {
-    loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  }
-  await UrlbarTestUtils.promisePopupClose(window, () => {
-    if (helpUrl) {
-      UrlbarTestUtils.openResultMenuAndPressAccesskey(window, "h", {
-        openByMouse: click,
-        resultIndex: 0,
-      });
-    } else if (click) {
-      EventUtils.synthesizeMouseAtCenter(target, {});
-    } else {
-      EventUtils.synthesizeKey("KEY_Enter");
-    }
-  });
-  await loadPromise;
-
-  // Check telemetry.
-  let scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "urlbar.tips",
-    helpUrl ? "test-help" : "test-picked",
-    1
-  );
   // Done.
   UrlbarProvidersManager.unregisterProvider(provider);
   if (tab) {

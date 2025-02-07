@@ -2109,10 +2109,6 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
         type: "string",
       },
       titleL10n: L10N_SCHEMA,
-      // `type` is used in the names of keys in the `urlbar.tips` keyed scalar
-      // telemetry (see telemetry.rst).  If you add a new type, then you are
-      // also adding new `urlbar.tips` keys and therefore need an expanded data
-      // collection review.
       type: {
         type: "string",
         enum: [

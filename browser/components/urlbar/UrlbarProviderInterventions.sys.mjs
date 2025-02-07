@@ -24,11 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 ChromeUtils.defineLazyGetter(lazy, "appUpdater", () => new lazy.AppUpdater());
 
-// The possible tips to show.  These names (except NONE) are used in the names
-// of keys in the `urlbar.tips` keyed scalar telemetry (see telemetry.rst).
-// Don't modify them unless you've considered that.  If you do modify them or
-// add new tips, then you are also adding new `urlbar.tips` keys and therefore
-// need an expanded data collection review.
+// The possible tips to show.
 const TIPS = {
   NONE: "",
   CLEAR: "intervention_clear",
@@ -712,12 +708,6 @@ class ProviderInterventions extends UrlbarProvider {
     if (details.selType == "tip") {
       this.#pickResult(details.result, controller.browserWindow);
     }
-  }
-
-  onImpression(state, queryContext, controller, providerVisibleResults) {
-    providerVisibleResults.forEach(({ result }) => {
-      Glean.urlbar.tips[`${result.payload.type}-shown`].add(1);
-    });
   }
 
   /**

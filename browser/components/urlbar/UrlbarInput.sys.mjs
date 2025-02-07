@@ -1298,8 +1298,6 @@ export class UrlbarInput {
         break;
       }
       case lazy.UrlbarUtils.RESULT_TYPE.TIP: {
-        let scalarName = `${result.payload.type}-picked`;
-        Glean.urlbar.tips[scalarName].add(1);
         if (url) {
           break;
         }
@@ -3121,11 +3119,6 @@ export class UrlbarInput {
     }
 
     this.view.close({ elementPicked: true });
-
-    if (result.type == lazy.UrlbarUtils.RESULT_TYPE.TIP) {
-      let scalarName = `${result.payload.type}-help`;
-      Glean.urlbar.tips[scalarName].add(1);
-    }
 
     this._loadURL(
       url,

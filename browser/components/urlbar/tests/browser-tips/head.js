@@ -334,21 +334,6 @@ async function doUpdateTest({
   // Pick the tip and wait for the action.
   let values = await Promise.all([awaitCallback(), pickTip()]);
 
-  // Check telemetry.
-  const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "urlbar.tips",
-    `${tip}-shown`,
-    1
-  );
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "urlbar.tips",
-    `${tip}-picked`,
-    1
-  );
-
   return values[0] || null;
 }
 
@@ -497,20 +482,6 @@ function checkIntervention({
     // Ensure the urlbar is closed so that the engagement is ended.
     await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
 
-    const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      "urlbar.tips",
-      `${tip}-shown`,
-      1
-    );
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      "urlbar.tips",
-      `${tip}-picked`,
-      1
-    );
-
     return values[0] || null;
   });
 }
@@ -588,14 +559,6 @@ async function checkTip(win, expectedTip, closeView = true) {
   Assert.ok(
     !result.element.row._buttons.has("help"),
     "Buttons in row does not include help"
-  );
-
-  const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "urlbar.tips",
-    `${expectedTip}-shown`,
-    1
   );
 
   Assert.ok(
