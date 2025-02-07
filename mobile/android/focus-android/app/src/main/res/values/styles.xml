@@ -43,6 +43,10 @@
         <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 
+    <style name="Theme.CrashActivityTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+    </style>
+
     <!-- Fade animation for theme switching -->
     <style name="WindowAnimationTransition">
         <item name="android:windowEnterAnimation">@anim/fade_in</item>
