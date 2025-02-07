@@ -742,6 +742,31 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
     UpdateVpxConfiguration(stream_idx);
   }
 
+  corruption_detection_settings_generator_ =
+      std::make_unique<CorruptionDetectionSettingsGenerator>(
+          CorruptionDetectionSettingsGenerator::ExponentialFunctionParameters{
+              .scale = 0.006,
+              .exponent_factor = 0.01857465,
+              .exponent_offset = -4.26470513},
+          CorruptionDetectionSettingsGenerator::ErrorThresholds{.luma = 5,
+                                                                .chroma = 6},
+          // On large changes, increase error threshold by one and std_dev
+          // by 2.0. Trigger on qp changes larger than 30, and fade down the
+          // adjusted value over 4 * num_temporal_layers to allow the base layer
+          // to converge somewhat. Set a minim filter size of 1.25 since some
+          // outlier pixels deviate a bit from truth even at very low QP,
+          // seeminly by bleeding into neighbours.
+          webrtc::CorruptionDetectionSettingsGenerator::TransientParameters{
+              .max_qp = 127,
+              .keyframe_threshold_offset = 1,
+              .keyframe_stddev_offset = 2.0,
+              .keyframe_offset_duration_frames =
+                  std::max(1,
+                           SimulcastUtility::NumberOfTemporalLayers(*inst, 0)) *
+                  4,
+              .large_qp_change_threshold = 30,
+              .std_dev_lower_bound = 1.25});
+
   return InitAndSetControlSettings();
 }
 
@@ -1264,6 +1289,12 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         encoded_images_[encoder_idx].qp_ = qp_128;
         last_encoder_output_time_[stream_idx] =
             Timestamp::Micros(input_image.timestamp_us());
+
+        encoded_images_[encoder_idx].set_corruption_detection_filter_settings(
+            corruption_detection_settings_generator_->OnFrame(
+                encoded_images_[encoder_idx].FrameType() ==
+                    VideoFrameType::kVideoFrameKey,
+                qp_128));
 
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],
                                                    &codec_specific);

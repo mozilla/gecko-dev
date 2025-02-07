@@ -383,6 +383,8 @@ rtc_library("video_coding_utility") {
   sources = [
     "utility/bandwidth_quality_scaler.cc",
     "utility/bandwidth_quality_scaler.h",
+    "utility/corruption_detection_settings_generator.cc",
+    "utility/corruption_detection_settings_generator.h",
     "utility/decoded_frames_history.cc",
     "utility/decoded_frames_history.h",
     "utility/frame_dropper.cc",
@@ -419,6 +421,7 @@ rtc_library("video_coding_utility") {
     "../../api/environment",
     "../../api/units:data_rate",
     "../../api/units:time_delta",
+    "../../api/video:corruption_detection_filter_settings",
     "../../api/video:encoded_frame",
     "../../api/video:encoded_image",
     "../../api/video:video_adaptation",
@@ -454,6 +457,7 @@ rtc_library("video_coding_utility") {
     "svc:scalability_mode_util",
     "//third_party/abseil-cpp/absl/numeric:bits",
     "//third_party/abseil-cpp/absl/strings:string_view",
+    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -1133,6 +1137,7 @@ if (rtc_include_tests) {
       "rtp_vp8_ref_finder_unittest.cc",
       "rtp_vp9_ref_finder_unittest.cc",
       "utility/bandwidth_quality_scaler_unittest.cc",
+      "utility/corruption_detection_settings_generator_unittest.cc",
       "utility/decoded_frames_history_unittest.cc",
       "utility/frame_dropper_unittest.cc",
       "utility/framerate_controller_deprecated_unittest.cc",
