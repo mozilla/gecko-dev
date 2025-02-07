@@ -1761,6 +1761,20 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
     static_cast<nsCSPContext*>(csp.get())->GetPolicyCount(&count);
   }
   if (count != 0) {
+    MOZ_ASSERT(count == 1, "chrome: pages should have exactly one CSP");
+
+    const nsCSPPolicy* policy = static_cast<nsCSPContext*>(csp.get())->GetPolicy(0);
+    {
+      AllowChromeResourceSrcVisitor visitor(CSPDirective::DEFAULT_SRC_DIRECTIVE,
+                                            spec);
+      if (!visitor.visit(policy)) {
+        if (!spec.EqualsLiteral("chrome://browser/content/browser.xhtml") &&
+            !spec.EqualsLiteral("chrome://browser/content/hiddenWindowMac.xhtml")) {
+          MOZ_CRASH_UNSAFE_PRINTF("Document (%s) CSP does not have a default-src!", spec.get());
+        }
+      }
+    }
+
     return;
   }
 
