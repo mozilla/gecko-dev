@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': 'f124e9d29ac3028e853779e1daffc15cdaaa2997',
+  'chromium_revision': 'c89ca31684bff0596ac8bb901a1d832c3d71a06f',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@49c9f503cfaf9c6b4d3d34565d2ef00aafed64c4',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@bc08e663f683e8445074f9076f8bb94004fbbb74',
     'condition': 'checkout_ios',
   },
   'src/testing':
     'https://chromium.googlesource.com/chromium/src/testing@425a626135276f38d16443ae57e12f715fa0e3e2',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@b8f5ac9dd67d2102d9f09ad3b328273013042717',
+    'https://chromium.googlesource.com/chromium/src/third_party@23e3555409fb7356805a177647e6acc01242eeab',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -168,7 +168,7 @@ deps = {
   'src/third_party/libc++abi/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@83dfa1f5bfce32d5f75695542468e37ead8163b8',
   'src/third_party/llvm-libc/src':
-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@74a86e874eb25533d83c34b09ec925c091039a7c',
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@fa202ff628394205418d311c5759874336921dd4',
   'src/third_party/libunwind/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@d1e95b102f113ded38974cf06a65fe0457b6004b',
 
