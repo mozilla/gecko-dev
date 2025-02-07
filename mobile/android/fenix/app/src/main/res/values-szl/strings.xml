@@ -546,16 +546,10 @@
     <string name="exceptions_empty_message_learn_more_link">Przewiydz sie wiyncyj</string>
 
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dane techniczne i ô używaniu</string>
-
-
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Udostympnio Mozilli dane ô przeglōndarce: sprowności, używaniu, sprzyńcie i sztalōnkach, coby my mogli polepszać aplikacyjo %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketingowe dane</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Udostympnio bazowe dane ô używaniu firmie Leanplum (naszymu dostowcy mobilnego marketingu)</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Badania</string>

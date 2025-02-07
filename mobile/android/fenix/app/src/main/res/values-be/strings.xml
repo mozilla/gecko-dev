@@ -842,14 +842,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Даведацца больш</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Выкарыстанне і тэхнічныя дадзеныя</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Дзяліцца звесткамі пра прадукцыйнасць, выкарыстанне, апаратнае забеспячэнне і налады вашага браўзера з Mozilla, каб дапамагчы ўдасканаліць %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетынгавыя дадзеныя</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Дзеліцца асноўнымі звесткамі аб выкарыстанні з Adjust, нашым пастаўшчыком мабільнага маркетынгу</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Даследаванні</string>

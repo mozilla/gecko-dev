@@ -306,14 +306,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">زیاتر بزانە</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">بەکارهێنان و زانیاری تەکنیکی</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">چوستی وێبگەڕ، بەکارهێنانی و زانیاری خوازراوی وێبگەڕەکەت بڵاوەپێدەکات لەگەڵ مۆزیلا بۆ ئەوەی یارمەتیمان بدات %1$s باشتر بکەین</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">زانیاری بازاڕیکردن</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">زانیاری سەرەتایی بڵاودەکاتەوە لەگەڵ Adjust، کە بریتییە لە فرۆشیارێکی ئێمە بۆ بازاڕی مۆبایل.</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">توێژینەوە</string>

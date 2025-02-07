@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Baixa i executa models d’IA al dispositiu</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Permet que els scripts de tercers no verificats accedeixin a les vostres dades</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Els scripts no verificats poden comportar riscos de seguretat i de privadesa. Executeu només els scripts procedents d’extensions o de fonts de confiança.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ampliar les eines per a desenvolupadors per accedir a les vostres dades de les pestanyes obertes</string>
     <!-- The version on of add-on. -->
@@ -183,7 +185,7 @@
     <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Afegeix-los al %1$s</string>
     <!-- This is the caption for not yet supported screen caption -->
-    <string name="mozac_feature_addons_not_yet_supported_caption2">Actualment estem treballant per oferir una selecció inicial d’extensions recomanades.</string>
+    <string name="mozac_feature_addons_not_yet_supported_caption2">Actualment treballem per oferir una selecció inicial d’extensions recomanades.</string>
     <!-- This is the caption for the extension installation progress overlay -->
     <string name="mozac_extension_install_progress_caption">S’està baixant i verificant l’extensió…</string>
     <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->

@@ -428,14 +428,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Alamin</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Usage at technical data</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Ibinabahagi sa Mozilla ang datos patungkol sa performance, paggamit, hardware at customization sa browser mo para mapaganda lalo ang %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketing data</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Nagbabahagi ng basic usage data sa Adjust, ang aming mobile marketing vendor</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Mga pag-aaral</string>

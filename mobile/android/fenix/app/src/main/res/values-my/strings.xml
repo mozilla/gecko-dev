@@ -343,14 +343,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ပိုမိုလေ့လာရန်</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">အသုံးပြုမှုနှင့်နည်းပညာဆိုင်ရာဒေတာ</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">သုံးဆွဲပုံ၊  စက်ပစ္စည်းအသေးစိတ် အချက်အလက် နှင့် ပြင်ဆင်ထားပုံများအား Mozilla နှင့် မျှဝေပြီး %1$s ကို ကောင်းအောင်လုပ်ရာတွင် ကူညီပါ</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">စျေးကွက်ရှာဖွေရေးအချက်အလက်</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ကျွန်ုပ်တို့၏ မိုဘိုင်းစျေးကွက် ရောင်းချသူ Adjust နှင့် အခြေခံ အသုံးပြုမှု ဒေတာ ကို ဝေမျှပါ</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">လေ့လာရေး</string>

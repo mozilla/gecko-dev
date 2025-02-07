@@ -333,10 +333,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Փակել գործիքների ցանկի էջը</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Փակել հարմարեցված ներդիրի ցանկի էջը</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Ընթերցելու տեսք, թարգմանել, տպել, համօգտագործում, բաց հավելված</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Ընթերցելու տեսք, տպել, համօգտագործել, բաց հավելված</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Ընթերցելու տեսք, թարգմանել, %s, տպել, համօգտագործել, բացել հավելված</string>
@@ -1038,8 +1034,6 @@
     <string name="exceptions_empty_message_learn_more_link">Իմանալ ավելին</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Օգտագործման և տեխնիկական տվյալներ</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Տեխնիկական և փոխազդեցության տվյալներ</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Իմանալ ավելին</string>
@@ -1047,8 +1041,6 @@
     <string name="preferences_usage_data_description">Կիսվում է արագագործության, օգտագործման, սարքակազմի և ձեր դիտարկիչի կարգավորումներով Mozilla-ի հետ՝ %1$s-ը էլ ավելի լավը դարձնելու համար</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Շուկայավարման տվյալներ</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Օգտագործման հիմնական տվյալները կիսում է Adjust- ի՝ մեր բջջային շուկայավարման մատակարարի հետ</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Կիսվեք Mozilla-ի մարքեթինգային գործընկերների հետ այն մասին, թե ինչպես եք հայտնաբերել Firefox-ը: Սա օգնում է մեզ զարգացնել Firefox-ը և կառուցել ավելի լավ համացանց</string>
     <!-- Learn more link for marketing data preference -->

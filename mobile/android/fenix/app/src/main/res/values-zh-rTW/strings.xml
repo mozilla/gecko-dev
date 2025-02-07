@@ -338,10 +338,6 @@
     <string name="browser_tools_menu_handlebar_content_description">關閉工具選單表</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">關閉自訂分頁選單表</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">閱讀畫面、翻譯、列印、分享、用應用程式開啟</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">閱讀畫面、列印、分享、用應用程式開啟</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">閱讀畫面、翻譯、%s、列印、分享、用應用程式開啟</string>
@@ -1075,8 +1071,6 @@
     <string name="exceptions_empty_message_learn_more_link">了解更多</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">使用與技術資料</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">技術與互動資料</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">傳送技術與互動資料</string>
@@ -1090,8 +1084,6 @@
     <string name="preferences_marketing_data">行銷資料</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">活動測量資料</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">與我們的行動行銷服務廠商 Adjust 分享基本使用資料</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 的相關資訊。這能夠幫助我們拓展 Firefox 使用率，打造更好的網際網路環境。</string>
     <!-- Preference description for marketing data collection.

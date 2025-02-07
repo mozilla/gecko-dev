@@ -319,10 +319,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Serriñ panell al lañser ostilhoù</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Serriñ panell al lañser ivinelloù personelaet</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Mod lenn, treiñ, moullañ, rannañ, digeriñ en un arload</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Mod lenn, moullañ, rannañ, digeriñ en un arload</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enrollañ</string>
@@ -916,14 +912,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Gouzout hirocʼh</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Roadennoù teknikel hag arver</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Rann ar roadennoù digonusted, arver, periant ha personeladur a-zivout ho merdeer gant Mozilla evit sikour acʼhanomp da wellaat %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Roadennoù Marketing</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Rannañ titouroù implijoù diazez gant Adjust, hor cʼheveler marketing hezoug</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kas an danevelloù sac’hadenn ent emgefreek</string>
 

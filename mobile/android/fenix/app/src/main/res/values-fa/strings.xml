@@ -325,10 +325,6 @@
     <string name="browser_tools_menu_handlebar_content_description">بستن برگه منوی ابزارها</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">بستن برگه منوی زبانه سفارشی</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">نمای مطالعه، ترجمه، چاپ، هم‌رسانی، باز کردن برنامه</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">نمای مطالعه، چاپ، هم‌رسانی، باز کردن برنامه</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">نمای مطالعه، ترجمه، %s، چاپ، هم‌رسانی، باز کردن برنامه</string>
@@ -1053,8 +1049,6 @@
     <string name="exceptions_empty_message_learn_more_link">بیشتر بدانید</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">میزان استفاده و داده فنی</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">داده‌های فنی و تعاملی</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">ارسال داده‌های فنی و تعاملی</string>
@@ -1068,8 +1062,6 @@
     <string name="preferences_marketing_data">ارزیابی داده</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">داده‌های اندازه‌گیری کمپین</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">داده‌های کاربردی اولیه را با Adjust، فراهم‌کنندهٔ بازریابی سیستم موبایل ما، اشتراک بگذارید</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">اطلاعاتی را درباره نحوه آشنایی شما با Firefox با همکاران بازاریابی Mozilla به هم‌رسانی بگذارید. این به ما کمک می‌کند تا Firefox را رشد دهیم و یک اینترنت بهتر بسازیم</string>
     <!-- Preference description for marketing data collection.

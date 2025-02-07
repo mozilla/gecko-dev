@@ -310,10 +310,6 @@
     <string name="browser_main_menu_content_description_help_button">مدد</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">ترتیباں</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">قاری منظر، ترجمہ، پرنٹ، شیئر، اوپن ایپ</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">قاری منظر، پرنٹ، شیئر، اوپن ایپس</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">محفوظ</string>
@@ -889,17 +885,12 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ٻیا سِکھو</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ورتاوا تے فنی ڈیٹا</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ٻیا سِکھو</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s کوں بہتر بݨاوݨ وچ ساݙی مدد کرݨ کیتے تہاݙے براؤزر دی کارکردگی، ورتاوا تے ہارڈویئر تے ڈیٹا کوں من پسند کاری کوں موزلّا نال شیئر کریندے </string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">مارکیٹنگ ڈیٹا</string>
-
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ساݙے موبائل مارکیٹنگ وینڈر ایڈجسٹمنٹ نال بݨیادی ورتاوے دا ڈیٹا شیئر کریندے</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">کریش رپورٹاں خودکار جمع کرواؤ</string>
 

@@ -373,8 +373,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Află mai multe</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Date tehnice și de utilizare</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Partajează cu Mozilla date privind performanța, utilizarea, hardware-ul și personalizările browserului tău pentru a ne ajuta să îmbunătățim %1$s</string>
     <!-- Preference switch for marketing data collection -->

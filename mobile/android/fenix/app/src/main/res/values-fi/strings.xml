@@ -336,10 +336,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Sulje työkaluvalikko</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Sulje mukautetun välilehden valikko</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Lukunäkymä, käännä, tulosta, jaa, avaa sovellus</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Lukunäkymä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lukunäkymä, käännä, %s, tulosta, jaa, avaa sovellus</string>
@@ -1063,8 +1059,6 @@
     <string name="exceptions_empty_message_learn_more_link">Lue lisää</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Käyttö- ja tekniset tiedot</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tekniset ja vuorovaikutustiedot</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Lue lisää</string>
@@ -1072,8 +1066,6 @@
     <string name="preferences_usage_data_description">Jakaa selaimen suorituskykyyn, käyttöön, laitteistoon ja mukauttamiseen liittyviä tietoja Mozillan kanssa, jotta %1$sia voidaan parantaa</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Markkinointitiedot</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Jakaa perustiedot käytöstä mobiilimarkkinointitoimittajamme Adjustin kanssa</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Jaa Mozillan markkinointikumppaneiden kanssa tietoja siitä, kuinka löysit Firefoxin. Tämä auttaa meitä kasvattamaan Firefoxia ja rakentamaan parempaa Internetiä</string>
     <!-- Learn more link for marketing data preference -->

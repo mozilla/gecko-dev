@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">ດາວໂຫຼດ ແລະ ເປີດໃຊ້ໂມເດວ AI ໃນອຸປະກອນຂອງທ່ານ</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">ອະນຸຍາດໃຫ້ສະຄຣິບບຸກຄົນທີ່ສາມທີ່ບໍ່ໄດ້ຢືນຢັນໃນການເຂົ້າເຖິງຂໍ້ມູນຂອງທ່ານ</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ສະຄຣິບທີ່ບໍ່ໄດ້ຮັບການຢືນຢັນສາມາດສ້າງຄວາມສ່ຽງດ້ານຄວາມປອດໄພ ແລະ ຄວາມເປັນສ່ວນຕົວ. ແລ່ນສະຄຣິບຈາກສ່ວນຂະຫຍາຍ ຫຼື ແຫຼ່ງທີ່ທ່ານເຊື່ອຖືເທົ່ານັ້ນ.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ຂະຫຍາຍເຄື່ອງມືຂອງນັກພັດທະນາເພື່ອເຂົ້າເຖິງຂໍ້ມູນຂອງທ່ານໃນແທັບທີ່ເປີດຢູ່</string>
     <!-- The version on of add-on. -->

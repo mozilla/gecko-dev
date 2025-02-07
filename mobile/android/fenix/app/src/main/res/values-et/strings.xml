@@ -522,16 +522,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Rohkem teavet</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Kasutamise ja tehnilised andmed</string>
-
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Jagab sinu brauseri sooritusvõimsuse, kasutamise, kohandamiste ja riistvara andmeid Mozillaga, et aidata meil %1$s paremaks teha.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Turundusandmed</string>
-
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Jagab põhilisi kasutusandmeid meie mobiiliturunduse teenusepakkujaga Adjust</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Uuringud</string>

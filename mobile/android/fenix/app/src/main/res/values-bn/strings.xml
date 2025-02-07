@@ -277,8 +277,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">আরও জানুন</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ব্যবহার এবং প্রযুক্তিগত তথ্য</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">আমাদের %1$s আরও উন্নত করতে সহায়তা করতে Mozilla -র সাথে আপনার ব্রাউজার সম্পর্কিত কর্মক্ষমতা, ব্যবহার, হার্ডওয়্যার এবং কাস্টমাইজেশন তথ্য শেয়ার করুন</string>
     <!-- Preference switch for marketing data collection -->

@@ -295,10 +295,6 @@
     <string name="browser_menu_tools">الأدوات</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">العودة إلى القائمة الرئيسية</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">عرض القارئ والترجمة والطباعة والمشاركة وفتح التطبيق</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">عرض القارئ والطباعة والمشاركة وفتح التطبيق</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">احفظ</string>
@@ -788,14 +784,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">اطّلع على المزيد</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">الاستخدام والبيانات التقنية</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">شارك بيانات المتصفح فيما يتعلق بالأداء و الاستخدام و العتاد و التخصيصات مع Mozilla لمساعدتنا في جعل %1$s أفضل</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">بيانات التسويق</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">يشارك بيانات الاستخدام الأساسية مع Adjust، الشركة التي نتعامل معها للتسويق على الهواتف</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">الدراسات</string>

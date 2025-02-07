@@ -66,10 +66,10 @@
     <string name="mozac_browser_errorpages_net_interrupt_title">La connessione è stata interrotta</string>
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
-	<p>Il browser è stato connesso correttamente, ma la connessione è stata interrotta durante il trasferimento delle informazioni. Riprovare. </p>
+	<p>Il browser si è connesso correttamente, ma la connessione è stata interrotta durante il trasferimento delle informazioni. Riprova. </p>
 	<ul>
-		<li> Il sito potrebbe essere temporaneamente non disponibile o troppo occupato. Riprovare tra qualche istante. </li>
-		<li> Se non si riesce a caricare alcuna pagina, controllare i dati del dispositivo o la connessione Wi-Fi.</li>
+		<li> Il sito potrebbe essere temporaneamente non disponibile o troppo occupato. Riprova tra qualche istante. </li>
+		<li> Se non è possibile caricare alcuna pagina, controlla i dati del dispositivo o la connessione Wi-Fi.</li>
 	</ul>
 	]]></string>
 
@@ -130,10 +130,10 @@
     <string name="mozac_browser_errorpages_net_reset_title">La connessione è stata annullata</string>
     <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
     <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[
-	<p>Il collegamento di rete è stato interrotto durante la negoziazione di una connessione. Riprovare. </p>
+	<p>Il collegamento di rete è stato interrotto durante la negoziazione di una connessione. Riprova. </p>
 	<ul>
-		<li> Il sito potrebbe essere temporaneamente non disponibile o troppo occupato. Riprovare tra qualche istante. </li>
-		<li> Se non si riesce a caricare alcuna pagina, controllare i dati del dispositivo o la connessione Wi-Fi.</li>
+		<li> Il sito potrebbe essere temporaneamente non disponibile o troppo occupato. Riprova tra qualche istante. </li>
+		<li> Se non è possibile caricare alcuna pagina, controlla i dati del dispositivo o la connessione Wi-Fi.</li>
 	</ul>
 	]]></string>
 

@@ -314,10 +314,6 @@
     <string name="browser_main_menu_content_description_help_button">Pomoć</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Postavke</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Prikaz za čitanje, prevedi, ispiši, dijeli, otvori aplikaciju</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Prikaz za čitanje, ispiši, dijeli, otvori aplikaciju</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Spremi</string>
@@ -960,8 +956,6 @@
     <string name="exceptions_empty_message_learn_more_link">Saznaj više</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Upotreba i tehnički podaci</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tehnički podaci i podaci o interakciji</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saznaj više</string>
@@ -969,8 +963,6 @@
     <string name="preferences_usage_data_description">Dijeli podatke o performansama, korištenju, hardveru i prilagodbama tvog preglednika s Mozillom, kako bismo unaprijedili %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketinški podaci</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Dijeli osnovne podatke o korištenju s Adjustom, našim pružateljem mobilnog marketinga</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Istraživanja</string>

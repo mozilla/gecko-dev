@@ -334,10 +334,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Menublêd Ekstra slute</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Menublêd Ljepblêd oanpasse slute</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Lêzerwerjefte, Oersette, Ofdrukke, Diele, App iepenje</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Lêzerwerjefte, Ofdrukke, Diele, App iepenje</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lêzerwerjefte, Oersette, %s, Ofdrukke, Diele, App iepenje</string>
@@ -1065,8 +1061,6 @@
     <string name="exceptions_empty_message_learn_more_link">Mear ynfo</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Gebrûks- en technyske gegevens</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technyske en ynteraksjegegevens</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Technyske en ynteraksjegegevens ferstjoere</string>
@@ -1080,8 +1074,6 @@
     <string name="preferences_marketing_data">Marketinggegevens</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Mjitgegevens fan kampanje</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Dielt basale gebrûksgegevens mei Adjust, ús leveransier fan mobile marketing</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Diel ynformaasje oer hoe’t jo Firefox ûntdutsen hawwe mei de marketingpartners fan Mozilla. Dit helpt ús Firefox groeie te litten en in better ynternet te bouwen</string>
     <!-- Preference description for marketing data collection.
@@ -2083,6 +2075,8 @@
     <string name="about_privacy_notice">Privacyferklearring</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Ken jo rjochten</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Brûkersbetingsten</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Lisinsje-ynformaasje</string>
 

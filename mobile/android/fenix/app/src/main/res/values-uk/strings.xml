@@ -331,10 +331,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Закрити сторінку меню інструментів</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Закрити сторінку меню користувацьких вкладок</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Режим читання, Переклад, Друк, Поділитися, Відкрити програму</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Режим читання, Друк, Поділитися, Відкрити програму</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Режим читання, Переклад, %s, Друк, Поділитися, Відкрити програму</string>
@@ -1060,8 +1056,6 @@
     <string name="exceptions_empty_message_learn_more_link">Докладніше</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Використання й технічні дані</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Технічні дані та дані взаємодії</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Докладніше</string>
@@ -1069,8 +1063,6 @@
     <string name="preferences_usage_data_description">Надсилати в Mozilla дані про використання, швидкодію, апаратне забезпечення та налаштування браузера, щоб допомогти вдосконалити %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетингові дані</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Надсилати основні дані про використання до нашого постачальника мобільного маркетингу Adjust</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Поділіться інформацією про те, як ви відкрили для себе Firefox, із маркетинговими партнерами Mozilla. Це допомагає нам розвивати Firefox і створювати кращий Інтернет.</string>
     <!-- Learn more link for marketing data preference -->

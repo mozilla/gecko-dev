@@ -334,10 +334,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Meni Rědy zacyniś</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Swójski meni rejtarikow zacyniś</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Cytański naglěd, pśełožyś, śišćaś, źěliś, nałoženje wócyniś</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Cytański naglěd, śišćaś, źěliś, nałoženje wócyniś</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Cytański naglěd, pśełožyś, %s, śišćaś, źěliś, nałoženje wócyniś</string>
@@ -1062,8 +1058,6 @@
     <string name="exceptions_empty_message_learn_more_link">Dalšne informacije</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Wužyśe a techniske daty</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Techniske daty a daty interakcije</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Techniske daty a daty interakcije pósłaś</string>
@@ -1077,8 +1071,6 @@
     <string name="preferences_marketing_data">Marketingowe daty</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Měrjeńske daty za kampanju</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Źěli zakładne wužywańske daty z Adjust, našym mobilnym marketingowym póbitowarjom</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Dajśo informacije wó tom k wěsći, kak sćo zgónił wó Firefox  z marketingowymi partnarjami Mozilla. To nam pomaga, Firefox dalej wuwijaś a lěpšy internet twariś</string>
     <!-- Preference description for marketing data collection.

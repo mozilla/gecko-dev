@@ -198,8 +198,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Tuilleadh eolais</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Úsáid agus sonraí teicniúla</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Seolann sé faisnéis maidir le feidhmíocht, úsáid, crua-earraí, agus saincheapadh an bhrabhsálaí chuig Mozilla chun cabhrú linn feabhas a chur ar %1$s</string>
     <!-- Preference switch for marketing data collection -->

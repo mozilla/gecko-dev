@@ -288,10 +288,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Serra su pannellu de menù de ainas</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Serra su pannellu de menù de ischedas personalizadas</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Visualizatzione de letura, Tradue, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Visualizatzione de letura, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Visualizatzione de letura, Tradue, %s, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
@@ -869,9 +865,6 @@
     <string name="exceptions_empty_message_description">Is estensiones ti permitint de disativare s\'amparu contra a sa sighidura in tzertos sitos.</string>
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Àteras informatziones</string>
-
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Impreu e datos tècnicos</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Istùdios</string>

@@ -231,8 +231,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Atre informaçioin</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dæti tecnichi e statistiche d\'uzo</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Condividdi con Mozilla informaçioin in sce prestaçioin, uzo, hardware e personalizaçioin do navegatô pe contribuî a-o megioamento de %1$s</string>
     <!-- Preference switch for marketing data collection -->

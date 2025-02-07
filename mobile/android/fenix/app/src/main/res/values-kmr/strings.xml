@@ -329,10 +329,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Menuya amûran bigire</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Menuya hilpekîna taybet bigire</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, Çapkirin, Parvekirin, Bernamokê veke</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, Çapkirin, Bernamokê veke</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, %s, Çapkirin, Parvekirin, Bernamokê veke</string>
@@ -805,14 +801,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Zêdetir bizane</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Daneyên bikaranînê û teknîkî</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Performans, bikaranîn, reqalav û daneyên taybetkirinê yên têkildarî geroka te bi Mozillayê re parve dike, ji bo ku em karibin pê %1$s’ê baştir bikin</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Daneyên bazarkirinê</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Daneyên bikaranînê yên bingehîn bi hevkara me ya kar Adjustê tên parvekirin</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Lêkolîn</string>

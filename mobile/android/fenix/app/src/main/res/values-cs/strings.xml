@@ -339,10 +339,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Zavřít seznam s nabídkou nástrojů</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Zavřít seznam s nabídkou pro vlastní panel</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Zobrazení čtečky, Překlad, Tisk, Sdílet, Otevřít aplikaci</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Zobrazení čtečky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Zobrazení čtečky, Překlad, %s, Tisk, Sdílet, Otevřít aplikaci</string>
@@ -1065,8 +1061,6 @@
     <string name="exceptions_empty_message_learn_more_link">Zjistit více</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Údaje a používání a technická data</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technické údaje a údaje o interakcích</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Odesílat technická data a data o interakcích</string>
@@ -1076,8 +1070,6 @@
     <string name="preferences_usage_data_description">Zaznamenává data o výkonu, hardwaru, používání a přizpůsobení prohlížeče %1$s. Data o prohlížeči jsou sdílena s organizací Mozilla z důvodu jeho vylepšení.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketingová data</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Sdílí základní údaje a používání a technické údaje se společností Adjust, naším partnerem pro marketing</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sdílejte informace o tom, jak jste Firefox objevili, s marketingovými partnery společnosti Mozilla. Pomáhá nám to rozvíjet Firefox a vytvářet lepší internet</string>
     <!-- Learn more link for marketing data preference -->

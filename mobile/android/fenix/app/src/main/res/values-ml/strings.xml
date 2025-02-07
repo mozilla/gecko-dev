@@ -321,10 +321,6 @@
     <string name="browser_tools_menu_handlebar_content_description">കരുക്കുറിപ്പടി കടലാസു് അടയ്ക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, %s, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
@@ -995,8 +991,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">കൂടുതല്‍ അറിയുക</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ഉപയോഗവും സാങ്കേതിക ഡാറ്റയും</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത</string>
     <!-- Preference switch for usage and technical data collection -->

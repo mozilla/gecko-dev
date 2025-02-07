@@ -311,10 +311,6 @@
     <string name="browser_menu_switch_to_mobile_site">موبایل سایتا گئچین</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">آلت‌لر</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">اوْخویوجو گؤرونوشو، ترجمه، پرینت، پایلاشما، اَپ آچما</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">اوْخویوجو گؤرونوشو، پرینت، پایلاشما، اَپ آچما</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ساخلا</string>
@@ -881,14 +877,10 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">آرتیق بیلین</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ایشه آلما و فنی دیتالار</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s داها یاخچیْ ائتمک اوچون موُروچونوز حاقیندا ایشله‌ییش،ایشه آلما، دوْنانیم و اؤزللشدیرمه دیتالارینی موزیلا ایله پایلاشیر.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">بازارلاما دیتاسیْ</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">اساس ایشه آلما بیلگی‌لرینی موبایل بازارلاما ایش اوْرتاغیمیز Adjust ایله پایلاشیر.</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">آراشدیرمالار</string>

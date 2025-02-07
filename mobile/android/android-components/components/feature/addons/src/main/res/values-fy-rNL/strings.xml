@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">AI-modellen downloade en op jo apparaat útfiere</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Net-ferifiearre scripts fan tredden tagong ta jo gegevens jaan</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Net ferifiearre scripts kinne befeiligings- en privacyrisiko’s foarmje. Fier allinnich scripts út fan útwreidingen of boarnen dy’\'t jo fertrouwe.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Untwikkelersark útwreidzje om jo gegevens yn iepen ljepblêden te benaderjen</string>
     <!-- The version on of add-on. -->

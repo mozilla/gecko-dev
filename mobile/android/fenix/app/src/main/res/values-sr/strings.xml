@@ -916,8 +916,6 @@
     <string name="exceptions_empty_message_learn_more_link">Сазнајте више</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Употреба и технички подаци</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Технички и интеракцијски подаци</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Сазнајте више</string>
@@ -925,8 +923,6 @@
     <string name="preferences_usage_data_description">Делите податке о перформансама, употреби, хардверу и прилагођавањима вашег прегледача с Mozilla-ом како бисте нам помогли у побољшавању апликације %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетиншки подаци</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Подели податке о основном коришћењу са фирмом Adjust, нашим сарадником за маркетинг</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аутоматски шаљите извештаје о паду</string>
 

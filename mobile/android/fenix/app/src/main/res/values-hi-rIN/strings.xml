@@ -351,8 +351,6 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">अधिक जानें</string>
 
-    <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">उपयोगिता और तकनीकी डेटा</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Mozilla के साथ अपने ब्राउज़र के बारे में प्रदर्शन, उपयोग, हार्डवेयर और अनुकूलन डेटा साझा करना हमें %1$s को बेहतर बनाने में मदद करता है</string>
     <!-- Preference switch for marketing data collection -->

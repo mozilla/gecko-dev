@@ -339,10 +339,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Menublad Extra sluiten</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Menublad Tabblad aanpassen sluiten</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Lezerweergave, Vertalen, Afdrukken, Delen, App openen</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Lezerweergave, Afdrukken, Delen, App openen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lezerweergave, Vertalen, %s, Afdrukken, Delen, App openen</string>
@@ -1070,8 +1066,6 @@
     <string name="exceptions_empty_message_learn_more_link">Meer info</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Gebruiks- en technische gegevens</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Technische en interactiegegevens</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Technische en interactiegegevens verzenden</string>
@@ -1085,8 +1079,6 @@
     <string name="preferences_marketing_data">Marketinggegevens</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Meetgegevens van campagne</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Deelt basale gebruiksgegevens met Adjust, onze leverancier van mobiele marketing</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Deel informatie over hoe u Firefox hebt ontdekt met marketingpartners van Mozilla. Dit helpt ons Firefox te laten groeien en een beter internet te bouwen</string>
     <!-- Preference description for marketing data collection.

@@ -332,10 +332,6 @@
     <string name="browser_tools_menu_handlebar_content_description">Cerrar la hoja del menú de herramientas</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Cerrar la hoja del menú de pestañas personalizadas</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Vista de lector, traducir, imprimir, compartir, abrir aplicación</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Vista de lector, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Vista de lector, traducir, %s, imprimir, compartir, abrir aplicación</string>
@@ -1062,8 +1058,6 @@
     <string name="exceptions_empty_message_learn_more_link">Aprender más</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Datos de uso y técnicos</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Datos técnicos y de interacción</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">Enviar datos técnicos y de interacción</string>
@@ -1077,8 +1071,6 @@
     <string name="preferences_marketing_data">Datos de marketing</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Datos de medición de campañas</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Comparte datos de uso básico con Adjust, nuestro proveedor de marketing móvil</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Comparte información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir un mejor Internet</string>
     <!-- Preference description for marketing data collection.
@@ -2081,6 +2073,8 @@
     <string name="about_privacy_notice">Política de privacidad</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Conoce tus derechos</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Términos de uso</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Información de licencia</string>
     <!-- About page link text to open a screen with libraries that are used -->

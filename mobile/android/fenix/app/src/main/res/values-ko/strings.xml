@@ -340,10 +340,6 @@
     <string name="browser_tools_menu_handlebar_content_description">도구 메뉴 시트 닫기</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">사용자 지정 탭 메뉴 시트 닫기</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">리더뷰, 번역, 인쇄, 공유, 앱 열기</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">리더뷰, 인쇄, 공유, 앱 열기</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">리더뷰, 번역, %s, 인쇄, 공유, 앱 열기</string>
@@ -1081,8 +1077,6 @@
     <string name="exceptions_empty_message_learn_more_link">더 알아보기</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">사용 현황 및 기술 데이터</string>
-    <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">기술 및 상호 작용 데이터</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_2" tools:ignore="UnusedResources">기술과 상호작용 데이터 보내기</string>
@@ -1096,8 +1090,6 @@
     <string name="preferences_marketing_data">마케팅 데이터</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">캠페인 측정 마케팅 데이터</string>
-    <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">모바일 마케팅 공급업체인 Adjust와 기본 사용 현황 데이터를 공유</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Firefox를 발견한 방법에 대한 정보를 Mozilla의 마케팅 파트너와 공유하세요. Firefox를 성장시키고 더 나은 인터넷을 구축하는 데 도움이 됩니다</string>
     <!-- Preference description for marketing data collection.
