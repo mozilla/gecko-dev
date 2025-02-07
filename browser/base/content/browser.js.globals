@@ -42,6 +42,7 @@
   "BrowserOnClick",
   "getMeOutOfHere",
   "getDefaultHomePage",
+  "getPEMString",
   "browserDragAndDrop",
   "homeButtonObserver",
   "openHomeDialog",

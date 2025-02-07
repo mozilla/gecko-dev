@@ -15,10 +15,6 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
-EXTRA_JS_MODULES.psm += [
-    "pippki.sys.mjs",
-]
-
 LOCAL_INCLUDES += [
     "!/dist/public/nss",
 ]

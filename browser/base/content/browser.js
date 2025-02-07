@@ -1662,6 +1662,20 @@ function getDefaultHomePage() {
   return url;
 }
 
+// TODO: can we pull getPEMString in from pippki.js instead of
+// duplicating them here?
+function getPEMString(cert) {
+  var derb64 = cert.getBase64DERString();
+  // Wrap the Base64 string into lines of 64 characters,
+  // with CRLF line breaks (as specified in RFC 1421).
+  var wrapped = derb64.replace(/(\S{64}(?!$))/g, "$1\r\n");
+  return (
+    "-----BEGIN CERTIFICATE-----\r\n" +
+    wrapped +
+    "\r\n-----END CERTIFICATE-----\r\n"
+  );
+}
+
 var browserDragAndDrop = {
   canDropLink: aEvent => Services.droppedLinkHandler.canDropLink(aEvent, true),
 

@@ -1,12 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+/* import-globals-from pippki.js */
 "use strict";
-
-const { alertPromptService } = ChromeUtils.importESModule(
-  "resource://gre/modules/psm/pippki.sys.mjs"
-);
 
 document.addEventListener("dialogaccept", onDialogAccept);
 
@@ -60,7 +56,7 @@ function onDialogAccept(event) {
 
 async function addModuleFailure(l10nID) {
   let [AddModuleFailure] = await document.l10n.formatValues([{ id: l10nID }]);
-  alertPromptService(window, null, AddModuleFailure);
+  alertPromptService(null, AddModuleFailure);
 }
 
 function validateModuleName() {

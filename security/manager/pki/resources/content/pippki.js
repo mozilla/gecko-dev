@@ -3,27 +3,30 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 /*
  * These are helper functions to be included
  * pippki UI js files.
  */
 
-export function setText(doc, id, value) {
-  let element = doc.getElementById(id);
+function setText(id, value) {
+  let element = document.getElementById(id);
   if (!element) {
     return;
   }
   if (element.hasChildNodes()) {
     element.firstChild.remove();
   }
-  element.appendChild(doc.createTextNode(value));
+  element.appendChild(document.createTextNode(value));
 }
 
-export async function getCertViewerUrl(cert) {
+async function viewCertHelper(parent, cert, openingOption = "tab") {
   if (!cert) {
-    return "";
+    return;
   }
+
+  let win = Services.wm.getMostRecentBrowserWindow();
   let results = await asyncDetermineUsages(cert);
   let chain = getBestChain(results);
   if (!chain) {
@@ -32,12 +35,7 @@ export async function getCertViewerUrl(cert) {
   let certs = chain.map(elem => encodeURIComponent(elem.getBase64DERString()));
   let certsStringURL = certs.map(elem => `cert=${elem}`);
   certsStringURL = certsStringURL.join("&");
-  return `about:certificate?${certsStringURL}`;
-}
-
-export async function viewCertHelper(parent, cert, openingOption = "tab") {
-  let win = Services.wm.getMostRecentBrowserWindow();
-  let url = await getCertViewerUrl(cert);
+  let url = `about:certificate?${certsStringURL}`;
   let opened = win.switchToTabHavingURI(url, false, {});
   if (!opened) {
     win.openTrustedLinkIn(url, openingOption);
@@ -56,7 +54,7 @@ function getPKCS7Array(certArray) {
   return pkcs7Array;
 }
 
-export function getPEMString(cert) {
+function getPEMString(cert) {
   var derb64 = cert.getBase64DERString();
   // Wrap the Base64 string into lines of 64 characters with CRLF line breaks
   // (as specified in RFC 1421).
@@ -68,7 +66,7 @@ export function getPEMString(cert) {
   );
 }
 
-export function alertPromptService(window, title, message) {
+function alertPromptService(title, message) {
   // XXX Bug 1425832 - Using Services.prompt here causes tests to report memory
   // leaks.
   // eslint-disable-next-line mozilla/use-services
@@ -104,7 +102,7 @@ function certToFilename(cert) {
   return `${filename}.${DEFAULT_CERT_EXTENSION}`;
 }
 
-export async function exportToFile(parent, document, cert) {
+async function exportToFile(parent, cert) {
   if (!cert) {
     return;
   }
@@ -183,7 +181,7 @@ export async function exportToFile(parent, document, cert) {
     await IOUtils.write(fp.file.path, content);
   } catch (ex) {
     let title = await document.l10n.formatValue("write-file-failure");
-    alertPromptService(parent, title, ex.toString());
+    alertPromptService(title, ex.toString());
   }
   if (Cu.isInAutomation) {
     Services.obs.notifyObservers(null, "cert-export-finished");

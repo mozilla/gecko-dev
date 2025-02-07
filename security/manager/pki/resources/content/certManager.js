@@ -1,16 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+/* import-globals-from pippki.js */
 "use strict";
 
 const gCertFileTypes = "*.p7b; *.crt; *.cert; *.cer; *.pem; *.der";
 
 var { NetUtil } = ChromeUtils.importESModule(
   "resource://gre/modules/NetUtil.sys.mjs"
-);
-const { exportToFile, viewCertHelper } = ChromeUtils.importESModule(
-  "resource://gre/modules/psm/pippki.sys.mjs"
 );
 
 var key;
@@ -671,7 +668,7 @@ async function exportCerts() {
   getSelectedCerts();
 
   for (let cert of selected_certs) {
-    await exportToFile(window, document, cert);
+    await exportToFile(window, cert);
   }
 }
 
