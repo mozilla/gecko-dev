@@ -1,0 +1,40 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Tue, 28 Jan 2025 21:45:00 +0000
+Subject: Bug 1938047 - Link adapted_video_track_source.cc and generate webrtc
+ moz.build files. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D234863
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6dd815fc9d2df718a1b48b96f58f99c0cfb7e19
+---
+ media/BUILD.gn | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 401e739dce..06aec5e30f 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -53,11 +53,6 @@ rtc_library("rtc_media_base") {
+     "base/video_broadcaster.h",  # Used downstream
+     "base/video_common.h",  # Used downstream
+   ]
+-  if (build_with_mozilla) {
+-    sources -= [
+-      "base/adapted_video_track_source.h",
+-    ]
+-  }
+   deps = [
+     ":adapted_video_track_source",
+     ":codec",
+@@ -137,12 +132,6 @@ rtc_library("adapted_video_track_source") {
+     "base/adapted_video_track_source.cc",
+     "base/adapted_video_track_source.h",
+   ]
+-  if (build_with_mozilla) {
+-    sources -= [
+-      "base/adapted_video_track_source.cc",
+-      "base/adapted_video_track_source.h",
+-    ]
+-  }
+   deps = [
+     ":video_adapter",
+     ":video_broadcaster",
