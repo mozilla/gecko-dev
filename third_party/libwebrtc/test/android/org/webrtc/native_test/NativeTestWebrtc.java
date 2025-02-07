@@ -195,6 +195,7 @@ public class NativeTestWebrtc {
     // Signal a failure of the native test loader to python scripts
     // which run tests.  For example, we look for
     // RUNNER_FAILED build/android/test_package.py.
+    @SuppressWarnings("UnusedMethod")
     private void nativeTestFailed() {
         Log.e(TAG, "[ RUNNER_FAILED ] could not load native library");
     }
