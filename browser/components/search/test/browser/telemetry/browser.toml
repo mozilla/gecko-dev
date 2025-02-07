@@ -238,6 +238,13 @@ support-files = ["searchTelemetrySinglePageApp.html"]
 ["browser_search_telemetry_spa_single_tab.js"]
 support-files = ["searchTelemetrySinglePageApp.html"]
 
+["browser_search_telemetry_subframe.js"]
+support-files = [
+  "searchTelemetryAd_with_sponsored_subframe_hidden.html",
+  "searchTelemetryAd_with_sponsored_subframe_visible.html",
+  "searchTelemetrySubframe.html",
+]
+
 ["browser_search_telemetry_visibility_helper_horizontal.js"]
 
 ["browser_search_telemetry_visibility_helper_vertical.js"]
