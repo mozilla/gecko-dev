@@ -129,8 +129,7 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
 
 uint32_t PacketBuffer::ClearTo(uint16_t seq_num) {
   // We have already cleared past this sequence number, no need to do anything.
-  if (is_cleared_to_first_seq_num_ &&
-      AheadOf<uint16_t>(first_seq_num_, seq_num)) {
+  if (AheadOf<uint16_t>(first_seq_num_, seq_num)) {
     return 0;
   }
 

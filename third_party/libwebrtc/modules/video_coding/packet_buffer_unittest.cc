@@ -839,6 +839,13 @@ TEST_F(PacketBufferH264FrameGap,
       SizeIs(2));
 }
 
+TEST_F(PacketBufferH264FrameGap, DoesntCrashWhenTryToClearBefore1stPacket) {
+  // Test scenario copied from the https://issues.chromium.org/370689424
+  InsertH264(41087, kKeyFrame, kNotFirst, kNotLast, 123, 0, 0, false);
+  packet_buffer_.ClearTo(30896);
+  InsertH264(32896, kKeyFrame, kFirst, kLast, 123, 0, 0, false);
+}
+
 }  // namespace
 }  // namespace video_coding
 }  // namespace webrtc

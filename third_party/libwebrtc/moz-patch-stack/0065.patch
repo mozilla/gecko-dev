@@ -127,18 +127,17 @@ index 352d016dde..574d8cea6d 100644
      TimeDelta total_decode_time = TimeDelta::Zero();
      // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index 9d7b6e550c..c1f367cb3e 100644
+index df53e81685..5a1781082f 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
-@@ -127,25 +127,27 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
+@@ -127,24 +127,26 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
    return result;
  }
  
 -void PacketBuffer::ClearTo(uint16_t seq_num) {
 +uint32_t PacketBuffer::ClearTo(uint16_t seq_num) {
    // We have already cleared past this sequence number, no need to do anything.
-   if (is_cleared_to_first_seq_num_ &&
-       AheadOf<uint16_t>(first_seq_num_, seq_num)) {
+   if (AheadOf<uint16_t>(first_seq_num_, seq_num)) {
 -    return;
 +    return 0;
    }
@@ -161,7 +160,7 @@ index 9d7b6e550c..c1f367cb3e 100644
        stored = nullptr;
      }
      ++first_seq_num_;
-@@ -161,6 +163,8 @@ void PacketBuffer::ClearTo(uint16_t seq_num) {
+@@ -160,6 +162,8 @@ void PacketBuffer::ClearTo(uint16_t seq_num) {
  
    received_padding_.erase(received_padding_.begin(),
                            received_padding_.lower_bound(seq_num));
