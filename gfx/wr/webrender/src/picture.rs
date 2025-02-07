@@ -147,6 +147,7 @@ use crate::tile_cache::{SliceDebugInfo, TileDebugInfo, DirtyTileDebugInfo};
 use crate::visibility::{PrimitiveVisibilityFlags, FrameVisibilityContext};
 use crate::visibility::{VisibilityState, FrameVisibilityState};
 use crate::scene_building::SliceFlags;
+use core::time::Duration;
 
 // Maximum blur radius for blur filter (different than box-shadow blur).
 // Taken from FilterNodeSoftware.cpp in Gecko.
@@ -8065,7 +8066,7 @@ fn get_surface_rects(
     // We need to put the clipped, unclipped and source rects in the chosen
     // raster spatial node if possible, so that it will be rendered at the
     // proper pixel scale with antialiasing, otherwise it would be blurry.
-    let (mut clipped, mut unclipped, mut source) = if surface.raster_spatial_node_index != surface.surface_spatial_node_index {
+    let (clipped, unclipped, source) = if surface.raster_spatial_node_index != surface.surface_spatial_node_index {
         // Transform surface into the chosen raster spatial node
         assert_eq!(surface.device_pixel_scale.0, 1.0);
 
@@ -8105,14 +8106,16 @@ fn get_surface_rects(
     //
     // If you change this, test with:
     // ./mach crashtest layout/svg/crashtests/387290-1.svg
+    let clipped_snapped = clipped.round_out();
+    let source_snapped = source.round_out();
     let max_dimension =
-        clipped.width().max(
-            clipped.height().max(
-                source.width().max(
-                    source.height()
+        clipped_snapped.width().max(
+            clipped_snapped.height().max(
+                source_snapped.width().max(
+                    source_snapped.height()
                 ))).ceil();
-    let max_allowed_dimension = max_surface_size - 4.0;
-    if max_dimension > max_allowed_dimension {
+    let max_allowed_dimension = max_surface_size;
+    let (clipped, unclipped, source, clipped_snapped) = if max_dimension > max_allowed_dimension {
         // We have to recalculate max_dimension for the local space we'll be using
         let max_dimension =
             clipped_local.width().max(
@@ -8124,13 +8127,24 @@ fn get_surface_rects(
         surface.device_pixel_scale = Scale::new(max_allowed_dimension / max_dimension);
         surface.local_scale = (1.0, 1.0);
 
-        clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
-        unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
-        source = source_local.cast_unit() * surface.device_pixel_scale;
-    }
+        let new_clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
+        let new_unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
+        let new_source = source_local.cast_unit() * surface.device_pixel_scale;
 
-    let source = source.round_out();
-    let clipped_snapped = clipped.round_out();
+        let add_markers = profiler::thread_is_being_profiled();
+        if add_markers {
+            profiler::add_text_marker("SurfaceSizeLimited",
+                format!("Surface reduced from raster {:?} (source {:?}) to local {:?} (source {:?})",
+                    clipped.size(), source.size(),
+                    new_clipped.size(), new_source.size()).as_str(),
+                Duration::from_secs_f32(new_clipped.width() * new_clipped.height() / 1000000000.0));
+        }
+
+        (new_clipped, new_unclipped, new_source.round(), new_clipped.round())
+    } else {
+        (clipped, unclipped, source.round_out(), clipped.round_out())
+    };
+
     let task_size = clipped_snapped.size().to_i32();
     assert!(
         task_size.width <= max_surface_size as i32 &&
