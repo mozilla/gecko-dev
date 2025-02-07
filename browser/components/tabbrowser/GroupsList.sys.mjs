@@ -22,36 +22,17 @@ export class GroupsPanel {
           this.#showAll = false;
           this.panelMultiView = this.view.panelMultiView;
           this.#populate();
-          Services.obs.addObserver(this, "sessionstore-closed-objects-changed");
-          Services.obs.addObserver(this, "browser-tabgroup-removed-from-dom");
         }
         break;
       case "PanelMultiViewHidden":
         if ((this.panelMultiView = event.target)) {
           this.#cleanup();
-          Services.obs.removeObserver(
-            this,
-            "sessionstore-closed-objects-changed"
-          );
-          Services.obs.removeObserver(
-            this,
-            "browser-tabgroup-removed-from-dom"
-          );
           this.panelMultiView = null;
         }
+
         break;
       case "command":
         this.#handleCommand(event);
-        break;
-    }
-  }
-
-  observe(aSubject, aTopic) {
-    switch (aTopic) {
-      case "sessionstore-closed-objects-changed":
-      case "browser-tabgroup-removed-from-dom":
-        this.#cleanup();
-        this.#populate();
         break;
     }
   }
@@ -80,7 +61,7 @@ export class GroupsPanel {
 
   #setupListeners() {
     this.view.addEventListener("command", this);
-    this.panelMultiView.addEventListener("PanelMultiViewHidden", this);
+    this.view.panelMultiView.addEventListener("PanelMultiViewHidden", this);
   }
 
   #cleanup() {
